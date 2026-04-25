@@ -68,9 +68,9 @@
 }
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__price {
-  font-size: typography.mel-font-size(md);
-  font-weight: typography.$mel-font-semibold;
-  color: colors.$mel-color-navy;
+  font-size: 20px;
+  font-weight: 700;
+  color: #24303a;
   line-height: 1.25;
 }
 
@@ -80,8 +80,9 @@
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__chip {
   display: block;
-  font-size: 13px;
-  color: #7c8791;
+  font-size: 12px;
+  color: #9aa5b1;
+  margin-bottom: 4px;
 }
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__cta {
@@ -92,6 +93,7 @@
   width: 100%;
   display: inline-flex;
   justify-content: center;
+  font-weight: 600;
   box-sizing: border-box;
 }
 
@@ -135,6 +137,26 @@
   width: auto;
   margin: 0;
   align-self: center;
+}
+
+// Booking sidebar save: tactile press on Flag link (see also .mel-event--v2 .mel-event-save .flag a).
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save .flag-event_save a {
+  transition: transform 0.15s ease;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save .flag-event_save a:active {
+  transform: scale(0.9);
+}
+
+// Mobile: keep booking CTA in the thumb zone while the sidebar is in view.
+@media (max-width: 768px) {
+  .mel-event--v2 .mel-card--sticky .mel-booking-panel__cta {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding: 12px;
+    z-index: 20;
+  }
 }
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__save-text strong {
@@ -192,11 +214,33 @@
   font-weight: typography.$mel-font-medium;
 }
 
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--highlight {
+  background: #fff6e6;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--highlight .mel-icon {
+  flex: 0 0 auto;
+  line-height: 1.25;
+  font-size: 1.125rem;
+  user-select: none;
+}
+
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__item-icon {
   flex: 0 0 auto;
   line-height: 1.25;
   font-size: 1.125rem;
   user-select: none;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--social {
+  font-size: 14px;
+  color: #24303A;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--social .mel-icon {
+  color: #f26d5b;
 }
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__capacity {

@@ -900,6 +900,28 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   }
 
   $view_mode = (string) ($variables['view_mode'] ?? 'default');
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_save_count')) {
+    /** @var \Drupal\myeventlane_core\Service\EventSaveCountService $save_count_service */
+    $save_count_service = \Drupal::service('myeventlane_core.event_save_count');
+    $count = $save_count_service->getSaveCount((int) $node->id());
+    $variables['event_save_count_total'] = $count;
+    if ($count > 0) {
+      $variables['event_save_count'] = [
+        '#markup' => \Drupal::translation()->formatPlural(
+          $count,
+          '1 person saved this',
+          '@count people saved this',
+        ),
+        '#cache' => [
+          'contexts' => ['languages:language_interface'],
+          'tags' => ['flagging_list'],
+        ],
+      ];
+    }
+    else {
+      $variables['event_save_count'] = NULL;
+    }
+  }
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
   // Semantic CTA and badges: always set for the event bundle (all view modes: full,
   // teaser, event_card, etc.); do not scope to a single view mode here.

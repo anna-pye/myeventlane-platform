@@ -3,6 +3,10 @@ services:
   myeventlane_core.entity_id_normalizer:
     class: Drupal\myeventlane_core\Service\EntityIdNormalizer
 
+  myeventlane_core.event_save_count:
+    class: Drupal\myeventlane_core\Service\EventSaveCountService
+    arguments: ['@entity_type.manager']
+
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver
 

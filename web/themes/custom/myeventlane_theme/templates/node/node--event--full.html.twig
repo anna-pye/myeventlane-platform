@@ -65,7 +65,7 @@
 {% set mel_trust_checkout = (cta_type is not defined) or (not (cta_type is same as('external'))) %}
 {% set mel_show_booking_cta = (event_ui is not defined) or (event_ui.show_cta|default(true)) %}
 {% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
-{% set _support_urgent = (mel_cta_urgency|default('')|striptags|length > 0) or (mel_event_selling_fast|default(false)) or ((event_ui is defined) and (event_ui.capacity_hint|default('')|striptags|length > 0) and (mel_cta_urgency|default('')|striptags|length == 0) and (not (event_ui.is_sold_out|default(false) is same as(true)))) %}
+{% set _support_urgent = (mel_cta_urgency|default('')|striptags|length > 0) or (mel_event_selling_fast|default(false)) %}
 {# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
 {% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
 
@@ -503,14 +503,14 @@
           </div>
           <div class="mel-card__body">
             <div class="mel-booking-panel" role="region" aria-label="{{ 'Book this event'|t }}">
-              {% if mel_sidebar_pricing|default('')|striptags|trim is not empty %}
-                <div class="mel-booking-panel__price" aria-label="{{ 'Price'|t }}">
-                  {{ mel_sidebar_pricing }}
-                </div>
-              {% endif %}
               {% if mel_mode_chip %}
                 <div class="mel-booking-panel__chip" aria-label="{{ 'Registration type'|t }}">
                   <span class="mel-chip mel-chip--sm mel-chip--filled">{{ mel_mode_chip }}</span>
+                </div>
+              {% endif %}
+              {% if mel_sidebar_pricing|default('')|striptags|trim is not empty %}
+                <div class="mel-booking-panel__price" aria-label="{{ 'Price'|t }}">
+                  {{ mel_sidebar_pricing }}
                 </div>
               {% endif %}
               {% if content.field_product_target is defined %}
@@ -546,6 +546,25 @@
                 {% endif %}
 
                 <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
+                  {% if event_ui is defined
+                    and (
+                      (event_ui.is_limited|default(false))
+                      or ((event_ui.capacity_hint|default('')|striptags|length > 0)
+                        and (mel_cta_urgency|default('')|striptags|length == 0)
+                        and (not mel_event_selling_fast|default(false))
+                        and (not (event_ui.is_sold_out|default(false) is same as(true)))
+                      )
+                    ) %}
+                    <div class="mel-booking-panel__item mel-booking-panel__item--highlight">
+                      <span class="mel-icon" aria-hidden="true">⚡</span>
+                      <div>
+                        <p class="mel-booking-panel__capacity" role="status">
+                          <strong>{{ event_ui.capacity_hint|default('Limited spots remaining'|t) }}</strong>
+                        </p>
+                        <p>{{ 'Secure your spot today'|t }}</p>
+                      </div>
+                    </div>
+                  {% endif %}
                   {% if _support_urgent %}
                     <div class="mel-booking-panel__item">
                       <span class="mel-booking-panel__item-icon" aria-hidden="true">⚡</span>
@@ -556,10 +575,15 @@
                         {% elseif mel_event_selling_fast|default(false) %}
                           <strong>{{ 'Selling fast'|t }}</strong>
                           <p>{{ 'Ticket demand is high — book soon to secure your place.'|t }}</p>
-                        {% elseif (event_ui is defined) and (event_ui.capacity_hint|default('')|striptags|length > 0) and (not (event_ui.is_sold_out|default(false) is same as(true))) %}
-                          <p class="mel-booking-panel__capacity" role="status">{{ event_ui.capacity_hint }}</p>
-                          <p>{{ 'Secure your spot today'|t }}</p>
                         {% endif %}
+                      </div>
+                    </div>
+                  {% endif %}
+                  {% if event_save_count_total|default(0) > 0 and event_save_count is not empty %}
+                    <div class="mel-booking-panel__item mel-booking-panel__item--social">
+                      <span class="mel-icon" aria-hidden="true">💖</span>
+                      <div>
+                        <strong>{{ event_save_count }}</strong>
                       </div>
                     </div>
                   {% endif %}
@@ -593,8 +617,8 @@
                       {{ event_flag_event_save }}
                     </div>
                     <div class="mel-booking-panel__save-text">
-                      <strong>{{ 'Save for later'|t }}</strong>
-                      <p>{{ 'Save this event to find it easily later.'|t }}</p>
+                      <strong>{{ 'Don’t miss this'|t }}</strong>
+                      <p>{{ 'Save this event to come back later'|t }}</p>
                     </div>
                   </div>
                 {% endif %}
