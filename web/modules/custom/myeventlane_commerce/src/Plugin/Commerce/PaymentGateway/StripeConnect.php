@@ -9,6 +9,7 @@ use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsStoredPaymentMethodsInterface;
 use Drupal\commerce_stripe\Plugin\Commerce\PaymentGateway\StripePaymentElement;
 use Drupal\myeventlane_commerce\Service\StripeConnectPaymentService;
+use Stripe\PaymentIntent;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -52,7 +53,7 @@ class StripeConnect extends StripePaymentElement implements SupportsStoredPaymen
   /**
    * {@inheritdoc}
    */
-  public function createPaymentIntent(OrderInterface $order, $intent_attributes = [], ?PaymentInterface $payment = NULL) {
+  public function createPaymentIntent(OrderInterface $order, $intent_attributes = [], ?PaymentInterface $payment = NULL): PaymentIntent {
     /** @var array $intent_attributes */
     $connectParams = $this->stripeConnectPayment->getConnectPaymentIntentParams($order);
 
