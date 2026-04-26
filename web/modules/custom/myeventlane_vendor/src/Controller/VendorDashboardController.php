@@ -305,9 +305,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     // Format stripe status message for template (phase-driven copy in stripe-panel).
     $stripeStatusFormatted = $stripeStatus;
     $stripeStatusFormatted['status_message'] = match ($stripeStatus['stripe_phase'] ?? 'needs_connect') {
-      'payouts_ready' => $this->t('Payouts are enabled — you can receive funds from ticket sales.'),
-      'needs_completion' => $this->t('Finish setting up your Stripe account to enable payouts.'),
-      default => $this->t('Connect Stripe to receive payments from ticket sales and donations.'),
+      'payouts_ready' => $this->t('Stripe connected ✅'),
+      'needs_completion' => $this->t('Finish Stripe setup'),
+      default => $this->t('Connect Stripe'),
     };
 
     // STAGE A2: KPI strip. Resolve store from vendor; call VendorKpiService; omit if no store.
@@ -1632,18 +1632,18 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $status = [
       'connected' => FALSE,
       'status' => 'not_connected',
-      'status_label' => 'Not Connected',
+      'status_label' => (string) $this->t('Connect Stripe'),
       'account_id' => NULL,
       'next_payout_date' => NULL,
       'total_paid_out' => 0,
       'pending_balance' => 0,
       'stripe_dashboard_url' => NULL,
-      'connect_url' => '/vendor/stripe/connect',
+      'connect_url' => '/stripe/connect',
       'charges_enabled' => FALSE,
       'payouts_enabled' => FALSE,
       'is_onboarding_complete' => FALSE,
       'stripe_phase' => 'needs_connect',
-      'resume_url' => '/vendor/stripe/connect',
+      'resume_url' => '/stripe/connect',
     ];
 
     try {
@@ -1690,31 +1690,17 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $status['charges_enabled'] = $charges_enabled;
         $status['payouts_enabled'] = $payouts_enabled;
 
-        if ($connected) {
-          $status['connected'] = TRUE;
-          $status['status'] = 'connected';
-          $status['status_label'] = 'Connected';
-        }
-
-        if ($payouts_enabled) {
+        if ($charges_enabled) {
           $status['stripe_phase'] = 'payouts_ready';
           $status['is_onboarding_complete'] = TRUE;
           $status['connected'] = TRUE;
           $status['status'] = 'connected';
-          $status['status_label'] = (string) $this->t('Payouts enabled');
-        }
-        elseif ($connected) {
-          // Charges enabled: same seller-ready signal as assertStripeConnected; do not require payouts.
-          $status['stripe_phase'] = 'payouts_ready';
-          $status['is_onboarding_complete'] = TRUE;
-          $status['connected'] = TRUE;
-          $status['status'] = 'connected';
-          $status['status_label'] = (string) $this->t('Connected');
+          $status['status_label'] = (string) $this->t('Stripe connected ✅');
         }
         elseif ($status['account_id']) {
           $status['stripe_phase'] = 'needs_completion';
           $status['status'] = 'pending';
-          $status['status_label'] = (string) $this->t('Action required');
+          $status['status_label'] = (string) $this->t('Finish Stripe setup');
           $status['is_onboarding_complete'] = FALSE;
         }
       }
@@ -1801,8 +1787,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     if (($stripeStatus['stripe_phase'] ?? '') !== 'payouts_ready') {
       $is_finish = ($stripeStatus['stripe_phase'] ?? '') === 'needs_completion';
       $stripe_url = $is_finish
-        ? ($stripeStatus['resume_url'] ?? $stripeStatus['connect_url'] ?? '/vendor/stripe/connect')
-        : ($stripeStatus['connect_url'] ?? '/vendor/stripe/connect');
+        ? ($stripeStatus['resume_url'] ?? $stripeStatus['connect_url'] ?? '/stripe/connect')
+        : ($stripeStatus['connect_url'] ?? '/stripe/connect');
       $notifications[] = [
         'type' => 'warning',
         'icon' => 'credit-card',
