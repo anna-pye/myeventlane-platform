@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\EventSubscriber;
 
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
@@ -117,14 +118,55 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
 
     $logger->notice('Proceeding to create store for vendor @id', ['@id' => $vendor->id()]);
 
-    // Mark as processing.
-    self::$processing[$vendor->id()] = TRUE;
+    $this->createAndPersistStoreForVendor($vendor);
+  }
 
+  /**
+   * Returns the vendor's store, or creates one when onboarding is complete.
+   *
+   * Used for Stripe Connect and other flows that require a store without
+   * falling back to the platform default or another user's store.
+   */
+  public function ensureStoreForVendor(Vendor $vendor): ?StoreInterface {
+    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $entity = $vendor->get('field_vendor_store')->entity;
+      if ($entity instanceof StoreInterface) {
+        return $entity;
+      }
+    }
+
+    $owner = $vendor->getOwner();
+    if ($owner !== NULL) {
+      $state = $this->onboardingManager->loadVendorStateByUid((int) $owner->id());
+      if ($state !== NULL && !$this->onboardingManager->isCompleted($state)) {
+        $this->loggerFactory->get('myeventlane_vendor')->notice('Store ensure: onboarding incomplete, vendor @id', [
+          '@id' => (string) $vendor->id(),
+        ]);
+        return NULL;
+      }
+    }
+
+    if (isset(self::$processing[$vendor->id()])) {
+      $this->loggerFactory->get('myeventlane_vendor')->notice('Store ensure: vendor @id already in progress', [
+        '@id' => (string) $vendor->id(),
+      ]);
+      return NULL;
+    }
+
+    return $this->createAndPersistStoreForVendor($vendor);
+  }
+
+  /**
+   * Creates and saves a Commerce store for a vendor, linking both entities.
+   */
+  private function createAndPersistStoreForVendor(Vendor $vendor): ?StoreInterface {
+    self::$processing[$vendor->id()] = TRUE;
+    $logger = $this->loggerFactory->get('myeventlane_vendor');
+    $store = NULL;
     try {
       $store_storage = $this->entityTypeManager->getStorage('commerce_store');
       $owner = $vendor->getOwner();
 
-      // Create a new Commerce Store for this vendor.
       /** @var \Drupal\commerce_store\Entity\StoreInterface $store */
       $store = $store_storage->create([
         'type' => 'online',
@@ -146,25 +188,20 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
         'status' => TRUE,
       ]);
 
-      // Link the store back to the vendor.
       $store->set('field_vendor_reference', $vendor);
       $store->save();
 
-      // Link the vendor to the store.
       $vendor->set('field_vendor_store', $store);
-      // Save the vendor again to persist the store reference.
-      // This won't trigger insert again since the entity is no longer new.
       $vendor->save();
 
-      // Unmark as processing.
       unset(self::$processing[$vendor->id()]);
 
+      return $store;
     }
     catch (EntityStorageException $e) {
-      // Unmark as processing on error.
       unset(self::$processing[$vendor->id()]);
 
-      $this->loggerFactory->get('myeventlane_vendor')->error(
+      $logger->error(
         'Failed to create store for vendor @vendor: @message',
         [
           '@vendor' => $vendor->id(),
@@ -172,6 +209,8 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
         ]
       );
     }
+
+    return $store;
   }
 
 }

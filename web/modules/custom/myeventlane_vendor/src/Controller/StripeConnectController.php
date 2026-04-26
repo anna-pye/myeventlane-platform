@@ -6,34 +6,30 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Stripe\Exception\ApiErrorException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * Controller for Stripe Connect onboarding and management.
+ * Controller for Stripe Connect Express onboarding and management.
  */
 final class StripeConnectController extends ControllerBase {
 
-  /**
-   * The Stripe service.
-   */
-  private readonly StripeService $stripeService;
-
-  /**
-   * Constructs a StripeConnectController.
-   *
-   * @param \Drupal\myeventlane_core\Service\StripeService $stripeService
-   *   The Stripe service.
-   */
-  public function __construct(StripeService $stripeService) {
-    $this->stripeService = $stripeService;
-  }
+  public function __construct(
+    private readonly StripeService $stripeService,
+    private readonly LoggerChannelFactoryInterface $loggerChannelFactory,
+    private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
+    private readonly VendorStoreSubscriber $vendorStoreSubscriber,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -41,244 +37,250 @@ final class StripeConnectController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_core.stripe'),
+      $container->get('logger.factory'),
+      $container->get('myeventlane_vendor.user_vendor_membership_query'),
+      $container->get('myeventlane_vendor.vendor_store_subscriber'),
     );
   }
 
   /**
-   * Gets the store to use for Stripe Connect.
-   *
-   * Prefers the vendor's field_vendor_store (same store assertStripeConnected
-   * uses) so connect and event flow stay aligned.
-   *
-   * @return \Drupal\commerce_store\Entity\StoreInterface|null
-   *   The store entity, or NULL if not found.
+   * Resolves a vendor for the current user (owner or field_vendor_users).
    */
-  private function getStoreForConnect(): ?StoreInterface {
-    $vendor = $this->getCurrentUserVendor();
-    if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
-      $store = $vendor->get('field_vendor_store')->entity;
-      if ($store instanceof StoreInterface) {
-        return $store;
-      }
-    }
-    return $this->getCurrentUserStore();
-  }
-
-  /**
-   * Gets the store for the current user (by uid).
-   *
-   * @return \Drupal\commerce_store\Entity\StoreInterface|null
-   *   The store entity, or NULL if not found.
-   */
-  private function getCurrentUserStore(): ?StoreInterface {
-    $currentUser = $this->currentUser();
-    $userId = (int) $currentUser->id();
-
+  private function getCurrentUserVendor(): ?Vendor {
+    $userId = (int) $this->currentUser()->id();
     if ($userId === 0) {
       return NULL;
     }
 
-    // Try to find a store owned by this user.
-    $storeStorage = $this->entityTypeManager()->getStorage('commerce_store');
-    $storeIds = $storeStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('uid', $userId)
-      ->range(0, 1)
-      ->execute();
+    $ids = $this->userVendorMembershipQuery->getVendorIdsForUser($userId);
+    if ($ids === []) {
+      return NULL;
+    }
 
-    if (!empty($storeIds)) {
-      $store = $storeStorage->load(reset($storeIds));
-      if ($store instanceof StoreInterface) {
-        return $store;
+    $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
+    $vendors = $storage->loadMultiple($ids);
+    $fallback = NULL;
+    foreach ($vendors as $vendor) {
+      if ($vendor instanceof Vendor) {
+        if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+          return $vendor;
+        }
+        $fallback = $vendor;
       }
     }
 
-    // Fallback: try to find default store or any store.
-    // In a multi-vendor setup, this might not be ideal, but provides fallback.
-    $defaultStores = $storeStorage->loadByProperties(['is_default' => TRUE]);
-    if (!empty($defaultStores)) {
-      return reset($defaultStores);
-    }
-
-    return NULL;
+    return $fallback instanceof Vendor ? $fallback : NULL;
   }
 
   /**
-   * Builds absolute return and refresh URLs for Stripe AccountLink.
-   *
-   * return_url: Stripe redirects here after onboarding. refresh_url: Stripe uses
-   * if the link expires. Both always carry the same `destination` query
-   * parameter (may be empty) for callback/refresh continuity.
+   * Resolves the vendor’s Commerce store without platform default store fallback.
    */
-  private function buildAccountLinkUrls(string $destination = ''): array {
-    $returnUrl = Url::fromRoute('myeventlane_vendor.stripe_onboard_return', [], [
+  private function getStoreForConnect(?Vendor $vendor): ?StoreInterface {
+    if (!$vendor) {
+      return NULL;
+    }
+    return $this->vendorStoreSubscriber->ensureStoreForVendor($vendor);
+  }
+
+  /**
+   * Ensures the vendor entity references the same store Stripe updates.
+   */
+  private function syncVendorStoreReference(Vendor $vendor, StoreInterface $store): void {
+    if (!$vendor->hasField('field_vendor_store')) {
+      return;
+    }
+    $current = !$vendor->get('field_vendor_store')->isEmpty()
+      ? (string) $vendor->get('field_vendor_store')->target_id
+      : '';
+    if ($current === (string) $store->id()) {
+      return;
+    }
+    $vendor->set('field_vendor_store', $store->id());
+    $vendor->save();
+  }
+
+  /**
+   * Copies Stripe id/status fields from the store to the vendor when present.
+   */
+  private function syncStripeAccountFieldsToVendor(StoreInterface $store, Vendor $vendor): void {
+    if (!$store->hasField('field_stripe_account_id') || $store->get('field_stripe_account_id')->isEmpty()) {
+      return;
+    }
+    $id = trim((string) $store->get('field_stripe_account_id')->value);
+    if ($id === '' || !str_starts_with($id, 'acct_')) {
+      return;
+    }
+    if ($vendor->hasField('field_stripe_account_id')) {
+      $vendor->set('field_stripe_account_id', $id);
+    }
+    if ($vendor->hasField('field_stripe_status') && $store->hasField('field_stripe_status') && !$store->get('field_stripe_status')->isEmpty()) {
+      $vendor->set('field_stripe_status', (string) $store->get('field_stripe_status')->value);
+    }
+    if ($vendor->hasField('field_stripe_connected') && $store->hasField('field_stripe_connected') && !$store->get('field_stripe_connected')->isEmpty()) {
+      $vendor->set('field_stripe_connected', (bool) $store->get('field_stripe_connected')->value);
+    }
+    $vendor->save();
+  }
+
+  /**
+   * Builds return and refresh URLs for Account Links; includes account_id for callback validation.
+   */
+  private function buildAccountLinkUrls(string $accountId, string $destination = ''): array {
+    $query = [
+      'account_id' => $accountId,
+    ];
+    if ($destination !== '') {
+      $query['destination'] = $destination;
+    }
+    $returnUrl = Url::fromRoute('myeventlane_vendor.stripe_callback', [], [
       'absolute' => TRUE,
-      'query' => ['destination' => $destination],
+      'query' => $query,
     ])->toString();
-    $refreshUrl = Url::fromRoute('myeventlane_vendor.stripe_onboard_refresh', [], [
+    $refreshUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
       'absolute' => TRUE,
-      'query' => ['destination' => $destination],
+      'query' => $query,
     ])->toString();
 
     return [$returnUrl, $refreshUrl];
   }
 
-  /**
-   * Gets the vendor entity for the current user.
-   *
-   * @return \Drupal\myeventlane_vendor\Entity\Vendor|null
-   *   The vendor entity, or NULL if not found.
-   */
-  private function getCurrentUserVendor(): ?Vendor {
-    $currentUser = $this->currentUser();
-    $userId = (int) $currentUser->id();
-
-    if ($userId === 0) {
-      return NULL;
-    }
-
-    $vendorStorage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    $vendorIds = $vendorStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('uid', $userId)
-      ->range(0, 1)
-      ->execute();
-
-    if (!empty($vendorIds)) {
-      $vendor = $vendorStorage->load(reset($vendorIds));
-      if ($vendor instanceof Vendor) {
-        return $vendor;
-      }
-    }
-
-    return NULL;
-  }
-
-  /**
-   * Disables edge caching of off-site Stripe redirect responses.
-   */
   private function applyOffsiteStripeRedirectHeaders(TrustedRedirectResponse $response): TrustedRedirectResponse {
     $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
     $response->headers->set('Pragma', 'no-cache');
     return $response;
   }
 
+  private function redirectToDashboard(): RedirectResponse {
+    return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+  }
+
   /**
-   * Starts Stripe Connect onboarding.
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirect to Stripe onboarding or dashboard.
+   * Validates query account_id against the store’s Connect account; returns usable id.
    */
-  public function connect(): RedirectResponse {
-    \Drupal::logger('mel_debug')->notice('STRIPE CONNECT HIT');
+  private function resolveValidatedAccountId(?string $queryAccountId, StoreInterface $store): ?string {
+    $fromStore = $store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()
+      ? trim((string) $store->get('field_stripe_account_id')->value)
+      : '';
+
+    if (is_string($queryAccountId) && str_starts_with($queryAccountId, 'acct_')) {
+      if ($fromStore !== '' && $fromStore !== $queryAccountId) {
+        $this->loggerChannelFactory->get('myeventlane_vendor')->error(
+          'Stripe connect: account_id query @q does not match store @sid account @s',
+          [
+            '@q' => StripeService::maskAccountId($queryAccountId),
+            '@sid' => (string) $store->id(),
+            '@s' => StripeService::maskAccountId($fromStore),
+          ]
+        );
+        return NULL;
+      }
+      return $queryAccountId;
+    }
+
+    return $fromStore !== '' ? $fromStore : NULL;
+  }
+
+  /**
+   * Starts or resumes Stripe Connect Express onboarding (Account Links).
+   */
+  public function connect(Request $request): RedirectResponse {
+    $log = $this->loggerChannelFactory->get('myeventlane_vendor');
     $currentUser = $this->currentUser();
     if ($currentUser->isAnonymous()) {
       throw new AccessDeniedHttpException('You must be logged in to connect Stripe.');
     }
 
-    $store = $this->getStoreForConnect();
+    $vendor = $this->getCurrentUserVendor();
+    if (!$vendor) {
+      $log->error('Stripe connect: no vendor profile for user @uid', [
+        '@uid' => (string) $currentUser->id(),
+      ]);
+      $this->messenger()->addError($this->t('No vendor profile found for your account. Please contact support.'));
+      return $this->redirectToDashboard();
+    }
+
+    $store = $this->getStoreForConnect($vendor);
     if (!$store) {
-      $this->messenger()->addError($this->t('No store found for your account. Please contact support.'));
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+      $log->error('Stripe connect: no store for vendor @vid uid @uid', [
+        '@vid' => (string) $vendor->id(),
+        '@uid' => (string) $currentUser->id(),
+      ]);
+      $this->messenger()->addError($this->t('Your vendor store is not ready yet. Complete vendor onboarding, then return to connect Stripe.'));
+      return $this->redirectToDashboard();
+    }
+    $this->syncVendorStoreReference($vendor, $store);
+
+    $destination = $request->query->get('destination');
+    $destStr = is_string($destination) ? $destination : '';
+    $queryAccount = $request->query->get('account_id');
+    $queryAccountStr = is_string($queryAccount) ? $queryAccount : '';
+
+    $accountId = $this->resolveValidatedAccountId(
+      $queryAccountStr !== '' ? $queryAccountStr : NULL,
+      $store
+    );
+    if ($queryAccountStr !== '' && $accountId === NULL) {
+      $this->messenger()->addError($this->t('Stripe account mismatch. Please start Connect again or contact support.'));
+      return $this->redirectToDashboard();
     }
 
-    $accountId = NULL;
-    if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
-      $accountId = $store->get('field_stripe_account_id')->value;
-    }
-
-    // If account exists, refresh status from Stripe. Store may have account_id but
-    // missing field_stripe_charges_enabled (e.g. callback never ran). Event flow
-    // checks charges_enabled, so we must align.
     if (!empty($accountId)) {
       try {
         $status = $this->stripeService->getAccountStatus($accountId);
-        if ($store->hasField('field_stripe_status')) {
-          $store->set('field_stripe_status', $status['status']);
-        }
-        if ($store->hasField('field_stripe_connected')) {
-          // Aligned with assertStripeConnected: seller-ready when charges are on.
-          $store->set('field_stripe_connected', (bool) $status['charges_enabled']);
-        }
-        if ($store->hasField('field_stripe_charges_enabled')) {
-          $store->set('field_stripe_charges_enabled', $status['charges_enabled']);
-        }
-        if ($store->hasField('field_stripe_payouts_enabled')) {
-          $store->set('field_stripe_payouts_enabled', $status['payouts_enabled']);
-        }
-        $store->save();
+        $this->stripeService->applyConnectStatusToCommerceStore($store, $status);
+        $this->syncStripeAccountFieldsToVendor($store, $vendor);
 
-        if ($status['charges_enabled']) {
-          $this->messenger()->addStatus($this->t('Stripe is already connected.'));
-          return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+        if (!empty($status['charges_enabled'])) {
+          $this->messenger()->addStatus($this->t('Stripe is already connected and ready to accept card payments.'));
+          return $this->redirectToDashboard();
         }
       }
       catch (\Exception $e) {
-        $this->getLogger('myeventlane_vendor')->warning('Could not refresh Stripe status, will create AccountLink: @m', ['@m' => $e->getMessage()]);
+        if ($e instanceof ApiErrorException) {
+          $this->logConnectApiError($e, $vendor, $store, (string) $accountId);
+          $this->messenger()->addError($this->t('We could not refresh your Stripe status. Please try again in a few minutes or contact support.'));
+          return $this->redirectToDashboard();
+        }
+        $log->warning('Stripe connect: refresh status for resume link: @m', [
+          '@m' => $e->getMessage(),
+        ]);
       }
     }
 
+    $userEmail = (string) $currentUser->getEmail();
+    if (trim($userEmail) === '') {
+      $this->messenger()->addError($this->t('Your account must have an email address to connect Stripe.'));
+      return $this->redirectToDashboard();
+    }
+
     try {
-      $userEmail = $currentUser->getEmail();
-      if (empty($userEmail)) {
-        $this->messenger()->addError($this->t('Your account must have an email address to connect Stripe.'));
-        return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
-      }
-
       if (empty($accountId)) {
-        // Create new Connect account.
-        $account = $this->stripeService->createConnectAccount($userEmail, 'AU', 'standard');
-        $accountId = $account->id;
-
-        // Save account ID to store.
-        if ($store->hasField('field_stripe_account_id')) {
-          $store->set('field_stripe_account_id', $accountId);
-          if ($store->hasField('field_stripe_status')) {
-            $store->set('field_stripe_status', 'pending');
-          }
-          if ($store->hasField('field_stripe_connected')) {
-            $store->set('field_stripe_connected', FALSE);
-          }
-          $store->save();
-        }
-
-        // Also save to vendor entity if it exists.
-        $vendor = $this->getCurrentUserVendor();
-        if ($vendor && $vendor->hasField('field_stripe_account_id')) {
-          $vendor->set('field_stripe_account_id', $accountId);
-          if ($vendor->hasField('field_stripe_status')) {
-            $vendor->set('field_stripe_status', 'pending');
-          }
-          $vendor->save();
-        }
+        $accountId = $this->stripeService->ensureConnectAccountIdForStore($store, $userEmail, 'AU');
+        $this->syncStripeAccountFieldsToVendor($store, $vendor);
+      }
+      if ($accountId === '') {
+        throw new \RuntimeException('Stripe account id missing after ensure.');
       }
 
-      // Create AccountLink: return + refresh are absolute, with optional
-      // ?destination=… so the callback can redirect to /create-event, onboard, etc.
-      $reqQuery = \Drupal::request();
-      $destination = $reqQuery->query->get('destination');
-      $destStr = is_string($destination) ? $destination : '';
-
-      [$returnUrl, $refreshUrl] = $this->buildAccountLinkUrls($destStr);
+      [$returnUrl, $refreshUrl] = $this->buildAccountLinkUrls($accountId, $destStr);
       $accountLink = $this->stripeService->createAccountLink($accountId, $returnUrl, $refreshUrl);
-      if ($accountLink === NULL || (is_object($accountLink) && empty($accountLink->url))) {
-        $this->getLogger('myeventlane_vendor')->error('Stripe connect failed: no account link returned for uid=@uid', [
-          '@uid' => (string) $this->currentUser()->id(),
+      if (empty($accountLink->url) || !is_string($accountLink->url) || $accountLink->url === '') {
+        $log->error('Stripe connect: empty AccountLink for vendor @vid store @sid', [
+          '@vid' => (string) $vendor->id(),
+          '@sid' => (string) $store->id(),
         ]);
-        throw new \RuntimeException('Stripe onboarding could not be started. Account link missing.');
+        throw new \RuntimeException('Stripe onboarding could not be started (no link).');
       }
       $url = $accountLink->url;
-      if (!is_string($url) || $url === '') {
-        $this->getLogger('myeventlane_vendor')->error('Stripe connect failed: empty account link url for uid=@uid', [
-          '@uid' => (string) $this->currentUser()->id(),
-        ]);
-        throw new \RuntimeException('Stripe onboarding could not be started. Account link missing.');
-      }
       if (!str_starts_with($url, 'https://connect.stripe.com')) {
-        throw new \RuntimeException('Invalid Stripe URL: ' . $url);
+        $log->error('Stripe connect: unexpected redirect host for vendor @vid', ['@vid' => (string) $vendor->id()]);
+        throw new \RuntimeException('Invalid Stripe URL.');
       }
-      \Drupal::logger('mel_debug')->notice('Stripe redirecting to: @url', [
-        '@url' => $url,
+
+      $log->notice('Stripe Account Link created: vendor @vid, store @sid, account @acct', [
+        '@vid' => (string) $vendor->id(),
+        '@sid' => (string) $store->id(),
+        '@acct' => StripeService::maskAccountId($accountId),
       ]);
 
       $response = new TrustedRedirectResponse($url);
@@ -286,126 +288,139 @@ final class StripeConnectController extends ControllerBase {
       $this->applyOffsiteStripeRedirectHeaders($response);
       return $response;
     }
+    catch (ApiErrorException $e) {
+      $this->logConnectApiError($e, $vendor, $store, (string) ($accountId ?? ''));
+      $this->messenger()->addError($this->t('We could not start Stripe onboarding. If this continues, the platform may need a Stripe review for Connect, or you can try again later.'));
+      return $this->redirectToDashboard();
+    }
     catch (\Exception $e) {
       if ($e instanceof \RuntimeException) {
         throw $e;
       }
-      $this->getLogger('myeventlane_vendor')->error('Stripe Connect onboarding failed: @message', [
-        '@message' => $e->getMessage(),
+      $this->getLogger('myeventlane_vendor')->error('Stripe connect: @m', [
+        '@m' => $e->getMessage(),
       ]);
       $this->messenger()->addError($this->t('Failed to start Stripe onboarding. Please try again or contact support.'));
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+      return $this->redirectToDashboard();
     }
   }
 
+  private function logConnectApiError(ApiErrorException $e, Vendor $vendor, StoreInterface $store, string $accountId): void {
+    $stripe = $e->getStripeCode() ?? $e->getCode();
+    $this->loggerChannelFactory->get('myeventlane_vendor')->error(
+      'Stripe API error: vendor @vid, uid @uid, store @sid, account @acct, type @type, @message',
+      [
+        '@vid' => (string) $vendor->id(),
+        '@uid' => (string) $this->currentUser()->id(),
+        '@sid' => (string) $store->id(),
+        '@acct' => $accountId !== '' ? StripeService::maskAccountId($accountId) : 'n/a',
+        '@type' => is_string($stripe) || is_int($stripe) || is_float($stripe) ? (string) $stripe : 'unknown',
+        '@message' => $e->getMessage(),
+      ]
+    );
+  }
+
   /**
-   * Handles Stripe Connect callback after onboarding.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request.
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirect to vendor dashboard.
+   * Handles Stripe return after Connect onboarding (callback route).
    */
   public function callback(Request $request): RedirectResponse {
-    \Drupal::logger('mel_debug')->notice('STRIPE CALLBACK HIT');
+    $log = $this->loggerChannelFactory->get('myeventlane_vendor');
     $currentUser = $this->currentUser();
     if ($currentUser->isAnonymous()) {
       throw new AccessDeniedHttpException('You must be logged in.');
     }
 
     $destination = $request->query->get('destination');
+    $dest = is_string($destination) ? $destination : '';
+    if ($dest !== '' && !str_starts_with($dest, '/')) {
+      $dest = '';
+    }
 
-    $store = $this->getStoreForConnect();
+    $vendor = $this->getCurrentUserVendor();
+    if (!$vendor) {
+      $this->messenger()->addError($this->t('No vendor profile found for your account.'));
+      return $this->redirectToDashboard();
+    }
+
+    $store = $this->getStoreForConnect($vendor);
     if (!$store) {
       $this->messenger()->addError($this->t('No store found for your account.'));
-      // Redirect to destination if provided, otherwise dashboard.
-      if ($destination) {
-        return new RedirectResponse($destination);
-      }
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+      return $this->redirectToDashboard();
     }
+    $this->syncVendorStoreReference($vendor, $store);
 
-    // Check if account ID exists.
-    if (!$store->hasField('field_stripe_account_id') || $store->get('field_stripe_account_id')->isEmpty()) {
-      $this->messenger()->addWarning($this->t('Stripe account not found. Please start the connection process again.'));
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
-    }
-
-    $accountId = $store->get('field_stripe_account_id')->value;
-
-    try {
-      // Get account status from Stripe.
-      $status = $this->stripeService->getAccountStatus($accountId);
-
-      // Update store with status.
-      if ($store->hasField('field_stripe_status')) {
-        $store->set('field_stripe_status', $status['status']);
-      }
-      if ($store->hasField('field_stripe_connected')) {
-        $store->set('field_stripe_connected', (bool) $status['charges_enabled']);
-      }
-      if ($store->hasField('field_stripe_charges_enabled')) {
-        $store->set('field_stripe_charges_enabled', $status['charges_enabled']);
-      }
-      if ($store->hasField('field_stripe_payouts_enabled')) {
-        $store->set('field_stripe_payouts_enabled', $status['payouts_enabled']);
-      }
-      $store->save();
-      \Drupal::logger('mel_debug')->notice('STRIPE CALLBACK: store saved; field_stripe_connected=@c charges_enabled=@ch payouts=@p', [
-        '@c' => $store->hasField('field_stripe_connected') && !$store->get('field_stripe_connected')->isEmpty()
-          ? (string) (int) (bool) $store->get('field_stripe_connected')->value
-          : 'n/a',
-        '@ch' => (string) (int) (bool) ($status['charges_enabled'] ?? FALSE),
-        '@p' => (string) (int) (bool) ($status['payouts_enabled'] ?? FALSE),
-      ]);
-
-      // Also update vendor entity if it exists.
-      $vendor = $this->getCurrentUserVendor();
-      if ($vendor) {
-        if ($vendor->hasField('field_stripe_account_id')) {
-          $vendor->set('field_stripe_account_id', $accountId);
-        }
-        if ($vendor->hasField('field_stripe_status')) {
-          $vendor->set('field_stripe_status', $status['status']);
-        }
-        if ($vendor->hasField('field_stripe_connected')) {
-          $vendor->set('field_stripe_connected', (bool) $status['charges_enabled']);
-        }
-        $vendor->save();
-      }
-
-      if ($status['status'] === 'complete') {
-        $this->messenger()->addStatus($this->t('Stripe account connected successfully! You can now accept payments.'));
-      }
-      elseif ($status['status'] === 'pending') {
-        $this->messenger()->addWarning($this->t('Stripe account is pending. Please complete the onboarding process.'));
+    $qid = $request->query->get('account_id');
+    $qidStr = is_string($qid) ? $qid : '';
+    $accountId = $this->resolveValidatedAccountId($qidStr !== '' ? $qidStr : NULL, $store);
+    if ($accountId === NULL) {
+      if ($qidStr !== '') {
+        $this->messenger()->addError($this->t('Stripe account mismatch. Please use Connect from your dashboard again.'));
       }
       else {
-        $this->messenger()->addWarning($this->t('Stripe account status: @status. Some features may be limited.', [
-          '@status' => $status['status'],
-        ]));
+        $this->messenger()->addWarning($this->t('Stripe account not found. Please start the connection process again.'));
       }
-    }
-    catch (\Exception $e) {
-      $this->getLogger('myeventlane_vendor')->error('Stripe Connect callback failed: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-      $this->messenger()->addError($this->t('Failed to verify Stripe account status. Please try again.'));
+      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+        'query' => $dest ? ['destination' => $dest] : [],
+      ])->setAbsolute()->toString());
     }
 
-    // Redirect to destination if provided (e.g., onboarding flow), otherwise dashboard.
-    if ($destination) {
-      return new RedirectResponse($destination);
+    try {
+      $status = $this->stripeService->getAccountStatus($accountId);
     }
-    return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+    catch (ApiErrorException $e) {
+      $this->logConnectApiError($e, $vendor, $store, $accountId);
+      $this->messenger()->addError($this->t('We could not verify your Stripe account. Please try again.'));
+      if ($dest !== '') {
+        return new RedirectResponse($dest);
+      }
+      return $this->redirectToDashboard();
+    }
+    catch (\Exception $e) {
+      $log->error('Stripe callback: @m', ['@m' => $e->getMessage()]);
+      $this->messenger()->addError($this->t('Failed to verify Stripe account status. Please try again.'));
+      if ($dest !== '') {
+        return new RedirectResponse($dest);
+      }
+      return $this->redirectToDashboard();
+    }
+
+    if ($store->hasField('field_stripe_account_id')) {
+      $store->set('field_stripe_account_id', $accountId);
+    }
+    $this->stripeService->applyConnectStatusToCommerceStore($store, $status);
+    $this->syncStripeAccountFieldsToVendor($store, $vendor);
+
+    $log->notice('Stripe callback saved: store @sid, account @acct, charges @ch, payouts @p, details @d', [
+      '@sid' => (string) $store->id(),
+      '@acct' => StripeService::maskAccountId($accountId),
+      '@ch' => !empty($status['charges_enabled']) ? '1' : '0',
+      '@p' => !empty($status['payouts_enabled']) ? '1' : '0',
+      '@d' => !empty($status['details_submitted']) ? '1' : '0',
+    ]);
+
+    if (($status['status'] ?? '') === 'complete') {
+      $this->messenger()->addStatus($this->t('Stripe account connected. You can accept card payments when charges are active.'));
+    }
+    elseif (!empty($status['charges_enabled'])) {
+      $this->messenger()->addStatus($this->t('Stripe can process charges. Check your Stripe Dashboard for any remaining items.'));
+    }
+    elseif (($status['status'] ?? '') === 'pending' || !empty($status['details_submitted']) === FALSE) {
+      $this->messenger()->addWarning($this->t('Please complete the remaining steps in your Stripe account setup.'));
+    }
+    else {
+      $this->messenger()->addWarning($this->t('Stripe account status: @status.', [
+        '@status' => (string) ($status['status'] ?? 'unknown'),
+      ]));
+    }
+
+    if ($dest !== '') {
+      return new RedirectResponse($dest);
+    }
+    return $this->redirectToDashboard();
   }
 
   /**
-   * Creates a login link to Stripe dashboard for the vendor.
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirect to Stripe dashboard or error.
+   * Login link to the vendor’s Express Stripe Dashboard.
    */
   public function manage(): RedirectResponse {
     $logger = $this->getLogger('myeventlane_vendor');
@@ -415,96 +430,79 @@ final class StripeConnectController extends ControllerBase {
       throw new AccessDeniedHttpException('You must be logged in to manage Stripe.');
     }
 
-    $store = $this->getStoreForConnect();
+    $vendor = $this->getCurrentUserVendor();
+    $store = $this->getStoreForConnect($vendor);
     if (!$store) {
-      $logger->warning('Stripe manage: No store found for user @uid', [
-        '@uid' => $currentUser->id(),
+      $logger->warning('Stripe manage: no store for user @uid', [
+        '@uid' => (string) $currentUser->id(),
       ]);
       $this->messenger()->addError($this->t('No store found for your account.'));
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+      return $this->redirectToDashboard();
+    }
+    if ($vendor) {
+      $this->syncVendorStoreReference($vendor, $store);
     }
 
-    // VALIDATE STRIPE ACCOUNT ID: Check if account ID exists and is valid.
-    $accountId = NULL;
-    if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
-      $accountId = trim($store->get('field_stripe_account_id')->value);
-    }
+    $accountId = $store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()
+      ? trim((string) $store->get('field_stripe_account_id')->value)
+      : '';
 
-    // If account ID is missing or empty, do NOT attempt link creation.
-    if (empty($accountId)) {
-      $logger->warning('Stripe manage: Missing or empty account ID for user @uid, store @store_id', [
-        '@uid' => $currentUser->id(),
-        '@store_id' => $store->id(),
-      ]);
+    if ($accountId === '' || !str_starts_with($accountId, 'acct_')) {
       $this->messenger()->addWarning($this->t('Stripe is not connected. Please connect your Stripe account first.'));
       return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
     }
 
-    // Validate account ID format (should start with 'acct_').
-    if (!str_starts_with($accountId, 'acct_')) {
-      $logger->error('Stripe manage: Invalid account ID format for user @uid, account_id: @account_id', [
-        '@uid' => $currentUser->id(),
-        '@account_id' => $accountId,
-      ]);
-      $this->messenger()->addError($this->t('Invalid Stripe account ID. Please reconnect your Stripe account.'));
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
-    }
-
-    // Attempt to create login link only if account is eligible.
-    // This method validates eligibility BEFORE calling Stripe API to prevent errors.
     try {
-      $logger->info('Stripe manage: Checking eligibility and creating login link for account @account_id, user @uid', [
-        '@account_id' => $accountId,
-        '@uid' => $currentUser->id(),
-      ]);
-
       $loginLink = $this->stripeService->createLoginLinkIfEligible($accountId);
-
-      // If login link is NULL, account is not eligible.
       if ($loginLink === NULL) {
-        // Get eligibility details for logging.
         $eligibility = $this->stripeService->validateAccountDashboardEligibility($accountId);
-        $reason = $eligibility['reason'] ?? 'Unknown reason';
-
-        // Log at NOTICE level (eligibility failures are expected for incomplete accounts).
-        $logger->notice('Stripe manage: Account @account_id is not eligible for dashboard login link. Reason: @reason', [
-          '@account_id' => $accountId,
+        $reason = (string) ($eligibility['reason'] ?? 'Unknown');
+        $logger->notice('Stripe manage: ineligible for login link, account @acct, reason @reason', [
+          '@acct' => StripeService::maskAccountId($accountId),
           '@reason' => $reason,
         ]);
-
-        // Show clear UI message about incomplete onboarding.
-        $this->messenger()->addWarning($this->t('Stripe onboarding incomplete. Your account is not yet ready for dashboard access. Please complete the Stripe onboarding process.'));
+        $this->messenger()->addWarning($this->t('Stripe onboarding is not complete enough to open the dashboard yet. Continue setup in Connect.'));
         return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
       }
 
       if (empty($loginLink->url)) {
-        // This is an unexpected error (link created but URL missing).
-        $logger->error('Stripe manage: Login link created but URL is empty for account @account_id', [
-          '@account_id' => $accountId,
-        ]);
-        $this->messenger()->addError($this->t('Failed to generate Stripe dashboard link. Please try again.'));
-        return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+        $this->messenger()->addError($this->t('Failed to generate a Stripe link. Please try again.'));
+        return $this->redirectToDashboard();
       }
 
-      $logger->info('Stripe manage: Successfully created login link for account @account_id', [
-        '@account_id' => $accountId,
-      ]);
+      $url = (string) $loginLink->url;
+      if (!str_starts_with($url, 'https://connect.stripe.com') && !str_starts_with($url, 'https://dashboard.stripe.com')) {
+        $logger->error('Stripe manage: unexpected host for login link, account @acct', [
+          '@acct' => StripeService::maskAccountId($accountId),
+        ]);
+        $this->messenger()->addError($this->t('Invalid Stripe link. Please try again or contact support.'));
+        return $this->redirectToDashboard();
+      }
 
-      $response = new TrustedRedirectResponse($loginLink->url);
-      $response->setTrustedTargetUrl($loginLink->url);
+      $response = new TrustedRedirectResponse($url);
+      $response->setTrustedTargetUrl($url);
       $this->applyOffsiteStripeRedirectHeaders($response);
       return $response;
     }
+    catch (ApiErrorException $e) {
+      if ($vendor instanceof Vendor) {
+        $this->logConnectApiError($e, $vendor, $store, $accountId);
+      }
+      else {
+        $logger->error('Stripe manage API: uid @uid, type @t', [
+          '@uid' => (string) $currentUser->id(),
+          '@t' => (string) ($e->getStripeCode() ?? $e->getCode()),
+        ]);
+      }
+      $this->messenger()->addError($this->t('We could not open your Stripe account. Try again in a few minutes, or open Stripe from the Connect link if setup is still in progress.'));
+      return $this->redirectToDashboard();
+    }
     catch (\Exception $e) {
-      // Unexpected failures during API calls - log as ERROR.
-      $error_message = $e->getMessage();
-      $logger->error('Stripe manage: Unexpected error creating login link for account @account_id: @message', [
-        '@account_id' => $accountId,
-        '@message' => $error_message,
+      $logger->error('Stripe manage: @m', [
+        '@m' => $e->getMessage(),
       ]);
-
-      $this->messenger()->addError($this->t('Failed to open Stripe dashboard. Please try again or contact support.'));
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
+      $this->messenger()->addError($this->t('Failed to open Stripe. Please try again or contact support.'));
+      return $this->redirectToDashboard();
     }
   }
 
