@@ -20,18 +20,18 @@
     <div class="mel-stripe-panel__status mel-stripe-panel__status--{{ phase }}">
       <span class="mel-stripe-panel__status-dot"></span>
       {% if phase == 'payouts_ready' %}
-        {{ 'Payouts enabled'|t }}
+        {{ 'Stripe connected ✅'|t }}
       {% elseif phase == 'needs_completion' %}
-        {{ 'Action required'|t }}
+        {{ 'Finish Stripe setup'|t }}
       {% else %}
-        {{ 'Not connected'|t }}
+        {{ 'Connect Stripe'|t }}
       {% endif %}
     </div>
   </div>
 
   <div class="mel-stripe-panel__body">
     {% if phase == 'payouts_ready' %}
-      <p class="mel-stripe-panel__lead mel-stripe-panel__lead--success">{{ 'Payouts enabled — funds from ticket sales can reach your bank.'|t }}</p>
+      <p class="mel-stripe-panel__lead mel-stripe-panel__lead--success">{{ 'Stripe connected ✅ Funds from ticket sales can reach your bank.'|t }}</p>
       {% if stripe.account_id %}
         <div class="mel-stripe-panel__account">
           <span class="mel-stripe-panel__account-label">{{ 'Account'|t }}</span>
@@ -48,7 +48,7 @@
     {% elseif phase == 'needs_completion' %}
       <p class="mel-stripe-panel__lead">{{ 'Finish setting up Stripe so payouts can reach your bank.'|t }}</p>
       <div class="mel-stripe-panel__actions">
-        <a href="{{ stripe.resume_url|default(stripe.connect_url)|default(path('myeventlane_vendor.stripe_connect', {}, {query: {destination: app.request.getPathInfo()}})) }}" class="mel-btn mel-btn--primary mel-button mel-button--primary mel-button--stripe">{{ 'Resume Stripe setup'|t }}</a>
+        <a href="{{ stripe.resume_url|default(stripe.connect_url)|default(path('myeventlane_vendor.stripe_connect', {}, {query: {destination: app.request.getPathInfo()}})) }}" class="mel-btn mel-btn--primary mel-button mel-button--primary mel-button--stripe">{{ 'Finish Stripe setup'|t }}</a>
       </div>
 
     {% else %}

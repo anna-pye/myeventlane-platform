@@ -232,12 +232,31 @@ abstract class VendorConsoleBaseController {
       'query' => ['destination' => $destination],
     ]);
 
-    if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+    if (!$vendor) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
       throw new EnforcedResponseException(new TrustedRedirectResponse($stripeConnectUrl->toString()));
     }
 
-    $store = $vendor->get('field_vendor_store')->entity;
+    $store = NULL;
+    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $store = $vendor->get('field_vendor_store')->entity;
+    }
+    if (!$store) {
+      $entityTypeManager = $this->entityTypeManager ?? \Drupal::entityTypeManager();
+      $storeStorage = $entityTypeManager->getStorage('commerce_store');
+      $storeIds = $storeStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', (int) $this->currentUser->id())
+        ->range(0, 1)
+        ->execute();
+      if (!empty($storeIds)) {
+        $store = $storeStorage->load(reset($storeIds));
+        if ($store && $vendor->hasField('field_vendor_store')) {
+          $vendor->set('field_vendor_store', $store->id());
+          $vendor->save();
+        }
+      }
+    }
     if (!$store) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
       throw new EnforcedResponseException(new TrustedRedirectResponse($stripeConnectUrl->toString()));
