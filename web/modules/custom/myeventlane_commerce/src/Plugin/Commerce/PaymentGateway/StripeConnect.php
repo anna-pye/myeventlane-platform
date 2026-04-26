@@ -62,8 +62,8 @@ class StripeConnect extends StripePaymentElement implements SupportsStoredPaymen
       // contrib modules (e.g. payment_intent_id added by commerce_stripe).
       if (isset($connectParams['metadata']) && isset($intent_attributes['metadata'])) {
         $connectParams['metadata'] = array_merge(
-          (array) $intent_attributes['metadata'],
           $connectParams['metadata'],
+          (array) $intent_attributes['metadata'],
         );
       }
       $intent_attributes = array_merge($intent_attributes, $connectParams);
