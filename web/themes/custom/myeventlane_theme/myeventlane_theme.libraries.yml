@@ -9,11 +9,7 @@ footer-internal:
     - core/once
 
 global-styling:
-  css:
-    theme:
-      dist/main.css: {}
-  js:
-    dist/main.js: {}
+  # Main CSS/JS are injected from Vite manifest via hook_library_info_alter().
   dependencies:
     - core/drupal
     - core/once
@@ -28,11 +24,7 @@ skeleton:
     - core/once
 
 myeventlane-global:
-  css:
-    theme:
-      dist/main.css: {}
-  js:
-    dist/main.js: {}
+  # Legacy alias; assets are injected from Vite manifest via hook_library_info_alter().
   dependencies:
     - core/drupal
     - core/once

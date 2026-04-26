@@ -1452,12 +1452,6 @@ function _myeventlane_theme_vite_manifest(): ?array {
   $relative_theme_path = $theme_handler->getPath('myeventlane_theme');
   $manifest_path = DRUPAL_ROOT . '/' . $relative_theme_path . '/dist/.vite/manifest.json';
 
-  // 🔴 ADD THIS BLOCK RIGHT HERE
-  \Drupal::logger('mel_debug')->notice('Manifest path: @path exists: @exists', [
-    '@path' => $manifest_path,
-    '@exists' => is_file($manifest_path) ? 'YES' : 'NO',
-  ]);
-
   if (!is_file($manifest_path)) {
     return $cached = NULL;
   }
@@ -3617,50 +3611,4 @@ function myeventlane_theme_preprocess_status_messages(array &$variables): void {
     str_starts_with((string) $route, 'commerce_') ||
     str_starts_with($path, '/cart') ||
     str_starts_with($path, '/checkout');
-}
-
-/**
- * Implements hook_page_attachments().
- *
- * Attaches Vite-built CSS and JS from manifest.
- */
-function myeventlane_theme_page_attachments(array &$attachments): void {
-  $manifest = _myeventlane_theme_vite_manifest();
-
-  if (!$manifest || empty($manifest['src/main.js'])) {
-    \Drupal::logger('mel_debug')->notice('Vite manifest missing or entry not found');
-    return;
-  }
-
-  $theme_handler = \Drupal::service('extension.list.theme');
-  $theme_path = '/' . $theme_handler->getPath('myeventlane_theme');
-
-  $entry = $manifest['src/main.js'];
-
-  // Attach CSS files.
-  if (!empty($entry['css'])) {
-    foreach ($entry['css'] as $css) {
-      $attachments['#attached']['html_head_link'][] = [
-        [
-          'rel' => 'stylesheet',
-          'href' => $theme_path . '/dist/' . $css,
-        ],
-        TRUE,
-      ];
-    }
-  }
-
-  // Attach JS module.
-  if (!empty($entry['file'])) {
-    $attachments['#attached']['html_head'][] = [
-      [
-        '#tag' => 'script',
-        '#attributes' => [
-          'type' => 'module',
-          'src' => $theme_path . '/dist/' . $entry['file'],
-        ],
-      ],
-      'mel_vite_main',
-    ];
-  }
 }
