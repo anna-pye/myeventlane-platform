@@ -317,6 +317,18 @@ final class StripeConnectController extends ControllerBase {
       $this->applyOffsiteStripeRedirectHeaders($response);
       return $response;
     }
+    catch (ApiErrorException $e) {
+      $this->loggerChannelFactory->get('stripe_error')->error('Stripe Connect API failure during onboarding for vendor @vendor_id uid @uid: @message', [
+        '@vendor_id' => (string) $vendor->id(),
+        '@uid' => (string) $currentUser->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $this->loggerChannelFactory->get('stripe_debug')->error('Stripe connect failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      $this->messenger()->addError($this->t('Stripe onboarding is temporarily unavailable. The platform Connect profile needs to be reviewed before new vendor accounts can be created.'));
+      return $this->redirectToDashboard();
+    }
     catch (\Exception $e) {
       $this->loggerChannelFactory->get('stripe_debug')->error('Stripe connect failed: @message', [
         '@message' => $e->getMessage(),
