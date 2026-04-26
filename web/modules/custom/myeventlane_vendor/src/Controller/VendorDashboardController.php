@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -304,9 +305,17 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     // Format stripe status message for template (phase-driven copy in stripe-panel).
     $stripeStatusFormatted = $stripeStatus;
-    $stripeStatusFormatted['status_message'] = match ($stripeStatus['stripe_phase'] ?? 'needs_connect') {
-      'payouts_ready' => $this->t('Payouts are enabled — you can receive funds from ticket sales.'),
-      'needs_completion' => $this->t('Finish setting up your Stripe account to enable payouts.'),
+    $melState = (string) ($stripeStatus['mel_stripe_state'] ?? 'not_connected');
+    $stripeStatusFormatted['status_message'] = match ($melState) {
+      'not_connected' => $this->t('Connect Stripe to receive card payments and payouts for your events.'),
+      'continue_setup' => $this->t('Finish setting up your Stripe account to go live with ticket sales.'),
+      'under_review' => $this->t('Stripe is reviewing your information. This can take a short time — check back soon.'),
+      'action_required' => $this->t('Action is required in Stripe to keep accepting charges or receiving payouts. Review your Stripe account.'),
+      'payouts_restricted' => $this->t('You can sell tickets, but bank payouts are still restricted. Complete your payout details in Stripe.'),
+      'ready_to_sell' => (bool) ($stripeStatus['payouts_enabled'] ?? FALSE)
+        ? $this->t('Stripe is ready: you can sell tickets and receive payouts.')
+        : $this->t('Stripe is ready to process charges. Complete any remaining payout or bank details in your Stripe account.'),
+      'disabled' => $this->t('This Stripe account cannot be used. Contact support or review messages in your Stripe account.'),
       default => $this->t('Connect Stripe to receive payments from ticket sales and donations.'),
     };
 
@@ -1632,7 +1641,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $status = [
       'connected' => FALSE,
       'status' => 'not_connected',
-      'status_label' => 'Not Connected',
+      'status_label' => (string) $this->t('Not connected'),
       'account_id' => NULL,
       'next_payout_date' => NULL,
       'total_paid_out' => 0,
@@ -1643,84 +1652,150 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'payouts_enabled' => FALSE,
       'is_onboarding_complete' => FALSE,
       'stripe_phase' => 'needs_connect',
+      'mel_stripe_state' => 'not_connected',
+      'primary_action' => 'connect',
+      'action_url' => NULL,
+      'manage_stripe_url' => NULL,
+      'payouts_restricted' => FALSE,
       'resume_url' => '/vendor/stripe/connect',
     ];
 
+    $accountIdForQuery = NULL;
+
     try {
+      $qDash = [
+        'destination' => '/vendor/dashboard',
+      ];
+      $qOnboard = [
+        'destination' => '/vendor/onboard/stripe',
+      ];
       $status['connect_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-        'query' => ['destination' => '/vendor/dashboard'],
+        'query' => $qDash,
       ])->toString();
       $status['resume_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-        'query' => ['destination' => '/vendor/onboard/stripe'],
+        'query' => $qOnboard,
       ])->toString();
     }
     catch (\Throwable) {
-      // Route optional in some builds.
+    }
+
+    try {
+      $status['manage_stripe_url'] = Url::fromRoute('myeventlane_vendor.stripe_manage')->toString();
+    }
+    catch (\Throwable) {
     }
 
     try {
       $store = NULL;
       if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
-        $store = $vendor->get('field_vendor_store')->entity;
+        $cand = $vendor->get('field_vendor_store')->entity;
+        if ($cand instanceof StoreInterface) {
+          $store = $cand;
+        }
       }
       if (!$store) {
-        $stores = $this->entityTypeManager->getStorage('commerce_store')
-          ->loadByProperties(['uid' => $userId]);
-        $store = !empty($stores) ? reset($stores) : NULL;
+        $status['action_url'] = $status['connect_url'];
+        return $status;
       }
 
-      if ($store && $store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
-        $status['account_id'] = $store->get('field_stripe_account_id')->value;
-        $status['stripe_dashboard_url'] = 'https://dashboard.stripe.com';
-
-        $connected = FALSE;
-        if ($store->hasField('field_stripe_connected') && !$store->get('field_stripe_connected')->isEmpty()) {
-          $connected = (bool) $store->get('field_stripe_connected')->value;
-        }
-        if (!$connected && $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
-          $connected = (bool) $store->get('field_stripe_charges_enabled')->value;
-        }
-        $charges_enabled = $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()
-          ? (bool) $store->get('field_stripe_charges_enabled')->value
-          : FALSE;
-        $payouts_enabled = $store->hasField('field_stripe_payouts_enabled') && !$store->get('field_stripe_payouts_enabled')->isEmpty()
-          ? (bool) $store->get('field_stripe_payouts_enabled')->value
-          : FALSE;
-
-        $status['charges_enabled'] = $charges_enabled;
-        $status['payouts_enabled'] = $payouts_enabled;
-
-        if ($connected) {
-          $status['connected'] = TRUE;
-          $status['status'] = 'connected';
-          $status['status_label'] = 'Connected';
-        }
-
-        if ($payouts_enabled) {
-          $status['stripe_phase'] = 'payouts_ready';
-          $status['is_onboarding_complete'] = TRUE;
-          $status['connected'] = TRUE;
-          $status['status'] = 'connected';
-          $status['status_label'] = (string) $this->t('Payouts enabled');
-        }
-        elseif ($connected) {
-          // Charges enabled: same seller-ready signal as assertStripeConnected; do not require payouts.
-          $status['stripe_phase'] = 'payouts_ready';
-          $status['is_onboarding_complete'] = TRUE;
-          $status['connected'] = TRUE;
-          $status['status'] = 'connected';
-          $status['status_label'] = (string) $this->t('Connected');
-        }
-        elseif ($status['account_id']) {
-          $status['stripe_phase'] = 'needs_completion';
-          $status['status'] = 'pending';
-          $status['status_label'] = (string) $this->t('Action required');
-          $status['is_onboarding_complete'] = FALSE;
+      if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+        $id = trim((string) $store->get('field_stripe_account_id')->value);
+        if ($id !== '' && str_starts_with($id, 'acct_')) {
+          $status['account_id'] = $id;
+          $accountIdForQuery = $id;
         }
       }
+      if ($accountIdForQuery) {
+        $qDashA = [
+          'destination' => '/vendor/dashboard',
+          'account_id' => $accountIdForQuery,
+        ];
+        $qOnboardA = [
+          'destination' => '/vendor/onboard/stripe',
+          'account_id' => $accountIdForQuery,
+        ];
+        $status['connect_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+          'query' => $qDashA,
+        ])->toString();
+        $status['resume_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+          'query' => $qOnboardA,
+        ])->toString();
+      }
+      $status['stripe_dashboard_url'] = 'https://dashboard.stripe.com';
+
+      $raw_flags = 'pending';
+      if ($store->hasField('field_stripe_status') && !$store->get('field_stripe_status')->isEmpty()) {
+        $raw_flags = (string) $store->get('field_stripe_status')->value;
+      }
+
+      $charges_enabled = $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()
+        ? (bool) $store->get('field_stripe_charges_enabled')->value
+        : FALSE;
+      $payouts_enabled = $store->hasField('field_stripe_payouts_enabled') && !$store->get('field_stripe_payouts_enabled')->isEmpty()
+        ? (bool) $store->get('field_stripe_payouts_enabled')->value
+        : FALSE;
+
+      $status['charges_enabled'] = $charges_enabled;
+      $status['payouts_enabled'] = $payouts_enabled;
+      $status['payouts_restricted'] = $charges_enabled && !$payouts_enabled;
+
+      if (empty($status['account_id'])) {
+        $status['mel_stripe_state'] = 'not_connected';
+        $status['primary_action'] = 'connect';
+        $status['action_url'] = $status['connect_url'];
+        $status['status_label'] = (string) $this->t('Not connected');
+        $status['stripe_phase'] = 'needs_connect';
+        return $status;
+      }
+
+      if ($charges_enabled && $payouts_enabled) {
+        $status['connected'] = TRUE;
+        $status['status'] = 'connected';
+        $status['status_label'] = (string) $this->t('Payouts enabled');
+        $status['mel_stripe_state'] = 'ready_to_sell';
+        $status['primary_action'] = 'open_dashboard';
+        $status['action_url'] = $status['manage_stripe_url'] ?? $status['connect_url'];
+        $status['stripe_phase'] = 'payouts_ready';
+        $status['is_onboarding_complete'] = TRUE;
+        return $status;
+      }
+
+      if ($charges_enabled && !$payouts_enabled) {
+        $status['connected'] = TRUE;
+        $status['status'] = 'connected';
+        $status['status_label'] = (string) $this->t('Payouts restricted');
+        $status['mel_stripe_state'] = 'payouts_restricted';
+        $status['primary_action'] = 'open_dashboard';
+        $status['action_url'] = $status['manage_stripe_url'] ?? $status['connect_url'];
+        $status['stripe_phase'] = 'payouts_ready';
+        $status['is_onboarding_complete'] = TRUE;
+        return $status;
+      }
+
+      if ($raw_flags === 'restricted') {
+        $status['status'] = 'pending';
+        $status['status_label'] = (string) $this->t('Action required');
+        $status['mel_stripe_state'] = 'action_required';
+        $status['primary_action'] = 'review_requirements';
+        $status['action_url'] = $status['resume_url'];
+        $status['stripe_phase'] = 'needs_completion';
+        $status['is_onboarding_complete'] = FALSE;
+        return $status;
+      }
+
+      $status['status'] = 'pending';
+      $status['status_label'] = (string) $this->t('Continue setup');
+      $status['mel_stripe_state'] = 'continue_setup';
+      $status['primary_action'] = 'continue';
+      $status['action_url'] = $status['resume_url'];
+      $status['stripe_phase'] = 'needs_completion';
+      $status['is_onboarding_complete'] = FALSE;
     }
-    catch (\Exception $e) {
-      // Stripe Connect may not be configured.
+    catch (\Exception) {
+    }
+
+    if ($status['action_url'] === NULL) {
+      $status['action_url'] = $status['connect_url'];
     }
 
     return $status;
@@ -1798,17 +1873,32 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     // Check Stripe status.
     $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
+    $mel = (string) ($stripeStatus['mel_stripe_state'] ?? 'not_connected');
+    if ($mel === 'payouts_restricted') {
+      $notifications[] = [
+        'type' => 'info',
+        'icon' => 'credit-card',
+        'message' => t('Add or verify your bank in Stripe to receive ticket payouts'),
+        'url' => $stripeStatus['action_url'] ?? $stripeStatus['connect_url'] ?? '/vendor/stripe/connect',
+      ];
+    }
     if (($stripeStatus['stripe_phase'] ?? '') !== 'payouts_ready') {
       $is_finish = ($stripeStatus['stripe_phase'] ?? '') === 'needs_completion';
-      $stripe_url = $is_finish
+      $is_action = $mel === 'action_required';
+      $stripe_url = $is_finish || $is_action
         ? ($stripeStatus['resume_url'] ?? $stripeStatus['connect_url'] ?? '/vendor/stripe/connect')
         : ($stripeStatus['connect_url'] ?? '/vendor/stripe/connect');
+      $msg = t('Connect Stripe to receive payments');
+      if ($is_action) {
+        $msg = t('Stripe needs more information. Review requirements in Connect.');
+      }
+      elseif ($is_finish) {
+        $msg = t('Finish Stripe setup to enable payouts');
+      }
       $notifications[] = [
         'type' => 'warning',
         'icon' => 'credit-card',
-        'message' => $is_finish
-          ? t('Finish Stripe setup to enable payouts')
-          : t('Connect Stripe to receive payments'),
+        'message' => $msg,
         'url' => $stripe_url,
       ];
     }
@@ -2190,23 +2280,41 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   private function buildDashboardAlerts(array $stripe, array $eventNodes): array {
     $alerts = [];
 
+    $actionUrl = $stripe['action_url'] ?? $stripe['connect_url'] ?? $this->safeRouteUrl('myeventlane_vendor.stripe_connect');
+    $mel = (string) ($stripe['mel_stripe_state'] ?? 'not_connected');
+    if ($mel === 'payouts_restricted') {
+      $alerts[] = [
+        'type' => 'info',
+        'title' => (string) $this->t('Finish payout setup'),
+        'message' => (string) $this->t('You can take card payments. Complete bank and verification in Stripe to receive your transfers.'),
+        'url' => $actionUrl,
+        'link_label' => (string) $this->t('Open Stripe Dashboard'),
+      ];
+    }
     $stripe_phase = $stripe['stripe_phase'] ?? (empty($stripe['connected']) ? 'needs_connect' : 'needs_completion');
     if ($stripe_phase !== 'payouts_ready') {
       $is_finish = $stripe_phase === 'needs_completion';
+      $is_action = $mel === 'action_required';
       $alerts[] = [
-        'type' => $is_finish ? 'warning' : 'info',
-        'title' => $is_finish
-          ? (string) $this->t('Finish setting up Stripe')
-          : (string) $this->t('Connect Stripe to receive payments'),
-        'message' => $is_finish
-          ? (string) $this->t('Complete your Stripe account so payouts can reach your bank.')
-          : (string) $this->t('Connect Stripe so ticket sales can pay out automatically.'),
-        'url' => $is_finish
+        'type' => $is_action ? 'warning' : ($is_finish ? 'warning' : 'info'),
+        'title' => $is_action
+          ? (string) $this->t('Stripe: action required')
+          : ($is_finish
+            ? (string) $this->t('Finish setting up Stripe')
+            : (string) $this->t('Connect Stripe to receive payments')),
+        'message' => $is_action
+          ? (string) $this->t('Log in to Stripe to resolve outstanding requirements, or continue the Connect flow.')
+          : ($is_finish
+            ? (string) $this->t('Complete your Stripe account so you can get paid for ticket sales.')
+            : (string) $this->t('Connect Stripe so ticket sales can pay out automatically.')),
+        'url' => $is_finish || $is_action
           ? ($stripe['resume_url'] ?? $stripe['connect_url'] ?? $this->safeRouteUrl('myeventlane_vendor.stripe_connect'))
           : ($stripe['connect_url'] ?? $this->safeRouteUrl('myeventlane_vendor.stripe_connect')),
-        'link_label' => $is_finish
-          ? (string) $this->t('Resume Stripe setup')
-          : (string) $this->t('Connect Stripe'),
+        'link_label' => $is_action
+          ? (string) $this->t('Review Stripe requirements')
+          : ($is_finish
+            ? (string) $this->t('Continue Stripe setup')
+            : (string) $this->t('Connect Stripe')),
       ];
     }
 
