@@ -222,9 +222,8 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
           '@message' => $e->getMessage(),
         ]
       );
+      return NULL;
     }
-
-    return $store;
   }
 
 }
