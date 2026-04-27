@@ -125,3 +125,35 @@ $settings['reverse_proxy_trusted_headers'] =
   | Request::HEADER_X_FORWARDED_PROTO
   | Request::HEADER_X_FORWARDED_PORT
   | Request::HEADER_X_FORWARDED_HOST;
+
+// ---------------------------------------------------------------------------
+// Stripe (Commerce payment gateways): secrets from the environment.
+//
+// StripeService::getPlatformClient() uses gateway id "mel_stripe" if present,
+// else "stripe" (see config/sync/commerce_payment.commerce_payment_gateway.stripe.yml).
+// Do not commit live keys in config/sync; set env vars on the host (e.g. systemd
+// Environment=, .env consumed by PHP-FPM, or platform secret store).
+//
+//   MEL_STRIPE_SECRET_KEY       — sk_test_… / sk_live_…
+//   MEL_STRIPE_PUBLISHABLE_KEY  — pk_test_… / pk_live_…
+//   MEL_STRIPE_WEBHOOK_SECRET   — whsec_… (Payment Element gateway webhook)
+//
+// If the site has commerce_payment_gateway id "mel_stripe", add matching
+// $config['commerce_payment.commerce_payment_gateway.mel_stripe']['configuration'][…] lines.
+// ---------------------------------------------------------------------------
+$mel_stripe_secret = getenv('sk_test_51TQfApQf6DmToWSrcNYyznGzGvdz8UD3cIAWWuWJnFLy654nne7pJ8YJEg12yfp9XgqY6VtfyA7Oh38KBcYG0cs300eJL8PA80');
+if (is_string($mel_stripe_secret) && $mel_stripe_secret !== '') {
+  $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['secret_key'] = $mel_stripe_secret;
+  $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['secret_key'] = $mel_stripe_secret;
+}
+
+$mel_stripe_publishable = getenv('pk_test_51TQfApQf6DmToWSr0oVzeGjHUB9BWZvOCyGVL89NOgNabyfiIETNHHwz01dRmQROxUL0BvK1ZI2N0CkCP9m3uU3A00CKW71OTa');
+if (is_string($mel_stripe_publishable) && $mel_stripe_publishable !== '') {
+  $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['publishable_key'] = $mel_stripe_publishable;
+  $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['publishable_key'] = $mel_stripe_publishable;
+}
+
+$mel_stripe_webhook = getenv('whsec_YHQBrQKXhKMqI8B8LD5Riq0diTKHD66T');
+if (is_string($mel_stripe_webhook) && $mel_stripe_webhook !== '') {
+  $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['webhook_signing_secret'] = $mel_stripe_webhook;
+}
