@@ -129,8 +129,9 @@ $settings['reverse_proxy_trusted_headers'] =
 // ---------------------------------------------------------------------------
 // Stripe (Commerce payment gateways): secrets from the environment.
 //
-// StripeService::getPlatformClient() uses gateway id "mel_stripe" if present,
-// else "stripe" (see config/sync/commerce_payment.commerce_payment_gateway.stripe.yml).
+// StripeService::getPlatformSecretKey() checks gateways: mel_stripe, stripe,
+// stripe_myeventlane_v2, stripe_pe_recurring, then myeventlane_core.stripe_settings,
+// then MEL_STRIPE_SECRET_KEY. Staging may only define stripe_myeventlane_v2.
 // Do not commit live keys in config/sync; set env vars on the host (e.g. systemd
 // Environment=, .env consumed by PHP-FPM, or platform secret store).
 //
@@ -138,22 +139,42 @@ $settings['reverse_proxy_trusted_headers'] =
 //   MEL_STRIPE_PUBLISHABLE_KEY  — pk_test_… / pk_live_…
 //   MEL_STRIPE_WEBHOOK_SECRET   — whsec_… (Payment Element gateway webhook)
 //
-// If the site has commerce_payment_gateway id "mel_stripe", add matching
-// $config['commerce_payment.commerce_payment_gateway.mel_stripe']['configuration'][…] lines.
+// DDEV: set these in a gitignored .ddev/config.local.yaml, for example
+//   web_environment:
+//     - MEL_STRIPE_SECRET_KEY=sk_test_…
+//     - MEL_STRIPE_PUBLISHABLE_KEY=pk_test_…
+//     - MEL_STRIPE_WEBHOOK_SECRET=whsec_…
+// then ddev restart.
 // ---------------------------------------------------------------------------
-$mel_stripe_secret = getenv('sk_test_51TQfApQf6DmToWSrcNYyznGzGvdz8UD3cIAWWuWJnFLy654nne7pJ8YJEg12yfp9XgqY6VtfyA7Oh38KBcYG0cs300eJL8PA80');
-if (is_string($mel_stripe_secret) && $mel_stripe_secret !== '') {
+$melGetEnv = static function (string $name): string {
+  $v = getenv($name);
+  if (is_string($v) && $v !== '') {
+    return $v;
+  }
+  if (isset($_ENV[$name]) && is_string($_ENV[$name]) && $_ENV[$name] !== '') {
+    return $_ENV[$name];
+  }
+  if (isset($_SERVER[$name]) && is_string($_SERVER[$name]) && $_SERVER[$name] !== '') {
+    return $_SERVER[$name];
+  }
+  return '';
+};
+
+$mel_stripe_secret = $melGetEnv('MEL_STRIPE_SECRET_KEY');
+if ($mel_stripe_secret !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['secret_key'] = $mel_stripe_secret;
+  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['secret_key'] = $mel_stripe_secret;
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['secret_key'] = $mel_stripe_secret;
 }
 
-$mel_stripe_publishable = getenv('pk_test_51TQfApQf6DmToWSr0oVzeGjHUB9BWZvOCyGVL89NOgNabyfiIETNHHwz01dRmQROxUL0BvK1ZI2N0CkCP9m3uU3A00CKW71OTa');
-if (is_string($mel_stripe_publishable) && $mel_stripe_publishable !== '') {
+$mel_stripe_publishable = $melGetEnv('MEL_STRIPE_PUBLISHABLE_KEY');
+if ($mel_stripe_publishable !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['publishable_key'] = $mel_stripe_publishable;
+  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['publishable_key'] = $mel_stripe_publishable;
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['publishable_key'] = $mel_stripe_publishable;
 }
 
-$mel_stripe_webhook = getenv('whsec_YHQBrQKXhKMqI8B8LD5Riq0diTKHD66T');
-if (is_string($mel_stripe_webhook) && $mel_stripe_webhook !== '') {
+$mel_stripe_webhook = $melGetEnv('MEL_STRIPE_WEBHOOK_SECRET');
+if ($mel_stripe_webhook !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['webhook_signing_secret'] = $mel_stripe_webhook;
 }
