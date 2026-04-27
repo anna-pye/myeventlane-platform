@@ -298,7 +298,23 @@ final class StripeConnectController extends ControllerBase {
     catch (\Exception $e) {
       $this->getLogger('myeventlane_vendor')->error('Stripe connect: @m', [
         '@m' => $e->getMessage(),
+        'exception' => $e,
       ]);
+
+      $msg = $e->getMessage();
+      if (str_contains($msg, 'Platform Stripe secret key is not configured')) {
+        $this->messenger()->addError($this->t('Stripe is not configured for this environment. The platform secret key is missing. Set the MEL_STRIPE_SECRET_KEY environment variable (for DDEV, use web_environment in a gitignored .ddev/config.local.yaml), restart the web service, and try again.'));
+        return $this->redirectToDashboard();
+      }
+      if (str_contains($msg, 'Invalid Stripe URL') || str_contains($msg, 'no link')) {
+        $this->messenger()->addError($this->t('Stripe returned an unexpected onboarding link. Check recent logs, then try again or contact support.'));
+        return $this->redirectToDashboard();
+      }
+      if ($e instanceof \InvalidArgumentException && str_contains($msg, 'Email is required')) {
+        $this->messenger()->addError($this->t('Your account must have an email address to connect Stripe.'));
+        return $this->redirectToDashboard();
+      }
+
       $this->messenger()->addError($this->t('Failed to start Stripe onboarding. Please try again or contact support.'));
       return $this->redirectToDashboard();
     }
