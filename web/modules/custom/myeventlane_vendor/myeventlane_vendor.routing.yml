@@ -103,19 +103,29 @@ myeventlane_vendor.stripe_connect:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::connect'
     _title: 'Connect Stripe'
   requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _custom_access: '\Drupal\myeventlane_vendor\Access\StripeConnectAccess::access'
   options:
     _maintenance_access: FALSE
 
 # Stripe Connect callback.
 myeventlane_vendor.stripe_callback:
+  path: '/stripe/callback'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::callback'
+    _title: 'Stripe Connect Callback'
+  requirements:
+    _access: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
+# Legacy Stripe Connect callback path retained for in-flight AccountLinks.
+myeventlane_vendor.stripe_callback_legacy:
   path: '/stripe/connect/callback'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::callback'
     _title: 'Stripe Connect Callback'
   requirements:
-    _permission: 'access content'
-    _user_is_logged_in: 'TRUE'
+    _access: 'TRUE'
   options:
     _maintenance_access: FALSE
 
@@ -126,8 +136,7 @@ myeventlane_vendor.stripe_onboard_return:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::callback'
     _title: 'Stripe Connect return'
   requirements:
-    _permission: 'access content'
-    _user_is_logged_in: 'TRUE'
+    _access: 'TRUE'
   options:
     _maintenance_access: FALSE
 
@@ -137,8 +146,7 @@ myeventlane_vendor.stripe_onboard_refresh:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::connect'
     _title: 'Connect Stripe'
   requirements:
-    _permission: 'access content'
-    _user_is_logged_in: 'TRUE'
+    _custom_access: '\Drupal\myeventlane_vendor\Access\StripeConnectAccess::access'
   options:
     _maintenance_access: FALSE
 

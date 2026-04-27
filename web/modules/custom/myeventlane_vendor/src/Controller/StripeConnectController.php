@@ -18,6 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Stripe\Exception\ApiErrorException;
 
 /**
  * Controller for Stripe Connect Express onboarding and management.
@@ -245,7 +246,6 @@ final class StripeConnectController extends ControllerBase {
           '@m' => $e->getMessage(),
         ]);
       }
-    }
 
     $userEmail = (string) $currentUser->getEmail();
     if (trim($userEmail) === '') {
@@ -375,6 +375,13 @@ final class StripeConnectController extends ControllerBase {
       }
       return $this->redirectToDashboard();
     }
+    catch (ApiErrorException $e) {
+      $this->loggerChannelFactory->get('stripe_error')->error($e->getMessage());
+      $this->loggerChannelFactory->get('myeventlane_vendor')->error('Stripe Connect callback failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      $this->messenger()->addError($this->t('Failed to verify Stripe account status. Please try again.'));
+    }
     catch (\Exception $e) {
       $log->error('Stripe callback: @m', ['@m' => $e->getMessage()]);
       $this->messenger()->addError($this->t('Failed to verify Stripe account status. Please try again.'));
@@ -423,7 +430,7 @@ final class StripeConnectController extends ControllerBase {
    * Login link to the vendor’s Express Stripe Dashboard.
    */
   public function manage(): RedirectResponse {
-    $logger = $this->getLogger('myeventlane_vendor');
+    $logger = $this->loggerChannelFactory->get('myeventlane_vendor');
     $currentUser = $this->currentUser();
 
     if ($currentUser->isAnonymous()) {

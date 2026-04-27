@@ -1647,7 +1647,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'total_paid_out' => 0,
       'pending_balance' => 0,
       'stripe_dashboard_url' => NULL,
-      'connect_url' => '/vendor/stripe/connect',
+      'connect_url' => '/stripe/connect',
       'charges_enabled' => FALSE,
       'payouts_enabled' => FALSE,
       'is_onboarding_complete' => FALSE,

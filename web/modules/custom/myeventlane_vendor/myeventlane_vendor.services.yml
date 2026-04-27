@@ -64,7 +64,6 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@logger.factory'
-      - '@myeventlane_onboarding.manager'
     tags:
       - { name: event_subscriber }
 

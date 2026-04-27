@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_core\Service;
 use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\myeventlane_core\Security\SensitiveDataScrubber;
@@ -18,6 +19,7 @@ use Stripe\Exception\ApiErrorException;
 use Stripe\LoginLink;
 use Stripe\PaymentIntent;
 use Stripe\SetupIntent;
+use Stripe\Stripe;
 use Stripe\StripeClient;
 
 /**
@@ -66,6 +68,13 @@ final class StripeService {
   }
 
   /**
+   * Logs Stripe API failures to the dedicated production error channel.
+   */
+  private function logStripeApiError(ApiErrorException $e): void {
+    $this->loggerFactory->get('stripe_error')->error($e->getMessage());
+  }
+
+  /**
    * Gets the Stripe client for the platform account.
    *
    * @return \Stripe\StripeClient
@@ -80,7 +89,132 @@ final class StripeService {
       throw new \RuntimeException('Platform Stripe secret key is not configured.');
     }
 
+    Stripe::setApiKey($secretKey);
+    $this->loggerFactory->get('stripe_debug')->notice('Stripe key set');
+
     return new StripeClient($secretKey);
+  }
+
+  /**
+   * Gets or creates the vendor's Express Connect account.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $vendor
+   *   The MEL vendor entity.
+   * @param \Drupal\commerce_store\Entity\StoreInterface|null $store
+   *   The Commerce store already resolved by the caller, if available.
+   *
+   * @return string
+   *   The Stripe account ID.
+   */
+  public function getOrCreateAccount(ContentEntityInterface $vendor, ?StoreInterface $store = NULL): string {
+    $store ??= $this->resolveVendorStore($vendor);
+    if (!$store) {
+      $this->loggerFactory->get('stripe_debug')->error('No Commerce store found for vendor @vendor_id', [
+        '@vendor_id' => (string) $vendor->id(),
+      ]);
+      throw new \RuntimeException('No Commerce store found for vendor.');
+    }
+
+    if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+      return trim((string) $store->get('field_stripe_account_id')->value);
+    }
+
+    $email = $this->resolveVendorOwnerEmail($vendor);
+    if ($email === '') {
+      $this->loggerFactory->get('stripe_debug')->error('No owner email found for vendor @vendor_id', [
+        '@vendor_id' => (string) $vendor->id(),
+      ]);
+      throw new \RuntimeException('Vendor owner email is required for Stripe onboarding.');
+    }
+
+    $account = $this->createConnectAccount($email, 'AU', 'express');
+    $accountId = (string) $account->id;
+    if ($accountId === '') {
+      $this->loggerFactory->get('stripe_debug')->error('Stripe account creation returned an empty account ID for vendor @vendor_id', [
+        '@vendor_id' => (string) $vendor->id(),
+      ]);
+      throw new \RuntimeException('Stripe account creation returned an empty account ID.');
+    }
+
+    if ($store->hasField('field_stripe_account_id')) {
+      $store->set('field_stripe_account_id', $accountId);
+    }
+    if ($store->hasField('field_stripe_status')) {
+      $store->set('field_stripe_status', 'pending');
+    }
+    if ($store->hasField('field_stripe_connected')) {
+      $store->set('field_stripe_connected', FALSE);
+    }
+    $store->save();
+
+    if ($vendor->hasField('field_stripe_account_id')) {
+      $vendor->set('field_stripe_account_id', $accountId);
+    }
+    if ($vendor->hasField('field_stripe_status')) {
+      $vendor->set('field_stripe_status', 'pending');
+    }
+    if ($vendor->hasField('field_stripe_connected')) {
+      $vendor->set('field_stripe_connected', FALSE);
+    }
+    if ($vendor->hasField('field_vendor_store')) {
+      $vendor->set('field_vendor_store', $store->id());
+    }
+    $vendor->save();
+
+    return $accountId;
+  }
+
+  /**
+   * Resolves the Commerce store attached to a vendor.
+   */
+  private function resolveVendorStore(ContentEntityInterface $vendor): ?StoreInterface {
+    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $store = $vendor->get('field_vendor_store')->entity;
+      if ($store instanceof StoreInterface) {
+        return $store;
+      }
+    }
+
+    $ownerId = method_exists($vendor, 'getOwnerId') ? (int) $vendor->getOwnerId() : 0;
+    if ($ownerId <= 0) {
+      return NULL;
+    }
+
+    $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
+    $storeIds = $storeStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', $ownerId)
+      ->range(0, 1)
+      ->execute();
+
+    if ($storeIds === []) {
+      return NULL;
+    }
+
+    $store = $storeStorage->load(reset($storeIds));
+    return $store instanceof StoreInterface ? $store : NULL;
+  }
+
+  /**
+   * Resolves the vendor owner email address.
+   */
+  private function resolveVendorOwnerEmail(ContentEntityInterface $vendor): string {
+    if (method_exists($vendor, 'getOwner')) {
+      $owner = $vendor->getOwner();
+      if ($owner && method_exists($owner, 'getEmail')) {
+        return trim((string) $owner->getEmail());
+      }
+    }
+
+    $ownerId = method_exists($vendor, 'getOwnerId') ? (int) $vendor->getOwnerId() : 0;
+    if ($ownerId <= 0) {
+      return '';
+    }
+
+    $owner = $this->entityTypeManager->getStorage('user')->load($ownerId);
+    return $owner && method_exists($owner, 'getEmail')
+      ? trim((string) $owner->getEmail())
+      : '';
   }
 
   /**
@@ -276,6 +410,7 @@ final class StripeService {
       return $account;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to create Stripe Connect account: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -317,6 +452,7 @@ final class StripeService {
       return $link;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to create AccountLink: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -349,6 +485,7 @@ final class StripeService {
       return $link;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to create LoginLink: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -422,6 +559,7 @@ final class StripeService {
       ];
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       // Account retrieval failed - log error and return not eligible.
       $this->safeLog('error', 'Failed to retrieve Stripe account @id for eligibility check: @message', [
         '@id' => $accountId,
@@ -464,6 +602,7 @@ final class StripeService {
       return $this->createLoginLink($accountId);
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       throw $e;
     }
   }
@@ -486,12 +625,13 @@ final class StripeService {
     try {
       $account = $client->accounts->retrieve($accountId);
 
-      // Map Stripe account status to our status values.
+      // Map Stripe account status to MEL's seller-ready signal. Payouts can
+      // lag after onboarding, so they are tracked separately.
       $status = 'pending';
-      if ($account->details_submitted && $account->charges_enabled && $account->payouts_enabled) {
+      if ($account->details_submitted && $account->charges_enabled) {
         $status = 'complete';
       }
-      elseif ($account->charges_enabled === FALSE || $account->payouts_enabled === FALSE) {
+      elseif ($account->details_submitted === FALSE || $account->charges_enabled === FALSE) {
         $status = 'restricted';
       }
 
@@ -503,6 +643,7 @@ final class StripeService {
       ];
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to retrieve account status: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -563,6 +704,7 @@ final class StripeService {
       return $paymentIntent;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to create PaymentIntent for ticket sale: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -611,6 +753,7 @@ final class StripeService {
       return $paymentIntent;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to create PaymentIntent for Boost: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -670,6 +813,7 @@ final class StripeService {
       return $customer;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to create Stripe Customer: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -712,6 +856,7 @@ final class StripeService {
       return $setupIntent;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Failed to create SetupIntent: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -772,6 +917,7 @@ final class StripeService {
       return $paymentIntent;
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('error', 'Off-session PaymentIntent failed: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -798,6 +944,7 @@ final class StripeService {
       }
     }
     catch (ApiErrorException $e) {
+      $this->logStripeApiError($e);
       $this->safeLog('warning', 'Could not retrieve PaymentMethod @id for last4: @message', [
         '@id' => $paymentMethodId,
         '@message' => $e->getMessage(),
