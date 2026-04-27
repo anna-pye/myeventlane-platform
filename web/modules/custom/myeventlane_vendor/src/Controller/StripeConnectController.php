@@ -123,12 +123,14 @@ final class StripeConnectController extends ControllerBase {
   }
 
   /**
-   * Builds return and refresh URLs for Account Links; includes account_id for callback validation.
+   * Builds return and refresh URLs for Account Links.
+   *
+   * The store’s field_stripe_account_id is set before the redirect; the
+   * callback resolves the account from the store so the ID is not placed in
+   * query strings (logs, referrers, history).
    */
-  private function buildAccountLinkUrls(string $accountId, string $destination = ''): array {
-    $query = [
-      'account_id' => $accountId,
-    ];
+  private function buildAccountLinkUrls(string $destination = ''): array {
+    $query = [];
     if ($destination !== '') {
       $query['destination'] = $destination;
     }
@@ -262,7 +264,7 @@ final class StripeConnectController extends ControllerBase {
         throw new \RuntimeException('Stripe account id missing after ensure.');
       }
 
-      [$returnUrl, $refreshUrl] = $this->buildAccountLinkUrls($accountId, $destStr);
+      [$returnUrl, $refreshUrl] = $this->buildAccountLinkUrls($destStr);
       $accountLink = $this->stripeService->createAccountLink($accountId, $returnUrl, $refreshUrl);
       if (empty($accountLink->url) || !is_string($accountLink->url) || $accountLink->url === '') {
         $log->error('Stripe connect: empty AccountLink for vendor @vid store @sid', [
@@ -294,9 +296,6 @@ final class StripeConnectController extends ControllerBase {
       return $this->redirectToDashboard();
     }
     catch (\Exception $e) {
-      if ($e instanceof \RuntimeException) {
-        throw $e;
-      }
       $this->getLogger('myeventlane_vendor')->error('Stripe connect: @m', [
         '@m' => $e->getMessage(),
       ]);
@@ -368,19 +367,13 @@ final class StripeConnectController extends ControllerBase {
       $status = $this->stripeService->getAccountStatus($accountId);
     }
     catch (ApiErrorException $e) {
+      $this->loggerChannelFactory->get('stripe_error')->error($e->getMessage());
       $this->logConnectApiError($e, $vendor, $store, $accountId);
       $this->messenger()->addError($this->t('We could not verify your Stripe account. Please try again.'));
       if ($dest !== '') {
         return new RedirectResponse($dest);
       }
       return $this->redirectToDashboard();
-    }
-    catch (ApiErrorException $e) {
-      $this->loggerChannelFactory->get('stripe_error')->error($e->getMessage());
-      $this->loggerChannelFactory->get('myeventlane_vendor')->error('Stripe Connect callback failed: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-      $this->messenger()->addError($this->t('Failed to verify Stripe account status. Please try again.'));
     }
     catch (\Exception $e) {
       $log->error('Stripe callback: @m', ['@m' => $e->getMessage()]);
@@ -411,7 +404,7 @@ final class StripeConnectController extends ControllerBase {
     elseif (!empty($status['charges_enabled'])) {
       $this->messenger()->addStatus($this->t('Stripe can process charges. Check your Stripe Dashboard for any remaining items.'));
     }
-    elseif (($status['status'] ?? '') === 'pending' || !empty($status['details_submitted']) === FALSE) {
+    elseif (($status['status'] ?? '') === 'pending' || empty($status['details_submitted'] ?? NULL)) {
       $this->messenger()->addWarning($this->t('Please complete the remaining steps in your Stripe account setup.'));
     }
     else {

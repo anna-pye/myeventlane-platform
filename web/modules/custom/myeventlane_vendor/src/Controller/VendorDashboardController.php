@@ -1660,8 +1660,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'resume_url' => '/vendor/stripe/connect',
     ];
 
-    $accountIdForQuery = NULL;
-
     try {
       $qDash = [
         'destination' => '/vendor/dashboard',
@@ -1702,24 +1700,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $id = trim((string) $store->get('field_stripe_account_id')->value);
         if ($id !== '' && str_starts_with($id, 'acct_')) {
           $status['account_id'] = $id;
-          $accountIdForQuery = $id;
         }
-      }
-      if ($accountIdForQuery) {
-        $qDashA = [
-          'destination' => '/vendor/dashboard',
-          'account_id' => $accountIdForQuery,
-        ];
-        $qOnboardA = [
-          'destination' => '/vendor/onboard/stripe',
-          'account_id' => $accountIdForQuery,
-        ];
-        $status['connect_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-          'query' => $qDashA,
-        ])->toString();
-        $status['resume_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-          'query' => $qOnboardA,
-        ])->toString();
       }
       $status['stripe_dashboard_url'] = 'https://dashboard.stripe.com';
 
