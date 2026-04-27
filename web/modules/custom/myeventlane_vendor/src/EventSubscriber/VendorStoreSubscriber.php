@@ -128,15 +128,56 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
 
     $logger->notice('Proceeding to create store for vendor @id', ['@id' => $vendor->id()]);
 
-    // Mark as processing.
-    self::$processing[$vendor->id()] = TRUE;
+    $this->createAndPersistStoreForVendor($vendor);
+  }
 
+  /**
+   * Returns the vendor's store, or creates one when onboarding is complete.
+   *
+   * Used for Stripe Connect and other flows that require a store without
+   * falling back to the platform default or another user's store.
+   */
+  public function ensureStoreForVendor(Vendor $vendor): ?StoreInterface {
+    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $entity = $vendor->get('field_vendor_store')->entity;
+      if ($entity instanceof StoreInterface) {
+        return $entity;
+      }
+    }
+
+    $owner = $vendor->getOwner();
+    if ($owner !== NULL) {
+      $state = $this->onboardingManager->loadVendorStateByUid((int) $owner->id());
+      if ($state !== NULL && !$this->onboardingManager->isCompleted($state)) {
+        $this->loggerFactory->get('myeventlane_vendor')->notice('Store ensure: onboarding incomplete, vendor @id', [
+          '@id' => (string) $vendor->id(),
+        ]);
+        return NULL;
+      }
+    }
+
+    if (isset(self::$processing[$vendor->id()])) {
+      $this->loggerFactory->get('myeventlane_vendor')->notice('Store ensure: vendor @id already in progress', [
+        '@id' => (string) $vendor->id(),
+      ]);
+      return NULL;
+    }
+
+    return $this->createAndPersistStoreForVendor($vendor);
+  }
+
+  /**
+   * Creates and saves a Commerce store for a vendor, linking both entities.
+   */
+  private function createAndPersistStoreForVendor(Vendor $vendor): ?StoreInterface {
+    self::$processing[$vendor->id()] = TRUE;
+    $logger = $this->loggerFactory->get('myeventlane_vendor');
+    $store = NULL;
     try {
       $store_storage = $this->entityTypeManager->getStorage('commerce_store');
       $owner = $vendor->getOwner();
       $owner_id = $owner ? (int) $owner->id() : 1;
 
-      // Create a new Commerce Store for this vendor.
       /** @var \Drupal\commerce_store\Entity\StoreInterface $store */
       $store = $store_storage->create([
         'type' => 'online',
@@ -158,27 +199,22 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
         'status' => TRUE,
       ]);
 
-      // Link the store back to the vendor.
-      $this->ensureStoreBackReference($store, $vendor, FALSE);
+      $store->set('field_vendor_reference', $vendor);
       $store->save();
 
-      // Link the vendor to the store.
-      $vendor->set('field_vendor_store', $store->id());
-      // Save the vendor again to persist the store reference.
-      // This won't trigger insert again since the entity is no longer new.
+      $vendor->set('field_vendor_store', $store);
       $vendor->save();
       $this->loggerFactory->get('stripe_debug')->notice('Store created for user @uid', ['@uid' => (string) $owner_id]);
 
-      // Unmark as processing.
       unset(self::$processing[$vendor->id()]);
       return $store;
 
+      return $store;
     }
     catch (EntityStorageException $e) {
-      // Unmark as processing on error.
       unset(self::$processing[$vendor->id()]);
 
-      $this->loggerFactory->get('myeventlane_vendor')->error(
+      $logger->error(
         'Failed to create store for vendor @vendor: @message',
         [
           '@vendor' => $vendor->id(),
@@ -187,106 +223,7 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
       );
     }
 
-    return NULL;
-  }
-
-  /**
-   * Gets the vendor's currently linked store, if it is valid.
-   */
-  private function getLinkedStore(Vendor $vendor): ?StoreInterface {
-    if (!$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
-      return NULL;
-    }
-
-    $store = $vendor->get('field_vendor_store')->entity;
-    return $store instanceof StoreInterface ? $store : NULL;
-  }
-
-  /**
-   * Loads an existing store before creating one.
-   */
-  private function loadExistingStoreForVendor(Vendor $vendor): ?StoreInterface {
-    $store_storage = $this->entityTypeManager->getStorage('commerce_store');
-
-    if ($vendor->id() !== NULL) {
-      try {
-        $store_ids = $store_storage->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('field_vendor_reference', (int) $vendor->id())
-          ->range(0, 1)
-          ->execute();
-        if (!empty($store_ids)) {
-          $store = $store_storage->load(reset($store_ids));
-          if ($store instanceof StoreInterface) {
-            return $store;
-          }
-        }
-      }
-      catch (\Throwable $e) {
-        $this->loggerFactory->get('myeventlane_vendor')->warning('Could not query stores by vendor reference for vendor @vendor: @message', [
-          '@vendor' => (string) $vendor->id(),
-          '@message' => $e->getMessage(),
-        ]);
-      }
-    }
-
-    $owner = $vendor->getOwner();
-    $owner_id = $owner ? (int) $owner->id() : 0;
-    if ($owner_id <= 0) {
-      return NULL;
-    }
-
-    $store_ids = $store_storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('uid', $owner_id)
-      ->execute();
-    if (empty($store_ids)) {
-      return NULL;
-    }
-
-    if (count($store_ids) > 1) {
-      $this->loggerFactory->get('myeventlane_vendor')->warning('Multiple Commerce stores found for vendor owner uid @uid; linking the first store to vendor @vendor.', [
-        '@uid' => (string) $owner_id,
-        '@vendor' => (string) $vendor->id(),
-      ]);
-    }
-
-    $store = $store_storage->load(reset($store_ids));
-    if ($store instanceof StoreInterface) {
-      $this->ensureStoreBackReference($store, $vendor);
-    }
-
-    return $store instanceof StoreInterface ? $store : NULL;
-  }
-
-  /**
-   * Ensures the Commerce store can be discovered from the vendor side too.
-   */
-  private function ensureStoreBackReference(StoreInterface $store, Vendor $vendor, bool $save = TRUE): void {
-    if (!$store->hasField('field_vendor_reference')) {
-      return;
-    }
-
-    $current_target_id = !$store->get('field_vendor_reference')->isEmpty()
-      ? (string) $store->get('field_vendor_reference')->target_id
-      : '';
-    if ($current_target_id === (string) $vendor->id()) {
-      return;
-    }
-
-    if ($current_target_id !== '') {
-      $this->loggerFactory->get('myeventlane_vendor')->warning('Store @store is already linked to vendor @existing; not relinking it to vendor @vendor.', [
-        '@store' => (string) $store->id(),
-        '@existing' => $current_target_id,
-        '@vendor' => (string) $vendor->id(),
-      ]);
-      return;
-    }
-
-    $store->set('field_vendor_reference', $vendor->id());
-    if ($save) {
-      $store->save();
-    }
+    return $store;
   }
 
 }

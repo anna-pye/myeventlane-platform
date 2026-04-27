@@ -293,14 +293,94 @@ final class StripeService {
   }
 
   /**
+   * Masks a Stripe Connect account id for safe logs (e.g. acct_1Ab…YZ).
+   */
+  public static function maskAccountId(string $accountId): string {
+    $accountId = trim($accountId);
+    if ($accountId === '' || !str_starts_with($accountId, 'acct_')) {
+      return '(invalid)';
+    }
+    if (strlen($accountId) <= 12) {
+      return $accountId[0] . $accountId[1] . $accountId[2] . $accountId[3] . '…';
+    }
+    return substr($accountId, 0, 8) . '…' . substr($accountId, -4);
+  }
+
+  /**
+   * Returns existing Connect account id on the store, or creates an Express account.
+   *
+   * Never overwrites a non-empty field_stripe_account_id (connected vendors
+   * keep their account; new Express accounts are only created when the id is
+   * empty).
+   *
+   * @return string
+   *   Stripe account id (acct_…).
+   */
+  public function ensureConnectAccountIdForStore(StoreInterface $store, string $email, string $country = 'AU'): string {
+    if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+      $existing = trim((string) $store->get('field_stripe_account_id')->value);
+      if ($existing !== '') {
+        return $existing;
+      }
+    }
+
+    if (trim($email) === '') {
+      throw new \InvalidArgumentException('Email is required to create a Connect account.');
+    }
+
+    $account = $this->createConnectAccount($email, $country, 'express');
+    $accountId = (string) $account->id;
+
+    if ($store->hasField('field_stripe_account_id')) {
+      $store->set('field_stripe_account_id', $accountId);
+    }
+    if ($store->hasField('field_stripe_status')) {
+      $store->set('field_stripe_status', 'pending');
+    }
+    if ($store->hasField('field_stripe_connected')) {
+      $store->set('field_stripe_connected', FALSE);
+    }
+    if ($store->hasField('field_stripe_charges_enabled')) {
+      $store->set('field_stripe_charges_enabled', FALSE);
+    }
+    if ($store->hasField('field_stripe_payouts_enabled')) {
+      $store->set('field_stripe_payouts_enabled', FALSE);
+    }
+    $store->save();
+
+    return $accountId;
+  }
+
+  /**
+   * Persists common Connect flags from a getAccountStatus() result on the store.
+   */
+  public function applyConnectStatusToCommerceStore(StoreInterface $store, array $status): void {
+    if ($store->hasField('field_stripe_status')) {
+      $store->set('field_stripe_status', $status['status'] ?? 'pending');
+    }
+    if ($store->hasField('field_stripe_connected')) {
+      $store->set('field_stripe_connected', (bool) ($status['charges_enabled'] ?? FALSE));
+    }
+    if ($store->hasField('field_stripe_charges_enabled')) {
+      $store->set('field_stripe_charges_enabled', (bool) ($status['charges_enabled'] ?? FALSE));
+    }
+    if ($store->hasField('field_stripe_payouts_enabled')) {
+      $store->set('field_stripe_payouts_enabled', (bool) ($status['payouts_enabled'] ?? FALSE));
+    }
+    $store->save();
+  }
+
+  /**
    * Creates a Stripe Connect account.
+   *
+   * MEL uses Connect Express for vendor-hosted onboarding and responsibilities.
    *
    * @param string $email
    *   The vendor email address.
    * @param string $country
    *   The country code (e.g., 'AU', 'US').
    * @param string $type
-   *   Account type: 'express' (default) or another Stripe-supported type.
+   *   Connect account type: 'express' (MEL default) or 'standard' (legacy only).
    *
    * @return \Stripe\Account
    *   The created Stripe account.
@@ -323,7 +403,7 @@ final class StripeService {
       ]);
 
       $this->safeLog('info', 'Created Stripe Connect account @id for @email', [
-        '@id' => $account->id,
+        '@id' => self::maskAccountId((string) $account->id),
         '@email' => $email,
       ]);
 
@@ -366,7 +446,7 @@ final class StripeService {
       ]);
 
       $this->safeLog('info', 'Created AccountLink for account @id', [
-        '@id' => $accountId,
+        '@id' => self::maskAccountId($accountId),
       ]);
 
       return $link;
@@ -399,7 +479,7 @@ final class StripeService {
       $link = $client->accounts->createLoginLink($accountId);
 
       $this->safeLog('info', 'Created LoginLink for account @id', [
-        '@id' => $accountId,
+        '@id' => self::maskAccountId($accountId),
       ]);
 
       return $link;
@@ -617,7 +697,7 @@ final class StripeService {
         '@id' => $paymentIntent->id,
         '@amount' => $amount,
         '@currency' => $currency,
-        '@account' => $stripeAccountId,
+        '@account' => self::maskAccountId($stripeAccountId),
         '@fee' => $applicationFeeAmount,
       ]);
 
