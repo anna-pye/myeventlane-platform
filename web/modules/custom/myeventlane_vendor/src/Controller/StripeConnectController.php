@@ -18,7 +18,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Stripe\Exception\ApiErrorException;
 
 /**
  * Controller for Stripe Connect Express onboarding and management.
@@ -246,6 +245,7 @@ final class StripeConnectController extends ControllerBase {
           '@m' => $e->getMessage(),
         ]);
       }
+    }
 
     $userEmail = (string) $currentUser->getEmail();
     if (trim($userEmail) === '') {
