@@ -129,17 +129,15 @@ $settings['reverse_proxy_trusted_headers'] =
 // ---------------------------------------------------------------------------
 // Stripe (Commerce payment gateways): secrets from the environment.
 //
-// StripeService::getPlatformClient() uses gateway id "mel_stripe" if present,
-// else "stripe" (see config/sync/commerce_payment.commerce_payment_gateway.stripe.yml).
+// StripeService::getPlatformSecretKey() checks gateways: mel_stripe, stripe,
+// stripe_myeventlane_v2, stripe_pe_recurring, then myeventlane_core.stripe_settings,
+// then MEL_STRIPE_SECRET_KEY. Staging may only define stripe_myeventlane_v2.
 // Do not commit live keys in config/sync; set env vars on the host (e.g. systemd
 // Environment=, .env consumed by PHP-FPM, or platform secret store).
 //
 //   MEL_STRIPE_SECRET_KEY       — sk_test_… / sk_live_…
 //   MEL_STRIPE_PUBLISHABLE_KEY  — pk_test_… / pk_live_…
 //   MEL_STRIPE_WEBHOOK_SECRET   — whsec_… (Payment Element gateway webhook)
-//
-// If the site has commerce_payment_gateway id "mel_stripe", add matching
-// $config['commerce_payment.commerce_payment_gateway.mel_stripe']['configuration'][…] lines.
 //
 // DDEV: set these in a gitignored .ddev/config.local.yaml, for example
 //   web_environment:
@@ -165,12 +163,14 @@ $melGetEnv = static function (string $name): string {
 $mel_stripe_secret = $melGetEnv('MEL_STRIPE_SECRET_KEY');
 if ($mel_stripe_secret !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['secret_key'] = $mel_stripe_secret;
+  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['secret_key'] = $mel_stripe_secret;
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['secret_key'] = $mel_stripe_secret;
 }
 
 $mel_stripe_publishable = $melGetEnv('MEL_STRIPE_PUBLISHABLE_KEY');
 if ($mel_stripe_publishable !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['publishable_key'] = $mel_stripe_publishable;
+  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['publishable_key'] = $mel_stripe_publishable;
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['publishable_key'] = $mel_stripe_publishable;
 }
 

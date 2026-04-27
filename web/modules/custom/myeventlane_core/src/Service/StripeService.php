@@ -224,35 +224,29 @@ final class StripeService {
    *   The secret key, or empty string if not found.
    */
   private function getPlatformSecretKey(): string {
-    // Try to get from mel_stripe gateway (preferred).
-    $gateway = $this->entityTypeManager
-      ->getStorage('commerce_payment_gateway')
-      ->load('mel_stripe');
+    // Order: sync defaults (mel_stripe, stripe), then MEL v2 id used on some envs, then PE recurring.
+    foreach (['mel_stripe', 'stripe', 'stripe_myeventlane_v2', 'stripe_pe_recurring'] as $gatewayId) {
+      $gateway = $this->entityTypeManager
+        ->getStorage('commerce_payment_gateway')
+        ->load($gatewayId);
 
-    if ($gateway instanceof PaymentGatewayInterface) {
-      $config = $gateway->getPluginConfiguration();
-      if (!empty($config['secret_key'])) {
-        return (string) $config['secret_key'];
+      if ($gateway instanceof PaymentGatewayInterface) {
+        $config = $gateway->getPluginConfiguration();
+        if (!empty($config['secret_key'])) {
+          return (string) $config['secret_key'];
+        }
       }
     }
 
-    // Fallback to stripe gateway.
-    $gateway = $this->entityTypeManager
-      ->getStorage('commerce_payment_gateway')
-      ->load('stripe');
-
-    if ($gateway instanceof PaymentGatewayInterface) {
-      $config = $gateway->getPluginConfiguration();
-      if (!empty($config['secret_key'])) {
-        return (string) $config['secret_key'];
-      }
-    }
-
-    // Try config entity as last resort.
     $config = $this->configFactory->get('myeventlane_core.stripe_settings');
     $secretKey = $config->get('platform_secret_key');
     if (!empty($secretKey)) {
       return (string) $secretKey;
+    }
+
+    $fromEnv = getenv('MEL_STRIPE_SECRET_KEY');
+    if (is_string($fromEnv) && $fromEnv !== '') {
+      return $fromEnv;
     }
 
     return '';
@@ -265,28 +259,22 @@ final class StripeService {
    *   The publishable key, or empty string if not found.
    */
   public function getPlatformPublishableKey(): string {
-    // Try to get from mel_stripe gateway (preferred).
-    $gateway = $this->entityTypeManager
-      ->getStorage('commerce_payment_gateway')
-      ->load('mel_stripe');
+    foreach (['mel_stripe', 'stripe', 'stripe_myeventlane_v2', 'stripe_pe_recurring'] as $gatewayId) {
+      $gateway = $this->entityTypeManager
+        ->getStorage('commerce_payment_gateway')
+        ->load($gatewayId);
 
-    if ($gateway instanceof PaymentGatewayInterface) {
-      $config = $gateway->getPluginConfiguration();
-      if (!empty($config['publishable_key'])) {
-        return (string) $config['publishable_key'];
+      if ($gateway instanceof PaymentGatewayInterface) {
+        $config = $gateway->getPluginConfiguration();
+        if (!empty($config['publishable_key'])) {
+          return (string) $config['publishable_key'];
+        }
       }
     }
 
-    // Fallback to stripe gateway.
-    $gateway = $this->entityTypeManager
-      ->getStorage('commerce_payment_gateway')
-      ->load('stripe');
-
-    if ($gateway instanceof PaymentGatewayInterface) {
-      $config = $gateway->getPluginConfiguration();
-      if (!empty($config['publishable_key'])) {
-        return (string) $config['publishable_key'];
-      }
+    $fromEnv = getenv('MEL_STRIPE_PUBLISHABLE_KEY');
+    if (is_string($fromEnv) && $fromEnv !== '') {
+      return $fromEnv;
     }
 
     return '';
