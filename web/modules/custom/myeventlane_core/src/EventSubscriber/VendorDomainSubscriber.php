@@ -44,7 +44,6 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     $path = $request->getPathInfo();
     $host = $request->getHost();
 
-
     // --------------------------------------------------
     // ENVIRONMENT DETECTION
     // --------------------------------------------------
@@ -53,10 +52,10 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     // --------------------------------------------------
     // LOCAL ENVIRONMENT GUARD (DDEV)
     // --------------------------------------------------
-      if (str_ends_with($request->getHost(), '.ddev.site')) {
-         // 🚨 Disable domain redirects locally to prevent session loss
-         return;
-      }
+    if (str_ends_with($request->getHost(), '.ddev.site')) {
+      // 🚨 Disable domain redirects locally to prevent session loss
+      return;
+    }
 
     // --------------------------------------------------
     // GLOBAL SAFETY GUARDS
@@ -92,8 +91,12 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
 
     $is_vendor_domain = $this->domainDetector->isVendorDomain();
 
+    $is_vendor_path_prefix = self::isVendorPathPrefix($path);
+    $is_vendor_route = str_starts_with($route_name, 'myeventlane_vendor.')
+      || $is_vendor_path_prefix;
+
     // Prevent redirect loops on vendor domain
-    if ($is_vendor_domain && str_starts_with($path, '/vendor')) {
+    if ($is_vendor_domain && $is_vendor_path_prefix) {
       return;
     }
 
@@ -106,12 +109,10 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     // --------------------------------------------------
     // ROUTE DETECTION
     // --------------------------------------------------
-
-    $is_vendor_route = str_starts_with($route_name, 'myeventlane_vendor.')
-      || str_starts_with($path, '/vendor');
-
-    $is_public_route = str_contains($route_name, 'view.')
-      || str_starts_with($path, '/events');
+    // Only Views "page" routes (view.name.display), not "entity.view.*" etc.
+    $is_public_route = (str_starts_with($route_name, 'view.')
+        || str_starts_with($path, '/events'))
+      && !$is_vendor_route;
 
     // --------------------------------------------------
     // REDIRECT: PUBLIC → VENDOR DOMAIN
@@ -177,6 +178,13 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
         $event->setResponse(new TrustedRedirectResponse($public_url, 302));
       }
     }
+  }
+
+  /**
+   * True for /vendor and /vendor/... but not /vendors (organiser list).
+   */
+  private static function isVendorPathPrefix(string $path): bool {
+    return (bool) preg_match('#^/vendor(/|$)#', $path);
   }
 
   /**
