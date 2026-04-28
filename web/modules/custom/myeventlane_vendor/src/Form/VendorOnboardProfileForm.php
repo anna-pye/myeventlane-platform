@@ -208,7 +208,7 @@ final class VendorOnboardProfileForm extends FormBase {
     }
 
     $state->setFlags($flags);
-    $state->save();
+    $this->onboardingManager->persistOnboardingState($state);
 
     $this->getLogger('myeventlane_vendor')->notice(
       'MEL: terms checkbox saved uid=@uid value=@value',
@@ -239,7 +239,7 @@ final class VendorOnboardProfileForm extends FormBase {
     $this->onboardingManager->ensureVendorAccess($account);
     if ((int) ($state->getVendorId() ?? 0) !== (int) $vendor->id()) {
       $state->setVendorId((int) $vendor->id());
-      $state->save();
+      $this->onboardingManager->persistOnboardingState($state);
     }
 
     // Mark onboarding complete (profile + terms) once vendor is linked. Must run
@@ -248,7 +248,7 @@ final class VendorOnboardProfileForm extends FormBase {
     if (!empty($flags['terms_accepted']) && $name !== '' && (int) ($state->getVendorId() ?? 0) > 0) {
       $state->setStage('complete');
       $state->setCompleted(TRUE);
-      $state->save();
+      $this->onboardingManager->persistOnboardingState($state);
       $this->getLogger('myeventlane_vendor')->notice(
         'MEL: onboarding marked complete from profile uid=@uid',
         ['@uid' => (string) $this->currentUser->id()],

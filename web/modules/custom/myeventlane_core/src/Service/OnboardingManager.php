@@ -15,6 +15,7 @@ use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\OnboardingStateStorage;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\user\UserInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
 /**
  * Onboarding state manager.
@@ -59,6 +60,13 @@ final class OnboardingManager {
   private LockBackendInterface $lock;
 
   /**
+   * Present when Workspaces module is enabled; used to save onboarding state in Live.
+   *
+   * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+   */
+  private ?WorkspaceManagerInterface $workspaceManager;
+
+  /**
    * Whether we have already logged duplicate state this request.
    *
    * @var array<string, true>
@@ -74,12 +82,14 @@ final class OnboardingManager {
     LockBackendInterface $lock,
     ?AccountProxyInterface $current_user = NULL,
     ?TimeInterface $time = NULL,
+    ?WorkspaceManagerInterface $workspace_manager = NULL,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->loggerFactory = $logger_factory;
     $this->currentUser = $current_user;
     $this->time = $time;
     $this->lock = $lock;
+    $this->workspaceManager = $workspace_manager;
   }
 
   /**
@@ -115,7 +125,7 @@ final class OnboardingManager {
       'has_account' => TRUE,
       'has_orders' => $this->customerHasOrders($uid),
     ]);
-    $state->save();
+    $this->saveOnboardingState($state);
     return $state;
   }
 
@@ -268,7 +278,7 @@ final class OnboardingManager {
       ]);
       $state->setOwnerId($uid);
       $state->setFlags([]);
-      $state->save();
+      $this->saveOnboardingState($state);
       return $state;
     }
     finally {
@@ -305,7 +315,7 @@ final class OnboardingManager {
         $by_uid->setStoreId($store_id);
       }
       $by_uid->setFlags(array_merge($by_uid->getFlags(), $this->computeVendorFlags($vendor)));
-      $by_uid->save();
+      $this->saveOnboardingState($by_uid);
       return $by_uid;
     }
 
@@ -335,7 +345,7 @@ final class OnboardingManager {
     $state->setVendorId($vid);
     $state->setStoreId($store_id);
     $state->setFlags($this->computeVendorFlags($vendor));
-    $state->save();
+    $this->saveOnboardingState($state);
     return $state;
   }
 
@@ -506,7 +516,7 @@ final class OnboardingManager {
     $mel[$milestone] = TRUE;
     $flags['mel_create_event_gateway'] = $mel;
     $state->setFlags($flags);
-    $state->save();
+    $this->saveOnboardingState($state);
   }
 
   /**
@@ -542,7 +552,7 @@ final class OnboardingManager {
         ]));
       }
     }
-    $state->save();
+    $this->saveOnboardingState($state);
     return $state;
   }
 
@@ -565,7 +575,7 @@ final class OnboardingManager {
       return $state;
     }
     $state->setStage($stage);
-    $state->save();
+    $this->saveOnboardingState($state);
     return $state;
   }
 
@@ -634,7 +644,7 @@ final class OnboardingManager {
     }
     $this->advanceStage($state, 'complete');
     $state->setCompleted(TRUE);
-    $state->save();
+    $this->saveOnboardingState($state);
   }
 
   /**
@@ -793,7 +803,7 @@ final class OnboardingManager {
       }
       $id = (int) $state->id();
       try {
-        $state->delete();
+        $this->deleteOnboardingState($state);
         $this->logger()->warning('Removed duplicate vendor-track onboarding state id=@id (@track @key); kept=@keep.', [
           '@id' => (string) $id,
           '@track' => $log_track,
@@ -808,6 +818,51 @@ final class OnboardingManager {
         ]);
       }
     }
+  }
+
+  /**
+   * Persists onboarding state while Workspaces “Live” is active if needed.
+   *
+   * Unsupported entity types cannot be saved inside a non-default workspace.
+   *
+   * @see \Drupal\workspaces\WorkspaceManagerInterface::executeOutsideWorkspace()
+   */
+  private function saveOnboardingState(OnboardingStateInterface $state): void {
+    $this->runOnboardingStateInLive(function () use ($state): void {
+      $state->save();
+    });
+  }
+
+  /**
+   * Deletes onboarding state while Workspaces “Live” is active if needed.
+   */
+  private function deleteOnboardingState(OnboardingStateInterface $state): void {
+    $this->runOnboardingStateInLive(function () use ($state): void {
+      $state->delete();
+    });
+  }
+
+  /**
+   * @template T
+   *
+   * @param callable(): T $callback
+   *
+   * @return T
+   */
+  private function runOnboardingStateInLive(callable $callback): mixed {
+    if ($this->workspaceManager !== NULL) {
+      return $this->workspaceManager->executeOutsideWorkspace($callback);
+    }
+    return $callback();
+  }
+
+  /**
+   * Persists onboarding state when Workspaces may be active (forms/controllers).
+   *
+   * Prefer over calling save() directly on onboarding state entities.
+   */
+  public function persistOnboardingState(OnboardingStateInterface $state): void {
+    $this->saveOnboardingState($state);
   }
 
   /**
