@@ -1,7 +1,63 @@
-# MEL Staging — Stripe `settings.php` gateway override (TASK 4I)
+# MEL Staging — Stripe environment and gateway keys
 
 **Date:** 2026-04-28  
-**Problem:** Staging could not start Stripe vendor onboarding because the platform secret appeared missing.
+
+---
+
+## TASK 4J — StripeService gateway ID lookup
+
+**Problem:** Staging could not start Stripe Connect onboarding with: *Stripe is not configured for this environment. The platform secret key is missing.*
+
+**Staging gateway IDs observed** (Commerce payment gateways; modes/secrets as audited):
+
+| ID | Plugin | Notes |
+| --- | --- | --- |
+| `mel_stripe_cc` | manual | Not used for API keys |
+| `stripe_for_events` | stripe | Test keys present |
+| `vendor_payments` | stripe_connect | Test keys present |
+
+**Root cause:** [`StripeService::getPlatformSecretKey()`](../../web/modules/custom/myeventlane_core/src/Service/StripeService.php) only iterated legacy gateway entity IDs (`mel_stripe`, `stripe`, `stripe_myeventlane_v2`, `stripe_pe_recurring`). Staging stores keys on **`vendor_payments`** and **`stripe_for_events`**, so the service never loaded those configs before falling through to config/env.
+
+**Fix:** Added `vendor_payments` and `stripe_for_events` to a single lookup list (`getStripeGatewayLookupIds()`), tried first, then legacy IDs; unchanged fallbacks: `myeventlane_core.stripe_settings` `platform_secret_key`, `MEL_STRIPE_SECRET_KEY`, and for publishable keys `MEL_STRIPE_PUBLISHABLE_KEY`. No gateway entities created or deleted; no plugin or checkout architecture changes.
+
+**Local verification**
+
+```bash
+composer validate
+ddev drush cr
+```
+
+```bash
+ddev drush php-eval '$service = \Drupal::service("myeventlane_core.stripe"); $ref = new ReflectionClass($service); $m = $ref->getMethod("getPlatformSecretKey"); $m->setAccessible(TRUE); try { $key = $m->invoke($service); echo "StripeService platform secret present: " . (!empty($key) ? "yes" : "no") . PHP_EOL; echo "Prefix: " . (!empty($key) ? substr($key, 0, 8) . "..." : "none") . PHP_EOL; } catch (\Throwable $e) { echo "StripeService error: " . $e->getMessage() . PHP_EOL; }'
+```
+
+**Staging verification** (after deploy)
+
+```bash
+./vendor/bin/drush cr
+```
+
+```bash
+./vendor/bin/drush php-eval '$storage = \Drupal::entityTypeManager()->getStorage("commerce_payment_gateway"); $ids = $storage->getQuery()->accessCheck(FALSE)->execute(); foreach ($ids as $id) { $gateway = $storage->load($id); $config = $gateway->getPluginConfiguration(); echo $id . " | plugin=" . $gateway->getPluginId() . " | status=" . ($gateway->status() ? "enabled" : "disabled") . " | mode=" . ($config["mode"] ?? "unknown") . " | secret=" . (!empty($config["secret_key"]) ? "yes" : "no") . PHP_EOL; }'
+```
+
+```bash
+./vendor/bin/drush php-eval '$service = \Drupal::service("myeventlane_core.stripe"); $ref = new ReflectionClass($service); $m = $ref->getMethod("getPlatformSecretKey"); $m->setAccessible(TRUE); try { $key = $m->invoke($service); echo "StripeService platform secret present: " . (!empty($key) ? "yes" : "no") . PHP_EOL; echo "Prefix: " . (!empty($key) ? substr($key, 0, 8) . "..." : "none") . PHP_EOL; } catch (\Throwable $e) { echo "StripeService error: " . $e->getMessage() . PHP_EOL; }'
+```
+
+**Expected on staging:** `StripeService platform secret present: yes`; prefix `sk_test_...` (first eight characters only).
+
+Then click **Connect Stripe** once and check logs:
+
+```bash
+./vendor/bin/drush ws --count=80 | grep -A4 -B2 -Ei "Stripe is not configured|MEL_STRIPE_SECRET_KEY|Stripe API error|Failed to create Stripe Connect account|Stripe Account Link created|Created AccountLink|managing losses"
+```
+
+---
+
+## TASK 4I — Stripe `settings.php` gateway override
+
+**Problem:** Staging could not start Stripe vendor onboarding because the platform secret appeared missing (settings load order / empty `STRIPE_*` overrides).
 
 **Security:** No full `sk_`, `pk_`, or `whsec_` values appear here. Treat any keys previously pasted into terminals or chat as **exposed** and **rotate** test secrets and webhook signing material in the Stripe Dashboard after staging is stable; update env or Commerce UI only—never tickets or Git.
 
