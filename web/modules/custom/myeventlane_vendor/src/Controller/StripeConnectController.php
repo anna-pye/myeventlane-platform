@@ -303,7 +303,7 @@ final class StripeConnectController extends ControllerBase {
 
       $msg = $e->getMessage();
       if (str_contains($msg, 'Platform Stripe secret key is not configured')) {
-        $this->messenger()->addError($this->t('Stripe is not configured for this environment. The platform secret key is missing. Set the MEL_STRIPE_SECRET_KEY environment variable (for DDEV, use web_environment in a gitignored .ddev/config.local.yaml), restart the web service, and try again.'));
+        $this->messenger()->addError($this->t('Stripe is not configured for this environment. The platform secret key is missing. Set MEL_STRIPE_SECRET_KEY in the web PHP process (for example the PHP-FPM pool, your hosting environment variables, or nginx/httpd fastcgi_param for PHP)—not only in an SSH session—then restart PHP or the web server, run drush cr, and try again. For DDEV, set web_environment in a gitignored .ddev/config.local.yaml.'));
         return $this->redirectToDashboard();
       }
       if (str_contains($msg, 'Invalid Stripe URL') || str_contains($msg, 'no link')) {
