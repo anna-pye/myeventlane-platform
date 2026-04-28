@@ -244,12 +244,7 @@ final class StripeService {
       return (string) $secretKey;
     }
 
-    $fromEnv = getenv('MEL_STRIPE_SECRET_KEY');
-    if (is_string($fromEnv) && $fromEnv !== '') {
-      return $fromEnv;
-    }
-
-    return '';
+    return self::melGetEnv('MEL_STRIPE_SECRET_KEY');
   }
 
   /**
@@ -272,11 +267,29 @@ final class StripeService {
       }
     }
 
-    $fromEnv = getenv('MEL_STRIPE_PUBLISHABLE_KEY');
-    if (is_string($fromEnv) && $fromEnv !== '') {
-      return $fromEnv;
-    }
+    return self::melGetEnv('MEL_STRIPE_PUBLISHABLE_KEY');
+  }
 
+  /**
+   * Reads MEL env vars the same way as settings.mel_shared_session.php.
+   *
+   * PHP-FPM and some web servers expose secrets in $_SERVER or $_ENV but not
+   * always via getenv(), so we check all three.
+   *
+   * @return string
+   *   The value, or empty string if unset/empty.
+   */
+  private static function melGetEnv(string $name): string {
+    $v = getenv($name);
+    if (is_string($v) && $v !== '') {
+      return $v;
+    }
+    if (isset($_ENV[$name]) && is_string($_ENV[$name]) && $_ENV[$name] !== '') {
+      return $_ENV[$name];
+    }
+    if (isset($_SERVER[$name]) && is_string($_SERVER[$name]) && $_SERVER[$name] !== '') {
+      return $_SERVER[$name];
+    }
     return '';
   }
 
