@@ -218,14 +218,28 @@ final class StripeService {
   }
 
   /**
+   * @return list<string>
+   */
+  private function getStripeGatewayLookupIds(): array {
+    // vendor_payments and stripe_for_events are staging/live gateway IDs; legacy/local IDs remain for DDEV and older environments.
+    return [
+      'vendor_payments',
+      'stripe_for_events',
+      'mel_stripe',
+      'stripe',
+      'stripe_myeventlane_v2',
+      'stripe_pe_recurring',
+    ];
+  }
+
+  /**
    * Gets the platform Stripe secret key from payment gateway config.
    *
    * @return string
    *   The secret key, or empty string if not found.
    */
   private function getPlatformSecretKey(): string {
-    // Order: sync defaults (mel_stripe, stripe), then MEL v2 id used on some envs, then PE recurring.
-    foreach (['mel_stripe', 'stripe', 'stripe_myeventlane_v2', 'stripe_pe_recurring'] as $gatewayId) {
+    foreach ($this->getStripeGatewayLookupIds() as $gatewayId) {
       $gateway = $this->entityTypeManager
         ->getStorage('commerce_payment_gateway')
         ->load($gatewayId);
@@ -254,7 +268,7 @@ final class StripeService {
    *   The publishable key, or empty string if not found.
    */
   public function getPlatformPublishableKey(): string {
-    foreach (['mel_stripe', 'stripe', 'stripe_myeventlane_v2', 'stripe_pe_recurring'] as $gatewayId) {
+    foreach ($this->getStripeGatewayLookupIds() as $gatewayId) {
       $gateway = $this->entityTypeManager
         ->getStorage('commerce_payment_gateway')
         ->load($gatewayId);
