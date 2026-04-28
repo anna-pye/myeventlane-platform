@@ -173,7 +173,7 @@ final class VendorTermsForm extends FormBase {
       }
     }
     $state->setFlags($flags);
-    $state->save();
+    $this->onboardingManager->persistOnboardingState($state);
 
     $vendor = $this->onboardingManager->ensureVendorExists($this->currentUser);
     $this->onboardingManager->applyVendorLegalFieldsFromStateFlags($vendor, $flags);

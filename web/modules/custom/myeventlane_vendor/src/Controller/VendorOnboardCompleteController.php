@@ -96,7 +96,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
 
     $state->setStage('complete');
     $state->setCompleted(TRUE);
-    $state->save();
+    $this->onboardingManager->persistOnboardingState($state);
 
     $this->vendorStoreSubscriber->onVendorInsertFromHook($vendor);
 

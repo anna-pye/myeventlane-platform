@@ -280,3 +280,4 @@ services:
       - '@lock'
       - '@current_user'
       - '@datetime.time'
+      - '@?workspaces.manager'

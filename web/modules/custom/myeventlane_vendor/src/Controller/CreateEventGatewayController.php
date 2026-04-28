@@ -181,7 +181,7 @@ class CreateEventGatewayController extends ControllerBase {
 
     if ($state->getVendorId() !== (int) $vendor->id()) {
       $state->setVendorId((int) $vendor->id());
-      $state->save();
+      $this->onboardingManager->persistOnboardingState($state);
     }
 
     try {
