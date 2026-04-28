@@ -372,13 +372,18 @@ final class VendorEventsBulkActionsForm extends FormBase {
       if ($node instanceof NodeInterface
           && $node->bundle() === 'event'
           && (int) $node->getOwnerId() === $userId) {
-        $this->eventStudioSave->setNodePublishedState(
-          $node,
-          $this->currentUser,
-          $publish,
-          $publish ? 'Bulk publish from vendor events list.' : 'Bulk unpublish from vendor events list.',
-        );
-        $updatedCount++;
+        try {
+          $this->eventStudioSave->setNodePublishedState(
+            $node,
+            $this->currentUser,
+            $publish,
+            $publish ? 'Bulk publish from vendor events list.' : 'Bulk unpublish from vendor events list.',
+          );
+          $updatedCount++;
+        }
+        catch (\InvalidArgumentException $e) {
+          $this->messenger()->addError($e->getMessage());
+        }
       }
     }
 
