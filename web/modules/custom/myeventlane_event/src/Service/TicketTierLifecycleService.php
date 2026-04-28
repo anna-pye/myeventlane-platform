@@ -291,7 +291,7 @@ final class TicketTierLifecycleService {
     $ticketStorage = $this->entityTypeManager->getStorage('mel_ticket_type');
     $inverseIds = array_values(array_map(
       'intval',
-      array_keys($ticketStorage->getQuery()
+      array_values($ticketStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('event', $nid)
         ->sort('id')
