@@ -78,7 +78,7 @@ final class EventStudioSaveService {
         'type' => 'event',
         'title' => trim((string) ($payload['title'] ?? 'Untitled event')),
         'uid' => (int) $account->id(),
-        'status' => $draft ? 0 : 1,
+        'status' => $draft ? 0 : ($willPublish ? 1 : 0),
       ]);
     }
     else {
