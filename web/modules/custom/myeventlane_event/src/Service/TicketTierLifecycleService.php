@@ -267,6 +267,98 @@ final class TicketTierLifecycleService {
   }
 
   /**
+   * Ensures node field_ticket_types lists every mel_ticket_type targeting this event.
+   *
+   * Ticket builder paths set ticket.event but historically some saves omitted the
+   * bidirectional node reference. Without this, loadOrderedTicketsForEvent() is
+   * empty while ticket entities still exist (inverse lookup).
+   *
+   * Merge rule: preserve current field order for IDs still valid on ticket entities,
+   * then append any ticket IDs found via event reference that were missing.
+   */
+  public function reconcileEventTicketReferences(NodeInterface $event): void {
+    $nid = $event->id();
+    if ($nid === NULL || !$event->hasField('field_ticket_types')) {
+      return;
+    }
+
+    $loaded = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$loaded instanceof NodeInterface) {
+      return;
+    }
+    $event = $loaded;
+
+    $ticketStorage = $this->entityTypeManager->getStorage('mel_ticket_type');
+    $inverseIds = array_values(array_map(
+      'intval',
+      array_keys($ticketStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event', $nid)
+        ->sort('id')
+        ->execute()),
+    ));
+
+    if ($inverseIds === []) {
+      return;
+    }
+
+    $fieldIds = [];
+    if (!$event->get('field_ticket_types')->isEmpty()) {
+      foreach ($event->get('field_ticket_types')->getValue() as $row) {
+        if (!empty($row['target_id'])) {
+          $fieldIds[] = (int) $row['target_id'];
+        }
+      }
+    }
+    $fieldIds = array_values(array_unique($fieldIds));
+
+    $inverseSet = array_flip($inverseIds);
+    $merged = [];
+    foreach ($fieldIds as $id) {
+      if (isset($inverseSet[$id])) {
+        $merged[] = $id;
+      }
+    }
+    foreach ($inverseIds as $id) {
+      if (!in_array($id, $merged, TRUE)) {
+        $merged[] = $id;
+      }
+    }
+
+    if ($merged === $fieldIds) {
+      return;
+    }
+
+    $event->set(
+      'field_ticket_types',
+      array_map(static fn (int $id): array => ['target_id' => $id], $merged),
+    );
+    EventNodeRevisionSave::prepare($event, 'Synced ticket type references from ticket entities.');
+    try {
+      $event->save();
+      $this->loggerFactory->get('myeventlane_event')->notice(
+        'Reconciled field_ticket_types on event @nid: @ids.',
+        [
+          '@nid' => (string) $nid,
+          '@ids' => implode(',', array_map('strval', $merged)),
+        ],
+      );
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_event')->error(
+        'reconcileEventTicketReferences save failed for nid @nid: @message',
+        [
+          '@nid' => (string) $nid,
+          '@message' => $e->getMessage(),
+        ],
+      );
+      return;
+    }
+
+    $this->syncPaidTiers($event);
+  }
+
+  /**
    * Loads ticket types for an event in field order.
    *
    * @return \Drupal\mel_ticket\Entity\TicketTypeInterface[]
