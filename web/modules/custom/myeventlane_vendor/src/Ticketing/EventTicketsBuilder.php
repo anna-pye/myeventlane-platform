@@ -8,6 +8,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityStorageException;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Url;
@@ -44,6 +45,7 @@ final class EventTicketsBuilder {
     private readonly AccountProxyInterface $currentUser,
     private readonly MessengerInterface $messenger,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -113,6 +115,17 @@ final class EventTicketsBuilder {
     }
 
     $form_state->set('event', $event);
+
+    // Align node.field_ticket_types with ticket entities that reference this event
+    // (fixes orphan inverse refs when the node field was never written).
+    $this->lifecycle->reconcileEventTicketReferences($event);
+    if ($event->id()) {
+      $fresh = $this->entityTypeManager->getStorage('node')->load($event->id());
+      if ($fresh instanceof NodeInterface) {
+        $event = $fresh;
+        $form_state->set('event', $fresh);
+      }
+    }
 
     $tickets = array_values(array_filter(
       $this->lifecycle->loadOrderedTicketsForEvent($event),
@@ -550,6 +563,10 @@ final class EventTicketsBuilder {
         ]
       );
       $this->messenger->addError($this->t('Ticket update failed: @message', ['@message' => $e->getMessage()]));
+    }
+
+    if ($event->id()) {
+      $this->lifecycle->reconcileEventTicketReferences($event);
     }
 
     // Full form rebuild so EventFormAlter can re-apply ticket-driven #access on ops fields.

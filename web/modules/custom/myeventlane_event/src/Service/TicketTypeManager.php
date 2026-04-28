@@ -9,6 +9,7 @@ use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -81,6 +82,11 @@ final class TicketTypeManager {
 
     $this->removeOrphanedVariations($product, $activeVariationUuids);
     $this->syncProductTitle($product, $event);
+    $this->normalizeProductVariationIds($product);
+    Cache::invalidateTags([
+      'commerce_product:' . (string) $product->id(),
+      'node:' . (string) $event->id(),
+    ]);
 
     return TRUE;
   }
@@ -226,10 +232,10 @@ final class TicketTypeManager {
       $existing_variations = $product->getVariations();
       $variation_ids = [];
       foreach ($existing_variations as $existing_var) {
-        $variation_ids[] = $existing_var->id();
+        $variation_ids[(int) $existing_var->id()] = (int) $existing_var->id();
       }
-      $variation_ids[] = $variation->id();
-      $product->set('variations', $variation_ids);
+      $variation_ids[(int) $variation->id()] = (int) $variation->id();
+      $product->set('variations', array_values($variation_ids));
       $product->save();
 
       $this->loggerFactory->get('myeventlane_event')->notice(
@@ -249,6 +255,30 @@ final class TicketTypeManager {
     $labelSlug = strtolower(preg_replace('/[^a-z0-9]+/', '-', $label));
     $labelSlug = trim($labelSlug, '-');
     return 'ticket-' . $eventId . '-' . $labelSlug . '-' . time();
+  }
+
+  /**
+   * Removes duplicate variation target IDs on the Commerce product (fixes booking UI drift).
+   */
+  private function normalizeProductVariationIds(ProductInterface $product): void {
+    $raw = $product->getVariationIds();
+    if (!is_array($raw) || $raw === []) {
+      return;
+    }
+    $unique = array_values(array_unique(array_map(static fn ($id) => (int) $id, $raw)));
+    if (count($raw) === count($unique)) {
+      return;
+    }
+    $product->set('variations', $unique);
+    $product->save();
+    $this->loggerFactory->get('myeventlane_event')->notice(
+      'Deduped Commerce variation references on product @pid (was @before, now @after).',
+      [
+        '@pid' => (string) $product->id(),
+        '@before' => (string) json_encode($raw),
+        '@after' => (string) json_encode($unique),
+      ]
+    );
   }
 
   /**

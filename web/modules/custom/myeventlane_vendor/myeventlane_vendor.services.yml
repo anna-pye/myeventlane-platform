@@ -111,6 +111,7 @@ services:
       - '@current_user'
       - '@messenger'
       - '@logger.factory'
+      - '@entity_type.manager'
     calls:
       - [setStringTranslation, ['@string_translation']]
 

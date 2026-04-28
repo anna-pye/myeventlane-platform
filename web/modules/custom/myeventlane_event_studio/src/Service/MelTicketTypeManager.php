@@ -145,6 +145,13 @@ final class MelTicketTypeManager {
       return;
     }
 
+    // Align node.field_ticket_types before tier payload merge (ticket builder uses inverse event refs).
+    $this->ticketTierLifecycle->reconcileEventTicketReferences($event);
+    $reloaded = $this->entityTypeManager->getStorage('node')->load($event->id());
+    if ($reloaded instanceof NodeInterface) {
+      $event = $reloaded;
+    }
+
     $tiers = $this->normalizeStudioTiersPayload($payload['studio_ticket_tiers'] ?? NULL);
     if ($tiers !== []) {
       $this->applyStudioTierRows($event, $account, $payload, $tiers);
