@@ -1020,6 +1020,41 @@
     }
   }
 
+  /**
+   * Count of ticket tier "signals" the user can perceive as configured.
+   *
+   * Reads from whichever source the current Event Studio mode renders:
+   * inline tier table (new event), AJAX ticket cards (saved event), and the
+   * server-populated hidden JSON. Used by readiness/insights/summary so all
+   * three agree regardless of which builder is active.
+   *
+   * @param {HTMLFormElement} form
+   * @return {number}
+   */
+  function paidTicketTierSignalCount(form) {
+    var counts = [];
+
+    var table = getBuilderTable(form);
+    if (table) {
+      counts.push(table.querySelectorAll('tbody .mel-tier-row').length);
+    }
+
+    var ajaxShell = document.getElementById('mel-ticket-builder-ajax-wrapper');
+    if (ajaxShell) {
+      counts.push(ajaxShell.querySelectorAll('.js-mel-ticket-card[data-ticket-id]').length);
+    }
+
+    var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
+    if (hidden) {
+      counts.push(parseTiersHidden(hidden.value).length);
+    }
+
+    if (counts.length === 0) {
+      return 0;
+    }
+    return Math.max.apply(null, counts);
+  }
+
   function getRenderedTicketTableKind(table) {
     if (!table) {
       return '';
@@ -1219,9 +1254,14 @@
       return;
     }
 
-    var tiers = collectTiersFromDom(form);
+    // Saved events render the AJAX ticket builder (#mel-ticket-builder-ajax-wrapper),
+    // not the inline tier table. Without a table, collectTiersFromDom() returns []
+    // and would wipe the server-populated JSON from encodeStudioTiersJsonForEvent().
+    if (!getBuilderTable(form)) {
+      return;
+    }
 
-    // Always persist UI → hidden
+    var tiers = collectTiersFromDom(form);
     hidden.value = JSON.stringify(tiers);
   }
 
@@ -1632,9 +1672,7 @@
         Drupal.t('Link a ticket product above, or finish in the Tickets workspace.') +
         '</li>';
     }
-    var sTable = getBuilderTable(form);
-    var sTierRows = sTable ? sTable.querySelectorAll('tbody .mel-tier-row').length : 0;
-    if (tt === 'paid' && sTierRows < 1) {
+    if (tt === 'paid' && paidTicketTierSignalCount(form) < 1) {
       warn +=
         '<li class="mel-ticket-summary__warn">' +
         Drupal.t('Add at least one ticket type.') +
@@ -1855,9 +1893,7 @@
       if (!hasProduct) {
         add('high', Drupal.t('Link a ticket product for paid events — or create ticket types in the Tickets workspace first.'), 'mel[field_product_target]');
       }
-      var tTable = getBuilderTable(form);
-      var tierRows = tTable ? tTable.querySelectorAll('tbody .mel-tier-row').length : 0;
-      if (tierRows < 1) {
+      if (paidTicketTierSignalCount(form) < 1) {
         add('high', Drupal.t('Add at least one ticket type for paid checkout.'), 'mel[studio_ticket_focus]');
       }
     } else if (tt === 'external') {
@@ -2216,16 +2252,7 @@
     if (tt === 'paid' && val(form, 'mel[field_product_target]') === '') {
       blocking.push(Drupal.t('Ticket product'));
     }
-    var pTable = getBuilderTable(form);
-    var paidTierRows = pTable ? pTable.querySelectorAll('tbody .mel-tier-row').length : 0;
-    var ajaxShell = document.getElementById('mel-ticket-builder-ajax-wrapper');
-    if (ajaxShell && tt === 'paid') {
-      paidTierRows = Math.max(
-        paidTierRows,
-        ajaxShell.querySelectorAll('.js-mel-ticket-card[data-ticket-id]').length,
-      );
-    }
-    if (tt === 'paid' && paidTierRows < 1) {
+    if (tt === 'paid' && paidTicketTierSignalCount(form) < 1) {
       blocking.push(Drupal.t('Ticket types'));
     }
     var mode = valRadio(form, 'mel[venue_mode]');
