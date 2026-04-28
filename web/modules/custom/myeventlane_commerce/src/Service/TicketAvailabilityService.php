@@ -152,8 +152,7 @@ final class TicketAvailabilityService {
           $by_id[(int) $v->id()] = $v;
         }
         $out = [];
-        foreach ($ids as $vid) {
-          $vid = (int) $vid;
+        foreach (array_unique(array_map(static fn ($id) => (int) $id, $ids)) as $vid) {
           if (isset($by_id[$vid]) && $by_id[$vid]->isPublished()) {
             $out[] = $by_id[$vid];
           }
@@ -166,7 +165,13 @@ final class TicketAvailabilityService {
     $capacityMaps = $this->buildCapacityMapsForProduct($event, $product);
 
     $out = [];
+    $seenVariationId = [];
     foreach ($product->getVariations() as $variation) {
+      $variationId = (int) $variation->id();
+      if (isset($seenVariationId[$variationId])) {
+        continue;
+      }
+      $seenVariationId[$variationId] = TRUE;
       if (!$variation->isPublished()) {
         continue;
       }
@@ -190,7 +195,11 @@ final class TicketAvailabilityService {
       $this->cache->set(
         $cid,
         array_map(static fn (ProductVariationInterface $v) => (int) $v->id(), $out),
-        $this->time->getRequestTime() + self::PURCHASABLE_CACHE_MAX_AGE
+        $this->time->getRequestTime() + self::PURCHASABLE_CACHE_MAX_AGE,
+        [
+          'commerce_product:' . (string) $pid,
+          'node:' . (string) $eid,
+        ]
       );
     }
 

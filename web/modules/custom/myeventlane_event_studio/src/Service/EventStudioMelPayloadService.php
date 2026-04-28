@@ -144,13 +144,23 @@ final class EventStudioMelPayloadService {
     $nid = (int) ($form_state->getValue('nid') ?? 0);
     if ($nid > 0) {
       $loaded = $entityTypeManager->getStorage('node')->load($nid);
-      if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event' && $loaded->hasField('field_ticket_types')) {
-        $payload['field_ticket_types'] = [];
-        foreach ($loaded->get('field_ticket_types')->getValue() as $row) {
-          $tid = (int) ($row['target_id'] ?? 0);
-          if ($tid > 0) {
-            $payload['field_ticket_types'][] = $tid;
+      if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
+        if ($loaded->hasField('field_ticket_types')) {
+          $payload['field_ticket_types'] = [];
+          foreach ($loaded->get('field_ticket_types')->getValue() as $row) {
+            $tid = (int) ($row['target_id'] ?? 0);
+            if ($tid > 0) {
+              $payload['field_ticket_types'][] = $tid;
+            }
           }
+        }
+        // Ticket product autocomplete may be omitted from POST when hidden or unchanged; do not
+        // clear field_product_target on save when the node already has a linked product.
+        $pid = $payload['field_product_target'] ?? NULL;
+        if (($pid === NULL || $pid < 1)
+            && $loaded->hasField('field_product_target')
+            && !$loaded->get('field_product_target')->isEmpty()) {
+          $payload['field_product_target'] = (int) $loaded->get('field_product_target')->target_id;
         }
       }
     }
