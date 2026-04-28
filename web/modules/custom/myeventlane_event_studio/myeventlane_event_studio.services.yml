@@ -84,6 +84,7 @@ services:
       - '@logger.channel.myeventlane_event_studio'
       - '@myeventlane_event_studio.mel_ticket_type_manager'
       - '@myeventlane_event_studio.highlight_helper'
+      - '@myeventlane_vendor.paid_publish_stripe_gate'
 
   myeventlane_event_studio.autosave_controller:
     class: Drupal\myeventlane_event_studio\Controller\EventStudioAutosaveController

@@ -11,6 +11,7 @@ use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
+use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Psr\Log\LoggerInterface;
@@ -33,6 +34,7 @@ final class EventStudioSaveService {
     private readonly LoggerInterface $logger,
     private readonly MelTicketTypeManager $melTicketTypeManager,
     private readonly EventHighlightHelper $eventHighlightHelper,
+    private readonly PaidPublishStripeGate $paidPublishStripeGate,
   ) {}
 
   /**
@@ -44,6 +46,32 @@ final class EventStudioSaveService {
    * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>}
    */
   public function save(array $payload, ?NodeInterface $node, AccountInterface $account, bool $draft = FALSE): array {
+    $effectiveEventType = isset($payload['field_event_type'])
+      ? (string) $payload['field_event_type']
+      : ($node instanceof NodeInterface && $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
+        ? (string) $node->get('field_event_type')->value
+        : 'rsvp');
+
+    $willPublish = FALSE;
+    if (!$draft) {
+      if ($node === NULL) {
+        $willPublish = (bool) ($payload['status'] ?? FALSE);
+      }
+      else {
+        $willPublish = (bool) ($payload['status'] ?? TRUE);
+      }
+    }
+
+    if (!$draft && $willPublish && in_array($effectiveEventType, ['paid', 'both'], TRUE)) {
+      $stripeMsg = $this->paidPublishStripeGate->validatePaidPublishAllowed(
+        $account,
+        $node instanceof NodeInterface ? (int) $node->id() : NULL,
+      );
+      if ($stripeMsg !== NULL) {
+        return ['node' => NULL, 'errors' => [$stripeMsg]];
+      }
+    }
+
     $storage = $this->entityTypeManager->getStorage('node');
     if ($node === NULL) {
       $node = $storage->create([
@@ -336,6 +364,17 @@ final class EventStudioSaveService {
   public function setNodePublishedState(NodeInterface $node, AccountInterface $account, bool $published, string $revision_log = 'Vendor events list publish action.'): void {
     if ($node->bundle() !== 'event') {
       throw new \InvalidArgumentException('Expected event node.');
+    }
+    if ($published) {
+      $eventType = $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
+        ? (string) $node->get('field_event_type')->value
+        : 'rsvp';
+      if (in_array($eventType, ['paid', 'both'], TRUE)) {
+        $stripeMsg = $this->paidPublishStripeGate->validatePaidPublishAllowed($account, (int) $node->id());
+        if ($stripeMsg !== NULL) {
+          throw new \InvalidArgumentException($stripeMsg);
+        }
+      }
     }
     $node->setPublished($published);
     EventNodeRevisionSave::prepare($node, $revision_log);

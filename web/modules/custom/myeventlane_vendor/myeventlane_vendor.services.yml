@@ -40,6 +40,14 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_vendor.paid_publish_stripe_gate:
+    class: Drupal\myeventlane_vendor\Service\PaidPublishStripeGate
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+
   myeventlane_vendor.vendor_theme_page_preprocess:
     class: Drupal\myeventlane_vendor\Service\VendorThemePagePreprocess
     arguments:
