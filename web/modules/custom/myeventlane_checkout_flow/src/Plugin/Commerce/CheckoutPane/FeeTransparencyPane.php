@@ -10,6 +10,7 @@ use Drupal\commerce_order\OrderRefreshInterface;
 use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -46,6 +47,13 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
   private ConfigFactoryInterface $configFactory;
 
   /**
+   * GST-aware breakdown (same source as checkout sidebar).
+   *
+   * @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder
+   */
+  private OrderPricingBreakdownBuilder $orderPricingBreakdown;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
@@ -53,6 +61,7 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
     $instance->currencyFormatter = $container->get('commerce_price.currency_formatter');
     $instance->orderRefresh = $container->get('commerce_order.order_refresh');
     $instance->configFactory = $container->get('config.factory');
+    $instance->orderPricingBreakdown = $container->get('myeventlane_checkout_flow.order_pricing_breakdown');
     return $instance;
   }
 
@@ -86,10 +95,13 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
       $order->recalculateTotalPrice();
     }
 
+    $pricing_display = $this->orderPricingBreakdown->build($order);
+
     // Calculate breakdown.
     $subtotal = $this->calculateSubtotal($order);
     $donation = $this->calculateDonation($order);
     $fees = $this->calculateFees($order);
+    $tax_breakdown_rows = $pricing_display['tax_rows'];
     $tax = $this->calculateTax($order);
     $total = $order->getTotalPrice();
 
@@ -174,15 +186,19 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
       ];
     }
 
-    // Tax (if present).
+    // Tax (if present): label matches Commerce adjustments (e.g. GST (10%)).
     if ($tax && $tax->getNumber() > 0) {
+      $tax_label = $this->t('Tax');
+      if (!empty($tax_breakdown_rows[0]['label'])) {
+        $tax_label = $tax_breakdown_rows[0]['label'];
+      }
       $pane_form['summary']['tax'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-summary-row', 'mel-summary-tax']],
         'label' => [
           '#type' => 'html_tag',
           '#tag' => 'span',
-          '#value' => $this->t('Tax'),
+          '#value' => $tax_label,
           '#attributes' => ['class' => ['mel-summary-label']],
         ],
         'amount' => [
@@ -211,6 +227,15 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
         '#attributes' => ['class' => ['mel-summary-amount']],
       ],
     ];
+
+    if (!empty($pricing_display['show_includes_gst_note'])) {
+      $pane_form['summary']['gst_note'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('All prices include GST'),
+        '#attributes' => ['class' => ['mel-tax-note']],
+      ];
+    }
 
     return $pane_form;
   }

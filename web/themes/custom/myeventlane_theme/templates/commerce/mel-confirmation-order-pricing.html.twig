@@ -1,0 +1,44 @@
+{#
+/**
+ * Paid order pricing breakdown on checkout confirmation (Commerce adjustments).
+ */
+#}
+{% if mel_confirm_paid and mel_order_pricing_breakdown %}
+  {% set b = mel_order_pricing_breakdown %}
+  <section class="mel-confirmation-card mel-confirmation-card--order-pricing" aria-label="{{ 'Order totals'|t }}">
+    <div class="mel-confirmation-card__body">
+      <h2 class="mel-confirmation-card__title">{{ 'Order summary'|t }}</h2>
+      {% if b.subtotal_formatted %}
+        <div class="mel-confirmation-pricing__row">
+          <span>{{ 'Subtotal'|t }}</span>
+          <span>{{ b.subtotal_formatted }}</span>
+        </div>
+      {% endif %}
+      {% for row in b.tax_rows %}
+        <div class="mel-confirmation-pricing__row mel-confirmation-pricing__row--tax">
+          <span>{{ row.label }}</span>
+          <span>{{ row.amount_formatted }}</span>
+        </div>
+      {% endfor %}
+      {% for row in b.fee_rows %}
+        <div class="mel-confirmation-pricing__row mel-confirmation-pricing__row--fee">
+          <span>{{ row.label }}</span>
+          <span>{{ row.amount_formatted }}</span>
+        </div>
+      {% endfor %}
+      {% if b.platform_fee_absorbed %}
+        <div class="mel-confirmation-pricing__row mel-confirmation-pricing__row--platform">
+          <span>{{ 'Platform fee'|t }}</span>
+          <span>{{ 'Organiser absorbs'|t }}</span>
+        </div>
+      {% endif %}
+      <div class="mel-confirmation-pricing__row mel-confirmation-pricing__row--total">
+        <span>{{ 'Total paid'|t }}</span>
+        <strong>{{ b.total_formatted }}</strong>
+      </div>
+      {% if b.show_includes_gst_note %}
+        <p class="mel-tax-note">{{ 'This total includes GST.'|t }}</p>
+      {% endif %}
+    </div>
+  </section>
+{% endif %}

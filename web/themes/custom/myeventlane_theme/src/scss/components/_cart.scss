@@ -327,6 +327,19 @@
   color: colors.$mel-color-text;
 }
 
+.mel-tax-note {
+  font-size: 13px;
+  color: var(--mel-text-muted);
+  margin-top: 4px;
+}
+
+.mel-price__tax-note {
+  display: block;
+  font-size: 13px;
+  color: var(--mel-text-muted);
+  margin-top: 4px;
+}
+
 // ---------------------------------------------------------------------------
 // Cart Actions
 // ---------------------------------------------------------------------------

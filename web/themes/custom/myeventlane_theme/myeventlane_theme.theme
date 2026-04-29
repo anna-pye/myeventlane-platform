@@ -100,6 +100,11 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       'variables' => [
         'grouped_items' => [],
         'order_total' => '',
+        'subtotal_formatted' => '',
+        'tax_rows' => [],
+        'fee_rows' => [],
+        'platform_fee_absorbed' => FALSE,
+        'show_includes_gst_note' => FALSE,
       ],
       'template' => 'commerce/mel-checkout-order-summary-grouped',
     ],
@@ -677,6 +682,13 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
           $donation_sum->getNumber(),
           $donation_sum->getCurrencyCode()
         );
+      }
+
+      $variables['mel_order_pricing_breakdown'] = NULL;
+      if (\Drupal::hasService('myeventlane_checkout_flow.order_pricing_breakdown')) {
+        /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $mel_breakdown */
+        $mel_breakdown = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
+        $variables['mel_order_pricing_breakdown'] = $mel_breakdown->build($order);
       }
 
       // Attach copy-link JS when share block is present.
@@ -3195,6 +3207,13 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
   $variables['grouped_items'] = $grouped_items;
   $variables['items_without_event'] = $items_without_event;
   $variables['item_event_map'] = $item_event_map;
+
+  $order = $form['#order'] ?? NULL;
+  if ($order instanceof OrderInterface && \Drupal::hasService('myeventlane_checkout_flow.order_pricing_breakdown')) {
+    /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $breakdown_builder */
+    $breakdown_builder = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
+    $variables['mel_cart_pricing'] = $breakdown_builder->build($order);
+  }
 }
 
 /**

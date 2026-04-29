@@ -79,6 +79,11 @@ final class CheckoutUxAttacher {
       '#theme' => 'mel_checkout_order_summary_grouped',
       '#grouped_items' => $built['grouped_items'],
       '#order_total' => $built['order_total'],
+      '#subtotal_formatted' => $built['subtotal_formatted'],
+      '#tax_rows' => $built['tax_rows'],
+      '#fee_rows' => $built['fee_rows'],
+      '#platform_fee_absorbed' => $built['platform_fee_absorbed'],
+      '#show_includes_gst_note' => $built['show_includes_gst_note'],
       '#cache' => [
         'tags' => $order->getCacheTags(),
         'contexts' => $order->getCacheContexts(),
