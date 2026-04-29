@@ -101,14 +101,14 @@
           </span>
         </div>
       {% elseif mel_category_label %}
-        <div class="mel-event-hero__chip">
-          <span class="mel-pill mel-pill--category mel-pill--on-image mel-pill--cat-{{ mel_category_slug|default('default') }}" aria-hidden="true">
-            <span class="mel-pill__label">{{ mel_category_label }}</span>
-          </span>
+        <div class="mel-event-hero__chip" aria-hidden="true">
+          <div class="mel-event__category">{{ mel_category_label }}</div>
         </div>
       {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
-        <div class="mel-event-hero__chip mel-event-hero__chip--field">
-          {{ content.field_category }}
+        <div class="mel-event-hero__chip" aria-hidden="true">
+          <div class="mel-event__category">
+            {{ content.field_category }}
+          </div>
         </div>
       {% endif %}
       <div class="mel-event-hero__content">
