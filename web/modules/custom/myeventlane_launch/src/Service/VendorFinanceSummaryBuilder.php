@@ -55,15 +55,15 @@ final class VendorFinanceSummaryBuilder {
     $vendorMetrics = $this->vendorMetricsReadModel->getVendorMetrics((int) $vendor->id());
 
     $tickets = (int) ($vendorMetrics['tickets_sold'] ?? 0);
-    if ($tickets === 0) {
-      // Keep existing fallback path if projections are empty.
-      $revenue = $this->ticketSalesService->getVendorRevenue($uid);
+    if ($tickets === 0 && $eventIds !== []) {
+      // Align with finance totals: same published-event scope for this vendor org.
+      $revenue = $this->ticketSalesService->getVendorRevenueSummaryForPublishedEventIds($eventIds);
       $tickets = (int) ($revenue['tickets'] ?? 0);
-      if ($tickets === 0) {
-        $kpis = $this->metricsAggregator->getVendorKpis($uid);
-        if (!empty($kpis[3]['value'])) {
-          $tickets = (int) $kpis[3]['value'];
-        }
+    }
+    if ($tickets === 0) {
+      $kpis = $this->metricsAggregator->getVendorKpis($uid);
+      if (!empty($kpis[3]['value'])) {
+        $tickets = (int) $kpis[3]['value'];
       }
     }
 
@@ -173,26 +173,35 @@ final class VendorFinanceSummaryBuilder {
   }
 
   /**
-   * Resolves vendor-owned published event IDs.
+   * Resolves published event IDs for this vendor org (owner-authored or linked).
+   *
+   * Matches managed-event semantics: includes events tied via field_event_vendor,
+   * not only node authorship (team-authored events).
    *
    * @return int[]
    *   Event IDs.
    */
   private function getVendorEventIds(Vendor $vendor): array {
     try {
-      $uid = (int) $vendor->getOwnerId();
-      if ($uid <= 0) {
+      $vendorId = (int) $vendor->id();
+      $ownerUid = (int) $vendor->getOwnerId();
+      if ($vendorId <= 0) {
         return [];
       }
 
-      $ids = $this->entityTypeManager
-        ->getStorage('node')
-        ->getQuery()
+      $storage = $this->entityTypeManager->getStorage('node');
+      $query = $storage->getQuery()
         ->accessCheck(FALSE)
         ->condition('type', 'event')
-        ->condition('uid', $uid)
-        ->condition('status', 1)
-        ->execute();
+        ->condition('status', 1);
+      $or = $query->orConditionGroup();
+      if ($ownerUid > 0) {
+        $or->condition('uid', $ownerUid);
+      }
+      $or->condition('field_event_vendor', $vendorId);
+      $query->condition($or);
+
+      $ids = $query->execute();
 
       return array_values(array_map('intval', $ids));
     }

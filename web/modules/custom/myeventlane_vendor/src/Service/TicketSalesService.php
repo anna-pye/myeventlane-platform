@@ -630,6 +630,35 @@ final class TicketSalesService {
   }
 
   /**
+   * Published event node IDs the user manages (author or vendor team).
+   *
+   * @param int $userId
+   *   The vendor user ID.
+   *
+   * @return list<int>
+   *   Published event node IDs.
+   */
+  public function getManagedPublishedEventNidsForUser(int $userId): array {
+    if ($userId <= 0) {
+      return [];
+    }
+    return $this->getManagedPublishedEventNids($userId);
+  }
+
+  /**
+   * Revenue summary for specific published events (same rules as managed vendor revenue).
+   *
+   * @param list<int> $eventIds
+   *   Published event node IDs.
+   *
+   * @return array<string, float|int|string>
+   *   Revenue summary with gross, net, fees, gross_raw, tickets.
+   */
+  public function getVendorRevenueSummaryForPublishedEventIds(array $eventIds): array {
+    return $this->buildVendorRevenueFromPublishedEventIds($eventIds);
+  }
+
+  /**
    * @return array<string, float|int|string>
    */
   private function emptyVendorRevenueSummary(): array {
