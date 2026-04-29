@@ -63,14 +63,6 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   private static array $ensureUserStoreRunning = [];
 
   /**
-   * Routes that should trigger store linkage for vendor users.
-   */
-  private const VENDOR_STORE_ENSURE_ROUTES = [
-    'myeventlane_vendor.console.dashboard',
-    'myeventlane_vendor.console.settings',
-  ];
-
-  /**
    * Constructs a VendorStoreSubscriber.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -100,7 +92,7 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents(): array {
     return [
       'entity.myeventlane_vendor.insert' => 'onVendorInsert',
-      KernelEvents::REQUEST => ['onKernelRequest', 28],
+      KernelEvents::REQUEST => ['onKernelRequest', 100],
     ];
   }
 
@@ -161,24 +153,40 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Ensures store linkage when vendors hit dashboard or account settings.
+   * Ensures vendor users have a linked store when the user store field is empty.
    */
   public function onKernelRequest(RequestEvent $event): void {
     if (!$event->isMainRequest() || \PHP_SAPI === 'cli') {
       return;
     }
-    $route = $event->getRequest()->attributes->get('_route');
-    if (!is_string($route) || !in_array($route, self::VENDOR_STORE_ENSURE_ROUTES, TRUE)) {
+
+    if (!$this->currentUser->isAuthenticated()) {
       return;
     }
+
     $uid = (int) $this->currentUser->id();
-    if ($uid <= 0 || $this->currentUser->isAnonymous()) {
+    if ($uid <= 0) {
       return;
     }
+
     $user = $this->entityTypeManager->getStorage('user')->load($uid);
-    if ($user instanceof UserInterface) {
-      $this->ensureLinkedStoreForVendorUser($user);
+    if (!$user instanceof UserInterface) {
+      return;
     }
+
+    if (!in_array('vendor', $user->getRoles(), TRUE)) {
+      return;
+    }
+
+    if (!$user->hasField('field_vendor_store')) {
+      return;
+    }
+
+    if (!$user->get('field_vendor_store')->isEmpty()) {
+      return;
+    }
+
+    $this->ensureLinkedStoreForVendorUser($user);
   }
 
   /**
@@ -288,6 +296,11 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
           'organization' => $vendor->getName(),
         ],
         'billing_countries' => ['AU'],
+        // Commerce Tax: Australian GST only applies when the store is registered
+        // to collect tax in AU (see LocalTaxTypeBase::matchesRegistrations()).
+        'tax_registrations' => ['AU'],
+        // Align with Australian GST config (display inclusive) and ticket face prices.
+        'prices_include_tax' => TRUE,
         'is_default' => FALSE,
         'status' => TRUE,
       ]);
