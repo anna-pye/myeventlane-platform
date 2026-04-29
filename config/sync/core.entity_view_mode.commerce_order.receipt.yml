@@ -1,0 +1,11 @@
+uuid: 6d2a8c41-9e3f-4b7d-a1c2-501234567890
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_order
+id: commerce_order.receipt
+label: Receipt
+description: 'Tax invoice / receipt display.'
+targetEntityType: commerce_order
+cache: true

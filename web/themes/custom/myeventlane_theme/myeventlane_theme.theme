@@ -108,6 +108,13 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       ],
       'template' => 'commerce/mel-checkout-order-summary-grouped',
     ],
+    'mel_tax_invoice_pdf' => [
+      'variables' => [
+        'invoice' => [],
+        'order_entity' => NULL,
+      ],
+      'template' => 'commerce/mel-tax-invoice-pdf',
+    ],
     'site_header' => [
       'variables' => [
         'branding' => [],
@@ -503,6 +510,41 @@ function _myeventlane_theme_commerce_order_from_route(): ?OrderInterface {
 }
 
 /**
+ * Adds tax invoice Twig variables from Commerce order + store ABN.
+ */
+function _myeventlane_theme_attach_tax_invoice_variables(OrderInterface $order, array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_checkout_flow.tax_invoice_presentation')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder $builder */
+  $builder = \Drupal::service('myeventlane_checkout_flow.tax_invoice_presentation');
+  $data = $builder->build($order);
+  $variables['vendor_name'] = $data['vendor_name'];
+  $variables['vendor_abn'] = $data['vendor_abn'];
+  $variables['order_total_gst'] = $data['order_total_gst'];
+  $variables['order_total'] = $data['order_total'];
+  $variables['mel_invoice_lines'] = $data['invoice_lines'];
+  $variables['invoice_date_display'] = $data['invoice_date_display'];
+  $variables['mel_invoice_fee_lines'] = $data['fee_lines'];
+  $variables['mel_invoice_tax_lines'] = $data['tax_lines'];
+}
+
+/**
+ * Implements hook_preprocess_commerce_order().
+ */
+function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  _myeventlane_theme_attach_tax_invoice_variables($order, $variables);
+  $store = $order->getStore();
+  if ($store) {
+    $variables['#cache']['tags'][] = 'commerce_store:' . $store->id();
+  }
+}
+
+/**
  * Whether the order is a natural free-RSVP checkout (list-price $0 tickets only).
  *
  * Distinguishes true RSVP products from orders that reach $0 via promotions
@@ -694,6 +736,12 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       // Attach copy-link JS when share block is present.
       if ($variables['mel_event_url']) {
         $variables['#attached']['library'][] = 'myeventlane_theme/mel_confirmation';
+      }
+
+      _myeventlane_theme_attach_tax_invoice_variables($order, $variables);
+      $store = $order->getStore();
+      if ($store) {
+        $variables['#cache']['tags'][] = 'commerce_store:' . $store->id();
       }
     }
   }
