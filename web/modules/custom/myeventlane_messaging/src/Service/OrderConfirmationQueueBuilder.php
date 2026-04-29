@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
@@ -26,6 +27,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly DomainDetector $domainDetector,
+    private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
     private readonly ?object $icsGenerator = NULL,
   ) {}
 
@@ -77,6 +79,8 @@ final class OrderConfirmationQueueBuilder {
       }
     }
 
+    $breakdown = $this->orderPricingBreakdown->build($order);
+
     $context = [
       'first_name' => $first_name,
       'order_number' => $order->label(),
@@ -86,7 +90,13 @@ final class OrderConfirmationQueueBuilder {
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
       'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
-      'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'total_paid' => $breakdown['total_formatted'] !== ''
+        ? $breakdown['total_formatted']
+        : $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'order_subtotal_formatted' => $breakdown['subtotal_formatted'],
+      'order_tax_rows' => $breakdown['tax_rows'],
+      'order_fee_rows' => $breakdown['fee_rows'],
+      'order_platform_fee_absorbed' => $breakdown['platform_fee_absorbed'],
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
       'tickets_url' => $tickets_url,
       'has_tickets' => $has_tickets,
