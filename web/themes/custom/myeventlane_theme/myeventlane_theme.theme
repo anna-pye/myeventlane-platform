@@ -1555,7 +1555,25 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     if (!isset($variables['directory'])) {
       $variables['directory'] = $base_path . $theme_path;
     }
-    
+
+    // Event Intelligence Layer: one calm label per event (placeholder tier; replace with metrics later).
+    $variables['mel_signal'] = NULL;
+    $mel_state = (string) ($variables['mel_event_state'] ?? '');
+    $event_ui_signal = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : [];
+    $signal_sold_out = !empty($event_ui_signal['is_sold_out']);
+    $signal_hide = ($mel_state === 'cancelled')
+      || ($mel_state === 'sold_out')
+      || $signal_sold_out;
+    if (!$signal_hide) {
+      $mel_signals = [
+        (string) t('Popular'),
+        (string) t('Trending'),
+        (string) t('Just added'),
+      ];
+      $mel_signal_idx = (int) $node->id() % count($mel_signals);
+      $variables['mel_signal'] = $mel_signals[$mel_signal_idx];
+    }
+
     // 1. Compute event image URL if it exists.
     $event_image_url = NULL;
     $event_image_uri = NULL;
