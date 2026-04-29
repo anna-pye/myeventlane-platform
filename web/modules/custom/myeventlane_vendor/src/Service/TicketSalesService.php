@@ -596,7 +596,7 @@ final class TicketSalesService {
   /**
    * Revenue across published events the user manages (author or vendor team).
    *
-   * Matches {@see RsvpStatsService::getManagedPublishedEventsRsvpCount()} scope.
+   * Matches {@see UserVendorMembershipQuery::getManagedEventNodeIds()} with publishedOnly TRUE.
    *
    * @param int $userId
    *   The vendor user ID.
@@ -609,7 +609,9 @@ final class TicketSalesService {
       return $this->emptyVendorRevenueSummary();
     }
 
-    return $this->buildVendorRevenueFromPublishedEventIds($this->getManagedPublishedEventNids($userId));
+    return $this->buildVendorRevenueFromPublishedEventIds(
+      $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, TRUE)
+    );
   }
 
   /**
@@ -625,7 +627,7 @@ final class TicketSalesService {
     if ($userId <= 0) {
       return [];
     }
-    return $this->getManagedPublishedEventNids($userId);
+    return $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, TRUE);
   }
 
   /**
@@ -644,7 +646,7 @@ final class TicketSalesService {
     if ($userId <= 0) {
       return [];
     }
-    return $this->queryManagedEventNodeIds($userId, FALSE);
+    return $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, FALSE);
   }
 
   /**
@@ -671,47 +673,6 @@ final class TicketSalesService {
       'gross_raw' => 0.0,
       'tickets' => 0,
     ];
-  }
-
-  /**
-   * Published events authored by the user or tied to their vendor membership.
-   *
-   * @return list<int>
-   */
-  private function getManagedPublishedEventNids(int $uid): array {
-    return $this->queryManagedEventNodeIds($uid, TRUE);
-  }
-
-  /**
-   * Events authored by the user or tied to their vendor membership.
-   *
-   * @return list<int>
-   */
-  private function queryManagedEventNodeIds(int $uid, bool $publishedOnly): array {
-    try {
-      $vendorIds = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
-      $storage = $this->entityTypeManager->getStorage('node');
-      $query = $storage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('type', 'event');
-      if ($publishedOnly) {
-        $query->condition('status', 1);
-      }
-      $or = $query->orConditionGroup();
-      $or->condition('uid', $uid);
-      if ($vendorIds !== []) {
-        $or->condition('field_event_vendor', $vendorIds, 'IN');
-      }
-      $query->condition($or);
-      $ids = $query->execute();
-      if (empty($ids)) {
-        return [];
-      }
-      return array_map('intval', array_values($ids));
-    }
-    catch (\Exception) {
-      return [];
-    }
   }
 
   /**
