@@ -85,7 +85,7 @@ final class RsvpStatsService {
     }
 
     try {
-      $eventIds = $this->getManagedPublishedEventNids($uid);
+      $eventIds = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, TRUE);
       if ($eventIds === []) {
         return 0;
       }
@@ -98,29 +98,6 @@ final class RsvpStatsService {
     catch (\Exception $e) {
       return 0;
     }
-  }
-
-  /**
-   * @return list<int>
-   */
-  private function getManagedPublishedEventNids(int $uid): array {
-    $vendorIds = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
-    $storage = $this->entityTypeManager->getStorage('node');
-    $query = $storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', 'event')
-      ->condition('status', 1);
-    $or = $query->orConditionGroup();
-    $or->condition('uid', $uid);
-    if ($vendorIds !== []) {
-      $or->condition('field_event_vendor', $vendorIds, 'IN');
-    }
-    $query->condition($or);
-    $ids = $query->execute();
-    if (empty($ids)) {
-      return [];
-    }
-    return array_map('intval', array_values($ids));
   }
 
   /**

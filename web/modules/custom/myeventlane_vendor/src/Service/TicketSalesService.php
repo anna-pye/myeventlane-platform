@@ -594,26 +594,9 @@ final class TicketSalesService {
   }
 
   /**
-   * Gets total revenue for a vendor (published events authored by this user).
-   *
-   * @param int $userId
-   *   The vendor user ID.
-   *
-   * @return array
-   *   Revenue summary with gross, net, fees, gross_raw, tickets.
-   */
-  public function getVendorRevenue(int $userId): array {
-    if ($userId <= 0) {
-      return $this->emptyVendorRevenueSummary();
-    }
-
-    return $this->buildVendorRevenueFromPublishedEventIds($this->getAuthorPublishedEventNids($userId));
-  }
-
-  /**
    * Revenue across published events the user manages (author or vendor team).
    *
-   * Matches {@see RsvpStatsService::getManagedPublishedEventsRsvpCount()} scope.
+   * Matches {@see UserVendorMembershipQuery::getManagedEventNodeIds()} with publishedOnly TRUE.
    *
    * @param int $userId
    *   The vendor user ID.
@@ -626,7 +609,9 @@ final class TicketSalesService {
       return $this->emptyVendorRevenueSummary();
     }
 
-    return $this->buildVendorRevenueFromPublishedEventIds($this->getManagedPublishedEventNids($userId));
+    return $this->buildVendorRevenueFromPublishedEventIds(
+      $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, TRUE)
+    );
   }
 
   /**
@@ -642,7 +627,26 @@ final class TicketSalesService {
     if ($userId <= 0) {
       return [];
     }
-    return $this->getManagedPublishedEventNids($userId);
+    return $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, TRUE);
+  }
+
+  /**
+   * Event node IDs the user manages (author or vendor team), any publish state.
+   *
+   * Used for payout transaction history so completed orders remain visible if an event
+   * is later unpublished.
+   *
+   * @param int $userId
+   *   The vendor user ID.
+   *
+   * @return list<int>
+   *   Event node IDs.
+   */
+  public function getManagedEventNidsForUser(int $userId): array {
+    if ($userId <= 0) {
+      return [];
+    }
+    return $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, FALSE);
   }
 
   /**
@@ -669,59 +673,6 @@ final class TicketSalesService {
       'gross_raw' => 0.0,
       'tickets' => 0,
     ];
-  }
-
-  /**
-   * Published event nids where the user is the node author.
-   *
-   * @return list<int>
-   */
-  private function getAuthorPublishedEventNids(int $userId): array {
-    try {
-      $ids = $this->entityTypeManager->getStorage('node')->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('type', 'event')
-        ->condition('uid', $userId)
-        ->condition('status', 1)
-        ->execute();
-      if (empty($ids)) {
-        return [];
-      }
-      return array_map('intval', array_values($ids));
-    }
-    catch (\Exception) {
-      return [];
-    }
-  }
-
-  /**
-   * Published events authored by the user or tied to their vendor membership.
-   *
-   * @return list<int>
-   */
-  private function getManagedPublishedEventNids(int $uid): array {
-    try {
-      $vendorIds = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
-      $storage = $this->entityTypeManager->getStorage('node');
-      $query = $storage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('type', 'event')
-        ->condition('status', 1);
-      $or = $query->orConditionGroup();
-      $or->condition('uid', $uid);
-      if ($vendorIds !== []) {
-        $or->condition('field_event_vendor', $vendorIds, 'IN');
-      }
-      $query->condition($or);
-      $ids = $query->execute();
-      if (empty($ids)) {
-        return [];
-      }
-      return array_map('intval', array_values($ids));
-    }
-    catch (\Exception) {
-      return [];
-    }
   }
 
   /**
