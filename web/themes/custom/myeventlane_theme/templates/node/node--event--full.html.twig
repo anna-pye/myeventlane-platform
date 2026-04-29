@@ -50,17 +50,6 @@
 {% endif %}
 {# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
 {% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
-{% set mel_gcal_href = '' %}
-{% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
-  {% set mel_cal_start = node.field_event_start.value|date('Ymd\THis') %}
-  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
-    {% set mel_cal_end = node.field_event_end.value|date('Ymd\THis') %}
-  {% else %}
-    {% set mel_cal_end = node.field_event_start.value|date_modify('+2 hours')|date('Ymd\THis') %}
-  {% endif %}
-  {% set mel_canon = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
-  {% set mel_gcal_href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' ~ (label|url_encode) ~ '&dates=' ~ mel_cal_start ~ '/' ~ mel_cal_end ~ '&details=' ~ (mel_canon|url_encode) %}
-{% endif %}
 {% set mel_trust_checkout = (cta_type is not defined) or (not (cta_type is same as('external'))) %}
 {% set mel_show_booking_cta = (event_ui is not defined) or (event_ui.show_cta|default(true)) %}
 {% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
@@ -665,23 +654,7 @@
                   {% endif %}
                 </div>
                 {% endif %}
-                {# Prefer preprocess URLs; fall back to routes / mel_gcal_href so links work if preprocess vars are empty. #}
-                {% if apple_ics_url is defined and apple_ics_url|length > 0 %}
-                  {% set mel_apple_tab_href = apple_ics_url %}
-                {% else %}
-                  {% set mel_apple_tab_href = url('myeventlane_rsvp.ics_download', {'node': node.id()}, {'absolute': true}) %}
-                {% endif %}
-                {% if outlook_ics_url is defined and outlook_ics_url|length > 0 %}
-                  {% set mel_outlook_tab_href = outlook_ics_url %}
-                {% else %}
-                  {% set mel_outlook_tab_href = mel_apple_tab_href %}
-                {% endif %}
-                {% if google_calendar_url is defined and google_calendar_url|length > 0 %}
-                  {% set mel_google_tab_href = google_calendar_url %}
-                {% else %}
-                  {% set mel_google_tab_href = mel_gcal_href %}
-                {% endif %}
-                {% if mel_gcal_href|length > 0 %}
+                {% if google_calendar_url|default('')|length > 0 %}
                   <div class="mel-booking-panel__item">
                     <span class="mel-booking-panel__item-icon" aria-hidden="true">📅</span>
                     <div>
@@ -693,13 +666,13 @@
                         </div>
                         <div class="mel-calendar__content">
                           <div class="mel-calendar__pane is-active" data-pane="apple">
-                            <a href="{{ mel_apple_tab_href }}" class="mel-button mel-button--ghost">{{ 'Download for Apple Calendar'|t }}</a>
+                            <a href="{{ apple_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Apple Calendar'|t }}</a>
                           </div>
                           <div class="mel-calendar__pane" data-pane="outlook">
-                            <a href="{{ mel_outlook_tab_href }}" class="mel-button mel-button--ghost" target="_blank" rel="noopener noreferrer">{{ 'Add to Outlook'|t }}</a>
+                            <a href="{{ outlook_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Outlook'|t }}</a>
                           </div>
                           <div class="mel-calendar__pane" data-pane="google">
-                            <a href="{{ mel_google_tab_href }}" class="mel-button mel-button--ghost" target="_blank" rel="noopener noreferrer">{{ 'Add to Google Calendar'|t }}</a>
+                            <a href="{{ google_calendar_url }}" class="mel-button mel-button--ghost" target="_blank" rel="noopener noreferrer">{{ 'Add to Google Calendar'|t }}</a>
                           </div>
                         </div>
                       </div>
