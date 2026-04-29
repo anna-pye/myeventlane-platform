@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkout_paragraph\Controller;
 
 use Drupal\commerce_order\Entity\Order;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -12,12 +13,19 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Vendor controller to show attendee details for an order.
+ *
+ * Mixed-owner orders: access requires at least one line item whose event passes
+ * workspace parity for the account; rendered rows are limited to those events
+ * (plus full rows for admins). Prevents listing holders for another organiser's
+ * event in the same Commerce order.
  */
 final class VendorOrderController extends ControllerBase implements ContainerInjectionInterface {
 
@@ -27,6 +35,7 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
   public function __construct(
     private readonly MessengerInterface $messengerService,
     private readonly TicketLabelResolver $ticketLabelResolver,
+    private readonly EventVendorAccessChecker $eventAccessChecker,
   ) {}
 
   /**
@@ -36,6 +45,7 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
     return new static(
       $container->get('messenger'),
       $container->get('myeventlane_core.ticket_label_resolver'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -48,12 +58,13 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
     }
 
     foreach ($commerce_order->getItems() as $item) {
-      $variation = $item->getPurchasedEntity();
-      if ($variation && $variation->hasField('field_event') && !$variation->get('field_event')->isEmpty()) {
-        $event = $variation->get('field_event')->entity;
-        if ($event && (int) $event->getOwnerId() === (int) $account->id()) {
-          return AccessResult::allowed()->cachePerUser()->addCacheableDependency($event);
-        }
+      $event = $this->resolveEventFromOrderItem($item);
+      if ($event instanceof NodeInterface
+        && $this->eventAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
+        return AccessResult::allowed()
+          ->cachePerUser()
+          ->addCacheableDependency($event)
+          ->addCacheableDependency($commerce_order);
       }
     }
 
@@ -70,7 +81,8 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
       return $this->redirect('<front>');
     }
 
-    $rows = $this->collectRows($commerce_order);
+    $account = $this->currentUser();
+    $rows = $this->collectRows($commerce_order, $account);
     $grouped = $this->groupRowsByEvent($rows);
 
     $build = [
@@ -114,20 +126,29 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
   }
 
   /**
-   * Collects row data per ticket holder.
+   * Collects row data per ticket holder; skips lines for events the user cannot manage.
    */
-  private function collectRows(Order $commerce_order): array {
+  private function collectRows(Order $commerce_order, AccountInterface $account): array {
+    $is_admin = $account->hasPermission('administer nodes');
     $rows = [];
     foreach ($commerce_order->getItems() as $item) {
-      $variation = $item->getPurchasedEntity();
+      $event = $this->resolveEventFromOrderItem($item);
+      $can_show_line = $is_admin
+        || ($event instanceof NodeInterface
+          && $this->eventAccessChecker->accountHasWorkspaceParityForEvent($event, $account));
+      if (!$can_show_line) {
+        continue;
+      }
+
       $event_title = $this->t('Unlinked Event');
       $event_id = NULL;
-      if ($variation && $variation->hasField('field_event') && !$variation->get('field_event')->isEmpty()) {
-        $event = $variation->get('field_event')->entity;
-        if ($event) {
-          $event_title = $event->label();
-          $event_id = $event->id();
-        }
+      if ($event instanceof NodeInterface) {
+        $event_title = $event->label();
+        $event_id = $event->id();
+      }
+      elseif (!$is_admin) {
+        // Without a resolvable event, only admins may see holder rows (mixed-owner protection).
+        continue;
       }
 
       if ($item->hasField('field_ticket_holder')) {
@@ -149,6 +170,28 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
       }
     }
     return $rows;
+  }
+
+  /**
+   * Prefers order item field_target_event; falls back to variation field_event.
+   */
+  private function resolveEventFromOrderItem(OrderItemInterface $item): ?NodeInterface {
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      $entity = $item->get('field_target_event')->entity;
+      if ($entity instanceof NodeInterface && $entity->bundle() === 'event') {
+        return $entity;
+      }
+    }
+
+    $variation = $item->getPurchasedEntity();
+    if ($variation && $variation->hasField('field_event') && !$variation->get('field_event')->isEmpty()) {
+      $entity = $variation->get('field_event')->entity;
+      if ($entity instanceof NodeInterface && $entity->bundle() === 'event') {
+        return $entity;
+      }
+    }
+
+    return NULL;
   }
 
   /**
