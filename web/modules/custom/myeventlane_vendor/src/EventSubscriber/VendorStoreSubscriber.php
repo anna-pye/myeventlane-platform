@@ -376,7 +376,7 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
     $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
 
     $owner_ids = $storage->getQuery()
-      ->accessCheck(TRUE)
+      ->accessCheck(FALSE)
       ->condition('uid', $uid)
       ->range(0, 1)
       ->execute();
@@ -389,7 +389,7 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
     }
 
     $user_ids = $storage->getQuery()
-      ->accessCheck(TRUE)
+      ->accessCheck(FALSE)
       ->condition('field_vendor_users', $uid)
       ->range(0, 1)
       ->execute();
