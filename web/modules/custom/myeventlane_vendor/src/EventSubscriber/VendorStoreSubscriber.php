@@ -8,12 +8,19 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\user\UserInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Event subscriber to auto-create Commerce Store when Vendor is created.
+ *
+ * Also keeps the user account {@see field_vendor_store} in sync with the
+ * vendor profile store and ensures linkage on login and key vendor routes.
  */
 final class VendorStoreSubscriber implements EventSubscriberInterface {
 
@@ -37,11 +44,31 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   private OnboardingManager $onboardingManager;
 
   /**
+   * The current user (for request subscriber).
+   */
+  private AccountProxyInterface $currentUser;
+
+  /**
    * Track vendors being processed to prevent recursion.
    *
    * @var array
    */
   private static array $processing = [];
+
+  /**
+   * Prevent re-entry when syncing user store reference.
+   *
+   * @var array<int, bool>
+   */
+  private static array $ensureUserStoreRunning = [];
+
+  /**
+   * Routes that should trigger store linkage for vendor users.
+   */
+  private const VENDOR_STORE_ENSURE_ROUTES = [
+    'myeventlane_vendor.console.dashboard',
+    'myeventlane_vendor.console.settings',
+  ];
 
   /**
    * Constructs a VendorStoreSubscriber.
@@ -52,15 +79,19 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
    *   The logger factory.
    * @param \Drupal\myeventlane_core\Service\OnboardingManager $onboarding_manager
    *   Vendor onboarding.
+   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
+   *   The current user account proxy.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     LoggerChannelFactoryInterface $logger_factory,
     OnboardingManager $onboarding_manager,
+    AccountProxyInterface $current_user,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->loggerFactory = $logger_factory;
     $this->onboardingManager = $onboarding_manager;
+    $this->currentUser = $current_user;
   }
 
   /**
@@ -69,6 +100,7 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents(): array {
     return [
       'entity.myeventlane_vendor.insert' => 'onVendorInsert',
+      KernelEvents::REQUEST => ['onKernelRequest', 28],
     ];
   }
 
@@ -129,6 +161,27 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   }
 
   /**
+   * Ensures store linkage when vendors hit dashboard or account settings.
+   */
+  public function onKernelRequest(RequestEvent $event): void {
+    if (!$event->isMainRequest() || \PHP_SAPI === 'cli') {
+      return;
+    }
+    $route = $event->getRequest()->attributes->get('_route');
+    if (!is_string($route) || !in_array($route, self::VENDOR_STORE_ENSURE_ROUTES, TRUE)) {
+      return;
+    }
+    $uid = (int) $this->currentUser->id();
+    if ($uid <= 0 || $this->currentUser->isAnonymous()) {
+      return;
+    }
+    $user = $this->entityTypeManager->getStorage('user')->load($uid);
+    if ($user instanceof UserInterface) {
+      $this->ensureLinkedStoreForVendorUser($user);
+    }
+  }
+
+  /**
    * Returns the vendor's store, or creates one when onboarding is complete.
    *
    * Used for Stripe Connect and other flows that require a store without
@@ -145,6 +198,10 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
     if (!$vendor->get('field_vendor_store')->isEmpty()) {
       $entity = $vendor->get('field_vendor_store')->entity;
       if ($entity instanceof StoreInterface) {
+        $owner = $vendor->getOwner();
+        if ($owner instanceof UserInterface) {
+          $this->syncUserVendorStoreFromVendor($owner, $vendor);
+        }
         return $entity;
       }
     }
@@ -168,6 +225,39 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
     }
 
     return $this->createAndPersistStoreForVendor($vendor);
+  }
+
+  /**
+   * Ensures the vendor role account has a Commerce store reference on the user.
+   *
+   * Relies on the vendor entity store field as the source of truth.
+   */
+  public function ensureLinkedStoreForVendorUser(UserInterface $user): void {
+    if (!$user->hasField('field_vendor_store')) {
+      return;
+    }
+    $uid = (int) $user->id();
+    if ($uid <= 0) {
+      return;
+    }
+    if (!in_array('vendor', $user->getRoles(), TRUE)) {
+      return;
+    }
+    if (isset(self::$ensureUserStoreRunning[$uid])) {
+      return;
+    }
+    self::$ensureUserStoreRunning[$uid] = TRUE;
+    try {
+      $vendor = $this->loadPrimaryVendorForUser($uid);
+      if ($vendor === NULL) {
+        return;
+      }
+      $this->ensureStoreForVendor($vendor);
+      $this->syncUserVendorStoreFromVendor($user, $vendor);
+    }
+    finally {
+      unset(self::$ensureUserStoreRunning[$uid]);
+    }
   }
 
   /**
@@ -210,6 +300,10 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
 
       unset(self::$processing[$vendor->id()]);
 
+      if ($owner instanceof UserInterface && $owner->hasField('field_vendor_store')) {
+        $this->syncUserVendorStoreFromVendor($owner, $vendor);
+      }
+
       return $store;
     }
     catch (EntityStorageException $e) {
@@ -224,6 +318,77 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
       );
       return NULL;
     }
+  }
+
+  /**
+   * Copies the vendor's store target to the user account field when present.
+   */
+  private function syncUserVendorStoreFromVendor(UserInterface $user, Vendor $vendor): void {
+    if (!$user->hasField('field_vendor_store')) {
+      return;
+    }
+    if (!$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+      return;
+    }
+    $sid = $vendor->get('field_vendor_store')->target_id;
+    if ($sid === NULL) {
+      return;
+    }
+    $current = $user->get('field_vendor_store')->isEmpty()
+      ? NULL
+      : (int) $user->get('field_vendor_store')->target_id;
+    if ($current === (int) $sid) {
+      return;
+    }
+    try {
+      $user->set('field_vendor_store', $sid);
+      $user->save();
+    }
+    catch (EntityStorageException $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->error(
+        'Could not sync user @uid field_vendor_store from vendor @vid: @message',
+        [
+          '@uid' => (string) $user->id(),
+          '@vid' => (string) $vendor->id(),
+          '@message' => $e->getMessage(),
+        ]
+      );
+    }
+  }
+
+  /**
+   * Loads the primary vendor for an account (owner match preferred).
+   */
+  private function loadPrimaryVendorForUser(int $uid): ?Vendor {
+    $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+
+    $owner_ids = $storage->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('uid', $uid)
+      ->range(0, 1)
+      ->execute();
+
+    if (!empty($owner_ids)) {
+      $vendor = $storage->load(reset($owner_ids));
+      if ($vendor instanceof Vendor) {
+        return $vendor;
+      }
+    }
+
+    $user_ids = $storage->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('field_vendor_users', $uid)
+      ->range(0, 1)
+      ->execute();
+
+    if (!empty($user_ids)) {
+      $vendor = $storage->load(reset($user_ids));
+      if ($vendor instanceof Vendor) {
+        return $vendor;
+      }
+    }
+
+    return NULL;
   }
 
 }

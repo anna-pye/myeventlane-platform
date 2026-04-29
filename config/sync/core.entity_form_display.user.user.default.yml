@@ -10,9 +10,11 @@ dependencies:
     - field.field.user.user.field_mel_account_type
     - field.field.user.user.field_pro_subscription_managed
     - field.field.user.user.field_pronouns
+    - field.field.user.user.field_vendor_store
     - field.field.user.user.user_picture
     - image.style.thumbnail
   module:
+    - commerce_store
     - image
     - path
     - text
@@ -63,6 +65,16 @@ content:
     settings:
       size: 60
       placeholder: 'e.g. they/them, she/her, he/him'
+    third_party_settings: {  }
+  field_vendor_store:
+    type: entity_reference_autocomplete
+    weight: 50
+    region: hidden
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
     third_party_settings: {  }
   language:
     weight: 0
