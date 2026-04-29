@@ -1,6 +1,7 @@
 // Event node full page — MEL v1 layout (hero + grid + sticky booking card).
 
 @use '../tokens/colors' as melc;
+@use '../tokens/motion' as melmotion;
 
 .mel-event {
   &__hero {
@@ -92,6 +93,13 @@
     box-shadow: var(--mel-shadow-1);
     position: sticky;
     top: 100px;
+    transition: box-shadow melmotion.$mel-transition-base;
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        box-shadow: var(--mel-shadow-2);
+      }
+    }
   }
 
   &__price {

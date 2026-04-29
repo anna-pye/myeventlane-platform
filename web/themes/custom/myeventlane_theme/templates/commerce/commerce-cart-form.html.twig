@@ -54,9 +54,20 @@
         {% endif %}
       {% endif %}
 
+      <div class="mel-cart__intro">
+        <h2>{{ 'Review your tickets'|t }}</h2>
+        <p>{{ "You're almost there — check your details before checkout."|t }}</p>
+      </div>
+
       <div class="mel-cart-items-table"{% if item_event_map is defined %} data-item-event-map="{{ item_event_map|json_encode }}"{% endif %}>
         {{ form.header }}
         {{ form.output }}
+      </div>
+
+      <div class="mel-cart__reassurance">
+        <span>{{ '✔ Secure checkout'|t }}</span>
+        <span>{{ '✔ No hidden fees'|t }}</span>
+        <span>{{ '✔ Confirmation sent instantly'|t }}</span>
       </div>
     {% else %}
       <div class="mel-cart-empty mel-cart-empty--inline">

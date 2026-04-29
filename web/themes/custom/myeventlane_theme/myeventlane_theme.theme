@@ -732,8 +732,8 @@ function _myeventlane_theme_get_first_event_from_order($order) {
  * @param \Drupal\node\NodeInterface $event
  *   The event node.
  *
- * @return array{apple?: string, google?: string, outlook?: string}
- *   Calendar link URLs.
+ * @return array{ics?: string, apple?: string, google?: string, outlook?: string}
+ *   Calendar link URLs. Apple uses the ICS download route; Outlook uses a web compose deeplink.
  */
 function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
   $links = [];

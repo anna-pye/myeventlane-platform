@@ -31,9 +31,9 @@ final class CheckoutUxAttacher {
     private readonly \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
-  /**
-   * Attaches grouped summary, payment confidence, and reassurance to the form.
-   */
+/**
+ * Attaches grouped summary and payment confidence sidebar elements to the form.
+ */
   public function attach(array &$form): void {
     $order = $this->resolveOrder();
     if (!$order instanceof OrderInterface) {
@@ -43,7 +43,6 @@ final class CheckoutUxAttacher {
 
     $this->replaceSidebarWithGroupedSummary($form, $order);
     $this->addPaymentConfidence($form);
-    $this->addReassuranceAndNextSteps($form);
   }
 
   private function resolveOrder(): ?OrderInterface {
@@ -107,33 +106,6 @@ final class CheckoutUxAttacher {
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#value' => $this->t('📅 Add to your calendar after booking'),
-      ],
-    ];
-  }
-
-  private function addReassuranceAndNextSteps(array &$form): void {
-    if (!isset($form['actions']) || !is_array($form['actions'])) {
-      return;
-    }
-
-    // "What happens next?" adds guided flow; CTA note ("You won't be charged yet") is in template.
-    $form['actions']['mel_next_steps'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-checkout-next-steps']],
-      '#weight' => -18,
-      'heading' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h4',
-        '#value' => $this->t('What happens next?'),
-      ],
-      'list' => [
-        '#theme' => 'item_list',
-        '#list_type' => 'ul',
-        '#items' => [
-          $this->t('✔ Instant confirmation'),
-          $this->t('✔ Tickets emailed to you'),
-          $this->t('✔ Add to Apple / Google Calendar'),
-        ],
       ],
     ];
   }

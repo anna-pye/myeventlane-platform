@@ -4,6 +4,7 @@
 // Global element defaults using design tokens.
 
 @use '../tokens/colors';
+@use '../tokens/motion' as melmotion;
 @use '../tokens/typography';
 @use '../tokens/spacing';
 
@@ -148,6 +149,15 @@ a {
 .mel-card a,
 .mel-event a {
   text-decoration: none;
+}
+
+// ---------------------------------------------------------------------------
+// Focus visible — default ring for interactive elements (links keep mixin above)
+// ---------------------------------------------------------------------------
+
+:focus-visible {
+  outline: 2px solid var(--mel-primary);
+  outline-offset: 2px;
 }
 
 // ---------------------------------------------------------------------------
