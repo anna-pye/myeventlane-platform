@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Minimal HTML for Dompdf — tax invoice from Commerce order.
+ * HTML for Dompdf — tax invoice from Commerce order (aligned with email + UI).
  */
 #}
 {% set inv = invoice|default({}) %}
@@ -10,68 +10,142 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>{{ 'Tax invoice'|t }} #{% if order %}{{ order.getOrderNumber }}{% endif %}</title>
+  <title>{{ 'Tax Invoice'|t }} #{% if order %}{{ order.getOrderNumber }}{% endif %}</title>
   <style>
-    body { font-family: DejaVu Sans, Helvetica, Arial, sans-serif; font-size: 12px; color: #222; margin: 24px; }
-    h1 { font-size: 18px; margin: 0 0 16px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border-bottom: 1px solid #ddd; padding: 8px 4px; text-align: left; }
+    body {
+      font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      color: #34495e;
+      margin: 0;
+      padding: 20px;
+      background-color: #fef5ec;
+    }
+    .mel-pdf-shell {
+      max-width: 640px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+    h1 {
+      color: #2c3e50;
+      font-size: 20px;
+      margin: 0 0 16px;
+      font-weight: 700;
+    }
+    .mel-pdf-meta {
+      margin-bottom: 16px;
+      line-height: 1.55;
+      font-size: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid #e0e0e0;
+      padding: 8px 4px;
+      text-align: left;
+      color: #34495e;
+    }
     th:nth-child(2), td:nth-child(2) { text-align: center; width: 40px; }
     th:nth-child(3), th:nth-child(4), td:nth-child(3), td:nth-child(4) { text-align: right; }
-    .meta { margin-bottom: 16px; line-height: 1.5; }
-    .total { margin-top: 16px; font-size: 14px; font-weight: bold; }
-    .gst { margin-top: 8px; }
+    thead tr { border-bottom: 1px solid #e0e0e0; }
+    .mel-pdf-adjust {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 12px;
+      color: #34495e;
+    }
+    .mel-pdf-total-wrap {
+      margin-top: 16px;
+      padding: 16px 18px;
+      background-color: #fef5ec;
+      border-radius: 8px;
+    }
+    .mel-pdf-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+    .mel-pdf-gst {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #34495e;
+    }
+    .mel-invoice__legal {
+      margin-top: 16px;
+      font-size: 10px;
+      color: #7f8c8d;
+      line-height: 1.45;
+    }
   </style>
 </head>
 <body>
-  <h1>{{ 'Tax invoice'|t }}</h1>
-  <div class="meta">
-    {% if inv.vendor_name is defined and inv.vendor_name %}<strong>{{ 'Supplier:'|t }}</strong> {{ inv.vendor_name }}<br />{% endif %}
-    {% if inv.vendor_abn is defined and inv.vendor_abn %}<strong>{{ 'ABN:'|t }}</strong> {{ inv.vendor_abn }}<br />{% endif %}
-    {% if order %}<strong>{{ 'Invoice #:'|t }}</strong> {{ order.getOrderNumber }}<br />{% endif %}
-    {% if order and order.getPlacedTime %}
-      <strong>{{ 'Date:'|t }}</strong> {{ order.getPlacedTime|date('d M Y') }}
-    {% elseif inv.invoice_date_display is defined and inv.invoice_date_display %}
-      <strong>{{ 'Date:'|t }}</strong> {{ inv.invoice_date_display }}
-    {% endif %}
-  </div>
-  {% if inv.invoice_lines is defined and inv.invoice_lines|length > 0 %}
-    <table>
-      <thead>
-        <tr>
-          <th>{{ 'Item'|t }}</th>
-          <th>{{ 'Qty'|t }}</th>
-          <th>{{ 'Unit'|t }}</th>
-          <th>{{ 'Subtotal'|t }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in inv.invoice_lines %}
+  <div class="mel-pdf-shell">
+    <h1>{{ 'Tax Invoice'|t }}</h1>
+    <div class="mel-pdf-meta">
+      {% if inv.vendor_name is defined and inv.vendor_name %}<strong>{{ 'Supplier:'|t }}</strong> {{ inv.vendor_name }}<br />{% endif %}
+      <strong>{{ 'ABN:'|t }}</strong> {{ inv.vendor_abn|default('ABN not provided') }}<br />
+      {% if order %}<strong>{{ 'Invoice #:'|t }}</strong> {{ order.getOrderNumber }}<br />{% endif %}
+      {% if order and order.getPlacedTime %}
+        <strong>{{ 'Date:'|t }}</strong> {{ order.getPlacedTime|date('d M Y') }}
+      {% elseif inv.invoice_date_display is defined and inv.invoice_date_display %}
+        <strong>{{ 'Date:'|t }}</strong> {{ inv.invoice_date_display }}
+      {% endif %}
+    </div>
+    {% if inv.invoice_lines is defined and inv.invoice_lines|length > 0 %}
+      <table>
+        <thead>
           <tr>
-            <td>{{ row.title }}</td>
-            <td>{{ row.quantity }}</td>
-            <td>{{ row.unit_price }}</td>
-            <td>{{ row.line_total }}</td>
+            <th>{{ 'Item'|t }}</th>
+            <th>{{ 'Qty'|t }}</th>
+            <th>{{ 'Unit'|t }}</th>
+            <th>{{ 'Subtotal'|t }}</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
-  {% if inv.fee_lines is defined %}
-    {% for fee in inv.fee_lines %}
-      <p style="display:flex; justify-content:space-between;"><span>{{ fee.label }}</span><span>{{ fee.amount }}</span></p>
-    {% endfor %}
-  {% endif %}
-  {% if inv.tax_lines is defined %}
-    {% for tax in inv.tax_lines %}
-      <p style="display:flex; justify-content:space-between;"><span>{{ tax.label }}</span><span>{{ tax.amount }}</span></p>
-    {% endfor %}
-  {% endif %}
-  {% if inv.order_total_gst is defined and inv.order_total_gst %}
-    <p class="gst"><strong>{{ 'GST (10%)'|t }}</strong> {{ inv.order_total_gst }}</p>
-  {% endif %}
-  {% if inv.order_total is defined and inv.order_total %}
-    <p class="total">{{ 'Total'|t }} {{ inv.order_total }}</p>
-  {% endif %}
+        </thead>
+        <tbody>
+          {% for row in inv.invoice_lines %}
+            <tr>
+              <td>{{ row.title }}</td>
+              <td>{{ row.quantity }}</td>
+              <td>{{ row.unit_price }}</td>
+              <td>{{ row.line_total }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    {% if inv.fee_lines is defined %}
+      {% for fee in inv.fee_lines %}
+        <div class="mel-pdf-adjust"><span>{{ fee.label }}</span><span>{{ fee.amount }}</span></div>
+      {% endfor %}
+    {% endif %}
+    {% if inv.tax_lines is defined %}
+      {% for tax in inv.tax_lines %}
+        <div class="mel-pdf-adjust"><span>{{ tax.label }}</span><span>{{ tax.amount }}</span></div>
+      {% endfor %}
+    {% endif %}
+    {% if inv.order_total_gst is defined and inv.order_total_gst %}
+      <p class="mel-pdf-gst"><strong>{{ 'GST (10%)'|t }}</strong> {{ inv.order_total_gst }}</p>
+    {% endif %}
+    {% if inv.order_total is defined and inv.order_total %}
+      <div class="mel-pdf-total-wrap">
+        <div class="mel-pdf-total">
+          <span>{{ 'Total'|t }}</span>
+          <span>{{ inv.order_total }}</span>
+        </div>
+      </div>
+    {% endif %}
+    <p class="mel-invoice__legal">{{ 'This document is a tax invoice for GST purposes.'|t }}</p>
+  </div>
 </body>
 </html>

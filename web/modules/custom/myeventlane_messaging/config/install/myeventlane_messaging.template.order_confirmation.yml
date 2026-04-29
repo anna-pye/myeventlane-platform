@@ -90,12 +90,12 @@ body_html: |
         </div>
       {% endif %}
 
-      {% if vendor_name or vendor_abn or order_total_gst or invoice_lines|length > 0 %}
+      {% if vendor_name or order_total_gst or invoice_lines|length > 0 or invoice_fee_lines|length > 0 or invoice_tax_lines|length > 0 %}
         <div style="margin: 24px 0; padding: 20px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <h2 style="color: #2c3e50; margin: 0 0 16px; font-size: 20px;">Tax invoice</h2>
+          <h2 style="color: #2c3e50; margin: 0 0 16px; font-size: 20px;">Tax Invoice</h2>
           <p style="color: #34495e; font-size: 14px; line-height: 1.6; margin: 0 0 12px;">
             {% if vendor_name %}<strong>Supplier:</strong> {{ vendor_name }}<br>{% endif %}
-            {% if vendor_abn %}<strong>ABN:</strong> {{ vendor_abn }}<br>{% endif %}
+            <strong>ABN:</strong> {{ vendor_abn }}<br>
             <strong>Invoice #:</strong> {{ order_number }}<br>
             {% if invoice_date_short %}<strong>Date:</strong> {{ invoice_date_short }}<br>{% endif %}
           </p>
@@ -128,8 +128,8 @@ body_html: |
               </div>
             {% endfor %}
           {% endif %}
-          {% if invoice_tax_lines|length > 0 %}
-            {% for tax in invoice_tax_lines %}
+          {% if invoice_tax_lines|length > 0 or tax_lines|length > 0 %}
+            {% for tax in invoice_tax_lines|length > 0 ? invoice_tax_lines : tax_lines|default([]) %}
               <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;">
                 <span>{{ tax.label }}</span><span style="font-weight:600;">{{ tax.amount }}</span>
               </div>
@@ -139,10 +139,11 @@ body_html: |
             <p style="margin:12px 0 0; font-size:14px; color:#34495e;"><strong>GST (10%):</strong> {{ order_total_gst }}</p>
           {% endif %}
           <p style="margin:12px 0 0; font-size:16px; color:#2c3e50;"><strong>Total</strong> {{ order_total|default(total_paid) }}</p>
+          <p class="mel-invoice__legal" style="margin:16px 0 0; font-size:11px; color:#7f8c8d; line-height:1.45;">This document is a tax invoice for GST purposes.</p>
         </div>
       {% endif %}
 
-      {% if not (vendor_name or vendor_abn or order_total_gst or invoice_lines|length > 0) %}
+      {% if not (vendor_name or order_total_gst or invoice_lines|length > 0 or invoice_fee_lines|length > 0 or invoice_tax_lines|length > 0) %}
       <div style="margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 6px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: 600; color: #2c3e50; font-size: 18px;">Total paid</span>

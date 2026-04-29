@@ -841,10 +841,18 @@
 }
 
 .mel-invoice h2,
+.mel-invoice h3,
 .mel-invoice .mel-invoice__title {
   margin-bottom: 12px;
   font-size: typography.mel-font-size(xl);
   font-weight: typography.$mel-font-bold;
+}
+
+.mel-invoice__legal {
+  margin: spacing.mel-space(3) 0 0;
+  font-size: typography.mel-font-size(xs);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.45;
 }
 
 .mel-invoice__header {
