@@ -83,15 +83,6 @@ final class OrderConfirmationQueueBuilder {
 
     $breakdown = $this->orderPricingBreakdown->build($order);
     $invoice = $this->taxInvoicePresentation->build($order);
-    $invoice_lines = [];
-    foreach ($invoice['invoice_lines'] as $row) {
-      $invoice_lines[] = [
-        'title' => $row['title'],
-        'quantity' => $row['quantity'],
-        'unit_price' => $row['unit_price'],
-        'line_total' => $row['line_total'],
-      ];
-    }
 
     $context = [
       'first_name' => $first_name,
@@ -109,11 +100,12 @@ final class OrderConfirmationQueueBuilder {
       'order_tax_rows' => $breakdown['tax_rows'],
       'order_fee_rows' => $breakdown['fee_rows'],
       'order_platform_fee_absorbed' => $breakdown['platform_fee_absorbed'],
+      'show_includes_gst_note' => $breakdown['show_includes_gst_note'],
       'vendor_name' => $invoice['vendor_name'],
       'vendor_abn' => $invoice['vendor_abn'],
       'order_total_gst' => $invoice['order_total_gst'],
       'order_total' => $invoice['order_total'],
-      'invoice_lines' => $invoice_lines,
+      'invoice_lines' => $invoice['invoice_lines'],
       'invoice_tax_lines' => $invoice['tax_lines'],
       'invoice_fee_lines' => $invoice['fee_lines'],
       'tax_lines' => $invoice['tax_lines'],

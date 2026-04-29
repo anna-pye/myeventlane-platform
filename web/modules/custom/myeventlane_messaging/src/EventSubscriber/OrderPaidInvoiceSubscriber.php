@@ -10,6 +10,7 @@ use Drupal\commerce_order\Event\OrderEvents;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
 use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\node\NodeInterface;
@@ -30,6 +31,7 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly TimeInterface $time,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
     private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
   ) {}
 
@@ -120,20 +122,13 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
     $events = $this->extractEventNodes($order);
     $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
 
+    $breakdown = $this->orderPricingBreakdown->build($order);
     $invoice = $this->taxInvoicePresentation->build($order);
 
     $placed = $order->getPlacedTime();
     $invoice_timestamp = $placed ?: $this->time->getRequestTime();
 
-    $line_items = [];
-    foreach ($invoice['invoice_lines'] as $row) {
-      $line_items[] = [
-        'title' => $row['title'],
-        'quantity' => $row['quantity'],
-        'unit_price' => $row['unit_price'],
-        'line_total' => $row['line_total'],
-      ];
-    }
+    $line_items = $invoice['invoice_lines'];
 
     $context = [
       'first_name' => $first_name,
@@ -153,6 +148,7 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       'invoice_fee_lines' => $invoice['fee_lines'],
       'tax_lines' => $invoice['tax_lines'],
       'invoice_tax_lines' => $invoice['tax_lines'],
+      'show_includes_gst_note' => $breakdown['show_includes_gst_note'],
       'events' => $this->formatEventsBrief($events),
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
     ];
