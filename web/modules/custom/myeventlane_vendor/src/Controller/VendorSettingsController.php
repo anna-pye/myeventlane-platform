@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -50,7 +51,7 @@ final class VendorSettingsController extends VendorConsoleBaseController {
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
       $container->get('messenger'),
-      $container->get('entity_type.manager'),
+      $container->get('entity.type.manager'),
       $container->get('entity.form_builder'),
     );
   }
@@ -121,7 +122,27 @@ final class VendorSettingsController extends VendorConsoleBaseController {
       ]);
     }
 
-    return $this->entityFormBuilder->getForm($vendor, 'edit');
+    $form = $this->entityFormBuilder->getForm($vendor, 'edit');
+
+    // Same tab navigation as VendorDashboardMessagingBrandController::brand().
+    $tabs = [
+      [
+        'label' => $this->t('Profile'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
+        'active' => TRUE,
+      ],
+      [
+        'label' => $this->t('Messaging Brand'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
+        'active' => FALSE,
+      ],
+    ];
+
+    return $this->buildVendorPage('myeventlane_vendor_console_page', [
+      'title' => $this->t('Settings'),
+      'tabs' => $tabs,
+      'body' => $form,
+    ]);
   }
 
 }

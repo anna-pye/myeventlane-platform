@@ -1,32 +1,3 @@
-<!-- MEL DEBUG: FORM TEMPLATE HIT -->
-
 <form{{ attributes }}>
-
-  <div style="background:red;color:white;padding:6px;">
-
-    MEL DEBUG FORM RENDERED
-
-  </div>
-  <script>
-
-  document.addEventListener('DOMContentLoaded', function () {
-
-    const form = document.querySelector('form');
-
-    if (form) {
-
-      form.addEventListener('submit', function () {
-
-        console.log('🔥 REAL FORM SUBMIT EVENT');
-
-      });
-
-    }
-
-  });
-
-</script>
-
   {{ children }}
-
 </form>
