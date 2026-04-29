@@ -11,7 +11,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -42,6 +44,11 @@ class VendorProfileSettingsForm extends FormBase {
   protected ?CurrentVendorResolverInterface $vendorResolver = NULL;
 
   /**
+   * Ensures the vendor-linked Commerce store exists and stays in sync.
+   */
+  protected VendorStoreSubscriber $vendorStoreSubscriber;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
@@ -50,6 +57,7 @@ class VendorProfileSettingsForm extends FormBase {
     $instance->currentUser = $container->get('current_user');
     $instance->onboardingManager = $container->get('myeventlane_onboarding.manager');
     $instance->vendorResolver = $container->get('myeventlane_vendor.current_vendor_resolver');
+    $instance->vendorStoreSubscriber = $container->get('myeventlane_vendor.vendor_store_subscriber');
     $instance->setRequestStack($container->get('request_stack'));
     return $instance;
   }
@@ -164,8 +172,6 @@ class VendorProfileSettingsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?Vendor $vendor = NULL): array {
-    \Drupal::logger('mel_debug')->notice('FORM BUILD RUNNING');
-
     // Try to get vendor from form state first (for rebuilds).
     if (!$vendor) {
       $vendor = $form_state->get('vendor');
@@ -927,7 +933,7 @@ class VendorProfileSettingsForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Save Settings'),
+      '#value' => $this->t('Save'),
       '#button_type' => 'primary',
     ];
 
@@ -1077,8 +1083,6 @@ class VendorProfileSettingsForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->notice('VALIDATE PHASE START');
-
     parent::validateForm($form, $form_state);
 
     // Validate website URL if provided.
@@ -1086,72 +1090,68 @@ class VendorProfileSettingsForm extends FormBase {
     if (!empty($website) && !filter_var($website, FILTER_VALIDATE_URL)) {
       $form_state->setError($form['contact']['website'], $this->t('Please enter a valid website URL.'));
     }
-
-    $errors = $form_state->getErrors();
-    if ($errors !== []) {
-      \Drupal::logger('mel_debug')->notice('VALIDATE HAS ERRORS: @keys', [
-        '@keys' => implode(', ', array_keys($errors)),
-      ]);
-    }
-    else {
-      \Drupal::logger('mel_debug')->notice('VALIDATE PHASE END — no errors');
-    }
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->notice('FORM SUBMIT RUNNING');
-
-    // Original debug keys (likely empty — real keys are under payment.business.*).
-    $abn = $form_state->getValue('field_abn');
-    $name = $form_state->getValue('field_business_name');
-
-    \Drupal::logger('mel_debug')->notice('ABN (root keys): ' . $abn);
-    \Drupal::logger('mel_debug')->notice('NAME (root keys): ' . $name);
-
-    $abn_nested = $form_state->getValue(['payment', 'business', 'abn']);
-    $name_nested = $form_state->getValue(['payment', 'business', 'business_name']);
-    \Drupal::logger('mel_debug')->notice('ABN nested payment.business.abn: ' . $abn_nested);
-    \Drupal::logger('mel_debug')->notice('NAME nested payment.business.business_name: ' . $name_nested);
-
-    $user = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
-    if ($user instanceof \Drupal\user\UserInterface
-      && $user->hasField('field_abn')
-      && $user->hasField('field_business_name')) {
-      $user->set('field_abn', $abn_nested ?? $abn);
-      $user->set('field_business_name', $name_nested ?? $name);
-      $user->save();
-      \Drupal::logger('mel_debug')->notice('USER SAVED');
-    }
-    else {
-      \Drupal::logger('mel_debug')->notice('USER SKIP — user entity has no field_abn / field_business_name');
-    }
-
-    $abn_for_store = $abn_nested ?? $abn;
-    $name_for_store = $name_nested ?? $name;
-
-    $store = \Drupal::entityTypeManager()
-      ->getStorage('commerce_store')
-      ->load(2); // TEMP — use known store ID
-
-    if ($store) {
-      if ($store->hasField('field_abn')) {
-        $store->set('field_abn', $abn_for_store);
-      }
-      $store->setName($name_for_store ?: 'Fallback Store Name');
-      $store->save();
-
-      \Drupal::logger('mel_debug')->notice('STORE SAVED');
-    }
-
     $vendor = $this->loadVendorFromFormState($form_state);
 
     if (!$vendor) {
       $this->messenger()->addError($this->t('Vendor not found. Unable to save settings. Please refresh the page and try again.'));
       $form_state->setRebuild();
       return;
+    }
+
+    // Nested keys are canonical; root keys may be unset on rebuilds.
+    $abn_nested = $form_state->getValue(['payment', 'business', 'abn']);
+    $name_nested = $form_state->getValue(['payment', 'business', 'business_name']);
+    $abn_root = $form_state->getValue('field_abn');
+    $name_root = $form_state->getValue('field_business_name');
+
+    $abn_raw = $abn_nested ?? $abn_root;
+    $name_raw = $name_nested ?? $name_root;
+    $abn_for_sync = trim((string) ($abn_raw ?? ''));
+    $abn_for_sync = $abn_for_sync !== '' ? (string) preg_replace('/\s+/', '', $abn_for_sync) : '';
+    $name_for_sync = trim((string) ($name_raw ?? ''));
+
+    $uid = (int) $this->getCurrentUser()->id();
+    if ($uid > 0) {
+      $user = User::load($uid);
+      if ($user instanceof \Drupal\user\UserInterface
+        && $user->hasField('field_abn')
+        && $user->hasField('field_business_name')) {
+        $user->set('field_abn', $abn_for_sync !== '' ? $abn_for_sync : NULL);
+        $user->set('field_business_name', $name_for_sync !== '' ? $name_for_sync : NULL);
+        try {
+          $user->save();
+        }
+        catch (\Throwable $e) {
+          \Drupal::logger('myeventlane_vendor')->error(
+            'Vendor settings: could not sync user business fields: @message',
+            ['@message' => $e->getMessage()]
+          );
+        }
+      }
+    }
+
+    $store = $this->vendorStoreSubscriber->ensureStoreForVendor($vendor);
+    if ($store !== NULL) {
+      if ($store->hasField('field_abn')) {
+        $store->set('field_abn', $abn_for_sync !== '' ? $abn_for_sync : NULL);
+      }
+      $store_label = $name_for_sync !== '' ? $name_for_sync : (string) $vendor->getName();
+      $store->setName($store_label);
+      try {
+        $store->save();
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_vendor')->error(
+          'Vendor settings: could not sync Commerce store: @message',
+          ['@message' => $e->getMessage()]
+        );
+      }
     }
 
     // Save profile information.
