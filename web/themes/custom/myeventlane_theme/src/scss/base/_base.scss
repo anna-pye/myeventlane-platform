@@ -128,7 +128,7 @@ a {
   transition: color melmotion.$mel-transition-fast;
 
   &:hover {
-    color: var(--mel-primary);
+    color: var(--mel-color-primary-hover);
   }
 
   &:focus-visible {

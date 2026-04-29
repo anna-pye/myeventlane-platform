@@ -120,6 +120,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mel-event-card:hover .mel-event-card__image-wrap img,
   .mel-event-card:hover .mel-event-card__image img,
   .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
     transform: none;
