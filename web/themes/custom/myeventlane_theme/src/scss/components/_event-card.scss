@@ -7,6 +7,7 @@
 @use '../base/mel-ds-tokens' as mel;
 @use '../tokens/colors' as melc;
 @use '../tokens/breakpoints';
+@use '../tokens/motion' as melmotion;
 
 // ---------------------------------------------------------------------------
 // Unified listing card: .mel-event-card
@@ -24,8 +25,8 @@
   box-shadow: mel.$mel-ds-shadow-soft;
   border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform melmotion.$mel-transition-base,
+    box-shadow melmotion.$mel-transition-base;
   animation: fade-in-up 0.3s ease;
 
   @media (prefers-reduced-motion: reduce) {
@@ -35,13 +36,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .mel-event-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(-6px);
+    box-shadow: var(--mel-shadow-2);
   }
 
   .mel-event-card:hover:focus-within {
     box-shadow:
-      0 8px 20px rgba(0, 0, 0, 0.08),
+      var(--mel-shadow-2),
       0 0 0 3px rgba(110, 126, 242, 0.25);
   }
 }
@@ -104,14 +105,17 @@
   display: block;
 }
 
-.mel-event-card__image img {
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+.mel-event-card__image-wrap img,
+.mel-event-card__image img,
+.mel-event-card__image .mel-event-card__image-element {
+  transition: transform melmotion.$mel-transition-slow;
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .mel-event-card:hover .mel-event-card__image-wrap img,
   .mel-event-card:hover .mel-event-card__image img,
   .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
-    transform: scale(1.03);
+    transform: scale(1.04);
   }
 }
 

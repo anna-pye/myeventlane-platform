@@ -11,6 +11,7 @@
 @use '../tokens/radii';
 @use '../tokens/shadows';
 @use '../tokens/breakpoints';
+@use '../tokens/motion' as melmotion;
 
 // ==========================================================================
 // MEL v2 Event Page (Reference Implementation)
@@ -1966,6 +1967,20 @@
   text-decoration: none;
 }
 
+// Filter chip micro-interactions (base class; see a./button. rules below)
+.mel-filter-chip {
+  transition:
+    background melmotion.$mel-transition-fast,
+    color melmotion.$mel-transition-fast,
+    transform melmotion.$mel-transition-fast;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
 // Horizontal row: date scope + category discovery (mobile scroll)
 .mel-filter-chip-row {
   display: flex;
@@ -2008,13 +2023,11 @@ button.mel-filter-chip {
   flex: 0 0 auto;
   cursor: pointer;
   scroll-snap-align: start;
-  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   appearance: none;
 
   &:hover {
     text-decoration: none;
     background: #ececec;
-    transform: translateY(-1px);
   }
 
   @media (prefers-reduced-motion: reduce) {
