@@ -615,22 +615,6 @@ final class TicketSalesService {
   }
 
   /**
-   * Published event node IDs the user manages (author or vendor team).
-   *
-   * @param int $userId
-   *   The vendor user ID.
-   *
-   * @return list<int>
-   *   Published event node IDs.
-   */
-  public function getManagedPublishedEventNidsForUser(int $userId): array {
-    if ($userId <= 0) {
-      return [];
-    }
-    return $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, TRUE);
-  }
-
-  /**
    * Event node IDs the user manages (author or vendor team), any publish state.
    *
    * Used for payout transaction history so completed orders remain visible if an event
