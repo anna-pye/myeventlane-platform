@@ -10,6 +10,7 @@
   --mel-color-accent-active: #555dd4;
   --mel-color-text: #24303a;
   --mel-color-text-secondary: #5b6670;
+  --mel-color-text-muted: #7a838b;
   --mel-color-border: #e9e3de;
   --mel-color-overlay: rgba(36, 48, 58, 0.38);
   --mel-color-on-primary: #fff;
@@ -51,6 +52,8 @@
   // Alias used by event UI + headers (vendor theme defines --mel-text; keep parity).
   --mel-text: var(--mel-color-text);
   --mel-muted: var(--mel-color-text-secondary);
+  --mel-text-secondary: var(--mel-color-text-secondary);
+  --mel-text-muted: var(--mel-color-text-muted);
   --mel-border: 1px solid var(--mel-color-border);
   --mel-primary: var(--mel-color-primary);
   --mel-accent: var(--mel-color-accent);
