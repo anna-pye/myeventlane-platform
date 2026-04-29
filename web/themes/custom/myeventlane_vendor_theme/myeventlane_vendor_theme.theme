@@ -475,17 +475,6 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     ];
   }
 
-  // Wrap vendor settings form in console page template.
-  if ($route_name === 'myeventlane_vendor.console.settings' && isset($variables['page']['content']['vendor_profile_settings'])) {
-    $form = $variables['page']['content']['vendor_profile_settings'];
-    $variables['page']['content']['vendor_profile_settings'] = [
-      '#theme' => 'myeventlane_vendor_console_page',
-      '#title' => 'Settings',
-      '#body' => $form,
-      '#attached' => $form['#attached'] ?? [],
-    ];
-  }
-
   // --- Vendor Alert Strip (STAGE A: data model, stub logic) ---
   // Exposes $page['vendor_alert'] when an alert applies. Only ONE alert at a time.
   // If no alert applies, vendor_alert is not set.
@@ -1118,6 +1107,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'tabs' => [],
         'header_actions' => [],
         'body' => NULL,
+        'content' => NULL,
         'meta' => [],
       ],
       'template' => 'layout/console-page',
@@ -1653,6 +1643,11 @@ function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings_p
  * routes when the controller did not pass meta.
  */
 function myeventlane_vendor_theme_preprocess_myeventlane_vendor_console_page(array &$variables): void {
+  // Mirror body into content so templates can use {{ content }} without wrapping <form>.
+  if (!array_key_exists('content', $variables) || $variables['content'] === NULL) {
+    $variables['content'] = $variables['body'] ?? NULL;
+  }
+
   if (!empty($variables['meta'])) {
     return;
   }

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -24,9 +23,9 @@ final class VendorSettingsController extends VendorConsoleBaseController {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
-   * The form builder.
+   * The entity form builder.
    */
-  protected FormBuilderInterface $formBuilder;
+  protected EntityFormBuilderInterface $entityFormBuilder;
 
   /**
    * Constructs the controller.
@@ -36,11 +35,11 @@ final class VendorSettingsController extends VendorConsoleBaseController {
     AccountProxyInterface $current_user,
     MessengerInterface $messenger,
     EntityTypeManagerInterface $entity_type_manager,
-    FormBuilderInterface $form_builder,
+    EntityFormBuilderInterface $entity_form_builder,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->entityTypeManager = $entity_type_manager;
-    $this->formBuilder = $form_builder;
+    $this->entityFormBuilder = $entity_form_builder;
   }
 
   /**
@@ -52,7 +51,7 @@ final class VendorSettingsController extends VendorConsoleBaseController {
       $container->get('current_user'),
       $container->get('messenger'),
       $container->get('entity_type.manager'),
-      $container->get('form_builder'),
+      $container->get('entity.form_builder'),
     );
   }
 
@@ -103,6 +102,9 @@ final class VendorSettingsController extends VendorConsoleBaseController {
 
   /**
    * Displays vendor account settings.
+   *
+   * Uses the Vendor entity form (\Drupal\myeventlane_vendor\Form\VendorForm),
+   * form ID organiser_profile_settings.
    */
   public function settings(): array {
     $vendor = $this->getCurrentVendor();
@@ -119,30 +121,7 @@ final class VendorSettingsController extends VendorConsoleBaseController {
       ]);
     }
 
-    $form = $this->formBuilder->getForm(
-      \Drupal\myeventlane_vendor\Form\VendorProfileSettingsForm::class,
-      $vendor
-    );
-
-    // Same tab navigation as VendorDashboardMessagingBrandController.
-    $tabs = [
-      [
-        'label' => $this->t('Profile'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
-        'active' => TRUE,
-      ],
-      [
-        'label' => $this->t('Messaging Brand'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
-        'active' => FALSE,
-      ],
-    ];
-
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $this->t('Settings'),
-      'tabs' => $tabs,
-      'body' => $form,
-    ]);
+    return $this->entityFormBuilder->getForm($vendor, 'edit');
   }
 
 }

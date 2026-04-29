@@ -20,6 +20,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Comprehensive vendor profile settings form.
  *
  * Uses CurrentVendorResolver for consistent vendor resolution.
+ *
+ * @deprecated Not used. Console settings use Vendor entity form
+ *   (organiser_profile_settings) via VendorSettingsController::settings().
  */
 class VendorProfileSettingsForm extends FormBase {
 
@@ -297,6 +300,7 @@ class VendorProfileSettingsForm extends FormBase {
       ? $request->getRequestUri()
       : Url::fromRoute('myeventlane_vendor.console.settings')->toString();
     $form['#method'] = 'post';
+    $form['#attributes']['class'][] = 'vendor-settings-form';
 
     $form['#tree'] = TRUE;
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
@@ -448,11 +452,19 @@ class VendorProfileSettingsForm extends FormBase {
       if (!$vendor->get('field_website')->isEmpty()) {
         $website_uri = $vendor->get('field_website')->uri ?? '';
       }
+      // Use textfield, not #url: <input type="url"> applies HTML5 validation before POST and
+      // blocks submit for domain-only values; validateForm() prepends https:// server-side.
       $form['contact']['website'] = [
-        '#type' => 'url',
+        '#type' => 'textfield',
         '#title' => $this->t('Website'),
         '#default_value' => $website_uri,
+        '#maxlength' => 2048,
         '#description' => $this->t('Your organization website URL.'),
+        '#attributes' => [
+          'placeholder' => 'https://example.com',
+          'inputmode' => 'url',
+          'autocomplete' => 'url',
+        ],
       ];
     }
 
@@ -510,9 +522,14 @@ class VendorProfileSettingsForm extends FormBase {
           '#size' => 20,
         ];
         $form['contact']['social_links']['links'][$delta]['uri'] = [
-          '#type' => 'url',
+          '#type' => 'textfield',
           '#default_value' => $value['uri'] ?? '',
+          '#maxlength' => 2048,
           '#size' => 40,
+          '#attributes' => [
+            'placeholder' => $this->t('https://…'),
+            'inputmode' => 'url',
+          ],
         ];
         $form['contact']['social_links']['links'][$delta]['remove'] = [
           '#type' => 'submit',
@@ -1094,14 +1111,27 @@ class VendorProfileSettingsForm extends FormBase {
         $form_state->setValue(['contact', 'website'], $website);
       }
     }
+
+    // Same normalization for social link URIs (inputs are textfields to avoid HTML5 url blocking).
+    $rows = $form_state->getValue(['contact', 'social_links', 'links']);
+    if (is_array($rows)) {
+      foreach ($rows as $delta => $row) {
+        if (!is_array($row) || empty($row['uri'])) {
+          continue;
+        }
+        $uri = trim((string) $row['uri']);
+        if ($uri !== '' && !preg_match('#^https?://#', $uri)) {
+          $uri = 'https://' . $uri;
+        }
+        $form_state->setValue(['contact', 'social_links', 'links', $delta, 'uri'], $uri);
+      }
+    }
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->notice('SUBMIT START');
-
     $vendor = $this->loadVendorFromFormState($form_state);
     if (!$vendor) {
       $resolver = $this->getVendorResolver();
@@ -1312,7 +1342,6 @@ class VendorProfileSettingsForm extends FormBase {
     }
 
     $vendor_storage = $this->getEntityTypeManager()->getStorage('myeventlane_vendor');
-    $store_storage = $this->getEntityTypeManager()->getStorage('commerce_store');
 
     $store = NULL;
     if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
@@ -1333,12 +1362,15 @@ class VendorProfileSettingsForm extends FormBase {
       }
     }
 
-    // After ensureStoreForVendor creates and saves the vendor+store, reload for a consistent entity.
+    // After ensureStoreForVendor links a new store, refresh only field_vendor_store from
+    // storage if needed. Do not replace $vendor with a reloaded entity: that would drop
+    // in-memory field changes applied above that are not yet saved at line below.
     if (!$had_vendor_store_link && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
       $vendor_storage->resetCache([(int) $vendor->id()]);
       $reloaded_vendor = $vendor_storage->load($vendor->id());
-      if ($reloaded_vendor instanceof Vendor) {
-        $vendor = $reloaded_vendor;
+      if ($reloaded_vendor instanceof Vendor
+        && !$reloaded_vendor->get('field_vendor_store')->isEmpty()) {
+        $vendor->set('field_vendor_store', $reloaded_vendor->get('field_vendor_store')->getValue());
       }
       $candidate = $vendor->get('field_vendor_store')->entity ?? NULL;
       if ($candidate instanceof StoreInterface) {
@@ -1362,11 +1394,6 @@ class VendorProfileSettingsForm extends FormBase {
       }
       try {
         $store->save();
-        \Drupal::logger('mel_debug')->notice('STORE SYNCED store=@store abn=@abn name=@name', [
-          '@store' => (string) $store->id(),
-          '@abn' => $abn,
-          '@name' => $business_name,
-        ]);
       }
       catch (\Throwable $e) {
         \Drupal::logger('myeventlane_vendor')->error(
@@ -1374,26 +1401,10 @@ class VendorProfileSettingsForm extends FormBase {
           ['@message' => $e->getMessage()]
         );
       }
-
-      $store_storage->resetCache([(int) $store->id()]);
-      $store_verify = $store_storage->load($store->id());
-      if ($store_verify instanceof StoreInterface) {
-        $verify_abn = '';
-        if ($store_verify->hasField('field_abn') && !$store_verify->get('field_abn')->isEmpty()) {
-          $verify_abn = (string) $store_verify->get('field_abn')->value;
-        }
-        \Drupal::logger('mel_debug')->notice('STORE VERIFY store=@id label=@label abn=@abn name=@name', [
-          '@id' => (string) $store_verify->id(),
-          '@label' => $store_verify->label(),
-          '@abn' => $verify_abn,
-          '@name' => $store_verify->label(),
-        ]);
-      }
     }
 
     try {
       $vendor->save();
-      \Drupal::logger('mel_debug')->notice('USER/VENDOR SAVED');
 
       // Clear entity cache.
       $vendor_storage->resetCache([(int) $vendor->id()]);

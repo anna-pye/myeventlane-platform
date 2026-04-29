@@ -51,19 +51,6 @@ services:
       - '@logger.channel.myeventlane_vendor'
       - '@string_translation'
 
-  myeventlane_vendor.vendor_theme_page_preprocess:
-    class: Drupal\myeventlane_vendor\Service\VendorThemePagePreprocess
-    arguments:
-      - '@current_user'
-      - '@current_route_match'
-      - '@request_stack'
-      - '@entity_type.manager'
-      - '@?myeventlane_core.optional_service_resolver'
-      - '@string_translation'
-      - '@myeventlane_core.entity_id_normalizer'
-      - '@?myeventlane_event_studio.repository'
-      - '@myeventlane_onboarding.manager'
-
   myeventlane_vendor.vendor_console_page_preprocess:
     class: Drupal\myeventlane_vendor\Hook\VendorConsolePagePreprocess
     arguments:
@@ -349,7 +336,7 @@ services:
 
   myeventlane_vendor.controller.vendor_settings:
     class: Drupal\myeventlane_vendor\Controller\VendorSettingsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@form_builder']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@entity.form_builder']
     tags:
       - { name: controller.service_arguments }
 
