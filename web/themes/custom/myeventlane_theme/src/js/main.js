@@ -36,9 +36,39 @@ import './card-carousel.js';
    * Initialize theme components.
    * This function is called both as a Drupal behavior and as a fallback.
    */
+  function initMelCalendarTabs(context) {
+    var scope = context || document;
+    scope.querySelectorAll('.mel-calendar').forEach(function (calendar) {
+      if (calendar.getAttribute('data-mel-calendar-init') === '1') {
+        return;
+      }
+      calendar.setAttribute('data-mel-calendar-init', '1');
+      calendar.querySelectorAll('.mel-calendar__tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var target = tab.getAttribute('data-tab');
+          calendar.querySelectorAll('.mel-calendar__tab').forEach(function (t) {
+            t.classList.remove('is-active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          calendar.querySelectorAll('.mel-calendar__pane').forEach(function (p) {
+            p.classList.remove('is-active');
+          });
+          tab.classList.add('is-active');
+          tab.setAttribute('aria-selected', 'true');
+          var pane = calendar.querySelector('[data-pane="' + target + '"]');
+          if (pane) {
+            pane.classList.add('is-active');
+          }
+        });
+      });
+    });
+  }
+
   function initializeTheme(context) {
     // Always initialize mobile navigation - it checks for double init internally
     initMobileNav();
+
+    initMelCalendarTabs(context);
 
     // Account dropdown is now CSS-only using :focus-within
     // No JavaScript initialization needed!
