@@ -39,6 +39,14 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
+  field_abn:
+    type: string_textfield
+    weight: 2
+    region: content
+    settings:
+      size: 20
+      placeholder: ''
+    third_party_settings: {  }
   field_stripe_account_id:
     type: string_textfield
     weight: 12
@@ -99,14 +107,6 @@ content:
     settings:
       placeholder: ''
       size: 60
-    third_party_settings: {  }
-  field_abn:
-    type: string_textfield
-    weight: 2
-    region: content
-    settings:
-      size: 20
-      placeholder: ''
     third_party_settings: {  }
   name:
     type: string_textfield
