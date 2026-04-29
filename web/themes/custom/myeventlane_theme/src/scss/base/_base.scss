@@ -118,17 +118,14 @@ ul, ol {
 
 // ---------------------------------------------------------------------------
 // Links — UI surfaces without default underline; prose inside .mel-content
-// keeps identifiable links with hover underline.
+// keeps identifiable links with hover underline. Card/event/button links inside
+// .mel-content need equal-or-higher specificity than .mel-content a:hover.
 // ---------------------------------------------------------------------------
 
 a {
   text-decoration: none;
   color: inherit;
   transition: color 0.15s ease;
-
-  &:hover {
-    text-decoration: none;
-  }
 
   &:focus-visible {
     @include colors.mel-focus-ring;
@@ -145,9 +142,9 @@ a {
   text-decoration: underline;
 }
 
-.mel-button,
-.mel-card a,
-.mel-event a {
+.mel-content .mel-card a:hover,
+.mel-content .mel-event a:hover,
+.mel-content a.mel-button:hover {
   text-decoration: none;
 }
 
