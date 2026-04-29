@@ -11,9 +11,10 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Comprehensive vendor profile settings form.
@@ -43,9 +44,9 @@ class VendorProfileSettingsForm extends FormBase {
   protected ?CurrentVendorResolverInterface $vendorResolver = NULL;
 
   /**
-   * The request stack.
+   * Ensures the vendor-linked Commerce store exists and stays in sync.
    */
-  protected RequestStack $requestStack;
+  protected VendorStoreSubscriber $vendorStoreSubscriber;
 
   /**
    * {@inheritdoc}
@@ -56,7 +57,8 @@ class VendorProfileSettingsForm extends FormBase {
     $instance->currentUser = $container->get('current_user');
     $instance->onboardingManager = $container->get('myeventlane_onboarding.manager');
     $instance->vendorResolver = $container->get('myeventlane_vendor.current_vendor_resolver');
-    $instance->requestStack = $container->get('request_stack');
+    $instance->vendorStoreSubscriber = $container->get('myeventlane_vendor.vendor_store_subscriber');
+    $instance->setRequestStack($container->get('request_stack'));
     return $instance;
   }
 
@@ -290,7 +292,7 @@ class VendorProfileSettingsForm extends FormBase {
     }
 
     // Pin POST to this URI so Form API does not emit /vendor/form_action_* (404 on vendor host).
-    $request = $this->requestStack->getCurrentRequest();
+    $request = $this->getRequest();
     $form['#action'] = $request
       ? $request->getRequestUri()
       : Url::fromRoute('myeventlane_vendor.console.settings')->toString();
@@ -931,7 +933,7 @@ class VendorProfileSettingsForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Save Settings'),
+      '#value' => $this->t('Save'),
       '#button_type' => 'primary',
     ];
 
@@ -1100,6 +1102,56 @@ class VendorProfileSettingsForm extends FormBase {
       $this->messenger()->addError($this->t('Vendor not found. Unable to save settings. Please refresh the page and try again.'));
       $form_state->setRebuild();
       return;
+    }
+
+    // Nested keys are canonical; root keys may be unset on rebuilds.
+    $abn_nested = $form_state->getValue(['payment', 'business', 'abn']);
+    $name_nested = $form_state->getValue(['payment', 'business', 'business_name']);
+    $abn_root = $form_state->getValue('field_abn');
+    $name_root = $form_state->getValue('field_business_name');
+
+    $abn_raw = $abn_nested ?? $abn_root;
+    $name_raw = $name_nested ?? $name_root;
+    $abn_for_sync = trim((string) ($abn_raw ?? ''));
+    $abn_for_sync = $abn_for_sync !== '' ? (string) preg_replace('/\s+/', '', $abn_for_sync) : '';
+    $name_for_sync = trim((string) ($name_raw ?? ''));
+
+    $uid = (int) $this->getCurrentUser()->id();
+    if ($uid > 0) {
+      $user = User::load($uid);
+      if ($user instanceof \Drupal\user\UserInterface
+        && $user->hasField('field_abn')
+        && $user->hasField('field_business_name')) {
+        $user->set('field_abn', $abn_for_sync !== '' ? $abn_for_sync : NULL);
+        $user->set('field_business_name', $name_for_sync !== '' ? $name_for_sync : NULL);
+        try {
+          $user->save();
+        }
+        catch (\Throwable $e) {
+          \Drupal::logger('myeventlane_vendor')->error(
+            'Vendor settings: could not sync user business fields: @message',
+            ['@message' => $e->getMessage()]
+          );
+        }
+      }
+    }
+
+    $store = $this->vendorStoreSubscriber->ensureStoreForVendor($vendor);
+    if ($store !== NULL) {
+      if ($store->hasField('field_abn')) {
+        $store->set('field_abn', $abn_for_sync !== '' ? $abn_for_sync : NULL);
+      }
+      $store_label = $name_for_sync !== '' ? $name_for_sync : (string) $vendor->getName();
+      $store->setName($store_label);
+      try {
+        $store->save();
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_vendor')->error(
+          'Vendor settings: could not sync Commerce store: @message',
+          ['@message' => $e->getMessage()]
+        );
+      }
     }
 
     // Save profile information.
