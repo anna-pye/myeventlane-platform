@@ -161,7 +161,7 @@
         {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) or (mel_support_panel is defined and mel_support_panel) %}
           <aside class="mel-checkout__summary" aria-label="{{ 'Order summary'|t }}">
             <div class="mel-checkout__summary-inner">
-              <h3 id="mel-checkout-summary-heading" class="mel-checkout__summary-title">{{ 'Your order'|t }}</h3>
+              <h2 id="mel-checkout-summary-heading" class="mel-checkout__summary-title">{{ 'Your order'|t }}</h2>
               {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
                 <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card mel-checkout__summary-region">
                   {{ mel_contextual_help_checkout }}
