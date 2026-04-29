@@ -113,7 +113,8 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     $transactions = [];
 
     try {
-      $managedEventIds = $this->ticketSalesService->getManagedPublishedEventNidsForUser($userId);
+      // Include unpublished managed events so historical completed orders stay visible.
+      $managedEventIds = $this->ticketSalesService->getManagedEventNidsForUser($userId);
       $normalized = $this->entityIdNormalizer->normalizeNodeIds($managedEventIds);
       if ($normalized === []) {
         return [];

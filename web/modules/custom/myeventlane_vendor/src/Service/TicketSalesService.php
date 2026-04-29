@@ -594,23 +594,6 @@ final class TicketSalesService {
   }
 
   /**
-   * Gets total revenue for a vendor (published events authored by this user).
-   *
-   * @param int $userId
-   *   The vendor user ID.
-   *
-   * @return array
-   *   Revenue summary with gross, net, fees, gross_raw, tickets.
-   */
-  public function getVendorRevenue(int $userId): array {
-    if ($userId <= 0) {
-      return $this->emptyVendorRevenueSummary();
-    }
-
-    return $this->buildVendorRevenueFromPublishedEventIds($this->getAuthorPublishedEventNids($userId));
-  }
-
-  /**
    * Revenue across published events the user manages (author or vendor team).
    *
    * Matches {@see RsvpStatsService::getManagedPublishedEventsRsvpCount()} scope.
@@ -646,6 +629,25 @@ final class TicketSalesService {
   }
 
   /**
+   * Event node IDs the user manages (author or vendor team), any publish state.
+   *
+   * Used for payout transaction history so completed orders remain visible if an event
+   * is later unpublished.
+   *
+   * @param int $userId
+   *   The vendor user ID.
+   *
+   * @return list<int>
+   *   Event node IDs.
+   */
+  public function getManagedEventNidsForUser(int $userId): array {
+    if ($userId <= 0) {
+      return [];
+    }
+    return $this->queryManagedEventNodeIds($userId, FALSE);
+  }
+
+  /**
    * Revenue summary for specific published events (same rules as managed vendor revenue).
    *
    * @param list<int> $eventIds
@@ -672,41 +674,29 @@ final class TicketSalesService {
   }
 
   /**
-   * Published event nids where the user is the node author.
-   *
-   * @return list<int>
-   */
-  private function getAuthorPublishedEventNids(int $userId): array {
-    try {
-      $ids = $this->entityTypeManager->getStorage('node')->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('type', 'event')
-        ->condition('uid', $userId)
-        ->condition('status', 1)
-        ->execute();
-      if (empty($ids)) {
-        return [];
-      }
-      return array_map('intval', array_values($ids));
-    }
-    catch (\Exception) {
-      return [];
-    }
-  }
-
-  /**
    * Published events authored by the user or tied to their vendor membership.
    *
    * @return list<int>
    */
   private function getManagedPublishedEventNids(int $uid): array {
+    return $this->queryManagedEventNodeIds($uid, TRUE);
+  }
+
+  /**
+   * Events authored by the user or tied to their vendor membership.
+   *
+   * @return list<int>
+   */
+  private function queryManagedEventNodeIds(int $uid, bool $publishedOnly): array {
     try {
       $vendorIds = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
       $storage = $this->entityTypeManager->getStorage('node');
       $query = $storage->getQuery()
         ->accessCheck(FALSE)
-        ->condition('type', 'event')
-        ->condition('status', 1);
+        ->condition('type', 'event');
+      if ($publishedOnly) {
+        $query->condition('status', 1);
+      }
       $or = $query->orConditionGroup();
       $or->condition('uid', $uid);
       if ($vendorIds !== []) {
