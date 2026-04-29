@@ -128,24 +128,6 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
-.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field,
-.mel-booking-v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field {
-  margin: 0;
-}
-
-.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field__item a,
-.mel-booking-v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field__item a {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: spacing.mel-space(2) spacing.mel-space(4);
-  border-radius: radii.$mel-radius-full;
-  color: colors.$mel-color-text;
-  text-decoration: none;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-}
-
 @include breakpoints.mel-break(sm, max) {
   .mel-event--v2 .mel-event-hero--featured-style,
   .mel-booking-v2 .mel-event-hero--featured-style {

@@ -56,7 +56,6 @@
 {% if not _category and category is defined and category %}
   {% set _category = { 'label': category, 'url': null } %}
 {% endif %}
-{% set category_class = category_slug is defined and category_slug ? ('mel-pill--cat-' ~ category_slug) : '' %}
 
 {% set _state_badge_type = 'highlight' %}
 {# Image pill: event_ui only — is_sold_out > image_badge (boost/Featured from myeventlane_event_finalize_event_ui) > category. #}
@@ -88,7 +87,7 @@
         {% endif %}
         <div class="mel-event-hero-card__overlay" aria-hidden="true"></div>
         {% if _image_badge_label %}
-          <span class="mel-event-hero-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}{% if _state_badge_type == 'category' %} {{ category_class }}{% endif %}" aria-hidden="true">
+          <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-hero-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
             <span class="mel-pill__label">{{ _image_badge_label }}</span>
           </span>
         {% endif %}
@@ -159,9 +158,12 @@
       {% endif %}
 
       {% if _image_badge_label %}
-        <span class="mel-event-card__image-badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}{% if _state_badge_type == 'category' %} {{ category_class }}{% endif %}" aria-hidden="true">
+        <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-card__image-badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
           <span class="mel-pill__label">{{ _image_badge_label }}</span>
         </span>
+      {% endif %}
+      {% if mel_signal %}
+        <div class="mel-event-card__signal">{{ mel_signal }}</div>
       {% endif %}
     </div>
 
