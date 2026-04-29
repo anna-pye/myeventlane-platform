@@ -1,0 +1,45 @@
+// ==========================================================================
+// MEL discovery — upcoming events / browse grids (1 → 2 → 3 columns)
+// ==========================================================================
+// Contexts:
+// - `.mel-discovery` — upcoming_events Views wrappers (see views-view--upcoming-events*.twig)
+// - `.mel-home-discover` — homepage embed_discover (views-view--mel-home-events--embed_discover)
+// Row markup: views-view-unformatted outputs .mel-event-grid.mel-grid.mel-grid--events.
+
+@use '../base/mel-ds-tokens' as mel;
+@use '../tokens/breakpoints';
+
+.mel-discovery {
+  width: 100%;
+  min-width: 0;
+}
+
+// Shared grid: explicit columns (layout/_grid.scss uses auto-fit minmax — subtler than this).
+.mel-discovery .mel-event-grid.mel-grid--events,
+.mel-home-discover .mel-event-grid.mel-grid--events {
+  display: grid;
+  gap: mel.$mel-ds-space-md;
+  grid-template-columns: 1fr;
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-discovery .mel-event-grid.mel-grid--events > *,
+.mel-home-discover .mel-event-grid.mel-grid--events > * {
+  min-width: 0;
+}
+
+@include breakpoints.mel-break(md) {
+  .mel-discovery .mel-event-grid.mel-grid--events,
+  .mel-home-discover .mel-event-grid.mel-grid--events {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: mel.$mel-ds-space-lg;
+  }
+}
+
+@include breakpoints.mel-break(lg) {
+  .mel-discovery .mel-event-grid.mel-grid--events,
+  .mel-home-discover .mel-event-grid.mel-grid--events {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
