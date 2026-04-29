@@ -63,7 +63,13 @@
   position: absolute;
   inset: 0;
   z-index: 2;
-  background: linear-gradient(180deg, rgba(36, 48, 58, 0.12) 0%, rgba(36, 48, 58, 0.72) 100%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.45) 40%,
+    rgba(0, 0, 0, 0.2) 70%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
   pointer-events: none;
 }
 
@@ -97,6 +103,7 @@
   font-size: typography.mel-font-size(3xl);
   font-weight: typography.$mel-font-bold;
   line-height: typography.$mel-leading-tight;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__datetime,
@@ -108,6 +115,7 @@
   font-size: typography.mel-font-size(sm);
   font-weight: typography.$mel-font-semibold;
   line-height: typography.$mel-leading-relaxed;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__status,
@@ -115,6 +123,7 @@
   margin: 0;
   font-size: typography.mel-font-size(base);
   font-weight: typography.$mel-font-bold;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field,
