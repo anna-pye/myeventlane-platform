@@ -84,14 +84,14 @@ final class EventTypeService {
    *   The event node.
    *
    * @return string
-   *   CTA label: 'RSVP Now', 'Buy Tickets', 'Get Tickets', or 'View Event'.
+   *   CTA label: 'RSVP Now', 'Get your tickets', 'Get Tickets', or 'View Event'.
    */
   public function getCtaLabel(NodeInterface $node): string {
     $type = $this->getEventType($node);
 
     return match ($type) {
       self::TYPE_RSVP => 'RSVP Now',
-      self::TYPE_PAID, self::TYPE_BOTH => 'Buy Tickets',
+      self::TYPE_PAID, self::TYPE_BOTH => 'Get your tickets',
       self::TYPE_EXTERNAL => 'Get Tickets',
       default => 'View Event',
     };

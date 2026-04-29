@@ -3103,7 +3103,7 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
         $variables['mel_booking_action_label'] = new TranslatableMarkup('Book free RSVP');
       }
       elseif ($cta_type === EventCtaResolver::CTA_PAID) {
-        $variables['mel_booking_action_label'] = new TranslatableMarkup('Buy tickets');
+        $variables['mel_booking_action_label'] = new TranslatableMarkup('Get your tickets');
       }
     }
   }
