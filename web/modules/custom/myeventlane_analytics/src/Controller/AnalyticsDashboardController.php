@@ -17,6 +17,7 @@ use Drupal\myeventlane_analytics\Service\ConversionAnalyticsService;
 use Drupal\myeventlane_analytics\Service\ReportGeneratorService;
 use Drupal\myeventlane_dashboard\Service\DashboardEventLoader;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
@@ -43,6 +44,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     private readonly ConversionAnalyticsService $conversionService,
     private readonly ReportGeneratorService $reportService,
     private readonly DashboardEventLoader $eventLoader,
+    private readonly EventVendorAccessChecker $eventAccessChecker,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger);
   }
@@ -60,6 +62,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
       $container->get('myeventlane_analytics.conversion'),
       $container->get('myeventlane_analytics.report'),
       $container->get('myeventlane_dashboard.event_loader'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -257,15 +260,17 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
       return AccessResult::forbidden('Not an event.');
     }
 
-    // Admin can access all.
     if ($account->hasPermission('administer event attendees')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
 
-    // Check if user is the event author.
-    $isOwner = (int) $node->getOwnerId() === (int) $account->id();
+    if (!$account->hasPermission('access analytics dashboard')) {
+      return AccessResult::forbidden('Missing analytics permission.')
+        ->cachePerPermissions()
+        ->addCacheableDependency($node);
+    }
 
-    if ($isOwner && $account->hasPermission('access analytics dashboard')) {
+    if ($this->eventAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
       return AccessResult::allowed()
         ->cachePerUser()
         ->addCacheableDependency($node);

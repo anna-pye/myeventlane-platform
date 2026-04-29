@@ -64,7 +64,7 @@ final class MetricsAggregator {
     // Get revenue data from TicketSalesService (includes published events filter).
     $revenue = $this->ticketSalesService->getVendorRevenue($userId);
     // Get RSVP count from RsvpStatsService (includes published events filter).
-    $rsvpCount = $this->rsvpStatsService->getVendorRsvpCount($userId);
+    $rsvpCount = $this->rsvpStatsService->getManagedPublishedEventsRsvpCount($userId);
 
     return [
       [

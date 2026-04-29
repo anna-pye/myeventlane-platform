@@ -19,6 +19,7 @@ final class RsvpStatsService {
     private readonly Connection $database,
     private readonly TimeInterface $time,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
   ) {}
 
   /**
@@ -27,6 +28,10 @@ final class RsvpStatsService {
    * Counts: Confirmed RSVPs only (status='confirmed' or 'active').
    * Excludes: Draft events, cancelled/pending RSVPs.
    * Tables: rsvp_submission entity or legacy myeventlane_rsvp table.
+   *
+   * Legacy semantics: published events owned by this UID only (node author).
+   * Prefer getManagedPublishedEventsRsvpCount() for dashboard KPI parity with
+   * vendor team membership, unless you explicitly need author-scoped totals.
    *
    * @param int $vendor_uid
    *   The vendor user ID.
@@ -65,6 +70,57 @@ final class RsvpStatsService {
     catch (\Exception $e) {
       return 0;
     }
+  }
+
+  /**
+   * Confirmed RSVPs for every published event the user manages (author or team).
+   *
+   * Includes events owned by the account and events linked to vendor entities
+   * where the user is owner or in field_vendor_users. Aligns with vendor
+   * workspace / assertEventOwnership coverage.
+   */
+  public function getManagedPublishedEventsRsvpCount(int $uid): int {
+    if ($uid <= 0) {
+      return 0;
+    }
+
+    try {
+      $eventIds = $this->getManagedPublishedEventNids($uid);
+      if ($eventIds === []) {
+        return 0;
+      }
+      $total = 0;
+      foreach ($eventIds as $eventId) {
+        $total += $this->getEventRsvpCount($eventId);
+      }
+      return $total;
+    }
+    catch (\Exception $e) {
+      return 0;
+    }
+  }
+
+  /**
+   * @return list<int>
+   */
+  private function getManagedPublishedEventNids(int $uid): array {
+    $vendorIds = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
+    $storage = $this->entityTypeManager->getStorage('node');
+    $query = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'event')
+      ->condition('status', 1);
+    $or = $query->orConditionGroup();
+    $or->condition('uid', $uid);
+    if ($vendorIds !== []) {
+      $or->condition('field_event_vendor', $vendorIds, 'IN');
+    }
+    $query->condition($or);
+    $ids = $query->execute();
+    if (empty($ids)) {
+      return [];
+    }
+    return array_map('intval', array_values($ids));
   }
 
   /**

@@ -13,6 +13,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
 use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -32,6 +33,7 @@ final class AttendeeExportController extends ControllerBase implements Container
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly VendorAttendeePresentationService $vendorPresentation,
     private readonly MessengerInterface $messengerService,
+    private readonly EventVendorAccessChecker $eventAccessChecker,
   ) {}
 
   /**
@@ -42,20 +44,23 @@ final class AttendeeExportController extends ControllerBase implements Container
       $container->get('myeventlane_event_attendees.manager'),
       $container->get('myeventlane_event_attendees.vendor_presentation'),
       $container->get('messenger'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
   /**
-   * Access check: vendor owner or admin.
+   * Access check: event workspace parity (owner or vendor team) or admin.
    */
   public function access(NodeInterface $event, AccountInterface $account): AccessResult {
     if ($account->hasPermission('administer nodes')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
-    $is_owner = (int) $event->getOwnerId() === (int) $account->id();
-    return $is_owner
-      ? AccessResult::allowed()->cachePerUser()->addCacheableDependency($event)
-      : AccessResult::forbidden('Not the event owner.')->addCacheableDependency($event);
+
+    if ($this->eventAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
+      return AccessResult::allowed()->cachePerUser()->addCacheableDependency($event);
+    }
+
+    return AccessResult::forbidden('Not authorized for this event.')->addCacheableDependency($event);
   }
 
   /**
