@@ -16,6 +16,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  *
  * Used for cart, checkout sidebar, confirmation, and email context. Does not
  * hardcode tax amounts; reads adjustments and Australian GST config.
+ *
+ * Order confirmation emails use buildForOrderConfirmationEmail() when only the
+ * formatted total and GST note flag are required (no line-item breakdown).
  */
 final class OrderPricingBreakdownBuilder {
 
@@ -113,6 +116,46 @@ final class OrderPricingBreakdownBuilder {
       'total_formatted' => $total_formatted,
       'show_includes_gst_note' => $show_includes_gst_note,
       'show_cart_includes_gst_note' => $show_cart_includes_gst_note,
+    ];
+  }
+
+  /**
+   * Minimal pricing context for order confirmation email (no row breakdown).
+   *
+   * Skips subtotal, per-adjustment row formatting, fee aggregation, and
+   * platform-fee-absorbed detection when templates only need total + GST note.
+   *
+   * @return array{
+   *   total_formatted: string,
+   *   show_includes_gst_note: bool,
+   * }
+   */
+  public function buildForOrderConfirmationEmail(OrderInterface $order): array {
+    $has_gst = FALSE;
+    foreach ($order->getAdjustments() as $adjustment) {
+      if ($adjustment->getType() !== 'tax') {
+        continue;
+      }
+      $amount = $adjustment->getAmount();
+      if ($amount instanceof Price && !$amount->isZero()) {
+        $has_gst = TRUE;
+        break;
+      }
+    }
+
+    $store = $order->getStore();
+    $prices_include_tax = $this->storePricesIncludeTax($store);
+    $au_store = $this->storeIsAustralia($store);
+    $gst_type_active = $this->australianGstTaxTypeIsActive();
+
+    $show_includes_gst_note = $prices_include_tax && $au_store && $gst_type_active && $has_gst;
+
+    $total = $order->getTotalPrice();
+    $total_formatted = $total ? $this->formatPrice($total) : '';
+
+    return [
+      'total_formatted' => $total_formatted,
+      'show_includes_gst_note' => $show_includes_gst_note,
     ];
   }
 

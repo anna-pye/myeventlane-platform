@@ -81,7 +81,7 @@ final class OrderConfirmationQueueBuilder {
       }
     }
 
-    $breakdown = $this->orderPricingBreakdown->build($order);
+    $pricing = $this->orderPricingBreakdown->buildForOrderConfirmationEmail($order);
     $invoice = $this->taxInvoicePresentation->build($order);
 
     $context = [
@@ -93,14 +93,10 @@ final class OrderConfirmationQueueBuilder {
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
       'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
-      'total_paid' => $breakdown['total_formatted'] !== ''
-        ? $breakdown['total_formatted']
+      'total_paid' => $pricing['total_formatted'] !== ''
+        ? $pricing['total_formatted']
         : $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
-      'order_subtotal_formatted' => $breakdown['subtotal_formatted'],
-      'order_tax_rows' => $breakdown['tax_rows'],
-      'order_fee_rows' => $breakdown['fee_rows'],
-      'order_platform_fee_absorbed' => $breakdown['platform_fee_absorbed'],
-      'show_includes_gst_note' => $breakdown['show_includes_gst_note'],
+      'show_includes_gst_note' => $pricing['show_includes_gst_note'],
       'vendor_name' => $invoice['vendor_name'],
       'vendor_abn' => $invoice['vendor_abn'],
       'order_total_gst' => $invoice['order_total_gst'],
