@@ -99,24 +99,6 @@
   </header>
 
   <div class="mel-confirmation__main">
-    <div class="mel-confirmation-banner">
-      {% if mel_donation_total_formatted %}
-        <h2>{{ 'Thank you'|t }}</h2>
-        <p>{{ 'Your support means a lot. We\'ve emailed your receipt.'|t }}</p>
-      {% elseif mel_confirmation_has_tickets %}
-        {% if mel_confirm_paid %}
-          <h2>{{ 'Your booking is confirmed 🎉'|t }}</h2>
-          <p>{{ 'You\'re all set. Your tickets are ready and a confirmation has been sent to your email.'|t }}</p>
-        {% else %}
-          <h2>{{ 'Your registration is confirmed 🎉'|t }}</h2>
-          <p>{{ 'You\'re all set. Your confirmation has been sent to your email.'|t }}</p>
-        {% endif %}
-      {% else %}
-        <h2>{{ 'Your order is confirmed'|t }}</h2>
-        <p>{{ 'You\'re all set. We\'ve emailed your confirmation.'|t }}</p>
-      {% endif %}
-    </div>
-
     {% if events|length > 0 %}
       {% for event in events %}
         <section class="mel-confirmation-card mel-confirmation__summary">
@@ -340,13 +322,8 @@
 
       <div class="mel-confirmation-discover">
         <h3>{{ 'Explore more events'|t }}</h3>
-        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-confirmation-button mel-confirmation-button--secondary">{{ 'Browse events'|t }}</a>
-      </div>
-
-      <div class="mel-return">
-        <h3>{{ 'Find more events like this'|t }}</h3>
         <p>{{ 'Discover what\'s happening near you.'|t }}</p>
-        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-button mel-button--ghost">{{ 'Browse events'|t }}</a>
+        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-confirmation-button mel-confirmation-button--secondary">{{ 'Browse events'|t }}</a>
       </div>
 
       <section class="mel-confirmation-next">
