@@ -48,6 +48,8 @@
 {% else %}
   {% set mel_context_above = '' %}
 {% endif %}
+{# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
+{% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
 {% set mel_gcal_href = '' %}
 {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
   {% set mel_cal_start = node.field_event_start.value|date('Ymd\THis') %}
@@ -64,16 +66,16 @@
 {% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
 {# Spots-left urgency under price; trust rotator omits duplicate “selling fast” copy. #}
 {% set _support_urgent = (mel_cta_urgency|default('')|striptags|length > 0) %}
-{# Sidebar scarcity badge / line: only when capacity signals exist (EDS, capacity service, or Event UI). #}
+{# Sidebar “Limited availability” badge: paid events with shown pricing only, plus real scarcity signals (not free/external/no-config). #}
 {% set mel_show_sidebar_scarcity_badge = (mel_event_state is not defined or mel_event_state != 'cancelled')
   and (event_ui is not defined or not (event_ui.is_sold_out|default(false) == true))
+  and (cta_type is defined and cta_type == 'paid')
+  and (mel_sidebar_pricing|default('')|striptags|trim is not empty)
   and (
     _support_urgent
     or mel_event_selling_fast|default(false)
     or (event_ui is defined and event_ui.is_limited|default(false) == true)
   ) %}
-{# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
-{% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
 {# Booking reassurance / marketing: omit when it would mislead (cancelled, sold out, no actionable CTA). #}
 {% set mel_show_booking_trust_copy = (mel_event_state is not defined or mel_event_state != 'cancelled')
   and not (event_ui is defined and (event_ui.is_sold_out|default(false) == true))
