@@ -19,6 +19,22 @@
 .mel-event--v2 {
   padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
 
+  // Event Intelligence Layer — single calm chip (copy from preprocess).
+  .mel-event__signal {
+    display: inline-block;
+    background: var(--mel-accent-soft);
+    color: var(--mel-text);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    margin-bottom: space-tokens.mel-space(2);
+  }
+
+  .mel-event__signal--strong {
+    background: var(--mel-primary);
+    color: #fff;
+  }
+
   // Sticky mobile CTA clears content; reserve space (thumb zone + copy above button).
   &:has(> .mel-mobile-cta) {
     @include breakpoints.mel-break(lg, max) {

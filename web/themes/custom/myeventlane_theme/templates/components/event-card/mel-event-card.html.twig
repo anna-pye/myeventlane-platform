@@ -163,6 +163,9 @@
           <span class="mel-pill__label">{{ _image_badge_label }}</span>
         </span>
       {% endif %}
+      {% if mel_signal %}
+        <div class="mel-event-card__signal">{{ mel_signal }}</div>
+      {% endif %}
     </div>
 
     <div class="mel-event-card__body mel-event-card__content">

@@ -111,6 +111,9 @@
       {% endif %}
       <div class="mel-event-hero__content">
         <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
+        {% if mel_signal %}
+          <div class="mel-event__signal">{{ mel_signal }}</div>
+        {% endif %}
         {% if hero_datetime %}
           <p class="mel-event-hero__datetime">{{ hero_datetime }}</p>
         {% endif %}
@@ -497,6 +500,9 @@
                 <div class="mel-event__badge">
                   {{ 'Limited availability'|t }}
                 </div>
+              {% endif %}
+              {% if mel_signal %}
+                <div class="mel-event__signal mel-event__signal--strong">{{ mel_signal }}</div>
               {% endif %}
               {% if mel_sidebar_pricing|default('')|striptags|trim is not empty %}
                 <div class="mel-booking-panel__price" aria-label="{{ 'Price'|t }}">
