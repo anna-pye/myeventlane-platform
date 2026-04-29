@@ -1043,6 +1043,55 @@ function myeventlane_vendor_update_10020(): string {
 }
 
 /**
+ * Backfill AU GST tax registrations on Commerce stores (vendor stores had none).
+ *
+ * Without tax_registrations matching the GST zone (AU), Commerce Tax skips the
+ * entire tax type — orders show no "tax" adjustments.
+ */
+function myeventlane_vendor_update_10021(): string {
+  $module_handler = \Drupal::moduleHandler();
+  if (!$module_handler->moduleExists('commerce_store') || !$module_handler->moduleExists('commerce_tax')) {
+    return 'Skipped AU GST store backfill (commerce_store or commerce_tax not enabled).';
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+  $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+  if (!$ids) {
+    return 'No commerce stores found.';
+  }
+
+  $updated = 0;
+  foreach ($storage->loadMultiple($ids) as $store) {
+    $address = $store->getAddress();
+    if (!$address || $address->getCountryCode() !== 'AU') {
+      continue;
+    }
+    $existing = $store->get('tax_registrations')->getValue();
+    if ($existing !== []) {
+      continue;
+    }
+    $store->set('tax_registrations', ['AU']);
+    // Match Australian GST tax type (display inclusive) and catalog behaviour.
+    $store->set('prices_include_tax', TRUE);
+    try {
+      $store->save();
+      $updated++;
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_vendor')->error(
+        'Update 10021: failed to save store @id for AU GST: @message',
+        ['@id' => (string) $store->id(), '@message' => $e->getMessage()]
+      );
+    }
+  }
+
+  return sprintf(
+    'AU GST backfill: updated %d commerce store(s) with tax_registrations AU and prices_include_tax.',
+    $updated
+  );
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {
