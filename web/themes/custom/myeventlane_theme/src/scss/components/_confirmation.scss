@@ -725,6 +725,44 @@
   color: colors.$mel-color-text-muted;
 }
 
+.mel-confirmation-card--order-pricing {
+  margin-bottom: spacing.mel-space(4);
+
+  .mel-confirmation-card__title {
+    font-size: typography.mel-font-size(md);
+    margin-bottom: spacing.mel-space(3);
+  }
+}
+
+.mel-confirmation-pricing__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  margin-bottom: spacing.mel-space(2);
+  color: colors.$mel-color-text;
+
+  &--total {
+    margin-top: spacing.mel-space(2);
+    padding-top: spacing.mel-space(2);
+    border-top: 1px solid colors.$mel-color-border;
+    font-size: typography.mel-font-size(md);
+
+    strong {
+      font-size: typography.mel-font-size(lg);
+      font-weight: typography.$mel-font-bold;
+      color: colors.$mel-color-text;
+    }
+  }
+}
+
+.mel-confirmation-card--order-pricing .mel-tax-note {
+  font-size: 13px;
+  color: var(--mel-text-muted);
+  margin-top: spacing.mel-space(2);
+}
+
 // ---------------------------------------------------------------------------
 // Mobile
 // ---------------------------------------------------------------------------

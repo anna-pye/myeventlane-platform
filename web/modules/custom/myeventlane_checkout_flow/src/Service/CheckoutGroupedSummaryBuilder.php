@@ -24,13 +24,14 @@ final class CheckoutGroupedSummaryBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CurrencyFormatter $currencyFormatter,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
   ) {}
 
   /**
    * Builds variables for mel_checkout_order_summary_grouped.
    *
-   * @return array{grouped_items: array<int, array<string, mixed>>, order_total: string}
-   *   Template variables.
+   * @return array<string, mixed>
+   *   Template variables including GST-aware totals.
    */
   public function build(OrderInterface $order): array {
     $line_buckets = [];
@@ -120,9 +121,16 @@ final class CheckoutGroupedSummaryBuilder {
       );
     }
 
+    $breakdown = $this->orderPricingBreakdown->build($order);
+
     return [
       'grouped_items' => $grouped_items,
       'order_total' => $order_total,
+      'subtotal_formatted' => $breakdown['subtotal_formatted'],
+      'tax_rows' => $breakdown['tax_rows'],
+      'fee_rows' => $breakdown['fee_rows'],
+      'platform_fee_absorbed' => $breakdown['platform_fee_absorbed'],
+      'show_includes_gst_note' => $breakdown['show_includes_gst_note'],
     ];
   }
 

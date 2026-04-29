@@ -1116,6 +1116,39 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 }
 
+.mel-summary-breakdown {
+  margin-top: spacing.mel-space(3);
+  padding-top: spacing.mel-space(2);
+  border-top: 1px solid rgba(colors.$mel-color-border, 0.65);
+}
+
+.mel-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  margin-bottom: spacing.mel-space(1);
+  color: colors.$mel-color-text;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mel-summary-row__label {
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-summary-row__value {
+  font-weight: typography.$mel-font-medium;
+  color: colors.$mel-color-text;
+}
+
+.mel-summary-grouped .mel-tax-note {
+  margin-top: spacing.mel-space(2);
+}
+
 .mel-summary-grouped .mel-summary-total,
 .mel-summary-total {
   margin-top: spacing.mel-space(4);

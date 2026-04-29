@@ -975,6 +975,22 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     $variables['mel_tickets_from'] = NULL;
   }
 
+  $variables['mel_show_price_includes_gst_note'] = FALSE;
+  if ($variables['cta_type'] === EventCtaResolver::CTA_PAID
+    && !empty($variables['mel_event_state_snapshot']['has_product'])
+    && $node->hasField('field_product_target') && !$node->get('field_product_target')->isEmpty()) {
+    $product_entity = $node->get('field_product_target')->entity;
+    if ($product_entity && method_exists($product_entity, 'getStores')) {
+      $stores = $product_entity->getStores();
+      if ($stores !== [] && \Drupal::hasService('myeventlane_checkout_flow.order_pricing_breakdown')) {
+        $store_entity = reset($stores);
+        /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $gst_breakdown */
+        $gst_breakdown = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
+        $variables['mel_show_price_includes_gst_note'] = $gst_breakdown->eventPaidListingShouldShowIncludesGstNote($store_entity);
+      }
+    }
+  }
+
   $view_mode = (string) ($variables['view_mode'] ?? 'default');
   if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_save_count')) {
     /** @var \Drupal\myeventlane_core\Service\EventSaveCountService $save_count_service */

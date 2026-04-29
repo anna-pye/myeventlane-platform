@@ -496,8 +496,11 @@
                 <div class="mel-event__signal mel-event__signal--strong">{{ mel_signal }}</div>
               {% endif %}
               {% if mel_sidebar_pricing|default('')|striptags|trim is not empty %}
-                <div class="mel-booking-panel__price" aria-label="{{ 'Price'|t }}">
+                <div class="mel-booking-panel__price mel-price" aria-label="{{ 'Price'|t }}">
                   {{ mel_sidebar_pricing }}
+                  {% if cta_type is defined and cta_type == 'paid' and mel_show_price_includes_gst_note|default(false) %}
+                    <span class="mel-price__tax-note">{{ 'Includes GST'|t }}</span>
+                  {% endif %}
                 </div>
               {% endif %}
               {% if cta_type is defined and cta_type == 'paid'

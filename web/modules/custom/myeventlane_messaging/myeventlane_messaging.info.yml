@@ -11,6 +11,7 @@ dependencies:
   - myeventlane_event:myeventlane_event
   - myeventlane_event_attendees:myeventlane_event_attendees
   - commerce_order:commerce_order
+  - myeventlane_checkout_flow:myeventlane_checkout_flow
   - myeventlane_tickets:myeventlane_tickets
   - drupal:system
   - drupal:user

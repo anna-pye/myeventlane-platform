@@ -17,6 +17,7 @@
  * - mel_confirm_paid: TRUE when order total is non-zero (from preprocess).
  * - mel_confirmation_has_tickets: TRUE when order has non-donation line items.
  * - mel_donation_total_formatted: Donation sum formatted for display, or NULL.
+ * - mel_order_pricing_breakdown: GST-aware subtotal/tax/fees from Commerce adjustments (or NULL).
  */
 #}
 {% set mel_confirm_paid = mel_confirm_paid|default(false) %}
@@ -185,14 +186,26 @@
           </div>
         </section>
       {% endfor %}
-      <div class="mel-confirmation-card mel-confirmation-card--total">
-        <div class="mel-confirmation-card__body">
-          <div class="mel-confirmation-card__total">
-            <span>{% if mel_confirm_paid %}{{ 'Total paid'|t }}{% else %}{{ 'Order total'|t }}{% endif %}</span>
-            <strong>{% if mel_confirm_paid %}{{ order_entity.getTotalPrice()|commerce_price_format }}{% else %}{{ 'Free'|t }}{% endif %}</strong>
+      {% include '@myeventlane_theme/commerce/mel-confirmation-order-pricing.html.twig' %}
+      {% if not mel_confirm_paid %}
+        <div class="mel-confirmation-card mel-confirmation-card--total">
+          <div class="mel-confirmation-card__body">
+            <div class="mel-confirmation-card__total">
+              <span>{{ 'Order total'|t }}</span>
+              <strong>{{ 'Free'|t }}</strong>
+            </div>
           </div>
         </div>
-      </div>
+      {% elseif mel_order_pricing_breakdown is empty %}
+        <div class="mel-confirmation-card mel-confirmation-card--total">
+          <div class="mel-confirmation-card__body">
+            <div class="mel-confirmation-card__total">
+              <span>{{ 'Total paid'|t }}</span>
+              <strong>{{ order_entity.getTotalPrice()|commerce_price_format }}</strong>
+            </div>
+          </div>
+        </div>
+      {% endif %}
     {% endif %}
 
     {% if ticket_items|length > 0 and events|length == 0 %}
@@ -224,14 +237,26 @@
     {% endif %}
 
     {% if events|length == 0 %}
-      <div class="mel-confirmation-card mel-confirmation-card--total">
-        <div class="mel-confirmation-card__body">
-          <div class="mel-confirmation-card__total">
-            <span>{% if mel_confirm_paid %}{{ 'Total paid'|t }}{% else %}{{ 'Order total'|t }}{% endif %}</span>
-            <strong>{% if mel_confirm_paid %}{{ order_entity.getTotalPrice()|commerce_price_format }}{% else %}{{ 'Free'|t }}{% endif %}</strong>
+      {% include '@myeventlane_theme/commerce/mel-confirmation-order-pricing.html.twig' %}
+      {% if not mel_confirm_paid %}
+        <div class="mel-confirmation-card mel-confirmation-card--total">
+          <div class="mel-confirmation-card__body">
+            <div class="mel-confirmation-card__total">
+              <span>{{ 'Order total'|t }}</span>
+              <strong>{{ 'Free'|t }}</strong>
+            </div>
           </div>
         </div>
-      </div>
+      {% elseif mel_order_pricing_breakdown is empty %}
+        <div class="mel-confirmation-card mel-confirmation-card--total">
+          <div class="mel-confirmation-card__body">
+            <div class="mel-confirmation-card__total">
+              <span>{{ 'Total paid'|t }}</span>
+              <strong>{{ order_entity.getTotalPrice()|commerce_price_format }}</strong>
+            </div>
+          </div>
+        </div>
+      {% endif %}
     {% endif %}
 
     {% if mel_donation_total_formatted %}
