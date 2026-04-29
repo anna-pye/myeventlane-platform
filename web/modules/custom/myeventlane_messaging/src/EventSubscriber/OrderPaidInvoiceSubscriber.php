@@ -148,8 +148,11 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       'invoice_date' => $this->dateFormatter->format((int) $invoice_timestamp, 'long'),
       'invoice_date_short' => $invoice['invoice_date_display'],
       'line_items' => $line_items,
+      'invoice_lines' => $line_items,
       'fee_lines' => $invoice['fee_lines'],
+      'invoice_fee_lines' => $invoice['fee_lines'],
       'tax_lines' => $invoice['tax_lines'],
+      'invoice_tax_lines' => $invoice['tax_lines'],
       'events' => $this->formatEventsBrief($events),
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
     ];

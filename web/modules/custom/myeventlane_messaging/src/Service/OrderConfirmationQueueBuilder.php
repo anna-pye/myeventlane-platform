@@ -116,6 +116,7 @@ final class OrderConfirmationQueueBuilder {
       'invoice_lines' => $invoice_lines,
       'invoice_tax_lines' => $invoice['tax_lines'],
       'invoice_fee_lines' => $invoice['fee_lines'],
+      'tax_lines' => $invoice['tax_lines'],
       'invoice_date_short' => $invoice['invoice_date_display'],
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
       'tickets_url' => $tickets_url,

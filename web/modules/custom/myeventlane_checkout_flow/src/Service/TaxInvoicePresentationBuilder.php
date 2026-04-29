@@ -38,10 +38,12 @@ final class TaxInvoicePresentationBuilder {
   public function build(OrderInterface $order): array {
     $store = $order->getStore();
     $vendor_name = $store ? $store->label() : '';
-    $vendor_abn = '';
-    if ($store && $store->hasField('field_abn') && !$store->get('field_abn')->isEmpty()) {
-      $vendor_abn = trim((string) $store->get('field_abn')->value);
+    $abn = '';
+    if ($store && $store->hasField('field_abn')) {
+      $raw = $store->get('field_abn')->value;
+      $abn = ($raw !== NULL && $raw !== '') ? trim((string) $raw) : '';
     }
+    $vendor_abn = $abn !== '' ? $abn : 'ABN not provided';
 
     $invoice_lines = [];
     foreach ($order->getItems() as $item) {
