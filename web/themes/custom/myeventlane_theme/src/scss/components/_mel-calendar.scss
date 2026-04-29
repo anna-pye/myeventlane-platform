@@ -1,0 +1,62 @@
+// ==========================================================================
+// Event full — Add to calendar (tabbed Apple / Outlook / Google)
+// ==========================================================================
+
+@use '../tokens/colors';
+
+.mel-calendar {
+  width: 100%;
+}
+
+.mel-calendar__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mel-calendar__tab {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--mel-accent-soft);
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  color: inherit;
+
+  &.is-active {
+    background: var(--mel-accent);
+    color: #fff;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+.mel-calendar__pane {
+  display: none;
+
+  &.is-active {
+    display: block;
+  }
+}
+
+.mel-calendar a.mel-button.mel-button--ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border-radius: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  color: colors.$mel-color-text;
+  background: transparent;
+  border: 1px solid colors.$mel-color-border;
+  box-shadow: none;
+}
+
+.mel-calendar a.mel-button.mel-button--ghost:focus-visible {
+  @include colors.mel-focus-ring;
+}
