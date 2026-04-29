@@ -52,7 +52,6 @@
   --mel-border: 1px solid var(--mel-color-border);
   --mel-primary: var(--mel-color-primary);
   --mel-accent: var(--mel-color-accent);
-  --mel-accent-soft: color-mix(in srgb, var(--mel-color-accent) 18%, #fff);
   --mel-coral: var(--mel-color-primary);
   --mel-blue: var(--mel-color-accent);
   --mel-navy: var(--mel-color-text);
@@ -60,6 +59,7 @@
   --mel-grey-light: var(--mel-color-surface-soft);
   --mel-peach: color-mix(in srgb, var(--mel-color-primary) 18%, #fff);
   --mel-lilac: color-mix(in srgb, var(--mel-color-accent) 18%, #fff);
+  --mel-accent-soft: var(--mel-lilac);
   --mel-mint: color-mix(in srgb, var(--mel-color-accent) 12%, #fff);
   --mel-sky: color-mix(in srgb, var(--mel-color-accent) 8%, #fff);
   --mel-butter: color-mix(in srgb, var(--mel-color-primary) 14%, #fff);
