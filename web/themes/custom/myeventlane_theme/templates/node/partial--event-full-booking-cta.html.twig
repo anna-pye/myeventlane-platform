@@ -28,13 +28,20 @@
     <p class="{% if mel_cta_slot|default('sidebar') == 'mobile' %}mel-mobile-cta__waitlist-sub mel-mobile-cta__waitlist-sub--muted{% else %}mel-event-cta-soldout__muted{% endif %}" role="status">{{ mel_cta_text }}</p>
   {% endif %}
 {% elseif event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+  {% set mel_primary_btn = mel_cta_text|default('')|striptags|trim %}
+  {% if mel_primary_btn is empty %}
+    {% set mel_primary_btn = mel_booking_action_label is defined and mel_booking_action_label ? mel_booking_action_label : (event_cta.label|default('')) %}
+  {% endif %}
+  {% if mel_primary_btn is empty %}
+    {% set mel_primary_btn = 'View details'|t %}
+  {% endif %}
   {% if logged_in %}
     <a class="{{ mel_cta_class_base }} mel-btn--primary{% if mel_cta_type_ui is same as('primary') %} mel-btn--coral-cta mel-btn--cta-semantic-primary{% else %} mel-btn--lavender-cta mel-btn--cta-semantic-{{ mel_cta_type_ui|e('html_attr') }}{% endif %}" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>
-      {{ 'Continue booking'|t }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}
+      {{ mel_primary_btn }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}
     </a>
   {% else %}
     <a class="{{ mel_cta_class_base }} mel-btn--primary{% if mel_cta_type_ui is same as('primary') %} mel-btn--coral-cta mel-btn--cta-semantic-primary{% else %} mel-btn--lavender-cta mel-btn--cta-semantic-{{ mel_cta_type_ui|e('html_attr') }}{% endif %}" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>
-      {{ 'Continue to book'|t }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}
+      {{ mel_primary_btn }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}
     </a>
   {% endif %}
 {% else %}

@@ -3091,6 +3091,21 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
       is_string($badge_for_modifier) && str_starts_with($badge_for_modifier, '$') => 'paid',
       default => 'default',
     };
+
+    // Event full: primary booking label for sidebar title + CTA partial (display-only copy).
+    $variables['mel_booking_action_label'] = NULL;
+    $event_ui = $variables['event_ui'] ?? [];
+    if (is_array($event_ui)
+      && empty($event_ui['is_sold_out'])
+      && (($event_ui['cta_type'] ?? '') === 'primary')
+    ) {
+      if ($cta_type === EventCtaResolver::CTA_RSVP) {
+        $variables['mel_booking_action_label'] = new TranslatableMarkup('Book free RSVP');
+      }
+      elseif ($cta_type === EventCtaResolver::CTA_PAID) {
+        $variables['mel_booking_action_label'] = new TranslatableMarkup('Buy tickets');
+      }
+    }
   }
 }
 

@@ -13,6 +13,9 @@
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
 {# Google Maps in Event Information card uses iframe embed (no API key). JS map library only if needed elsewhere. #}
 {% set mel_cta_text = (event_ui is defined and (event_ui.cta_label|default(''))|striptags|length > 0) ? event_ui.cta_label : (event_cta and event_cta.label ? event_cta.label : '') %}
+{% if mel_booking_action_label is defined and mel_booking_action_label %}
+  {% set mel_cta_text = mel_booking_action_label %}
+{% endif %}
 {% set mel_cta_type_ui = event_ui is defined ? (event_ui.cta_type|default('primary')) : 'primary' %}
 
 {# Promoted / featured: event_domain_state.is_boosted (canonical) then field fallback. #}
@@ -206,29 +209,6 @@
             <div class="mel-card__body">
               {{ content.body }}
             </div>
-          </div>
-        {% endif %}
-
-        {# Social share: directly under About the Event; render only when canonical URL exists. #}
-        {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
-        {% if canonical_url %}
-          <div class="mel-event-share mel-mt-4" role="group" aria-label="{{ 'Share'|t }}">
-            <a class="mel-event-share__link mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
-              <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
-                <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </a>
-            <a class="mel-event-share__link mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on Facebook'|t }}">
-              <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
-              </svg>
-            </a>
-            <a class="mel-event-share__link mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X'|t }}">
-              <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
-              </svg>
-            </a>
           </div>
         {% endif %}
 
@@ -497,7 +477,7 @@
       <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
         <div class="mel-card mel-card--surface mel-card--sticky">
           <div class="mel-card__header">
-            <h2 class="mel-card__title">{% if mel_cta_text|striptags|length > 0 %}{{ mel_cta_text }}{% else %}{% if cta_type is defined and cta_type == 'rsvp' %}{{ 'RSVP free'|t }}{% elseif cta_type is defined and cta_type == 'paid' %}{{ 'Buy tickets'|t }}{% else %}{{ 'View details'|t }}{% endif %}{% endif %}</h2>
+            <h2 class="mel-card__title">{% if mel_cta_text|striptags|length > 0 %}{{ mel_cta_text }}{% else %}{% if cta_type is defined and cta_type == 'rsvp' %}{{ 'Book free RSVP'|t }}{% elseif cta_type is defined and cta_type == 'paid' %}{{ 'Buy tickets'|t }}{% else %}{{ 'View details'|t }}{% endif %}{% endif %}</h2>
           </div>
           <div class="mel-card__body">
             <div class="mel-booking-panel" role="region" aria-label="{{ 'Book this event'|t }}">
@@ -525,6 +505,33 @@
                     </div>
                   </div>
                   <hr class="mel-booking-panel__rule" role="separator" />
+                {% endif %}
+
+                {# Share: secondary to booking CTA; same targets as former main-column row. #}
+                {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
+                {% if canonical_url %}
+                  <div class="mel-booking-panel__share">
+                    <p class="mel-booking-panel__share-label" id="mel-event-full-share-label">{{ 'Share'|t }}</p>
+                    <div class="mel-event-share mel-event-share--sidebar" role="group" aria-labelledby="mel-event-full-share-label">
+                      <a class="mel-event-share__link mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
+                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                          <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                          <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </a>
+                      <a class="mel-event-share__link mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on Facebook (opens in a new tab)'|t }}">
+                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                          <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
+                        </svg>
+                      </a>
+                      <a class="mel-event-share__link mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
+                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                          <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                  <hr class="mel-booking-panel__rule mel-booking-panel__rule--share" role="separator" />
                 {% endif %}
 
                 <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
