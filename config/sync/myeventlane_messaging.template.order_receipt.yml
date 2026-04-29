@@ -127,43 +127,21 @@ body_html: |
               </div>
             {% endfor %}
           {% endif %}
-          {% if order_total_gst %}
+          {% if order_total_gst and tax_lines|length == 0 and invoice_tax_lines|length == 0 %}
             <p style="margin:12px 0 0; font-size:14px; color:#34495e;"><strong>GST (10%):</strong> {{ order_total_gst }}</p>
           {% endif %}
           <p style="margin:12px 0 0; font-size:16px; color:#2c3e50;"><strong>Total</strong> {{ order_total|default(total_paid) }}</p>
+          {% if show_includes_gst_note|default(false) %}
+          <p style="margin: 8px 0 0; font-size: 13px; color: #7f8c8d;">All prices include GST where applicable.</p>
+          {% endif %}
           <p class="mel-invoice__legal" style="margin:16px 0 0; font-size:11px; color:#7f8c8d; line-height:1.45;">This document is a tax invoice for GST purposes.</p>
         </div>
       {% else %}
       <div style="margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 6px;">
-        {% if order_subtotal_formatted %}
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: #34495e; font-size: 15px;">Subtotal</span>
-            <span style="color: #2c3e50; font-size: 15px;">{{ order_subtotal_formatted }}</span>
-          </div>
-        {% endif %}
-        {% for row in order_tax_rows %}
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: #34495e; font-size: 15px;">{{ row.label }}</span>
-            <span style="color: #2c3e50; font-size: 15px;">{{ row.amount_formatted }}</span>
-          </div>
-        {% endfor %}
-        {% for row in order_fee_rows %}
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: #34495e; font-size: 15px;">{{ row.label }}</span>
-            <span style="color: #2c3e50; font-size: 15px;">{{ row.amount_formatted }}</span>
-          </div>
-        {% endfor %}
-        {% if order_platform_fee_absorbed %}
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: #34495e; font-size: 15px;">Platform fee</span>
-            <span style="color: #2c3e50; font-size: 15px;">Organiser absorbs</span>
-          </div>
-        {% endif %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #e0e0e0;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: 600; color: #2c3e50; font-size: 18px;">Total Paid</span>
           <span style="font-weight: 700; color: #2c3e50; font-size: 20px;">{{ total_paid }}</span>
         </div>
-        <p style="color: #7f8c8d; font-size: 13px; margin: 12px 0 0 0;">All prices include GST where applicable.</p>
       </div>
       {% endif %}
 
