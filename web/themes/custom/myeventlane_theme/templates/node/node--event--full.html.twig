@@ -18,12 +18,6 @@
 {% endif %}
 {% set mel_cta_type_ui = event_ui is defined ? (event_ui.cta_type|default('primary')) : 'primary' %}
 
-{# Promoted / featured: event_domain_state.is_boosted (canonical) then field fallback. #}
-{% if event_domain_state is defined and event_domain_state is iterable and (event_domain_state['is_boosted']|default(false) == true or event_domain_state['is_boosted']|default(0) == 1) %}
-  {% set is_promoted = true %}
-{% else %}
-  {% set is_promoted = node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
-{% endif %}
 {# Registration status chip: cta_type + labels aligned with EventCtaResolver and public event cards. #}
 {% set mel_mode_chip = '' %}
 {% if cta_type is defined and cta_type == 'paid' %}
@@ -70,6 +64,14 @@
 {% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
 {# Spots-left urgency under price; trust rotator omits duplicate “selling fast” copy. #}
 {% set _support_urgent = (mel_cta_urgency|default('')|striptags|length > 0) %}
+{# Sidebar scarcity badge / line: only when capacity signals exist (EDS, capacity service, or Event UI). #}
+{% set mel_show_sidebar_scarcity_badge = (mel_event_state is not defined or mel_event_state != 'cancelled')
+  and (event_ui is not defined or not (event_ui.is_sold_out|default(false) == true))
+  and (
+    _support_urgent
+    or mel_event_selling_fast|default(false)
+    or (event_ui is defined and event_ui.is_limited|default(false) == true)
+  ) %}
 {# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
 {% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
 {# Booking reassurance / marketing: omit when it would mislead (cancelled, sold out, no actionable CTA). #}
@@ -319,7 +321,7 @@
               {% elseif node.hasField('field_accessibility_contact') and not node.field_accessibility_contact.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Accessibility contact'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_contact.value|raw }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_contact.value }}</div>
                 </div>
               {% endif %}
 
@@ -331,7 +333,7 @@
               {% elseif node.hasField('field_accessibility_entry') and not node.field_accessibility_entry.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Entry'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_entry.value|raw }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_entry.value }}</div>
                 </div>
               {% endif %}
 
@@ -343,7 +345,7 @@
               {% elseif node.hasField('field_accessibility_parking') and not node.field_accessibility_parking.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Parking'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_parking.value|raw }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_parking.value }}</div>
                 </div>
               {% endif %}
 
@@ -355,7 +357,7 @@
               {% elseif node.hasField('field_accessibility_directions') and not node.field_accessibility_directions.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Directions'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_directions.value|raw }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_directions.value }}</div>
                 </div>
               {% endif %}
             </div>
@@ -491,7 +493,7 @@
                   <span class="mel-chip mel-chip--sm mel-chip--filled">{{ mel_mode_chip }}</span>
                 </div>
               {% endif %}
-              {% if (mel_event_state is not defined or mel_event_state != 'cancelled') and (event_ui is not defined or not (event_ui.is_sold_out|default(false) == true)) %}
+              {% if mel_show_sidebar_scarcity_badge %}
                 <div class="mel-event__badge">
                   {{ 'Limited availability'|t }}
                 </div>
@@ -502,7 +504,7 @@
                 </div>
               {% endif %}
               {% if cta_type is defined and cta_type == 'paid'
-                and mel_sidebar_pricing|default('')|striptags|trim is not empty
+                and mel_event_selling_fast|default(false)
                 and (event_ui is not defined or not (event_ui.is_sold_out|default(false) == true)) %}
                 <div class="mel-event__urgency">
                   {{ 'Tickets selling fast'|t }}
@@ -660,7 +662,7 @@
                     <span class="mel-booking-panel__item-icon" aria-hidden="true">📅</span>
                     <div>
                       <a class="mel-booking-panel__action" href="{{ mel_gcal_href }}">{{ 'Add to calendar'|t }}</a>
-                      <p class="mel-booking-panel__subline">{{ 'Google · Outlook · iCal'|t }}</p>
+                      <p class="mel-booking-panel__subline">{{ 'Opens in Google Calendar'|t }}</p>
                     </div>
                   </div>
                 {% endif %}
