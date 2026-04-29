@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Form;
 
 use Drupal\Core\Url;
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -1078,6 +1079,60 @@ class VendorProfileSettingsForm extends FormBase {
   }
 
   /**
+   * Mirrors ABN and legal business name onto the linked Commerce Store entity.
+   *
+   * Tax invoices and related flows read \Drupal\commerce_store\Entity\Store
+   * fields and label; vendor profile alone did not update the store.
+   *
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
+   *   Vendor after save, with business fields applied.
+   */
+  protected function syncLinkedCommerceStoreBusinessFields(Vendor $vendor): void {
+    if (!$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+      return;
+    }
+    $store = $vendor->get('field_vendor_store')->entity;
+    if (!$store instanceof StoreInterface) {
+      return;
+    }
+
+    $dirty = FALSE;
+
+    if ($store->hasField('field_abn') && $vendor->hasField('field_abn')) {
+      $abn = NULL;
+      if (!$vendor->get('field_abn')->isEmpty()) {
+        $abn = $vendor->get('field_abn')->value;
+      }
+      $store->set('field_abn', ($abn !== NULL && $abn !== '') ? $abn : NULL);
+      $dirty = TRUE;
+    }
+
+    if ($vendor->hasField('field_business_name') && !$vendor->get('field_business_name')->isEmpty()) {
+      $legal = trim((string) $vendor->get('field_business_name')->value);
+      if ($legal !== '') {
+        $store->set('name', $legal);
+        $dirty = TRUE;
+      }
+    }
+
+    if (!$dirty) {
+      return;
+    }
+
+    try {
+      $store->save();
+      $this->getEntityTypeManager()->getStorage('commerce_store')->resetCache([$store->id()]);
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_vendor')->error('Failed to sync business fields to commerce store @id: @message', [
+        '@id' => (string) $store->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $this->messenger()->addWarning($this->t('Your profile was saved, but business details could not be synced to the payment store. Please try again or contact support.'));
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
@@ -1291,6 +1346,8 @@ class VendorProfileSettingsForm extends FormBase {
 
     try {
       $vendor->save();
+
+      $this->syncLinkedCommerceStoreBusinessFields($vendor);
 
       // Clear entity cache.
       $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->resetCache([$vendor->id()]);
