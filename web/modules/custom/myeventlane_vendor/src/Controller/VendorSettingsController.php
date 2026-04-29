@@ -8,7 +8,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -124,25 +123,9 @@ final class VendorSettingsController extends VendorConsoleBaseController {
       $vendor
     );
 
-    // Same tab navigation as VendorDashboardMessagingBrandController.
-    $tabs = [
-      [
-        'label' => $this->t('Profile'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
-        'active' => TRUE,
-      ],
-      [
-        'label' => $this->t('Messaging Brand'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
-        'active' => FALSE,
-      ],
-    ];
+    \Drupal::logger('mel_debug')->notice('FORM CLASS: ' . \Drupal\myeventlane_vendor\Form\VendorProfileSettingsForm::class);
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $this->t('Settings'),
-      'tabs' => $tabs,
-      'body' => $form,
-    ]);
+    return $form;
   }
 
 }
