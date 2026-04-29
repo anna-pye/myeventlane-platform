@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkout_flow\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\commerce_price\CurrencyFormatterInterface;
+use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Datetime\DateFormatterInterface;
 
@@ -17,7 +17,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 final class TaxInvoicePresentationBuilder {
 
   public function __construct(
-    private readonly CurrencyFormatterInterface $currencyFormatter,
+    private readonly CurrencyFormatter $currencyFormatter,
     private readonly DateFormatterInterface $dateFormatter,
   ) {}
 
