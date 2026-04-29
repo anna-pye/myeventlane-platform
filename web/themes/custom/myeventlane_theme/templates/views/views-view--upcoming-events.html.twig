@@ -5,35 +5,37 @@
  * (displays without a more specific template).
  */
 #}
-{% if not mel_chip_listing_fragment|default(false) %}
-  {{ attach_library('myeventlane_theme/mel-events-discovery') }}
-  {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' %}
-  {{ exposed }}
-{% endif %}
+<div class="mel-discovery mel-discovery--upcoming">
+  {% if not mel_chip_listing_fragment|default(false) %}
+    {{ attach_library('myeventlane_theme/mel-events-discovery') }}
+    {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' %}
+    {{ exposed }}
+  {% endif %}
 
-{% if mel_chip_listing_fragment|default(false) %}
-  <div data-mel-filter-results>
+  {% if mel_chip_listing_fragment|default(false) %}
+    <div data-mel-filter-results>
+      {% if rows %}
+        <div class="view-content" data-mel-chip-listing>
+          {{ rows }}
+        </div>
+      {% elseif empty %}
+        <div class="view-empty" data-mel-chip-listing>
+          {{ empty }}
+        </div>
+      {% endif %}
+      {{ pager }}
+    </div>
+  {% else %}
     {% if rows %}
-      <div class="view-content" data-mel-chip-listing>
+      <div class="view-content">
         {{ rows }}
       </div>
     {% elseif empty %}
-      <div class="view-empty" data-mel-chip-listing>
+      <div class="view-empty">
         {{ empty }}
       </div>
     {% endif %}
-    {{ pager }}
-  </div>
-{% else %}
-  {% if rows %}
-    <div class="view-content">
-      {{ rows }}
-    </div>
-  {% elseif empty %}
-    <div class="view-empty">
-      {{ empty }}
-    </div>
-  {% endif %}
 
-  {{ pager }}
-{% endif %}
+    {{ pager }}
+  {% endif %}
+</div>
