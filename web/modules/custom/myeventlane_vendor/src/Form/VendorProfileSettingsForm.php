@@ -214,8 +214,6 @@ class VendorProfileSettingsForm extends FormBase {
     $form_state->set('vendor', $vendor);
     $form_state->set('vendor_id', $vendor->id());
 
-    \Drupal::logger('mel_debug')->notice('FORM BUILD RUNNING');
-
     // Store vendor ID in form for rebuilds and POST submissions.
     $form['vendor_id'] = [
       '#type' => 'value',
@@ -1098,8 +1096,6 @@ class VendorProfileSettingsForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->notice('FORM SUBMIT RUNNING');
-
     $vendor = $this->loadVendorFromFormState($form_state);
 
     if (!$vendor) {
