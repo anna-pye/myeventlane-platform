@@ -67,8 +67,8 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       // Route may not exist.
     }
 
-    // Get real revenue data from TicketSalesService.
-    $vendorRevenue = $this->ticketSalesService->getVendorRevenue($userId);
+    // Same managed-events scope as dashboard KPIs (author or vendor team).
+    $vendorRevenue = $this->ticketSalesService->getManagedVendorRevenue($userId);
 
     $summary = [
       'total_sales' => $vendorRevenue['gross'] ?? '$0.00',
@@ -113,15 +113,8 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     $transactions = [];
 
     try {
-      // Get all events owned by this user.
-      $nodeStorage = $this->entityTypeManager->getStorage('node');
-      $eventIds = $nodeStorage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('type', 'event')
-        ->condition('uid', $userId)
-        ->execute();
-
-      $normalized = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+      $managedEventIds = $this->ticketSalesService->getManagedPublishedEventNidsForUser($userId);
+      $normalized = $this->entityIdNormalizer->normalizeNodeIds($managedEventIds);
       if ($normalized === []) {
         return [];
       }
