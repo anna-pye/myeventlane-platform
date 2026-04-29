@@ -326,7 +326,7 @@
               {% elseif node.hasField('field_accessibility_contact') and not node.field_accessibility_contact.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Accessibility contact'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_contact.value }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_contact.0.processed }}</div>
                 </div>
               {% endif %}
 
@@ -338,7 +338,7 @@
               {% elseif node.hasField('field_accessibility_entry') and not node.field_accessibility_entry.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Entry'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_entry.value }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_entry.0.processed }}</div>
                 </div>
               {% endif %}
 
@@ -350,7 +350,7 @@
               {% elseif node.hasField('field_accessibility_parking') and not node.field_accessibility_parking.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Parking'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_parking.value }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_parking.0.processed }}</div>
                 </div>
               {% endif %}
 
@@ -362,7 +362,7 @@
               {% elseif node.hasField('field_accessibility_directions') and not node.field_accessibility_directions.isEmpty %}
                 <div class="mel-info-row">
                   <div class="mel-info-row__label">{{ 'Directions'|t }}</div>
-                  <div class="mel-info-row__value">{{ node.field_accessibility_directions.value }}</div>
+                  <div class="mel-info-row__value">{{ node.field_accessibility_directions.0.processed }}</div>
                 </div>
               {% endif %}
             </div>
