@@ -732,8 +732,8 @@ function _myeventlane_theme_get_first_event_from_order($order) {
  * @param \Drupal\node\NodeInterface $event
  *   The event node.
  *
- * @return array{apple?: string, google?: string, outlook?: string}
- *   Calendar link URLs.
+ * @return array{ics?: string, apple?: string, google?: string, outlook?: string}
+ *   Calendar link URLs. Apple uses the ICS download route; Outlook uses a web compose deeplink.
  */
 function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
   $links = [];
@@ -3133,7 +3133,8 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
   if (($variables['view_mode'] ?? '') === 'full') {
     $cal_links = _myeventlane_theme_build_calendar_links($node);
     $variables['apple_ics_url'] = $cal_links['apple'] ?? $cal_links['ics'] ?? '';
-    $variables['outlook_ics_url'] = $cal_links['ics'] ?? '';
+    // Outlook tab: Outlook on the web compose URL — not the same ICS file as Apple.
+    $variables['outlook_ics_url'] = $cal_links['outlook'] ?? '';
     $variables['google_calendar_url'] = $cal_links['google'] ?? '';
   }
 }
