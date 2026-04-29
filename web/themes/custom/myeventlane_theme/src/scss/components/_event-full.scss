@@ -27,8 +27,8 @@
   }
 }
 
-// Spacing between featured-style hero and meta bar (hero chrome = .mel-event-hero-card via @extend in _event-card.scss).
-.mel-event--v2 .mel-event-hero--featured-style {
+// Spacing between hero and meta bar (.mel-event__hero).
+.mel-event--v2 .mel-event__hero {
   margin-bottom: space-tokens.mel-space(2);
 }
 
@@ -52,7 +52,7 @@
 
 // Sticky RSVP card: primary CTA, trust/urgency, save (moved from main flow — single decision surface).
 // Sidebar is full width when the layout stacks (single column).
-.mel-event--v2 .mel-event-layout__sidebar {
+.mel-event--v2 .mel-event__sidebar {
   min-width: 0;
   width: 100%;
   max-width: 100%;
@@ -909,30 +909,30 @@
 }
 
 // Next-step related events in main column; matches homepage / listing card rhythm.
-.mel-event--v2 .mel-event-layout__main .mel-return-block {
+.mel-event--v2 .mel-event__main .mel-return-block {
   margin-top: 32px;
   padding-top: 16px;
   border-top: 1px solid #e9e3de;
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-header h3 {
+.mel-event--v2 .mel-event__main .mel-return-header h3 {
   font-size: 20px;
   font-weight: 700;
   margin: 0 0 4px;
   color: #24303a;
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-header p {
+.mel-event--v2 .mel-event__main .mel-return-header p {
   font-size: 14px;
   color: #7c8791;
   margin: 0 0 16px;
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-cta {
+.mel-event--v2 .mel-event__main .mel-return-cta {
   margin-top: 20px;
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-cta .mel-link {
+.mel-event--v2 .mel-event__main .mel-return-cta .mel-link {
   font-size: 13px;
   color: #6e7ef2;
 }
@@ -996,21 +996,21 @@
 // Mobile: booking sidebar before long-form content — hero + meta stay above; then CTA card, then About/details/organiser.
 // Uses display:contents on __main so main sections and aside can be flex-ordered.
 @media (width <= 768px) {
-  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) {
+  .mel-event--v2 .mel-event__layout:has(> .mel-event__sidebar) {
     display: flex;
     flex-direction: column;
     gap: space-tokens.mel-space(5);
   }
 
-  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) > .mel-event-layout__main {
+  .mel-event--v2 .mel-event__layout:has(> .mel-event__sidebar) > .mel-event__main {
     display: contents;
   }
 
-  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) > .mel-event-layout__sidebar {
+  .mel-event--v2 .mel-event__layout:has(> .mel-event__sidebar) > .mel-event__sidebar {
     order: 1;
   }
 
-  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) > .mel-event-layout__main > * {
+  .mel-event--v2 .mel-event__layout:has(> .mel-event__sidebar) > .mel-event__main > * {
     order: 2;
   }
 }
@@ -1703,12 +1703,14 @@
 // Mobile-First Event Page Components (CSS Variables)
 // ---------------------------------------------------------------------------
 
-.mel-event-layout h1 {
+.mel-event-layout h1,
+.mel-event__layout h1 {
   margin-bottom: 8px;
   letter-spacing: -0.02em;
 }
 
-.mel-event-layout p {
+.mel-event-layout p,
+.mel-event__layout p {
   font-size: 1rem;
   line-height: 1.6;
   margin-bottom: var(--mel-space-3);
