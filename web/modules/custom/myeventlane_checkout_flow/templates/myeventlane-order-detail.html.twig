@@ -23,6 +23,13 @@
         <strong>Status:</strong> {{ order.state }}
       </span>
     </div>
+    {% if order.total_price > 0 %}
+      <p class="mel-mt-3">
+        <a href="{{ url('myeventlane_checkout_flow.order_tax_invoice_pdf', {'commerce_order': order.order_id}) }}" class="mel-btn mel-btn-secondary">
+          {{ 'Download tax invoice (PDF)'|t }}
+        </a>
+      </p>
+    {% endif %}
   </div>
 
   {# Events #}

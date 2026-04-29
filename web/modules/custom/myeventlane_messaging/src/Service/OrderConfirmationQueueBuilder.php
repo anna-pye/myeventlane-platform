@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
@@ -26,6 +27,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly DomainDetector $domainDetector,
+    private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
   ) {}
 
@@ -77,6 +79,17 @@ final class OrderConfirmationQueueBuilder {
       }
     }
 
+    $invoice = $this->taxInvoicePresentation->build($order);
+    $invoice_lines = [];
+    foreach ($invoice['invoice_lines'] as $row) {
+      $invoice_lines[] = [
+        'title' => $row['title'],
+        'quantity' => $row['quantity'],
+        'unit_price' => $row['unit_price'],
+        'line_total' => $row['line_total'],
+      ];
+    }
+
     $context = [
       'first_name' => $first_name,
       'order_number' => $order->label(),
@@ -87,6 +100,14 @@ final class OrderConfirmationQueueBuilder {
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
       'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
       'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'vendor_name' => $invoice['vendor_name'],
+      'vendor_abn' => $invoice['vendor_abn'],
+      'order_total_gst' => $invoice['order_total_gst'],
+      'order_total' => $invoice['order_total'],
+      'invoice_lines' => $invoice_lines,
+      'invoice_tax_lines' => $invoice['tax_lines'],
+      'invoice_fee_lines' => $invoice['fee_lines'],
+      'invoice_date_short' => $invoice['invoice_date_display'],
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
       'tickets_url' => $tickets_url,
       'has_tickets' => $has_tickets,

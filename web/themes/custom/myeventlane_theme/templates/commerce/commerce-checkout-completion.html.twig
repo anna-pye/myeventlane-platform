@@ -98,6 +98,10 @@
     </div>
   </header>
 
+  {% if order_entity is defined %}
+    {% include '@myeventlane_theme/commerce/mel-tax-invoice-section.html.twig' %}
+  {% endif %}
+
   <div class="mel-confirmation__main">
     {% if events|length > 0 %}
       {% for event in events %}

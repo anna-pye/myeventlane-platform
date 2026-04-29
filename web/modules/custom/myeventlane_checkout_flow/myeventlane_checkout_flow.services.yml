@@ -24,6 +24,12 @@ services:
       - '@commerce_price.currency_formatter'
       - '@date.formatter'
 
+  myeventlane_checkout_flow.tax_invoice_presentation:
+    class: Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder
+    arguments:
+      - '@commerce_price.currency_formatter'
+      - '@date.formatter'
+
   myeventlane_checkout_flow.vendor_ownership_resolver:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
     arguments: ['@entity_type.manager']

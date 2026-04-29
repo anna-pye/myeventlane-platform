@@ -7,11 +7,10 @@ namespace Drupal\myeventlane_messaging\EventSubscriber;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\commerce_order\Event\OrderEvents;
-use Drupal\commerce_price\CurrencyFormatter;
-use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -29,9 +28,9 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly DateFormatterInterface $dateFormatter,
-    private readonly CurrencyFormatter $currencyFormatter,
     private readonly TimeInterface $time,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
   ) {}
 
   /**
@@ -121,23 +120,36 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
     $events = $this->extractEventNodes($order);
     $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
 
-    $lineItems = $this->buildLineItems($order);
-    $feeLines = $this->buildAdjustmentLines($order, 'fee', 'Fees');
-    $taxLines = $this->buildAdjustmentLines($order, 'tax', 'Tax');
+    $invoice = $this->taxInvoicePresentation->build($order);
 
-    $totalPrice = $order->getTotalPrice();
-    $totalFormatted = $this->formatPrice($totalPrice);
+    $placed = $order->getPlacedTime();
+    $invoice_timestamp = $placed ?: $this->time->getRequestTime();
+
+    $line_items = [];
+    foreach ($invoice['invoice_lines'] as $row) {
+      $line_items[] = [
+        'title' => $row['title'],
+        'quantity' => $row['quantity'],
+        'unit_price' => $row['unit_price'],
+        'line_total' => $row['line_total'],
+      ];
+    }
 
     $context = [
       'first_name' => $first_name,
       'order_number' => $order->label(),
       'order_id' => $orderId,
       'order_email' => $recipientEmail,
-      'total_paid' => $totalFormatted,
-      'invoice_date' => $this->dateFormatter->format($this->time->getCurrentTime(), 'long'),
-      'line_items' => $lineItems,
-      'fee_lines' => $feeLines,
-      'tax_lines' => $taxLines,
+      'total_paid' => $invoice['order_total'],
+      'order_total' => $invoice['order_total'],
+      'order_total_gst' => $invoice['order_total_gst'],
+      'vendor_name' => $invoice['vendor_name'],
+      'vendor_abn' => $invoice['vendor_abn'],
+      'invoice_date' => $this->dateFormatter->format((int) $invoice_timestamp, 'long'),
+      'invoice_date_short' => $invoice['invoice_date_display'],
+      'line_items' => $line_items,
+      'fee_lines' => $invoice['fee_lines'],
+      'tax_lines' => $invoice['tax_lines'],
       'events' => $this->formatEventsBrief($events),
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
     ];
@@ -189,59 +201,6 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       $out[] = ['title' => $event->label()];
     }
     return $out;
-  }
-
-  /**
-   * @return array<int, array<string, mixed>>
-   */
-  private function buildLineItems(OrderInterface $order): array {
-    $out = [];
-    foreach ($order->getItems() as $item) {
-      $total = $item->getTotalPrice();
-      $unit = $item->getUnitPrice();
-      $out[] = [
-        'title' => $item->label(),
-        'quantity' => (int) $item->getQuantity(),
-        'unit_price' => $this->formatPrice($unit),
-        'line_total' => $this->formatPrice($total),
-      ];
-    }
-    return $out;
-  }
-
-  /**
-   * @return array<int, array<string, string>>
-   */
-  private function buildAdjustmentLines(OrderInterface $order, string $type, string $fallbackLabel): array {
-    $out = [];
-    foreach ($order->getAdjustments() as $adjustment) {
-      if ($adjustment->getType() !== $type) {
-        continue;
-      }
-      $amount = $adjustment->getAmount();
-      if (!$amount || (float) $amount->getNumber() == 0.0) {
-        continue;
-      }
-      $label = trim((string) $adjustment->getLabel());
-      if ($label === '') {
-        $label = $fallbackLabel;
-      }
-      $out[] = [
-        'label' => $label,
-        'amount' => $this->formatPrice($amount),
-      ];
-    }
-    return $out;
-  }
-
-  /**
-   * Formats a Commerce Price for display (number + currency code).
-   */
-  private function formatPrice(?Price $price): string {
-    if (!$price) {
-      return '';
-    }
-    return $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
   }
 
   /**
