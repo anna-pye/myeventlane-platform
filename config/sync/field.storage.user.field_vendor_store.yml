@@ -12,9 +12,9 @@ type: entity_reference
 settings:
   target_type: commerce_store
 module: core
+locked: false
 cardinality: 1
 translatable: false
-locked: false
 indexes: {  }
 persist_with_no_fields: false
 custom_storage: false
