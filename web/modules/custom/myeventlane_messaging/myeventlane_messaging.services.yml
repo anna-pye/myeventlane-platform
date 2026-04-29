@@ -82,6 +82,7 @@ services:
       $domainDetector: '@myeventlane_core.domain_detector'
       $taxInvoicePresentation: '@myeventlane_checkout_flow.tax_invoice_presentation'
       $orderPricingBreakdown: '@myeventlane_checkout_flow.order_pricing_breakdown'
+      $taxInvoicePresentation: '@myeventlane_checkout_flow.tax_invoice_presentation'
       $icsGenerator: '@?myeventlane_rsvp.ics_generator'
 
   myeventlane_messaging.scheduler.boost:
