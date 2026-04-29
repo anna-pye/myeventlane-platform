@@ -913,7 +913,10 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 }
 
 /* REMOVE OVER-STYLING FROM INNER SECTIONS */
+.mel-checkout-section--buyer,
 .mel-checkout-section--attendees,
+.mel-checkout-section--donation,
+.mel-checkout-section--legal,
 .mel-checkout-section--details {
   background: transparent;
   border: none;
@@ -1312,6 +1315,14 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
       color: colors.$mel-color-success;
       font-weight: typography.$mel-font-bold;
     }
+  }
+}
+
+.mel-checkout-trust__list--compact {
+  gap: spacing.mel-space(1);
+
+  li {
+    padding-left: 1.25rem;
   }
 }
 
