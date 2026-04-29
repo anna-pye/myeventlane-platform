@@ -23,39 +23,34 @@
     </div>
 
     {% if form['#order_items']|length > 0 %}
-      {# Group items by event for better UX and accessibility #}
+      {# Events summary: aligns with line items below without implying each heading owns only the rows beneath it. #}
       {% if grouped_items is defined and grouped_items|length > 0 %}
-        {% for event_id, group in grouped_items %}
-          <section class="mel-cart-event-group" data-event-id="{{ event_id }}">
-            <h2 class="mel-cart-event-title">
-              {{ group.event.label() }}
-            </h2>
-            {% if group.event.hasField('field_event_start') and not group.event.get('field_event_start').isEmpty() %}
-              <div class="mel-cart-event-meta">
-                <span class="mel-cart-event-date">
-                  {{ group.event.get('field_event_start').value|date('F j, Y') }}
-                </span>
-                {% if group.event.hasField('field_location') and not group.event.get('field_location').isEmpty() %}
-                  {% set loc = group.event.get('field_location')[0] %}
-                  {% if loc %}
-                    {% set loc_parts = [] %}
-                    {% if loc.address_line1 %}{% set loc_parts = loc_parts|merge([loc.address_line1]) %}{% endif %}
-                    {% if loc.locality %}{% set loc_parts = loc_parts|merge([loc.locality]) %}{% endif %}
-                    {% if loc.administrative_area %}{% set loc_parts = loc_parts|merge([loc.administrative_area]) %}{% endif %}
-                    <span class="mel-cart-event-location" aria-label="{{ 'Location'|t }}">{{ loc_parts|join(', ') }}</span>
+        <div class="mel-cart-event-overview" role="region" aria-label="{{ 'Events in your cart'|t }}">
+          {% for event_id, group in grouped_items %}
+            <article class="mel-cart-event-chip" data-event-id="{{ event_id }}">
+              <h2 class="mel-cart-event-chip__title">{{ group.event.label() }}</h2>
+              {% if group.event.hasField('field_event_start') and not group.event.get('field_event_start').isEmpty() %}
+                <div class="mel-cart-event-chip__meta">
+                  <span class="mel-cart-event-chip__date">{{ group.event.get('field_event_start').value|date('F j, Y') }}</span>
+                  {% if group.event.hasField('field_location') and not group.event.get('field_location').isEmpty() %}
+                    {% set loc = group.event.get('field_location')[0] %}
+                    {% if loc %}
+                      {% set loc_parts = [] %}
+                      {% if loc.address_line1 %}{% set loc_parts = loc_parts|merge([loc.address_line1]) %}{% endif %}
+                      {% if loc.locality %}{% set loc_parts = loc_parts|merge([loc.locality]) %}{% endif %}
+                      {% if loc.administrative_area %}{% set loc_parts = loc_parts|merge([loc.administrative_area]) %}{% endif %}
+                      {% if loc_parts|length > 0 %}
+                        <span class="mel-cart-event-chip__location">{{ loc_parts|join(', ') }}</span>
+                      {% endif %}
+                    {% endif %}
                   {% endif %}
-                {% endif %}
-              </div>
-            {% endif %}
-          </section>
-        {% endfor %}
-
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
         {% if items_without_event is defined and items_without_event|length > 0 %}
-          <section class="mel-cart-event-group">
-            <h2 class="mel-cart-event-title">
-              {{ 'Other items'|t }}
-            </h2>
-          </section>
+          <p class="mel-cart-event-overview__note">{{ 'Some items are not linked to a single event — see the list below.'|t }}</p>
         {% endif %}
       {% endif %}
 
@@ -103,10 +98,9 @@
       </div>
 
       <div class="mel-cart-trust mel-cart-trust--inline" role="region" aria-label="{{ 'Secure checkout'|t }}">
-        <ul class="mel-cart-trust__list">
-          <li>{{ 'Secure checkout'|t }}</li>
-          <li>{{ 'Payment processed securely'|t }}</li>
-          <li>{{ 'Confirmation email sent'|t }}</li>
+        <ul class="mel-cart-trust__list mel-cart-trust__list--compact">
+          <li>{{ 'Encrypted checkout'|t }}</li>
+          <li>{{ 'Confirmation emailed after payment'|t }}</li>
         </ul>
       </div>
 

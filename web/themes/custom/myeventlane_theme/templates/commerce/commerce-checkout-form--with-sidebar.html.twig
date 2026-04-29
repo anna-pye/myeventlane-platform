@@ -81,6 +81,31 @@
           </div>
         {% endif %}
 
+        {% if form.mel_buyer_details is defined %}
+          <div class="mel-checkout-section mel-checkout-section--buyer">
+            {{ form.mel_buyer_details }}
+          </div>
+        {% endif %}
+
+        {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
+          <div class="mel-checkout-section mel-checkout-section--attendees">
+            <h3 class="mel-checkout-heading">{{ 'Attendee details'|t }}</h3>
+            {{ form.ticket_holder_paragraph }}
+          </div>
+        {% endif %}
+
+        {% if form.mel_donation is defined %}
+          <div class="mel-checkout-section mel-checkout-section--donation">
+            {{ form.mel_donation }}
+          </div>
+        {% endif %}
+
+        {% if form.mel_legal_consent is defined %}
+          <div class="mel-checkout-section mel-checkout-section--legal">
+            {{ form.mel_legal_consent }}
+          </div>
+        {% endif %}
+
         {% if form.payment_information is defined %}
           <div class="mel-checkout-section mel-checkout-section--payment">
             <h3 class="mel-checkout-heading">{{ 'Payment'|t }}</h3>
@@ -88,28 +113,11 @@
           </div>
         {% endif %}
 
-        {% if form.mel_buyer_details is defined or form.mel_donation is defined or form.mel_legal_consent is defined %}
-          <div class="mel-checkout-section mel-checkout-section--details">
-            <h3 class="mel-checkout-heading">{{ 'Your details'|t }}</h3>
-            {% if form.mel_buyer_details is defined %}{{ form.mel_buyer_details }}{% endif %}
-            {% if form.mel_donation is defined %}{{ form.mel_donation }}{% endif %}
-            {% if form.mel_legal_consent is defined %}{{ form.mel_legal_consent }}{% endif %}
-          </div>
-        {% endif %}
-
-        {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
-          <div class="mel-checkout-section mel-checkout-section--attendees">
-            <h3 class="mel-checkout-heading">{{ 'Ticket holders'|t }}</h3>
-            {{ form.ticket_holder_paragraph }}
-          </div>
-        {% endif %}
-
         {% if form.payment_information is defined %}
           <div class="mel-checkout-trust mel-checkout-trust--paid" role="region" aria-label="{{ 'Secure checkout'|t }}">
-            <ul class="mel-checkout-trust__list">
-              <li>{{ 'Secure checkout'|t }}</li>
-              <li>{{ 'Payment processed securely'|t }}</li>
-              <li>{{ 'Confirmation email sent'|t }}</li>
+            <ul class="mel-checkout-trust__list mel-checkout-trust__list--compact">
+              <li>{{ 'Encrypted checkout'|t }}</li>
+              <li>{{ 'Confirmation emailed after payment'|t }}</li>
             </ul>
           </div>
         {% else %}
