@@ -119,10 +119,30 @@ final class VendorSettingsController extends VendorConsoleBaseController {
       ]);
     }
 
-    return $this->formBuilder->getForm(
+    $form = $this->formBuilder->getForm(
       \Drupal\myeventlane_vendor\Form\VendorProfileSettingsForm::class,
       $vendor
     );
+
+    // Same tab navigation as VendorDashboardMessagingBrandController.
+    $tabs = [
+      [
+        'label' => $this->t('Profile'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
+        'active' => TRUE,
+      ],
+      [
+        'label' => $this->t('Messaging Brand'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
+        'active' => FALSE,
+      ],
+    ];
+
+    return $this->buildVendorPage('myeventlane_vendor_console_page', [
+      'title' => $this->t('Settings'),
+      'tabs' => $tabs,
+      'body' => $form,
+    ]);
   }
 
 }

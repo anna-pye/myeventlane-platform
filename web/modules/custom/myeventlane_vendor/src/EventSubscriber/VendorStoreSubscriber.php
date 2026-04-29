@@ -169,12 +169,12 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $user = $this->entityTypeManager->getStorage('user')->load($uid);
-    if (!$user instanceof UserInterface) {
+    if (!in_array('vendor', $this->currentUser->getRoles(), TRUE)) {
       return;
     }
 
-    if (!in_array('vendor', $user->getRoles(), TRUE)) {
+    $user = $this->entityTypeManager->getStorage('user')->load($uid);
+    if (!$user instanceof UserInterface) {
       return;
     }
 

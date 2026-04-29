@@ -153,7 +153,6 @@ services:
       $dateFormatter: '@date.formatter'
       $time: '@datetime.time'
       $entityTypeManager: '@entity_type.manager'
-      $orderPricingBreakdown: '@myeventlane_checkout_flow.order_pricing_breakdown'
       $taxInvoicePresentation: '@myeventlane_checkout_flow.tax_invoice_presentation'
     tags:
       - { name: event_subscriber }
