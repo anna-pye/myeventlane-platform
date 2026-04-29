@@ -13,6 +13,7 @@ use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Comprehensive vendor profile settings form.
@@ -42,6 +43,11 @@ class VendorProfileSettingsForm extends FormBase {
   protected ?CurrentVendorResolverInterface $vendorResolver = NULL;
 
   /**
+   * The request stack.
+   */
+  protected RequestStack $requestStack;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
@@ -50,6 +56,7 @@ class VendorProfileSettingsForm extends FormBase {
     $instance->currentUser = $container->get('current_user');
     $instance->onboardingManager = $container->get('myeventlane_onboarding.manager');
     $instance->vendorResolver = $container->get('myeventlane_vendor.current_vendor_resolver');
+    $instance->requestStack = $container->get('request_stack');
     return $instance;
   }
 
@@ -282,13 +289,12 @@ class VendorProfileSettingsForm extends FormBase {
       }
     }
 
-    // Override form action URL on vendor domain.
-    if (\Drupal::hasService('myeventlane_core.domain_detector')) {
-      $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
-      if ($domain_detector->isVendorDomain()) {
-        $form['#action'] = Url::fromRoute('myeventlane_vendor.console.settings', [], ['absolute' => TRUE])->toString();
-      }
-    }
+    // Pin POST to this URI so Form API does not emit /vendor/form_action_* (404 on vendor host).
+    $request = $this->requestStack->getCurrentRequest();
+    $form['#action'] = $request
+      ? $request->getRequestUri()
+      : Url::fromRoute('myeventlane_vendor.console.settings')->toString();
+    $form['#method'] = 'post';
 
     $form['#tree'] = TRUE;
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
