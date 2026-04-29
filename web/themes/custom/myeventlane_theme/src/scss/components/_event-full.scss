@@ -256,6 +256,16 @@
   transform: translateY(-1px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .mel-decision-item {
+    transition: none;
+  }
+
+  .mel-decision-item:hover {
+    transform: none;
+  }
+}
+
 .mel-decision-item strong {
   font-size: 13px;
   color: #24303A;
@@ -983,7 +993,7 @@
   margin-top: 6px;
 }
 
-// Mobile: visual order 1) main column (including .mel-return-block after organiser) 2) RSVP / sticky sidebar.
+// Mobile: booking sidebar before long-form content — hero + meta stay above; then CTA card, then About/details/organiser.
 // Uses display:contents on __main so main sections and aside can be flex-ordered.
 @media (width <= 768px) {
   .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) {
@@ -997,6 +1007,10 @@
   }
 
   .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) > .mel-event-layout__sidebar {
+    order: 1;
+  }
+
+  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) > .mel-event-layout__main > * {
     order: 2;
   }
 }
@@ -1014,6 +1028,24 @@
   margin-top: space-tokens.mel-space(4);
 }
 
+.mel-booking-panel__share {
+  margin-top: 0;
+  margin-bottom: space-tokens.mel-space(1);
+}
+
+.mel-booking-panel__share-label {
+  margin: 0 0 space-tokens.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text-muted;
+  letter-spacing: 0.02em;
+}
+
+.mel-event-share--sidebar {
+  margin-top: 0;
+  flex-wrap: wrap;
+}
+
 .mel-event-share__link {
   text-decoration: none;
   color: inherit;
@@ -1025,8 +1057,8 @@
 
 // Share targets: circular peach wash + SVG glyphs (not flat colour blocks).
 .mel-event-share .mel-social {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: radii.$mel-radius-full;
   display: inline-flex;
   align-items: center;
