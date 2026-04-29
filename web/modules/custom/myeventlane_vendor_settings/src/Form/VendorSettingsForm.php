@@ -954,8 +954,35 @@ class VendorSettingsForm extends FormBase {
 
     $form['#cache']['max-age'] = 0;
 
-    $form['#action'] = Url::fromRoute('myeventlane_vendor.console.settings')->toString();
+    // Post-build #attached log (identifies AJAX library injectors; empty at buildForm() entry).
+    $this->logger->debug('MEL FORM ATTACHED: <pre>@data</pre>', [
+      '@data' => print_r($form['#attached'] ?? [], TRUE),
+    ]);
+
+    // Remove AJAX-related libraries ONLY.
+    if (!empty($form['#attached']['library'])) {
+      $form['#attached']['library'] = array_values(array_filter(
+        $form['#attached']['library'],
+        function ($lib) {
+          return !in_array($lib, [
+            'core/drupal.ajax',
+            'core/drupal.dialog.ajax',
+            'core/drupal.progress',
+          ], TRUE);
+        }
+      ));
+    }
+
+    if (isset($form['#attached']['drupalSettings']['ajax'])) {
+      unset($form['#attached']['drupalSettings']['ajax']);
+    }
+
+    $form['#attributes']['data-drupal-ajax'] = 'false';
+    $form['#attributes']['class'][] = 'mel-no-ajax';
     $form['#method'] = 'post';
+    $form['#action'] = Url::fromRoute('myeventlane_vendor.console.settings')->toString();
+
+    $form['actions']['submit']['#ajax'] = FALSE;
 
     return $form;
   }
