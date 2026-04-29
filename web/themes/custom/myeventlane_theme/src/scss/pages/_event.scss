@@ -1,5 +1,7 @@
 // Event node full page — MEL v1 layout (hero + grid + sticky booking card).
 
+@use '../tokens/colors' as melc;
+
 .mel-event {
   &__hero {
     position: relative;
@@ -220,12 +222,15 @@
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-.mel-event--v2 .mel-event__category {
-  margin-bottom: 8px;
-}
+// Event page hero (v2 featured-style): category pill on dark overlay — translucent apricot.
+.mel-event--v2 .mel-event-hero--featured-style .mel-event__category,
+.mel-booking-v2 .mel-event-hero--featured-style .mel-event__category {
+  background: rgba(246, 196, 122, 0.95);
+  color: melc.$mel-color-text;
 
-.mel-event--v2 .mel-event__category a {
-  color: rgba(255, 255, 255, 0.95);
+  a {
+    color: inherit;
+  }
 }
 
 .mel-event--v2 .mel-event__hero-content .mel-event__meta {

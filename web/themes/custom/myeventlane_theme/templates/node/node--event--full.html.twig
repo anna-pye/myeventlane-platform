@@ -101,14 +101,14 @@
           </span>
         </div>
       {% elseif mel_category_label %}
-        <div class="mel-event-hero__chip">
-          <span class="mel-pill mel-pill--category mel-pill--on-image mel-pill--cat-{{ mel_category_slug|default('default') }}" aria-hidden="true">
-            <span class="mel-pill__label">{{ mel_category_label }}</span>
-          </span>
+        <div class="mel-event-hero__chip" aria-hidden="true">
+          <div class="mel-event__category">{{ mel_category_label }}</div>
         </div>
       {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
-        <div class="mel-event-hero__chip mel-event-hero__chip--field">
-          {{ content.field_category }}
+        <div class="mel-event-hero__chip" aria-hidden="true">
+          <div class="mel-event__category">
+            {{ content.field_category }}
+          </div>
         </div>
       {% endif %}
       <div class="mel-event-hero__content">
@@ -665,12 +665,44 @@
                   {% endif %}
                 </div>
                 {% endif %}
+                {# Prefer preprocess URLs; fall back to routes / mel_gcal_href so links work if preprocess vars are empty. #}
+                {% if apple_ics_url is defined and apple_ics_url|length > 0 %}
+                  {% set mel_apple_tab_href = apple_ics_url %}
+                {% else %}
+                  {% set mel_apple_tab_href = url('myeventlane_rsvp.ics_download', {'node': node.id()}, {'absolute': true}) %}
+                {% endif %}
+                {% if outlook_ics_url is defined and outlook_ics_url|length > 0 %}
+                  {% set mel_outlook_tab_href = outlook_ics_url %}
+                {% else %}
+                  {% set mel_outlook_tab_href = mel_apple_tab_href %}
+                {% endif %}
+                {% if google_calendar_url is defined and google_calendar_url|length > 0 %}
+                  {% set mel_google_tab_href = google_calendar_url %}
+                {% else %}
+                  {% set mel_google_tab_href = mel_gcal_href %}
+                {% endif %}
                 {% if mel_gcal_href|length > 0 %}
                   <div class="mel-booking-panel__item">
                     <span class="mel-booking-panel__item-icon" aria-hidden="true">📅</span>
                     <div>
-                      <a class="mel-booking-panel__action" href="{{ mel_gcal_href }}">{{ 'Add to calendar'|t }}</a>
-                      <p class="mel-booking-panel__subline">{{ 'Opens in Google Calendar'|t }}</p>
+                      <div class="mel-calendar">
+                        <div class="mel-calendar__tabs" role="tablist" aria-label="{{ 'Add to calendar'|t }}">
+                          <button type="button" class="mel-calendar__tab is-active" data-tab="apple" role="tab" aria-selected="true">{{ 'Apple'|t }}</button>
+                          <button type="button" class="mel-calendar__tab" data-tab="outlook" role="tab" aria-selected="false">{{ 'Outlook'|t }}</button>
+                          <button type="button" class="mel-calendar__tab" data-tab="google" role="tab" aria-selected="false">{{ 'Google'|t }}</button>
+                        </div>
+                        <div class="mel-calendar__content">
+                          <div class="mel-calendar__pane is-active" data-pane="apple">
+                            <a href="{{ mel_apple_tab_href }}" class="mel-button mel-button--ghost">{{ 'Download for Apple Calendar'|t }}</a>
+                          </div>
+                          <div class="mel-calendar__pane" data-pane="outlook">
+                            <a href="{{ mel_outlook_tab_href }}" class="mel-button mel-button--ghost">{{ 'Download for Outlook'|t }}</a>
+                          </div>
+                          <div class="mel-calendar__pane" data-pane="google">
+                            <a href="{{ mel_google_tab_href }}" class="mel-button mel-button--ghost" target="_blank" rel="noopener noreferrer">{{ 'Add to Google Calendar'|t }}</a>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 {% endif %}
