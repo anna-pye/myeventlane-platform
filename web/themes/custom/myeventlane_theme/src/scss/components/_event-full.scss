@@ -1880,7 +1880,8 @@ button.mel-filter-chip {
   align-items: center;
   gap: 6px;
   box-sizing: border-box;
-  min-height: 36px;
+  min-height: 44px;
+  min-width: 44px;
   padding: 8px 14px;
   border-radius: 999px;
   font: inherit;
@@ -1904,6 +1905,14 @@ button.mel-filter-chip {
     text-decoration: none;
     background: #ececec;
     transform: translateY(-1px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
   }
 
   &:focus,

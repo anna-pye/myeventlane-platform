@@ -176,7 +176,7 @@
   }
 }
 
-/* Category Chips */
+/* Category Chips — .mel-chip (legacy) + .mel-category-chip (homepage hero; must match pill styling, no link underline). */
 .mel-hero-categories {
   display: flex;
   flex-wrap: wrap;
@@ -184,12 +184,18 @@
   gap: spacing.mel-space(2);
 }
 
-.mel-chip {
+.mel-chip,
+.mel-category-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: spacing.mel-space(2) spacing.mel-space(4);
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: radii.$mel-radius-full;
   font-size: 0.9rem;
+  font-weight: typography.$mel-font-medium;
   box-shadow: 0 2px 8px rgba(100, 80, 140, 0.08);
   color: colors.$mel-color-text;
   text-decoration: none;
@@ -216,6 +222,34 @@
     box-shadow:
       0 0 0 2px rgba(255, 255, 255, 0.8),
       0 0 0 5px rgba(colors.$mel-color-primary, 0.25);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+.mel-category-chip--coral {
+  border-color: rgba(colors.$mel-color-secondary, 0.45);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.mel-category-chip.is-active {
+  background: colors.$mel-color-secondary;
+  border-color: colors.$mel-color-secondary;
+  color: colors.$mel-color-text-inverse;
+  font-weight: typography.$mel-font-semibold;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color.adjust(colors.$mel-color-secondary, $lightness: -4%);
+      border-color: color.adjust(colors.$mel-color-secondary, $lightness: -4%);
+      color: colors.$mel-color-text-inverse;
+    }
   }
 }
 

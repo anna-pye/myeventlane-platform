@@ -926,6 +926,21 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['mel_header_categories'] = $categories;
   }
 
+  // Active category pill for discovery headers (matches route to chip).
+  $variables['mel_active_category_tid'] = NULL;
+  if ($route === 'view.upcoming_events.page_category') {
+    $arg = \Drupal::routeMatch()->getParameter('arg_0');
+    if ($arg !== NULL && $arg !== '') {
+      $variables['mel_active_category_tid'] = (string) $arg;
+    }
+  }
+  elseif ($route === 'entity.taxonomy_term.canonical') {
+    $taxonomy_term = \Drupal::routeMatch()->getParameter('taxonomy_term');
+    if ($taxonomy_term instanceof TermInterface && $taxonomy_term->bundle() === 'categories') {
+      $variables['mel_active_category_tid'] = (string) $taxonomy_term->id();
+    }
+  }
+
   // Hero image for listing pages (category, search, events).
   // Prefer Page Visuals Manager (myeventlane_page_visuals) when available.
   if (isset($variables['page_visual']['image_url']) && $variables['page_visual']['image_url']) {
@@ -2160,6 +2175,8 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
     }
     
     $variables['mel_header_categories'] = $categories;
+    // Same term as the page: highlight this category in mel-page-header (term template scope).
+    $variables['mel_active_category_tid'] = (string) $term->id();
   }
 }
 

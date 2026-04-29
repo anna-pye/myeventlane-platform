@@ -10,6 +10,7 @@
  * - show_search: Boolean; when TRUE renders the MEL search block.
  * - show_categories: Boolean; when TRUE renders the MEL category pills UI.
  * - categories: Optional array of items with keys: tid, label, slug.
+ * - active_category_tid: Optional; overrides mel_active_category_tid for the active pill.
  * - hero_image_url: Optional URL for hero background (desktop).
  * - hero_image_url_mobile: Optional URL for hero background (mobile viewports).
  * - hero_hide_on_mobile: Boolean; when TRUE, hide hero on mobile.
@@ -24,6 +25,7 @@
 {% set hero_image_url_mobile = hero_image_url_mobile|default(null) %}
 {% set hero_hide_on_mobile = hero_hide_on_mobile|default(false) %}
 {% set has_hero = hero_image_url and not hero_hide_on_mobile %}
+{% set active_tid = active_category_tid|default(mel_active_category_tid|default(null)) %}
 
 {{ attach_library('myeventlane_theme/mel-listing-header') }}
 
@@ -51,9 +53,11 @@
     <div class="mel-category-strip">
       <nav class="mel-category-pills" aria-label="{{ 'Event categories'|t }}">
         {% for c in categories %}
+          {% set is_active = active_tid is not null and c.tid == active_tid %}
           <a
             href="{{ path('view.upcoming_events.page_category', {'arg_0': c.tid}) }}"
-            class="mel-pill mel-pill--cat-{{ c.slug|default('default') }}"
+            class="mel-pill mel-pill--cat-{{ c.slug|default('default') }}{% if is_active %} is-active{% endif %}"
+            {% if is_active %}aria-current="page"{% endif %}
           >
             {{ c.label }}
           </a>

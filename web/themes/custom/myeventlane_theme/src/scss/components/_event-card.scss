@@ -26,6 +26,10 @@
     transform 0.2s ease,
     box-shadow 0.2s ease;
   animation: fade-in-up 0.3s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -107,6 +111,22 @@
   .mel-event-card:hover .mel-event-card__image img,
   .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
     transform: scale(1.03);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-card:hover .mel-event-card__image img,
+  .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
+    transform: none;
+  }
+
+  .mel-event-card:hover {
+    transform: none;
+  }
+
+  .mel-event-card:active,
+  .mel-event-card:has(.mel-event-card__link:active) {
+    transform: none;
   }
 }
 

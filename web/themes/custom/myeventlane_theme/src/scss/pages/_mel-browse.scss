@@ -92,6 +92,17 @@
     gap: 8px;
     min-width: min-content;
   }
+
+  .mel-pill {
+    min-height: 44px;
+    align-items: center;
+    text-decoration: none;
+
+    &:hover,
+    &:focus {
+      text-decoration: none;
+    }
+  }
 }
 
 .mel-browse__layout {
