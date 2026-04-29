@@ -44,10 +44,10 @@ final class MetricsAggregator {
    *
    * Orchestrates calls to TicketSalesService and RsvpStatsService.
    * Metrics:
-   * - Total Sales: Gross revenue from completed orders (published events only)
-   * - RSVPs: Total confirmed RSVPs (published events only)
-   * - Net Earnings: Gross revenue minus platform fees (published events only)
-   * - Tickets Sold: Total tickets from completed orders (published events only)
+   * - Total Sales: Gross revenue from completed orders (published events the user manages)
+   * - RSVPs: Total confirmed RSVPs (same published-event scope: author or vendor team)
+   * - Net Earnings: Gross revenue minus platform fees (same scope as Total Sales)
+   * - Tickets Sold: Total tickets from completed orders (same scope as Total Sales)
    *
    * @param int $userId
    *   The vendor user ID.
@@ -61,9 +61,9 @@ final class MetricsAggregator {
       return [];
     }
 
-    // Get revenue data from TicketSalesService (includes published events filter).
-    $revenue = $this->ticketSalesService->getVendorRevenue($userId);
-    // Get RSVP count from RsvpStatsService (includes published events filter).
+    // Revenue + RSVP use the same managed-events scope (author or vendor team).
+    $revenue = $this->ticketSalesService->getManagedVendorRevenue($userId);
+    // Get RSVP count from RsvpStatsService (published events filter).
     $rsvpCount = $this->rsvpStatsService->getManagedPublishedEventsRsvpCount($userId);
 
     return [

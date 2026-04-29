@@ -19,6 +19,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
 use Drupal\myeventlane_core\PlatformFeeDefaults;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Drupal\myeventlane_vendor\Service\VendorSubscriptionService;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -97,6 +98,7 @@ final class EventOverviewSalesSummaryTest extends KernelTestBase {
       $this->container->get('logger.factory'),
       $this->createMock(VendorSubscriptionService::class),
       $configFactory,
+      new UserVendorMembershipQuery($this->container->get('entity_type.manager')),
     );
   }
 

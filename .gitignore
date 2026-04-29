@@ -52,6 +52,14 @@
 /config/sync/.cookie-backup/
 
 ############################################
+# Accidental config dumps / audit copies (do not commit gateway secrets)
+# Task 13B — prevents new adds; already-tracked files remain until removed from index.
+############################################
+/_INVALID_config_backup_*/
+/_myeventlane_audit/config-sync/
+/_myeventlane_audit/sites-default/settings.php
+
+############################################
 # Database dumps & backups
 ############################################
 *.sql

@@ -127,6 +127,7 @@ services:
       - '@logger.factory'
       - '@myeventlane_vendor.subscription'
       - '@config.factory'
+      - '@myeventlane_vendor.user_vendor_membership_query'
 
   myeventlane_vendor.subscription:
     class: Drupal\myeventlane_vendor\Service\VendorSubscriptionService
