@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
@@ -120,47 +119,10 @@ final class VendorSettingsController extends VendorConsoleBaseController {
       ]);
     }
 
-    // Build the settings form - formBuilder handles both GET and POST.
-    $form_object_class = 'Drupal\myeventlane_vendor\Form\VendorProfileSettingsForm';
-    $form = $this->formBuilder->getForm($form_object_class, $vendor);
-    \Drupal::logger('mel_debug')->notice('FORM CLASS: @class', ['@class' => $form_object_class]);
-
-    // If form was submitted and redirected, the form might be empty.
-    // Check if we have a redirect response.
-    if ($form instanceof RedirectResponse) {
-      return $form;
-    }
-
-    // Ensure form libraries are merged into the page.
-    $form_attached = [];
-    if (isset($form['#attached']['library'])) {
-      $form_attached = [
-        '#attached' => [
-          'library' => $form['#attached']['library'],
-        ],
-      ];
-      unset($form['#attached']);
-    }
-
-    // Build settings tabs for navigation.
-    $tabs = [
-      [
-        'label' => $this->t('Profile'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
-        'active' => TRUE,
-      ],
-      [
-        'label' => $this->t('Messaging Brand'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
-        'active' => FALSE,
-      ],
-    ];
-
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => 'Settings',
-      'tabs' => $tabs,
-      'body' => $form,
-    ] + $form_attached);
+    return $this->formBuilder->getForm(
+      \Drupal\myeventlane_vendor\Form\VendorProfileSettingsForm::class,
+      $vendor
+    );
   }
 
 }
