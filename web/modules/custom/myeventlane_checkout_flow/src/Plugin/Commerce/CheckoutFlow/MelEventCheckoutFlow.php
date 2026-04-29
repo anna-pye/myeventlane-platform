@@ -25,6 +25,11 @@ final class MelEventCheckoutFlow extends CheckoutFlowWithPanesBase {
    * {@inheritdoc}
    */
   public function getSteps(): array {
+    $steps = parent::getSteps();
+    // Commerce sets the primary submit label from the *destination* step's
+    // next_label (see CheckoutFlowBase::actions()), not the current step's.
+    $steps['complete']['next_label'] = $this->t('Complete booking');
+
     return [
       'checkout' => [
         'label' => $this->t('Checkout'),
@@ -32,7 +37,7 @@ final class MelEventCheckoutFlow extends CheckoutFlowWithPanesBase {
         'next_label' => $this->t('Complete booking'),
         'has_sidebar' => TRUE,
       ],
-    ] + parent::getSteps();
+    ] + $steps;
   }
 
   /**
