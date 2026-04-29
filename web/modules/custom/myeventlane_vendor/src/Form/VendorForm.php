@@ -294,7 +294,7 @@ class VendorForm extends ContentEntityForm {
   /**
    * Ensures a linked Commerce store exists and syncs ABN / business name.
    *
-   * Mirrors logic previously on VendorProfileSettingsForm::submitForm().
+   * Mirrors logic previously on vendor profile settings submit (store sync).
    */
   protected function syncCommerceStoreFromOrganiserProfile(Vendor $vendor): void {
     $had_vendor_store_link = $vendor->hasField('field_vendor_store')

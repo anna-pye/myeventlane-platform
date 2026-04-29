@@ -48,6 +48,17 @@ bulk_actions:
     - core/drupal
     - core/once
 
+# Styles + vertical_tabs for vendor profile settings (no fix-form-action.js).
+vendor_settings_theme_only:
+  version: 1.x
+  css:
+    component:
+      css/vendor-settings.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupal.vertical_tabs
+    - myeventlane_vendor_theme/global-styling
+
 vendor_settings:
   version: 1.x
   css:

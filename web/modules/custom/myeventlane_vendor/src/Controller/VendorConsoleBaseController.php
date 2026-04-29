@@ -119,6 +119,16 @@ abstract class VendorConsoleBaseController {
   protected function buildVendorPage(string $theme_hook, array $variables = []): array {
     $this->assertVendorAccess();
 
+    // AJAX form callbacks must receive the inner render array only; wrapping in
+    // the vendor console theme would return full HTML and break AjaxResponse.
+    $http_request = \Drupal::request();
+    if ($http_request->isXmlHttpRequest()) {
+      $inner = $variables['content'] ?? $variables['body'] ?? NULL;
+      if ($inner !== NULL) {
+        return is_array($inner) ? $inner : ['#markup' => (string) $inner];
+      }
+    }
+
     $base_attached = [
       'library' => [
         'myeventlane_vendor_theme/global-styling',
@@ -156,6 +166,11 @@ abstract class VendorConsoleBaseController {
       else {
         $render[$key] = $value;
       }
+    }
+
+    // Legacy callers pass main column as `body`; prefer `content` for a single render path.
+    if (!isset($render['#content']) && isset($render['#body'])) {
+      $render['#content'] = $render['#body'];
     }
 
     return $render;

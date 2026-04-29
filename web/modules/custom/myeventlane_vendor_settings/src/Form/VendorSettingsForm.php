@@ -2,114 +2,74 @@
 
 declare(strict_types=1);
 
-namespace Drupal\myeventlane_vendor\Form;
+namespace Drupal\myeventlane_vendor_settings\Form;
 
 use Drupal\commerce_store\Entity\StoreInterface;
-use Drupal\Core\Url;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
+use Drupal\myeventlane_vendor\Form\FormActionUrlFixer;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Comprehensive vendor profile settings form.
+ * Single source of truth for /vendor/settings — profile, contact, payments, team.
  *
- * Uses CurrentVendorResolver for consistent vendor resolution.
- *
- * @deprecated Not used. Console settings use Vendor entity form
- *   (organiser_profile_settings) via VendorSettingsController::settings().
+ * Data is stored on the myeventlane_vendor entity (and Commerce store where synced).
  */
-class VendorProfileSettingsForm extends FormBase {
+class VendorSettingsForm extends FormBase {
 
-  /**
-   * The entity type manager.
-   */
-  protected ?EntityTypeManagerInterface $entityTypeManager = NULL;
+  protected EntityTypeManagerInterface $entityTypeManager;
 
-  /**
-   * The current user.
-   */
-  protected ?AccountProxyInterface $currentUser = NULL;
+  protected AccountProxyInterface $currentUser;
 
-  /**
-   * The onboarding manager.
-   */
-  protected ?OnboardingManager $onboardingManager = NULL;
+  protected ?OnboardingManager $onboardingManager;
 
-  /**
-   * The current vendor resolver.
-   */
-  protected ?CurrentVendorResolverInterface $vendorResolver = NULL;
+  protected CurrentVendorResolverInterface $vendorResolver;
 
-  /**
-   * Ensures the vendor-linked Commerce store exists and stays in sync.
-   */
   protected VendorStoreSubscriber $vendorStoreSubscriber;
+
+  protected LoggerInterface $logger;
+
+  protected CacheTagsInvalidatorInterface $cacheTagsInvalidator;
+
+  protected UserVendorMembershipQuery $userVendorMembershipQuery;
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    $instance = new static();
+    /** @var static $instance */
+    $instance = parent::create($container);
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->currentUser = $container->get('current_user');
-    $instance->onboardingManager = $container->get('myeventlane_onboarding.manager');
+    $instance->onboardingManager = $container->has('myeventlane_onboarding.manager')
+      ? $container->get('myeventlane_onboarding.manager')
+      : NULL;
     $instance->vendorResolver = $container->get('myeventlane_vendor.current_vendor_resolver');
     $instance->vendorStoreSubscriber = $container->get('myeventlane_vendor.vendor_store_subscriber');
+    $instance->logger = $container->get('logger.channel.myeventlane_vendor');
+    $instance->cacheTagsInvalidator = $container->get('cache_tags.invalidator');
+    $instance->userVendorMembershipQuery = $container->get('myeventlane_vendor.user_vendor_membership_query');
+    // Satisfies FormBase::$routeMatch so getRouteMatch() does not call \Drupal::routeMatch().
+    $instance->routeMatch = $container->get('current_route_match');
     $instance->setRequestStack($container->get('request_stack'));
     return $instance;
-  }
-
-  /**
-   * Gets the entity type manager with lazy loading fallback.
-   */
-  protected function getEntityTypeManager(): EntityTypeManagerInterface {
-    if ($this->entityTypeManager === NULL) {
-      $this->entityTypeManager = \Drupal::entityTypeManager();
-    }
-    return $this->entityTypeManager;
-  }
-
-  /**
-   * Gets the current user with lazy loading fallback.
-   */
-  protected function getCurrentUser(): AccountProxyInterface {
-    if ($this->currentUser === NULL) {
-      $this->currentUser = \Drupal::currentUser();
-    }
-    return $this->currentUser;
-  }
-
-  /**
-   * Gets the vendor resolver with lazy loading fallback.
-   */
-  protected function getVendorResolver(): ?CurrentVendorResolverInterface {
-    if ($this->vendorResolver === NULL && \Drupal::hasService('myeventlane_vendor.current_vendor_resolver')) {
-      $this->vendorResolver = \Drupal::service('myeventlane_vendor.current_vendor_resolver');
-    }
-    return $this->vendorResolver;
-  }
-
-  /**
-   * Gets the onboarding manager with lazy loading fallback.
-   */
-  protected function getOnboardingManager(): ?OnboardingManager {
-    if ($this->onboardingManager === NULL && \Drupal::hasService('myeventlane_onboarding.manager')) {
-      $this->onboardingManager = \Drupal::service('myeventlane_onboarding.manager');
-    }
-    return $this->onboardingManager;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'vendor_profile_settings';
+    return 'mel_vendor_settings_form';
   }
 
   /**
@@ -119,18 +79,19 @@ class VendorProfileSettingsForm extends FormBase {
    *   The vendor entity, or NULL if not found.
    */
   protected function getCurrentVendor(): ?Vendor {
-    $resolver = $this->getVendorResolver();
-    if ($resolver) {
-      return $resolver->resolveFromCurrentUser();
+    $resolver = $this->vendorResolver;
+    $vendor = $resolver->resolveFromCurrentUser();
+    if ($vendor instanceof Vendor) {
+      return $vendor;
     }
 
-    // Fallback to legacy resolution if service unavailable.
-    $uid = (int) $this->getCurrentUser()->id();
+    // Fallback to legacy resolution if resolver returns nothing.
+    $uid = (int) $this->currentUser->id();
     if ($uid === 0) {
       return NULL;
     }
 
-    $storage = $this->getEntityTypeManager()->getStorage('myeventlane_vendor');
+    $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
     $owner_ids = $storage->getQuery()
       ->accessCheck(TRUE)
       ->condition('uid', $uid)
@@ -175,13 +136,18 @@ class VendorProfileSettingsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?Vendor $vendor = NULL): array {
+    $this->logger->debug('VendorSettingsForm BUILD uid=@uid route=@route', [
+      '@uid' => (string) $this->currentUser->id(),
+      '@route' => $this->getRouteMatch()->getRouteName() ?? '',
+    ]);
+
     // Try to get vendor from form state first (for rebuilds).
     if (!$vendor) {
       $vendor = $form_state->get('vendor');
       // If vendor is in form state, reload it fresh to avoid stale data.
       if ($vendor && $vendor->id()) {
-        $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->resetCache([$vendor->id()]);
-        $vendor = $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->load($vendor->id());
+        $this->entityTypeManager->getStorage('myeventlane_vendor')->resetCache([$vendor->id()]);
+        $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor->id());
       }
     }
 
@@ -192,8 +158,8 @@ class VendorProfileSettingsForm extends FormBase {
         $vendor_id = $form_state->getValue('vendor_id');
       }
       if ($vendor_id) {
-        $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->resetCache([$vendor_id]);
-        $vendor = $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->load($vendor_id);
+        $this->entityTypeManager->getStorage('myeventlane_vendor')->resetCache([$vendor_id]);
+        $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor_id);
       }
     }
 
@@ -201,8 +167,8 @@ class VendorProfileSettingsForm extends FormBase {
     if (!$vendor) {
       $vendor = $this->getCurrentVendor();
       if ($vendor && $vendor->id()) {
-        $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->resetCache([$vendor->id()]);
-        $vendor = $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->load($vendor->id());
+        $this->entityTypeManager->getStorage('myeventlane_vendor')->resetCache([$vendor->id()]);
+        $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor->id());
       }
     }
 
@@ -210,6 +176,7 @@ class VendorProfileSettingsForm extends FormBase {
       $form['error'] = [
         '#markup' => '<p>' . $this->t('Vendor not found. Please contact support.') . '</p>',
       ];
+      $form['#cache']['max-age'] = 0;
       return $form;
     }
 
@@ -217,11 +184,17 @@ class VendorProfileSettingsForm extends FormBase {
     $form_state->set('vendor', $vendor);
     $form_state->set('vendor_id', $vendor->id());
 
-    // Store vendor ID in form for rebuilds and POST submissions.
+    // Use hidden (not value): Value elements are not sent in POST; hidden ensures vendor_id
+    // round-trips even if form cache/storage loses internal state on submit.
     $form['vendor_id'] = [
-      '#type' => 'value',
+      '#type' => 'hidden',
       '#value' => $vendor->id(),
       '#weight' => -1000,
+    ];
+
+    $form['page_header'] = [
+      '#markup' => '<header class="mel-settings-header"><h1 class="mel-settings-header__title">' . $this->t('Set up your organiser profile') . '</h1><p class="mel-settings-header__lede">' . $this->t('This is what people see on your events.') . '</p></header>',
+      '#weight' => -1002,
     ];
 
     // Preview link to public profile.
@@ -260,8 +233,8 @@ class VendorProfileSettingsForm extends FormBase {
     ];
     if ($vendor->id()) {
       try {
-        $user = $this->getEntityTypeManager()->getStorage('user')->load((int) $this->getCurrentUser()->id());
-        $onboardingManager = $this->getOnboardingManager();
+        $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+        $onboardingManager = $this->onboardingManager;
         if ($user instanceof \Drupal\user\UserInterface && $onboardingManager) {
           $state = $onboardingManager->loadOrCreateVendor($user, $vendor);
           $onboardingManager->refreshFlags($state);
@@ -290,35 +263,28 @@ class VendorProfileSettingsForm extends FormBase {
         }
       }
       catch (\Throwable $e) {
-        \Drupal::logger('myeventlane_vendor')->warning('Onboarding panel failed on settings form: @m', ['@m' => $e->getMessage()]);
+        $this->logger->warning('Onboarding panel failed on settings form: @m', ['@m' => $e->getMessage()]);
       }
     }
 
-    // Pin POST to this URI so Form API does not emit /vendor/form_action_* (404 on vendor host).
-    $request = $this->getRequest();
-    $form['#action'] = $request
-      ? $request->getRequestUri()
-      : Url::fromRoute('myeventlane_vendor.console.settings')->toString();
-    $form['#method'] = 'post';
+    // Fallback when action still resolves to /vendor/form_action_* (pre_render strips /vendor/).
+    $form['#pre_render'][] = [FormActionUrlFixer::class, 'fixFormActionUrl'];
+
     $form['#attributes']['class'][] = 'vendor-settings-form';
+    $form['#attributes']['class'][] = 'mel-settings-form';
 
     $form['#tree'] = TRUE;
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
-    $form['#attached']['library'][] = 'myeventlane_vendor/vendor_settings';
-
-    // Vertical tabs for different sections.
-    $form['tabs'] = [
-      '#type' => 'vertical_tabs',
-      '#title' => $this->t('Vendor Settings'),
-      '#default_tab' => 'edit-profile',
-    ];
+    $form['#attached']['library'][] = 'myeventlane_vendor_settings/settings_form';
 
     // Profile Information Section.
     $form['profile'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Profile Information'),
-      '#group' => 'tabs',
-      '#open' => TRUE,
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['profile']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Profile Information') . '</h2>',
+      '#weight' => -10,
     ];
 
     $form['profile']['name'] = [
@@ -376,9 +342,12 @@ class VendorProfileSettingsForm extends FormBase {
 
     // Visual Assets Section.
     $form['visual'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Visual Assets'),
-      '#group' => 'tabs',
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['visual']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Visual Assets') . '</h2>',
+      '#weight' => -10,
     ];
 
     if ($vendor->hasField('field_vendor_logo') || $vendor->hasField('field_logo_image')) {
@@ -424,9 +393,12 @@ class VendorProfileSettingsForm extends FormBase {
 
     // Contact Information Section.
     $form['contact'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Contact Information'),
-      '#group' => 'tabs',
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['contact']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Contact Information') . '</h2>',
+      '#weight' => -10,
     ];
 
     if ($vendor->hasField('field_email')) {
@@ -558,10 +530,16 @@ class VendorProfileSettingsForm extends FormBase {
 
     // Public Page Settings Section.
     $form['public'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Public Page Settings'),
-      '#group' => 'tabs',
-      '#description' => $this->t('Control what information is displayed on your public vendor page.'),
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['public']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Public Page Settings') . '</h2>',
+      '#weight' => -10,
+    ];
+    $form['public']['_intro'] = [
+      '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Control what information is displayed on your public vendor page.') . '</p>',
+      '#weight' => -9,
     ];
 
     if ($vendor->hasField('field_public_show_email')) {
@@ -635,10 +613,16 @@ class VendorProfileSettingsForm extends FormBase {
 
     // Recurring Venues Section.
     $form['venues'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Recurring Venues'),
-      '#group' => 'tabs',
-      '#description' => $this->t('Save frequently used venues to quickly add them to events.'),
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['venues']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Recurring Venues') . '</h2>',
+      '#weight' => -10,
+    ];
+    $form['venues']['_intro'] = [
+      '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Save frequently used venues to quickly add them to events.') . '</p>',
+      '#weight' => -9,
     ];
 
     $form['venues']['venue_list'] = [
@@ -648,9 +632,12 @@ class VendorProfileSettingsForm extends FormBase {
 
     // Payment & Store Settings Section.
     $form['payment'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Payment & Store Settings'),
-      '#group' => 'tabs',
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['payment']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Payment & Store Settings') . '</h2>',
+      '#weight' => -10,
     ];
 
     // Business Information subsection.
@@ -841,10 +828,16 @@ class VendorProfileSettingsForm extends FormBase {
 
     // Team Members Section.
     $form['team'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Team Members'),
-      '#group' => 'tabs',
-      '#description' => $this->t('Manage users who have access to manage this vendor account.'),
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['team']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Team Members') . '</h2>',
+      '#weight' => -10,
+    ];
+    $form['team']['_intro'] = [
+      '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Manage users who have access to manage this vendor account.') . '</p>',
+      '#weight' => -9,
     ];
 
     if ($vendor->hasField('field_vendor_users')) {
@@ -852,7 +845,7 @@ class VendorProfileSettingsForm extends FormBase {
       if (!$vendor->get('field_vendor_users')->isEmpty()) {
         foreach ($vendor->get('field_vendor_users') as $item) {
           if ($item->target_id) {
-            $user = $this->getEntityTypeManager()->getStorage('user')->load($item->target_id);
+            $user = $this->entityTypeManager->getStorage('user')->load($item->target_id);
             if ($user) {
               $team_members[] = $user->getAccountName() . ' (' . $user->getEmail() . ')';
             }
@@ -891,9 +884,12 @@ class VendorProfileSettingsForm extends FormBase {
 
     // Preferences Section - now loads from/saves to vendor entity fields.
     $form['preferences'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Preferences'),
-      '#group' => 'tabs',
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
+    $form['preferences']['_title'] = [
+      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Preferences') . '</h2>',
+      '#weight' => -10,
     ];
 
     $form['preferences']['notifications'] = [
@@ -946,13 +942,20 @@ class VendorProfileSettingsForm extends FormBase {
     $form['actions'] = [
       '#type' => 'actions',
       '#weight' => 100,
+      '#attributes' => ['class' => ['mel-sticky-actions']],
     ];
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Save'),
+      '#value' => $this->t('Save changes'),
       '#button_type' => 'primary',
+      '#attributes' => ['class' => ['mel-button-primary']],
     ];
+
+    $form['#cache']['max-age'] = 0;
+
+    $form['#action'] = Url::fromRoute('myeventlane_vendor.console.settings')->toString();
+    $form['#method'] = 'post';
 
     return $form;
   }
@@ -1078,19 +1081,23 @@ class VendorProfileSettingsForm extends FormBase {
    *   The vendor entity or NULL.
    */
   protected function loadVendorFromFormState(FormStateInterface $form_state): ?Vendor {
-    $vendor = $form_state->get('vendor');
-    if ($vendor instanceof Vendor) {
-      return $vendor;
+    // Prefer POST/rebuilt values (hidden vendor_id) over cached entity objects.
+    $vendor_id = $form_state->getValue('vendor_id');
+    if ($vendor_id === NULL || $vendor_id === '') {
+      $vendor_id = $form_state->get('vendor_id');
     }
-
-    $vendor_id = $form_state->get('vendor_id') ?? $form_state->getValue('vendor_id');
-    if ($vendor_id) {
-      $vendor = $this->getEntityTypeManager()->getStorage('myeventlane_vendor')->load($vendor_id);
+    if ($vendor_id !== NULL && $vendor_id !== '') {
+      $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load((int) $vendor_id);
       if ($vendor instanceof Vendor) {
         $form_state->set('vendor', $vendor);
         $form_state->set('vendor_id', $vendor->id());
         return $vendor;
       }
+    }
+
+    $vendor = $form_state->get('vendor');
+    if ($vendor instanceof Vendor) {
+      return $vendor;
     }
 
     return $this->getCurrentVendor();
@@ -1101,6 +1108,28 @@ class VendorProfileSettingsForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     parent::validateForm($form, $form_state);
+
+    $this->logger->notice('VendorSettingsForm VALIDATE uid=@uid vendor_id=@vid', [
+      '@uid' => (string) $this->currentUser->id(),
+      '@vid' => $form_state->getValue('vendor_id') !== NULL && $form_state->getValue('vendor_id') !== ''
+        ? (string) $form_state->getValue('vendor_id')
+        : 'missing',
+    ]);
+
+    // Hidden vendor_id is not trusted — enforce membership server-side.
+    if (!$this->currentUser->hasPermission('administer myeventlane vendor')) {
+      $submitted_vid = (int) ($form_state->getValue('vendor_id') ?? 0);
+      $allowed_vids = $this->userVendorMembershipQuery->getVendorIdsForUser((int) $this->currentUser->id());
+      if (!$submitted_vid || !in_array($submitted_vid, $allowed_vids, TRUE)) {
+        $this->logger->warning('Vendor settings: rejected vendor_id uid=@uid vid=@vid allowed=@allowed', [
+          '@uid' => (string) $this->currentUser->id(),
+          '@vid' => (string) $submitted_vid,
+          '@allowed' => $allowed_vids === [] ? '(none)' : implode(', ', $allowed_vids),
+        ]);
+        $this->setVendorContextFormError($form, $form_state);
+        return;
+      }
+    }
 
     // Normalize website URL (prepend scheme); do not hard-fail on bare domains.
     $website = $form_state->getValue(['contact', 'website']);
@@ -1129,17 +1158,37 @@ class VendorProfileSettingsForm extends FormBase {
   }
 
   /**
+   * Surfaces organiser-context failures on a visible field (not hidden vendor_id).
+   */
+  private function setVendorContextFormError(array $form, FormStateInterface $form_state): void {
+    $message = $this->t('We could not verify your organiser account for this save. Please reload the page and try again.');
+    if (isset($form['profile']['name'])) {
+      $form_state->setError($form['profile']['name'], $message);
+      return;
+    }
+    if (isset($form['actions']['submit'])) {
+      $form_state->setError($form['actions']['submit'], $message);
+      return;
+    }
+    $form_state->setErrorByName('vendor_id', $message);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $this->logger->notice('VendorSettingsForm SUBMIT START uid=@uid vendor_id=@vid', [
+      '@uid' => (string) $this->currentUser->id(),
+      '@vid' => $form_state->getValue('vendor_id') !== NULL && $form_state->getValue('vendor_id') !== ''
+        ? (string) $form_state->getValue('vendor_id')
+        : 'missing',
+    ]);
+
     $vendor = $this->loadVendorFromFormState($form_state);
     if (!$vendor) {
-      $resolver = $this->getVendorResolver();
-      if ($resolver !== NULL) {
-        $vid = $form_state->getValue('vendor_id');
-        if ($vid) {
-          $vendor = $resolver->resolveFromContext(['vendor_id' => (int) $vid]);
-        }
+      $vid = $form_state->getValue('vendor_id');
+      if ($vid) {
+        $vendor = $this->vendorResolver->resolveFromContext(['vendor_id' => (int) $vid]);
       }
     }
 
@@ -1196,7 +1245,7 @@ class VendorProfileSettingsForm extends FormBase {
       if ($logo_field && $vendor->hasField($logo_field)) {
         $logo_fids = $form_state->getValue(['visual', 'logo']);
         if (!empty($logo_fids) && is_array($logo_fids)) {
-          $file = $this->getEntityTypeManager()->getStorage('file')->load($logo_fids[0]);
+          $file = $this->entityTypeManager->getStorage('file')->load($logo_fids[0]);
           if ($file) {
             $file->setPermanent();
             $file->save();
@@ -1212,7 +1261,7 @@ class VendorProfileSettingsForm extends FormBase {
     if (isset($form['visual']['banner']) && $vendor->hasField('field_banner_image')) {
       $banner_fids = $form_state->getValue(['visual', 'banner']);
       if (!empty($banner_fids) && is_array($banner_fids)) {
-        $file = $this->getEntityTypeManager()->getStorage('file')->load($banner_fids[0]);
+        $file = $this->entityTypeManager->getStorage('file')->load($banner_fids[0]);
         if ($file) {
           $file->setPermanent();
           $file->save();
@@ -1317,7 +1366,7 @@ class VendorProfileSettingsForm extends FormBase {
           $all_valid = TRUE;
           foreach ($field as $item) {
             if ($item->target_id) {
-              $user = $this->getEntityTypeManager()->getStorage('user')->load($item->target_id);
+              $user = $this->entityTypeManager->getStorage('user')->load($item->target_id);
               if (!$user || !$user->isActive()) {
                 $all_valid = FALSE;
                 break;
@@ -1341,7 +1390,7 @@ class VendorProfileSettingsForm extends FormBase {
       }
     }
 
-    $vendor_storage = $this->getEntityTypeManager()->getStorage('myeventlane_vendor');
+    $vendor_storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
 
     $store = NULL;
     if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
@@ -1379,7 +1428,7 @@ class VendorProfileSettingsForm extends FormBase {
     }
 
     if (!$store) {
-      \Drupal::logger('myeventlane_vendor')->error(
+      $this->logger->error(
         'Vendor settings save failed: no linked store after ensureStoreForVendor for vendor @id',
         ['@id' => (string) $vendor->id()]
       );
@@ -1396,7 +1445,7 @@ class VendorProfileSettingsForm extends FormBase {
         $store->save();
       }
       catch (\Throwable $e) {
-        \Drupal::logger('myeventlane_vendor')->error(
+        $this->logger->error(
           'Vendor settings: could not sync Commerce store: @message',
           ['@message' => $e->getMessage()]
         );
@@ -1406,6 +1455,10 @@ class VendorProfileSettingsForm extends FormBase {
     try {
       $vendor->save();
 
+      $this->logger->notice('VendorSettingsForm SUBMIT SUCCESS vendor_id=@vid', [
+        '@vid' => (string) $vendor->id(),
+      ]);
+
       // Clear entity cache.
       $vendor_storage->resetCache([(int) $vendor->id()]);
 
@@ -1414,13 +1467,13 @@ class VendorProfileSettingsForm extends FormBase {
         'myeventlane_vendor:' . $vendor->id(),
         'myeventlane_vendor_list',
       ];
-      \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
+      $this->cacheTagsInvalidator->invalidateTags($cache_tags);
 
-      $this->messenger()->addStatus($this->t('Vendor settings saved successfully.'));
+      $this->messenger()->addStatus($this->t('Your settings have been saved.'));
       $form_state->setRedirect('myeventlane_vendor.console.settings');
     }
     catch (\Exception $e) {
-      \Drupal::logger('myeventlane_vendor')->error('Failed to save vendor settings: @message', [
+      $this->logger->error('Failed to save vendor settings: @message', [
         '@message' => $e->getMessage(),
       ]);
       $this->messenger()->addError($this->t('An error occurred while saving: @message', [

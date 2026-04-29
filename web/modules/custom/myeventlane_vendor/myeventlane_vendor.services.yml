@@ -334,12 +334,6 @@ services:
     tags:
       - { name: controller.service_arguments }
 
-  myeventlane_vendor.controller.vendor_settings:
-    class: Drupal\myeventlane_vendor\Controller\VendorSettingsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@entity.form_builder']
-    tags:
-      - { name: controller.service_arguments }
-
   myeventlane_vendor.controller.event_workspace:
     class: Drupal\myeventlane_vendor\Controller\EventWorkspaceController
     arguments:

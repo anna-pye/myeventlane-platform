@@ -70,6 +70,8 @@ final class CurrentVendorResolver implements CurrentVendorResolverInterface {
         ->condition('uid', $uid)
         ->condition('field_vendor_users', $uid);
       $query->condition($or);
+      // Deterministic pick when a user is tied to multiple vendors (owner + team, etc.).
+      $query->sort('id', 'ASC');
       $ids = $query->range(0, 1)->execute();
 
       $vendor = NULL;
