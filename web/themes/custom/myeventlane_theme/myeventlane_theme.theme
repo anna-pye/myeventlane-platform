@@ -3126,15 +3126,15 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     }
   }
 
-  // Calendar tab URLs for node--event--full (same builder as checkout confirmation).
+  // Calendar URLs for event full template (same builder as checkout confirmation).
   $variables['apple_ics_url'] = '';
   $variables['outlook_ics_url'] = '';
   $variables['google_calendar_url'] = '';
   if (($variables['view_mode'] ?? '') === 'full') {
     $cal_links = _myeventlane_theme_build_calendar_links($node);
     $variables['apple_ics_url'] = $cal_links['apple'] ?? $cal_links['ics'] ?? '';
-    // Outlook tab: Outlook on the web compose URL — not the same ICS file as Apple.
-    $variables['outlook_ics_url'] = $cal_links['outlook'] ?? '';
+    // Same ICS download as Apple; Outlook desktop imports the same file.
+    $variables['outlook_ics_url'] = $cal_links['ics'] ?? '';
     $variables['google_calendar_url'] = $cal_links['google'] ?? '';
   }
 }

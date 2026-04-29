@@ -117,24 +117,38 @@ ul, ol {
 }
 
 // ---------------------------------------------------------------------------
-// Links
+// Links — UI surfaces without default underline; prose inside .mel-content
+// keeps identifiable links with hover underline.
 // ---------------------------------------------------------------------------
 
 a {
-  color: colors.$mel-color-primary;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
-  transition: color melmotion.$mel-transition-fast;
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.15s ease;
 
   &:hover {
-    color: var(--mel-color-primary-hover);
+    text-decoration: none;
   }
 
   &:focus-visible {
     @include colors.mel-focus-ring;
     border-radius: 2px;
   }
+}
+
+.mel-content a {
+  color: var(--mel-primary);
+  font-weight: 500;
+}
+
+.mel-content a:hover {
+  text-decoration: underline;
+}
+
+.mel-button,
+.mel-card a,
+.mel-event a {
+  text-decoration: none;
 }
 
 // ---------------------------------------------------------------------------
