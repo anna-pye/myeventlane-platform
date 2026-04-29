@@ -786,3 +786,84 @@
     min-height: 44px;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Tax invoice (AU — vendor ABN, GST)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation .mel-tax-invoice-section {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: spacing.mel-space(4);
+}
+
+.mel-invoice {
+  font-size: 14px;
+}
+
+.mel-invoice h2,
+.mel-invoice .mel-invoice__title {
+  margin-bottom: 12px;
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-bold;
+}
+
+.mel-invoice__header {
+  margin-bottom: 16px;
+}
+
+.mel-invoice__meta {
+  margin: 0;
+  line-height: 1.5;
+  color: colors.$mel-color-text;
+}
+
+.mel-invoice__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: spacing.mel-space(3);
+  font-size: typography.mel-font-size(sm);
+
+  th,
+  td {
+    padding: spacing.mel-space(2);
+    text-align: left;
+    border-bottom: 1px solid rgba(colors.$mel-color-text, 0.12);
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    text-align: center;
+    width: 3rem;
+  }
+
+  th:nth-child(3),
+  th:nth-child(4),
+  td:nth-child(3),
+  td:nth-child(4) {
+    text-align: right;
+  }
+}
+
+.mel-invoice__adjustment {
+  display: flex;
+  justify-content: space-between;
+  padding: spacing.mel-space(1) 0;
+  font-size: typography.mel-font-size(sm);
+}
+
+.mel-invoice__gst {
+  margin: spacing.mel-space(2) 0 0;
+}
+
+.mel-invoice__total {
+  margin: spacing.mel-space(2) 0 0;
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-bold;
+}
+
+.mel-order-receipt {
+  max-width: 720px;
+  margin: 0 auto spacing.mel-space(6);
+}
