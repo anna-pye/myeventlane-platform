@@ -29,7 +29,7 @@ final class MelEventCheckoutFlow extends CheckoutFlowWithPanesBase {
       'checkout' => [
         'label' => $this->t('Checkout'),
         'previous_label' => $this->t('Back to cart'),
-        'next_label' => $this->t('Continue to payment'),
+        'next_label' => $this->t('Complete booking'),
         'has_sidebar' => TRUE,
       ],
     ] + parent::getSteps();

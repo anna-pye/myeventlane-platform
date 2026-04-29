@@ -1278,6 +1278,62 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   line-height: 1.4;
 }
 
+.mel-checkout__intro {
+  margin-bottom: spacing.mel-space(3);
+
+  h2 {
+    margin: 0 0 spacing.mel-space(2);
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 0;
+    font-size: typography.mel-font-size(base);
+    color: colors.$mel-color-text-muted;
+    line-height: 1.45;
+  }
+}
+
+.mel-checkout__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2) spacing.mel-space(3);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin-bottom: spacing.mel-space(3);
+
+  span {
+    line-height: 1.35;
+  }
+}
+
+.mel-checkout__summary-title {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(md);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+}
+
+.mel-checkout__cta-note {
+  font-size: typography.mel-font-size(xs);
+  color: colors.$mel-color-text-muted;
+  margin-top: spacing.mel-space(2);
+  margin-bottom: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.mel-checkout__helper {
+  font-size: typography.mel-font-size(xs);
+  color: colors.$mel-color-text-muted;
+  margin-top: spacing.mel-space(1);
+  margin-bottom: spacing.mel-space(3);
+  line-height: 1.45;
+}
+
 .mel-checkout-yaml-support {
   margin-bottom: spacing.mel-space(3);
 }
@@ -1381,6 +1437,10 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
     display: flex;
     flex-direction: column;
     gap: spacing.mel-space(3);
+  }
+
+  .mel-checkout__grid--sidebar-flow .mel-checkout__main {
+    padding-bottom: spacing.mel-space(8);
   }
 
   .mel-checkout__grid--sidebar-flow .mel-checkout__summary {
@@ -1829,18 +1889,14 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
     padding: 10px 12px;
   }
 
-  .mel-checkout-order-title,
-  .mel-summary-grouped .mel-checkout-order-title {
+  .mel-checkout__summary-inner > .mel-checkout__summary-title {
     margin-bottom: spacing.mel-space(2);
     padding-bottom: spacing.mel-space(1);
-  }
-
-  .mel-summary-grouped .mel-checkout-summary__title {
     font-size: typography.mel-font-size(sm);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: colors.$mel-color-text-muted;
-    border-bottom-color: rgba(colors.$mel-color-border, 0.5);
+    border-bottom: 1px solid rgba(colors.$mel-color-border, 0.5);
   }
 
   .mel-summary-grouped .mel-summary-event,
