@@ -201,6 +201,7 @@ final class TemplateTestForm extends FormBase {
         'tax_lines' => [
           ['label' => 'GST', 'amount' => '$9.00'],
         ],
+        'show_includes_gst_note' => TRUE,
       ],
       'order_invoice' => [
         'invoice_date' => 'April 9, 2026',
