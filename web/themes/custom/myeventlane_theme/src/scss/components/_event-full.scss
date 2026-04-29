@@ -192,6 +192,28 @@
   min-width: 0;
 }
 
+.mel-booking-panel__trust-micro {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid colors.$mel-color-border;
+  font-size: 12px;
+  line-height: 1.45;
+  color: colors.$mel-color-text-muted;
+
+  p {
+    margin: 0;
+
+    + p {
+      margin-top: 4px;
+    }
+  }
+}
+
+.mel-booking-panel__trust-micro-primary {
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+}
+
 // ---------------------------------------------------------------------------
 // Trust line rotator (one line visible; no duplicate static viewer / email rows)
 // ---------------------------------------------------------------------------

@@ -168,9 +168,10 @@
   pointer-events: none;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.65),
-    rgba(0, 0, 0, 0.25),
-    rgba(0, 0, 0, 0.1)
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.45) 40%,
+    rgba(0, 0, 0, 0.2) 70%,
+    rgba(0, 0, 0, 0.05) 100%
   );
 }
 
@@ -198,6 +199,7 @@
   max-width: 700px;
   color: #fff;
   line-height: 1.15;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .mel-event--v2 .mel-event__category {
@@ -215,6 +217,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .mel-event--v2 .mel-event__hero-content .mel-event__meta span {
@@ -239,6 +242,21 @@
 .mel-event--v2 .mel-event__sidebar .mel-card {
   position: sticky;
   top: 100px;
+}
+
+.mel-event__badge {
+  display: inline-block;
+  background: var(--mel-accent-soft);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.mel-event__urgency {
+  font-size: 13px;
+  color: var(--mel-primary);
+  margin-bottom: 8px;
 }
 
 @media (max-width: 768px) {

@@ -1300,7 +1300,7 @@ function myeventlane_event_finalize_event_ui(
     $out['cta_type'] = empty($eventCta['disabled'] ?? FALSE) && !empty($eventCta['url']) ? 'secondary' : 'disabled';
   }
   elseif ($hasProduct) {
-    $out['cta_label'] = (string) t('Buy tickets');
+    $out['cta_label'] = (string) t('Get your tickets');
     $out['cta_type'] = 'primary';
   }
   else {

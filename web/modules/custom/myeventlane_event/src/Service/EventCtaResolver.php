@@ -162,7 +162,7 @@ final class EventCtaResolver {
       $avail = $this->modeManager->getTicketAvailability($event);
       $base['remaining'] = $avail['remaining'] ?? NULL;
       if ($avail['available']) {
-        $base['label'] = (string) \t('Buy tickets');
+        $base['label'] = (string) \t('Get your tickets');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
         if ($base['remaining'] !== NULL && $base['remaining'] > 0 && $base['remaining'] <= self::LOW_AVAILABILITY_THRESHOLD) {
