@@ -48,6 +48,8 @@
   --mel-surface: var(--mel-color-surface);
   --mel-surface-2: var(--mel-color-surface-soft);
   --mel-ink: var(--mel-color-text);
+  // Alias used by event UI + headers (vendor theme defines --mel-text; keep parity).
+  --mel-text: var(--mel-color-text);
   --mel-muted: var(--mel-color-text-secondary);
   --mel-border: 1px solid var(--mel-color-border);
   --mel-primary: var(--mel-color-primary);
