@@ -7,7 +7,16 @@
     overflow: hidden;
   }
 
+  // Explicit height so img % height resolves; fills hero band when this wrapper is used.
+  &__hero-image {
+    position: relative;
+    height: 300px;
+    overflow: hidden;
+    border-radius: var(--mel-radius-md);
+  }
+
   &__hero-image img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -43,8 +52,9 @@
   &__body {
     margin-top: 24px;
 
+    // Fixed bottom sidebar (price + CTA + trust): reserve ~180px + safe area so content clears the bar.
     @media (max-width: 768px) {
-      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
     }
   }
 
