@@ -37,9 +37,9 @@
     </div>
 
     {# Category Chips #}
-    <div class="mel-hero-categories">
+    <nav class="mel-hero-categories" aria-label="{{ 'Browse by category'|t }}">
       <a href="/events" class="mel-category-chip mel-category-chip--coral is-active">
-        All Events
+        {{ 'All Events'|t }}
       </a>
       {% if categories is defined and categories|length %}
         {% for term in categories %}
@@ -52,7 +52,7 @@
           {{ 'Browse events'|t }}
         </a>
       {% endif %}
-    </div>
+    </nav>
 
     {# Search Bar #}
     <form class="mel-hero-search" action="/events" method="get">
@@ -62,7 +62,7 @@
           name="q"
           placeholder="Search events..."
           value="{{ search_query|default('') }}"
-          aria-label="Search events"
+          aria-label="{{ 'Search events'|t }}"
         >
         <button type="submit" class="mel-hero-search-btn">Search</button>
       </div>

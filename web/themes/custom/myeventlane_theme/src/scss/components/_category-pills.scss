@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../tokens/colors';
 @use '../tokens/radii';
 @use '../tokens/shadows';
@@ -111,6 +112,23 @@
 .mel-category-pills .mel-pill--cat-sport,
 .mel-category-pills .mel-pill--cat-sports { background: var(--mel-blue); color: #fff; }
 .mel-category-pills .mel-pill--cat-default { background: var(--mel-lilac); color: var(--mel-navy); }
+
+// Current category on discovery headers (aligns with mel-filter-chip / chip-bar active).
+.mel-category-pills .mel-pill.is-active {
+  background: #{colors.$mel-color-secondary};
+  border-color: #{colors.$mel-color-secondary};
+  color: #{colors.$mel-color-text-inverse};
+  font-weight: typography.$mel-font-semibold;
+  box-shadow: 0 4px 12px rgba(242, 109, 91, 0.25);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color.adjust(colors.$mel-color-secondary, $lightness: -4%);
+      border-color: color.adjust(colors.$mel-color-secondary, $lightness: -4%);
+      color: colors.$mel-color-text-inverse;
+    }
+  }
+}
 
 // MyEventLane category pills block (homepage strip + global block).
 a.mel-category-pill {
