@@ -121,10 +121,9 @@ final class VendorSettingsController extends VendorConsoleBaseController {
     }
 
     // Build the settings form - formBuilder handles both GET and POST.
-    $form = $this->formBuilder->getForm(
-      'Drupal\myeventlane_vendor\Form\VendorProfileSettingsForm',
-      $vendor
-    );
+    $form_object_class = 'Drupal\myeventlane_vendor\Form\VendorProfileSettingsForm';
+    $form = $this->formBuilder->getForm($form_object_class, $vendor);
+    \Drupal::logger('mel_debug')->notice('FORM CLASS: @class', ['@class' => $form_object_class]);
 
     // If form was submitted and redirected, the form might be empty.
     // Check if we have a redirect response.
