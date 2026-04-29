@@ -48,6 +48,8 @@
 {% else %}
   {% set mel_context_above = '' %}
 {% endif %}
+{# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
+{% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
 {% set mel_trust_checkout = (cta_type is not defined) or (not (cta_type is same as('external'))) %}
 {% set mel_show_booking_cta = (event_ui is not defined) or (event_ui.show_cta|default(true)) %}
 {% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
