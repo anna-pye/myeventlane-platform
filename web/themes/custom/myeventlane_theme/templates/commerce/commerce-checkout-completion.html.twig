@@ -99,6 +99,24 @@
   </header>
 
   <div class="mel-confirmation__main">
+    <div class="mel-confirmation-banner">
+      {% if mel_donation_total_formatted %}
+        <h2>{{ 'Thank you'|t }}</h2>
+        <p>{{ 'Your support means a lot. We\'ve emailed your receipt.'|t }}</p>
+      {% elseif mel_confirmation_has_tickets %}
+        {% if mel_confirm_paid %}
+          <h2>{{ 'Your booking is confirmed 🎉'|t }}</h2>
+          <p>{{ 'You\'re all set. Your tickets are ready and a confirmation has been sent to your email.'|t }}</p>
+        {% else %}
+          <h2>{{ 'Your registration is confirmed 🎉'|t }}</h2>
+          <p>{{ 'You\'re all set. Your confirmation has been sent to your email.'|t }}</p>
+        {% endif %}
+      {% else %}
+        <h2>{{ 'Your order is confirmed'|t }}</h2>
+        <p>{{ 'You\'re all set. We\'ve emailed your confirmation.'|t }}</p>
+      {% endif %}
+    </div>
+
     {% if events|length > 0 %}
       {% for event in events %}
         <section class="mel-confirmation-card mel-confirmation__summary">
@@ -286,6 +304,7 @@
       {% if mel_calendar_links|length > 0 %}
         <div class="mel-confirmation-calendar">
           <h3 class="mel-confirmation-calendar__title">{{ 'Add to your calendar'|t }}</h3>
+          <p class="mel-calendar-prompt">{{ 'Don\'t forget to save the date'|t }}</p>
           <div class="mel-calendar-actions">
             {% if mel_calendar_links.apple is defined and mel_calendar_links.apple %}
               <a href="{{ mel_calendar_links.apple }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Apple Calendar'|t }}</a>
@@ -309,6 +328,7 @@
       {% endif %}
 
       {% if mel_event_url %}
+        <p class="mel-share-prompt">{{ 'Going with friends? Share this event'|t }}</p>
         <section class="mel-confirmation-share">
           <h3 class="mel-confirmation-share__title">{{ 'Share this event'|t }}</h3>
           <div class="mel-share-actions">
@@ -323,21 +343,27 @@
         <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-confirmation-button mel-confirmation-button--secondary">{{ 'Browse events'|t }}</a>
       </div>
 
+      <div class="mel-return">
+        <h3>{{ 'Find more events like this'|t }}</h3>
+        <p>{{ 'Discover what\'s happening near you.'|t }}</p>
+        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-button mel-button--ghost">{{ 'Browse events'|t }}</a>
+      </div>
+
       <section class="mel-confirmation-next">
         <h2 class="mel-confirmation-next__title">{{ 'What happens next'|t }}</h2>
-        <ul class="mel-confirmation-next__list">
-          {# Donation before tickets: mixed orders show only the donation line here (original behaviour). #}
+        <ul class="mel-next-steps">
           {% if mel_donation_total_formatted %}
-            <li class="mel-confirmation-next__item">{{ 'Your donation is confirmed.'|t }}</li>
+            <li>{{ '✔ Your donation is confirmed'|t }}</li>
+            <li>{{ '✔ We\'ve emailed your receipt'|t }}</li>
+            <li>{{ '✔ Keep your confirmation for your records'|t }}</li>
           {% elseif mel_confirmation_has_tickets %}
-            <li class="mel-confirmation-next__item">{{ 'Your tickets are ready now.'|t }}</li>
+            <li>{{ '✔ Your tickets are ready'|t }}</li>
+            <li>{{ '✔ We\'ve emailed your confirmation'|t }}</li>
+            <li>{{ '✔ Add the event to your calendar'|t }}</li>
           {% else %}
-            <li class="mel-confirmation-next__item">{{ 'Your order is complete.'|t }}</li>
-          {% endif %}
-          <li class="mel-confirmation-next__item">{{ 'We\'ve sent your confirmation details to your email.'|t }}</li>
-          <li class="mel-confirmation-next__item">{{ 'Save the date — add to your calendar above if you have not already.'|t }}</li>
-          {% if order_entity.getCustomerId() %}
-            <li class="mel-confirmation-next__item">{{ 'You can come back to your tickets anytime from My Account.'|t }}</li>
+            <li>{{ '✔ Your order is complete'|t }}</li>
+            <li>{{ '✔ We\'ve emailed your confirmation'|t }}</li>
+            <li>{{ '✔ Save your confirmation for your records'|t }}</li>
           {% endif %}
         </ul>
       </section>
