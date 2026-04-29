@@ -68,7 +68,7 @@
 {% set mel_trust_checkout = (cta_type is not defined) or (not (cta_type is same as('external'))) %}
 {% set mel_show_booking_cta = (event_ui is not defined) or (event_ui.show_cta|default(true)) %}
 {% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
-{# Spots-left urgency only; “Selling fast” is covered by the trust rotator (avoids duplicate messaging). #}
+{# Spots-left urgency under price; trust rotator omits duplicate “selling fast” copy. #}
 {% set _support_urgent = (mel_cta_urgency|default('')|striptags|length > 0) %}
 {# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
 {% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
@@ -127,39 +127,39 @@
     <section class="mel-event-meta-bar" aria-label="{{ 'Event summary'|t }}">
       <div class="mel-event-meta-bar__items">
         {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
-          <div class="mel-event-meta">
-            <span class="mel-event-meta__icon" aria-hidden="true"></span>
-            <div class="mel-event-meta__text">
-              {% set start_day = node.field_event_start.value|date('l, F j') %}
-              {% set start_year = node.field_event_start.value|date('Y') %}
-              {% set end_day = (node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value) ? node.field_event_end.value|date('l, F j') : '' %}
-              {% set end_year = (node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value) ? node.field_event_end.value|date('Y') : '' %}
+          <div class="mel-event-meta-bar__cluster">
+            <div class="mel-event-meta">
+              <span class="mel-event-meta__icon" aria-hidden="true"></span>
+              <div class="mel-event-meta__text">
+                {% set start_day = node.field_event_start.value|date('l, F j') %}
+                {% set start_year = node.field_event_start.value|date('Y') %}
+                {% set end_day = (node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value) ? node.field_event_end.value|date('l, F j') : '' %}
+                {% set end_year = (node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value) ? node.field_event_end.value|date('Y') : '' %}
 
-              <div class="mel-event-meta__primary">
-                {{ start_day }}
-                {% if end_day and end_day != start_day %}
-                  – {{ end_day }}
-                {% endif %}
-              </div>
-              <div class="mel-event-meta__secondary">
-                {{ start_year }}
-                {% if end_year and end_year != start_year %}
-                  – {{ end_year }}
-                {% endif %}
+                <div class="mel-event-meta__primary">
+                  {{ start_day }}
+                  {% if end_day and end_day != start_day %}
+                    – {{ end_day }}
+                  {% endif %}
+                </div>
+                <div class="mel-event-meta__secondary">
+                  {{ start_year }}
+                  {% if end_year and end_year != start_year %}
+                    – {{ end_year }}
+                  {% endif %}
+                </div>
               </div>
             </div>
-          </div>
-        {% endif %}
 
-        {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
-          <div class="mel-event-meta mel-event-meta--time">
-            <span class="mel-event-meta__icon mel-event-meta__icon--time" aria-hidden="true"></span>
-            <div class="mel-event-meta__text">
-              <div class="mel-event-meta__primary">
-                {{ node.field_event_start.value|date('g:i A') }}
-                {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
-                  – {{ node.field_event_end.value|date('g:i A') }}
-                {% endif %}
+            <div class="mel-event-meta mel-event-meta--time">
+              <span class="mel-event-meta__icon mel-event-meta__icon--time" aria-hidden="true"></span>
+              <div class="mel-event-meta__text">
+                <div class="mel-event-meta__primary">
+                  {{ node.field_event_start.value|date('g:i A') }}
+                  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                    – {{ node.field_event_end.value|date('g:i A') }}
+                  {% endif %}
+                </div>
               </div>
             </div>
           </div>
@@ -480,7 +480,7 @@
       </div>
 
       <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
-        <div class="mel-card mel-card--surface mel-card--sticky">
+        <div class="mel-card mel-card--surface mel-card--sticky mel-event__card">
           <div class="mel-card__header">
             <h2 class="mel-card__title">{% if mel_cta_text|striptags|length > 0 %}{{ mel_cta_text }}{% else %}{% if cta_type is defined and cta_type == 'rsvp' %}{{ 'Book free RSVP'|t }}{% elseif cta_type is defined and cta_type == 'paid' %}{{ 'Get your tickets'|t }}{% else %}{{ 'View details'|t }}{% endif %}{% endif %}</h2>
           </div>
@@ -516,7 +516,7 @@
 
               {% if mel_event_state is not defined or mel_event_state != 'cancelled' %}
                 {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
-                  <div class="mel-booking-panel__cta">
+                  <div class="mel-booking-panel__cta mel-event__cta">
                     <div class="mel-event-sticky-cta mel-event-sticky-cta--sidebar" role="group" aria-label="{{ 'Register or buy tickets'|t }}">
                       {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'sidebar' } %}
                     </div>
@@ -574,9 +574,6 @@
                       {% else %}
                         <span class="mel-trust-item__text">🔥 {{ 'Popular on MyEventLane'|t }}</span>
                       {% endif %}
-                    </div>
-                    <div class="mel-trust-item" data-trust-item>
-                      <span class="mel-trust-item__text">⚡ {{ 'Selling fast'|t }}</span>
                     </div>
                     <div class="mel-trust-item" data-trust-item>
                       <span class="mel-trust-item__text">✉️ {{ 'Instant confirmation'|t }} — {% if mel_trust_checkout %}{{ 'You’ll receive confirmation by email'|t }}{% else %}{{ 'You’ll get a confirmation email'|t }}{% endif %}</span>
