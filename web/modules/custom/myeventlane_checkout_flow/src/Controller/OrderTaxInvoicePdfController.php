@@ -86,8 +86,10 @@ final class OrderTaxInvoicePdfController extends ControllerBase {
     $dompdf->setPaper('A4', 'portrait');
     $dompdf->render();
 
-    $safe_number = preg_replace('/[^a-zA-Z0-9_-]/', '-', $commerce_order->getOrderNumber());
-    $filename = 'tax-invoice-' . ($safe_number !== '' ? $safe_number : (string) $commerce_order->id()) . '.pdf';
+    $order_number_raw = $commerce_order->getOrderNumber();
+    $sanitized = preg_replace('/[^a-zA-Z0-9_-]/', '-', (string) ($order_number_raw ?? ''));
+    $safe_slug = (is_string($sanitized) && $sanitized !== '') ? $sanitized : (string) $commerce_order->id();
+    $filename = 'tax-invoice-' . $safe_slug . '.pdf';
 
     return new Response($dompdf->output(), 200, [
       'Content-Type' => 'application/pdf',

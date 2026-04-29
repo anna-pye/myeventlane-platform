@@ -19,6 +19,14 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\node\NodeInterface;
+use Drupal\user\UserInterface;
+
+/**
+ * Implements hook_user_login().
+ */
+function myeventlane_vendor_user_login(UserInterface $account): void {
+  \Drupal::service('myeventlane_vendor.vendor_store_subscriber')->ensureLinkedStoreForVendorUser($account);
+}
 
 /**
  * Implements hook_theme().
