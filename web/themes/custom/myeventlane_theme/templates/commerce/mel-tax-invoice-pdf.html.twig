@@ -1,0 +1,77 @@
+{#
+/**
+ * @file
+ * Minimal HTML for Dompdf — tax invoice from Commerce order.
+ */
+#}
+{% set inv = invoice|default({}) %}
+{% set order = order_entity %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ 'Tax invoice'|t }} #{% if order %}{{ order.getOrderNumber }}{% endif %}</title>
+  <style>
+    body { font-family: DejaVu Sans, Helvetica, Arial, sans-serif; font-size: 12px; color: #222; margin: 24px; }
+    h1 { font-size: 18px; margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border-bottom: 1px solid #ddd; padding: 8px 4px; text-align: left; }
+    th:nth-child(2), td:nth-child(2) { text-align: center; width: 40px; }
+    th:nth-child(3), th:nth-child(4), td:nth-child(3), td:nth-child(4) { text-align: right; }
+    .meta { margin-bottom: 16px; line-height: 1.5; }
+    .total { margin-top: 16px; font-size: 14px; font-weight: bold; }
+    .gst { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>{{ 'Tax invoice'|t }}</h1>
+  <div class="meta">
+    {% if inv.vendor_name is defined and inv.vendor_name %}<strong>{{ 'Supplier:'|t }}</strong> {{ inv.vendor_name }}<br />{% endif %}
+    {% if inv.vendor_abn is defined and inv.vendor_abn %}<strong>{{ 'ABN:'|t }}</strong> {{ inv.vendor_abn }}<br />{% endif %}
+    {% if order %}<strong>{{ 'Invoice #:'|t }}</strong> {{ order.getOrderNumber }}<br />{% endif %}
+    {% if order and order.getPlacedTime %}
+      <strong>{{ 'Date:'|t }}</strong> {{ order.getPlacedTime|date('d M Y') }}
+    {% elseif inv.invoice_date_display is defined and inv.invoice_date_display %}
+      <strong>{{ 'Date:'|t }}</strong> {{ inv.invoice_date_display }}
+    {% endif %}
+  </div>
+  {% if inv.invoice_lines is defined and inv.invoice_lines|length > 0 %}
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'Item'|t }}</th>
+          <th>{{ 'Qty'|t }}</th>
+          <th>{{ 'Unit'|t }}</th>
+          <th>{{ 'Subtotal'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in inv.invoice_lines %}
+          <tr>
+            <td>{{ row.title }}</td>
+            <td>{{ row.quantity }}</td>
+            <td>{{ row.unit_price }}</td>
+            <td>{{ row.line_total }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+  {% if inv.fee_lines is defined %}
+    {% for fee in inv.fee_lines %}
+      <p style="display:flex; justify-content:space-between;"><span>{{ fee.label }}</span><span>{{ fee.amount }}</span></p>
+    {% endfor %}
+  {% endif %}
+  {% if inv.tax_lines is defined %}
+    {% for tax in inv.tax_lines %}
+      <p style="display:flex; justify-content:space-between;"><span>{{ tax.label }}</span><span>{{ tax.amount }}</span></p>
+    {% endfor %}
+  {% endif %}
+  {% if inv.order_total_gst is defined and inv.order_total_gst %}
+    <p class="gst"><strong>{{ 'GST (10%)'|t }}</strong> {{ inv.order_total_gst }}</p>
+  {% endif %}
+  {% if inv.order_total is defined and inv.order_total %}
+    <p class="total">{{ 'Total'|t }} {{ inv.order_total }}</p>
+  {% endif %}
+</body>
+</html>

@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
+use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
@@ -28,6 +29,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly LoggerInterface $logger,
     private readonly DomainDetector $domainDetector,
     private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
+    private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
   ) {}
 
@@ -80,6 +82,16 @@ final class OrderConfirmationQueueBuilder {
     }
 
     $breakdown = $this->orderPricingBreakdown->build($order);
+    $invoice = $this->taxInvoicePresentation->build($order);
+    $invoice_lines = [];
+    foreach ($invoice['invoice_lines'] as $row) {
+      $invoice_lines[] = [
+        'title' => $row['title'],
+        'quantity' => $row['quantity'],
+        'unit_price' => $row['unit_price'],
+        'line_total' => $row['line_total'],
+      ];
+    }
 
     $context = [
       'first_name' => $first_name,
@@ -97,6 +109,14 @@ final class OrderConfirmationQueueBuilder {
       'order_tax_rows' => $breakdown['tax_rows'],
       'order_fee_rows' => $breakdown['fee_rows'],
       'order_platform_fee_absorbed' => $breakdown['platform_fee_absorbed'],
+      'vendor_name' => $invoice['vendor_name'],
+      'vendor_abn' => $invoice['vendor_abn'],
+      'order_total_gst' => $invoice['order_total_gst'],
+      'order_total' => $invoice['order_total'],
+      'invoice_lines' => $invoice_lines,
+      'invoice_tax_lines' => $invoice['tax_lines'],
+      'invoice_fee_lines' => $invoice['fee_lines'],
+      'invoice_date_short' => $invoice['invoice_date_display'],
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
       'tickets_url' => $tickets_url,
       'has_tickets' => $has_tickets,

@@ -11,6 +11,7 @@ dependencies:
     - field.field.commerce_store.online.field_stripe_onboard_url
     - field.field.commerce_store.online.field_stripe_payouts_enabled
     - field.field.commerce_store.online.field_vendor_reference
+    - field.field.commerce_store.online.field_abn
   module:
     - address
 _core:
@@ -20,6 +21,14 @@ targetEntityType: commerce_store
 bundle: online
 mode: default
 content:
+  field_abn:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 2
+    region: content
   address:
     type: address_default
     label: above
