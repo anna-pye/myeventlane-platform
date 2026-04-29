@@ -97,4 +97,7 @@
   --mel-max: 1320px;
   --mel-header-bg: linear-gradient(90deg, color-mix(in srgb, var(--mel-color-primary) 14%, #fff), color-mix(in srgb, var(--mel-color-accent) 16%, #fff));
   --mel-footer-bg: var(--mel-color-bg);
+
+  /* Soft success surface (confirmations, subtle highlights) */
+  --mel-success-soft: color-mix(in srgb, #22c55e 14%, #fff);
 }
