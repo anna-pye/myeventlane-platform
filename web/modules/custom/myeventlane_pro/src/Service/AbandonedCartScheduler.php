@@ -107,7 +107,7 @@ final class AbandonedCartScheduler {
    * Schedules reminder rows for an order.
    */
   public function scheduleForOrder(OrderInterface $order): int {
-    if ($order->isNew() || $order->isEmpty()) {
+    if ($order->isNew() || !$this->orderHasPurchasableItems($order)) {
       return 0;
     }
 
@@ -185,7 +185,7 @@ final class AbandonedCartScheduler {
    * Determines whether the order qualifies for abandoned-cart reminders.
    */
   public function qualifiesForReminder(OrderInterface $order): bool {
-    if ($order->isNew() || $order->isEmpty()) {
+    if ($order->isNew() || !$this->orderHasPurchasableItems($order)) {
       return FALSE;
     }
 

@@ -57,7 +57,11 @@ final class OnboardingState extends ContentEntityBase implements OnboardingState
    * {@inheritdoc}
    */
   public function getOwnerId(): ?int {
-    return $this->get('uid')->target_id;
+    $target_id = $this->get('uid')->target_id;
+    if ($target_id === NULL || $target_id === '') {
+      return NULL;
+    }
+    return (int) $target_id;
   }
 
   /**
