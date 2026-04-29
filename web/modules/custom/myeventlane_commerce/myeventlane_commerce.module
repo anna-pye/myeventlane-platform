@@ -435,6 +435,11 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
     $form_state->set('workspace_safe', TRUE);
   }
 
+  // Cart Views form: clearer primary action label (conversion layer).
+  if (isset($form['actions']['checkout']['#order_id'])) {
+    $form['actions']['checkout']['#value'] = t('Continue to checkout');
+  }
+
   // Apply only on Commerce checkout forms.
   if (!isset($form['#id']) || !str_contains($form['#id'], 'commerce-checkout')) {
     return;
