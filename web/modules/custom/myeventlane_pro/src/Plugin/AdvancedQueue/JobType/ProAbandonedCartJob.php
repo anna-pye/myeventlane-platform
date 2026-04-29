@@ -114,9 +114,9 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       return JobResult::failure("Order {$orderId} not found.");
     }
 
-    if ($order->isNew() || $order->isEmpty()) {
-      $this->markTrackingRow($trackingId, self::STATUS_SKIPPED, 'Order entity is not persisted.');
-      return JobResult::success("Tracking row {$trackingId} skipped: Order entity is not persisted.");
+    if ($order->isNew() || !$this->orderHasPurchasableItems($order)) {
+      $this->markTrackingRow($trackingId, self::STATUS_SKIPPED, 'Order has no purchasable line items.');
+      return JobResult::success("Tracking row {$trackingId} skipped: order has no purchasable line items.");
     }
 
     $eligibility = $this->validateSendEligibility($order);
@@ -151,8 +151,12 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
    * Re-checks eligibility before dispatching email.
    */
   private function validateSendEligibility(OrderInterface $order): bool|string {
-    if ($order->isNew() || $order->isEmpty()) {
+    if ($order->isNew()) {
       return 'Order entity is not persisted.';
+    }
+
+    if (!$this->orderHasPurchasableItems($order)) {
+      return 'Order has no items.';
     }
 
     if ($this->isTerminalState($order)) {
@@ -165,17 +169,6 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       return 'Order not in abandoned-cart state.';
     }
 
-    $hasItems = FALSE;
-    foreach ($order->getItems() as $orderItem) {
-      if ((float) $orderItem->getQuantity() > 0) {
-        $hasItems = TRUE;
-        break;
-      }
-    }
-    if (!$hasItems) {
-      return 'Order has no items.';
-    }
-
     $store = $order->getStore();
     if (!$store instanceof StoreInterface) {
       return 'Order has no store.';
@@ -186,6 +179,21 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     }
 
     return TRUE;
+  }
+
+  /**
+   * TRUE when the order has at least one line item with quantity greater than zero.
+   *
+   * Commerce orders do not implement a generic entity isEmpty(); emptiness for carts
+   * is determined from order items (matches AbandonedCartScheduler).
+   */
+  private function orderHasPurchasableItems(OrderInterface $order): bool {
+    foreach ($order->getItems() as $orderItem) {
+      if ((float) $orderItem->getQuantity() > 0) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
