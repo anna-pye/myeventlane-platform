@@ -7,7 +7,16 @@
     overflow: hidden;
   }
 
+  // Explicit height so img % height resolves; fills hero band when this wrapper is used.
+  &__hero-image {
+    position: relative;
+    height: 300px;
+    overflow: hidden;
+    border-radius: var(--mel-radius-md);
+  }
+
   &__hero-image img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -16,7 +25,13 @@
   &__hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.75) 0%,
+      rgba(0, 0, 0, 0.45) 40%,
+      rgba(0, 0, 0, 0.2) 70%,
+      rgba(0, 0, 0, 0.05) 100%
+    );
     display: flex;
     align-items: flex-end;
   }
@@ -29,11 +44,13 @@
   &__title {
     font-size: 32px;
     font-weight: 700;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
 
   &__meta {
     font-size: 14px;
     opacity: 0.9;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 
     span {
       display: block;
@@ -43,8 +60,9 @@
   &__body {
     margin-top: 24px;
 
+    // Fixed bottom sidebar (price + CTA + trust): reserve ~180px + safe area so content clears the bar.
     @media (max-width: 768px) {
-      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
     }
   }
 
