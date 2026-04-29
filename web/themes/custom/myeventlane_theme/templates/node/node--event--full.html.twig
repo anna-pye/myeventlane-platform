@@ -75,48 +75,48 @@
 
 <article{{ attributes.addClass('mel-event', 'mel-event--v2') }}>
   <div class="mel-container">
-    {# Hero: node--event--full — same stack as homepage featured_hero (mel-event-card variant). #}
-    <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
-      <div class="mel-event-hero__media">
+    {# Hero: strong overlay gradient + category/title/meta (field render with preprocess fallbacks). #}
+    <div class="mel-event__hero">
+      <div class="mel-event__hero-media">
         {% if content.field_event_image %}
           {{ content.field_event_image }}
         {% else %}
           <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
         {% endif %}
       </div>
-      <div class="mel-event-hero__overlay" aria-hidden="true"></div>
+
+      <div class="mel-event__hero-overlay" aria-hidden="true"></div>
+
       {% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
         <div class="mel-event-hero__chip">
           <span class="mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--warning" aria-hidden="true">
             <span class="mel-pill__label">{{ 'Sold out'|t }}</span>
           </span>
         </div>
-      {% elseif mel_category_label %}
-        <div class="mel-event-hero__chip">
-          <span class="mel-pill mel-pill--category mel-pill--on-image mel-pill--cat-{{ mel_category_slug|default('default') }}" aria-hidden="true">
-            <span class="mel-pill__label">{{ mel_category_label }}</span>
-          </span>
-        </div>
-      {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
-        <div class="mel-event-hero__chip mel-event-hero__chip--field">
+      {% endif %}
+
+      <div class="mel-event__hero-content mel-container">
+
+        <div class="mel-event__category">
           {{ content.field_category }}
         </div>
-      {% endif %}
-      <div class="mel-event-hero__content">
-        <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
-        {% if hero_datetime %}
-          <p class="mel-event-hero__datetime">{{ hero_datetime }}</p>
-        {% endif %}
-        {% if hero_venue %}
-          <p class="mel-event-hero__venue">{{ hero_venue }}</p>
-        {% endif %}
+
+        <h1 class="mel-event__title" id="mel-event-title">{{ label }}</h1>
+
+        <div class="mel-event__meta">
+          <span>{% set _start_markup = content.field_event_start is defined ? content.field_event_start|render : '' %}{% if _start_markup|striptags|trim %}{{ content.field_event_start }}{% elseif hero_datetime %}{{ hero_datetime }}{% endif %}</span>
+          <span>{% set _loc_markup = content.field_location is defined ? content.field_location|render : '' %}{% if _loc_markup|striptags|trim %}{{ content.field_location }}{% elseif hero_venue %}{{ hero_venue }}{% endif %}</span>
+        </div>
+
         {% if (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) or hero_status %}
           {% set _hero_status_mod = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? 'sold-out' : (hero_status_modifier|default('default')) %}
           {% set _hero_status_text = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? (event_ui.status_label|default('')|striptags|length > 0 ? event_ui.status_label : ('Sold out'|t)) : hero_status %}
-          <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ _hero_status_mod }}">{{ _hero_status_text }}</p>
+          <p class="mel-event__hero-status mel-event-card__status mel-event-card__status--{{ _hero_status_mod }}">{{ _hero_status_text }}</p>
         {% endif %}
+
       </div>
-    </section>
+
+    </div>
 
     {# Meta row: when / where (primary CTA + trust live in the sticky sidebar card) #}
     <section class="mel-event-meta-bar" aria-label="{{ 'Event summary'|t }}">
@@ -197,8 +197,8 @@
       </div>
     {% endif %}
 
-    <div class="mel-event-layout">
-      <div class="mel-event-layout__main">
+    <div class="mel-event__layout">
+      <div class="mel-event__main">
         {% set body_render = (content.body is defined) ? (content.body|render) : '' %}
         {% set body_plain = body_render|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
         {% if body_plain %}
@@ -474,7 +474,7 @@
            These are configuration inputs, not attendee-facing content. #}
       </div>
 
-      <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
+      <aside class="mel-event__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
         <div class="mel-card mel-card--surface mel-card--sticky">
           <div class="mel-card__header">
             <h2 class="mel-card__title">{% if mel_cta_text|striptags|length > 0 %}{{ mel_cta_text }}{% else %}{% if cta_type is defined and cta_type == 'rsvp' %}{{ 'Book free RSVP'|t }}{% elseif cta_type is defined and cta_type == 'paid' %}{{ 'Buy tickets'|t }}{% else %}{{ 'View details'|t }}{% endif %}{% endif %}</h2>
