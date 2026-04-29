@@ -7,8 +7,6 @@
 #}
 {% if grouped_items is not empty %}
 <div class="mel-checkout-order-summary mel-summary-grouped" role="region" aria-labelledby="mel-checkout-summary-heading">
-  <h2 id="mel-checkout-summary-heading" class="mel-checkout-order-title mel-checkout-summary__title">{{ 'Order summary'|t }}</h2>
-
   {% for event in grouped_items %}
     <div class="mel-summary-event">
       <h3 class="mel-summary-event__title">{{ event.title }}</h3>
