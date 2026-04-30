@@ -1,34 +1,24 @@
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+
 .mel-form {
   max-width: 960px;
   margin: 0 auto;
 
   &--vendor-settings {
-    padding: 2rem;
+    padding: $spacing-8;
   }
-}
 
-.mel-card {
-  background: #fff;
-  border: 1px solid #eaeaea;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.mel-btn {
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-
-  &--primary {
-    background: #4f46e5;
-    color: #fff;
+  .mel-vendor-settings__card {
+    padding: $card-padding;
+    margin-bottom: $card-gap;
   }
 }
 
 .mel-form__actions {
   position: sticky;
   bottom: 0;
-  background: #fff;
-  padding: 1rem;
-  border-top: 1px solid #eee;
+  background: $bg-primary;
+  padding: $spacing-4;
+  border-top: 1px solid $border-color-light;
 }

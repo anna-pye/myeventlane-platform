@@ -116,46 +116,6 @@ final class OrderPricingBreakdownBuilder {
     ];
   }
 
-  /**
-   * Minimal pricing context for order confirmation email (no row breakdown).
-   *
-   * Skips subtotal, per-adjustment row formatting, fee aggregation, and
-   * platform-fee-absorbed detection when templates only need total + GST note.
-   *
-   * @return array{
-   *   total_formatted: string,
-   *   show_includes_gst_note: bool,
-   * }
-   */
-  public function buildForOrderConfirmationEmail(OrderInterface $order): array {
-    $has_gst = FALSE;
-    foreach ($order->getAdjustments() as $adjustment) {
-      if ($adjustment->getType() !== 'tax') {
-        continue;
-      }
-      $amount = $adjustment->getAmount();
-      if ($amount instanceof Price && !$amount->isZero()) {
-        $has_gst = TRUE;
-        break;
-      }
-    }
-
-    $store = $order->getStore();
-    $prices_include_tax = $this->storePricesIncludeTax($store);
-    $au_store = $this->storeIsAustralia($store);
-    $gst_type_active = $this->australianGstTaxTypeIsActive();
-
-    $show_includes_gst_note = $prices_include_tax && $au_store && $gst_type_active && $has_gst;
-
-    $total = $order->getTotalPrice();
-    $total_formatted = $total ? $this->formatPrice($total) : '';
-
-    return [
-      'total_formatted' => $total_formatted,
-      'show_includes_gst_note' => $show_includes_gst_note,
-    ];
-  }
-
   private function storePricesIncludeTax(?StoreInterface $store): bool {
     if (!$store || !$store->hasField('prices_include_tax') || $store->get('prices_include_tax')->isEmpty()) {
       return FALSE;
