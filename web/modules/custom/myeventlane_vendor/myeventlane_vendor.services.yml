@@ -35,6 +35,12 @@ services:
       - '@current_user'
       - '@logger.channel.myeventlane_vendor'
 
+  myeventlane_vendor.vendor_card_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorCardBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_vendor'
+
   myeventlane_vendor.user_vendor_membership_query:
     class: Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery
     arguments:
@@ -330,7 +336,7 @@ services:
 
   myeventlane_vendor.controller.vendor_dashboard_messaging_brand:
     class: Drupal\myeventlane_vendor\Controller\VendorDashboardMessagingBrandController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@form_builder', '@entity_type.manager']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@form_builder', '@entity_type.manager', '@request_stack']
     tags:
       - { name: controller.service_arguments }
 

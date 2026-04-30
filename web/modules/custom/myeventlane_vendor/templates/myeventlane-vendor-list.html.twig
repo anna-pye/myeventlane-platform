@@ -4,7 +4,7 @@
  * Vendor directory list template.
  *
  * Variables:
- * - vendors: Array of Vendor entities.
+ * - vendors: Array of prepared vendor card data.
  */
 #}
 <div class="mel-vendor-directory">
@@ -16,35 +16,11 @@
   {% if vendors is not empty %}
     <div class="mel-vendor-grid">
       {% for vendor in vendors %}
-        <a href="{{ path('entity.myeventlane_vendor.canonical', {'myeventlane_vendor': vendor.id()}) }}" class="mel-vendor-card">
-          <div class="mel-vendor-card__logo">
-            {% if vendor.field_vendor_logo.entity %}
-              <img src="{{ file_url(vendor.field_vendor_logo.entity.uri.value) }}" 
-                   alt="{{ vendor.label }}" 
-                   class="mel-vendor-card__logo-img"
-                   loading="lazy" />
-            {% else %}
-              <div class="mel-vendor-card__logo-placeholder">
-                <span class="mel-vendor-card__logo-initial">{{ vendor.label|first|upper }}</span>
-              </div>
-            {% endif %}
-          </div>
-          <div class="mel-vendor-card__content">
-            <h2 class="mel-vendor-card__name">{{ vendor.label }}</h2>
-            {% if vendor.field_tagline.value %}
-              <p class="mel-vendor-card__tagline">{{ vendor.field_tagline.value }}</p>
-            {% elseif vendor.description.value %}
-              <p class="mel-vendor-card__tagline">{{ vendor.description.value|striptags|slice(0, 80) }}{% if vendor.description.value|length > 80 %}…{% endif %}</p>
-            {% endif %}
-          </div>
-          <div class="mel-vendor-card__arrow">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </a>
+        {% include '@myeventlane_theme/components/vendor-card.html.twig' with vendor %}
       {% endfor %}
     </div>
+
+    {{ pager }}
   {% else %}
     <div class="mel-vendor-directory__empty mel-empty mel-empty--vendors" role="status">
       <h2 class="mel-empty__title">{{ 'No organisers listed yet'|t }}</h2>

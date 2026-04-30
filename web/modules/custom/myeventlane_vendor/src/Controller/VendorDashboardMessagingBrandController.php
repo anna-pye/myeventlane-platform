@@ -11,9 +11,10 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
-use Drupal\myeventlane_messaging\Form\VendorBrandConfigForm;
+use Drupal\myeventlane_messaging\Form\VendorBrandingForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Vendor console: messaging brand config page.
@@ -50,6 +51,7 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
     MessengerInterface $messenger,
     private readonly FormBuilderInterface $formBuilder,
     EntityTypeManagerInterface $entityTypeManager,
+    private readonly RequestStack $requestStack,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->entityTypeManager = $entityTypeManager;
@@ -65,6 +67,7 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
       $container->get('messenger'),
       $container->get('form_builder'),
       $container->get('entity_type.manager'),
+      $container->get('request_stack'),
     );
   }
 
@@ -76,6 +79,12 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
    */
   public function brand(): array|RedirectResponse {
     $this->assertVendorAccess();
+    $request = $this->requestStack->getCurrentRequest();
+    \Drupal::logger('mel_debug')->error('BRAND ROUTE REQUEST: method=@method uri=@uri post=<pre>@post</pre>', [
+      '@method' => $request->getMethod(),
+      '@uri' => $request->getRequestUri(),
+      '@post' => print_r($request->request->all(), TRUE),
+    ]);
 
     $vendor = $this->getCurrentVendorOrNull();
     if (!$vendor) {
@@ -84,7 +93,11 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
       return new RedirectResponse($url->toString());
     }
 
-    $form = $this->formBuilder->getForm(VendorBrandConfigForm::class, $vendor);
+    $form = $this->formBuilder->getForm(
+      VendorBrandingForm::class,
+      $vendor,
+      Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
+    );
 
     // Build settings tabs for navigation (same subsection tabs as Profile settings).
     $tabs = [

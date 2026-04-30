@@ -163,6 +163,7 @@ function myeventlane_core_entity_type_alter(array &$entity_types): void {
     'ticket_code',
     'mel_ticket_group',
     'mel_event_ticket_settings',
+    'myeventlane_vendor_follow',
     'rsvp_submission',
   ];
 

@@ -13,6 +13,7 @@
 {% set _title = card_title|default(title|default('')) %}
 {% set _url = card_url|default(url|default('#')) %}
 {% set _img = card_image_url|default(image|default('')) %}
+{% set _img_render = card_image_render|default(image_render|default(null)) %}
 {% set _img_alt = card_image_alt|default(_title) %}
 {% set _time = card_time_range|default(date_full|default('')) %}
 {% set _loc = card_location|default(location|default('')) %}
@@ -78,9 +79,11 @@
   {% else %}
   <article class="mel-event-hero-card-article">
   {% endif %}
-    <a href="{{ _url }}" class="mel-event-hero-card" aria-label="{{ _title ~ ' — ' ~ _cta }}">
+    <a href="{{ _url }}" class="mel-event-hero-card" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% endif %}>
       <div class="mel-event-hero-card__image">
-        {% if _img %}
+        {% if _img_render %}
+          {{ _img_render }}
+        {% elseif _img %}
           <img src="{{ _img }}" alt="{{ _img_alt }}" loading="eager" decoding="async" />
         {% else %}
           <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
@@ -139,9 +142,11 @@
       {{ event_flag_event_save }}
     </div>
   {% endif %}
-  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}">
+  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% endif %}>
     <div class="mel-event-card__image">
-      {% if _img %}
+      {% if _img_render %}
+        {{ _img_render }}
+      {% elseif _img %}
         <img
           src="{{ _img }}"
           alt="{{ _img_alt }}"

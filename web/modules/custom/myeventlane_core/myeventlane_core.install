@@ -13,6 +13,54 @@ use Drupal\paragraphs\Entity\ParagraphsType;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 
 /**
+ * Implements hook_schema().
+ */
+function myeventlane_core_schema(): array {
+  $schema['myeventlane_public_analytics_event'] = [
+    'description' => 'Lightweight internal public interaction analytics.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'entity_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ],
+      'entity_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ],
+      'user_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'timestamp' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'entity_event' => ['entity_type', 'entity_id', 'event_type'],
+      'event_type_timestamp' => ['event_type', 'timestamp'],
+      'user_id' => ['user_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
  * Install required modules for event field model.
  */
 function myeventlane_core_update_9100(): void {
@@ -761,4 +809,29 @@ function myeventlane_core_update_9116(): void {
 
   $view->set('display', $display);
   $view->save();
+}
+
+/**
+ * Installs the vendor follow entity table on existing sites.
+ */
+function myeventlane_core_update_9117(): void {
+  if (\Drupal::database()->schema()->tableExists('myeventlane_vendor_follow')) {
+    return;
+  }
+
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor_follow');
+  \Drupal::entityDefinitionUpdateManager()->installEntityType($entity_type);
+}
+
+/**
+ * Creates the lightweight public analytics table on existing sites.
+ */
+function myeventlane_core_update_9118(): void {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('myeventlane_public_analytics_event')) {
+    return;
+  }
+
+  $module_schema = myeventlane_core_schema();
+  $schema->createTable('myeventlane_public_analytics_event', $module_schema['myeventlane_public_analytics_event']);
 }
