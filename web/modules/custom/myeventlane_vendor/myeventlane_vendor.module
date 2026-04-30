@@ -91,6 +91,7 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
         'header_actions' => [],
         'tabs' => [],
         'body' => NULL,
+        'content' => NULL,
         'workspace' => NULL,
       ],
       'template' => 'vendor-console-page',

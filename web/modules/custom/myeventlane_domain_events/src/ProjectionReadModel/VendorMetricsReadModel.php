@@ -82,11 +82,6 @@ final class VendorMetricsReadModel {
       return $metrics;
     }
 
-    $this->logger->debug(
-      'Projection miss for vendor {vendor_id}; using fallback metrics.',
-      ['vendor_id' => $vendorId]
-    );
-
     $fallback = $this->buildFallbackMetrics($vendorId);
     $this->cache->set(
       $cacheKey,

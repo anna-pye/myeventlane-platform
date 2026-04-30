@@ -1676,7 +1676,7 @@
     },
     "myeventlane_vendor.console.settings": {
         "path": "\/vendor\/settings",
-        "controller": "myeventlane_vendor.controller.vendor_settings:settings",
+        "controller": "\\Drupal\\myeventlane_vendor_settings\\Form\\VendorSettingsForm",
         "title": "Vendor settings"
     },
     "myeventlane_vendor.console.studio": {

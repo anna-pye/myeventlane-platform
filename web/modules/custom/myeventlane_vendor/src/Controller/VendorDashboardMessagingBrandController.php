@@ -86,7 +86,7 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
 
     $form = $this->formBuilder->getForm(VendorBrandConfigForm::class, $vendor);
 
-    // Build settings tabs for navigation (same as VendorSettingsController).
+    // Build settings tabs for navigation (same subsection tabs as Profile settings).
     $tabs = [
       [
         'label' => $this->t('Profile'),
