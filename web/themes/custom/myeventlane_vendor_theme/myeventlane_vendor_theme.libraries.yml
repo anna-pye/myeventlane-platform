@@ -17,6 +17,13 @@ global-styling:
   dependencies:
     - myeventlane_vendor_theme/global
 
+form-protection:
+  js:
+    src/js/form-protection.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Internal dashboard footer accordion (replaces myeventlane_theme/footer-internal on vendor).
 footer-internal:
   js:

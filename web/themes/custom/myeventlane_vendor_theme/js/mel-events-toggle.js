@@ -10,6 +10,9 @@
     attach(context) {
       once('mel-events-view-toggle', '[data-view-toggle]', context).forEach((toggle) => {
         toggle.addEventListener('click', (e) => {
+          if (e.target.closest('form.mel-protected-form')) {
+            return;
+          }
           const btn = e.target.closest('button');
           if (!btn || !toggle.contains(btn)) {
             return;

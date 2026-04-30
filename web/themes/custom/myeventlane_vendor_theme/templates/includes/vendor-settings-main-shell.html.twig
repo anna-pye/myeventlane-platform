@@ -1,0 +1,16 @@
+{#
+/**
+ * @file
+ * Section tabs + panel wrapper for /vendor/settings (_form route main column).
+ */
+#}
+<nav class="mel-console-page__tabs" aria-label="{{ 'Section tabs'|t }}">
+  {% for tab in page.mel_vendor_route_tabs %}
+    <a href="{{ tab.url }}" class="mel-console-page__tab{% if tab.active %} is-active{% endif %}"{% if tab.active %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+  {% endfor %}
+</nav>
+<div class="mel-console-page__layout">
+  <div class="mel-console-page__main mel-panel-card">
+    {{ page.content }}
+  </div>
+</div>

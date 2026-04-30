@@ -32,9 +32,7 @@ final class AdminConsoleAccess {
     $path = $stackRequest?->getPathInfo() ?: '/';
 
     if (!str_starts_with($path, '/admin')) {
-      \Drupal::logger('mel_admin_access_debug')->notice('Skipped admin access (non-admin path) path=@path', [
-        '@path' => $path,
-      ]);
+      // Intentionally silent: this runs on most requests; logging here floods dblog.
       return AccessResult::neutral('Non-admin request path: admin access check not applicable.')
         ->addCacheContexts(['url.path', 'user.permissions', 'user.roles']);
     }

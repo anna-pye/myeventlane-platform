@@ -90,6 +90,10 @@ import './vendor-alert';
 
       toggles.forEach((toggle) => {
         toggle.addEventListener('click', (e) => {
+          if (e.target.closest('form.mel-protected-form')) {
+            return;
+          }
+
           e.preventDefault();
           const isOpen = sidebar.classList.toggle('is-open');
           toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -99,7 +103,10 @@ import './vendor-alert';
       });
 
       // Close on overlay click
-      overlay?.addEventListener('click', () => {
+      overlay?.addEventListener('click', (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
         sidebar.classList.remove('is-open');
         overlay.classList.remove('is-visible');
         document.body.style.overflow = '';
@@ -142,9 +149,24 @@ import './vendor-alert';
         document.body.style.overflow = '';
       };
 
-      toggleBtn.forEach((btn) => btn.addEventListener('click', openSidebar));
-      closeBtn.forEach((btn) => btn.addEventListener('click', closeSidebar));
-      overlay?.addEventListener('click', closeSidebar);
+      toggleBtn.forEach((btn) => btn.addEventListener('click', (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
+        openSidebar();
+      }));
+      closeBtn.forEach((btn) => btn.addEventListener('click', (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
+        closeSidebar();
+      }));
+      overlay?.addEventListener('click', (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
+        closeSidebar();
+      });
 
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
@@ -311,6 +333,14 @@ import './vendor-alert';
 
       periodBtns.forEach((btn) => {
         btn.addEventListener('click', (e) => {
+          if (btn.closest('form.mel-no-ajax')) {
+            return;
+          }
+
+          if (e.target.closest('form.mel-protected-form')) {
+            return;
+          }
+
           e.preventDefault();
           const period = btn.dataset.period;
           const container = btn.closest('.mel-chart-period');
@@ -345,6 +375,15 @@ import './vendor-alert';
 
         steps.forEach((step, index) => {
           step.addEventListener('click', (e) => {
+            // Native POST / Form API: never hijack tab UI inside opted-out forms.
+            if (stepper.closest('form.mel-no-ajax')) {
+              return;
+            }
+
+            if (e.target.closest('form.mel-protected-form')) {
+              return;
+            }
+
             e.preventDefault();
             if (step.disabled) return;
 
@@ -379,6 +418,10 @@ import './vendor-alert';
         if (!menu) return;
 
         trigger.addEventListener('click', (e) => {
+          if (e.target.closest('form.mel-protected-form')) {
+            return;
+          }
+
           e.preventDefault();
           e.stopPropagation();
           const isOpen = menu.hidden === false;
@@ -399,6 +442,9 @@ import './vendor-alert';
 
       // Close on outside click
       document.addEventListener('click', (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
         if (!e.target.closest('.mel-dropdown')) {
           document.querySelectorAll('.mel-dropdown__menu').forEach((m) => {
             m.hidden = true;

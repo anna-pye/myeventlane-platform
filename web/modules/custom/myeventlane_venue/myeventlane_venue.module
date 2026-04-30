@@ -42,11 +42,11 @@ function myeventlane_venue_theme(array $existing, $type, $theme, $path): array {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for vendor settings (mel_vendor_settings_form).
+ * Implements hook_form_FORM_ID_alter() for organiser settings.
  *
  * Replaces the placeholder venues tab with actual venue management link.
  */
-function myeventlane_venue_form_mel_vendor_settings_form_alter(array &$form, $form_state, $form_id): void {
+function myeventlane_venue_form_mel_organiser_settings_form_alter(array &$form, $form_state, $form_id): void {
   if (!isset($form['venues'])) {
     return;
   }

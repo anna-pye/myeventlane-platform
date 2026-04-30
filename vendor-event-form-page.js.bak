@@ -44,11 +44,6 @@
           if (hostForm && hostForm.classList.contains('mel-no-ajax')) {
             return;
           }
-
-          if (e.target.closest('form.mel-protected-form')) {
-            return;
-          }
-
           e.preventDefault();
           const real = findRealSaveDraft();
           if (real) {
