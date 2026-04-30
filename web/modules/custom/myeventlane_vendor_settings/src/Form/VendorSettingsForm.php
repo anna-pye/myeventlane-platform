@@ -308,6 +308,8 @@ class VendorSettingsForm extends FormBase {
     // Fallback when action still resolves to /vendor/form_action_* (pre_render strips /vendor/).
     $form['#pre_render'][] = [FormActionUrlFixer::class, 'fixFormActionUrl'];
 
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-form--vendor-settings';
     $form['#attributes']['class'][] = 'vendor-settings-form';
     $form['#attributes']['class'][] = 'mel-settings-form';
     $form['#attributes']['class'][] = 'mel-protected-form';
@@ -319,16 +321,67 @@ class VendorSettingsForm extends FormBase {
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
     $form['#attached']['library'][] = 'myeventlane_vendor_settings/settings_form';
 
-    // Profile Information Section.
-    $form['profile'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
-    ];
-    $form['profile']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Profile Information') . '</h2>',
-      '#weight' => -10,
+    $this->buildProfileSection($form, $form_state, $vendor);
+    $this->buildVisualAssetsSection($form, $form_state, $vendor);
+    $this->buildContactSection($form, $form_state, $vendor);
+    $this->buildPublicSettingsSection($form, $form_state, $vendor);
+    $this->buildVenuesSection($form, $form_state, $vendor);
+    $this->buildCommerceSection($form, $form_state, $vendor);
+    $this->buildTeamSection($form, $form_state, $vendor);
+    $this->buildPreferencesSection($form, $form_state, $vendor);
+
+    $form['actions'] = [
+      '#type' => 'actions',
+      '#weight' => 100,
+      '#attributes' => ['class' => ['mel-form__actions']],
     ];
 
+    $form['actions']['submit'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Save changes'),
+      '#button_type' => 'primary',
+      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+    ];
+
+    // Post-build #attached log (identifies AJAX library injectors; empty at buildForm() entry).
+    $this->logger->debug('MEL FORM ATTACHED: <pre>@data</pre>', [
+      '@data' => print_r($form['#attached'] ?? [], TRUE),
+    ]);
+
+    // Remove AJAX-related libraries ONLY.
+    if (!empty($form['#attached']['library'])) {
+      $form['#attached']['library'] = array_values(array_filter(
+        $form['#attached']['library'],
+        function ($lib) {
+          return !in_array($lib, [
+            'core/drupal.ajax',
+            'core/drupal.dialog.ajax',
+            'core/drupal.progress',
+          ], TRUE);
+        }
+      ));
+    }
+
+    if (isset($form['#attached']['drupalSettings']['ajax'])) {
+      unset($form['#attached']['drupalSettings']['ajax']);
+    }
+
+    $form['#attributes']['data-drupal-ajax'] = 'false';
+    $form['#attributes']['class'][] = 'mel-no-ajax';
+
+    return $form;
+  }
+
+  /**
+   * Builds the organiser profile fields.
+   */
+  private function buildProfileSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
+    $form['profile'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Profile Information'),
+      '#open' => TRUE,
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+    ];
     $form['profile']['name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Vendor Name'),
@@ -382,16 +435,17 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Visual Assets Section.
+  }
+
+  /**
+   * Builds image and visual branding fields.
+   */
+  private function buildVisualAssetsSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['visual_assets'] = [
-      '#type' => 'container',
+      '#type' => 'details',
+      '#title' => $this->t('Visual Assets'),
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
     ];
-    $form['visual_assets']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Visual Assets') . '</h2>',
-      '#weight' => -10,
-    ];
-
     if ($vendor->hasField('field_vendor_logo') || $vendor->hasField('field_logo_image')) {
       $logo_field = $vendor->hasField('field_vendor_logo') ? 'field_vendor_logo' : 'field_logo_image';
       $logo_default = [];
@@ -433,16 +487,17 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Contact Information Section.
+  }
+
+  /**
+   * Builds public contact and social link fields.
+   */
+  private function buildContactSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['contact'] = [
-      '#type' => 'container',
+      '#type' => 'details',
+      '#title' => $this->t('Contact Information'),
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
     ];
-    $form['contact']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Contact Information') . '</h2>',
-      '#weight' => -10,
-    ];
-
     if ($vendor->hasField('field_email')) {
       $form['contact']['email'] = [
         '#type' => 'email',
@@ -569,14 +624,16 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Public Page Settings Section.
+  }
+
+  /**
+   * Builds public profile visibility controls.
+   */
+  private function buildPublicSettingsSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['public_page'] = [
-      '#type' => 'container',
+      '#type' => 'details',
+      '#title' => $this->t('Public Page Settings'),
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
-    ];
-    $form['public_page']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Public Page Settings') . '</h2>',
-      '#weight' => -10,
     ];
     $form['public_page']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Control what information is displayed on your public vendor page.') . '</p>',
@@ -652,14 +709,16 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Recurring Venues Section.
+  }
+
+  /**
+   * Builds the recurring venues placeholder section.
+   */
+  private function buildVenuesSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['venues'] = [
-      '#type' => 'container',
+      '#type' => 'details',
+      '#title' => $this->t('Recurring Venues'),
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
-    ];
-    $form['venues']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Recurring Venues') . '</h2>',
-      '#weight' => -10,
     ];
     $form['venues']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Save frequently used venues to quickly add them to events.') . '</p>',
@@ -671,16 +730,17 @@ class VendorSettingsForm extends FormBase {
       '#markup' => '<p>' . $this->t('Venue management will be implemented here. For now, venues are managed per-event.') . '</p>',
     ];
 
-    // Payment & Store Settings Section.
+  }
+
+  /**
+   * Builds Commerce store, business, and payout readiness details.
+   */
+  private function buildCommerceSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['store'] = [
-      '#type' => 'container',
+      '#type' => 'details',
+      '#title' => $this->t('Payment & Store Settings'),
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
     ];
-    $form['store']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Payment & Store Settings') . '</h2>',
-      '#weight' => -10,
-    ];
-
     // Business Information subsection.
     $form['store']['business'] = [
       '#type' => 'fieldset',
@@ -867,17 +927,19 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Team Members Section (AJAX wrapper id for add-member refresh only; must stay inside <form>).
+  }
+
+  /**
+   * Builds team membership controls.
+   */
+  private function buildTeamSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['team'] = [
-      '#type' => 'container',
+      '#type' => 'details',
+      '#title' => $this->t('Team Members'),
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card'],
         'id' => 'mel-vendor-settings-team-ajax',
       ],
-    ];
-    $form['team']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Team Members') . '</h2>',
-      '#weight' => -10,
     ];
     $form['team']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Manage users who have access to manage this vendor account.') . '</p>',
@@ -923,16 +985,17 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Preferences Section - now loads from/saves to vendor entity fields.
+  }
+
+  /**
+   * Builds notification and organiser preference controls.
+   */
+  private function buildPreferencesSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['preferences'] = [
-      '#type' => 'container',
+      '#type' => 'details',
+      '#title' => $this->t('Preferences'),
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
     ];
-    $form['preferences']['_title'] = [
-      '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Preferences') . '</h2>',
-      '#weight' => -10,
-    ];
-
     $form['preferences']['notifications'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Email Notifications'),
@@ -976,44 +1039,6 @@ class VendorSettingsForm extends FormBase {
       '#default_value' => $email_digest_default,
     ];
 
-    $form['actions'] = [
-      '#type' => 'actions',
-      '#weight' => 100,
-    ];
-
-    $form['actions']['submit'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Save changes'),
-      '#button_type' => 'primary',
-    ];
-
-    // Post-build #attached log (identifies AJAX library injectors; empty at buildForm() entry).
-    $this->logger->debug('MEL FORM ATTACHED: <pre>@data</pre>', [
-      '@data' => print_r($form['#attached'] ?? [], TRUE),
-    ]);
-
-    // Remove AJAX-related libraries ONLY.
-    if (!empty($form['#attached']['library'])) {
-      $form['#attached']['library'] = array_values(array_filter(
-        $form['#attached']['library'],
-        function ($lib) {
-          return !in_array($lib, [
-            'core/drupal.ajax',
-            'core/drupal.dialog.ajax',
-            'core/drupal.progress',
-          ], TRUE);
-        }
-      ));
-    }
-
-    if (isset($form['#attached']['drupalSettings']['ajax'])) {
-      unset($form['#attached']['drupalSettings']['ajax']);
-    }
-
-    $form['#attributes']['data-drupal-ajax'] = 'false';
-    $form['#attributes']['class'][] = 'mel-no-ajax';
-
-    return $form;
   }
 
   /**
