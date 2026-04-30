@@ -20,7 +20,7 @@ class VendorPublicController extends ControllerBase {
    * Constructs a VendorPublicController object.
    */
   public function __construct(
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
+    protected readonly EntityTypeManagerInterface $entityTypeManagerService,
     protected readonly PagerManagerInterface $pagerManager,
     protected readonly VendorCardBuilder $vendorCardBuilder,
   ) {}
@@ -43,7 +43,7 @@ class VendorPublicController extends ControllerBase {
    *   A render array for the vendor list.
    */
   public function list(): array {
-    $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+    $storage = $this->entityTypeManagerService->getStorage('myeventlane_vendor');
     $query = $storage->getQuery()
       ->accessCheck(TRUE)
       ->sort('name');

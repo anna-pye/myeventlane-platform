@@ -23,7 +23,7 @@ final class VendorFollowController extends ControllerBase {
   public function __construct(
     private readonly VendorFollowService $vendorFollowService,
     private readonly AnalyticsService $analytics,
-    private readonly AccountInterface $currentUser,
+    private readonly AccountInterface $account,
   ) {}
 
   /**
@@ -41,20 +41,20 @@ final class VendorFollowController extends ControllerBase {
    * Toggles following for the current user.
    */
   public function toggle(Vendor $myeventlane_vendor): JsonResponse {
-    if ((int) $this->currentUser->id() <= 0) {
+    if ((int) $this->account->id() <= 0) {
       return new JsonResponse([
         'status' => 'error',
         'message' => $this->t('Log in to follow organisers.'),
       ], 403);
     }
 
-    $currently_following = $this->vendorFollowService->isFollowing($this->currentUser, $myeventlane_vendor);
+    $currently_following = $this->vendorFollowService->isFollowing($this->account, $myeventlane_vendor);
     if ($currently_following) {
-      $this->vendorFollowService->unfollow($this->currentUser, $myeventlane_vendor);
+      $this->vendorFollowService->unfollow($this->account, $myeventlane_vendor);
       $following = FALSE;
     }
     else {
-      $this->vendorFollowService->follow($this->currentUser, $myeventlane_vendor);
+      $this->vendorFollowService->follow($this->account, $myeventlane_vendor);
       $following = TRUE;
       $this->analytics->track('myeventlane_vendor', (int) $myeventlane_vendor->id(), AnalyticsService::EVENT_FOLLOW_CLICK);
     }
