@@ -81,7 +81,7 @@ final class OrderConfirmationQueueBuilder {
       }
     }
 
-    $pricing = $this->orderPricingBreakdown->buildForOrderConfirmationEmail($order);
+    $pricing = $this->orderPricingBreakdown->build($order);
     $invoice = $this->taxInvoicePresentation->build($order);
 
     $context = [
@@ -93,6 +93,10 @@ final class OrderConfirmationQueueBuilder {
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
       'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
+      'order_subtotal_formatted' => $pricing['subtotal_formatted'],
+      'order_tax_rows' => $pricing['tax_rows'],
+      'order_fee_rows' => $pricing['fee_rows'],
+      'order_platform_fee_absorbed' => $pricing['platform_fee_absorbed'],
       'total_paid' => $pricing['total_formatted'] !== ''
         ? $pricing['total_formatted']
         : $this->formatPrice((float) $order->getTotalPrice()->getNumber()),

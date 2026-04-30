@@ -45,16 +45,7 @@ class VendorSettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('myeventlane_vendor')->notice('VALIDATE HIT');
-    parent::validateForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('myeventlane_vendor')->notice('SUBMIT HIT');
     $this->configFactory->getEditable('myeventlane_vendor.settings')
       ->set('directory_title', $form_state->getValue('directory_title'))
       ->save();

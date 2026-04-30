@@ -25,8 +25,6 @@ class VendorForm extends ContentEntityForm {
    */
   protected VendorStoreSubscriber $vendorStoreSubscriber;
 
-  protected LoggerInterface $melDebugLogger;
-
   protected LoggerInterface $vendorLogger;
 
   /**
@@ -36,7 +34,6 @@ class VendorForm extends ContentEntityForm {
     /** @var static $instance */
     $instance = parent::create($container);
     $instance->vendorStoreSubscriber = $container->get('myeventlane_vendor.vendor_store_subscriber');
-    $instance->melDebugLogger = $container->get('logger.channel.mel_debug');
     $instance->vendorLogger = $container->get('logger.channel.myeventlane_vendor');
     $instance->setRequestStack($container->get('request_stack'));
     return $instance;
@@ -47,22 +44,6 @@ class VendorForm extends ContentEntityForm {
    */
   public function getFormId(): string {
     return 'organiser_profile_settings';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function buildForm(array $form, FormStateInterface $form_state): array {
-    $this->melDebugLogger->notice('ORGANISER FORM BUILD');
-    return parent::buildForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function submitForm(array &$form, FormStateInterface $form_state): void {
-    parent::submitForm($form, $form_state);
-    $this->melDebugLogger->notice('ORGANISER FORM SUBMIT');
   }
 
   /**

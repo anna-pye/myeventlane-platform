@@ -16,9 +16,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  *
  * Used for cart, checkout sidebar, confirmation, and email context. Does not
  * hardcode tax amounts; reads adjustments and Australian GST config.
- *
- * Order confirmation emails use buildForOrderConfirmationEmail() when only the
- * formatted total and GST note flag are required (no line-item breakdown).
  */
 final class OrderPricingBreakdownBuilder {
 
