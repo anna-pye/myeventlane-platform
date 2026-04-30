@@ -27,6 +27,24 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class VendorSettingsForm extends FormBase {
 
+  private const FORM_DEBUG_SECTION_KEYS = [
+    'profile',
+    'visual_assets',
+    'contact',
+    'public_page',
+    'store',
+    'team',
+    'preferences',
+  ];
+
+  private const FORM_DEBUG_MAX_ARRAY_ITEMS = 12;
+
+  private const FORM_DEBUG_MAX_DEPTH = 4;
+
+  private const FORM_DEBUG_MAX_STRING_LENGTH = 160;
+
+  private const FORM_DEBUG_MAX_TOP_LEVEL_KEYS = 40;
+
   protected EntityTypeManagerInterface $entityTypeManager;
 
   protected AccountProxyInterface $currentUser;
@@ -69,7 +87,7 @@ class VendorSettingsForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'mel_vendor_settings_form';
+    return 'mel_organiser_settings_form';
   }
 
   /**
@@ -136,6 +154,26 @@ class VendorSettingsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?Vendor $vendor = NULL): array {
+    $form['#tree'] = TRUE;
+    $form['#cache'] = ['max-age' => 0];
+    $form_state->setCached(FALSE);
+    $form_state->setAlwaysProcess(TRUE);
+
+    $request = $this->getRequest();
+
+    $this->logBoundedFormDebugSummary('RAW INPUT', $form_state->getUserInput());
+    $this->logBoundedFormDebugSummary('REQUEST POST', $request->request->all());
+
+    $this->logger->notice('FORM CHECK: form_id=@fid build_id=@bid token=@tok', [
+      '@fid' => (string) ($request->request->get('form_id') ?? ''),
+      '@bid' => (string) ($request->request->get('form_build_id') ?? ''),
+      '@tok' => (string) ($request->request->get('form_token') ?? ''),
+    ]);
+
+    $this->logger->notice('FORM STATE: isSubmitted=@submitted', [
+      '@submitted' => $form_state->isSubmitted() ? 'TRUE' : 'FALSE',
+    ]);
+
     $this->logger->debug('VendorSettingsForm BUILD uid=@uid route=@route', [
       '@uid' => (string) $this->currentUser->id(),
       '@route' => $this->getRouteMatch()->getRouteName() ?? '',
@@ -272,8 +310,12 @@ class VendorSettingsForm extends FormBase {
 
     $form['#attributes']['class'][] = 'vendor-settings-form';
     $form['#attributes']['class'][] = 'mel-settings-form';
+    $form['#attributes']['class'][] = 'mel-protected-form';
+    $form['#attributes']['id'] = 'vendor-settings-form';
+    $form['#attributes']['novalidate'] = 'novalidate';
+    $form['#method'] = 'post';
+    $form['#action'] = $this->getRequest()->getRequestUri();
 
-    $form['#tree'] = TRUE;
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
     $form['#attached']['library'][] = 'myeventlane_vendor_settings/settings_form';
 
@@ -341,11 +383,11 @@ class VendorSettingsForm extends FormBase {
     }
 
     // Visual Assets Section.
-    $form['visual'] = [
+    $form['visual_assets'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
     ];
-    $form['visual']['_title'] = [
+    $form['visual_assets']['_title'] = [
       '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Visual Assets') . '</h2>',
       '#weight' => -10,
     ];
@@ -356,18 +398,18 @@ class VendorSettingsForm extends FormBase {
       if (!$vendor->get($logo_field)->isEmpty()) {
         $logo_default = [$vendor->get($logo_field)->target_id];
       }
-      $form['visual']['logo'] = [
+      $form['visual_assets']['logo'] = [
         '#type' => 'managed_file',
         '#title' => $this->t('Logo'),
         '#default_value' => $logo_default,
         '#upload_location' => 'public://vendor-assets/',
-      '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'png jpg jpeg gif svg webp'],
-        'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
-      ],
+        '#upload_validators' => [
+          'FileExtension' => ['extensions' => 'png jpg jpeg gif svg webp'],
+          'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
+        ],
         '#description' => $this->t('Your organization logo. Recommended size: 400x400px. Square format works best.'),
       ];
-      $form['visual']['logo_field_name'] = [
+      $form['visual_assets']['logo_field_name'] = [
         '#type' => 'value',
         '#value' => $logo_field,
       ];
@@ -378,15 +420,15 @@ class VendorSettingsForm extends FormBase {
       if (!$vendor->get('field_banner_image')->isEmpty()) {
         $banner_default = [$vendor->get('field_banner_image')->target_id];
       }
-      $form['visual']['banner'] = [
+      $form['visual_assets']['banner'] = [
         '#type' => 'managed_file',
         '#title' => $this->t('Banner Image'),
         '#default_value' => $banner_default,
         '#upload_location' => 'public://vendor-assets/',
-      '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
-        'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
-      ],
+        '#upload_validators' => [
+          'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
+          'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
+        ],
         '#description' => $this->t('Banner image for your vendor page. Recommended size: 1920x400px.'),
       ];
     }
@@ -503,47 +545,46 @@ class VendorSettingsForm extends FormBase {
             'inputmode' => 'url',
           ],
         ];
+        // TEMP (cache / submission isolation): AJAX disabled — re-add #ajax in STEP 8.
         $form['contact']['social_links']['links'][$delta]['remove'] = [
           '#type' => 'submit',
           '#value' => $this->t('Remove'),
           '#name' => 'remove_social_' . $delta,
           '#submit' => ['::removeSocialLink'],
-          '#ajax' => [
-            'callback' => '::ajaxRefreshSocialLinks',
-            'wrapper' => 'social-links-wrapper',
+          '#limit_validation_errors' => [
+            ['contact', 'social_links'],
           ],
-          '#limit_validation_errors' => [],
         ];
       }
 
+      // TEMP (cache / submission isolation): AJAX disabled — re-add #ajax in STEP 8.
       $form['contact']['social_links']['add'] = [
         '#type' => 'submit',
         '#value' => $this->t('Add Social Link'),
+        '#name' => 'add_social_link',
         '#submit' => ['::addSocialLink'],
-        '#ajax' => [
-          'callback' => '::ajaxRefreshSocialLinks',
-          'wrapper' => 'social-links-wrapper',
+        '#limit_validation_errors' => [
+          ['contact', 'social_links'],
         ],
-        '#limit_validation_errors' => [],
       ];
     }
 
     // Public Page Settings Section.
-    $form['public'] = [
+    $form['public_page'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
     ];
-    $form['public']['_title'] = [
+    $form['public_page']['_title'] = [
       '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Public Page Settings') . '</h2>',
       '#weight' => -10,
     ];
-    $form['public']['_intro'] = [
+    $form['public_page']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Control what information is displayed on your public vendor page.') . '</p>',
       '#weight' => -9,
     ];
 
     if ($vendor->hasField('field_public_show_email')) {
-      $form['public']['show_email'] = [
+      $form['public_page']['show_email'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show email on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_email', FALSE),
@@ -551,7 +592,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_public_show_phone')) {
-      $form['public']['show_phone'] = [
+      $form['public_page']['show_phone'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show phone on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_phone', FALSE),
@@ -559,7 +600,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_public_show_location')) {
-      $form['public']['show_location'] = [
+      $form['public_page']['show_location'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show address/location on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_location', FALSE),
@@ -567,7 +608,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_website') && $vendor->hasField('field_public_show_website')) {
-      $form['public']['show_website'] = [
+      $form['public_page']['show_website'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show website on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_website', FALSE),
@@ -576,7 +617,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_social_links') && $vendor->hasField('field_public_show_social_links')) {
-      $form['public']['show_social_links'] = [
+      $form['public_page']['show_social_links'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show social media links on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_social_links', FALSE),
@@ -585,7 +626,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_summary') && $vendor->hasField('field_public_show_summary')) {
-      $form['public']['show_summary'] = [
+      $form['public_page']['show_summary'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show summary on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_summary', FALSE),
@@ -594,7 +635,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_description') && $vendor->hasField('field_public_show_description')) {
-      $form['public']['show_description'] = [
+      $form['public_page']['show_description'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show description on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_description', FALSE),
@@ -603,7 +644,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_banner_image') && $vendor->hasField('field_public_show_banner')) {
-      $form['public']['show_banner'] = [
+      $form['public_page']['show_banner'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show banner image on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_banner', FALSE),
@@ -631,24 +672,24 @@ class VendorSettingsForm extends FormBase {
     ];
 
     // Payment & Store Settings Section.
-    $form['payment'] = [
+    $form['store'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
     ];
-    $form['payment']['_title'] = [
+    $form['store']['_title'] = [
       '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Payment & Store Settings') . '</h2>',
       '#weight' => -10,
     ];
 
     // Business Information subsection.
-    $form['payment']['business'] = [
+    $form['store']['business'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Business Information'),
       '#description' => $this->t('Legal business details for invoices and tax documents.'),
     ];
 
     if ($vendor->hasField('field_business_name')) {
-      $form['payment']['business']['business_name'] = [
+      $form['store']['business']['business_name'] = [
         '#type' => 'textfield',
         '#title' => $this->t('Legal Business Name'),
         '#default_value' => $this->getFieldValue($vendor, 'field_business_name', ''),
@@ -658,7 +699,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_abn')) {
-      $form['payment']['business']['abn'] = [
+      $form['store']['business']['abn'] = [
         '#type' => 'textfield',
         '#title' => $this->t('ABN'),
         '#default_value' => $this->getFieldValue($vendor, 'field_abn', ''),
@@ -669,7 +710,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     // Store & Stripe subsection.
-    $form['payment']['store'] = [
+    $form['store']['payment_processing'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Store & Payment Processing'),
     ];
@@ -705,7 +746,7 @@ class VendorSettingsForm extends FormBase {
           ];
         }
 
-        $form['payment']['store']['details'] = [
+        $form['store']['payment_processing']['details'] = [
           '#type' => 'table',
           '#rows' => $store_rows,
           '#attributes' => ['class' => ['store-details-table']],
@@ -730,7 +771,7 @@ class VendorSettingsForm extends FormBase {
         }
 
         // Stripe status display.
-        $form['payment']['store']['stripe_section'] = [
+        $form['store']['payment_processing']['stripe_section'] = [
           '#type' => 'fieldset',
           '#title' => $this->t('Stripe Connect'),
         ];
@@ -741,7 +782,7 @@ class VendorSettingsForm extends FormBase {
           $status_markup .= '<strong>' . $this->t('Connected') . '</strong>';
           $status_markup .= '</div>';
 
-          $form['payment']['store']['stripe_section']['status'] = [
+          $form['store']['payment_processing']['stripe_section']['status'] = [
             '#type' => 'markup',
             '#markup' => $status_markup,
           ];
@@ -755,14 +796,14 @@ class VendorSettingsForm extends FormBase {
             '@status' => $payouts_enabled ? $this->t('Enabled') : $this->t('Pending'),
           ]);
 
-          $form['payment']['store']['stripe_section']['capabilities'] = [
+          $form['store']['payment_processing']['stripe_section']['capabilities'] = [
             '#theme' => 'item_list',
             '#items' => $capabilities,
             '#attributes' => ['class' => ['stripe-capabilities']],
           ];
 
           // Manage Stripe button.
-          $form['payment']['store']['stripe_section']['manage'] = [
+          $form['store']['payment_processing']['stripe_section']['manage'] = [
             '#type' => 'link',
             '#title' => $this->t('Manage Stripe Account'),
             '#url' => Url::fromRoute('myeventlane_vendor.stripe_manage'),
@@ -781,13 +822,13 @@ class VendorSettingsForm extends FormBase {
           $status_markup .= '</div>';
           $status_markup .= '<p class="description">' . $this->t('Connect your Stripe account to accept payments for tickets and donations.') . '</p>';
 
-          $form['payment']['store']['stripe_section']['status'] = [
+          $form['store']['payment_processing']['stripe_section']['status'] = [
             '#type' => 'markup',
             '#markup' => $status_markup,
           ];
 
           // Connect Stripe button.
-          $form['payment']['store']['stripe_section']['connect'] = [
+          $form['store']['payment_processing']['stripe_section']['connect'] = [
             '#type' => 'link',
             '#title' => $this->t('Connect Stripe Account'),
             '#url' => Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
@@ -808,7 +849,7 @@ class VendorSettingsForm extends FormBase {
           $prices_include_tax = !$store->get('prices_include_tax')->isEmpty()
             && (bool) $store->get('prices_include_tax')->value;
 
-          $form['payment']['store']['tax_info'] = [
+          $form['store']['payment_processing']['tax_info'] = [
             '#type' => 'markup',
             '#markup' => '<p class="tax-info"><strong>' . $this->t('Tax Settings:') . '</strong> '
               . ($prices_include_tax ? $this->t('Prices include GST') : $this->t('Prices exclude GST'))
@@ -818,7 +859,7 @@ class VendorSettingsForm extends FormBase {
       }
     }
     else {
-      $form['payment']['store']['no_store'] = [
+      $form['store']['payment_processing']['no_store'] = [
         '#type' => 'markup',
         '#markup' => '<div class="messages messages--warning"><p>'
           . $this->t('No store configured. Please complete your account setup to enable payment processing.')
@@ -826,10 +867,13 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Team Members Section.
+    // Team Members Section (AJAX wrapper id for add-member refresh only; must stay inside <form>).
     $form['team'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card']],
+      '#attributes' => [
+        'class' => ['mel-card', 'mel-vendor-settings__card'],
+        'id' => 'mel-vendor-settings-team-ajax',
+      ],
     ];
     $form['team']['_title'] = [
       '#markup' => '<h2 class="mel-vendor-settings__card-title">' . $this->t('Team Members') . '</h2>',
@@ -871,14 +915,11 @@ class VendorSettingsForm extends FormBase {
         '#description' => $this->t('Search for a user by name or email to add them as a team member.'),
       ];
 
+      // TEMP (cache / submission isolation): AJAX disabled — re-add #ajax in STEP 8.
       $form['team']['add_member_submit'] = [
         '#type' => 'submit',
         '#value' => $this->t('Add Member'),
         '#submit' => ['::addTeamMember'],
-        '#ajax' => [
-          'callback' => '::ajaxRefreshForm',
-          'wrapper' => 'vendor-settings-form',
-        ],
       ];
     }
 
@@ -935,24 +976,16 @@ class VendorSettingsForm extends FormBase {
       '#default_value' => $email_digest_default,
     ];
 
-    // Form wrapper for AJAX.
-    $form['#prefix'] = '<div id="vendor-settings-form">';
-    $form['#suffix'] = '</div>';
-
     $form['actions'] = [
       '#type' => 'actions',
       '#weight' => 100,
-      '#attributes' => ['class' => ['mel-sticky-actions']],
     ];
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save changes'),
       '#button_type' => 'primary',
-      '#attributes' => ['class' => ['mel-button-primary']],
     ];
-
-    $form['#cache']['max-age'] = 0;
 
     // Post-build #attached log (identifies AJAX library injectors; empty at buildForm() entry).
     $this->logger->debug('MEL FORM ATTACHED: <pre>@data</pre>', [
@@ -979,19 +1012,15 @@ class VendorSettingsForm extends FormBase {
 
     $form['#attributes']['data-drupal-ajax'] = 'false';
     $form['#attributes']['class'][] = 'mel-no-ajax';
-    $form['#method'] = 'post';
-    $form['#action'] = Url::fromRoute('myeventlane_vendor.console.settings')->toString();
-
-    $form['actions']['submit']['#ajax'] = FALSE;
 
     return $form;
   }
 
   /**
-   * AJAX callback to refresh the form.
+   * AJAX callback to refresh the team section only (avoids nested <form> markup).
    */
-  public function ajaxRefreshForm(array &$form, FormStateInterface $form_state): array {
-    return $form;
+  public function ajaxRefreshTeam(array &$form, FormStateInterface $form_state): array {
+    return $form['team'];
   }
 
   /**
@@ -1005,9 +1034,6 @@ class VendorSettingsForm extends FormBase {
    * Submit handler to add a social link.
    */
   public function addSocialLink(array &$form, FormStateInterface $form_state): void {
-    // Get current links from form state.
-    $social_values = $form_state->get('social_links_values') ?? [];
-
     // Capture current form values for existing links.
     $links = $form_state->getValue(['contact', 'social_links', 'links']) ?? [];
     $updated_values = [];
@@ -1023,7 +1049,7 @@ class VendorSettingsForm extends FormBase {
 
     // Store updated values in form state.
     $form_state->set('social_links_values', $updated_values);
-    $form_state->setRebuild();
+    $form_state->setRebuild(TRUE);
   }
 
   /**
@@ -1057,9 +1083,8 @@ class VendorSettingsForm extends FormBase {
 
       // Store updated values in form state.
       $form_state->set('social_links_values', $updated_values);
+      $form_state->setRebuild(TRUE);
     }
-
-    $form_state->setRebuild();
   }
 
   /**
@@ -1071,7 +1096,6 @@ class VendorSettingsForm extends FormBase {
 
     if (!$vendor) {
       $this->messenger()->addError($this->t('Vendor not found.'));
-      $form_state->setRebuild();
       return;
     }
 
@@ -1094,8 +1118,6 @@ class VendorSettingsForm extends FormBase {
         $this->messenger()->addWarning($this->t('User is already a team member.'));
       }
     }
-
-    $form_state->setRebuild();
   }
 
   /**
@@ -1134,6 +1156,7 @@ class VendorSettingsForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $this->logger->notice('VALIDATE ENTRY');
     parent::validateForm($form, $form_state);
 
     $this->logger->notice('VendorSettingsForm VALIDATE uid=@uid vendor_id=@vid', [
@@ -1155,6 +1178,22 @@ class VendorSettingsForm extends FormBase {
         ]);
         $this->setVendorContextFormError($form, $form_state);
         return;
+      }
+    }
+
+    $name = $form_state->getValue(['profile', 'name']);
+    if (!is_string($name) || trim($name) === '') {
+      $this->logger->warning('Vendor settings: missing required organiser name uid=@uid vendor_id=@vid', [
+        '@uid' => (string) $this->currentUser->id(),
+        '@vid' => $form_state->getValue('vendor_id') !== NULL && $form_state->getValue('vendor_id') !== ''
+          ? (string) $form_state->getValue('vendor_id')
+          : 'missing',
+      ]);
+      if (isset($form['profile']['name'])) {
+        $form_state->setError($form['profile']['name'], $this->t('Vendor Name field is required.'));
+      }
+      else {
+        $form_state->setErrorByName('name', $this->t('Vendor Name field is required.'));
       }
     }
 
@@ -1201,9 +1240,149 @@ class VendorSettingsForm extends FormBase {
   }
 
   /**
+   * Logs a bounded form values summary without dumping the full Form API tree.
+   *
+   * @param string $label
+   *   The source label to include in the log message.
+   * @param mixed $values
+   *   Submitted values, user input, or request POST data.
+   */
+  private function logBoundedFormDebugSummary(string $label, mixed $values): void {
+    $summary = $this->summarizeFormDebugSections($values);
+    $json = json_encode(
+      $summary,
+      JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE
+    );
+
+    if ($json === FALSE) {
+      $json = '[summary encoding failed: ' . json_last_error_msg() . ']';
+    }
+
+    $this->logger->notice('@label SUMMARY: <pre>@data</pre>', [
+      '@label' => $label,
+      '@data' => $json,
+    ]);
+  }
+
+  /**
+   * Builds a bounded summary of the form sections needed for submit debugging.
+   *
+   * @param mixed $values
+   *   Submitted values, user input, or request POST data.
+   *
+   * @return array<string, mixed>
+   *   A safe summary containing top-level keys and expected section summaries.
+   */
+  private function summarizeFormDebugSections(mixed $values): array {
+    if (!is_array($values)) {
+      return [
+        '_type' => get_debug_type($values),
+        '_value' => $this->summarizeFormDebugValue($values),
+      ];
+    }
+
+    $top_level_keys = array_keys($values);
+    $summary = [
+      '_top_level_count' => count($top_level_keys),
+      '_top_level_keys' => array_slice($top_level_keys, 0, self::FORM_DEBUG_MAX_TOP_LEVEL_KEYS),
+      '_section_presence' => [],
+      'sections' => [],
+    ];
+
+    if (count($top_level_keys) > self::FORM_DEBUG_MAX_TOP_LEVEL_KEYS) {
+      $summary['_top_level_keys_truncated'] = count($top_level_keys) - self::FORM_DEBUG_MAX_TOP_LEVEL_KEYS;
+    }
+
+    foreach (self::FORM_DEBUG_SECTION_KEYS as $section_key) {
+      $is_present = array_key_exists($section_key, $values);
+      $summary['_section_presence'][$section_key] = $is_present ? 'present' : 'missing';
+      if ($is_present) {
+        $summary['sections'][$section_key] = $this->summarizeFormDebugValue($values[$section_key]);
+      }
+    }
+
+    return $summary;
+  }
+
+  /**
+   * Safely summarizes a value for debug logs.
+   *
+   * @param mixed $value
+   *   The value to summarize.
+   * @param int $depth
+   *   Current recursion depth.
+   *
+   * @return mixed
+   *   A scalar value or bounded array summary.
+   */
+  private function summarizeFormDebugValue(mixed $value, int $depth = 0): mixed {
+    if ($value === NULL || is_bool($value) || is_int($value) || is_float($value)) {
+      return $value;
+    }
+
+    if (is_string($value)) {
+      $length = strlen($value);
+      if ($length <= self::FORM_DEBUG_MAX_STRING_LENGTH) {
+        return $value;
+      }
+      return substr($value, 0, self::FORM_DEBUG_MAX_STRING_LENGTH) . '... [truncated, length=' . $length . ']';
+    }
+
+    if (is_object($value)) {
+      return [
+        '_type' => 'object',
+        '_class' => get_class($value),
+      ];
+    }
+
+    if (is_resource($value)) {
+      return [
+        '_type' => 'resource',
+        '_resource_type' => get_resource_type($value),
+      ];
+    }
+
+    if (!is_array($value)) {
+      return [
+        '_type' => get_debug_type($value),
+      ];
+    }
+
+    $count = count($value);
+    $summary = [
+      '_type' => 'array',
+      '_count' => $count,
+    ];
+
+    if ($depth >= self::FORM_DEBUG_MAX_DEPTH) {
+      $summary['_truncated'] = 'max_depth';
+      return $summary;
+    }
+
+    $shown = 0;
+    foreach ($value as $key => $child_value) {
+      if ($shown >= self::FORM_DEBUG_MAX_ARRAY_ITEMS) {
+        break;
+      }
+      $summary[$key] = $this->summarizeFormDebugValue($child_value, $depth + 1);
+      $shown++;
+    }
+
+    if ($count > $shown) {
+      $summary['_truncated_items'] = $count - $shown;
+    }
+
+    return $summary;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $this->logger->notice('SUBMIT ENTRY');
+
+    $this->logBoundedFormDebugSummary('VALUES', $form_state->getValues());
+
     $this->logger->notice('VendorSettingsForm SUBMIT START uid=@uid vendor_id=@vid', [
       '@uid' => (string) $this->currentUser->id(),
       '@vid' => $form_state->getValue('vendor_id') !== NULL && $form_state->getValue('vendor_id') !== ''
@@ -1221,20 +1400,30 @@ class VendorSettingsForm extends FormBase {
 
     if (!$vendor) {
       $this->messenger()->addError($this->t('Vendor not found. Unable to save settings. Please refresh the page and try again.'));
-      $form_state->setRebuild();
       return;
     }
+
+    $this->messenger()->addStatus($this->t('Form submitted successfully'));
 
     $had_vendor_store_link = $vendor->hasField('field_vendor_store')
       && !$vendor->get('field_vendor_store')->isEmpty();
 
-    $business = $form_state->getValue(['payment', 'business']) ?? [];
+    $business = $form_state->getValue(['store', 'business']) ?? [];
     $abn = trim((string) ($business['abn'] ?? ''));
     $abn = $abn !== '' ? (string) preg_replace('/\s+/', '', $abn) : '';
     $business_name = trim((string) ($business['business_name'] ?? ''));
 
     // Save profile information.
-    $vendor->setName($form_state->getValue(['profile', 'name']));
+    $name = $form_state->getValue(['profile', 'name']);
+    if (!is_string($name) || trim($name) === '') {
+      $this->logger->error('Vendor settings save blocked: missing required organiser name uid=@uid vendor_id=@vid', [
+        '@uid' => (string) $this->currentUser->id(),
+        '@vid' => (string) $vendor->id(),
+      ]);
+      $this->messenger()->addError($this->t('Vendor Name field is required.'));
+      return;
+    }
+    $vendor->setName(trim($name));
 
     if ($vendor->hasField('field_summary')) {
       $vendor->set('field_summary', $form_state->getValue(['profile', 'summary']));
@@ -1267,10 +1456,10 @@ class VendorSettingsForm extends FormBase {
     }
 
     // Save visual assets.
-    if (isset($form['visual']['logo'])) {
-      $logo_field = $form_state->getValue(['visual', 'logo_field_name']);
+    if (isset($form['visual_assets']['logo'])) {
+      $logo_field = $form_state->getValue(['visual_assets', 'logo_field_name']);
       if ($logo_field && $vendor->hasField($logo_field)) {
-        $logo_fids = $form_state->getValue(['visual', 'logo']);
+        $logo_fids = $form_state->getValue(['visual_assets', 'logo']);
         if (!empty($logo_fids) && is_array($logo_fids)) {
           $file = $this->entityTypeManager->getStorage('file')->load($logo_fids[0]);
           if ($file) {
@@ -1285,8 +1474,8 @@ class VendorSettingsForm extends FormBase {
       }
     }
 
-    if (isset($form['visual']['banner']) && $vendor->hasField('field_banner_image')) {
-      $banner_fids = $form_state->getValue(['visual', 'banner']);
+    if (isset($form['visual_assets']['banner']) && $vendor->hasField('field_banner_image')) {
+      $banner_fids = $form_state->getValue(['visual_assets', 'banner']);
       if (!empty($banner_fids) && is_array($banner_fids)) {
         $file = $this->entityTypeManager->getStorage('file')->load($banner_fids[0]);
         if ($file) {
@@ -1343,14 +1532,14 @@ class VendorSettingsForm extends FormBase {
 
     // Save public page settings.
     $public_fields = [
-      'field_public_show_email' => ['public', 'show_email'],
-      'field_public_show_phone' => ['public', 'show_phone'],
-      'field_public_show_location' => ['public', 'show_location'],
-      'field_public_show_website' => ['public', 'show_website'],
-      'field_public_show_social_links' => ['public', 'show_social_links'],
-      'field_public_show_summary' => ['public', 'show_summary'],
-      'field_public_show_description' => ['public', 'show_description'],
-      'field_public_show_banner' => ['public', 'show_banner'],
+      'field_public_show_email' => ['public_page', 'show_email'],
+      'field_public_show_phone' => ['public_page', 'show_phone'],
+      'field_public_show_location' => ['public_page', 'show_location'],
+      'field_public_show_website' => ['public_page', 'show_website'],
+      'field_public_show_social_links' => ['public_page', 'show_social_links'],
+      'field_public_show_summary' => ['public_page', 'show_summary'],
+      'field_public_show_description' => ['public_page', 'show_description'],
+      'field_public_show_banner' => ['public_page', 'show_banner'],
     ];
 
     foreach ($public_fields as $field_name => $form_path) {
@@ -1370,7 +1559,7 @@ class VendorSettingsForm extends FormBase {
       $vendor->set('field_pref_email_digest', $form_state->getValue(['preferences', 'notifications', 'email_digest']) ?? 'daily');
     }
 
-    // Save business information fields (canonical values from payment.business above).
+    // Save business information fields (canonical values from store.business above).
     if ($vendor->hasField('field_business_name')) {
       $vendor->set('field_business_name', $business_name !== '' ? $business_name : NULL);
     }
@@ -1412,7 +1601,6 @@ class VendorSettingsForm extends FormBase {
       }
 
       if (!empty($real_violations)) {
-        $form_state->setRebuild();
         return;
       }
     }
@@ -1506,7 +1694,6 @@ class VendorSettingsForm extends FormBase {
       $this->messenger()->addError($this->t('An error occurred while saving: @message', [
         '@message' => $e->getMessage(),
       ]));
-      $form_state->setRebuild();
     }
   }
 
