@@ -2688,6 +2688,30 @@ function myeventlane_theme_preprocess_entity(array &$variables): void {
 }
 
 /**
+ * Prepares shared public vendor card variables for vendor entity teasers.
+ */
+function myeventlane_theme_preprocess_myeventlane_vendor(array &$variables): void {
+  $entity = $variables['entity'] ?? NULL;
+  if (!$entity instanceof EntityInterface || $entity->getEntityTypeId() !== 'myeventlane_vendor') {
+    return;
+  }
+
+  if (!\Drupal::hasService('myeventlane_vendor.vendor_card_builder')) {
+    return;
+  }
+
+  $vendor_url = $variables['url'] ?? NULL;
+  if ($vendor_url instanceof Url) {
+    $vendor_url = $vendor_url->toString();
+  }
+
+  $variables['vendor_card'] = \Drupal::service('myeventlane_vendor.vendor_card_builder')->build($entity);
+  if (is_string($vendor_url) && $vendor_url !== '') {
+    $variables['vendor_card']['url'] = $vendor_url;
+  }
+}
+
+/**
  * Implements hook_form_alter().
  *
  * Adds classes and ensures proper styling for public-facing forms.

@@ -1,0 +1,7 @@
+vendor_branding:
+  version: 1.x
+  css:
+    component:
+      css/vendor-branding.css: {}
+  dependencies:
+    - core/drupal

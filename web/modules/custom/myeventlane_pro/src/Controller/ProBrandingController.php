@@ -12,7 +12,8 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\myeventlane_messaging\Form\VendorBrandConfigForm;
+use Drupal\Core\Url;
+use Drupal\myeventlane_messaging\Form\VendorBrandingForm;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,7 +21,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Renders the Pro-only branding settings page at /vendor/settings/branding.
  *
- * Reuses the existing VendorBrandConfigForm from myeventlane_messaging,
+ * Reuses the vendor branding form from myeventlane_messaging,
  * gated by vendor role and canonical Pro entitlement resolver.
  */
 final class ProBrandingController implements ContainerInjectionInterface {
@@ -58,7 +59,11 @@ final class ProBrandingController implements ContainerInjectionInterface {
       ];
     }
 
-    $form = $this->formBuilder->getForm(VendorBrandConfigForm::class, $vendor);
+    $form = $this->formBuilder->getForm(
+      VendorBrandingForm::class,
+      $vendor,
+      Url::fromRoute('myeventlane_pro.branding')->toString(),
+    );
 
     return [
       'intro' => [

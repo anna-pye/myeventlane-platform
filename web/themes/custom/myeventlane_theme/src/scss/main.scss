@@ -89,6 +89,7 @@
 @use 'components/featured-carousel';
 @use 'components/featured-badge';
 @use 'components/event-card';
+@use 'components/vendor-card';
 @use 'pages/mel-browse';
 @use 'components/attendees-event-card';
 @use 'components/attendees-kpi-bar';
@@ -169,6 +170,7 @@
 @use 'pages/my-account';
 @use 'pages/contact';
 @use 'pages/discovery';
+@use 'pages/vendor';
 
 // ---------------------------------------------------------------------------
 // 7. Utilities
