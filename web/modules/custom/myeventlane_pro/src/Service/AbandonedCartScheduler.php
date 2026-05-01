@@ -327,7 +327,9 @@ final class AbandonedCartScheduler {
    * Determines whether the order is currently in a terminal workflow state.
    */
   private function isTerminalState(OrderInterface $order): bool {
-    $orderType = $order->getType();
+    $orderType = $this->entityTypeManager
+      ->getStorage('commerce_order_type')
+      ->load($order->bundle());
     if (!$orderType instanceof OrderTypeInterface) {
       return FALSE;
     }

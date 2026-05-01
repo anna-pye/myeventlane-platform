@@ -1,8 +1,9 @@
 name: 'MEL Vendor Settings'
 type: module
-description: 'Vendor console settings form for MyEventLane (single source of truth for /vendor/settings).'
+description: 'Compatibility metadata for the former vendor settings module now served by MyEventLane Vendor.'
 core_version_requirement: ^11
 package: MEL
+lifecycle: stable
 dependencies:
   - drupal:user
   - commerce:commerce_store
