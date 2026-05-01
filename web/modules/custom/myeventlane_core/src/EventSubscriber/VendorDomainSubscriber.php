@@ -92,8 +92,13 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     $is_vendor_domain = $this->domainDetector->isVendorDomain();
 
     $is_vendor_path_prefix = self::isVendorPathPrefix($path);
-    $is_vendor_route = str_starts_with($route_name, 'myeventlane_vendor.')
-      || $is_vendor_path_prefix;
+    $is_public_vendor_route = in_array($route_name, [
+      'myeventlane_vendor.public_list',
+      'myeventlane_vendor.organisers',
+    ], TRUE);
+    $is_vendor_route = !$is_public_vendor_route
+      && (str_starts_with($route_name, 'myeventlane_vendor.')
+        || $is_vendor_path_prefix);
 
     // Prevent redirect loops on vendor domain
     if ($is_vendor_domain && $is_vendor_path_prefix) {
