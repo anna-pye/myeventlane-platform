@@ -2,7 +2,7 @@
 
 .mel-vendor-directory,
 .mel-vendor {
-  width: min(1120px, calc(100% - 32px));
+  width: min(1040px, calc(100% - 40px));
   margin: 0 auto;
 }
 
@@ -36,20 +36,20 @@
 }
 
 .mel-vendor {
-  padding: 32px 0 80px;
+  padding: 28px 0 88px;
 }
 
 .mel-vendor__hero {
   overflow: hidden;
-  max-height: 340px;
-  margin-bottom: -48px;
+  max-height: 300px;
+  margin-bottom: -56px;
   border-radius: mel.$mel-ds-radius-lg;
   background: color-mix(in srgb, mel.$mel-ds-color-text 6%, transparent);
 
   img {
     display: block;
     width: 100%;
-    height: min(340px, 34vw);
+    height: min(300px, 30vw);
     min-height: 180px;
     object-fit: cover;
   }
@@ -58,11 +58,12 @@
 .mel-vendor__header {
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 20px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 22px;
   align-items: center;
-  margin-bottom: 40px;
-  padding: 24px;
+  max-width: 860px;
+  margin: 0 auto 42px;
+  padding: 22px 28px;
   background: mel.$mel-ds-color-surface;
   border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
   border-radius: mel.$mel-ds-radius-lg;
@@ -77,11 +78,17 @@
   border-radius: mel.$mel-ds-radius-md;
 }
 
+.mel-vendor__title {
+  min-width: 0;
+}
+
 .mel-vendor__name {
   margin: 0;
   color: mel.$mel-ds-color-text;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 1.05;
+  font-size: clamp(2rem, 3.6vw, 2.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
 }
 
 .mel-vendor__tagline,
@@ -89,9 +96,20 @@
   margin: 8px 0 0;
 }
 
+.mel-vendor__tagline {
+  display: -webkit-box;
+  max-width: 62ch;
+  overflow: hidden;
+  color: mel.$mel-ds-color-muted;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .mel-vendor__followers {
   color: mel.$mel-ds-color-muted;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 .mel-follow-button {
@@ -107,6 +125,18 @@
   border: 0;
   border-radius: 999px;
   cursor: pointer;
+  box-shadow: 0 8px 18px color-mix(in srgb, mel.$mel-ds-color-accent 22%, transparent);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &:hover,
+  &:focus-visible {
+    color: mel.$mel-ds-color-surface;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px color-mix(in srgb, mel.$mel-ds-color-accent 28%, transparent);
+  }
 
   &.is-following {
     color: mel.$mel-ds-color-text;
@@ -122,31 +152,76 @@
 .mel-vendor__bio,
 .mel-vendor__contact,
 .mel-vendor__events {
-  margin-top: 40px;
+  margin-top: 36px;
 }
 
 .mel-vendor__bio {
-  max-width: 760px;
+  max-width: 780px;
+  margin-right: auto;
+  margin-left: auto;
   color: mel.$mel-ds-color-text;
   font-size: 1.075rem;
   line-height: 1.75;
+  overflow-wrap: anywhere;
 }
 
 .mel-vendor__contact {
-  padding: 24px;
-  background: color-mix(in srgb, mel.$mel-ds-color-text 4%, transparent);
-  border-radius: mel.$mel-ds-radius-md;
+  max-width: 780px;
+  margin-right: auto;
+  margin-left: auto;
+  padding: 24px 28px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, mel.$mel-ds-color-surface 92%, transparent), color-mix(in srgb, mel.$mel-ds-color-bg 72%, transparent));
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 6%, transparent);
+  border-radius: mel.$mel-ds-radius-lg;
+
+  h2 {
+    margin: 0 0 16px;
+    color: mel.$mel-ds-color-text;
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
 }
 
 .mel-vendor__contact-grid {
   display: grid;
-  gap: 16px;
+  gap: 12px;
+}
+
+.mel-vendor__contact-item {
+  color: mel.$mel-ds-color-text;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+
+  a {
+    color: mel.$mel-ds-color-accent;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+}
+
+.mel-vendor__events {
+  max-width: 780px;
+  margin-right: auto;
+  margin-left: auto;
+
+  h2 {
+    margin: 0 0 22px;
+    color: mel.$mel-ds-color-text;
+    font-size: 1.65rem;
+    line-height: 1.2;
+  }
 }
 
 .mel-vendor__event-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 340px));
   gap: 24px;
+  align-items: stretch;
+}
+
+.mel-vendor__event-grid .mel-event-card {
+  max-width: 340px;
 }
 
 .mel-vendor__empty-events {
@@ -154,12 +229,26 @@
 }
 
 @media (max-width: 720px) {
+  .mel-vendor-directory,
+  .mel-vendor {
+    width: min(100% - 28px, 1040px);
+  }
+
+  .mel-vendor__hero {
+    margin-bottom: -36px;
+  }
+
   .mel-vendor__header {
     grid-template-columns: 1fr;
+    padding: 20px;
   }
 
   .mel-vendor__logo img {
     width: 84px;
     height: 84px;
+  }
+
+  .mel-follow-button {
+    width: 100%;
   }
 }
