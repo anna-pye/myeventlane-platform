@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_pro\Service;
 
 use Drupal\advancedqueue\Job;
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\commerce_order\Entity\OrderTypeInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
@@ -14,7 +13,6 @@ use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
-use Drupal\state_machine\WorkflowManagerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -36,13 +34,6 @@ final class AbandonedCartScheduler {
   private const STATUS_QUEUED = 'queued';
 
   /**
-   * Cached terminal states keyed by workflow id.
-   *
-   * @var array<string, array<string, bool>>
-   */
-  private array $terminalStatesByWorkflow = [];
-
-  /**
    * Ensures scheduler summary is only logged once per cron run.
    */
   private bool $summaryLogged = FALSE;
@@ -57,7 +48,7 @@ final class AbandonedCartScheduler {
     private readonly LoggerInterface $logger,
     private readonly ProActiveResolver $proActiveResolver,
     private readonly StateInterface $state,
-    private readonly WorkflowManagerInterface $workflowManager,
+    private readonly AbandonedCartTerminalStateResolver $terminalStateResolver,
   ) {}
 
   /**
@@ -311,7 +302,7 @@ final class AbandonedCartScheduler {
    * Determines whether the order is still an active cart.
    */
   private function isAbandonedState(OrderInterface $order): bool {
-    if ($this->isTerminalState($order)) {
+    if ($this->terminalStateResolver->isTerminalState($order)) {
       return FALSE;
     }
 
@@ -321,65 +312,6 @@ final class AbandonedCartScheduler {
     }
 
     return (bool) $order->get('cart')->value;
-  }
-
-  /**
-   * Determines whether the order is currently in a terminal workflow state.
-   */
-  private function isTerminalState(OrderInterface $order): bool {
-    $orderType = $this->entityTypeManager
-      ->getStorage('commerce_order_type')
-      ->load($order->bundle());
-    if (!$orderType instanceof OrderTypeInterface) {
-      return FALSE;
-    }
-
-    $workflowId = $orderType->getWorkflowId();
-    if ($workflowId === '') {
-      return FALSE;
-    }
-
-    if (!isset($this->terminalStatesByWorkflow[$workflowId])) {
-      $this->terminalStatesByWorkflow[$workflowId] = $this->discoverTerminalStates($workflowId);
-    }
-
-    return isset($this->terminalStatesByWorkflow[$workflowId][$order->getState()->getId()]);
-  }
-
-  /**
-   * Discovers terminal states for a workflow id.
-   *
-   * @return array<string, bool>
-   *   Terminal state id lookup.
-   */
-  private function discoverTerminalStates(string $workflowId): array {
-    $terminalStates = [];
-
-    try {
-      $workflow = $this->workflowManager->createInstance($workflowId);
-      $states = $workflow->getStates();
-      $fromStates = [];
-
-      foreach ($workflow->getTransitions() as $transition) {
-        foreach ($transition->getFromStateIds() as $fromStateId) {
-          $fromStates[$fromStateId] = TRUE;
-        }
-      }
-
-      foreach (array_keys($states) as $stateId) {
-        if (!isset($fromStates[$stateId])) {
-          $terminalStates[$stateId] = TRUE;
-        }
-      }
-    }
-    catch (\Throwable $exception) {
-      $this->logger->error('Failed terminal-state discovery for workflow "@workflow": @message', [
-        '@workflow' => $workflowId,
-        '@message' => $exception->getMessage(),
-      ]);
-    }
-
-    return $terminalStates;
   }
 
   /**

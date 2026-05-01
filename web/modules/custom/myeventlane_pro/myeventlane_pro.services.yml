@@ -120,7 +120,14 @@ services:
       - '@logger.channel.myeventlane_pro'
       - '@myeventlane_pro.active_resolver'
       - '@state'
+      - '@myeventlane_pro.abandoned_cart_terminal_state_resolver'
+
+  myeventlane_pro.abandoned_cart_terminal_state_resolver:
+    class: Drupal\myeventlane_pro\Service\AbandonedCartTerminalStateResolver
+    arguments:
+      - '@entity_type.manager'
       - '@plugin.manager.workflow'
+      - '@logger.channel.myeventlane_pro'
 
   myeventlane_pro.recovery_analytics:
     class: Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService
