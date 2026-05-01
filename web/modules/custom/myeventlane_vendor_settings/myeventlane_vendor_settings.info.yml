@@ -1,0 +1,11 @@
+name: 'MEL Vendor Settings'
+type: module
+description: 'Compatibility metadata for the former vendor settings module now served by MyEventLane Vendor.'
+core_version_requirement: ^11
+package: MEL
+lifecycle: stable
+dependencies:
+  - drupal:user
+  - commerce:commerce_store
+  - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_core:myeventlane_core
