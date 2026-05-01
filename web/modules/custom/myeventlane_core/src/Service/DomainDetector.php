@@ -69,14 +69,18 @@ final class DomainDetector {
   /**
    * Determines whether the current request is on the vendor domain.
    *
-   * If vendor_domain is misconfigured to the same host as public_domain, the
-   * apex must be treated as public only; otherwise vendor-only subscribers
-   * (e.g. console gate) run on the main site and fight with public routing.
+   * If vendor_domain is misconfigured to the same host as public_domain, that
+   * shared host must be treated as public only; otherwise vendor-only
+   * subscribers (e.g. console gate) run on the main site and fight with public
+   * routing.
    */
   public function isVendorDomain(): bool {
-    if ($this->hostnameMatchesConfiguredPublicHost()) {
+    $public = $this->getConfiguredDomainHost('public_domain');
+    $vendor = $this->getConfiguredDomainHost('vendor_domain');
+    if ($public !== NULL && $vendor !== NULL && $public === $vendor) {
       return FALSE;
     }
+
     return $this->isMatchingConfiguredDomain('vendor_domain', 'vendor.');
   }
 
@@ -142,22 +146,6 @@ final class DomainDetector {
     $path = '/' . ltrim($path, '/');
 
     return $base_url . $path;
-  }
-
-  /**
-   * TRUE when any request hostname candidate matches configured public_domain.
-   */
-  private function hostnameMatchesConfiguredPublicHost(): bool {
-    $public = $this->getConfiguredDomainHost('public_domain');
-    if ($public === NULL || $public === '') {
-      return FALSE;
-    }
-    foreach ($this->hostnameCandidatesForMatching() as $hostname) {
-      if ($hostname === $public) {
-        return TRUE;
-      }
-    }
-    return FALSE;
   }
 
   /**
