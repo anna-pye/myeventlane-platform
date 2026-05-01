@@ -69,6 +69,7 @@ final class VendorDetailController extends ControllerBase {
     $content = $this->buildVisibleContent($myeventlane_vendor);
     $events = $this->buildUpcomingEventCards($myeventlane_vendor);
     $is_authenticated = (int) $this->account->id() > 0;
+    $csrf_token = $this->csrfToken->get('');
 
     $build = [
       '#theme' => 'entity__myeventlane_vendor__full',
@@ -100,8 +101,12 @@ final class VendorDetailController extends ControllerBase {
       '#attached' => [
         'library' => ['myeventlane_core/vendor_public'],
         'drupalSettings' => [
+          'melVendorPublic' => [
+            'csrfToken' => $csrf_token,
+          ],
           'melPublicAnalytics' => [
             'eventClickUrl' => Url::fromRoute('myeventlane_core.analytics_event_click')->toString(),
+            'csrfToken' => $csrf_token,
           ],
         ],
       ],
@@ -257,13 +262,6 @@ final class VendorDetailController extends ControllerBase {
         'image_link' => '',
       ],
     ]);
-  }
-
-  /**
-   * Builds a CSRF token for a route path.
-   */
-  private function csrfToken(string $path): string {
-    return $this->csrfToken->get($path);
   }
 
 }
