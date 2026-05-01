@@ -357,11 +357,13 @@ final class AbandonedCartScheduler {
 
     try {
       $workflow = $this->workflowManager->createInstance($workflowId);
-      $states = $workflow->getGroup()->getStates();
+      $states = $workflow->getStates();
       $fromStates = [];
 
       foreach ($workflow->getTransitions() as $transition) {
-        $fromStates[$transition->getFromStateId()] = TRUE;
+        foreach ($transition->getFromStateIds() as $fromStateId) {
+          $fromStates[$fromStateId] = TRUE;
+        }
       }
 
       foreach (array_keys($states) as $stateId) {
