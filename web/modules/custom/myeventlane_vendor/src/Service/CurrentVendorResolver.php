@@ -64,12 +64,22 @@ final class CurrentVendorResolver implements CurrentVendorResolverInterface {
     }
 
     try {
-      $vendors = $this->entityTypeManager
-        ->getStorage('myeventlane_vendor')
-        ->loadByProperties(['uid' => $uid]);
+      $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+      $query = $storage->getQuery()->accessCheck(FALSE);
+      $or = $query->orConditionGroup()
+        ->condition('uid', $uid)
+        ->condition('field_vendor_users', $uid);
+      $query->condition($or);
+      // Deterministic pick when a user is tied to multiple vendors (owner + team, etc.).
+      $query->sort('id', 'ASC');
+      $ids = $query->range(0, 1)->execute();
 
-      $vendor = !empty($vendors) ? reset($vendors) : NULL;
-      $this->userVendorCache[$uid] = $vendor instanceof Vendor ? $vendor : NULL;
+      $vendor = NULL;
+      if (!empty($ids)) {
+        $loaded = $storage->load(reset($ids));
+        $vendor = $loaded instanceof Vendor ? $loaded : NULL;
+      }
+      $this->userVendorCache[$uid] = $vendor;
     }
     catch (\Exception $e) {
       $this->logger->error('Failed to resolve vendor for user @uid: @message', [

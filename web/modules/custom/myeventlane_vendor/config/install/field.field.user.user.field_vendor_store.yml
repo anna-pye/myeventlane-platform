@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_vendor_store
+  module:
+    - commerce_store
+    - user
+id: user.user.field_vendor_store
+field_name: field_vendor_store
+entity_type: user
+bundle: user
+label: 'Vendor Store'
+description: 'Commerce store linked to this vendor account (mirrors vendor profile store).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:commerce_store'
+  handler_settings:
+    target_bundles:
+      online: online
+    sort:
+      field: name
+      direction: ASC
+    auto_create: false
+field_type: entity_reference

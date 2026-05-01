@@ -301,7 +301,6 @@
     "myeventlane_vendor.footer_context",
     "logger.channel.myeventlane_vendor",
     "myeventlane_vendor.current_vendor_resolver",
-    "myeventlane_vendor.vendor_theme_page_preprocess",
     "myeventlane_vendor.vendor_store_subscriber",
     "myeventlane_vendor.manage_event_navigation",
     "myeventlane_vendor.service.ticket_sales",

@@ -13,6 +13,7 @@
 {% set _title = card_title|default(title|default('')) %}
 {% set _url = card_url|default(url|default('#')) %}
 {% set _img = card_image_url|default(image|default('')) %}
+{% set _img_render = card_image_render|default(image_render|default(null)) %}
 {% set _img_alt = card_image_alt|default(_title) %}
 {% set _time = card_time_range|default(date_full|default('')) %}
 {% set _loc = card_location|default(location|default('')) %}
@@ -42,7 +43,7 @@
     {% elseif _type == 'external' %}
       {% set _cta = 'View details'|t %}
     {% else %}
-      {% set _cta = 'Buy tickets'|t %}
+      {% set _cta = 'Get your tickets'|t %}
     {% endif %}
   {% endif %}
 {% endif %}
@@ -56,7 +57,6 @@
 {% if not _category and category is defined and category %}
   {% set _category = { 'label': category, 'url': null } %}
 {% endif %}
-{% set category_class = category_slug is defined and category_slug ? ('mel-pill--cat-' ~ category_slug) : '' %}
 
 {% set _state_badge_type = 'highlight' %}
 {# Image pill: event_ui only — is_sold_out > image_badge (boost/Featured from myeventlane_event_finalize_event_ui) > category. #}
@@ -79,16 +79,18 @@
   {% else %}
   <article class="mel-event-hero-card-article">
   {% endif %}
-    <a href="{{ _url }}" class="mel-event-hero-card" aria-label="{{ _title ~ ' — ' ~ _cta }}">
+    <a href="{{ _url }}" class="mel-event-hero-card" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% endif %}>
       <div class="mel-event-hero-card__image">
-        {% if _img %}
+        {% if _img_render %}
+          {{ _img_render }}
+        {% elseif _img %}
           <img src="{{ _img }}" alt="{{ _img_alt }}" loading="eager" decoding="async" />
         {% else %}
           <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
         {% endif %}
         <div class="mel-event-hero-card__overlay" aria-hidden="true"></div>
         {% if _image_badge_label %}
-          <span class="mel-event-hero-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}{% if _state_badge_type == 'category' %} {{ category_class }}{% endif %}" aria-hidden="true">
+          <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-hero-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
             <span class="mel-pill__label">{{ _image_badge_label }}</span>
           </span>
         {% endif %}
@@ -140,9 +142,11 @@
       {{ event_flag_event_save }}
     </div>
   {% endif %}
-  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}">
+  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% endif %}>
     <div class="mel-event-card__image">
-      {% if _img %}
+      {% if _img_render %}
+        {{ _img_render }}
+      {% elseif _img %}
         <img
           src="{{ _img }}"
           alt="{{ _img_alt }}"
@@ -159,9 +163,12 @@
       {% endif %}
 
       {% if _image_badge_label %}
-        <span class="mel-event-card__image-badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}{% if _state_badge_type == 'category' %} {{ category_class }}{% endif %}" aria-hidden="true">
+        <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-card__image-badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
           <span class="mel-pill__label">{{ _image_badge_label }}</span>
         </span>
+      {% endif %}
+      {% if mel_signal %}
+        <div class="mel-event-card__signal">{{ mel_signal }}</div>
       {% endif %}
     </div>
 

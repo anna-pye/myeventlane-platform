@@ -90,12 +90,72 @@ body_html: |
         </div>
       {% endif %}
 
+      {% if vendor_name or order_total_gst or invoice_lines|length > 0 or invoice_fee_lines|length > 0 or invoice_tax_lines|length > 0 %}
+        <div style="margin: 24px 0; padding: 20px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <h2 style="color: #2c3e50; margin: 0 0 16px; font-size: 20px;">Tax Invoice</h2>
+          <p style="color: #34495e; font-size: 14px; line-height: 1.6; margin: 0 0 12px;">
+            {% if vendor_name %}<strong>Supplier:</strong> {{ vendor_name }}<br>{% endif %}
+            <strong>ABN:</strong> {{ vendor_abn }}<br>
+            <strong>Invoice #:</strong> {{ order_number }}<br>
+            {% if invoice_date_short %}<strong>Date:</strong> {{ invoice_date_short }}<br>{% endif %}
+          </p>
+          {% if invoice_lines|length > 0 %}
+            <table style="width:100%; border-collapse:collapse; font-size:14px; color:#34495e; margin-top:12px;">
+              <thead>
+                <tr style="border-bottom:1px solid #e0e0e0;">
+                  <th style="text-align:left; padding:8px 4px;">Item</th>
+                  <th style="text-align:center; padding:8px 4px; width:48px;">Qty</th>
+                  <th style="text-align:right; padding:8px 4px;">Unit</th>
+                  <th style="text-align:right; padding:8px 4px;">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in invoice_lines %}
+                  <tr style="border-bottom:1px solid #f0f0f0;">
+                    <td style="padding:8px 4px;">{{ row.title }}</td>
+                    <td style="text-align:center;">{{ row.quantity }}</td>
+                    <td style="text-align:right;">{{ row.unit_price }}</td>
+                    <td style="text-align:right;">{{ row.line_total }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+          {% if invoice_fee_lines|length > 0 %}
+            {% for fee in invoice_fee_lines %}
+              <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;">
+                <span>{{ fee.label }}</span><span style="font-weight:600;">{{ fee.amount }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+          {% if invoice_tax_lines|length > 0 or tax_lines|length > 0 %}
+            {% for tax in invoice_tax_lines|length > 0 ? invoice_tax_lines : tax_lines|default([]) %}
+              <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;">
+                <span>{{ tax.label }}</span><span style="font-weight:600;">{{ tax.amount }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+          {% if order_total_gst %}
+            <p style="margin:12px 0 0; font-size:14px; color:#34495e;"><strong>GST (10%):</strong> {{ order_total_gst }}</p>
+          {% endif %}
+          <p style="margin:12px 0 0; font-size:16px; color:#2c3e50;"><strong>Total</strong> {{ order_total|default(total_paid) }}</p>
+          <p class="mel-invoice__legal" style="margin:16px 0 0; font-size:11px; color:#7f8c8d; line-height:1.45;">This document is a tax invoice for GST purposes.</p>
+          {% if show_includes_gst_note|default(false) %}
+          <p style="color: #7f8c8d; font-size: 13px; margin: 12px 0 0 0;">All prices include GST where applicable.</p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Fallback when tax invoice block is omitted (no invoice lines/fees/taxes). Breakdown rows always appear in that block when items/adjustments exist. #}
+      {% if not (vendor_name or order_total_gst or invoice_lines|length > 0 or invoice_fee_lines|length > 0 or invoice_tax_lines|length > 0) %}
       <div style="margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 6px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: 600; color: #2c3e50; font-size: 18px;">Total paid</span>
           <span style="font-weight: 700; color: #2c3e50; font-size: 20px;">{{ total_paid }}</span>
         </div>
+        <p style="color: #7f8c8d; font-size: 13px; margin: 12px 0 0 0;">All prices include GST where applicable.</p>
       </div>
+      {% endif %}
 
       <div style="margin: 28px 0; padding: 22px; background-color: #eef7ff; border-radius: 8px; border: 1px solid #cce5ff;">
         <p style="color: #1a3a52; font-size: 15px; line-height: 1.55; margin: 0 0 10px 0; text-align: center;">
@@ -130,6 +190,6 @@ body_html: |
 utm:
   enable: true
   params:
-    utm_source: 'email'
-    utm_medium: 'transactional'
-    utm_campaign: 'order_confirmation'
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: order_confirmation

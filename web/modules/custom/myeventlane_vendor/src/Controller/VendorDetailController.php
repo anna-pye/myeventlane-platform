@@ -4,226 +4,122 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
-use Drupal\myeventlane_core\PlatformFeeDefaults;
+use Drupal\myeventlane_core\Service\AnalyticsService;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_core\Service\VendorFollowService;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\VendorCardBuilder;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Controller for vendor detail pages with analytics.
+ * Controller for public vendor detail pages.
  */
-final class VendorDetailController extends ControllerBase implements ContainerInjectionInterface {
+final class VendorDetailController extends ControllerBase {
 
-  private EntityIdNormalizer $entityIdNormalizer;
-
-  private ?EventRepository $eventRepository = NULL;
+  /**
+   * Constructs a VendorDetailController object.
+   */
+  public function __construct(
+    private readonly EntityTypeManagerInterface $entityTypeManagerService,
+    private readonly EntityIdNormalizer $entityIdNormalizer,
+    private readonly ?EventRepository $eventRepository,
+    private readonly VendorCardBuilder $vendorCardBuilder,
+    private readonly VendorFollowService $vendorFollowService,
+    private readonly AnalyticsService $analytics,
+    private readonly AccountInterface $account,
+    private readonly DateFormatterInterface $dateFormatter,
+    private readonly TimeInterface $time,
+    private readonly CsrfTokenGenerator $csrfToken,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    $instance = parent::create($container);
-    $instance->entityIdNormalizer = $container->get('myeventlane_core.entity_id_normalizer');
-    $instance->eventRepository = $container->has('myeventlane_event_studio.repository')
-      ? $container->get('myeventlane_event_studio.repository')
-      : NULL;
-    return $instance;
+    return new static(
+      $container->get('entity_type.manager'),
+      $container->get('myeventlane_core.entity_id_normalizer'),
+      $container->has('myeventlane_event_studio.repository') ? $container->get('myeventlane_event_studio.repository') : NULL,
+      $container->get('myeventlane_vendor.vendor_card_builder'),
+      $container->get('myeventlane_core.vendor_follow'),
+      $container->get('myeventlane_core.analytics'),
+      $container->get('current_user'),
+      $container->get('date.formatter'),
+      $container->get('datetime.time'),
+      $container->get('csrf_token'),
+    );
   }
 
   /**
-   * Displays vendor detail page with analytics.
-   *
-   * @param \Drupal\myeventlane_vendor\Entity\Vendor $myeventlane_vendor
-   *   The vendor entity.
-   *
-   * @return array
-   *   A render array.
+   * Displays the public vendor detail page.
    */
   public function view(Vendor $myeventlane_vendor): array {
-    // Build standard entity view using 'full' view mode for public profile.
-    // Public profile shows only: Name, Logo, Bio, and Events.
-    $view_builder = $this->entityTypeManager()->getViewBuilder('myeventlane_vendor');
-    $entity_build = $view_builder->view($myeventlane_vendor, 'full');
+    $this->analytics->track('myeventlane_vendor', (int) $myeventlane_vendor->id(), AnalyticsService::EVENT_VENDOR_PAGE_VIEW);
 
-    // Render fields manually based on vendor visibility preferences.
-    // Always show: logo and bio (core profile fields).
-    $content = [];
-    foreach (['field_vendor_logo', 'field_logo_image', 'field_vendor_bio'] as $field_name) {
-      if ($myeventlane_vendor->hasField($field_name) && !$myeventlane_vendor->get($field_name)->isEmpty()) {
-        $content[$field_name] = $view_builder->viewField($myeventlane_vendor->get($field_name), 'full');
-      }
-    }
+    $content = $this->buildVisibleContent($myeventlane_vendor);
+    $events = $this->buildUpcomingEventCards($myeventlane_vendor);
+    $is_authenticated = (int) $this->account->id() > 0;
+    $csrf_token = $this->csrfToken->get('');
 
-    // Conditionally show fields based on vendor visibility settings.
-    // Email.
-    if ($myeventlane_vendor->hasField('field_email') && !$myeventlane_vendor->get('field_email')->isEmpty()) {
-      $show_email = $myeventlane_vendor->hasField('field_public_show_email')
-        && !$myeventlane_vendor->get('field_public_show_email')->isEmpty()
-        && (bool) $myeventlane_vendor->get('field_public_show_email')->value;
-      if ($show_email) {
-        $content['field_email'] = $view_builder->viewField($myeventlane_vendor->get('field_email'), 'full');
-      }
-    }
-
-    // Phone.
-    if ($myeventlane_vendor->hasField('field_phone') && !$myeventlane_vendor->get('field_phone')->isEmpty()) {
-      $show_phone = $myeventlane_vendor->hasField('field_public_show_phone')
-        && !$myeventlane_vendor->get('field_public_show_phone')->isEmpty()
-        && (bool) $myeventlane_vendor->get('field_public_show_phone')->value;
-      if ($show_phone) {
-        $content['field_phone'] = $view_builder->viewField($myeventlane_vendor->get('field_phone'), 'full');
-      }
-    }
-
-    // Address/Location.
-    if ($myeventlane_vendor->hasField('field_address') && !$myeventlane_vendor->get('field_address')->isEmpty()) {
-      $show_location = $myeventlane_vendor->hasField('field_public_show_location')
-        && !$myeventlane_vendor->get('field_public_show_location')->isEmpty()
-        && (bool) $myeventlane_vendor->get('field_public_show_location')->value;
-      if ($show_location) {
-        $content['field_address'] = $view_builder->viewField($myeventlane_vendor->get('field_address'), 'full');
-      }
-    }
-
-    // Website (check if visibility field exists, default to showing if field exists but visibility field doesn't)
-    if ($myeventlane_vendor->hasField('field_website') && !$myeventlane_vendor->get('field_website')->isEmpty()) {
-      $show_website = TRUE;
-      if ($myeventlane_vendor->hasField('field_public_show_website')) {
-        $show_website = !$myeventlane_vendor->get('field_public_show_website')->isEmpty()
-          && (bool) $myeventlane_vendor->get('field_public_show_website')->value;
-      }
-      if ($show_website) {
-        $content['field_website'] = $view_builder->viewField($myeventlane_vendor->get('field_website'), 'full');
-      }
-    }
-
-    // Social Links.
-    if ($myeventlane_vendor->hasField('field_social_links') && !$myeventlane_vendor->get('field_social_links')->isEmpty()) {
-      $show_social = TRUE;
-      if ($myeventlane_vendor->hasField('field_public_show_social_links')) {
-        $show_social = !$myeventlane_vendor->get('field_public_show_social_links')->isEmpty()
-          && (bool) $myeventlane_vendor->get('field_public_show_social_links')->value;
-      }
-      if ($show_social) {
-        $content['field_social_links'] = $view_builder->viewField($myeventlane_vendor->get('field_social_links'), 'full');
-      }
-    }
-
-    // Summary.
-    if ($myeventlane_vendor->hasField('field_summary') && !$myeventlane_vendor->get('field_summary')->isEmpty()) {
-      $show_summary = TRUE;
-      if ($myeventlane_vendor->hasField('field_public_show_summary')) {
-        $show_summary = !$myeventlane_vendor->get('field_public_show_summary')->isEmpty()
-          && (bool) $myeventlane_vendor->get('field_public_show_summary')->value;
-      }
-      if ($show_summary) {
-        $content['field_summary'] = $view_builder->viewField($myeventlane_vendor->get('field_summary'), 'full');
-      }
-    }
-
-    // Description.
-    if ($myeventlane_vendor->hasField('field_description') && !$myeventlane_vendor->get('field_description')->isEmpty()) {
-      $show_description = TRUE;
-      if ($myeventlane_vendor->hasField('field_public_show_description')) {
-        $show_description = !$myeventlane_vendor->get('field_public_show_description')->isEmpty()
-          && (bool) $myeventlane_vendor->get('field_public_show_description')->value;
-      }
-      if ($show_description) {
-        $content['field_description'] = $view_builder->viewField($myeventlane_vendor->get('field_description'), 'full');
-      }
-    }
-
-    // Banner Image.
-    if ($myeventlane_vendor->hasField('field_banner_image') && !$myeventlane_vendor->get('field_banner_image')->isEmpty()) {
-      $show_banner = TRUE;
-      if ($myeventlane_vendor->hasField('field_public_show_banner')) {
-        $show_banner = !$myeventlane_vendor->get('field_public_show_banner')->isEmpty()
-          && (bool) $myeventlane_vendor->get('field_public_show_banner')->value;
-      }
-      if ($show_banner) {
-        $content['field_banner_image'] = $view_builder->viewField($myeventlane_vendor->get('field_banner_image'), 'full');
-      }
-    }
-
-    // Query and render upcoming events for this vendor.
-    $vendor_id = (int) $myeventlane_vendor->id();
-    $now = time();
-
-    $event_ids = $this->entityTypeManager()
-      ->getStorage('node')
-      ->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('type', 'event')
-      ->condition('field_event_vendor', $vendor_id)
-      ->condition('field_event_end', date('Y-m-d\TH:i:s', $now), '>=')
-      ->condition('status', 1)
-      ->sort('field_event_start', 'ASC')
-      ->range(0, 10)
-      ->execute();
-
-    $events_build = [];
-    if (!empty($event_ids) && $this->eventRepository !== NULL) {
-      $nids = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
-      foreach ($this->eventRepository->loadMany($nids) as $dto) {
-        $date_text = $dto->start_timestamp > 0
-          ? date('M j, Y', $dto->start_timestamp)
-          : '';
-        $events_build[] = [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['vendor-profile__event-teaser']],
-          'link' => [
-            '#type' => 'link',
-            '#title' => $dto->title,
-            '#url' => Url::fromRoute('entity.node.canonical', ['node' => $dto->id]),
-          ],
-          'date' => $date_text !== '' ? [
-            '#type' => 'html_tag',
-            '#tag' => 'p',
-            '#value' => $date_text,
-            '#attributes' => ['class' => ['vendor-profile__event-date']],
-          ] : NULL,
-        ];
-      }
-    }
-
-    // Add the events section to the build.
-    $vendor_events = NULL;
-    if (!empty($events_build)) {
-      $vendor_events = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['vendor-profile__events']],
-        'title' => [
-          '#type' => 'html_tag',
-          '#tag' => 'h2',
-          '#attributes' => ['id' => 'vendor-events-heading'],
-          '#value' => 'Upcoming events',
-        ],
-        'events' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['vendor-events-list']],
-        ] + $events_build,
-        '#weight' => 100,
-      ];
-    }
-
-    // Build using our custom template.
-    $renderer = \Drupal::service('renderer');
     $build = [
       '#theme' => 'entity__myeventlane_vendor__full',
       '#entity' => $myeventlane_vendor,
       '#view_mode' => 'full',
       '#content' => $content,
-      '#vendor_events' => $vendor_events,
-      '#attributes' => new Attribute(['class' => ['vendor-profile-wrapper']]),
+      '#label' => $myeventlane_vendor->label(),
+      '#vendor_id' => (int) $myeventlane_vendor->id(),
+      '#banner' => $content['field_banner_image'] ?? NULL,
+      '#logo' => $this->vendorCardBuilder->buildStyledImage($myeventlane_vendor, ['field_logo_image', 'field_vendor_logo'], 'thumbnail'),
+      '#tagline' => $this->vendorCardBuilder->fieldText($myeventlane_vendor, ['field_tagline', 'field_summary']),
+      '#description' => $content['field_vendor_bio'] ?? $content['field_description'] ?? NULL,
+      '#contact' => $this->buildContactContent($content),
+      '#events' => $events,
+      '#is_authenticated' => $is_authenticated,
+      '#is_following' => $is_authenticated ? $this->vendorFollowService->isFollowing($this->account, $myeventlane_vendor) : FALSE,
+      '#follower_count' => $this->vendorFollowService->countFollowers($myeventlane_vendor),
+      '#follow_url' => $is_authenticated ? Url::fromRoute('myeventlane_core.vendor_follow_toggle', [
+        'myeventlane_vendor' => $myeventlane_vendor->id(),
+      ])->toString() : Url::fromRoute('user.login', [], [
+        'query' => [
+          'destination' => Url::fromRoute('entity.myeventlane_vendor.canonical', [
+            'myeventlane_vendor' => $myeventlane_vendor->id(),
+          ])->toString(),
+        ],
+      ])->toString(),
+      '#attributes' => new Attribute(['class' => ['mel-vendor']]),
       '#title_attributes' => new Attribute(),
+      '#attached' => [
+        'library' => ['myeventlane_core/vendor_public'],
+        'drupalSettings' => [
+          'melVendorPublic' => [
+            'csrfToken' => $csrf_token,
+          ],
+          'melPublicAnalytics' => [
+            'eventClickUrl' => Url::fromRoute('myeventlane_core.analytics_event_click')->toString(),
+            'csrfToken' => $csrf_token,
+          ],
+        ],
+      ],
       '#cache' => [
-        'tags' => $myeventlane_vendor->getCacheTags(),
-        'contexts' => $myeventlane_vendor->getCacheContexts(),
+        'tags' => array_values(array_unique(array_merge(
+          $myeventlane_vendor->getCacheTags(),
+          ['node_list:event', 'myeventlane_vendor_follow_list']
+        ))),
+        'contexts' => array_values(array_unique(array_merge(
+          $myeventlane_vendor->getCacheContexts(),
+          ['session', 'user', 'user.permissions']
+        ))),
         'max-age' => $myeventlane_vendor->getCacheMaxAge(),
       ],
     ];
@@ -232,298 +128,142 @@ final class VendorDetailController extends ControllerBase implements ContainerIn
   }
 
   /**
-   * Gets comprehensive analytics for a vendor.
+   * Builds public fields while preserving vendor visibility preferences.
    *
-   * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
-   *   The vendor entity.
-   *
-   * @return array
-   *   Analytics data.
+   * @return array<string, array>
+   *   Render arrays keyed by field name.
    */
-  protected function getVendorAnalytics(Vendor $vendor): array {
-    $vendor_id = (int) $vendor->id();
+  private function buildVisibleContent(Vendor $vendor): array {
+    $view_builder = $this->entityTypeManagerService->getViewBuilder('myeventlane_vendor');
+    $content = [];
 
-    // Get vendor's events.
-    $event_ids = $this->entityTypeManager()
-      ->getStorage('node')
-      ->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', 'event')
-      ->condition('field_event_vendor', $vendor_id)
-      ->execute();
-
-    $total_events = count($event_ids);
-    $published_events = (int) $this->entityTypeManager()
-      ->getStorage('node')
-      ->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', 'event')
-      ->condition('field_event_vendor', $vendor_id)
-      ->condition('status', 1)
-      ->count()
-      ->execute();
-
-    // Calculate revenue metrics.
-    $total_revenue = 0.0;
-    $last_30_days_revenue = 0.0;
-    $tickets_sold = 0;
-    $total_orders = 0;
-    $thirty_days_ago = strtotime('-30 days');
-
-    if (!empty($event_ids)) {
-      $order_item_storage = $this->entityTypeManager()->getStorage('commerce_order_item');
-      $order_items = $order_item_storage->loadByProperties([
-        'field_target_event' => array_values($event_ids),
-      ]);
-
-      $processed_orders = [];
-      foreach ($order_items as $item) {
-        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
-          continue;
-        }
-
-        // Safely load the order entity to avoid getOrder() warnings.
-        $order_target_id = $item->get('order_id')->target_id;
-        if (!$order_target_id) {
-          continue;
-        }
-
-        try {
-          $order = $this->entityTypeManager()
-            ->getStorage('commerce_order')
-            ->load($order_target_id);
-          if ($order && $order->getState()->getId() === 'completed') {
-            $order_id = $order->id();
-            if (!isset($processed_orders[$order_id])) {
-              $processed_orders[$order_id] = TRUE;
-              $total_orders++;
-
-              // Check if order is within last 30 days.
-              $order_time = $order->getCompletedTime() ?? $order->getChangedTime();
-              if ($order_time >= $thirty_days_ago) {
-                $order_total = $order->getTotalPrice();
-                if ($order_total) {
-                  $last_30_days_revenue += (float) $order_total->getNumber();
-                }
-              }
-            }
-
-            $total_price = $item->getTotalPrice();
-            if ($total_price) {
-              $total_revenue += (float) $total_price->getNumber();
-            }
-            $tickets_sold += (int) $item->getQuantity();
-          }
-        }
-        catch (\Exception $e) {
-          continue;
-        }
+    foreach (['field_vendor_logo', 'field_logo_image', 'field_vendor_bio', 'field_tagline'] as $field_name) {
+      if ($vendor->hasField($field_name) && !$vendor->get($field_name)->isEmpty()) {
+        $content[$field_name] = $view_builder->viewField($vendor->get($field_name), 'full');
       }
     }
 
-    // Get RSVP counts.
-    $total_rsvps = 0;
-    $confirmed_rsvps = 0;
-    try {
-      $rsvp_storage = $this->entityTypeManager()->getStorage('rsvp_submission');
-      $total_rsvps = (int) $rsvp_storage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('event_id', $event_ids, 'IN')
-        ->count()
-        ->execute();
-      $confirmed_rsvps = (int) $rsvp_storage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('event_id', $event_ids, 'IN')
-        ->condition('status', 'confirmed')
-        ->count()
-        ->execute();
-    }
-    catch (\Exception $e) {
-      // RSVP module may not be available.
-    }
-
-    // Get attendee counts.
-    $total_attendees = 0;
-    try {
-      $attendee_storage = $this->entityTypeManager()->getStorage('event_attendee');
-      $total_attendees = (int) $attendee_storage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('event', $event_ids, 'IN')
-        ->condition('status', 'confirmed')
-        ->count()
-        ->execute();
-    }
-    catch (\Exception $e) {
-      // Attendee module may not be available.
-    }
-
-    // Calculate platform fees and net revenue (aligned with myeventlane_core.settings).
-    $fee_percent = PlatformFeeDefaults::normalizePercent(
-      $this->config('myeventlane_core.settings')->get('platform_fee_percent')
-    );
-    $platform_fee_rate = $fee_percent / 100;
-    $platform_fees = $total_revenue * $platform_fee_rate;
-    $net_revenue = $total_revenue - $platform_fees;
-
-    // Get vendor users count.
-    $user_count = 0;
-    if ($vendor->hasField('field_vendor_users') && !$vendor->get('field_vendor_users')->isEmpty()) {
-      $user_count = $vendor->get('field_vendor_users')->count();
-    }
-
-    return [
-      'total_events' => $total_events,
-      'published_events' => $published_events,
-      'total_revenue' => $total_revenue,
-      'last_30_days_revenue' => $last_30_days_revenue,
-      'platform_fees' => $platform_fees,
-      'net_revenue' => $net_revenue,
-      'tickets_sold' => $tickets_sold,
-      'total_orders' => $total_orders,
-      'total_rsvps' => $total_rsvps,
-      'confirmed_rsvps' => $confirmed_rsvps,
-      'total_attendees' => $total_attendees,
-      'total_participants' => $tickets_sold + $total_attendees + $confirmed_rsvps,
-      'user_count' => $user_count,
+    $visibility = [
+      'field_email' => 'field_public_show_email',
+      'field_phone' => 'field_public_show_phone',
+      'field_address' => 'field_public_show_location',
+      'field_website' => 'field_public_show_website',
+      'field_social_links' => 'field_public_show_social_links',
+      'field_summary' => 'field_public_show_summary',
+      'field_description' => 'field_public_show_description',
+      'field_banner_image' => 'field_public_show_banner',
     ];
+
+    foreach ($visibility as $field_name => $visibility_field) {
+      if ($this->canShowField($vendor, $field_name, $visibility_field)) {
+        $content[$field_name] = $view_builder->viewField($vendor->get($field_name), 'full');
+      }
+    }
+
+    return $content;
   }
 
   /**
-   * Gets detailed event list for vendor with metrics.
-   *
-   * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
-   *   The vendor entity.
-   *
-   * @return array
-   *   Events data with analytics.
+   * Checks field visibility for public vendor pages.
    */
-  protected function getVendorEvents(Vendor $vendor): array {
-    $vendor_id = (int) $vendor->id();
+  private function canShowField(Vendor $vendor, string $field_name, string $visibility_field): bool {
+    if (!$vendor->hasField($field_name) || $vendor->get($field_name)->isEmpty()) {
+      return FALSE;
+    }
 
-    // Get vendor's events.
-    $event_ids = $this->entityTypeManager()
+    if (!$vendor->hasField($visibility_field)) {
+      return TRUE;
+    }
+
+    return !$vendor->get($visibility_field)->isEmpty() && (bool) $vendor->get($visibility_field)->value;
+  }
+
+  /**
+   * Groups optional contact fields for the template.
+   *
+   * @param array<string, array> $content
+   *   Visible field render arrays.
+   *
+   * @return array<string, array>
+   *   Contact render arrays.
+   */
+  private function buildContactContent(array $content): array {
+    return array_intersect_key($content, array_flip([
+      'field_email',
+      'field_phone',
+      'field_address',
+      'field_website',
+      'field_social_links',
+    ]));
+  }
+
+  /**
+   * Builds upcoming event card variables for this vendor.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Event card component variables.
+   */
+  private function buildUpcomingEventCards(Vendor $vendor): array {
+    if ($this->eventRepository === NULL) {
+      return [];
+    }
+
+    $query = $this->entityTypeManagerService
       ->getStorage('node')
       ->getQuery()
-      ->accessCheck(FALSE)
+      ->accessCheck(TRUE)
       ->condition('type', 'event')
-      ->condition('field_event_vendor', $vendor_id)
-      ->sort('created', 'DESC')
+      ->condition('field_event_vendor', (int) $vendor->id())
+      ->condition('status', 1);
+    UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($query, (int) $this->time->getRequestTime());
+    $event_ids = $query
+      ->sort('field_event_start', 'ASC')
+      ->range(0, 10)
       ->execute();
 
     if (empty($event_ids)) {
       return [];
     }
 
-    $normalized = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
-    $events_data = [];
+    $nids = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
+    $nodes = $this->entityTypeManagerService->getStorage('node')->loadMultiple($nids);
+    $cards = [];
 
-    if ($this->eventRepository === NULL) {
-      return [];
-    }
-
-    foreach ($this->eventRepository->loadMany($normalized) as $dto) {
-      $event_id = $dto->id;
-
-      $event_date = '';
-      $event_date_timestamp = NULL;
-      if ($dto->start_timestamp > 0) {
-        $event_date_timestamp = $dto->start_timestamp;
-        $event_date = date('M j, Y', $dto->start_timestamp);
-      }
-
-      // Calculate revenue for this event.
-      $revenue = 0.0;
-      $tickets_sold = 0;
-      $orders_count = 0;
-
-      $order_item_storage = $this->entityTypeManager()->getStorage('commerce_order_item');
-      $order_items = $order_item_storage->loadByProperties([
-        'field_target_event' => $event_id,
-      ]);
-
-      $processed_orders = [];
-      foreach ($order_items as $item) {
-        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
-          continue;
-        }
-
-        // Safely load the order entity to avoid getOrder() warnings.
-        $order_target_id = $item->get('order_id')->target_id;
-        if (!$order_target_id) {
-          continue;
-        }
-
-        try {
-          $order = $this->entityTypeManager()
-            ->getStorage('commerce_order')
-            ->load($order_target_id);
-          if ($order && $order->getState()->getId() === 'completed') {
-            $order_id = $order->id();
-            if (!isset($processed_orders[$order_id])) {
-              $processed_orders[$order_id] = TRUE;
-              $orders_count++;
-            }
-
-            $total_price = $item->getTotalPrice();
-            if ($total_price) {
-              $revenue += (float) $total_price->getNumber();
-            }
-            $tickets_sold += (int) $item->getQuantity();
-          }
-        }
-        catch (\Exception $e) {
-          continue;
-        }
-      }
-
-      // Get RSVP count.
-      $rsvp_count = 0;
-      try {
-        $rsvp_storage = $this->entityTypeManager()->getStorage('rsvp_submission');
-        $rsvp_count = (int) $rsvp_storage->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('event_id', $event_id)
-          ->condition('status', 'confirmed')
-          ->count()
-          ->execute();
-      }
-      catch (\Exception $e) {
-        // RSVP module may not be available.
-      }
-
-      // Get attendee count.
-      $attendee_count = 0;
-      try {
-        $attendee_storage = $this->entityTypeManager()->getStorage('event_attendee');
-        $attendee_count = (int) $attendee_storage->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('event', $event_id)
-          ->condition('status', 'confirmed')
-          ->count()
-          ->execute();
-      }
-      catch (\Exception $e) {
-        // Attendee module may not be available.
-      }
-
-      $events_data[] = [
-        'event_id' => $event_id,
-        'event_title' => $dto->title,
-        'event_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
-        'event_date' => $event_date,
-        'event_date_timestamp' => $event_date_timestamp,
-        'status' => $dto->published ? 'published' : 'draft',
-        'revenue' => $revenue,
-        'tickets_sold' => $tickets_sold,
-        'rsvps' => $rsvp_count,
-        'attendees' => $attendee_count,
-        'total_participants' => $tickets_sold + $attendee_count + $rsvp_count,
-        'orders' => $orders_count,
-        'created' => $dto->created,
+    foreach ($this->eventRepository->loadMany($nids) as $dto) {
+      $node = $nodes[$dto->id] ?? NULL;
+      $cards[] = [
+        'event_id' => $dto->id,
+        'title' => $dto->title,
+        'url' => Url::fromRoute('entity.node.canonical', ['node' => $dto->id])->toString(),
+        'image_render' => $node instanceof NodeInterface ? $this->eventImage($node) : NULL,
+        'date_full' => $dto->start_timestamp > 0
+          ? $this->dateFormatter->format($dto->start_timestamp, 'custom', 'M j, Y')
+          : '',
+        'location' => $dto->venue_label,
+        'ticket_type' => $dto->ticket_type,
+        'category' => $dto->category_label,
       ];
     }
 
-    return $events_data;
+    return $cards;
+  }
+
+  /**
+   * Builds a styled event card image render array.
+   */
+  private function eventImage(NodeInterface $event): ?array {
+    if (!$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
+      return NULL;
+    }
+
+    return $event->get('field_event_image')->view([
+      'type' => 'image',
+      'label' => 'hidden',
+      'settings' => [
+        'image_style' => 'mel_event_card_standard',
+        'image_link' => '',
+      ],
+    ]);
   }
 
 }

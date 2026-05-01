@@ -5,7 +5,9 @@
 // Markup: templates/components/event-card/mel-event-card.html.twig
 
 @use '../base/mel-ds-tokens' as mel;
+@use '../tokens/colors' as melc;
 @use '../tokens/breakpoints';
+@use '../tokens/motion' as melmotion;
 
 // ---------------------------------------------------------------------------
 // Unified listing card: .mel-event-card
@@ -23,8 +25,8 @@
   box-shadow: mel.$mel-ds-shadow-soft;
   border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform melmotion.$mel-transition-base,
+    box-shadow melmotion.$mel-transition-base;
   animation: fade-in-up 0.3s ease;
 
   @media (prefers-reduced-motion: reduce) {
@@ -34,13 +36,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .mel-event-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(-6px);
+    box-shadow: var(--mel-shadow-2);
   }
 
   .mel-event-card:hover:focus-within {
     box-shadow:
-      0 8px 20px rgba(0, 0, 0, 0.08),
+      var(--mel-shadow-2),
       0 0 0 3px rgba(110, 126, 242, 0.25);
   }
 }
@@ -103,18 +105,22 @@
   display: block;
 }
 
-.mel-event-card__image img {
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+.mel-event-card__image-wrap img,
+.mel-event-card__image img,
+.mel-event-card__image .mel-event-card__image-element {
+  transition: transform melmotion.$mel-transition-slow;
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .mel-event-card:hover .mel-event-card__image-wrap img,
   .mel-event-card:hover .mel-event-card__image img,
   .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
-    transform: scale(1.03);
+    transform: scale(1.04);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mel-event-card:hover .mel-event-card__image-wrap img,
   .mel-event-card:hover .mel-event-card__image img,
   .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
     transform: none;
@@ -130,21 +136,56 @@
   }
 }
 
-.mel-event-card__image .mel-pill--category,
-.mel-event-card__image .mel-pill--on-image {
+// Category pill — MEL highlight apricot (listing cards + featured hero card).
+.mel-event__category {
+  display: inline-block;
+  background: melc.$mel-color-highlight-apricot;
+  color: melc.$mel-color-text;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  margin-bottom: 8px;
+  white-space: nowrap;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .field {
+    margin: 0;
+  }
+
+  .field__item {
+    display: inline;
+  }
+}
+
+.mel-event-card__image .mel-pill--on-image,
+.mel-event-card__image .mel-event__category {
   transform: none;
   top: 12px;
   left: 12px;
   right: auto;
   padding: 6px 12px;
   font-size: 12px;
-  font-weight: 700;
   letter-spacing: 0.02em;
   z-index: 3;
   max-width: calc(100% - 24px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.mel-event-card__image .mel-pill--on-image:not(.mel-event__category) {
+  font-weight: 700;
+}
+
+.mel-event-card__image .mel-event__category {
+  font-weight: 600;
+  letter-spacing: normal;
 }
 
 .mel-event-card__image-badge,
@@ -157,8 +198,30 @@
   opacity: 0.9;
 }
 
+.mel-event-card__image-badge.mel-event__category {
+  opacity: 1;
+}
+
 .mel-event-card__image-badge {
   transition: opacity 0.2s ease;
+}
+
+.mel-event-card__signal {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.2;
+  max-width: calc(100% - 24px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -191,6 +254,22 @@
   color: mel.$mel-ds-color-text;
   border: 1px solid color-mix(in srgb, #e8a85c 32%, transparent);
   border-radius: 16px;
+}
+
+// Category on image: single apricot pill (overrides .mel-pill--on-image defaults).
+.mel-event-card__image .mel-event__category.mel-pill--on-image,
+.mel-event-hero-card__image .mel-event__category.mel-pill--on-image {
+  background: melc.$mel-color-highlight-apricot;
+  color: melc.$mel-color-text;
+  border: 1px solid color-mix(in srgb, melc.$mel-color-highlight-apricot 75%, melc.$mel-color-text 25%);
+  border-radius: 999px;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+// Featured hero card image: dark overlay — slightly translucent apricot for contrast.
+.mel-event-hero-card__image .mel-event__category.mel-pill--on-image {
+  background: rgba(246, 196, 122, 0.95);
 }
 
 .mel-event-card__overlay {

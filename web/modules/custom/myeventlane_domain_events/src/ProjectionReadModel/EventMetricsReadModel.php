@@ -87,11 +87,6 @@ final class EventMetricsReadModel {
     }
 
     // Expected until projector queue catches up; fallback metrics are authoritative enough for UI.
-    $this->logger->debug(
-      'Projection miss for event {event_id}; using fallback metrics.',
-      ['event_id' => $eventId]
-    );
-
     $fallback = $this->buildFallbackMetrics($eventId);
     $this->cache->set(
       $cacheKey,

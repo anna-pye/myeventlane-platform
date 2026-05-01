@@ -1,14 +1,14 @@
 {#
 /**
  * @file
- * MEL grouped checkout sidebar: events → ticket lines → order total.
- * Only render when there is content (avoids empty/duplicate UI block).
+ * MEL grouped checkout sidebar: events → ticket lines → subtotal / GST / fees → total.
+ *
+ * Totals use Commerce order adjustments via OrderPricingBreakdownBuilder (PHP).
  */
 #}
 {% if grouped_items is not empty %}
 <div class="mel-checkout-order-summary mel-summary-grouped" role="region" aria-labelledby="mel-checkout-summary-heading">
-  <h2 id="mel-checkout-summary-heading" class="mel-checkout-order-title mel-checkout-summary__title">{{ 'Order summary'|t }}</h2>
-
+  <h2 id="mel-checkout-summary-heading" class="visually-hidden">{{ 'Order summary'|t }}</h2>
   {% for event in grouped_items %}
     <div class="mel-summary-event">
       <h3 class="mel-summary-event__title">{{ event.title }}</h3>
@@ -28,9 +28,43 @@
     </div>
   {% endfor %}
 
+  <div class="mel-summary-breakdown" role="group" aria-label="{{ 'Pricing breakdown'|t }}">
+    {% if subtotal_formatted %}
+      <div class="mel-summary-row mel-summary-row--subtotal">
+        <span class="mel-summary-row__label">{{ 'Subtotal'|t }}</span>
+        <span class="mel-summary-row__value">{{ subtotal_formatted }}</span>
+      </div>
+    {% endif %}
+
+    {% for row in tax_rows %}
+      <div class="mel-summary-row mel-summary-row--tax">
+        <span class="mel-summary-row__label">{{ row.label }}</span>
+        <span class="mel-summary-row__value">{{ row.amount_formatted }}</span>
+      </div>
+    {% endfor %}
+
+    {% for row in fee_rows %}
+      <div class="mel-summary-row mel-summary-row--fee">
+        <span class="mel-summary-row__label">{{ row.label }}</span>
+        <span class="mel-summary-row__value">{{ row.amount_formatted }}</span>
+      </div>
+    {% endfor %}
+
+    {% if platform_fee_absorbed %}
+      <div class="mel-summary-row mel-summary-row--platform-fee">
+        <span class="mel-summary-row__label">{{ 'Platform fee'|t }}</span>
+        <span class="mel-summary-row__value">{{ 'Organiser absorbs'|t }}</span>
+      </div>
+    {% endif %}
+  </div>
+
   <div class="mel-summary-total mel-summary-total--inline">
     <span class="mel-summary-total__label">{{ 'Total'|t }}</span>
     <strong class="mel-summary-total__value">{{ order_total }}</strong>
   </div>
+
+  {% if show_includes_gst_note %}
+    <p class="mel-tax-note">{{ 'All prices include GST'|t }}</p>
+  {% endif %}
 </div>
 {% endif %}

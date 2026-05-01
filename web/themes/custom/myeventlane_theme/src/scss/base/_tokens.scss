@@ -10,6 +10,7 @@
   --mel-color-accent-active: #555dd4;
   --mel-color-text: #24303a;
   --mel-color-text-secondary: #5b6670;
+  --mel-color-text-muted: #7a838b;
   --mel-color-border: #e9e3de;
   --mel-color-overlay: rgba(36, 48, 58, 0.38);
   --mel-color-on-primary: #fff;
@@ -48,7 +49,11 @@
   --mel-surface: var(--mel-color-surface);
   --mel-surface-2: var(--mel-color-surface-soft);
   --mel-ink: var(--mel-color-text);
+  // Alias used by event UI + headers (vendor theme defines --mel-text; keep parity).
+  --mel-text: var(--mel-color-text);
   --mel-muted: var(--mel-color-text-secondary);
+  --mel-text-secondary: var(--mel-color-text-secondary);
+  --mel-text-muted: var(--mel-color-text-muted);
   --mel-border: 1px solid var(--mel-color-border);
   --mel-primary: var(--mel-color-primary);
   --mel-accent: var(--mel-color-accent);
@@ -59,6 +64,7 @@
   --mel-grey-light: var(--mel-color-surface-soft);
   --mel-peach: color-mix(in srgb, var(--mel-color-primary) 18%, #fff);
   --mel-lilac: color-mix(in srgb, var(--mel-color-accent) 18%, #fff);
+  --mel-accent-soft: var(--mel-lilac);
   --mel-mint: color-mix(in srgb, var(--mel-color-accent) 12%, #fff);
   --mel-sky: color-mix(in srgb, var(--mel-color-accent) 8%, #fff);
   --mel-butter: color-mix(in srgb, var(--mel-color-primary) 14%, #fff);
@@ -91,4 +97,7 @@
   --mel-max: 1320px;
   --mel-header-bg: linear-gradient(90deg, color-mix(in srgb, var(--mel-color-primary) 14%, #fff), color-mix(in srgb, var(--mel-color-accent) 16%, #fff));
   --mel-footer-bg: var(--mel-color-bg);
+
+  /* Soft success surface (confirmations, subtle highlights) */
+  --mel-success-soft: color-mix(in srgb, #22c55e 14%, #fff);
 }

@@ -100,8 +100,20 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       'variables' => [
         'grouped_items' => [],
         'order_total' => '',
+        'subtotal_formatted' => '',
+        'tax_rows' => [],
+        'fee_rows' => [],
+        'platform_fee_absorbed' => FALSE,
+        'show_includes_gst_note' => FALSE,
       ],
       'template' => 'commerce/mel-checkout-order-summary-grouped',
+    ],
+    'mel_tax_invoice_pdf' => [
+      'variables' => [
+        'invoice' => [],
+        'order_entity' => NULL,
+      ],
+      'template' => 'commerce/mel-tax-invoice-pdf',
     ],
     'site_header' => [
       'variables' => [
@@ -498,6 +510,41 @@ function _myeventlane_theme_commerce_order_from_route(): ?OrderInterface {
 }
 
 /**
+ * Adds tax invoice Twig variables from Commerce order + store ABN.
+ */
+function _myeventlane_theme_attach_tax_invoice_variables(OrderInterface $order, array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_checkout_flow.tax_invoice_presentation')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder $builder */
+  $builder = \Drupal::service('myeventlane_checkout_flow.tax_invoice_presentation');
+  $data = $builder->build($order);
+  $variables['vendor_name'] = $data['vendor_name'];
+  $variables['vendor_abn'] = $data['vendor_abn'];
+  $variables['order_total_gst'] = $data['order_total_gst'];
+  $variables['order_total'] = $data['order_total'];
+  $variables['mel_invoice_lines'] = $data['invoice_lines'];
+  $variables['invoice_date_display'] = $data['invoice_date_display'];
+  $variables['mel_invoice_fee_lines'] = $data['fee_lines'];
+  $variables['mel_invoice_tax_lines'] = $data['tax_lines'];
+}
+
+/**
+ * Implements hook_preprocess_commerce_order().
+ */
+function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  _myeventlane_theme_attach_tax_invoice_variables($order, $variables);
+  $store = $order->getStore();
+  if ($store) {
+    $variables['#cache']['tags'][] = 'commerce_store:' . $store->id();
+  }
+}
+
+/**
  * Whether the order is a natural free-RSVP checkout (list-price $0 tickets only).
  *
  * Distinguishes true RSVP products from orders that reach $0 via promotions
@@ -679,9 +726,22 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         );
       }
 
+      $variables['mel_order_pricing_breakdown'] = NULL;
+      if (\Drupal::hasService('myeventlane_checkout_flow.order_pricing_breakdown')) {
+        /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $mel_breakdown */
+        $mel_breakdown = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
+        $variables['mel_order_pricing_breakdown'] = $mel_breakdown->build($order);
+      }
+
       // Attach copy-link JS when share block is present.
       if ($variables['mel_event_url']) {
         $variables['#attached']['library'][] = 'myeventlane_theme/mel_confirmation';
+      }
+
+      _myeventlane_theme_attach_tax_invoice_variables($order, $variables);
+      $store = $order->getStore();
+      if ($store) {
+        $variables['#cache']['tags'][] = 'commerce_store:' . $store->id();
       }
     }
   }
@@ -732,8 +792,8 @@ function _myeventlane_theme_get_first_event_from_order($order) {
  * @param \Drupal\node\NodeInterface $event
  *   The event node.
  *
- * @return array{apple?: string, google?: string, outlook?: string}
- *   Calendar link URLs.
+ * @return array{ics?: string, apple?: string, google?: string, outlook?: string}
+ *   Calendar link URLs. Apple uses the ICS download route; Outlook uses a web compose deeplink.
  */
 function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
   $links = [];
@@ -1555,7 +1615,25 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     if (!isset($variables['directory'])) {
       $variables['directory'] = $base_path . $theme_path;
     }
-    
+
+    // Event Intelligence Layer: one calm label per event (placeholder tier; replace with metrics later).
+    $variables['mel_signal'] = NULL;
+    $mel_state = (string) ($variables['mel_event_state'] ?? '');
+    $event_ui_signal = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : [];
+    $signal_sold_out = !empty($event_ui_signal['is_sold_out']);
+    $signal_hide = ($mel_state === 'cancelled')
+      || ($mel_state === 'sold_out')
+      || $signal_sold_out;
+    if (!$signal_hide) {
+      $mel_signals = [
+        (string) t('Popular'),
+        (string) t('Trending'),
+        (string) t('Just added'),
+      ];
+      $mel_signal_idx = (int) $node->id() % count($mel_signals);
+      $variables['mel_signal'] = $mel_signals[$mel_signal_idx];
+    }
+
     // 1. Compute event image URL if it exists.
     $event_image_url = NULL;
     $event_image_uri = NULL;
@@ -2610,6 +2688,30 @@ function myeventlane_theme_preprocess_entity(array &$variables): void {
 }
 
 /**
+ * Prepares shared public vendor card variables for vendor entity teasers.
+ */
+function myeventlane_theme_preprocess_myeventlane_vendor(array &$variables): void {
+  $entity = $variables['entity'] ?? NULL;
+  if (!$entity instanceof EntityInterface || $entity->getEntityTypeId() !== 'myeventlane_vendor') {
+    return;
+  }
+
+  if (!\Drupal::hasService('myeventlane_vendor.vendor_card_builder')) {
+    return;
+  }
+
+  $vendor_url = $variables['url'] ?? NULL;
+  if ($vendor_url instanceof Url) {
+    $vendor_url = $vendor_url->toString();
+  }
+
+  $variables['vendor_card'] = \Drupal::service('myeventlane_vendor.vendor_card_builder')->build($entity);
+  if (is_string($vendor_url) && $vendor_url !== '') {
+    $variables['vendor_card']['url'] = $vendor_url;
+  }
+}
+
+/**
  * Implements hook_form_alter().
  *
  * Adds classes and ensures proper styling for public-facing forms.
@@ -3103,9 +3205,21 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
         $variables['mel_booking_action_label'] = new TranslatableMarkup('Book free RSVP');
       }
       elseif ($cta_type === EventCtaResolver::CTA_PAID) {
-        $variables['mel_booking_action_label'] = new TranslatableMarkup('Buy tickets');
+        $variables['mel_booking_action_label'] = new TranslatableMarkup('Get your tickets');
       }
     }
+  }
+
+  // Calendar URLs for event full template (same builder as checkout confirmation).
+  $variables['apple_ics_url'] = '';
+  $variables['outlook_ics_url'] = '';
+  $variables['google_calendar_url'] = '';
+  if (($variables['view_mode'] ?? '') === 'full') {
+    $cal_links = _myeventlane_theme_build_calendar_links($node);
+    $variables['apple_ics_url'] = $cal_links['apple'] ?? $cal_links['ics'] ?? '';
+    // Same ICS download as Apple; Outlook desktop imports the same file.
+    $variables['outlook_ics_url'] = $cal_links['ics'] ?? '';
+    $variables['google_calendar_url'] = $cal_links['google'] ?? '';
   }
 }
 
@@ -3165,6 +3279,13 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
   $variables['grouped_items'] = $grouped_items;
   $variables['items_without_event'] = $items_without_event;
   $variables['item_event_map'] = $item_event_map;
+
+  $order = $form['#order'] ?? NULL;
+  if ($order instanceof OrderInterface && \Drupal::hasService('myeventlane_checkout_flow.order_pricing_breakdown')) {
+    /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $breakdown_builder */
+    $breakdown_builder = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
+    $variables['mel_cart_pricing'] = $breakdown_builder->build($order);
+  }
 }
 
 /**

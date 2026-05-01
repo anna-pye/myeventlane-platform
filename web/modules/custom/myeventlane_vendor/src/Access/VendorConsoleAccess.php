@@ -67,14 +67,14 @@ final class VendorConsoleAccess {
   public function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
     $path = $this->getPathForAccessTarget($route_match);
     if (str_starts_with($path, '/stripe/')) {
-      $this->logger->notice('MEL: forcing allow for Stripe route uid=@uid', [
+      $this->logger->debug('MEL: forcing allow for Stripe route uid=@uid', [
         '@uid' => (string) $account->id(),
       ]);
       return AccessResult::allowed()
         ->addCacheContexts(self::CACHE_CONTEXTS);
     }
     if (!$this->isVendorPathNamespace($path)) {
-      $this->logger->notice('Skipped vendor access (non-vendor path) path=@path', [
+      $this->logger->debug('Skipped vendor access (non-vendor path) path=@path', [
         '@path' => $path,
       ]);
       return AccessResult::neutral('Non-vendor request path: vendor access check not applicable.')
@@ -110,7 +110,7 @@ final class VendorConsoleAccess {
         str_starts_with($path, '/create-event') ||
         str_starts_with($path, '/vendor/events')
       ) {
-        $this->logger->notice('MEL: allowing event creation during onboarding uid=@uid', [
+        $this->logger->debug('MEL: allowing event creation during onboarding uid=@uid', [
           '@uid' => (string) $uid,
         ]);
 
@@ -119,7 +119,7 @@ final class VendorConsoleAccess {
           ->addCacheableDependency($state);
       }
 
-      $this->logger->notice('Blocked vendor route (not onboarded) uid=@uid', [
+      $this->logger->warning('Blocked vendor route (not onboarded) uid=@uid', [
         '@uid' => (string) $uid,
       ]);
       return AccessResult::forbidden()
@@ -209,7 +209,8 @@ final class VendorConsoleAccess {
     if ($current !== NULL) {
       $host = $current->getHost();
     }
-    $this->logger->notice(
+    // Routine allow/deny — debug only (this runs very often via menu + route checks).
+    $this->logger->debug(
       'VendorConsoleAccess uid=@uid host=@host path=@path decision=@decision',
       [
         '@uid' => (string) $account->id(),

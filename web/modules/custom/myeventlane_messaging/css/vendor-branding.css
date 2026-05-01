@@ -1,0 +1,88 @@
+/**
+ * @file
+ * Vendor messaging branding form styles.
+ */
+
+#myeventlane-messaging-vendor-branding-form .mel-card {
+  background: #ffffff;
+  border: 1px solid #e9e3de;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+  margin-bottom: 24px;
+}
+
+#myeventlane-messaging-vendor-branding-form .mel-card h2 {
+  font-size: 22px;
+  margin: 0 0 16px;
+  color: #293241;
+}
+
+#myeventlane-messaging-vendor-branding-form .mel-vendor-branding__intro {
+  margin: 0 0 24px;
+  color: #637185;
+}
+
+#myeventlane-messaging-vendor-branding-form .form-item {
+  margin-bottom: 20px;
+}
+
+#myeventlane-messaging-vendor-branding-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #293241;
+  font-weight: 700;
+}
+
+#myeventlane-messaging-vendor-branding-form input,
+#myeventlane-messaging-vendor-branding-form textarea {
+  border-radius: 12px;
+  border: 1px solid #e9e3de;
+  padding: 12px;
+  font-size: 16px;
+}
+
+#myeventlane-messaging-vendor-branding-form input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]),
+#myeventlane-messaging-vendor-branding-form textarea {
+  width: 100%;
+}
+
+#myeventlane-messaging-vendor-branding-form input[type="color"] {
+  width: 72px;
+  height: 48px;
+  padding: 4px;
+}
+
+#myeventlane-messaging-vendor-branding-form input:focus,
+#myeventlane-messaging-vendor-branding-form textarea:focus {
+  outline: none;
+  border-color: #f26d5b;
+  box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.15);
+}
+
+#myeventlane-messaging-vendor-branding-form .description {
+  margin-top: 8px;
+  color: #637185;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#myeventlane-messaging-vendor-branding-form .form-actions {
+  margin-top: 24px;
+}
+
+#myeventlane-messaging-vendor-branding-form .mel-button--primary {
+  background: #f26d5b;
+  color: #ffffff;
+  border: 1px solid #f26d5b;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 700;
+}
+
+#myeventlane-messaging-vendor-branding-form .mel-button--primary:hover,
+#myeventlane-messaging-vendor-branding-form .mel-button--primary:focus {
+  background: #e05a48;
+  border-color: #e05a48;
+  color: #ffffff;
+}

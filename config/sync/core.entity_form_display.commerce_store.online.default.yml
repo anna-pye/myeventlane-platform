@@ -11,6 +11,7 @@ dependencies:
     - field.field.commerce_store.online.field_stripe_onboard_url
     - field.field.commerce_store.online.field_stripe_payouts_enabled
     - field.field.commerce_store.online.field_vendor_reference
+    - field.field.commerce_store.online.field_abn
   module:
     - address
     - myeventlane_location
@@ -37,6 +38,14 @@ content:
     weight: 2
     region: content
     settings: {  }
+    third_party_settings: {  }
+  field_abn:
+    type: string_textfield
+    weight: 2
+    region: content
+    settings:
+      size: 20
+      placeholder: ''
     third_party_settings: {  }
   field_stripe_account_id:
     type: string_textfield

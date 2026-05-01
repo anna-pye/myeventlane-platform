@@ -44,6 +44,7 @@ hidden:
   field_pro_grace_expires: true
   field_pro_subscription_managed: true
   field_pronouns: true
+  field_vendor_store: true
   langcode: true
   member_for: true
   search_api_excerpt: true

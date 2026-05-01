@@ -35,6 +35,7 @@
   @include meta.load-css('components/tables');
   @include meta.load-css('components/tabs');
   @include meta.load-css('components/tooltips');
+  @include meta.load-css('components/form');
   @include meta.load-css('components/forms');
   @include meta.load-css('components/kpi-cards');
   @include meta.load-css('components/attendees-kpi-bar');
