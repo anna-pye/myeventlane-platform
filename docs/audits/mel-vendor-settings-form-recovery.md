@@ -31,7 +31,7 @@
 
 The newer MEL-styled settings form exists in `origin/main` and `origin/cursor/onboard-storage-fix-128b4`.
 
-Relevant recovered files were already present on the active working branch by the time the fix was applied:
+Relevant files restored from `origin/main`:
 
 - `web/modules/custom/myeventlane_vendor_settings/myeventlane_vendor_settings.routing.yml`
 - `web/modules/custom/myeventlane_vendor_settings/myeventlane_vendor_settings.libraries.yml`
@@ -57,6 +57,12 @@ Vendor settings work appeared missing because DDEV initially ran branch `cursor/
 
 - `web/modules/custom/myeventlane_vendor/myeventlane_vendor.routing.yml`
 - `docs/audits/mel-vendor-settings-form-recovery.md`
+- `web/modules/custom/myeventlane_vendor_settings/myeventlane_vendor_settings.routing.yml`
+- `web/modules/custom/myeventlane_vendor_settings/myeventlane_vendor_settings.libraries.yml`
+- `web/modules/custom/myeventlane_vendor_settings/src/Form/VendorSettingsForm.php`
+- `web/modules/custom/myeventlane_vendor_settings/css/mel-vendor-settings.css`
+- `web/modules/custom/myeventlane_vendor_settings/css/mel-vendor-settings.scss`
+- `web/modules/custom/myeventlane_vendor_settings/js/mel-disable-ajax.js`
 
 The route block in `myeventlane_vendor.routing.yml` was removed and replaced with a source comment so there is no duplicate competing `myeventlane_vendor.console.settings` route.
 
