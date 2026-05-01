@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Psr\Log\LoggerInterface;
 
@@ -21,6 +23,7 @@ final class VendorCardBuilder {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerInterface $logger,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -99,14 +102,15 @@ final class VendorCardBuilder {
    */
   public function countUpcomingEvents(Vendor $vendor): int {
     try {
-      return (int) $this->entityTypeManager
+      $query = $this->entityTypeManager
         ->getStorage('node')
         ->getQuery()
         ->accessCheck(TRUE)
         ->condition('type', 'event')
         ->condition('status', 1)
-        ->condition('field_event_vendor', (int) $vendor->id())
-        ->condition('field_event_start', date('Y-m-d\TH:i:s'), '>=')
+        ->condition('field_event_vendor', (int) $vendor->id());
+      UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($query, (int) $this->time->getRequestTime());
+      return (int) $query
         ->count()
         ->execute();
     }
