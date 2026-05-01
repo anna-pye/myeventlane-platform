@@ -40,6 +40,15 @@
     attach(context) {
       once('mel-vendor-page-save-draft', '[data-save-draft]', context).forEach((decoy) => {
         decoy.addEventListener('click', (e) => {
+          const hostForm = decoy.closest('form');
+          if (hostForm && hostForm.classList.contains('mel-no-ajax')) {
+            return;
+          }
+
+          if (e.target.closest('form.mel-protected-form')) {
+            return;
+          }
+
           e.preventDefault();
           const real = findRealSaveDraft();
           if (real) {

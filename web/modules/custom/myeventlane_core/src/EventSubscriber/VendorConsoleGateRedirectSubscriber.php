@@ -138,7 +138,7 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
     if ($this->pathIsVendorSsoCallback($path)) {
       return FALSE;
     }
-    return str_starts_with($path, '/vendor');
+    return (bool) preg_match('#^/vendor(/|$)#', $path);
   }
 
   /**

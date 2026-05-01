@@ -84,7 +84,10 @@ final class VendorBrandResolver implements BrandResolverInterface {
       $footerText = Brand::DEFAULT_FOOTER;
     }
 
-    $accentColor = $this->getFieldValue($vendor, 'field_msg_accent_color');
+    $accentColor = $this->getFieldValue($vendor, 'field_accent_colour');
+    if ($accentColor === '') {
+      $accentColor = $this->getFieldValue($vendor, 'field_msg_accent_color');
+    }
     if ($accentColor === '' || !$this->isValidHexColor($accentColor)) {
       $accentColor = Brand::DEFAULT_ACCENT_COLOR;
     }

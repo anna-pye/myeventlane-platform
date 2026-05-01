@@ -1,0 +1,8 @@
+// ==========================================================================
+// MEL motion — Sass transition tokens (ease-out, ≤220ms)
+// ==========================================================================
+// Use with interactive UI; pair with prefers-reduced-motion in utilities/_motion.scss
+
+$mel-transition-fast: 150ms ease-out;
+$mel-transition-base: 180ms ease-out;
+$mel-transition-slow: 220ms ease-out;

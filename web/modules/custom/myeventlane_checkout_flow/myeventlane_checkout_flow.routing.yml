@@ -23,6 +23,19 @@ myeventlane_checkout_flow.order_detail:
         type: entity:commerce_order
     _admin_route: FALSE
 
+myeventlane_checkout_flow.order_tax_invoice_pdf:
+  path: '/my-tickets/order/{commerce_order}/invoice'
+  defaults:
+    _controller: '\Drupal\myeventlane_checkout_flow\Controller\OrderTaxInvoicePdfController::download'
+  requirements:
+    _custom_access: 'myeventlane_checkout_flow.my_tickets_order_access:access'
+    commerce_order: \d+
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+    _admin_route: FALSE
+
 myeventlane_checkout_flow.vendor_attendees:
   path: '/vendor/attendees'
   defaults:

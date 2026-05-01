@@ -4,6 +4,7 @@
 // Global element defaults using design tokens.
 
 @use '../tokens/colors';
+@use '../tokens/motion' as melmotion;
 @use '../tokens/typography';
 @use '../tokens/spacing';
 
@@ -116,24 +117,44 @@ ul, ol {
 }
 
 // ---------------------------------------------------------------------------
-// Links
+// Links — UI surfaces without default underline; prose inside .mel-content
+// keeps identifiable links with hover underline. Card/event/button links inside
+// .mel-content need equal-or-higher specificity than .mel-content a:hover.
 // ---------------------------------------------------------------------------
 
 a {
-  color: colors.$mel-color-primary;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
+  text-decoration: none;
+  color: inherit;
   transition: color 0.15s ease;
-
-  &:hover {
-    color: colors.$mel-color-primary-hover;
-  }
 
   &:focus-visible {
     @include colors.mel-focus-ring;
     border-radius: 2px;
   }
+}
+
+.mel-content a {
+  color: var(--mel-primary);
+  font-weight: 500;
+}
+
+.mel-content a:hover {
+  text-decoration: underline;
+}
+
+.mel-content .mel-card a:hover,
+.mel-content .mel-event a:hover,
+.mel-content a.mel-button:hover {
+  text-decoration: none;
+}
+
+// ---------------------------------------------------------------------------
+// Focus visible — default ring for interactive elements (links keep mixin above)
+// ---------------------------------------------------------------------------
+
+:focus-visible {
+  outline: 2px solid var(--mel-primary);
+  outline-offset: 2px;
 }
 
 // ---------------------------------------------------------------------------

@@ -77,4 +77,5 @@ hidden:
   field_pro_grace_expires: true
   field_pro_subscription_managed: true
   field_pronouns: true
+  field_vendor_store: true
   langcode: true

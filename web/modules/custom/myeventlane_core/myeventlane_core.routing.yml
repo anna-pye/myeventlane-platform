@@ -127,3 +127,26 @@ myeventlane_core.event_filter:
     _controller: 'myeventlane_core.event_filter_controller:filter'
   requirements:
     _permission: 'access content'
+
+myeventlane_core.vendor_follow_toggle:
+  path: '/vendor/{myeventlane_vendor}/follow'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\VendorFollowController::toggle'
+  requirements:
+    _entity_access: 'myeventlane_vendor.view'
+    _user_is_logged_in: 'TRUE'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    parameters:
+      myeventlane_vendor:
+        type: entity:myeventlane_vendor
+  methods: [POST]
+
+myeventlane_core.analytics_event_click:
+  path: '/mel/analytics/event-click'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\PublicAnalyticsController::eventClick'
+  requirements:
+    _permission: 'access content'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]

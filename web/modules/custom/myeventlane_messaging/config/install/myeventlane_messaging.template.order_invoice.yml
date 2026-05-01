@@ -4,7 +4,7 @@ body_html: |
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
     <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="color: #2c3e50; margin: 0; font-size: 26px;">Tax invoice</h1>
+        <h1 style="color: #2c3e50; margin: 0; font-size: 26px;">Tax Invoice</h1>
       </div>
 
       <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
@@ -16,9 +16,13 @@ body_html: |
       </p>
 
       <div style="margin: 16px 0; padding: 12px 16px; background-color: #f9f9f9; border-radius: 6px; font-size: 14px; color: #34495e;">
+        <p style="margin: 0 0 8px; line-height: 1.5;">
+          {% if vendor_name %}<strong>Supplier:</strong> {{ vendor_name }}<br>{% endif %}
+          <strong>ABN:</strong> {{ vendor_abn }}<br>
+        </p>
         <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
           <span><strong>Invoice date:</strong> {{ invoice_date }}</span>
-          <span><strong>Order:</strong> #{{ order_number }}</span>
+          <span><strong>Invoice #:</strong> #{{ order_number }}</span>
         </div>
       </div>
 
@@ -31,7 +35,7 @@ body_html: |
         </div>
       {% endif %}
 
-      {% if line_items|length > 0 %}
+      {% if line_items|length > 0 or invoice_lines|length > 0 %}
         <div style="margin: 24px 0;">
           <h2 style="color: #2c3e50; font-size: 18px; margin-bottom: 12px; border-bottom: 2px solid #fef5ec; padding-bottom: 8px;">Line items</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #34495e;">
@@ -44,7 +48,7 @@ body_html: |
               </tr>
             </thead>
             <tbody>
-              {% for row in line_items %}
+              {% for row in line_items|length > 0 ? line_items : invoice_lines|default([]) %}
                 <tr style="border-bottom: 1px solid #f0f0f0;">
                   <td style="padding: 10px 4px; vertical-align: top;">{{ row.title }}</td>
                   <td style="padding: 10px 4px; text-align: center;">{{ row.quantity }}</td>
@@ -57,10 +61,10 @@ body_html: |
         </div>
       {% endif %}
 
-      {% if fee_lines|length > 0 %}
+      {% if fee_lines|length > 0 or invoice_fee_lines|length > 0 %}
         <div style="margin: 16px 0;">
           <h2 style="color: #2c3e50; font-size: 18px; margin-bottom: 10px; border-bottom: 2px solid #fef5ec; padding-bottom: 8px;">Fees</h2>
-          {% for fee in fee_lines %}
+          {% for fee in fee_lines|length > 0 ? fee_lines : invoice_fee_lines|default([]) %}
             <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #34495e;">
               <span>{{ fee.label }}</span>
               <span style="font-weight: 600;">{{ fee.amount }}</span>
@@ -69,10 +73,10 @@ body_html: |
         </div>
       {% endif %}
 
-      {% if tax_lines|length > 0 %}
+      {% if tax_lines|length > 0 or invoice_tax_lines|length > 0 %}
         <div style="margin: 16px 0;">
           <h2 style="color: #2c3e50; font-size: 18px; margin-bottom: 10px; border-bottom: 2px solid #fef5ec; padding-bottom: 8px;">Tax</h2>
-          {% for tax in tax_lines %}
+          {% for tax in tax_lines|length > 0 ? tax_lines : invoice_tax_lines|default([]) %}
             <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #34495e;">
               <span>{{ tax.label }}</span>
               <span style="font-weight: 600;">{{ tax.amount }}</span>
@@ -81,12 +85,18 @@ body_html: |
         </div>
       {% endif %}
 
+      {% if order_total_gst and tax_lines|length == 0 and invoice_tax_lines|length == 0 %}
+        <p style="margin: 12px 0; font-size: 14px; color: #34495e;"><strong>GST (10%):</strong> {{ order_total_gst }}</p>
+      {% endif %}
+
       <div style="margin: 28px 0; padding: 18px 20px; background-color: #fef5ec; border-radius: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 700; color: #2c3e50; font-size: 18px;">Total paid</span>
-          <span style="font-weight: 700; color: #2c3e50; font-size: 22px;">{{ total_paid }}</span>
+          <span style="font-weight: 700; color: #2c3e50; font-size: 18px;">Total</span>
+          <span style="font-weight: 700; color: #2c3e50; font-size: 22px;">{{ order_total|default(total_paid) }}</span>
         </div>
       </div>
+
+      <p class="mel-invoice__legal" style="margin: 16px 0 0; font-size: 11px; color: #7f8c8d; line-height: 1.45;">This document is a tax invoice for GST purposes.</p>
 
       <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #e0e0e0; text-align: center; color: #7f8c8d; font-size: 12px;">
         <p style="margin: 5px 0;">This email was sent to {{ order_email }}</p>
@@ -97,6 +107,6 @@ body_html: |
 utm:
   enable: true
   params:
-    utm_source: 'email'
-    utm_medium: 'transactional'
-    utm_campaign: 'order_invoice'
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: order_invoice

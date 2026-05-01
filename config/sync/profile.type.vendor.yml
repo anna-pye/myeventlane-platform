@@ -4,7 +4,7 @@ status: true
 dependencies: {  }
 third_party_settings:
   commerce_order:
-    customer_profile_type: false
+    customer_profile_type: true
 id: vendor
 label: Vendor
 display_label: Vendor

@@ -25,6 +25,7 @@
         mel_confirm_paid: mel_confirm_paid|default(false),
         mel_confirmation_has_tickets: mel_confirmation_has_tickets|default(false),
         mel_donation_total_formatted: mel_donation_total_formatted|default(null),
+        mel_order_pricing_breakdown: mel_order_pricing_breakdown|default(null),
       } %}
     </div>
     {% if form.sidebar is defined %}
@@ -61,9 +62,31 @@
       </div>
     {% endif %}
 
+    <div class="mel-checkout__intro">
+      <h2>{{ 'Secure checkout'|t }}</h2>
+      <p>{{ "You're almost done — review your details and complete your booking."|t }}</p>
+    </div>
+
+    {% if form.payment_information is defined %}
+      <div class="mel-checkout__trust">
+        <span>{{ '✔ Secure payment'|t }}</span>
+        <span>{{ '✔ No hidden fees'|t }}</span>
+        <span>{{ '✔ Instant confirmation'|t }}</span>
+      </div>
+    {% else %}
+      <div class="mel-checkout__trust mel-checkout__trust--free">
+        <span>{{ '✔ No payment required'|t }}</span>
+        <span>{{ '✔ No hidden fees'|t }}</span>
+        <span>{{ '✔ Instant confirmation'|t }}</span>
+      </div>
+    {% endif %}
+
+    <div class="mel-checkout__helper">
+      {{ "We'll only use your details to send your ticket."|t }}
+    </div>
+
     <div class="mel-checkout__layout mel-checkout__grid mel-checkout__grid--sidebar-flow">
       <div class="mel-checkout__main">
-        <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
 
         {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout and form.sidebar is not defined %}
           <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
@@ -125,27 +148,14 @@
           </div>
         {% endif %}
 
-        {% if form.payment_information is defined %}
-          <div class="mel-checkout-trust mel-checkout-trust--paid" role="region" aria-label="{{ 'Secure checkout'|t }}">
-            <ul class="mel-checkout-trust__list mel-checkout-trust__list--compact">
-              <li>{{ 'Encrypted checkout'|t }}</li>
-              <li>{{ 'Confirmation emailed after payment'|t }}</li>
-            </ul>
-          </div>
-        {% else %}
-          <div class="mel-checkout-trust mel-checkout-trust--free" role="region" aria-label="{{ 'No payment required'|t }}">
-            <ul class="mel-checkout-trust__list">
-              <li>{{ 'No payment required'|t }}</li>
-              <li>{{ 'Your RSVP will be confirmed by email'|t }}</li>
-            </ul>
-          </div>
-        {% endif %}
-
         {% if form.actions %}
           <div class="mel-checkout-section mel-checkout-section--cta">
             <div class="mel-checkout-cta">
               {# Total is form.actions.mel_cta_total (form_alter) so it rebuilds with AJAX next to submit. #}
               {{ form.actions }}
+              {% if form.payment_information is defined %}
+                <p class="mel-checkout__cta-note">{{ 'Your payment will be processed securely.'|t }}</p>
+              {% endif %}
               <p class="mel-checkout-cta__recovery">
                 <a class="mel-checkout-cta__recovery-link mel-util-link" href="{{ path('myeventlane_support.page') }}">{{ 'Something wrong? Contact support'|t }}</a>
               </p>
@@ -164,6 +174,7 @@
         {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) or (mel_support_panel is defined and mel_support_panel) %}
           <aside class="mel-checkout__summary" aria-label="{{ 'Order summary'|t }}">
             <div class="mel-checkout__summary-inner">
+              <h2 id="mel-checkout-summary-heading" class="mel-checkout__summary-title">{{ 'Your order'|t }}</h2>
               {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
                 <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card mel-checkout__summary-region">
                   {{ mel_contextual_help_checkout }}

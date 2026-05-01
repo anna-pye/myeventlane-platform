@@ -36,7 +36,10 @@
 
     var dismissBtn = alertEl.querySelector('.mel-vendor-alert__dismiss');
     if (dismissBtn) {
-      dismissBtn.addEventListener('click', function () {
+      dismissBtn.addEventListener('click', function (e) {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
         if (storage) {
           try {
             storage.setItem(key, '1');

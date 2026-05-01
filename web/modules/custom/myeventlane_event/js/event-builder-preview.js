@@ -463,7 +463,7 @@
     const mode = state.mode || 'none';
     const labels = {
       rsvp: map.rsvp || settings.rsvpLabel || 'RSVP',
-      paid: map.paid || settings.buyLabel || 'Buy tickets',
+      paid: map.paid || settings.buyLabel || 'Get your tickets',
       both: map.both || settings.bothKindsLabel || 'Get tickets',
       external: map.external || settings.externalLabel || 'Get tickets',
       none: map.none || settings.needsTicketsLabel || 'Add tickets to publish',

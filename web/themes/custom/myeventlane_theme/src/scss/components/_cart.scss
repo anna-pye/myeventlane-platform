@@ -51,6 +51,33 @@
   font-weight: typography.$mel-font-regular;
 }
 
+.mel-cart__intro {
+  margin-bottom: spacing.mel-space(4);
+
+  h2 {
+    margin: 0 0 spacing.mel-space(2);
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+  }
+
+  p {
+    margin: 0;
+    font-size: typography.mel-font-size(md);
+    color: colors.$mel-color-text-muted;
+    line-height: 1.45;
+  }
+}
+
+.mel-cart__reassurance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(3);
+  margin-top: spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+  color: var(--mel-text-secondary);
+}
+
 // ---------------------------------------------------------------------------
 // Cart Items Container
 // ---------------------------------------------------------------------------
@@ -298,6 +325,19 @@
   font-size: typography.mel-font-size(xl);
   font-weight: typography.$mel-font-extrabold;
   color: colors.$mel-color-text;
+}
+
+.mel-tax-note {
+  font-size: 13px;
+  color: var(--mel-text-muted);
+  margin-top: 4px;
+}
+
+.mel-price__tax-note {
+  display: block;
+  font-size: 13px;
+  color: var(--mel-text-muted);
+  margin-top: 4px;
 }
 
 // ---------------------------------------------------------------------------

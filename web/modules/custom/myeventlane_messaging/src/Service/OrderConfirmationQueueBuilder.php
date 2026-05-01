@@ -8,6 +8,8 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
+use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
@@ -26,6 +28,8 @@ final class OrderConfirmationQueueBuilder {
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly DomainDetector $domainDetector,
+    private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
+    private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
   ) {}
 
@@ -77,6 +81,9 @@ final class OrderConfirmationQueueBuilder {
       }
     }
 
+    $pricing = $this->orderPricingBreakdown->build($order);
+    $invoice = $this->taxInvoicePresentation->build($order);
+
     $context = [
       'first_name' => $first_name,
       'order_number' => $order->label(),
@@ -86,7 +93,23 @@ final class OrderConfirmationQueueBuilder {
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
       'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
-      'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'order_subtotal_formatted' => $pricing['subtotal_formatted'],
+      'order_tax_rows' => $pricing['tax_rows'],
+      'order_fee_rows' => $pricing['fee_rows'],
+      'order_platform_fee_absorbed' => $pricing['platform_fee_absorbed'],
+      'total_paid' => $pricing['total_formatted'] !== ''
+        ? $pricing['total_formatted']
+        : $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'show_includes_gst_note' => $pricing['show_includes_gst_note'],
+      'vendor_name' => $invoice['vendor_name'],
+      'vendor_abn' => $invoice['vendor_abn'],
+      'order_total_gst' => $invoice['order_total_gst'],
+      'order_total' => $invoice['order_total'],
+      'invoice_lines' => $invoice['invoice_lines'],
+      'invoice_tax_lines' => $invoice['tax_lines'],
+      'invoice_fee_lines' => $invoice['fee_lines'],
+      'tax_lines' => $invoice['tax_lines'],
+      'invoice_date_short' => $invoice['invoice_date_display'],
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
       'tickets_url' => $tickets_url,
       'has_tickets' => $has_tickets,

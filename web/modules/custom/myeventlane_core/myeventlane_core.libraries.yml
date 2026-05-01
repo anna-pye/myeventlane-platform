@@ -18,6 +18,15 @@ studio_layout:
     - core/drupal
     - core/once
 
+vendor_public:
+  version: 1.x
+  js:
+    js/vendor-public.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
 
 
 

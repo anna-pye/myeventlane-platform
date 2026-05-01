@@ -1,0 +1,67 @@
+{#
+/**
+ * @file
+ * Tax invoice block (checkout completion + order views).
+ *
+ * Expects variables from _myeventlane_theme_attach_tax_invoice_variables().
+ */
+#}
+{% set show_invoice = mel_confirm_paid|default(false) and (
+  vendor_name|default('')
+  or order_total_gst|default('')
+  or (mel_invoice_lines|default([])|length > 0)
+  or (mel_invoice_fee_lines|default([])|length > 0)
+  or (mel_invoice_tax_lines|default([])|length > 0)
+) %}
+{% if show_invoice %}
+<section class="mel-invoice mel-card mel-tax-invoice-section" aria-label="{{ 'Tax invoice'|t }}">
+  <div class="mel-card-body">
+    <h3 class="mel-invoice__title">{{ 'Tax Invoice'|t }}</h3>
+    <div class="mel-invoice__header">
+      <p class="mel-invoice__meta">
+        {% if vendor_name %}<strong>{{ 'Supplier:'|t }}</strong> {{ vendor_name }}<br />{% endif %}
+        <strong>{{ 'ABN:'|t }}</strong> {{ vendor_abn|default('ABN not provided'|t) }}<br />
+        {% if order_entity %}<strong>{{ 'Invoice #:'|t }}</strong> {{ order_entity.getOrderNumber() }}<br />{% endif %}
+        {% if order_entity and order_entity.getPlacedTime() %}
+          <strong>{{ 'Date:'|t }}</strong> {{ order_entity.getPlacedTime()|date('d M Y') }}
+        {% elseif invoice_date_display|default('') %}
+          <strong>{{ 'Date:'|t }}</strong> {{ invoice_date_display }}
+        {% endif %}
+      </p>
+    </div>
+    {% if mel_invoice_lines|length > 0 %}
+      <table class="mel-invoice__table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Item'|t }}</th>
+            <th scope="col">{{ 'Qty'|t }}</th>
+            <th scope="col">{{ 'Unit price'|t }}</th>
+            <th scope="col">{{ 'Subtotal'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in mel_invoice_lines %}
+            <tr>
+              <td>{{ row.title }}</td>
+              <td>{{ row.quantity }}</td>
+              <td>{{ row.unit_price }}</td>
+              <td>{{ row.line_total }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    {% for fee in mel_invoice_fee_lines|default([]) %}
+      <div class="mel-invoice__adjustment"><span>{{ fee.label }}</span><span>{{ fee.amount }}</span></div>
+    {% endfor %}
+    {% for tax in mel_invoice_tax_lines|default([]) %}
+      <div class="mel-invoice__adjustment"><span>{{ tax.label }}</span><span>{{ tax.amount }}</span></div>
+    {% endfor %}
+    {% if order_total_gst %}
+      <p class="mel-invoice__gst"><strong>{{ 'GST (10%)'|t }}</strong> {{ order_total_gst }}</p>
+    {% endif %}
+    <p class="mel-invoice__total"><strong>{{ 'Total'|t }}</strong> {{ order_total|default('') }}</p>
+    <p class="mel-invoice__legal">{{ 'This document is a tax invoice for GST purposes.'|t }}</p>
+  </div>
+</section>
+{% endif %}

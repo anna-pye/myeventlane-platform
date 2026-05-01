@@ -7,6 +7,7 @@
  */
 
 @use '../tokens/spacing' as space-tokens;
+@use '../tokens/motion' as melmotion;
 
 // ============================================================================
 // UNIFIED SUPPORT HUB (/support)
@@ -279,18 +280,21 @@
   background: #f5f5f5;
   color: #333;
   transition:
-    transform 0.1s ease,
-    box-shadow 0.1s ease;
+    transform melmotion.$mel-transition-fast,
+    box-shadow melmotion.$mel-transition-fast,
+    background melmotion.$mel-transition-fast;
 
   &:hover,
   &:focus {
     background: #eee;
     color: #222;
     transform: translateY(-1px);
+    box-shadow: var(--mel-shadow-1);
   }
 
   &:active {
-    transform: scale(0.97);
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   &--primary {
@@ -305,10 +309,12 @@
       border-color: #4338ca;
       color: #fff;
       transform: translateY(-1px);
+      box-shadow: var(--mel-shadow-1);
     }
 
     &:active {
-      transform: scale(0.97);
+      transform: translateY(0);
+      box-shadow: none;
     }
   }
 

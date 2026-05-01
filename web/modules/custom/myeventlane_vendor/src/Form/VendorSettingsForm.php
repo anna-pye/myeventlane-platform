@@ -28,6 +28,8 @@ class VendorSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
+    $form['#attributes']['class'][] = 'mel-no-ajax';
+
     $config = $this->config('myeventlane_vendor.settings');
 
     $form['directory_title'] = [

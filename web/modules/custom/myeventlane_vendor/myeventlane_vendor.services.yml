@@ -35,6 +35,13 @@ services:
       - '@current_user'
       - '@logger.channel.myeventlane_vendor'
 
+  myeventlane_vendor.vendor_card_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorCardBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_vendor'
+      - '@datetime.time'
+
   myeventlane_vendor.user_vendor_membership_query:
     class: Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery
     arguments:
@@ -51,19 +58,6 @@ services:
       - '@logger.channel.myeventlane_vendor'
       - '@string_translation'
 
-  myeventlane_vendor.vendor_theme_page_preprocess:
-    class: Drupal\myeventlane_vendor\Service\VendorThemePagePreprocess
-    arguments:
-      - '@current_user'
-      - '@current_route_match'
-      - '@request_stack'
-      - '@entity_type.manager'
-      - '@?myeventlane_core.optional_service_resolver'
-      - '@string_translation'
-      - '@myeventlane_core.entity_id_normalizer'
-      - '@?myeventlane_event_studio.repository'
-      - '@myeventlane_onboarding.manager'
-
   myeventlane_vendor.vendor_console_page_preprocess:
     class: Drupal\myeventlane_vendor\Hook\VendorConsolePagePreprocess
     arguments:
@@ -76,6 +70,7 @@ services:
       - '@entity_type.manager'
       - '@logger.factory'
       - '@myeventlane_onboarding.manager'
+      - '@current_user'
     tags:
       - { name: event_subscriber }
 
@@ -195,6 +190,7 @@ services:
       - '@myeventlane_core.event_state_resolver'
       - '@state'
       - '@logger.channel.mel_debug'
+      - '@datetime.time'
       - '@?myeventlane_ai.usage_tracker'
       - '@config.factory'
       - '@?myeventlane_vendor.service.category_audience'
@@ -342,13 +338,7 @@ services:
 
   myeventlane_vendor.controller.vendor_dashboard_messaging_brand:
     class: Drupal\myeventlane_vendor\Controller\VendorDashboardMessagingBrandController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@form_builder', '@entity_type.manager']
-    tags:
-      - { name: controller.service_arguments }
-
-  myeventlane_vendor.controller.vendor_settings:
-    class: Drupal\myeventlane_vendor\Controller\VendorSettingsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@form_builder']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@form_builder', '@entity_type.manager', '@request_stack']
     tags:
       - { name: controller.service_arguments }
 

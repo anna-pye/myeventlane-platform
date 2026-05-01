@@ -1116,6 +1116,39 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 }
 
+.mel-summary-breakdown {
+  margin-top: spacing.mel-space(3);
+  padding-top: spacing.mel-space(2);
+  border-top: 1px solid rgba(colors.$mel-color-border, 0.65);
+}
+
+.mel-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  margin-bottom: spacing.mel-space(1);
+  color: colors.$mel-color-text;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mel-summary-row__label {
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-summary-row__value {
+  font-weight: typography.$mel-font-medium;
+  color: colors.$mel-color-text;
+}
+
+.mel-summary-grouped .mel-tax-note {
+  margin-top: spacing.mel-space(2);
+}
+
 .mel-summary-grouped .mel-summary-total,
 .mel-summary-total {
   margin-top: spacing.mel-space(4);
@@ -1278,52 +1311,66 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   line-height: 1.4;
 }
 
+.mel-checkout__intro {
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0 0 spacing.mel-space(2);
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 0;
+    font-size: typography.mel-font-size(base);
+    color: colors.$mel-color-text-muted;
+    line-height: 1.45;
+  }
+}
+
+.mel-checkout__trust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--mel-text-secondary);
+  margin-bottom: 16px;
+
+  span {
+    line-height: 1.35;
+  }
+}
+
+.mel-checkout__summary-title {
+  margin-bottom: 8px;
+  margin-top: 0;
+  font-size: typography.mel-font-size(md);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+}
+
+.mel-checkout__cta-note {
+  font-size: 13px;
+  color: var(--mel-text-muted);
+  margin-top: 8px;
+  margin-bottom: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.mel-checkout__helper {
+  font-size: 13px;
+  color: var(--mel-text-muted);
+  margin-top: 4px;
+  margin-bottom: spacing.mel-space(3);
+  line-height: 1.45;
+}
+
 .mel-checkout-yaml-support {
   margin-bottom: spacing.mel-space(3);
-}
-
-/* Trust list — above primary CTA (Phase 4) */
-.mel-checkout-trust {
-  margin: spacing.mel-space(3) 0 spacing.mel-space(2);
-  padding: spacing.mel-space(3) spacing.mel-space(3);
-  border-radius: radii.$mel-radius-lg;
-  border: $mel-checkout-border;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: $mel-checkout-shadow;
-}
-
-.mel-checkout-trust__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: spacing.mel-space(2);
-  font-size: typography.mel-font-size(sm);
-  color: colors.$mel-color-text-muted;
-  line-height: 1.45;
-
-  li {
-    margin: 0;
-    padding-left: 1.35rem;
-    position: relative;
-
-    &::before {
-      content: '✓';
-      position: absolute;
-      left: 0;
-      color: colors.$mel-color-success;
-      font-weight: typography.$mel-font-bold;
-    }
-  }
-}
-
-.mel-checkout-trust__list--compact {
-  gap: spacing.mel-space(1);
-
-  li {
-    padding-left: 1.25rem;
-  }
 }
 
 /* Single dominant primary CTA; back / secondary actions read as links */
@@ -1336,10 +1383,6 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   margin-top: 0;
   padding-top: 0;
   border-top: none;
-
-  .mel-checkout-next-steps {
-    display: none;
-  }
 
   .button--primary,
   [type='submit'].button--primary {
@@ -1383,6 +1426,10 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
     gap: spacing.mel-space(3);
   }
 
+  .mel-checkout__grid--sidebar-flow .mel-checkout__main {
+    padding-bottom: spacing.mel-space(8);
+  }
+
   .mel-checkout__grid--sidebar-flow .mel-checkout__summary {
     order: -1;
   }
@@ -1414,6 +1461,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 
   .mel-checkout__actions,
+  /* Sticky primary action: total + submit stay visible; summary is stacked above via order:-1 */
   .mel-checkout-section--cta {
     position: sticky;
     bottom: 0;
@@ -1428,6 +1476,12 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
       colors.$mel-color-bg 100%
     );
     border-top: 1px solid colors.$mel-color-border;
+    // Avoid clipping sticky positioning from ancestor overflow (iOS).
+    isolation: isolate;
+  }
+
+  .mel-checkout-section--cta .mel-checkout-cta {
+    width: 100%;
   }
 
   .mel-checkout__actions .button--primary,
@@ -1452,37 +1506,6 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 
   > div {
     margin: 0;
-  }
-}
-
-.mel-checkout-reassurance {
-  margin-top: spacing.mel-space(2);
-  font-size: typography.mel-font-size(sm);
-  color: colors.$mel-color-text-muted;
-  text-align: center;
-  line-height: 1.5;
-}
-
-.mel-checkout-next-steps {
-  margin-bottom: 8px;
-  font-size: 13px;
-
-  h4 {
-    font-weight: typography.$mel-font-semibold;
-    margin: 0 0 4px 0;
-  }
-
-  ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  li {
-    margin-bottom: 4px;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
   }
 }
 
@@ -1829,18 +1852,14 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
     padding: 10px 12px;
   }
 
-  .mel-checkout-order-title,
-  .mel-summary-grouped .mel-checkout-order-title {
+  .mel-checkout__summary-inner > .mel-checkout__summary-title {
     margin-bottom: spacing.mel-space(2);
     padding-bottom: spacing.mel-space(1);
-  }
-
-  .mel-summary-grouped .mel-checkout-summary__title {
     font-size: typography.mel-font-size(sm);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: colors.$mel-color-text-muted;
-    border-bottom-color: rgba(colors.$mel-color-border, 0.5);
+    border-bottom: 1px solid rgba(colors.$mel-color-border, 0.5);
   }
 
   .mel-summary-grouped .mel-summary-event,
