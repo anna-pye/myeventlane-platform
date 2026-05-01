@@ -135,7 +135,7 @@ myeventlane_core.vendor_follow_toggle:
   requirements:
     _entity_access: 'myeventlane_vendor.view'
     _user_is_logged_in: 'TRUE'
-    _csrf_token: 'TRUE'
+    _csrf_request_header_token: 'TRUE'
   options:
     parameters:
       myeventlane_vendor:
@@ -148,5 +148,5 @@ myeventlane_core.analytics_event_click:
     _controller: '\Drupal\myeventlane_core\Controller\PublicAnalyticsController::eventClick'
   requirements:
     _permission: 'access content'
-    _csrf_token: 'TRUE'
+    _csrf_request_header_token: 'TRUE'
   methods: [POST]
