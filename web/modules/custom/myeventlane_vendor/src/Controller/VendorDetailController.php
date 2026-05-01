@@ -88,10 +88,6 @@ final class VendorDetailController extends ControllerBase {
       '#follower_count' => $this->vendorFollowService->countFollowers($myeventlane_vendor),
       '#follow_url' => $is_authenticated ? Url::fromRoute('myeventlane_core.vendor_follow_toggle', [
         'myeventlane_vendor' => $myeventlane_vendor->id(),
-      ], [
-        'query' => [
-          'token' => $this->csrfToken('vendor/{myeventlane_vendor}/follow'),
-        ],
       ])->toString() : Url::fromRoute('user.login', [], [
         'query' => [
           'destination' => Url::fromRoute('entity.myeventlane_vendor.canonical', [
@@ -105,11 +101,7 @@ final class VendorDetailController extends ControllerBase {
         'library' => ['myeventlane_core/vendor_public'],
         'drupalSettings' => [
           'melPublicAnalytics' => [
-            'eventClickUrl' => Url::fromRoute('myeventlane_core.analytics_event_click', [], [
-              'query' => [
-                'token' => $this->csrfToken('mel/analytics/event-click'),
-              ],
-            ])->toString(),
+            'eventClickUrl' => Url::fromRoute('myeventlane_core.analytics_event_click')->toString(),
           ],
         ],
       ],
@@ -120,7 +112,7 @@ final class VendorDetailController extends ControllerBase {
         ))),
         'contexts' => array_values(array_unique(array_merge(
           $myeventlane_vendor->getCacheContexts(),
-          ['user', 'user.permissions']
+          ['session', 'user', 'user.permissions']
         ))),
         'max-age' => $myeventlane_vendor->getCacheMaxAge(),
       ],
