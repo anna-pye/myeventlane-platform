@@ -1,99 +1,81 @@
 {#
-  Vendor public profile - shows fields based on vendor visibility preferences.
-  Always shows: Name, Logo, Bio, and Events.
-  Conditionally shows: Email, Phone, Address, Website, Social Links, Summary, Description, Banner.
+/**
+ * @file
+ * Public vendor profile page.
+ *
+ * Data is prepared by VendorDetailController; this template only renders the
+ * public layout and shared components.
+ */
 #}
-
-<article{{ attributes.addClass('vendor-profile') }}>
-  {# Banner image (if enabled) #}
-  {% if content.field_banner_image %}
-    <div class="vendor-profile__banner">
-      {{ content.field_banner_image }}
+<article{{ attributes }}>
+  {% if banner %}
+    <div class="mel-vendor__hero">
+      {{ banner }}
     </div>
   {% endif %}
 
-  <header class="vendor-profile__header">
-    {% if content.field_vendor_logo %}
-      <div class="vendor-profile__logo">
-        {{ content.field_vendor_logo }}
-      </div>
-    {% elseif content.field_logo_image %}
-      <div class="vendor-profile__logo">
-        {{ content.field_logo_image }}
+  <header class="mel-vendor__header">
+    {% if logo %}
+      <div class="mel-vendor__logo">
+        {{ logo }}
       </div>
     {% endif %}
 
-    <div class="vendor-profile__title">
-      <h2{{ title_attributes.addClass('vendor-profile__name') }}>{{ entity.label }}</h2>
-      {% if content.field_summary %}
-        <div class="vendor-profile__summary">
-          {{ content.field_summary }}
-        </div>
+    <div class="mel-vendor__title">
+      <h1{{ title_attributes.addClass('mel-vendor__name') }}>{{ label }}</h1>
+      {% if tagline %}
+        <p class="mel-subtle mel-vendor__tagline">{{ tagline }}</p>
       {% endif %}
+      <p class="mel-vendor__followers" data-mel-follower-count>
+        {{ follower_count }} {{ follower_count == 1 ? 'follower'|t : 'followers'|t }}
+      </p>
     </div>
+
+    {% if follow_url and is_authenticated %}
+      {% if is_following %}
+        <button class="mel-follow-button is-following" data-vendor-id="{{ vendor_id }}" data-follow-url="{{ follow_url }}" aria-pressed="true">
+          {{ 'Following'|t }}
+        </button>
+      {% else %}
+        <button class="mel-follow-button" data-vendor-id="{{ vendor_id }}" data-follow-url="{{ follow_url }}" aria-pressed="false">
+          {{ 'Follow'|t }}
+        </button>
+      {% endif %}
+    {% elseif follow_url %}
+      <a class="mel-follow-button" href="{{ follow_url }}">{{ 'Log in to follow'|t }}</a>
+    {% endif %}
   </header>
-  
-  {# Hide the name field from content since we're rendering it in the header #}
-  {% set content = content|without('name', 'field_summary', 'field_banner_image') %}
 
-  {% if content.field_vendor_bio %}
-    <div class="vendor-profile__bio">
-      {{ content.field_vendor_bio }}
+  {% if description %}
+    <div class="mel-vendor__bio">
+      {{ description }}
     </div>
   {% endif %}
 
-  {% if content.field_description %}
-    <div class="vendor-profile__description">
-      {{ content.field_description }}
-    </div>
-  {% endif %}
-
-  {# Contact Information Section #}
-  {% if content.field_email or content.field_phone or content.field_address or content.field_website or content.field_social_links %}
-    <section class="vendor-profile__contact" aria-labelledby="vendor-contact-heading">
-      <h3 id="vendor-contact-heading" class="vendor-profile__contact-title">Contact Information</h3>
-      <div class="vendor-profile__contact-details">
-        {% if content.field_email %}
-          <div class="vendor-profile__contact-item vendor-profile__contact-item--email">
-            <span class="vendor-profile__contact-label">Email:</span>
-            {{ content.field_email }}
+  {% if contact %}
+    <section class="mel-vendor__contact" aria-labelledby="vendor-contact-heading">
+      <h2 id="vendor-contact-heading">{{ 'Contact information'|t }}</h2>
+      <div class="mel-vendor__contact-grid">
+        {% for item in contact %}
+          <div class="mel-vendor__contact-item">
+            {{ item }}
           </div>
-        {% endif %}
-
-        {% if content.field_phone %}
-          <div class="vendor-profile__contact-item vendor-profile__contact-item--phone">
-            <span class="vendor-profile__contact-label">Phone:</span>
-            {{ content.field_phone }}
-          </div>
-        {% endif %}
-
-        {% if content.field_address %}
-          <div class="vendor-profile__contact-item vendor-profile__contact-item--address">
-            <span class="vendor-profile__contact-label">Address:</span>
-            {{ content.field_address }}
-          </div>
-        {% endif %}
-
-        {% if content.field_website %}
-          <div class="vendor-profile__contact-item vendor-profile__contact-item--website">
-            <span class="vendor-profile__contact-label">Website:</span>
-            {{ content.field_website }}
-          </div>
-        {% endif %}
-
-        {% if content.field_social_links %}
-          <div class="vendor-profile__contact-item vendor-profile__contact-item--social">
-            <span class="vendor-profile__contact-label">Follow us:</span>
-            {{ content.field_social_links }}
-          </div>
-        {% endif %}
+        {% endfor %}
       </div>
     </section>
   {% endif %}
 
-  {% if vendor_events %}
-    <section class="vendor-profile__events" aria-labelledby="vendor-events-heading">
-      {{ vendor_events }}
-    </section>
-  {% endif %}
+  <section class="mel-vendor__events" aria-labelledby="vendor-events-heading">
+    <h2 id="vendor-events-heading">{{ 'Upcoming events'|t }}</h2>
+
+    {% if events %}
+      <div class="mel-vendor__event-grid">
+        {% for event in events %}
+          {% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with event %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="mel-vendor__empty-events">{{ 'No upcoming events from this organiser yet.'|t }}</p>
+    {% endif %}
+  </section>
 </article>

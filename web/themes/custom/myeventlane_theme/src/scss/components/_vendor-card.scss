@@ -1,0 +1,113 @@
+@use '../base/mel-ds-tokens' as mel;
+@use '../tokens/motion' as melmotion;
+
+.mel-vendor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.mel-vendor-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 128px;
+  padding: 20px;
+  color: inherit;
+  text-decoration: none;
+  background: mel.$mel-ds-color-surface;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+  border-radius: mel.$mel-ds-radius-md;
+  box-shadow: mel.$mel-ds-shadow-soft;
+  transition:
+    transform melmotion.$mel-transition-base,
+    border-color melmotion.$mel-transition-base,
+    box-shadow melmotion.$mel-transition-base;
+
+  &:hover,
+  &:focus-visible {
+    color: inherit;
+    text-decoration: none;
+    border-color: color-mix(in srgb, mel.$mel-ds-color-accent 35%, transparent);
+    box-shadow: var(--mel-shadow-2);
+    transform: translateY(-3px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, mel.$mel-ds-color-accent 35%, transparent);
+    outline-offset: 3px;
+  }
+}
+
+.mel-vendor-card__media {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+
+  img {
+    display: block;
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: mel.$mel-ds-radius-sm;
+  }
+}
+
+.mel-vendor-card__placeholder {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  color: mel.$mel-ds-color-surface;
+  font-size: 1.75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--mel-color-primary), var(--mel-color-secondary));
+  border-radius: mel.$mel-ds-radius-sm;
+}
+
+.mel-vendor-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mel-vendor-card__name {
+  margin: 0 0 6px;
+  overflow: hidden;
+  color: mel.$mel-ds-color-text;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mel-vendor-card__tagline,
+.mel-vendor-card__meta {
+  margin: 0;
+}
+
+.mel-vendor-card__tagline {
+  display: -webkit-box;
+  overflow: hidden;
+  color: mel.$mel-ds-color-muted;
+  font-size: 0.925rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.mel-vendor-card__meta {
+  margin-top: 8px;
+}
+
+.mel-vendor-card__arrow {
+  flex: 0 0 auto;
+  color: mel.$mel-ds-color-muted;
+  font-size: 1.25rem;
+  transition: transform melmotion.$mel-transition-base;
+}
+
+.mel-vendor-card:hover .mel-vendor-card__arrow,
+.mel-vendor-card:focus-visible .mel-vendor-card__arrow {
+  transform: translateX(4px);
+}

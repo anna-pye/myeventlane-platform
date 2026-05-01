@@ -1,0 +1,30 @@
+uuid: eeb55e1d-d432-42b0-ab3b-4aece806d14a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.profile.vendor.address
+    - profile.type.vendor
+  module:
+    - address
+    - path
+id: profile.vendor.default
+targetEntityType: profile
+bundle: vendor
+mode: default
+content:
+  address:
+    type: address_default
+    weight: 31
+    region: content
+    settings:
+      wrapper_type: fieldset
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 30
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  is_default: true

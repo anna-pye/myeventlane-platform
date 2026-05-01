@@ -1,0 +1,46 @@
+{#
+/**
+ * @file
+ * Canonical MEL public vendor card.
+ *
+ * Variables:
+ * - url: Public vendor profile URL.
+ * - name: Vendor display name.
+ * - logo: Styled image render array, or NULL.
+ * - tagline: Optional short description.
+ * - event_count: Optional upcoming event count.
+ * - category: Optional category label. Currently NULL until a real vendor
+ *   category field exists.
+ */
+#}
+<a href="{{ url }}" class="mel-vendor-card">
+  <div class="mel-vendor-card__media">
+    {% if logo %}
+      {{ logo }}
+    {% else %}
+      <div class="mel-vendor-card__placeholder" aria-hidden="true">
+        {{ name|first|upper }}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="mel-vendor-card__content">
+    <h3 class="mel-vendor-card__name">{{ name }}</h3>
+
+    {% if tagline %}
+      <p class="mel-vendor-card__tagline">{{ tagline }}</p>
+    {% endif %}
+
+    {% if event_count %}
+      <p class="mel-meta mel-vendor-card__meta">
+        {{ event_count }} {{ event_count == 1 ? 'upcoming event'|t : 'upcoming events'|t }}
+      </p>
+    {% endif %}
+
+    {% if category %}
+      <span class="mel-chip">{{ category }}</span>
+    {% endif %}
+  </div>
+
+  <div class="mel-vendor-card__arrow" aria-hidden="true">→</div>
+</a>

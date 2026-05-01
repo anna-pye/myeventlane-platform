@@ -482,7 +482,7 @@ final class EventModeManager {
   private function buildTicketCta(NodeInterface $event): array {
     return [
       '#type' => 'link',
-      '#title' => $this->t('Buy Tickets'),
+      '#title' => $this->t('Get your tickets'),
       '#url' => Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()]),
       '#attributes' => [
         'class' => ['mel-btn', 'mel-btn-primary', 'mel-cta', 'mel-cta--tickets'],

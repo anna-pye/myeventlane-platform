@@ -7,6 +7,20 @@ services:
     class: Drupal\myeventlane_core\Service\EventSaveCountService
     arguments: ['@entity_type.manager']
 
+  myeventlane_core.vendor_follow:
+    class: Drupal\myeventlane_core\Service\VendorFollowService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_core'
+
+  myeventlane_core.analytics:
+    class: Drupal\myeventlane_core\Service\AnalyticsService
+    arguments:
+      - '@database'
+      - '@current_user'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_core'
+
   myeventlane_core.event_viewer_count:
     class: Drupal\myeventlane_core\Service\EventViewerCountService
     arguments: ['@state', '@datetime.time']
@@ -172,6 +186,7 @@ services:
     class: Drupal\myeventlane_core\Theme\VendorThemeNegotiator
     arguments:
       - '@myeventlane_core.domain_detector'
+      - '@theme_handler'
     tags:
       - { name: theme_negotiator, priority: 2000 }
 

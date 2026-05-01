@@ -193,10 +193,6 @@ final class AbandonedCartScheduler {
       return FALSE;
     }
 
-    if (!$this->orderHasPurchasableItems($order)) {
-      return FALSE;
-    }
-
     $store = $order->getStore();
     if (!$store instanceof StoreInterface) {
       return FALSE;

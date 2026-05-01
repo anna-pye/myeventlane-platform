@@ -896,7 +896,10 @@
     }
 
     tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
+      tab.addEventListener('click', (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
         const target = tab.dataset.studioTab;
         tabs.forEach((item) => {
           item.classList.remove('active');
@@ -917,7 +920,10 @@
 
   function setupTabActions(scope) {
     scope.querySelectorAll('[data-mel-tab-save]').forEach((button) => {
-      button.addEventListener('click', async () => {
+      button.addEventListener('click', async (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
         const tabKey = button.dataset.melTabSave || '';
         if (!tabKey) {
           return;
@@ -944,7 +950,10 @@
 
     const publishButton = scope.querySelector('[data-mel-publish-event]');
     if (publishButton) {
-      publishButton.addEventListener('click', async () => {
+      publishButton.addEventListener('click', async (e) => {
+        if (e.target.closest('form.mel-protected-form')) {
+          return;
+        }
         setDisabledState(publishButton, true);
         await postTabAction(scope, 'publish', {}, 'Submitting event for review...', 'Event submitted for review.');
         setDisabledState(publishButton, false);
@@ -981,7 +990,10 @@
 
         const cards = scope.querySelectorAll('[data-event-card], [data-mel-studio-card]');
         cards.forEach((card) => {
-          card.addEventListener('click', () => {
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('form.mel-protected-form')) {
+              return;
+            }
             const studioLink = String(card.dataset.studioLink || '').trim();
             if (studioLink !== '') {
               window.location.assign(studioLink);
@@ -993,12 +1005,20 @@
 
         const saveButton = scope.querySelector('[data-mel-overview-save]');
         if (saveButton) {
-          saveButton.addEventListener('click', () => saveOverview(scope));
+          saveButton.addEventListener('click', (e) => {
+            if (e.target.closest('form.mel-protected-form')) {
+              return;
+            }
+            saveOverview(scope);
+          });
         }
 
         const dynamicSaveButton = scope.querySelector('[data-mel-dynamic-save]');
         if (dynamicSaveButton) {
-          dynamicSaveButton.addEventListener('click', async () => {
+          dynamicSaveButton.addEventListener('click', async (e) => {
+            if (e.target.closest('form.mel-protected-form')) {
+              return;
+            }
             const selectedCard = getSelectedCard(scope);
             const eventId = selectedCard ? (selectedCard.dataset.eventId || '') : '';
             if (!eventId) {

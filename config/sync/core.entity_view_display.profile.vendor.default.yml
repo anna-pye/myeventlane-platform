@@ -1,0 +1,23 @@
+uuid: de390961-cc58-4023-9cba-07b9bfb7c86d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.profile.vendor.address
+    - profile.type.vendor
+  module:
+    - address
+id: profile.vendor.default
+targetEntityType: profile
+bundle: vendor
+mode: default
+content:
+  address:
+    type: address_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  search_api_excerpt: true

@@ -741,13 +741,7 @@ myeventlane_vendor.console.messaging_brand:
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
-myeventlane_vendor.console.settings:
-  path: '/vendor/settings'
-  defaults:
-    _controller: 'myeventlane_vendor.controller.vendor_settings:settings'
-    _title: 'Vendor settings'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+# /vendor/settings is defined by myeventlane_vendor_settings (VendorSettingsForm).
 
 myeventlane_vendor.manage_event.design:
   path: '/vendor/event/{event}/design'

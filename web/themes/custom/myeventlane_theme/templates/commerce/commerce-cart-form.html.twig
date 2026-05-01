@@ -54,9 +54,20 @@
         {% endif %}
       {% endif %}
 
+      <div class="mel-cart__intro">
+        <h2>{{ 'Review your tickets'|t }}</h2>
+        <p>{{ "You're almost there — check your details before checkout."|t }}</p>
+      </div>
+
       <div class="mel-cart-items-table"{% if item_event_map is defined %} data-item-event-map="{{ item_event_map|json_encode }}"{% endif %}>
         {{ form.header }}
         {{ form.output }}
+      </div>
+
+      <div class="mel-cart__reassurance">
+        <span>{{ '✔ Secure checkout'|t }}</span>
+        <span>{{ '✔ No hidden fees'|t }}</span>
+        <span>{{ '✔ Confirmation sent instantly'|t }}</span>
       </div>
     {% else %}
       <div class="mel-cart-empty mel-cart-empty--inline">
@@ -78,8 +89,33 @@
     <aside class="mel-cart-summary">
       <h2 class="mel-cart-summary-title">{{ 'Order summary'|t }}</h2>
 
-      <div class="mel-cart-summary-lines">
-        {% if form.totals is defined %}
+      <div class="mel-cart-summary-lines{% if mel_cart_pricing is defined %} mel-cart-summary-lines--breakdown{% endif %}">
+        {% if mel_cart_pricing is defined %}
+          {% if mel_cart_pricing.subtotal_formatted %}
+            <div class="mel-cart-summary-line mel-cart-summary-line--subtotal">
+              <span class="mel-cart-summary-label">{{ 'Subtotal'|t }}</span>
+              <span class="mel-cart-summary-value">{{ mel_cart_pricing.subtotal_formatted }}</span>
+            </div>
+          {% endif %}
+          {% for row in mel_cart_pricing.tax_rows %}
+            <div class="mel-cart-summary-line mel-cart-summary-line--tax">
+              <span class="mel-cart-summary-label">{{ row.label }}</span>
+              <span class="mel-cart-summary-value">{{ row.amount_formatted }}</span>
+            </div>
+          {% endfor %}
+          {% for row in mel_cart_pricing.fee_rows %}
+            <div class="mel-cart-summary-line mel-cart-summary-line--fee">
+              <span class="mel-cart-summary-label">{{ row.label }}</span>
+              <span class="mel-cart-summary-value">{{ row.amount_formatted }}</span>
+            </div>
+          {% endfor %}
+          {% if mel_cart_pricing.platform_fee_absorbed %}
+            <div class="mel-cart-summary-line mel-cart-summary-line--platform-fee">
+              <span class="mel-cart-summary-label">{{ 'Platform fee'|t }}</span>
+              <span class="mel-cart-summary-value">{{ 'Organiser absorbs'|t }}</span>
+            </div>
+          {% endif %}
+        {% elseif form.totals is defined %}
           {{ form.totals }}
         {% endif %}
       </div>
@@ -87,11 +123,17 @@
       <div class="mel-cart-total">
         <span class="mel-cart-total-label">{{ 'Total'|t }}</span>
         <span class="mel-cart-total-value">
-          {% if form['#order'] is defined %}
+          {% if mel_cart_pricing is defined and mel_cart_pricing.total_formatted %}
+            {{ mel_cart_pricing.total_formatted }}
+          {% elseif form['#order'] is defined %}
             {{ form['#order'].getTotalPrice()|commerce_price_format }}
           {% endif %}
         </span>
       </div>
+
+      {% if mel_cart_pricing.show_cart_includes_gst_note|default(false) %}
+        <p class="mel-tax-note">{{ 'Includes GST'|t }}</p>
+      {% endif %}
 
       <div class="mel-cart-actions">
         {{ form.actions }}

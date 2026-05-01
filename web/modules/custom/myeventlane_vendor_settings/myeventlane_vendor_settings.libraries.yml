@@ -1,0 +1,12 @@
+settings_form:
+  version: 1.x
+  css:
+    theme:
+      css/mel-vendor-settings.css: {}
+  js:
+    js/mel-disable-ajax.js: {}
+  dependencies:
+    - core/once
+    - myeventlane_vendor_theme/global-styling
+    # POST must not target /vendor/form_action_* on vendor host — that 404s and drops saves.
+    - myeventlane_vendor/fix_form_action

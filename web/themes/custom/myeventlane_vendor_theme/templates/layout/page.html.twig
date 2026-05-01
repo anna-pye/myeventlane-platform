@@ -76,6 +76,8 @@
               <section class="mel-dashboard-page">
                 {{ page.content }}
               </section>
+            {% elseif page.mel_vendor_route_tabs %}
+              {% include '@myeventlane_vendor_theme/includes/vendor-settings-main-shell.html.twig' %}
             {% else %}
               {{ page.content }}
             {% endif %}
@@ -89,6 +91,8 @@
           <section class="mel-dashboard-page">
             {{ page.content }}
           </section>
+        {% elseif page.mel_vendor_route_tabs %}
+          {% include '@myeventlane_vendor_theme/includes/vendor-settings-main-shell.html.twig' %}
         {% else %}
           {{ page.content }}
         {% endif %}

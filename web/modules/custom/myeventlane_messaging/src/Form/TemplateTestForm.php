@@ -181,9 +181,34 @@ final class TemplateTestForm extends FormBase {
         ],
         'donation_total' => NULL,
         'tickets_need_assignment' => FALSE,
+        'vendor_name' => 'Sample Organiser Pty Ltd',
+        'vendor_abn' => '12 345 678 901',
+        'order_total_gst' => '$9.00',
+        'order_total' => '$99.00',
+        'invoice_date_short' => '29 Apr 2026',
+        'invoice_lines' => [
+          [
+            'title' => 'General Admission',
+            'quantity' => 2,
+            'unit_price' => '$45.00',
+            'line_total' => '$90.00',
+          ],
+        ],
+        'invoice_fee_lines' => [],
+        'invoice_tax_lines' => [
+          ['label' => 'GST', 'amount' => '$9.00'],
+        ],
+        'tax_lines' => [
+          ['label' => 'GST', 'amount' => '$9.00'],
+        ],
+        'show_includes_gst_note' => TRUE,
       ],
       'order_invoice' => [
         'invoice_date' => 'April 9, 2026',
+        'vendor_name' => 'Sample Organiser Pty Ltd',
+        'vendor_abn' => '12 345 678 901',
+        'order_total_gst' => '$5.00',
+        'order_total' => '$57.00',
         'events' => [
           ['title' => 'Test Event'],
         ],
@@ -195,10 +220,24 @@ final class TemplateTestForm extends FormBase {
             'line_total' => '$50.00',
           ],
         ],
+        'invoice_lines' => [
+          [
+            'title' => 'General Admission',
+            'quantity' => 2,
+            'unit_price' => '$25.00',
+            'line_total' => '$50.00',
+          ],
+        ],
         'fee_lines' => [
           ['label' => 'Processing fee', 'amount' => '$2.00'],
         ],
+        'invoice_fee_lines' => [
+          ['label' => 'Processing fee', 'amount' => '$2.00'],
+        ],
         'tax_lines' => [
+          ['label' => 'GST', 'amount' => '$5.00'],
+        ],
+        'invoice_tax_lines' => [
           ['label' => 'GST', 'amount' => '$5.00'],
         ],
         'total_paid' => '$57.00',

@@ -89,11 +89,13 @@
 @use 'components/featured-carousel';
 @use 'components/featured-badge';
 @use 'components/event-card';
+@use 'components/vendor-card';
 @use 'pages/mel-browse';
 @use 'components/attendees-event-card';
 @use 'components/attendees-kpi-bar';
 @use 'components/event-page';
 @use 'components/event-full' as event_full_component;
+@use 'components/mel-calendar';
 @use 'components/event-node';
 @use 'components/event' as event-component;
 @use 'components/event-grid-festival';
@@ -167,6 +169,8 @@
 @use 'pages/profile';
 @use 'pages/my-account';
 @use 'pages/contact';
+@use 'pages/discovery';
+@use 'pages/vendor';
 
 // ---------------------------------------------------------------------------
 // 7. Utilities

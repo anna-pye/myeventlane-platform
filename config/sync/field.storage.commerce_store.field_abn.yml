@@ -1,0 +1,21 @@
+uuid: 7f3c9a2e-4b1d-4e8f-9c0a-ef123456789a
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_store
+id: commerce_store.field_abn
+field_name: field_abn
+entity_type: commerce_store
+type: string
+settings:
+  max_length: 32
+  case_sensitive: false
+  is_ascii: false
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

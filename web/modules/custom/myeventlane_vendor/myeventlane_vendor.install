@@ -5,7 +5,9 @@
  * Install, update, and uninstall functions for myeventlane_vendor module.
  */
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\user\Entity\User;
 
 /**
  * Implements hook_schema().
@@ -932,6 +934,161 @@ function myeventlane_vendor_update_10019(): string {
     }
   }
   return 'Access vendor dashboard is granted to vendor and staff when those roles exist. Administrator is unchanged (is_admin / all perms at runtime).';
+}
+
+/**
+ * Installs user.field_vendor_store, wires form display, and backfills vendor accounts.
+ */
+function myeventlane_vendor_update_10020(): string {
+  $messages = [];
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_vendor');
+
+  $field_storage_config_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_config_storage = \Drupal::entityTypeManager()->getStorage('field_config');
+
+  $storage_yaml_path = $module_path . '/config/install/field.storage.user.field_vendor_store.yml';
+  if (!file_exists($storage_yaml_path)) {
+    \Drupal::logger('myeventlane_vendor')->error('Update 10020: missing field storage YAML at @path', ['@path' => $storage_yaml_path]);
+    return 'Update 10020 failed: field.storage.user.field_vendor_store YAML not found.';
+  }
+
+  $storage_config = \Symfony\Component\Yaml\Yaml::parseFile($storage_yaml_path);
+  if (!$field_storage_config_storage->load('user.field_vendor_store')) {
+    try {
+      $field_storage_config_storage->create($storage_config)->save();
+      $messages[] = 'Installed field storage user.field_vendor_store.';
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('myeventlane_vendor')->error('Update 10020: field storage install failed: @message', ['@message' => $e->getMessage()]);
+      return 'Update 10020 failed creating field storage: ' . $e->getMessage();
+    }
+  }
+  else {
+    $messages[] = 'Field storage user.field_vendor_store already present.';
+  }
+
+  $field_yaml_path = $module_path . '/config/install/field.field.user.user.field_vendor_store.yml';
+  if (!file_exists($field_yaml_path)) {
+    \Drupal::logger('myeventlane_vendor')->error('Update 10020: missing field instance YAML at @path', ['@path' => $field_yaml_path]);
+    return 'Update 10020 failed: field.field.user.user.field_vendor_store YAML not found.';
+  }
+
+  $field_config_yaml = \Symfony\Component\Yaml\Yaml::parseFile($field_yaml_path);
+  if (!$field_config_storage->load('user.user.field_vendor_store')) {
+    try {
+      $field_config_storage->create($field_config_yaml)->save();
+      $messages[] = 'Installed field instance user.user.field_vendor_store.';
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('myeventlane_vendor')->error('Update 10020: field instance install failed: @message', ['@message' => $e->getMessage()]);
+      return 'Update 10020 failed creating field instance: ' . $e->getMessage();
+    }
+  }
+  else {
+    $messages[] = 'Field instance user.user.field_vendor_store already present.';
+  }
+
+  $form_display = EntityFormDisplay::load('user.user.default');
+  if ($form_display instanceof EntityFormDisplay && !$form_display->getComponent('field_vendor_store')) {
+    try {
+      $form_display->setComponent('field_vendor_store', [
+        'type' => 'entity_reference_autocomplete',
+        'weight' => 50,
+        'region' => 'hidden',
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'match_limit' => 10,
+          'size' => 60,
+          'placeholder' => '',
+        ],
+        'third_party_settings' => [],
+      ]);
+      $form_display->save();
+      $messages[] = 'Registered field_vendor_store on user form display (hidden).';
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('myeventlane_vendor')->error('Update 10020: form display update failed: @message', ['@message' => $e->getMessage()]);
+      return 'Update 10020 failed updating entity form display: ' . $e->getMessage();
+    }
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  try {
+    $uids = \Drupal::entityQuery('user')
+      ->accessCheck(FALSE)
+      ->condition('roles', 'vendor')
+      ->execute();
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('myeventlane_vendor')->error('Update 10020: user query failed: @message', ['@message' => $e->getMessage()]);
+    return implode(' ', $messages) . ' Backfill skipped (query failed).';
+  }
+
+  /** @var \Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber $subscriber */
+  $subscriber = \Drupal::service('myeventlane_vendor.vendor_store_subscriber');
+  $count = 0;
+  foreach ($uids as $uid) {
+    $user = User::load($uid);
+    if ($user instanceof User) {
+      $subscriber->ensureLinkedStoreForVendorUser($user);
+      $count++;
+    }
+  }
+
+  $messages[] = sprintf('Ran store linkage for %d vendor-role account(s).', $count);
+
+  return implode(' ', $messages);
+}
+
+/**
+ * Backfill AU GST tax registrations on Commerce stores (vendor stores had none).
+ *
+ * Without tax_registrations matching the GST zone (AU), Commerce Tax skips the
+ * entire tax type — orders show no "tax" adjustments.
+ */
+function myeventlane_vendor_update_10021(): string {
+  $module_handler = \Drupal::moduleHandler();
+  if (!$module_handler->moduleExists('commerce_store') || !$module_handler->moduleExists('commerce_tax')) {
+    return 'Skipped AU GST store backfill (commerce_store or commerce_tax not enabled).';
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+  $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+  if (!$ids) {
+    return 'No commerce stores found.';
+  }
+
+  $updated = 0;
+  foreach ($storage->loadMultiple($ids) as $store) {
+    $address = $store->getAddress();
+    if (!$address || $address->getCountryCode() !== 'AU') {
+      continue;
+    }
+    $existing = $store->get('tax_registrations')->getValue();
+    if ($existing !== []) {
+      continue;
+    }
+    $store->set('tax_registrations', ['AU']);
+    // Match Australian GST tax type (display inclusive) and catalog behaviour.
+    $store->set('prices_include_tax', TRUE);
+    try {
+      $store->save();
+      $updated++;
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_vendor')->error(
+        'Update 10021: failed to save store @id for AU GST: @message',
+        ['@id' => (string) $store->id(), '@message' => $e->getMessage()]
+      );
+    }
+  }
+
+  return sprintf(
+    'AU GST backfill: updated %d commerce store(s) with tax_registrations AU and prices_include_tax.',
+    $updated
+  );
 }
 
 /**

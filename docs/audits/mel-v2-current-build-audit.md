@@ -1,224 +1,240 @@
-# MEL v2 — current build read-only audit
+# MEL v2 — Current build audit
 
-**Date:** 2026-04-27  
-**Branch:** `feature/mel-v2-task-based-completion-audit` (at time of audit)  
-**Method:** read-only: Drush, repo inspection, one runtime route match in DDEV, no `cex`, no fixes, no merges.  
-**Scope note:** This documents **what the codebase and environment report**. Functional QA (browsers, payments, real Stripe) was **not** performed.
+**Date:** 29 April 2026  
+**Scope:** Read-only snapshot of the repository and local DDEV site (`https://myeventlane.ddev.site`). No code changes were made during this audit.
+
+**Plan (executed):** Capture git/environment state, run the mandated CLI checks, extract routes via Drush and routing YAML, then cross-check critical subsystems (Event Studio, checkout, vendor console, Stripe Connect, help/AI, themes) against source and config. Findings are **evidence-based**; where behaviour was not exercised in a browser, it is called out as an **assumption** to verify manually.
 
 ---
 
 ## 1. Git and environment
 
-| Check | Result |
-|--------|--------|
-| current branch | `feature/mel-v2-task-based-completion-audit` |
-| latest commit | `477d9a4d Merge pull request #203 from anna-pye/stripe-intent-type` |
-| working tree | **clean** (`git status --short` empty) |
-| `composer validate` | **pass** — `./composer.json is valid` |
-| `ddev drush status` | **pass** — Drupal **11.3.8**, DB connected, bootstrap successful |
-| default theme | `myeventlane_theme` |
-| admin theme | `gin` |
-| `ddev drush theme:status` | **failed** — *Command "theme:status" is not defined* (suggested: `config:status`, `theme:enable`, etc.) |
+| Item | Value |
+|------|--------|
+| **Current branch** | `cursor/use-vendor-query-6161b` |
+| **Latest commit** | `44e4de07` — *Refactor TicketSalesService to utilize UserVendorMembershipQuery for event management. Removed deprecated methods and updated revenue calculations to improve clarity and maintainability.* |
+| **Working tree** | **Clean** (`git status --short` produced no output) |
+| **Composer** | `composer validate` — **valid** |
+| **Drupal (drush status)** | **11.3.8**; bootstrap successful; DB connected; site URI `https://myeventlane.ddev.site`; PHP **8.3.23**; config `config/sync` |
+| **Default (frontend) theme** | `myeventlane_theme` |
+| **Admin theme** | `gin` |
+| **Drush** | 13.7.2.0 |
 
-**Enabled MEL custom modules (representative, from `ddev drush pm:list … \| grep -E "myeventlane\|mel_"`)** include the full MEL set: e.g. `myeventlane_core` … `myeventlane_webhooks`, `mel_admin_dashboard` / `mel_ticket` as shown in Drush output; **no attempt** to list every sub-module name token that wrapped on one line. Key commerce/help/event modules: `myeventlane_commerce`, `myeventlane_rsvp`, `myeventlane_checkout_flow`, `myeventlane_checkout_paragraph`, `myeventlane_event_studio`, `myeventlane_vendor`, `myeventlane_stripe`, `myeventlane_help_assistant`, `myeventlane_help_centre*`, `myeventlane_staff_playbooks*`, etc.
+**Enabled custom MEL modules (from `ddev drush pm:list --type=module --status=enabled | grep -E "myeventlane|mel_"`):** a large set is enabled, including (non-exhaustive): `mel_ticket`, `myeventlane_account` through `myeventlane_webhooks` per the Drush listing (see command log). Core platform modules such as `myeventlane_commerce`, `myeventlane_checkout_flow`, `myeventlane_event_studio`, `myeventlane_rsvp`, `myeventlane_stripe`, `myeventlane_vendor`, `myeventlane_help_centre`, `myeventlane_help_assistant`, `myeventlane_staff_playbooks`, and related MEL feature modules are **enabled** in this environment.
 
-**Prioritised findings (§1):**
-
-- **P2:** `ddev drush theme:status` is not available on this Drush; use `drush config:get system.theme` or UI if theme status is needed.  
-- **P3:** Local `npm` warnings re `devdir` during `mel:lint` / `mel:build` (no task fix).
+**Note:** `ddev drush theme:status` is **not a defined Drush command** in this project’s Drush (see failed commands below). Theme source of truth for this audit is `drush status` (default/admin theme fields).
 
 ---
 
-## 2. Routes (names + file locations or config source)
+## 2. Routes (Drush + routing reference)
 
-Sources: `ddev drush route \| grep …` (sample), `myeventlane_*.routing.yml` files, `config/sync/views.*.yml` for Views pages, and **runtime** route match in DDEV for `/home` and a few paths.
+Paths below are from `ddev drush route | grep -E "event|vendor|checkout|help|stripe|rsvp|ticket"` and custom `*.routing.yml` where noted. Standard Drupal entity routes (e.g. `entity.node.canonical` for event nodes) apply unless path aliases override.
 
-| Area | Route name(s) | Path / note | File / config |
-|------|---------------|-------------|---------------|
-| **Homepage / discovery** | `view.frontpage.page_1` | **`/home`** (Views) | `system.site` front = `/home`; `config/sync/system.site.yml`; View `frontpage` display `page_1` |
-| **/events** | `view.upcoming_events.page_events` | **`/events`** | `config/sync/views.view.upcoming_events.yml` (display `page_events`, `path: events`); view description: canonical public discovery |
-| **Category** | `view.upcoming_events.page_category` (and block displays) | **`/events/category/%** (taxonomy in path)** | same view file; `path: events/category/%` |
-| **Event full** | `entity.node.canonical` | Resolves to node path (often pathauto) — e.g. `/node/{id}` or alias; not hard-coded in one custom `routing.yml` for all | Core + Pathauto; bundle `event` |
-| **Event booking (unified)** | `myeventlane_commerce.event_book` | **`/event/{node}/book`** | `web/modules/custom/myeventlane_commerce/myeventlane_commerce.routing.yml` |
-| **RSVP → book redirect** | `myeventlane_rsvp.public_rsvp_form` | **`/event/{event}/rsvp`** | `web/modules/custom/myeventlane_rsvp/myeventlane_rsvp.routing.yml` **→ `RsvpRedirectController::redirectToBooking`** |
-| **RSVP form / thank you** | `myeventlane_rsvp.form`, `myeventlane_rsvp.thankyou` | `/event/{node}/rsvp/form`, `/event/{event}/rsvp/thank-you` | same file |
-| **Paid ticket (Commerce)** | `commerce_checkout.*`, `commerce_checkout.form` | **`/checkout`**, **`/checkout/{commerce_order}/{step}`** | Contrib; step includes payment and completion |
-| **Confirmation** | `commerce_checkout.form` (step) | part of **checkout** flow — e.g. complete step on order | See checkout flow `mel_event_checkout` in config (below) |
-| **Vendor dashboard** | `myeventlane_vendor.console.dashboard` (matched) | **`/vendor/dashboard`** | `web/modules/custom/myeventlane_vendor/myeventlane_vendor.routing.yml` — route key near `path: '/vendor/dashboard'` |
-| **Event Studio create** | `myeventlane_event_studio.create` | **`/vendor/events/create`** | `web/modules/custom/myeventlane_event_studio/myeventlane_event_studio.routing.yml` |
-| **Event Studio edit (wizard)** | `myeventlane_event_studio.edit`, `…edit_basic`, `…tickets`, etc. | `/vendor/events/{node}/edit`, sub-steps | same |
-| **Stripe Connect onboarding** | `myeventlane_vendor.stripe_connect` | **`/stripe/connect`** | `web/modules/custom/myeventlane_vendor/myeventlane_vendor.routing.yml` — `StripeConnectController::connect` |
-| **Stripe callback** | `myeventlane_vendor.stripe_callback` | **`/stripe/connect/callback`** | same, `::callback` |
-| **(Additional)** | `myeventlane_vendor.*` | `/vendor/onboard/stripe-return`, `/vendor/onboard/stripe-refresh` | same file (onboarding return URLs) |
-| **Help centre** | `myeventlane_help_centre.home` etc. | `/help`, `/help/index`, `/help/vendors`, etc. | `web/modules/custom/myeventlane_help_centre/myeventlane_help_centre.routing.yml` |
-| **Help assistant** | `myeventlane_help_assistant.page` / `ask` | **`/help/assistant`** (GET + POST) | `web/modules/custom/myeventlane_help_assistant/myeventlane_help_assistant.routing.yml` |
-| **Staff playbooks (example)** | `myeventlane_staff_playbooks.governance_dashboard` | **`/admin/myeventlane/governance`** (permission: `administer escalations`) | `web/modules/custom/myeventlane_staff_playbooks/myeventlane_staff_playbooks.routing.yml` — **not** exhaustive of all staff routes |
-
-**Runtime checks (DDEV, router):**
-
-- `/home` → `view.frontpage.page_1` (Views `ViewPageController`).  
-- `/events` → `view.upcoming_events.page_events`.  
-- `/checkout` → `commerce_checkout.checkout`.  
-- `/vendor/dashboard` → `myeventlane_vendor.console.dashboard`.  
-
-`ddev drush route` is **huge**; the pipeline returned exit **141** (pipe closed / `head`).
+| Area | Route name (representative) | Path |
+|------|----------------------------|------|
+| **Homepage / discovery** | `view.frontpage.page_1` | `/home` (matches `system.site: front: /home` in `config/sync/system.site.yml`) |
+| **Event filter (AJAX/API-style)** | `myeventlane_core.event_filter` | `/mel/filter-events` |
+| **Events listing (views)** | `view.upcoming_events.page_events` | `/events/{arg_0}` |
+| **Category / time-sliced lists** | `view.upcoming_events.page_category` | `/events/category/{arg_0}` |
+| | `view.upcoming_events.page_today` | `/events/today/{arg_0}` |
+| | `view.upcoming_events.page_this_weekend` | `/events/this-weekend/{arg_0}` |
+| | `view.upcoming_events.page_free` | `/events/free/{arg_0}` |
+| **Event full page** | `entity.node.canonical` (event bundle) | `/node/{node}` *default*; public URL typically via **path alias** (not expanded in this audit) |
+| **Event booking (commerce)** | `myeventlane_commerce.event_book` | `/event/{node}/book` |
+| **RSVP booking** | `myeventlane_rsvp.public_rsvp_form` | `/event/{event}/rsvp` |
+| | `myeventlane_rsvp.form` | `/event/{node}/rsvp/form` |
+| | `myeventlane_rsvp.thankyou` | `/event/{event}/rsvp/thank-you` |
+| **Paid ticket path** | Cart + checkout: `commerce_cart.*` (not in grep); checkout | `commerce_checkout.checkout` | `/checkout` |
+| | `commerce_checkout.form` | `/checkout/{commerce_order}/{step}` |
+| **Confirmation / post-purchase** | `myeventlane_checkout_flow.my_tickets` | `/my-tickets` |
+| | `myeventlane_checkout_flow.order_detail` | `/my-tickets/order/{commerce_order}` |
+| | Commerce checkout **complete** step uses `commerce_checkout.form` with `step` = `complete` (standard Commerce) |
+| **Vendor dashboard** | `myeventlane_vendor.console.dashboard` | `/vendor/dashboard` |
+| | `myeventlane_vendor.shell.vendor_root` | `/vendor` |
+| | `myeventlane_vendor.shell.dashboard` | `/dashboard` (alias-style entry) |
+| **Event Studio create** | `myeventlane_event_studio.create` | `/vendor/events/create` |
+| **Event Studio edit** | `myeventlane_event_studio.edit` | `/vendor/events/{node}/edit` |
+| | Sub-routes | `/vendor/events/{node}/edit/basic`, `…/datetime`, `…/tickets`, `…/description`, `…/preview`, `…/publish` |
+| **Legacy / parallel vendor event UI** | `myeventlane_vendor.manage_event.*`, `myeventlane_event.wizard.*` | e.g. `/vendor/event/{event}/edit`, `/vendor/events/{event}/build/*` — **multiple Event UIs coexist**; product choice of “canonical” editor is a **process** question |
+| **Stripe Connect onboarding** | `myeventlane_vendor.stripe_connect` | `/stripe/connect` |
+| | `myeventlane_vendor.stripe_onboard_refresh` | `/vendor/onboard/stripe-refresh` |
+| | Onboarding steps | `/vendor/onboard/stripe`, etc. (`myeventlane_vendor.onboard` family) |
+| **Stripe callback** | `myeventlane_vendor.stripe_callback` | `/stripe/callback` |
+| | `myeventlane_vendor.stripe_callback_legacy` | `/stripe/connect/callback` |
+| | `myeventlane_vendor.stripe_onboard_return` | `/vendor/onboard/stripe-return` (also uses callback controller) |
+| | `myeventlane_vendor.stripe_manage` | `/stripe/manage` |
+| **Commerce Stripe (gateway OAuth)** | `commerce_stripe.connect.oauth_return` | `/stripe-connect/oauth/return/{commerce_payment_gateway}` — **admin/gateway** flow, distinct from vendor Connect |
+| **Help centre** | `myeventlane_help_centre.home` | `/help` |
+| | | `/help/index`, `/help/search`, `/help/category/{category}`, audience hubs `/help/attendees`, `/help/organisers`, `/help/vendors`, `/help/policies` |
+| | Vendor-scoped | `/vendor/help`, `/vendor/help/topic/{category}` |
+| **Help assistant** | `myeventlane_help_assistant.page`, `myeventlane_help_assistant.ask` | `/help/assistant` |
+| **Help Centre AI ask** | `myeventlane_help_centre_ai.ask` | `/help/ask` |
+| **Staff playbooks** | `myeventlane_staff_playbooks.governance_dashboard` | `/admin/myeventlane/governance` |
+| | AI summary | `myeventlane_staff_playbooks_ai.summary` | `/admin/myeventlane/playbooks/{node}/ai/summary` |
 
 ---
 
-## 3. Event Studio (audit)
+## 3. Event Studio
 
-| Topic | Notes |
-|-------|--------|
-| **Create** | `myeventlane_event_studio.create` → `EventStudioController::buildCreate` at `/vendor/events/create` |
-| **Edit** | `myeventlane_event_studio.edit` + sub-routes (basic, datetime, tickets, description, preview, publish) under `/vendor/events/{node}/edit/...` |
-| **Access** | Create: `myeventlane_vendor.access.vendor_console:access` (routing); steps: `node:update` |
-| **Ticket builder** | `EventStudioTicketsForm` at `…/edit/tickets` |
-| **RSVP / paid save paths** | **RSVP** uses redirect to **unified book** `web/modules/custom/myeventlane_rsvp/myeventlane_rsvp.routing.yml` — paid flows go through **Commerce** cart and **mel_event_checkout** (separate from Studio save in normal checkout). **Studio** saves tickets through domain forms; exact sync to Commerce product/variation is in **form/service** code (not re-read in full in this pass). **No code edits** in this task. |
-| **Commerce product/variation sync** | Pushed to `myeventlane_tickets` / `myeventlane_commerce` (see project `project-rules.md` references); full trace = Task later if needed. |
-| **AJAX** | `web/modules/custom/myeventlane_event_studio/myeventlane_event_studio.routing.yml` — `autosave` POST, AI POST, ticket suggestions POST with CSRF header requirements. |
-| **Libraries** | `web/modules/custom/myeventlane_event_studio/myeventlane_event_studio.libraries.yml` — `mel_event_studio` (CSS+JS+location autocomplete); shell-only variant. |
-| **Active theme on vendor** | `myeventlane_vendor_theme` (watchdog sample: *Vendor isolation active on /vendor/dashboard with theme myeventlane_vendor_theme*) |
-
-**Prioritised (§3):**
-
-- **P2:** **Two** vendor event editing surfaces in routing exist — **Event Studio** (`/vendor/events/.../edit/...`) and **legacy** `/vendor/events/{event}/build/...` wizard in `web/modules/custom/myeventlane_event/myeventlane_event.routing.yml` — risk of **operator confusion** if not documented.  
-- **P2:** Parallel **old** editor paths like `/vendor/event/{event}/...` in same vendor file — product should confirm canonical UX.
+| Topic | Finding |
+|-------|---------|
+| **Create route** | `/vendor/events/create` — `_custom_access: 'myeventlane_vendor.access.vendor_console:access'` plus `access content` (`myeventlane_event_studio.routing.yml`). |
+| **Edit route** | `/vendor/events/{node}/edit` — `_entity_access: 'node.update'`; integer node parameter. |
+| **Ticket builder** | `EventStudioTicketsForm` attaches `myeventlane_vendor/ticket_cards` and `core/drupal.ajax`; actions delegated to `EventTicketsBuilder::handleAction` (AJAX rebuild pattern). |
+| **RSVP / paid ticket save** | `EventStudioSaveService` persists node; `MelTicketTypeManager::onEventStudioSaveComplete` runs after non-draft save — reconciles tiers, `applyStudioTierRows`, then `syncCommerceAndPublishCatalogSignal` (Commerce sync for paid/both). Errors logged on sync failure. |
+| **Commerce product/variation sync** | Implemented via `MelTicketTypeManager::syncCommerceAndPublishCatalogSignal` → `ticketTierLifecycle->syncPaidTiers` for `paid` / `both` event types. |
+| **AJAX submit** | Ticket tab uses AJAX callbacks consistent with `EventStudioForm` contract (`handleAction` reloads node into form state). Autosave: POST `/vendor/events/autosave`. AI endpoints: POST with CSRF header requirement on routes (see routing comments). |
+| **Libraries** | `myeventlane_event_studio.libraries.yml`: `mel_event_studio` (CSS `mel-event-studio*.css`, JS `mel-event-studio.js`, deps `address_autocomplete`); `mel_event_studio_shell_only` for shell without full wizard JS. |
+| **Theme on vendor routes** | `VendorThemePagePreprocess` / vendor console pipeline (see `myeventlane_vendor.services.yml`). Watchdog sample shows **Vendor isolation** with theme **`myeventlane_vendor_theme`** on `/vendor/dashboard`. |
+| **Styles source** | Event Studio CSS ships from **module** (`myeventlane_event_studio/css/...`) with explicit weight comments for cascade vs vendor theme globals. Vendor ticket cards library referenced from vendor module. **Assumption:** verify Event Studio pages attach `mel_event_studio` on all edit tabs in browser (not every sub-route re-checked line-by-line here). |
 
 ---
 
 ## 4. Booking and checkout
 
-| Topic | Notes |
-|-------|--------|
-| **Free RSVP path** | `myeventlane_rsvp` routes + redirect to `myeventlane_commerce.event_book` (unify with paid booking surface). |
-| **Paid** | `BookController` + `commerce_checkout` + flow **`mel_event_checkout`**. |
-| **Checkout flow plugin** | `config/sync/commerce_checkout.commerce_checkout_flow.mel_event_checkout.yml` — `plugin: mel_event_checkout`, panes: `mel_buyer_details`, `ticket_holder_paragraph`, `mel_donation`, `mel_legal_consent`, `payment_information` (…), order summary in sidebar, several panes disabled. |
-| **Payment / summary** | `payment_information` step `checkout` weight 4; `order_summary` in `_sidebar` with `commerce_checkout_order_summary` view. |
-| **Ticket holder** | `ticket_holder_paragraph` (Commerce checkout pane) — dedicated attendee handling also exists at `myeventlane_commerce` routes like `/cart/attendee-info/{order_item}`. |
-| **Confirmation** | **Commerce** checkout `complete` (or custom completion) is **on the `commerce_checkout.form` step**; exact template/pane = theme + flow config. |
-| **Email / tickets** | Not fully traced (queues, rules, `myeventlane_tickets`); would need Task focused on comms. |
-
-**Prioritised (§4):**
-
-- **P1:** `payment_information` in sync config has `require_payment_method: false` — may be **intentional** for $0, but **validates in staging** for mixed paid/RSVP.  
-- **P2:** Several panes on `_disabled` — **matches** a deliberate layout; do not "fix" without product sign-off.  
-- **P3:** Guest flags `guest_new_account: true` — confirm with privacy/help copy.
+| Topic | Finding |
+|-------|---------|
+| **Free RSVP path** | Primary public flow: `/event/{event}/rsvp` → thank-you `/event/{event}/rsvp/thank-you`. |
+| **Paid ticket path** | Booking entry `/event/{node}/book` → Commerce cart → `/checkout` → `/checkout/{commerce_order}/{step}`. |
+| **Checkout flow plugin** | Config `commerce_checkout.commerce_checkout_flow.mel_event_checkout`: plugin **`mel_event_checkout`** (`MelEventCheckoutFlow`). Default order type ties to this flow (`commerce_order.commerce_order_type.default` third-party settings). |
+| **Payment pane** | Panes include `payment_information` on step `checkout` with `always_display: true`, `require_payment_method: false` — **zero-balance orders may still show payment UI** unless Commerce/core hides it at runtime (behaviour to verify with a $0 cart). |
+| **Order summary** | Sidebar: `order_summary` view `commerce_checkout_order_summary`; duplicate panes disabled per install/post-update (`grouped_order_summary`, `mel_fee_transparency` → `_disabled`). |
+| **Ticket holder info** | Pane `ticket_holder_paragraph` (“Attendee details”) on main checkout step. |
+| **Confirmation** | Commerce checkout **complete** step on `/checkout/{order}/complete`; order viewing also via `/my-tickets` and `/my-tickets/order/{commerce_order}`. |
+| **Ticket issuing** | Routes under `myeventlane_tickets` (PDF download, scan, check-in API) — see Drush route list. |
+| **Email confirmation** | `myeventlane_messaging` provides templates and queue (`order_confirmation`, `rsvp_confirmation` per module tests/docs); staff resend route `myeventlane_messaging.resend_order_confirmation`. **Operational status** (queues/cron) not verified in this audit. |
 
 ---
 
 ## 5. Vendor dashboard
 
-| Topic | Notes |
-|-------|--------|
-| **Entry** | `/vendor/dashboard` — `myeventlane_vendor` console. |
-| **Attendees (global)** | `myeventlane_checkout_flow.vendor_attendees` — `/vendor/attendees` (controller access check). |
-| **Menu / link** | Not re-audited menu YAML in this pass; `myeventlane_vendor` defines many **vendor** and **/dashboard** fallbacks. |
-| **Attendee data / CSV** | `web/modules/custom/myeventlane_event_attendees/myeventlane_event_attendees.routing.yml` — `/vendor/events/{node}/attendees/export` etc.; `myeventlane_views` has `AttendeeCsvController` with access notes in class docblock. |
-| **Admin/staff** | MEL **admin** dashboard: `myeventlane_admin_dashboard` routes (orders, financials, payouts, `admin/myeventlane`, webhooks) — see Drush `route` output prefix `myeventlane_admin_dashboard.`. |
-| **Analytics** | `myeventlane_analytics.dashboard` — `/vendor/analytics`, per-event under `/vendor/analytics/event/{node}`. |
-
-**Prioritised (§5):**
-
-- **P2:** Multiple overlapping routes for vendor event management (Studio vs “studio” API vs “event” path) — **governance/UX** risk.  
-- **P1:** Payout/stripe **admin** paths and `/stripe/webhook/payout` exist — **operational** security and signing must be part of **Task 3**.
+| Topic | Finding |
+|-------|---------|
+| **Access checks** | Central service `myeventlane_vendor.access.vendor_console` (`VendorConsoleAccess`) — used broadly for vendor console routes; integrates onboarding + trusted staff bypass via `VendorConsoleTrust` (see class docblocks). |
+| **Menu / dropdown** | Not traced UI-by-UI in this audit; routes exist for `/vendor/dashboard`, `/vendor/events`, settings, etc. |
+| **Vendor-only visibility** | Relies on route `_custom_access` and entity access for events (e.g. `VendorConsoleBaseController` patterns). **Manual QA** recommended for cross-vendor boundaries. |
+| **Admin/staff access** | `VendorConsoleTrust::accountIsTrustedForVendorConsole` allows elevated accounts without weakening entity checks on sensitive operations — verify parity with product policy. |
+| **Attendee data boundaries** | Vendor attendee APIs and exports: e.g. `myeventlane_api.vendor.attendees.*`, `/vendor/events/{node}/attendees`, `/api/v1/vendor/events/{node}/exports/csv`, `/vendor/export-attendees/{event}/download`. **Server-side enforcement** must be validated per endpoint (audit scope: inventory only). |
+| **RSVP CSV export** | `myeventlane_rsvp.export_csv` → `/vendor/event/{event}/rsvps/export`. |
+| **Sales / analytics** | `/vendor/analytics`, `/vendor/events/{event}/analytics`, reporting charts under `/vendor/charts/...`, insights under `/vendor/events/{event}/insights`. |
 
 ---
 
-## 6. Stripe Connect (recon only — not full audit)
+## 6. Stripe Connect
 
-| Topic | Notes |
-|-------|--------|
-| **Controllers** | `web/modules/custom/myeventlane_vendor/src/Controller/StripeConnectController.php` — `connect`, `callback`, plus return routes in `web/modules/custom/myeventlane_vendor/myeventlane_vendor.routing.yml` |
-| **Service layer** | `myeventlane_stripe` (and `StripeService` as referenced in branch log messages on `fix/stripe-connect` — not diffed in this worktree) |
-| **Store relationship** | Vendor ↔ Commerce store mapping lives in MEL custom modules; exact field names: **out of scope** for this pass (no schema edits). |
-| **connect account storage** | Typically on vendor/connector entity/fields — **confirm in Task 3** with `services.yml` + install entity definitions. |
-| **Onboarding loop** | `fix/stripe-connect` branch log mentions **onboarding** improvements and `ApiErrorException` handling; **this audit branch** does not include the latest 3 commits from `fix/stripe-connect` (see below). |
-| **fix/stripe-connect vs this branch** | `git log feature/mel-v2-task-based-completion-audit..fix/stripe-connect` shows: `e0653f59` (connect API failure handling in controller), `37851723` (StripeService / express / logging), `af70f4c0` (integration + user feedback) — **not in** current feature branch. |
-| **Dedicated full audit** | **Yes, recommended** — current pass is only mapping and divergence note. |
-
-**Prioritised (§6):**
-
-- **P1 (merge/product):** `feature/mel-v2-task-based-completion-audit` is **behind** `fix/stripe-connect` by **3** commits; Stripe behaviour and operator messaging **differ** until integrated.  
-- **P0:** None proven without runtime Stripe tests — do **not** list as launch blocker on evidence above alone.
+| Topic | Finding |
+|-------|---------|
+| **Controller** | `StripeConnectController` — `connect`, `callback`, `manage`; uses `StripeService`, `UserVendorMembershipQuery`, `VendorStoreSubscriber`. |
+| **Callback** | Routes `/stripe/callback`, `/stripe/connect/callback`, `/vendor/onboard/stripe-return` → same controller methods; **`_access: 'TRUE'`** on callbacks — relies on internal validation (account vs store) rather than login-only route gate. |
+| **Vendor profile link** | Resolves vendor via membership query; prefers vendor with `field_vendor_store` populated. |
+| **Store creation/linking** | `getStoreForConnect` uses `VendorStoreSubscriber::ensureStoreForVendor`; `syncVendorStoreReference` writes store ID to vendor. |
+| **Connected account storage** | Stripe IDs/status synced to Commerce store fields and mirrored to vendor fields when present (`syncStripeAccountFieldsToVendor`). |
+| **Error logging** | Uses `logger.factory` channels (`myeventlane_vendor`); API errors logged with masked IDs in places (`StripeService::maskAccountId`). |
+| **Onboarding loop risk** | Refresh URL points to `stripe_connect`; return URL to `stripe_callback`. If Stripe returns repeatedly without `charges_enabled`, user may see repeated redirects — **product/UX risk**, not proven failure in this audit. |
+| **Existing connected vendors** | Code path short-circuits when account ID exists and `charges_enabled` — message “already connected” (`connect()`). Mismatch between query `account_id` and store logs error and aborts. **Assumption:** production monitoring should confirm no regressions after deploy. |
 
 ---
 
 ## 7. Help and AI support
 
-| Topic | Evidence |
-|--------|------------|
-| **help_article** | `node.type` + fields in `config/sync`; `field.storage.node.field_audience` and usage on `help_article` and landing types (grep on sync). |
-| **field_audience** | In Search API: `config/sync/search_api.index.mel_content.yml` — indexed as `field_audience` (help audience canonical). |
-| **staff_playbook** | Content type `config/sync/node.type.staff_playbook.yml` + `field_internal_only` and related fields; **not** listed in `mel_content` content bundle grep as `staff_playbook` in the same index snippet. |
-| **Help Assistant** | `web/modules/custom/myeventlane_help_assistant/src/Service/HelpRetriever.php` — `type = help_article` only; `field_audience` filtered to public/vendor; **rejects** `staff`; requires `field_help_ai_allowed` and status checks. |
-| **Search API** | Index id **`mel_content`**; query restricts by type and audience. |
-| **Staff leak** | **Code path** in HelpRetriever explicitly **excludes** staff-tagged and non-public/vendor content for assistant retrieval; **separate** risk: Views/routes to staff playbooks must stay permission-gated (not fully audited here). |
-
-**Prioritised (§7):**
-
-- **P1:** Re-verify any **View** or **search** display that might expose `help_article` with staff audience to the wrong role (theme-only hiding is not enough) — **spot-check** in Task follow-up, not in this file’s scope.  
-- **P2:** `mel_debug` and similar **verbose** log entries in watchdog (not help-specific but noisy).
+| Topic | Finding |
+|-------|---------|
+| **help_article fields** | Config references include `field_audience`, `field_help_article_type`, `field_help_summary`, `field_help_keywords`, `field_help_topic`, `field_help_status`, `field_featured_help`, `field_related_help_articles`, etc. (see `config/sync` and views). |
+| **field_audience** | Used in views (`mel_help_articles_by_audience`, organiser/vendor help views) and indexed on **Search API** `mel_content` as `field_audience`. |
+| **staff_playbook** | Content type `staff_playbook` with dedicated fields (priority, reply snippets, internal-only, AI summary, etc. per module install config). |
+| **Access control** | `myeventlane_staff_playbooks.module` implements `node_access` / create access so **staff-only** creation and restricted view for playbook nodes. |
+| **Search API index** | **`mel_content`** indexes help-related fields and events; bundle selection configurable per index config. Separate indexes: `mel_categories`, `mel_vendors`. |
+| **Help Assistant retrieval** | `HelpRetriever` queries index **`mel_content`**, fulltext on title/summary/body/keywords, filters `type = help_article`, applies **audience filter** (anonymous: `public`; authenticated: `public` + `vendor`); excludes `staff` in code paths; requires `field_help_ai_allowed`, documentation status, node access. |
+| **Vendor AI retrieval** | `UnifiedHelpRetriever` (preferred per deprecation notice on legacy `HelpArticleRetriever`) used from `VendorAiAssistantForm`; legacy class queries nodes with `accessCheck(FALSE)` then maps — **review unified path for parity** (vendor AI uses unified retriever in submit path per current code). |
+| **Staff-only leak risk** | Help Assistant explicitly filters staff audience and rejects staff-tagged nodes in `nodeAudienceAllowedForAssistant`. Staff playbooks are separate content type with admin routes — **lower risk** if routes remain admin-only; Help Centre AI route `/help/ask` requires `access myeventlane help assistant` permission. |
 
 ---
 
-## 8. Theme and frontend (recon)
+## 8. Theme and frontend
 
-| Area | Notes |
-|------|--------|
-| **Event cards / full / home** | Large SCSS/twig in `web/themes/custom/myeventlane_theme` (e.g. `components/_event-*.scss`, `node--event--full.html.twig`) — **no line-by-line** review. |
-| **Discovery / filters** | `web/modules/custom/myeventlane_core/myeventlane_core.routing.yml` — `/mel/filter-events` (AJAX fragment) + Views `config/sync/views.view.upcoming_events.yml` for `/events`, `events/today`, `events/free`, etc. |
-| **Category** | `/events/category/...` from same view. |
-| **Checkout** | Default Commerce checkout theme behaviour + MEL panes; vendor checkout questions under vendor routes. |
-| **Vendor / Studio** | `myeventlane_vendor_theme` (Vite in `package.json`); **Event Studio** CSS/JS in module + vendor theme. |
-| **Break / duplicate styles** | Public theme main bundle ~**567 kB** gzip ~85 kB (build output) — **performance** and cascade risks worth profiling later. |
-| **Accessibility** | Not **audited** with tools in this pass — **P2** to run axe/keyboard in a dedicated a11y task. |
-
-**Prioritised (§8):**
-
-- **P2:** CSS bundle size and two-theme split (public vs vendor) — follow performance budget.  
-- **P2:** `mel:lint` covers a **fixed** list of SCSS files; new partials not in the list are **unlinted** (known pattern).
+| Topic | Finding |
+|-------|---------|
+| **Event cards / full / discovery** | Primary SCSS under `myeventlane_theme` includes `_event-card.scss`, `_event-full.scss`, `_event-hero.scss`, `_event-book.scss`; discovery filters tied to `/mel/filter-events` + views. |
+| **Category pages** | Views-driven URLs under `/events/category/...` and related upcoming_events variants. |
+| **Checkout** | Classes `mel-checkout-single-page`, `mel-checkout-flow-mel-event` applied in `MelEventCheckoutFlow::buildForm`. |
+| **Vendor dashboard** | Built with `myeventlane_vendor_theme` per runtime logs; separate Vite build (`mel:build` builds both themes). |
+| **Event Studio** | Module CSS + vendor theme; ticket builder pulls `myeventlane_vendor/ticket_cards`. |
+| **Mobile breakpoints** | Theme uses shared `tokens/breakpoints` and mixed `@media` (e.g. 900px, 600px, 480px in wizard-related SCSS) — **multiple breakpoint sources** → risk of inconsistent spacing between components. |
+| **Accessibility risks** | Not systematically tested in this audit; AJAX-heavy Studio and checkout warrant axe/keyboard passes before launch. |
+| **Duplicate/competing styles** | Overlap between module-attached CSS (`mel-event-studio*.css`) and theme bundles; vendor theme `main.css` ~326 kB gzip ~46 kB — watch specificity and load order. |
 
 ---
 
-## Commands run (required + supporting)
+## Prioritised findings
 
-- `git status --short` — **clean**  
-- `git branch --show-current`  
-- `git log -1 --oneline`  
-- `composer validate` — **ok**  
-- `ddev drush status` — **ok**  
-- `ddev drush theme:status \|\| true` — **failed** (see §1)  
-- `ddev drush pm:list --type=module --status=enabled \| grep -E "myeventlane\|mel_"`
-- `ddev drush route \| grep -Ei "…" \| head -200` — **exit 141** (truncation/pipe)  
-- `npm run mel:lint \|\| true` — **pass** (Stylelint; npm `devdir` notice)  
-- `npm run mel:build \|\| true` — **pass**  
-- `ddev drush ws --count=50` — **pass** (recent notices)  
-- Supporting: `ddev drush ev` for route match on `/home`, `/events`, `/vendor/dashboard`, and `git log feature/…..fix/stripe-connect`
+### P0 — Launch blockers
 
-**Failed (recorded, not “fixed”):** `ddev drush theme:status` — *Command "theme:status" is not defined.*
+_None identified from read-only commands and static review alone._ Remaining launch risk is **unverified** runtime behaviour (payments, emails, Stripe live keys, access control edge cases).
 
-**Watchdog (sample, last 50):** Mostly `mel_debug` (BOOST CANDIDATE) and `mel_admin_access_debug` / `mel_theme_debug` (vendor dashboard). **P2:** reduce debug noise in production configs.
+### P1 — Important
 
----
+1. **Checkout payment pane config:** `require_payment_method: false` and `always_display: true` on `payment_information` may confuse users or expose unnecessary UI for free orders — **verify** paid vs free vs donation scenarios in QA.
+2. **Parallel Event UIs:** Routes for Event Studio, vendor workspace, and legacy `/vendor/event/{event}/build/*` wizard coexist — risk of **documentation/training drift** and inconsistent publish gates.
+3. **Stripe callback routes open (`_access: TRUE`):** Mitigated by controller logic but warrants **security review** and penetration-style retest (session fixation, CSRF, parameter tampering).
 
-## Global prioritised summary
+### P2 — Polish
 
-| ID | Level | Item |
-|----|-------|------|
-| 1 | **P1** | `fix/stripe-connect` has **3 commits** not on this audit branch — Stripe/onboarding and `StripeService` work **diverge**; needs merge decision + **Task 3** full audit. |
-| 2 | **P1** | `mel_event_checkout` has `require_payment_method: false` on payment pane — **verify** for paid events before launch. |
-| 3 | **P2** | Overlapping vendor event routes (Event Studio, wizard, legacy “event/…”) — document canonical paths. |
-| 4 | **P2** | Drush 13 has no `theme:status` — use alternate commands. |
-| 5 | **P2** | Noisy `mel_debug` in watchdog. |
-| 6 | **P2** | Large public CSS output + SCSS lint allowlist. |
-| 7 | **P3** | npm audit **moderate** in theme deps. |
+1. **`npm run mel:lint`:** Stylelint phase **killed with signal 9** (see failed commands) — local OOM/sandbox; fix CI/local lint reliability before relying on it as a gate.
+2. **Watchdog noise:** Recent logs show many `mel_debug` “BOOST CANDIDATE” notices and `myeventlane_domain_events` “Projection miss” debug entries — may impact log signal-to-noise in production if debug logging is enabled.
+3. **`ddev drush theme:status` unavailable** — use `drush status` or config for theme reporting in runbooks.
 
-**P0 (launch blocker) from this read-only pass:** **None established** (no production smoke, no failed core bootstrap, no payment E2E).
+### P3 — Later
+
+1. Deprecated `HelpArticleRetriever` still present; ensure all call sites use `UnifiedHelpRetriever`.
+2. Consolidate breakpoint tokens vs ad hoc `@media` widths for long-term maintainability.
 
 ---
 
-## Recommended next task
+## Commands run
 
-**TASK 3 — Full Stripe Connect audit only** (controllers, `StripeService`, store/account linkage, webhooks, `charges_enabled` / `requirements` gates, `fix/stripe-connect` diff vs this branch, and a written test matrix; **no** implementation in Task 3 unless the audit explicitly defers to a “fix” task).
+| Command | Result |
+|---------|--------|
+| `git status --short` | Clean |
+| `git branch --show-current` | `cursor/use-vendor-query-6161b` |
+| `git log -1 --oneline` | `44e4de07 Refactor TicketSalesService...` |
+| `composer validate` | `./composer.json is valid` |
+| `ddev drush status` | Success (Drupal 11.3.8, themes gin / myeventlane_theme) |
+| `ddev drush theme:status \|\| true` | **Failed** — command not defined |
+| `ddev drush pm:list --type=module --status=enabled \| grep -E "myeventlane\|mel_" \|\| true` | Success (long list) |
+| `ddev drush route \| grep -E "event\|vendor\|checkout\|help\|stripe\|rsvp\|ticket" \|\| true` | Success (569 matching lines in captured output) |
+| `npm run mel:lint \|\| true` | **Partial failure** — `lint:css` killed (signal 9) after hero check passed |
+| `npm run mel:build \|\| true` | Success — both `myeventlane_theme` and `myeventlane_vendor_theme` Vite builds completed |
+| `ddev drush ws --count=50 \|\| true` | Success |
 
-STOP — Task 2 only.
+---
+
+## Failed commands (exact)
+
+1. **`ddev drush theme:status \|\| true`**  
+   **Error:** `Command "theme:status" is not defined.` (Drush suggests other commands; exit status 1.)
+
+2. **`npm run mel:lint`** (via `mel:lint` script)  
+   **Error:** After `check:hero` and starting `lint:css`: `sh: line 1: … Killed: 9 … npm run lint:css` — process terminated (likely resource limits).
+
+---
+
+## Recommended Task 3
+
+**Focus:** Close the gaps this audit could not execute end-to-end:
+
+1. **Manual QA scripts:** RSVP vs paid booking vs donation checkout; confirm payment pane visibility and confirmation emails with cron running.
+2. **Fix or replace `mel:lint` CSS step** so CI/local reliably completes (investigate OOM, reduce Stylelint scope, or split jobs).
+3. **Security pass:** Stripe callbacks, vendor attendee exports/APIs, and cross-vendor access — scripted API tests + role matrix.
+4. **Logging policy:** Confirm `mel_debug` / domain projection debug verbosity for production.
+
+---
+
+## Assumptions (confirm before relying)
+
+1. Path aliases for events resolve to human-readable URLs (canonical entity route remains `/node/{id}` internally).
+2. Queue workers for messaging/notifications run in each environment (DDEV vs staging vs prod).
+3. Search API indexes are built and not stale (`mel_content` especially for Help Assistant).
+
+---
+
+*End of audit.*

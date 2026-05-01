@@ -17,10 +17,24 @@ services:
       - '@logger.channel.myeventlane_checkout_flow'
       - '@entity_type.manager'
 
+  myeventlane_checkout_flow.order_pricing_breakdown:
+    class: Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder
+    arguments:
+      - '@commerce_price.currency_formatter'
+      - '@entity_type.manager'
+      - '@config.factory'
+
   myeventlane_checkout_flow.checkout_grouped_summary_builder:
     class: Drupal\myeventlane_checkout_flow\Service\CheckoutGroupedSummaryBuilder
     arguments:
       - '@entity_type.manager'
+      - '@commerce_price.currency_formatter'
+      - '@date.formatter'
+      - '@myeventlane_checkout_flow.order_pricing_breakdown'
+
+  myeventlane_checkout_flow.tax_invoice_presentation:
+    class: Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder
+    arguments:
       - '@commerce_price.currency_formatter'
       - '@date.formatter'
 

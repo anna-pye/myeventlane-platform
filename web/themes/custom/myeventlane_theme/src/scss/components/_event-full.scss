@@ -11,6 +11,7 @@
 @use '../tokens/radii';
 @use '../tokens/shadows';
 @use '../tokens/breakpoints';
+@use '../tokens/motion' as melmotion;
 
 // ==========================================================================
 // MEL v2 Event Page (Reference Implementation)
@@ -18,6 +19,22 @@
 
 .mel-event--v2 {
   padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
+
+  // Event Intelligence Layer — single calm chip (copy from preprocess).
+  .mel-event__signal {
+    display: inline-block;
+    background: var(--mel-accent-soft);
+    color: var(--mel-text);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    margin-bottom: space-tokens.mel-space(2);
+  }
+
+  .mel-event__signal--strong {
+    background: var(--mel-primary);
+    color: #fff;
+  }
 
   // Sticky mobile CTA clears content; reserve space (thumb zone + copy above button).
   &:has(> .mel-mobile-cta) {
@@ -27,8 +44,8 @@
   }
 }
 
-// Spacing between featured-style hero and meta bar (hero chrome = .mel-event-hero-card via @extend in _event-card.scss).
-.mel-event--v2 .mel-event-hero--featured-style {
+// Spacing between hero and meta bar (.mel-event__hero).
+.mel-event--v2 .mel-event__hero {
   margin-bottom: space-tokens.mel-space(2);
 }
 
@@ -59,6 +76,15 @@
 }
 
 // Sticky card: full booking flow (one price, one CTA, trust, save).
+.mel-event--v2 .mel-event__card {
+  border: var(--mel-border);
+}
+
+.mel-event--v2 .mel-event__cta .mel-btn {
+  font-size: 16px;
+  padding: 14px;
+}
+
 .mel-event--v2 .mel-card--sticky .mel-booking-panel {
   display: flex;
   flex-direction: column;
@@ -190,6 +216,28 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+}
+
+.mel-booking-panel__trust-micro {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid colors.$mel-color-border;
+  font-size: 12px;
+  line-height: 1.45;
+  color: colors.$mel-color-text-muted;
+
+  p {
+    margin: 0;
+
+    + p {
+      margin-top: 4px;
+    }
+  }
+}
+
+.mel-booking-panel__trust-micro-primary {
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
 }
 
 // ---------------------------------------------------------------------------
@@ -836,8 +884,25 @@
   gap: space-tokens.mel-space(3);
 
   @include breakpoints.mel-break(md) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    flex-flow: row wrap;
     align-items: center;
+    gap: space-tokens.mel-space(2) space-tokens.mel-space(4);
+  }
+}
+
+// When/where: one calm row (DATE + time) • LOCATION on medium+; stacked on small screens.
+.mel-event-meta-bar__cluster {
+  display: grid;
+  gap: space-tokens.mel-space(3);
+  min-width: 0;
+
+  @include breakpoints.mel-break(md) {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: space-tokens.mel-space(2) space-tokens.mel-space(4);
+    flex: 1 1 auto;
   }
 }
 
@@ -845,6 +910,20 @@
   display: flex;
   gap: space-tokens.mel-space(2);
   align-items: flex-start;
+}
+
+.mel-event-meta-bar__items > .mel-event-meta--venue {
+  @include breakpoints.mel-break(md) {
+    &::before {
+      content: '•';
+      flex: 0 0 auto;
+      align-self: center;
+      margin-right: space-tokens.mel-space(2);
+      color: colors.$mel-color-text-muted;
+      font-weight: typography.$mel-font-bold;
+      line-height: 1;
+    }
+  }
 }
 
 .mel-event-meta__icon {
@@ -1888,6 +1967,20 @@
   text-decoration: none;
 }
 
+// Filter chip micro-interactions (base class; see a./button. rules below)
+.mel-filter-chip {
+  transition:
+    background melmotion.$mel-transition-fast,
+    color melmotion.$mel-transition-fast,
+    transform melmotion.$mel-transition-fast;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
 // Horizontal row: date scope + category discovery (mobile scroll)
 .mel-filter-chip-row {
   display: flex;
@@ -1930,13 +2023,11 @@ button.mel-filter-chip {
   flex: 0 0 auto;
   cursor: pointer;
   scroll-snap-align: start;
-  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   appearance: none;
 
   &:hover {
     text-decoration: none;
     background: #ececec;
-    transform: translateY(-1px);
   }
 
   @media (prefers-reduced-motion: reduce) {

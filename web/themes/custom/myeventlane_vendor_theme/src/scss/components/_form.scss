@@ -1,0 +1,24 @@
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+
+.mel-form {
+  max-width: 960px;
+  margin: 0 auto;
+
+  &--vendor-settings {
+    padding: $spacing-8;
+  }
+
+  .mel-vendor-settings__card {
+    padding: $card-padding;
+    margin-bottom: $card-gap;
+  }
+}
+
+.mel-form__actions {
+  position: sticky;
+  bottom: 0;
+  background: $bg-primary;
+  padding: $spacing-4;
+  border-top: 1px solid $border-color-light;
+}

@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Commerce order entity template — receipt view mode (tax invoice).
+ */
+#}
+<div{{ attributes.addClass('mel-invoice', 'mel-order-receipt') }}>
+  {% include '@myeventlane_theme/commerce/mel-tax-invoice-section.html.twig' with {
+    mel_confirm_paid: true,
+    vendor_name: vendor_name|default(''),
+    vendor_abn: vendor_abn|default(''),
+    order_entity: order_entity,
+    mel_invoice_lines: mel_invoice_lines|default([]),
+    mel_invoice_fee_lines: mel_invoice_fee_lines|default([]),
+    mel_invoice_tax_lines: mel_invoice_tax_lines|default([]),
+    order_total_gst: order_total_gst|default(''),
+    order_total: order_total|default(''),
+    invoice_date_display: invoice_date_display|default(''),
+  } %}
+  {{ content }}
+</div>

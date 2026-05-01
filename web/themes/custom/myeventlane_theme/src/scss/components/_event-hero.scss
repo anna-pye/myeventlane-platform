@@ -37,6 +37,8 @@
   height: 100%;
   flex: 1 1 auto;
   object-fit: cover;
+  transform: scale(1.05);
+  transform-origin: center;
 }
 
 .mel-event--v2 .mel-event-hero--featured-style .field--name-field-event-image,
@@ -63,7 +65,13 @@
   position: absolute;
   inset: 0;
   z-index: 2;
-  background: linear-gradient(180deg, rgba(36, 48, 58, 0.12) 0%, rgba(36, 48, 58, 0.72) 100%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.5) 35%,
+    rgba(0, 0, 0, 0.2) 65%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
   pointer-events: none;
 }
 
@@ -97,6 +105,7 @@
   font-size: typography.mel-font-size(3xl);
   font-weight: typography.$mel-font-bold;
   line-height: typography.$mel-leading-tight;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__datetime,
@@ -108,6 +117,7 @@
   font-size: typography.mel-font-size(sm);
   font-weight: typography.$mel-font-semibold;
   line-height: typography.$mel-leading-relaxed;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__status,
@@ -115,24 +125,7 @@
   margin: 0;
   font-size: typography.mel-font-size(base);
   font-weight: typography.$mel-font-bold;
-}
-
-.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field,
-.mel-booking-v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field {
-  margin: 0;
-}
-
-.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field__item a,
-.mel-booking-v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field__item a {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: spacing.mel-space(2) spacing.mel-space(4);
-  border-radius: radii.$mel-radius-full;
-  color: colors.$mel-color-text;
-  text-decoration: none;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 @include breakpoints.mel-break(sm, max) {

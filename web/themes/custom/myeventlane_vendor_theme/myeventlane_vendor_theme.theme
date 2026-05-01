@@ -111,14 +111,6 @@ function myeventlane_vendor_theme_page_attachments_alter(array &$attachments): v
   if (!in_array($global_library, $attachments['#attached']['library'], TRUE)) {
     $attachments['#attached']['library'][] = $global_library;
   }
-
-  \Drupal::logger('mel_theme_debug')->notice(
-    'Vendor isolation active on @path with theme @theme',
-    [
-      '@path' => $path,
-      '@theme' => $active_theme,
-    ]
-  );
 }
 
 /**
@@ -181,6 +173,12 @@ function _myeventlane_vendor_theme_apply_language_style(array &$items, $service)
  * Implements hook_preprocess_page().
  */
 function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
+  $request = \Drupal::request();
+
+  if ($request->isXmlHttpRequest()) {
+    return;
+  }
+
   // Footer context for internal footer (vendor dashboard).
   try {
     $variables['footer_context'] = \Drupal::service('myeventlane_vendor.footer_context')->getContext();
@@ -361,6 +359,28 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   );
   $variables['page']['vendor_shell_brand_url'] = _myeventlane_vendor_theme_vendor_brand_home_url();
 
+  // Settings route (Profile): subsection tabs + shell title — was VendorSettingsController theme wrapper.
+  $variables['page']['mel_vendor_route_tabs'] = NULL;
+  if ($route_name === 'myeventlane_vendor.console.settings') {
+    try {
+      $variables['page']['mel_vendor_route_tabs'] = [
+        [
+          'label' => t('Profile'),
+          'url' => \Drupal\Core\Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
+          'active' => TRUE,
+        ],
+        [
+          'label' => t('Messaging Brand'),
+          'url' => \Drupal\Core\Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
+          'active' => FALSE,
+        ],
+      ];
+      $variables['page']['shell_page_title'] = t('Settings');
+    }
+    catch (\Throwable) {
+    }
+  }
+
   // Event Studio shell CSS (mel-es-workspace) for organiser onboarding — reuse module CSS, no wizard JS.
   if ($is_vendor_onboard) {
     $variables['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_shell_only';
@@ -475,17 +495,6 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     ];
   }
 
-  // Wrap vendor settings form in console page template.
-  if ($route_name === 'myeventlane_vendor.console.settings' && isset($variables['page']['content']['vendor_profile_settings'])) {
-    $form = $variables['page']['content']['vendor_profile_settings'];
-    $variables['page']['content']['vendor_profile_settings'] = [
-      '#theme' => 'myeventlane_vendor_console_page',
-      '#title' => 'Settings',
-      '#body' => $form,
-      '#attached' => $form['#attached'] ?? [],
-    ];
-  }
-
   // --- Vendor Alert Strip (STAGE A: data model, stub logic) ---
   // Exposes $page['vendor_alert'] when an alert applies. Only ONE alert at a time.
   // If no alert applies, vendor_alert is not set.
@@ -519,6 +528,8 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
  * Implements hook_preprocess_html().
  */
 function myeventlane_vendor_theme_preprocess_html(array &$variables): void {
+  $variables['#attached']['library'][] = 'myeventlane_vendor_theme/form-protection';
+
   // Vendor UI scope: matches SCSS (.mel-vendor) and legacy token hook (.mel-vendor-theme).
   $variables['attributes']['class'][] = 'mel-vendor';
   $variables['attributes']['class'][] = 'mel-vendor-theme';
@@ -752,6 +763,10 @@ function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestio
 
   if ($form_id === 'myeventlane_vendor_events_bulk_actions_form') {
     $suggestions[] = 'form__mel_vendor_events';
+  }
+
+  if ($form_id === 'mel_organiser_settings_form') {
+    $suggestions[] = 'form__mel_organiser_settings_form';
   }
 }
 
@@ -1118,6 +1133,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'tabs' => [],
         'header_actions' => [],
         'body' => NULL,
+        'content' => NULL,
         'meta' => [],
       ],
       'template' => 'layout/console-page',
@@ -1653,6 +1669,11 @@ function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings_p
  * routes when the controller did not pass meta.
  */
 function myeventlane_vendor_theme_preprocess_myeventlane_vendor_console_page(array &$variables): void {
+  // Mirror body into content so templates can use {{ content }} without wrapping <form>.
+  if (!array_key_exists('content', $variables) || $variables['content'] === NULL) {
+    $variables['content'] = $variables['body'] ?? NULL;
+  }
+
   if (!empty($variables['meta'])) {
     return;
   }

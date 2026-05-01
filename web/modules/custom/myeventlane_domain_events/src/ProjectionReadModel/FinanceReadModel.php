@@ -74,14 +74,6 @@ final class FinanceReadModel {
     }
 
     // Expected until projector queue catches up.
-    $this->logger->debug(
-      'Projection miss for vendor {vendor_id}, event {event_id}; using fallback finance.',
-      [
-        'vendor_id' => $vendorId,
-        'event_id' => $eventId,
-      ]
-    );
-
     $fallback = $this->buildFallbackFinance($vendorId, $eventId);
     $this->cache->set(
       $cacheKey,

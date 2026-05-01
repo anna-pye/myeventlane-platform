@@ -5,177 +5,168 @@
  *
  * Beautiful, card-based layout for editing vendor profile information.
  * Pastel "Your lane to great events." style with rounded cards and mobile-first design.
+ *
+ * Root must use <form{{ attributes }}> so action/method from Form API render correctly.
  */
 #}
+<form{{ attributes }}>
+  {{ element.form_build_id }}
+  {{ element.form_token }}
+  {{ element.form_id }}
+  {{ element.vendor_id }}
 
-<div class="mel-page mel-page--profile mel-page--vendor-profile">
-  <div class="mel-container">
-    
-    {# Page Header #}
-    <div class="mel-profile-header">
-      <h1 class="mel-profile-header-title">{{ 'Vendor Profile Settings'|t }}</h1>
-      <p class="mel-profile-header-subtitle">{{ 'Manage your organiser profile information and public page settings'|t }}</p>
-    </div>
+  <div class="mel-page mel-page--profile mel-page--vendor-profile">
+    <div class="mel-container">
 
-    {# Form Wrapper #}
-    <div class="mel-vendor-profile-form-wrapper">
-      
-      {# Vertical Tabs Navigation (if present) #}
-      {% if form.tabs %}
-        <div class="mel-vendor-profile-tabs-nav">
-          {{ form.tabs }}
+      {# Page Header #}
+      <div class="mel-profile-header">
+        <h1 class="mel-profile-header-title">{{ 'Vendor Profile Settings'|t }}</h1>
+        <p class="mel-profile-header-subtitle">{{ 'Manage your organiser profile information and public page settings'|t }}</p>
+      </div>
+
+      {# Form Wrapper #}
+      <div class="mel-vendor-profile-form-wrapper">
+
+        {# Vertical Tabs Navigation (if present) #}
+        {% if element.tabs %}
+          <div class="mel-vendor-profile-tabs-nav">
+            {{ element.tabs }}
+          </div>
+        {% endif %}
+
+        {# Form Content #}
+        <div class="mel-vendor-profile-form-content">
+
+          {# Profile Information Section #}
+          {% if element.profile %}
+            <div class="mel-profile-card mel-profile-card--section">
+              <div class="mel-profile-card-header">
+                <div class="mel-profile-card-icon mel-profile-card-icon--profile">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <h2 class="mel-profile-card-title">{{ 'Profile Information'|t }}</h2>
+              </div>
+              <div class="mel-profile-card-body">
+                {{ element.profile }}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Visual Assets Section #}
+          {% if element.visual %}
+            <div class="mel-profile-card mel-profile-card--section">
+              <div class="mel-profile-card-header">
+                <div class="mel-profile-card-icon mel-profile-card-icon--visual">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <h2 class="mel-profile-card-title">{{ 'Visual Assets'|t }}</h2>
+              </div>
+              <div class="mel-profile-card-body">
+                {{ element.visual }}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Contact Information Section #}
+          {% if element.contact %}
+            <div class="mel-profile-card mel-profile-card--section">
+              <div class="mel-profile-card-header">
+                <div class="mel-profile-card-icon mel-profile-card-icon--contact">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <h2 class="mel-profile-card-title">{{ 'Contact Information'|t }}</h2>
+              </div>
+              <div class="mel-profile-card-body">
+                {{ element.contact }}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Public Page Settings Section #}
+          {% if element.public %}
+            <div class="mel-profile-card mel-profile-card--section">
+              <div class="mel-profile-card-header">
+                <div class="mel-profile-card-icon mel-profile-card-icon--public">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <h2 class="mel-profile-card-title">{{ 'Public Page Settings'|t }}</h2>
+              </div>
+              <div class="mel-profile-card-body">
+                {{ element.public }}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Payment & Store Section #}
+          {% if element.payment %}
+            <div class="mel-profile-card mel-profile-card--section">
+              <div class="mel-profile-card-header">
+                <div class="mel-profile-card-icon mel-profile-card-icon--payment">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <h2 class="mel-profile-card-title">{{ 'Payment & Store Settings'|t }}</h2>
+              </div>
+              <div class="mel-profile-card-body">
+                {{ element.payment }}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Team Members Section #}
+          {% if element.team %}
+            <div class="mel-profile-card mel-profile-card--section">
+              <div class="mel-profile-card-header">
+                <div class="mel-profile-card-icon mel-profile-card-icon--team">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <h2 class="mel-profile-card-title">{{ 'Team Members'|t }}</h2>
+              </div>
+              <div class="mel-profile-card-body">
+                {{ element.team }}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Preferences Section #}
+          {% if element.preferences %}
+            <div class="mel-profile-card mel-profile-card--section">
+              <div class="mel-profile-card-header">
+                <div class="mel-profile-card-icon mel-profile-card-icon--preferences">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <h2 class="mel-profile-card-title">{{ 'Preferences'|t }}</h2>
+              </div>
+              <div class="mel-profile-card-body">
+                {{ element.preferences }}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Render any remaining form elements #}
+          {{ element|without('tabs', 'profile', 'visual', 'contact', 'public', 'payment', 'team', 'preferences', 'actions', 'form_build_id', 'form_token', 'form_id', 'vendor_id') }}
         </div>
-      {% endif %}
 
-      {# Form Content #}
-      <div class="mel-vendor-profile-form-content">
-        
-        {# Profile Information Section #}
-        {% if form.profile %}
-          <div class="mel-profile-card mel-profile-card--section">
-            <div class="mel-profile-card-header">
-              <div class="mel-profile-card-icon mel-profile-card-icon--profile">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 class="mel-profile-card-title">{{ 'Profile Information'|t }}</h2>
-            </div>
-            <div class="mel-profile-card-body">
-              {{ form.profile }}
-            </div>
-          </div>
-        {% endif %}
+        {# Form Actions #}
+        <div class="mel-profile-actions">
+          {{ element.actions }}
+        </div>
 
-        {# Visual Assets Section #}
-        {% if form.visual %}
-          <div class="mel-profile-card mel-profile-card--section">
-            <div class="mel-profile-card-header">
-              <div class="mel-profile-card-icon mel-profile-card-icon--visual">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 class="mel-profile-card-title">{{ 'Visual Assets'|t }}</h2>
-            </div>
-            <div class="mel-profile-card-body">
-              {{ form.visual }}
-            </div>
-          </div>
-        {% endif %}
-
-        {# Contact Information Section #}
-        {% if form.contact %}
-          <div class="mel-profile-card mel-profile-card--section">
-            <div class="mel-profile-card-header">
-              <div class="mel-profile-card-icon mel-profile-card-icon--contact">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 class="mel-profile-card-title">{{ 'Contact Information'|t }}</h2>
-            </div>
-            <div class="mel-profile-card-body">
-              {{ form.contact }}
-            </div>
-          </div>
-        {% endif %}
-
-        {# Public Page Settings Section #}
-        {% if form.public %}
-          <div class="mel-profile-card mel-profile-card--section">
-            <div class="mel-profile-card-header">
-              <div class="mel-profile-card-icon mel-profile-card-icon--public">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 class="mel-profile-card-title">{{ 'Public Page Settings'|t }}</h2>
-            </div>
-            <div class="mel-profile-card-body">
-              {{ form.public }}
-            </div>
-          </div>
-        {% endif %}
-
-        {# Payment & Store Section #}
-        {% if form.payment %}
-          <div class="mel-profile-card mel-profile-card--section">
-            <div class="mel-profile-card-header">
-              <div class="mel-profile-card-icon mel-profile-card-icon--payment">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 class="mel-profile-card-title">{{ 'Payment & Store Settings'|t }}</h2>
-            </div>
-            <div class="mel-profile-card-body">
-              {{ form.payment }}
-            </div>
-          </div>
-        {% endif %}
-
-        {# Team Members Section #}
-        {% if form.team %}
-          <div class="mel-profile-card mel-profile-card--section">
-            <div class="mel-profile-card-header">
-              <div class="mel-profile-card-icon mel-profile-card-icon--team">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 class="mel-profile-card-title">{{ 'Team Members'|t }}</h2>
-            </div>
-            <div class="mel-profile-card-body">
-              {{ form.team }}
-            </div>
-          </div>
-        {% endif %}
-
-        {# Preferences Section #}
-        {% if form.preferences %}
-          <div class="mel-profile-card mel-profile-card--section">
-            <div class="mel-profile-card-header">
-              <div class="mel-profile-card-icon mel-profile-card-icon--preferences">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 class="mel-profile-card-title">{{ 'Preferences'|t }}</h2>
-            </div>
-            <div class="mel-profile-card-body">
-              {{ form.preferences }}
-            </div>
-          </div>
-        {% endif %}
-
-        {# Render any remaining form elements #}
-        {{ form|without('tabs', 'profile', 'visual', 'contact', 'public', 'payment', 'team', 'preferences', 'actions', 'form_build_id', 'form_token', 'form_id', 'vendor_id') }}
       </div>
 
-      {# Form Actions #}
-      <div class="mel-profile-actions">
-        {{ form.actions }}
-      </div>
-
-      {# Hidden form elements #}
-      {{ form.form_build_id }}
-      {{ form.form_token }}
-      {{ form.form_id }}
-      {{ form.vendor_id }}
     </div>
-
   </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
+</form>

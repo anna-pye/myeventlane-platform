@@ -16,8 +16,19 @@
     {{ form.waitlist_offer_banner }}
     {{ form.sold_out }}
 
+    <div class="mel-booking__intro">
+      <h2>{{ 'Choose your tickets'|t }}</h2>
+      <p>{{ "Select how many tickets you'd like. You can review everything before checkout."|t }}</p>
+    </div>
+
     <div class="mel-ticket-list">
       {{ form.tickets }}
+    </div>
+
+    <div class="mel-booking__reassurance">
+      <span>{{ '✔ Clear pricing'|t }}</span>
+      <span>{{ '✔ No hidden fees'|t }}</span>
+      <span>{{ '✔ Instant confirmation'|t }}</span>
     </div>
 
     {% if form.booking_access is defined %}
@@ -36,6 +47,9 @@
         <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
         <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
       </div>
+      <p class="mel-booking__cta-note">
+        {{ "Tickets will be added to your cart — checkout when you're ready."|t }}
+      </p>
       {{ form.actions }}
     </div>
   {% endif %}
