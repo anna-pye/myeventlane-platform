@@ -15,6 +15,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\AnalyticsService;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 use Drupal\myeventlane_core\Service\VendorFollowService;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\VendorCardBuilder;
@@ -207,14 +208,15 @@ final class VendorDetailController extends ControllerBase {
       return [];
     }
 
-    $event_ids = $this->entityTypeManagerService
+    $query = $this->entityTypeManagerService
       ->getStorage('node')
       ->getQuery()
       ->accessCheck(TRUE)
       ->condition('type', 'event')
       ->condition('field_event_vendor', (int) $vendor->id())
-      ->condition('field_event_start', date('Y-m-d\TH:i:s', $this->time->getRequestTime()), '>=')
-      ->condition('status', 1)
+      ->condition('status', 1);
+    UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($query, (int) $this->time->getRequestTime());
+    $event_ids = $query
       ->sort('field_event_start', 'ASC')
       ->range(0, 10)
       ->execute();

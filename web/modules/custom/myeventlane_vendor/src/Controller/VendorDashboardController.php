@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -18,6 +19,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_core\Service\OnboardingManager;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_growth\Service\GrowthInsightService;
@@ -146,6 +148,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
   protected LoggerInterface $melDebugLogger;
 
+  protected TimeInterface $time;
+
   /**
    * Route provider (detect optional myeventlane_boost routes; module may be on without routes).
    */
@@ -180,6 +184,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     EventStateResolver $event_domain_state_resolver,
     StateInterface $state,
     LoggerInterface $mel_debug_logger,
+    TimeInterface $time,
     ?AiUsageTracker $ai_usage_tracker = NULL,
     ?ConfigFactoryInterface $config_factory = NULL,
     ?CategoryAudienceService $category_audience_service = NULL,
@@ -205,6 +210,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->eventDomainStateResolver = $event_domain_state_resolver;
     $this->state = $state;
     $this->melDebugLogger = $mel_debug_logger;
+    $this->time = $time;
     $this->aiUsageTracker = $ai_usage_tracker;
     $this->configFactory = $config_factory;
     $this->categoryAudienceService = $category_audience_service;
@@ -238,6 +244,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_core.event_state_resolver'),
       $container->get('state'),
       $container->get('logger.channel.mel_debug'),
+      $container->get('datetime.time'),
       $container->has('myeventlane_ai.usage_tracker') ? $container->get('myeventlane_ai.usage_tracker') : NULL,
       $container->get('config.factory'),
       $container->has('myeventlane_vendor.service.category_audience') ? $container->get('myeventlane_vendor.service.category_audience') : NULL,
@@ -1010,9 +1017,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   }
 
   /**
-   * Get upcoming events count (published events with future start date).
+   * Get upcoming events count (published events that are future or ongoing).
    *
-   * Counts: Published events (status=1) with start date >= now.
+   * Counts: Published events (status=1) with start date or end date >= now.
    * Excludes: Draft events, past events.
    * Tables: node (event).
    *
@@ -1029,17 +1036,20 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     try {
       $nodeStorage = $this->entityTypeManager->getStorage('node');
-      $now = date('Y-m-d\TH:i:s');
 
-      return (int) $nodeStorage->getQuery()
+      $query = $nodeStorage->getQuery()
         ->accessCheck(TRUE)
         ->condition('nid', $eventIds, 'IN')
-        ->condition('status', 1)
-        ->condition('field_event_start', $now, '>=')
+        ->condition('status', 1);
+      UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($query, (int) $this->time->getRequestTime());
+      return (int) $query
         ->count()
         ->execute();
     }
     catch (\Exception $e) {
+      $this->melDebugLogger->error('Unable to count upcoming dashboard events: @message', [
+        '@message' => $e->getMessage(),
+      ]);
       return 0;
     }
   }
