@@ -9,7 +9,6 @@ use Drupal\advancedqueue\Job;
 use Drupal\advancedqueue\JobResult;
 use Drupal\advancedqueue\Plugin\AdvancedQueue\JobType\JobTypeBase;
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\commerce_order\Entity\OrderTypeInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -20,8 +19,8 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
+use Drupal\myeventlane_pro\Service\AbandonedCartTerminalStateResolver;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
-use Drupal\state_machine\WorkflowManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -43,13 +42,6 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
   private const STATUS_FAILED = 'failed';
 
   /**
-   * Cached terminal states keyed by workflow id.
-   *
-   * @var array<string, array<string, bool>>
-   */
-  private array $terminalStatesByWorkflow = [];
-
-  /**
    * Constructs the job type.
    */
   public function __construct(
@@ -63,7 +55,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     private readonly ProActiveResolver $proActiveResolver,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly MailManagerInterface $mailManager,
-    private readonly WorkflowManagerInterface $workflowManager,
+    private readonly AbandonedCartTerminalStateResolver $terminalStateResolver,
     private readonly ?MessagingManager $messagingManager = NULL,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -84,7 +76,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       $container->get('myeventlane_pro.active_resolver'),
       $container->get('config.factory'),
       $container->get('plugin.manager.mail'),
-      $container->get('plugin.manager.workflow'),
+      $container->get('myeventlane_pro.abandoned_cart_terminal_state_resolver'),
       $container->has('myeventlane_messaging.manager') ? $container->get('myeventlane_messaging.manager') : NULL,
     );
   }
@@ -159,7 +151,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       return 'Order has no items.';
     }
 
-    if ($this->isTerminalState($order)) {
+    if ($this->terminalStateResolver->isTerminalState($order)) {
       return 'Order no longer abandoned.';
     }
 
@@ -348,65 +340,6 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
         '@message' => $exception->getMessage(),
       ]);
     }
-  }
-
-  /**
-   * Determines whether the order is currently in a terminal workflow state.
-   */
-  private function isTerminalState(OrderInterface $order): bool {
-    $orderType = $this->entityTypeManager
-      ->getStorage('commerce_order_type')
-      ->load($order->bundle());
-    if (!$orderType instanceof OrderTypeInterface) {
-      return FALSE;
-    }
-
-    $workflowId = $orderType->getWorkflowId();
-    if ($workflowId === '') {
-      return FALSE;
-    }
-
-    if (!isset($this->terminalStatesByWorkflow[$workflowId])) {
-      $this->terminalStatesByWorkflow[$workflowId] = $this->discoverTerminalStates($workflowId);
-    }
-
-    return isset($this->terminalStatesByWorkflow[$workflowId][$order->getState()->getId()]);
-  }
-
-  /**
-   * Discovers terminal states for a workflow id.
-   *
-   * @return array<string, bool>
-   *   Terminal state id lookup.
-   */
-  private function discoverTerminalStates(string $workflowId): array {
-    $terminalStates = [];
-
-    try {
-      $workflow = $this->workflowManager->createInstance($workflowId);
-      $states = $workflow->getStates();
-      $fromStates = [];
-
-      foreach ($workflow->getTransitions() as $transition) {
-        foreach ($transition->getFromStateIds() as $fromStateId) {
-          $fromStates[$fromStateId] = TRUE;
-        }
-      }
-
-      foreach (array_keys($states) as $stateId) {
-        if (!isset($fromStates[$stateId])) {
-          $terminalStates[$stateId] = TRUE;
-        }
-      }
-    }
-    catch (\Throwable $exception) {
-      $this->logger->error('Failed terminal-state discovery for workflow "@workflow": @message', [
-        '@workflow' => $workflowId,
-        '@message' => $exception->getMessage(),
-      ]);
-    }
-
-    return $terminalStates;
   }
 
 }

@@ -303,10 +303,10 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
       $this->container->get('entity_type.manager'),
       $this->container->get('datetime.time'),
       $this->container->get('logger.channel.myeventlane_pro'),
-      $this->container->get('myeventlane_pro.entitlement'),
+      $this->container->get('myeventlane_pro.active_resolver'),
       $this->container->get('config.factory'),
       $this->container->get('plugin.manager.mail'),
-      $this->container->get('plugin.manager.workflow'),
+      $this->container->get('myeventlane_pro.abandoned_cart_terminal_state_resolver'),
       $this->container->get('myeventlane_messaging.manager'),
     );
   }
