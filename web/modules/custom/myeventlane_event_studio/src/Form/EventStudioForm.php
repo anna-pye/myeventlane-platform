@@ -789,11 +789,14 @@ final class EventStudioForm extends FormBase {
     $form['mel']['studio_ticket_builder'] = [
       '#type' => 'container',
       '#access' => !$has_saved_event,
-      '#attributes' => ['class' => ['mel-ticket-builder']],
+      '#attributes' => [
+        'class' => ['mel-ticket-builder', 'mel-ticket-builder--draft', 'mel-stack', 'mel-stack--lg'],
+        'data-mel-draft-ticket-builder' => '1',
+      ],
       'help' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Build ticket types inline — they are saved as MEL tiers and linked to this event.'),
+        '#value' => $this->t('Add ticket cards now. They stay as draft cards until the event saves, then valid cards become ticket entities.'),
         '#attributes' => ['class' => ['mel-ticket-builder__help']],
       ],
       'warn' => [
@@ -810,36 +813,41 @@ final class EventStudioForm extends FormBase {
           '#attributes' => ['class' => ['mel-ticket-tiers-warn__text']],
         ],
       ],
-      'table' => [
-        '#type' => 'table',
-        '#header' => [
-          $this->t('Title'),
-          $this->t('Price'),
-          $this->t('Capacity'),
-          $this->t('Actions'),
-        ],
-        '#rows' => [],
-        '#empty' => $this->t('No ticket types yet.'),
+      'list' => [
+        '#type' => 'container',
         '#attributes' => [
-          'class' => ['mel-ticket-builder-table'],
-          'data-mel-ticket-builder-table' => '1',
+          'class' => ['mel-ticket-list', 'mel-ticket-list--draft', 'js-mel-ticket-sortable'],
+          'data-mel-ticket-card-list' => 'draft',
+          'aria-live' => 'polite',
+        ],
+      ],
+      'empty' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-ticket-builder__empty', 'mel-ticket-builder__empty--draft'],
+          'data-mel-ticket-empty' => '1',
+        ],
+        'text' => [
+          '#markup' => '<p class="mel-ticket-builder__empty-title">' . $this->t('No ticket cards yet') . '</p>'
+            . '<p class="mel-ticket-builder__empty-body">' . $this->t('Click Add ticket to create an editable draft card. Invalid drafts stay in the browser until you complete them.') . '</p>',
         ],
       ],
       'add' => [
         '#type' => 'button',
-        '#value' => $this->t('Add ticket type'),
+        '#value' => $this->t('Add ticket'),
         '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--secondary', 'button'],
+          'class' => ['mel-btn', 'mel-btn--primary', 'button'],
           'type' => 'button',
           'id' => 'mel-add-ticket-tier',
         ],
       ],
     ];
+    $form['#attached']['library'][] = 'myeventlane_vendor/ticket_cards';
 
     $form['mel']['rsvp_capacity'] = [
       '#type' => 'number',
       '#title' => $this->t('RSVP capacity'),
-      '#description' => $this->t('Maximum attendees. Leave blank for unlimited.'),
+      '#description' => $this->t('Leave empty for unlimited tickets'),
       '#min' => 0,
       '#default_value' => $capacity_default,
       '#attributes' => ['class' => ['mel-input']],
@@ -1286,11 +1294,14 @@ final class EventStudioForm extends FormBase {
       if (!$entity instanceof TicketTypeInterface) {
         continue;
       }
+      if ($entity->isArchived()) {
+        continue;
+      }
       $row = [
         'id' => (int) $entity->id(),
         'title' => $entity->getTitle(),
         'ticket_kind' => $entity->getTicketKind(),
-        'capacity' => 0,
+        'capacity' => NULL,
       ];
       if ($entity->hasField('capacity') && !$entity->get('capacity')->isEmpty()) {
         $row['capacity'] = (int) $entity->get('capacity')->value;

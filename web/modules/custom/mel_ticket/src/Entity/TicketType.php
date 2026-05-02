@@ -112,6 +112,21 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
   /**
    * {@inheritdoc}
    */
+  public function getLifecycleStatus(): string {
+    $value = (string) ($this->get('lifecycle_status')->value ?? '');
+    return $value !== '' ? $value : self::LIFECYCLE_ACTIVE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isArchived(): bool {
+    return $this->getLifecycleStatus() === self::LIFECYCLE_ARCHIVED;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
 
@@ -182,7 +197,8 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
 
     $fields['capacity'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Capacity'))
-      ->setDescription(t('Maximum tickets for this type (omit or zero for unlimited where allowed).'))
+      ->setDescription(t('Maximum tickets for this type. Leave empty for unlimited.'))
+      ->setRequired(FALSE)
       ->setDisplayOptions('form', [
         'type' => 'number',
         'weight' => 2,
@@ -395,6 +411,18 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
+    $fields['lifecycle_status'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Lifecycle status'))
+      ->setDescription(t('Internal lifecycle state. Archived tickets are excluded from pricing, booking, and Commerce sync.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(self::LIFECYCLE_ACTIVE)
+      ->setSetting('allowed_values', [
+        self::LIFECYCLE_ACTIVE => 'Active',
+        self::LIFECYCLE_ARCHIVED => 'Archived',
+      ])
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', TRUE);
+
     $fields['status'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Published'))
       ->setDefaultValue(TRUE)
@@ -411,12 +439,17 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
     if (empty($values['status'])) {
       $values['status'] = 1;
     }
+    if (empty($values['lifecycle_status'])) {
+      $values['lifecycle_status'] = self::LIFECYCLE_ACTIVE;
+    }
   }
 
   /**
    * {@inheritdoc}
    */
   public function preSave(EntityStorageInterface $storage) {
+    $this->normalizeNullableCapacity();
+
     $kind = (string) $this->get('ticket_kind')->value;
     if ($kind === 'external') {
       $this->set('capacity', NULL);
@@ -470,7 +503,7 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
         if (!$this->get('external_url')->isEmpty()) {
           $violations[] = 'External URL must be empty for paid tickets.';
         }
-        $this->requireNonZeroCapacity($violations);
+        $this->validateCapacityWhenSet($violations);
         $this->assertGroupSaleRules($violations);
         break;
 
@@ -481,7 +514,7 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
         if (!$this->get('external_url')->isEmpty()) {
           $violations[] = 'External URL must be empty for RSVP tickets.';
         }
-        $this->requireNonZeroCapacity($violations);
+        $this->validateCapacityWhenSet($violations);
         if (!$this->get('commerce_variation')->isEmpty()) {
           $violations[] = 'RSVP tickets must not reference a Commerce variation.';
         }
@@ -514,18 +547,35 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
   }
 
   /**
-   * Ensures capacity is set and at least 1 when the field is used.
+   * Ensures capacity is either empty for unlimited or at least 1.
    *
    * @param array<string> $violations
    *   Violation messages to append to.
    */
-  private function requireNonZeroCapacity(array &$violations): void {
-    if ($this->get('capacity')->isEmpty()) {
-      $violations[] = 'Capacity is required and must be at least 1.';
+  private function validateCapacityWhenSet(array &$violations): void {
+    $value = $this->get('capacity')->value;
+    if ($value === NULL) {
       return;
     }
-    if ((int) $this->get('capacity')->value < 1) {
-      $violations[] = 'Capacity must be at least 1.';
+    $raw = trim((string) $value);
+    if ($raw === '') {
+      return;
+    }
+    if (!preg_match('/^\d+$/', $raw) || (int) $raw < 1) {
+      $violations[] = 'Capacity must be empty for unlimited or at least 1.';
+    }
+  }
+
+  /**
+   * Stores empty capacity as NULL so empty UI input means unlimited.
+   */
+  private function normalizeNullableCapacity(): void {
+    if (!$this->hasField('capacity')) {
+      return;
+    }
+    $value = $this->get('capacity')->value;
+    if ($value === NULL || trim((string) $value) === '') {
+      $this->set('capacity', NULL);
     }
   }
 
