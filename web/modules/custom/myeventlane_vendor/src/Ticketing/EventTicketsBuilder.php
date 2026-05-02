@@ -1377,6 +1377,9 @@ final class EventTicketsBuilder {
     elseif ($remDisplay === 'No limit') {
       $remDisplay = (string) $this->t('No limit');
     }
+    elseif ($remDisplay === 'Unlimited') {
+      $remDisplay = (string) $this->t('Unlimited');
+    }
 
     $note = (string) ($rollup['conversion_note'] ?? '');
     $html = '<div class="mel-ticket-analytics-strip" role="region" aria-label="' . Html::escape((string) $this->t('Ticket sales summary')) . '">';
