@@ -31,7 +31,15 @@
           </div>
           <div class="mel-stat">
             <div class="mel-stat__label">{{ 'Remaining'|t }}</div>
-            <div class="mel-stat__value">{{ sales.tickets_available|default(0) }}</div>
+            <div class="mel-stat__value">
+              {% if sales.tickets_available|default(0) == 'Tickets available' %}
+                {{ 'Tickets available'|t }}
+              {% elseif sales.tickets_available|default(0) == 'No limit' %}
+                {{ 'No limit'|t }}
+              {% else %}
+                {{ sales.tickets_available|default(0) }}
+              {% endif %}
+            </div>
           </div>
         </div>
       </div>

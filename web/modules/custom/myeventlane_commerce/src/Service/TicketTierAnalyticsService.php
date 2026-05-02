@@ -64,6 +64,9 @@ final class TicketTierAnalyticsService {
    * @return array{
    *   total_sold: int,
    *   total_remaining: int|null,
+   *   remaining_display: string,
+   *   has_finite_tier: bool,
+   *   has_unlimited_tier: bool,
    *   gross_revenue: array{number: string, currency_code: string}|null,
    *   active_tier_count: int,
    *   sold_out_tier_count: int,
@@ -76,6 +79,7 @@ final class TicketTierAnalyticsService {
     $totalRemaining = 0;
     $sumRemaining = FALSE;
     $hasUnlimitedTier = FALSE;
+    $hasFiniteTier = FALSE;
     $activeTierCount = 0;
     $soldOutTierCount = 0;
     $restrictedTierCount = 0;
@@ -109,6 +113,7 @@ final class TicketTierAnalyticsService {
         $hasUnlimitedTier = TRUE;
       }
       elseif ($metrics['remaining'] !== NULL) {
+        $hasFiniteTier = TRUE;
         $sumRemaining = TRUE;
         $totalRemaining += (int) $metrics['remaining'];
       }
@@ -141,9 +146,25 @@ final class TicketTierAnalyticsService {
       ];
     }
 
+    if ($hasUnlimitedTier && $hasFiniteTier) {
+      $remainingDisplay = 'Tickets available';
+    }
+    elseif ($hasUnlimitedTier) {
+      $remainingDisplay = 'No limit';
+    }
+    elseif ($sumRemaining) {
+      $remainingDisplay = (string) $totalRemaining;
+    }
+    else {
+      $remainingDisplay = '0';
+    }
+
     return [
       'total_sold' => $totalSold,
       'total_remaining' => !$hasUnlimitedTier && $sumRemaining ? $totalRemaining : NULL,
+      'remaining_display' => $remainingDisplay,
+      'has_finite_tier' => $hasFiniteTier,
+      'has_unlimited_tier' => $hasUnlimitedTier,
       'gross_revenue' => $grossRevenue,
       'active_tier_count' => $activeTierCount,
       'sold_out_tier_count' => $soldOutTierCount,
