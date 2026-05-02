@@ -449,6 +449,98 @@
   align-items: flex-start;
 }
 
+.mel-event-studio .mel-ticket-section [data-mel-ticket-edit] {
+  display: none;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card.is-editing [data-mel-ticket-view] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card.is-editing [data-mel-ticket-edit] {
+  display: flex !important;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions .mel-btn,
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions input.mel-btn,
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions button.mel-btn {
+  width: auto !important;
+  min-height: 34px;
+  margin: 0 !important;
+  padding: 7px 12px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  box-shadow: none !important;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions [data-mel-ticket-edit-toggle] {
+  appearance: none !important;
+  border: 1px solid #dbe2ef !important;
+  background: #f7f8ff !important;
+  color: #243b8f !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions .mel-btn--ghost,
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions button.mel-btn--ghost {
+  border: 1px solid #dbe2ef !important;
+  background: #fff !important;
+  color: #335cff !important;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions .mel-btn--secondary,
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions input.mel-btn--secondary,
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions button.mel-btn--secondary {
+  border: 1px solid #dbe2ef !important;
+  background: #f7f8ff !important;
+  color: #243b8f !important;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions .mel-btn--danger,
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions input.mel-btn--danger,
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions button.mel-btn--danger {
+  border: 1px solid #fed7d7 !important;
+  background: #fff5f5 !important;
+  color: #c53030 !important;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__meta-line {
+  margin-top: 10px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__visibility {
+  margin-top: 8px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-edit {
+  margin-top: 12px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-edit__actions {
+  align-items: center;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-edit__actions .js-mel-ticket-save,
+.mel-event-studio .mel-ticket-section .mel-ticket-edit__actions .js-mel-ticket-cancel {
+  min-width: 128px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card.is-editing .mel-ticket-drag-handle {
+  top: 30px;
+  transform: none;
+}
+
 .mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow {
   position: relative;
   flex: 0 0 auto;
