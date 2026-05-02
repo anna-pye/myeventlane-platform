@@ -16,7 +16,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
-use Drupal\myeventlane_event\Service\EventCtaResolver;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\Core\Render\Element;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
@@ -908,13 +908,29 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   $variables['mel_categories'] = $categories;
 
   // CTA and state: mutual exclusivity (paid | rsvp | external | none). Logic in service only.
-  $ctaResolver = \Drupal::service('myeventlane_event.cta_resolver');
+  $bookingFlowResolver = \Drupal::service('myeventlane_event.booking_flow_resolver');
   $stateResolver = \Drupal::service('myeventlane_event_state.resolver');
 
   $variables['mel_event_state'] = $stateResolver->resolveState($node);
-  $variables['cta_type'] = $ctaResolver->getCtaType($node);
-  $variables['event_cta'] = $ctaResolver->getResolvedCta($node);
-  $variables['mel_is_bookable'] = $ctaResolver->isBookable($node);
+  $bookingMode = $bookingFlowResolver->getBookingMode($node);
+  $bookingAvailability = $bookingFlowResolver->getAvailabilityState($node);
+  $primaryCta = $bookingFlowResolver->getPrimaryCta($node);
+  $variables['cta_type'] = $bookingMode === BookingFlowResolver::MODE_UNAVAILABLE ? 'none' : $bookingMode;
+  $variables['event_cta'] = $primaryCta;
+  $variables['mel_booking'] = [
+    'mode' => $bookingMode,
+    'cta' => $primaryCta + [
+      'label' => '',
+      'url' => '',
+      'type' => 'disabled',
+      'disabled' => TRUE,
+      'reason' => NULL,
+    ],
+    'availability' => $bookingAvailability,
+  ];
+  $variables['mel_is_bookable'] = in_array((string) ($variables['event_cta']['type'] ?? 'disabled'), ['internal', 'external'], TRUE)
+    && !empty($variables['event_cta']['url'])
+    && empty($variables['event_cta']['disabled']);
 
   $domainStateResolver = \Drupal::hasService('myeventlane_core.event_state_resolver')
     ? \Drupal::service('myeventlane_core.event_state_resolver')
@@ -936,47 +952,13 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   $salesStart = $stateResolver->getSalesStart($node);
   $variables['mel_sales_start_formatted'] = $salesStart ? date('F j, Y g:ia', $salesStart) : NULL;
 
-  // Lowest enabled ticket price for "Tickets from $X" (paid) or "Free" (RSVP).
-  $variables['mel_tickets_from'] = NULL;
-  if (!empty($variables['mel_event_state_snapshot']['has_product'])) {
-    $product = $node->get('field_product_target')->entity;
-    if ($product && $product->getEntityTypeId() === 'commerce_product') {
-      $variations = $product->getVariations();
-      $min_price_obj = NULL;
-      $min_n = NULL;
-      foreach ($variations as $variation) {
-        if ($variation->status && method_exists($variation, 'getPrice')) {
-          $price = $variation->getPrice();
-          if ($price) {
-            $n = (float) $price->getNumber();
-            if ($min_n === NULL || $n < $min_n) {
-              $min_n = $n;
-              $min_price_obj = $price;
-            }
-          }
-        }
-      }
-      if ($min_price_obj !== NULL) {
-        $formatted = _myeventlane_event_format_price_simple(
-          $min_price_obj->getNumber(),
-          $min_price_obj->getCurrencyCode()
-        );
-        $variables['mel_tickets_from'] = t('Tickets from @price', ['@price' => $formatted]);
-      }
-    }
-  }
-  if ($variables['mel_tickets_from'] === NULL && $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
-    if ($node->get('field_event_type')->value === 'rsvp') {
-      $variables['mel_tickets_from'] = t('Free');
-    }
-  }
-  // Off-platform ticketing: do not show Commerce "Tickets from" in the sidebar.
-  if ($variables['cta_type'] === EventCtaResolver::CTA_EXTERNAL) {
-    $variables['mel_tickets_from'] = NULL;
-  }
+  $variables['mel_display_pricing'] = $bookingFlowResolver->getDisplayPricing($node);
+  $variables['mel_tickets_from'] = is_array($variables['mel_display_pricing'])
+    ? $variables['mel_display_pricing']['label']
+    : NULL;
 
   $variables['mel_show_price_includes_gst_note'] = FALSE;
-  if ($variables['cta_type'] === EventCtaResolver::CTA_PAID
+  if ($variables['cta_type'] === BookingFlowResolver::MODE_PAID
     && !empty($variables['mel_event_state_snapshot']['has_product'])
     && $node->hasField('field_product_target') && !$node->get('field_product_target')->isEmpty()) {
     $product_entity = $node->get('field_product_target')->entity;
@@ -1171,7 +1153,8 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     (string) $variables['cta_type'],
     (string) $variables['mel_event_state'],
     $event_cta,
-    $view_mode
+    $view_mode,
+    $bookingAvailability
   );
 }
 
@@ -1186,11 +1169,11 @@ function myeventlane_event_enrich_vendor_dashboard_event_rows(array &$variables)
   if (!is_array($upcoming) || $upcoming === []) {
     return;
   }
-  if (!\Drupal::hasService('myeventlane_event.cta_resolver') || !\Drupal::hasService('myeventlane_event_state.resolver') || !\Drupal::hasService('myeventlane_core.event_state_resolver')) {
+  if (!\Drupal::hasService('myeventlane_event.booking_flow_resolver') || !\Drupal::hasService('myeventlane_event_state.resolver') || !\Drupal::hasService('myeventlane_core.event_state_resolver')) {
     return;
   }
   $node_storage = \Drupal::entityTypeManager()->getStorage('node');
-  $ctaResolver = \Drupal::service('myeventlane_event.cta_resolver');
+  $bookingFlowResolver = \Drupal::service('myeventlane_event.booking_flow_resolver');
   $stateResolver = \Drupal::service('myeventlane_event_state.resolver');
   $domainStateResolver = \Drupal::service('myeventlane_core.event_state_resolver');
 
@@ -1211,12 +1194,22 @@ function myeventlane_event_enrich_vendor_dashboard_event_rows(array &$variables)
         'capacity' => 0,
       ];
     }
-    $ct = (string) $ctaResolver->getCtaType($node);
+    $bookingMode = $bookingFlowResolver->getBookingMode($node);
+    $ct = $bookingMode === BookingFlowResolver::MODE_UNAVAILABLE ? 'none' : (string) $bookingMode;
     $mels = (string) $stateResolver->resolveState($node);
-    $ec = $ctaResolver->getResolvedCta($node);
+    $availability = $bookingFlowResolver->getAvailabilityState($node);
+    $ec = $bookingFlowResolver->getPrimaryCta($node);
     $upcoming[$key] = is_array($row) ? $row : [];
     $upcoming[$key]['event_domain_state'] = $domain;
-    $upcoming[$key]['event_ui'] = myeventlane_event_finalize_event_ui($node, $domain, $ct, $mels, is_array($ec) ? $ec : [], 'event_card');
+    $upcoming[$key]['event_ui'] = myeventlane_event_finalize_event_ui(
+      $node,
+      $domain,
+      $ct,
+      $mels,
+      is_array($ec) ? $ec : [],
+      'event_card',
+      $availability
+    );
   }
   $variables['upcoming_events'] = $upcoming;
 }
@@ -1238,6 +1231,7 @@ function myeventlane_event_finalize_event_ui(
   string $melState,
   array $eventCta,
   string $viewMode = 'default',
+  ?string $bookingAvailability = NULL,
 ): array {
   $defaults = static function () {
     return [
@@ -1254,15 +1248,14 @@ function myeventlane_event_finalize_event_ui(
     ];
   };
 
-  $hasProduct = !empty($domain['has_product']);
   $isBoosted = !empty($domain['is_boosted']);
   $rsvpState = (string) ($domain['rsvp_state'] ?? 'unset');
   $capacity = (int) ($domain['capacity'] ?? 0);
   $ecLabel = trim((string) ($eventCta['label'] ?? ''));
   $isCardContext = in_array($viewMode, myeventlane_event_get_event_card_view_modes(), TRUE);
-  $isSoldOut = (($eventCta['type'] ?? NULL) === EventCtaResolver::CTA_SOLD_OUT);
+  $isSoldOut = $bookingAvailability === BookingFlowResolver::AVAILABILITY_SOLD_OUT;
 
-  $showCta = $ctaType !== EventCtaResolver::CTA_NONE
+  $showCta = $ctaType !== 'none'
     && $melState !== 'draft';
   if (!$showCta) {
     $out = $defaults();
@@ -1303,25 +1296,32 @@ function myeventlane_event_finalize_event_ui(
     $out['cta_label'] = (string) t('View details');
     $out['cta_type'] = 'secondary';
   }
-  elseif ($isCardContext && $melState === 'scheduled' && $ctaType === EventCtaResolver::CTA_PAID) {
+  elseif ($isCardContext && $melState === 'scheduled' && $ctaType === BookingFlowResolver::MODE_PAID) {
     $out['cta_label'] = (string) t('View details');
     $out['cta_type'] = 'secondary';
   }
-  elseif ($melState === 'scheduled' && $ctaType === EventCtaResolver::CTA_PAID) {
+  elseif ($melState === 'scheduled' && $ctaType === BookingFlowResolver::MODE_PAID) {
     $out['cta_label'] = $ecLabel !== '' ? (string) $eventCta['label'] : (string) t('View details');
     $out['cta_type'] = 'secondary';
   }
-  elseif ($ctaType === EventCtaResolver::CTA_EXTERNAL) {
+  elseif ($ctaType === BookingFlowResolver::MODE_EXTERNAL) {
     $out['cta_label'] = $ecLabel !== '' ? (string) $eventCta['label'] : (string) t('View details');
-    $out['cta_type'] = empty($eventCta['disabled'] ?? FALSE) && !empty($eventCta['url']) ? 'secondary' : 'disabled';
+    $out['cta_type'] = ($eventCta['type'] ?? 'disabled') === 'external'
+      && empty($eventCta['disabled'] ?? FALSE)
+      ? 'secondary'
+      : 'disabled';
   }
-  elseif ($hasProduct) {
-    $out['cta_label'] = (string) t('Get your tickets');
+  elseif ($ctaType === BookingFlowResolver::MODE_PAID) {
+    $out['cta_label'] = $ecLabel !== '' ? (string) $eventCta['label'] : (string) t('Get your tickets');
+    $out['cta_type'] = 'primary';
+  }
+  elseif ($ctaType === BookingFlowResolver::MODE_RSVP) {
+    $out['cta_label'] = $ecLabel !== '' ? (string) $eventCta['label'] : (string) t('RSVP free');
     $out['cta_type'] = 'primary';
   }
   else {
-    $out['cta_label'] = (string) t('RSVP free');
-    $out['cta_type'] = 'primary';
+    $out['cta_label'] = '';
+    $out['cta_type'] = 'disabled';
   }
 
   if (!$isSoldOut && $rsvpState === 'limited') {
@@ -1364,101 +1364,6 @@ function myeventlane_event_get_event_card_view_modes(): array {
     'event_card_compact',
     'event_home_card',
   ];
-}
-
-/**
- * Implements hook_entity_insert().
- *
- * Syncs Commerce variations when mel_ticket_type is created (e.g. from core form).
- */
-function myeventlane_event_entity_insert(EntityInterface $entity): void {
-  if ($entity->getEntityTypeId() !== 'mel_ticket_type') {
-    return;
-  }
-  _myeventlane_event_sync_events_for_ticket_type((int) $entity->id());
-}
-
-/**
- * Implements hook_entity_update().
- *
- * Syncs Commerce variations when mel_ticket_type is updated (e.g. from edit form).
- */
-function myeventlane_event_entity_update(EntityInterface $entity): void {
-  if ($entity->getEntityTypeId() !== 'mel_ticket_type') {
-    return;
-  }
-  _myeventlane_event_sync_events_for_ticket_type((int) $entity->id());
-}
-
-/**
- * Syncs ticket variations for all events that reference this ticket type.
- *
- * @internal
- */
-function _myeventlane_event_sync_events_for_ticket_type(int $ticketId): void {
-  $entity_type_manager = \Drupal::entityTypeManager();
-  $node_storage = $entity_type_manager->getStorage('node');
-  $query = $node_storage->getQuery()
-    ->accessCheck(FALSE)
-    ->condition('type', 'event')
-    ->condition('field_ticket_types', $ticketId)
-    ->execute();
-  if (!$query) {
-    return;
-  }
-  // EntityStorageBase::loadMultiple() uses array_flip() on ID values; each must be int|string.
-  $nids = [];
-  foreach ($query as $k => $v) {
-    if (is_int($v) || (is_string($v) && is_numeric($v))) {
-      $nids[] = (int) $v;
-    }
-    elseif (is_float($v) && floor($v) == $v) {
-      $nids[] = (int) $v;
-    }
-    elseif (is_array($v) && isset($v['target_id'])) {
-      $nids[] = (int) $v['target_id'];
-    }
-    elseif (is_int($k) || (is_string($k) && is_numeric($k))) {
-      $nids[] = (int) $k;
-    }
-  }
-  $nids = array_values(array_unique(array_filter($nids)));
-  if ($nids === []) {
-    return;
-  }
-  $ticket_type_manager = \Drupal::service('myeventlane_event.ticket_type_manager');
-  foreach ($node_storage->loadMultiple($nids) as $event) {
-    if ($event instanceof NodeInterface && $event->bundle() === 'event') {
-      $ticket_type_manager->syncTicketTypesToVariations($event);
-    }
-  }
-}
-
-/**
- * Formats a price without using commerce_price.currency_formatter.
- *
- * Avoids ServiceCircularReferenceException when called during render (e.g. in
- * preprocess). Uses currency entity and number_format instead.
- *
- * @param string $number
- *   The price number.
- * @param string $currency_code
- *   The currency code (e.g. USD).
- *
- * @return string
- *   Formatted price (e.g. "$10.00" or "10.00 USD" if currency not found).
- *
- * @internal Used only in preprocess to avoid circular dependency.
- */
-function _myeventlane_event_format_price_simple(string $number, string $currency_code): string {
-  $currency_storage = \Drupal::entityTypeManager()->getStorage('commerce_currency');
-  $currency = $currency_storage->load($currency_code);
-  $fraction_digits = $currency ? $currency->getFractionDigits() : 2;
-  $formatted_number = number_format((float) $number, $fraction_digits);
-  if ($currency && $currency->getSymbol()) {
-    return $currency->getSymbol() . $formatted_number;
-  }
-  return $formatted_number . ' ' . $currency_code;
 }
 
 /**

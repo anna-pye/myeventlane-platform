@@ -22,6 +22,8 @@ final class TicketStatusService {
 
   public const STATUS_INACTIVE = TicketStatusEvaluator::STATUS_INACTIVE;
 
+  public const STATUS_ARCHIVED = TicketStatusEvaluator::STATUS_ARCHIVED;
+
   public function __construct(
     private readonly TicketVariationSoldService $variationSold,
     private readonly TimeInterface $time,

@@ -52,63 +52,40 @@
               </div>
             {% endif %}
 
-            {# Price from Commerce product or event type #}
-            {% set price_display = '' %}
-            {% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
-              {% set product = node.field_product_target.entity %}
-              {% if product %}
-                {% set default_variation = product.getDefaultVariation() %}
-                {% if default_variation and default_variation.hasField('price') %}
-                  {% set price = default_variation.getPrice() %}
-                  {% if price %}
-                    {% set price_display = price|commerce_price_format %}
-                  {% endif %}
-                {% endif %}
-              {% endif %}
-            {% elseif node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
-              {% set event_type = node.field_event_type.value %}
-              {% if event_type == 'rsvp' %}
-                {% set price_display = 'Free' %}
-              {% endif %}
-            {% endif %}
-            {% if price_display %}
+            {% if mel_booking.availability is defined and mel_booking.availability %}
               <div class="mel-meta-block">
-                <span class="mel-meta-label">Price</span>
-                <span class="mel-meta-value">{{ price_display }}</span>
+                <span class="mel-meta-label">Availability</span>
+                <span class="mel-meta-value">{{ mel_booking.availability }}</span>
+              </div>
+            {% endif %}
+
+            {% if mel_display_pricing is defined and mel_display_pricing.label|default('')|trim %}
+              <div class="mel-meta-block">
+                <span class="mel-meta-label">Pricing</span>
+                <span class="mel-meta-value">{{ mel_display_pricing.label }}</span>
               </div>
             {% endif %}
           </div>
 
           <div class="mel-event__actions">
-            {# CTA based on event type #}
-            {% set cta_url = '#' %}
-            {% set cta_label = 'Get your tickets' %}
-            {% if node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
-              {% set event_type = node.field_event_type.value %}
-              {% if event_type == 'rsvp' %}
-                {% set cta_label = 'RSVP free' %}
-                {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
-              {% elseif event_type == 'both' %}
-                {% set cta_label = 'Get your tickets' %}
-                {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
-              {% elseif event_type == 'external' and node.hasField('field_external_url') and not node.field_external_url.isEmpty %}
-                {% set cta_label = 'View details' %}
-                {% set external_url = node.field_external_url[0].url %}
-                {% set cta_url = external_url %}
-              {% endif %}
+            {% if mel_booking.cta.type in ['internal', 'external'] and mel_booking.cta.url %}
+              <a class="mel-btn mel-btn--primary mel-event__cta" href="{{ mel_booking.cta.url }}">{{ mel_booking.cta.label }}</a>
+            {% elseif mel_booking.cta.label %}
+              <span class="mel-btn mel-btn--primary mel-event__cta mel-event__cta--disabled">{{ mel_booking.cta.label }}</span>
             {% endif %}
-            {% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
-              {# Use Commerce booking route if available #}
-              {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
-            {% endif %}
-            <a class="mel-btn mel-btn--primary mel-event__cta" href="{{ cta_url }}">{{ cta_label }}</a>
             <a class="mel-btn mel-btn--ghost" href="#share">Share</a>
           </div>
         </div>
 
         <aside class="mel-event__ticketbox" id="tickets">
           <div class="mel-ticketbox">
-            <h2 class="mel-ticketbox__title">Tickets</h2>
+            <h2 class="mel-ticketbox__title">
+              {% if mel_display_pricing is defined and mel_display_pricing.label|default('')|trim %}
+                {{ mel_display_pricing.label }}
+              {% else %}
+                {{ 'Tickets'|t }}
+              {% endif %}
+            </h2>
             <div class="mel-ticketbox__content">
               {# Render field_product_target - this will output whatever formatter is configured #}
               {% if content.field_product_target is defined %}
@@ -147,7 +124,11 @@
   <div class="mel-sticky-cta" role="region" aria-label="Ticket actions">
     <div class="mel-sticky-cta__inner">
       <span class="mel-sticky-cta__title">{{ label }}</span>
-      <a class="mel-btn mel-btn--primary" href="#tickets">Tickets</a>
+      {% if mel_booking.cta.type in ['internal', 'external'] and mel_booking.cta.url %}
+        <a class="mel-btn mel-btn--primary" href="{{ mel_booking.cta.url }}">{{ mel_booking.cta.label }}</a>
+      {% elseif mel_booking.cta.label %}
+        <span class="mel-btn mel-btn--primary mel-event__cta--disabled">{{ mel_booking.cta.label }}</span>
+      {% endif %}
     </div>
   </div>
 </article>

@@ -1428,8 +1428,6 @@ class VendorSettingsForm extends FormBase {
       return;
     }
 
-    $this->messenger()->addStatus($this->t('Form submitted successfully'));
-
     $had_vendor_store_link = $vendor->hasField('field_vendor_store')
       && !$vendor->get('field_vendor_store')->isEmpty();
 

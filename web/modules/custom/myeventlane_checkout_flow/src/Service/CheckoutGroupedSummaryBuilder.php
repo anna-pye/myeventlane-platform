@@ -8,9 +8,11 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_price\Price;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\node\NodeInterface;
 
 /**
@@ -25,6 +27,7 @@ final class CheckoutGroupedSummaryBuilder {
     private readonly CurrencyFormatter $currencyFormatter,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
+    private readonly BookingFlowResolver $bookingFlowResolver,
   ) {}
 
   /**
@@ -35,6 +38,7 @@ final class CheckoutGroupedSummaryBuilder {
    */
   public function build(OrderInterface $order): array {
     $line_buckets = [];
+    $cacheTags = $order->getCacheTags();
 
     foreach ($order->getItems() as $item) {
       $event_id = $this->resolveEventId($item);
@@ -74,14 +78,20 @@ final class CheckoutGroupedSummaryBuilder {
           'title' => '',
           'date' => '',
           'location' => '',
+          'display_pricing' => '',
           'items' => [],
         ];
         if ($eid !== NULL) {
           $node = $this->entityTypeManager->getStorage('node')->load($eid);
           if ($node instanceof NodeInterface && $node->bundle() === 'event') {
+            $displayPricing = $this->bookingFlowResolver->getDisplayPricing($node);
+            $cacheTags = Cache::mergeTags($cacheTags, $node->getCacheTags());
             $events_map[$group_key]['title'] = $node->label();
             $events_map[$group_key]['date'] = $this->formatEventDate($node);
             $events_map[$group_key]['location'] = $this->formatEventLocation($node);
+            $events_map[$group_key]['display_pricing'] = is_array($displayPricing)
+              ? (string) ($displayPricing['label'] ?? '')
+              : '';
           }
           else {
             $events_map[$group_key]['title'] = (string) $this->t('Event');
@@ -131,6 +141,7 @@ final class CheckoutGroupedSummaryBuilder {
       'fee_rows' => $breakdown['fee_rows'],
       'platform_fee_absorbed' => $breakdown['platform_fee_absorbed'],
       'show_includes_gst_note' => $breakdown['show_includes_gst_note'],
+      'cache_tags' => $cacheTags,
     ];
   }
 

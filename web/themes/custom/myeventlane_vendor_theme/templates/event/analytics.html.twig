@@ -66,8 +66,8 @@
             <p class="mel-kpi-card__value">{{ ticket_tier_rollup.total_sold|default(0) }}</p>
           </div>
           <div class="mel-kpi-card">
-            <p class="mel-kpi-card__label">{{ 'Remaining (capped tiers)'|t }}</p>
-            <p class="mel-kpi-card__value">{% if ticket_tier_rollup.total_remaining is null %}—{% else %}{{ ticket_tier_rollup.total_remaining }}{% endif %}</p>
+            <p class="mel-kpi-card__label">{{ 'Remaining'|t }}</p>
+            <p class="mel-kpi-card__value">{% if ticket_tier_rollup.total_remaining is null %}{{ 'Unlimited'|t }}{% else %}{{ ticket_tier_rollup.total_remaining }}{% endif %}</p>
           </div>
           <div class="mel-kpi-card">
             <p class="mel-kpi-card__label">{{ 'Gross revenue (tiers)'|t }}</p>

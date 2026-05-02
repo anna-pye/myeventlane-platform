@@ -66,6 +66,9 @@ final class EventStateResolver {
       if (!$ticket instanceof TicketType) {
         continue;
       }
+      if ($ticket->isArchived()) {
+        continue;
+      }
       $count++;
       if ($ticket->get('capacity')->isEmpty()) {
         $hasUnlimited = TRUE;

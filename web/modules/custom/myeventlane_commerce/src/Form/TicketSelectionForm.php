@@ -202,6 +202,9 @@ final class TicketSelectionForm extends FormBase {
       $ticket_type_labels = [];
       if ($node->hasField('field_ticket_types') && !$node->get('field_ticket_types')->isEmpty()) {
         foreach ($node->get('field_ticket_types')->referencedEntities() as $ticket) {
+          if ($ticket instanceof TicketTypeInterface && $ticket->isArchived()) {
+            continue;
+          }
           if ($ticket instanceof TicketType && !$ticket->get('commerce_variation')->isEmpty()) {
             $variation_entity = $ticket->get('commerce_variation')->entity;
             if ($variation_entity) {
@@ -597,6 +600,9 @@ final class TicketSelectionForm extends FormBase {
     }
     foreach ($event->get('field_ticket_types')->referencedEntities() as $tier) {
       if (!$tier instanceof TicketTypeInterface || $tier->getTicketKind() !== 'paid') {
+        continue;
+      }
+      if ($tier->isArchived()) {
         continue;
       }
       if (!$tier->hasField('waitlist_enabled') || !$tier->get('waitlist_enabled')->value) {

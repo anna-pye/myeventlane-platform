@@ -30,17 +30,21 @@ final class EventTicketsAccess implements AccessInterface {
    * - User can manage this event's tickets (manage own events tickets + owner/vendor), or
    * - User has access vendor console + event owner or vendor membership.
    *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The current user account.
+   * @param \Drupal\node\NodeInterface|null $event
+   *   The event node, when route parameters have been resolved.
    *
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The access result.
    */
-  public function access(NodeInterface $event, AccountInterface $account): AccessResultInterface {
-    if (!$event || $event->bundle() !== 'event') {
-      return AccessResult::forbidden();
+  public function access(AccountInterface $account, ?NodeInterface $event = NULL): AccessResultInterface {
+    if (!$event) {
+      return AccessResult::forbidden('Event route parameter is required.')->setCacheMaxAge(0);
+    }
+
+    if ($event->bundle() !== 'event') {
+      return AccessResult::forbidden()->addCacheableDependency($event);
     }
 
     if ($this->eventAccess->canManageEventTickets($event)) {

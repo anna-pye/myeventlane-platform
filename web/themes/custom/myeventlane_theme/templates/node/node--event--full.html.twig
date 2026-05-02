@@ -23,11 +23,11 @@
 {% if cta_type is defined and cta_type == 'paid' %}
   {% set mel_mode_chip = 'Paid tickets'|t %}
 {% elseif cta_type is defined and cta_type == 'rsvp' %}
-  {% set mel_mode_chip = 'Free · RSVP'|t %}
+  {% set mel_mode_chip = 'Free RSVP'|t %}
 {% elseif cta_type is defined and cta_type == 'external' %}
   {% set mel_mode_chip = 'External ticketing'|t %}
 {% endif %}
-{% set mel_cta_is_external = cta_type is defined and cta_type == 'external' %}
+{% set mel_cta_is_external = event_cta is defined and event_cta.type|default('disabled') == 'external' %}
 
 {% set mel_eds = (event_domain_state is defined and event_domain_state is iterable) ? event_domain_state : {} %}
 {% set mel_eds_cap = mel_eds['capacity']|default(0) %}
@@ -41,15 +41,10 @@
     {% set mel_cta_urgency = 'Limited spots remaining'|t %}
   {% endif %}
 {% endif %}
-{% if mel_eds_has_product and mel_tickets_from is defined and (mel_tickets_from|striptags|length > 0) %}
-  {% set mel_context_above = mel_tickets_from %}
-{% elseif (not mel_eds_has_product) and cta_type is defined and cta_type is same as('rsvp') %}
-  {% set mel_context_above = 'Free RSVP'|t %}
-{% else %}
-  {% set mel_context_above = '' %}
-{% endif %}
-{# Sticky booking panel: single source for “Tickets from …” / free RSVP (see mel_context_above at top of template). #}
-{% set mel_sidebar_pricing = (mel_tickets_from is defined and (mel_tickets_from|default('')|striptags|trim) is not empty) ? mel_tickets_from : (mel_context_above|default('')) %}
+{% set mel_display_pricing = (mel_display_pricing is defined and mel_display_pricing is iterable) ? mel_display_pricing : null %}
+{% set mel_context_above = mel_display_pricing ? mel_display_pricing.label|default('') : '' %}
+{# Sticky booking panel renders resolved pricing from BookingFlowResolver. #}
+{% set mel_sidebar_pricing = mel_context_above %}
 {% set mel_trust_checkout = (cta_type is not defined) or (not (cta_type is same as('external'))) %}
 {% set mel_show_booking_cta = (event_ui is not defined) or (event_ui.show_cta|default(true)) %}
 {% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
@@ -802,7 +797,7 @@
           <p class="mel-mobile-cta__eyebrow">{{ mel_context_above }}</p>
         {% endif %}
         {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'mobile' } %}
-        {% if mel_cta_is_soldout_ui and event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+        {% if mel_cta_is_soldout_ui and event_cta and event_cta.type|default('disabled') in ['internal', 'external'] and (event_cta.url|default('')|striptags|length > 0) %}
           <p class="mel-mobile-cta__waitlist-sub" role="note">{{ 'Be the first notified if spots open'|t }}</p>
         {% endif %}
       </div>

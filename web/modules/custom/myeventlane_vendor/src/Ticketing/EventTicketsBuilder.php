@@ -6,16 +6,13 @@ namespace Drupal\myeventlane_vendor\Ticketing;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
-use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\Core\Url;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
@@ -174,8 +171,8 @@ final class EventTicketsBuilder {
 
     $form['builder_shell']['controls']['begin_add_rsvp'] = [
       '#type' => 'submit',
-      '#value' => $this->t('+ Add free RSVP'),
-      '#name' => 'ticket_begin_add_rsvp',
+      '#value' => $this->t('Add ticket'),
+      '#name' => 'ticket_begin_add',
       '#submit' => ['::handleAction'],
       '#ajax' => [
         'callback' => '::ajaxRebuildTicketBuilder',
@@ -183,7 +180,7 @@ final class EventTicketsBuilder {
       ],
       '#limit_validation_errors' => [],
       '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__rsvp'],
+        'class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__add'],
         // Event Studio nests this builder in a form with required mel[title] etc.; without
         // formnovalidate the browser blocks AJAX before Drupal runs (standalone /tickets has no such fields).
         'formnovalidate' => 'formnovalidate',
@@ -205,7 +202,7 @@ final class EventTicketsBuilder {
         'class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__paid'],
         'formnovalidate' => 'formnovalidate',
       ],
-      '#access' => !$adding_new,
+      '#access' => FALSE,
     ];
 
     $form['builder_shell']['controls']['begin_add_external'] = [
@@ -222,7 +219,7 @@ final class EventTicketsBuilder {
         'class' => ['mel-btn', 'mel-btn--secondary', 'mel-ticket-controls__external'],
         'formnovalidate' => 'formnovalidate',
       ],
-      '#access' => !$adding_new,
+      '#access' => FALSE,
     ];
 
     $form['builder_shell']['controls']['save_sync'] = [
@@ -281,7 +278,12 @@ final class EventTicketsBuilder {
 
     foreach ($tickets as $ticket) {
       $tid = (int) $ticket->id();
-      $is_editing = $editing_id !== NULL && (int) $editing_id === $tid;
+      $ticket_status = $this->ticketStatus->getStatus($ticket);
+      $read_only_card = in_array($ticket_status, [
+        TicketStatusService::STATUS_ENDED,
+        TicketStatusService::STATUS_ARCHIVED,
+      ], TRUE);
+      $is_editing = (int) $editing_id === $tid && !$read_only_card;
 
       $form['builder_shell']['list'][$tid] = [
         '#type' => 'container',
@@ -294,6 +296,7 @@ final class EventTicketsBuilder {
           ],
           'data-ticket-id' => (string) $tid,
           'data-mel-ticket-kind' => $ticket->getTicketKind(),
+          'data-mel-ticket-dirty-label' => (string) $this->t('Unsaved changes'),
         ],
       ];
 
@@ -317,182 +320,9 @@ final class EventTicketsBuilder {
         ],
       ];
 
-      if ($is_editing) {
-        $edit_path = $this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit');
-        $form['builder_shell']['list'][$tid]['edit'] = [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-ticket-edit']],
-        ];
-
-        $edit_status = $this->ticketStatus->getStatus($ticket);
-        $edit_badge_class = $this->ticketStatusBadgeClassSuffix($edit_status);
-        $form['builder_shell']['list'][$tid]['edit']['status'] = [
-          '#markup' => '<div class="mel-ticket-edit__status"><span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape(strtoupper($edit_status)) . '</span></div>',
-          '#weight' => -20,
-        ];
-
-        $form['builder_shell']['list'][$tid]['edit']['status_published'] = [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Published (active)'),
-          '#description' => $this->t('When unchecked, the ticket is unpublished (inactive) for buyers.'),
-          '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['status_published'])) ?? ($ticket->isPublished() ? 1 : 0)),
-          '#weight' => -15,
-        ];
-
-        $form['builder_shell']['list'][$tid]['edit']['title'] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Title'),
-          '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['title'])) ?? $ticket->label()),
-          '#required' => TRUE,
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['short_description'] = [
-          '#type' => 'textarea',
-          '#title' => $this->t('Short description (buyers)'),
-          '#description' => $this->t('Optional. About two lines — shown on the public ticket picker.'),
-          '#rows' => 2,
-          '#maxlength' => self::SHORT_DESCRIPTION_MAX_LENGTH,
-          '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['short_description']))
-            ?? ($ticket->hasField('short_description') ? (string) ($ticket->get('short_description')->value ?? '') : '')),
-        ];
-
-        if ($ticket->getTicketKind() === 'paid') {
-          $price = $ticket->toPriceValue();
-
-          $form['builder_shell']['list'][$tid]['edit']['price'] = [
-            '#type' => 'number',
-            '#title' => $this->t('Price'),
-            '#default_value' => $price ? $price->getNumber() : 0,
-            '#step' => 0.01,
-            '#min' => 0,
-          ];
-        }
-
-        $form['builder_shell']['list'][$tid]['edit']['capacity'] = [
-          '#type' => 'number',
-          '#title' => $this->t('Capacity'),
-          '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['capacity'])) ?? (int) ($ticket->get('capacity')->value ?? 0)),
-        ];
-
-        $vis_default = (string) ($form_state->getValue(array_merge($edit_path, ['visibility_mode']))
-          ?? ($ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()
-            ? (string) $ticket->get('visibility_mode')->value
-            : 'public'));
-        $visibility_options = [
-          'public' => $this->t('Public — listed to everyone'),
-          'hidden' => $this->t('Hidden — never listed publicly'),
-          'access_code' => $this->t('Access code — unlock with a code'),
-          'group_only' => $this->t('Organiser team — vendor owner & team members only'),
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['visibility_mode'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Visibility'),
-          '#description' => $this->t('Team-only tiers are hidden from the public booking page. They appear when the signed-in buyer is the event owner or a user on the vendor’s team (same rule as your vendor console). Everyone else needs a different visibility mode or an access code.'),
-          '#options' => $visibility_options,
-          '#default_value' => $vis_default,
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['hidden_label'] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Internal label (optional)'),
-          '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['hidden_label']))
-            ?? ($ticket->hasField('hidden_label') ? (string) ($ticket->get('hidden_label')->value ?? '') : '')),
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['waitlist_enabled'] = [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Enable tier waitlist when sold out'),
-          '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['waitlist_enabled']))
-            ?? ($ticket->hasField('waitlist_enabled') && $ticket->get('waitlist_enabled')->value ? 1 : 0)),
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['waitlist_capacity'] = [
-          '#type' => 'number',
-          '#title' => $this->t('Waitlist capacity (optional)'),
-          '#min' => 0,
-          '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['waitlist_capacity']))
-            ?? ($ticket->hasField('waitlist_capacity') && !$ticket->get('waitlist_capacity')->isEmpty()
-              ? (string) (int) $ticket->get('waitlist_capacity')->value
-              : '')),
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['auto_promote_waitlist'] = [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Auto-offer waitlist when tickets free up'),
-          '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['auto_promote_waitlist']))
-            ?? ($ticket->hasField('auto_promote_waitlist') && $ticket->get('auto_promote_waitlist')->value ? 1 : 0)),
-        ];
-        $group_mode_default = (string) ($form_state->getValue(array_merge($edit_path, ['group_sale_mode']))
-          ?? ($ticket->hasField('group_sale_mode') && !$ticket->get('group_sale_mode')->isEmpty()
-            ? (string) $ticket->get('group_sale_mode')->value
-            : 'none'));
-        $form['builder_shell']['list'][$tid]['edit']['group_sale_mode'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Group sales'),
-          '#options' => [
-            'none' => $this->t('None'),
-            'fixed_bundle' => $this->t('Fixed bundle (e.g. table of N)'),
-            'minimum_group_size' => $this->t('Minimum group size'),
-            'reserved_block' => $this->t('Reserved block / partner'),
-          ],
-          '#default_value' => $group_mode_default,
-          '#description' => $this->t('Quantity rules are enforced at checkout.'),
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['group_min_size'] = [
-          '#type' => 'number',
-          '#title' => $this->t('Minimum group size'),
-          '#min' => 0,
-          '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['group_min_size']))
-            ?? ($ticket->hasField('group_min_size') && !$ticket->get('group_min_size')->isEmpty()
-              ? (string) (int) $ticket->get('group_min_size')->value
-              : '')),
-        ];
-        $form['builder_shell']['list'][$tid]['edit']['group_bundle_size'] = [
-          '#type' => 'number',
-          '#title' => $this->t('Bundle / block size'),
-          '#min' => 0,
-          '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['group_bundle_size']))
-            ?? ($ticket->hasField('group_bundle_size') && !$ticket->get('group_bundle_size')->isEmpty()
-              ? (string) (int) $ticket->get('group_bundle_size')->value
-              : '')),
-        ];
-
-        $form['builder_shell']['list'][$tid]['edit']['actions'] = [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-ticket-card__actions']],
-        ];
-
-        $limit_edit = [$this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit')];
-
-        $form['builder_shell']['list'][$tid]['edit']['actions']['save'] = [
-          '#type' => 'submit',
-          '#value' => $this->t('Save'),
-          '#name' => 'save_' . $tid,
-          '#submit' => ['::handleAction'],
-          '#ajax' => [
-            'callback' => '::ajaxRebuildTicketBuilder',
-            'wrapper' => self::BUILDER_WRAPPER_ID,
-          ],
-          '#limit_validation_errors' => $limit_edit,
-          '#attributes' => [
-            'class' => ['mel-btn', 'mel-btn--primary'],
-            'formnovalidate' => 'formnovalidate',
-          ],
-        ];
-
-        $form['builder_shell']['list'][$tid]['edit']['actions']['cancel'] = [
-          '#type' => 'submit',
-          '#value' => $this->t('Cancel'),
-          '#name' => 'cancel_' . $tid,
-          '#submit' => ['::handleAction'],
-          '#ajax' => [
-            'callback' => '::ajaxRebuildTicketBuilder',
-            'wrapper' => self::BUILDER_WRAPPER_ID,
-          ],
-          '#limit_validation_errors' => $limit_edit,
-          '#attributes' => [
-            'class' => ['mel-btn', 'mel-btn--ghost'],
-            'formnovalidate' => 'formnovalidate',
-          ],
-        ];
-      }
-      else {
-        $this->appendViewTicketCardElements($form['builder_shell']['list'][$tid], $ticket, $form_state, $event);
+      $this->appendViewTicketCardElements($form['builder_shell']['list'][$tid], $ticket, $form_state);
+      if (!$read_only_card) {
+        $this->appendEditTicketCardElements($form['builder_shell']['list'][$tid], $ticket, $form_state);
       }
     }
 
@@ -562,7 +392,12 @@ final class EventTicketsBuilder {
           '@message' => $e->getMessage(),
         ]
       );
-      $this->messenger->addError($this->t('Ticket update failed: @message', ['@message' => $e->getMessage()]));
+      if ($this->isCurrencyMismatchException($e)) {
+        $this->messenger->addError($this->t(TicketTierLifecycleService::CURRENCY_MISMATCH_MESSAGE));
+      }
+      else {
+        $this->messenger->addError($this->t('Ticket update failed: @message', ['@message' => $e->getMessage()]));
+      }
     }
 
     if ($event->id()) {
@@ -655,6 +490,11 @@ final class EventTicketsBuilder {
           '#title' => $this->t('Capacity'),
           '#min' => 1,
           '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'capacity')) ?? ''),
+          '#description' => $this->t('Leave empty for unlimited tickets'),
+          '#attributes' => [
+            'class' => ['js-mel-ticket-capacity'],
+            'placeholder' => (string) $this->t('Leave empty for unlimited tickets'),
+          ],
           // Must use core #states "or" shape; nesting "or" inside the selector value breaks
           // drupal.states.js so RSVP capacity never shows/submits and create fails validation.
           '#states' => [
@@ -696,7 +536,7 @@ final class EventTicketsBuilder {
           ],
           '#limit_validation_errors' => [$this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields')],
           '#attributes' => [
-            'class' => ['mel-btn', 'mel-btn--primary'],
+            'class' => ['mel-btn', 'mel-btn--primary', 'js-mel-ticket-create'],
             'formnovalidate' => 'formnovalidate',
           ],
         ],
@@ -725,32 +565,24 @@ final class EventTicketsBuilder {
    * @param array<string, mixed> $card
    *   The Form API subtree for one ticket row (already contains drag_handle).
    */
-  private function appendViewTicketCardElements(array &$card, TicketTypeInterface $ticket, FormStateInterface $form_state, NodeInterface $event): void {
+  private function appendViewTicketCardElements(array &$card, TicketTypeInterface $ticket, FormStateInterface $form_state): void {
     $tid = (int) $ticket->id();
-    $kind = $ticket->getTicketKind();
     $ticket_status = $this->ticketStatus->getStatus($ticket);
+    $status_label = $this->ticketCardStatusLabel($ticket_status);
+    $status_class = $this->ticketCardStatusClassSuffix($ticket_status);
+    $meta_line = $this->buildCardPriceCapacityLine($ticket);
+    $visibility_label = $this->ticketVisibilityLabel($ticket);
 
-    $capacity_display = !$ticket->get('capacity')->isEmpty()
-      ? (string) (int) $ticket->get('capacity')->value
-      : (string) $this->t('—');
+    $card['view'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-ticket-card__view'],
+        'data-mel-ticket-view' => '1',
+      ],
+    ];
+    $view = &$card['view'];
 
-    $metrics = $this->tierAnalytics->buildTierMetrics($ticket);
-    $sold = (int) $metrics['sold'];
-    $activity_line = match ($kind) {
-      'rsvp' => (string) $this->t('@count going', ['@count' => (string) $sold]),
-      'paid' => (string) $this->t('@count sold', ['@count' => (string) $sold]),
-      default => (string) $this->t('External ticket'),
-    };
-    $capacity_line = (string) $this->t('Capacity: @cap', ['@cap' => $capacity_display]);
-
-    $highlight_capacity = $ticket_status === TicketStatusService::STATUS_SOLD_OUT
-      && !$ticket->get('capacity')->isEmpty()
-      && (int) $ticket->get('capacity')->value > 0;
-    $capacity_li_attr = $highlight_capacity
-      ? ' class="' . Html::escape('mel-ticket-card__capacity--highlight') . '"'
-      : '';
-
-    $card['header'] = [
+    $view['header'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-ticket-card__header']],
       'title_group' => [
@@ -760,75 +592,38 @@ final class EventTicketsBuilder {
           '#markup' => '<div class="mel-ticket-card__title">' . Html::escape($ticket->label()) . '</div>',
         ],
       ],
-    ];
-    $buyer_desc = '';
-    if ($ticket->hasField('short_description') && !$ticket->get('short_description')->isEmpty()) {
-      $buyer_desc = trim((string) $ticket->get('short_description')->value);
-    }
-    if ($buyer_desc !== '') {
-      $card['header']['title_group']['description'] = [
-        '#markup' => '<div class="mel-ticket-card__description">' . nl2br(Html::escape($buyer_desc), FALSE) . '</div>',
-      ];
-    }
-    $card['header'] = array_merge($card['header'], [
-      'price' => [
-        '#markup' => '<div class="mel-ticket-card__price">' . $this->formatPrice($ticket) . '</div>',
+      'status' => [
+        '#markup' => '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span><span class="mel-badge mel-badge--' . Html::escape($status_class) . '">' . Html::escape($status_label) . '</span>',
       ],
-    ]);
-
-    $card['meta'] = [
-      '#markup' => '<ul class="' . Html::escape('mel-ticket-card__meta') . '"><li>' . Html::escape($activity_line) . '</li><li' . $capacity_li_attr . '>' . Html::escape($capacity_line) . '</li></ul>',
     ];
 
-    if ($ticket_status === TicketStatusService::STATUS_SOLD_OUT) {
-      $card['soldout_note'] = [
-        '#markup' => '<div class="mel-ticket-card__sold-out-note" role="status">' . Html::escape((string) $this->t('Sold out')) . '</div>',
-      ];
-    }
+    $view['meta'] = [
+      '#markup' => '<div class="' . Html::escape('mel-ticket-card__meta-line') . '">' . Html::escape($meta_line) . '</div>',
+    ];
 
-    $card['sales'] = [
-      '#markup' => $this->buildCardAnalyticsStatsMarkup($ticket, $ticket_status),
+    $view['visibility'] = [
+      '#markup' => '<div class="' . Html::escape('mel-ticket-card__visibility') . '">' . Html::escape($visibility_label) . '</div>',
     ];
 
     $archive_only = in_array($ticket_status, [
       TicketStatusService::STATUS_ENDED,
-      TicketStatusService::STATUS_INACTIVE,
+      TicketStatusService::STATUS_ARCHIVED,
     ], TRUE);
 
-    $full_edit_url = Url::fromRoute('myeventlane_tickets.event_ticket_type_edit', [
-      'event' => $event->id(),
-      'mel_ticket_type' => $ticket->id(),
-    ]);
-
-    $card['actions'] = [
+    $view['actions'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-ticket-card__actions']],
       'edit' => [
-        '#type' => 'submit',
+        '#type' => 'html_tag',
+        '#tag' => 'button',
         '#value' => $this->t('Edit'),
-        '#name' => 'edit_' . $tid,
-        '#submit' => ['::handleAction'],
-        '#ajax' => [
-          'callback' => '::ajaxRebuildTicketBuilder',
-          'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
-        ],
-        '#limit_validation_errors' => [
-          $this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit'),
-        ],
         '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--ghost'],
-          'formnovalidate' => 'formnovalidate',
+          'type' => 'button',
+          'class' => ['mel-btn', 'mel-btn--secondary', 'js-mel-ticket-edit-toggle'],
+          'data-mel-ticket-edit-toggle' => '1',
+          'aria-expanded' => 'false',
         ],
         '#access' => !$archive_only,
-      ],
-      'full_edit' => [
-        '#type' => 'link',
-        '#title' => $this->t('Full edit'),
-        '#url' => $full_edit_url,
-        '#access' => !$archive_only && $full_edit_url->access($this->currentUser),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--secondary'],
-        ],
       ],
       'duplicate' => [
         '#type' => 'submit',
@@ -841,7 +636,7 @@ final class EventTicketsBuilder {
         ],
         '#limit_validation_errors' => [],
         '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--ghost'],
+          'class' => ['mel-btn', 'mel-btn--secondary'],
           'formnovalidate' => 'formnovalidate',
         ],
         '#access' => !$archive_only,
@@ -857,25 +652,280 @@ final class EventTicketsBuilder {
         ],
         '#limit_validation_errors' => [],
         '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--ghost'],
-          'formnovalidate' => 'formnovalidate',
-        ],
-      ],
-      'remove' => [
-        '#type' => 'submit',
-        '#value' => $this->t('Remove'),
-        '#name' => 'ticket_remove_' . $tid,
-        '#submit' => ['::handleAction'],
-        '#ajax' => [
-          'callback' => '::ajaxRebuildTicketBuilder',
-          'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
-        ],
-        '#limit_validation_errors' => [],
-        '#attributes' => [
           'class' => ['mel-btn', 'mel-btn--danger'],
           'formnovalidate' => 'formnovalidate',
         ],
-        '#access' => !$archive_only,
+      ],
+    ];
+  }
+
+  /**
+   * Appends the inline edit form to the card so JS can open it immediately.
+   *
+   * @param array<string, mixed> $card
+   *   The Form API subtree for one ticket row.
+   */
+  private function appendEditTicketCardElements(array &$card, TicketTypeInterface $ticket, FormStateInterface $form_state): void {
+    $tid = (int) $ticket->id();
+    $edit_path = $this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit');
+    $ticket_status = $this->ticketStatus->getStatus($ticket);
+    $edit_badge_class = $this->ticketCardStatusClassSuffix($ticket_status);
+    $edit_status_label = $this->ticketCardStatusLabel($ticket_status);
+
+    $card['edit'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-ticket-edit'],
+        'data-mel-ticket-edit' => '1',
+      ],
+    ];
+
+    $card['edit']['status'] = [
+      '#markup' => '<div class="mel-ticket-card__header"><div class="mel-ticket-card__title-group"><div class="mel-ticket-card__title">' . Html::escape($ticket->label()) . '</div><div class="mel-ticket-card__description">' . Html::escape(ucfirst($ticket->getTicketKind())) . '</div></div><div class="mel-ticket-card__header-actions"><span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span><span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape($edit_status_label) . '</span></div></div>',
+      '#weight' => -20,
+    ];
+
+    $card['edit']['primary'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-ticket-card__fields', 'mel-ticket-card__fields--primary']],
+      '#weight' => -10,
+    ];
+
+    $card['edit']['primary']['title'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Title'),
+      '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['title'])) ?? $ticket->label()),
+      '#required' => TRUE,
+      '#parents' => array_merge($edit_path, ['title']),
+      '#attributes' => [
+        'class' => ['js-mel-ticket-title'],
+        'data-mel-ticket-required-message' => (string) $this->t('Title is required.'),
+      ],
+    ];
+
+    if ($ticket->getTicketKind() === 'paid') {
+      $price = $ticket->toPriceValue();
+
+      $card['edit']['primary']['price'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Price'),
+        '#default_value' => $price ? $price->getNumber() : 0,
+        '#step' => 0.01,
+        '#min' => 0.01,
+        '#required' => TRUE,
+        '#parents' => array_merge($edit_path, ['price']),
+      ];
+    }
+
+    $capacity_default = (string) ($form_state->getValue(array_merge($edit_path, ['capacity']))
+      ?? (!$ticket->get('capacity')->isEmpty() ? (int) $ticket->get('capacity')->value : ''));
+    if ($capacity_default === '0') {
+      $capacity_default = '';
+    }
+    $card['edit']['primary']['capacity'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Capacity'),
+      '#min' => in_array($ticket->getTicketKind(), ['paid', 'rsvp'], TRUE) ? 1 : 0,
+      '#default_value' => $capacity_default,
+      '#description' => $this->t('Leave empty for unlimited tickets'),
+      '#parents' => array_merge($edit_path, ['capacity']),
+      '#attributes' => [
+        'class' => ['js-mel-ticket-capacity'],
+        'placeholder' => (string) $this->t('Leave empty for unlimited tickets'),
+      ],
+    ];
+
+    $card['edit']['primary']['short_description'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Short description (buyers)'),
+      '#description' => $this->t('Optional. About two lines — shown on the public ticket picker.'),
+      '#rows' => 2,
+      '#maxlength' => self::SHORT_DESCRIPTION_MAX_LENGTH,
+      '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['short_description']))
+        ?? ($ticket->hasField('short_description') ? (string) ($ticket->get('short_description')->value ?? '') : '')),
+      '#parents' => array_merge($edit_path, ['short_description']),
+    ];
+
+    $card['edit']['secondary'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Secondary settings'),
+      '#open' => FALSE,
+      '#attributes' => ['class' => ['mel-ticket-edit__secondary']],
+    ];
+
+    $card['edit']['secondary']['status_published'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Published (active)'),
+      '#description' => $this->t('When unchecked, the ticket is unpublished (inactive) for buyers.'),
+      '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['status_published'])) ?? ($ticket->isPublished() ? 1 : 0)),
+      '#parents' => array_merge($edit_path, ['status_published']),
+    ];
+
+    $vis_default = (string) ($form_state->getValue(array_merge($edit_path, ['visibility_mode']))
+      ?? ($ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()
+        ? (string) $ticket->get('visibility_mode')->value
+        : 'public'));
+    $visibility_options = [
+      'public' => $this->t('Public'),
+      'hidden' => $this->t('Private'),
+      'access_code' => $this->t('Private — access code'),
+      'group_only' => $this->t('Private — organiser team'),
+    ];
+    $card['edit']['secondary']['visibility_mode'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Visibility'),
+      '#options' => $visibility_options,
+      '#default_value' => $vis_default,
+      '#parents' => array_merge($edit_path, ['visibility_mode']),
+    ];
+    $card['edit']['secondary']['waitlist_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable tier waitlist when sold out'),
+      '#description' => $this->isUnlimitedCapacity($ticket)
+        ? $this->t('Waitlist is only used when tickets sell out')
+        : '',
+      '#default_value' => $this->isUnlimitedCapacity($ticket)
+        ? 0
+        : (int) ($form_state->getValue(array_merge($edit_path, ['waitlist_enabled']))
+          ?? ($ticket->hasField('waitlist_enabled') && $ticket->get('waitlist_enabled')->value ? 1 : 0)),
+      '#disabled' => $this->isUnlimitedCapacity($ticket),
+      '#parents' => array_merge($edit_path, ['waitlist_enabled']),
+    ];
+    $card['edit']['secondary']['waitlist_capacity'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Waitlist capacity'),
+      '#min' => 0,
+      '#default_value' => $this->isUnlimitedCapacity($ticket)
+        ? ''
+        : (string) ($form_state->getValue(array_merge($edit_path, ['waitlist_capacity']))
+          ?? ($ticket->hasField('waitlist_capacity') && !$ticket->get('waitlist_capacity')->isEmpty()
+            ? (string) (int) $ticket->get('waitlist_capacity')->value
+            : '')),
+      '#disabled' => $this->isUnlimitedCapacity($ticket),
+      '#parents' => array_merge($edit_path, ['waitlist_capacity']),
+    ];
+    $card['edit']['secondary']['auto_promote_waitlist'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Auto-offer waitlist when tickets free up'),
+      '#default_value' => $this->isUnlimitedCapacity($ticket)
+        ? 0
+        : (int) ($form_state->getValue(array_merge($edit_path, ['auto_promote_waitlist']))
+          ?? ($ticket->hasField('auto_promote_waitlist') && $ticket->get('auto_promote_waitlist')->value ? 1 : 0)),
+      '#disabled' => $this->isUnlimitedCapacity($ticket),
+      '#parents' => array_merge($edit_path, ['auto_promote_waitlist']),
+    ];
+    $group_mode_default = (string) ($form_state->getValue(array_merge($edit_path, ['group_sale_mode']))
+      ?? ($ticket->hasField('group_sale_mode') && !$ticket->get('group_sale_mode')->isEmpty()
+        ? (string) $ticket->get('group_sale_mode')->value
+        : 'none'));
+    $card['edit']['secondary']['group_sale_mode'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Group rules'),
+      '#options' => [
+        'none' => $this->t('None'),
+        'fixed_bundle' => $this->t('Fixed bundle'),
+        'minimum_group_size' => $this->t('Minimum group size'),
+        'reserved_block' => $this->t('Reserved block / partner'),
+      ],
+      '#default_value' => $group_mode_default,
+      '#description' => $this->t('Quantity rules are enforced at checkout.'),
+      '#parents' => array_merge($edit_path, ['group_sale_mode']),
+    ];
+    $card['edit']['secondary']['group_min_size'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Minimum group size'),
+      '#min' => 0,
+      '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['group_min_size']))
+        ?? ($ticket->hasField('group_min_size') && !$ticket->get('group_min_size')->isEmpty()
+          ? (string) (int) $ticket->get('group_min_size')->value
+          : '')),
+      '#parents' => array_merge($edit_path, ['group_min_size']),
+    ];
+    $card['edit']['secondary']['group_bundle_size'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Bundle / block size'),
+      '#min' => 0,
+      '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['group_bundle_size']))
+        ?? ($ticket->hasField('group_bundle_size') && !$ticket->get('group_bundle_size')->isEmpty()
+          ? (string) (int) $ticket->get('group_bundle_size')->value
+          : '')),
+      '#parents' => array_merge($edit_path, ['group_bundle_size']),
+    ];
+    $card['edit']['secondary']['hidden_label'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Internal label (optional)'),
+      '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['hidden_label']))
+        ?? ($ticket->hasField('hidden_label') ? (string) ($ticket->get('hidden_label')->value ?? '') : '')),
+      '#parents' => array_merge($edit_path, ['hidden_label']),
+    ];
+
+    $card['edit']['validation'] = [
+      '#markup' => '<div class="mel-ticket-card__validation" data-mel-ticket-validation aria-live="polite"></div>',
+    ];
+
+    $card['edit']['actions'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-ticket-card__actions', 'mel-ticket-edit__actions']],
+    ];
+
+    $limit_edit = [$this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit')];
+
+    $card['edit']['actions']['save'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Save changes'),
+      '#name' => 'save_' . $tid,
+      '#submit' => ['::handleAction'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildTicketBuilder',
+        'wrapper' => self::BUILDER_WRAPPER_ID,
+      ],
+      '#limit_validation_errors' => $limit_edit,
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--primary', 'js-mel-ticket-save'],
+        'formnovalidate' => 'formnovalidate',
+      ],
+    ];
+
+    $card['edit']['actions']['cancel'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'button',
+      '#value' => $this->t('Cancel'),
+      '#attributes' => [
+        'type' => 'button',
+        'class' => ['mel-btn', 'mel-btn--secondary', 'js-mel-ticket-cancel'],
+        'data-mel-ticket-cancel' => '1',
+      ],
+    ];
+
+    $card['edit']['actions']['duplicate'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Duplicate'),
+      '#name' => 'ticket_duplicate_' . $tid,
+      '#submit' => ['::handleAction'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildTicketBuilder',
+        'wrapper' => self::BUILDER_WRAPPER_ID,
+      ],
+      '#limit_validation_errors' => [],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--secondary'],
+        'formnovalidate' => 'formnovalidate',
+      ],
+    ];
+
+    $card['edit']['actions']['archive'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Archive'),
+      '#name' => 'ticket_archive_' . $tid,
+      '#submit' => ['::handleAction'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildTicketBuilder',
+        'wrapper' => self::BUILDER_WRAPPER_ID,
+      ],
+      '#limit_validation_errors' => [],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--danger'],
+        'formnovalidate' => 'formnovalidate',
       ],
     ];
   }
@@ -913,7 +963,7 @@ final class EventTicketsBuilder {
 
   private function createTicket(FormStateInterface $form_state, NodeInterface $event, bool $quiet = FALSE): void {
     $values = $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields')) ?? [];
-    $payload = $this->normalisePayload($values, $event, TRUE);
+    $payload = $this->lifecycle->buildTicketValuesFromInput($event, $this->currentUser, $values);
     $this->lifecycle->createAttachAndSync($event, $payload);
     if (!$quiet) {
       $this->messenger->addStatus($this->t('Ticket created.'));
@@ -937,7 +987,12 @@ final class EventTicketsBuilder {
           $this->messenger->addStatus($this->t('Tickets saved and synced.'));
         }
         catch (\InvalidArgumentException $e) {
-          $this->messenger->addError($this->t('Could not save ticket: @message', ['@message' => $e->getMessage()]));
+          if ($this->isCurrencyMismatchException($e)) {
+            $this->messenger->addError($this->t(TicketTierLifecycleService::CURRENCY_MISMATCH_MESSAGE));
+          }
+          else {
+            $this->messenger->addError($this->t('Could not save ticket: @message', ['@message' => $e->getMessage()]));
+          }
         }
         return;
       }
@@ -959,77 +1014,8 @@ final class EventTicketsBuilder {
         throw new \InvalidArgumentException('Ticket not found on this event.');
       }
 
-      $title = trim((string) ($card['title'] ?? ''));
-      if ($title === '') {
-        throw new \InvalidArgumentException('Ticket title is required.');
-      }
-
-      $payload = ['title' => $title];
-      $kind = $ticket->getTicketKind();
-
-      if (in_array($kind, ['paid', 'rsvp'], TRUE)) {
-        $capacity = (int) ($card['capacity'] ?? 0);
-        if ($capacity < 1) {
-          throw new \InvalidArgumentException('Capacity must be at least 1.');
-        }
-        $payload['capacity'] = $capacity;
-      }
-      elseif (array_key_exists('capacity', $card)) {
-        $payload['capacity'] = (int) $card['capacity'];
-      }
-
-      if ($kind === 'paid' && array_key_exists('price', $card)) {
-        $existing = $ticket->toPriceValue();
-        $currency = $existing
-          ? $existing->getCurrencyCode()
-          : $this->ticketTypeManager->getDefaultCurrencyCodeForEvent($event);
-        $num = trim((string) $card['price']);
-        if ($num === '' || !is_numeric($num) || (float) $num <= 0) {
-          throw new \InvalidArgumentException('Paid tickets require a price greater than zero.');
-        }
-        $payload['price'] = [
-          'number' => $num,
-          'currency_code' => $currency,
-        ];
-      }
-
-      if (array_key_exists('status_published', $card)) {
-        $payload['status'] = !empty($card['status_published']) ? 1 : 0;
-      }
-
-      if (isset($card['visibility_mode'])) {
-        $payload['visibility_mode'] = (string) $card['visibility_mode'];
-      }
-      if (array_key_exists('hidden_label', $card)) {
-        $payload['hidden_label'] = trim((string) $card['hidden_label']);
-      }
-      if (array_key_exists('short_description', $card)) {
-        $payload['short_description'] = $this->normalizeShortDescription((string) ($card['short_description'] ?? ''));
-      }
-      if (array_key_exists('waitlist_enabled', $card)) {
-        $payload['waitlist_enabled'] = !empty($card['waitlist_enabled']) ? 1 : 0;
-      }
-      if (array_key_exists('waitlist_capacity', $card)) {
-        $v = trim((string) $card['waitlist_capacity']);
-        $payload['waitlist_capacity'] = $v === '' ? NULL : max(0, (int) $v);
-      }
-      if (array_key_exists('auto_promote_waitlist', $card)) {
-        $payload['auto_promote_waitlist'] = !empty($card['auto_promote_waitlist']) ? 1 : 0;
-      }
-      if (isset($card['group_sale_mode'])) {
-        $payload['group_sale_mode'] = (string) $card['group_sale_mode'];
-      }
-      if (array_key_exists('group_min_size', $card)) {
-        $v = trim((string) $card['group_min_size']);
-        $payload['group_min_size'] = $v === '' ? NULL : max(0, (int) $v);
-      }
-      if (array_key_exists('group_bundle_size', $card)) {
-        $v = trim((string) $card['group_bundle_size']);
-        $payload['group_bundle_size'] = $v === '' ? NULL : max(0, (int) $v);
-      }
-
-      $this->applyPayloadToExistingTicket($ticket, $payload);
-      $this->lifecycle->updateTicketType($ticket, $event);
+      $payload = $this->lifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $card);
+      $this->lifecycle->updateTicketType($ticket, $event, $payload);
       $this->messenger->addStatus($this->t('Ticket updated.'));
       $success = TRUE;
     }
@@ -1043,93 +1029,35 @@ final class EventTicketsBuilder {
         ]
       );
 
-      $this->messenger->addError($this->t('We couldn’t save this ticket. Please check your details and try again.'));
+      if ($this->isCurrencyMismatchException($e)) {
+        $this->messenger->addError($this->t(TicketTierLifecycleService::CURRENCY_MISMATCH_MESSAGE));
+      }
+      else {
+        $this->messenger->addError($this->t('We couldn’t save this ticket. Please check your details and try again.'));
+      }
     }
 
     if ($success) {
       $form_state->set('editing_ticket_id', NULL);
     }
+    else {
+      $form_state->set('editing_ticket_id', $tid);
+    }
   }
 
-  /**
-   * @param array<string, mixed> $payload
-   *   Output-shaped array from normalisePayload().
-   */
-  private function applyPayloadToExistingTicket(TicketTypeInterface $ticket, array $payload): void {
-    if (isset($payload['title'])) {
-      $ticket->setTitle($payload['title']);
-    }
-    if (isset($payload['ticket_kind'])) {
-      $ticket->set('ticket_kind', $payload['ticket_kind']);
-    }
-    if (array_key_exists('status', $payload)) {
-      $ticket->set('status', (int) $payload['status']);
-    }
-    if (isset($payload['capacity'])) {
-      $ticket->set('capacity', (int) $payload['capacity']);
-    }
-    if (isset($payload['price'])) {
-      $ticket->set('price', [[
-        'number' => (string) $payload['price']['number'],
-        'currency_code' => (string) $payload['price']['currency_code'],
-      ]]);
-    }
-    if (isset($payload['external_url'])) {
-      $row = $payload['external_url'];
-      $ticket->set('external_url', [[
-        'uri' => $row['uri'],
-        'title' => $row['title'] ?? '',
-      ]]);
-    }
-    if (isset($payload['rsvp_limit'])) {
-      $ticket->set('rsvp_limit', (int) $payload['rsvp_limit']);
-    }
-    if (array_key_exists('sale_start', $payload)) {
-      $v = $payload['sale_start'];
-      $ticket->set('sale_start', ($v !== NULL && $v !== '') ? ['value' => $v] : NULL);
-    }
-    if (array_key_exists('sale_end', $payload)) {
-      $v = $payload['sale_end'];
-      $ticket->set('sale_end', ($v !== NULL && $v !== '') ? ['value' => $v] : NULL);
-    }
-    if (isset($payload['visibility_mode']) && $ticket->hasField('visibility_mode')) {
-      $ticket->set('visibility_mode', $payload['visibility_mode']);
-    }
-    if (array_key_exists('hidden_label', $payload) && $ticket->hasField('hidden_label')) {
-      $v = $payload['hidden_label'];
-      $ticket->set('hidden_label', $v === '' ? NULL : $v);
-    }
-    if (array_key_exists('short_description', $payload) && $ticket->hasField('short_description')) {
-      $v = $payload['short_description'];
-      $ticket->set('short_description', ($v === NULL || $v === '') ? NULL : (string) $v);
-    }
-    if (array_key_exists('waitlist_enabled', $payload) && $ticket->hasField('waitlist_enabled')) {
-      $ticket->set('waitlist_enabled', (bool) $payload['waitlist_enabled']);
-    }
-    if (array_key_exists('waitlist_capacity', $payload) && $ticket->hasField('waitlist_capacity')) {
-      $v = $payload['waitlist_capacity'];
-      $ticket->set('waitlist_capacity', ($v === NULL || $v === '') ? NULL : (int) $v);
-    }
-    if (array_key_exists('auto_promote_waitlist', $payload) && $ticket->hasField('auto_promote_waitlist')) {
-      $ticket->set('auto_promote_waitlist', (bool) $payload['auto_promote_waitlist']);
-    }
-    if (isset($payload['group_sale_mode']) && $ticket->hasField('group_sale_mode')) {
-      $ticket->set('group_sale_mode', $payload['group_sale_mode']);
-    }
-    if (array_key_exists('group_min_size', $payload) && $ticket->hasField('group_min_size')) {
-      $v = $payload['group_min_size'];
-      $ticket->set('group_min_size', ($v === NULL || $v === '') ? NULL : (int) $v);
-    }
-    if (array_key_exists('group_bundle_size', $payload) && $ticket->hasField('group_bundle_size')) {
-      $v = $payload['group_bundle_size'];
-      $ticket->set('group_bundle_size', ($v === NULL || $v === '') ? NULL : (int) $v);
-    }
+  private function isCurrencyMismatchException(\Throwable $e): bool {
+    return $e instanceof \InvalidArgumentException
+      && $e->getMessage() === TicketTierLifecycleService::CURRENCY_MISMATCH_MESSAGE;
   }
 
   private function removeTicket(NodeInterface $event, string $name): void {
     $tid = (int) str_replace('ticket_remove_', '', $name);
-    $this->lifecycle->detachTicketFromEvent($event, $tid);
-    $this->messenger->addStatus($this->t('Ticket removed from this event.'));
+    $ticket = $this->findEventTicket($event, $tid);
+    if (!$ticket) {
+      throw new \InvalidArgumentException('Ticket not found on this event.');
+    }
+    $this->lifecycle->archiveTicketOnEvent($event, $ticket);
+    $this->messenger->addStatus($this->t('Ticket removed from this event and archived.'));
   }
 
   private function duplicateTicket(NodeInterface $event, string $name): void {
@@ -1185,13 +1113,13 @@ final class EventTicketsBuilder {
     if ($ticket->hasField('short_description') && !$ticket->get('short_description')->isEmpty()) {
       $payload['short_description'] = (string) $ticket->get('short_description')->value;
     }
-    if ($ticket->hasField('waitlist_enabled')) {
+    if (!$this->isUnlimitedCapacity($ticket) && $ticket->hasField('waitlist_enabled')) {
       $payload['waitlist_enabled'] = $ticket->get('waitlist_enabled')->value ? 1 : 0;
     }
-    if ($ticket->hasField('waitlist_capacity') && !$ticket->get('waitlist_capacity')->isEmpty()) {
+    if (!$this->isUnlimitedCapacity($ticket) && $ticket->hasField('waitlist_capacity') && !$ticket->get('waitlist_capacity')->isEmpty()) {
       $payload['waitlist_capacity'] = (int) $ticket->get('waitlist_capacity')->value;
     }
-    if ($ticket->hasField('auto_promote_waitlist')) {
+    if (!$this->isUnlimitedCapacity($ticket) && $ticket->hasField('auto_promote_waitlist')) {
       $payload['auto_promote_waitlist'] = $ticket->get('auto_promote_waitlist')->value ? 1 : 0;
     }
     if ($ticket->hasField('group_sale_mode') && !$ticket->get('group_sale_mode')->isEmpty()) {
@@ -1317,97 +1245,63 @@ final class EventTicketsBuilder {
     return NULL;
   }
 
-  private function normalisePayload(array $values, NodeInterface $event, bool $is_new): array {
-    $kind = (string) ($values['ticket_kind'] ?? 'paid');
-    $title = trim((string) ($values['title'] ?? ''));
-
-    if ($title === '') {
-      throw new \InvalidArgumentException('Ticket title is required.');
-    }
-
-    $payload = [
-      'title' => $title,
-      'ticket_kind' => $kind,
-      'vendor_id' => ['target_id' => (int) $this->currentUser->id()],
-      'status' => array_key_exists('status', $values)
-        ? (!empty($values['status']) ? 1 : 0)
-        : 1,
-    ];
-
-    $short_desc = $this->normalizeShortDescription((string) ($values['short_description'] ?? ''));
-    if ($short_desc !== NULL) {
-      $payload['short_description'] = $short_desc;
-    }
-
-    if ($is_new || $kind !== 'external') {
-      $payload['event'] = ['target_id' => (int) $event->id()];
-    }
-    $payload['is_reusable'] = FALSE;
-
-    if (in_array($kind, ['paid', 'rsvp'], TRUE)) {
-      $capacity = (int) ($values['capacity'] ?? 0);
-      if ($capacity < 1) {
-        throw new \InvalidArgumentException('Capacity must be at least 1.');
-      }
-      $payload['capacity'] = $capacity;
-    }
-
-    if ($kind === 'paid') {
-      $amount = trim((string) ($values['price_amount'] ?? ''));
-      $currency = strtoupper(trim((string) ($values['price_currency'] ?? '')));
-      if ($amount === '' || !is_numeric($amount) || (float) $amount <= 0) {
-        throw new \InvalidArgumentException('Paid tickets require a price greater than zero.');
-      }
-      if (!preg_match('/^[A-Z]{3}$/', $currency)) {
-        throw new \InvalidArgumentException('Enter a valid 3-letter currency code.');
-      }
-      $payload['price'] = [
-        'number' => $amount,
-        'currency_code' => $currency,
-      ];
-    }
-
-    if ($kind === 'external') {
-      $uri = trim((string) ($values['external_uri'] ?? ''));
-      if ($uri === '' || !str_starts_with(strtolower($uri), 'https://')) {
-        throw new \InvalidArgumentException('External tickets require a valid https URL.');
-      }
-      $payload['external_url'] = [
-        'uri' => $uri,
-        'title' => '',
-      ];
-    }
-
-    if ($kind === 'rsvp' && !empty($values['rsvp_limit'])) {
-      $payload['rsvp_limit'] = (int) $values['rsvp_limit'];
-    }
-
-    foreach (['sale_start', 'sale_end'] as $key) {
-      if (!empty($values[$key]) && $values[$key] instanceof DrupalDateTime) {
-        $payload[$key] = $values[$key]->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
-      }
-    }
-
-    return $payload;
-  }
-
   /**
    * Human-readable price line for card header (escaped HTML string).
    */
   private function formatPrice(TicketTypeInterface $ticket): string {
+    return Html::escape($this->formatPriceText($ticket));
+  }
+
+  /**
+   * Human-readable price text for compact ticket cards.
+   */
+  private function formatPriceText(TicketTypeInterface $ticket): string {
     $kind = $ticket->getTicketKind();
     if ($kind === 'paid') {
       $price = $ticket->toPriceValue();
       if ($price) {
-        $formatted = $price->getCurrencyCode() . ' ' . $this->formatPriceNumberForDisplay((string) $price->getNumber());
-        return Html::escape($formatted);
+        return $price->getCurrencyCode() . ' ' . $this->formatPriceNumberForDisplay((string) $price->getNumber());
       }
-      return Html::escape((string) $this->t('—'));
+      return (string) $this->t('—');
     }
     if ($kind === 'rsvp') {
-      return Html::escape((string) $this->t('$0'));
+      return (string) $this->t('$0');
     }
-    return Html::escape((string) $this->t('External'));
+    return (string) $this->t('External');
+  }
+
+  /**
+   * Compact price/capacity line for the view card.
+   */
+  private function buildCardPriceCapacityLine(TicketTypeInterface $ticket): string {
+    return $this->formatPriceText($ticket) . ' • ' . $this->formatCapacityText($ticket);
+  }
+
+  /**
+   * Capacity label for compact ticket cards.
+   */
+  private function formatCapacityText(TicketTypeInterface $ticket): string {
+    if ($this->isUnlimitedCapacity($ticket)) {
+      return (string) $this->t('Unlimited');
+    }
+    $capacity = (int) $ticket->get('capacity')->value;
+    return (string) $this->formatPlural($capacity, '1 spot', '@count spots');
+  }
+
+  private function isUnlimitedCapacity(TicketTypeInterface $ticket): bool {
+    return $ticket->get('capacity')->isEmpty() || (int) $ticket->get('capacity')->value < 1;
+  }
+
+  /**
+   * Public/private visibility label for the compact card.
+   */
+  private function ticketVisibilityLabel(TicketTypeInterface $ticket): string {
+    if ($ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()) {
+      return (string) ($ticket->get('visibility_mode')->value === 'public'
+        ? $this->t('Public')
+        : $this->t('Private'));
+    }
+    return (string) $this->t('Public');
   }
 
   /**
@@ -1437,8 +1331,31 @@ final class EventTicketsBuilder {
       TicketStatusService::STATUS_ENDED,
       TicketStatusService::STATUS_SOLD_OUT,
       TicketStatusService::STATUS_INACTIVE,
+      TicketStatusService::STATUS_ARCHIVED,
     ];
     return in_array($status, $allowed, TRUE) ? $status : TicketStatusService::STATUS_INACTIVE;
+  }
+
+  /**
+   * Simplified lifecycle label requested by the MEL card UI.
+   */
+  private function ticketCardStatusLabel(string $status): string {
+    return match ($status) {
+      TicketStatusService::STATUS_ARCHIVED => (string) $this->t('Archived'),
+      TicketStatusService::STATUS_INACTIVE => (string) $this->t('Draft'),
+      default => (string) $this->t('Active'),
+    };
+  }
+
+  /**
+   * Safe CSS suffix for simplified card status badges.
+   */
+  private function ticketCardStatusClassSuffix(string $status): string {
+    return match ($status) {
+      TicketStatusService::STATUS_ARCHIVED => 'archived',
+      TicketStatusService::STATUS_INACTIVE => 'draft',
+      default => 'active',
+    };
   }
 
   /**
@@ -1454,7 +1371,7 @@ final class EventTicketsBuilder {
       $revDisplay = $gross['currency_code'] . ' ' . $this->formatPriceNumberForDisplay((string) $gross['number']);
     }
     $remaining = $rollup['total_remaining'];
-    $remDisplay = $remaining === NULL ? '—' : (string) $remaining;
+    $remDisplay = $remaining === NULL ? (string) $this->t('Unlimited') : (string) $remaining;
 
     $note = (string) ($rollup['conversion_note'] ?? '');
     $html = '<div class="mel-ticket-analytics-strip" role="region" aria-label="' . Html::escape((string) $this->t('Ticket sales summary')) . '">';
@@ -1493,9 +1410,10 @@ final class EventTicketsBuilder {
     $metrics = $this->tierAnalytics->buildTierMetrics($ticket);
     $sold = (int) $metrics['sold'];
     $capacity = $metrics['capacity'];
-    $capDisplay = ($capacity !== NULL && $capacity > 0) ? (string) $capacity : '—';
+    $isUnlimited = $capacity === NULL || $capacity < 1;
+    $capDisplay = $isUnlimited ? (string) $this->t('Unlimited') : (string) $capacity;
     $remaining = $metrics['remaining'];
-    $remDisplay = $remaining === NULL ? '—' : (string) $remaining;
+    $remDisplay = $remaining === NULL ? (string) $this->t('Unlimited') : (string) $remaining;
     $pct = $metrics['sell_through_percent'];
     $pctDisplay = $pct === NULL ? '—' : (string) $pct . '%';
 
@@ -1558,7 +1476,7 @@ final class EventTicketsBuilder {
         },
       ];
     }
-    if ($ticket->hasField('waitlist_enabled') && $ticket->get('waitlist_enabled')->value) {
+    if (!$this->isUnlimitedCapacity($ticket) && $ticket->hasField('waitlist_enabled') && $ticket->get('waitlist_enabled')->value) {
       $badges[] = [
         'label' => (string) $this->t('Waitlist'),
         'class' => 'mel-badge--access-waitlist',
@@ -1573,20 +1491,6 @@ final class EventTicketsBuilder {
       $html .= '<span class="mel-badge mel-badge--access ' . Html::escape($badge['class']) . '">' . Html::escape($badge['label']) . '</span>';
     }
     return $html;
-  }
-
-  /**
-   * Normalises optional buyer-facing copy (plain text, max length).
-   */
-  private function normalizeShortDescription(string $raw): ?string {
-    $t = trim($raw);
-    if ($t === '') {
-      return NULL;
-    }
-    if (mb_strlen($t) > self::SHORT_DESCRIPTION_MAX_LENGTH) {
-      $t = mb_substr($t, 0, self::SHORT_DESCRIPTION_MAX_LENGTH);
-    }
-    return $t;
   }
 
   private function findEventTicket(NodeInterface $event, int $tid): ?TicketTypeInterface {

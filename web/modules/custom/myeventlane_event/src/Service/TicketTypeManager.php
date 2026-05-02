@@ -55,6 +55,11 @@ final class TicketTypeManager {
       return FALSE;
     }
 
+    $ticketTypes = $this->loadAllEventTicketTypes($event);
+    if ($this->hasMixedPublishedPaidTicketCurrencies($ticketTypes, $event)) {
+      return FALSE;
+    }
+
     $product = $this->getOrCreateTicketProduct($event);
     if (!$product) {
       $this->loggerFactory->get('myeventlane_event')->error(
@@ -64,11 +69,13 @@ final class TicketTypeManager {
       return FALSE;
     }
 
-    $ticketTypes = $this->loadEventTicketTypes($event);
     $activeVariationUuids = [];
 
     foreach ($ticketTypes as $ticket) {
       if (!$ticket instanceof TicketTypeInterface || $ticket->getTicketKind() !== 'paid') {
+        continue;
+      }
+      if ($ticket->isArchived()) {
         continue;
       }
       if (!$ticket->isPublished()) {
@@ -108,6 +115,177 @@ final class TicketTypeManager {
       }
     }
     return $out;
+  }
+
+  /**
+   * Loads ticket type entities attached to the event by field or inverse ref.
+   *
+   * @return \Drupal\mel_ticket\Entity\TicketTypeInterface[]
+   *   Ticket entities keyed by id.
+   */
+  public function loadAllEventTicketTypes(NodeInterface $event): array {
+    $out = $this->loadEventTicketTypes($event);
+    $event_id = $event->id();
+    if ($event_id === NULL || !$this->entityTypeManager->hasDefinition('mel_ticket_type')) {
+      return $out;
+    }
+
+    $ticket_storage = $this->entityTypeManager->getStorage('mel_ticket_type');
+    $inverse_ids = array_values(array_map(
+      'intval',
+      array_values($ticket_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event', (int) $event_id)
+        ->execute()),
+    ));
+    if ($inverse_ids === []) {
+      return $out;
+    }
+
+    foreach ($ticket_storage->loadMultiple($inverse_ids) as $entity) {
+      if ($entity instanceof TicketTypeInterface) {
+        $out[(int) $entity->id()] = $entity;
+      }
+    }
+
+    ksort($out);
+    return $out;
+  }
+
+  /**
+   * Returns paid ticket currencies for an event, keyed by ticket id.
+   *
+   * @return array<int, string>
+   *   Uppercase currency code keyed by ticket id.
+   */
+  public function getPaidTicketCurrenciesByTicketIdForEvent(NodeInterface $event, ?int $excludeTicketId = NULL): array {
+    $currencies = [];
+    foreach ($this->loadAllEventTicketTypes($event) as $ticket) {
+      $ticket_id = (int) $ticket->id();
+      if ($excludeTicketId !== NULL && $ticket_id === $excludeTicketId) {
+        continue;
+      }
+      if ($ticket->isArchived()) {
+        continue;
+      }
+      if ($ticket->getTicketKind() !== 'paid') {
+        continue;
+      }
+
+      $price = $ticket->toPriceValue();
+      if ($price instanceof Price) {
+        $currencies[$ticket_id] = strtoupper($price->getCurrencyCode());
+      }
+    }
+
+    return $currencies;
+  }
+
+  /**
+   * Validates a proposed paid ticket currency against existing event tickets.
+   */
+  public function paidTicketCurrencyMatchesEvent(NodeInterface $event, string $currencyCode, ?int $excludeTicketId = NULL): bool {
+    $new_currency = strtoupper(trim($currencyCode));
+    if ($new_currency === '') {
+      return TRUE;
+    }
+
+    $existing_currencies = array_values(array_unique($this->getPaidTicketCurrenciesByTicketIdForEvent($event, $excludeTicketId)));
+    if ($existing_currencies === []) {
+      return TRUE;
+    }
+
+    foreach ($existing_currencies as $existing_currency) {
+      if ($existing_currency !== $new_currency) {
+        $this->loggerFactory->get('myeventlane_event')->error(
+          'Ticket currency mismatch blocked for event @eid: existing=@existing, attempted=@attempted, excluded_ticket=@excluded.',
+          [
+            '@eid' => (string) $event->id(),
+            '@existing' => implode(', ', $existing_currencies),
+            '@attempted' => $new_currency,
+            '@excluded' => $excludeTicketId !== NULL ? (string) $excludeTicketId : 'none',
+          ]
+        );
+        return FALSE;
+      }
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Loads published paid ticket prices attached to the event.
+   *
+   * @return \Drupal\commerce_price\Price[]
+   *   Paid ticket prices.
+   */
+  public function loadPublishedPaidTicketPrices(NodeInterface $event): array {
+    $prices = [];
+    foreach ($this->loadAllEventTicketTypes($event) as $ticket) {
+      if (!$ticket instanceof TicketTypeInterface || $ticket->getTicketKind() !== 'paid') {
+        continue;
+      }
+      if ($ticket->isArchived()) {
+        continue;
+      }
+      if (!$ticket->isPublished()) {
+        continue;
+      }
+
+      $price = $ticket->toPriceValue();
+      if ($price instanceof Price) {
+        $prices[] = $price;
+      }
+    }
+
+    return $prices;
+  }
+
+  /**
+   * Returns TRUE when an event has published paid tiers in multiple currencies.
+   */
+  public function eventHasMixedPublishedPaidTicketCurrencies(NodeInterface $event): bool {
+    return $this->hasMixedPublishedPaidTicketCurrencies($this->loadAllEventTicketTypes($event), $event);
+  }
+
+  /**
+   * Checks loaded ticket types for mixed published paid currencies.
+   *
+   * @param \Drupal\mel_ticket\Entity\TicketTypeInterface[] $ticketTypes
+   *   Ticket type entities.
+   */
+  private function hasMixedPublishedPaidTicketCurrencies(array $ticketTypes, NodeInterface $event): bool {
+    $currencies = [];
+    foreach ($ticketTypes as $ticket) {
+      if (!$ticket instanceof TicketTypeInterface || $ticket->getTicketKind() !== 'paid') {
+        continue;
+      }
+      if ($ticket->isArchived()) {
+        continue;
+      }
+      if (!$ticket->isPublished()) {
+        continue;
+      }
+
+      $price = $ticket->toPriceValue();
+      if ($price instanceof Price) {
+        $currencyCode = strtoupper($price->getCurrencyCode());
+        $currencies[$currencyCode] = $currencyCode;
+      }
+    }
+
+    if (count($currencies) <= 1) {
+      return FALSE;
+    }
+
+    $this->loggerFactory->get('myeventlane_event')->error(
+      'Mixed paid ticket currencies found for event @eid: @currencies.',
+      [
+        '@eid' => (string) $event->id(),
+        '@currencies' => implode(', ', array_values($currencies)),
+      ]
+    );
+    return TRUE;
   }
 
   /**
@@ -227,6 +405,7 @@ final class TicketTypeManager {
       $variation->save();
 
       $ticket->set('commerce_variation', ['target_id' => $variation->id()]);
+      // Projection-only mutation allowed. Business logic must go through TicketTierLifecycleService.
       $ticket->save();
 
       $existing_variations = $product->getVariations();

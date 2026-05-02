@@ -1,15 +1,66 @@
 /**
  * @file
- * Drag-and-drop reorder for ticket cards; triggers Form API AJAX reorder submit.
+ * Ticket card interactions: edit state, inline validation, and reorder.
  */
 
 (function (Drupal, once) {
   'use strict';
 
-  /**
-   * @param {HTMLElement} list
-   * @return {number[]}
-   */
+  const PENDING_SAVE_KEY = 'melTicketCardsPendingSaves';
+  const ACTIVE_EDIT_KEY = 'melTicketCardsActiveEdits';
+
+  function elementsFromContext(selector, context) {
+    const root = context || document;
+    const matches = [];
+    if (root.nodeType === Node.ELEMENT_NODE && root.matches(selector)) {
+      matches.push(root);
+    }
+    root.querySelectorAll(selector).forEach((element) => matches.push(element));
+    return matches;
+  }
+
+  function ticketStorageIds(key) {
+    try {
+      return JSON.parse(window.sessionStorage.getItem(key) || '[]');
+    }
+    catch (e) {
+      return [];
+    }
+  }
+
+  function writeTicketStorageIds(key, ids) {
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify([...new Set(ids)]));
+    }
+    catch (e) {
+      // Storage may be unavailable in private contexts; interaction still works.
+    }
+  }
+
+  function rememberActiveEdit(card) {
+    const id = card.getAttribute('data-ticket-id');
+    if (!id) {
+      return;
+    }
+    writeTicketStorageIds(ACTIVE_EDIT_KEY, [...ticketStorageIds(ACTIVE_EDIT_KEY), id]);
+  }
+
+  function forgetActiveEdit(card) {
+    const id = card.getAttribute('data-ticket-id');
+    if (!id) {
+      return;
+    }
+    writeTicketStorageIds(
+      ACTIVE_EDIT_KEY,
+      ticketStorageIds(ACTIVE_EDIT_KEY).filter((activeId) => String(activeId) !== String(id)),
+    );
+  }
+
+  function shouldRestoreEdit(card) {
+    const id = card.getAttribute('data-ticket-id');
+    return Boolean(id && ticketStorageIds(ACTIVE_EDIT_KEY).map(String).includes(String(id)));
+  }
+
   function collectTicketIds(list) {
     const cards = list.querySelectorAll('.js-mel-ticket-card[data-ticket-id]');
     const ids = [];
@@ -102,6 +153,319 @@
       },
       { offset: Number.NEGATIVE_INFINITY, element: null },
     ).element;
+  }
+
+  function editableFields(card) {
+    const edit = card.querySelector('[data-mel-ticket-edit]') || card;
+    return [...edit.querySelectorAll('input, select, textarea')].filter((field) => {
+      const type = (field.getAttribute('type') || '').toLowerCase();
+      return !field.disabled && !['hidden', 'submit', 'button', 'reset'].includes(type);
+    });
+  }
+
+  function fieldLabel(field) {
+    const item = field.closest('.form-item, .form-type-checkbox');
+    const label = item ? item.querySelector('label') : null;
+    return label ? label.textContent.trim().replace(/\s+/g, ' ') : field.getAttribute('name') || 'Field';
+  }
+
+  function fieldSignature(card) {
+    return editableFields(card)
+      .map((field) => {
+        const name = field.getAttribute('name') || '';
+        if (field.type === 'checkbox' || field.type === 'radio') {
+          return `${name}:${field.checked ? '1' : '0'}`;
+        }
+        return `${name}:${field.value}`;
+      })
+      .join('|');
+  }
+
+  function stateLabel(state) {
+    return {
+      dirty: 'Unsaved changes',
+      saving: 'Saving...',
+      saved: 'Saved',
+    }[state] || '';
+  }
+
+  function setCardState(card, state) {
+    const labels = card.querySelectorAll('[data-mel-ticket-state]');
+    labels.forEach((label) => {
+      label.textContent = stateLabel(state);
+      label.hidden = state === '';
+      label.setAttribute('data-mel-ticket-state-value', state);
+    });
+    card.setAttribute('data-mel-ticket-state-value', state);
+  }
+
+  function fieldWrapper(field) {
+    return field.closest('.form-item, .form-type-checkbox') || field.parentElement;
+  }
+
+  function clearFieldError(field) {
+    field.removeAttribute('aria-invalid');
+    const wrapper = fieldWrapper(field);
+    if (!wrapper) {
+      return;
+    }
+    wrapper.querySelectorAll('.mel-ticket-field-error[data-mel-ticket-field-error]').forEach((error) => {
+      error.remove();
+    });
+  }
+
+  function setFieldError(field, message) {
+    clearFieldError(field);
+    field.setAttribute('aria-invalid', 'true');
+    const id =
+      field.id ||
+      `mel-ticket-field-${Math.random().toString(36).slice(2)}`;
+    if (!field.id) {
+      field.id = id;
+    }
+    const error = document.createElement('div');
+    error.className = 'mel-ticket-field-error';
+    error.setAttribute('data-mel-ticket-field-error', '1');
+    error.id = `${id}-error`;
+    error.textContent = message;
+    field.setAttribute('aria-describedby', `${field.getAttribute('aria-describedby') || ''} ${error.id}`.trim());
+    field.insertAdjacentElement('afterend', error);
+  }
+
+  function validateRequiredFields(card) {
+    let valid = true;
+    editableFields(card).forEach((field) => {
+      clearFieldError(field);
+      if (
+        field.matches('[required], [aria-required="true"], .js-mel-ticket-title') &&
+        String(field.value || '').trim() === ''
+      ) {
+        const message = field.getAttribute('data-mel-ticket-required-message') || `${fieldLabel(field)} is required.`;
+        setFieldError(field, message);
+        valid = false;
+      }
+    });
+    return valid;
+  }
+
+  function updateEditState(card) {
+    const validation = card.querySelector('[data-mel-ticket-validation]');
+    const initial = card.getAttribute('data-mel-ticket-initial') || '';
+    let invalid = false;
+
+    editableFields(card).forEach((field) => {
+      if (field.matches('[aria-invalid="true"]')) {
+        invalid = true;
+      }
+    });
+
+    card.classList.toggle('is-invalid', invalid);
+    if (validation) {
+      validation.innerHTML = '';
+    }
+    if (card.getAttribute('data-mel-ticket-state-value') !== 'saving') {
+      setCardState(card, fieldSignature(card) === initial ? '' : 'dirty');
+    }
+  }
+
+  function initInlineEditCard(card) {
+    const initialized = card.hasAttribute('data-mel-ticket-inline-init');
+    card.setAttribute('data-mel-ticket-initial', fieldSignature(card));
+    if (!initialized) {
+      card.setAttribute('data-mel-ticket-inline-init', '1');
+    }
+    if (initialized) {
+      updateEditState(card);
+      return;
+    }
+    editableFields(card).forEach((field) => {
+      field.addEventListener('input', () => {
+        if (String(field.value || '').trim() !== '') {
+          clearFieldError(field);
+        }
+        updateEditState(card);
+      });
+      field.addEventListener('change', () => updateEditState(card));
+      field.addEventListener('invalid', (e) => {
+        e.preventDefault();
+        validateRequiredFields(card);
+        updateEditState(card);
+      });
+    });
+    updateEditState(card);
+  }
+
+  function setEditMode(card, editing, persist = true) {
+    card.classList.toggle('is-editing', editing);
+    card.classList.toggle('is-view', !editing);
+    const view = card.querySelector('[data-mel-ticket-view]');
+    const edit = card.querySelector('[data-mel-ticket-edit]');
+    card.querySelectorAll('[data-mel-ticket-edit-toggle]').forEach((toggle) => {
+      toggle.setAttribute('aria-expanded', editing ? 'true' : 'false');
+    });
+    if (view) {
+      view.hidden = editing;
+    }
+    if (edit) {
+      edit.hidden = !editing;
+    }
+    if (persist) {
+      if (editing) {
+        rememberActiveEdit(card);
+      }
+      else {
+        forgetActiveEdit(card);
+      }
+    }
+    if (editing) {
+      initInlineEditCard(card);
+      if (card.getAttribute('data-mel-ticket-state-value') !== 'dirty') {
+        setCardState(card, '');
+      }
+      const firstField = editableFields(card)[0];
+      if (firstField) {
+        firstField.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  function pendingSaveIds() {
+    return ticketStorageIds(PENDING_SAVE_KEY);
+  }
+
+  function writePendingSaveIds(ids) {
+    writeTicketStorageIds(PENDING_SAVE_KEY, ids);
+  }
+
+  function markPendingSave(card) {
+    const id = card.getAttribute('data-ticket-id');
+    if (!id) {
+      return;
+    }
+    writePendingSaveIds([...pendingSaveIds(), id]);
+  }
+
+  function consumePendingSaves(wrapper) {
+    const pending = pendingSaveIds();
+    if (pending.length === 0) {
+      return;
+    }
+    const remaining = [];
+    pending.forEach((id) => {
+      const escapedId = window.CSS && typeof window.CSS.escape === 'function'
+        ? window.CSS.escape(id)
+        : String(id).replace(/"/g, '\\"');
+      const card = wrapper.querySelector(`.js-mel-ticket-card[data-ticket-id="${escapedId}"]`);
+      if (!card) {
+        remaining.push(id);
+        return;
+      }
+      if (card.classList.contains('is-editing')) {
+        rememberActiveEdit(card);
+        setCardState(card, 'dirty');
+        return;
+      }
+      forgetActiveEdit(card);
+      setCardState(card, 'saved');
+      window.setTimeout(() => {
+        if (card.isConnected && card.getAttribute('data-mel-ticket-state-value') === 'saved') {
+          setCardState(card, '');
+        }
+      }, 3000);
+    });
+    writePendingSaveIds(remaining);
+  }
+
+  function handleDelegatedClick(e, wrapper) {
+    const target = e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+    if (!target) {
+      return;
+    }
+    const editToggle = target.closest('[data-mel-ticket-edit-toggle]');
+    if (editToggle && wrapper.contains(editToggle)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const card = editToggle.closest('.js-mel-ticket-card');
+      if (card) {
+        setEditMode(card, true);
+      }
+      return;
+    }
+
+    const cancel = target.closest('[data-mel-ticket-cancel]');
+    if (cancel && wrapper.contains(cancel)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const card = cancel.closest('.js-mel-ticket-card');
+      if (card) {
+        setEditMode(card, false);
+      }
+      return;
+    }
+
+    const submit = target.closest('.js-mel-ticket-save, .js-mel-ticket-create');
+    if (!submit || !wrapper.contains(submit)) {
+      return;
+    }
+    const card = submit.closest('.js-mel-ticket-card');
+    if (!card) {
+      return;
+    }
+    if (submit.classList.contains('js-mel-ticket-save') && !validateRequiredFields(card)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      updateEditState(card);
+      const invalid = card.querySelector('[aria-invalid="true"]');
+      if (invalid) {
+        invalid.focus();
+      }
+      return;
+    }
+    setCardState(card, 'saving');
+    markPendingSave(card);
+    forgetActiveEdit(card);
+  }
+
+  function initDocumentFallback() {
+    if (document.documentElement.hasAttribute('data-mel-ticket-document-fallback')) {
+      return;
+    }
+    document.documentElement.setAttribute('data-mel-ticket-document-fallback', '1');
+    document.addEventListener(
+      'click',
+      (e) => {
+        const target = e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+        const editToggle = target && target.closest ? target.closest('[data-mel-ticket-edit-toggle]') : null;
+        if (!editToggle) {
+          return;
+        }
+        const wrapper = editToggle.closest('#mel-ticket-builder-ajax-wrapper');
+        const card = editToggle.closest('.js-mel-ticket-card');
+        if (!wrapper || !card) {
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        setEditMode(card, true);
+      },
+      true,
+    );
+  }
+
+  function initEditToggle(toggle) {
+    toggle.addEventListener(
+      'click',
+      (e) => {
+        const card = toggle.closest('.js-mel-ticket-card');
+        if (!card) {
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        setEditMode(card, true);
+      },
+      true,
+    );
   }
 
   /**
@@ -199,16 +563,48 @@
     });
   }
 
-  Drupal.behaviors.melTicketCards = {
-    attach(context) {
-      once('mel-ticket-dnd', '#mel-ticket-builder-ajax-wrapper', context).forEach(
+  function attachTicketCards(context) {
+    initDocumentFallback();
+
+    once('mel-ticket-dnd', elementsFromContext('#mel-ticket-builder-ajax-wrapper', context)).forEach(
         (wrapper) => {
           const list = wrapper.querySelector('.js-mel-ticket-sortable');
           if (list) {
             initSortable(list, wrapper);
           }
         },
-      );
+    );
+
+    once('mel-ticket-card-delegated', elementsFromContext('#mel-ticket-builder-ajax-wrapper', context)).forEach(
+        (wrapper) => {
+          wrapper.addEventListener('click', (e) => handleDelegatedClick(e, wrapper), true);
+          consumePendingSaves(wrapper);
+        },
+    );
+
+    once('mel-ticket-edit-toggle-direct', elementsFromContext('[data-mel-ticket-edit-toggle]', context)).forEach(
+        (toggle) => initEditToggle(toggle),
+    );
+
+    once('mel-ticket-inline-edit', elementsFromContext('.js-mel-ticket-card[data-ticket-id]', context)).forEach(
+        (card) => {
+          initInlineEditCard(card);
+          const shouldEdit = card.classList.contains('is-editing') || shouldRestoreEdit(card);
+          setEditMode(card, shouldEdit, shouldEdit);
+        },
+    );
+  }
+
+  Drupal.behaviors.melTicketCards = {
+    attach(context) {
+      attachTicketCards(context);
     },
   };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => attachTicketCards(document), { once: true });
+  }
+  else {
+    attachTicketCards(document);
+  }
 })(Drupal, once);

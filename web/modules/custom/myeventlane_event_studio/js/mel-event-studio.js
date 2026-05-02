@@ -421,20 +421,20 @@
   }
 
   /**
-   * Tier titles from the inline ticket builder (paid/external/rsvp table).
+   * Tier titles from the inline ticket builder draft cards.
    *
    * @param {HTMLFormElement} form
    * @return {string[]}
    */
   function collectTierTitlesFromDom(form) {
-    var table = getBuilderTable(form);
-    if (!table) {
+    var list = getBuilderList(form);
+    if (!list) {
       return [];
     }
-    var rows = table.querySelectorAll('tbody .mel-tier-row');
+    var rows = list.querySelectorAll('.mel-tier-row');
     var out = [];
-    rows.forEach(function (tr) {
-      var titleEl = tr.querySelector('.mel-tier-title');
+    rows.forEach(function (card) {
+      var titleEl = card.querySelector('.mel-tier-title');
       var t = titleEl ? String(titleEl.value || '').trim() : '';
       if (t) {
         out.push(t);
@@ -618,8 +618,8 @@
       .filter(Boolean).length;
   }
 
-  function getBuilderTable(form) {
-    return form.querySelector('table[data-mel-ticket-builder-table]');
+  function getBuilderList(form) {
+    return form.querySelector('[data-mel-ticket-card-list="draft"]');
   }
 
   function getHighlightsTable(form) {
@@ -1023,20 +1023,17 @@
   /**
    * Count of ticket tier "signals" the user can perceive as configured.
    *
-   * Reads from whichever source the current Event Studio mode renders:
-   * inline tier table (new event), AJAX ticket cards (saved event), and the
-   * server-populated hidden JSON. Used by readiness/insights/summary so all
-   * three agree regardless of which builder is active.
+   * Reads from draft cards, saved AJAX cards, and hidden JSON so readiness and
+   * insights agree before and after the first event save.
    *
    * @param {HTMLFormElement} form
    * @return {number}
    */
   function paidTicketTierSignalCount(form) {
     var counts = [];
-
-    var table = getBuilderTable(form);
-    if (table) {
-      counts.push(table.querySelectorAll('tbody .mel-tier-row').length);
+    var list = getBuilderList(form);
+    if (list) {
+      counts.push(list.querySelectorAll('.mel-tier-row').length);
     }
 
     var ajaxShell = document.getElementById('mel-ticket-builder-ajax-wrapper');
@@ -1055,214 +1052,323 @@
     return Math.max.apply(null, counts);
   }
 
-  function getRenderedTicketTableKind(table) {
-    if (!table) {
-      return '';
+  function normalizeTicketKind(kind) {
+    kind = String(kind || '').trim();
+    if (kind === 'paid' || kind === 'external' || kind === 'rsvp') {
+      return kind;
     }
-    if (table.classList.contains('mel-ticket-builder-table--paid')) {
-      return 'paid';
-    }
-    if (table.classList.contains('mel-ticket-builder-table--external')) {
-      return 'external';
-    }
-    if (table.classList.contains('mel-ticket-builder-table--rsvp')) {
-      return 'rsvp';
-    }
-    return '';
+    return 'rsvp';
   }
 
   function normalizeTierCapacity(raw) {
-    var n = parseInt(raw, 10);
-    if (isNaN(n) || n < 1) {
-      return 1;
+    if (raw === null || raw === undefined || String(raw).trim() === '') {
+      return null;
+    }
+    var text = String(raw).trim();
+    if (!/^\d+$/.test(text)) {
+      return 0;
+    }
+    var n = parseInt(text, 10);
+    if (isNaN(n)) {
+      return 0;
     }
     return n;
   }
 
+  function getDraftCardKind(card) {
+    var kindEl = card.querySelector('.mel-tier-kind');
+    return normalizeTicketKind(kindEl ? kindEl.value : card.getAttribute('data-mel-ticket-kind'));
+  }
+
+  function createDefaultTier(kind) {
+    kind = normalizeTicketKind(kind);
+    var row = { title: '', ticket_kind: kind, capacity: null };
+    if (kind === 'paid') {
+      row.price_number = '';
+      row.price_currency = getSettings().defaultCurrency || 'AUD';
+    }
+    if (kind === 'external') {
+      row.external_uri = '';
+    }
+    return row;
+  }
+
+  function buildDraftTierFromCard(card) {
+    var id = parseInt(card.getAttribute('data-tier-id'), 10);
+    if (isNaN(id)) {
+      id = 0;
+    }
+    var kind = getDraftCardKind(card);
+    var titleEl = card.querySelector('.mel-tier-title');
+    var capEl = card.querySelector('.mel-tier-capacity');
+    var o = {
+      title: titleEl ? String(titleEl.value || '').trim() : '',
+      ticket_kind: kind,
+      capacity: normalizeTierCapacity(capEl ? capEl.value : ''),
+    };
+    if (id > 0) {
+      o.id = id;
+    }
+    if (kind === 'paid') {
+      var pe = card.querySelector('.mel-tier-price');
+      o.price_number = pe ? String(pe.value || '').trim() : '';
+      o.price_currency = card.getAttribute('data-tier-currency') || getSettings().defaultCurrency || 'AUD';
+    }
+    if (kind === 'external') {
+      var ee = card.querySelector('.mel-tier-external');
+      o.external_uri = ee ? String(ee.value || '').trim() : '';
+    }
+    return o;
+  }
+
   function collectTiersFromDom(form) {
-    var table = getBuilderTable(form);
-    if (!table) {
+    var list = getBuilderList(form);
+    if (!list) {
       return [];
     }
-    var rendered = getRenderedTicketTableKind(table);
-    var formKind = valRadio(form, 'mel[field_event_type]');
-    var rows = table.querySelectorAll('tbody .mel-tier-row');
     var out = [];
-    rows.forEach(function (tr) {
-      var id = parseInt(tr.getAttribute('data-tier-id'), 10);
-      if (isNaN(id)) {
-        id = 0;
-      }
-      var titleEl = tr.querySelector('.mel-tier-title');
-      var title = titleEl ? String(titleEl.value || '').trim() : '';
-      var capEl = tr.querySelector('.mel-tier-capacity');
-      var capRaw = capEl ? capEl.value : '';
-      var capacity = normalizeTierCapacity(capRaw);
-      var o = {
-        title: title,
-        ticket_kind: formKind,
-        capacity: capacity,
-      };
-      if (id > 0) {
-        o.id = id;
-      }
-      if (rendered === 'paid') {
-        var pe = tr.querySelector('.mel-tier-price');
-        o.price_number = pe ? String(pe.value || '').trim() : '';
-        o.price_currency = tr.getAttribute('data-tier-currency') || getSettings().defaultCurrency || 'AUD';
-      }
-      if (rendered === 'external') {
-        var ee = tr.querySelector('.mel-tier-external');
-        o.external_uri = ee ? String(ee.value || '').trim() : '';
-      }
-      if (formKind === 'paid' && o.price_number === undefined) {
-        o.price_number = '';
-        o.price_currency = getSettings().defaultCurrency || 'AUD';
-      }
-      if (formKind === 'external' && o.external_uri === undefined) {
-        o.external_uri = '';
-      }
-      if (formKind !== 'paid') {
-        delete o.price_number;
-        delete o.price_currency;
-      }
-      if (formKind !== 'external') {
-        delete o.external_uri;
-      }
-      out.push(o);
+    list.querySelectorAll('.mel-tier-row').forEach(function (card) {
+      out.push(buildDraftTierFromCard(card));
     });
     return out;
   }
 
-  function updateTicketBuilderTableClass(table, kind) {
-    if (!table) {
-      return;
-    }
-    table.classList.remove(
-      'mel-ticket-builder-table--rsvp',
-      'mel-ticket-builder-table--paid',
-      'mel-ticket-builder-table--external',
-    );
-    table.classList.add('mel-ticket-builder-table--' + kind);
-    var ths = table.querySelectorAll('thead th');
-    var midLabel = Drupal.t('—');
-    if (kind === 'paid') {
-      midLabel = Drupal.t('Price');
-    } else if (kind === 'external') {
-      midLabel = Drupal.t('Booking link');
-    }
-    if (ths.length > 3) {
-      ths[1].textContent = midLabel;
-    }
+  function setRadioValue(form, name, value) {
+    var radios = form.querySelectorAll('[name="' + name + '"]');
+    radios.forEach(function (radio) {
+      radio.checked = radio.value === value;
+    });
   }
 
-  function createTierRow(formKind, tier, index) {
-    var tr = document.createElement('tr');
-    tr.className = 'mel-tier-row';
-    tr.setAttribute('data-tier-index', String(index));
-    var id = tier.id != null ? parseInt(tier.id, 10) : 0;
-    if (!isNaN(id) && id > 0) {
-      tr.setAttribute('data-tier-id', String(id));
+  function syncTicketKindToEventType(form, kind) {
+    setRadioValue(form, 'mel[field_event_type]', normalizeTicketKind(kind));
+    form.setAttribute('data-mel-last-ticket-type', normalizeTicketKind(kind));
+  }
+
+  function fieldWrap(labelText, control, descriptionText) {
+    var wrap = document.createElement('label');
+    wrap.className = 'mel-ticket-card__field';
+    var label = document.createElement('span');
+    label.className = 'mel-ticket-card__field-label';
+    label.textContent = labelText;
+    wrap.appendChild(label);
+    wrap.appendChild(control);
+    if (descriptionText) {
+      var description = document.createElement('span');
+      description.className = 'mel-ticket-card__field-help';
+      description.textContent = descriptionText;
+      wrap.appendChild(description);
+    }
+    return wrap;
+  }
+
+  function createTextInput(className, value, placeholder) {
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'mel-input ' + className;
+    input.value = value != null ? String(value) : '';
+    if (placeholder) {
+      input.placeholder = placeholder;
+    }
+    input.setAttribute('autocomplete', 'off');
+    return input;
+  }
+
+  function createDraftTicketCard(form, tier, index) {
+    tier = tier || createDefaultTier(valRadio(form, 'mel[field_event_type]') || 'rsvp');
+    var kind = normalizeTicketKind(tier.ticket_kind || valRadio(form, 'mel[field_event_type]') || 'rsvp');
+    var card = document.createElement('article');
+    card.className = 'mel-card mel-ticket-card mel-ticket-card--draft mel-tier-row js-mel-ticket-card is-editing';
+    card.setAttribute('data-tier-index', String(index));
+    card.setAttribute('data-mel-ticket-kind', kind);
+    card.setAttribute('draggable', 'true');
+    if (tier.id != null && parseInt(tier.id, 10) > 0) {
+      card.setAttribute('data-tier-id', String(parseInt(tier.id, 10)));
     }
     if (tier.price_currency) {
-      tr.setAttribute('data-tier-currency', String(tier.price_currency));
+      card.setAttribute('data-tier-currency', String(tier.price_currency));
     }
 
-    var tdTitle = document.createElement('td');
-    var inpTitle = document.createElement('input');
-    inpTitle.type = 'text';
-    inpTitle.className = 'mel-input mel-tier-title';
-    inpTitle.setAttribute('autocomplete', 'off');
-    inpTitle.value = tier.title != null ? String(tier.title) : '';
-    tdTitle.appendChild(inpTitle);
+    var drag = document.createElement('span');
+    drag.className = 'mel-ticket-card__drag mel-ticket-drag-handle js-mel-ticket-drag-handle';
+    drag.setAttribute('role', 'button');
+    drag.setAttribute('tabindex', '0');
+    drag.setAttribute('aria-label', Drupal.t('Drag to reorder ticket'));
+    drag.setAttribute('title', Drupal.t('Drag to reorder'));
+    drag.setAttribute('draggable', 'true');
+    card.appendChild(drag);
 
-    var tdMid = document.createElement('td');
-    tdMid.className = 'mel-tier-mid';
-    if (formKind === 'paid') {
-      var inpPrice = document.createElement('input');
-      inpPrice.type = 'number';
-      inpPrice.className = 'mel-input mel-tier-price';
-      inpPrice.step = '0.01';
-      inpPrice.min = '0';
-      inpPrice.placeholder = '0.00';
-      inpPrice.value =
-        tier.price_number != null && String(tier.price_number) !== ''
-          ? String(tier.price_number)
-          : '';
-      tdMid.appendChild(inpPrice);
-    } else if (formKind === 'external') {
-      var inpExt = document.createElement('input');
-      inpExt.type = 'url';
-      inpExt.className = 'mel-input mel-tier-external';
-      inpExt.placeholder = 'https://';
-      inpExt.value = tier.external_uri != null ? String(tier.external_uri) : '';
-      tdMid.appendChild(inpExt);
-    } else {
-      var span = document.createElement('span');
-      span.className = 'mel-tier-mid-placeholder';
-      span.textContent = '—';
-      tdMid.appendChild(span);
-    }
+    var header = document.createElement('div');
+    header.className = 'mel-ticket-card__header';
+    var titleGroup = document.createElement('div');
+    titleGroup.className = 'mel-ticket-card__title-group';
+    var title = document.createElement('div');
+    title.className = 'mel-ticket-card__title';
+    title.textContent = tier.title ? String(tier.title) : Drupal.t('Untitled ticket');
+    titleGroup.appendChild(title);
+    var state = document.createElement('span');
+    state.className = 'mel-badge mel-badge--inactive';
+    state.textContent = Drupal.t('Draft');
+    header.appendChild(titleGroup);
+    header.appendChild(state);
+    card.appendChild(header);
 
-    var tdCap = document.createElement('td');
-    var inpCap = document.createElement('input');
-    inpCap.type = 'number';
-    inpCap.className = 'mel-input mel-tier-capacity';
-    inpCap.min = '0';
-    inpCap.step = '1';
-    var capNum =
-      tier.capacity != null && tier.capacity !== ''
-        ? parseInt(tier.capacity, 10)
-        : NaN;
-    inpCap.value = !isNaN(capNum) && capNum > 0 ? String(capNum) : '';
-    tdCap.appendChild(inpCap);
+    var fields = document.createElement('div');
+    fields.className = 'mel-ticket-card__fields mel-ticket-card__fields--inline';
 
-    var tdAct = document.createElement('td');
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'mel-btn mel-btn--secondary mel-tier-remove';
-    btn.textContent = Drupal.t('Remove');
-    tdAct.appendChild(btn);
+    var kindSelect = document.createElement('select');
+    kindSelect.className = 'mel-input mel-tier-kind';
+    [
+      ['rsvp', Drupal.t('RSVP')],
+      ['paid', Drupal.t('Paid')],
+      ['external', Drupal.t('External')],
+    ].forEach(function (pair) {
+      var opt = document.createElement('option');
+      opt.value = pair[0];
+      opt.textContent = pair[1];
+      kindSelect.appendChild(opt);
+    });
+    kindSelect.value = kind;
+    fields.appendChild(fieldWrap(Drupal.t('Type'), kindSelect));
 
-    tr.appendChild(tdTitle);
-    tr.appendChild(tdMid);
-    tr.appendChild(tdCap);
-    tr.appendChild(tdAct);
-    return tr;
+    fields.appendChild(fieldWrap(
+      Drupal.t('Title'),
+      createTextInput('mel-tier-title', tier.title, Drupal.t('General Admission')),
+    ));
+
+    var price = document.createElement('input');
+    price.type = 'number';
+    price.className = 'mel-input mel-tier-price';
+    price.step = '0.01';
+    price.min = '0';
+    price.placeholder = '0.00';
+    price.value = tier.price_number != null ? String(tier.price_number) : '';
+    fields.appendChild(fieldWrap(Drupal.t('Price'), price));
+
+    var ext = document.createElement('input');
+    ext.type = 'url';
+    ext.className = 'mel-input mel-tier-external';
+    ext.placeholder = 'https://';
+    ext.value = tier.external_uri != null ? String(tier.external_uri) : '';
+    fields.appendChild(fieldWrap(Drupal.t('Booking link'), ext));
+
+    var cap = document.createElement('input');
+    cap.type = 'number';
+    cap.className = 'mel-input mel-tier-capacity';
+    cap.min = '1';
+    cap.step = '1';
+    cap.placeholder = Drupal.t('Leave empty for unlimited tickets');
+    cap.value = tier.capacity != null && String(tier.capacity) !== '' ? String(tier.capacity) : '';
+    fields.appendChild(fieldWrap(Drupal.t('Capacity'), cap, Drupal.t('Leave empty for unlimited tickets')));
+
+    card.appendChild(fields);
+
+    var validation = document.createElement('p');
+    validation.className = 'mel-ticket-card__validation';
+    validation.setAttribute('aria-live', 'polite');
+    card.appendChild(validation);
+
+    var actions = document.createElement('div');
+    actions.className = 'mel-ticket-card__actions';
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'mel-btn mel-btn--danger mel-tier-remove';
+    remove.textContent = Drupal.t('Remove');
+    actions.appendChild(remove);
+    card.appendChild(actions);
+
+    updateDraftTicketCardUi(card);
+    return card;
   }
 
-  function renderTicketBuilderRows(form, table, tiers) {
-    if (!table) {
+  function validateDraftTicketCard(card) {
+    var kind = getDraftCardKind(card);
+    var titleEl = card.querySelector('.mel-tier-title');
+    var capEl = card.querySelector('.mel-tier-capacity');
+    var errors = [];
+    if (!titleEl || String(titleEl.value || '').trim() === '') {
+      errors.push(Drupal.t('Add a ticket title.'));
+    }
+    var normalizedCapacity = normalizeTierCapacity(capEl ? capEl.value : '');
+    if ((kind === 'paid' || kind === 'rsvp') && normalizedCapacity !== null && normalizedCapacity < 1) {
+      errors.push(Drupal.t('Capacity must be empty for unlimited or at least 1.'));
+    }
+    if (kind === 'paid') {
+      var price = card.querySelector('.mel-tier-price');
+      var amount = price ? String(price.value || '').trim() : '';
+      if (amount === '' || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        errors.push(Drupal.t('Paid tickets need a price greater than zero.'));
+      }
+    }
+    if (kind === 'external') {
+      var external = card.querySelector('.mel-tier-external');
+      var uri = external ? String(external.value || '').trim().toLowerCase() : '';
+      if (uri.indexOf('https://') !== 0) {
+        errors.push(Drupal.t('External tickets need an https URL.'));
+      }
+    }
+    return errors;
+  }
+
+  function updateDraftTicketCardUi(card) {
+    var kind = getDraftCardKind(card);
+    card.setAttribute('data-mel-ticket-kind', kind);
+    var titleEl = card.querySelector('.mel-tier-title');
+    var title = card.querySelector('.mel-ticket-card__title');
+    if (title) {
+      var label = titleEl ? String(titleEl.value || '').trim() : '';
+      title.textContent = label || Drupal.t('Untitled ticket');
+    }
+    card.querySelectorAll('.mel-tier-price, .mel-tier-external, .mel-tier-capacity').forEach(function (el) {
+      var field = el.closest('.mel-ticket-card__field');
+      if (!field) {
+        return;
+      }
+      field.hidden =
+        (el.classList.contains('mel-tier-price') && kind !== 'paid') ||
+        (el.classList.contains('mel-tier-external') && kind !== 'external') ||
+        (el.classList.contains('mel-tier-capacity') && kind === 'external');
+    });
+    var errors = validateDraftTicketCard(card);
+    var validation = card.querySelector('.mel-ticket-card__validation');
+    if (validation) {
+      validation.textContent = errors.join(' ');
+    }
+    card.classList.toggle('is-invalid', errors.length > 0);
+  }
+
+  function updateDraftEmptyState(form, count) {
+    var empty = form.querySelector('[data-mel-ticket-empty]');
+    if (!empty) {
       return;
     }
-    var kind = valRadio(form, 'mel[field_event_type]') || 'rsvp';
-    updateTicketBuilderTableClass(table, kind);
-    var tbody = table.querySelector('tbody');
-    if (!tbody) {
-      tbody = document.createElement('tbody');
-      table.appendChild(tbody);
+    if (count > 0) {
+      empty.setAttribute('hidden', 'hidden');
     }
-    tbody.innerHTML = '';
+    else {
+      empty.removeAttribute('hidden');
+    }
+  }
+
+  function renderTicketBuilderRows(form, list, tiers) {
+    if (!list) {
+      return;
+    }
+    list.innerHTML = '';
     tiers.forEach(function (tier, index) {
-      tbody.appendChild(createTierRow(kind, tier, index));
+      list.appendChild(createDraftTicketCard(form, tier, index));
     });
+    updateDraftEmptyState(form, tiers.length);
+    syncTicketTiersFromDomToHidden(form);
+    syncPaidTierWarning(form);
   }
 
   function syncTicketTiersFromDomToHidden(form) {
     var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-    if (!hidden) {
+    if (!hidden || !getBuilderList(form)) {
       return;
     }
-
-    // Saved events render the AJAX ticket builder (#mel-ticket-builder-ajax-wrapper),
-    // not the inline tier table. Without a table, collectTiersFromDom() returns []
-    // and would wipe the server-populated JSON from encodeStudioTiersJsonForEvent().
-    if (!getBuilderTable(form)) {
-      return;
-    }
-
-    var tiers = collectTiersFromDom(form);
-    hidden.value = JSON.stringify(tiers);
+    hidden.value = JSON.stringify(collectTiersFromDom(form));
   }
 
   function forceSyncTicketTiersBeforeSubmit(form) {
@@ -1273,11 +1379,11 @@
 
   function syncTicketBuilderEventType(form) {
     var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-    var table = getBuilderTable(form);
-    if (!hidden || !table) {
+    var list = getBuilderList(form);
+    if (!hidden || !list) {
       return;
     }
-    var tt = valRadio(form, 'mel[field_event_type]');
+    var tt = normalizeTicketKind(valRadio(form, 'mel[field_event_type]') || 'rsvp');
     if (!form.hasAttribute('data-mel-last-ticket-type')) {
       form.setAttribute('data-mel-last-ticket-type', tt);
       return;
@@ -1287,24 +1393,25 @@
       return;
     }
     form.setAttribute('data-mel-last-ticket-type', tt);
-    var tiers = collectTiersFromDom(form);
-    if (tiers.length === 0) {
-      if (tt === 'rsvp') {
-        tiers.push({ title: 'RSVP', ticket_kind: 'rsvp', capacity: 1 });
-      } else if (tt === 'paid') {
-        tiers.push({
-          title: 'General Admission',
-          ticket_kind: 'paid',
-          price_number: '',
-          capacity: 1,
-          price_currency: getSettings().defaultCurrency || 'AUD',
-        });
-      } else if (tt === 'external') {
-        tiers.push({ title: '', ticket_kind: 'external', external_uri: '', capacity: 1 });
+    var tiers = collectTiersFromDom(form).map(function (tier) {
+      tier.ticket_kind = tt;
+      if (tt !== 'paid') {
+        delete tier.price_number;
+        delete tier.price_currency;
       }
-    }
-    renderTicketBuilderRows(form, table, tiers);
-    hidden.value = JSON.stringify(tiers);
+      else if (tier.price_number === undefined) {
+        tier.price_number = '';
+        tier.price_currency = getSettings().defaultCurrency || 'AUD';
+      }
+      if (tt !== 'external') {
+        delete tier.external_uri;
+      }
+      else if (tier.external_uri === undefined) {
+        tier.external_uri = '';
+      }
+      return tier;
+    });
+    renderTicketBuilderRows(form, list, tiers);
   }
 
   function syncPaidTierWarning(form) {
@@ -1317,8 +1424,8 @@
       warn.setAttribute('hidden', 'hidden');
       return;
     }
-    var table = getBuilderTable(form);
-    var n = table ? table.querySelectorAll('tbody .mel-tier-row').length : 0;
+    var list = getBuilderList(form);
+    var n = list ? list.querySelectorAll('.mel-tier-row').length : 0;
     if (n < 1) {
       warn.removeAttribute('hidden');
     } else {
@@ -1326,34 +1433,34 @@
     }
   }
 
+  function getDraftDragAfterElement(container, y) {
+    var cards = Array.prototype.slice.call(
+      container.querySelectorAll('.mel-tier-row:not(.is-dragging)'),
+    );
+    return cards.reduce(
+      function (closest, child) {
+        var box = child.getBoundingClientRect();
+        var offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        }
+        return closest;
+      },
+      { offset: Number.NEGATIVE_INFINITY, element: null },
+    ).element;
+  }
+
   function initTicketBuilder(form) {
     var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-    var table = getBuilderTable(form);
-    if (!hidden || !table) {
+    var list = getBuilderList(form);
+    if (!hidden || !list) {
       return;
     }
     var tiers = parseTiersHidden(hidden.value);
-    var tt = valRadio(form, 'mel[field_event_type]');
-    if (!tiers.length) {
-      if (tt === 'rsvp') {
-        tiers = [{ title: 'RSVP', ticket_kind: 'rsvp', capacity: 1 }];
-      } else if (tt === 'paid') {
-        tiers = [
-          {
-            title: 'General Admission',
-            ticket_kind: 'paid',
-            price_number: '',
-            capacity: 1,
-            price_currency: getSettings().defaultCurrency || 'AUD',
-          },
-        ];
-      } else if (tt === 'external') {
-        tiers = [{ title: '', ticket_kind: 'external', external_uri: '', capacity: 1 }];
-      }
-    }
-    renderTicketBuilderRows(form, table, tiers);
-    hidden.value = JSON.stringify(tiers);
-    form.setAttribute('data-mel-last-ticket-type', tt);
+    renderTicketBuilderRows(form, list, tiers);
+    form.setAttribute('data-mel-last-ticket-type', normalizeTicketKind(valRadio(form, 'mel[field_event_type]') || 'rsvp'));
+
+    var dragged = null;
 
     form.addEventListener(
       'click',
@@ -1361,49 +1468,125 @@
         if (e.target.closest('#mel-add-ticket-tier')) {
           e.preventDefault();
           var tiersNow = collectTiersFromDom(form);
-          var nt = valRadio(form, 'mel[field_event_type]');
-          var row = { title: '', ticket_kind: nt, capacity: 1 };
-          if (nt === 'paid') {
-            row.price_number = '';
-            row.price_currency = getSettings().defaultCurrency || 'AUD';
+          tiersNow.push(createDefaultTier(valRadio(form, 'mel[field_event_type]') || 'rsvp'));
+          renderTicketBuilderRows(form, list, tiersNow);
+          var newCard = list.querySelector('.mel-tier-row:last-child .mel-tier-title');
+          if (newCard && typeof newCard.focus === 'function') {
+            newCard.focus();
           }
-          if (nt === 'external') {
-            row.external_uri = '';
-          }
-          tiersNow.push(row);
-          renderTicketBuilderRows(form, table, tiersNow);
-          hidden.value = JSON.stringify(tiersNow);
           setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
           refreshIntelligence(form);
           return;
         }
         var rm = e.target.closest('.mel-tier-remove');
-        if (!rm || !table.contains(rm)) {
+        if (!rm || !list.contains(rm)) {
           return;
         }
         e.preventDefault();
-        var tr = rm.closest('tr');
-        if (!tr) {
+        var card = rm.closest('.mel-tier-row');
+        if (!card) {
           return;
         }
         var tiersArr = collectTiersFromDom(form);
-        var rowList = table.querySelectorAll('tbody .mel-tier-row');
+        var rowList = list.querySelectorAll('.mel-tier-row');
         var found = -1;
         rowList.forEach(function (r, i) {
-          if (r === tr) {
+          if (r === card) {
             found = i;
           }
         });
         if (found >= 0 && found < tiersArr.length) {
           tiersArr.splice(found, 1);
         }
-        renderTicketBuilderRows(form, table, tiersArr);
-        hidden.value = JSON.stringify(tiersArr);
+        renderTicketBuilderRows(form, list, tiersArr);
         setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
         refreshIntelligence(form);
       },
       true,
     );
+
+    form.addEventListener(
+      'input',
+      function (e) {
+        var card = e.target.closest && e.target.closest('.mel-tier-row');
+        if (!card || !list.contains(card)) {
+          return;
+        }
+        updateDraftTicketCardUi(card);
+        syncTicketTiersFromDomToHidden(form);
+        setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+        if (
+          (e.target.matches && e.target.matches('.mel-tier-title')) ||
+          (e.target.closest && e.target.closest('.mel-tier-row'))
+        ) {
+          scheduleTicketLinkSuggestions(form);
+        }
+        refreshIntelligence(form);
+      },
+      true,
+    );
+
+    form.addEventListener(
+      'change',
+      function (e) {
+        var card = e.target.closest && e.target.closest('.mel-tier-row');
+        if (!card || !list.contains(card)) {
+          return;
+        }
+        if (e.target.matches && e.target.matches('.mel-tier-kind')) {
+          syncTicketKindToEventType(form, e.target.value);
+        }
+        updateDraftTicketCardUi(card);
+        syncTicketTiersFromDomToHidden(form);
+        syncPaidTierWarning(form);
+        setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+        refreshIntelligence(form);
+      },
+      true,
+    );
+
+    list.addEventListener('dragstart', function (e) {
+      var origin = e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+      var handle = origin && origin.closest ? origin.closest('.js-mel-ticket-drag-handle') : null;
+      if (!handle || !list.contains(handle)) {
+        e.preventDefault();
+        return;
+      }
+      dragged = handle.closest('.mel-tier-row');
+      if (!dragged) {
+        e.preventDefault();
+        return;
+      }
+      dragged.classList.add('is-dragging');
+      list.classList.add('is-reordering');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragend', function () {
+      if (dragged) {
+        dragged.classList.remove('is-dragging');
+      }
+      dragged = null;
+      list.classList.remove('is-reordering');
+    });
+    list.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      if (!dragged) {
+        return;
+      }
+      var after = getDraftDragAfterElement(list, e.clientY);
+      if (after == null) {
+        list.appendChild(dragged);
+      }
+      else {
+        list.insertBefore(dragged, after);
+      }
+    });
+    list.addEventListener('drop', function (e) {
+      e.preventDefault();
+      syncTicketTiersFromDomToHidden(form);
+      setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+      refreshIntelligence(form);
+    });
   }
 
   function syncCategoryChips(form) {
@@ -2662,37 +2845,82 @@
   };
 
   /**
-   * Collapse Duplicate / Archive / Remove into a compact details menu (Event Studio ticket cards).
+   * Legacy overflow behavior intentionally no longer moves ticket card actions.
+   *
+   * The ticket card UI keeps Edit / Duplicate / Archive visible so organisers do
+   * not have to discover destructive or cloning actions behind a secondary menu.
    */
   Drupal.behaviors.melEventStudioTicketOverflow = {
     attach: function (context) {
       once('mel-ticket-overflow', '.mel-event-studio .js-mel-ticket-card.is-view .mel-ticket-card__actions', context).forEach(
         function (actions) {
-          if (actions.querySelector('details.mel-ticket-card__overflow')) {
-            return;
-          }
-          var dup = actions.querySelector('[name^="ticket_duplicate_"]');
-          var arch = actions.querySelector('[name^="ticket_archive_"]');
-          var rem = actions.querySelector('[name^="ticket_remove_"]');
-          var toMove = [dup, arch, rem].filter(Boolean);
-          if (toMove.length === 0) {
-            return;
-          }
-          var details = document.createElement('details');
-          details.className = 'mel-ticket-card__overflow';
-          var summary = document.createElement('summary');
-          summary.className = 'mel-ticket-card__overflow-trigger';
-          summary.setAttribute('aria-label', Drupal.t('More ticket actions'));
-          summary.appendChild(document.createTextNode('\u22EF'));
-          details.appendChild(summary);
-          toMove.forEach(function (btn) {
-            details.appendChild(btn);
+          actions.querySelectorAll('details.mel-ticket-card__overflow').forEach(function (details) {
+            Array.prototype.slice.call(details.children).forEach(function (child) {
+              if (child.tagName && child.tagName.toLowerCase() !== 'summary') {
+                actions.insertBefore(child, details);
+              }
+            });
+            details.remove();
           });
-          actions.appendChild(details);
         },
       );
     },
   };
+
+  function setStudioTicketEditMode(card, editing) {
+    if (!card) {
+      return;
+    }
+    var view = card.querySelector('[data-mel-ticket-view]');
+    var edit = card.querySelector('[data-mel-ticket-edit]');
+    card.classList.toggle('is-editing', editing);
+    card.classList.toggle('is-view', !editing);
+    card.querySelectorAll('[data-mel-ticket-edit-toggle]').forEach(function (toggle) {
+      toggle.setAttribute('aria-expanded', editing ? 'true' : 'false');
+    });
+    if (view) {
+      view.hidden = editing;
+    }
+    if (edit) {
+      edit.hidden = !editing;
+    }
+    if (editing && edit) {
+      var field = edit.querySelector('input:not([type="hidden"]):not([type="submit"]), select, textarea');
+      if (field && typeof field.focus === 'function') {
+        field.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  document.addEventListener(
+    'click',
+    function (e) {
+      var target = e.target && e.target.closest ? e.target : null;
+      if (!target) {
+        return;
+      }
+      var editToggle = target.closest('.mel-event-studio [data-mel-ticket-edit-toggle]');
+      if (editToggle) {
+        var editCard = editToggle.closest('.js-mel-ticket-card');
+        if (editCard) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          setStudioTicketEditMode(editCard, true);
+        }
+        return;
+      }
+      var cancel = target.closest('.mel-event-studio [data-mel-ticket-cancel]');
+      if (cancel) {
+        var cancelCard = cancel.closest('.js-mel-ticket-card');
+        if (cancelCard) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          setStudioTicketEditMode(cancelCard, false);
+        }
+      }
+    },
+    true,
+  );
 
   document.addEventListener(
     'submit',

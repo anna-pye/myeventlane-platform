@@ -80,6 +80,9 @@ final class TicketTierWaitlistService {
     if ($tier->getTicketKind() !== 'paid') {
       throw new \InvalidArgumentException('Waitlist applies to paid tiers only.');
     }
+    if ($tier->get('capacity')->isEmpty() || (int) $tier->get('capacity')->value < 1) {
+      throw new \InvalidArgumentException('Waitlist is only used when tickets sell out.');
+    }
 
     $status = TicketStatusEvaluator::evaluate($tier, $this->variationSold, $this->time, $event);
     if ($status !== TicketStatusEvaluator::STATUS_SOLD_OUT) {

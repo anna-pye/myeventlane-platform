@@ -8,7 +8,7 @@
 
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
 {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
-  {{ attach_library('myeventlane_location/event_map') %}
+  {{ attach_library('myeventlane_location/event_map') }}
 {% endif %}
 
 <article{{ attributes.addClass('mel-event', 'mel-event--detail') }}>
@@ -49,9 +49,9 @@
             <div class="mel-event-hero__stamp">
               <span class="mel-event-hero__stamp-text">TONIGHT</span>
             </div>
-          {% elseif node.hasField('field_event_type') and not node.field_event_type.isEmpty and node.field_event_type.value == 'rsvp' %}
+          {% elseif mel_booking.availability is defined and mel_booking.availability == 'sold_out' %}
             <div class="mel-event-hero__stamp">
-              <span class="mel-event-hero__stamp-text">FREE</span>
+              <span class="mel-event-hero__stamp-text">SOLD OUT</span>
             </div>
           {% elseif mel_event_state is defined and mel_event_state %}
             <div class="mel-event-hero__stamp">
@@ -195,30 +195,23 @@
         {# Action Card (Sticky) #}
         <div class="mel-event-sidebar-card">
           {# Tickets Available Badge #}
-          {% if event_cta and event_cta.url %}
+          {% if mel_booking.availability is defined and mel_booking.availability %}
             <div class="mel-event-sidebar-card__badge">
-              {{ 'Tickets available'|t }}
+              {{ mel_booking.availability }}
             </div>
           {% endif %}
 
           {# Primary CTA #}
-          {% if event_cta and event_cta.label %}
+          {% if mel_booking.cta.label %}
             <div class="mel-event-sidebar-card__section mel-event-sidebar-card__section--cta">
-              {% if event_cta.url %}
-                <a href="{{ event_cta.url }}" class="mel-event-sidebar-card__cta">
-                  {{ event_cta.label }}
+              {% if mel_booking.cta.type in ['internal', 'external'] and mel_booking.cta.url %}
+                <a href="{{ mel_booking.cta.url }}" class="mel-event-sidebar-card__cta">
+                  {{ mel_booking.cta.label }}
                 </a>
               {% else %}
                 <span class="mel-event-sidebar-card__cta mel-event-sidebar-card__cta--disabled">
-                  {{ event_cta.label }}
+                  {{ mel_booking.cta.label }}
                 </span>
-              {% endif %}
-              
-              {# Secondary CTA for "both" mode #}
-              {% if event_cta_secondary and event_cta_secondary.url and event_cta_secondary.label %}
-                <a href="{{ event_cta_secondary.url }}" class="mel-event-sidebar-card__cta mel-event-sidebar-card__cta--secondary">
-                  {{ event_cta_secondary.label }}
-                </a>
               {% endif %}
             </div>
           {% endif %}
@@ -333,11 +326,11 @@
   {# ==========================================================================
      MOBILE STICKY CTA BAR
      ========================================================================== #}
-  {% if event_cta and event_cta.url %}
+  {% if mel_booking.cta.type in ['internal', 'external'] and mel_booking.cta.url %}
     <div class="mel-event-cta-mobile-sticky">
-      <a href="{{ event_cta.url }}"
+      <a href="{{ mel_booking.cta.url }}"
          class="mel-event-cta-mobile-sticky__button">
-        {{ event_cta.label }}
+        {{ mel_booking.cta.label }}
       </a>
     </div>
   {% endif %}

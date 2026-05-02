@@ -12,6 +12,10 @@ use Drupal\Core\Entity\ContentEntityInterface;
  */
 interface TicketTypeInterface extends ContentEntityInterface {
 
+  public const LIFECYCLE_ACTIVE = 'active';
+
+  public const LIFECYCLE_ARCHIVED = 'archived';
+
   /**
    * Human-visible ticket name.
    */
@@ -36,5 +40,15 @@ interface TicketTypeInterface extends ContentEntityInterface {
    * External URL for ticket_kind external (URI string).
    */
   public function getExternalUrlString(): ?string;
+
+  /**
+   * Explicit lifecycle state for this ticket type.
+   */
+  public function getLifecycleStatus(): string;
+
+  /**
+   * Whether this ticket type has been archived.
+   */
+  public function isArchived(): bool;
 
 }

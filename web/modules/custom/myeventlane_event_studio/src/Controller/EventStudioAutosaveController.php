@@ -262,7 +262,7 @@ final class EventStudioAutosaveController {
       $out = [];
       foreach ($raw as $item) {
         if (is_array($item)) {
-          $out[] = $this->normalizeStudioTierRow($item);
+          $out[] = $item;
         }
       }
       return $out;
@@ -277,20 +277,10 @@ final class EventStudioAutosaveController {
     $out = [];
     foreach ($decoded as $item) {
       if (is_array($item)) {
-        $out[] = $this->normalizeStudioTierRow($item);
+        $out[] = $item;
       }
     }
     return $out;
-  }
-
-  /**
-   * @param array<string, mixed> $row
-   *
-   * @return array<string, mixed>
-   */
-  private function normalizeStudioTierRow(array $row): array {
-    $row['capacity'] = max(1, (int) ($row['capacity'] ?? 0));
-    return $row;
   }
 
   /**

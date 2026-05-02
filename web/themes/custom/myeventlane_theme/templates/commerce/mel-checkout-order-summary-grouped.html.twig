@@ -12,6 +12,9 @@
   {% for event in grouped_items %}
     <div class="mel-summary-event">
       <h3 class="mel-summary-event__title">{{ event.title }}</h3>
+      {% if event.display_pricing|default('') %}
+        <div class="mel-summary-event__pricing">{{ event.display_pricing }}</div>
+      {% endif %}
       {% if event.date or event.location %}
         <div class="mel-summary-meta">
           {% if event.date %}<span class="mel-summary-meta__date">{{ event.date }}</span>{% endif %}

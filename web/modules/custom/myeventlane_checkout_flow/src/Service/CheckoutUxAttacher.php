@@ -13,6 +13,7 @@ namespace Drupal\myeventlane_checkout_flow\Service;
  */
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Psr\Log\LoggerInterface;
@@ -85,7 +86,7 @@ final class CheckoutUxAttacher {
       '#platform_fee_absorbed' => $built['platform_fee_absorbed'],
       '#show_includes_gst_note' => $built['show_includes_gst_note'],
       '#cache' => [
-        'tags' => $order->getCacheTags(),
+        'tags' => Cache::mergeTags($order->getCacheTags(), (array) ($built['cache_tags'] ?? [])),
         'contexts' => $order->getCacheContexts(),
       ],
     ];

@@ -9,13 +9,12 @@
     {% for item in node.field_product_target %}
       {% set product = item.entity %}
       {% if product %}
-        {% set default_variation = product.getDefaultVariation() %}
         <div class="ticket-card">
           <h3 class="ticket-card__title">{{ product.label }}</h3>
 
-          {% if default_variation and default_variation.hasField('price') %}
+          {% if mel_display_pricing is defined and mel_display_pricing.label|default('')|trim %}
             <div class="ticket-card__price">
-              {{ default_variation.getPrice()|commerce_price_format }}
+              {{ mel_display_pricing.label }}
             </div>
           {% endif %}
 

@@ -273,7 +273,7 @@ final class TicketAccessCodeService {
     }
     $allowed = [];
     foreach ($event->get('field_ticket_types')->referencedEntities() as $t) {
-      if ($t instanceof TicketTypeInterface) {
+      if ($t instanceof TicketTypeInterface && !$t->isArchived()) {
         $allowed[(int) $t->id()] = TRUE;
       }
     }
@@ -296,6 +296,9 @@ final class TicketAccessCodeService {
     }
     foreach ($event->get('field_ticket_types')->referencedEntities() as $tier) {
       if (!$tier instanceof TicketTypeInterface || $tier->getTicketKind() !== 'paid') {
+        continue;
+      }
+      if ($tier->isArchived()) {
         continue;
       }
       if ($tier->get('commerce_variation')->isEmpty()) {
