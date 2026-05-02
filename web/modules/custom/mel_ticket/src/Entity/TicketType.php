@@ -197,7 +197,7 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
 
     $fields['capacity'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Capacity'))
-      ->setDescription(t('Maximum tickets for this type. Leave empty for unlimited.'))
+      ->setDescription(t('Leave empty for unlimited tickets'))
       ->setRequired(FALSE)
       ->setDisplayOptions('form', [
         'type' => 'number',

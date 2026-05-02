@@ -802,7 +802,7 @@ textarea.mel-input--body {
   background: var(--mel-studio-accent);
 }
 
-/* Inline ticket tier builder */
+/* Inline ticket card builder */
 .mel-ticket-builder {
   margin: 1rem 0 1.25rem;
   padding: 1rem 1rem 1.1rem;
@@ -829,55 +829,25 @@ textarea.mel-input--body {
   display: none !important;
 }
 
-.mel-ticket-builder-table {
-  width: 100%;
-  border-collapse: collapse;
+.mel-ticket-builder--draft .mel-ticket-list {
   margin-bottom: 0.75rem;
-  font-size: 0.875rem;
 }
 
-.mel-ticket-builder-table th,
-.mel-ticket-builder-table td {
-  padding: 0.45rem 0.5rem;
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--mel-studio-border);
+.mel-ticket-builder--draft .mel-ticket-builder__empty[hidden] {
+  display: none !important;
 }
 
-.mel-ticket-builder-table th {
-  font-size: 0.6875rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--mel-studio-muted);
+.mel-ticket-builder--draft .mel-ticket-card {
+  background: #fff;
 }
 
-.mel-ticket-builder-table .mel-input {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.mel-ticket-builder-table .mel-tier-mid-placeholder {
-  color: var(--mel-studio-muted);
-  font-size: 0.875rem;
-}
-
-.mel-ticket-builder-table td:last-child {
-  width: 5.5rem;
-  white-space: nowrap;
+.mel-ticket-builder--draft .mel-ticket-card__validation {
+  color: #b45309;
 }
 
 .mel-ticket-builder .mel-tier-remove {
   font-size: 0.8125rem;
-  padding: 0.35rem 0.55rem;
-}
-
-@media (max-width: 640px) {
-  .mel-ticket-builder-table {
-    display: block;
-    overflow-x: auto;
-  }
+  padding: 0.35rem 0.65rem;
 }
 
 /* Event highlights (Event Studio editor) */

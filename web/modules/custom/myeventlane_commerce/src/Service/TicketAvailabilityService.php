@@ -107,6 +107,9 @@ final class TicketAvailabilityService {
       if (!$entity instanceof TicketTypeInterface) {
         continue;
       }
+      if ($entity->isArchived()) {
+        continue;
+      }
       if ($entity->get('commerce_variation')->isEmpty()) {
         continue;
       }
@@ -216,6 +219,9 @@ final class TicketAvailabilityService {
     if ($event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()) {
       foreach ($event->get('field_ticket_types')->referencedEntities() as $tier) {
         if (!$tier instanceof TicketTypeInterface || $tier->getTicketKind() !== 'paid') {
+          continue;
+        }
+        if ($tier->isArchived()) {
           continue;
         }
         if ($tier->get('commerce_variation')->isEmpty()) {
@@ -335,6 +341,10 @@ final class TicketAvailabilityService {
       throw new CapacityExceededException('This ticket is not available for this event.');
     }
 
+    if ($tier->isArchived()) {
+      throw new CapacityExceededException('This ticket type is no longer available.');
+    }
+
     if (!$tier->isPublished()) {
       throw new CapacityExceededException('This ticket type is not on sale.');
     }
@@ -383,6 +393,7 @@ final class TicketAvailabilityService {
     }
 
     $message = match ($status) {
+      TicketStatusEvaluator::STATUS_ARCHIVED => 'This ticket type is no longer available.',
       TicketStatusEvaluator::STATUS_INACTIVE => 'This ticket type is not on sale.',
       TicketStatusEvaluator::STATUS_UPCOMING => 'Sales have not started for this ticket yet.',
       TicketStatusEvaluator::STATUS_ENDED => 'Sales have ended for this ticket type.',

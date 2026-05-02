@@ -72,7 +72,6 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_event.ticket_tier_lifecycle'
-      - '@myeventlane_event.ticket_type_manager'
       - '@?myeventlane_domain_events.bus'
       - '@logger.channel.myeventlane_event_studio'
 

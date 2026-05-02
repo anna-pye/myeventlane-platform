@@ -25,6 +25,8 @@ final class TicketStatusEvaluator {
 
   public const STATUS_INACTIVE = 'inactive';
 
+  public const STATUS_ARCHIVED = 'archived';
+
   private function __construct() {}
 
   /**
@@ -36,6 +38,10 @@ final class TicketStatusEvaluator {
     TimeInterface $time,
     ?NodeInterface $event = NULL,
   ): string {
+    if ($ticket->isArchived()) {
+      return self::STATUS_ARCHIVED;
+    }
+
     if ((int) ($ticket->get('status')->value ?? 0) === 0) {
       return self::STATUS_INACTIVE;
     }

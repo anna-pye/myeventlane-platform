@@ -7,19 +7,20 @@ namespace Drupal\myeventlane_commerce\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
-use Drupal\Core\Url;
-use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
-use Drupal\myeventlane_event\Service\EventCtaResolver;
-use Drupal\myeventlane_event\Service\EventModeManager;
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
+use Drupal\myeventlane_rsvp\Form\RsvpPublicForm;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Book page: renders the booking form based on CTA type.
+ * Book page: renders the booking form based on the canonical booking flow.
  *
- * Mutual exclusivity: paid (tickets only), rsvp (RSVP only), or none.
- * No combined RSVP + Paid UI. Logic in controller; Twig display only.
+ * Mutual exclusivity is resolved by BookingFlowResolver; Twig receives display
+ * state only.
  */
 final class BookController extends ControllerBase {
 
@@ -28,19 +29,15 @@ final class BookController extends ControllerBase {
    *
    * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
    *   The file URL generator.
-   * @param \Drupal\myeventlane_event\Service\EventModeManager $modeManager
-   *   The event mode manager.
-   * @param \Drupal\myeventlane_event\Service\EventCtaResolver $ctaResolver
-   *   The CTA resolver (paid | rsvp | none).
+   * @param \Drupal\myeventlane_event\Service\BookingFlowResolver $bookingFlowResolver
+   *   The canonical booking flow resolver.
    * @param \Drupal\Core\Form\FormBuilderInterface $formBuilderService
    *   The form builder.
    */
   public function __construct(
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
-    private readonly EventModeManager $modeManager,
-    private readonly EventCtaResolver $ctaResolver,
+    private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly FormBuilderInterface $formBuilderService,
-    private readonly ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
   /**
@@ -49,12 +46,8 @@ final class BookController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('file_url_generator'),
-      $container->get('myeventlane_event.event_mode_manager'),
-      $container->get('myeventlane_event.cta_resolver'),
+      $container->get('myeventlane_event.booking_flow_resolver'),
       $container->get('form_builder'),
-      $container->has('myeventlane_capacity.service')
-        ? $container->get('myeventlane_capacity.service')
-        : NULL,
     );
   }
 
@@ -64,12 +57,32 @@ final class BookController extends ControllerBase {
    * @param \Drupal\node\NodeInterface $node
    *   The event node.
    *
-   * @return array
-   *   Render array.
+   * @return array|\Drupal\Core\Routing\TrustedRedirectResponse
+   *   Render array or trusted redirect response for external booking.
    */
-  public function book(NodeInterface $node): array {
+  public function book(NodeInterface $node): array|TrustedRedirectResponse {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
+    }
+
+    $bookingMode = $this->bookingFlowResolver->getBookingMode($node);
+    if ($bookingMode === BookingFlowResolver::MODE_UNAVAILABLE) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $availability = $this->bookingFlowResolver->getAvailabilityState($node);
+    if ($availability === BookingFlowResolver::AVAILABILITY_UNAVAILABLE) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $primaryCta = $this->bookingFlowResolver->getPrimaryCta($node);
+    if ($bookingMode === BookingFlowResolver::MODE_EXTERNAL) {
+      $externalUrl = (string) ($primaryCta['url'] ?? '');
+      if (($primaryCta['type'] ?? 'disabled') !== 'external' || $externalUrl === '' || !empty($primaryCta['disabled'])) {
+        throw new AccessDeniedHttpException();
+      }
+
+      return new TrustedRedirectResponse($externalUrl);
     }
 
     $eventDateText = '';
@@ -97,11 +110,8 @@ final class BookController extends ControllerBase {
       }
     }
 
-    $mode = $this->modeManager->getEffectiveMode($node);
-    $ctaType = $this->ctaResolver->getCtaType($node);
-
-    $isRsvp = $ctaType === EventCtaResolver::CTA_RSVP;
-    $isPaid = $ctaType === EventCtaResolver::CTA_PAID;
+    $isRsvp = $bookingMode === BookingFlowResolver::MODE_RSVP;
+    $isPaid = $bookingMode === BookingFlowResolver::MODE_PAID;
 
     $build = [
       '#theme' => 'myeventlane_event_book',
@@ -113,8 +123,9 @@ final class BookController extends ControllerBase {
       '#rsvp_form' => [],
       '#is_rsvp' => $isRsvp,
       '#is_paid' => $isPaid,
-      '#cta_type' => $ctaType,
-      '#event_mode' => $ctaType,
+      '#cta_type' => $bookingMode === BookingFlowResolver::MODE_UNAVAILABLE ? 'none' : $bookingMode,
+      '#event_cta' => $primaryCta,
+      '#event_mode' => $bookingMode,
       '#event' => $node,
       '#cache' => [
         'contexts' => ['route', 'user.roles', 'url.query_args', 'session'],
@@ -129,53 +140,22 @@ final class BookController extends ControllerBase {
       }
     }
 
-    if ($mode === EventModeManager::MODE_EXTERNAL) {
-      $build['#matrix_form'] = $this->buildExternalRedirect($node);
-      $build['#event_mode'] = 'external';
-      return $build;
-    }
-
-    switch ($ctaType) {
-      case EventCtaResolver::CTA_PAID:
+    $formClass = $this->bookingFlowResolver->resolveBookingForm($node);
+    switch ($formClass) {
+      case TicketSelectionForm::class:
         $build['#matrix_form'] = $this->buildPaidForm($node);
         break;
 
-      case EventCtaResolver::CTA_RSVP:
-        $build['#matrix_form'] = $this->buildRsvpOnlyForm($node);
+      case RsvpPublicForm::class:
+        $build['#matrix_form'] = $this->formBuilderService->getForm($formClass, $node);
         break;
 
       default:
-        $build['#matrix_form'] = $this->buildComingSoon();
-        $build['#event_mode'] = 'none';
+        $build['#matrix_form'] = $this->buildUnavailable($availability);
         break;
     }
 
     return $build;
-  }
-
-  /**
-   * Builds the RSVP-only form.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return array
-   *   Form render array.
-   */
-  private function buildRsvpOnlyForm(NodeInterface $event): array {
-    if (!$this->melEventHasRsvp($event)) {
-      return [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-alert', 'mel-alert--warning']],
-        'message' => [
-          '#markup' => '<p>' . $this->t('RSVP is not yet available for this event.') . '</p>',
-        ],
-      ];
-    }
-    return $this->formBuilderService->getForm(
-      'Drupal\myeventlane_rsvp\Form\RsvpPublicForm',
-      $event
-    );
   }
 
   /**
@@ -209,76 +189,35 @@ final class BookController extends ControllerBase {
       ];
     }
 
-    if ($this->capacityService && $this->capacityService->isSoldOut($event)) {
-      return [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-alert', 'mel-alert--info']],
-        'message' => [
-          '#markup' => '<p>' . $this->t('This event is sold out.') . '</p>',
-        ],
-      ];
-    }
-
     return $this->formBuilderService->getForm(
-      'Drupal\myeventlane_commerce\Form\TicketSelectionForm',
+      TicketSelectionForm::class,
       $event,
       $product
     );
   }
 
   /**
-   * Builds the external redirect message.
+   * Builds an unavailable booking placeholder.
    *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return array
-   *   Render array.
-   */
-  private function buildExternalRedirect(NodeInterface $event): array {
-    $externalUrl = '';
-    if ($event->hasField('field_external_url') && !$event->get('field_external_url')->isEmpty()) {
-      $link = $event->get('field_external_url')->first();
-      if ($link) {
-        $externalUrl = $link->getUrl()->toString();
-      }
-    }
-
-    if (empty($externalUrl)) {
-      return $this->buildComingSoon();
-    }
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-external-booking']],
-      'message' => [
-        '#markup' => '<p>' . $this->t('Tickets for this event are sold through an external provider.') . '</p>',
-      ],
-      'link' => [
-        '#type' => 'link',
-        '#title' => $this->t('Get Tickets'),
-        '#url' => Url::fromUri($externalUrl),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl'],
-          'target' => '_blank',
-          'rel' => 'noopener noreferrer',
-        ],
-      ],
-    ];
-  }
-
-  /**
-   * Builds the "coming soon" placeholder.
+   * @param string $availability
+   *   BookingFlowResolver availability state.
    *
    * @return array
    *   Render array.
    */
-  private function buildComingSoon(): array {
+  private function buildUnavailable(string $availability): array {
+    $message = match ($availability) {
+      BookingFlowResolver::AVAILABILITY_SOLD_OUT => $this->t('This event is sold out.'),
+      BookingFlowResolver::AVAILABILITY_ENDED => $this->t('This event has ended.'),
+      BookingFlowResolver::AVAILABILITY_UNAVAILABLE => $this->t('Booking is not available for this event.'),
+      default => $this->t('Booking will be available soon.'),
+    };
+
     return [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-alert', 'mel-alert--info']],
       'message' => [
-        '#markup' => '<p>' . $this->t('Booking will be available soon.') . '</p>',
+        '#markup' => '<p>' . $message . '</p>',
       ],
     ];
   }
@@ -341,36 +280,6 @@ final class BookController extends ControllerBase {
     }
 
     return $form;
-  }
-
-  /**
-   * MEL source-of-truth RSVP readiness: at least one RSVP tier.
-   */
-  private function melEventHasRsvp(NodeInterface $event): bool {
-    if (!$event->hasField('field_ticket_types')) {
-      return FALSE;
-    }
-
-    $tiers = $event->get('field_ticket_types')->referencedEntities();
-    if ($tiers === []) {
-      \Drupal::logger('mel_debug')->notice('No tiers resolved on event @nid', [
-        '@nid' => (string) $event->id(),
-      ]);
-      return FALSE;
-    }
-
-    foreach ($tiers as $tier) {
-      $kind = (string) ($tier->get('ticket_kind')->value ?? '');
-      \Drupal::logger('mel_debug')->notice('Tier check @id kind=@kind', [
-        '@id' => (string) $tier->id(),
-        '@kind' => $kind,
-      ]);
-      if ($kind === 'rsvp') {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
   }
 
 }

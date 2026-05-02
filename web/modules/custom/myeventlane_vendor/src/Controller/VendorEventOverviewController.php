@@ -11,7 +11,7 @@ use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
-use Drupal\myeventlane_event\Service\EventCtaResolver;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_boost\Service\BoostHelpContent;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\myeventlane_donations\Service\VendorMelPctContributionService;
@@ -33,7 +33,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     private readonly MetricsAggregator $metricsAggregator,
     private readonly VendorEventTabsService $eventTabsService,
-    private readonly EventCtaResolver $ctaResolver,
+    private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly EventStateResolver $eventDomainStateResolver,
     private readonly BoostHelpContent $boostHelpContent,
     private readonly DateFormatterInterface $dateFormatter,
@@ -75,7 +75,12 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     $overview['is_pro'] = $vendorStore instanceof \Drupal\commerce_store\Entity\StoreInterface && $this->proActiveResolver
       ? $this->proActiveResolver->isStoreProActive($vendorStore)
       : FALSE;
-    $overview['cta_type'] = $this->ctaResolver->getCtaType($event);
+    $bookingMode = $this->bookingFlowResolver->getBookingMode($event);
+    $displayPricing = $this->bookingFlowResolver->getDisplayPricing($event);
+    $overview['cta_type'] = $bookingMode === BookingFlowResolver::MODE_UNAVAILABLE ? 'none' : $bookingMode;
+    $overview['display_pricing'] = is_array($displayPricing)
+      ? (string) ($displayPricing['label'] ?? '')
+      : '';
     if ($overview['is_pro']) {
       $sales = is_array($overview['sales'] ?? NULL) ? $overview['sales'] : [];
       $refundRatePercent = (float) ($sales['refund_rate_percent'] ?? 0.0);
@@ -250,7 +255,16 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
       $date_part = $this->dateFormatter->format($event->getCreatedTime(), 'custom', 'j M Y');
     }
 
-    $parts = [$type_label, $status_label];
+    $displayPricing = $this->bookingFlowResolver->getDisplayPricing($event);
+    $pricing_label = is_array($displayPricing)
+      ? trim((string) ($displayPricing['label'] ?? ''))
+      : '';
+
+    $parts = [$type_label];
+    if ($pricing_label !== '') {
+      $parts[] = $pricing_label;
+    }
+    $parts[] = $status_label;
     if ($date_part !== '') {
       $parts[] = $date_part;
     }
@@ -276,8 +290,11 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
         'external' => TRUE,
       ],
     ];
-    $cta = $this->ctaResolver->getResolvedCta($event);
-    if (!empty($cta['url'])) {
+    $cta = $this->bookingFlowResolver->getPrimaryCta($event);
+    if (
+      in_array((string) ($cta['type'] ?? 'disabled'), ['internal', 'external'], TRUE)
+      && !empty($cta['url'])
+    ) {
       $actions[] = [
         'label' => (string) $this->t('Booking page'),
         'url' => $cta['url'],
@@ -359,7 +376,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
       ? (string) $this->t('Ticket revenue before refunds')
       : (string) $this->t('Paid ticket revenue (if applicable)');
 
-    if ($cta_type === EventCtaResolver::CTA_RSVP && !$is_tickets) {
+    if ($cta_type === BookingFlowResolver::MODE_RSVP && !$is_tickets) {
       $kpi_sales_label = (string) $this->t('RSVP activity');
       $kpi_sales_value = (string) $rsvp_confirmed;
       $kpi_sales_meta = (string) $this->t('Confirmed RSVPs');
@@ -368,7 +385,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     $kpi_volume_label = (string) $this->t('Tickets sold');
     $kpi_volume_value = (string) $tickets_sold;
     $kpi_volume_meta = (string) $this->t('Across all ticket types');
-    if ($cta_type === EventCtaResolver::CTA_RSVP || ($is_rsvp && !$is_tickets)) {
+    if ($cta_type === BookingFlowResolver::MODE_RSVP || ($is_rsvp && !$is_tickets)) {
       $kpi_volume_label = (string) $this->t('RSVPs');
       $kpi_volume_value = (string) $rsvp_confirmed;
       $kpi_volume_meta = (string) $this->t('Confirmed guest responses');

@@ -20,14 +20,14 @@
     {{ "You're going ✓"|t }}
   </button>
 {% elseif mel_cta_sold %}
-  {% if event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+  {% if event_cta and event_cta.type|default('disabled') in ['internal', 'external'] and (event_cta.url|default('')|striptags|length > 0) %}
     <a class="{{ mel_cta_class_base }} mel-btn--secondary mel-btn--lavender-cta mel-btn--waitlist" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>
       {{ 'Join waitlist'|t }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}
     </a>
   {% else %}
     <p class="{% if mel_cta_slot|default('sidebar') == 'mobile' %}mel-mobile-cta__waitlist-sub mel-mobile-cta__waitlist-sub--muted{% else %}mel-event-cta-soldout__muted{% endif %}" role="status">{{ mel_cta_text }}</p>
   {% endif %}
-{% elseif event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+{% elseif event_cta and event_cta.type|default('disabled') in ['internal', 'external'] and (event_cta.url|default('')|striptags|length > 0) %}
   {% set mel_primary_btn = mel_cta_text|default('')|striptags|trim %}
   {% if mel_primary_btn is empty %}
     {% set mel_primary_btn = mel_booking_action_label is defined and mel_booking_action_label ? mel_booking_action_label : (event_cta.label|default('')) %}

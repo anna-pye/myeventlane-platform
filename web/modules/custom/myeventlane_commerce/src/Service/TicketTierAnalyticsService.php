@@ -75,6 +75,7 @@ final class TicketTierAnalyticsService {
     $totalSold = 0;
     $totalRemaining = 0;
     $sumRemaining = FALSE;
+    $hasUnlimitedTier = FALSE;
     $activeTierCount = 0;
     $soldOutTierCount = 0;
     $restrictedTierCount = 0;
@@ -104,7 +105,10 @@ final class TicketTierAnalyticsService {
 
       $metrics = $this->buildTierMetrics($tier);
       $totalSold += (int) $metrics['sold'];
-      if ($metrics['remaining'] !== NULL) {
+      if ($metrics['capacity'] === NULL || (int) $metrics['capacity'] < 1) {
+        $hasUnlimitedTier = TRUE;
+      }
+      elseif ($metrics['remaining'] !== NULL) {
         $sumRemaining = TRUE;
         $totalRemaining += (int) $metrics['remaining'];
       }
@@ -139,7 +143,7 @@ final class TicketTierAnalyticsService {
 
     return [
       'total_sold' => $totalSold,
-      'total_remaining' => $sumRemaining ? $totalRemaining : NULL,
+      'total_remaining' => !$hasUnlimitedTier && $sumRemaining ? $totalRemaining : NULL,
       'gross_revenue' => $grossRevenue,
       'active_tier_count' => $activeTierCount,
       'sold_out_tier_count' => $soldOutTierCount,

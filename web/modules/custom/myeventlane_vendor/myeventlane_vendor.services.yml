@@ -216,7 +216,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_overview:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOverviewController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_core.event_state_resolver', '@myeventlane_boost.help_content', '@date.formatter', '@?myeventlane_pro.active_resolver', '@?myeventlane_donations.vendor_mel_pct_contribution', '@?myeventlane_refunds.processor']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.booking_flow_resolver', '@myeventlane_core.event_state_resolver', '@myeventlane_boost.help_content', '@date.formatter', '@?myeventlane_pro.active_resolver', '@?myeventlane_donations.vendor_mel_pct_contribution', '@?myeventlane_refunds.processor']
     tags:
       - { name: controller.service_arguments }
 

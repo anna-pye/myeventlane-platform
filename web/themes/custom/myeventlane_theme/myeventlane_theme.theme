@@ -27,6 +27,7 @@ use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\node\NodeInterface;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 
 /**
@@ -1763,8 +1764,18 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $variables['mel_category_name'] = $category_label;
       $variables['mel_category_slug'] = $category_slug;
 
-      // Badge text: FREE, price, or "Tickets" (internal; external omits).
-      $variables['mel_card_badge_text'] = _myeventlane_theme_get_event_badge_text($node);
+      // Badge text comes from BookingFlowResolver::getDisplayPricing().
+      $display_pricing = is_array($variables['mel_display_pricing'] ?? NULL)
+        ? $variables['mel_display_pricing']
+        : _myeventlane_theme_get_event_display_pricing($node);
+      $variables['mel_card_badge_text'] = NULL;
+      if (is_array($display_pricing) && ($display_pricing['type'] ?? NULL) !== BookingFlowResolver::MODE_EXTERNAL) {
+        $display_pricing_label = trim((string) ($display_pricing['label'] ?? ''));
+        $variables['mel_card_badge_text'] = $display_pricing_label !== '' ? $display_pricing_label : NULL;
+      }
+      $variables['mel_card_pricing_type'] = is_array($display_pricing)
+        ? (string) ($display_pricing['type'] ?? '')
+        : '';
 
       $card_type = 'none';
       if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
@@ -1814,8 +1825,8 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         $state === 'sold_out' => 'sold-out',
         $state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID => 'scheduled',
         $card_type === 'external' => 'external',
-        $badge_for_modifier === 'FREE' => 'free',
-        is_string($badge_for_modifier) && str_starts_with($badge_for_modifier, '$') => 'paid',
+        $variables['mel_card_pricing_type'] === BookingFlowResolver::MODE_RSVP => 'free',
+        $variables['mel_card_pricing_type'] === BookingFlowResolver::MODE_PAID => 'paid',
         default => 'default',
       };
 
@@ -1833,12 +1844,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $variables['mel_poster_price_pill'] = NULL;
       if ($view_mode === 'event_card_poster') {
         $pill = _myeventlane_theme_get_event_poster_price_pill($node);
-        $variables['mel_poster_price_pill'] = match ($pill) {
-          'Free' => (string) t('Free'),
-          'Tickets' => (string) t('Tickets'),
-          '$$' => '$$',
-          default => NULL,
-        };
+        $variables['mel_poster_price_pill'] = $pill;
       }
 
       // Card URL
@@ -2029,108 +2035,67 @@ function _myeventlane_theme_event_card_status_primary(NodeInterface $node, ?stri
   if ($event_type === 'external') {
     return (string) t('External ticketing');
   }
-  if ($badge_text === 'FREE') {
-    return (string) t('Free · RSVP');
-  }
-  if (is_string($badge_text) && str_starts_with($badge_text, '$')) {
+  if ($badge_text === 'Free RSVP' || $badge_text === 'Free') {
     return $badge_text;
   }
-  if ($badge_text === 'Tickets') {
-    return (string) t('Paid tickets');
+  if ($badge_text !== NULL && $badge_text !== '' && $badge_text !== 'External') {
+    return $badge_text;
   }
   return NULL;
 }
 
 /**
- * Helper function to compute event badge text from event type and price.
+ * Helper function to compute event badge text from resolved display pricing.
  *
  * @param \Drupal\node\NodeInterface $node
  *   The event node.
  *
  * @return string|null
- *   Badge text: "FREE", "$XX.XX", "Tickets", or NULL.
+ *   Display pricing label, or NULL.
  */
 function _myeventlane_theme_get_event_badge_text(\Drupal\node\NodeInterface $node): ?string {
-  if ($node->bundle() !== 'event') {
+  $display_pricing = _myeventlane_theme_get_event_display_pricing($node);
+  if (!is_array($display_pricing)) {
     return NULL;
   }
 
-  $event_type = NULL;
-  if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
-    $event_type = $node->get('field_event_type')->value;
-  }
-
-  if ($event_type === 'external') {
+  if (($display_pricing['type'] ?? NULL) === BookingFlowResolver::MODE_EXTERNAL) {
     return NULL;
   }
 
-  // RSVP or "both" with free price → "FREE"
-  if ($event_type === 'rsvp') {
-    return 'FREE';
-  }
-
-  // Check if product exists and get price
-  $domain = \Drupal::hasService('myeventlane_core.event_state_resolver')
-    ? \Drupal::service('myeventlane_core.event_state_resolver')
-    : NULL;
-  $product = NULL;
-  if ($domain?->hasProductTarget($node)) {
-    $product = $node->get('field_product_target')->entity;
-  }
-
-  if ($product) {
-    $default_variation = $product->getDefaultVariation();
-    if ($default_variation && $default_variation->hasField('price') && !$default_variation->get('price')->isEmpty()) {
-      $price = $default_variation->getPrice();
-      if ($price) {
-        $price_number = $price->getNumber();
-        // If price is 0 and event type is "both", still show FREE for clarity
-        if ($price_number === '0' && ($event_type === 'both' || $event_type === 'rsvp')) {
-          return 'FREE';
-        }
-        // If price > 0, format and return
-        if ($price_number > 0) {
-          return '$' . number_format($price_number, 2);
-        }
-      }
-    }
-  }
-
-  // Paid or "both" without price info → "Tickets"
-  if (in_array($event_type, ['paid', 'both'], TRUE)) {
-    return 'Tickets';
-  }
-
-  return NULL;
+  $label = trim((string) ($display_pricing['label'] ?? ''));
+  return $label !== '' ? $label : NULL;
 }
 
 /**
- * Short poster-card price label for image overlay (Free / Tickets / $$).
+ * Short poster-card price label for image overlay.
  *
- * Maps the same rules as _myeventlane_theme_get_event_badge_text() without
- * exposing exact dollar amounts on the grid.
+ * Uses the same resolver-backed label as the public event cards.
  *
  * @param \Drupal\node\NodeInterface $node
  *   The event node.
  *
  * @return string|null
- *   One of: "Free", "Tickets", "$$", or NULL when no label applies.
+ *   Display pricing label, or NULL when no label applies.
  */
 function _myeventlane_theme_get_event_poster_price_pill(\Drupal\node\NodeInterface $node): ?string {
-  $badge = _myeventlane_theme_get_event_badge_text($node);
-  if ($badge === NULL) {
+  return _myeventlane_theme_get_event_badge_text($node);
+}
+
+/**
+ * Returns resolver-backed event display pricing when available.
+ *
+ * @return array{label: string, is_free: bool, type: string}|null
+ *   Canonical display pricing, or NULL when unavailable.
+ */
+function _myeventlane_theme_get_event_display_pricing(\Drupal\node\NodeInterface $node): ?array {
+  if ($node->bundle() !== 'event' || !\Drupal::hasService('myeventlane_event.booking_flow_resolver')) {
     return NULL;
   }
-  if ($badge === 'FREE') {
-    return 'Free';
-  }
-  if ($badge === 'Tickets') {
-    return 'Tickets';
-  }
-  if (is_string($badge) && str_starts_with($badge, '$')) {
-    return '$$';
-  }
-  return NULL;
+
+  /** @var \Drupal\myeventlane_event\Service\BookingFlowResolver $booking_flow_resolver */
+  $booking_flow_resolver = \Drupal::service('myeventlane_event.booking_flow_resolver');
+  return $booking_flow_resolver->getDisplayPricing($node);
 }
 
 /**
@@ -3175,7 +3140,8 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     $variables['hero_status'] = _myeventlane_theme_event_hero_status_public($resolved_state);
 
     $cta_type = (string) ($variables['cta_type'] ?? 'none');
-    $badge_for_modifier = _myeventlane_theme_get_event_badge_text($node);
+    $display_pricing = _myeventlane_theme_get_event_display_pricing($node);
+    $pricing_type = is_array($display_pricing) ? (string) ($display_pricing['type'] ?? '') : '';
     $card_type = 'none';
     if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
       $et = $node->get('field_event_type')->value;
@@ -3189,8 +3155,8 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
       $resolved_state === 'sold_out' => 'sold-out',
       $resolved_state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID => 'scheduled',
       $card_type === 'external' => 'external',
-      $badge_for_modifier === 'FREE' => 'free',
-      is_string($badge_for_modifier) && str_starts_with($badge_for_modifier, '$') => 'paid',
+      $pricing_type === BookingFlowResolver::MODE_RSVP => 'free',
+      $pricing_type === BookingFlowResolver::MODE_PAID => 'paid',
       default => 'default',
     };
 
@@ -3428,7 +3394,8 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
 
   $variables['hero_venue'] = _myeventlane_theme_event_hero_venue_name($event);
   $variables['hero_status'] = _myeventlane_theme_event_hero_status_public($mel_event_state);
-  $badge_for_modifier = _myeventlane_theme_get_event_badge_text($event);
+  $display_pricing = _myeventlane_theme_get_event_display_pricing($event);
+  $pricing_type = is_array($display_pricing) ? (string) ($display_pricing['type'] ?? '') : '';
   $card_type = 'none';
   if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
     $et = $event->get('field_event_type')->value;
@@ -3442,8 +3409,8 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
     $mel_event_state === 'sold_out' => 'sold-out',
     $mel_event_state === 'scheduled' && $cta_type_book === EventCtaResolver::CTA_PAID => 'scheduled',
     $card_type === 'external' => 'external',
-    $badge_for_modifier === 'FREE' => 'free',
-    is_string($badge_for_modifier) && str_starts_with($badge_for_modifier, '$') => 'paid',
+    $pricing_type === BookingFlowResolver::MODE_RSVP => 'free',
+    $pricing_type === BookingFlowResolver::MODE_PAID => 'paid',
     default => 'default',
   };
 

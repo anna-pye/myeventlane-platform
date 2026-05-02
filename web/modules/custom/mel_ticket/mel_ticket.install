@@ -290,6 +290,62 @@ function mel_ticket_update_9009(): string {
 }
 
 /**
+ * Adds explicit lifecycle state to ticket types.
+ */
+function mel_ticket_update_9010(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_type', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_type entity type not found; rebuild caches and re-run updates.';
+  }
+  $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
+  if (!isset($fields['lifecycle_status'])) {
+    return 'lifecycle_status field definition missing; skipped.';
+  }
+
+  try {
+    $update_manager->installFieldStorageDefinition(
+      'lifecycle_status',
+      'mel_ticket_type',
+      'mel_ticket',
+      $fields['lifecycle_status']
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mel_ticket')->warning(
+      'mel_ticket_update_9010 installFieldStorageDefinition: @message',
+      ['@message' => $e->getMessage()]
+    );
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('mel_ticket_type');
+  $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+  if (!$ids) {
+    return 'Installed mel_ticket_type.lifecycle_status (no rows to backfill).';
+  }
+
+  $updated = 0;
+  foreach ($storage->loadMultiple($ids) as $ticket) {
+    if (!$ticket instanceof \Drupal\mel_ticket\Entity\TicketTypeInterface) {
+      continue;
+    }
+    if (!$ticket->get('lifecycle_status')->isEmpty()) {
+      continue;
+    }
+    $ticket->set(
+      'lifecycle_status',
+      $ticket->isPublished()
+        ? \Drupal\mel_ticket\Entity\TicketTypeInterface::LIFECYCLE_ACTIVE
+        : \Drupal\mel_ticket\Entity\TicketTypeInterface::LIFECYCLE_ARCHIVED
+    );
+    $ticket->save();
+    $updated++;
+  }
+
+  return sprintf('Installed mel_ticket_type.lifecycle_status; backfilled %d row(s).', $updated);
+}
+
+/**
  * Deletes ticket_type_config paragraph entities so config import can remove the type.
  *
  * Run `drush updb` then `drush cim`. Clears event field_ticket_types (if still

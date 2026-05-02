@@ -13,7 +13,7 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\myeventlane_event\Service\EventCtaResolver;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
@@ -61,8 +61,8 @@ function myeventlane_commerce_page_attachments(array &$attachments): void {
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event')) {
     return;
   }
-  $cta = \Drupal::service('myeventlane_event.cta_resolver')->getCtaType($node);
-  if ($cta !== EventCtaResolver::CTA_PAID) {
+  $bookingMode = \Drupal::service('myeventlane_event.booking_flow_resolver')->getBookingMode($node);
+  if ($bookingMode !== BookingFlowResolver::MODE_PAID) {
     return;
   }
 

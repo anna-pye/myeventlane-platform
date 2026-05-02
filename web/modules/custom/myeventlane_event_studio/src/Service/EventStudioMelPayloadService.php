@@ -82,7 +82,7 @@ final class EventStudioMelPayloadService {
         if (is_array($decoded)) {
           foreach ($decoded as $item) {
             if (is_array($item)) {
-              $studio_ticket_tiers[] = $this->normalizeStudioTierRow($item);
+              $studio_ticket_tiers[] = $item;
             }
           }
         }
@@ -166,16 +166,6 @@ final class EventStudioMelPayloadService {
     }
 
     return $payload;
-  }
-
-  /**
-   * @param array<string, mixed> $row
-   *
-   * @return array<string, mixed>
-   */
-  private function normalizeStudioTierRow(array $row): array {
-    $row['capacity'] = max(1, (int) ($row['capacity'] ?? 0));
-    return $row;
   }
 
   /**
