@@ -572,6 +572,7 @@ final class TicketSalesService {
       $variations = $product->getVariations();
       $total = 0;
       $hasUnlimited = FALSE;
+      $hasFinite = FALSE;
 
       foreach ($variations as $variation) {
         if ($variation->bundle() === 'boost_duration') {
@@ -579,6 +580,7 @@ final class TicketSalesService {
         }
 
         if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
+          $hasFinite = TRUE;
           $total += (int) $variation->get('field_stock')->value;
         }
         else {
@@ -586,7 +588,13 @@ final class TicketSalesService {
         }
       }
 
-      return $hasUnlimited ? 'Unlimited' : $total;
+      if ($hasUnlimited && $hasFinite) {
+        return 'Tickets available';
+      }
+      if ($hasUnlimited) {
+        return 'No limit';
+      }
+      return $total;
     }
     catch (\Exception) {
       return 0;
