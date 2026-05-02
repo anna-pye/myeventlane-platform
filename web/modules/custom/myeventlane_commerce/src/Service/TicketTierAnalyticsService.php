@@ -146,7 +146,10 @@ final class TicketTierAnalyticsService {
       ];
     }
 
-    if ($hasUnlimitedTier && $hasFiniteTier) {
+    if ($activeTierCount === 0) {
+      $remainingDisplay = 'Unlimited';
+    }
+    elseif ($hasUnlimitedTier && $hasFiniteTier) {
       $remainingDisplay = 'Tickets available';
     }
     elseif ($hasUnlimitedTier) {

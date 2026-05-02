@@ -73,6 +73,8 @@
                 {{ 'Tickets available'|t }}
               {% elseif remaining_display == 'No limit' %}
                 {{ 'No limit'|t }}
+              {% elseif remaining_display == 'Unlimited' %}
+                {{ 'Unlimited'|t }}
               {% else %}
                 {{ remaining_display }}
               {% endif %}
