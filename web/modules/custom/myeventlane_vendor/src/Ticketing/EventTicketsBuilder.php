@@ -1370,8 +1370,13 @@ final class EventTicketsBuilder {
     if (is_array($gross) && isset($gross['number'], $gross['currency_code'])) {
       $revDisplay = $gross['currency_code'] . ' ' . $this->formatPriceNumberForDisplay((string) $gross['number']);
     }
-    $remaining = $rollup['total_remaining'];
-    $remDisplay = $remaining === NULL ? (string) $this->t('Unlimited') : (string) $remaining;
+    $remDisplay = (string) ($rollup['remaining_display'] ?? '0');
+    if ($remDisplay === 'Tickets available') {
+      $remDisplay = (string) $this->t('Tickets available');
+    }
+    elseif ($remDisplay === 'No limit') {
+      $remDisplay = (string) $this->t('No limit');
+    }
 
     $note = (string) ($rollup['conversion_note'] ?? '');
     $html = '<div class="mel-ticket-analytics-strip" role="region" aria-label="' . Html::escape((string) $this->t('Ticket sales summary')) . '">';
@@ -1413,7 +1418,7 @@ final class EventTicketsBuilder {
     $isUnlimited = $capacity === NULL || $capacity < 1;
     $capDisplay = $isUnlimited ? (string) $this->t('Unlimited') : (string) $capacity;
     $remaining = $metrics['remaining'];
-    $remDisplay = $remaining === NULL ? (string) $this->t('Unlimited') : (string) $remaining;
+    $remDisplay = $remaining === NULL ? (string) $this->t('No limit') : (string) $remaining;
     $pct = $metrics['sell_through_percent'];
     $pctDisplay = $pct === NULL ? '—' : (string) $pct . '%';
 
