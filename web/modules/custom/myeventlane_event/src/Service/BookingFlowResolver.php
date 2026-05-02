@@ -9,6 +9,7 @@ use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Url;
 use Drupal\commerce_product\Entity\ProductInterface;
+use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
@@ -72,7 +73,7 @@ final class BookingFlowResolver {
       return self::MODE_EXTERNAL;
     }
 
-    if ($this->hasTicketTypes($event)) {
+    if ($this->hasPaidTicketTypes($event)) {
       return self::MODE_PAID;
     }
 
@@ -385,11 +386,20 @@ final class BookingFlowResolver {
   }
 
   /**
-   * Returns TRUE when the event has configured ticket type references.
+   * Returns TRUE when the event has configured paid ticket type references.
    */
-  private function hasTicketTypes(NodeInterface $event): bool {
-    return $event->hasField('field_ticket_types')
-      && !$event->get('field_ticket_types')->isEmpty();
+  private function hasPaidTicketTypes(NodeInterface $event): bool {
+    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      return FALSE;
+    }
+
+    foreach ($event->get('field_ticket_types')->referencedEntities() as $ticketType) {
+      if ($ticketType instanceof TicketTypeInterface && $ticketType->getTicketKind() === 'paid') {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   /**
