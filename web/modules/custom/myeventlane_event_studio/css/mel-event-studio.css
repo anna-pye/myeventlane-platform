@@ -1065,9 +1065,9 @@ textarea.mel-input--body {
   }
 }
 
-/* Step nav lives in theme (left sidebar); keep scroll-margin for in-page jumps. */
+/* Step nav lives in theme (left sidebar); keep scroll-margin aligned with mel-event-studio.js MEL_SCROLL_OFFSET. */
 .mel-event-studio .mel-studio-section {
-  scroll-margin-top: 5.5rem;
+  scroll-margin-top: 120px;
 }
 
 .mel-ticket-wizard-embed {

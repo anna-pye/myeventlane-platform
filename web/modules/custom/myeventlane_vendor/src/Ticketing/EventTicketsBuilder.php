@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_vendor\Ticketing;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -23,6 +25,7 @@ use Drupal\myeventlane_commerce\Service\TicketTierAnalyticsService;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\paragraphs\ParagraphInterface;
 
 /**
  * Shared ticket builder UI for wizard and workspace roots.
@@ -770,7 +773,7 @@ final class EventTicketsBuilder {
         $name === 'ticket_reorder' => $this->reorderTickets($form_state, $event),
         str_starts_with($name, 'edit_') => $this->beginInlineEdit($form_state, $name),
         str_starts_with($name, 'cancel_') => $this->cancelInlineEdit($form_state),
-        str_starts_with($name, 'save_') => $this->saveInlineEdit($form_state, $event, $name),
+        str_starts_with($name, 'save_') => $this->saveInlineEdit($form, $form_state, $event, $name),
         str_starts_with($name, 'ticket_remove_') => $this->removeTicket($event, $name),
         str_starts_with($name, 'ticket_duplicate_') => $this->duplicateTicket($event, $name),
         str_starts_with($name, 'ticket_archive_') => $this->archiveTicket($event, $name),
@@ -1399,6 +1402,54 @@ final class EventTicketsBuilder {
       '#parents' => array_merge($edit_path, ['hidden_label']),
     ];
 
+    $toggle_selector = ':input[name="' . Html::escape($this->formElementFullName($form_state, 'builder_shell', 'list', (string) $tid, 'edit', 'field_use_ticket_attendee_questions', 'value')) . '"]';
+
+    $card['edit']['mel_ticket_questions_divider'] = [
+      '#markup' => '<hr class="mel-ticket-questions__divider" aria-hidden="true" />',
+      '#weight' => 38,
+      '#states' => [
+        'visible' => [
+          $toggle_selector => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    $questions_subform = ['#parents' => $edit_path];
+    $display = EntityFormDisplay::collectRenderDisplay($ticket, 'default');
+    if ($ticket->hasField('field_use_ticket_attendee_questions')
+      && ($w_toggle = $display->getRenderer('field_use_ticket_attendee_questions'))) {
+      $card['edit']['field_use_ticket_attendee_questions'] = $w_toggle->form(
+        $ticket->get('field_use_ticket_attendee_questions'),
+        $questions_subform,
+        $form_state
+      );
+      $card['edit']['field_use_ticket_attendee_questions']['#weight'] = 39;
+    }
+    if ($ticket->hasField('field_attendee_questions')
+      && ($w_questions = $display->getRenderer('field_attendee_questions'))) {
+      $card['edit']['mel_ticket_questions_intro'] = [
+        '#markup' => '<div class="mel-ticket-questions"><h5>' . Html::escape((string) $this->t('Attendee questions')) . '</h5>'
+          . '<p class="description">' . Html::escape((string) $this->t('Add questions specific to this ticket. Event-level questions always apply first.')) . '</p></div>',
+        '#weight' => 40,
+        '#states' => [
+          'visible' => [
+            $toggle_selector => ['checked' => TRUE],
+          ],
+        ],
+      ];
+      $card['edit']['field_attendee_questions'] = $w_questions->form(
+        $ticket->get('field_attendee_questions'),
+        $questions_subform,
+        $form_state
+      );
+      $card['edit']['field_attendee_questions']['#weight'] = 41;
+      $card['edit']['field_attendee_questions']['#states'] = [
+        'visible' => [
+          $toggle_selector => ['checked' => TRUE],
+        ],
+      ];
+    }
+
     $card['edit']['validation'] = [
       '#markup' => '<div class="mel-ticket-card__validation" data-mel-ticket-validation aria-live="polite"></div>',
     ];
@@ -1587,7 +1638,7 @@ final class EventTicketsBuilder {
     $this->messenger->addStatus($this->t('Tickets saved and synced.'));
   }
 
-  private function saveInlineEdit(FormStateInterface $form_state, NodeInterface $event, string $name): void {
+  private function saveInlineEdit(array &$form, FormStateInterface $form_state, NodeInterface $event, string $name): void {
     $tid = (int) str_replace('save_', '', $name);
     $card = $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit')) ?? [];
 
@@ -1600,8 +1651,36 @@ final class EventTicketsBuilder {
       }
 
       $payload = $this->lifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $card);
-    $payload = array_merge($payload, $this->buildSaleWindowFragmentForLifecycle($card));
-    $this->lifecycle->updateTicketType($ticket, $event, $payload);
+      $payload = array_merge($payload, $this->buildSaleWindowFragmentForLifecycle($card));
+      $this->lifecycle->updateTicketType($ticket, $event, $payload);
+
+      $ticket = $this->findEventTicket($event, $tid);
+      if (!$ticket) {
+        throw new \InvalidArgumentException('Ticket not found after save.');
+      }
+
+      $edit_path = $this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit');
+      $branch = NestedArray::getValue($form, $edit_path);
+      $form_fragment = (is_array($branch) ? $branch : []) + ['#parents' => $edit_path];
+
+      $display = EntityFormDisplay::collectRenderDisplay($ticket, 'default');
+      foreach (['field_use_ticket_attendee_questions', 'field_attendee_questions'] as $field_name) {
+        if (!$ticket->hasField($field_name)) {
+          continue;
+        }
+        $renderer = $display->getRenderer($field_name);
+        if ($renderer) {
+          $renderer->extractFormValues($ticket->get($field_name), $form_fragment, $form_state);
+        }
+      }
+
+      if ($ticket->hasField('field_use_ticket_attendee_questions')
+        && !$ticket->get('field_use_ticket_attendee_questions')->value) {
+        $this->removeTicketTypeAttendeeQuestionParagraphs($ticket);
+      }
+
+      $this->lifecycle->updateTicketType($ticket, $event, []);
+
       $this->messenger->addStatus($this->t('Ticket updated.'));
       $success = TRUE;
     }
@@ -1628,6 +1707,22 @@ final class EventTicketsBuilder {
     }
     else {
       $form_state->set('editing_ticket_id', $tid);
+    }
+  }
+
+  /**
+   * Deletes per-ticket question paragraphs and clears the field reference.
+   */
+  private function removeTicketTypeAttendeeQuestionParagraphs(TicketTypeInterface $ticket): void {
+    if (!$ticket->hasField('field_attendee_questions')) {
+      return;
+    }
+    $refs = $ticket->get('field_attendee_questions')->referencedEntities();
+    $ticket->set('field_attendee_questions', []);
+    foreach ($refs as $entity) {
+      if ($entity instanceof ParagraphInterface) {
+        $entity->delete();
+      }
     }
   }
 
@@ -1716,6 +1811,27 @@ final class EventTicketsBuilder {
     }
     if ($ticket->hasField('group_bundle_size') && !$ticket->get('group_bundle_size')->isEmpty()) {
       $payload['group_bundle_size'] = (int) $ticket->get('group_bundle_size')->value;
+    }
+
+    if ($ticket->hasField('field_use_ticket_attendee_questions')) {
+      $payload['field_use_ticket_attendee_questions'] = $ticket->get('field_use_ticket_attendee_questions')->value ? 1 : 0;
+    }
+    if ($ticket->hasField('field_attendee_questions') && !$ticket->get('field_attendee_questions')->isEmpty()) {
+      $refs = [];
+      foreach ($ticket->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if (!$paragraph instanceof ParagraphInterface) {
+          continue;
+        }
+        $dup = $paragraph->createDuplicate();
+        $dup->save();
+        $refs[] = [
+          'target_id' => (int) $dup->id(),
+          'target_revision_id' => (int) $dup->getRevisionId(),
+        ];
+      }
+      if ($refs !== []) {
+        $payload['field_attendee_questions'] = $refs;
+      }
     }
 
     $this->lifecycle->createAttachAndSync($event, $payload);

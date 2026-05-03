@@ -325,6 +325,31 @@ $mel-builder-muted: $text-secondary;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid $border-color-light;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+}
+
+.mel-event-studio .mel-builder-card__footer-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: $spacing-3;
+  width: 100%;
+}
+
+.mel-event-studio .mel-builder-card__footer-toolbar .mel-builder-card__next-step {
+  margin-top: 0;
+}
+
+.mel-event-studio .mel-builder-card__footer-toolbar [data-mel-builder-close-section] {
+  margin-left: auto;
+}
+
+.mel-event-studio .mel-builder-card:not(.mel-builder-card--body-expanded) .mel-builder-card__footer-toolbar [data-mel-builder-close-section] {
+  display: none !important;
 }
 
 .mel-event-studio .mel-builder-card__complete {

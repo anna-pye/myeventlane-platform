@@ -15,6 +15,23 @@
   var MEL_SCROLL_OFFSET = 120;
 
   /**
+   * While non-zero epoch ms, wizard IntersectionObserver must not overwrite nav/card state
+   * (smooth programmatic scroll crosses multiple steps briefly).
+   */
+  var melWizardIoNavSilentUntil = 0;
+
+  /**
+   * @param {number} [durationMs]
+   */
+  function melSuppressWizardIoNav(durationMs) {
+    var ms = typeof durationMs === 'number' ? durationMs : melPrefersReducedMotion() ? 120 : 750;
+    var until = Date.now() + ms;
+    if (until > melWizardIoNavSilentUntil) {
+      melWizardIoNavSilentUntil = until;
+    }
+  }
+
+  /**
    * Window scroll only — no nested scroll containers.
    *
    * @param {HTMLElement|null} target
@@ -23,6 +40,7 @@
     if (!target) {
       return;
     }
+    melSuppressWizardIoNav();
     var y = target.getBoundingClientRect().top + window.scrollY - MEL_SCROLL_OFFSET;
     window.scrollTo({
       top: Math.max(0, y),
@@ -160,44 +178,6 @@
     );
   }
 
-  /**
-   * Default expanded card: first incomplete card in the current wizard step, else last card in step.
-   *
-   * @param {HTMLFormElement} form
-   * @return {HTMLElement|null}
-   */
-  function melPickDefaultActiveBuilderCard(form) {
-    if (!form) {
-      return null;
-    }
-    var stepIdx = getWizardStepIndex(form);
-    var stepEl =
-      stepIdx >= 0 && stepIdx < MEL_STEPS.length
-        ? document.getElementById('mel-step-' + MEL_STEPS[stepIdx].id)
-        : null;
-    var cards = melOrderedVisibleBuilderCards(form);
-    if (stepEl) {
-      cards = cards.filter(function (c) {
-        return stepEl.contains(c);
-      });
-    }
-    var i;
-    for (i = 0; i < cards.length; i++) {
-      var c = cards[i];
-      if (c.id === 'mel-card-publish') {
-        continue;
-      }
-      if (!c.classList.contains('is-complete')) {
-        return cards[i];
-      }
-    }
-    for (i = cards.length - 1; i >= 0; i--) {
-      if (cards[i].id !== 'mel-card-publish') {
-        return cards[i];
-      }
-    }
-    return cards[0] || null;
-  }
 
   /**
    * @param {string|HTMLElement} sel
@@ -259,6 +239,10 @@
     }
     if (!el) {
       return;
+    }
+    var hostingCard = el.closest('.mel-builder-card');
+    if (hostingCard && form.contains(hostingCard) && hostingCard.id !== 'mel-card-publish') {
+      melSetActiveBuilderCard(form, hostingCard);
     }
     var progD = el.closest('details');
     while (progD && form.contains(progD)) {
@@ -2282,10 +2266,138 @@
       }
       return Drupal.t('No extra questions');
     }
+    if (cid === 'mel-card-preview') {
+      return Drupal.t('Preview card');
+    }
     if (cid === 'mel-card-publish') {
       return Drupal.t('Ready to publish');
     }
     return Drupal.t('Completed');
+  }
+
+  /**
+   * @param {Element|null} card
+   * @return {boolean}
+   */
+  function melIsPublishBuilderCard(card) {
+    return !!(card && card.id === 'mel-card-publish');
+  }
+
+  /** Collapses all accordion cards except publish (always expanded). */
+  function melCollapseAllBuilderCardsExceptPublish(form) {
+    if (!form) {
+      return;
+    }
+    delete form.dataset.melBuilderActiveCardId;
+
+    form.querySelectorAll('.mel-builder-card').forEach(function (card) {
+      var body = card.querySelector(':scope > .mel-builder-card__body');
+      var summary = card.querySelector(':scope > .mel-builder-card__summary');
+      if (!body || !summary) {
+        return;
+      }
+
+      if (melIsPublishBuilderCard(card)) {
+        body.style.display = '';
+        summary.hidden = true;
+        card.classList.add('mel-builder-card--body-expanded');
+        return;
+      }
+
+      card.classList.remove('mel-builder-card--expanded-edit');
+      card.classList.remove('mel-builder-card--body-expanded');
+      body.style.display = 'none';
+      summary.hidden = false;
+      var summaryContent = summary.querySelector('.mel-builder-card__summary-content');
+      if (summaryContent) {
+        summaryContent.textContent = melBuildCardSummary(card, form);
+      }
+    });
+
+    melUpdateBuilderCardCloseButtons(form);
+    melRequestBuilderCardActiveSync(form);
+  }
+
+  /**
+   * Ensures a footer row exists for in-card Continue + Close section controls.
+   *
+   * @param {HTMLElement} foot
+   * @return {HTMLElement}
+   */
+  function melBuilderCardEnsureFooterToolbar(foot) {
+    var toolbar = foot.querySelector('[data-mel-builder-footer-toolbar]');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.className = 'mel-builder-card__footer-toolbar';
+      toolbar.setAttribute('data-mel-builder-footer-toolbar', '1');
+      foot.appendChild(toolbar);
+    }
+    return toolbar;
+  }
+
+  /**
+   * Shows or hides footer "Close section" controls (complete + expanded only).
+   *
+   * @param {HTMLFormElement} form
+   */
+  function melUpdateBuilderCardCloseButtons(form) {
+    if (!form) {
+      return;
+    }
+    form.querySelectorAll('.mel-builder-card').forEach(function (card) {
+      if (melIsPublishBuilderCard(card)) {
+        return;
+      }
+      var btn = card.querySelector('[data-mel-builder-close-section]');
+      if (!btn) {
+        return;
+      }
+      var expanded = card.classList.contains('mel-builder-card--body-expanded');
+      var complete = card.classList.contains('is-complete');
+      var show = expanded && complete;
+      btn.hidden = !show;
+      btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+    });
+  }
+
+  /**
+   * Ensures card footers have a toolbar row: Continue (next-step) + Close section.
+   *
+   * Safe to call repeatedly (e.g. after AJAX) — reconciles DOM order.
+   *
+   * @param {HTMLFormElement} form
+   */
+  function melEnsureCollapseDoneButtons(form) {
+    if (!form) {
+      return;
+    }
+    form.querySelectorAll('.mel-builder-card footer.mel-builder-card__footer').forEach(function (foot) {
+      var card = foot.closest('.mel-builder-card');
+      if (!card || melIsPublishBuilderCard(card)) {
+        return;
+      }
+      var toolbar = melBuilderCardEnsureFooterToolbar(foot);
+      var nextBlock = foot.querySelector(':scope > [data-mel-builder-next-step-block]');
+      if (nextBlock) {
+        toolbar.insertBefore(nextBlock, toolbar.firstChild);
+      }
+      if (!foot.querySelector('[data-mel-builder-close-section]')) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'mel-btn mel-btn--ghost mel-builder-card__close-section';
+        btn.setAttribute('data-mel-builder-close-section', '1');
+        btn.hidden = true;
+        btn.setAttribute('aria-hidden', 'true');
+        btn.textContent = Drupal.t('Close section');
+        toolbar.appendChild(btn);
+      }
+      else {
+        var existingClose = foot.querySelector('[data-mel-builder-close-section]');
+        if (existingClose && existingClose.parentNode !== toolbar) {
+          toolbar.appendChild(existingClose);
+        }
+      }
+    });
   }
 
   /**
@@ -2311,9 +2423,10 @@
         return;
       }
 
-      if (card.id === 'mel-card-publish') {
+      if (melIsPublishBuilderCard(card)) {
         body.style.display = '';
         summary.hidden = true;
+        card.classList.add('mel-builder-card--body-expanded');
         return;
       }
 
@@ -2323,8 +2436,10 @@
       if (isTarget) {
         body.style.display = '';
         summary.hidden = true;
+        card.classList.add('mel-builder-card--body-expanded');
       }
       else {
+        card.classList.remove('mel-builder-card--body-expanded');
         body.style.display = 'none';
         summary.hidden = false;
         var summaryContent = summary.querySelector('.mel-builder-card__summary-content');
@@ -2334,11 +2449,12 @@
       }
     });
 
+    melUpdateBuilderCardCloseButtons(form);
     melRequestBuilderCardActiveSync(form);
   }
 
   /**
-   * Apply single-active card UI; resolves active card from dataset or wizard-step default.
+   * Apply accordion state: expands only dataset.mel-builder-active-card, else collapses all.
    *
    * @param {HTMLFormElement} form
    */
@@ -2346,6 +2462,8 @@
     if (!form) {
       return;
     }
+    melEnsureCollapseDoneButtons(form);
+
     var activeId = form.dataset.melBuilderActiveCardId;
     var activeCard = activeId ? document.getElementById(activeId) : null;
     var stepIdx = getWizardStepIndex(form);
@@ -2356,12 +2474,19 @@
     if (
       !activeCard ||
       !form.contains(activeCard) ||
-      (stepEl && !stepEl.contains(activeCard))
+      !activeCard.closest ||
+      typeof activeCard.closest !== 'function' ||
+      !activeCard.closest('section.mel-step')
     ) {
-      activeCard = melPickDefaultActiveBuilderCard(form);
+      activeCard = null;
+    } else if (stepEl && !stepEl.contains(activeCard)) {
+      activeCard = null;
     }
+
     if (activeCard) {
       melSetActiveBuilderCard(form, activeCard);
+    } else {
+      melCollapseAllBuilderCardsExceptPublish(form);
     }
   }
 
@@ -2741,10 +2866,19 @@
       var activeLink = links[activeIndex];
       if (activeLink && activeLink.scrollIntoView) {
         window.setTimeout(function () {
+          try {
+            var navRect = nav.getBoundingClientRect();
+            var linkRect = activeLink.getBoundingClientRect();
+            var clipped =
+              linkRect.top < navRect.top + 2 || linkRect.bottom > navRect.bottom - 2;
+            if (!clipped) {
+              return;
+            }
+          } catch (eSidebarMeasure) {}
           activeLink.scrollIntoView({
             block: 'nearest',
             inline: 'nearest',
-            behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+            behavior: 'auto',
           });
         }, 60);
       }
@@ -3184,7 +3318,16 @@
         btnEl.setAttribute('aria-describedby', hintId);
         nextBlock.appendChild(hintEl);
         nextBlock.appendChild(btnEl);
-        footer.appendChild(nextBlock);
+        var insertToolbar = melBuilderCardEnsureFooterToolbar(footer);
+        insertToolbar.insertBefore(nextBlock, insertToolbar.firstChild);
+      }
+
+      if (nextBlock && nextBlock.parentNode) {
+        var hostFooter = nextBlock.closest('.mel-builder-card__footer');
+        if (hostFooter && nextBlock.parentNode === hostFooter) {
+          var tBar = melBuilderCardEnsureFooterToolbar(hostFooter);
+          tBar.insertBefore(nextBlock, tBar.firstChild);
+        }
       }
 
       if (nextBlock) {
@@ -3203,7 +3346,6 @@
       if (!wasComplete && isComplete && nextStepHintKeys[key]) {
         var nextAfterComplete = melNextPrimaryFlowBuilderCard(form, card);
         if (nextAfterComplete) {
-          melSetActiveBuilderCard(form, nextAfterComplete);
           pendingCompletionScrollCard = nextAfterComplete;
         }
       }
@@ -3276,22 +3418,8 @@
       return;
     }
     var nextIdx = stepIdx + 1;
+    delete form.dataset.melBuilderActiveCardId;
     scrollToStudioSection(form, nextIdx);
-    var nextStepEl = document.getElementById('mel-step-' + MEL_STEPS[nextIdx].id);
-    var targetCard = null;
-    if (nextStepEl) {
-      var stepCards = nextStepEl.querySelectorAll('.mel-builder-card');
-      for (var ci = 0; ci < stepCards.length; ci++) {
-        if (melIsBuilderCardDomVisible(form, stepCards[ci])) {
-          targetCard = stepCards[ci];
-          break;
-        }
-      }
-    }
-    if (targetCard) {
-      melSetActiveBuilderCard(form, targetCard);
-      melScrollToBuilderCard(form, targetCard);
-    }
     melApplyBuilderCardCollapseState(form);
   }
 
@@ -3304,6 +3432,48 @@
     setWizardStepIndex(form, 0);
     setWizardNavActive(form, 0);
     updateProgress(form);
+
+    if (!form.dataset.melBuilderAccordionInteractionsBound) {
+      form.dataset.melBuilderAccordionInteractionsBound = '1';
+      melEnsureCollapseDoneButtons(form);
+
+      form.addEventListener(
+        'click',
+        function (e) {
+          var closeBtn = e.target.closest('[data-mel-builder-close-section]');
+          if (!closeBtn || !form.contains(closeBtn)) {
+            return;
+          }
+          e.preventDefault();
+          delete form.dataset.melBuilderActiveCardId;
+          melApplyBuilderCardCollapseState(form);
+        },
+        false,
+      );
+
+      form.addEventListener(
+        'click',
+        function (e) {
+          var hdr = e.target.closest('.mel-builder-card > .mel-builder-card__header');
+          if (!hdr || !form.contains(hdr)) {
+            return;
+          }
+          if (e.target.closest('button, a, input, select, textarea, label')) {
+            return;
+          }
+          var headerCard = hdr.closest('.mel-builder-card');
+          if (!headerCard || melIsPublishBuilderCard(headerCard)) {
+            return;
+          }
+          if (headerCard.classList.contains('mel-builder-card--body-expanded')) {
+            return;
+          }
+          e.preventDefault();
+          melSetActiveBuilderCard(form, headerCard);
+        },
+        false,
+      );
+    }
 
     form.querySelectorAll('a.mel-nav-link').forEach(function (link) {
       link.addEventListener('click', function (e) {
@@ -3390,6 +3560,9 @@
       var io = new IntersectionObserver(
         function (entries) {
           entries.forEach(function (entry) {
+            if (Date.now() < melWizardIoNavSilentUntil) {
+              return;
+            }
             if (!entry.isIntersecting) {
               return;
             }

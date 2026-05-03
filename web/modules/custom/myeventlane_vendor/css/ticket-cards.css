@@ -1062,3 +1062,27 @@
   max-width: 42ch;
   margin-inline: auto;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Per-ticket attendee questions (advanced)                                   */
+/* -------------------------------------------------------------------------- */
+
+.mel-ticket-questions__divider {
+  border: 0;
+  border-top: 1px solid #e2e4f0;
+  margin: 1.35rem 0 1rem;
+}
+
+.mel-ticket-questions h5 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #1f2430;
+}
+
+.mel-ticket-questions .description {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #5c6370;
+}

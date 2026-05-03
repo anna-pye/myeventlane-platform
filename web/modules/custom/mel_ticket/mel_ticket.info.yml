@@ -9,5 +9,7 @@ dependencies:
   - drupal:link
   - drupal:node
   - drupal:user
+  - drupal:entity_reference_revisions
   - commerce_price:commerce_price
   - commerce_product:commerce_product
+  - paragraphs:paragraphs

@@ -1,0 +1,5 @@
+checkout_attendee_groups:
+  version: 1.x
+  css:
+    theme:
+      css/checkout-attendee-groups.css: {}
