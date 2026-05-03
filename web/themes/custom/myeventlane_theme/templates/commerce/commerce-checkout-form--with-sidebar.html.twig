@@ -61,19 +61,15 @@
       <p>{{ "You're almost done — review your details and complete your booking."|t }}</p>
     </div>
 
-    {% if form.payment_information is defined %}
-      <div class="mel-checkout__trust">
-        <span>{{ '✔ Secure payment'|t }}</span>
-        <span>{{ '✔ No hidden fees'|t }}</span>
-        <span>{{ '✔ Instant confirmation'|t }}</span>
-      </div>
-    {% else %}
-      <div class="mel-checkout__trust mel-checkout__trust--free">
-        <span>{{ '✔ No payment required'|t }}</span>
-        <span>{{ '✔ No hidden fees'|t }}</span>
-        <span>{{ '✔ Instant confirmation'|t }}</span>
-      </div>
-    {% endif %}
+    <div class="mel-checkout-trust">
+      <p>{{ '✔ Secure checkout'|t }}</p>
+      <p>{{ '✔ Instant confirmation'|t }}</p>
+      {% if mel_checkout_refunds_available|default(false) %}
+        <p>{{ '✔ Refunds available'|t }}</p>
+      {% else %}
+        <p>{{ '✔ Easy refunds (if enabled)'|t }}</p>
+      {% endif %}
+    </div>
 
     <div class="mel-checkout__helper">
       {{ "We'll only use your details to send your ticket."|t }}

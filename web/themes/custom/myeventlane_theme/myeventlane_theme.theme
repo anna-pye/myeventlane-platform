@@ -579,6 +579,12 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
   if (($step_id ?? '') !== 'complete') {
     $order_param = _myeventlane_theme_commerce_order_from_route();
     if ($order_param instanceof OrderInterface) {
+      $event = _myeventlane_theme_get_first_event_from_order($order_param);
+      $variables['mel_checkout_refunds_available'] = _myeventlane_theme_event_has_refunds_available($event);
+      if ($event instanceof NodeInterface) {
+        $variables['#cache']['tags'][] = 'node:' . $event->id();
+      }
+
       $total_price = $order_param->getTotalPrice();
       // Primary CTA from order total + variation list prices (avoids stale labels when
       // payment pane is AJAX-hidden; RSVP label only for inherently free tickets).
@@ -783,6 +789,21 @@ function _myeventlane_theme_get_first_event_from_order($order) {
     }
   }
   return NULL;
+}
+
+/**
+ * Returns TRUE when an event policy indicates refunds may be available.
+ */
+function _myeventlane_theme_event_has_refunds_available(?NodeInterface $event): bool {
+  if (!$event instanceof NodeInterface || !$event->hasField('field_refund_policy') || $event->get('field_refund_policy')->isEmpty()) {
+    return FALSE;
+  }
+
+  return in_array((string) $event->get('field_refund_policy')->value, [
+    'refund_24h',
+    'refund_7d',
+    'case_by_case',
+  ], TRUE);
 }
 
 /**
