@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Form;
 
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -103,10 +104,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
     $cache_metadata = $display->getCacheMetadata();
     $form['#cache']['tags'] = $cache_metadata->getCacheTags();
     $form['#cache']['contexts'] = $cache_metadata->getCacheContexts();
-    $max_age = $cache_metadata->getCacheMaxAge();
-    if ($max_age !== NULL) {
-      $form['#cache']['max-age'] = $max_age;
-    }
+    $form['#cache']['max-age'] = 0;
 
     if (empty($nodes)) {
       $form['empty_state'] = [
@@ -335,6 +333,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
    */
   private function handleDelete(array $selectedEvents, int $userId, $nodeStorage): void {
     $deletedCount = 0;
+    $failedCount = 0;
 
     foreach (array_keys($selectedEvents) as $nodeId) {
       $nodeId = (int) $nodeId;
@@ -343,8 +342,18 @@ final class VendorEventsBulkActionsForm extends FormBase {
       if ($node instanceof NodeInterface
           && $node->bundle() === 'event'
           && (int) $node->getOwnerId() === $userId) {
-        $node->delete();
-        $deletedCount++;
+        try {
+          $node->delete();
+          $deletedCount++;
+        }
+        catch (EntityStorageException $e) {
+          $failedCount++;
+          $this->logger->error('Vendor events bulk delete failed for event @nid by user @uid: @message', [
+            '@nid' => (string) $nodeId,
+            '@uid' => (string) $userId,
+            '@message' => $e->getMessage(),
+          ]);
+        }
       }
     }
 
@@ -355,6 +364,12 @@ final class VendorEventsBulkActionsForm extends FormBase {
     }
     else {
       $this->messenger()->addWarning($this->t('No events were deleted.'));
+    }
+
+    if ($failedCount > 0) {
+      $this->messenger()->addError($this->t('@count event(s) could not be deleted. Please try again or contact support.', [
+        '@count' => $failedCount,
+      ]));
     }
   }
 
