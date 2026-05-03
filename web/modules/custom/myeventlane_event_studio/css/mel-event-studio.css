@@ -919,6 +919,16 @@ textarea.mel-input--body {
   color: #b45309;
 }
 
+.mel-ticket-builder--draft .mel-ticket-card__field--title,
+.mel-ticket-builder--draft .mel-ticket-card__field--price {
+  grid-column: 1 / -1;
+}
+
+.mel-ticket-builder--draft .mel-ticket-card__field--title input,
+.mel-ticket-builder--draft .mel-ticket-card__field--price input {
+  width: 100%;
+}
+
 .mel-ticket-builder .mel-tier-remove {
   font-size: 0.8125rem;
   padding: 0.35rem 0.65rem;

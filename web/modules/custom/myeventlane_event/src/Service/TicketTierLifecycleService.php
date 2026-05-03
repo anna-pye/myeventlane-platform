@@ -48,6 +48,7 @@ final class TicketTierLifecycleService {
     $ticket->save();
     if ($sync && $event instanceof NodeInterface) {
       $this->ticketTypeManager->normalizeDefaultTicketSelection($event, $ticket);
+      $this->ticketTypeManager->normalizeBestValueTicketSelection($event, $ticket);
       $this->syncPaidTiers($event);
     }
     return $ticket;
@@ -170,6 +171,7 @@ final class TicketTierLifecycleService {
     $ticket = $this->persistNewTicketType($values, $event, FALSE);
     $this->appendTicketToEvent($event, (int) $ticket->id(), TRUE);
     $this->ticketTypeManager->normalizeDefaultTicketSelection($event, $ticket);
+    $this->ticketTypeManager->normalizeBestValueTicketSelection($event, $ticket);
     return $ticket;
   }
 
@@ -242,6 +244,7 @@ final class TicketTierLifecycleService {
         $event->save();
       }
       $this->ticketTypeManager->normalizeDefaultTicketSelection($event);
+      $this->ticketTypeManager->normalizeBestValueTicketSelection($event);
       $this->syncPaidTiers($event);
     }
 
@@ -281,6 +284,7 @@ final class TicketTierLifecycleService {
     EventNodeRevisionSave::prepare($event, 'Ticket order updated on event.');
     $event->save();
     $this->ticketTypeManager->normalizeDefaultTicketSelection($event);
+    $this->ticketTypeManager->normalizeBestValueTicketSelection($event);
     $this->syncPaidTiers($event);
   }
 
@@ -299,6 +303,10 @@ final class TicketTierLifecycleService {
     }
     if ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()) {
       $ticket->set('field_is_default_ticket', FALSE);
+      $changed = TRUE;
+    }
+    if ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket()) {
+      $ticket->set('field_is_best_value', FALSE);
       $changed = TRUE;
     }
     if ($changed) {
@@ -336,6 +344,7 @@ final class TicketTierLifecycleService {
     $ticket->save();
     if ($event instanceof NodeInterface) {
       $this->ticketTypeManager->normalizeDefaultTicketSelection($event, $ticket);
+      $this->ticketTypeManager->normalizeBestValueTicketSelection($event, $ticket);
       $this->syncPaidTiers($event);
     }
   }
@@ -383,6 +392,9 @@ final class TicketTierLifecycleService {
     }
     if (array_key_exists('field_is_default_ticket', $values)) {
       $payload['field_is_default_ticket'] = !empty($values['field_is_default_ticket']) ? 1 : 0;
+    }
+    if (array_key_exists('field_is_best_value', $values)) {
+      $payload['field_is_best_value'] = !empty($values['field_is_best_value']) ? 1 : 0;
     }
 
     if (in_array($kind, ['paid', 'rsvp'], TRUE)) {
@@ -498,6 +510,9 @@ final class TicketTierLifecycleService {
     }
     if (array_key_exists('field_is_default_ticket', $values)) {
       $payload['field_is_default_ticket'] = !empty($values['field_is_default_ticket']) ? 1 : 0;
+    }
+    if (array_key_exists('field_is_best_value', $values)) {
+      $payload['field_is_best_value'] = !empty($values['field_is_best_value']) ? 1 : 0;
     }
 
     if (array_key_exists('hidden_label', $values)) {
@@ -886,6 +901,9 @@ final class TicketTierLifecycleService {
     }
     if (array_key_exists('field_is_default_ticket', $values) && $ticket->hasField('field_is_default_ticket')) {
       $ticket->set('field_is_default_ticket', !empty($values['field_is_default_ticket']));
+    }
+    if (array_key_exists('field_is_best_value', $values) && $ticket->hasField('field_is_best_value')) {
+      $ticket->set('field_is_best_value', !empty($values['field_is_best_value']));
     }
     if (array_key_exists('lifecycle_status', $values)) {
       $ticket->set('lifecycle_status', (string) $values['lifecycle_status']);

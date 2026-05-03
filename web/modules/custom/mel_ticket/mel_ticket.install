@@ -471,6 +471,40 @@ function mel_ticket_update_9013(): string {
 }
 
 /**
+ * Adds organiser-controlled best-value flag to ticket types.
+ */
+function mel_ticket_update_9014(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_type', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_type entity type not found; rebuild caches and re-run updates.';
+  }
+  $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
+  if (!isset($fields['field_is_best_value'])) {
+    return 'field_is_best_value field definition missing; skipped.';
+  }
+
+  try {
+    $update_manager->installFieldStorageDefinition(
+      'field_is_best_value',
+      'mel_ticket_type',
+      'mel_ticket',
+      $fields['field_is_best_value']
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mel_ticket')->error(
+      'mel_ticket_update_9014 installFieldStorageDefinition: @message',
+      ['@message' => $e->getMessage()]
+    );
+
+    return 'field_is_best_value was not installed; see mel_ticket watchdog logs.';
+  }
+
+  return 'Installed mel_ticket_type.field_is_best_value for best-value tickets.';
+}
+
+/**
  * Deletes ticket_type_config paragraph entities so config import can remove the type.
  *
  * Run `drush updb` then `drush cim`. Clears event field_ticket_types (if still

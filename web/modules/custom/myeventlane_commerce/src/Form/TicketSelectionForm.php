@@ -799,10 +799,10 @@ final class TicketSelectionForm extends FormBase {
       return (string) $this->t('Limited availability');
     }
     if ($pool === 1) {
-      return (string) $this->t('1 ticket left');
+      return (string) $this->t('Only 1 left');
     }
     if ($pool <= 10) {
-      return (string) $this->t('@count tickets left', ['@count' => (string) $pool]);
+      return (string) $this->t('Only @count left', ['@count' => (string) $pool]);
     }
     return (string) $this->t('Available');
   }
