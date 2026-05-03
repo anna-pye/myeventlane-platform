@@ -467,7 +467,7 @@
 
         <section id="mel-step-preview" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="preview" role="tabpanel" aria-labelledby="mel-preview-section-heading">
           <div class="mel-builder-step-stack">
-            <section class="mel-builder-card" aria-labelledby="mel-preview-section-heading">
+            <section id="mel-card-preview" class="mel-builder-card" aria-labelledby="mel-preview-section-heading">
               <span class="mel-builder-card__done-badge" data-mel-builder-done-badge hidden>{{ '✓ Done'|t }}</span>
               <header class="mel-builder-card__header">
                 <h2 class="mel-builder-card__title" id="mel-preview-section-heading">{{ 'Preview'|t }}</h2>
@@ -506,6 +506,7 @@
               <div class="mel-builder-card__body mel-builder-fields mel-builder-fields--stack">
                 {{ element.mel_mel_support }}
               </div>
+              <footer class="mel-builder-card__footer"></footer>
             </section>
             {% endif %}
 

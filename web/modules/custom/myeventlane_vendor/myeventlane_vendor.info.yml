@@ -21,6 +21,7 @@ dependencies:
   - drupal:views
   - drupal:field_ui
   - commerce:commerce_store
+  - paragraphs:paragraphs
   - myeventlane_vendor_analytics:myeventlane_vendor_analytics
 
 optional_dependencies:

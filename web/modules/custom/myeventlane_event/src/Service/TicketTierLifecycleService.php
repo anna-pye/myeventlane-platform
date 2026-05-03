@@ -135,6 +135,27 @@ final class TicketTierLifecycleService {
       $values['group_bundle_size'] = (int) $template->get('group_bundle_size')->value;
     }
 
+    if ($template->hasField('field_use_ticket_attendee_questions')) {
+      $values['field_use_ticket_attendee_questions'] = $template->get('field_use_ticket_attendee_questions')->value ? 1 : 0;
+    }
+    if ($template->hasField('field_attendee_questions') && !$template->get('field_attendee_questions')->isEmpty()) {
+      $refs = [];
+      foreach ($template->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if (!$paragraph instanceof \Drupal\paragraphs\ParagraphInterface) {
+          continue;
+        }
+        $dup = $paragraph->createDuplicate();
+        $dup->save();
+        $refs[] = [
+          'target_id' => (int) $dup->id(),
+          'target_revision_id' => (int) $dup->getRevisionId(),
+        ];
+      }
+      if ($refs !== []) {
+        $values['field_attendee_questions'] = $refs;
+      }
+    }
+
     $values['price'] = NULL;
     $values['commerce_variation'] = NULL;
     $values['template_source'] = ['target_id' => (int) $template->id()];
@@ -733,7 +754,16 @@ final class TicketTierLifecycleService {
    * @return \Drupal\mel_ticket\Entity\TicketTypeInterface[]
    */
   public function loadOrderedTicketsForEvent(NodeInterface $event): array {
-    return array_values($this->ticketTypeManager->loadEventTicketTypesDefaultFirst($event));
+    $out = [];
+    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      return $out;
+    }
+    foreach ($event->get('field_ticket_types')->referencedEntities() as $entity) {
+      if ($entity instanceof TicketTypeInterface && !$entity->isArchived()) {
+        $out[] = $entity;
+      }
+    }
+    return $out;
   }
 
   public function loadWritableTicketForEvent(NodeInterface $event, int $ticketId, AccountInterface $account): ?TicketTypeInterface {
@@ -928,6 +958,12 @@ final class TicketTierLifecycleService {
     if (array_key_exists('group_bundle_size', $values) && $ticket->hasField('group_bundle_size')) {
       $value = $values['group_bundle_size'];
       $ticket->set('group_bundle_size', ($value === NULL || $value === '') ? NULL : (int) $value);
+    }
+    if (array_key_exists('field_use_ticket_attendee_questions', $values) && $ticket->hasField('field_use_ticket_attendee_questions')) {
+      $ticket->set('field_use_ticket_attendee_questions', (bool) $values['field_use_ticket_attendee_questions']);
+    }
+    if (array_key_exists('field_attendee_questions', $values) && $ticket->hasField('field_attendee_questions')) {
+      $ticket->set('field_attendee_questions', $values['field_attendee_questions']);
     }
   }
 

@@ -372,9 +372,102 @@ function mel_ticket_update_9011(): string {
       'mel_ticket_update_9011 installFieldStorageDefinition: @message',
       ['@message' => $e->getMessage()]
     );
+
+    return 'field_is_default_ticket was not installed; see mel_ticket watchdog logs.';
   }
 
   return 'Installed mel_ticket_type.field_is_default_ticket for recommended tickets.';
+}
+
+/**
+ * Adds optional per-ticket attendee question paragraphs on ticket types.
+ */
+function mel_ticket_update_9012(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_type', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_type entity type not found; rebuild caches and re-run updates.';
+  }
+  $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
+  $installed = [];
+  foreach (['field_use_ticket_attendee_questions', 'field_attendee_questions'] as $name) {
+    if (!isset($fields[$name])) {
+      continue;
+    }
+    try {
+      $update_manager->installFieldStorageDefinition(
+        $name,
+        'mel_ticket_type',
+        'mel_ticket',
+        $fields[$name]
+      );
+      $installed[] = $name;
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('mel_ticket')->warning(
+        'mel_ticket_update_9012 installFieldStorageDefinition @field: @message',
+        ['@field' => $name, '@message' => $e->getMessage()]
+      );
+    }
+  }
+  return $installed === []
+    ? 'No new mel_ticket_type attendee-question fields installed (may already exist).'
+    : 'Installed mel_ticket_type fields: ' . implode(', ', $installed);
+}
+
+/**
+ * Repairs missing attendee-question field tables per ticket type (9012 remediation).
+ *
+ * If deploy or schema sync skipped installFieldStorageDefinition, loading ticket
+ * types crashes with SQLSTATE Base table mel_ticket_type__field_attendee_questions
+ * not found. This update is idempotent.
+ */
+function mel_ticket_update_9013(): string {
+  $database_schema = \Drupal::database()->schema();
+  $table = 'mel_ticket_type__field_attendee_questions';
+  if ($database_schema->tableExists($table)) {
+    return 'mel_ticket_type attendee-question tables already exist; nothing to repair.';
+  }
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_type_manager->clearCachedDefinitions();
+  $entity_type = $entity_type_manager->getDefinition('mel_ticket_type', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_type entity type not found; rebuild caches and re-run `drush updb`.';
+  }
+
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
+  $installed = [];
+  foreach (['field_use_ticket_attendee_questions', 'field_attendee_questions'] as $name) {
+    if (!isset($fields[$name])) {
+      continue;
+    }
+    try {
+      $update_manager->installFieldStorageDefinition(
+        $name,
+        'mel_ticket_type',
+        'mel_ticket',
+        $fields[$name]
+      );
+      $installed[] = $name;
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('mel_ticket')->error(
+        'mel_ticket_update_9013 installFieldStorageDefinition @field: @message',
+        ['@field' => $name, '@message' => $e->getMessage()]
+      );
+    }
+  }
+
+  $exists_after = $database_schema->tableExists($table);
+  return $exists_after
+    ? 'Repaired mel_ticket_type attendee question field storage (' . implode(', ', $installed) . ').'
+    : sprintf(
+      'Repair attempted for [%s]; table %s is still missing. Check logs.',
+      implode(', ', $installed),
+      $table
+    );
 }
 
 /**

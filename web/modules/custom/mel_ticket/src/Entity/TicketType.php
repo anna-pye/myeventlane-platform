@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityPublishedTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Entity\EntityStorageException;
 
 /**
@@ -245,6 +246,66 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ])
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', FALSE);
+
+    $fields['field_use_ticket_attendee_questions'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Add custom questions for this ticket'))
+      ->setDescription(t('Optional. Event-level attendee questions still apply; enable this only when this tier needs extra questions.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 28,
+        'settings' => [
+          'display_label' => TRUE,
+        ],
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['field_attendee_questions'] = BaseFieldDefinition::create('entity_reference_revisions')
+      ->setLabel(t('Attendee questions for this ticket'))
+      ->setDescription(t('Paragraphs (attendee_extra_field) asked in addition to event-level questions for this tier.'))
+      ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED)
+      ->setSetting('target_type', 'paragraph')
+      ->setSetting('handler', 'default:paragraph')
+      ->setSetting('handler_settings', [
+        'target_bundles' => [
+          'attendee_extra_field' => 'attendee_extra_field',
+        ],
+        'negate' => 0,
+        'target_bundles_drag_drop' => [
+          'attendee_extra_field' => [
+            'enabled' => TRUE,
+            'weight' => 0,
+          ],
+        ],
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'paragraphs',
+        'weight' => 29,
+        'settings' => [
+          'title' => 'Question',
+          'title_plural' => 'Questions',
+          'edit_mode' => 'closed',
+          'closed_mode' => 'summary',
+          'autocollapse' => 'none',
+          'closed_mode_threshold' => 0,
+          'add_mode' => 'dropdown',
+          'form_display_mode' => 'default',
+          'default_paragraph_type' => 'attendee_extra_field',
+          'features' => [
+            'add_above' => '0',
+            'collapse_edit_all' => 'collapse_edit_all',
+            'duplicate' => 'duplicate',
+          ],
+        ],
+      ])
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'entity_reference_revisions_entity_view',
+        'weight' => 20,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
 
     $fields['vendor_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Vendor'))

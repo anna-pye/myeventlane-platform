@@ -1,0 +1,24 @@
+/**
+ * @file
+ * Checkout: ticket type heading + attendee grouping for holder pane.
+ */
+
+.mel-checkout-ticket-group {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.mel-checkout-ticket-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.mel-checkout-ticket-type-title {
+  margin: 0 0 1rem;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: #1a1d26;
+}
