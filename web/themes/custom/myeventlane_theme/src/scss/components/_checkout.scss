@@ -1055,6 +1055,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 
 /* SUMMARY PANEL — Premium companion card */
 .mel-checkout__summary,
+.mel-checkout-summary,
 .mel-checkout__aside.mel-checkout__summary {
   position: sticky;
   top: 100px;
@@ -1107,6 +1108,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: spacing.mel-space(2);
   font-size: typography.mel-font-size(sm);
   margin-bottom: spacing.mel-space(1);
   padding: spacing.mel-space(1) 0;
@@ -1114,6 +1116,29 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   &:last-child {
     margin-bottom: 0;
   }
+}
+
+.mel-summary-item__label {
+  display: inline-flex;
+  min-width: 0;
+  gap: spacing.mel-space(1);
+}
+
+.mel-summary-item__quantity {
+  flex: 0 0 auto;
+  color: colors.$mel-color-text-muted;
+  font-weight: typography.$mel-font-semibold;
+}
+
+.mel-summary-item__ticket-type {
+  min-width: 0;
+  color: colors.$mel-color-text;
+}
+
+.mel-summary-item__price {
+  flex: 0 0 auto;
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
 }
 
 .mel-summary-breakdown {
@@ -1143,6 +1168,43 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 .mel-summary-row__value {
   font-weight: typography.$mel-font-medium;
   color: colors.$mel-color-text;
+}
+
+.mel-summary-row--donation {
+  color: colors.$mel-color-text;
+
+  .mel-summary-row__label::before {
+    content: '+ ';
+  }
+}
+
+.mel-checkout-summary__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: spacing.mel-space(3);
+  padding: spacing.mel-space(2) spacing.mel-space(3);
+  border-radius: radii.$mel-radius-full;
+  background: colors.$mel-color-primary;
+  color: #fff;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-bold;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgba(colors.$mel-color-primary, 0.22);
+  transition: background $mel-checkout-transition, box-shadow $mel-checkout-transition, transform $mel-checkout-transition;
+
+  &:hover {
+    background: color.adjust(colors.$mel-color-primary, $lightness: -5%);
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(colors.$mel-color-primary, 0.28);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(colors.$mel-color-primary, 0.28);
+    outline-offset: 3px;
+  }
 }
 
 .mel-summary-grouped .mel-tax-note {
@@ -1460,6 +1522,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 
   .mel-checkout__summary,
+  .mel-checkout-summary,
   .mel-checkout__aside.mel-checkout__summary {
     position: static;
     margin-top: 0;

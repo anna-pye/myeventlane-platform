@@ -81,6 +81,7 @@ final class CheckoutUxAttacher {
       '#grouped_items' => $built['grouped_items'],
       '#order_total' => $built['order_total'],
       '#subtotal_formatted' => $built['subtotal_formatted'],
+      '#optional_donation_formatted' => $built['optional_donation_formatted'],
       '#tax_rows' => $built['tax_rows'],
       '#fee_rows' => $built['fee_rows'],
       '#platform_fee_absorbed' => $built['platform_fee_absorbed'],

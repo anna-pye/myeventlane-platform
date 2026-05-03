@@ -65,11 +65,7 @@
       {% if mel_donation_total_formatted %}
         <h1 class="mel-confirmation__title">{{ 'Thank you'|t }}</h1>
       {% elseif mel_confirmation_has_tickets %}
-        {% if mel_confirm_paid %}
-          <h1 class="mel-confirmation__title">{{ "You're booked"|t }}</h1>
-        {% else %}
-          <h1 class="mel-confirmation__title">{{ "You're registered"|t }}</h1>
-        {% endif %}
+        <h1 class="mel-confirmation__title">{{ "You're in! 🎉"|t }}</h1>
       {% else %}
         <h1 class="mel-confirmation__title">{{ 'Order confirmed'|t }}</h1>
       {% endif %}
@@ -106,7 +102,7 @@
   <div class="mel-confirmation__main">
     {% if events|length > 0 %}
       {% for event in events %}
-        <section class="mel-confirmation-card mel-confirmation__summary">
+        <section class="mel-confirmation-card mel-confirmation-card--event-summary mel-confirmation__summary" aria-labelledby="mel-confirmation-event-summary-{{ event.id() }}">
           {% set event_image_url = mel_event_image_urls[event.id()] ?? null %}
           {% if event_image_url %}
             <div class="mel-confirmation-card__media">
@@ -114,10 +110,11 @@
             </div>
           {% endif %}
           <div class="mel-confirmation-card__body">
+            <p class="mel-confirmation-card__eyebrow">{{ 'Event summary'|t }}</p>
             {% if event.hasField('field_event_start') and not event.get('field_event_start').isEmpty() %}
               <span class="mel-confirmation-card__date-badge">{{ event.get('field_event_start').value|date('M j, Y') }}</span>
             {% endif %}
-            <h2 class="mel-confirmation-card__title">{{ event.label() }}</h2>
+            <h2 id="mel-confirmation-event-summary-{{ event.id() }}" class="mel-confirmation-card__title">{{ event.label() }}</h2>
             <div class="mel-confirmation-card__meta">
               {% if event.hasField('field_event_start') and not event.get('field_event_start').isEmpty() %}
                 <span class="mel-confirmation-card__date">
@@ -318,7 +315,7 @@
           <p class="mel-calendar-prompt">{{ 'Don\'t forget to save the date'|t }}</p>
           <div class="mel-calendar-actions">
             {% if mel_calendar_links.apple is defined and mel_calendar_links.apple %}
-              <a href="{{ mel_calendar_links.apple }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Apple Calendar'|t }}</a>
+              <a href="{{ mel_calendar_links.apple }}" class="mel-calendar-btn mel-calendar-btn--primary" target="_blank" rel="noopener noreferrer">{{ 'Add to calendar'|t }}</a>
             {% endif %}
             {% if mel_calendar_links.google is defined and mel_calendar_links.google %}
               <a href="{{ mel_calendar_links.google }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Google Calendar'|t }}</a>
@@ -339,11 +336,17 @@
       {% endif %}
 
       {% if mel_event_url %}
+        {% set mel_share_title = events|length > 0 ? events[0].label() : 'MyEventLane event'|t %}
+        {% set mel_share_copy = 'I’m going to @event on MyEventLane.'|t({'@event': mel_share_title}) %}
         <p class="mel-share-prompt">{{ 'Going with friends? Share this event'|t }}</p>
         <section class="mel-confirmation-share">
           <h3 class="mel-confirmation-share__title">{{ 'Share this event'|t }}</h3>
           <div class="mel-share-actions">
             <button type="button" class="mel-share-copy" data-url="{{ mel_event_url }}">{{ 'Copy event link'|t }}</button>
+            <button type="button" class="mel-share-native" data-url="{{ mel_event_url }}" data-title="{{ mel_share_title }}" data-text="{{ mel_share_copy }}">{{ 'Share'|t }}</button>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ mel_event_url|url_encode }}" class="mel-share-link" target="_blank" rel="noopener noreferrer">{{ 'Facebook'|t }}</a>
+            <a href="https://twitter.com/intent/tweet?url={{ mel_event_url|url_encode }}&text={{ mel_share_copy|url_encode }}" class="mel-share-link" target="_blank" rel="noopener noreferrer">{{ 'X'|t }}</a>
+            <a href="mailto:?subject={{ mel_share_title|url_encode }}&body={{ mel_share_copy|url_encode }}%0A%0A{{ mel_event_url|url_encode }}" class="mel-share-link">{{ 'Email'|t }}</a>
             <a href="{{ mel_event_url }}" class="mel-share-view">{{ 'View event page'|t }}</a>
           </div>
         </section>

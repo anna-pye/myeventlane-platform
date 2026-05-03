@@ -129,6 +129,15 @@
   padding: spacing.mel-space(5);
 }
 
+.mel-confirmation-card__eyebrow {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: colors.$mel-color-primary;
+}
+
 .mel-confirmation-card__title {
   font-size: typography.mel-font-size(xl);
   font-weight: typography.$mel-font-bold;
@@ -324,6 +333,16 @@
   &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px colors.$mel-color-primary;
+  }
+}
+
+.mel-calendar-btn--primary {
+  color: #fff;
+  background: colors.$mel-color-primary;
+
+  &:hover {
+    background: color.adjust(colors.$mel-color-primary, $lightness: -6%);
+    color: #fff;
   }
 }
 
@@ -538,7 +557,9 @@
   gap: spacing.mel-space(2);
 }
 
-.mel-share-copy {
+.mel-share-copy,
+.mel-share-native,
+.mel-share-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -546,6 +567,7 @@
   min-height: 44px;
   font-size: typography.mel-font-size(sm);
   font-weight: typography.$mel-font-medium;
+  text-decoration: none;
   background: colors.$mel-color-surface;
   color: colors.$mel-color-text;
   border: 2px solid colors.$mel-color-border;
@@ -568,6 +590,21 @@
     opacity: 0.8;
     cursor: default;
   }
+}
+
+.mel-share-native {
+  color: #fff;
+  background: colors.$mel-color-primary;
+  border-color: colors.$mel-color-primary;
+
+  &:hover {
+    background: color.adjust(colors.$mel-color-primary, $lightness: -6%);
+    color: #fff;
+  }
+}
+
+.mel-share-native[hidden] {
+  display: none;
 }
 
 .mel-share-view {

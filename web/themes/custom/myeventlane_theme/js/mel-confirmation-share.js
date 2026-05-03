@@ -21,6 +21,28 @@
           }
         });
       });
+
+      once('mel-share-native', '.mel-share-native', context).forEach((btn) => {
+        if (!navigator.share) {
+          btn.hidden = true;
+          return;
+        }
+
+        btn.addEventListener('click', () => {
+          const url = btn.dataset.url || '';
+          if (!url) {
+            return;
+          }
+
+          navigator.share({
+            title: btn.dataset.title || document.title,
+            text: btn.dataset.text || '',
+            url,
+          }).catch(() => {
+            // User cancelled or platform refused; visible fallback links remain.
+          });
+        });
+      });
     },
   };
 })(Drupal, once);
