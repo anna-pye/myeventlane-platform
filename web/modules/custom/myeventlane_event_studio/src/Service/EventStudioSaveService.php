@@ -9,9 +9,12 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
+use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
+use Drupal\myeventlane_questions\Service\QuestionTemplateCloner;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
+use Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Psr\Log\LoggerInterface;
@@ -35,6 +38,8 @@ final class EventStudioSaveService {
     private readonly MelTicketTypeManager $melTicketTypeManager,
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly PaidPublishStripeGate $paidPublishStripeGate,
+    private readonly VendorPublishRequirementsGate $publishRequirementsGate,
+    private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
   ) {}
 
   /**
@@ -59,6 +64,13 @@ final class EventStudioSaveService {
       }
       else {
         $willPublish = (bool) ($payload['status'] ?? TRUE);
+      }
+    }
+
+    if (!$draft && $willPublish) {
+      $denials = $this->publishRequirementsGate->getLivePublishDenialReasons($account);
+      if ($denials !== []) {
+        return ['node' => NULL, 'errors' => $denials];
       }
     }
 
@@ -275,6 +287,11 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => ['Could not save event highlights.']];
     }
 
+    $attendee_errors = $this->syncAttendeeQuestions($node, $payload, $account);
+    if ($attendee_errors !== []) {
+      return ['node' => NULL, 'errors' => $attendee_errors];
+    }
+
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio draft.' : 'Event Studio save.');
     try {
       $node->save();
@@ -374,6 +391,10 @@ final class EventStudioSaveService {
       throw new \InvalidArgumentException('Expected event node.');
     }
     if ($published) {
+      $denials = $this->publishRequirementsGate->getLivePublishDenialReasons($account);
+      if ($denials !== []) {
+        throw new \InvalidArgumentException(implode(' ', $denials));
+      }
       $eventType = $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
         ? (string) $node->get('field_event_type')->value
         : 'rsvp';
@@ -953,6 +974,204 @@ final class EventStudioSaveService {
     else {
       $paragraph->set('field_highlight_icon', $icon);
     }
+  }
+
+  /**
+   * Persists attendee question templates (field_attendee_questions paragraphs).
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function syncAttendeeQuestions(NodeInterface $node, array $payload, AccountInterface $account): array {
+    if (!$node->hasField('field_attendee_questions')) {
+      return [];
+    }
+
+    $event_type = (string) ($payload['field_event_type'] ?? ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
+      ? (string) $node->get('field_event_type')->value
+      : 'rsvp'));
+
+    if (!in_array($event_type, ['paid', 'rsvp', 'both'], TRUE)) {
+      $node->set('field_attendee_questions', []);
+      return [];
+    }
+
+    if (!array_key_exists('attendee_questions', $payload)) {
+      return [];
+    }
+
+    $items = $payload['attendee_questions'];
+    if (!is_array($items)) {
+      return ['Attendee questions data was invalid. Reload and try again.'];
+    }
+
+    $field_map = $this->resolveAttendeeQuestionFieldMap();
+    if ($field_map === NULL) {
+      $this->logger->error('Event Studio: attendee questions save failed — paragraph field map missing for attendee_extra_field.');
+      return ['Attendee questions are not available on this site configuration.'];
+    }
+
+    $paragraph_bundle = $this->entityTypeManager->getStorage('paragraphs_type')->load('attendee_extra_field');
+    if ($paragraph_bundle === NULL) {
+      $this->logger->error('Event Studio: attendee questions save failed — paragraph bundle attendee_extra_field missing.');
+      return ['Attendee questions could not be saved.'];
+    }
+
+    try {
+      $node->set('field_attendee_questions', []);
+      $references = [];
+
+      foreach ($items as $index => $question) {
+        if (!is_array($question)) {
+          return [sprintf('Attendee question at index %d was invalid.', (int) $index)];
+        }
+
+        $vendor_qid = isset($question['vendor_question_id']) ? (int) $question['vendor_question_id'] : 0;
+        if ($vendor_qid > 0) {
+          if ($this->questionTemplateCloner === NULL) {
+            $this->logger->error('Event Studio: cannot clone vendor_question @id — QuestionTemplateCloner service not injected.', [
+              '@id' => (string) $vendor_qid,
+            ]);
+            return ['Organiser question library is temporarily unavailable. Reload the page or contact support.'];
+          }
+          $storage = $this->entityTypeManager->getStorage('vendor_question');
+          $template = $storage->load($vendor_qid);
+          if ($template instanceof VendorQuestionInterface && $this->vendorQuestionAccessible($template, $account)) {
+            $paragraph = $this->questionTemplateCloner->cloneToParagraph($template);
+            $references[] = [
+              'target_id' => (int) $paragraph->id(),
+              'target_revision_id' => (int) $paragraph->getRevisionId(),
+            ];
+          }
+          continue;
+        }
+
+        $label = trim((string) ($question['label'] ?? ''));
+        $type = trim((string) ($question['type'] ?? 'textfield'));
+        $required = !empty($question['required']);
+
+        if ($label === '') {
+          return [sprintf('Each attendee question needs a label (row %d).', (int) $index + 1)];
+        }
+
+        $paragraph = Paragraph::create([
+          'type' => 'attendee_extra_field',
+        ]);
+        $paragraph->set($field_map['label'], $label);
+        $paragraph->set($field_map['type'], $this->normalizeAttendeeQuestionTypeValue($type));
+        $paragraph->set($field_map['required'], $required ? 1 : 0);
+
+        if ($paragraph->hasField('field_question_machine_name')) {
+          $machine = trim((string) ($question['machine_name'] ?? ''));
+          if ($machine === '') {
+            $machine = $this->machineNameFromLabel($label);
+          }
+          $paragraph->set('field_question_machine_name', $machine);
+        }
+
+        if (!empty($question['save_to_library'])) {
+          $paragraph->save_to_library = TRUE;
+        }
+
+        $paragraph->save();
+
+        $references[] = [
+          'target_id' => (int) $paragraph->id(),
+          'target_revision_id' => (int) $paragraph->getRevisionId(),
+        ];
+      }
+
+      $node->set('field_attendee_questions', $references);
+
+      if ($references !== [] && $node->hasField('field_collect_per_ticket')) {
+        $node->set('field_collect_per_ticket', TRUE);
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio: sync attendee questions failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return ['Could not save attendee questions.'];
+    }
+
+    return [];
+  }
+
+  /**
+   * @return array{label: string, type: string, required: string}|null
+   */
+  private function resolveAttendeeQuestionFieldMap(): ?array {
+    $mapping = [
+      'label' => NULL,
+      'type' => NULL,
+      'required' => NULL,
+    ];
+
+    $label_candidates = ['field_label', 'field_question_label'];
+    $type_candidates = ['field_type', 'field_question_type'];
+    $required_candidates = ['field_required', 'field_question_required'];
+
+    foreach ($label_candidates as $candidate) {
+      if ($this->entityTypeManager->getStorage('field_config')->load("paragraph.attendee_extra_field.$candidate")) {
+        $mapping['label'] = $candidate;
+        break;
+      }
+    }
+    foreach ($type_candidates as $candidate) {
+      if ($this->entityTypeManager->getStorage('field_config')->load("paragraph.attendee_extra_field.$candidate")) {
+        $mapping['type'] = $candidate;
+        break;
+      }
+    }
+    foreach ($required_candidates as $candidate) {
+      if ($this->entityTypeManager->getStorage('field_config')->load("paragraph.attendee_extra_field.$candidate")) {
+        $mapping['required'] = $candidate;
+        break;
+      }
+    }
+
+    if ($mapping['label'] === NULL || $mapping['type'] === NULL || $mapping['required'] === NULL) {
+      return NULL;
+    }
+
+    return [
+      'label' => $mapping['label'],
+      'type' => $mapping['type'],
+      'required' => $mapping['required'],
+    ];
+  }
+
+  private function normalizeAttendeeQuestionTypeValue(string $type): string {
+    return match ($type) {
+      'text' => 'textfield',
+      default => $type,
+    };
+  }
+
+  private function machineNameFromLabel(string $label): string {
+    $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '_', $label));
+    $slug = trim((string) preg_replace('/_+/', '_', $slug), '_');
+    return $slug !== '' ? $slug : 'question_' . substr(hash('sha256', $label), 0, 10);
+  }
+
+  private function vendorQuestionAccessible(VendorQuestionInterface $question, AccountInterface $account): bool {
+    if ($account->hasPermission('administer site configuration')) {
+      return TRUE;
+    }
+    $store = $question->getStore();
+    if ($store === NULL) {
+      return FALSE;
+    }
+    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadByProperties([
+      'uid' => $account->id(),
+    ]);
+    $vendor = reset($vendors);
+    if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+      return FALSE;
+    }
+    $vendor_store = $vendor->get('field_vendor_store')->entity;
+    return $vendor_store && (int) $vendor_store->id() === (int) $store->id();
   }
 
 }

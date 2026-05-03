@@ -47,6 +47,15 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_vendor.event_studio_create:
+    class: Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@logger.channel.myeventlane_vendor'
+      - '@messenger'
+      - '@string_translation'
+
   myeventlane_vendor.event_access_checker:
     class: Drupal\myeventlane_vendor\Service\EventVendorAccessChecker
 
@@ -56,6 +65,16 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_vendor.user_vendor_membership_query'
       - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+
+  myeventlane_vendor.publish_requirements_gate:
+    class: Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate
+    arguments:
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@entity_type.manager'
+      - '@myeventlane_onboarding.manager'
+      - '@myeventlane_legal.gatekeeper'
+      - '@myeventlane_vendor.event_studio_create'
       - '@string_translation'
 
   myeventlane_vendor.vendor_console_page_preprocess:
@@ -79,9 +98,9 @@ services:
     arguments:
       - '@current_user'
       - '@myeventlane_vendor.user_vendor_membership_query'
-      - '@myeventlane_onboarding.manager'
       - '@current_route_match'
       - '@logger.channel.myeventlane_vendor'
+      - '@module_handler'
     tags:
       - { name: event_subscriber }
 
@@ -110,6 +129,8 @@ services:
       - '@messenger'
       - '@logger.factory'
       - '@entity_type.manager'
+      - '@myeventlane_event.ticket_presets'
+      - '@date.formatter'
     calls:
       - [setStringTranslation, ['@string_translation']]
 

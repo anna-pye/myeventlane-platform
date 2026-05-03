@@ -153,6 +153,104 @@ final class TicketTypeManager {
   }
 
   /**
+   * Loads non-archived event tickets in buyer-facing display order.
+   *
+   * The explicit node field order stays authoritative; inverse-only rows are
+   * appended so older data still resolves consistently.
+   *
+   * @return \Drupal\mel_ticket\Entity\TicketTypeInterface[]
+   *   Ticket entities keyed by id.
+   */
+  public function loadEventTicketTypesForDisplay(NodeInterface $event): array {
+    $ordered = [];
+    foreach ($this->loadEventTicketTypes($event) as $ticket) {
+      if (!$ticket->isArchived()) {
+        $ordered[(int) $ticket->id()] = $ticket;
+      }
+    }
+
+    foreach ($this->loadAllEventTicketTypes($event) as $ticket) {
+      $ticketId = (int) $ticket->id();
+      if (!$ticket->isArchived() && !isset($ordered[$ticketId])) {
+        $ordered[$ticketId] = $ticket;
+      }
+    }
+
+    return $ordered;
+  }
+
+  /**
+   * Resolves the organiser-recommended default ticket for an event.
+   *
+   * Falls back to the lowest published paid tier, then the first published tier
+   * in event display order.
+   */
+  public function getDefaultTicket(NodeInterface $event): ?TicketTypeInterface {
+    $tickets = array_values(array_filter(
+      $this->loadEventTicketTypesForDisplay($event),
+      static fn (TicketTypeInterface $ticket): bool => $ticket->isPublished()
+    ));
+    if ($tickets === []) {
+      return NULL;
+    }
+
+    foreach ($tickets as $ticket) {
+      if ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()) {
+        return $ticket;
+      }
+    }
+
+    $lowest = NULL;
+    foreach ($tickets as $ticket) {
+      if ($ticket->getTicketKind() !== 'paid') {
+        continue;
+      }
+      $price = $ticket->toPriceValue();
+      if (!$price instanceof Price) {
+        continue;
+      }
+      if (!$lowest instanceof TicketTypeInterface) {
+        $lowest = $ticket;
+        continue;
+      }
+      $lowestPrice = $lowest->toPriceValue();
+      if ($lowestPrice instanceof Price && $price->compareTo($lowestPrice) < 0) {
+        $lowest = $ticket;
+      }
+    }
+
+    return $lowest instanceof TicketTypeInterface ? $lowest : $tickets[0];
+  }
+
+  /**
+   * Returns event tickets with the resolved default first, preserving order after.
+   *
+   * @return \Drupal\mel_ticket\Entity\TicketTypeInterface[]
+   *   Ticket entities keyed by id.
+   */
+  public function loadEventTicketTypesDefaultFirst(NodeInterface $event): array {
+    $tickets = $this->loadEventTicketTypesForDisplay($event);
+    $default = NULL;
+    foreach ($tickets as $ticket) {
+      if ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()) {
+        $default = $ticket;
+        break;
+      }
+    }
+    $default ??= $this->getDefaultTicket($event);
+    if (!$default instanceof TicketTypeInterface) {
+      return $tickets;
+    }
+
+    $defaultId = (int) $default->id();
+    if (!isset($tickets[$defaultId])) {
+      return $tickets;
+    }
+
+    return [$defaultId => $tickets[$defaultId]] + array_diff_key($tickets, [$defaultId => TRUE]);
+  }
+
+  /**
    * Returns paid ticket currencies for an event, keyed by ticket id.
    *
    * @return array<int, string>
@@ -246,6 +344,67 @@ final class TicketTypeManager {
    */
   public function eventHasMixedPublishedPaidTicketCurrencies(NodeInterface $event): bool {
     return $this->hasMixedPublishedPaidTicketCurrencies($this->loadAllEventTicketTypes($event), $event);
+  }
+
+  /**
+   * Enforces one recommended ticket per event.
+   *
+   * When a specific ticket was just selected, it wins. Otherwise corrupted
+   * multi-default data is corrected deterministically to the highest ticket ID.
+   */
+  public function normalizeDefaultTicketSelection(NodeInterface $event, ?TicketTypeInterface $selectedTicket = NULL): void {
+    $tickets = $this->loadEventTicketTypesForDisplay($event);
+    if ($tickets === []) {
+      return;
+    }
+
+    $keepId = NULL;
+    if ($selectedTicket instanceof TicketTypeInterface
+      && !$selectedTicket->isArchived()
+      && $selectedTicket->hasField('field_is_default_ticket')
+      && $selectedTicket->isDefaultTicket()) {
+      $selectedId = (int) $selectedTicket->id();
+      if (isset($tickets[$selectedId])) {
+        $keepId = $selectedId;
+      }
+    }
+
+    $defaultIds = [];
+    foreach ($tickets as $ticketId => $ticket) {
+      if ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()) {
+        $defaultIds[] = (int) $ticketId;
+      }
+    }
+
+    if ($keepId === NULL && $defaultIds !== []) {
+      $keepId = max($defaultIds);
+    }
+
+    if ($keepId === NULL || $defaultIds === [$keepId]) {
+      return;
+    }
+
+    if (count($defaultIds) > 1) {
+      $this->loggerFactory->get('myeventlane_event')->warning(
+        'Multiple recommended tickets found for event @eid; keeping ticket @keep and clearing @ids.',
+        [
+          '@eid' => (string) $event->id(),
+          '@keep' => (string) $keepId,
+          '@ids' => implode(', ', array_map('strval', $defaultIds)),
+        ]
+      );
+    }
+
+    foreach ($tickets as $ticketId => $ticket) {
+      if (!$ticket->hasField('field_is_default_ticket') || (int) $ticketId === $keepId) {
+        continue;
+      }
+      if (!$ticket->isDefaultTicket()) {
+        continue;
+      }
+      $ticket->set('field_is_default_ticket', FALSE);
+      $ticket->save();
+    }
   }
 
   /**

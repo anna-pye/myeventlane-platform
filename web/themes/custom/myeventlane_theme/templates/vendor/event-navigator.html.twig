@@ -1,5 +1,5 @@
 <div class="mel-event-navigator">
-  <a class="mel-create-event" href="/vendor/studio?desk=overview&create=1">
+  <a class="mel-create-event" href="{{ path('myeventlane_event_studio.create') }}">
     + Create Event
   </a>
 
@@ -7,9 +7,10 @@
 
   <div class="mel-event-list" data-mel-studio-list>
     {% for event in events %}
+      {% set mel_nav_eid = event.id|default(event.nid|default(0)) %}
       <a
         class="mel-event-card mel-event-row {{ event.active|default(false) ? 'is-active selected' }}"
-        href="{{ event.studio_link|default(event.edit_url|default('/vendor/studio?desk=overview&event=' ~ (event.id|default(event.nid|default(0))))) }}"
+        href="{{ event.studio_link|default(event.edit_url|default(mel_nav_eid ? path('myeventlane_event_studio.edit', {'node': mel_nav_eid}) : path('myeventlane_vendor.console.events'))) }}"
         data-event-id="{{ event.id|default(event.nid|default(loop.index)) }}"
       >
         <div class="mel-event-thumb">

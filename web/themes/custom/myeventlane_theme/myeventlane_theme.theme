@@ -251,7 +251,7 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
 
   // Create Event CTA URL (gateway handles vendor check / onboarding).
   try {
-    $variables['create_event_url'] = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+    $variables['create_event_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
   }
   catch (\Exception $e) {
     $variables['create_event_url'] = '/create-event';
@@ -354,7 +354,7 @@ function myeventlane_theme_preprocess_mobile_drawer(array &$variables): void {
   $variables['drawer_menu'] = $variables['drawer_menu'] ?? [];
   $variables['drawer_organiser'] = $variables['drawer_organiser'] ?? [];
   try {
-    $variables['create_event_url'] = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+    $variables['create_event_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
   }
   catch (\Throwable) {
     $variables['create_event_url'] = '/create-event';
@@ -3615,6 +3615,21 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
     if ($price_number !== '') {
       $row['#attributes']['data-ticket-price-number'] = $price_number;
     }
+    $tier = $tier_by_variation_id[$vid] ?? NULL;
+    $is_recommended = $tier instanceof TicketTypeInterface
+      && $tier->hasField('field_is_default_ticket')
+      && $tier->isDefaultTicket();
+    if ($is_recommended) {
+      $row['#attributes']['class'][] = 'mel-ticket-row--recommended';
+      $row['#attributes']['data-mel-ticket-recommended'] = '1';
+    }
+    $recommended_badge_label = myeventlane_theme_recommended_ticket_badge_label($tier);
+    $default_quantity = isset($row['quantity']['#default_value']) ? (int) $row['quantity']['#default_value'] : 0;
+    $is_selected = $default_quantity > 0;
+    if ($is_selected) {
+      $row['#attributes']['class'][] = 'mel-ticket-row--selected';
+      $row['#attributes']['data-selected'] = 'true';
+    }
 
     // Group sale / bundle hints: keep in the main column under the description.
     if (isset($row['group_hint']) && is_array($row['group_hint']) && ($row['group_hint']['#access'] ?? TRUE) !== FALSE) {
@@ -3628,7 +3643,7 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
       $row['label_cell']['group_hint']['#weight'] = 16;
     }
 
-    // Title row + “Selected” badge (visibility toggled in mel_booking_summary.js).
+    // Title row + "Selected" badge (visible on load for server-preselected tickets).
     if (isset($row['label_cell']['label']) && is_array($row['label_cell']['label'])) {
       $label_el = $row['label_cell']['label'];
       unset($row['label_cell']['label']);
@@ -3644,6 +3659,16 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
         '#attributes' => ['class' => ['mel-ticket-row__title-row']],
         '#weight' => 2,
         'label' => $label_el,
+        'recommended_badge' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => $recommended_badge_label,
+          '#attributes' => [
+            'class' => ['mel-ticket-row__recommended-badge'],
+          ],
+          '#access' => $is_recommended,
+          '#weight' => 2,
+        ],
         'selection_badge' => [
           '#type' => 'html_tag',
           '#tag' => 'span',
@@ -3651,11 +3676,13 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
           '#attributes' => [
             'class' => ['mel-ticket-row__selection-badge'],
             'data-mel-ticket-selection-badge' => '1',
-            'hidden' => 'hidden',
           ],
-          '#weight' => 2,
+          '#weight' => 3,
         ],
       ];
+      if (!$is_selected) {
+        $row['label_cell']['title_row']['selection_badge']['#attributes']['hidden'] = 'hidden';
+      }
     }
 
     if (isset($row['label_cell']['description']) && is_array($row['label_cell']['description'])) {
@@ -3716,6 +3743,14 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
   }
 
   $variables['form'] = $variables['element'];
+}
+
+/**
+ * Buyer-facing recommendation badge shown on public ticket rows.
+ */
+function myeventlane_theme_recommended_ticket_badge_label(?TicketTypeInterface $ticket): string {
+  // Future labels can branch here on price rank or remaining inventory.
+  return (string) t('⭐ Most popular');
 }
 
 /**

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_vendor\Ticketing;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -14,11 +15,14 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_event\Service\TicketPresetManager;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\myeventlane_commerce\Service\TicketStatusService;
 use Drupal\myeventlane_commerce\Service\TicketTierAnalyticsService;
 use Drupal\node\NodeInterface;
+use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 
 /**
  * Shared ticket builder UI for wizard and workspace roots.
@@ -43,6 +47,8 @@ final class EventTicketsBuilder {
     private readonly MessengerInterface $messenger,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly TicketPresetManager $ticketPresetManager,
+    private readonly DateFormatterInterface $dateFormatter,
   ) {}
 
   /**
@@ -83,6 +89,126 @@ final class EventTicketsBuilder {
       $head .= '[' . $segment . ']';
     }
     return $head;
+  }
+
+  /**
+   * Computes sale_start / sale_end for lifecycle payloads from ticket builder rows.
+   *
+   * Does not duplicate availability evaluation — stored fields are enforced by
+   * TicketAvailabilityService / BookingFlowResolver downstream.
+   *
+   * @param array<string, mixed> $values
+   *
+   * @return array<string, mixed|null>
+   */
+  private function buildSaleWindowFragmentForLifecycle(array $values): array {
+    if (empty($values['sale_window_enabled'])) {
+      return ['sale_start' => NULL, 'sale_end' => NULL];
+    }
+    $start = $this->normalizeSaleBoundaryInput($values['sale_start'] ?? NULL);
+    $end = $this->normalizeSaleBoundaryInput($values['sale_end'] ?? NULL);
+    if ($start === NULL || $start === '') {
+      throw new \InvalidArgumentException((string) $this->t('Enter a sale start date and time.'));
+    }
+    if ($end === NULL || $end === '') {
+      throw new \InvalidArgumentException((string) $this->t('Enter a sale end date and time.'));
+    }
+    $startTs = strtotime($start);
+    $endTs = strtotime($end);
+    if ($startTs === FALSE || $endTs === FALSE) {
+      throw new \InvalidArgumentException((string) $this->t('Sale dates could not be read. Check the values and try again.'));
+    }
+    if ($startTs >= $endTs) {
+      throw new \InvalidArgumentException((string) $this->t('Sale start must be before sale end.'));
+    }
+
+    return [
+      'sale_start' => $start,
+      'sale_end' => $end,
+    ];
+  }
+
+  private function normalizeSaleBoundaryInput(mixed $input): ?string {
+    if ($input === NULL || $input === '') {
+      return NULL;
+    }
+    if ($input instanceof DrupalDateTime) {
+      return $input->hasErrors()
+        ? NULL
+        : $input->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
+    }
+    if (is_array($input)) {
+      $candidates = [
+        $input['date'] ?? NULL,
+        $input['object'] ?? NULL,
+      ];
+      foreach ($candidates as $candidate) {
+        if ($candidate instanceof DrupalDateTime) {
+          return $candidate->hasErrors()
+            ? NULL
+            : $candidate->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
+        }
+      }
+      return NULL;
+    }
+    if (!is_string($input)) {
+      return NULL;
+    }
+    $t = trim($input);
+    if ($t === '') {
+      return NULL;
+    }
+    try {
+      $d = new DrupalDateTime($t);
+      if ($d->hasErrors()) {
+        return NULL;
+      }
+      return $d->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+  }
+
+  private function ticketSaleWindowDefaultChecked(TicketTypeInterface $ticket): bool {
+    return !$ticket->get('sale_start')->isEmpty() || !$ticket->get('sale_end')->isEmpty();
+  }
+
+  private function ticketSaleDatetimeDefault(?TicketTypeInterface $ticket, string $field): ?DrupalDateTime {
+    if (!$ticket instanceof TicketTypeInterface || !$ticket->hasField($field) || $ticket->get($field)->isEmpty()) {
+      return NULL;
+    }
+
+    try {
+      return new DrupalDateTime((string) $ticket->get($field)->value);
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+  }
+
+  private function buildTicketSaleWindowSummaryMarkup(TicketTypeInterface $ticket): ?string {
+    $has_start = !$ticket->get('sale_start')->isEmpty();
+    $has_end = !$ticket->get('sale_end')->isEmpty();
+    if (!$has_start && !$has_end) {
+      return NULL;
+    }
+    if ($has_end) {
+      $end = $ticket->get('sale_end')->date;
+      if (!$end instanceof \DateTimeInterface) {
+        return NULL;
+      }
+      return (string) $this->t('On sale until @date', [
+        '@date' => $this->dateFormatter->format($end->getTimestamp(), 'medium'),
+      ]);
+    }
+    $start = $ticket->get('sale_start')->date;
+    if (!$start instanceof \DateTimeInterface) {
+      return NULL;
+    }
+    return (string) $this->t('Sales start @date', [
+      '@date' => $this->dateFormatter->format($start->getTimestamp(), 'medium'),
+    ]);
   }
 
   /**
@@ -128,6 +254,7 @@ final class EventTicketsBuilder {
       $this->lifecycle->loadOrderedTicketsForEvent($event),
       static fn ($ticket) => $ticket instanceof TicketTypeInterface
     ));
+    $ticket_presets = $this->ticketPresetManager->getPresets();
 
     $ordered_ids = array_map(static fn (TicketTypeInterface $ticket) => (int) $ticket->id(), $tickets);
     $editing_id = $form_state->get('editing_ticket_id');
@@ -169,24 +296,22 @@ final class EventTicketsBuilder {
       '#attributes' => ['class' => ['mel-ticket-controls', 'mel-ticket-controls--primary']],
     ];
 
-    $form['builder_shell']['controls']['begin_add_rsvp'] = [
-      '#type' => 'submit',
+    $form['builder_shell']['controls']['open_presets'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'button',
       '#value' => $this->t('Add ticket'),
-      '#name' => 'ticket_begin_add',
-      '#submit' => ['::handleAction'],
-      '#ajax' => [
-        'callback' => '::ajaxRebuildTicketBuilder',
-        'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
-      ],
-      '#limit_validation_errors' => [],
       '#attributes' => [
+        'type' => 'button',
         'class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__add'],
-        // Event Studio nests this builder in a form with required mel[title] etc.; without
-        // formnovalidate the browser blocks AJAX before Drupal runs (standalone /tickets has no such fields).
-        'formnovalidate' => 'formnovalidate',
+        'data-mel-ticket-presets-toggle' => '1',
+        'aria-controls' => 'mel-ticket-preset-selector',
+        'aria-expanded' => 'false',
       ],
       '#access' => !$adding_new,
     ];
+
+    $form['builder_shell']['controls']['preset_selector'] = $this->buildPresetSelector($ticket_presets, $tickets !== [], $form_state);
+    $form['builder_shell']['controls']['preset_selector']['#access'] = !$adding_new;
 
     $form['builder_shell']['controls']['begin_add_paid'] = [
       '#type' => 'submit',
@@ -284,16 +409,20 @@ final class EventTicketsBuilder {
         TicketStatusService::STATUS_ARCHIVED,
       ], TRUE);
       $is_editing = (int) $editing_id === $tid && !$read_only_card;
+      $card_classes = [
+        'mel-card',
+        'mel-ticket-card',
+        'js-mel-ticket-card',
+        $is_editing ? 'is-editing' : 'is-view',
+      ];
+      if ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()) {
+        $card_classes[] = 'mel-ticket-card--recommended';
+      }
 
       $form['builder_shell']['list'][$tid] = [
         '#type' => 'container',
         '#attributes' => [
-          'class' => [
-            'mel-card',
-            'mel-ticket-card',
-            'js-mel-ticket-card',
-            $is_editing ? 'is-editing' : 'is-view',
-          ],
+          'class' => $card_classes,
           'data-ticket-id' => (string) $tid,
           'data-mel-ticket-kind' => $ticket->getTicketKind(),
           'data-mel-ticket-dirty-label' => (string) $this->t('Unsaved changes'),
@@ -326,19 +455,283 @@ final class EventTicketsBuilder {
       }
     }
 
+    $suggestions = $this->buildTicketSuggestions($tickets, $ticket_presets, $form_state);
+    if ($suggestions !== []) {
+      $form['builder_shell']['suggestions'] = $suggestions;
+    }
+
     if (!$adding_new && $tickets === []) {
       $form['builder_shell']['empty'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-ticket-builder__empty', 'mel-ticket-builder__empty--hero']],
         'text' => [
-          '#markup' => '<p class="mel-ticket-builder__empty-title">' . Html::escape((string) $this->t('No ticket types yet')) . '</p>'
-            . '<p class="mel-ticket-builder__empty-body">' . Html::escape((string) $this->t('Add a paid, RSVP, or external ticket to start selling. You can reorder tiers anytime.')) . '</p>',
+          '#markup' => '<p class="mel-ticket-builder__empty-title">' . Html::escape((string) $this->t('Create your first ticket')) . '</p>'
+            . '<p class="mel-ticket-builder__empty-body">' . Html::escape((string) $this->t('Start with General Admission or choose another preset. You can edit every detail before saving.')) . '</p>',
+        ],
+        'actions' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-ticket-builder__empty-actions']],
+          'general' => $this->buildPresetSubmitButton('general', $ticket_presets['general'], TRUE),
+          'show_all' => [
+            '#type' => 'html_tag',
+            '#tag' => 'button',
+            '#value' => $this->t('Show all presets'),
+            '#attributes' => [
+              'type' => 'button',
+              'class' => ['mel-btn', 'mel-btn--secondary'],
+              'data-mel-ticket-presets-toggle' => '1',
+              'aria-controls' => 'mel-ticket-preset-selector',
+              'aria-expanded' => 'false',
+            ],
+          ],
         ],
       ];
     }
 
     $form['#attached']['library'][] = 'myeventlane_vendor/ticket_cards';
     $form['#attached']['library'][] = 'core/drupal.ajax';
+    $form['#attached']['drupalSettings']['myeventlaneTicketPresets']['presets'] = $ticket_presets;
+  }
+
+  /**
+   * Builds next-best-action guidance after the first ticket is created.
+   *
+   * @param list<TicketTypeInterface> $tickets
+   * @param array<string, array{label: string, description: string, values: array<string, mixed>}> $presets
+   */
+  private function buildTicketSuggestions(array $tickets, array $presets, FormStateInterface $form_state): array {
+    if (
+      count($tickets) !== 1 ||
+      !$form_state->get('mel_ticket_show_suggestions') ||
+      $form_state->get('mel_ticket_suggestions_dismissed') ||
+      $form_state->get('mel_ticket_adding_new')
+    ) {
+      return [];
+    }
+
+    $ticket = $tickets[0];
+    $suggestions = match ($ticket->getTicketKind()) {
+      'paid' => [
+        'early_bird' => [
+          'icon' => '🔥',
+          'label' => (string) $this->t('Add Early Bird'),
+          'explanation' => (string) $this->t('Limited tickets to drive early sales'),
+        ],
+        'vip' => [
+          'icon' => '💎',
+          'label' => (string) $this->t('Add VIP'),
+          'explanation' => (string) $this->t('Offer premium access'),
+        ],
+      ],
+      'rsvp' => [
+        'donation' => [
+          'icon' => '💛',
+          'label' => (string) $this->t('Add donation option'),
+          'explanation' => (string) $this->t('Let guests add optional support'),
+        ],
+      ],
+      default => [],
+    };
+
+    if ($suggestions === []) {
+      return [];
+    }
+
+    $build = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-ticket-suggestions']],
+      'intro' => [
+        '#markup' => '<div class="mel-ticket-suggestions__intro">'
+          . '<h4>' . Html::escape((string) $this->t('Nice — your main ticket is ready.')) . '</h4>'
+          . '<p>' . Html::escape((string) $this->t('Add one more option to give buyers a clear next choice.')) . '</p>'
+          . '</div>',
+      ],
+      'items' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-suggestions__items']],
+      ],
+    ];
+
+    $has_items = FALSE;
+    foreach ($suggestions as $preset_key => $suggestion) {
+      if (!isset($presets[$preset_key])) {
+        continue;
+      }
+      $has_items = TRUE;
+      $build['items'][$preset_key] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-suggestion']],
+        'copy' => [
+          '#markup' => '<div class="mel-ticket-suggestion__copy">'
+            . '<span class="mel-ticket-suggestion__icon" aria-hidden="true">' . Html::escape($suggestion['icon']) . '</span>'
+            . '<div><h5>' . Html::escape($suggestion['label']) . '</h5>'
+            . '<p>' . Html::escape($suggestion['explanation']) . '</p></div>'
+            . '</div>',
+        ],
+        'action' => $this->buildPresetSubmitButton($preset_key, $presets[$preset_key], FALSE, $suggestion['label'], ['mel-ticket-suggestion__button']),
+      ];
+    }
+
+    if (!$has_items) {
+      return [];
+    }
+
+    $build['dismiss'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Hide suggestions'),
+      '#name' => 'ticket_suggestions_dismiss',
+      '#submit' => ['::handleAction'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildTicketBuilder',
+        'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
+      ],
+      '#limit_validation_errors' => [],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--ghost', 'mel-ticket-suggestions__dismiss'],
+        'formnovalidate' => 'formnovalidate',
+      ],
+    ];
+
+    return $build;
+  }
+
+  /**
+   * Builds the inline preset selector shown by the Add ticket control.
+   *
+   * @param array<string, array{label: string, description: string, values: array<string, mixed>}> $presets
+   */
+  private function buildPresetSelector(array $presets, bool $has_existing_tickets, FormStateInterface $form_state): array {
+    $selector = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'mel-ticket-preset-selector',
+        'class' => ['mel-ticket-presets', 'js-mel-ticket-presets'],
+        'hidden' => 'hidden',
+      ],
+      'intro' => [
+        '#markup' => '<div class="mel-ticket-presets__intro">'
+          . '<h4>' . Html::escape((string) $this->t('Choose a ticket preset')) . '</h4>'
+          . '<p>' . Html::escape((string) $this->t('Start with a useful structure, then edit every field before saving.')) . '</p>'
+          . '</div>',
+      ],
+      'cards' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-presets__grid']],
+      ],
+    ];
+
+    foreach ($presets as $key => $preset) {
+      $classes = ['mel-ticket-preset-card', 'js-mel-ticket-preset'];
+      if ($key === 'general' && !$has_existing_tickets) {
+        $classes[] = 'mel-ticket-preset-card--recommended';
+      }
+
+      $hint = $this->presetHint($key);
+      $selector['cards'][$key] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => $classes,
+          'data-mel-ticket-preset-key' => $key,
+          'tabindex' => '0',
+        ],
+        'copy' => [
+          '#markup' => '<div class="mel-ticket-preset-card__copy">'
+            . '<h5>' . Html::escape((string) $preset['label']) . '</h5>'
+            . '<p>' . Html::escape((string) $preset['description']) . '</p>'
+            . ($hint !== '' ? '<p class="mel-ticket-preset-card__hint">' . Html::escape($hint) . '</p>' : '')
+            . '</div>',
+        ],
+        'select' => $this->buildPresetSubmitButton($key, $preset, $key === 'general' && !$has_existing_tickets),
+      ];
+    }
+
+    return $selector;
+  }
+
+  /**
+   * Builds one AJAX submit button that opens the existing new-ticket card.
+   *
+   * @param array{label: string, description: string, values: array<string, mixed>} $preset
+   */
+  private function buildPresetSubmitButton(string $key, array $preset, bool $primary = FALSE, mixed $button_label = NULL, array $extra_classes = []): array {
+    return [
+      '#type' => 'submit',
+      '#value' => $button_label ?? ($primary ? $this->t('General Admission') : $this->t('Use @label', ['@label' => $preset['label']])),
+      '#name' => 'ticket_begin_preset_' . $key,
+      '#submit' => ['::handleAction'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildTicketBuilder',
+        'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
+      ],
+      '#limit_validation_errors' => [],
+      '#attributes' => [
+        'class' => array_filter([
+          'mel-btn',
+          $primary ? 'mel-btn--primary' : 'mel-btn--secondary',
+          'js-mel-ticket-preset-submit',
+          ...$extra_classes,
+        ]),
+        'data-mel-ticket-preset-key' => $key,
+        // Event Studio nests this builder in a form with required mel[title] etc.; without
+        // formnovalidate the browser blocks AJAX before Drupal runs.
+        'formnovalidate' => 'formnovalidate',
+      ],
+    ];
+  }
+
+  private function presetHint(string $key): string {
+    return match ($key) {
+      'general' => (string) $this->t('Recommended as your first ticket'),
+      'early_bird' => (string) $this->t('Limited tickets create urgency'),
+      'vip' => (string) $this->t('Higher price tier with added value'),
+      default => '',
+    };
+  }
+
+  /**
+   * Reads a new-ticket field value, preferring submitted values over presets.
+   */
+  private function newTicketDefault(FormStateInterface $form_state, string $key, mixed $fallback): mixed {
+    $submitted = $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', $key));
+    if ($submitted !== NULL) {
+      return $submitted;
+    }
+
+    $defaults = $form_state->get('mel_ticket_preset_defaults');
+    if (is_array($defaults) && array_key_exists($key, $defaults)) {
+      return $defaults[$key];
+    }
+
+    return $fallback;
+  }
+
+  /**
+   * Maps product preset values onto the existing ticket builder input contract.
+   *
+   * @param array<string, mixed> $values
+   */
+  private function normalizePresetValuesForNewTicket(array $values): array {
+    $defaults = [];
+    foreach ($values as $key => $value) {
+      $target = match ($key) {
+        'price' => 'price_amount',
+        'visibility' => 'visibility_mode',
+        default => $key,
+      };
+      $defaults[$target] = $value;
+    }
+
+    if (!isset($defaults['ticket_kind'])) {
+      $defaults['ticket_kind'] = 'paid';
+    }
+    if (!array_key_exists('status', $defaults)) {
+      $defaults['status'] = 1;
+    }
+    if (!array_key_exists('visibility_mode', $defaults)) {
+      $defaults['visibility_mode'] = 'public';
+    }
+
+    return $defaults;
   }
 
   /**
@@ -366,6 +759,7 @@ final class EventTicketsBuilder {
 
     try {
       match (TRUE) {
+        str_starts_with($name, 'ticket_begin_preset_') => $this->beginAddWithPreset($form_state, $event, $name),
         $name === 'ticket_begin_add' => $this->beginAdd($form_state),
         $name === 'ticket_begin_add_rsvp' => $this->beginAddWithKind($form_state, 'rsvp'),
         $name === 'ticket_begin_add_paid' => $this->beginAddWithKind($form_state, 'paid'),
@@ -373,6 +767,7 @@ final class EventTicketsBuilder {
         $name === 'ticket_cancel_add' => $this->cancelAdd($form_state),
         $name === 'ticket_create' => $this->createTicket($form_state, $event),
         $name === 'ticket_save_sync' => $this->performSaveAndSync($form_state, $event),
+        $name === 'ticket_suggestions_dismiss' => $this->dismissTicketSuggestions($form_state),
         $name === 'ticket_reorder' => $this->reorderTickets($form_state, $event),
         str_starts_with($name, 'edit_') => $this->beginInlineEdit($form_state, $name),
         str_starts_with($name, 'cancel_') => $this->cancelInlineEdit($form_state),
@@ -419,6 +814,14 @@ final class EventTicketsBuilder {
     $currency = $this->ticketTypeManager->getDefaultCurrencyCodeForEvent($event);
 
     $prefill = (string) ($form_state->get('mel_ticket_prefill_kind') ?: 'paid');
+    $preset_key = (string) ($form_state->get('mel_ticket_selected_preset') ?: 'custom');
+    $title_default = (string) $this->newTicketDefault($form_state, 'title', '');
+    $kind_default = (string) $this->newTicketDefault($form_state, 'ticket_kind', $prefill);
+    $price_default = (string) $this->newTicketDefault($form_state, 'price_amount', '');
+    $capacity_default = $this->newTicketDefault($form_state, 'capacity', '');
+    $visibility_default = (string) $this->newTicketDefault($form_state, 'visibility_mode', 'public');
+    $status_default = (int) $this->newTicketDefault($form_state, 'status', 1);
+    $recommended_default = (int) $this->newTicketDefault($form_state, 'field_is_default_ticket', 0);
 
     $ticket_kind_input = ':input[name="' . $this->formElementFullName($form_state, 'builder_shell', 'list', 'new', 'fields', 'ticket_kind') . '"]';
 
@@ -426,7 +829,8 @@ final class EventTicketsBuilder {
       '#type' => 'container',
       '#attributes' => [
         'class' => ['mel-card', 'mel-ticket-card', 'mel-ticket-card--new', 'is-editing'],
-        'data-mel-ticket-kind' => $prefill,
+        'data-mel-ticket-kind' => $kind_default,
+        'data-mel-ticket-selected-preset' => $preset_key,
       ],
       'header' => [
         '#type' => 'html_tag',
@@ -440,7 +844,7 @@ final class EventTicketsBuilder {
         'title' => [
           '#type' => 'textfield',
           '#title' => $this->t('Title'),
-          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'title')) ?? ''),
+          '#default_value' => $title_default,
         ],
         'short_description' => [
           '#type' => 'textarea',
@@ -458,15 +862,17 @@ final class EventTicketsBuilder {
             'rsvp' => $this->t('RSVP'),
             'external' => $this->t('External'),
           ],
-          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'ticket_kind'))
-            ?? (string) ($form_state->get('mel_ticket_prefill_kind') ?: 'paid')),
+          '#default_value' => $kind_default,
         ],
         'price_amount' => [
           '#type' => 'number',
           '#title' => $this->t('Price'),
           '#step' => 0.01,
           '#min' => 0,
-          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'price_amount')) ?? ''),
+          '#default_value' => $price_default,
+          '#attributes' => [
+            'data-mel-ticket-preset-focus' => 'price',
+          ],
           '#states' => [
             'visible' => [
               $ticket_kind_input => ['value' => 'paid'],
@@ -489,7 +895,7 @@ final class EventTicketsBuilder {
           '#type' => 'number',
           '#title' => $this->t('Capacity'),
           '#min' => 1,
-          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'capacity')) ?? ''),
+          '#default_value' => $capacity_default === NULL ? '' : (string) $capacity_default,
           '#description' => $this->t('Leave empty for unlimited tickets'),
           '#attributes' => [
             'class' => ['js-mel-ticket-capacity'],
@@ -519,7 +925,47 @@ final class EventTicketsBuilder {
         'status' => [
           '#type' => 'checkbox',
           '#title' => $this->t('Published (visible to buyers)'),
-          '#default_value' => 1,
+          '#default_value' => $status_default,
+        ],
+        'visibility_mode' => [
+          '#type' => 'hidden',
+          '#default_value' => $visibility_default,
+        ],
+        'field_is_default_ticket' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Set as recommended ticket'),
+          '#description' => $this->t('This ticket will be highlighted to buyers and selected by default.'),
+          '#description_display' => 'after',
+          '#default_value' => $recommended_default,
+        ],
+        'sale_window_enabled' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Set sale window'),
+          '#description' => $this->t('Schedule when this tier can be purchased (optional).'),
+          '#default_value' => (int) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'sale_window_enabled')) ?? 0),
+        ],
+        'sale_start' => [
+          '#type' => 'datetime',
+          '#title' => $this->t('Sale start'),
+          '#date_increment' => 15,
+          '#default_value' => $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'sale_start')) ?? NULL,
+          '#states' => [
+            'visible' => [
+              ':input[name="' . $this->formElementFullName($form_state, 'builder_shell', 'list', 'new', 'fields', 'sale_window_enabled') . '"]' => ['checked' => TRUE],
+            ],
+          ],
+        ],
+        'sale_end' => [
+          '#type' => 'datetime',
+          '#title' => $this->t('Sale end'),
+          '#description' => $this->t('Must be after sale start.'),
+          '#date_increment' => 15,
+          '#default_value' => $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'sale_end')) ?? NULL,
+          '#states' => [
+            'visible' => [
+              ':input[name="' . $this->formElementFullName($form_state, 'builder_shell', 'list', 'new', 'fields', 'sale_window_enabled') . '"]' => ['checked' => TRUE],
+            ],
+          ],
         ],
       ],
       'actions' => [
@@ -593,7 +1039,11 @@ final class EventTicketsBuilder {
         ],
       ],
       'status' => [
-        '#markup' => '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span><span class="mel-badge mel-badge--' . Html::escape($status_class) . '">' . Html::escape($status_label) . '</span>',
+        '#markup' => '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
+          . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
+            ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
+            : '')
+          . '<span class="mel-badge mel-badge--' . Html::escape($status_class) . '">' . Html::escape($status_label) . '</span>',
       ],
     ];
 
@@ -604,6 +1054,13 @@ final class EventTicketsBuilder {
     $view['visibility'] = [
       '#markup' => '<div class="' . Html::escape('mel-ticket-card__visibility') . '">' . Html::escape($visibility_label) . '</div>',
     ];
+
+    $sale_line = $this->buildTicketSaleWindowSummaryMarkup($ticket);
+    if ($sale_line !== NULL) {
+      $view['sale_window'] = [
+        '#markup' => '<div class="' . Html::escape('mel-ticket-card__sale-window') . '" role="status">' . Html::escape($sale_line) . '</div>',
+      ];
+    }
 
     $archive_only = in_array($ticket_status, [
       TicketStatusService::STATUS_ENDED,
@@ -681,7 +1138,11 @@ final class EventTicketsBuilder {
     ];
 
     $card['edit']['status'] = [
-      '#markup' => '<div class="mel-ticket-card__header"><div class="mel-ticket-card__title-group"><div class="mel-ticket-card__title">' . Html::escape($ticket->label()) . '</div><div class="mel-ticket-card__description">' . Html::escape(ucfirst($ticket->getTicketKind())) . '</div></div><div class="mel-ticket-card__header-actions"><span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span><span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape($edit_status_label) . '</span></div></div>',
+      '#markup' => '<div class="mel-ticket-card__header"><div class="mel-ticket-card__title-group"><div class="mel-ticket-card__title">' . Html::escape($ticket->label()) . '</div><div class="mel-ticket-card__description">' . Html::escape(ucfirst($ticket->getTicketKind())) . '</div></div><div class="mel-ticket-card__header-actions"><span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
+        . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
+          ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
+          : '')
+        . '<span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape($edit_status_label) . '</span></div></div>',
       '#weight' => -20,
     ];
 
@@ -746,6 +1207,48 @@ final class EventTicketsBuilder {
       '#parents' => array_merge($edit_path, ['short_description']),
     ];
 
+    $sale_window_checked = $this->ticketSaleWindowDefaultChecked($ticket);
+    $sale_win_chk = ':input[name="' . $this->formElementFullName($form_state, 'builder_shell', 'list', (string) $tid, 'edit', 'sale_window_enabled') . '"]';
+
+    $sale_start_default = $this->ticketSaleDatetimeDefault($ticket, 'sale_start');
+    $sale_end_default = $this->ticketSaleDatetimeDefault($ticket, 'sale_end');
+
+    $card['edit']['primary']['sale_window_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Set sale window'),
+      '#description' => $this->t('When off, this tier follows default availability rules (no custom start/end on the ticket).'),
+      '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['sale_window_enabled'])) ?? ($sale_window_checked ? 1 : 0)),
+      '#parents' => array_merge($edit_path, ['sale_window_enabled']),
+    ];
+
+    $card['edit']['primary']['sale_start'] = [
+      '#type' => 'datetime',
+      '#title' => $this->t('Sale start'),
+      '#description' => $this->t('First moment this tier can be purchased.'),
+      '#date_increment' => 15,
+      '#default_value' => $form_state->getValue(array_merge($edit_path, ['sale_start'])) ?? $sale_start_default,
+      '#parents' => array_merge($edit_path, ['sale_start']),
+      '#states' => [
+        'visible' => [
+          $sale_win_chk => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
+    $card['edit']['primary']['sale_end'] = [
+      '#type' => 'datetime',
+      '#title' => $this->t('Sale end'),
+      '#description' => $this->t('Last moment this tier can be purchased (must be after start).'),
+      '#date_increment' => 15,
+      '#default_value' => $form_state->getValue(array_merge($edit_path, ['sale_end'])) ?? $sale_end_default,
+      '#parents' => array_merge($edit_path, ['sale_end']),
+      '#states' => [
+        'visible' => [
+          $sale_win_chk => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
     $card['edit']['secondary'] = [
       '#type' => 'details',
       '#title' => $this->t('Secondary settings'),
@@ -759,6 +1262,15 @@ final class EventTicketsBuilder {
       '#description' => $this->t('When unchecked, the ticket is unpublished (inactive) for buyers.'),
       '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['status_published'])) ?? ($ticket->isPublished() ? 1 : 0)),
       '#parents' => array_merge($edit_path, ['status_published']),
+    ];
+    $card['edit']['secondary']['field_is_default_ticket'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Set as recommended ticket'),
+      '#description' => $this->t('This ticket will be highlighted to buyers and selected by default.'),
+      '#description_display' => 'after',
+      '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['field_is_default_ticket']))
+        ?? ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket() ? 1 : 0)),
+      '#parents' => array_merge($edit_path, ['field_is_default_ticket']),
     ];
 
     $vis_default = (string) ($form_state->getValue(array_merge($edit_path, ['visibility_mode']))
@@ -932,6 +1444,37 @@ final class EventTicketsBuilder {
 
   private function beginAdd(FormStateInterface $form_state): void {
     $form_state->set('mel_ticket_prefill_kind', NULL);
+    $form_state->set('mel_ticket_selected_preset', NULL);
+    $form_state->set('mel_ticket_preset_defaults', NULL);
+    $form_state->set('mel_ticket_adding_new', TRUE);
+    $form_state->set('editing_ticket_id', NULL);
+  }
+
+  private function beginAddWithPreset(FormStateInterface $form_state, NodeInterface $event, string $name): void {
+    $preset_key = substr($name, strlen('ticket_begin_preset_'));
+    $preset = $this->ticketPresetManager->getPreset($preset_key);
+    if ($preset === NULL) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Unknown ticket preset @preset requested for event @nid.', [
+        '@preset' => $preset_key,
+        '@nid' => (string) $event->id(),
+      ]);
+      $preset_key = 'custom';
+      $preset = $this->ticketPresetManager->getPreset('custom') ?? [
+        'label' => 'Custom',
+        'description' => 'Start from scratch',
+        'values' => [],
+      ];
+    }
+
+    $existing_tickets = $this->lifecycle->loadOrderedTicketsForEvent($event);
+    $defaults = $this->normalizePresetValuesForNewTicket($preset['values']);
+    if ($preset_key === 'general' && $existing_tickets === []) {
+      $defaults['field_is_default_ticket'] = 1;
+    }
+
+    $form_state->set('mel_ticket_selected_preset', $preset_key);
+    $form_state->set('mel_ticket_preset_defaults', $defaults);
+    $form_state->set('mel_ticket_prefill_kind', (string) ($defaults['ticket_kind'] ?? 'paid'));
     $form_state->set('mel_ticket_adding_new', TRUE);
     $form_state->set('editing_ticket_id', NULL);
   }
@@ -942,6 +1485,8 @@ final class EventTicketsBuilder {
   private function beginAddWithKind(FormStateInterface $form_state, string $kind): void {
     $allowed = ['rsvp', 'paid', 'external'];
     $form_state->set('mel_ticket_prefill_kind', in_array($kind, $allowed, TRUE) ? $kind : 'paid');
+    $form_state->set('mel_ticket_selected_preset', NULL);
+    $form_state->set('mel_ticket_preset_defaults', NULL);
     $form_state->set('mel_ticket_adding_new', TRUE);
     $form_state->set('editing_ticket_id', NULL);
   }
@@ -949,12 +1494,20 @@ final class EventTicketsBuilder {
   private function cancelAdd(FormStateInterface $form_state): void {
     $form_state->set('mel_ticket_adding_new', FALSE);
     $form_state->set('mel_ticket_prefill_kind', NULL);
+    $form_state->set('mel_ticket_selected_preset', NULL);
+    $form_state->set('mel_ticket_preset_defaults', NULL);
+  }
+
+  private function dismissTicketSuggestions(FormStateInterface $form_state): void {
+    $form_state->set('mel_ticket_suggestions_dismissed', TRUE);
   }
 
   private function beginInlineEdit(FormStateInterface $form_state, string $name): void {
     $tid = (int) str_replace('edit_', '', $name);
     $form_state->set('editing_ticket_id', $tid);
     $form_state->set('mel_ticket_adding_new', FALSE);
+    $form_state->set('mel_ticket_selected_preset', NULL);
+    $form_state->set('mel_ticket_preset_defaults', NULL);
   }
 
   private function cancelInlineEdit(FormStateInterface $form_state): void {
@@ -964,12 +1517,16 @@ final class EventTicketsBuilder {
   private function createTicket(FormStateInterface $form_state, NodeInterface $event, bool $quiet = FALSE): void {
     $values = $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields')) ?? [];
     $payload = $this->lifecycle->buildTicketValuesFromInput($event, $this->currentUser, $values);
+    $payload = array_merge($payload, $this->buildSaleWindowFragmentForLifecycle($values));
     $this->lifecycle->createAttachAndSync($event, $payload);
+    $form_state->set('mel_ticket_show_suggestions', TRUE);
     if (!$quiet) {
       $this->messenger->addStatus($this->t('Ticket created.'));
     }
     $form_state->set('mel_ticket_adding_new', FALSE);
     $form_state->set('mel_ticket_prefill_kind', NULL);
+    $form_state->set('mel_ticket_selected_preset', NULL);
+    $form_state->set('mel_ticket_preset_defaults', NULL);
   }
 
   /**
@@ -1015,7 +1572,8 @@ final class EventTicketsBuilder {
       }
 
       $payload = $this->lifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $card);
-      $this->lifecycle->updateTicketType($ticket, $event, $payload);
+    $payload = array_merge($payload, $this->buildSaleWindowFragmentForLifecycle($card));
+    $this->lifecycle->updateTicketType($ticket, $event, $payload);
       $this->messenger->addStatus($this->t('Ticket updated.'));
       $success = TRUE;
     }
@@ -1305,6 +1863,14 @@ final class EventTicketsBuilder {
   }
 
   /**
+   * Buyer-facing recommendation badge shown on organiser ticket cards.
+   */
+  private function recommendedTicketBadgeLabel(TicketTypeInterface $ticket): string {
+    // Future labels can branch here on price rank or remaining inventory.
+    return (string) $this->t('⭐ Most popular');
+  }
+
+  /**
    * @return string
    *   Plain numeric string without trailing zeros (display only).
    */
@@ -1376,6 +1942,9 @@ final class EventTicketsBuilder {
     }
     elseif ($remDisplay === 'No limit') {
       $remDisplay = (string) $this->t('No limit');
+    }
+    elseif ($remDisplay === 'Unlimited') {
+      $remDisplay = (string) $this->t('Unlimited');
     }
 
     $note = (string) ($rollup['conversion_note'] ?? '');

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\EventSubscriber;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
-use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -16,19 +16,19 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Redirects Event Studio routes when organiser setup is incomplete.
+ * Restricts Event Studio routes to authenticated users with a vendor entity.
  *
- * Reuses OnboardingManager + UserVendorMembershipQuery (same rules as
- * CreateEventGatewayController) without duplicating destination policy.
+ * Onboarding completion, Stripe, and profile details are not gated here;
+ * publish-time validation handles those requirements.
  */
 final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriberInterface {
 
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
     private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
-    private readonly OnboardingManager $onboardingManager,
     private readonly RouteMatchInterface $routeMatch,
     private readonly LoggerInterface $logger,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   /**
@@ -70,6 +70,7 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
     }
 
     if ($this->currentUser->isAnonymous()) {
+      $this->redirectAnonymousToLogin($event);
       return;
     }
 
@@ -85,18 +86,49 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
     $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
     if ($vendor_ids === []) {
       $this->redirectToOnboardProfile($event, $uid, 'no_vendor_event_studio_fallback');
+    }
+  }
+
+  /**
+   * Sends anonymous users to login with return to the requested studio URL.
+   */
+  private function redirectAnonymousToLogin(RequestEvent $event): void {
+    $request = $event->getRequest();
+    $path = $request->getPathInfo();
+    $query = $request->query->all();
+    unset($query['destination']);
+    $destination = $path;
+    if ($query !== []) {
+      $destination .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+    }
+
+    try {
+      if ($this->moduleHandler->moduleExists('myeventlane_auth')) {
+        $auth_continue = Url::fromRoute('myeventlane_auth.mel_continue', [], [
+          'query' => [
+            'destination' => $destination,
+            'mel_intent' => 'vendor_studio',
+          ],
+        ]);
+        $url = Url::fromRoute('user.login', [], [
+          'query' => ['destination' => $auth_continue->toString()],
+        ])->toString();
+      }
+      else {
+        $url = Url::fromRoute('user.login', [], [
+          'query' => ['destination' => $destination],
+        ])->toString();
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('EventStudioVendorOnboardingGate: login URL failed @message', [
+        '@message' => $e->getMessage(),
+      ]);
       return;
     }
 
-    $state = $this->onboardingManager->loadVendorStateByUid($uid);
-    if ($state === NULL) {
-      $this->redirectToOnboardProfile($event, $uid, 'no_onboarding_state');
-      return;
-    }
-    if (!$this->onboardingManager->isCompleted($state)) {
-      $this->redirectToOnboardProfile($event, $uid, 'onboarding_incomplete');
-      return;
-    }
+    $this->logger->notice('EventStudioVendorOnboardingGate: anonymous redirect to login for studio path');
+    $event->setResponse(new RedirectResponse($url, 302));
   }
 
   /**
@@ -127,9 +159,6 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
       return;
     }
 
-    $this->logger->notice('Redirected to onboarding uid=@uid', [
-      '@uid' => (string) $uid,
-    ]);
     $this->logger->notice('EventStudioVendorOnboardingGate: redirect uid=@uid reason=@reason target_route=myeventlane_vendor.onboard.profile', [
       '@uid' => (string) $uid,
       '@reason' => $reason,

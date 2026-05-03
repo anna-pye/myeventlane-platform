@@ -25,6 +25,10 @@
       {{ form.tickets }}
     </div>
 
+    {% if form.donation_support is defined %}
+      {{ form.donation_support }}
+    {% endif %}
+
     <div class="mel-booking__reassurance">
       <span>{{ '✔ Clear pricing'|t }}</span>
       <span>{{ '✔ No hidden fees'|t }}</span>
@@ -42,7 +46,7 @@
   </div>
 
   {% if form.actions is defined %}
-    <div class="mel-booking__cta" role="region" aria-label="{{ 'Add tickets to cart'|t }}">
+    <div class="mel-booking__cta" role="region" aria-label="{{ 'Reserve tickets'|t }}">
       <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
         <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
         <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>

@@ -61,6 +61,13 @@ final class EventStudioPublishForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
+    $snapshot = (bool) $form_state->get('mel_was_published_snapshot');
+    $just_went_live = $saved->isPublished() && !$snapshot;
+    if ($just_went_live) {
+      $this->messenger()->addStatus($this->t('Your event is live'));
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_studio.edit', ['node' => $saved->id()], ['query' => ['mel_celebrate' => '1']]));
+      return;
+    }
     $this->messenger()->addStatus($this->t('Event saved.'));
     $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $saved->id()]));
   }
@@ -69,11 +76,26 @@ final class EventStudioPublishForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $form_state->set('mel_was_published_snapshot', $node->isPublished());
+    $published = !empty($melDefaults['status']);
+    $draft_hidden = $published ? ' hidden' : '';
+    $live_hidden = $published ? '' : ' hidden';
     $form['mel']['status'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Published'),
-      '#default_value' => !empty($melDefaults['status']),
-      '#attributes' => ['class' => ['mel-checkbox-publish']],
+      '#type' => 'hidden',
+      '#default_value' => $published ? '1' : '0',
+      '#prefix' =>
+        '<div class="mel-publish-action-card" role="region" aria-labelledby="mel-publish-action-title-wizard" data-mel-publish-card="1">' .
+        '<div class="mel-publish-action-card__panel mel-publish-action-card__draft"' . $draft_hidden . ' data-mel-publish-panel="draft">' .
+        '<h3 id="mel-publish-action-title-wizard" class="mel-publish-action-card__title">' . $this->t('Publish event') . '</h3>' .
+        '<p class="mel-publish-action-card__desc">' . $this->t('Make your event live and visible') . '</p>' .
+        '<button type="button" class="mel-btn mel-btn--primary" id="mel-publish-now">' . $this->t('Publish now') . '</button>' .
+        '</div>' .
+        '<div class="mel-publish-action-card__panel mel-publish-action-card__live"' . $live_hidden . ' data-mel-publish-panel="live">' .
+        '<h3 class="mel-publish-action-card__title">' . $this->t('Your event is live') . '</h3>' .
+        '<p class="mel-publish-action-card__desc">' . $this->t('Updates publish when you save.') . '</p>' .
+        '<button type="button" class="mel-btn mel-btn--ghost" id="mel-revert-draft">' . $this->t('Unpublish') . '</button>' .
+        '</div>',
+      '#suffix' => '</div>',
     ];
   }
 

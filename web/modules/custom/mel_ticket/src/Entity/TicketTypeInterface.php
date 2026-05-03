@@ -51,4 +51,9 @@ interface TicketTypeInterface extends ContentEntityInterface {
    */
   public function isArchived(): bool;
 
+  /**
+   * Whether this ticket type is the organiser-recommended default for its event.
+   */
+  public function isDefaultTicket(): bool;
+
 }

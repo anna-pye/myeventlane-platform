@@ -76,7 +76,7 @@ final class VendorOnboardFirstEventController extends ControllerBase {
       $content['create_more'] = [
         '#type' => 'link',
         '#title' => $this->t('Create another event'),
-        '#url' => Url::fromRoute('myeventlane_vendor.create_event_gateway'),
+        '#url' => Url::fromRoute('myeventlane_event_studio.create'),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
         ],
@@ -125,7 +125,7 @@ final class VendorOnboardFirstEventController extends ControllerBase {
       $content['create'] = [
         '#type' => 'link',
         '#title' => $this->t('Create your first event'),
-        '#url' => Url::fromRoute('myeventlane_vendor.create_event_gateway'),
+        '#url' => Url::fromRoute('myeventlane_event_studio.create'),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
         ],

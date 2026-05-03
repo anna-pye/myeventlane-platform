@@ -59,7 +59,7 @@ final class VendorTermsForm extends FormBase {
     if ((int) $this->currentUser->id() > 0) {
       $vendor = $this->onboardingManager->ensureVendorExists($this->currentUser);
       if ($vendor->hasField('field_vendor_terms_accepted_at') && !$vendor->get('field_vendor_terms_accepted_at')->isEmpty()) {
-        $url = Url::fromRoute('myeventlane_vendor.create_event_gateway', [], [
+        $url = Url::fromRoute('myeventlane_event_studio.create', [], [
           'absolute' => FALSE,
         ]);
         throw new EnforcedResponseException(
@@ -188,7 +188,7 @@ final class VendorTermsForm extends FormBase {
     );
 
     $this->messenger()->addStatus($this->t('Thank you. You can now create events.'));
-    $form_state->setRedirectUrl(Url::fromRoute('myeventlane_vendor.create_event_gateway'));
+    $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_studio.create'));
   }
 
 }

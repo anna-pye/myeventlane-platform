@@ -501,7 +501,7 @@ function myeventlane_auth_reset_redirect_submit(array &$form, FormStateInterface
     return;
   }
   $form_state->setRedirect(
-    'myeventlane_vendor.create_event_gateway',
+    'myeventlane_event_studio.create',
     [],
     [
       'query' => [

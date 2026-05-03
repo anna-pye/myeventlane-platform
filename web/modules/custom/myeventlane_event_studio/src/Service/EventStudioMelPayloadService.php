@@ -66,7 +66,9 @@ final class EventStudioMelPayloadService {
     }
 
     $external_url = trim((string) ($mel['external_url'] ?? ''));
-    $collect_per_ticket = !empty($mel['collect_attendee_questions']);
+    $attendee_questions = $this->decodeAttendeeQuestionsFromMel($mel);
+    $has_attendee_questions = $attendee_questions !== [];
+    $collect_per_ticket = !empty($mel['collect_attendee_questions']) || $has_attendee_questions;
 
     $image_fids = $mel['field_event_image'] ?? [];
     $image_fid = 0;
@@ -139,6 +141,7 @@ final class EventStudioMelPayloadService {
       'field_location_longitude' => $mel['field_location_longitude'] ?? NULL,
       'event_highlights' => $this->decodeAndNormalizeEventHighlightsFromMel($mel),
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
+      'attendee_questions' => $attendee_questions,
     ];
 
     $nid = (int) ($form_state->getValue('nid') ?? 0);
@@ -290,6 +293,74 @@ final class EventStudioMelPayloadService {
     $allowed = $this->eventHighlightHelper->getAllowedIconKeys();
 
     return $this->eventHighlightHelper->normalizeHighlights($decoded, $allowed);
+  }
+
+  /**
+   * @param array<string, mixed> $mel
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function decodeAttendeeQuestionsFromMel(array $mel): array {
+    $raw = '[]';
+    if (isset($mel['attendee_questions_editor']) && is_array($mel['attendee_questions_editor'])
+        && array_key_exists('items_state', $mel['attendee_questions_editor'])) {
+      $raw = trim((string) $mel['attendee_questions_editor']['items_state']);
+    }
+    elseif (isset($mel['attendee_questions_items'])) {
+      $raw = trim((string) $mel['attendee_questions_items']);
+    }
+    if ($raw === '') {
+      $raw = '[]';
+    }
+    try {
+      $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException) {
+      return [];
+    }
+    if (!is_array($decoded)) {
+      return [];
+    }
+    $allowed_types = [
+      'textfield',
+      'textarea',
+      'select',
+      'checkboxes',
+      'radios',
+      'email',
+      'tel',
+    ];
+    $out = [];
+    foreach ($decoded as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $vendor_id = isset($row['vendor_question_id']) ? (int) $row['vendor_question_id'] : 0;
+      if ($vendor_id > 0) {
+        $out[] = ['vendor_question_id' => $vendor_id];
+        continue;
+      }
+      $label = trim((string) ($row['label'] ?? ''));
+      $type = trim((string) ($row['type'] ?? 'textfield'));
+      if ($label === '') {
+        continue;
+      }
+      if (!in_array($type, $allowed_types, TRUE)) {
+        $type = 'textfield';
+      }
+      $item = [
+        'label' => $label,
+        'type' => $type,
+        'required' => !empty($row['required']),
+        'save_to_library' => !empty($row['save_to_library']),
+      ];
+      $machine = trim((string) ($row['machine_name'] ?? ''));
+      if ($machine !== '') {
+        $item['machine_name'] = $machine;
+      }
+      $out[] = $item;
+    }
+    return $out;
   }
 
 }

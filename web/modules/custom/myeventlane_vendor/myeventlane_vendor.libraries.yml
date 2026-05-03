@@ -119,7 +119,7 @@ vendor_help_panel:
     - core/once
 
 ticket_cards:
-  version: 1.7
+  version: 1.9
   js:
     js/ticket-cards.js: {}
   css:
@@ -127,5 +127,6 @@ ticket_cards:
       css/ticket-cards.css: {}
   dependencies:
     - core/drupal
+    - core/drupalSettings
     - core/drupal.ajax
     - core/once

@@ -1,7 +1,7 @@
 myeventlane_event_studio.create:
   path: '/vendor/events/create'
   defaults:
-    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::buildCreate'
+    _controller: myeventlane_event_studio.controller:buildCreate
     _title: 'Create Event'
   requirements:
     _permission: 'access content'
@@ -10,8 +10,8 @@ myeventlane_event_studio.create:
 myeventlane_event_studio.edit:
   path: '/vendor/events/{node}/edit'
   defaults:
-    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::buildEdit'
-    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::editTitle'
+    _controller: myeventlane_event_studio.controller:buildEdit
+    _title_callback: myeventlane_event_studio.controller:editTitle
   requirements:
     _entity_access: 'node.update'
     node: \d+

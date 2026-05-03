@@ -6,12 +6,15 @@ package: MyEventLane
 
 dependencies:
   - drupal:node
+  - myeventlane_legal:myeventlane_legal
   - myeventlane_vendor:myeventlane_vendor
   - myeventlane_ai:myeventlane_ai
   - myeventlane_commerce:myeventlane_commerce
   - myeventlane_core:myeventlane_core
   - myeventlane_event:myeventlane_event
+  - mel_ticket:mel_ticket
   - myeventlane_event_state:myeventlane_event_state
   - myeventlane_tickets:myeventlane_tickets
   - myeventlane_venue:myeventlane_venue
   - myeventlane_location:myeventlane_location
+  - myeventlane_questions:myeventlane_questions

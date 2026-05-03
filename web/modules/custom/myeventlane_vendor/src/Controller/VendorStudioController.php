@@ -81,6 +81,30 @@ final class VendorStudioController extends VendorConsoleBaseController implement
    * Vendor Studio entrypoint at /vendor/studio.
    */
   public function studio(Request $request): array|RedirectResponse {
+    // Organisers use Event Studio routes; retain this shell only for staff/support.
+    if (!$this->currentUser->hasPermission('administer nodes') && (int) $this->currentUser->id() !== 1) {
+      $query_event_id = (int) $request->query->get('event', 0);
+      if ($query_event_id > 0) {
+        $event = $this->entityTypeManager->getStorage('node')->load($query_event_id);
+        if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+          try {
+            $this->assertEventOwnership($event);
+            $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
+            return new RedirectResponse($url, 302);
+          }
+          catch (AccessDeniedHttpException) {
+            $this->logger->warning('Vendor Studio redirect denied for uid=@uid nid=@nid', [
+              '@uid' => (int) $this->currentUser->id(),
+              '@nid' => (int) $query_event_id,
+            ]);
+          }
+        }
+      }
+
+      $url = Url::fromRoute('myeventlane_event_studio.create')->toString();
+      return new RedirectResponse($url, 302);
+    }
+
     $query_event_id = (int) $request->query->get('event', 0);
     if ($query_event_id > 0) {
       $event = $this->entityTypeManager->getStorage('node')->load($query_event_id);
@@ -107,11 +131,16 @@ final class VendorStudioController extends VendorConsoleBaseController implement
   /**
    * Canonical Event Editor entrypoint for existing events.
    */
-  public function eventEditor(NodeInterface $event): array {
+  public function eventEditor(NodeInterface $event): array|RedirectResponse {
     $this->assertEventOwnership($event);
 
     if ($event->bundle() !== 'event') {
       throw new AccessDeniedHttpException('Only event nodes can be edited in the Event Editor.');
+    }
+
+    if (!$this->currentUser->hasPermission('administer nodes') && (int) $this->currentUser->id() !== 1) {
+      $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
+      return new RedirectResponse($url, 302);
     }
 
     return $this->buildStudioRenderArray($event);

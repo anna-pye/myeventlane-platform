@@ -78,7 +78,7 @@
   {% if event_count == 0 %}
     <div class="mel-empty-state">
       <p>{{ 'You haven\'t created any events yet.'|t }}</p>
-      <a href="/vendor/events/add" class="mel-btn mel-btn--primary">{{ 'Create your first event'|t }}</a>
+      <a href="{{ path('myeventlane_event_studio.create') }}" class="mel-btn mel-btn--primary">{{ 'Create your first event'|t }}</a>
     </div>
   {% endif %}
 </div>

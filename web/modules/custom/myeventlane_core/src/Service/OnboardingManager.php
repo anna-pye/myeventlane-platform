@@ -686,7 +686,7 @@ final class OnboardingManager {
    */
   public function getNextVendorOnboardRoute(?OnboardingStateInterface $state): ?string {
     if ($state === NULL) {
-      return 'myeventlane_vendor.create_event_gateway';
+      return 'myeventlane_event_studio.create';
     }
     $next = $this->getNextAction($state);
     return $next['route_name'] ?: NULL;
@@ -751,8 +751,8 @@ final class OnboardingManager {
         'probe' => ['route_name' => 'myeventlane_vendor.onboard.account', 'title' => 'Create account'],
         'present' => ['route_name' => 'myeventlane_vendor.onboard.profile', 'title' => 'Set up profile'],
         // Next step is the create-event gateway; Event Studio is only after onboarding is complete.
-        'listen' => ['route_name' => 'myeventlane_vendor.create_event_gateway', 'title' => 'Create your event'],
-        'ask' => ['route_name' => 'myeventlane_vendor.create_event_gateway', 'title' => 'Create your event'],
+        'listen' => ['route_name' => 'myeventlane_event_studio.create', 'title' => 'Create your event'],
+        'ask' => ['route_name' => 'myeventlane_event_studio.create', 'title' => 'Create your event'],
         'invite' => ['route_name' => 'myeventlane_vendor.onboard.boost', 'title' => 'Promote with Boost'],
         'complete' => ['route_name' => NULL, 'title' => ''],
       ];

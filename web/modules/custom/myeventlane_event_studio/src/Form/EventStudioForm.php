@@ -14,11 +14,16 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
+use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate;
 use Drupal\myeventlane_location\Service\LocationProviderManager;
 use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
@@ -60,6 +65,17 @@ final class EventStudioForm extends FormBase {
 
   protected EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer;
 
+  protected VendorPublishRequirementsGate $publishRequirementsGate;
+
+  protected BookingFlowResolver $bookingFlowResolver;
+
+  /**
+   * Lazily restored for cached form AJAX (see {@see getMelPlatformSupportWizardForm()}).
+   *
+   * @var \Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper|null
+   */
+  protected ?MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm = NULL;
+
   /**
    * {@inheritdoc}
    */
@@ -79,6 +95,9 @@ final class EventStudioForm extends FormBase {
     $instance->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
     $instance->melPayloadService = $container->get('myeventlane_event_studio.mel_payload');
     $instance->entityAutocompleteMelNormalizer = $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer');
+    $instance->publishRequirementsGate = $container->get('myeventlane_vendor.publish_requirements_gate');
+    $instance->bookingFlowResolver = $container->get('myeventlane_event.booking_flow_resolver');
+    $instance->melPlatformSupportWizardForm = $container->get('myeventlane_event.mel_platform_support_wizard_form');
     return $instance;
   }
 
@@ -98,7 +117,8 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventTicketsBuilder, $this->ticketTypeManager, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer)) {
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventTicketsBuilder, $this->ticketTypeManager, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver)
+      && isset($this->melPlatformSupportWizardForm)) {
       return;
     }
     $container = \Drupal::getContainer();
@@ -135,6 +155,23 @@ final class EventStudioForm extends FormBase {
     if (!isset($this->entityAutocompleteMelNormalizer)) {
       $this->entityAutocompleteMelNormalizer = $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer');
     }
+    if (!isset($this->publishRequirementsGate)) {
+      $this->publishRequirementsGate = $container->get('myeventlane_vendor.publish_requirements_gate');
+    }
+    if (!isset($this->bookingFlowResolver)) {
+      $this->bookingFlowResolver = $container->get('myeventlane_event.booking_flow_resolver');
+    }
+    if (!isset($this->melPlatformSupportWizardForm)) {
+      $this->melPlatformSupportWizardForm = $container->get('myeventlane_event.mel_platform_support_wizard_form');
+    }
+  }
+
+  protected function getMelPlatformSupportWizardForm(): MelPlatformSupportWizardFormHelper {
+    $this->ensureInjectedServices();
+    if (!$this->melPlatformSupportWizardForm instanceof MelPlatformSupportWizardFormHelper) {
+      $this->melPlatformSupportWizardForm = \Drupal::getContainer()->get('myeventlane_event.mel_platform_support_wizard_form');
+    }
+    return $this->melPlatformSupportWizardForm;
   }
 
   /**
@@ -152,6 +189,38 @@ final class EventStudioForm extends FormBase {
     $form['#attributes']['class'][] = 'mel-event-studio-form';
     $form['#attributes']['data-mel-event-studio-form'] = '1';
     $form['#attributes']['id'] = 'event-studio-form';
+
+    if (!$this->currentUser->hasPermission('administer nodes') && (int) $this->currentUser->id() > 0) {
+      $flags = $this->publishRequirementsGate->getReadinessFlags($this->currentUser->getAccount());
+      $items = [];
+      if (!$flags['stripe']) {
+        $items[] = $this->t('Connect Stripe before publishing your event.');
+      }
+      if (!$flags['profile']) {
+        $items[] = $this->t('Complete your organiser profile.');
+      }
+      if (!$flags['terms']) {
+        $items[] = $this->t('Accept terms to publish.');
+      }
+      if ($items !== []) {
+        $form['mel_studio_readiness'] = [
+          '#type' => 'container',
+          '#attributes' => [
+            'class' => ['messages', 'messages--warning', 'mel-event-studio-readiness'],
+            'role' => 'status',
+          ],
+          '#weight' => -100,
+        ];
+        foreach ($items as $i => $text) {
+          $form['mel_studio_readiness']['line_' . $i] = [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $text,
+            '#attributes' => ['class' => ['mel-event-studio-readiness__line']],
+          ];
+        }
+      }
+    }
 
     // AJAX rebuilds do not receive $route_node; cached form state can lose studio_node. Ticket
     // builder actions then exit early in handleAction() with no save. Rehydrate from hidden nid.
@@ -424,11 +493,68 @@ final class EventStudioForm extends FormBase {
 
     $studio_tiers_json = $this->encodeStudioTiersJsonForEvent($event);
 
+    $title_trimmed = trim((string) $event->getTitle());
+    $is_placeholder_title = $title_trimmed === '' || $title_trimmed === (string) $this->t('Untitled event');
+
+    $paid_type = ($type_default === 'paid');
+    $no_paid_tickets_yet = FALSE;
+    if ($paid_type) {
+      if ($has_saved_event) {
+        $no_paid_tickets_yet = !$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty();
+      }
+      else {
+        try {
+          $decoded_tiers = json_decode($studio_tiers_json, TRUE, 512, JSON_THROW_ON_ERROR);
+        }
+        catch (\JsonException) {
+          $decoded_tiers = [];
+        }
+        $no_paid_tickets_yet = !is_array($decoded_tiers) || $decoded_tiers === [];
+      }
+    }
+
+    $paid_no_mel_tickets = $has_saved_event && $paid_type
+      && $this->ticketTypeManager->loadAllEventTicketTypes($event) === [];
+    $show_first_ticket_guidance = $type_default !== 'external' && (
+      ($paid_type && !$has_saved_event && $no_paid_tickets_yet)
+      || $paid_no_mel_tickets
+    );
+
+    $studio_tier_preview = [];
+    try {
+      $studio_tier_preview = json_decode($studio_tiers_json, TRUE, 512, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException) {
+      $studio_tier_preview = [];
+    }
+    $has_ticket_refs = $event->hasField('field_ticket_types')
+      && !$event->get('field_ticket_types')->isEmpty();
+    $has_ticket_signal_for_mel = $has_ticket_refs
+      || ($type_default !== 'external' && $studio_tier_preview !== []);
+
+    // MEL contribution: require a ticket signal (draft tiers, saved types, or RSVP path)
+    // and hide for external events (no MEL ticket attach point in the same way).
+    $show_mel_contribution = $has_ticket_signal_for_mel && $type_default !== 'external';
+
     $form['mel'] = [
       '#type' => 'container',
       '#tree' => TRUE,
       '#attributes' => ['class' => ['mel-event-studio']],
     ];
+
+    if ($is_placeholder_title) {
+      $form['mel']['guidance_title'] = [
+        '#type' => 'container',
+        '#weight' => -20,
+        '#attributes' => ['class' => ['mel-studio-guidance', 'mel-studio-guidance--title', 'messages', 'messages--status']],
+        'text' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Start by giving your event a name'),
+          '#attributes' => ['class' => ['mel-studio-guidance__text']],
+        ],
+      ];
+    }
 
     $form['mel']['title'] = [
       '#type' => 'textfield',
@@ -437,6 +563,7 @@ final class EventStudioForm extends FormBase {
       '#default_value' => $event->label(),
       '#required' => TRUE,
       '#attributes' => ['class' => ['mel-input']],
+      '#weight' => -10,
     ];
 
     $form['mel']['summary'] = [
@@ -744,10 +871,24 @@ final class EventStudioForm extends FormBase {
       '#default_value' => $lng_default,
     ];
 
+    if ($show_first_ticket_guidance) {
+      $form['mel']['first_ticket_guidance'] = [
+        '#type' => 'container',
+        '#weight' => -6,
+        '#attributes' => ['class' => ['mel-studio-guidance', 'mel-studio-guidance--tickets', 'messages', 'messages--status']],
+        'text' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Add your first ticket to get started'),
+          '#attributes' => ['class' => ['mel-studio-guidance__text']],
+        ],
+      ];
+    }
+
     $form['mel']['tickets_intro'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#value' => $this->t('How will people join?'),
+      '#value' => $this->t('Choose RSVP, paid tickets on MEL, or link to external checkout.'),
       '#attributes' => ['class' => ['mel-tickets-intro']],
     ];
 
@@ -755,7 +896,7 @@ final class EventStudioForm extends FormBase {
       '#type' => 'radios',
       '#title' => '',
       '#options' => [
-        'rsvp' => $this->t('Free RSVP'),
+        'rsvp' => $this->t('RSVP (free)'),
         'paid' => $this->t('Paid tickets'),
         'external' => $this->t('External link'),
       ],
@@ -920,17 +1061,130 @@ final class EventStudioForm extends FormBase {
       ],
     ];
 
+    // Kept for autosave/compatibility; actual collect flag also derives from attendee JSON in payload.
     $form['mel']['collect_attendee_questions'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Collect extra attendee details'),
-      '#description' => $this->t('Paid: collect per ticket where supported. RSVP: add custom questions from the full ticket builder after your event is saved, or from the event Tickets tab.'),
-      '#default_value' => $collect_default,
-      '#states' => [
-        'visible' => [
-          'or' => [
-            [':input[name="mel[field_event_type]"]' => ['value' => 'rsvp']],
-            [':input[name="mel[field_event_type]"]' => ['value' => 'paid']],
+      '#type' => 'hidden',
+      '#default_value' => $collect_default ? '1' : '0',
+      '#attributes' => ['data-mel-collect-attendee-sync' => '1'],
+    ];
+
+    $attendee_questions_json_default = $this->encodeAttendeeQuestionsJsonForEvent($event);
+    $vendor_question_library_options = $this->buildVendorQuestionLibraryOptions();
+    $has_vendor_question_library = $vendor_question_library_options !== [];
+    $form['mel']['attendee_questions_editor'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => [
+          'mel-attendee-questions-editor',
+        ],
+      ],
+      'library_wrap' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-attendee-questions-library']],
+        'library' => [
+          '#type' => 'select',
+          '#title' => $this->t('Reuse from library'),
+          '#description' => $this->t('Add a question you have saved for this organiser account.'),
+          '#options' => $vendor_question_library_options,
+          '#empty_option' => $this->t('- Choose a saved question -'),
+          '#empty_value' => '',
+          '#attributes' => [
+            'class' => ['mel-input'],
+            'data-mel-attendee-library-select' => '1',
           ],
+          '#access' => $has_vendor_question_library,
+        ],
+        'library_add' => [
+          '#type' => 'button',
+          '#value' => $this->t('Add from library'),
+          '#attributes' => [
+            'type' => 'button',
+            'class' => ['mel-btn', 'mel-btn--secondary', 'button'],
+            'data-mel-attendee-library-add' => '1',
+          ],
+          '#access' => $has_vendor_question_library,
+        ],
+      ],
+      'add_menu' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-attendee-questions-add']],
+        'add' => [
+          '#type' => 'button',
+          '#value' => $this->t('+ Add question'),
+          '#attributes' => [
+            'type' => 'button',
+            'id' => 'mel-attendee-add-question',
+            'class' => ['mel-btn', 'mel-btn--primary', 'button'],
+            'aria-haspopup' => 'true',
+            'aria-expanded' => 'false',
+            'aria-controls' => 'mel-attendee-preset-menu',
+          ],
+        ],
+        'menu' => [
+          '#type' => 'container',
+          '#attributes' => [
+            'id' => 'mel-attendee-preset-menu',
+            'class' => ['mel-attendee-preset-menu'],
+            'hidden' => 'hidden',
+            'role' => 'menu',
+          ],
+          'p_dietary' => [
+            '#type' => 'button',
+            '#value' => $this->t('Dietary requirements'),
+            '#attributes' => [
+              'type' => 'button',
+              'role' => 'menuitem',
+              'class' => ['mel-attendee-preset-item'],
+              'data-mel-attendee-preset' => 'dietary',
+            ],
+          ],
+          'p_access' => [
+            '#type' => 'button',
+            '#value' => $this->t('Accessibility needs'),
+            '#attributes' => [
+              'type' => 'button',
+              'role' => 'menuitem',
+              'class' => ['mel-attendee-preset-item'],
+              'data-mel-attendee-preset' => 'accessibility',
+            ],
+          ],
+          'p_phone' => [
+            '#type' => 'button',
+            '#value' => $this->t('Phone number'),
+            '#attributes' => [
+              'type' => 'button',
+              'role' => 'menuitem',
+              'class' => ['mel-attendee-preset-item'],
+              'data-mel-attendee-preset' => 'phone',
+            ],
+          ],
+          'p_custom' => [
+            '#type' => 'button',
+            '#value' => $this->t('Custom question'),
+            '#attributes' => [
+              'type' => 'button',
+              'role' => 'menuitem',
+              'class' => ['mel-attendee-preset-item'],
+              'data-mel-attendee-preset' => 'custom',
+            ],
+          ],
+        ],
+      ],
+      'list' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-attendee-question-list'],
+          'id' => 'mel-attendee-question-list',
+          'data-mel-attendee-question-list' => '1',
+          'aria-live' => 'polite',
+        ],
+      ],
+      'items_state' => [
+        '#type' => 'hidden',
+        '#default_value' => $attendee_questions_json_default,
+        '#attributes' => [
+          'id' => 'mel-attendee-questions-json',
+          'data-mel-attendee-questions-state' => '1',
         ],
       ],
     ];
@@ -941,7 +1195,10 @@ final class EventStudioForm extends FormBase {
       '#default_value' => $enable_donations_default,
       '#states' => [
         'visible' => [
-          ':input[name="mel[field_event_type]"]' => ['value' => 'rsvp'],
+          'or' => [
+            [':input[name="mel[field_event_type]"]' => ['value' => 'rsvp']],
+            [':input[name="mel[field_event_type]"]' => ['value' => 'paid']],
+          ],
         ],
       ],
     ];
@@ -1074,14 +1331,47 @@ final class EventStudioForm extends FormBase {
     ];
 
     $form['mel']['status'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Published'),
-      '#default_value' => $event->isPublished(),
-      '#attributes' => ['class' => ['mel-checkbox-publish']],
+      '#type' => 'hidden',
+      '#default_value' => $event->isPublished() ? '1' : '0',
     ];
+
+    $this->getMelPlatformSupportWizardForm()->buildSection(
+      $form,
+      $form_state,
+      $event,
+      94,
+      'mel-studio-mel-support-heading',
+      TRUE,
+    );
+    if (isset($form['mel_mel_support'])) {
+      $form['mel_mel_support']['#access'] = $show_mel_contribution;
+      $form['mel_mel_support']['#weight'] = 96;
+      $form['mel_mel_support']['#attributes']['class'][] = 'mel-mel-support--studio-card';
+      $form['mel_mel_support']['mode']['#title_display'] = 'invisible';
+      $form['mel_mel_support']['mode']['#weight'] = 10;
+      $form['mel_mel_support']['_trust'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Independent platform fee — never mixed into ticket totals. You choose; attendees see transparent checkout.'),
+        '#attributes' => ['class' => ['mel-mel-support__trust']],
+        '#weight' => 5,
+      ];
+    }
 
     if ($this->locationProvider instanceof LocationProviderManager) {
       $form['#attached']['drupalSettings']['myeventlaneLocation'] = $this->locationProvider->getFrontendSettings();
+    }
+
+    $book_url = $this->buildMelEventStudioBookUrl($event, $type_default);
+    /** @phpstan-var array{bookingMode: string, availability: string, pricing: array<string, mixed>|null, cta: array<string, mixed>}|null $preview_resolver */
+    $preview_resolver = NULL;
+    if ($has_saved_event && $event->isPublished()) {
+      $preview_resolver = [
+        'bookingMode' => $this->bookingFlowResolver->getBookingMode($event),
+        'availability' => $this->bookingFlowResolver->getAvailabilityState($event),
+        'pricing' => $this->bookingFlowResolver->getDisplayPricing($event),
+        'cta' => $this->bookingFlowResolver->getPrimaryCta($event),
+      ];
     }
 
     $form['#attached']['drupalSettings']['melEventStudio'] = [
@@ -1104,21 +1394,45 @@ final class EventStudioForm extends FormBase {
         'unlimited' => (string) $this->t('Unlimited'),
         'yes' => (string) $this->t('Yes'),
         'no' => (string) $this->t('No'),
-        'typeRsvp' => (string) $this->t('Free RSVP'),
+        'typeRsvp' => (string) $this->t('RSVP (free)'),
         'typePaid' => (string) $this->t('Paid tickets'),
         'typeExternal' => (string) $this->t('External link'),
       ],
       'defaultCurrency' => $this->resolveStudioDefaultCurrency($event),
+      'hasTicketSignalForMel' => $has_ticket_signal_for_mel,
+      'showMelContribution' => $show_mel_contribution,
+      'vendorQuestionLibrary' => $this->buildVendorQuestionLibraryPayload(),
+      'urls' => [
+        'book' => $book_url,
+      ],
+      'previewResolver' => $preview_resolver,
+      'previewStrings' => [
+        'freeRsvp' => (string) $this->t('Free RSVP'),
+        'external' => (string) $this->t('External'),
+        'multiplePrices' => (string) $this->t('Multiple prices'),
+        'free' => (string) $this->t('Free'),
+        'paidIncomplete' => (string) $this->t('Add ticket types and a product to show pricing.'),
+        'ctaRsvp' => (string) $this->t('RSVP free'),
+        'ctaTickets' => (string) $this->t('Get your tickets'),
+        'ctaExternal' => (string) $this->t('View details'),
+        'ctaDisabled' => (string) $this->t('Complete ticket setup'),
+        'ctaSaveFirst' => (string) $this->t('Save event to enable booking link'),
+        'drawerOpen' => (string) $this->t('Show preview'),
+        'drawerClose' => (string) $this->t('Hide preview'),
+      ],
     ];
 
     $form['actions'] = [
       '#type' => 'actions',
       '#attributes' => ['class' => ['mel-form-actions']],
+      '#weight' => 999,
     ];
     $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save'),
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'button--primary']],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--primary', 'button--primary', 'mel-builder-save-submit'],
+      ],
     ];
 
     $form['#mel_studio_node'] = $event;
@@ -1133,12 +1447,17 @@ final class EventStudioForm extends FormBase {
     parent::validateForm($form, $form_state);
     $this->ensureInjectedServices();
     $event = $form_state->get('studio_node');
+
+    $mel = $form_state->getValue('mel');
+    $event_type = is_array($mel) ? (string) ($mel['field_event_type'] ?? '') : '';
+    if ($event_type === ''
+      && $event instanceof NodeInterface
+      && $event->hasField('field_event_type')
+      && !$event->get('field_event_type')->isEmpty()) {
+      $event_type = (string) $event->get('field_event_type')->value;
+    }
+
     if ($event instanceof NodeInterface && $event->hasField('field_event_type')) {
-      $mel = $form_state->getValue('mel');
-      $event_type = is_array($mel) ? (string) ($mel['field_event_type'] ?? '') : '';
-      if ($event_type === '') {
-        $event_type = (string) ($event->get('field_event_type')->value ?? '');
-      }
       if (in_array($event_type, ['paid', 'both'], TRUE)) {
         if (!$this->ticketTypeManager->hasVendorStore($event)) {
           $this->logger->warning('Event Studio: tickets validation blocked — no vendor store for event @nid', [
@@ -1149,36 +1468,55 @@ final class EventStudioForm extends FormBase {
       }
     }
 
-    $mel = $form_state->getValue('mel');
-    if (!is_array($mel) || !isset($mel['event_highlights']) || !is_array($mel['event_highlights'])) {
-      return;
-    }
-    $raw = '';
-    if (isset($mel['event_highlights']['items_state'])) {
-      $raw = (string) $mel['event_highlights']['items_state'];
-    }
-    $decoded = [];
-    if ($raw !== '') {
-      try {
-        $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-      }
-      catch (\JsonException) {
-        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Highlights data could not be read. Please refresh and try again.'));
-        return;
-      }
-    }
-    if (!is_array($decoded)) {
-      $decoded = [];
+    if ($event instanceof NodeInterface) {
+      $this->getMelPlatformSupportWizardForm()->validate($form_state, $event, $event_type);
     }
 
-    $this->ensureInjectedServices();
-    $analysis = $this->eventHighlightHelper->analyzeDecodedHighlights($decoded);
-    if ($analysis['icon_without_text']) {
-      $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
-      return;
+    $mel = $form_state->getValue('mel');
+    if (is_array($mel) && isset($mel['event_highlights']) && is_array($mel['event_highlights'])) {
+      $raw = '';
+      if (isset($mel['event_highlights']['items_state'])) {
+        $raw = (string) $mel['event_highlights']['items_state'];
+      }
+      $decoded = [];
+      if ($raw !== '') {
+        try {
+          $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+        }
+        catch (\JsonException) {
+          $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Highlights data could not be read. Please refresh and try again.'));
+          return;
+        }
+      }
+      if (!is_array($decoded)) {
+        $decoded = [];
+      }
+
+      $this->ensureInjectedServices();
+      $analysis = $this->eventHighlightHelper->analyzeDecodedHighlights($decoded);
+      if ($analysis['icon_without_text']) {
+        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
+        return;
+      }
+      if ($analysis['persistable_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
+        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('You can add at most 6 highlights.'));
+      }
     }
-    if ($analysis['persistable_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
-      $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('You can add at most 6 highlights.'));
+
+    $mel = $form_state->getValue('mel');
+    if (is_array($mel) && isset($mel['attendee_questions_editor']['items_state'])) {
+      $raw = trim((string) $mel['attendee_questions_editor']['items_state']);
+      if ($raw !== '' && $raw !== '[]') {
+        try {
+          $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+          if (!is_array($decoded)) {
+            $form_state->setErrorByName('mel][attendee_questions_editor][items_state', $this->t('Attendee questions could not be read. Reset the list or reload the page.'));
+          }
+        }
+        catch (\JsonException) {
+          $form_state->setErrorByName('mel][attendee_questions_editor][items_state', $this->t('Attendee questions could not be read. Reset the list or reload the page.'));
+        }
+      }
     }
   }
 
@@ -1199,6 +1537,7 @@ final class EventStudioForm extends FormBase {
       }
     }
 
+    $wasPublished = $existing instanceof NodeInterface && $existing->isPublished();
     $payload = $this->melPayloadService->buildFromFormState($form_state, $this->entityTypeManager);
     $result = $this->saveService->save($payload, $existing, $this->currentUser, FALSE);
     if ($result['errors'] !== []) {
@@ -1209,13 +1548,44 @@ final class EventStudioForm extends FormBase {
     }
     $node = $result['node'];
     if ($node instanceof NodeInterface) {
-      $form_state->set('studio_node', $node);
-      $this->messenger()->addStatus($this->t('Event saved.'));
       try {
-        $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_studio.edit', ['node' => $node->id()]));
+        $this->getMelPlatformSupportWizardForm()->apply($node, $form_state);
+        if ($node->hasField('field_mel_sup_mode')) {
+          EventNodeRevisionSave::prepare($node, 'Event Studio: MEL support.');
+          $node->save();
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->error(
+          'Event Studio: persist MEL support fields failed post-save (@nid): @message',
+          [
+            '@nid' => $node->id() ? (string) $node->id() : 'new',
+            '@message' => $e->getMessage(),
+          ]
+        );
+        $this->messenger()->addWarning($this->t('Event saved, but contribution preferences could not be stored. Try again shortly.'));
+      }
+      $wentLiveTransition = $node->isPublished() && !$wasPublished;
+      $form_state->set('studio_node', $node);
+      if ($wentLiveTransition) {
+        $this->messenger()->addStatus($this->t('Your event is live'));
+      }
+      else {
+        $this->messenger()->addStatus($this->t('Event saved.'));
+      }
+      try {
+        $redirect_options = [];
+        if ($wentLiveTransition) {
+          $redirect_options['query']['mel_celebrate'] = '1';
+        }
+        $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_studio.edit', ['node' => $node->id()], $redirect_options));
       }
       catch (\Throwable) {
-        $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()]));
+        $canonical_options = [];
+        if ($wentLiveTransition) {
+          $canonical_options['query']['mel_celebrate'] = '1';
+        }
+        $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()], $canonical_options));
       }
     }
   }
@@ -1282,6 +1652,143 @@ final class EventStudioForm extends FormBase {
     }
   }
 
+  /**
+   * Encodes existing attendee question paragraphs for the Event Studio JS editor.
+   */
+  private function encodeAttendeeQuestionsJsonForEvent(NodeInterface $event): string {
+    if (!$event->hasField('field_attendee_questions') || $event->get('field_attendee_questions')->isEmpty()) {
+      return '[]';
+    }
+    $rows = [];
+    foreach ($event->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+      if ($paragraph->bundle() !== 'attendee_extra_field') {
+        continue;
+      }
+      $label = '';
+      if ($paragraph->hasField('field_question_label') && !$paragraph->get('field_question_label')->isEmpty()) {
+        $label = trim((string) ($paragraph->get('field_question_label')->value ?? ''));
+      }
+      if ($label === '') {
+        continue;
+      }
+      $type = 'textfield';
+      if ($paragraph->hasField('field_question_type') && !$paragraph->get('field_question_type')->isEmpty()) {
+        $type = (string) ($paragraph->get('field_question_type')->value ?? 'textfield');
+      }
+      $required = FALSE;
+      if ($paragraph->hasField('field_question_required') && !$paragraph->get('field_question_required')->isEmpty()) {
+        $required = (bool) $paragraph->get('field_question_required')->value;
+      }
+      $row = [
+        'label' => $label,
+        'type' => $type,
+        'required' => $required,
+        'save_to_library' => FALSE,
+      ];
+      if ($paragraph->hasField('field_question_machine_name') && !$paragraph->get('field_question_machine_name')->isEmpty()) {
+        $machine = trim((string) ($paragraph->get('field_question_machine_name')->value ?? ''));
+        if ($machine !== '') {
+          $row['machine_name'] = $machine;
+        }
+      }
+      $rows[] = $row;
+    }
+    try {
+      return json_encode($rows, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException) {
+      return '[]';
+    }
+  }
+
+  /**
+   * @return array<string, string>
+   *   Options keyed by vendor_question id.
+   */
+  private function buildVendorQuestionLibraryOptions(): array {
+    if (!$this->entityTypeManager->hasDefinition('vendor_question')) {
+      return [];
+    }
+    if (!$this->currentUser->hasPermission('view vendor question library')) {
+      return [];
+    }
+    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadByProperties([
+      'uid' => $this->currentUser->id(),
+    ]);
+    $vendor = reset($vendors);
+    if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+      return [];
+    }
+    $store = $vendor->get('field_vendor_store')->entity;
+    if ($store === NULL) {
+      return [];
+    }
+    $ids = $this->entityTypeManager->getStorage('vendor_question')->getQuery()
+      ->condition('field_store', $store->id())
+      ->condition('status', 1)
+      ->accessCheck(TRUE)
+      ->sort('label', 'ASC')
+      ->execute();
+    if ($ids === []) {
+      return [];
+    }
+    $out = [];
+    foreach ($ids as $id) {
+      $id = (int) $id;
+      $q = $this->entityTypeManager->getStorage('vendor_question')->load($id);
+      if ($q instanceof VendorQuestionInterface) {
+        $out[(string) $id] = $q->getLabel();
+      }
+    }
+    return $out;
+  }
+
+  /**
+   * @return list<array{id: int, label: string, type: string, required: bool}>
+   */
+  private function buildVendorQuestionLibraryPayload(): array {
+    if (!$this->entityTypeManager->hasDefinition('vendor_question')) {
+      return [];
+    }
+    if (!$this->currentUser->hasPermission('view vendor question library')) {
+      return [];
+    }
+    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadByProperties([
+      'uid' => $this->currentUser->id(),
+    ]);
+    $vendor = reset($vendors);
+    if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+      return [];
+    }
+    $store = $vendor->get('field_vendor_store')->entity;
+    if ($store === NULL) {
+      return [];
+    }
+    $ids = $this->entityTypeManager->getStorage('vendor_question')->getQuery()
+      ->condition('field_store', $store->id())
+      ->condition('status', 1)
+      ->accessCheck(TRUE)
+      ->sort('label', 'ASC')
+      ->execute();
+    if ($ids === []) {
+      return [];
+    }
+    $rows = [];
+    foreach ($ids as $id) {
+      $id = (int) $id;
+      $q = $this->entityTypeManager->getStorage('vendor_question')->load($id);
+      if ($q instanceof VendorQuestionInterface) {
+        $rows[] = [
+          'id' => $id,
+          'label' => $q->getLabel(),
+          'type' => $q->getQuestionType(),
+          'required' => $q->isRequired(),
+        ];
+      }
+    }
+    return $rows;
+  }
+
   private function encodeStudioTiersJsonForEvent(NodeInterface $event): string {
     if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
       return '[]';
@@ -1314,6 +1821,12 @@ final class EventStudioForm extends FormBase {
       $ext = $entity->getExternalUrlString();
       if ($ext !== NULL && $ext !== '') {
         $row['external_uri'] = $ext;
+      }
+      if (!$entity->get('sale_start')->isEmpty()) {
+        $row['sale_start'] = (string) $entity->get('sale_start')->value;
+      }
+      if (!$entity->get('sale_end')->isEmpty()) {
+        $row['sale_end'] = (string) $entity->get('sale_end')->value;
       }
       $rows[] = $row;
     }
@@ -1364,7 +1877,7 @@ final class EventStudioForm extends FormBase {
     $type_label = match ($type) {
       'paid' => (string) $this->t('Paid tickets'),
       'external' => (string) $this->t('External link'),
-      default => (string) $this->t('Free RSVP'),
+      default => (string) $this->t('RSVP (free)'),
     };
     $cap = $type === 'rsvp'
       ? ($capacity_display !== '' ? $capacity_display : (string) $this->t('Unlimited'))
@@ -1386,6 +1899,24 @@ final class EventStudioForm extends FormBase {
       . '<li><span class="mel-ticket-summary__k">' . $this->t('External URL') . '</span> ' . $ext . '</li>'
       . $paid_note
       . '</ul>';
+  }
+
+  /**
+   * Event book URL for live preview CTA when the route is accessible.
+   */
+  private function buildMelEventStudioBookUrl(NodeInterface $event, string $event_type): string {
+    if ($event->isNew() || $event->id() === NULL || (int) $event->id() <= 0 || $event_type === 'external') {
+      return '';
+    }
+    try {
+      $url = Url::fromRoute('myeventlane_commerce.event_book', ['node' => (int) $event->id()]);
+      if ($url->access()) {
+        return $url->toString();
+      }
+    }
+    catch (\Throwable) {
+    }
+    return '';
   }
 
   /**

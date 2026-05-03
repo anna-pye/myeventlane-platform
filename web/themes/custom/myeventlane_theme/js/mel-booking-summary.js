@@ -42,6 +42,27 @@
 
   /**
    * @param {HTMLFormElement} form
+   * @returns {number}
+   */
+  function getOptionalDonation(form) {
+    const input = form.querySelector('[data-mel-booking-donation]');
+    if (!input || input.disabled) {
+      return 0;
+    }
+    const raw = parseFloat(String(input.value), 10);
+    return Number.isFinite(raw) && raw > 0 ? raw : 0;
+  }
+
+  /**
+   * @param {EventTarget|null} t
+   * @returns {boolean}
+   */
+  function isDonationControl(t) {
+    return t instanceof HTMLElement && t.matches('[data-mel-booking-donation]');
+  }
+
+  /**
+   * @param {HTMLFormElement} form
    * @returns {HTMLElement[]}
    */
   function getTicketRows(form) {
@@ -178,6 +199,8 @@
       });
 
       const hasSelection = totalQty > 0;
+      const donationLine = hasSelection ? getOptionalDonation(form) : 0;
+      const displayTotal = subtotal + donationLine;
 
       if (targets.empty) {
         targets.empty.hidden = hasSelection;
@@ -201,6 +224,19 @@
             li.appendChild(amt);
             ul.appendChild(li);
           });
+          if (donationLine > 0) {
+            const dli = document.createElement('li');
+            dli.className = 'mel-booking-summary__item mel-booking-summary__item--donation';
+            const dlabel = document.createElement('span');
+            dlabel.className = 'mel-booking-summary__item-label';
+            dlabel.textContent = strings.donationLine || 'Optional support (estimate)';
+            const damt = document.createElement('span');
+            damt.className = 'mel-booking-summary__item-amount';
+            damt.textContent = fmt.format(donationLine);
+            dli.appendChild(dlabel);
+            dli.appendChild(damt);
+            ul.appendChild(dli);
+          }
           targets.items.innerHTML = '';
           targets.items.appendChild(ul);
         }
@@ -208,7 +244,7 @@
 
       if (targets.subtotalWrap && targets.subtotalValue) {
         targets.subtotalWrap.hidden = !hasSelection;
-        targets.subtotalValue.textContent = hasSelection ? fmt.format(subtotal) : '';
+        targets.subtotalValue.textContent = hasSelection ? fmt.format(displayTotal) : '';
       }
 
       if (targets.countEl) {
@@ -220,7 +256,7 @@
         }
       }
       if (targets.totalEl) {
-        targets.totalEl.textContent = hasSelection ? fmt.format(subtotal) : '';
+        targets.totalEl.textContent = hasSelection ? fmt.format(displayTotal) : '';
       }
 
       if (targets.submit) {
@@ -246,8 +282,11 @@
         if (!targets.items || !hasSelection) {
           return;
         }
-        const summary = lines.map((l) => `${l.qty} ${l.title}`).join(', ');
-        const next = `${summary}. ${strings.subtotal || 'Subtotal'} ${fmt.format(subtotal)}`;
+        let summary = lines.map((l) => `${l.qty} ${l.title}`).join(', ');
+        if (donationLine > 0) {
+          summary += `. ${strings.donationLine || 'Optional support'} ${fmt.format(donationLine)}`;
+        }
+        const next = `${summary}. ${strings.subtotal || 'Subtotal'} ${fmt.format(displayTotal)}`;
         if (next !== lastAnnounce) {
           lastAnnounce = next;
           targets.items.setAttribute('aria-label', next);
@@ -269,10 +308,16 @@
       }
     });
 
+    const donationInput = form.querySelector('[data-mel-booking-donation]');
+    if (donationInput) {
+      donationInput.addEventListener('input', onChange);
+      donationInput.addEventListener('change', onChange);
+    }
+
     form.addEventListener(
       'input',
       (e) => {
-        if (isQuantityControl(e.target)) {
+        if (isQuantityControl(e.target) || isDonationControl(e.target)) {
           onChange();
         }
       },
@@ -281,7 +326,7 @@
     form.addEventListener(
       'change',
       (e) => {
-        if (isQuantityControl(e.target)) {
+        if (isQuantityControl(e.target) || isDonationControl(e.target)) {
           onChange();
         }
       },

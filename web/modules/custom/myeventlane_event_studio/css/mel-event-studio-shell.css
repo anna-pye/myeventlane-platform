@@ -42,7 +42,7 @@
 .mel-event-studio .mel-es-workspace__main {
   flex: 1 1 0;
   min-width: 0;
-  max-width: 720px;
+  max-width: 900px;
 }
 
 .mel-vendor-shell__content .mel-event-studio .mel-event-studio__form-full,
@@ -642,6 +642,48 @@
   border-color: #93c5fd;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Publish action card (replaces status checkbox)                              */
+/* -------------------------------------------------------------------------- */
+
+.mel-event-studio .mel-publish-action-card {
+  margin-top: 8px;
+  padding: 20px 22px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 8px 24px -12px rgba(15, 23, 42, 0.18);
+}
+
+.mel-event-studio .mel-publish-action-card__panel[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-publish-action-card__title {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: 'Nunito', system-ui, sans-serif;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.mel-event-studio .mel-publish-action-card__desc {
+  margin: 0 0 18px;
+  font-size: 0.96875rem;
+  line-height: 1.55;
+  color: #475569;
+  max-width: 36rem;
+}
+
+.mel-event-studio .mel-publish-action-card__panel .mel-btn {
+  min-width: 11rem;
+}
+
+.mel-event-studio .mel-publish-action-card__draft .mel-btn--primary {
+  font-weight: 700;
+}
+
 /* First-event onboarding banner (post–profile entry) */
 .mel-event-studio .mel-es-first-event-banner {
   margin: 0 0 16px;
@@ -665,4 +707,411 @@
   font-size: 0.9375rem;
   color: #64748b;
   line-height: 1.45;
+}
+
+/* -------------------------------------------------------------------------- */
+/* MEL Builder canvas (main workspace)                                          */
+/* -------------------------------------------------------------------------- */
+
+.mel-event-studio .mel-studio-top.mel-studio-top--solo {
+  margin-bottom: 20px;
+}
+
+.mel-event-studio .mel-builder {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 28px;
+  width: 100%;
+}
+
+.mel-event-studio .mel-builder__main {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mel-event-studio .mel-builder__sidebar {
+  flex: 0 0 276px;
+  width: 276px;
+  max-width: 100%;
+}
+
+.mel-event-studio .mel-builder-sidebar__sticky {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid #e8e8ef;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.mel-event-studio .mel-builder-card {
+  scroll-margin-top: 112px;
+}
+
+.mel-event-studio .mel-builder .mel-step-actions {
+  display: none;
+}
+
+.mel-event-studio .mel-builder-next-best-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.mel-event-studio .mel-builder-next-best {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: #0f172a;
+}
+
+.mel-event-studio .mel-builder-next-best-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-radius: 12px;
+  border: 1px solid #e8e8ef;
+  background: #f8fafc;
+}
+
+.mel-event-studio .mel-builder-primary-cta {
+  width: 100%;
+  justify-content: center;
+}
+
+.mel-event-studio .mel-ai-controls--sidebar {
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.mel-event-studio .mel-ai-controls--sidebar .mel-ai-controls__row {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mel-event-studio .mel-insights-card--sidebar {
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-mel-support--studio {
+  margin-top: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 63, 94, 0.18);
+}
+
+.mel-event-studio .mel-ticket-card .mel-ticket-card__sale-window {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+@media (max-width: 959px) {
+  .mel-event-studio .mel-builder {
+    flex-direction: column-reverse;
+    gap: 18px;
+  }
+
+  .mel-event-studio .mel-builder__sidebar {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .mel-event-studio .mel-builder-sidebar__sticky {
+    position: sticky;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    top: auto;
+    z-index: 12;
+    box-shadow: 0 -14px 32px rgba(15, 23, 42, 0.12);
+    border-radius: 16px;
+  }
+
+  .mel-event-studio .mel-studio-form-wrapper {
+    padding-bottom: 88px;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Guided builder: progressive reveal, MEL contribution card, attendee editor  */
+/* -------------------------------------------------------------------------- */
+
+.mel-event-studio .mel-builder-reveal--hidden {
+  display: none !important;
+}
+
+.mel-event-studio .mel-mel-support-section-wrap {
+  background: linear-gradient(135deg, #faf5ff 0%, #fff7ed 100%);
+  border: 1px solid #e9d5ff;
+  box-shadow: 0 10px 28px rgba(91, 33, 182, 0.08);
+}
+
+.mel-event-studio .mel-mel-support--studio-card.mel-mel-support--callout,
+.mel-event-studio .mel-mel-support-section-wrap .mel-mel-support {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.mel-event-studio .mel-mel-support__trust {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #5b21b6;
+}
+
+.mel-event-studio .mel-es-card,
+.mel-event-studio .mel-es-workspace__main .mel-section--card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+.mel-event-studio form.mel-studio--dirty #mel-studio-form-state,
+.mel-event-studio form.mel-studio--saving #mel-studio-form-state,
+.mel-event-studio form.mel-studio--saved #mel-studio-form-state {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.mel-event-studio form.mel-studio--dirty #mel-studio-form-state {
+  color: #b45309;
+}
+
+.mel-event-studio form.mel-studio--saving #mel-studio-form-state {
+  color: #2563eb;
+}
+
+.mel-event-studio .mel-attendee-details__hint {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+/* Collapsible attendee questionnaire (always mounted; default closed). */
+.mel-event-studio .mel-attendee-questions-details {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 1px solid #cbd5f5;
+  border-radius: 12px;
+  background: #fafbff;
+}
+
+.mel-event-studio .mel-attendee-questions-details__summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: inherit;
+  color: #0f172a;
+}
+
+.mel-event-studio .mel-attendee-questions-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio .mel-attendee-questions-details__summary-text {
+  font-weight: 650;
+}
+
+.mel-event-studio .mel-attendee-questions-details__summary-hint {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.mel-event-studio .mel-attendee-questions-details__body {
+  padding: 0 16px 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mel-event-studio .mel-tickets-prerequisite-hint {
+  margin: 8px 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.mel-event-studio .mel-attendee-preset-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  max-width: 280px;
+}
+
+.mel-event-studio .mel-attendee-preset-menu[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-attendee-preset-item {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.mel-event-studio .mel-attendee-preset-item:hover {
+  background: #f1f5f9;
+}
+
+.mel-event-studio .mel-attendee-row {
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mel-event-studio .mel-attendee-row:last-child {
+  border-bottom: 0;
+}
+
+.mel-event-studio .mel-attendee-row__grid {
+  margin-bottom: 8px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Task-based builder cards — spacing, hierarchy, MEL contribution            */
+/* -------------------------------------------------------------------------- */
+
+.mel-event-studio .mel-builder-task-card {
+  scroll-margin-top: 112px;
+}
+
+.mel-event-studio .mel-task-card__banner {
+  margin: 0 0 22px;
+  padding: 4px 2px 0;
+}
+
+.mel-event-studio .mel-task-card__title {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.mel-event-studio .mel-task-card__lede {
+  margin: 0;
+  max-width: 42em;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.mel-event-studio .mel-builder .mel-es-card {
+  margin-bottom: 24px;
+  padding: 26px 28px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+.mel-event-studio .mel-builder .mel-es-stack > .mel-step-actions {
+  margin-top: 8px;
+}
+
+.mel-event-studio .mel-subsection__title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #0f172a;
+}
+
+.mel-event-studio .mel-es-subsection {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mel-event-studio .mel-section__header--compact {
+  margin-bottom: 12px;
+}
+
+.mel-event-studio .mel-section__header--compact .mel-section__hint {
+  margin-top: 4px;
+}
+
+.mel-event-studio .mel-attendee-questions-panel .mel-attendee-question-list {
+  min-height: 0.25rem;
+}
+
+.mel-event-studio .mel-mel-contribution-packaging {
+  position: relative;
+  border-radius: 18px;
+  padding: 22px 24px 18px;
+  margin-top: 8px;
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  box-shadow: 0 14px 36px rgba(91, 33, 182, 0.1);
+}
+
+.mel-event-studio .mel-mel-contribution-kicker {
+  margin: 0 0 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6d28d9;
+}
+
+.mel-event-studio .mel-mel-contribution-headline {
+  margin: 0 0 14px;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: #4c1d95;
+}
+
+.mel-event-studio .mel-mel-contribution-packaging .mel-mel-support__trust {
+  color: #5b21b6;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.mel-event-studio .mel-btn.mel-btn--primary {
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.mel-event-studio .mel-btn.mel-btn--secondary {
+  font-weight: 600;
+}
+
+.mel-event-studio .mel-btn.mel-btn--sidebar-save {
+  min-height: 44px;
+}
+
+.mel-event-studio .mel-btn.mel-btn--sidebar-secondary {
+  min-height: 40px;
+}
+
+.mel-event-studio .mel-builder-card-group--post-ticket,
+.mel-event-studio .mel-builder-card-group--standout {
+  margin-bottom: 8px;
+}
+
+.mel-event-studio .mel-es-workspace__main .form-item,
+.mel-event-studio .mel-es-workspace__main .form-wrapper,
+.mel-event-studio .mel-es-workspace__main .fieldset {
+  margin-bottom: 1.2rem;
 }

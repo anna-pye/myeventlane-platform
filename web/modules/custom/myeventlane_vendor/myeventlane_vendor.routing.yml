@@ -774,7 +774,7 @@ myeventlane_vendor.manage_event.content:
 myeventlane_vendor.manage_event.tickets:
   path: '/vendor/event/{event}/tickets'
   defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventTicketsController::tickets'
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventTicketsController::redirectToCanonicalTickets'
     _title: 'Ticket types'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventTicketsController::access'

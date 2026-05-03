@@ -63,6 +63,170 @@
   margin: 0;
 }
 
+.mel-ticket-builder__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.mel-ticket-presets {
+  flex-basis: 100%;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid #e2e4f0;
+  border-radius: 18px;
+  background: #fbfbff;
+  box-shadow: 0 10px 26px rgba(20, 20, 43, 0.05);
+}
+
+.mel-ticket-presets__intro {
+  margin-bottom: 14px;
+}
+
+.mel-ticket-presets__intro h4 {
+  margin: 0 0 4px;
+  color: #1f2430;
+  font-size: 1rem;
+}
+
+.mel-ticket-presets__intro p {
+  margin: 0;
+  color: #5c6370;
+  font-size: 0.9375rem;
+}
+
+.mel-ticket-presets__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.mel-ticket-preset-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 168px;
+  padding: 16px;
+  border: 1px solid #e8e8f2;
+  border-radius: 16px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mel-ticket-preset-card:hover,
+.mel-ticket-preset-card:focus {
+  border-color: #bcb6ff;
+  box-shadow: 0 12px 26px rgba(108, 92, 231, 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.mel-ticket-preset-card--recommended {
+  border-color: #f26d5b;
+  box-shadow: 0 12px 28px rgba(242, 109, 91, 0.12);
+}
+
+.mel-ticket-preset-card__copy h5 {
+  margin: 0 0 6px;
+  color: #1f2430;
+  font-size: 0.98rem;
+}
+
+.mel-ticket-preset-card__copy p {
+  margin: 0;
+  color: #5c6370;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.mel-ticket-preset-card__copy .mel-ticket-preset-card__hint {
+  margin-top: 10px;
+  color: #6c5ce7;
+  font-weight: 650;
+}
+
+.mel-ticket-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e5e7f3;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
+  box-shadow: 0 8px 22px rgba(20, 20, 43, 0.05);
+}
+
+.mel-ticket-suggestions__intro h4 {
+  margin: 0 0 4px;
+  color: #1f2430;
+  font-size: 1rem;
+}
+
+.mel-ticket-suggestions__intro p {
+  margin: 0;
+  color: #5c6370;
+  font-size: 0.9rem;
+}
+
+.mel-ticket-suggestions__items {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.mel-ticket-suggestion {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #eeeef6;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.mel-ticket-suggestion__copy {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mel-ticket-suggestion__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #f4f1ff;
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+.mel-ticket-suggestion__copy h5 {
+  margin: 0 0 4px;
+  color: #1f2430;
+  font-size: 0.95rem;
+}
+
+.mel-ticket-suggestion__copy p {
+  margin: 0;
+  color: #5c6370;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.mel-ticket-suggestion__button {
+  align-self: flex-start;
+}
+
+.mel-ticket-suggestions__dismiss {
+  align-self: flex-start;
+}
+
 /* -------------------------------------------------------------------------- */
 /* List + drag                                                                */
 /* -------------------------------------------------------------------------- */
@@ -143,6 +307,26 @@
 .mel-ticket-card {
   position: relative;
   padding-left: 44px;
+}
+
+.mel-ticket-card--recommended {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-color: #f26d5b;
+  box-shadow: 0 12px 30px rgba(242, 109, 91, 0.16);
+}
+
+.mel-ticket-card__recommended-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid rgba(242, 109, 91, 0.36);
+  border-radius: 999px;
+  background: #fff4ef;
+  color: #b83d2d;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .mel-ticket-card.is-view {
@@ -501,6 +685,8 @@
 }
 
 .mel-ticket-card .description {
+  margin-top: 4px;
+  color: #6b7280;
   font-size: 12px;
   line-height: 1.4;
 }

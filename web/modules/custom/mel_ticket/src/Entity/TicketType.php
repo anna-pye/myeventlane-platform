@@ -127,6 +127,14 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
   /**
    * {@inheritdoc}
    */
+  public function isDefaultTicket(): bool {
+    return $this->hasField('field_is_default_ticket')
+      && (bool) $this->get('field_is_default_ticket')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
 
@@ -226,6 +234,17 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ])
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
+
+    $fields['field_is_default_ticket'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Set as recommended ticket'))
+      ->setDescription(t('This ticket will be highlighted to buyers and selected by default.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 4,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', FALSE);
 
     $fields['vendor_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Vendor'))
@@ -465,6 +484,9 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       // Invariant: paid tiers always have a Commerce variation per event product.
       // The entity form may submit is_reusable from the checkbox; normalize here.
       $this->set('is_reusable', FALSE);
+    }
+    if ($this->isReusable() && $this->hasField('field_is_default_ticket')) {
+      $this->set('field_is_default_ticket', FALSE);
     }
     parent::preSave($storage);
     $this->assertBusinessRules();

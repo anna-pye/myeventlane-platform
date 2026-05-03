@@ -93,7 +93,7 @@ final class EventDuplicateController extends VendorConsoleBaseController impleme
       ]);
 
       return new RedirectResponse(
-        Url::fromRoute('entity.node.edit_form', ['node' => (int) $new_event->id()])->toString(),
+        Url::fromRoute('myeventlane_event_studio.edit', ['node' => (int) $new_event->id()])->toString(),
         302
       );
     }

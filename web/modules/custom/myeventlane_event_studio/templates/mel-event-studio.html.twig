@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Event Studio — controlled Twig layout: sidebar + stacked MEL cards (form API children unchanged).
+ * Event Studio — task-based builder: identity → join → attendee needs → stand out (+ preview / publish).
  *
  * Theme hook is applied to the form root (render element = element) so this
  * template includes a real <form> and Drupal hidden fields (build ID, token).
@@ -13,7 +13,6 @@
   {% endif %}
 
   <div class="mel-event-studio mel-event-studio--{{ mode|default('create') }}" data-mel-studio-shell="1">
-    {# Hidden Drupal values for AI tone/audience (synced with panel selects .mel-ai-tone / .mel-ai-audience). #}
     {{ element.mel.ai_settings }}
     <h1 class="mel-event-studio__page-title visually-hidden">
       {% if mode == 'create' %}
@@ -23,17 +22,6 @@
       {% endif %}
     </h1>
 
-    <div class="mel-event-studio__progress">
-      <div class="mel-event-strength">
-        <div class="mel-event-strength__bar">
-          <div id="mel-event-strength-fill" class="mel-event-strength__fill"></div>
-        </div>
-        <div class="mel-event-strength__meta">
-          <span id="mel-event-strength-score">0%</span>
-          <span id="mel-event-strength-label">{{ 'Needs work'|t }}</span>
-        </div>
-      </div>
-    </div>
 
     {% if mel_show_first_event_banner %}
       <div class="mel-es-first-event-banner" role="status">
@@ -42,88 +30,121 @@
       </div>
     {% endif %}
 
-    {# TOP ZONE — preview anchor for section nav #}
-    <div class="mel-studio-top" id="mel-studio-preview-panel">
-      <div class="mel-studio-top__preview">
-        <div class="mel-event-studio__top">
-          <div class="mel-event-studio__preview">
-            <div id="mel-preview-card" data-mel-studio-preview-anchor="1">
-              <article class="mel-preview-card">
-                <div class="mel-preview-card__media" id="mel-preview-card-media">
-                  <img class="mel-preview-card__img" id="mel-preview-card-img" src="" alt="" width="640" height="336" loading="lazy" hidden />
-                  <div class="mel-preview-card__media-placeholder" id="mel-preview-card-placeholder">
-                    <span aria-hidden="true"></span>
-                  </div>
-                </div>
-                <div class="mel-preview-card__body">
-                  <h3 class="mel-preview-card__title" id="mel-preview-title">—</h3>
-                  <p class="mel-preview-card__meta">
-                    <time class="mel-preview-card__time" id="mel-preview-schedule" datetime="">—</time>
-                  </p>
-                  <p class="mel-preview-card__location" id="mel-preview-location">—</p>
-                  <p class="mel-preview-card__badge" id="mel-preview-tickets">—</p>
-                  <p class="mel-preview-card__status" id="mel-preview-status">—</p>
-                </div>
-              </article>
-            </div>
-            <div class="mel-preview-hints" id="mel-preview-hints" aria-live="polite"></div>
+    {% if mel_publish_celebrate %}
+      <div
+        class="mel-publish-celebrate messages messages--status"
+        role="region"
+        aria-labelledby="mel-publish-celebrate-title"
+        tabindex="-1"
+        data-mel-celebrate-panel
+      >
+        <div class="mel-publish-celebrate__inner">
+          <div class="mel-publish-celebrate__copy">
+            <h2 id="mel-publish-celebrate-title" class="mel-publish-celebrate__title">{{ 'Your event is live'|t }}</h2>
+            <p class="mel-publish-celebrate__lede">{{ 'Copy your public link below and share where your audience gathers.'|t }}</p>
           </div>
-
-          <div class="mel-event-actions">
-            {% if mel_event_actions.view %}
-              <a href="{{ mel_event_actions.view }}" class="mel-btn mel-btn--ghost" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
+          <div class="mel-publish-celebrate__actions">
+            <div class="mel-publish-celebrate__row mel-publish-celebrate__row--split">
+              <a class="mel-btn mel-btn--primary" href="{{ mel_publish_celebrate_share_url_absolute }}" target="_blank" rel="noopener noreferrer">{{ 'View event'|t }}</a>
+              <button
+                type="button"
+                class="mel-btn mel-btn--ghost"
+                data-mel-celebrate-copy
+                data-mel-celebrate-url="{{ mel_publish_celebrate_share_url_absolute|e('html_attr') }}"
+              >{{ 'Copy link'|t }}</button>
+            </div>
+            <span id="mel-celebrate-feedback" class="mel-publish-celebrate__feedback visually-hidden" aria-live="polite"></span>
+            {% if mel_publish_celebrate_share is not empty %}
+              <div class="mel-publish-celebrate__row mel-publish-celebrate__social" role="group" aria-label="{{ 'Share on social'|t }}">
+                {% if mel_publish_celebrate_share.facebook %}
+                  <a class="mel-btn mel-btn--secondary" href="{{ mel_publish_celebrate_share.facebook }}" target="_blank" rel="noopener noreferrer">{{ 'Facebook'|t }}</a>
+                {% endif %}
+                {% if mel_publish_celebrate_share.linkedin %}
+                  <a class="mel-btn mel-btn--secondary" href="{{ mel_publish_celebrate_share.linkedin }}" target="_blank" rel="noopener noreferrer">{{ 'LinkedIn'|t }}</a>
+                {% endif %}
+                {% if mel_publish_celebrate_share.twitter %}
+                  <a class="mel-btn mel-btn--secondary" href="{{ mel_publish_celebrate_share.twitter }}" target="_blank" rel="noopener noreferrer">{{ 'X'|t }}</a>
+                {% endif %}
+              </div>
             {% endif %}
-            {% if mel_event_actions.booking %}
-              <a href="{{ mel_event_actions.booking }}" class="mel-btn mel-btn--primary" target="_blank" rel="noopener noreferrer">{{ 'Booking page'|t }}</a>
-            {% endif %}
-            {% if mel_event_actions.scan %}
-              <a href="{{ mel_event_actions.scan }}" class="mel-btn mel-btn--accent">{{ 'Scan tickets'|t }}</a>
-            {% endif %}
+            <div class="mel-publish-celebrate__row">
+              {% if mel_publish_celebrate_calendar_url %}
+                <a class="mel-btn mel-btn--ghost" href="{{ mel_publish_celebrate_calendar_url }}" download="event-{{ mel_publish_celebrate_node_id }}.ics">{{ 'Add to calendar'|t }}</a>
+              {% endif %}
+              {% if mel_publish_celebrate_dismiss_url %}
+                <a class="mel-btn mel-btn--ghost" href="{{ mel_publish_celebrate_dismiss_url }}">{{ 'Dismiss'|t }}</a>
+              {% endif %}
+            </div>
           </div>
         </div>
       </div>
+    {% endif %}
 
-      <div class="mel-studio-top__insights">
-        <div class="mel-ai-controls" role="region" aria-label="{{ 'AI style for generation'|t }}">
-          <div class="mel-ai-controls__row">
-            <label class="mel-ai-controls__group">
-              <span>{{ 'Tone'|t }}</span>
-              <select class="mel-input mel-ai-tone" aria-label="{{ 'AI tone'|t }}">
-                <option value="community">{{ 'Community'|t }}</option>
-                <option value="fun">{{ 'Fun'|t }}</option>
-                <option value="professional">{{ 'Professional'|t }}</option>
-                <option value="urgent">{{ 'Urgent'|t }}</option>
-                <option value="luxury">{{ 'Premium'|t }}</option>
-              </select>
-            </label>
-            <label class="mel-ai-controls__group">
-              <span>{{ 'Audience'|t }}</span>
-              <select class="mel-input mel-ai-audience" aria-label="{{ 'AI audience'|t }}">
-                <option value="general">{{ 'General'|t }}</option>
-                <option value="lgbtq">{{ 'LGBTQIA+'|t }}</option>
-                <option value="students">{{ 'Students'|t }}</option>
-                <option value="professionals">{{ 'Professionals'|t }}</option>
-                <option value="families">{{ 'Families'|t }}</option>
-              </select>
-            </label>
-          </div>
+    {# TOP ZONE — live preview (aside + mobile drawer) #}
+    <div class="mel-studio-top mel-studio-top--solo" id="mel-studio-preview-panel">
+      <div class="mel-studio-top__preview mel-studio-top__preview--wide">
+        <div class="mel-event-studio__top">
+          <aside
+            class="mel-preview"
+            id="mel-live-preview"
+            data-mel-live-preview="1"
+            aria-label="{{ 'Live preview'|t }}"
+          >
+            <button
+              type="button"
+              class="mel-preview__drawer-toggle"
+              id="mel-preview-drawer-toggle"
+              aria-expanded="false"
+              aria-controls="mel-preview-drawer-panel"
+            >
+              <span class="mel-preview__drawer-toggle-label">{{ 'Preview'|t }}</span>
+              <span class="mel-preview__drawer-hint" aria-hidden="true">{{ 'Tap to expand'|t }}</span>
+            </button>
+            <div class="mel-preview__panel" id="mel-preview-drawer-panel">
+              <div class="mel-event-studio__preview">
+                <div id="mel-preview-card" data-mel-studio-preview-anchor="1">
+                  <article class="mel-preview-card">
+                    <div class="mel-preview-card__media" id="mel-preview-card-media">
+                      <img class="mel-preview-card__img" id="mel-preview-card-img" src="" alt="" width="640" height="336" loading="lazy" hidden />
+                      <div class="mel-preview-card__media-placeholder" id="mel-preview-card-placeholder">
+                        <span aria-hidden="true"></span>
+                      </div>
+                    </div>
+                    <div class="mel-preview-card__body">
+                      <h3 class="mel-preview-card__title" id="mel-preview-title">—</h3>
+                      <p class="mel-preview-card__meta">
+                        <time class="mel-preview-card__time" id="mel-preview-schedule" datetime="">—</time>
+                      </p>
+                      <p class="mel-preview-card__location" id="mel-preview-location">—</p>
+                      <p class="mel-preview-card__badge" id="mel-preview-booking-mode">—</p>
+                      <p class="mel-preview-card__pricing" id="mel-preview-pricing">—</p>
+                      <p class="mel-preview-card__status" id="mel-preview-status">—</p>
+                      <div class="mel-preview-card__cta">
+                        <a href="#" class="mel-btn mel-btn--primary mel-preview__cta" id="mel-preview-cta">{{ 'RSVP free'|t }}</a>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+                <div class="mel-preview-hints" id="mel-preview-hints" aria-live="polite"></div>
+              </div>
+
+              <div class="mel-event-actions">
+                {% if mel_event_actions.view %}
+                  <a href="{{ mel_event_actions.view }}" class="mel-btn mel-btn--ghost" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
+                {% endif %}
+                {% if mel_event_actions.booking %}
+                  <a href="{{ mel_event_actions.booking }}" class="mel-btn mel-btn--secondary" target="_blank" rel="noopener noreferrer">{{ 'Booking page'|t }}</a>
+                {% endif %}
+                {% if mel_event_actions.scan %}
+                  <a href="{{ mel_event_actions.scan }}" class="mel-btn mel-btn--accent">{{ 'Scan tickets'|t }}</a>
+                {% endif %}
+              </div>
+            </div>
+          </aside>
         </div>
-
-        <div class="mel-suggestions-card mel-insights-card">
-          <h3 class="mel-aside-card__title">{{ 'What still needs attention'|t }}</h3>
-          <div id="mel-insights-list" class="mel-insights-checklist" role="list" aria-live="polite"></div>
-        </div>
-
-        <div class="mel-publish-readiness-card mel-publish-card">
-          <h3 class="mel-aside-card__title">{{ 'Publish readiness'|t }}</h3>
-          <div id="mel-publish-readiness" class="mel-publish-readiness-body"></div>
-        </div>
-
-        <p class="mel-aside-footnote" id="mel-studio-form-state" role="status"></p>
       </div>
     </div>
 
-    {# Two-column shell: dedicated BEM block (mel-es-workspace) avoids legacy .mel-studio-layout grid rules in vendor-workspace.css. #}
     <div class="mel-es-workspace{% if show_onboarding_sidebar %} mel-es-workspace--has-onboarding{% endif %}">
       {% if show_onboarding_sidebar %}
         <aside class="mel-es-workspace__sidebar mel-es-workspace__sidebar--onboarding" aria-label="{{ 'Organiser setup'|t }}">
@@ -135,16 +156,24 @@
       </aside>
       <main class="mel-es-workspace__main">
 
-    {# FORM ZONE — wizard + actions (single root <form> above; not a nested form). #}
     <div class="mel-studio-form-wrapper mel-event-studio__form-full mel-studio-main-full">
+      <div class="mel-builder" data-mel-builder="1">
+        <div class="mel-builder__main">
       <div class="mel-wizard">
-        {# —— Basic —— #}
-        <section id="mel-step-basic" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="basic" role="tabpanel" aria-labelledby="mel-basic-heading">
+
+        {# —— 1. Event identity (title + schedule + venue) —— #}
+        <div id="mel-card-identity" class="mel-builder-card mel-builder-task-card mel-builder-card--identity" data-mel-builder-card="identity">
+        <section id="mel-step-identity" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="identity" role="tabpanel" aria-labelledby="mel-task-identity-heading">
           <div class="mel-es-stack">
+            <header class="mel-task-card__banner" id="mel-task-identity-heading">
+              <h2 class="mel-task-card__title">{{ 'Event identity'|t }}</h2>
+              <p class="mel-task-card__lede">{{ 'Name it, schedule it, and pin where it happens — guests need all three to trust the listing.'|t }}</p>
+            </header>
+
             <section class="mel-es-card mel-section mel-section--builder mel-section--basic" aria-labelledby="mel-basic-heading">
               <header class="mel-section__header">
-                <h2 class="mel-section__title" id="mel-basic-heading">{{ 'Basic info'|t }}</h2>
-                <p class="mel-section__hint">{{ 'Name your event, how it shows in listings, and categories.'|t }}</p>
+                <h3 class="mel-section__title" id="mel-basic-heading">{{ 'Title'|t }}</h3>
+                <p class="mel-section__hint">{{ 'Use a clear, specific name — you can refine discovery details after tickets are set up.'|t }}</p>
               </header>
 
               <div class="mel-basic-section">
@@ -161,49 +190,12 @@
                     </button>
                   </div>
                 </div>
-                {{ element.mel.summary }}
-
-                <div class="mel-form-group">
-                  {{ element.mel.field_category }}
-                </div>
-                <div class="mel-category-chips" id="mel-category-chips" aria-live="polite"></div>
               </div>
             </section>
 
-            <section class="mel-es-card mel-section mel-section--builder mel-section--media" aria-labelledby="mel-cover-heading">
-              <header class="mel-es-card__header">
-                <h2 class="mel-es-card__title" id="mel-cover-heading">{{ 'Cover image'|t }}</h2>
-                <p class="mel-es-card__hint">{{ 'Shown in listings and discovery — use a strong horizontal image.'|t }}</p>
-              </header>
-
-              <div class="mel-identity-media">
-                <div class="mel-cover-preview" id="mel-cover-preview" data-mel-cover-preview>
-                  <img class="mel-cover-preview__img" id="mel-cover-preview-img" src="" alt="" width="1200" height="630" loading="lazy" hidden />
-                  <div class="mel-cover-preview__empty" id="mel-cover-preview-empty">
-                    <span class="mel-cover-preview__empty-icon" aria-hidden="true"></span>
-                    <span class="mel-cover-preview__empty-text">{{ 'No cover yet — add an image for stronger discovery.'|t }}</span>
-                  </div>
-                </div>
-                <div class="mel-identity-media__fields mel-form-grid">
-                  {{ element.mel.field_event_image }}
-                  {{ element.mel.field_event_image_alt }}
-                </div>
-              </div>
-            </section>
-
-            <div class="mel-step-actions">
-              <button type="button" class="mel-btn mel-prev" disabled>{{ 'Back'|t }}</button>
-              <button type="button" class="mel-btn mel-continue-button mel-next">{{ 'Continue'|t }}</button>
-            </div>
-          </div>
-        </section>
-
-        {# —— Date & location —— #}
-        <section id="mel-step-datetime" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="datetime" role="tabpanel">
-          <div class="mel-es-stack">
             <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--details" aria-labelledby="mel-details-heading">
               <header class="mel-section__header">
-                <h2 class="mel-section__title" id="mel-details-heading">{{ 'Date & time'|t }}</h2>
+                <h3 class="mel-section__title" id="mel-details-heading">{{ 'Date & time'|t }}</h3>
                 <p class="mel-section__hint">{{ 'When your event runs — used in search, reminders, and calendars.'|t }}</p>
               </header>
 
@@ -215,7 +207,7 @@
 
             <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--location" aria-labelledby="mel-location-heading">
               <header class="mel-section__header">
-                <h2 class="mel-section__title" id="mel-location-heading">{{ 'Location'|t }}</h2>
+                <h3 class="mel-section__title" id="mel-location-heading">{{ 'Location'|t }}</h3>
                 <p class="mel-section__hint">{{ 'Helps attendees plan with confidence.'|t }}</p>
               </header>
 
@@ -242,19 +234,26 @@
             </section>
 
             <div class="mel-step-actions">
-              <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
+              <button type="button" class="mel-btn mel-prev" disabled>{{ 'Back'|t }}</button>
               <button type="button" class="mel-btn mel-continue-button mel-next">{{ 'Continue'|t }}</button>
             </div>
           </div>
         </section>
+        </div>{# /.mel-builder-card--identity #}
 
-        {# —— Tickets —— #}
-        <section id="mel-step-tickets" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="tickets" role="tabpanel">
+        {# —— 2. How people join —— #}
+        <div id="mel-card-tickets" class="mel-builder-card mel-builder-task-card mel-builder-card--tickets" data-mel-builder-card="tickets" data-mel-reveal-section="tickets">
+        <section id="mel-step-tickets" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="tickets" role="tabpanel" aria-labelledby="mel-task-tickets-heading">
           <div class="mel-es-stack">
-            <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--tickets" aria-labelledby="mel-tickets-heading">
+            <header class="mel-task-card__banner" id="mel-task-tickets-heading">
+              <h2 class="mel-task-card__title">{{ 'How people join'|t }}</h2>
+              <p class="mel-task-card__lede">{{ 'Choose RSVP, paid tickets, or an external link — then configure cards and when sales run.'|t }}</p>
+            </header>
+
+            <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--tickets" aria-labelledby="mel-tickets-type-heading">
               <header class="mel-section__header">
-                <h2 class="mel-section__title" id="mel-tickets-heading">{{ 'Tickets & RSVP'|t }}</h2>
-                <p class="mel-section__hint">{{ 'Set how people join. For saved events, use the full ticket builder for the same controls as the legacy wizard.'|t }}</p>
+                <h3 class="mel-section__title" id="mel-tickets-type-heading">{{ 'Ticket type'|t }}</h3>
+                <p class="mel-section__hint">{{ 'RSVP, paid on MEL, or link out to your own checkout.'|t }}</p>
               </header>
 
               <div class="mel-ticket-section">
@@ -276,17 +275,23 @@
 
               {{ element.mel.paid_ticket_panel }}
               {{ element.mel.external_url }}
-              {{ element.mel.collect_attendee_questions }}
               {{ element.mel.enable_donations }}
               {{ element.mel.donation_amount }}
               {{ element.mel.donation_options }}
               {{ element.mel.donation_label }}
               {{ element.mel.ticket_summary }}
 
-              <div class="mel-form-grid">
-                {{ element.mel.field_sales_start }}
-                {{ element.mel.field_sales_end }}
+              <div class="mel-ticket-sale-windows mel-es-subsection" aria-labelledby="mel-ticket-sale-windows-heading">
+                <header class="mel-section__header mel-section__header--compact">
+                  <h3 class="mel-section__title" id="mel-ticket-sale-windows-heading">{{ 'Sale windows'|t }}</h3>
+                  <p class="mel-section__hint">{{ 'Optional listing-wide limits. Use per-ticket windows on each card for finer control.'|t }}</p>
+                </header>
+                <div class="mel-form-grid">
+                  {{ element.mel.field_sales_start }}
+                  {{ element.mel.field_sales_end }}
+                </div>
               </div>
+
               </div>
             </section>
 
@@ -296,100 +301,178 @@
             </div>
           </div>
         </section>
+        </div>{# /.mel-builder-card--tickets #}
 
-        {# —— Description —— #}
-        <section id="mel-step-description" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="description" role="tabpanel">
-          <div class="mel-es-stack">
-            <section class="mel-es-card mel-section mel-section--card mel-section--builder" aria-labelledby="mel-description-heading">
-              <header class="mel-section__header">
-                <h2 class="mel-section__title" id="mel-description-heading">{{ 'Description'|t }}</h2>
-                <p class="mel-section__hint">{{ 'Tell your story — this content appears on the public event page.'|t }}</p>
+        {# —— 3. Attendee questions — always mounted; questionnaire UI in native <details> (collapsed default) —— #}
+        <div id="mel-card-attendee" class="mel-builder-card mel-builder-task-card mel-builder-card--attendee" data-mel-builder-card="attendee" data-mel-reveal-section="attendee">
+          <section id="mel-step-attendee" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="attendee" role="tabpanel" aria-labelledby="mel-task-attendee-heading">
+            <div class="mel-es-stack">
+              <header class="mel-task-card__banner" id="mel-task-attendee-heading">
+                <h2 class="mel-task-card__title">{{ 'What do you need from attendees?'|t }}</h2>
+                <p class="mel-task-card__lede">{{ 'Ask only what you need at checkout or RSVP — questions show clearly below as you add them.'|t }}</p>
               </header>
 
-              <div class="mel-section">
-                <h3>{{ 'About the event'|t }}</h3>
-                {{ element.mel.body }}
-                <div class="mel-ai-rewrite-actions">
-                  <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
+              <details id="mel-attendee-questions-details" class="mel-attendee-questions-details">
+                <summary class="mel-attendee-questions-details__summary">
+                  <span class="mel-attendee-questions-details__summary-text">{{ 'Checkout questions'|t }}</span>
+                  <span class="mel-attendee-questions-details__summary-hint">{{ 'Optional — expand to add dietary, accessibility, or custom fields.'|t }}</span>
+                </summary>
+
+                <div class="mel-attendee-questions-details__body">
+                  <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-attendee-questions-panel" aria-labelledby="mel-attendee-panel-heading">
+                    <header class="mel-section__header">
+                      <h3 class="mel-section__title visually-hidden" id="mel-attendee-panel-heading">{{ 'Attendee questions'|t }}</h3>
+                    </header>
+                    {{ element.mel.collect_attendee_questions }}
+                    {{ element.mel.attendee_questions_editor }}
+                  </section>
                 </div>
+              </details>
+
+              <div class="mel-step-actions">
+                <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
+                <button type="button" class="mel-btn mel-continue-button mel-next">{{ 'Continue'|t }}</button>
               </div>
-
-              <div class="mel-section">
-                <h3>{{ 'Highlights'|t }}</h3>
-                {{ element.mel.event_highlights }}
-              </div>
-
-              <div class="mel-section">
-                <h3>{{ 'What to expect'|t }}</h3>
-                {{ element.mel.field_event_intro }}
-                <div class="mel-ai-rewrite-actions">
-                  <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
-                </div>
-              </div>
-            </section>
-
-            <details class="mel-advanced">
-              <summary>{{ 'More options'|t }}</summary>
-
-              <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--discovery" aria-labelledby="mel-discovery-heading">
-                <header class="mel-section__header">
-                  <h2 class="mel-section__title" id="mel-discovery-heading">{{ 'Discovery'|t }}</h2>
-                  <p class="mel-section__hint">{{ 'Tags help people find your event.'|t }}</p>
-                </header>
-                {{ element.mel.field_tags }}
-              </section>
-
-              <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--contact" aria-labelledby="mel-contact-heading">
-                <header class="mel-section__header">
-                  <h2 class="mel-section__title" id="mel-contact-heading">{{ 'Organizer contact'|t }}</h2>
-                </header>
-                <div class="mel-form-grid">
-                  {{ element.mel.field_contact_email }}
-                  {{ element.mel.field_contact_phone }}
-                </div>
-              </section>
-
-              <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--policies" aria-labelledby="mel-policies-heading">
-                <header class="mel-section__header">
-                  <h2 class="mel-section__title" id="mel-policies-heading">{{ 'Policies & audience'|t }}</h2>
-                </header>
-                <div class="mel-form-grid">
-                  {{ element.mel.field_age_policy }}
-                  {{ element.mel.field_age_policy_note }}
-                </div>
-                {{ element.mel.field_age_restriction }}
-                {{ element.mel.field_refund_policy }}
-              </section>
-
-              <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--accessibility" aria-labelledby="mel-a11y-heading">
-                <header class="mel-section__header">
-                  <h2 class="mel-section__title" id="mel-a11y-heading">{{ 'Accessibility'|t }}</h2>
-                  <p class="mel-section__hint">{{ 'Features and practical details for attendees with access needs.'|t }}</p>
-                </header>
-                {{ element.mel.field_accessibility }}
-                {{ element.mel.field_accessibility_contact }}
-                {{ element.mel.field_accessibility_directions }}
-                {{ element.mel.field_accessibility_entry }}
-                {{ element.mel.field_accessibility_parking }}
-              </section>
-            </details>
-
-            <div class="mel-step-actions">
-              <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
-              <button type="button" class="mel-btn mel-continue-button mel-next">{{ 'Continue'|t }}</button>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>{# /.mel-builder-card--attendee #}
 
-        {# —— Preview (anchor to live card above) —— #}
+        {# —— 4. Stand out — description & advanced listing options progressively revealed after identity complete —— #}
+        <div class="mel-builder-card-group mel-builder-card-group--post-ticket mel-builder-card-group--standout">
+          <div id="mel-card-standout" class="mel-builder-card mel-builder-task-card mel-builder-card--standout" data-mel-builder-card="standout">
+          <section id="mel-step-standout" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="standout" role="tabpanel" aria-labelledby="mel-task-standout-heading">
+            <div class="mel-es-stack">
+              <header class="mel-task-card__banner" id="mel-task-standout-heading">
+                <h2 class="mel-task-card__title">{{ 'Make your event stand out'|t }}</h2>
+                <p class="mel-task-card__lede">{{ 'Strong copy, imagery, and categories improve discovery — finish these while the event is fresh in your mind.'|t }}</p>
+              </header>
+
+              <section class="mel-es-card mel-section mel-section--card mel-section--builder" aria-labelledby="mel-description-heading" data-mel-reveal-section="mel-description">
+                <header class="mel-section__header">
+                  <h3 class="mel-section__title" id="mel-description-heading">{{ 'Description'|t }}</h3>
+                  <p class="mel-section__hint">{{ 'This content appears on your public event page.'|t }}</p>
+                </header>
+
+                <div class="mel-section">
+                  <h4 class="mel-subsection__title">{{ 'About the event'|t }}</h4>
+                  {{ element.mel.body }}
+                  <div class="mel-ai-rewrite-actions">
+                    <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
+                  </div>
+                </div>
+
+                <div class="mel-section">
+                  <h4 class="mel-subsection__title">{{ 'Highlights'|t }}</h4>
+                  {{ element.mel.event_highlights }}
+                </div>
+
+                <div class="mel-section">
+                  <h4 class="mel-subsection__title">{{ 'What to expect'|t }}</h4>
+                  {{ element.mel.field_event_intro }}
+                  <div class="mel-ai-rewrite-actions">
+                    <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--listing-extras" aria-labelledby="mel-listing-extras-heading">
+                <header class="mel-section__header">
+                  <h3 class="mel-section__title" id="mel-listing-extras-heading">{{ 'Cover image & categories'|t }}</h3>
+                  <p class="mel-section__hint">{{ 'Visuals and taxonomy help the right people discover your event.'|t }}</p>
+                </header>
+                {{ element.mel.summary }}
+                <div class="mel-form-group">
+                  {{ element.mel.field_category }}
+                </div>
+                <div class="mel-category-chips" id="mel-category-chips" aria-live="polite"></div>
+                <div class="mel-identity-media mel-identity-media--compact">
+                  <div class="mel-cover-preview" id="mel-cover-preview" data-mel-cover-preview>
+                    <img class="mel-cover-preview__img" id="mel-cover-preview-img" src="" alt="" width="1200" height="630" loading="lazy" hidden />
+                    <div class="mel-cover-preview__empty" id="mel-cover-preview-empty">
+                      <span class="mel-cover-preview__empty-icon" aria-hidden="true"></span>
+                      <span class="mel-cover-preview__empty-text">{{ 'No cover yet — events with images get better placement in discovery.'|t }}</span>
+                    </div>
+                  </div>
+                  <div class="mel-identity-media__fields mel-form-grid">
+                    {{ element.mel.field_event_image }}
+                    {{ element.mel.field_event_image_alt }}
+                  </div>
+                </div>
+              </section>
+
+              {% if element.mel_mel_support is defined %}
+              <div class="mel-mel-contribution-packaging mel-mel-support-section-wrap">
+                <p class="mel-mel-contribution-kicker">{{ 'Optional — helps keep MyEventLane sustainable'|t }}</p>
+                <p class="mel-mel-contribution-headline">{{ 'Say thanks with a small platform contribution'|t }}</p>
+                {{ element.mel_mel_support }}
+              </div>
+              {% endif %}
+
+              <details class="mel-advanced mel-more-organizer" data-mel-reveal-section="mel-advanced">
+                <summary>{{ 'Additional listing and organiser options — tags, policies, accessibility, contact'|t }}</summary>
+                <p class="mel-section__hint mel-more-organizer__hint">{{ 'Fine-tune discovery tags, audience policies, and how attendees can reach you.'|t }}</p>
+
+                <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--discovery" aria-labelledby="mel-discovery-heading">
+                  <header class="mel-section__header">
+                    <h3 class="mel-section__title" id="mel-discovery-heading">{{ 'Discovery'|t }}</h3>
+                    <p class="mel-section__hint">{{ 'Tags help people find your event.'|t }}</p>
+                  </header>
+                  {{ element.mel.field_tags }}
+                </section>
+
+                <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--contact" aria-labelledby="mel-contact-heading">
+                  <header class="mel-section__header">
+                    <h3 class="mel-section__title" id="mel-contact-heading">{{ 'Organizer contact'|t }}</h3>
+                  </header>
+                  <div class="mel-form-grid">
+                    {{ element.mel.field_contact_email }}
+                    {{ element.mel.field_contact_phone }}
+                  </div>
+                </section>
+
+                <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--policies" aria-labelledby="mel-policies-heading">
+                  <header class="mel-section__header">
+                    <h3 class="mel-section__title" id="mel-policies-heading">{{ 'Policies & audience'|t }}</h3>
+                  </header>
+                  <div class="mel-form-grid">
+                    {{ element.mel.field_age_policy }}
+                    {{ element.mel.field_age_policy_note }}
+                  </div>
+                  {{ element.mel.field_age_restriction }}
+                  {{ element.mel.field_refund_policy }}
+                </section>
+
+                <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--accessibility" aria-labelledby="mel-a11y-heading">
+                  <header class="mel-section__header">
+                    <h3 class="mel-section__title" id="mel-a11y-heading">{{ 'Accessibility'|t }}</h3>
+                    <p class="mel-section__hint">{{ 'Features and practical details for attendees with access needs.'|t }}</p>
+                  </header>
+                  {{ element.mel.field_accessibility }}
+                  {{ element.mel.field_accessibility_contact }}
+                  {{ element.mel.field_accessibility_directions }}
+                  {{ element.mel.field_accessibility_entry }}
+                  {{ element.mel.field_accessibility_parking }}
+                </section>
+              </details>
+
+              <div class="mel-step-actions">
+                <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
+                <button type="button" class="mel-btn mel-continue-button mel-next">{{ 'Continue'|t }}</button>
+              </div>
+            </div>
+          </section>
+          </div>{# /.mel-builder-card--standout #}
+
+        </div>{# /.mel-builder-card-group--standout #}
+
         <section id="mel-step-preview" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="preview" role="tabpanel">
           <div class="mel-es-stack">
             <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--preview" aria-labelledby="mel-preview-section-heading">
               <header class="mel-section__header">
                 <h2 class="mel-section__title" id="mel-preview-section-heading">{{ 'Preview'|t }}</h2>
-                <p class="mel-section__hint">{{ 'Your listing card updates as you edit. Jump up to review how the event will look.'|t }}</p>
+                <p class="mel-section__hint">{{ 'Your live card at the top updates as you work through each task.'|t }}</p>
               </header>
-              <p class="mel-preview-section__text">{{ 'The preview card at the top of this page reflects title, schedule, location, and ticket mode.'|t }}</p>
+              <p class="mel-preview-section__text">{{ 'Jump up anytime to check title, schedule, location, and ticket mode.'|t }}</p>
               <button type="button" class="mel-btn mel-btn--secondary" id="mel-jump-to-preview-card">{{ 'Show live preview'|t }}</button>
             </section>
 
@@ -400,13 +483,12 @@
           </div>
         </section>
 
-        {# —— Publish —— #}
         <section id="mel-step-publish" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="publish" role="tabpanel">
           <div class="mel-es-stack">
             <section class="mel-es-card mel-section mel-section--card mel-section--builder mel-section--publish" aria-labelledby="mel-publish-heading">
               <header class="mel-section__header">
                 <h2 class="mel-section__title" id="mel-publish-heading">{{ 'Publish'|t }}</h2>
-                <p class="mel-section__hint">{{ 'When you are ready, mark the event live. You can return here anytime.'|t }}</p>
+                <p class="mel-section__hint">{{ 'When you are ready, go live from the card below. You can return here anytime.'|t }}</p>
               </header>
               {% if mel_publish_blocked %}
                 {% if mel_publish_stripe_gate %}
@@ -425,13 +507,27 @@
                       <li>{{ 'Add organiser profile'|t }}</li>
                       <li>{{ 'Confirm event details'|t }}</li>
                     </ul>
-                    <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
+                    <a href="{{ path('myeventlane_event_studio.create') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
                       {{ 'Complete setup'|t }}
                     </a>
                   </div>
                 {% endif %}
               {% endif %}
-              {{ element.mel.status }}
+              <div class="mel-publish-action-card" role="region" aria-labelledby="mel-publish-action-title" data-mel-publish-card="1">
+                <div class="mel-publish-action-card__panel mel-publish-action-card__draft" data-mel-publish-panel="draft"{% if mel_event_is_published %} hidden{% endif %}>
+                  <h3 id="mel-publish-action-title" class="mel-publish-action-card__title">{{ 'Publish event'|t }}</h3>
+                  <p class="mel-publish-action-card__desc">{{ 'Make your event live and visible'|t }}</p>
+                  {% if not mel_publish_blocked %}
+                    <button type="button" class="mel-btn mel-btn--primary" id="mel-publish-now">{{ 'Publish now'|t }}</button>
+                  {% endif %}
+                </div>
+                <div class="mel-publish-action-card__panel mel-publish-action-card__live" data-mel-publish-panel="live"{% if not mel_event_is_published %} hidden{% endif %}>
+                  <h3 class="mel-publish-action-card__title">{{ 'Your event is live'|t }}</h3>
+                  <p class="mel-publish-action-card__desc">{{ 'Updates publish when you save.'|t }}</p>
+                  <button type="button" class="mel-btn mel-btn--ghost" id="mel-revert-draft">{{ 'Unpublish'|t }}</button>
+                </div>
+                {{ element.mel.status }}
+              </div>
             </section>
 
             <div class="mel-step-actions">
@@ -440,7 +536,70 @@
             </div>
           </div>
         </section>
-      </div>
+      </div>{# /.mel-wizard #}
+
+        </div>{# /.mel-builder__main #}
+
+      <aside class="mel-builder__sidebar" aria-label="{{ 'Progress and next steps'|t }}">
+        <div class="mel-builder-sidebar__sticky">
+          <div class="mel-event-studio__progress">
+            <div class="mel-event-strength">
+              <div class="mel-event-strength__bar">
+                <div id="mel-event-strength-fill" class="mel-event-strength__fill"></div>
+              </div>
+              <div class="mel-event-strength__meta">
+                <span id="mel-event-strength-score">0%</span>
+                <span id="mel-event-strength-label">{{ 'Needs work'|t }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mel-builder-next-best-block">
+            <p class="mel-builder-next-best-label">{{ 'Next best action'|t }}</p>
+            <p id="mel-builder-next-best" class="mel-builder-next-best" aria-live="polite"></p>
+            <button type="button" class="mel-btn mel-btn--primary mel-builder-primary-cta" id="mel-builder-primary-cta">{{ 'Review publish'|t }}</button>
+          </div>
+
+          <div class="mel-ai-controls mel-ai-controls--sidebar" role="region" aria-label="{{ 'AI style for generation'|t }}">
+            <div class="mel-ai-controls__row">
+              <label class="mel-ai-controls__group">
+                <span>{{ 'Tone'|t }}</span>
+                <select class="mel-input mel-ai-tone" aria-label="{{ 'AI tone'|t }}">
+                  <option value="community">{{ 'Community'|t }}</option>
+                  <option value="fun">{{ 'Fun'|t }}</option>
+                  <option value="professional">{{ 'Professional'|t }}</option>
+                  <option value="urgent">{{ 'Urgent'|t }}</option>
+                  <option value="luxury">{{ 'Premium'|t }}</option>
+                </select>
+              </label>
+              <label class="mel-ai-controls__group">
+                <span>{{ 'Audience'|t }}</span>
+                <select class="mel-input mel-ai-audience" aria-label="{{ 'AI audience'|t }}">
+                  <option value="general">{{ 'General'|t }}</option>
+                  <option value="lgbtq">{{ 'LGBTQIA+'|t }}</option>
+                  <option value="students">{{ 'Students'|t }}</option>
+                  <option value="professionals">{{ 'Professionals'|t }}</option>
+                  <option value="families">{{ 'Families'|t }}</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <details class="mel-builder-checklist-details mel-insights-card mel-insights-card--sidebar">
+            <summary class="mel-builder-checklist-summary">{{ 'Show full checklist'|t }}</summary>
+            <div id="mel-insights-list" class="mel-insights-checklist" role="list" aria-live="polite"></div>
+          </details>
+
+          <div class="mel-publish-readiness-card mel-publish-card">
+            <h3 class="mel-aside-card__title">{{ 'Publish readiness'|t }}</h3>
+            <div id="mel-publish-readiness" class="mel-publish-readiness-body"></div>
+          </div>
+
+          <p class="mel-aside-footnote" id="mel-studio-form-state" role="status"></p>
+        </div>
+      </aside>
+
+      </div>{# /.mel-builder #}
 
       {{ element.nid }}
 
