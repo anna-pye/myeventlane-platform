@@ -24,7 +24,10 @@
 
       {% for item in event.items %}
         <div class="mel-summary-item">
-          <span class="mel-summary-item__label">{{ item.quantity }} × {{ item.ticket_type }}</span>
+          <span class="mel-summary-item__label">
+            <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
+            <span class="mel-summary-item__ticket-type">{{ item.ticket_type }}</span>
+          </span>
           <span class="mel-summary-item__price">{{ item.total_price }}</span>
         </div>
       {% endfor %}
@@ -36,6 +39,13 @@
       <div class="mel-summary-row mel-summary-row--subtotal">
         <span class="mel-summary-row__label">{{ 'Subtotal'|t }}</span>
         <span class="mel-summary-row__value">{{ subtotal_formatted }}</span>
+      </div>
+    {% endif %}
+
+    {% if optional_donation_formatted|default('') %}
+      <div class="mel-summary-row mel-summary-row--donation">
+        <span class="mel-summary-row__label">{{ 'Optional donation'|t }}</span>
+        <span class="mel-summary-row__value">{{ optional_donation_formatted }}</span>
       </div>
     {% endif %}
 
@@ -69,5 +79,7 @@
   {% if show_includes_gst_note %}
     <p class="mel-tax-note">{{ 'All prices include GST'|t }}</p>
   {% endif %}
+
+  <a class="mel-checkout-summary__cta" href="#mel-checkout-cta">{{ 'Continue to checkout'|t }}</a>
 </div>
 {% endif %}

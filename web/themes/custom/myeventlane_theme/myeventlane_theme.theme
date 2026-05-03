@@ -102,6 +102,7 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
         'grouped_items' => [],
         'order_total' => '',
         'subtotal_formatted' => '',
+        'optional_donation_formatted' => '',
         'tax_rows' => [],
         'fee_rows' => [],
         'platform_fee_absorbed' => FALSE,
@@ -592,14 +593,14 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       if (isset($form['actions']['next']) && $total_price !== NULL) {
         if ($total_price->isZero()) {
           if (_myeventlane_theme_order_is_natural_zero_price_rsvp($order_param)) {
-            $form['actions']['next']['#value'] = t('Confirm RSVP');
+            $form['actions']['next']['#value'] = t('Reserve your spot');
           }
           else {
-            $form['actions']['next']['#value'] = t('Complete order');
+            $form['actions']['next']['#value'] = t('Complete booking');
           }
         }
         else {
-          $form['actions']['next']['#value'] = t('Pay now');
+          $form['actions']['next']['#value'] = t('Complete booking');
         }
       }
     }

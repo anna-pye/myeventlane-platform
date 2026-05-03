@@ -38,9 +38,21 @@ final class CheckoutGroupedSummaryBuilder {
    */
   public function build(OrderInterface $order): array {
     $line_buckets = [];
+    $donationTotals = [];
     $cacheTags = $order->getCacheTags();
 
     foreach ($order->getItems() as $item) {
+      if ($this->isDonationItem($item)) {
+        $donationPrice = $item->getTotalPrice();
+        if ($donationPrice instanceof Price && !$donationPrice->isZero()) {
+          $currencyCode = $donationPrice->getCurrencyCode();
+          $donationTotals[$currencyCode] = isset($donationTotals[$currencyCode])
+            ? $donationTotals[$currencyCode]->add($donationPrice)
+            : $donationPrice;
+        }
+        continue;
+      }
+
       $event_id = $this->resolveEventId($item);
       $purchased = $item->getPurchasedEntity();
       $line_key = $purchased ? 'p:' . $purchased->id() : 'i:' . $item->id();
@@ -65,6 +77,14 @@ final class CheckoutGroupedSummaryBuilder {
           ? $current->add($line_price)
           : $line_price;
       }
+    }
+
+    $donationFormatted = '';
+    if ($donationTotals !== []) {
+      $donationFormatted = implode(' + ', array_map(
+        fn (Price $price): string => $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode()),
+        array_values($donationTotals)
+      ));
     }
 
     $events_map = [];
@@ -137,12 +157,17 @@ final class CheckoutGroupedSummaryBuilder {
       'grouped_items' => $grouped_items,
       'order_total' => $order_total,
       'subtotal_formatted' => $breakdown['subtotal_formatted'],
+      'optional_donation_formatted' => $donationFormatted,
       'tax_rows' => $breakdown['tax_rows'],
       'fee_rows' => $breakdown['fee_rows'],
       'platform_fee_absorbed' => $breakdown['platform_fee_absorbed'],
       'show_includes_gst_note' => $breakdown['show_includes_gst_note'],
       'cache_tags' => $cacheTags,
     ];
+  }
+
+  private function isDonationItem(OrderItemInterface $item): bool {
+    return in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation'], TRUE);
   }
 
   /**
