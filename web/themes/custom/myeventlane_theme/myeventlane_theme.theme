@@ -3491,14 +3491,9 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
  * Adds conversion-layer metadata (data attributes, BEM hooks) for
  * mel_booking_summary.js. Does not change submit handlers or quantities.
  *
- * Restructures rows for premium layout only: title_row + selection badge,
- * purchase_column (.mel-ticket-row__meta) wrapping price + quantity, group_hint
- * moved under the main column.
- *
- * Per-tier scarcity copy is not rendered here: computing “only X left” correctly
- * requires the same waitlist-offer and capacity branches as checkout validation.
- * The .mel-ticket-row__status container is nested under label_cell (left column)
- * and is output empty for future theming/hooks.
+ * Restructures rows for premium layout only: top title/price hierarchy,
+ * badge row + selection badge, purchase_column (.mel-ticket-row__meta)
+ * wrapping quantity, group_hint moved under the main column.
  */
 function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(array &$variables): void {
   $element = &$variables['element'];
@@ -3510,6 +3505,7 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
 
   $node = $element['#node'] ?? NULL;
   $tier_by_variation_id = [];
+  $best_value_ticket_ids = [];
   if ($node instanceof NodeInterface
     && $node->hasField('field_ticket_types')
     && !$node->get('field_ticket_types')->isEmpty()) {
@@ -3518,7 +3514,20 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
         continue;
       }
       $tier_by_variation_id[(int) $ticket->get('commerce_variation')->target_id] = $ticket;
+      if ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket()) {
+        $best_value_ticket_ids[] = (int) $ticket->id();
+      }
     }
+  }
+  $best_value_keep_id = $best_value_ticket_ids[0] ?? NULL;
+  if (count($best_value_ticket_ids) > 1 && $node instanceof NodeInterface) {
+    \Drupal::logger('myeventlane_theme')->warning(
+      'Multiple best-value tickets found while rendering ticket selection for event @eid; showing ticket @keep only.',
+      [
+        '@eid' => (string) $node->id(),
+        '@keep' => (string) $best_value_keep_id,
+      ]
+    );
   }
 
   $variation_storage = \Drupal::entityTypeManager()->getStorage('commerce_product_variation');
@@ -3623,11 +3632,26 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
       $row['#attributes']['class'][] = 'mel-ticket-row--recommended';
       $row['#attributes']['data-mel-ticket-recommended'] = '1';
     }
-    $recommended_badge_label = myeventlane_theme_recommended_ticket_badge_label($tier);
+    $is_best_value = !$is_recommended
+      && $tier instanceof TicketTypeInterface
+      && (int) $tier->id() === $best_value_keep_id
+      && $tier->hasField('field_is_best_value')
+      && $tier->isBestValueTicket();
+    if ($is_best_value) {
+      $row['#attributes']['class'][] = 'mel-ticket-row--best-value';
+    }
+    $buyer_badge_label = $is_recommended
+      ? myeventlane_theme_recommended_ticket_badge_label($tier)
+      : ($is_best_value ? myeventlane_theme_best_value_ticket_badge_label($tier) : '');
+    $buyer_badge_classes = ['mel-ticket-row__recommended-badge'];
+    if ($is_best_value) {
+      $buyer_badge_classes[] = 'mel-ticket-row__best-value-badge';
+    }
     $default_quantity = isset($row['quantity']['#default_value']) ? (int) $row['quantity']['#default_value'] : 0;
     $is_selected = $default_quantity > 0;
     if ($is_selected) {
       $row['#attributes']['class'][] = 'mel-ticket-row--selected';
+      $row['#attributes']['class'][] = 'selected';
       $row['#attributes']['data-selected'] = 'true';
     }
 
@@ -3643,7 +3667,7 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
       $row['label_cell']['group_hint']['#weight'] = 16;
     }
 
-    // Title row + "Selected" badge (visible on load for server-preselected tickets).
+    // Top title/price row + buyer and "Selected" badges.
     if (isset($row['label_cell']['label']) && is_array($row['label_cell']['label'])) {
       $label_el = $row['label_cell']['label'];
       unset($row['label_cell']['label']);
@@ -3653,21 +3677,37 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
       if (!in_array('mel-ticket-row__title', $label_el['#attributes']['class'], TRUE)) {
         $label_el['#attributes']['class'][] = 'mel-ticket-row__title';
       }
+      $label_el['#tag'] = 'h4';
       $label_el['#weight'] = 1;
       $row['label_cell']['title_row'] = [
         '#type' => 'container',
-        '#attributes' => ['class' => ['mel-ticket-row__title-row']],
+        '#attributes' => ['class' => ['mel-ticket-row__top']],
         '#weight' => 2,
         'label' => $label_el,
+        'price' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => (string) ($row['price']['#value'] ?? ''),
+          '#attributes' => [
+            'class' => ['mel-ticket-row__top-price'],
+          ],
+          '#weight' => 2,
+          '#access' => isset($row['price']['#value']) && trim((string) $row['price']['#value']) !== '',
+        ],
+      ];
+      $row['label_cell']['badge_row'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-row__badge-row']],
+        '#weight' => 4,
         'recommended_badge' => [
           '#type' => 'html_tag',
           '#tag' => 'span',
-          '#value' => $recommended_badge_label,
+          '#value' => $buyer_badge_label,
           '#attributes' => [
-            'class' => ['mel-ticket-row__recommended-badge'],
+            'class' => $buyer_badge_classes,
           ],
-          '#access' => $is_recommended,
-          '#weight' => 2,
+          '#access' => $buyer_badge_label !== '',
+          '#weight' => 1,
         ],
         'selection_badge' => [
           '#type' => 'html_tag',
@@ -3677,11 +3717,11 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
             'class' => ['mel-ticket-row__selection-badge'],
             'data-mel-ticket-selection-badge' => '1',
           ],
-          '#weight' => 3,
+          '#weight' => 2,
         ],
       ];
       if (!$is_selected) {
-        $row['label_cell']['title_row']['selection_badge']['#attributes']['hidden'] = 'hidden';
+        $row['label_cell']['badge_row']['selection_badge']['#attributes']['hidden'] = 'hidden';
       }
     }
 
@@ -3704,17 +3744,9 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
       $row['label_cell']['#weight'] = 10;
     }
 
-    if (isset($row['price']) && is_array($row['price'])) {
-      if (isset($row['price']['#attributes']['class']) && is_array($row['price']['#attributes']['class'])) {
-        $row['price']['#attributes']['class'][] = 'mel-ticket-row__price';
-      }
-    }
-
-    if (isset($row['price']) && isset($row['quantity'])) {
-      $price_el = $row['price'];
+    if (isset($row['quantity'])) {
       $qty_el = $row['quantity'];
       unset($row['price'], $row['quantity']);
-      $price_el['#weight'] = 1;
       if (!isset($qty_el['#attributes']['class']) || !is_array($qty_el['#attributes']['class'])) {
         $qty_el['#attributes']['class'] = [];
       }
@@ -3726,7 +3758,6 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-ticket-row__meta']],
         '#weight' => 22,
-        'price' => $price_el,
         'quantity' => $qty_el,
       ];
     }
@@ -3751,6 +3782,13 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
 function myeventlane_theme_recommended_ticket_badge_label(?TicketTypeInterface $ticket): string {
   // Future labels can branch here on price rank or remaining inventory.
   return (string) t('⭐ Most popular');
+}
+
+/**
+ * Buyer-facing best-value badge shown on public ticket rows.
+ */
+function myeventlane_theme_best_value_ticket_badge_label(?TicketTypeInterface $ticket): string {
+  return (string) t('Best value');
 }
 
 /**

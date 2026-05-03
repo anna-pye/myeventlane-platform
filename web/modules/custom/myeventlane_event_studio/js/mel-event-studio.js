@@ -1330,7 +1330,7 @@
 
   function createDefaultTier(kind) {
     kind = normalizeTicketKind(kind);
-    var row = { title: '', ticket_kind: kind, capacity: null };
+    var row = { title: '', ticket_kind: kind, capacity: null, field_is_best_value: 0 };
     if (kind === 'paid') {
       row.price_number = '';
       row.price_currency = getSettings().defaultCurrency || 'AUD';
@@ -1354,6 +1354,8 @@
       ticket_kind: kind,
       capacity: normalizeTierCapacity(capEl ? capEl.value : ''),
     };
+    var bestValueEl = card.querySelector('.mel-tier-best-value');
+    o.field_is_best_value = bestValueEl && bestValueEl.checked ? 1 : 0;
     if (id > 0) {
       o.id = id;
     }
@@ -1393,9 +1395,12 @@
     form.setAttribute('data-mel-last-ticket-type', normalizeTicketKind(kind));
   }
 
-  function fieldWrap(labelText, control, descriptionText) {
+  function fieldWrap(labelText, control, descriptionText, extraClass) {
     var wrap = document.createElement('label');
     wrap.className = 'mel-ticket-card__field';
+    if (extraClass) {
+      wrap.classList.add(extraClass);
+    }
     var label = document.createElement('span');
     label.className = 'mel-ticket-card__field-label';
     label.textContent = labelText;
@@ -1497,6 +1502,8 @@
     fields.appendChild(fieldWrap(
       Drupal.t('Title'),
       createTextInput('mel-tier-title', tier.title, Drupal.t('General Admission')),
+      null,
+      'mel-ticket-card__field--title',
     ));
 
     var price = document.createElement('input');
@@ -1506,7 +1513,7 @@
     price.min = '0';
     price.placeholder = '0.00';
     price.value = tier.price_number != null ? String(tier.price_number) : '';
-    fields.appendChild(fieldWrap(Drupal.t('Price'), price));
+    fields.appendChild(fieldWrap(Drupal.t('Price'), price, null, 'mel-ticket-card__field--price'));
 
     var ext = document.createElement('input');
     ext.type = 'url';
@@ -1523,6 +1530,16 @@
     cap.placeholder = Drupal.t('Leave empty for unlimited tickets');
     cap.value = tier.capacity != null && String(tier.capacity) !== '' ? String(tier.capacity) : '';
     fields.appendChild(fieldWrap(Drupal.t('Capacity'), cap, Drupal.t('Leave empty for unlimited tickets')));
+
+    var bestValue = document.createElement('input');
+    bestValue.type = 'checkbox';
+    bestValue.className = 'mel-tier-best-value';
+    bestValue.checked = !!parseInt(tier.field_is_best_value || 0, 10);
+    fields.appendChild(fieldWrap(
+      Drupal.t('Mark as best value'),
+      bestValue,
+      Drupal.t('Shows a Best value badge to buyers. Only one ticket per event can be marked best value.'),
+    ));
 
     card.appendChild(fields);
 
@@ -1818,6 +1835,13 @@
         }
         if (e.target.matches && e.target.matches('.mel-tier-kind')) {
           syncTicketKindToEventType(form, e.target.value);
+        }
+        if (e.target.matches && e.target.matches('.mel-tier-best-value') && e.target.checked) {
+          list.querySelectorAll('.mel-tier-best-value').forEach(function (input) {
+            if (input !== e.target) {
+              input.checked = false;
+            }
+          });
         }
         updateDraftTicketCardUi(card);
         syncTicketTiersFromDomToHidden(form);

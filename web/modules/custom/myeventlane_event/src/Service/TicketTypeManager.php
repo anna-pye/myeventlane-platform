@@ -408,6 +408,68 @@ final class TicketTypeManager {
   }
 
   /**
+   * Enforces one best-value ticket per event.
+   *
+   * When a specific ticket was just selected, it wins. Otherwise corrupted
+   * multi-best-value data is corrected deterministically to the first ticket in
+   * event display order, matching the public buyer fail-safe.
+   */
+  public function normalizeBestValueTicketSelection(NodeInterface $event, ?TicketTypeInterface $selectedTicket = NULL): void {
+    $tickets = $this->loadEventTicketTypesForDisplay($event);
+    if ($tickets === []) {
+      return;
+    }
+
+    $keepId = NULL;
+    if ($selectedTicket instanceof TicketTypeInterface
+      && !$selectedTicket->isArchived()
+      && $selectedTicket->hasField('field_is_best_value')
+      && $selectedTicket->isBestValueTicket()) {
+      $selectedId = (int) $selectedTicket->id();
+      if (isset($tickets[$selectedId])) {
+        $keepId = $selectedId;
+      }
+    }
+
+    $bestValueIds = [];
+    foreach ($tickets as $ticketId => $ticket) {
+      if ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket()) {
+        $bestValueIds[] = (int) $ticketId;
+      }
+    }
+
+    if ($keepId === NULL && $bestValueIds !== []) {
+      $keepId = $bestValueIds[0];
+    }
+
+    if ($keepId === NULL || $bestValueIds === [$keepId]) {
+      return;
+    }
+
+    if (count($bestValueIds) > 1) {
+      $this->loggerFactory->get('myeventlane_event')->warning(
+        'Multiple best-value tickets found for event @eid; keeping ticket @keep and clearing @ids.',
+        [
+          '@eid' => (string) $event->id(),
+          '@keep' => (string) $keepId,
+          '@ids' => implode(', ', array_map('strval', $bestValueIds)),
+        ]
+      );
+    }
+
+    foreach ($tickets as $ticketId => $ticket) {
+      if (!$ticket->hasField('field_is_best_value') || (int) $ticketId === $keepId) {
+        continue;
+      }
+      if (!$ticket->isBestValueTicket()) {
+        continue;
+      }
+      $ticket->set('field_is_best_value', FALSE);
+      $ticket->save();
+    }
+  }
+
+  /**
    * Checks loaded ticket types for mixed published paid currencies.
    *
    * @param \Drupal\mel_ticket\Entity\TicketTypeInterface[] $ticketTypes

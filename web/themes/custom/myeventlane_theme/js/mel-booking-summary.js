@@ -268,6 +268,7 @@
         const selected = qty > 0;
         row.classList.toggle('has-quantity', selected);
         row.classList.toggle('mel-ticket-row--selected', selected);
+        row.classList.toggle('selected', selected);
         row.setAttribute('data-selected', selected ? 'true' : 'false');
         const badge = row.querySelector('[data-mel-ticket-selection-badge]');
         if (badge) {

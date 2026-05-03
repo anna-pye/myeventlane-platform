@@ -824,6 +824,7 @@ final class EventTicketsBuilder {
     $visibility_default = (string) $this->newTicketDefault($form_state, 'visibility_mode', 'public');
     $status_default = (int) $this->newTicketDefault($form_state, 'status', 1);
     $recommended_default = (int) $this->newTicketDefault($form_state, 'field_is_default_ticket', 0);
+    $best_value_default = (int) $this->newTicketDefault($form_state, 'field_is_best_value', 0);
 
     $ticket_kind_input = ':input[name="' . $this->formElementFullName($form_state, 'builder_shell', 'list', 'new', 'fields', 'ticket_kind') . '"]';
 
@@ -864,6 +865,9 @@ final class EventTicketsBuilder {
             '#type' => 'textfield',
             '#title' => $this->t('Title'),
             '#default_value' => $title_default,
+            '#wrapper_attributes' => [
+              'class' => ['mel-ticket-card__field--title'],
+            ],
             '#attributes' => [
               'class' => ['js-mel-ticket-title'],
               'data-mel-ticket-required-message' => (string) $this->t('Title is required.'),
@@ -875,6 +879,9 @@ final class EventTicketsBuilder {
             '#step' => 0.01,
             '#min' => 0,
             '#default_value' => $price_default,
+            '#wrapper_attributes' => [
+              'class' => ['mel-ticket-card__field--price'],
+            ],
             '#attributes' => [
               'data-mel-ticket-preset-focus' => 'price',
               'class' => ['js-mel-ticket-price'],
@@ -952,6 +959,13 @@ final class EventTicketsBuilder {
           '#description' => $this->t('This ticket will be highlighted to buyers and selected by default.'),
           '#description_display' => 'after',
           '#default_value' => $recommended_default,
+        ],
+        'field_is_best_value' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Mark as best value'),
+          '#description' => $this->t('Shows a Best value badge to buyers. Only one ticket per event can be marked best value.'),
+          '#description_display' => 'after',
+          '#default_value' => $best_value_default,
         ],
         'sale_window_enabled' => [
           '#type' => 'checkbox',
@@ -1046,7 +1060,9 @@ final class EventTicketsBuilder {
     $badge_cluster = '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
       . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
         ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
-        : '')
+        : ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket()
+          ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->bestValueTicketBadgeLabel($ticket)) . '</span>'
+          : ''))
       . '<span class="mel-badge mel-badge--' . Html::escape($status_class) . '">' . Html::escape($status_label) . '</span>';
 
     $view['hero'] = [
@@ -1152,7 +1168,9 @@ final class EventTicketsBuilder {
     $badge_edit = '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
       . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
         ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
-        : '')
+        : ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket()
+          ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->bestValueTicketBadgeLabel($ticket)) . '</span>'
+          : ''))
       . '<span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape($edit_status_label) . '</span>';
 
     $card['edit']['outcome_heading'] = [
@@ -1186,6 +1204,9 @@ final class EventTicketsBuilder {
       '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['title'])) ?? $ticket->label()),
       '#required' => TRUE,
       '#parents' => array_merge($edit_path, ['title']),
+      '#wrapper_attributes' => [
+        'class' => ['mel-ticket-card__field--title'],
+      ],
       '#attributes' => [
         'class' => ['js-mel-ticket-title'],
         'data-mel-ticket-required-message' => (string) $this->t('Title is required.'),
@@ -1203,6 +1224,9 @@ final class EventTicketsBuilder {
         '#min' => 0.01,
         '#required' => TRUE,
         '#parents' => array_merge($edit_path, ['price']),
+        '#wrapper_attributes' => [
+          'class' => ['mel-ticket-card__field--price'],
+        ],
         '#attributes' => [
           'class' => ['js-mel-ticket-price'],
         ],
@@ -1302,6 +1326,15 @@ final class EventTicketsBuilder {
       '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['field_is_default_ticket']))
         ?? ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket() ? 1 : 0)),
       '#parents' => array_merge($edit_path, ['field_is_default_ticket']),
+    ];
+    $card['edit']['secondary']['field_is_best_value'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Mark as best value'),
+      '#description' => $this->t('Shows a Best value badge to buyers. Only one ticket per event can be marked best value.'),
+      '#description_display' => 'after',
+      '#default_value' => (int) ($form_state->getValue(array_merge($edit_path, ['field_is_best_value']))
+        ?? ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket() ? 1 : 0)),
+      '#parents' => array_merge($edit_path, ['field_is_best_value']),
     ];
 
     $vis_default = (string) ($form_state->getValue(array_merge($edit_path, ['visibility_mode']))
@@ -2044,6 +2077,13 @@ final class EventTicketsBuilder {
   private function recommendedTicketBadgeLabel(TicketTypeInterface $ticket): string {
     // Future labels can branch here on price rank or remaining inventory.
     return (string) $this->t('⭐ Most popular');
+  }
+
+  /**
+   * Buyer-facing best-value badge shown on organiser ticket cards.
+   */
+  private function bestValueTicketBadgeLabel(TicketTypeInterface $ticket): string {
+    return (string) $this->t('Best value');
   }
 
   /**

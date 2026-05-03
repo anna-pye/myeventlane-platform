@@ -613,6 +613,13 @@
     grid-column: span 1;
   }
 
+  .mel-ticket-card__fields .mel-ticket-card__field--title,
+  .mel-ticket-card__fields .mel-ticket-card__field--price,
+  .mel-ticket-card__fields .form-item.mel-ticket-card__field--title,
+  .mel-ticket-card__fields .form-item.mel-ticket-card__field--price {
+    grid-column: 1 / -1;
+  }
+
   .mel-ticket-card__fields textarea,
   .mel-ticket-card__fields .form-type-textarea,
   .mel-ticket-card__field:has(textarea) {
@@ -625,6 +632,11 @@
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+}
+
+.mel-ticket-card__field--title input,
+.mel-ticket-card__field--price input {
+  width: 100%;
 }
 
 .mel-ticket-card__field[hidden] {

@@ -136,6 +136,14 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
   /**
    * {@inheritdoc}
    */
+  public function isBestValueTicket(): bool {
+    return $this->hasField('field_is_best_value')
+      && (bool) $this->get('field_is_best_value')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
 
@@ -243,6 +251,17 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ->setDisplayOptions('form', [
         'type' => 'boolean_checkbox',
         'weight' => 4,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['field_is_best_value'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Mark as best value'))
+      ->setDescription(t('Shows a buyer-facing Best value badge. Only one ticket per event should be marked best value.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 5,
       ])
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', FALSE);
@@ -548,6 +567,9 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
     }
     if ($this->isReusable() && $this->hasField('field_is_default_ticket')) {
       $this->set('field_is_default_ticket', FALSE);
+    }
+    if ($this->isReusable() && $this->hasField('field_is_best_value')) {
+      $this->set('field_is_best_value', FALSE);
     }
     parent::preSave($storage);
     $this->assertBusinessRules();
