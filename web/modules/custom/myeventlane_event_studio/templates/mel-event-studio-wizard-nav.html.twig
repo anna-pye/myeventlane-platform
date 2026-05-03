@@ -11,8 +11,8 @@
   <nav class="mel-nav mel-wizard-nav mel-event-studio-wizard-nav" aria-label="{{ 'Event steps'|t }}">
     <a href="{{ studio_base }}#mel-step-identity" class="mel-nav__link{% if current_step in ['basic', 'datetime'] %} is-active{% endif %}">{{ 'Event identity'|t }}</a>
     <a href="{{ studio_base }}#mel-step-tickets" class="mel-nav__link{% if current_step == 'tickets' %} is-active{% endif %}">{{ 'Tickets'|t }}</a>
-    <a href="{{ studio_base }}#mel-step-attendee" class="mel-nav__link">{{ 'Attendee questions'|t }}</a>
     <a href="{{ studio_base }}#mel-step-standout" class="mel-nav__link{% if current_step == 'description' %} is-active{% endif %}">{{ 'Stand out'|t }}</a>
+    <a href="{{ studio_base }}#mel-step-attendee" class="mel-nav__link">{{ 'Attendee questions'|t }}</a>
     <a href="{{ studio_base }}#mel-step-preview" class="mel-nav__link{% if current_step == 'preview' %} is-active{% endif %}">{{ 'Preview'|t }}</a>
     <a href="{{ studio_base }}#mel-step-publish" class="mel-nav__link{% if current_step == 'publish' %} is-active{% endif %}">{{ 'Publish'|t }}</a>
   </nav>

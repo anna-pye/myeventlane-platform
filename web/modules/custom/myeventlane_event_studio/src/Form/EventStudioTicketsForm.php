@@ -70,13 +70,19 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
     $form['mel']['field_event_type'] = [
       '#type' => 'radios',
       '#title' => '',
+      '#mel_option_cards' => TRUE,
+      '#mel_option_cards_tickets_layout' => TRUE,
+      '#mel_option_descriptions' => [
+        'rsvp' => $this->t('Collect RSVPs without taking payment.'),
+        'paid' => $this->t('Sell tickets through MyEventLane.'),
+        'external' => $this->t('Send guests to Humanitix, Eventbrite, or your site.'),
+      ],
       '#options' => [
         'rsvp' => $this->t('Free RSVP'),
         'paid' => $this->t('Paid tickets'),
         'external' => $this->t('External link'),
       ],
       '#default_value' => $melDefaults['field_event_type'] ?? 'rsvp',
-      '#attributes' => ['class' => ['mel-radios', 'mel-radios--tickets']],
     ];
 
     $form['mel']['studio_ticket_tiers'] = [
@@ -141,7 +147,9 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
     $form['mel']['collect_attendee_questions'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Collect extra attendee details'),
+      '#description' => $this->t('Gather information per guest (beyond name and email).'),
       '#default_value' => !empty($melDefaults['collect_attendee_questions']),
+      '#mel_option_card' => TRUE,
     ];
 
     $form['#attached']['library'][] = 'myeventlane_vendor/ticket_cards';

@@ -299,7 +299,7 @@ final class EventTicketsBuilder {
     $form['builder_shell']['controls']['open_presets'] = [
       '#type' => 'html_tag',
       '#tag' => 'button',
-      '#value' => $this->t('Add ticket'),
+      '#value' => $this->t('Add another ticket type'),
       '#attributes' => [
         'type' => 'button',
         'class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__add'],
@@ -347,22 +347,6 @@ final class EventTicketsBuilder {
       '#access' => FALSE,
     ];
 
-    $form['builder_shell']['controls']['save_sync'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Save & sync'),
-      '#name' => 'ticket_save_sync',
-      '#submit' => ['::handleAction'],
-      '#ajax' => [
-        'callback' => '::ajaxRebuildTicketBuilder',
-        'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
-      ],
-      '#limit_validation_errors' => [],
-      '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn--secondary'],
-        'formnovalidate' => 'formnovalidate',
-      ],
-    ];
-
     $form['builder_shell']['order'] = [
       '#type' => 'hidden',
       '#default_value' => Json::encode($ordered_ids),
@@ -399,7 +383,15 @@ final class EventTicketsBuilder {
 
     if ($adding_new) {
       $form['builder_shell']['list']['new'] = $this->buildNewTicketCard($event, $form_state);
+      // Hero styling: first row when this is the only ticket surface (preset flow).
+      if ($tickets === []) {
+        $form['builder_shell']['list']['new']['#attributes']['class'][] = 'mel-ticket--primary';
+      }
     }
+
+    // First saved ticket is "primary" when it leads the list (or follows the inline
+    // "new" card — match client-side reorder highlighting in ticket-cards.js).
+    $assign_primary_saved = !$adding_new || $tickets !== [];
 
     foreach ($tickets as $ticket) {
       $tid = (int) $ticket->id();
@@ -415,6 +407,13 @@ final class EventTicketsBuilder {
         'js-mel-ticket-card',
         $is_editing ? 'is-editing' : 'is-view',
       ];
+      if (!$read_only_card && $this->ticketCardIsOutcomeComplete($ticket)) {
+        $card_classes[] = 'mel-ticket--complete';
+      }
+      if ($assign_primary_saved) {
+        $card_classes[] = 'mel-ticket--primary';
+        $assign_primary_saved = FALSE;
+      }
       if ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()) {
         $card_classes[] = 'mel-ticket-card--recommended';
       }
@@ -825,6 +824,10 @@ final class EventTicketsBuilder {
 
     $ticket_kind_input = ':input[name="' . $this->formElementFullName($form_state, 'builder_shell', 'list', 'new', 'fields', 'ticket_kind') . '"]';
 
+    $preview_title = trim((string) $title_default);
+    $display_heading = $preview_title !== '' ? $preview_title : (string) $this->t('New ticket');
+    $price_caption_default = $this->newTicketOutcomePriceCaption((string) $kind_default, (string) $price_default, (string) $currency);
+
     return [
       '#type' => 'container',
       '#attributes' => [
@@ -832,28 +835,15 @@ final class EventTicketsBuilder {
         'data-mel-ticket-kind' => $kind_default,
         'data-mel-ticket-selected-preset' => $preset_key,
       ],
-      'header' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h4',
-        '#value' => $this->t('New ticket'),
-        '#attributes' => ['class' => ['mel-ticket-card__title', 'mel-ticket-card__title--form']],
+      'display_preview' => [
+        '#markup' => '<div class="mel-ticket-card__display mel-ticket-card__display--new" data-mel-ticket-outcome-display="1">'
+          . '<h4 class="mel-ticket-card__display-title" data-mel-ticket-display-title>' . Html::escape($display_heading) . '</h4>'
+          . '<span class="mel-ticket-card__price" data-mel-ticket-display-price>' . Html::escape($price_caption_default) . '</span>'
+          . '</div>',
       ],
       'fields' => [
         '#type' => 'container',
-        '#attributes' => ['class' => ['mel-ticket-card__fields']],
-        'title' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Title'),
-          '#default_value' => $title_default,
-        ],
-        'short_description' => [
-          '#type' => 'textarea',
-          '#title' => $this->t('Short description (buyers)'),
-          '#description' => $this->t('Optional. About two lines — shown on the public ticket picker.'),
-          '#rows' => 2,
-          '#maxlength' => self::SHORT_DESCRIPTION_MAX_LENGTH,
-          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'short_description')) ?? ''),
-        ],
+        '#attributes' => ['class' => ['mel-ticket-card__fields', 'mel-ticket-card__edit-layer']],
         'ticket_kind' => [
           '#type' => 'select',
           '#title' => $this->t('Type'),
@@ -864,18 +854,32 @@ final class EventTicketsBuilder {
           ],
           '#default_value' => $kind_default,
         ],
-        'price_amount' => [
-          '#type' => 'number',
-          '#title' => $this->t('Price'),
-          '#step' => 0.01,
-          '#min' => 0,
-          '#default_value' => $price_default,
-          '#attributes' => [
-            'data-mel-ticket-preset-focus' => 'price',
+        'row_title_price' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-ticket-card__fields-inline-2']],
+          'title' => [
+            '#type' => 'textfield',
+            '#title' => $this->t('Title'),
+            '#default_value' => $title_default,
+            '#attributes' => [
+              'class' => ['js-mel-ticket-title'],
+              'data-mel-ticket-required-message' => (string) $this->t('Title is required.'),
+            ],
           ],
-          '#states' => [
-            'visible' => [
-              $ticket_kind_input => ['value' => 'paid'],
+          'price_amount' => [
+            '#type' => 'number',
+            '#title' => $this->t('Price'),
+            '#step' => 0.01,
+            '#min' => 0,
+            '#default_value' => $price_default,
+            '#attributes' => [
+              'data-mel-ticket-preset-focus' => 'price',
+              'class' => ['js-mel-ticket-price'],
+            ],
+            '#states' => [
+              'visible' => [
+                $ticket_kind_input => ['value' => 'paid'],
+              ],
             ],
           ],
         ],
@@ -890,6 +894,14 @@ final class EventTicketsBuilder {
               $ticket_kind_input => ['value' => 'paid'],
             ],
           ],
+        ],
+        'short_description' => [
+          '#type' => 'textarea',
+          '#title' => $this->t('Short description (buyers)'),
+          '#description' => $this->t('Optional. About two lines — shown on the public ticket picker.'),
+          '#rows' => 2,
+          '#maxlength' => self::SHORT_DESCRIPTION_MAX_LENGTH,
+          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'short_description')) ?? ''),
         ],
         'capacity' => [
           '#type' => 'number',
@@ -1016,7 +1028,7 @@ final class EventTicketsBuilder {
     $ticket_status = $this->ticketStatus->getStatus($ticket);
     $status_label = $this->ticketCardStatusLabel($ticket_status);
     $status_class = $this->ticketCardStatusClassSuffix($ticket_status);
-    $meta_line = $this->buildCardPriceCapacityLine($ticket);
+    $capacity_line = $this->formatCapacityText($ticket);
     $visibility_label = $this->ticketVisibilityLabel($ticket);
 
     $card['view'] = [
@@ -1028,27 +1040,24 @@ final class EventTicketsBuilder {
     ];
     $view = &$card['view'];
 
-    $view['header'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-ticket-card__header']],
-      'title_group' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-ticket-card__title-group']],
-        'title' => [
-          '#markup' => '<div class="mel-ticket-card__title">' . Html::escape($ticket->label()) . '</div>',
-        ],
-      ],
-      'status' => [
-        '#markup' => '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
-          . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
-            ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
-            : '')
-          . '<span class="mel-badge mel-badge--' . Html::escape($status_class) . '">' . Html::escape($status_label) . '</span>',
-      ],
+    $badge_cluster = '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
+      . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
+        ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
+        : '')
+      . '<span class="mel-badge mel-badge--' . Html::escape($status_class) . '">' . Html::escape($status_label) . '</span>';
+
+    $view['hero'] = [
+      '#markup' => '<div class="mel-ticket-card__header mel-ticket-card__header--outcome">'
+        . '<div class="mel-ticket-card__display">'
+        . '<h4 class="mel-ticket-card__display-title">' . Html::escape($ticket->label()) . '</h4>'
+        . '<span class="mel-ticket-card__price">' . Html::escape($this->formatPriceText($ticket)) . '</span>'
+        . '</div>'
+        . '<div class="mel-ticket-card__header-actions">' . $badge_cluster . '</div>'
+        . '</div>',
     ];
 
     $view['meta'] = [
-      '#markup' => '<div class="' . Html::escape('mel-ticket-card__meta-line') . '">' . Html::escape($meta_line) . '</div>',
+      '#markup' => '<div class="' . Html::escape('mel-ticket-card__meta-line') . '">' . Html::escape($capacity_line) . '</div>',
     ];
 
     $view['visibility'] = [
@@ -1137,22 +1146,38 @@ final class EventTicketsBuilder {
       ],
     ];
 
-    $card['edit']['status'] = [
-      '#markup' => '<div class="mel-ticket-card__header"><div class="mel-ticket-card__title-group"><div class="mel-ticket-card__title">' . Html::escape($ticket->label()) . '</div><div class="mel-ticket-card__description">' . Html::escape(ucfirst($ticket->getTicketKind())) . '</div></div><div class="mel-ticket-card__header-actions"><span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
-        . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
-          ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
-          : '')
-        . '<span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape($edit_status_label) . '</span></div></div>',
-      '#weight' => -20,
+    $badge_edit = '<span class="mel-ticket-card__state" data-mel-ticket-state aria-live="polite"></span>'
+      . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
+        ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
+        : '')
+      . '<span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape($edit_status_label) . '</span>';
+
+    $card['edit']['outcome_heading'] = [
+      '#markup' => '<div class="mel-ticket-card__header mel-ticket-card__header--outcome mel-ticket-card__header--editable">'
+        . '<div class="mel-ticket-card__display" data-mel-ticket-outcome-display="1">'
+        . '<h4 class="mel-ticket-card__display-title">' . Html::escape($ticket->label()) . '</h4>'
+        . '<span class="mel-ticket-card__price" data-mel-ticket-display-price>' . Html::escape($this->formatPriceText($ticket)) . '</span>'
+        . '</div>'
+        . '<p class="mel-ticket-card__kind-hint">' . Html::escape(ucfirst($ticket->getTicketKind())) . '</p>'
+        . '<div class="mel-ticket-card__header-actions">' . $badge_edit . '</div>'
+        . '</div>',
+      '#weight' => -30,
     ];
 
     $card['edit']['primary'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-ticket-card__fields', 'mel-ticket-card__fields--primary']],
+      '#attributes' => [
+        'class' => ['mel-ticket-card__fields', 'mel-ticket-card__fields--primary', 'mel-ticket-card__edit-layer'],
+      ],
       '#weight' => -10,
     ];
 
-    $card['edit']['primary']['title'] = [
+    $card['edit']['primary']['pair'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-ticket-card__fields-inline-2']],
+    ];
+
+    $card['edit']['primary']['pair']['title'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Title'),
       '#default_value' => (string) ($form_state->getValue(array_merge($edit_path, ['title'])) ?? $ticket->label()),
@@ -1167,7 +1192,7 @@ final class EventTicketsBuilder {
     if ($ticket->getTicketKind() === 'paid') {
       $price = $ticket->toPriceValue();
 
-      $card['edit']['primary']['price'] = [
+      $card['edit']['primary']['pair']['price'] = [
         '#type' => 'number',
         '#title' => $this->t('Price'),
         '#default_value' => $price ? $price->getNumber() : 0,
@@ -1175,6 +1200,9 @@ final class EventTicketsBuilder {
         '#min' => 0.01,
         '#required' => TRUE,
         '#parents' => array_merge($edit_path, ['price']),
+        '#attributes' => [
+          'class' => ['js-mel-ticket-price'],
+        ],
       ];
     }
 
@@ -1532,7 +1560,7 @@ final class EventTicketsBuilder {
   /**
    * Syncs Commerce for paid tiers; if a new-tier form is open with a title, saves it first.
    *
-   * Vendors often click "Save & sync" instead of "Create ticket"; without this, nothing persists.
+   * Vendors historically used this path as a shorthand for create + commerce sync.
    */
   private function performSaveAndSync(FormStateInterface $form_state, NodeInterface $event): void {
     if ($form_state->get('mel_ticket_adding_new')) {
@@ -1553,7 +1581,7 @@ final class EventTicketsBuilder {
         }
         return;
       }
-      $this->messenger->addWarning($this->t('Enter a ticket title and price or capacity as needed, then use Save & sync again — or use Create ticket.'));
+      $this->messenger->addWarning($this->t('Enter a ticket title and a valid price or capacity as needed, then use Create ticket.'));
     }
     $this->lifecycle->syncPaidTiers($event);
     $this->messenger->addStatus($this->t('Tickets saved and synced.'));
@@ -1804,6 +1832,45 @@ final class EventTicketsBuilder {
   }
 
   /**
+   * Whether the ticket has the minimum viable info for buyer-facing tiers.
+   */
+  private function ticketCardIsOutcomeComplete(TicketTypeInterface $ticket): bool {
+    $title = trim((string) $ticket->label());
+    if ($title === '') {
+      return FALSE;
+    }
+
+    return match ($ticket->getTicketKind()) {
+      'paid' => (function () use ($ticket): bool {
+          $price = $ticket->toPriceValue();
+          return $price !== NULL && is_numeric($price->getNumber()) && (float) $price->getNumber() > 0;
+        })(),
+      'external' => (function () use ($ticket): bool {
+          $uri = $ticket->getExternalUrlString();
+          if ($uri === NULL || trim($uri) === '') {
+            return FALSE;
+          }
+          return str_starts_with(mb_strtolower(trim($uri)), 'https://');
+        })(),
+      default => TRUE,
+    };
+  }
+
+  /**
+   * Default outcome price line for new-ticket display before inline JS updates it.
+   */
+  private function newTicketOutcomePriceCaption(string $ticket_kind, string $price_amount_raw, string $currency_code): string {
+    return match ($ticket_kind) {
+      'paid' => ''
+        !== trim($price_amount_raw) && is_numeric($price_amount_raw) && (float) $price_amount_raw > 0
+        ? $currency_code . ' ' . $this->formatPriceNumberForDisplay(trim($price_amount_raw))
+          : (string) $this->t('—'),
+      'rsvp' => (string) $this->t('$0'),
+      default => (string) $this->t('External'),
+    };
+  }
+
+  /**
    * Human-readable price line for card header (escaped HTML string).
    */
   private function formatPrice(TicketTypeInterface $ticket): string {
@@ -1826,13 +1893,6 @@ final class EventTicketsBuilder {
       return (string) $this->t('$0');
     }
     return (string) $this->t('External');
-  }
-
-  /**
-   * Compact price/capacity line for the view card.
-   */
-  private function buildCardPriceCapacityLine(TicketTypeInterface $ticket): string {
-    return $this->formatPriceText($ticket) . ' • ' . $this->formatCapacityText($ticket);
   }
 
   /**

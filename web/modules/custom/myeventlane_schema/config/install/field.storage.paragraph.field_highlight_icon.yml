@@ -10,13 +10,16 @@ entity_type: paragraph
 type: list_string
 settings:
   allowed_values:
-    - { value: star, label: star }
-    - { value: music, label: music }
-    - { value: food, label: food }
-    - { value: community, label: community }
-    - { value: workshop, label: workshop }
-    - { value: accessibility, label: accessibility }
-    - { value: warning, label: warning }
+    - { value: music, label: '🎵 Music' }
+    - { value: food, label: '🍔 Food & drinks' }
+    - { value: party, label: '🪩 Party / DJ' }
+    - { value: network, label: '🤝 Networking' }
+    - { value: art, label: '🎨 Arts' }
+    - { value: outdoor, label: '🌿 Outdoor' }
+    - { value: family, label: '👨‍👩‍👧 Family friendly' }
+    - { value: lgbtq, label: '🏳️‍🌈 LGBTQ+' }
+    - { value: wellness, label: '🧘 Wellness' }
+    - { value: education, label: '📚 Workshop / learning' }
   allowed_values_function: ''
 module: options
 locked: false

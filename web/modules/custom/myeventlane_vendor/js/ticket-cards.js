@@ -105,6 +105,27 @@
   }
 
   /**
+   * Marks the first ticket card in list DOM order (Event Studio hero tier).
+   *
+   * @param {HTMLElement|null} list
+   */
+  function syncPrimaryTicketClassInList(list) {
+    if (!list || !list.children) {
+      return;
+    }
+    const cards = [];
+    for (let i = 0; i < list.children.length; i++) {
+      const el = list.children[i];
+      if (el.classList && el.classList.contains('js-mel-ticket-card')) {
+        cards.push(el);
+      }
+    }
+    cards.forEach((card, i) => {
+      card.classList.toggle('mel-ticket--primary', i === 0);
+    });
+  }
+
+  /**
    * @param {HTMLElement} list
    */
   function clearDropTargets(list) {
@@ -316,6 +337,89 @@
     return valid;
   }
 
+  /** @param {HTMLElement} card */
+  function silentTicketOutcomeValid(card) {
+    let valid = true;
+    editableFields(card).forEach((field) => {
+      if (
+        field.matches('[required], [aria-required="true"], .js-mel-ticket-title') &&
+        String(field.value || '').trim() === ''
+      ) {
+        valid = false;
+      }
+    });
+    const kindField = card.querySelector('select[name$="[ticket_kind]"]');
+    const ticketKind = kindField ? kindField.value : card.getAttribute('data-mel-ticket-kind');
+    if (ticketKind === 'paid') {
+      const priceField = card.querySelector(
+        'input.js-mel-ticket-price, input[name$="[price_amount]"], input[name$="[price_number]"], input[name$="[price]"]',
+      );
+      const price = priceField ? parseFloat(String(priceField.value || '')) : 0;
+      if (!priceField || Number.isNaN(price) || price <= 0) {
+        valid = false;
+      }
+    }
+    if (ticketKind === 'external') {
+      const ext = card.querySelector('input[name$="[external_uri]"], input[type="url"][name*="external_uri"]');
+      if (!ext && card.getAttribute('data-ticket-id')) {
+        // Persisted tiers may omit URI from this inline subtree.
+      }
+      else if (ext) {
+        const uri = String(ext.value || '').trim().toLowerCase();
+        if (uri.indexOf('https://') !== 0) {
+          valid = false;
+        }
+      }
+      else {
+        valid = false;
+      }
+    }
+    return valid;
+  }
+
+  /** Updates outcome header (PHP-rendered preview) while editing — Event Studio UX. */
+  function syncOutcomeDisplay(card) {
+    const displayRoot = card.querySelector('[data-mel-ticket-outcome-display="1"], [data-mel-ticket-outcome-display]');
+    if (!displayRoot) {
+      return;
+    }
+    const titleSlot = displayRoot.querySelector('.mel-ticket-card__display-title');
+    const priceSlot = displayRoot.querySelector('[data-mel-ticket-display-price]');
+    const kindField = card.querySelector('select[name$="[ticket_kind]"]');
+    let ticketKind = kindField ? kindField.value : card.getAttribute('data-mel-ticket-kind');
+
+    const titleEl = card.querySelector('.js-mel-ticket-title');
+    const titleTxt = titleEl ? String(titleEl.value || '').trim() : '';
+    if (titleSlot) {
+      titleSlot.textContent = titleTxt || Drupal.t('New ticket');
+    }
+
+    let priceTxt = Drupal.t('—');
+    if (ticketKind === 'paid') {
+      const priceField = card.querySelector(
+        'input.js-mel-ticket-price, input[name$="[price_amount]"], input[name$="[price_number]"], input[name$="[price]"]',
+      );
+      const currField = card.querySelector('input[name$="[price_currency]"], input[name$="price_currency"]');
+      const amt = priceField ? String(priceField.value || '').trim() : '';
+      const code = currField ? String(currField.value || '').trim().toUpperCase().slice(0, 3) : '';
+      if (amt !== '' && !Number.isNaN(parseFloat(amt)) && parseFloat(amt) > 0) {
+        priceTxt = `${code ? code + ' ' : ''}${amt}`;
+      }
+    }
+    else if (ticketKind === 'rsvp') {
+      priceTxt = Drupal.t('$0');
+    }
+    else if (ticketKind === 'external') {
+      priceTxt = Drupal.t('External');
+    }
+
+    if (priceSlot) {
+      priceSlot.textContent = priceTxt;
+    }
+
+    card.classList.toggle('mel-ticket--complete', silentTicketOutcomeValid(card));
+  }
+
   function updateEditState(card) {
     const validation = card.querySelector('[data-mel-ticket-validation]');
     const initial = card.getAttribute('data-mel-ticket-initial') || '';
@@ -334,6 +438,7 @@
     if (card.getAttribute('data-mel-ticket-state-value') !== 'saving') {
       setCardState(card, fieldSignature(card) === initial ? '' : 'dirty');
     }
+    syncOutcomeDisplay(card);
   }
 
   function initInlineEditCard(card) {
@@ -691,6 +796,7 @@
         list.insertBefore(active, after);
       }
       persistOrder(list);
+      syncPrimaryTicketClassInList(list);
     });
 
     wrapper.querySelectorAll('.js-mel-ticket-drag-handle').forEach((handle) => {
@@ -713,6 +819,7 @@
           const list = wrapper.querySelector('.js-mel-ticket-sortable');
           if (list) {
             initSortable(list, wrapper);
+            syncPrimaryTicketClassInList(list);
           }
         },
     );
@@ -720,8 +827,42 @@
     once('mel-ticket-card-delegated', elementsFromContext('#mel-ticket-builder-ajax-wrapper', context)).forEach(
         (wrapper) => {
           wrapper.addEventListener('click', (e) => handleDelegatedClick(e, wrapper), true);
+          wrapper.addEventListener(
+            'input',
+            (e) => {
+              const t = e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : null;
+              if (!t || !wrapper.contains(t)) {
+                return;
+              }
+              const card = t.closest('.js-mel-ticket-card.mel-ticket-card--new, .mel-ticket-card--new');
+              if (card && wrapper.contains(card)) {
+                syncOutcomeDisplay(card);
+              }
+            },
+            true,
+          );
+          wrapper.addEventListener(
+            'change',
+            (e) => {
+              const t = e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : null;
+              if (!t || !wrapper.contains(t)) {
+                return;
+              }
+              const card = t.closest('.js-mel-ticket-card.mel-ticket-card--new');
+              if (card && wrapper.contains(card)) {
+                syncOutcomeDisplay(card);
+              const kindEl = card.querySelector('select[name$="[ticket_kind]"]');
+              const kv = kindEl ? kindEl.value : '';
+              if (kv) {
+                card.setAttribute('data-mel-ticket-kind', kv);
+              }
+              }
+            },
+            true,
+          );
           consumePendingSaves(wrapper);
           focusNewPresetCard(wrapper);
+          wrapper.querySelectorAll('.mel-ticket-card--new').forEach((c) => syncOutcomeDisplay(c));
         },
     );
 
@@ -736,6 +877,7 @@
     once('mel-ticket-inline-edit', elementsFromContext('.js-mel-ticket-card[data-ticket-id]', context)).forEach(
         (card) => {
           initInlineEditCard(card);
+          syncOutcomeDisplay(card);
           const shouldEdit = card.classList.contains('is-editing') || shouldRestoreEdit(card);
           setEditMode(card, shouldEdit, shouldEdit);
         },

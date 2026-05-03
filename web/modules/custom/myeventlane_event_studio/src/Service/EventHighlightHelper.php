@@ -28,19 +28,10 @@ final class EventHighlightHelper {
    *   Ordered allowed icon keys, or empty if storage is missing or invalid.
    */
   public function getAllowedIconKeys(): array {
-    $storage = $this->loadHighlightIconFieldStorage();
-    if ($storage === NULL) {
-      return [];
-    }
-    $raw = $storage->getSetting('allowed_values');
-    if (!is_array($raw)) {
-      return [];
-    }
+    $pairs = $this->getHighlightIconAllowedPairs();
     $keys = [];
-    foreach ($raw as $item) {
-      if (is_array($item) && isset($item['value'])) {
-        $keys[] = (string) $item['value'];
-      }
+    foreach ($pairs as $pair) {
+      $keys[] = $pair['value'];
     }
     return $keys;
   }
@@ -52,21 +43,101 @@ final class EventHighlightHelper {
    *   Keys are allowed values; values are human-readable labels.
    */
   public function getIconOptionsForJs(): array {
+    $out = [];
+    foreach ($this->getHighlightIconAllowedPairs() as $pair) {
+      $out[$pair['value']] = $pair['label'];
+    }
+    return $out;
+  }
+
+  /**
+   * Icon picker rows for Event Studio (emoji button + storage value + label).
+   *
+   * @return list<array{value: string, emoji: string, label: string}>
+   */
+  public function getHighlightIconPickerItems(): array {
+    $out = [];
+    foreach ($this->getHighlightIconAllowedPairs() as $pair) {
+      $value = $pair['value'];
+      $label = trim($pair['label']);
+      $emoji = $this->extractLeadingEmoji($label);
+      $out[] = [
+        'value' => $value,
+        'emoji' => $emoji,
+        'label' => $label,
+      ];
+    }
+    return $out;
+  }
+
+  /**
+   * Normalizes field_storage allowed_values for list_string option fields.
+   *
+   * Supports:
+   * - Export shape: list of rows `[ ['value' => …, 'label' => …], … ]`
+   * - Flat map: `[ machine_key => human_label, … ]`
+   *
+   * @return list<array{value: string, label: string}>
+   */
+  private function getHighlightIconAllowedPairs(): array {
     $storage = $this->loadHighlightIconFieldStorage();
     if ($storage === NULL) {
       return [];
     }
     $raw = $storage->getSetting('allowed_values');
-    if (!is_array($raw)) {
+    if (!is_array($raw) || $raw === []) {
       return [];
     }
-    $out = [];
+
+    $hasStructured = FALSE;
     foreach ($raw as $item) {
-      if (is_array($item) && isset($item['value'], $item['label'])) {
-        $out[(string) $item['value']] = (string) $item['label'];
+      if (is_array($item) && array_key_exists('value', $item)) {
+        $hasStructured = TRUE;
+        break;
       }
     }
-    return $out;
+
+    if ($hasStructured) {
+      $out = [];
+      foreach ($raw as $item) {
+        if (!is_array($item) || !array_key_exists('value', $item)) {
+          continue;
+        }
+        $out[] = [
+          'value' => (string) $item['value'],
+          'label' => array_key_exists('label', $item) ? (string) $item['label'] : (string) $item['value'],
+        ];
+      }
+      return $out;
+    }
+
+    $flat = [];
+    foreach ($raw as $value => $label) {
+      if (!is_string($value) && !is_int($value)) {
+        continue;
+      }
+      if (!is_scalar($label)) {
+        continue;
+      }
+      $flat[] = [
+        'value' => (string) $value,
+        'label' => (string) $label,
+      ];
+    }
+    return $flat;
+  }
+
+  /**
+   * First Unicode extended grapheme cluster in a string (emoji-safe lead character).
+   */
+  private function extractLeadingEmoji(string $label): string {
+    if ($label === '') {
+      return '';
+    }
+    if (preg_match('/^(\X)/u', $label, $m) === 1) {
+      return (string) ($m[1] ?? '');
+    }
+    return '';
   }
 
   /**

@@ -520,21 +520,8 @@ final class EventStudioForm extends FormBase {
       || $paid_no_mel_tickets
     );
 
-    $studio_tier_preview = [];
-    try {
-      $studio_tier_preview = json_decode($studio_tiers_json, TRUE, 512, JSON_THROW_ON_ERROR);
-    }
-    catch (\JsonException) {
-      $studio_tier_preview = [];
-    }
-    $has_ticket_refs = $event->hasField('field_ticket_types')
-      && !$event->get('field_ticket_types')->isEmpty();
-    $has_ticket_signal_for_mel = $has_ticket_refs
-      || ($type_default !== 'external' && $studio_tier_preview !== []);
-
-    // MEL contribution: require a ticket signal (draft tiers, saved types, or RSVP path)
-    // and hide for external events (no MEL ticket attach point in the same way).
-    $show_mel_contribution = $has_ticket_signal_for_mel && $type_default !== 'external';
+    // MEL contribution (donations / platform support): show for non-external events only.
+    $show_mel_contribution = $type_default !== 'external';
 
     $form['mel'] = [
       '#type' => 'container',
@@ -806,13 +793,18 @@ final class EventStudioForm extends FormBase {
     $form['mel']['venue_mode'] = [
       '#type' => 'radios',
       '#title' => $this->t('Location'),
+      '#mel_option_cards' => TRUE,
+      '#mel_option_descriptions' => [
+        'saved' => $this->t('Pick from venues under your organizer account.'),
+        'create' => $this->t('Save a reusable venue while you prepare this event.'),
+        'one_off' => $this->t('Use an address once without saving a venue profile.'),
+      ],
       '#options' => [
         'saved' => $this->t('Use saved venue'),
         'create' => $this->t('Create new venue'),
         'one_off' => $this->t('One-off address'),
       ],
       '#default_value' => $form_state->getValue(['mel', 'venue_mode'], $venue_mode_default),
-      '#attributes' => ['class' => ['mel-radios']],
     ];
 
     $form['mel']['venue_saved'] = [
@@ -888,20 +880,26 @@ final class EventStudioForm extends FormBase {
     $form['mel']['tickets_intro'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#value' => $this->t('Choose RSVP, paid tickets on MEL, or link to external checkout.'),
+      '#value' => $this->t('Start with one ticket — you can add more later.'),
       '#attributes' => ['class' => ['mel-tickets-intro']],
     ];
 
     $form['mel']['field_event_type'] = [
       '#type' => 'radios',
       '#title' => '',
+      '#mel_option_cards' => TRUE,
+      '#mel_option_cards_tickets_layout' => TRUE,
+      '#mel_option_descriptions' => [
+        'rsvp' => $this->t('Collect RSVPs without taking payment.'),
+        'paid' => $this->t('Sell tickets through MyEventLane.'),
+        'external' => $this->t('Send guests to Humanitix, Eventbrite, or your site.'),
+      ],
       '#options' => [
         'rsvp' => $this->t('RSVP (free)'),
         'paid' => $this->t('Paid tickets'),
         'external' => $this->t('External link'),
       ],
       '#default_value' => $type_default,
-      '#attributes' => ['class' => ['mel-radios', 'mel-radios--tickets']],
     ];
 
     $form['mel']['studio_ticket_tiers'] = [
@@ -970,12 +968,12 @@ final class EventStudioForm extends FormBase {
         ],
         'text' => [
           '#markup' => '<p class="mel-ticket-builder__empty-title">' . $this->t('No ticket cards yet') . '</p>'
-            . '<p class="mel-ticket-builder__empty-body">' . $this->t('Click Add ticket to create an editable draft card. Invalid drafts stay in the browser until you complete them.') . '</p>',
+            . '<p class="mel-ticket-builder__empty-body">' . $this->t('Use Add another ticket type to create an editable draft card. Invalid drafts stay in the browser until you complete them.') . '</p>',
         ],
       ],
       'add' => [
         '#type' => 'button',
-        '#value' => $this->t('Add ticket'),
+        '#value' => $this->t('Add another ticket type'),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn--primary', 'button'],
           'type' => 'button',
@@ -1110,7 +1108,7 @@ final class EventStudioForm extends FormBase {
         '#attributes' => ['class' => ['mel-attendee-questions-add']],
         'add' => [
           '#type' => 'button',
-          '#value' => $this->t('+ Add question'),
+          '#value' => $this->t('Add question'),
           '#attributes' => [
             'type' => 'button',
             'id' => 'mel-attendee-add-question',
@@ -1340,7 +1338,8 @@ final class EventStudioForm extends FormBase {
       $form_state,
       $event,
       94,
-      'mel-studio-mel-support-heading',
+      'mel-mel-support-heading',
+      TRUE,
       TRUE,
     );
     if (isset($form['mel_mel_support'])) {
@@ -1383,6 +1382,7 @@ final class EventStudioForm extends FormBase {
         'venueMode' => $venue_mode_default,
       ],
       'highlightIconOptions' => $this->eventHighlightHelper->getIconOptionsForJs(),
+      'highlightIconPicker' => $this->eventHighlightHelper->getHighlightIconPickerItems(),
       'highlightErrors' => [
         'max' => (string) $this->t('You can add at most 6 highlights.'),
         'iconNoText' => (string) $this->t('Add text for each highlight that has an icon.'),
@@ -1399,7 +1399,6 @@ final class EventStudioForm extends FormBase {
         'typeExternal' => (string) $this->t('External link'),
       ],
       'defaultCurrency' => $this->resolveStudioDefaultCurrency($event),
-      'hasTicketSignalForMel' => $has_ticket_signal_for_mel,
       'showMelContribution' => $show_mel_contribution,
       'vendorQuestionLibrary' => $this->buildVendorQuestionLibraryPayload(),
       'urls' => [
@@ -1685,6 +1684,21 @@ final class EventStudioForm extends FormBase {
         'required' => $required,
         'save_to_library' => FALSE,
       ];
+      if ($paragraph->hasField('field_question_options') && !$paragraph->get('field_question_options')->isEmpty()) {
+        $opt_raw = trim((string) ($paragraph->get('field_question_options')->value ?? ''));
+        if ($opt_raw !== '') {
+          $opts = [];
+          foreach (preg_split('/\r?\n/', $opt_raw) as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+              $opts[] = $line;
+            }
+          }
+          if ($opts !== []) {
+            $row['options'] = $opts;
+          }
+        }
+      }
       if ($paragraph->hasField('field_question_machine_name') && !$paragraph->get('field_question_machine_name')->isEmpty()) {
         $machine = trim((string) ($paragraph->get('field_question_machine_name')->value ?? ''));
         if ($machine !== '') {

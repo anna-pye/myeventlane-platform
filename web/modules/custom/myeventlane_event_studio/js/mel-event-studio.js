@@ -31,6 +31,175 @@
   }
 
   /**
+   * Scroll to a builder card and sync wizard nav to its step.
+   *
+   * @param {HTMLFormElement} form
+   * @param {HTMLElement|null} cardEl
+   */
+  function melScrollToBuilderCard(form, cardEl) {
+    if (!cardEl) {
+      return;
+    }
+    scrollToTarget(cardEl);
+    if (!form || !cardEl.closest) {
+      return;
+    }
+    var stepSection = cardEl.closest('section.mel-step[data-step]');
+    if (!stepSection) {
+      return;
+    }
+    var sid = stepSection.getAttribute('data-step');
+    for (var s = 0; s < MEL_STEPS.length; s++) {
+      if (MEL_STEPS[s].id === sid) {
+        setWizardNavActive(form, s);
+        setWizardStepIndex(form, s);
+        break;
+      }
+    }
+  }
+
+  /**
+   * True when the element is shown (within the studio form subtree).
+   *
+   * @param {HTMLFormElement} form
+   * @param {Element} el
+   * @return {boolean}
+   */
+  function melIsBuilderCardDomVisible(form, el) {
+    if (!form || !el || !form.contains(el)) {
+      return false;
+    }
+    var node = el;
+    while (node && node !== form && form.contains(node)) {
+      if (node.nodeType === 1) {
+        if (node.hidden || node.hasAttribute('hidden')) {
+          return false;
+        }
+        var st = window.getComputedStyle(node);
+        if (st.display === 'none' || st.visibility === 'hidden') {
+          return false;
+        }
+      }
+      node = node.parentElement;
+    }
+    return true;
+  }
+
+  /**
+   * Top-level studio cards in DOM order, excluding collapsed/hidden subtree.
+   *
+   * @param {HTMLFormElement} form
+   * @return {Element[]}
+   */
+  function melOrderedVisibleBuilderCards(form) {
+    if (!form) {
+      return [];
+    }
+    return Array.prototype.slice.call(form.querySelectorAll('.mel-builder-card')).filter(function (card) {
+      return melIsBuilderCardDomVisible(form, card);
+    });
+  }
+
+  /**
+   * Next visible builder card after the given one (DOM order inside the form).
+   *
+   * @param {HTMLFormElement} form
+   * @param {Element|null} currentCard
+   * @return {Element|null}
+   */
+  function melNextVisibleBuilderCard(form, currentCard) {
+    var cards = melOrderedVisibleBuilderCards(form);
+    if (!currentCard) {
+      return null;
+    }
+    var ix = cards.indexOf(currentCard);
+    if (ix < 0) {
+      return null;
+    }
+    return cards[ix + 1] || null;
+  }
+
+  /**
+   * Next card in primary flow — skips optional MEL support (still visible).
+   *
+   * @param {HTMLFormElement} form
+   * @param {Element|null} currentCard
+   * @return {Element|null}
+   */
+  function melNextPrimaryFlowBuilderCard(form, currentCard) {
+    var next = melNextVisibleBuilderCard(form, currentCard);
+    while (next && next.id === 'mel-card-support') {
+      next = melNextVisibleBuilderCard(form, next);
+    }
+    if (!next && currentCard && currentCard.id === 'mel-card-tickets') {
+      return document.getElementById('mel-card-standout');
+    }
+    return next;
+  }
+
+  /**
+   * @param {Element|null} card
+   * @return {Element|null}
+   */
+  function melBuilderCardHintHeading(card) {
+    if (!card) {
+      return null;
+    }
+    var mh = card.querySelector('#mel-description-heading');
+    if (mh) {
+      return mh;
+    }
+    var prog = card.querySelector('.mel-builder-progressive__title:not(.visually-hidden)');
+    if (prog) {
+      return prog;
+    }
+    return (
+      card.querySelector('.mel-builder-card__title:not(.visually-hidden)') ||
+      card.querySelector('h2:not(.visually-hidden), h3:not(.visually-hidden), h4:not(.visually-hidden)') ||
+      card.querySelector('h2, h3, h4')
+    );
+  }
+
+  /**
+   * Default expanded card: first incomplete card in the current wizard step, else last card in step.
+   *
+   * @param {HTMLFormElement} form
+   * @return {HTMLElement|null}
+   */
+  function melPickDefaultActiveBuilderCard(form) {
+    if (!form) {
+      return null;
+    }
+    var stepIdx = getWizardStepIndex(form);
+    var stepEl =
+      stepIdx >= 0 && stepIdx < MEL_STEPS.length
+        ? document.getElementById('mel-step-' + MEL_STEPS[stepIdx].id)
+        : null;
+    var cards = melOrderedVisibleBuilderCards(form);
+    if (stepEl) {
+      cards = cards.filter(function (c) {
+        return stepEl.contains(c);
+      });
+    }
+    var i;
+    for (i = 0; i < cards.length; i++) {
+      var c = cards[i];
+      if (c.id === 'mel-card-publish') {
+        continue;
+      }
+      if (!c.classList.contains('is-complete')) {
+        return cards[i];
+      }
+    }
+    for (i = cards.length - 1; i >= 0; i--) {
+      if (cards[i].id !== 'mel-card-publish') {
+        return cards[i];
+      }
+    }
+    return cards[0] || null;
+  }
+
+  /**
    * @param {string|HTMLElement} sel
    */
   function melScrollToSelector(sel) {
@@ -49,11 +218,14 @@
   var MEL_STEPS = [
     { id: 'identity', label: 'Event identity' },
     { id: 'tickets', label: 'How people join' },
-    { id: 'attendee', label: 'Attendee questions' },
     { id: 'standout', label: 'Stand out' },
+    { id: 'attendee', label: 'Attendee questions' },
     { id: 'preview', label: 'Preview' },
     { id: 'publish', label: 'Publish' },
   ];
+
+  /** @type {WeakMap<HTMLFormElement, number>} */
+  var melBuilderCardFocusRafIds = new WeakMap();
 
   function getSettings() {
     return (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudio) || {};
@@ -88,12 +260,16 @@
     if (!el) {
       return;
     }
-    var progHost = el.closest('[data-mel-reveal-section="mel-description"], [data-mel-reveal-section="mel-advanced"]');
-    if (progHost && progHost.classList.contains('mel-builder-reveal--hidden')) {
-      progHost.classList.remove('mel-builder-reveal--hidden');
-      progHost.setAttribute('aria-hidden', 'false');
+    var progD = el.closest('details');
+    while (progD && form.contains(progD)) {
+      progD.open = true;
+      var progP = progD.parentElement;
+      progD = progP ? progP.closest('details') : null;
     }
-    var scrollTarget = el.closest('.js-form-item, .form-item, .fieldset, .mel-step') || el;
+    var scrollTarget =
+      el.closest('.mel-builder-card') ||
+      el.closest('.js-form-item, .form-item, .fieldset, .mel-step') ||
+      el;
     scrollToTarget(scrollTarget);
     window.setTimeout(function () {
       try {
@@ -627,6 +803,28 @@
     return form.querySelector('[data-mel-ticket-card-list="draft"]');
   }
 
+  /**
+   * First direct child ticket card in a list is the “hero” tier (studio UX).
+   *
+   * @param {HTMLElement|null} list
+   */
+  function syncPrimaryTicketClassInList(list) {
+    if (!list || !list.children) {
+      return;
+    }
+    var cards = [];
+    var i;
+    for (i = 0; i < list.children.length; i++) {
+      var el = list.children[i];
+      if (el.classList && el.classList.contains('js-mel-ticket-card')) {
+        cards.push(el);
+      }
+    }
+    for (i = 0; i < cards.length; i++) {
+      cards[i].classList.toggle('mel-ticket--primary', i === 0);
+    }
+  }
+
   function getHighlightsTable(form) {
     return form.querySelector('table[data-mel-highlights-table]');
   }
@@ -726,6 +924,55 @@
     }
   }
 
+  function getHighlightIconPickerItems() {
+    var s = getSettings();
+    var raw = s.highlightIconPicker;
+    if (Array.isArray(raw)) {
+      return raw;
+    }
+    if (raw && typeof raw === 'object') {
+      return Object.keys(raw)
+        .filter(function (k) {
+          return /^\d+$/.test(k);
+        })
+        .sort(function (a, b) {
+          return Number(a) - Number(b);
+        })
+        .map(function (k) {
+          return raw[k];
+        });
+    }
+    return [];
+  }
+
+  /**
+   * Options for highlight icon <select>: value = storage key, label = visible text (emoji + words).
+   *
+   * @return {Array<{value: string, label: string}>}
+   */
+  function getHighlightIconSelectOptionPairs() {
+    var pairs = [{ value: '', label: Drupal.t('No icon') }];
+    var pickerItems = getHighlightIconPickerItems();
+    if (pickerItems.length > 0) {
+      var pi;
+      for (pi = 0; pi < pickerItems.length; pi++) {
+        var it = pickerItems[pi];
+        var key = it && it.value != null ? String(it.value) : '';
+        if (key === '') {
+          continue;
+        }
+        var lbl = it && it.label != null ? String(it.label) : key;
+        pairs.push({ value: key, label: lbl });
+      }
+      return pairs;
+    }
+    var icons = getHighlightIconOptions();
+    Object.keys(icons).forEach(function (k) {
+      pairs.push({ value: k, label: String(icons[k] || k) });
+    });
+    return pairs;
+  }
+
   function collectHighlightsFromDom(form) {
     var table = getHighlightsTable(form);
     if (!table) {
@@ -734,7 +981,7 @@
     var rows = table.querySelectorAll('tbody .mel-highlight-row');
     var out = [];
     rows.forEach(function (tr) {
-      var sel = tr.querySelector('.mel-highlight-icon');
+      var sel = tr.querySelector('select.mel-highlight-icon');
       var ta = tr.querySelector('.mel-highlight-text');
       var icon = sel ? String(sel.value || '').trim() : '';
       var text = ta ? String(ta.value || '').trim() : '';
@@ -747,24 +994,36 @@
     var tr = document.createElement('tr');
     tr.className = 'mel-highlight-row';
     tr.setAttribute('data-highlight-index', String(index));
-    var icons = getHighlightIconOptions();
+
     var tdIcon = document.createElement('td');
+    tdIcon.className = 'mel-highlight-icon-cell';
+
     var sel = document.createElement('select');
     sel.className = 'mel-input mel-highlight-icon';
     sel.setAttribute('aria-label', Drupal.t('Highlight icon'));
-    var optEmpty = document.createElement('option');
-    optEmpty.value = '';
-    optEmpty.textContent = Drupal.t('None');
-    sel.appendChild(optEmpty);
-    Object.keys(icons).forEach(function (k) {
-      var o = document.createElement('option');
-      o.value = k;
-      o.textContent = icons[k];
-      sel.appendChild(o);
-    });
-    if (row && row.icon) {
-      sel.value = row.icon;
+
+    var pairs = getHighlightIconSelectOptionPairs();
+    var rowIcon = row && row.icon != null ? String(row.icon).trim() : '';
+    var matched = false;
+    var i;
+    for (i = 0; i < pairs.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = pairs[i].value;
+      opt.textContent = pairs[i].label;
+      if (pairs[i].value === rowIcon) {
+        opt.selected = true;
+        matched = true;
+      }
+      sel.appendChild(opt);
     }
+    if (!matched && rowIcon !== '') {
+      var legacy = document.createElement('option');
+      legacy.value = rowIcon;
+      legacy.textContent = rowIcon;
+      legacy.selected = true;
+      sel.insertBefore(legacy, sel.options[1] || null);
+    }
+
     tdIcon.appendChild(sel);
 
     var tdText = document.createElement('td');
@@ -1203,23 +1462,38 @@
     drag.setAttribute('draggable', 'true');
     card.appendChild(drag);
 
-    var header = document.createElement('div');
-    header.className = 'mel-ticket-card__header';
-    var titleGroup = document.createElement('div');
-    titleGroup.className = 'mel-ticket-card__title-group';
-    var title = document.createElement('div');
-    title.className = 'mel-ticket-card__title';
-    title.textContent = tier.title ? String(tier.title) : Drupal.t('Untitled ticket');
-    titleGroup.appendChild(title);
+    var display = document.createElement('div');
+    display.className = 'mel-ticket-card__display mel-ticket-card__display--draft';
+    display.setAttribute('data-mel-ticket-outcome-display', '1');
+    var displayTitle = document.createElement('h4');
+    displayTitle.className = 'mel-ticket-card__display-title';
+    displayTitle.textContent = tier.title ? String(tier.title) : Drupal.t('Untitled ticket');
+    var displayPrice = document.createElement('span');
+    displayPrice.className = 'mel-ticket-card__price';
+    displayPrice.setAttribute('data-mel-ticket-display-price', '');
+    displayPrice.textContent =
+      kind === 'paid'
+        ? tier.price_number && String(tier.price_number).trim() !== '' && parseFloat(String(tier.price_number)) > 0
+          ? String(tier.price_currency || 'AUD').toUpperCase().slice(0, 3) + ' ' + String(tier.price_number)
+          : '—'
+        : kind === 'rsvp'
+          ? Drupal.t('$0')
+          : Drupal.t('External');
+    display.appendChild(displayTitle);
+    display.appendChild(displayPrice);
+
     var state = document.createElement('span');
     state.className = 'mel-badge mel-badge--inactive';
     state.textContent = Drupal.t('Draft');
-    header.appendChild(titleGroup);
-    header.appendChild(state);
-    card.appendChild(header);
+
+    var headRow = document.createElement('div');
+    headRow.className = 'mel-ticket-card__header mel-ticket-card__header--outcome';
+    headRow.appendChild(display);
+    headRow.appendChild(state);
+    card.appendChild(headRow);
 
     var fields = document.createElement('div');
-    fields.className = 'mel-ticket-card__fields mel-ticket-card__fields--inline';
+    fields.className = 'mel-ticket-card__fields mel-ticket-card__fields--inline mel-ticket-card__edit-layer';
 
     var kindSelect = document.createElement('select');
     kindSelect.className = 'mel-input mel-tier-kind';
@@ -1319,10 +1593,28 @@
     var kind = getDraftCardKind(card);
     card.setAttribute('data-mel-ticket-kind', kind);
     var titleEl = card.querySelector('.mel-tier-title');
-    var title = card.querySelector('.mel-ticket-card__title');
+    var title = card.querySelector('.mel-ticket-card__display-title');
+    var priceLbl = card.querySelector('.mel-ticket-card__display--draft .mel-ticket-card__price, .mel-ticket-card__display .mel-ticket-card__price');
     if (title) {
       var label = titleEl ? String(titleEl.value || '').trim() : '';
       title.textContent = label || Drupal.t('Untitled ticket');
+    }
+    if (priceLbl) {
+      if (kind === 'paid') {
+        var priceInput = card.querySelector('.mel-tier-price');
+        var cur = card.getAttribute('data-tier-currency') || getSettings().defaultCurrency || 'AUD';
+        var amt = priceInput ? String(priceInput.value || '').trim() : '';
+        priceLbl.textContent =
+          amt !== '' && !isNaN(parseFloat(amt)) && parseFloat(amt) > 0
+            ? String(cur).toUpperCase().slice(0, 3) + ' ' + amt
+            : '\u2014';
+      }
+      else if (kind === 'rsvp') {
+        priceLbl.textContent = Drupal.t('$0');
+      }
+      else {
+        priceLbl.textContent = Drupal.t('External');
+      }
     }
     card.querySelectorAll('.mel-tier-price, .mel-tier-external, .mel-tier-capacity').forEach(function (el) {
       var field = el.closest('.mel-ticket-card__field');
@@ -1340,6 +1632,7 @@
       validation.textContent = errors.join(' ');
     }
     card.classList.toggle('is-invalid', errors.length > 0);
+    card.classList.toggle('mel-ticket--complete', errors.length === 0);
   }
 
   function updateDraftEmptyState(form, count) {
@@ -1364,6 +1657,7 @@
       list.appendChild(createDraftTicketCard(form, tier, index));
     });
     updateDraftEmptyState(form, tiers.length);
+    syncPrimaryTicketClassInList(list);
     syncTicketTiersFromDomToHidden(form);
     syncPaidTierWarning(form);
   }
@@ -1588,6 +1882,7 @@
     });
     list.addEventListener('drop', function (e) {
       e.preventDefault();
+      syncPrimaryTicketClassInList(list);
       syncTicketTiersFromDomToHidden(form);
       setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
       refreshIntelligence(form);
@@ -1936,6 +2231,140 @@
     return start || end;
   }
 
+  /**
+   * One-line summary for a collapsed completed builder card.
+   *
+   * @param {HTMLElement} card
+   * @param {HTMLFormElement} form
+   * @return {string}
+   */
+  function melBuildCardSummary(card, form) {
+    if (!card || !form) {
+      return '';
+    }
+    var cid = card.id || '';
+    if (cid === 'mel-card-identity') {
+      var titleRaw = val(form, 'mel[title]').trim();
+      return '\uD83C\uDF89 ' + (titleRaw ? titleRaw : Drupal.t('Untitled event'));
+    }
+    if (cid === 'mel-card-schedule') {
+      return scheduleSummary(form) + ' \u00b7 ' + venueSummaryLine(form);
+    }
+    if (cid === 'mel-card-tickets') {
+      var n = form.querySelectorAll('.js-mel-ticket-card').length;
+      return Drupal.formatPlural(n, '@count ticket type', '@count ticket types');
+    }
+    if (cid === 'mel-card-standout') {
+      var teaser = val(form, 'mel[summary]').trim();
+      if (teaser.length >= 10) {
+        return teaser.length > 72 ? teaser.slice(0, 72) + '\u2026' : teaser;
+      }
+      var about = val(form, 'mel[body]').trim();
+      if (about.length >= 40) {
+        return about.length > 72 ? about.slice(0, 72) + '\u2026' : about;
+      }
+      var intro = val(form, 'mel[field_event_intro]').trim();
+      if (intro.length >= 20) {
+        return intro.length > 72 ? intro.slice(0, 72) + '\u2026' : intro;
+      }
+      return Drupal.t('Listing details added');
+    }
+    if (cid === 'mel-card-attendee') {
+      var aq = 0;
+      try {
+        aq = parseAttendeeQuestionsState(form).length;
+      } catch (eAq) {
+        aq = 0;
+      }
+      if (aq > 0) {
+        var qlabel = aq === 1 ? Drupal.t('custom question') : Drupal.t('custom questions');
+        return String(aq) + ' ' + qlabel;
+      }
+      return Drupal.t('No extra questions');
+    }
+    if (cid === 'mel-card-publish') {
+      return Drupal.t('Ready to publish');
+    }
+    return Drupal.t('Completed');
+  }
+
+  /**
+   * Single active builder card: expand target, collapse others (publish card stays fully open).
+   *
+   * @param {HTMLFormElement} form
+   * @param {HTMLElement|null} targetCard
+   */
+  function melSetActiveBuilderCard(form, targetCard) {
+    if (!form || !targetCard) {
+      return;
+    }
+    if (targetCard.id) {
+      form.dataset.melBuilderActiveCardId = targetCard.id;
+    } else {
+      delete form.dataset.melBuilderActiveCardId;
+    }
+
+    form.querySelectorAll('.mel-builder-card').forEach(function (card) {
+      var body = card.querySelector(':scope > .mel-builder-card__body');
+      var summary = card.querySelector(':scope > .mel-builder-card__summary');
+      if (!body || !summary) {
+        return;
+      }
+
+      if (card.id === 'mel-card-publish') {
+        body.style.display = '';
+        summary.hidden = true;
+        return;
+      }
+
+      var isTarget = card === targetCard;
+      card.classList.remove('mel-builder-card--expanded-edit');
+
+      if (isTarget) {
+        body.style.display = '';
+        summary.hidden = true;
+      }
+      else {
+        body.style.display = 'none';
+        summary.hidden = false;
+        var summaryContent = summary.querySelector('.mel-builder-card__summary-content');
+        if (summaryContent) {
+          summaryContent.textContent = melBuildCardSummary(card, form);
+        }
+      }
+    });
+
+    melRequestBuilderCardActiveSync(form);
+  }
+
+  /**
+   * Apply single-active card UI; resolves active card from dataset or wizard-step default.
+   *
+   * @param {HTMLFormElement} form
+   */
+  function melApplyBuilderCardCollapseState(form) {
+    if (!form) {
+      return;
+    }
+    var activeId = form.dataset.melBuilderActiveCardId;
+    var activeCard = activeId ? document.getElementById(activeId) : null;
+    var stepIdx = getWizardStepIndex(form);
+    var stepEl =
+      stepIdx >= 0 && stepIdx < MEL_STEPS.length
+        ? document.getElementById('mel-step-' + MEL_STEPS[stepIdx].id)
+        : null;
+    if (
+      !activeCard ||
+      !form.contains(activeCard) ||
+      (stepEl && !stepEl.contains(activeCard))
+    ) {
+      activeCard = melPickDefaultActiveBuilderCard(form);
+    }
+    if (activeCard) {
+      melSetActiveBuilderCard(form, activeCard);
+    }
+  }
+
   function scheduleIsoHint(form) {
     var sd = form.querySelector('[name="mel[start_date][date]"]');
     var st = form.querySelector('[name="mel[start_date][time]"]');
@@ -2271,6 +2700,7 @@
     var submit = form.querySelector(
       '.mel-event-studio__footer-actions input[type="submit"], .mel-event-studio__footer-actions button[type="submit"]',
     );
+    var sidebarSave = document.getElementById('mel-builder-save-sidebar');
     if (!footer) {
       return;
     }
@@ -2282,39 +2712,44 @@
     } else {
       footer.classList.add('mel-footer--draft-focus');
     }
+    var publishReady = pub && score >= 70;
     if (submit) {
-      submit.classList.toggle('mel-btn--studio-publish', pub && score >= 70);
-      submit.classList.toggle('mel-btn--studio-draft', !(pub && score >= 70));
+      submit.classList.toggle('mel-btn--studio-publish', publishReady);
+      submit.classList.toggle('mel-btn--studio-draft', !publishReady);
+    }
+    if (sidebarSave && form.contains(sidebarSave)) {
+      sidebarSave.classList.toggle('mel-btn--studio-publish', publishReady);
+      sidebarSave.classList.toggle('mel-btn--studio-draft', !publishReady);
     }
   }
 
   function setWizardNavActive(form, activeIndex) {
     var nav = form.querySelector('#mel-wizard-nav');
-    if (!nav) {
-      return;
+    if (nav) {
+      var links = nav.querySelectorAll('a.mel-nav-link');
+      links.forEach(function (link) {
+        link.classList.remove('is-active');
+        link.classList.remove('active');
+      });
+      if (activeIndex >= 0 && activeIndex < links.length) {
+        links[activeIndex].classList.add('is-active');
+        links[activeIndex].classList.add('active');
+      }
+      links.forEach(function (link, i) {
+        link.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
+      });
+      var activeLink = links[activeIndex];
+      if (activeLink && activeLink.scrollIntoView) {
+        window.setTimeout(function () {
+          activeLink.scrollIntoView({
+            block: 'nearest',
+            inline: 'nearest',
+            behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+          });
+        }, 60);
+      }
     }
-    var links = nav.querySelectorAll('a.mel-nav-link');
-    links.forEach(function (link) {
-      link.classList.remove('is-active');
-      link.classList.remove('active');
-    });
-    if (activeIndex >= 0 && activeIndex < links.length) {
-      links[activeIndex].classList.add('is-active');
-      links[activeIndex].classList.add('active');
-    }
-    links.forEach(function (link, i) {
-      link.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
-    });
-    var activeLink = links[activeIndex];
-    if (activeLink && activeLink.scrollIntoView) {
-      window.setTimeout(function () {
-        activeLink.scrollIntoView({
-          block: 'nearest',
-          inline: 'nearest',
-          behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-        });
-      }, 60);
-    }
+    melSyncBuilderCardActiveState(form, activeIndex);
   }
 
   function isStepComplete(step, form) {
@@ -2359,6 +2794,443 @@
     }
   }
 
+  function titleCompleteForBuilderBadge(form) {
+    var titleVal = val(form, 'mel[title]').trim();
+    return titleVal !== '' && titleVal !== Drupal.t('Untitled event');
+  }
+
+  function scheduleCompleteForBuilderBadge(form) {
+    var sd = form.querySelector('[name="mel[start_date][date]"]');
+    if (!sd || !sd.value) {
+      return false;
+    }
+    var vm = valRadio(form, 'mel[venue_mode]');
+    if (vm === 'saved') {
+      return val(form, 'mel[venue_saved]') !== '';
+    }
+    if (vm === 'create') {
+      return val(form, 'mel[venue_create_name]') !== '' && parseHiddenLocation(form) !== '';
+    }
+    return parseHiddenLocation(form) !== '';
+  }
+
+  /**
+   * Stand out builder card: enough listing/description substance (matches progressive unlock signal).
+   *
+   * @param {HTMLFormElement} form
+   * @return {boolean}
+   */
+  function standoutCompleteForBuilderBadge(form) {
+    return melDescriptionSectorSatisfied(form);
+  }
+
+  /**
+   * Attendee questions card: settled — either collecting with ≥1 row, or not collecting extras.
+   *
+   * @param {HTMLFormElement} form
+   * @return {boolean}
+   */
+  function attendeeCompleteForBuilderBadge(form) {
+    var collectHidden = form.querySelector('[name="mel[collect_attendee_questions]"]');
+    var wantsCollect = !!(collectHidden && String(collectHidden.value || '') === '1');
+    var rowCount = 0;
+    try {
+      rowCount = parseAttendeeQuestionsState(form).length;
+    } catch (eRows) {
+      rowCount = 0;
+    }
+    if (rowCount > 0) {
+      return true;
+    }
+    return !wantsCollect;
+  }
+
+  /**
+   * True when standout description-like fields carry enough substance to unlock the attendee card.
+   *
+   * @param {HTMLFormElement} form
+   * @return {boolean}
+   */
+  function melDescriptionSectorSatisfied(form) {
+    if (val(form, 'mel[summary]').trim().length >= 10) {
+      return true;
+    }
+    if (val(form, 'mel[body]').trim().length >= 40) {
+      return true;
+    }
+    if (val(form, 'mel[field_event_intro]').trim().length >= 20) {
+      return true;
+    }
+    try {
+      var hlHidden = form.querySelector('input[data-mel-highlights-state]');
+      if (hlHidden && hlHidden.value) {
+        var rowsHl = JSON.parse(hlHidden.value);
+        if (
+          Array.isArray(rowsHl) &&
+          rowsHl.some(function (hr) {
+            return hr && String(hr.text || '').trim().length > 0;
+          })
+        ) {
+          return true;
+        }
+      }
+    } catch (eHlSat) {}
+    return false;
+  }
+
+  /** @param {HTMLFormElement} form */
+  function melAttendeeSectorBusy(form) {
+    try {
+      if (parseAttendeeQuestionsState(form).length > 0) {
+        return true;
+      }
+    } catch (eAtt) {}
+    var syncCollect = form.querySelector('[data-mel-collect-attendee-sync="1"]');
+    return !!(syncCollect && String(syncCollect.value || '') === '1');
+  }
+
+  /**
+   * One-time programmatic open per slot; resetting when prerequisites lapse (user edits back).
+   *
+   * @param {HTMLFormElement} form
+   * @param {HTMLDetailsElement|null} detailsEl
+   * @param {boolean} chainOk
+   * @param {boolean} intentOpen
+   */
+  function melProgressiveCollapseAutoOpen(form, detailsEl, chainOk, intentOpen) {
+    if (!form || !detailsEl || detailsEl.tagName !== 'DETAILS') {
+      return;
+    }
+    var mk = 'data-mel-progressive-chain-opened';
+    if (!chainOk) {
+      detailsEl.removeAttribute(mk);
+      return;
+    }
+    if (!intentOpen) {
+      return;
+    }
+    if (!detailsEl.getAttribute(mk)) {
+      detailsEl.open = true;
+      detailsEl.setAttribute(mk, '1');
+    }
+  }
+
+  /** @param {HTMLFormElement} form */
+  function melSyncProgressiveCollapseChain(form) {
+    var ticketOk = isStepComplete('tickets', form);
+    var descriptionOk = melDescriptionSectorSatisfied(form);
+    var attendeeBusy = melAttendeeSectorBusy(form);
+
+    var descSlot = form.querySelector('#mel-progressive-description');
+    var attSlot = form.querySelector('#mel-progressive-attendee');
+    var advSlot = form.querySelector('#mel-builder-more-options');
+
+    melProgressiveCollapseAutoOpen(form, descSlot, ticketOk, ticketOk);
+    melProgressiveCollapseAutoOpen(form, attSlot, ticketOk && descriptionOk, descriptionOk);
+    melProgressiveCollapseAutoOpen(
+      form,
+      advSlot,
+      ticketOk && descriptionOk && attendeeBusy,
+      attendeeBusy,
+    );
+  }
+
+  /**
+   * Builder root for focus-mode styling (toggle .mel-builder--focus-mode).
+   *
+   * @param {HTMLFormElement} form
+   * @return {HTMLElement|null}
+   */
+  function melGetBuilderShell(form) {
+    return form && form.querySelector ? form.querySelector('[data-mel-builder="1"]') : null;
+  }
+
+  /**
+   * Sections that act as stacked builder cards inside a wizard step.
+   *
+   * @param {HTMLElement} stepEl
+   * @return {HTMLElement[]}
+   */
+  function melCardsInWizardStep(stepEl) {
+    if (!stepEl || !stepEl.querySelectorAll) {
+      return [];
+    }
+    return Array.prototype.slice.call(stepEl.querySelectorAll('section.mel-builder-card'));
+  }
+
+  /**
+   * Prefer the card hosting the visible focus ring; fallback to viewport center.
+   *
+   * @param {HTMLElement} stepEl
+   * @param {HTMLFormElement} form
+   * @return {HTMLElement|null}
+   */
+  function melResolveFocusedBuilderCardInStep(stepEl, form) {
+    var candidates = melCardsInWizardStep(stepEl);
+    if (!candidates.length) {
+      return null;
+    }
+
+    try {
+      var ae = document.activeElement;
+      if (
+        ae &&
+        ae !== document.body &&
+        form.contains(ae) &&
+        typeof ae.closest === 'function'
+      ) {
+        var focusHost = ae.closest('section.mel-builder-card');
+        if (focusHost && stepEl.contains(focusHost)) {
+          return focusHost;
+        }
+      }
+    } catch (eFocus) {}
+
+    var centerY = typeof window.innerHeight === 'number' ? window.innerHeight * 0.5 : 0;
+    var best = candidates[0];
+    var bestDist = Infinity;
+    candidates.forEach(function (card) {
+      try {
+        var r = card.getBoundingClientRect();
+        var mid = (r.top + r.bottom) / 2;
+        var d = Math.abs(mid - centerY);
+        if (d < bestDist) {
+          bestDist = d;
+          best = card;
+        }
+      } catch (eGeom) {}
+    });
+    return best || null;
+  }
+
+  /** @param {HTMLFormElement} form */
+  function melRequestBuilderCardActiveSync(form) {
+    if (!form) {
+      return;
+    }
+    var pending = melBuilderCardFocusRafIds.get(form);
+    if (
+      pending !== undefined &&
+      typeof pending === 'number' &&
+      typeof window.cancelAnimationFrame === 'function'
+    ) {
+      window.cancelAnimationFrame(pending);
+    }
+    if (typeof window.requestAnimationFrame !== 'function') {
+      melSyncBuilderCardActiveState(form, getWizardStepIndex(form));
+      return;
+    }
+    var rid = window.requestAnimationFrame(function () {
+      melBuilderCardFocusRafIds.delete(form);
+      melSyncBuilderCardActiveState(form, getWizardStepIndex(form));
+    });
+    melBuilderCardFocusRafIds.set(form, rid);
+  }
+
+  /**
+   * Single focused builder card inside the wizard step (+ focus-mode on root shell).
+   *
+   * @param {HTMLFormElement} form
+   * @param {number} activeIndex
+   */
+  function melSyncBuilderCardActiveState(form, activeIndex) {
+    if (!form) {
+      return;
+    }
+    form.querySelectorAll('.mel-builder-card').forEach(function (card) {
+      card.classList.remove('is-active');
+    });
+
+    var root = melGetBuilderShell(form);
+    if (root) {
+      root.classList.remove('mel-builder--focus-mode');
+    }
+
+    if (activeIndex < 0 || activeIndex >= MEL_STEPS.length) {
+      return;
+    }
+
+    var stepEl = document.getElementById('mel-step-' + MEL_STEPS[activeIndex].id);
+    if (!stepEl) {
+      return;
+    }
+
+    var focused = melResolveFocusedBuilderCardInStep(stepEl, form);
+    if (focused && root) {
+      focused.classList.add('is-active');
+      root.classList.add('mel-builder--focus-mode');
+    }
+  }
+
+  /**
+   * All primary builder sections satisfied (published nodes excluded).
+   *
+   * @param {HTMLFormElement} form
+   * @return {boolean}
+   */
+  function melPublishCardSectionsAllReady(form) {
+    if (!form) {
+      return false;
+    }
+    var initialPub = getSettings().initial || {};
+    if (initialPub && initialPub.published) {
+      return false;
+    }
+    return (
+      titleCompleteForBuilderBadge(form) &&
+      scheduleCompleteForBuilderBadge(form) &&
+      isStepComplete('tickets', form) &&
+      standoutCompleteForBuilderBadge(form) &&
+      attendeeCompleteForBuilderBadge(form)
+    );
+  }
+
+  /** @param {HTMLFormElement} form */
+  function melSyncPublishCardReadyState(form) {
+    var pubCard = form.querySelector('#mel-card-publish');
+    if (!pubCard) {
+      return;
+    }
+    var celebrate = pubCard.querySelector('[data-mel-publish-ready-celebrate]');
+    var canPublishUi = !!form.querySelector('#mel-publish-now');
+    var ready = melPublishCardSectionsAllReady(form) && canPublishUi;
+    pubCard.classList.toggle('is-ready', ready);
+    if (celebrate) {
+      celebrate.hidden = !ready;
+    }
+  }
+
+  function melSyncBuilderCardCompletionBadges(form) {
+    if (!form) {
+      return;
+    }
+    var momentumByKey = {
+      'identity-title': Drupal.t('Nice — this looks great ✨'),
+      schedule: Drupal.t('Nice — this looks great ✨'),
+      tickets: Drupal.t('Awesome — people can now book your event 🎉'),
+      standout: Drupal.t('Your listing is starting to shine ✨'),
+      attendee: Drupal.t('Attendee checkout questions look good ✓'),
+      'pre-publish': Drupal.t("You're almost ready to go live 🚀"),
+    };
+    /** Keys that show the DOM-order "Continue" hint after the momentum message. */
+    var nextStepHintKeys = {
+      'identity-title': true,
+      schedule: true,
+      tickets: true,
+      standout: true,
+      attendee: true,
+    };
+    /** @type {HTMLElement|null} */
+    var pendingCompletionScrollCard = null;
+    form.querySelectorAll('[data-mel-track-complete]').forEach(function (card) {
+      var key = card.getAttribute('data-mel-track-complete');
+      var badge = card.querySelector('[data-mel-builder-complete-msg]');
+      var doneBadge = card.querySelector('[data-mel-builder-done-badge]');
+      if (!badge) {
+        return;
+      }
+      var done = false;
+      if (key === 'identity-title') {
+        done = titleCompleteForBuilderBadge(form);
+      } else if (key === 'schedule') {
+        done = scheduleCompleteForBuilderBadge(form);
+      } else if (key === 'tickets') {
+        done = isStepComplete('tickets', form);
+      } else if (key === 'standout') {
+        done = standoutCompleteForBuilderBadge(form);
+      } else if (key === 'attendee') {
+        done = attendeeCompleteForBuilderBadge(form);
+      } else if (key === 'pre-publish') {
+        var initialPub = getSettings().initial || {};
+        var alreadyLive = !!initialPub.published;
+        done =
+          !alreadyLive &&
+          isStepComplete('identity', form) &&
+          isStepComplete('tickets', form);
+      }
+      var momentumText = momentumByKey[key];
+      badge.textContent = done && momentumText ? momentumText : '';
+      badge.hidden = !(done && momentumText);
+
+      var footer = badge.closest('.mel-builder-card__footer');
+      var allowNextHint = !!nextStepHintKeys[key];
+      var nextCardEl = allowNextHint ? melNextPrimaryFlowBuilderCard(form, card) : null;
+      var heading = nextCardEl ? melBuilderCardHintHeading(nextCardEl) : null;
+      var hintLineText = '';
+      if (heading) {
+        var titleForHint = (heading.innerText || '').trim();
+        if (titleForHint) {
+          hintLineText = Drupal.t('Next: @title', {
+            '@title': titleForHint
+          });
+        }
+      }
+      var nextBlock = footer ? footer.querySelector('[data-mel-builder-next-step-block]') : null;
+      var showNext = !!(done && momentumText && footer && allowNextHint && nextCardEl && hintLineText);
+
+      if (footer && allowNextHint && !nextBlock) {
+        nextBlock = document.createElement('div');
+        nextBlock.className = 'mel-builder-card__next-step';
+        nextBlock.setAttribute('data-mel-builder-next-step-block', '');
+        nextBlock.hidden = true;
+        var hintEl = document.createElement('p');
+        hintEl.className = 'mel-builder-card__next-hint';
+        var hintId = 'mel-next-hint-' + String(key).replace(/[^a-z0-9-]+/gi, '-');
+        hintEl.id = hintId;
+        var btnEl = document.createElement('button');
+        btnEl.type = 'button';
+        btnEl.className = 'mel-next-step-btn';
+        btnEl.textContent = Drupal.t('Continue →');
+        btnEl.setAttribute('aria-describedby', hintId);
+        nextBlock.appendChild(hintEl);
+        nextBlock.appendChild(btnEl);
+        footer.appendChild(nextBlock);
+      }
+
+      if (nextBlock) {
+        var hintLine = nextBlock.querySelector('.mel-builder-card__next-hint');
+        var nextBtn = nextBlock.querySelector('.mel-next-step-btn');
+        if (showNext && hintLine && nextBtn) {
+          hintLine.textContent = hintLineText;
+          nextBlock.hidden = false;
+        } else {
+          nextBlock.hidden = true;
+        }
+      }
+
+      var wasComplete = card.dataset.wasComplete === 'true';
+      var isComplete = done;
+      if (!wasComplete && isComplete && nextStepHintKeys[key]) {
+        var nextAfterComplete = melNextPrimaryFlowBuilderCard(form, card);
+        if (nextAfterComplete) {
+          melSetActiveBuilderCard(form, nextAfterComplete);
+          pendingCompletionScrollCard = nextAfterComplete;
+        }
+      }
+      card.dataset.wasComplete = isComplete ? 'true' : 'false';
+
+      if (done) {
+        card.classList.add('is-complete');
+        if (doneBadge) {
+          doneBadge.hidden = key === 'pre-publish';
+        }
+      } else {
+        card.classList.remove('is-complete');
+        if (doneBadge) {
+          doneBadge.hidden = true;
+        }
+      }
+    });
+    melSyncPublishCardReadyState(form);
+    melApplyBuilderCardCollapseState(form);
+    if (pendingCompletionScrollCard && form) {
+      var scrollTargetCard = pendingCompletionScrollCard;
+      window.setTimeout(function () {
+        melScrollToBuilderCard(form, scrollTargetCard);
+      }, 0);
+    }
+  }
+
   function scrollToStudioSection(form, index) {
     if (index < 0 || index >= MEL_STEPS.length) {
       return;
@@ -2397,10 +3269,30 @@
       alert(Drupal.t('Complete required fields before continuing.'));
       return;
     }
+    form.querySelectorAll('.mel-builder-card--expanded-edit').forEach(function (node) {
+      node.classList.remove('mel-builder-card--expanded-edit');
+    });
     if (stepIdx >= MEL_STEPS.length - 1) {
       return;
     }
-    scrollToStudioSection(form, stepIdx + 1);
+    var nextIdx = stepIdx + 1;
+    scrollToStudioSection(form, nextIdx);
+    var nextStepEl = document.getElementById('mel-step-' + MEL_STEPS[nextIdx].id);
+    var targetCard = null;
+    if (nextStepEl) {
+      var stepCards = nextStepEl.querySelectorAll('.mel-builder-card');
+      for (var ci = 0; ci < stepCards.length; ci++) {
+        if (melIsBuilderCardDomVisible(form, stepCards[ci])) {
+          targetCard = stepCards[ci];
+          break;
+        }
+      }
+    }
+    if (targetCard) {
+      melSetActiveBuilderCard(form, targetCard);
+      melScrollToBuilderCard(form, targetCard);
+    }
+    melApplyBuilderCardCollapseState(form);
   }
 
   function initMelWizard(form) {
@@ -2431,6 +3323,7 @@
         if (idx >= 0) {
           setWizardNavActive(form, idx);
           setWizardStepIndex(form, idx);
+          melApplyBuilderCardCollapseState(form);
         }
       });
     });
@@ -2438,6 +3331,16 @@
     form.addEventListener(
       'click',
       function (e) {
+        var summaryStrip = e.target.closest('.mel-builder-card__summary');
+        if (summaryStrip && form.contains(summaryStrip)) {
+          var card = summaryStrip.closest('.mel-builder-card');
+          if (card && form.contains(card)) {
+            e.preventDefault();
+            melSetActiveBuilderCard(form, card);
+          }
+          return;
+        }
+
         var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card');
         if (jumpPrev && form.contains(jumpPrev)) {
           e.preventDefault();
@@ -2477,6 +3380,7 @@
         var stepIdx = getWizardStepIndex(form);
         if (stepIdx > 0) {
           scrollToStudioSection(form, stepIdx - 1);
+          melApplyBuilderCardCollapseState(form);
         }
       },
       false,
@@ -2498,8 +3402,12 @@
               }
             }
             if (idx >= 0 && entry.intersectionRatio >= 0.1) {
+              var prevStep = getWizardStepIndex(form);
               setWizardNavActive(form, idx);
               setWizardStepIndex(form, idx);
+              if (prevStep !== idx) {
+                melApplyBuilderCardCollapseState(form);
+              }
             }
           });
         },
@@ -2508,6 +3416,22 @@
       steps.forEach(function (s) {
         io.observe(s);
       });
+    }
+
+    if (!form.dataset.melBuilderFocusSyncUiBound) {
+      form.dataset.melBuilderFocusSyncUiBound = '1';
+      var syncCardsOnViewport = function () {
+        melRequestBuilderCardActiveSync(form);
+      };
+      window.addEventListener('scroll', syncCardsOnViewport, { passive: true, capture: true });
+      window.addEventListener('resize', syncCardsOnViewport, false);
+      form.addEventListener(
+        'focusin',
+        function () {
+          melSyncBuilderCardActiveState(form, getWizardStepIndex(form));
+        },
+        true,
+      );
     }
   }
 
@@ -2959,6 +3883,8 @@
 
     syncCollectHiddenFromAttendees(form);
     melProgressiveRevealBuilder(form);
+    melSyncProgressiveCollapseChain(form);
+    melSyncBuilderCardCompletionBadges(form);
 
     scheduleApplyLivePreview(form, debouncePreview);
   }
@@ -2990,10 +3916,11 @@
     var str = getSettings().strings || {};
     syncTicketSummary(form, str);
     melProgressiveRevealBuilder(form);
+    melMaybeOpenAttendeeDetails(form, rows.length > 0);
+    melSyncProgressiveCollapseChain(form);
     updateInsightsChecklist(form);
     melUpdateNextBest(form);
     updateFooterCtaState(form);
-    melMaybeOpenAttendeeDetails(form, rows.length > 0);
     if (rerender) {
       renderAttendeeQuestionRows(form);
     }
@@ -3009,54 +3936,237 @@
   }
 
   function melMaybeOpenAttendeeDetails(form, shouldOpen) {
+    if (!shouldOpen) {
+      return;
+    }
+    var shell = form.querySelector('#mel-progressive-attendee');
+    if (shell && shell.tagName === 'DETAILS') {
+      shell.open = true;
+    }
     var det = form.querySelector('#mel-attendee-questions-details');
     if (!det || det.tagName !== 'DETAILS') {
       return;
     }
-    if (shouldOpen) {
-      det.open = true;
+    det.open = true;
+  }
+
+  /** Legacy reveal class removal (progressive collapse uses <details> instead of display:none gates). */
+  function melProgressiveRevealBuilder(form) {
+    try {
+      form.querySelectorAll('.mel-builder-reveal--hidden').forEach(function (el) {
+        el.classList.remove('mel-builder-reveal--hidden');
+        el.removeAttribute('aria-hidden');
+      });
+    } catch (errReveal) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('MelEventStudio: progressive reveal cleanup fallback.', errReveal);
+      }
     }
   }
 
-  function melProgressiveRevealBuilder(form) {
-    var identityComplete = isStepComplete('identity', form);
+  function attendeeStudioTypeNeedsOptions(type) {
+    type = String(type || '').trim();
+    return type === 'select' || type === 'checkboxes' || type === 'radios';
+  }
 
-    var descEl = form.querySelector('[data-mel-reveal-section="mel-description"]');
-    var advEl = form.querySelector('[data-mel-reveal-section="mel-advanced"]');
-    var ticketsEl = form.querySelector('[data-mel-reveal-section="tickets"]');
-    var attendeeEl = form.querySelector('[data-mel-reveal-section="attendee"]');
+  function melAttendeeNormalizeType(type) {
+    type = String(type || '').trim();
+    var aliases = {
+      text: 'textfield',
+      checkbox: 'checkboxes',
+      radio: 'radios',
+    };
+    return aliases[type] || type || 'textfield';
+  }
 
-    function setRevealHidden(el, hide) {
-      if (!el) {
+  function collectAttendeeQuestionsFromDom(form) {
+    var host = form.querySelector('[data-mel-attendee-question-list="1"]');
+    if (!host) {
+      return [];
+    }
+    var prev = parseAttendeeQuestionsState(form);
+    var rows = [];
+    var pi = 0;
+    host.querySelectorAll(':scope > .mel-attendee-row').forEach(function (wrap) {
+      var old = prev[pi] || {};
+      pi += 1;
+      if (wrap.querySelector('.mel-attendee-row__lib')) {
+        var vid = parseInt(wrap.getAttribute('data-mel-attendee-vendor-qid') || '0', 10);
+        if (!isNaN(vid) && vid > 0) {
+          rows.push({ vendor_question_id: vid });
+        }
         return;
       }
-      el.classList.toggle('mel-builder-reveal--hidden', !!hide);
-      el.setAttribute('aria-hidden', hide ? 'true' : 'false');
-    }
-
-    var suppressProgressive = !identityComplete;
-    try {
-      setRevealHidden(descEl, suppressProgressive);
-      setRevealHidden(advEl, suppressProgressive);
-    } catch (errReveal) {
-      setRevealHidden(descEl, false);
-      setRevealHidden(advEl, false);
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn('MelEventStudio: progressive reveal fallback.', errReveal);
+      var labelInp = wrap.querySelector('.mel-attendee-label');
+      var typeSel = wrap.querySelector('.mel-attendee-type');
+      var req = wrap.querySelector('.mel-attendee-required');
+      var libSave = wrap.querySelector('.mel-attendee-save-lib');
+      var label = labelInp ? String(labelInp.value || '').trim() : '';
+      var type = typeSel ? melAttendeeNormalizeType(typeSel.value) : 'textfield';
+      var opts = [];
+      if (attendeeStudioTypeNeedsOptions(type)) {
+        wrap.querySelectorAll('.mel-attendee-option-input').forEach(function (inp) {
+          var t = String(inp.value || '').trim();
+          if (t !== '') {
+            opts.push(t);
+          }
+        });
       }
-    }
-
-    // Tickets, attendee questions, donations, and listing extras stay visible — no identity gate.
-    setRevealHidden(ticketsEl, false);
-    setRevealHidden(attendeeEl, false);
-
-    [ticketsEl, attendeeEl].forEach(function (el) {
-      if (!el || !el.classList.contains('mel-builder-reveal--hidden')) {
-        return;
+      var row = {
+        label: label,
+        type: type,
+        required: req ? !!req.checked : false,
+        save_to_library: libSave ? !!libSave.checked : false,
+      };
+      if (opts.length) {
+        row.options = opts;
       }
-      el.classList.remove('mel-builder-reveal--hidden');
-      el.setAttribute('aria-hidden', 'false');
+      if (old.machine_name) {
+        row.machine_name = old.machine_name;
+      }
+      rows.push(row);
     });
+    return rows;
+  }
+
+  function melAttendeePreviewHtml(label, type, options) {
+    var lab = String(label || '').trim();
+    var opts = Array.isArray(options)
+      ? options.filter(function (x) {
+          return String(x || '').trim() !== '';
+        })
+      : [];
+    var esc = Drupal.checkPlain;
+    if (!lab && opts.length === 0) {
+      return (
+        '<p class="mel-attendee-preview__empty">' +
+        esc(Drupal.t('Preview appears as you add details.')) +
+        '</p>'
+      );
+    }
+    var head = lab ? '<p class="mel-attendee-preview__label">' + esc(lab) + '</p>' : '';
+    type = melAttendeeNormalizeType(type);
+    if (type === 'checkboxes') {
+      var cb = opts
+        .map(function (o) {
+          return (
+            '<label class="mel-attendee-preview__pick"><input type="checkbox" disabled /> <span>' +
+            esc(o) +
+            '</span></label>'
+          );
+        })
+        .join('');
+      return '<div class="mel-attendee-preview mel-attendee-preview--checkboxes">' + head + cb + '</div>';
+    }
+    if (type === 'radios') {
+      var nm = 'mel-att-prev-' + String(Math.random()).slice(2);
+      var rd = opts
+        .map(function (o) {
+          return (
+            '<label class="mel-attendee-preview__pick"><input type="radio" disabled name="' +
+            nm +
+            '" /> <span>' +
+            esc(o) +
+            '</span></label>'
+          );
+        })
+        .join('');
+      return '<div class="mel-attendee-preview mel-attendee-preview--radios">' + head + rd + '</div>';
+    }
+    if (type === 'select') {
+      var inner = '<option value="">' + esc(Drupal.t('Choose…')) + '</option>';
+      opts.forEach(function (o) {
+        inner += '<option>' + esc(o) + '</option>';
+      });
+      return (
+        '<div class="mel-attendee-preview mel-attendee-preview--select">' +
+        head +
+        '<select class="mel-input" disabled="disabled">' +
+        inner +
+        '</select></div>'
+      );
+    }
+    if (type === 'textarea') {
+      return (
+        '<div class="mel-attendee-preview mel-attendee-preview--textarea">' +
+        head +
+        '<textarea class="mel-input" disabled rows="2" placeholder="' +
+        esc(Drupal.t('Long answer')) +
+        '"></textarea></div>'
+      );
+    }
+    return (
+      '<div class="mel-attendee-preview mel-attendee-preview--text">' +
+      head +
+      '<input type="text" class="mel-input" disabled placeholder="' +
+      esc(Drupal.t('Short answer')) +
+      '" /></div>'
+    );
+  }
+
+  function refreshAttendeeRowPreview(wrap) {
+    var box = wrap.querySelector('[data-mel-attendee-preview="1"]');
+    if (!box) {
+      return;
+    }
+    var labelInp = wrap.querySelector('.mel-attendee-label');
+    var typeSel = wrap.querySelector('.mel-attendee-type');
+    var label = labelInp ? String(labelInp.value || '').trim() : '';
+    var type = typeSel ? melAttendeeNormalizeType(typeSel.value) : 'textfield';
+    var opts = [];
+    if (attendeeStudioTypeNeedsOptions(type)) {
+      wrap.querySelectorAll('.mel-attendee-option-input').forEach(function (inp) {
+        var t = String(inp.value || '').trim();
+        if (t !== '') {
+          opts.push(t);
+        }
+      });
+    }
+    box.innerHTML = melAttendeePreviewHtml(label, type, opts);
+  }
+
+  function toggleAttendeeOptionsUi(wrap, typeRaw) {
+    var shell = wrap.querySelector('[data-mel-attendee-options-shell="1"]');
+    if (!shell) {
+      return;
+    }
+    var show = attendeeStudioTypeNeedsOptions(melAttendeeNormalizeType(typeRaw));
+    shell.hidden = !show;
+    shell.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+
+  function melAttendeeTypeSelectOptions(selectedRaw) {
+    var selected = melAttendeeNormalizeType(selectedRaw);
+    var pairs = [
+      ['textfield', Drupal.t('Short answer')],
+      ['textarea', Drupal.t('Long answer')],
+      ['select', Drupal.t('Dropdown')],
+      ['checkboxes', Drupal.t('Checkboxes')],
+      ['radios', Drupal.t('Multiple choice')],
+      ['email', Drupal.t('Email')],
+      ['tel', Drupal.t('Phone number')],
+    ];
+    var html = '';
+    var i;
+    for (i = 0; i < pairs.length; i++) {
+      var v = pairs[i][0];
+      var sel = v === selected ? ' selected' : '';
+      html +=
+        '<option value="' +
+        Drupal.checkPlain(v) +
+        '"' +
+        sel +
+        '>' +
+        Drupal.checkPlain(pairs[i][1]) +
+        '</option>';
+    }
+    return html;
+  }
+
+  function patchAttendeeRowState(form, wrap) {
+    var rows = collectAttendeeQuestionsFromDom(form);
+    writeAttendeeQuestionsState(form, rows, false);
+    refreshAttendeeRowPreview(wrap);
   }
 
   function renderAttendeeQuestionRows(form) {
@@ -3073,6 +4183,7 @@
       wrap.setAttribute('data-mel-attendee-row-idx', String(idx));
 
       if (row.vendor_question_id) {
+        wrap.setAttribute('data-mel-attendee-vendor-qid', String(row.vendor_question_id));
         var lib = null;
         var libList = getSettings().vendorQuestionLibrary || [];
         for (var qi = 0; qi < libList.length; qi++) {
@@ -3089,40 +4200,153 @@
           '">' +
           Drupal.t('Remove') +
           '</button></p>';
-      } else {
-        var req = row.required ? ' checked' : '';
-        var libSave = row.save_to_library ? ' checked' : '';
-        wrap.innerHTML =
-          '<div class="mel-form-grid mel-attendee-row__grid">' +
-          '<label class="form-item"><span class="form-item__label">' +
-          Drupal.t('Question') +
-          '</span><input type="text" class="mel-input mel-attendee-label" data-idx="' +
-          String(idx) +
-          '" value="' +
-          Drupal.checkPlain(row.label || '') +
-          '" /></label>' +
-          '<label class="form-item"><span class="form-item__label">' +
-          Drupal.t('Save to library') +
-          '</span><input type="checkbox" class="mel-attendee-save-lib" data-idx="' +
-          String(idx) +
-          '"' +
-          libSave +
-          ' /></label>' +
-          '</div>' +
-          '<label class="form-item"><input type="checkbox" class="mel-attendee-required" data-idx="' +
-          String(idx) +
-          '"' +
-          req +
-          ' /> ' +
-          Drupal.t('Required') +
-          '</label>' +
-          '<button type="button" class="mel-btn mel-btn--ghost mel-attendee-remove" data-mel-attendee-remove="' +
-          String(idx) +
-          '">' +
-          Drupal.t('Remove') +
-          '</button>';
+        host.appendChild(wrap);
+        return;
       }
+
+      var qId = 'mel-attendee-q-' + String(idx);
+      var typeId = 'mel-attendee-type-' + String(idx);
+      var libId = 'mel-attendee-lib-' + String(idx);
+      var reqId = 'mel-attendee-req-' + String(idx);
+      var prevId = 'mel-attendee-preview-' + String(idx);
+
+      var primary = document.createElement('div');
+      primary.className = 'mel-attendee-row__primary';
+
+      var qWell = document.createElement('div');
+      qWell.className = 'js-form-item form-item mel-builder-field-well';
+      var qLab = document.createElement('label');
+      qLab.setAttribute('for', qId);
+      qLab.className = 'form-item__label';
+      qLab.textContent = Drupal.t('Question');
+      var qInp = document.createElement('input');
+      qInp.type = 'text';
+      qInp.id = qId;
+      qInp.className = 'mel-input mel-attendee-label';
+      qInp.setAttribute('data-idx', String(idx));
+      qInp.value = row.label || '';
+      qWell.appendChild(qLab);
+      qWell.appendChild(qInp);
+
+      var typeWell = document.createElement('div');
+      typeWell.className = 'js-form-item form-item mel-builder-field-well';
+      var typeLab = document.createElement('label');
+      typeLab.setAttribute('for', typeId);
+      typeLab.className = 'form-item__label';
+      typeLab.textContent = Drupal.t('Answer type');
+      var typeSel = document.createElement('select');
+      typeSel.id = typeId;
+      typeSel.className = 'mel-input mel-attendee-type';
+      typeSel.setAttribute('data-idx', String(idx));
+      typeSel.innerHTML = melAttendeeTypeSelectOptions(row.type || 'textfield');
+      typeWell.appendChild(typeLab);
+      typeWell.appendChild(typeSel);
+
+      var optShell = document.createElement('div');
+      optShell.className = 'mel-attendee-options-shell mel-builder-field-well';
+      optShell.setAttribute('data-mel-attendee-options-shell', '1');
+      var normType = melAttendeeNormalizeType(row.type || 'textfield');
+      var needsOpt = attendeeStudioTypeNeedsOptions(normType);
+      optShell.hidden = !needsOpt;
+      optShell.setAttribute('aria-hidden', needsOpt ? 'false' : 'true');
+
+      var optLab = document.createElement('label');
+      optLab.className = 'form-item__label';
+      optLab.textContent = Drupal.t('Choices');
+      optShell.appendChild(optLab);
+
+      var optList = document.createElement('div');
+      optList.className = 'mel-attendee-option-list';
+      optList.setAttribute('data-mel-attendee-option-list', '1');
+      var optLines = Array.isArray(row.options) && row.options.length ? row.options : [''];
+      optLines.forEach(function (lineText) {
+        var lineWrap = document.createElement('div');
+        lineWrap.className = 'mel-attendee-option-line';
+        var oi = document.createElement('input');
+        oi.type = 'text';
+        oi.className = 'mel-input mel-attendee-option-input';
+        oi.value = lineText;
+        lineWrap.appendChild(oi);
+        optList.appendChild(lineWrap);
+      });
+      optShell.appendChild(optList);
+
+      var addOptBtn = document.createElement('button');
+      addOptBtn.type = 'button';
+      addOptBtn.className = 'mel-btn mel-btn--secondary mel-attendee-add-option';
+      addOptBtn.textContent = Drupal.t('Add choice');
+      optShell.appendChild(addOptBtn);
+
+      var cards = document.createElement('div');
+      cards.className = 'mel-option-cards mel-option-cards--attendee-inline';
+      cards.innerHTML =
+        '<div class="mel-option-card">' +
+        '<input type="checkbox" id="' +
+        libId +
+        '" class="form-checkbox mel-attendee-save-lib" data-idx="' +
+        String(idx) +
+        '"' +
+        (row.save_to_library ? ' checked' : '') +
+        ' />' +
+        '<div class="mel-option-card__content">' +
+        '<label class="mel-option-card__label" for="' +
+        libId +
+        '"><strong>' +
+        Drupal.t('Save to library') +
+        '</strong></label>' +
+        '<p class="mel-option-card__desc">' +
+        Drupal.t('Keep this wording in your organizer library for reuse.') +
+        '</p>' +
+        '</div></div>' +
+        '<div class="mel-option-card">' +
+        '<input type="checkbox" id="' +
+        reqId +
+        '" class="form-checkbox mel-attendee-required" data-idx="' +
+        String(idx) +
+        '"' +
+        (row.required ? ' checked' : '') +
+        ' />' +
+        '<div class="mel-option-card__content">' +
+        '<label class="mel-option-card__label" for="' +
+        reqId +
+        '"><strong>' +
+        Drupal.t('Required') +
+        '</strong></label>' +
+        '<p class="mel-option-card__desc">' +
+        Drupal.t('Guests must answer before completing checkout or RSVP.') +
+        '</p>' +
+        '</div></div>';
+
+      var previewWell = document.createElement('div');
+      previewWell.className = 'mel-builder-field-well mel-attendee-preview-well';
+      var prevLab = document.createElement('label');
+      prevLab.className = 'form-item__label';
+      prevLab.setAttribute('for', prevId);
+      prevLab.textContent = Drupal.t('Guest preview');
+      var prevBox = document.createElement('div');
+      prevBox.id = prevId;
+      prevBox.className = 'mel-attendee-preview-host';
+      prevBox.setAttribute('data-mel-attendee-preview', '1');
+
+      previewWell.appendChild(prevLab);
+      previewWell.appendChild(prevBox);
+
+      primary.appendChild(qWell);
+      primary.appendChild(typeWell);
+      primary.appendChild(optShell);
+      primary.appendChild(cards);
+      primary.appendChild(previewWell);
+
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'mel-btn mel-btn--ghost mel-attendee-remove';
+      rm.setAttribute('data-mel-attendee-remove', String(idx));
+      rm.textContent = Drupal.t('Remove');
+
+      wrap.appendChild(primary);
+      wrap.appendChild(rm);
       host.appendChild(wrap);
+      refreshAttendeeRowPreview(wrap);
     });
   }
 
@@ -3235,6 +4459,28 @@
           melAttendeeAddFromLibrary(form);
           return;
         }
+        var addOpt = e.target.closest('.mel-attendee-add-option');
+        if (addOpt && form.contains(addOpt)) {
+          e.preventDefault();
+          var wrapOpt = addOpt.closest('.mel-attendee-row');
+          if (!wrapOpt) {
+            return;
+          }
+          var list = wrapOpt.querySelector('[data-mel-attendee-option-list="1"]');
+          if (!list) {
+            return;
+          }
+          var lineWrap = document.createElement('div');
+          lineWrap.className = 'mel-attendee-option-line';
+          var oi = document.createElement('input');
+          oi.type = 'text';
+          oi.className = 'mel-input mel-attendee-option-input';
+          lineWrap.appendChild(oi);
+          list.appendChild(lineWrap);
+          patchAttendeeRowState(form, wrapOpt);
+          oi.focus();
+          return;
+        }
         var rm = e.target.closest('[data-mel-attendee-remove]');
         if (rm && form.contains(rm)) {
           e.preventDefault();
@@ -3250,13 +4496,16 @@
       form.addEventListener(
         'input',
         function (e) {
-          if (e.target.classList && e.target.classList.contains('mel-attendee-label')) {
-            var idx = parseInt(e.target.getAttribute('data-idx'), 10);
-            var rows = parseAttendeeQuestionsState(form);
-            if (!isNaN(idx) && rows[idx]) {
-              rows[idx].label = e.target.value;
-              writeAttendeeQuestionsState(form, rows, false);
-            }
+          var wrapIn = e.target.closest('.mel-attendee-row');
+          if (!wrapIn || !form.contains(wrapIn) || wrapIn.querySelector('.mel-attendee-row__lib')) {
+            return;
+          }
+          if (
+            e.target.classList &&
+            (e.target.classList.contains('mel-attendee-label') ||
+              e.target.classList.contains('mel-attendee-option-input'))
+          ) {
+            patchAttendeeRowState(form, wrapIn);
           }
         },
         true,
@@ -3265,22 +4514,20 @@
       form.addEventListener(
         'change',
         function (e) {
-          var idx;
-          if (e.target.classList && e.target.classList.contains('mel-attendee-required')) {
-            idx = parseInt(e.target.getAttribute('data-idx'), 10);
-            var rows2 = parseAttendeeQuestionsState(form);
-            if (!isNaN(idx) && rows2[idx]) {
-              rows2[idx].required = !!e.target.checked;
-              writeAttendeeQuestionsState(form, rows2, false);
-            }
+          var wrapCh = e.target.closest('.mel-attendee-row');
+          if (!wrapCh || !form.contains(wrapCh) || wrapCh.querySelector('.mel-attendee-row__lib')) {
+            return;
           }
-          if (e.target.classList && e.target.classList.contains('mel-attendee-save-lib')) {
-            idx = parseInt(e.target.getAttribute('data-idx'), 10);
-            var rows3 = parseAttendeeQuestionsState(form);
-            if (!isNaN(idx) && rows3[idx]) {
-              rows3[idx].save_to_library = !!e.target.checked;
-              writeAttendeeQuestionsState(form, rows3, false);
-            }
+          if (e.target.classList && e.target.classList.contains('mel-attendee-type')) {
+            toggleAttendeeOptionsUi(wrapCh, e.target.value);
+          }
+          if (
+            e.target.classList &&
+            (e.target.classList.contains('mel-attendee-required') ||
+              e.target.classList.contains('mel-attendee-save-lib') ||
+              e.target.classList.contains('mel-attendee-type'))
+          ) {
+            patchAttendeeRowState(form, wrapCh);
           }
         },
         true,
@@ -3324,6 +4571,28 @@
         bindCoverFilePreview(form);
         initMelWizard(form);
         initPreviewDrawer(form);
+
+        if (!form.dataset.melNextStepBtnBound) {
+          form.dataset.melNextStepBtnBound = '1';
+          form.addEventListener(
+            'click',
+            function (e) {
+              var nextBtn = e.target.closest('.mel-next-step-btn');
+              if (!nextBtn || !form.contains(nextBtn)) {
+                return;
+              }
+              var currentCard = nextBtn.closest('.mel-builder-card');
+              var targetCard = melNextPrimaryFlowBuilderCard(form, currentCard);
+              if (!targetCard || !form.contains(targetCard)) {
+                return;
+              }
+              e.preventDefault();
+              melSetActiveBuilderCard(form, targetCard);
+              melScrollToBuilderCard(form, targetCard);
+            },
+            false,
+          );
+        }
 
         if (!form.dataset.melPublishCardBound) {
           form.dataset.melPublishCardBound = '1';
@@ -3389,6 +4658,62 @@
               }
             });
           }
+        }
+
+        if (!form.dataset.melBuilderValidationUiBound) {
+          form.dataset.melBuilderValidationUiBound = '1';
+          form.addEventListener(
+            'invalid',
+            function (e) {
+              var t = e.target;
+              if (!form.contains(t) || !t.closest) {
+                return;
+              }
+              var fi = t.closest('.form-item, .js-form-item');
+              if (fi) {
+                fi.classList.add('mel-builder-invalid');
+              }
+            },
+            true,
+          );
+          form.addEventListener(
+            'input',
+            function (e) {
+              var t = e.target;
+              if (!t.closest) {
+                return;
+              }
+              var fi = t.closest('.form-item.mel-builder-invalid, .js-form-item.mel-builder-invalid');
+              if (fi && form.contains(fi)) {
+                fi.classList.remove('mel-builder-invalid');
+              }
+            },
+            true,
+          );
+        }
+
+        var saveDraftBtn = document.getElementById('mel-save-draft-studio');
+        if (saveDraftBtn && !saveDraftBtn.dataset.melSaveDraftBound) {
+          saveDraftBtn.dataset.melSaveDraftBound = '1';
+          saveDraftBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var sub = form.querySelector('.mel-builder-save-submit');
+            if (sub && typeof sub.click === 'function') {
+              sub.click();
+            }
+          });
+        }
+
+        var sidebarSaveBtn = document.getElementById('mel-builder-save-sidebar');
+        if (sidebarSaveBtn && form.contains(sidebarSaveBtn) && !sidebarSaveBtn.dataset.melSidebarSaveBound) {
+          sidebarSaveBtn.dataset.melSidebarSaveBound = '1';
+          sidebarSaveBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var sub = form.querySelector('.mel-builder-save-submit');
+            if (sub && typeof sub.click === 'function') {
+              sub.click();
+            }
+          });
         }
 
         form.addEventListener(
