@@ -372,6 +372,8 @@ function mel_ticket_update_9011(): string {
       'mel_ticket_update_9011 installFieldStorageDefinition: @message',
       ['@message' => $e->getMessage()]
     );
+
+    return 'field_is_default_ticket was not installed; see mel_ticket watchdog logs.';
   }
 
   return 'Installed mel_ticket_type.field_is_default_ticket for recommended tickets.';
