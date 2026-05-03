@@ -76,6 +76,9 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     if ($this->currentUser->hasPermission('administer nodes')) {
       return;
     }
+    if ((int) $this->currentUser->id() === 1) {
+      return;
+    }
 
     if ($this->currentUser->isAnonymous()) {
       return;

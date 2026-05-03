@@ -32,6 +32,9 @@ final class MelPlatformSupportWizardFormHelper {
 
   /**
    * Builds the mel_mel_support element tree (identical on Tickets and Publish).
+   *
+   * @param bool $studio_presentation
+   *   TRUE for Event Studio card copy/radio labels (“Support MyEventLane 💖”).
    */
   public function buildSection(
     array &$form,
@@ -39,6 +42,7 @@ final class MelPlatformSupportWizardFormHelper {
     NodeInterface $event,
     int $weight = 88,
     string $heading_id = 'mel-mel-support-heading',
+    bool $studio_presentation = FALSE,
   ): void {
     if (!$this->moduleHandler->moduleExists('myeventlane_donations')) {
       return;
@@ -64,16 +68,21 @@ final class MelPlatformSupportWizardFormHelper {
       $percent_default = (string) $event->get('field_mel_sup_pct')->value;
     }
 
+    $studio_classes = [
+      'mel-vendor-wizard__mel-support',
+      'mel-mel-support',
+      'mel-mel-support--callout',
+    ];
+    if ($studio_presentation) {
+      $studio_classes[] = 'mel-mel-support--studio';
+    }
+
     $form['mel_mel_support'] = [
       '#type' => 'container',
       '#tree' => TRUE,
       '#weight' => $weight,
       '#attributes' => [
-        'class' => [
-          'mel-vendor-wizard__mel-support',
-          'mel-mel-support',
-          'mel-mel-support--callout',
-        ],
+        'class' => $studio_classes,
         'role' => 'region',
         'aria-labelledby' => $heading_id,
       ],
@@ -82,7 +91,7 @@ final class MelPlatformSupportWizardFormHelper {
     $form['mel_mel_support']['_title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h3',
-      '#value' => $this->t('Support MyEventLane'),
+      '#value' => $studio_presentation ? $this->t('Support MyEventLane 💖') : $this->t('Support MyEventLane'),
       '#attributes' => [
         'class' => ['mel-mel-support__title'],
         'id' => $heading_id,
@@ -91,17 +100,30 @@ final class MelPlatformSupportWizardFormHelper {
 
     $form['mel_mel_support']['_intro'] = [
       '#type' => 'markup',
-      '#markup' => '<p class="mel-mel-support__intro">' . $this->t('Optional: help us keep community event tools affordable. A one-time amount is paid on MyEventLane checkout <strong>after you publish</strong>—it is not mixed into the ticket cart or attendee purchases. Revenue % pledges are stored for future billing.') . '</p>',
+      '#markup' => $studio_presentation
+        ? '<p class="mel-mel-support__intro">' . $this->t('<strong>This supports MyEventLane</strong>. It is <strong>not</strong> added to attendee ticket pricing or the ticket checkout total. One-time amounts are handled in a separate MEL step after you publish, when applicable.') . '</p>'
+        : '<p class="mel-mel-support__intro">' . $this->t('Optional: help us keep community event tools affordable. A one-time amount is paid on MyEventLane checkout <strong>after you publish</strong>—it is not mixed into the ticket cart or attendee purchases. Revenue % pledges are stored for future billing.') . '</p>',
     ];
 
-    $options = [
-      'none' => $this->t('No thanks'),
-      'onetime' => $paid_like
-        ? $this->t('Add a one-time contribution now')
-        : $this->t('Add a one-time contribution'),
-    ];
-    if ($paid_like) {
-      $options['percent'] = $this->t('Pledge a percentage of ticket revenue later');
+    if ($studio_presentation) {
+      $options = [
+        'none' => $this->t('No thanks'),
+        'onetime' => $this->t('One-time contribution'),
+      ];
+      if ($paid_like) {
+        $options['percent'] = $this->t('Percentage of ticket sales');
+      }
+    }
+    else {
+      $options = [
+        'none' => $this->t('No thanks'),
+        'onetime' => $paid_like
+          ? $this->t('Add a one-time contribution now')
+          : $this->t('Add a one-time contribution'),
+      ];
+      if ($paid_like) {
+        $options['percent'] = $this->t('Pledge a percentage of ticket revenue later');
+      }
     }
 
     $effective_mode = $form_state->getValue(['mel_mel_support', 'mode']);

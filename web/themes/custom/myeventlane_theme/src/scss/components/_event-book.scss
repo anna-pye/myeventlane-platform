@@ -515,15 +515,72 @@
     flex-direction: column;
     gap: spacing.mel-space(3);
     margin-bottom: spacing.mel-space(2);
+
+    .mel-event-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 
-  .mel-ticket-selection .mel-event-title {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  .mel-ticket-book-card.mel-card {
+    margin: 0;
+  }
+
+  .mel-ticket-availability,
+  .mel-ticket-card__availability {
+    margin: spacing.mel-space(1) 0 0;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    line-height: 1.4;
+  }
+
+  .mel-booking-donation {
+    margin-top: spacing.mel-space(1);
+    padding: spacing.mel-space(4);
+    border-radius: radii.$mel-radius-lg + 2px;
+    background: linear-gradient(
+      145deg,
+      color.adjust(colors.$mel-color-secondary, $lightness: 48%) 0%,
+      colors.$mel-color-surface 100%
+    );
+    border: 1px solid rgba(colors.$mel-color-secondary, 0.28);
+    box-shadow: 0 4px 18px rgba(108, 126, 242, 0.08);
+
+    legend {
+      font-size: typography.mel-font-size(md);
+      font-weight: typography.$mel-font-bold;
+      padding: 0 spacing.mel-space(1);
+      color: colors.$mel-color-text;
+    }
+
+    .fieldset-description {
+      font-size: typography.mel-font-size(sm);
+      color: colors.$mel-color-text-muted;
+      line-height: 1.45;
+      margin-bottom: spacing.mel-space(2);
+    }
+
+    .form-item {
+      margin-bottom: 0;
+    }
+
+    .mel-booking-donation__input {
+      max-width: 12rem;
+      min-height: 48px;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .mel-booking-summary__item--donation {
+    .mel-booking-summary__item-label {
+      font-style: italic;
+      color: colors.$mel-color-text-muted;
+      font-weight: typography.$mel-font-regular;
+    }
   }
 
   .mel-ticket-row {
@@ -548,6 +605,20 @@
   .mel-ticket-row:hover {
     border-color: rgba(colors.$mel-color-primary, 0.35);
     box-shadow: 0 8px 28px rgba(108, 126, 242, 0.12);
+  }
+
+  .mel-ticket-row--recommended {
+    padding: spacing.mel-space(4) spacing.mel-space(5);
+    border-width: 2px;
+    border-color: colors.$mel-color-primary;
+    background: linear-gradient(
+      150deg,
+      color.adjust(colors.$mel-color-primary, $lightness: 31%) 0%,
+      color.adjust(colors.$mel-color-surface, $lightness: 0%) 100%
+    );
+    box-shadow:
+      0 12px 34px rgba(242, 109, 91, 0.18),
+      0 1px 0 rgba(255, 255, 255, 0.55) inset;
   }
 
   .mel-ticket-row:focus-within {
@@ -613,6 +684,20 @@
 
   .mel-ticket-row__selection-badge[hidden] {
     display: none;
+  }
+
+  .mel-ticket-row__recommended-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    font-size: typography.mel-font-size(xs);
+    font-weight: typography.$mel-font-bold;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: color.adjust(colors.$mel-color-primary, $lightness: -32%);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(colors.$mel-color-primary, 0.4);
+    border-radius: radii.$mel-radius-full;
+    line-height: 1.2;
   }
 
   .mel-ticket-label {

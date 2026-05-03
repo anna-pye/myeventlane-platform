@@ -280,7 +280,7 @@ final class VendorOnboardProfileForm extends FormBase {
           $form_state->setRedirectUrl(Url::fromUserInput($destination));
         }
         catch (\InvalidArgumentException) {
-          $form_state->setRedirect('myeventlane_vendor.create_event_gateway', [], [
+          $form_state->setRedirect('myeventlane_event_studio.create', [], [
             'query' => ['mel_first_event' => '1'],
           ]);
         }
@@ -292,7 +292,7 @@ final class VendorOnboardProfileForm extends FormBase {
       }
     }
 
-    $form_state->setRedirect('myeventlane_vendor.create_event_gateway', [], [
+    $form_state->setRedirect('myeventlane_event_studio.create', [], [
       'query' => ['mel_first_event' => '1'],
     ]);
     $this->getLogger('myeventlane_vendor')->notice(

@@ -50,7 +50,7 @@ class VendorOnboardController extends ControllerBase {
     if (!empty($vendor_ids)) {
       // User already has a vendor, redirect to create event.
       return new RedirectResponse(
-        Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString()
+        Url::fromRoute('myeventlane_event_studio.create')->toString()
       );
     }
 
@@ -83,7 +83,7 @@ class VendorOnboardController extends ControllerBase {
     }
 
     // Redirect to create event gateway.
-    $form_state->setRedirect('myeventlane_vendor.create_event_gateway');
+    $form_state->setRedirect('myeventlane_event_studio.create');
   }
 
 }

@@ -747,7 +747,7 @@ textarea.mel-input--body {
 }
 
 .mel-preview-card__badge {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.35rem;
   display: inline-block;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
@@ -755,6 +755,122 @@ textarea.mel-input--body {
   font-weight: 700;
   background: var(--mel-studio-accent-soft);
   color: #9a3412;
+}
+
+.mel-preview-card__pricing {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--mel-studio-text);
+}
+
+.mel-preview-card__cta {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--mel-studio-border);
+}
+
+.mel-preview-card__cta .mel-preview__cta {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.mel-preview__cta.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Live preview panel + mobile bottom drawer */
+.mel-preview {
+  display: block;
+  width: 100%;
+}
+
+.mel-preview__drawer-toggle {
+  display: none;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--mel-studio-border);
+  border-radius: 12px 12px 0 0;
+  background: var(--mel-studio-card);
+  font: inherit;
+  font-weight: 700;
+  color: var(--mel-studio-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.mel-preview__drawer-hint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--mel-studio-muted);
+}
+
+.mel-preview__panel {
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .mel-event-studio {
+    padding-bottom: 4.5rem;
+  }
+
+  .mel-preview {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 500;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    pointer-events: none;
+  }
+
+  .mel-preview__drawer-toggle {
+    display: flex;
+    pointer-events: auto;
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.12);
+  }
+
+  .mel-preview__panel {
+    max-height: min(72vh, 520px);
+    overflow: auto;
+    padding: 0 12px 12px;
+    background: var(--mel-studio-card);
+    border: 1px solid var(--mel-studio-border);
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.14);
+    pointer-events: auto;
+    transition: transform 0.22s ease, opacity 0.2s ease;
+  }
+
+  .mel-preview:not(.mel-preview--drawer-open) .mel-preview__panel {
+    transform: translateY(calc(100% + 8px));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .mel-preview:not(.mel-preview--drawer-open) .mel-preview__drawer-toggle {
+    border-radius: 16px;
+    margin: 0 12px;
+    width: calc(100% - 24px);
+  }
+
+  .mel-preview.mel-preview--drawer-open .mel-preview__drawer-toggle {
+    margin: 0 12px;
+    width: calc(100% - 24px);
+  }
 }
 
 .mel-preview-card__status {
@@ -985,5 +1101,74 @@ textarea.mel-input--body {
   font-size: 0.9375rem;
   color: var(--mel-studio-muted);
   line-height: 1.5;
+}
+
+/* Share bar after publishing (studio ?mel_celebrate=1). */
+.mel-publish-celebrate {
+  border-radius: var(--mel-studio-radius);
+  padding: 1rem 1.25rem;
+  margin: 0 0 1.25rem;
+  background: linear-gradient(
+    110deg,
+    var(--mel-studio-accent-soft) 0%,
+    #eef2ff 100%
+  );
+  border: 1px solid rgba(56, 65, 99, 0.12);
+  box-sizing: border-box;
+}
+
+.mel-publish-celebrate__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.5rem;
+}
+
+.mel-publish-celebrate__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.mel-publish-celebrate__lede {
+  margin: 0;
+  color: var(--mel-studio-muted);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  max-width: 36rem;
+}
+
+.mel-publish-celebrate__actions {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.mel-publish-celebrate__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.mel-publish-celebrate__row:first-of-type {
+  margin-top: 0;
+}
+
+.mel-publish-celebrate__row--split {
+  justify-content: flex-start;
+}
+
+.mel-publish-celebrate__social .mel-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .mel-publish-celebrate__social {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 

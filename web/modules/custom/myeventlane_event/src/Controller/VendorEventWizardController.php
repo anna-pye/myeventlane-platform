@@ -56,7 +56,7 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
 
     $event_url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()]);
     $tickets_url = Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event->id()]);
-    $create_url = Url::fromRoute('entity.node.add_form', ['node_type' => 'event']);
+    $create_url = Url::fromRoute('myeventlane_event_studio.create');
 
     return $this->buildVendorPage('myeventlane_event_wizard_success', [
       'title' => $this->t('Event published successfully'),

@@ -114,7 +114,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
       '#attached' => [
         'library' => ['myeventlane_vendor/onboarding'],
       ],
-      '#create_event_url' => Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString(),
+      '#create_event_url' => Url::fromRoute('myeventlane_event_studio.create')->toString(),
       '#dashboard_url' => Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
     ];
   }

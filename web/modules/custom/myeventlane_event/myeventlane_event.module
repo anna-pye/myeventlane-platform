@@ -6,6 +6,8 @@
 
 declare(strict_types=1);
 
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
@@ -15,6 +17,7 @@ use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\Core\Render\Element;
@@ -585,7 +588,7 @@ function _myeventlane_event_alter_admin_event_node_form(array &$form, FormStateI
   }
 
   if (\Drupal::currentUser()->hasPermission('administer nodes')) {
-    $studio_url = '/vendor/events/create';
+    $studio_url = '/create-event';
     try {
       $studio_url = Url::fromRoute('myeventlane_event_studio.create')->toString();
     }
@@ -1367,8 +1370,140 @@ function myeventlane_event_get_event_card_view_modes(): array {
 }
 
 /**
+ * Implements hook_page_attachments().
+ *
+ * Open Graph markup for canonical event pages without requiring metatag
+ * Open Graph submodule.
+ */
+function myeventlane_event_page_attachments(array &$attachments): void {
+  $route_match = \Drupal::routeMatch();
+  if ($route_match->getRouteName() !== 'entity.node.canonical') {
+    return;
+  }
+
+  /** @var \Drupal\node\NodeInterface|null $node */
+  $node = $route_match->getParameter('node');
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
+    return;
+  }
+
+  $canonical = $node->toUrl()->setAbsolute()->toString();
+  $title = Html::escape($node->label());
+
+  $description = '';
+  if ($node->hasField('field_event_summary') && !$node->get('field_event_summary')->isEmpty()) {
+    $description = strip_tags(trim((string) $node->get('field_event_summary')->value));
+  }
+  elseif ($node->hasField('field_event_intro') && !$node->get('field_event_intro')->isEmpty()) {
+    foreach ($node->get('field_event_intro') as $item) {
+      if (isset($item->value)) {
+        $description = strip_tags(trim((string) $item->value));
+        break;
+      }
+    }
+  }
+  elseif ($node->hasField('body') && !$node->get('body')->isEmpty()) {
+    foreach ($node->get('body') as $item) {
+      if (isset($item->value)) {
+        $description = strip_tags(trim((string) $item->value));
+        break;
+      }
+    }
+  }
+  if ($description === '') {
+    $description = $node->label();
+  }
+
+  $description = Html::escape(Unicode::truncate($description, 300, TRUE, TRUE));
+
+  $attachments['#cache']['tags'][] = 'node:' . (int) $node->id();
+
+  $site_config = \Drupal::config('system.site');
+  $site_name = (string) ($site_config->get('name') ?? '');
+
+  $attachments['#attached']['html_head'][] = [
+    [
+      '#tag' => 'meta',
+      '#attributes' => [
+        'property' => 'og:type',
+        'content' => 'website',
+      ],
+    ],
+    'mel_event_og_type',
+  ];
+
+  $attachments['#attached']['html_head'][] = [
+    [
+      '#tag' => 'meta',
+      '#attributes' => [
+        'property' => 'og:title',
+        'content' => $title,
+      ],
+    ],
+    'mel_event_og_title',
+  ];
+
+  $attachments['#attached']['html_head'][] = [
+    [
+      '#tag' => 'meta',
+      '#attributes' => [
+        'property' => 'og:url',
+        'content' => Html::escape($canonical),
+      ],
+    ],
+    'mel_event_og_url',
+  ];
+
+  $attachments['#attached']['html_head'][] = [
+    [
+      '#tag' => 'meta',
+      '#attributes' => [
+        'property' => 'og:description',
+        'content' => $description,
+      ],
+    ],
+    'mel_event_og_description',
+  ];
+
+  if ($site_name !== '') {
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'meta',
+        '#attributes' => [
+          'property' => 'og:site_name',
+          'content' => Html::escape($site_name),
+        ],
+      ],
+      'mel_event_og_site_name',
+    ];
+  }
+
+  /** @var \Drupal\Core\File\FileUrlGeneratorInterface $urls */
+  $urls = \Drupal::service('file_url_generator');
+
+  if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+    $file_entity = $node->get('field_event_image')->entity;
+    if ($file_entity instanceof FileInterface) {
+      $uri = $file_entity->getFileUri();
+      $absolute = Html::escape($urls->generateAbsoluteString($uri));
+      $attachments['#attached']['html_head'][] = [
+        [
+          '#tag' => 'meta',
+          '#attributes' => [
+            'property' => 'og:image',
+            'content' => $absolute,
+          ],
+        ],
+        'mel_event_og_image',
+      ];
+    }
+  }
+}
+
+/**
  * Implements hook_preprocess_views_view() for default discovery chip.
  */
+
 function myeventlane_event_preprocess_views_view(array &$variables): void {
   if (($variables['view'] ?? NULL)?->id() !== 'upcoming_events') {
     return;

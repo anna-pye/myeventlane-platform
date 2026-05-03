@@ -93,6 +93,7 @@ function myeventlane_commerce_page_attachments(array &$attachments): void {
       'ticketCount' => (string) t('@count tickets'),
       'noTicketsYet' => (string) t('No tickets selected'),
       'ticketFallback' => (string) t('Ticket'),
+      'donationLine' => (string) t('Optional support (estimate)'),
     ],
   ];
 }

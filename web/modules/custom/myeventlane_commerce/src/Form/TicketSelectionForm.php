@@ -25,6 +25,7 @@ use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -56,6 +57,7 @@ final class TicketSelectionForm extends FormBase {
     protected TicketVariationSoldService $variationSold,
     protected TimeInterface $time,
     protected CapacityOrderInspector $orderInspector,
+    protected TicketTypeManager $ticketTypeManager,
     protected ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
@@ -75,6 +77,7 @@ final class TicketSelectionForm extends FormBase {
       $container->get('myeventlane_commerce.ticket_variation_sold'),
       $container->get('datetime.time'),
       $container->get('myeventlane_capacity.order_inspector'),
+      $container->get('myeventlane_event.ticket_type_manager'),
       $container->has('myeventlane_capacity.service')
         ? $container->get('myeventlane_capacity.service')
         : NULL,
@@ -161,6 +164,11 @@ final class TicketSelectionForm extends FormBase {
     }
 
     $published_variations = $this->ticketAvailability->filterPurchasableVariations($node, $product);
+    $default_tier = $this->ticketTypeManager->getDefaultTicket($node);
+    $default_variation_id = $this->resolveDefaultVariationId($default_tier);
+    if ($default_variation_id !== NULL) {
+      $published_variations = $this->sortVariationsDefaultFirst($published_variations, $default_variation_id);
+    }
 
     $waitlist_tiers = $this->buildWaitlistTierOptions($node, $product);
 
@@ -251,6 +259,13 @@ final class TicketSelectionForm extends FormBase {
           $rules = $this->quantityWidgetRules($tier);
           $qty_el['#min'] = $rules['min'];
           $qty_el['#step'] = $rules['step'];
+          if ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) {
+            $qty_el['#default_value'] = $this->defaultSelectedQuantity($tier);
+          }
+        }
+        $row_classes = ['mel-ticket-row', 'mel-card', 'mel-ticket-book-card'];
+        if ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) {
+          $row_classes[] = 'mel-ticket-row--recommended';
         }
 
         $label_cell = [
@@ -266,14 +281,31 @@ final class TicketSelectionForm extends FormBase {
         if ($buyer_desc !== '') {
           $label_cell['description'] = [
             '#markup' => '<div class="mel-ticket-description mel-text--muted">' . nl2br(Html::escape($buyer_desc), FALSE) . '</div>',
+            '#weight' => 8,
           ];
         }
+
+        $availability_text = $this->buyerFacingAvailabilityMessage($node, $tier, (int) $variation_id);
+        $label_cell['availability'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $availability_text,
+          '#attributes' => [
+            'class' => [
+              'mel-ticket-availability',
+              'mel-ticket-card__availability',
+              'mel-text--muted',
+            ],
+          ],
+          '#weight' => 10,
+        ];
 
         $form['tickets'][$variation_id] = [
           '#type' => 'container',
           '#attributes' => [
-            'class' => ['mel-ticket-row'],
+            'class' => $row_classes,
             'data-variation-id' => $variation_id,
+            'data-mel-ticket-recommended' => ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) ? '1' : '0',
           ],
           'label_cell' => $label_cell,
           'price' => [
@@ -292,12 +324,14 @@ final class TicketSelectionForm extends FormBase {
         ];
       }
 
+      $this->appendOptionalDonationSupport($form, $node);
+
       $form['actions'] = [
         '#type' => 'actions',
         '#weight' => 20,
         'submit' => [
           '#type' => 'submit',
-          '#value' => $this->t('Add to cart'),
+          '#value' => $this->t('Reserve spot'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl', 'mel-add-to-cart-button']],
         ],
       ];
@@ -352,8 +386,6 @@ final class TicketSelectionForm extends FormBase {
         ];
       }
     }
-
-    $form['#attached']['library'][] = 'myeventlane_theme/ticket_matrix';
 
     return $form;
   }
@@ -624,6 +656,47 @@ final class TicketSelectionForm extends FormBase {
     return $out;
   }
 
+  private function resolveDefaultVariationId(?TicketTypeInterface $tier): ?int {
+    if (!$tier instanceof TicketTypeInterface
+      || !$tier->hasField('commerce_variation')
+      || $tier->get('commerce_variation')->isEmpty()) {
+      return NULL;
+    }
+    $variation_id = (int) $tier->get('commerce_variation')->target_id;
+    return $variation_id > 0 ? $variation_id : NULL;
+  }
+
+  /**
+   * @param \Drupal\commerce_product\Entity\ProductVariationInterface[] $variations
+   *
+   * @return \Drupal\commerce_product\Entity\ProductVariationInterface[]
+   */
+  private function sortVariationsDefaultFirst(array $variations, int $defaultVariationId): array {
+    usort($variations, static function (ProductVariationInterface $a, ProductVariationInterface $b) use ($defaultVariationId): int {
+      $a_default = (int) $a->id() === $defaultVariationId;
+      $b_default = (int) $b->id() === $defaultVariationId;
+      if ($a_default === $b_default) {
+        return 0;
+      }
+      return $a_default ? -1 : 1;
+    });
+    return $variations;
+  }
+
+  private function defaultSelectedQuantity(TicketTypeInterface $tier): int {
+    if (!$tier->hasField('group_sale_mode')) {
+      return 1;
+    }
+    $mode = (string) ($tier->get('group_sale_mode')->value ?? 'none');
+    if ($mode === 'fixed_bundle' || $mode === 'reserved_block') {
+      return max(1, (int) ($tier->get('group_bundle_size')->value ?? 0));
+    }
+    if ($mode === 'minimum_group_size') {
+      return max(1, (int) ($tier->get('group_min_size')->value ?? 0));
+    }
+    return 1;
+  }
+
   private function groupRuleMessage(TicketTypeInterface $tier): string {
     if (!$tier->hasField('group_sale_mode')) {
       return '';
@@ -694,6 +767,103 @@ final class TicketSelectionForm extends FormBase {
     return [
       'event_total' => (int) ($event_totals[$eid] ?? 0),
       'variation' => $by_variation[$eid] ?? [],
+    ];
+  }
+
+  /**
+   * Buyer-facing availability line (tier capacity vs sold / waitlist holds).
+   *
+   * Uses the same pool model as purchasability checks for non-waitlist-offer
+   * buyers; waitlist-offer limits may differ and are enforced at validation.
+   */
+  private function buyerFacingAvailabilityMessage(
+    NodeInterface $event,
+    ?TicketTypeInterface $tier,
+    int $variationId,
+  ): string {
+    if (!$tier instanceof TicketTypeInterface) {
+      return (string) $this->t('Available');
+    }
+    if ($tier->get('capacity')->isEmpty()) {
+      return (string) $this->t('Available');
+    }
+    $cap = (int) $tier->get('capacity')->value;
+    if ($cap < 1) {
+      return (string) $this->t('Available');
+    }
+    $eid = (int) $event->id();
+    $sold = $this->ticketAvailability->countCompletedSoldForVariation($eid, $variationId);
+    $held = $this->tierWaitlist->sumActiveOfferReserved($eid, (int) $tier->id());
+    $pool = max(0, $cap - $sold - $held);
+    if ($pool < 1) {
+      return (string) $this->t('Limited availability');
+    }
+    if ($pool === 1) {
+      return (string) $this->t('1 ticket left');
+    }
+    if ($pool <= 10) {
+      return (string) $this->t('@count tickets left', ['@count' => (string) $pool]);
+    }
+    return (string) $this->t('Available');
+  }
+
+  /**
+   * RSVP-style optional donation field for events with donations enabled.
+   *
+   * Not submitted to Commerce with ticket lines; shown in the live estimate
+   * only (see mel_booking_summary.js) when at least one ticket is selected.
+   */
+  private function appendOptionalDonationSupport(array &$form, NodeInterface $node): void {
+    if (!$node->hasField('field_enable_donations')
+      || $node->get('field_enable_donations')->isEmpty()
+      || !(bool) $node->get('field_enable_donations')->value) {
+      return;
+    }
+    $label = (string) $this->t('Support this event');
+    if ($node->hasField('field_donation_label') && !$node->get('field_donation_label')->isEmpty()) {
+      $trim = trim((string) $node->get('field_donation_label')->value);
+      if ($trim !== '') {
+        $label = $trim;
+      }
+    }
+    $default_amount = '';
+    if ($node->hasField('field_donation_default') && !$node->get('field_donation_default')->isEmpty()) {
+      $default_amount = (string) $node->get('field_donation_default')->value;
+    }
+    elseif ($node->hasField('field_donation_suggested_amount') && !$node->get('field_donation_suggested_amount')->isEmpty()) {
+      $default_amount = (string) $node->get('field_donation_suggested_amount')->value;
+    }
+    $currency = '';
+    /** @var \Drupal\commerce_product\Entity\ProductInterface|null $product */
+    $product = $form['#product'] ?? NULL;
+    if ($product !== NULL) {
+      foreach ($product->getVariations() as $v) {
+        if ($v->getPrice()) {
+          $currency = $v->getPrice()->getCurrencyCode();
+          break;
+        }
+      }
+    }
+    $placeholder = $currency !== '' ? $currency . ' 0' : '0';
+
+    $form['donation_support'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('💖 @label (optional)', ['@label' => $label]),
+      '#description' => $this->t('Estimate only. This is not added to your ticket cart — continue to checkout for ticket totals, or complete a separate support step when the organiser offers it.'),
+      '#attributes' => ['class' => ['mel-card', 'mel-booking-donation']],
+      '#weight' => 12,
+    ];
+    $form['donation_support']['amount'] = [
+      '#type' => 'number',
+      '#title' => $label,
+      '#min' => 0,
+      '#step' => 0.01,
+      '#default_value' => $default_amount !== '' ? $default_amount : '',
+      '#attributes' => [
+        'class' => ['mel-booking-donation__input'],
+        'data-mel-booking-donation' => '1',
+        'placeholder' => $placeholder,
+      ],
     ];
   }
 

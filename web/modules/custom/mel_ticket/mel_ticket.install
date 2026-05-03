@@ -346,6 +346,38 @@ function mel_ticket_update_9010(): string {
 }
 
 /**
+ * Adds organiser-recommended default flag to ticket types.
+ */
+function mel_ticket_update_9011(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_type', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_type entity type not found; rebuild caches and re-run updates.';
+  }
+  $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
+  if (!isset($fields['field_is_default_ticket'])) {
+    return 'field_is_default_ticket field definition missing; skipped.';
+  }
+
+  try {
+    $update_manager->installFieldStorageDefinition(
+      'field_is_default_ticket',
+      'mel_ticket_type',
+      'mel_ticket',
+      $fields['field_is_default_ticket']
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mel_ticket')->warning(
+      'mel_ticket_update_9011 installFieldStorageDefinition: @message',
+      ['@message' => $e->getMessage()]
+    );
+  }
+
+  return 'Installed mel_ticket_type.field_is_default_ticket for recommended tickets.';
+}
+
+/**
  * Deletes ticket_type_config paragraph entities so config import can remove the type.
  *
  * Run `drush updb` then `drush cim`. Clears event field_ticket_types (if still

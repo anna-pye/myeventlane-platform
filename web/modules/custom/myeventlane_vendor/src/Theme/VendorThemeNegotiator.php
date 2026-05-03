@@ -19,7 +19,7 @@ final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
    * @var list<string>
    */
   private const PUBLIC_DEFAULT_THEME_ROUTES = [
-    'myeventlane_vendor.create_event_gateway',
+    'myeventlane_event_studio.create',
     'myeventlane_vendor.public_list',
     'myeventlane_vendor.organisers',
   ];

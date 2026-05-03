@@ -122,6 +122,20 @@ myeventlane_event.duplicate:
         bundle:
           - event
 
+myeventlane_event.calendar_ics:
+  path: '/event/{node}/calendar.ics'
+  defaults:
+    _controller: '\Drupal\myeventlane_event\Controller\EventIcsDownloadController::download'
+  requirements:
+    _entity_access: 'node.view'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
 # Series instance generation (manual trigger).
 # Door Mode: fast mobile check-in (JSON validate + search).
 myeventlane_event.checkin_door:

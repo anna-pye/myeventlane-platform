@@ -47,6 +47,7 @@ final class TicketTierLifecycleService {
     $ticket = $this->entityTypeManager->getStorage('mel_ticket_type')->create($values);
     $ticket->save();
     if ($sync && $event instanceof NodeInterface) {
+      $this->ticketTypeManager->normalizeDefaultTicketSelection($event, $ticket);
       $this->syncPaidTiers($event);
     }
     return $ticket;
@@ -147,6 +148,7 @@ final class TicketTierLifecycleService {
   public function createAttachAndSync(NodeInterface $event, array $values): TicketTypeInterface {
     $ticket = $this->persistNewTicketType($values, $event, FALSE);
     $this->appendTicketToEvent($event, (int) $ticket->id(), TRUE);
+    $this->ticketTypeManager->normalizeDefaultTicketSelection($event, $ticket);
     return $ticket;
   }
 
@@ -218,6 +220,7 @@ final class TicketTierLifecycleService {
         EventNodeRevisionSave::prepare($event, 'Ticket types updated on event.');
         $event->save();
       }
+      $this->ticketTypeManager->normalizeDefaultTicketSelection($event);
       $this->syncPaidTiers($event);
     }
 
@@ -256,6 +259,7 @@ final class TicketTierLifecycleService {
     $event->set('field_ticket_types', array_map(static fn (int $id) => ['target_id' => $id], $new));
     EventNodeRevisionSave::prepare($event, 'Ticket order updated on event.');
     $event->save();
+    $this->ticketTypeManager->normalizeDefaultTicketSelection($event);
     $this->syncPaidTiers($event);
   }
 
@@ -270,6 +274,10 @@ final class TicketTierLifecycleService {
     }
     if (!$ticket->isArchived()) {
       $ticket->set('lifecycle_status', TicketTypeInterface::LIFECYCLE_ARCHIVED);
+      $changed = TRUE;
+    }
+    if ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()) {
+      $ticket->set('field_is_default_ticket', FALSE);
       $changed = TRUE;
     }
     if ($changed) {
@@ -306,6 +314,7 @@ final class TicketTierLifecycleService {
     $this->validateTicketTypeForPersist($ticket, $event);
     $ticket->save();
     if ($event instanceof NodeInterface) {
+      $this->ticketTypeManager->normalizeDefaultTicketSelection($event, $ticket);
       $this->syncPaidTiers($event);
     }
   }
@@ -350,6 +359,9 @@ final class TicketTierLifecycleService {
     if (array_key_exists('visibility_mode', $values)) {
       $visibility = trim((string) $values['visibility_mode']);
       $payload['visibility_mode'] = $visibility !== '' ? $visibility : 'public';
+    }
+    if (array_key_exists('field_is_default_ticket', $values)) {
+      $payload['field_is_default_ticket'] = !empty($values['field_is_default_ticket']) ? 1 : 0;
     }
 
     if (in_array($kind, ['paid', 'rsvp'], TRUE)) {
@@ -462,6 +474,9 @@ final class TicketTierLifecycleService {
           ? (!empty($values[$key]) ? 1 : 0)
           : (string) $values[$key];
       }
+    }
+    if (array_key_exists('field_is_default_ticket', $values)) {
+      $payload['field_is_default_ticket'] = !empty($values['field_is_default_ticket']) ? 1 : 0;
     }
 
     if (array_key_exists('hidden_label', $values)) {
@@ -718,16 +733,7 @@ final class TicketTierLifecycleService {
    * @return \Drupal\mel_ticket\Entity\TicketTypeInterface[]
    */
   public function loadOrderedTicketsForEvent(NodeInterface $event): array {
-    $out = [];
-    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
-      return $out;
-    }
-    foreach ($event->get('field_ticket_types')->referencedEntities() as $entity) {
-      if ($entity instanceof TicketTypeInterface && !$entity->isArchived()) {
-        $out[] = $entity;
-      }
-    }
-    return $out;
+    return array_values($this->ticketTypeManager->loadEventTicketTypesDefaultFirst($event));
   }
 
   public function loadWritableTicketForEvent(NodeInterface $event, int $ticketId, AccountInterface $account): ?TicketTypeInterface {
@@ -847,6 +853,9 @@ final class TicketTierLifecycleService {
     }
     if (array_key_exists('status', $values)) {
       $ticket->set('status', (int) $values['status']);
+    }
+    if (array_key_exists('field_is_default_ticket', $values) && $ticket->hasField('field_is_default_ticket')) {
+      $ticket->set('field_is_default_ticket', !empty($values['field_is_default_ticket']));
     }
     if (array_key_exists('lifecycle_status', $values)) {
       $ticket->set('lifecycle_status', (string) $values['lifecycle_status']);

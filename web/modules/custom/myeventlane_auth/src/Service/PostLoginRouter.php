@@ -69,14 +69,14 @@ final class PostLoginRouter {
     if ($intent === IdentityIntentResolver::INTENT_CREATE_EVENT) {
       $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
       $this->logger->notice(
-        'PostLoginRouter: create_event intent → myeventlane_vendor.create_event_gateway only (never direct vendor studio) uid=@uid vendor_count=@count',
+        'PostLoginRouter: create_event intent → myeventlane_event_studio.create uid=@uid vendor_count=@count',
         [
           '@uid' => (string) $uid,
           '@count' => (string) count($vendor_ids),
         ],
       );
       return $this->safeUrlFromRoute(
-        'myeventlane_vendor.create_event_gateway',
+        'myeventlane_event_studio.create',
         [],
         $uid,
         $intent,
@@ -102,7 +102,7 @@ final class PostLoginRouter {
 
     if (!$is_complete) {
       return $this->safeUrlFromRoute(
-        'myeventlane_vendor.create_event_gateway',
+        'myeventlane_event_studio.create',
         [],
         $uid,
         $intent,

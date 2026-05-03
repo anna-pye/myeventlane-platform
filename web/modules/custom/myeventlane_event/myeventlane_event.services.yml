@@ -95,6 +95,9 @@ services:
       - '@logger.factory'
       - '@myeventlane_event.ticket_product_event_ownership'
 
+  myeventlane_event.ticket_presets:
+    class: Drupal\myeventlane_event\Service\TicketPresetManager
+
   myeventlane_event.ticket_tier_lifecycle:
     class: Drupal\myeventlane_event\Service\TicketTierLifecycleService
     arguments:
@@ -122,3 +125,6 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@logger.factory'
+
+  myeventlane_event.icalendar_builder:
+    class: Drupal\myeventlane_event\Service\EventIcalendarBuilder

@@ -3,11 +3,12 @@
  * Ticket card interactions: edit state, inline validation, and reorder.
  */
 
-(function (Drupal, once) {
+(function (Drupal, once, drupalSettings) {
   'use strict';
 
   const PENDING_SAVE_KEY = 'melTicketCardsPendingSaves';
   const ACTIVE_EDIT_KEY = 'melTicketCardsActiveEdits';
+  const PENDING_PRESET_FOCUS_KEY = 'melTicketCardsPendingPresetFocus';
 
   function elementsFromContext(selector, context) {
     const root = context || document;
@@ -35,6 +36,36 @@
     catch (e) {
       // Storage may be unavailable in private contexts; interaction still works.
     }
+  }
+
+  function readPendingPresetFocus() {
+    try {
+      return window.sessionStorage.getItem(PENDING_PRESET_FOCUS_KEY) || '';
+    }
+    catch (e) {
+      return '';
+    }
+  }
+
+  function writePendingPresetFocus(presetKey) {
+    try {
+      if (presetKey) {
+        window.sessionStorage.setItem(PENDING_PRESET_FOCUS_KEY, presetKey);
+      }
+      else {
+        window.sessionStorage.removeItem(PENDING_PRESET_FOCUS_KEY);
+      }
+    }
+    catch (e) {
+      // Storage may be unavailable; the preset card still opens.
+    }
+  }
+
+  function presetValues(presetKey) {
+    const presets = drupalSettings.myeventlaneTicketPresets && drupalSettings.myeventlaneTicketPresets.presets
+      ? drupalSettings.myeventlaneTicketPresets.presets
+      : {};
+    return presets[presetKey] && presets[presetKey].values ? presets[presetKey].values : {};
   }
 
   function rememberActiveEdit(card) {
@@ -163,6 +194,27 @@
     });
   }
 
+  function focusNewPresetCard(wrapper) {
+    const presetKey = readPendingPresetFocus();
+    const card = wrapper.querySelector('.mel-ticket-card--new');
+    if (!presetKey || !card) {
+      return;
+    }
+
+    const values = presetValues(presetKey);
+    const kind = values.ticket_kind || card.getAttribute('data-mel-ticket-kind') || 'paid';
+    const preferredSelector = kind === 'paid'
+      ? 'input[data-mel-ticket-preset-focus="price"]'
+      : 'input[name$="[title]"], textarea[name$="[title]"]';
+    const preferred = card.querySelector(preferredSelector);
+    const fallback = editableFields(card)[0];
+    const field = preferred && !preferred.disabled ? preferred : fallback;
+    if (field) {
+      window.setTimeout(() => field.focus({ preventScroll: true }), 0);
+    }
+    writePendingPresetFocus('');
+  }
+
   function fieldLabel(field) {
     const item = field.closest('.form-item, .form-type-checkbox');
     const label = item ? item.querySelector('label') : null;
@@ -245,6 +297,22 @@
         valid = false;
       }
     });
+
+    const kindField = card.querySelector('select[name$="[ticket_kind]"]');
+    const ticketKind = kindField ? kindField.value : card.getAttribute('data-mel-ticket-kind');
+    if (ticketKind === 'paid') {
+      const priceField = card.querySelector(
+        'input[name$="[price_amount]"], input[name$="[price_number]"], input[name$="[price]"]',
+      );
+      const price = priceField ? parseFloat(priceField.value) : 0;
+      if (!priceField || Number.isNaN(price) || price <= 0) {
+        if (priceField) {
+          setFieldError(priceField, 'Paid tickets require a price greater than zero.');
+        }
+        valid = false;
+      }
+    }
+
     return valid;
   }
 
@@ -411,7 +479,10 @@
     if (!card) {
       return;
     }
-    if (submit.classList.contains('js-mel-ticket-save') && !validateRequiredFields(card)) {
+    const validatesBeforeSubmit =
+      submit.classList.contains('js-mel-ticket-save') ||
+      submit.classList.contains('js-mel-ticket-create');
+    if (validatesBeforeSubmit && !validateRequiredFields(card)) {
       e.preventDefault();
       e.stopImmediatePropagation();
       updateEditState(card);
@@ -424,6 +495,77 @@
     setCardState(card, 'saving');
     markPendingSave(card);
     forgetActiveEdit(card);
+  }
+
+  function setPresetPanelOpen(wrapper, open) {
+    const panel = wrapper.querySelector('.js-mel-ticket-presets');
+    if (!panel) {
+      return;
+    }
+    panel.hidden = !open;
+    wrapper.querySelectorAll('[data-mel-ticket-presets-toggle]').forEach((toggle) => {
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    if (open) {
+      const firstPreset = panel.querySelector('.js-mel-ticket-preset');
+      if (firstPreset) {
+        firstPreset.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  function initPresetSelector(wrapper) {
+    wrapper.addEventListener('click', (e) => {
+      const target = e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+      if (!target) {
+        return;
+      }
+
+      const toggle = target.closest('[data-mel-ticket-presets-toggle]');
+      if (toggle && wrapper.contains(toggle)) {
+        e.preventDefault();
+        const panel = wrapper.querySelector('.js-mel-ticket-presets');
+        setPresetPanelOpen(wrapper, panel ? panel.hidden : true);
+        return;
+      }
+
+      const submit = target.closest('.js-mel-ticket-preset-submit');
+      if (submit && wrapper.contains(submit)) {
+        writePendingPresetFocus(submit.getAttribute('data-mel-ticket-preset-key') || '');
+        return;
+      }
+
+      const card = target.closest('.js-mel-ticket-preset');
+      if (!card || !wrapper.contains(card)) {
+        return;
+      }
+
+      const button = card.querySelector('.js-mel-ticket-preset-submit');
+      if (!button) {
+        return;
+      }
+      e.preventDefault();
+      writePendingPresetFocus(button.getAttribute('data-mel-ticket-preset-key') || '');
+      button.click();
+    });
+
+    wrapper.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+      const target = e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+      const card = target && target.closest ? target.closest('.js-mel-ticket-preset') : null;
+      if (!card || !wrapper.contains(card)) {
+        return;
+      }
+      const button = card.querySelector('.js-mel-ticket-preset-submit');
+      if (!button) {
+        return;
+      }
+      e.preventDefault();
+      writePendingPresetFocus(button.getAttribute('data-mel-ticket-preset-key') || '');
+      button.click();
+    });
   }
 
   function initDocumentFallback() {
@@ -579,7 +721,12 @@
         (wrapper) => {
           wrapper.addEventListener('click', (e) => handleDelegatedClick(e, wrapper), true);
           consumePendingSaves(wrapper);
+          focusNewPresetCard(wrapper);
         },
+    );
+
+    once('mel-ticket-preset-selector', elementsFromContext('#mel-ticket-builder-ajax-wrapper', context)).forEach(
+        (wrapper) => initPresetSelector(wrapper),
     );
 
     once('mel-ticket-edit-toggle-direct', elementsFromContext('[data-mel-ticket-edit-toggle]', context)).forEach(
@@ -607,4 +754,4 @@
   else {
     attachTicketCards(document);
   }
-})(Drupal, once);
+})(Drupal, once, drupalSettings);
