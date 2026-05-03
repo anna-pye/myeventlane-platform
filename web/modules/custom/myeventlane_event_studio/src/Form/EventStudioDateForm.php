@@ -103,13 +103,18 @@ final class EventStudioDateForm extends EventStudioBaseForm {
     $form['mel']['venue_mode'] = [
       '#type' => 'radios',
       '#title' => $this->t('Location'),
+      '#mel_option_cards' => TRUE,
+      '#mel_option_descriptions' => [
+        'saved' => $this->t('Pick from venues under your organizer account.'),
+        'create' => $this->t('Save a reusable venue while you prepare this event.'),
+        'one_off' => $this->t('Use an address once without saving a venue profile.'),
+      ],
       '#options' => [
         'saved' => $this->t('Use saved venue'),
         'create' => $this->t('Create new venue'),
         'one_off' => $this->t('One-off address'),
       ],
       '#default_value' => $form_state->getValue(['mel', 'venue_mode'], $melDefaults['venue_mode'] ?? $venue_mode_default),
-      '#attributes' => ['class' => ['mel-radios']],
     ];
 
     $form['mel']['venue_saved'] = [

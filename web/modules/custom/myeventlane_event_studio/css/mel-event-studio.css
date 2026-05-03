@@ -144,49 +144,7 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
-.mel-radios .form-radios,
-.mel-radios--tickets .form-radios {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
 
-@media (min-width: 600px) {
-  .mel-radios--tickets .form-radios {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.65rem;
-  }
-}
-
-.mel-radios .form-type-radio {
-  margin: 0;
-}
-
-.mel-radios .form-type-radio label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--mel-studio-border);
-  border-radius: var(--mel-studio-radius-sm);
-  background: var(--mel-studio-bg);
-  cursor: pointer;
-  margin: 0;
-}
-
-.mel-radios .form-type-radio input:checked + label,
-.mel-radios .form-type-radio label:has(input:checked) {
-  border-color: var(--mel-studio-accent);
-  background: var(--mel-studio-accent-soft);
-}
-
-/* Fallback when :has unsupported: rely on Drupal wrapping — use sibling if needed */
-.mel-radios .form-type-radio input:focus-visible + label {
-  outline: 2px solid var(--mel-studio-focus);
-  outline-offset: 2px;
-}
 
 .mel-panel--placeholder {
   background: var(--mel-studio-bg);
@@ -1058,6 +1016,26 @@ textarea.mel-input--body {
 
 .mel-highlights-builder .mel-highlight-remove {
   font-size: 0.8125rem;
+}
+
+/* Highlight icon — dropdown with emoji labels (field_highlight_icon). */
+.mel-event-studio .mel-highlights-builder-table .mel-highlight-icon-cell {
+  min-width: 11rem;
+  vertical-align: middle;
+}
+
+.mel-event-studio .mel-highlights-builder-table select.mel-highlight-icon {
+  width: 100%;
+  max-width: 100%;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  font-family:
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji',
+    system-ui,
+    sans-serif;
 }
 
 .mel-btn--touch {

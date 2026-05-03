@@ -8,6 +8,7 @@
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
+use Drupal\myeventlane_event_studio\EventStudioMelOptionCards;
 
 /**
  * Implements hook_theme().
@@ -35,18 +36,82 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-wizard-preview',
     ],
+    'form_element__mel_option_card' => [
+      'base hook' => 'form_element',
+      'template' => 'form-element--mel-option-card',
+    ],
+    'form_element_label__mel_option_card' => [
+      'base hook' => 'form_element_label',
+      'template' => 'form-element-label--mel-option-card',
+    ],
   ];
 }
 
 /**
- * Implements hook_preprocess_html().
- *
- * Full-bleed Event Studio: body class scopes theme SCSS that relaxes global
- * layout containers (layout-container, Gin, off-canvas canvas, etc.).
+ * Implements hook_element_info_alter().
  */
-function myeventlane_event_studio_preprocess_html(array &$variables): void {
-  $route_name = \Drupal::routeMatch()->getRouteName();
-  $studio_routes = [
+function myeventlane_event_studio_element_info_alter(array &$info): void {
+  if (isset($info['radios']['#process'])) {
+    $info['radios']['#process'][] = [EventStudioMelOptionCards::class, 'processRadios'];
+  }
+  if (isset($info['checkbox']['#process'])) {
+    $info['checkbox']['#process'][] = [EventStudioMelOptionCards::class, 'processCheckbox'];
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter() for form_element.
+ */
+function myeventlane_event_studio_theme_suggestions_form_element_alter(array &$suggestions, array $variables): void {
+  if (!empty($variables['element']['#mel_option_card'])) {
+    $suggestions[] = 'form_element__mel_option_card';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter() for form_element_label.
+ */
+function myeventlane_event_studio_theme_suggestions_form_element_label_alter(array &$suggestions, array $variables): void {
+  if (!empty($variables['element']['#mel_option_card_label'])) {
+    $suggestions[] = 'form_element_label__mel_option_card';
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for form_element__mel_option_card.
+ */
+function myeventlane_event_studio_preprocess_form_element__mel_option_card(array &$variables): void {
+  if (isset($variables['label']) && is_array($variables['label'])) {
+    $variables['label']['#mel_option_card_label'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for radios.
+ */
+function myeventlane_event_studio_preprocess_radios(array &$variables): void {
+  $element = &$variables['element'];
+  if (empty($element['#mel_option_cards'])) {
+    return;
+  }
+  $attributes = &$variables['attributes'];
+  if (!$attributes instanceof Attribute) {
+    $variables['attributes'] = new Attribute((array) $attributes);
+    $attributes = &$variables['attributes'];
+  }
+  /** @var \Drupal\Core\Template\Attribute $attributes */
+  $attributes->addClass('mel-option-cards');
+  if (!empty($element['#mel_option_cards_tickets_layout'])) {
+    $attributes->addClass('mel-option-cards--tickets-row');
+  }
+}
+
+/**
+ * Returns TRUE when the HTTP route is an Event Studio create/edit/step screen.
+ */
+function _myeventlane_event_studio_is_event_studio_route(?string $route_name = NULL): bool {
+  $route_name ??= \Drupal::routeMatch()->getRouteName();
+  $routes = [
     'myeventlane_event_studio.create',
     'myeventlane_event_studio.edit',
     'myeventlane_event_studio.edit_basic',
@@ -56,7 +121,151 @@ function myeventlane_event_studio_preprocess_html(array &$variables): void {
     'myeventlane_event_studio.edit_preview',
     'myeventlane_event_studio.edit_publish',
   ];
-  if (!in_array($route_name, $studio_routes, TRUE)) {
+  return in_array($route_name, $routes, TRUE);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for form_element.
+ */
+function myeventlane_event_studio_preprocess_form_element(array &$variables): void {
+  if (!_myeventlane_event_studio_is_event_studio_route()) {
+    return;
+  }
+  if (!isset($variables['attributes']) || !isset($variables['element'])) {
+    return;
+  }
+  /** @var array $element */
+  $element = $variables['element'];
+  $type = $element['#type'] ?? '';
+
+  // Opt-out escape hatch for edge widgets.
+  if (!empty($element['#mel_skip_builder_field_well'])) {
+    return;
+  }
+
+  if ($type === '') {
+    return;
+  }
+
+  $skip_types = [
+    'hidden',
+    'button',
+    'submit',
+    'image_button',
+    'label',
+    'item',
+    'markup',
+    'link',
+    'vertical_tabs',
+    'container',
+    'actions',
+    'details',
+    'fieldset',
+    'radio',
+    'processed_text',
+    'value',
+    'weight',
+    'table',
+    'view',
+    'token',
+    'machine_name_states',
+    'path',
+  ];
+  if (in_array($type, $skip_types, TRUE)) {
+    return;
+  }
+
+  if (!empty($element['#mel_option_card'])) {
+    return;
+  }
+
+  if ($type === 'checkbox' && empty($element['#mel_option_card'])) {
+    return;
+  }
+
+  /** @var list<string>|string|null $wrapper_classes */
+  $wrapper_attrs = $element['#wrapper_attributes'] ?? [];
+  $wrapper_classes = $wrapper_attrs['class'] ?? [];
+  if ($wrapper_classes && !is_array($wrapper_classes)) {
+    $wrapper_classes = [$wrapper_classes];
+  }
+  if (is_array($wrapper_classes) && in_array('mel-option-card', $wrapper_classes, TRUE)) {
+    return;
+  }
+
+  $includes_well = [
+    'textfield',
+    'tel',
+    'email',
+    'url',
+    'search',
+    'password',
+    'textarea',
+    'number',
+    'select',
+    'datetime',
+    'entity_autocomplete',
+    'managed_file',
+    'file',
+    'color',
+    'machine_name',
+  ];
+  if (!in_array($type, $includes_well, TRUE)) {
+    return;
+  }
+
+  if (!$variables['attributes'] instanceof Attribute) {
+    $variables['attributes'] = new Attribute((array) $variables['attributes']);
+  }
+  $variables['attributes']->addClass('mel-builder-field-well');
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for fieldset.
+ */
+function myeventlane_event_studio_preprocess_fieldset(array &$variables): void {
+  if (!_myeventlane_event_studio_is_event_studio_route()) {
+    return;
+  }
+  if (!isset($variables['attributes'], $variables['element'])) {
+    return;
+  }
+  $element = $variables['element'];
+  $attrs = $element['#attributes'] ?? [];
+  $classes = $attrs['class'] ?? [];
+  if ($classes && !is_array($classes)) {
+    $classes = [$classes];
+  }
+  $classes ??= [];
+
+  // Shell composite groups (radios legends, checkbox sets) without targeting admin vertical tabs shells.
+  if (!in_array('form-composite', $classes, TRUE) && !in_array('fieldgroup', $classes, TRUE)) {
+    return;
+  }
+  if (!empty($element['#mel_skip_builder_field_well'])) {
+    return;
+  }
+  foreach ($classes as $class) {
+    $slug = (string) $class;
+    if (strpos($slug, 'vertical-tabs') !== FALSE || strpos($slug, 'vertical_tabs') !== FALSE) {
+      return;
+    }
+  }
+
+  if (!$variables['attributes'] instanceof Attribute) {
+    $variables['attributes'] = new Attribute((array) $variables['attributes']);
+  }
+  $variables['attributes']->addClass('mel-builder-fieldset-well');
+}
+
+/**
+ * Implements hook_preprocess_html().
+ *
+ * Full-bleed Event Studio: body class scopes theme SCSS that relaxes global
+ * layout containers (layout-container, Gin, off-canvas canvas, etc.).
+ */
+function myeventlane_event_studio_preprocess_html(array &$variables): void {
+  if (!_myeventlane_event_studio_is_event_studio_route()) {
     return;
   }
   if (isset($variables['attributes']) && $variables['attributes'] instanceof Attribute) {

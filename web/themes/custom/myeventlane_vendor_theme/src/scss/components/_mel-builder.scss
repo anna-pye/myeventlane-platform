@@ -1,0 +1,1214 @@
+/**
+ * @file
+ * Event Studio — MEL Builder layout & card system (vendor console).
+ *
+ * Loaded via meta.load-css inside main.scss `.mel-vendor { }` — do not prefix
+ * selectors with `.mel-vendor` here (that would double-nest in compiled CSS).
+ * Module CSS may load earlier;
+ * grid/layout rules use specificity so theme wins for studio pages.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/breakpoints' as *;
+@use '../tokens/spacing' as *;
+
+@use 'sass:color' as sass-color;
+
+// Semantic aliases (design brief)
+$mel-builder-bg-page: $bg-secondary;
+$mel-builder-muted: $text-secondary;
+
+.mel-event-studio .mel-builder {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 32px;
+  padding: 32px;
+  max-width: 1200px;
+  margin-inline: auto;
+  background: $mel-builder-bg-page;
+  border-radius: $mel-radius-md;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .mel-event-studio .mel-builder {
+    grid-template-columns: 1fr 260px;
+  }
+}
+
+.mel-event-studio .mel-builder__main {
+  max-width: none;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  padding-right: 24px;
+  box-sizing: border-box;
+}
+
+/* Builder step stacks: gutter between cards only (avoid margin + gap doubling). */
+.mel-event-studio .mel-builder-step-stack {
+  gap: $spacing-8;
+}
+
+.mel-event-studio .mel-builder-step-stack > .mel-builder-card {
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-builder__sidebar {
+  position: sticky;
+  top: 24px;
+  height: fit-content;
+  align-self: start;
+}
+
+.mel-event-studio .mel-builder-sidebar__sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: $mel-radius-md;
+  border: 1px solid $border-color-light;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  background: $bg-primary;
+  box-sizing: border-box;
+}
+
+/* Highlight icon — pulldown (emoji + label visible in list & closed state where supported). */
+.mel-event-studio .mel-highlights-builder-table .mel-highlight-icon-cell {
+  min-width: 11rem;
+  vertical-align: middle;
+}
+
+.mel-event-studio .mel-highlights-builder-table select.mel-highlight-icon {
+  width: 100%;
+  max-width: 100%;
+  font-size: $font-size-body;
+  line-height: 1.35;
+  font-family:
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji',
+    system-ui,
+    sans-serif;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Card system                                                                */
+/* -------------------------------------------------------------------------- */
+
+@keyframes mel-builder-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mel-event-studio .mel-builder-card {
+  position: relative;
+  background: $bg-primary;
+  border-radius: $mel-radius-md;
+  padding: 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  border: 1px solid $border-color-light;
+  box-sizing: border-box;
+  scroll-margin-top: 112px;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      border-color 0.28s ease,
+      border-width 0.28s ease,
+      box-shadow 0.28s ease,
+      transform 0.28s ease,
+      background-color 0.28s ease,
+      opacity 0.28s ease,
+      filter 0.28s ease;
+    animation: mel-builder-card-enter 0.45s ease-out backwards;
+  }
+
+  @media (hover: hover) {
+    &:hover:not(.is-active) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    &.is-active:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.08),
+        0 0 0 4px rgba(242, 109, 91, 0.12);
+    }
+  }
+}
+
+/* Completion + active step affordances */
+.mel-event-studio .mel-builder-card.is-complete {
+  border-left: 4px solid #2ecc71;
+}
+
+.mel-event-studio .mel-builder-card.is-complete > .mel-builder-card__header:first-of-type {
+  padding-right: 6.5rem;
+}
+
+.mel-event-studio .mel-builder-card.is-active {
+  opacity: 1;
+  background: #fffdf8;
+  border: 2px solid $mel-ws-coral;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.08),
+    0 0 0 4px rgba(242, 109, 91, 0.12);
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: scale(1.02);
+  }
+}
+
+/**
+ * Dim sibling cards — one viewport/focus-aligned card carries .is-active (see mel-event-studio.js).
+ */
+.mel-event-studio .mel-builder--focus-mode .mel-builder-card:not(.is-active) {
+  opacity: 0.78;
+  filter: saturate(0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: scale(0.99);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+
+      @media (prefers-reduced-motion: no-preference) {
+        transform: translateY(-2px) scale(0.99);
+      }
+    }
+  }
+}
+
+.mel-event-studio .mel-builder-card__done-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $success;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.mel-event-studio .mel-builder-card__done-badge[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-builder-card__summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  box-sizing: border-box;
+  margin-bottom: 0;
+
+  &::after {
+    content: '\203a';
+    font-size: 18px;
+    line-height: 1;
+    opacity: 0.4;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
+  }
+}
+
+.mel-event-studio .mel-builder-card__summary[hidden] {
+  display: none !important;
+}
+
+@media (hover: hover) {
+  .mel-event-studio .mel-builder-card__summary:hover {
+    background: #f1f5f9;
+
+    @media (prefers-reduced-motion: no-preference) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    }
+  }
+}
+
+.mel-event-studio .mel-builder-card__summary-content {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.35;
+}
+
+.mel-event-studio .mel-builder-card__edit-btn {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: $spacing-2 $spacing-5;
+  margin: 0;
+  margin-left: $spacing-2;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  line-height: 1.15;
+  color: sass-color.adjust($mel-ws-coral, $lightness: -10%);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  background: rgba($mel-ws-coral, 0.09);
+  border: 1px solid rgba($mel-ws-coral, 0.42);
+  border-radius: $mel-radius-pill;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    background: rgba($mel-ws-coral, 0.16);
+    border-color: rgba($mel-ws-coral, 0.66);
+    color: sass-color.adjust($mel-ws-coral, $lightness: -14%);
+    text-decoration: none;
+    box-shadow:
+      0 2px 6px rgba(242, 109, 91, 0.14),
+      0 1px 2px rgba(15, 23, 42, 0.05);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transform: translateY(-1px);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $mel-ws-coral;
+    outline-offset: 2px;
+    border-radius: $mel-radius-pill;
+    box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.22);
+  }
+}
+
+.mel-event-studio .mel-builder-card__footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid $border-color-light;
+}
+
+.mel-event-studio .mel-builder-card__complete {
+  margin: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $success;
+}
+
+.mel-event-studio .mel-builder-card__momentum {
+  color: $text-primary;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio .mel-builder-card__complete[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-builder-card__next-step {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.mel-event-studio .mel-builder-card__next-step[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-builder-card__next-hint {
+  margin: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $mel-builder-muted;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio .mel-next-step-btn {
+  appearance: none;
+  margin: 0;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: $radius-button;
+  font-size: $font-size-body;
+  font-weight: $font-weight-semibold;
+  line-height: 1.2;
+  border: 1px solid $border-color-light;
+  background: $bg-primary;
+  color: $text-primary;
+  box-sizing: border-box;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: $ml-slate-300;
+    background: $ml-slate-50;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $ml-color-accent;
+    outline-offset: 2px;
+  }
+}
+
+/* Soft highlight — optional MEL contribution (secondary visual system) */
+.mel-event-studio .mel-builder-card--mel-support {
+  background: transparent;
+  border-color: transparent;
+}
+
+.mel-event-studio .mel-builder-card--secondary.mel-builder-card--mel-support {
+  margin-top: 8px;
+  background: #fff8f5;
+  border: 1px dashed #f26d5b;
+  border-radius: $mel-radius-md;
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(255, 248, 245, 0.08);
+    border-color: rgba(242, 109, 91, 0.55);
+  }
+}
+
+/* Headings inside cards (Twig uses mel-builder-card__title on section headers) */
+.mel-event-studio .mel-builder-card > .mel-builder-card__header .mel-builder-card__title {
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-bold;
+  margin: 0 0 8px;
+  color: $text-primary;
+}
+
+.mel-event-studio .mel-builder-card > .mel-builder-card__header .mel-builder-card__hint {
+  color: $mel-builder-muted;
+  margin: 0 0 16px;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+}
+
+/* Legacy: direct h2/p inside cards */
+.mel-event-studio .mel-builder-card > h2:first-child {
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-bold;
+  margin: 0 0 8px;
+}
+
+.mel-event-studio .mel-builder-card > p:not([class]) {
+  color: $mel-builder-muted;
+  margin-bottom: 16px;
+}
+
+/* Schedule: date + location columns */
+.mel-event-studio .mel-builder-fields--schedule {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+
+  @media (min-width: $breakpoint-md) {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.mel-event-studio .mel-builder-fields--schedule > .mel-builder-fields__col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+/* Inputs inside builder cards */
+.mel-event-studio .mel-builder-card input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']),
+.mel-event-studio .mel-builder-card textarea,
+.mel-event-studio .mel-builder-card select {
+  border-radius: $radius-input;
+  padding: 12px;
+  border: 1px solid $border-color-light;
+  font-size: $font-size-body;
+  box-sizing: border-box;
+}
+
+/* Tickets step: product prominence (not “just another setting”) */
+.mel-event-studio .mel-builder-card--tickets {
+  padding: 28px 28px 32px;
+  margin-bottom: 28px;
+}
+
+.mel-event-studio .mel-builder-card--tickets > .mel-builder-card__body.mel-builder-fields--stack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.mel-event-studio .mel-tickets-product-region {
+  margin-top: 2px;
+}
+
+.mel-event-studio .mel-tickets-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 16px;
+}
+
+.mel-event-studio .mel-tickets-section-divider::before,
+.mel-event-studio .mel-tickets-section-divider::after {
+  content: '';
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  background: $border-color-light;
+}
+
+.mel-event-studio .mel-tickets-section-divider__label {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $mel-builder-muted;
+  white-space: nowrap;
+}
+
+.mel-event-studio .mel-tickets-list-well {
+  padding: 20px 20px 22px;
+  border-radius: $mel-radius-md;
+  position: relative;
+  background: linear-gradient(
+    165deg,
+    rgba(242, 109, 91, 0.07) 0%,
+    rgba(110, 126, 242, 0.05) 48%,
+    rgba(15, 23, 42, 0.02) 100%
+  );
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-sizing: border-box;
+}
+
+.mel-event-studio .mel-ticket-studio-autosave-hint {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  font-size: $font-size-sm;
+  color: $mel-builder-muted;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: $mel-radius-sm;
+  box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket--complete {
+  border: 2px solid #2ecc71;
+  background: #f9fffb;
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(46, 204, 113, 0.12);
+    border-color: rgba(46, 204, 113, 0.75);
+  }
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card__display {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 14px;
+  margin-bottom: 10px;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card__display-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.25;
+  color: $text-primary;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card__price {
+  font-size: 1.0625rem;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  white-space: nowrap;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card__header--outcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  .mel-ticket-card__display {
+    flex: 1 1 220px;
+    margin-bottom: 0;
+  }
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card__kind-hint {
+  margin: -4px 0 12px;
+  font-size: $font-size-xs;
+  color: $mel-builder-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card__fields-inline-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 16px;
+
+  @media (min-width: $breakpoint-md) {
+    grid-template-columns: minmax(0, 2fr) minmax(140px, 1fr);
+  }
+
+  &:has(select[name*="[ticket_kind]"]) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card .mel-ticket-card__edit-layer .form-item,
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket-card--new .mel-ticket-card__fields .form-item {
+  margin-bottom: 12px !important;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card .mel-ticket-card__edit-layer label,
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket-card--new .mel-ticket-card__fields label {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card .mel-ticket-card__edit-layer input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']),
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card .mel-ticket-card__edit-layer textarea,
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card .mel-ticket-card__edit-layer select,
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket-card--new .mel-ticket-card__fields input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']),
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket-card--new .mel-ticket-card__fields textarea,
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket-card--new .mel-ticket-card__fields select {
+  border-radius: 10px;
+  padding: 10px !important;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-tickets-list-well .mel-ticket-builder,
+.mel-event-studio .mel-builder-card--tickets .mel-tickets-list-well .mel-ticket-wizard-embed {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card {
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card:last-child {
+  margin-bottom: 0;
+}
+
+/* First / lead ticket — slight lift */
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket--primary {
+  border-color: rgba(242, 109, 91, 0.35);
+  background: $bg-primary;
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: scale(1.018);
+    transition:
+      transform 0.22s ease,
+      box-shadow 0.22s ease,
+      border-color 0.22s ease;
+  }
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-card.mel-ticket--primary.is-dragging {
+  transform: none;
+}
+
+/* Tickets: emphasize add-tier CTA */
+.mel-event-studio .mel-builder-card--tickets #mel-add-ticket-tier {
+  font-weight: $font-weight-semibold;
+}
+
+/* Attendee: primary Add question */
+.mel-event-studio .mel-builder-card--attendees #mel-attendee-add-question {
+  border-radius: $radius-button;
+  padding: 12px 18px;
+  font-weight: $font-weight-semibold;
+}
+
+/* Question rows as mini-cards */
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-row {
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid $border-color-light;
+  border-radius: $mel-radius-sm;
+  border-bottom: 1px solid $border-color-light;
+  background: $ml-slate-50;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-row:last-child {
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-row__primary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-option-cards.mel-option-cards--attendee-inline {
+  gap: 10px;
+
+  @media (min-width: $breakpoint-md) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-option-cards--attendee-inline > .mel-option-card {
+  flex: 1 1 220px;
+  min-width: min(220px, 100%);
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-row .mel-builder-field-well .form-item__label {
+  display: block;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  margin-bottom: 6px;
+  color: $text-primary;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-options-shell {
+  margin-top: 4px;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-option-line {
+  margin-bottom: 8px;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-add-option {
+  margin-top: 4px;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-preview-well {
+  margin-top: 12px;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-preview__label {
+  margin: 0;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  color: $text-primary;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-preview__pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: $font-size-sm;
+  margin: 0;
+  color: $text-secondary;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-preview__empty {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $mel-builder-muted;
+}
+
+.mel-event-studio .mel-builder-card--attendees .mel-attendee-row .mel-option-card input.form-checkbox {
+  margin-block-start: 4px;
+}
+
+/* Progressive collapse (<details>): default collapsed; Identity / Schedule / Tickets stay expanded (no wrappers). */
+.mel-event-studio .mel-builder-progressive {
+  margin: 0;
+  padding: 0;
+  border-radius: $mel-radius-md;
+  border: 1px solid $border-color-light;
+  background: $bg-primary;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+.mel-event-studio .mel-builder-card > .mel-builder-card__body > .mel-builder-progressive.mel-builder-progressive--attendee-card {
+  margin: -24px -24px 0;
+}
+
+.mel-event-studio .mel-builder-progressive + .mel-builder-card__subsection,
+.mel-event-studio .mel-builder-card__subsection + .mel-builder-progressive {
+  margin-top: 28px;
+}
+
+.mel-event-studio .mel-builder-progressive__summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  font: inherit;
+  color: $text-primary;
+}
+
+.mel-event-studio .mel-builder-progressive__summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio .mel-builder-progressive__summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.mel-event-studio .mel-builder-progressive__title {
+  display: block;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-section-title;
+  line-height: $line-height-normal;
+  margin: 0;
+  color: $text-primary;
+}
+
+.mel-event-studio .mel-builder-progressive--description-card .mel-builder-progressive__title {
+  font-size: $font-size-lg;
+}
+
+.mel-event-studio .mel-builder-progressive__hint {
+  display: block;
+  margin: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-normal;
+  color: $mel-builder-muted;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio .mel-builder-progressive__chev {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+  border-radius: 8px;
+  border: 1px solid $border-color-light;
+  background: $ml-slate-50;
+  position: relative;
+  transition: transform 0.22s ease, background-color 0.15s ease;
+}
+
+.mel-event-studio .mel-builder-progressive__chev::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid $ml-slate-600;
+  border-bottom: 2px solid $ml-slate-600;
+  transform: translate(-52%, -64%) rotate(45deg);
+  transition: transform 0.22s ease;
+}
+
+.mel-event-studio .mel-builder-progressive[open] > .mel-builder-progressive__summary .mel-builder-progressive__chev {
+  transform: rotate(180deg);
+  background: $bg-primary;
+}
+
+.mel-event-studio .mel-builder-progressive__panel {
+  padding: 0 22px 22px;
+  border-top: 1px solid $border-color-light;
+}
+
+/* More options (collapsed) */
+.mel-event-studio .mel-builder-more-options {
+  margin-bottom: 24px;
+  border-radius: $mel-radius-md;
+  border: 1px solid $border-color-light;
+  background: $bg-primary;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+  padding: 0;
+}
+
+.mel-event-studio .mel-builder-more-options__summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px 22px;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-lg;
+  color: $text-primary;
+}
+
+.mel-event-studio .mel-builder-more-options__summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio .mel-builder-more-options__body {
+  padding: 0 22px 22px;
+  border-top: 1px solid $border-color-light;
+}
+
+/* Publish card — destination state when builder is fully ready */
+.mel-event-studio .mel-card-publish.mel-builder-card.is-ready {
+  border: 2px solid #2ecc71;
+  box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.1);
+}
+
+.mel-event-studio .mel-card-publish__ready-celebrate {
+  margin: 12px 0 12px;
+  font-size: $font-size-body;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio .mel-card-publish__ready-celebrate[hidden] {
+  display: none !important;
+}
+
+/* Publish CTAs */
+.mel-event-studio .mel-builder-card--publish .mel-publish-action-card__draft .mel-btn--primary#mel-publish-now {
+  font-weight: $font-weight-bold;
+}
+
+.mel-event-studio .mel-builder-publish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* Strip tabular chrome inside ticket builder where not tabledrag */
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-list table:not(.tabledrag),
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-builder table:not(.tabledrag) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-list table:not(.tabledrag) th,
+.mel-event-studio .mel-builder-card--tickets .mel-ticket-list table:not(.tabledrag) td {
+  border: 0;
+  padding: 8px 0;
+  vertical-align: top;
+}
+
+/* Fieldsets: no admin chrome */
+.mel-event-studio .mel-builder__main fieldset.fieldset,
+.mel-event-studio .mel-builder__main .fieldset {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 0 1rem !important;
+  min-width: 0;
+}
+
+.mel-event-studio .mel-builder__main fieldset.fieldset .fieldset__wrapper,
+.mel-event-studio .mel-builder__main .fieldset .fieldset__wrapper {
+  padding: 0 !important;
+}
+
+/* Inline validation affordance */
+.mel-event-studio--builder-inline-validation .form-item.mel-builder-invalid .mel-input,
+.mel-event-studio--builder-inline-validation .form-item.mel-builder-invalid input:not([type='hidden']),
+.mel-event-studio--builder-inline-validation .form-item.mel-builder-invalid textarea,
+.mel-event-studio--builder-inline-validation .form-item.mel-builder-invalid select {
+  border-color: $danger !important;
+  box-shadow: 0 0 0 2px $danger-light;
+}
+
+/* Suppress duplicate top-of-form error banner when inline hints exist */
+.mel-event-studio--builder-inline-validation .mel-studio-form-wrapper > .messages.messages--error {
+  display: none !important;
+}
+
+@media (max-width: #{$breakpoint-md - 1px}) {
+  .mel-event-studio .mel-builder {
+    grid-template-columns: 1fr;
+    padding: 20px 16px;
+    gap: 24px;
+  }
+
+  .mel-event-studio .mel-builder__sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    z-index: 20;
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    background: $bg-primary;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+    border-radius: $mel-radius-md $mel-radius-md 0 0;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+
+  .mel-event-studio .mel-builder-sidebar__sticky {
+    position: static;
+    box-shadow: none;
+    border: 0;
+    padding: 0;
+    max-height: none;
+  }
+
+  .mel-event-studio .mel-studio-form-wrapper {
+    padding-bottom: 120px;
+  }
+}
+
+/* ========================================================================== */
+/* Option cards — radio / checkbox selectors (mel-option-cards)                */
+/* ========================================================================== */
+
+.mel-event-studio .mel-option-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &.mel-option-cards--tickets-row {
+    @media (min-width: $breakpoint-md) {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+  }
+}
+
+// Brief alias aligned with vendor form tokens ($primary maps to interactive blue).
+$color-primary: $primary;
+
+.mel-event-studio .mel-option-cards .mel-option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid $border-color-light;
+  background: $bg-primary;
+  cursor: pointer;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-width: min(260px, 100%);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: $color-primary;
+    }
+  }
+
+  &.form-disabled {
+    cursor: default;
+    opacity: 0.72;
+
+    &:hover {
+      border-color: $border-color-light;
+    }
+  }
+}
+
+.mel-event-studio .mel-option-cards--tickets-row .mel-option-card {
+  @media (min-width: $breakpoint-md) {
+    min-width: 200px;
+  }
+}
+
+.mel-event-studio .mel-option-card input.form-radio,
+.mel-event-studio .mel-option-card input.form-checkbox {
+  flex-shrink: 0;
+  margin-block-start: 4px;
+  width: auto;
+  max-width: none;
+  cursor: pointer;
+}
+
+.mel-event-studio .mel-option-card__content {
+  flex: 1;
+  min-width: 0;
+  padding-inline-start: 4px;
+  border-inline-start: 3px solid transparent;
+  margin-inline-start: 0;
+  transition: border-color 0.15s ease;
+}
+
+.mel-event-studio .mel-option-card input:checked + .mel-option-card__content {
+  border-inline-start-color: $color-primary;
+}
+
+.mel-event-studio .mel-option-card .mel-option-card__label {
+  display: block;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  font-weight: $font-weight-normal;
+}
+
+.mel-event-studio .mel-option-card .mel-option-card__label strong {
+  display: block;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-body;
+  color: $text-primary;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio .mel-option-card .mel-option-card__desc {
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: $text-secondary;
+
+  &.visually-hidden {
+    margin: 0;
+  }
+}
+
+.mel-event-studio .mel-option-card:focus-within {
+  outline: 2px solid $ml-color-accent;
+  outline-offset: 2px;
+}
+
+/* ========================================================================== */
+/* Field wells — text, select, datetime, file, etc. (.mel-builder-field-well)   */
+/* ========================================================================== */
+
+.mel-event-studio .mel-builder .mel-builder-field-well.form-item {
+  margin-block-start: 0;
+  margin-block-end: 12px;
+
+  &:last-child {
+    margin-block-end: 0;
+  }
+}
+
+.mel-event-studio .mel-builder .mel-builder-field-well {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid $border-color-light;
+  background: $ml-slate-50;
+  box-sizing: border-box;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &.form-item--error {
+    border-color: $danger;
+    box-shadow: 0 0 0 2px $danger-light;
+  }
+
+  &:focus-within {
+    outline: none;
+    border-color: $primary;
+  }
+
+  &:focus-within:not(:has(table)) {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+}
+
+.mel-event-studio .mel-builder table .mel-builder-field-well {
+  margin: 0 !important;
+  padding: 4px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.mel-event-studio .mel-builder table .mel-builder-field-well:focus-within {
+  box-shadow: none !important;
+}
+
+/* Legend + radios groups: restore visible shell (fieldsets are stripped above). */
+.mel-event-studio .mel-builder__main fieldset.fieldset.mel-builder-fieldset-well.form-composite,
+.mel-event-studio .mel-builder__main fieldset.fieldset.mel-builder-fieldset-well.fieldgroup {
+  border: 1px solid $border-color-light !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+  background: $ml-slate-50 !important;
+  padding: 12px 14px !important;
+  margin: 0 0 12px !important;
+  border-radius: 12px !important;
+}
+
+.mel-event-studio .mel-builder__main fieldset.fieldset.mel-builder-fieldset-well > .fieldset-wrapper {
+  padding: 0 !important;
+}
+
+.mel-event-studio .mel-ai-controls .mel-ai-controls__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid $border-color-light;
+  background: $ml-slate-50;
+  box-sizing: border-box;
+}
+
+.mel-event-studio .mel-ai-controls .mel-ai-controls__group > span:first-child {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+}
+
+.mel-event-studio .mel-ai-controls .mel-ai-controls__group select.mel-input {
+  width: 100%;
+}

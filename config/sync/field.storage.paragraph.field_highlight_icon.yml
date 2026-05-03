@@ -13,22 +13,34 @@ settings:
   allowed_values:
     -
       value: music
-      label: Music
-    -
-      value: star
-      label: Star
-    -
-      value: clock
-      label: Clock
+      label: '🎵 Music'
     -
       value: food
-      label: Food
+      label: '🍔 Food & drinks'
     -
-      value: info
-      label: Info
+      value: party
+      label: '🪩 Party / DJ'
     -
-      value: access
-      label: Accessibility
+      value: network
+      label: '🤝 Networking'
+    -
+      value: art
+      label: '🎨 Arts'
+    -
+      value: outdoor
+      label: '🌿 Outdoor'
+    -
+      value: family
+      label: '👨‍👩‍👧 Family friendly'
+    -
+      value: lgbtq
+      label: '🏳️‍🌈 LGBTQ+'
+    -
+      value: wellness
+      label: '🧘 Wellness'
+    -
+      value: education
+      label: '📚 Workshop / learning'
   allowed_values_function: ''
 module: options
 locked: false

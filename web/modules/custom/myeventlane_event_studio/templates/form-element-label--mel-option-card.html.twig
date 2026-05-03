@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Event Studio — option card label: bold title line for mel-option-card radios/checkboxes.
+ *
+ * @see template_preprocess_form_element_label()
+ */
+#}
+{%
+  set classes = [
+    title_display == 'after' ? 'option',
+    title_display == 'invisible' ? 'visually-hidden',
+    required ? 'js-form-required',
+    required ? 'form-required',
+    'mel-option-card__label',
+  ]
+%}
+{% if title is not empty or required -%}
+  <label{{ attributes.addClass(classes) }}>{%- if title is not empty -%}<strong>{{ title }}</strong>{%- endif -%}</label>
+{%- endif %}

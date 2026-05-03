@@ -1062,6 +1062,29 @@ final class EventStudioSaveService {
         $paragraph->set($field_map['type'], $this->normalizeAttendeeQuestionTypeValue($type));
         $paragraph->set($field_map['required'], $required ? 1 : 0);
 
+        $normalized_type = $this->normalizeAttendeeQuestionTypeValue($type);
+        if ($paragraph->hasField('field_question_options')) {
+          $needs_opts = in_array($normalized_type, ['select', 'checkboxes', 'radios'], TRUE);
+          if ($needs_opts) {
+            $lines = [];
+            if (isset($question['options']) && is_array($question['options'])) {
+              foreach ($question['options'] as $opt_line) {
+                $t = trim((string) $opt_line);
+                if ($t !== '') {
+                  $lines[] = $t;
+                }
+              }
+            }
+            if ($lines === []) {
+              return [sprintf('Add at least one choice for question %d.', (int) $index + 1)];
+            }
+            $paragraph->set('field_question_options', ['value' => implode("\n", $lines)]);
+          }
+          else {
+            $paragraph->set('field_question_options', NULL);
+          }
+        }
+
         if ($paragraph->hasField('field_question_machine_name')) {
           $machine = trim((string) ($question['machine_name'] ?? ''));
           if ($machine === '') {
@@ -1143,9 +1166,18 @@ final class EventStudioSaveService {
   }
 
   private function normalizeAttendeeQuestionTypeValue(string $type): string {
+    $type = trim($type);
     return match ($type) {
-      'text' => 'textfield',
-      default => $type,
+      'text', 'textfield' => 'textfield',
+      'textarea' => 'textarea',
+      'select' => 'select',
+      'checkbox' => 'checkboxes',
+      'checkboxes' => 'checkboxes',
+      'radio' => 'radios',
+      'radios' => 'radios',
+      'email' => 'email',
+      'tel' => 'tel',
+      default => 'textfield',
     };
   }
 

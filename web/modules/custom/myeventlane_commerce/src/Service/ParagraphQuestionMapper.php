@@ -50,6 +50,18 @@ class ParagraphQuestionMapper {
           ];
           break;
 
+        case 'radios':
+          $options = $this->explodeOptions($para->get('field_question_options')->value ?? '');
+          $elements[$machine] = [
+            '#type' => 'radios',
+            '#title' => $title,
+            '#options' => $options !== [] ? $options : ['_' => 'Option'],
+            '#required' => $required,
+            '#default_value' => $defaults[$machine] ?? NULL,
+            '#description' => $help,
+          ];
+          break;
+
         case 'textarea':
           $elements[$machine] = [
             '#type' => 'textarea',

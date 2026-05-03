@@ -35,6 +35,8 @@ final class MelPlatformSupportWizardFormHelper {
    *
    * @param bool $studio_presentation
    *   TRUE for Event Studio card copy/radio labels (“Support MyEventLane 💖”).
+   * @param bool $omit_heading_and_intro
+   *   TRUE when the Event Studio Twig card supplies its own title and lede.
    */
   public function buildSection(
     array &$form,
@@ -43,6 +45,7 @@ final class MelPlatformSupportWizardFormHelper {
     int $weight = 88,
     string $heading_id = 'mel-mel-support-heading',
     bool $studio_presentation = FALSE,
+    bool $omit_heading_and_intro = FALSE,
   ): void {
     if (!$this->moduleHandler->moduleExists('myeventlane_donations')) {
       return;
@@ -88,22 +91,24 @@ final class MelPlatformSupportWizardFormHelper {
       ],
     ];
 
-    $form['mel_mel_support']['_title'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'h3',
-      '#value' => $studio_presentation ? $this->t('Support MyEventLane 💖') : $this->t('Support MyEventLane'),
-      '#attributes' => [
-        'class' => ['mel-mel-support__title'],
-        'id' => $heading_id,
-      ],
-    ];
+    if (!$omit_heading_and_intro) {
+      $form['mel_mel_support']['_title'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $studio_presentation ? $this->t('Support MyEventLane 💖') : $this->t('Support MyEventLane'),
+        '#attributes' => [
+          'class' => ['mel-mel-support__title'],
+          'id' => $heading_id,
+        ],
+      ];
 
-    $form['mel_mel_support']['_intro'] = [
-      '#type' => 'markup',
-      '#markup' => $studio_presentation
-        ? '<p class="mel-mel-support__intro">' . $this->t('<strong>This supports MyEventLane</strong>. It is <strong>not</strong> added to attendee ticket pricing or the ticket checkout total. One-time amounts are handled in a separate MEL step after you publish, when applicable.') . '</p>'
-        : '<p class="mel-mel-support__intro">' . $this->t('Optional: help us keep community event tools affordable. A one-time amount is paid on MyEventLane checkout <strong>after you publish</strong>—it is not mixed into the ticket cart or attendee purchases. Revenue % pledges are stored for future billing.') . '</p>',
-    ];
+      $form['mel_mel_support']['_intro'] = [
+        '#type' => 'markup',
+        '#markup' => $studio_presentation
+          ? '<p class="mel-mel-support__intro">' . $this->t('<strong>This supports MyEventLane</strong>. It is <strong>not</strong> added to attendee ticket pricing or the ticket checkout total. One-time amounts are handled in a separate MEL step after you publish, when applicable.') . '</p>'
+          : '<p class="mel-mel-support__intro">' . $this->t('Optional: help us keep community event tools affordable. A one-time amount is paid on MyEventLane checkout <strong>after you publish</strong>—it is not mixed into the ticket cart or attendee purchases. Revenue % pledges are stored for future billing.') . '</p>',
+      ];
+    }
 
     if ($studio_presentation) {
       $options = [
@@ -134,13 +139,29 @@ final class MelPlatformSupportWizardFormHelper {
       $effective_mode = 'none';
     }
 
-    $form['mel_mel_support']['mode'] = [
+    $mode_element = [
       '#type' => 'radios',
       '#title' => $this->t('Support MyEventLane'),
       '#options' => $options,
       '#default_value' => $effective_mode,
       '#required' => TRUE,
     ];
+
+    // Event Studio: card-style option selectors (vendor theme .mel-option-card).
+    if ($studio_presentation) {
+      $mode_element['#mel_option_cards'] = TRUE;
+      $mode_element['#mel_option_descriptions'] = [
+        'none' => $this->t('Skip optional platform support on this event.'),
+        'onetime' => $this->t('Handled in a separate MEL step after publish — never added to ticket checkout totals.'),
+      ];
+      if ($paid_like) {
+        $mode_element['#mel_option_descriptions']['percent'] = $this->t(
+          'Stores a pledge for future MEL vendor billing tools — nothing is charged immediately.'
+        );
+      }
+    }
+
+    $form['mel_mel_support']['mode'] = $mode_element;
 
     $form['mel_mel_support']['amount'] = [
       '#type' => 'number',

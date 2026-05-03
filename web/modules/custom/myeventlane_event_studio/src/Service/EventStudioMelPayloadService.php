@@ -358,6 +358,18 @@ final class EventStudioMelPayloadService {
       if ($machine !== '') {
         $item['machine_name'] = $machine;
       }
+      $option_lines = [];
+      if (isset($row['options']) && is_array($row['options'])) {
+        foreach ($row['options'] as $opt) {
+          $t = trim((string) $opt);
+          if ($t !== '') {
+            $option_lines[] = $t;
+          }
+        }
+      }
+      if ($option_lines !== []) {
+        $item['options'] = $option_lines;
+      }
       $out[] = $item;
     }
     return $out;

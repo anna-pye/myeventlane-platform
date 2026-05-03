@@ -1,0 +1,73 @@
+{#
+/**
+ * @file
+ * Event Studio — card-style radio/checkbox wrapper (mel-option-card).
+ *
+ * Same contract as system form-element; description for label "after" is
+ * rendered inside .mel-option-card__content (no duplicate trailing block).
+ *
+ * @see template_preprocess_form_element()
+ */
+#}
+{%
+  set classes = [
+    'js-form-item',
+    'form-item',
+    'form-type-' ~ type|clean_class,
+    'js-form-type-' ~ type|clean_class,
+    'form-item-' ~ name|clean_class,
+    'js-form-item-' ~ name|clean_class,
+    title_display not in ['after', 'before'] ? 'form-no-label',
+    disabled == 'disabled' ? 'form-disabled',
+    errors ? 'form-item--error',
+  ]
+%}
+{%
+  set desc_trailing_classes = [
+    'description',
+    description_display == 'invisible' ? 'visually-hidden',
+  ]
+%}
+{%
+  set desc_card_classes = [
+    'mel-option-card__desc',
+    description_display == 'invisible' ? 'visually-hidden',
+  ]
+%}
+<div{{ attributes.addClass(classes) }}>
+  {% if label_display in ['before', 'invisible'] %}
+    {{ label }}
+  {% endif %}
+  {% if description_display == 'before' and description.content %}
+    <div{{ description.attributes.addClass(desc_trailing_classes) }}>
+      {{ description.content }}
+    </div>
+  {% endif %}
+  {% if prefix is not empty %}
+    <span class="field-prefix">{{ prefix }}</span>
+  {% endif %}
+  {{ children }}
+  {% if suffix is not empty %}
+    <span class="field-suffix">{{ suffix }}</span>
+  {% endif %}
+  {% if label_display == 'after' %}
+    <div class="mel-option-card__content">
+      {{ label }}
+      {% if description_display in ['after', 'invisible'] and description.content %}
+        <p{{ description.attributes.addClass(desc_card_classes) }}>
+          {{ description.content }}
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if errors %}
+    <div class="form-item--error-message">
+      {{ errors }}
+    </div>
+  {% endif %}
+  {% if label_display != 'after' and description_display in ['after', 'invisible'] and description.content %}
+    <div{{ description.attributes.addClass(desc_trailing_classes) }}>
+      {{ description.content }}
+    </div>
+  {% endif %}
+</div>
