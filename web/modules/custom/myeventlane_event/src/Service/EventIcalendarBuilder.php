@@ -62,7 +62,7 @@ final class EventIcalendarBuilder {
       'URL:' . $this->escapeStructuredValue($canonical),
     ];
 
-    $descPieces = trim($detail !== '' ? trim($detail) . '\n\n' . $canonical : $canonical, "\n\r\t ");
+    $descPieces = trim($detail !== '' ? trim($detail) . "\n\n" . $canonical : $canonical, "\n\r\t ");
     $lines[] = 'DESCRIPTION:' . $this->escapeTextValue($descPieces !== '' ? $descPieces : $canonical);
 
     if ($location !== '') {
