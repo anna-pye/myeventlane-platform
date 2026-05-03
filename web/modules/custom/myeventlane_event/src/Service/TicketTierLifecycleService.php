@@ -754,7 +754,16 @@ final class TicketTierLifecycleService {
    * @return \Drupal\mel_ticket\Entity\TicketTypeInterface[]
    */
   public function loadOrderedTicketsForEvent(NodeInterface $event): array {
-    return array_values($this->ticketTypeManager->loadEventTicketTypesDefaultFirst($event));
+    $out = [];
+    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      return $out;
+    }
+    foreach ($event->get('field_ticket_types')->referencedEntities() as $entity) {
+      if ($entity instanceof TicketTypeInterface && !$entity->isArchived()) {
+        $out[] = $entity;
+      }
+    }
+    return $out;
   }
 
   public function loadWritableTicketForEvent(NodeInterface $event, int $ticketId, AccountInterface $account): ?TicketTypeInterface {
