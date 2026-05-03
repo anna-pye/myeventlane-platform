@@ -2457,12 +2457,17 @@
    * Apply accordion state: expands only dataset.mel-builder-active-card, else collapses all.
    *
    * @param {HTMLFormElement} form
+   * @param {boolean} [allowActiveOutsideWizardStep=false] When true, keep active card ID even if
+   *   the card sits outside the wizard step indicated by data-mel-wizard-step (e.g. advancing
+   *   to next section's primary card immediately after marking the previous complete).
    */
-  function melApplyBuilderCardCollapseState(form) {
+  function melApplyBuilderCardCollapseState(form, allowActiveOutsideWizardStep) {
     if (!form) {
       return;
     }
     melEnsureCollapseDoneButtons(form);
+
+    var relaxStepContainment = !!allowActiveOutsideWizardStep;
 
     var activeId = form.dataset.melBuilderActiveCardId;
     var activeCard = activeId ? document.getElementById(activeId) : null;
@@ -2479,7 +2484,8 @@
       !activeCard.closest('section.mel-step')
     ) {
       activeCard = null;
-    } else if (stepEl && !stepEl.contains(activeCard)) {
+    }
+    else if (stepEl && !stepEl.contains(activeCard) && !relaxStepContainment) {
       activeCard = null;
     }
 
@@ -3364,7 +3370,10 @@
       }
     });
     melSyncPublishCardReadyState(form);
-    melApplyBuilderCardCollapseState(form);
+    if (pendingCompletionScrollCard) {
+      melSetActiveBuilderCard(form, pendingCompletionScrollCard);
+    }
+    melApplyBuilderCardCollapseState(form, !!pendingCompletionScrollCard);
     if (pendingCompletionScrollCard && form) {
       var scrollTargetCard = pendingCompletionScrollCard;
       window.setTimeout(function () {
