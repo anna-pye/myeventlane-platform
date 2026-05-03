@@ -56,4 +56,9 @@ interface TicketTypeInterface extends ContentEntityInterface {
    */
   public function isDefaultTicket(): bool;
 
+  /**
+   * Whether this ticket type is marked as the organiser-controlled best value.
+   */
+  public function isBestValueTicket(): bool;
+
 }
