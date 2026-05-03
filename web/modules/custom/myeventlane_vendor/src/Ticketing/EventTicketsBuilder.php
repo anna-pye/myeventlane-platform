@@ -1061,7 +1061,7 @@ final class EventTicketsBuilder {
       . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
         ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
         : ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket()
-          ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->bestValueTicketBadgeLabel($ticket)) . '</span>'
+          ? '<span class="mel-ticket-card__recommended-badge mel-ticket-card__best-value-badge">' . Html::escape($this->bestValueTicketBadgeLabel($ticket)) . '</span>'
           : ''))
       . '<span class="mel-badge mel-badge--' . Html::escape($status_class) . '">' . Html::escape($status_label) . '</span>';
 
@@ -1169,7 +1169,7 @@ final class EventTicketsBuilder {
       . ($ticket->hasField('field_is_default_ticket') && $ticket->isDefaultTicket()
         ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->recommendedTicketBadgeLabel($ticket)) . '</span>'
         : ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket()
-          ? '<span class="mel-ticket-card__recommended-badge">' . Html::escape($this->bestValueTicketBadgeLabel($ticket)) . '</span>'
+          ? '<span class="mel-ticket-card__recommended-badge mel-ticket-card__best-value-badge">' . Html::escape($this->bestValueTicketBadgeLabel($ticket)) . '</span>'
           : ''))
       . '<span class="mel-badge mel-badge--' . Html::escape($edit_badge_class) . '">' . Html::escape($edit_status_label) . '</span>';
 
@@ -1435,7 +1435,7 @@ final class EventTicketsBuilder {
       '#parents' => array_merge($edit_path, ['hidden_label']),
     ];
 
-    $toggle_selector = ':input[name="' . Html::escape($this->formElementFullName($form_state, 'builder_shell', 'list', (string) $tid, 'edit', 'field_use_ticket_attendee_questions', 'value')) . '"]';
+    $toggle_selector = ':input[name="' . Html::escape($this->formElementFullName($form_state, 'builder_shell', 'list', (string) $tid, 'edit', 'field_use_ticket_attendee_questions', '0', 'value')) . '"]';
 
     $card['edit']['mel_ticket_questions_divider'] = [
       '#markup' => '<hr class="mel-ticket-questions__divider" aria-hidden="true" />',
@@ -1712,7 +1712,7 @@ final class EventTicketsBuilder {
         $this->removeTicketTypeAttendeeQuestionParagraphs($ticket);
       }
 
-      $this->lifecycle->updateTicketType($ticket, $event, []);
+      $ticket->save();
 
       $this->messenger->addStatus($this->t('Ticket updated.'));
       $success = TRUE;

@@ -10,6 +10,7 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 
 /**
  * Builds GST-aware pricing rows from Commerce orders (adjustments + subtotals).
@@ -23,6 +24,7 @@ final class OrderPricingBreakdownBuilder {
     private readonly CurrencyFormatter $currencyFormatter,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -182,7 +184,7 @@ final class OrderPricingBreakdownBuilder {
   private function calculateTicketSubtotal(OrderInterface $order): ?Price {
     $subtotal = NULL;
     foreach ($order->getItems() as $item) {
-      if ($item->bundle() === 'checkout_donation') {
+      if ($this->orderItemClassifier->isDonation($item)) {
         continue;
       }
       $item_total = $item->getTotalPrice();

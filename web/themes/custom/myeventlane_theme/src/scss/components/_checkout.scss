@@ -1392,20 +1392,6 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 }
 
-.mel-checkout__trust {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  color: var(--mel-text-secondary);
-  margin-bottom: 16px;
-
-  span {
-    line-height: 1.35;
-  }
-}
-
 .mel-checkout-trust {
   display: flex;
   flex-wrap: wrap;
