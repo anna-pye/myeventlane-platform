@@ -36,6 +36,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 final class EventStudioForm extends FormBase {
 
+  private const ATTENDEE_QUESTION_LIMIT = 5;
+
   /**
    * Injected services must be protected (not private readonly) so FormBase
    * serialization can restore them from the container on cached form rebuilds.
@@ -880,7 +882,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['tickets_intro'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#value' => $this->t('Start with one ticket — you can add more later.'),
+      '#value' => $this->t('Simpler events get more bookings. Start with one ticket — you can add more later.'),
       '#attributes' => ['class' => ['mel-tickets-intro']],
     ];
 
@@ -908,6 +910,21 @@ final class EventStudioForm extends FormBase {
       '#attributes' => [
         'id' => 'mel-studio-ticket-tiers-json',
         'data-mel-studio-ticket-tiers' => '1',
+      ],
+    ];
+
+    $form['mel']['ticket_simplicity_warn'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'mel-ticket-simplicity-warn',
+        'class' => ['mel-ticket-simplicity-warn', 'messages', 'messages--warning'],
+        'hidden' => 'hidden',
+      ],
+      'inner' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Most events convert best with 3 to 5 ticket types. Keep the list simple unless attendees need more choices.'),
+        '#attributes' => ['class' => ['mel-ticket-simplicity-warn__text']],
       ],
     ];
 
@@ -1101,6 +1118,31 @@ final class EventStudioForm extends FormBase {
             'data-mel-attendee-library-add' => '1',
           ],
           '#access' => $has_vendor_question_library,
+        ],
+      ],
+      'guidance' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-attendee-questions-guidance', 'messages', 'messages--status']],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Default off. Simpler events get more bookings — only ask what you truly need.'),
+          '#attributes' => ['class' => ['mel-attendee-questions-guidance__text']],
+        ],
+      ],
+      'limit_warn' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'id' => 'mel-attendee-questions-limit-warn',
+          'class' => ['mel-attendee-questions-limit-warn', 'messages', 'messages--warning'],
+          'hidden' => 'hidden',
+          'data-mel-attendee-question-limit' => (string) self::ATTENDEE_QUESTION_LIMIT,
+        ],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('More questions may reduce bookings'),
+          '#attributes' => ['class' => ['mel-attendee-questions-limit-warn__text']],
         ],
       ],
       'add_menu' => [
@@ -1510,6 +1552,9 @@ final class EventStudioForm extends FormBase {
           $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
           if (!is_array($decoded)) {
             $form_state->setErrorByName('mel][attendee_questions_editor][items_state', $this->t('Attendee questions could not be read. Reset the list or reload the page.'));
+          }
+          elseif (count($decoded) > self::ATTENDEE_QUESTION_LIMIT) {
+            $form_state->setErrorByName('mel][attendee_questions_editor][items_state', $this->t('Add at most 5 attendee questions. More questions may reduce bookings.'));
           }
         }
         catch (\JsonException) {

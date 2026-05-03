@@ -17,3 +17,4 @@ dependencies:
   - drupal:commerce_payment
   - drupal:commerce_price
   - drupal:node
+  - commerce_stripe:commerce_stripe

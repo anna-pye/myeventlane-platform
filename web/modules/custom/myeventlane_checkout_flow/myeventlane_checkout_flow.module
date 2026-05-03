@@ -13,6 +13,7 @@
 
 declare(strict_types=1);
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
@@ -43,6 +44,219 @@ function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkou
   /** @var \Drupal\myeventlane_checkout_flow\Service\CheckoutUxAttacher $attacher */
   $attacher = \Drupal::service('myeventlane_checkout_flow.checkout_ux_attacher');
   $attacher->attach($form);
+
+  myeventlane_checkout_flow_attach_fast_checkout($form, $form_state);
+}
+
+/**
+ * Adds the eligibility-gated fast checkout section to the checkout form.
+ */
+function myeventlane_checkout_flow_attach_fast_checkout(array &$form, FormStateInterface $form_state): void {
+  $order = myeventlane_checkout_flow_resolve_checkout_order();
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_checkout_flow\Service\FastCheckoutEligibility $eligibility */
+  $eligibility = \Drupal::service('myeventlane_checkout_flow.fast_checkout_eligibility');
+  $gateway = $eligibility->getStripeGateway($order);
+  if (!$gateway || !$eligibility->isFastCheckoutEligible($order, $gateway)) {
+    return;
+  }
+
+  $requires_minimal_data = $eligibility->requiresMinimalData($order);
+  $has_minimal_data = $eligibility->hasConfirmedMinimalData($order);
+
+  $form['mel_fast_checkout'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#attributes' => [
+      'class' => ['mel-fast-checkout'],
+      'aria-labelledby' => 'mel-fast-checkout-title',
+    ],
+    'header' => [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-fast-checkout__header']],
+      'title' => [
+        '#markup' => '<h2 id="mel-fast-checkout-title" class="mel-fast-checkout__title">' . t('Express checkout') . '</h2>',
+      ],
+      'intro' => [
+        '#markup' => '<p class="mel-fast-checkout__intro">' . t('Use Stripe Link, Apple Pay, or Google Pay when available for this device.') . '</p>',
+      ],
+    ],
+  ];
+
+  if ($requires_minimal_data && !$has_minimal_data) {
+    myeventlane_checkout_flow_add_fast_checkout_details_form($form, $order);
+    return;
+  }
+
+  /** @var \Drupal\commerce_stripe\ExpressCheckoutButtonsBuilderInterface $button_builder */
+  $button_builder = \Drupal::service('commerce_stripe.express_checkout_buttons_builder');
+  $buttons = $button_builder->build($order, $gateway);
+  myeventlane_checkout_flow_limit_express_payment_methods($buttons);
+
+  $form['mel_fast_checkout']['wallets'] = [
+    '#type' => 'container',
+    '#attributes' => ['class' => ['mel-fast-checkout__wallets']],
+    'buttons' => $buttons,
+  ];
+  $form['mel_fast_checkout']['fallback'] = [
+    '#markup' => '<p class="mel-fast-checkout__fallback">' . t('Or continue with details') . '</p>',
+  ];
+}
+
+/**
+ * Adds the lightweight details form needed before some express checkouts.
+ */
+function myeventlane_checkout_flow_add_fast_checkout_details_form(array &$form, OrderInterface $order): void {
+  $defaults = myeventlane_checkout_flow_get_fast_checkout_detail_defaults($order);
+
+  $form['mel_fast_checkout']['details'] = [
+    '#type' => 'container',
+    '#tree' => TRUE,
+    '#attributes' => ['class' => ['mel-fast-checkout__details']],
+    'help' => [
+      '#markup' => '<p class="mel-fast-checkout__details-help">' . t('This event only needs basic attendee details before express checkout.') . '</p>',
+    ],
+    'name' => [
+      '#type' => 'textfield',
+      '#title' => t('Name'),
+      '#required' => TRUE,
+      '#default_value' => $defaults['name'],
+      '#attributes' => [
+        'autocomplete' => 'name',
+        'class' => ['mel-fast-checkout__field'],
+      ],
+    ],
+    'email' => [
+      '#type' => 'email',
+      '#title' => t('Email'),
+      '#required' => TRUE,
+      '#default_value' => $defaults['email'],
+      '#attributes' => [
+        'autocomplete' => 'email',
+        'class' => ['mel-fast-checkout__field'],
+      ],
+    ],
+    'actions' => [
+      '#type' => 'actions',
+      'save' => [
+        '#type' => 'submit',
+        '#value' => t('Continue with express checkout'),
+        '#button_type' => 'primary',
+        '#limit_validation_errors' => [['mel_fast_checkout', 'details']],
+        '#validate' => ['myeventlane_checkout_flow_fast_checkout_details_validate'],
+        '#submit' => ['myeventlane_checkout_flow_fast_checkout_details_submit'],
+        '#attributes' => ['class' => ['mel-fast-checkout__details-submit']],
+      ],
+    ],
+  ];
+  $form['mel_fast_checkout']['fallback'] = [
+    '#markup' => '<p class="mel-fast-checkout__fallback">' . t('Or continue with details') . '</p>',
+  ];
+}
+
+/**
+ * Validates the lightweight fast checkout details form.
+ */
+function myeventlane_checkout_flow_fast_checkout_details_validate(array &$form, FormStateInterface $form_state): void {
+  $details = $form_state->getValue(['mel_fast_checkout', 'details']) ?? [];
+  $name = trim((string) ($details['name'] ?? ''));
+  $email = trim((string) ($details['email'] ?? ''));
+
+  if ($name === '') {
+    $form_state->setErrorByName('mel_fast_checkout][details][name', t('Name is required.'));
+  }
+  if ($email === '') {
+    $form_state->setErrorByName('mel_fast_checkout][details][email', t('Email is required.'));
+  }
+  elseif (!\Drupal::service('email.validator')->isValid($email)) {
+    $form_state->setErrorByName('mel_fast_checkout][details][email', t('Please enter a valid email address.'));
+  }
+}
+
+/**
+ * Saves lightweight fast checkout details and rebuilds the form.
+ */
+function myeventlane_checkout_flow_fast_checkout_details_submit(array &$form, FormStateInterface $form_state): void {
+  $order = myeventlane_checkout_flow_resolve_checkout_order();
+  if (!$order instanceof OrderInterface) {
+    \Drupal::logger('myeventlane_checkout_flow')->error('Fast checkout details could not be saved because the checkout order was missing.');
+    $form_state->setRebuild(TRUE);
+    return;
+  }
+
+  $details = $form_state->getValue(['mel_fast_checkout', 'details']) ?? [];
+  /** @var \Drupal\myeventlane_checkout_flow\Service\FastCheckoutEligibility $eligibility */
+  $eligibility = \Drupal::service('myeventlane_checkout_flow.fast_checkout_eligibility');
+  $eligibility->saveMinimalData(
+    $order,
+    (string) ($details['name'] ?? ''),
+    (string) ($details['email'] ?? '')
+  );
+
+  $form_state->setRebuild(TRUE);
+}
+
+/**
+ * Resolves the Commerce order from the checkout route.
+ */
+function myeventlane_checkout_flow_resolve_checkout_order(): ?OrderInterface {
+  $order = \Drupal::routeMatch()->getParameter('commerce_order');
+  if (is_numeric($order)) {
+    $loaded = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $order);
+    return $loaded instanceof OrderInterface ? $loaded : NULL;
+  }
+  return $order instanceof OrderInterface ? $order : NULL;
+}
+
+/**
+ * Gets default values for the lightweight details form.
+ *
+ * @return array{name: string, email: string}
+ *   Default name and email values.
+ */
+function myeventlane_checkout_flow_get_fast_checkout_detail_defaults(OrderInterface $order): array {
+  $email = trim((string) $order->getEmail());
+  $name = '';
+
+  $billing_profile = $order->getBillingProfile();
+  if ($billing_profile) {
+    $address = $billing_profile->get('address')->first();
+    if ($address) {
+      $parts = array_filter([
+        trim((string) $address->getGivenName()),
+        trim((string) $address->getFamilyName()),
+      ]);
+      $name = trim(implode(' ', $parts));
+    }
+  }
+
+  return [
+    'name' => $name,
+    'email' => $email,
+  ];
+}
+
+/**
+ * Limits the fast checkout surface to Stripe Link, Apple Pay, and Google Pay.
+ */
+function myeventlane_checkout_flow_limit_express_payment_methods(array &$buttons): void {
+  if (!isset($buttons['#attached']['drupalSettings']['commerceStripeExpressCheckoutElement'])) {
+    return;
+  }
+
+  $settings = &$buttons['#attached']['drupalSettings']['commerceStripeExpressCheckoutElement'];
+  $settings['expressCheckoutOptions']['paymentMethodOrder'] = ['link', 'applePay', 'googlePay'];
+  $settings['expressCheckoutOptions']['paymentMethods'] = [
+    'link' => 'auto',
+    'applePay' => 'auto',
+    'googlePay' => 'auto',
+    'paypal' => 'never',
+    'amazonPay' => 'never',
+    'klarna' => 'never',
+  ];
 }
 
 /**

@@ -37,6 +37,8 @@ final class VendorStudioController extends VendorConsoleBaseController implement
    */
   private const OVERVIEW_SAVE_TOKEN_ID = 'myeventlane_vendor_studio_overview_save';
 
+  private const ATTENDEE_QUESTION_LIMIT = 5;
+
   /**
    * Constructs the Studio controller.
    */
@@ -548,6 +550,13 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       return new JsonResponse([
         'success' => FALSE,
         'message' => 'Invalid attendee payload. Expected { "questions": [] }.',
+      ], 422);
+    }
+
+    if (count($payload['questions']) > self::ATTENDEE_QUESTION_LIMIT) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Add at most 5 attendee questions. More questions may reduce bookings.',
       ], 422);
     }
 

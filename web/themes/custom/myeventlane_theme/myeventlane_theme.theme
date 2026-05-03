@@ -2710,6 +2710,10 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     return;
   }
 
+  if (str_starts_with($form_id, 'commerce_checkout_flow_')) {
+    $form['#attached']['library'][] = 'myeventlane_theme/mel_checkout';
+  }
+
   // Checkout: sidebar panes skip commerce_checkout_pane theme; add shell class
   // so governed SCSS applies (presentation only, no pane logic changes).
   if (str_starts_with($form_id, 'commerce_checkout_flow_') && isset($form['sidebar']) && is_array($form['sidebar'])) {

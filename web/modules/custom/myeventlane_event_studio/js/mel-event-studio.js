@@ -6,6 +6,8 @@
   'use strict';
 
   var HIGHLIGHT_MAX = 6;
+  var ATTENDEE_QUESTION_MAX = 5;
+  var TICKET_SOFT_MAX = 5;
 
   function melPrefersReducedMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1660,7 +1662,7 @@
     updateDraftEmptyState(form, tiers.length);
     syncPrimaryTicketClassInList(list);
     syncTicketTiersFromDomToHidden(form);
-    syncPaidTierWarning(form);
+    syncTicketModelWarnings(form);
   }
 
   function syncTicketTiersFromDomToHidden(form) {
@@ -1714,22 +1716,61 @@
     renderTicketBuilderRows(form, list, tiers);
   }
 
-  function syncPaidTierWarning(form) {
+  function countDraftJoinableTicketTiers(form) {
+    var list = getBuilderList(form);
+    if (!list) {
+      return 0;
+    }
+    var count = 0;
+    list.querySelectorAll('.mel-tier-row').forEach(function (card) {
+      if (['paid', 'rsvp'].indexOf(getDraftCardKind(card)) !== -1) {
+        count += 1;
+      }
+    });
+    return count;
+  }
+
+  function draftTicketsHaveBestValue(form) {
+    var list = getBuilderList(form);
+    if (!list) {
+      return false;
+    }
+    return !!list.querySelector('.mel-tier-row .mel-tier-best-value:checked');
+  }
+
+  function syncTicketModelWarnings(form) {
     var warn = document.getElementById('mel-ticket-tiers-warn');
-    if (!warn) {
-      return;
-    }
     var tt = valRadio(form, 'mel[field_event_type]');
-    if (tt !== 'paid') {
-      warn.setAttribute('hidden', 'hidden');
-      return;
-    }
     var list = getBuilderList(form);
     var n = list ? list.querySelectorAll('.mel-tier-row').length : 0;
-    if (n < 1) {
-      warn.removeAttribute('hidden');
-    } else {
-      warn.setAttribute('hidden', 'hidden');
+    if (warn) {
+      var warnText = warn.querySelector('.mel-ticket-tiers-warn__text');
+      var joinableCount = countDraftJoinableTicketTiers(form);
+      var needsBestValue = joinableCount > 1 && !draftTicketsHaveBestValue(form);
+      var needsPaidTicket = tt === 'paid' && n < 1;
+      if (needsBestValue) {
+        if (warnText) {
+          warnText.textContent = Drupal.t('Choose one Best value ticket when you offer more than one paid or RSVP ticket.');
+        }
+        warn.removeAttribute('hidden');
+      } else if (needsPaidTicket) {
+        if (warnText) {
+          warnText.textContent = Drupal.t('Add at least one ticket type.');
+        }
+        warn.removeAttribute('hidden');
+      } else {
+        warn.setAttribute('hidden', 'hidden');
+      }
+    }
+
+    var simplicityWarn = document.getElementById('mel-ticket-simplicity-warn');
+    if (simplicityWarn) {
+      var totalSignals = paidTicketTierSignalCount(form);
+      if (totalSignals > TICKET_SOFT_MAX) {
+        simplicityWarn.removeAttribute('hidden');
+      } else {
+        simplicityWarn.setAttribute('hidden', 'hidden');
+      }
     }
   }
 
@@ -1768,7 +1809,14 @@
         if (e.target.closest('#mel-add-ticket-tier')) {
           e.preventDefault();
           var tiersNow = collectTiersFromDom(form);
-          tiersNow.push(createDefaultTier(valRadio(form, 'mel[field_event_type]') || 'rsvp'));
+          var nextTier = createDefaultTier(valRadio(form, 'mel[field_event_type]') || 'rsvp');
+          var hasBestValue = tiersNow.some(function (tier) {
+            return ['paid', 'rsvp'].indexOf(normalizeTicketKind(tier.ticket_kind)) !== -1 && !!parseInt(tier.field_is_best_value || 0, 10);
+          });
+          if (tiersNow.length > 0 && !hasBestValue && ['paid', 'rsvp'].indexOf(normalizeTicketKind(nextTier.ticket_kind)) !== -1) {
+            nextTier.field_is_best_value = 1;
+          }
+          tiersNow.push(nextTier);
           renderTicketBuilderRows(form, list, tiersNow);
           var newCard = list.querySelector('.mel-tier-row:last-child .mel-tier-title');
           if (newCard && typeof newCard.focus === 'function') {
@@ -1845,7 +1893,7 @@
         }
         updateDraftTicketCardUi(card);
         syncTicketTiersFromDomToHidden(form);
-        syncPaidTierWarning(form);
+        syncTicketModelWarnings(form);
         setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
         refreshIntelligence(form);
       },
@@ -2511,6 +2559,13 @@
     }
     else if (stepEl && !stepEl.contains(activeCard) && !relaxStepContainment) {
       activeCard = null;
+    }
+
+    if (!activeCard && stepEl) {
+      activeCard = stepEl.querySelector('.mel-builder-card');
+      if (activeCard && activeCard.id) {
+        form.dataset.melBuilderActiveCardId = activeCard.id;
+      }
     }
 
     if (activeCard) {
@@ -4068,7 +4123,7 @@
     syncTicketProductPanel(form);
     syncTicketSummary(form, str);
     syncCoverPreview(form);
-    syncPaidTierWarning(form);
+    syncTicketModelWarnings(form);
 
     updateProgress(form);
     updateInsightsChecklist(form);
@@ -4119,6 +4174,7 @@
       h.value = '[]';
     }
     syncCollectHiddenFromAttendees(form);
+    syncAttendeeQuestionLimitWarning(form);
     var str = getSettings().strings || {};
     syncTicketSummary(form, str);
     melProgressiveRevealBuilder(form);
@@ -4139,6 +4195,46 @@
     }
     var n = parseAttendeeQuestionsState(form).length;
     sync.value = n > 0 ? '1' : '0';
+  }
+
+  function getAttendeeQuestionLimitWarning(form) {
+    return form.querySelector('#mel-attendee-questions-limit-warn');
+  }
+
+  function syncAttendeeQuestionLimitWarning(form) {
+    var warning = getAttendeeQuestionLimitWarning(form);
+    if (!warning) {
+      return;
+    }
+    var rows = parseAttendeeQuestionsState(form);
+    var show = rows.length > 0;
+    warning.hidden = !show;
+    warning.setAttribute('aria-hidden', show ? 'false' : 'true');
+
+    var addButton = form.querySelector('#mel-attendee-add-question');
+    var libraryButton = form.querySelector('[data-mel-attendee-library-add="1"]');
+    [addButton, libraryButton].forEach(function (button) {
+      if (!button) {
+        return;
+      }
+      button.disabled = rows.length >= ATTENDEE_QUESTION_MAX;
+      button.setAttribute('aria-disabled', rows.length >= ATTENDEE_QUESTION_MAX ? 'true' : 'false');
+    });
+  }
+
+  function canAddAttendeeQuestion(form) {
+    if (parseAttendeeQuestionsState(form).length < ATTENDEE_QUESTION_MAX) {
+      return true;
+    }
+    syncAttendeeQuestionLimitWarning(form);
+    var warning = getAttendeeQuestionLimitWarning(form);
+    if (warning && typeof warning.focus === 'function') {
+      if (!warning.hasAttribute('tabindex')) {
+        warning.setAttribute('tabindex', '-1');
+      }
+      warning.focus();
+    }
+    return false;
   }
 
   function melMaybeOpenAttendeeDetails(form, shouldOpen) {
@@ -4573,6 +4669,9 @@
   }
 
   function melAttendeeAddPreset(form, key) {
+    if (!canAddAttendeeQuestion(form)) {
+      return;
+    }
     var defs = attendeePresetDefinitions();
     var def = defs[key];
     if (!def) {
@@ -4607,6 +4706,9 @@
   }
 
   function melAttendeeAddFromLibrary(form) {
+    if (!canAddAttendeeQuestion(form)) {
+      return;
+    }
     var sel = form.querySelector('[data-mel-attendee-library-select="1"]');
     if (!sel || !sel.value) {
       return;
@@ -4629,6 +4731,7 @@
     }
     renderAttendeeQuestionRows(form);
     melMaybeOpenAttendeeDetails(form, parseAttendeeQuestionsState(form).length > 0);
+    syncAttendeeQuestionLimitWarning(form);
 
     if (!form.dataset.melAttendeeQuestionsBound) {
       form.dataset.melAttendeeQuestionsBound = '1';

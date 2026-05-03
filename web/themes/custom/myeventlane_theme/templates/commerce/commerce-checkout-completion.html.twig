@@ -57,47 +57,25 @@
   {% endif %}
 {% endfor %}
 
-<div class="mel-confirmation">
+<div class="mel-confirmation mel-confirmation--frictionless">
   <header class="mel-confirmation__hero">
     <div class="mel-confirmation__hero-icon" aria-hidden="true">✓</div>
     <div class="mel-confirmation__hero-content">
-      {# Donation before tickets: mixed orders use donation-led hero copy only (same as original). #}
-      {% if mel_donation_total_formatted %}
+      {% if mel_donation_total_formatted and not mel_confirmation_has_tickets %}
         <h1 class="mel-confirmation__title">{{ 'Thank you'|t }}</h1>
       {% elseif mel_confirmation_has_tickets %}
-        <h1 class="mel-confirmation__title">{{ "You're in! 🎉"|t }}</h1>
+        <h1 class="mel-confirmation__title">{{ "You're in"|t }}</h1>
       {% else %}
-        <h1 class="mel-confirmation__title">{{ 'Order confirmed'|t }}</h1>
+        <h1 class="mel-confirmation__title">{{ 'Done'|t }}</h1>
       {% endif %}
-
-      {% if mel_donation_total_formatted %}
-        <p class="mel-confirmation__subtitle">
-          {{ 'We\'ve emailed your receipt to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
-        </p>
-      {% elseif mel_confirmation_has_tickets %}
-        {% if mel_confirm_paid %}
-          <p class="mel-confirmation__subtitle">
-            {{ 'Your booking is confirmed. We\'ve emailed your confirmation and tickets to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
-          </p>
-        {% else %}
-          <p class="mel-confirmation__subtitle">
-            {{ 'Your registration is confirmed. We\'ve emailed your confirmation to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
-          </p>
-        {% endif %}
-      {% else %}
-        <p class="mel-confirmation__subtitle">
-          {{ 'We\'ve emailed your confirmation to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
-        </p>
-      {% endif %}
+      <p class="mel-confirmation__subtitle">
+        {{ 'Confirmation sent to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
+      </p>
       <p class="mel-confirmation__reference">
         {{ 'Order'|t }} <strong>#{{ order_entity.getOrderNumber() }}</strong>
       </p>
     </div>
   </header>
-
-  {% if order_entity is defined %}
-    {% include '@myeventlane_theme/commerce/mel-tax-invoice-section.html.twig' %}
-  {% endif %}
 
   <div class="mel-confirmation__main">
     {% if events|length > 0 %}
@@ -111,19 +89,14 @@
           {% endif %}
           <div class="mel-confirmation-card__body">
             <p class="mel-confirmation-card__eyebrow">{{ 'Event summary'|t }}</p>
-            {% if event.hasField('field_event_start') and not event.get('field_event_start').isEmpty() %}
-              <span class="mel-confirmation-card__date-badge">{{ event.get('field_event_start').value|date('M j, Y') }}</span>
-            {% endif %}
             <h2 id="mel-confirmation-event-summary-{{ event.id() }}" class="mel-confirmation-card__title">{{ event.label() }}</h2>
             <div class="mel-confirmation-card__meta">
               {% if event.hasField('field_event_start') and not event.get('field_event_start').isEmpty() %}
-                <span class="mel-confirmation-card__date">
-                  {{ event.get('field_event_start').value|date('l, F j, Y') }}
-                </span>
+                <span class="mel-confirmation-card__date">{{ event.get('field_event_start').value|date('l, F j, Y') }}</span>
                 <span class="mel-confirmation-card__time">
                   {{ event.get('field_event_start').value|date('g:i A') }}
                   {% if event.hasField('field_event_end') and not event.get('field_event_end').isEmpty() %}
-                    – {{ event.get('field_event_end').value|date('g:i A') }}
+                    - {{ event.get('field_event_end').value|date('g:i A') }}
                   {% endif %}
                 </span>
               {% endif %}
@@ -164,50 +137,19 @@
                       {% set pe = item.getPurchasedEntity() %}
                       {{ pe ? pe.label() : item.getTitle() }}
                     </span>
-                    <span class="mel-confirmation-card__ticket-qty">× {{ item.getQuantity()|number_format(0) }}</span>
+                    <span class="mel-confirmation-card__ticket-qty">x {{ item.getQuantity()|number_format(0) }}</span>
                     <span class="mel-confirmation-card__ticket-price">{{ item.getTotalPrice()|commerce_price_format }}</span>
-                    {% set attendees = order_items_attendees[item.id()] ?? [] %}
-                    {% if attendees|length > 0 %}
-                      <ul class="mel-confirmation-card__attendees">
-                        {% for att in attendees %}
-                          <li>{{ att.first_name }} {{ att.last_name }}{% if att.email %} ({{ att.email }}){% endif %}</li>
-                        {% endfor %}
-                      </ul>
-                    {% endif %}
                   </div>
                 {% endif %}
               {% endfor %}
             </div>
-
-            <p class="mel-confirmation-card__reference">{{ 'Booking reference'|t }}: #{{ order_entity.getOrderNumber() }}</p>
           </div>
         </section>
       {% endfor %}
-      {% include '@myeventlane_theme/commerce/mel-confirmation-order-pricing.html.twig' %}
-      {% if not mel_confirm_paid %}
-        <div class="mel-confirmation-card mel-confirmation-card--total">
-          <div class="mel-confirmation-card__body">
-            <div class="mel-confirmation-card__total">
-              <span>{{ 'Order total'|t }}</span>
-              <strong>{{ 'Free'|t }}</strong>
-            </div>
-          </div>
-        </div>
-      {% elseif mel_order_pricing_breakdown is empty %}
-        <div class="mel-confirmation-card mel-confirmation-card--total">
-          <div class="mel-confirmation-card__body">
-            <div class="mel-confirmation-card__total">
-              <span>{{ 'Total paid'|t }}</span>
-              <strong>{{ order_entity.getTotalPrice()|commerce_price_format }}</strong>
-            </div>
-          </div>
-        </div>
-      {% endif %}
-    {% endif %}
-
-    {% if ticket_items|length > 0 and events|length == 0 %}
+    {% elseif ticket_items|length > 0 %}
       <section class="mel-confirmation-card mel-confirmation__summary">
         <div class="mel-confirmation-card__body">
+          <p class="mel-confirmation-card__eyebrow">{{ 'Event summary'|t }}</p>
           <h2 class="mel-confirmation-card__title">{{ 'Your tickets'|t }}</h2>
           <div class="mel-confirmation-card__tickets">
             {% for item in ticket_items %}
@@ -216,16 +158,8 @@
                   {% set pe = item.getPurchasedEntity() %}
                   {{ pe ? pe.label() : item.getTitle() }}
                 </span>
-                <span class="mel-confirmation-card__ticket-qty">× {{ item.getQuantity()|number_format(0) }}</span>
+                <span class="mel-confirmation-card__ticket-qty">x {{ item.getQuantity()|number_format(0) }}</span>
                 <span class="mel-confirmation-card__ticket-price">{{ item.getTotalPrice()|commerce_price_format }}</span>
-                {% set attendees = order_items_attendees[item.id()] ?? [] %}
-                {% if attendees|length > 0 %}
-                  <ul class="mel-confirmation-card__attendees">
-                    {% for att in attendees %}
-                      <li>{{ att.first_name }} {{ att.last_name }}{% if att.email %} ({{ att.email }}){% endif %}</li>
-                    {% endfor %}
-                  </ul>
-                {% endif %}
               </div>
             {% endfor %}
           </div>
@@ -233,185 +167,52 @@
       </section>
     {% endif %}
 
-    {% if events|length == 0 %}
-      {% include '@myeventlane_theme/commerce/mel-confirmation-order-pricing.html.twig' %}
-      {% if not mel_confirm_paid %}
-        <div class="mel-confirmation-card mel-confirmation-card--total">
-          <div class="mel-confirmation-card__body">
-            <div class="mel-confirmation-card__total">
-              <span>{{ 'Order total'|t }}</span>
-              <strong>{{ 'Free'|t }}</strong>
-            </div>
-          </div>
-        </div>
-      {% elseif mel_order_pricing_breakdown is empty %}
-        <div class="mel-confirmation-card mel-confirmation-card--total">
-          <div class="mel-confirmation-card__body">
-            <div class="mel-confirmation-card__total">
-              <span>{{ 'Total paid'|t }}</span>
-              <strong>{{ order_entity.getTotalPrice()|commerce_price_format }}</strong>
-            </div>
-          </div>
-        </div>
-      {% endif %}
-    {% endif %}
-
     {% if mel_donation_total_formatted %}
       <div class="mel-confirmation-card mel-confirmation-card--donation">
         <div class="mel-confirmation-card__body">
-          <h3 class="mel-confirmation-card__donation-title">{{ 'Your donation'|t }}</h3>
+          <h2 class="mel-confirmation-card__title">{{ 'Donation confirmed'|t }}</h2>
           <p class="mel-confirmation-card__donation-amount">{{ mel_donation_total_formatted|raw }}</p>
-          <p class="mel-confirmation-card__donation-note">
-            {{ 'Thank you — your contribution helps keep events running on MyEventLane.'|t }}
-          </p>
         </div>
       </div>
     {% endif %}
 
-    <div class="mel-confirmation-actions">
-      <div class="mel-confirmation-actions__primary">
-        {% if mel_confirmation_has_tickets %}
-          {% if order_entity.getCustomerId() %}
-            <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
-               class="mel-confirmation-button mel-confirmation-button--primary">
-              {{ 'View / download tickets'|t }}
-            </a>
-          {% else %}
-            <div class="mel-confirmation-actions__guest-note">
-              <p>{{ 'Your tickets and event details have been sent to your email.'|t }}</p>
-              <p>{{ 'Keep your order number handy: <strong>@order_number</strong>'|t({'@order_number': order_entity.getOrderNumber()})|raw }}</p>
-            </div>
-          {% endif %}
-        {% elseif order_entity.getCustomerId() %}
-          <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
-             class="mel-confirmation-button mel-confirmation-button--primary">
-            {{ 'View order details'|t }}
-          </a>
-        {% else %}
-          <div class="mel-confirmation-actions__guest-note">
-            <p>{{ 'We\'ve sent the details for this order to your email.'|t }}</p>
-            <p>{{ 'Keep your order number handy: <strong>@order_number</strong>'|t({'@order_number': order_entity.getOrderNumber()})|raw }}</p>
-          </div>
-        {% endif %}
-      </div>
-
-      <div class="mel-confirmation-access">
-        {# Donation before tickets: one access line for mixed orders (donation copy). #}
-        {% if mel_donation_total_formatted %}
-          <p>{{ 'Your receipt lists how your donation was processed.'|t }}</p>
-        {% elseif mel_confirmation_has_tickets %}
-          {% if mel_logged_in and order_entity.getCustomerId() %}
-            <p>{{ 'Your tickets are saved in your account.'|t }}</p>
-            <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-link">{{ 'View my tickets'|t }}</a>
-          {% else %}
-            <p>{{ 'Your tickets have been sent to your email.'|t }}</p>
-          {% endif %}
-        {% endif %}
-      </div>
+    <div class="mel-confirmation-actions mel-confirmation-actions--frictionless">
+      {% if mel_confirmation_has_tickets and order_entity.getCustomerId() %}
+        <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
+           class="mel-confirmation-button mel-confirmation-button--primary">
+          {{ 'View ticket'|t }}
+        </a>
+      {% elseif order_entity.getCustomerId() %}
+        <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
+           class="mel-confirmation-button mel-confirmation-button--primary">
+          {{ 'View order'|t }}
+        </a>
+      {% else %}
+        <div class="mel-confirmation-actions__guest-note">
+          <p>{{ 'Your ticket link and order details have been sent to your email.'|t }}</p>
+          <p>{{ 'Order number: <strong>@order_number</strong>'|t({'@order_number': order_entity.getOrderNumber()})|raw }}</p>
+        </div>
+      {% endif %}
 
       {% if mel_calendar_links|length > 0 %}
-        <div class="mel-confirmation-calendar">
-          <h3 class="mel-confirmation-calendar__title">{{ 'Add to your calendar'|t }}</h3>
-          <p class="mel-calendar-prompt">{{ 'Don\'t forget to save the date'|t }}</p>
-          <div class="mel-calendar-actions">
-            {% if mel_calendar_links.apple is defined and mel_calendar_links.apple %}
-              <a href="{{ mel_calendar_links.apple }}" class="mel-calendar-btn mel-calendar-btn--primary" target="_blank" rel="noopener noreferrer">{{ 'Add to calendar'|t }}</a>
-            {% endif %}
-            {% if mel_calendar_links.google is defined and mel_calendar_links.google %}
-              <a href="{{ mel_calendar_links.google }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Google Calendar'|t }}</a>
-            {% endif %}
-            {% if mel_calendar_links.outlook is defined and mel_calendar_links.outlook %}
-              <a href="{{ mel_calendar_links.outlook }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Outlook'|t }}</a>
-            {% endif %}
-          </div>
+        <div class="mel-calendar-actions mel-calendar-actions--frictionless">
+          {% if mel_calendar_links.apple is defined and mel_calendar_links.apple %}
+            <a href="{{ mel_calendar_links.apple }}" class="mel-calendar-btn mel-calendar-btn--primary" target="_blank" rel="noopener noreferrer">{{ 'Add to calendar'|t }}</a>
+          {% endif %}
+          {% if mel_calendar_links.google is defined and mel_calendar_links.google %}
+            <a href="{{ mel_calendar_links.google }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Google Calendar'|t }}</a>
+          {% endif %}
+          {% if mel_calendar_links.outlook is defined and mel_calendar_links.outlook %}
+            <a href="{{ mel_calendar_links.outlook }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Outlook'|t }}</a>
+          {% endif %}
         </div>
       {% endif %}
 
       {% if mel_event_url and events|length > 0 %}
-        <div class="mel-confirmation-actions__secondary">
-          <a href="{{ mel_event_url }}" class="mel-confirmation-button mel-confirmation-button--secondary">
-            {{ 'View event page'|t }}
-          </a>
-        </div>
+        <a href="{{ mel_event_url }}" class="mel-confirmation-button mel-confirmation-button--secondary">
+          {{ 'View event'|t }}
+        </a>
       {% endif %}
-
-      {% if mel_event_url %}
-        {% set mel_share_title = events|length > 0 ? events[0].label() : 'MyEventLane event'|t %}
-        {% set mel_share_copy = 'I’m going to '|t ~ mel_share_title ~ ' on MyEventLane.'|t %}
-        <p class="mel-share-prompt">{{ 'Going with friends? Share this event'|t }}</p>
-        <section class="mel-confirmation-share">
-          <h3 class="mel-confirmation-share__title">{{ 'Share this event'|t }}</h3>
-          <div class="mel-share-actions">
-            <button type="button" class="mel-share-copy" data-url="{{ mel_event_url }}">{{ 'Copy event link'|t }}</button>
-            <button type="button" class="mel-share-native" data-url="{{ mel_event_url }}" data-title="{{ mel_share_title }}" data-text="{{ mel_share_copy }}">{{ 'Share'|t }}</button>
-            <a href="https://www.facebook.com/sharer/sharer.php?u={{ mel_event_url|url_encode }}" class="mel-share-link" target="_blank" rel="noopener noreferrer">{{ 'Facebook'|t }}</a>
-            <a href="https://twitter.com/intent/tweet?url={{ mel_event_url|url_encode }}&text={{ mel_share_copy|url_encode }}" class="mel-share-link" target="_blank" rel="noopener noreferrer">{{ 'X'|t }}</a>
-            <a href="mailto:?subject={{ mel_share_title|url_encode }}&body={{ mel_share_copy|url_encode }}%0A%0A{{ mel_event_url|url_encode }}" class="mel-share-link">{{ 'Email'|t }}</a>
-            <a href="{{ mel_event_url }}" class="mel-share-view">{{ 'View event page'|t }}</a>
-          </div>
-        </section>
-      {% endif %}
-
-      <div class="mel-confirmation-discover">
-        <h3>{{ 'Explore more events'|t }}</h3>
-        <p>{{ 'Discover what\'s happening near you.'|t }}</p>
-        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-confirmation-button mel-confirmation-button--secondary">{{ 'Browse events'|t }}</a>
-      </div>
-
-      <section class="mel-confirmation-next">
-        <h2 class="mel-confirmation-next__title">{{ 'What happens next'|t }}</h2>
-        <ul class="mel-next-steps">
-          {% if mel_donation_total_formatted %}
-            <li>{{ '✔ Your donation is confirmed'|t }}</li>
-            <li>{{ '✔ We\'ve emailed your receipt'|t }}</li>
-            <li>{{ '✔ Keep your confirmation for your records'|t }}</li>
-          {% elseif mel_confirmation_has_tickets %}
-            <li>{{ '✔ Your tickets are ready'|t }}</li>
-            <li>{{ '✔ We\'ve emailed your confirmation'|t }}</li>
-            <li>{{ '✔ Add the event to your calendar'|t }}</li>
-          {% else %}
-            <li>{{ '✔ Your order is complete'|t }}</li>
-            <li>{{ '✔ We\'ve emailed your confirmation'|t }}</li>
-            <li>{{ '✔ Save your confirmation for your records'|t }}</li>
-          {% endif %}
-        </ul>
-      </section>
-    </div>
-
-    {% if mel_contextual_help_checkout_confirmation is defined and mel_contextual_help_checkout_confirmation %}
-      <div class="mel-confirmation-help mel-contextual-help mel-contextual-help--checkout-confirmation">
-        {{ mel_contextual_help_checkout_confirmation }}
-      </div>
-    {% endif %}
-
-    <nav class="mel-confirmation-trust-nav" aria-label="{{ 'Help and support'|t }}">
-      <a class="mel-confirmation-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
-      <span aria-hidden="true" class="mel-confirmation-trust-nav__sep">·</span>
-      <a class="mel-confirmation-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
-    </nav>
-
-    <footer class="mel-confirmation-support">
-      <div class="mel-confirmation-support__links">
-        {% set vendor_email = null %}
-        {% if events|length > 0 %}
-          {% for ev in events %}
-            {% if vendor_email == null and ev.hasField('field_event_vendor') and not ev.get('field_event_vendor').isEmpty() %}
-              {% set vendor = ev.get('field_event_vendor').entity %}
-              {% if vendor and vendor.hasField('field_email') and not vendor.get('field_email').isEmpty() and vendor.hasField('field_public_show_email') and vendor.get('field_public_show_email').value %}
-                {% set vendor_email = vendor.get('field_email').value %}
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        {% if vendor_email %}
-          <a href="mailto:{{ vendor_email }}">{{ 'Contact organiser'|t }}</a>
-        {% endif %}
-      </div>
-      <p class="mel-confirmation-support__note">{{ 'Questions? We\'re here to help.'|t }}</p>
-    </footer>
-
-    <div class="mel-confirmation-close">
-      <p>{{ 'See you there'|t }}</p>
     </div>
   </div>
 </div>
