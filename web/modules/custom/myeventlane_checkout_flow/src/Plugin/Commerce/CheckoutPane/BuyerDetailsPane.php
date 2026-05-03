@@ -44,6 +44,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
     $order = $this->order;
     $customer = $order->getCustomer();
+    $pane_form['#attributes']['class'][] = 'mel-contact-details-pane';
 
     // Load or create billing profile.
     $billing_profile = $order->getBillingProfile();
@@ -62,7 +63,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#default_value' => $customer->getEmail() ?: $billing_profile->get('address')->first()?->get('email')?->value ?? '',
       '#attributes' => [
         'autocomplete' => 'email',
-        'class' => ['mel-buyer-email'],
+        'class' => ['mel-buyer-email', 'mel-contact-field'],
       ],
     ];
 
@@ -73,7 +74,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#default_value' => $billing_profile->get('address')->first()?->get('given_name')?->value ?? '',
       '#attributes' => [
         'autocomplete' => 'given-name',
-        'class' => ['mel-buyer-first-name'],
+        'class' => ['mel-buyer-first-name', 'mel-contact-field'],
       ],
     ];
 
@@ -84,7 +85,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#default_value' => $billing_profile->get('address')->first()?->get('family_name')?->value ?? '',
       '#attributes' => [
         'autocomplete' => 'family-name',
-        'class' => ['mel-buyer-last-name'],
+        'class' => ['mel-buyer-last-name', 'mel-contact-field'],
       ],
     ];
 
@@ -98,7 +99,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#default_value' => $mobile_default,
       '#attributes' => [
         'autocomplete' => 'tel',
-        'class' => ['mel-buyer-mobile'],
+        'class' => ['mel-buyer-mobile', 'mel-contact-field'],
       ],
     ];
 

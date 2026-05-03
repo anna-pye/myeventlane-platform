@@ -20,6 +20,7 @@ use Drupal\node\NodeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -46,6 +47,8 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
    *   The date formatter.
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection (for myeventlane_refund_log).
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The vendor logger.
    * @param \Drupal\myeventlane_refunds\Service\RefundProcessor|null $refundProcessor
    *   Refund processor (optional when refunds module is unavailable).
    */
@@ -59,6 +62,7 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
     private readonly VendorEventTabsService $eventTabsService,
     private readonly TicketLabelResolver $ticketLabelResolver,
     private readonly VendorAttendeePresentationService $vendorPresentation,
+    private readonly LoggerInterface $logger,
     private readonly ?RefundProcessor $refundProcessor = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
@@ -439,7 +443,7 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
         continue;
       }
 
-      $this->getLogger('myeventlane_vendor')->notice(
+      $this->logger->notice(
         'TEMP_DEBUG vendor_parity: order_detail fallback=holder_paragraphs order_item_id=@oi event_id=@eid',
         ['@oi' => (string) $oiid, '@eid' => (string) $eventId, 'order_item_id' => $oiid, 'event_id' => $eventId]
       );

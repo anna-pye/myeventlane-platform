@@ -45,6 +45,18 @@ services:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
     arguments: ['@entity_type.manager']
 
+  myeventlane_checkout_flow.fast_checkout_eligibility:
+    class: Drupal\myeventlane_checkout_flow\Service\FastCheckoutEligibility
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@logger.channel.myeventlane_checkout_flow'
+
+  myeventlane_checkout_flow.fast_checkout_access_check:
+    class: Drupal\myeventlane_checkout_flow\Access\FastCheckoutAccessCheck
+    arguments:
+      - '@myeventlane_checkout_flow.fast_checkout_eligibility'
+
   myeventlane_checkout_flow.my_tickets_order_access:
     class: Drupal\myeventlane_checkout_flow\Access\MyTicketsOrderAccess
     arguments: ['@entity_type.manager']
@@ -60,6 +72,11 @@ services:
       - '@config.factory'
       - '@current_route_match'
       - '@logger.channel.myeventlane_checkout_flow'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_checkout_flow.fast_checkout_route_subscriber:
+    class: Drupal\myeventlane_checkout_flow\EventSubscriber\FastCheckoutRouteSubscriber
     tags:
       - { name: event_subscriber }
 

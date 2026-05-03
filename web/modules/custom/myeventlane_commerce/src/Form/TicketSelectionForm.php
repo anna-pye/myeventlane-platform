@@ -166,6 +166,7 @@ final class TicketSelectionForm extends FormBase {
     $published_variations = $this->ticketAvailability->filterPurchasableVariations($node, $product);
     $default_tier = $this->ticketTypeManager->getDefaultTicket($node);
     $default_variation_id = $this->resolveDefaultVariationId($default_tier);
+    $best_value_variation_id = $this->resolveBestValueVariationId($node);
     if ($default_variation_id !== NULL) {
       $published_variations = $this->sortVariationsDefaultFirst($published_variations, $default_variation_id);
     }
@@ -267,6 +268,9 @@ final class TicketSelectionForm extends FormBase {
         if ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) {
           $row_classes[] = 'mel-ticket-row--recommended';
         }
+        if ($best_value_variation_id !== NULL && (int) $variation_id === $best_value_variation_id) {
+          $row_classes[] = 'mel-ticket-row--best-value';
+        }
 
         $label_cell = [
           '#type' => 'container',
@@ -278,6 +282,15 @@ final class TicketSelectionForm extends FormBase {
             '#attributes' => ['class' => ['mel-ticket-label']],
           ],
         ];
+        if ($best_value_variation_id !== NULL && (int) $variation_id === $best_value_variation_id) {
+          $label_cell['best_value'] = [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $this->t('Best value'),
+            '#attributes' => ['class' => ['mel-ticket-best-value-badge']],
+            '#weight' => 1,
+          ];
+        }
         if ($buyer_desc !== '') {
           $label_cell['description'] = [
             '#markup' => '<div class="mel-ticket-description mel-text--muted">' . nl2br(Html::escape($buyer_desc), FALSE) . '</div>',
@@ -306,6 +319,7 @@ final class TicketSelectionForm extends FormBase {
             'class' => $row_classes,
             'data-variation-id' => $variation_id,
             'data-mel-ticket-recommended' => ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) ? '1' : '0',
+            'data-mel-ticket-best-value' => ($best_value_variation_id !== NULL && (int) $variation_id === $best_value_variation_id) ? '1' : '0',
           ],
           'label_cell' => $label_cell,
           'price' => [
@@ -664,6 +678,28 @@ final class TicketSelectionForm extends FormBase {
     }
     $variation_id = (int) $tier->get('commerce_variation')->target_id;
     return $variation_id > 0 ? $variation_id : NULL;
+  }
+
+  private function resolveBestValueVariationId(NodeInterface $event): ?int {
+    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      return NULL;
+    }
+
+    foreach ($event->get('field_ticket_types')->referencedEntities() as $ticket) {
+      if (!$ticket instanceof TicketTypeInterface || $ticket->isArchived()) {
+        continue;
+      }
+      if (!$ticket->hasField('field_is_best_value') || !$ticket->isBestValueTicket()) {
+        continue;
+      }
+      if (!$ticket->hasField('commerce_variation') || $ticket->get('commerce_variation')->isEmpty()) {
+        continue;
+      }
+      $variation_id = (int) $ticket->get('commerce_variation')->target_id;
+      return $variation_id > 0 ? $variation_id : NULL;
+    }
+
+    return NULL;
   }
 
   /**

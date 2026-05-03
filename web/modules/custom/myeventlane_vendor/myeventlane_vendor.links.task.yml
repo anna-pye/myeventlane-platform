@@ -41,9 +41,7 @@ myeventlane_vendor.event_workspace.orders:
 myeventlane_vendor.event_workspace.attendees:
   title: 'Attendees'
   route_name: myeventlane_event_attendees.vendor_list
-  base_route: myeventlane_vendor.console.event_overview
-  route_parameters:
-    node: '{event}'
+  base_route: myeventlane_event_attendees.vendor_list
   weight: -8
 
 myeventlane_vendor.event_workspace.rsvps:

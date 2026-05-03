@@ -1435,7 +1435,7 @@ final class EventTicketsBuilder {
       '#parents' => array_merge($edit_path, ['hidden_label']),
     ];
 
-    $toggle_selector = ':input[name="' . Html::escape($this->formElementFullName($form_state, 'builder_shell', 'list', (string) $tid, 'edit', 'field_use_ticket_attendee_questions', '0', 'value')) . '"]';
+    $toggle_selector = ':input[name="' . Html::escape($this->formElementFullName($form_state, 'builder_shell', 'list', (string) $tid, 'edit', 'field_use_ticket_attendee_questions', 'value')) . '"]';
 
     $card['edit']['mel_ticket_questions_divider'] = [
       '#markup' => '<hr class="mel-ticket-questions__divider" aria-hidden="true" />',
@@ -1712,7 +1712,7 @@ final class EventTicketsBuilder {
         $this->removeTicketTypeAttendeeQuestionParagraphs($ticket);
       }
 
-      $ticket->save();
+      $this->lifecycle->updateTicketType($ticket, $event, []);
 
       $this->messenger->addStatus($this->t('Ticket updated.'));
       $success = TRUE;

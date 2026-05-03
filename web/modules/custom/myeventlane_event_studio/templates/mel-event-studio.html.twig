@@ -222,6 +222,7 @@
               {% if element.mel.first_ticket_guidance is defined %}
                 {{ element.mel.first_ticket_guidance }}
               {% endif %}
+              {{ element.mel.tickets_intro }}
               {{ element.mel.field_event_type }}
               <div class="mel-tickets-product-region">
                 <div class="mel-tickets-section-divider" role="presentation">
@@ -230,6 +231,7 @@
                 <div class="mel-tickets-list-well">
                   <p class="mel-ticket-studio-autosave-hint" role="status">{{ 'Changes saved automatically'|t }}</p>
                   {{ element.mel.studio_ticket_tiers }}
+                  {{ element.mel.ticket_simplicity_warn }}
                   {% if element.mel.embedded_ticket_wizard is defined %}
                     {{ element.mel.embedded_ticket_wizard }}
                   {% endif %}

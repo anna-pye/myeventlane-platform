@@ -31,6 +31,8 @@ use Psr\Log\LoggerInterface;
  */
 final class EventStudioSaveService {
 
+  private const ATTENDEE_QUESTION_LIMIT = 5;
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly VenueManager $venueManager,
@@ -1004,6 +1006,9 @@ final class EventStudioSaveService {
     $items = $payload['attendee_questions'];
     if (!is_array($items)) {
       return ['Attendee questions data was invalid. Reload and try again.'];
+    }
+    if (count($items) > self::ATTENDEE_QUESTION_LIMIT) {
+      return ['Add at most 5 attendee questions. More questions may reduce bookings.'];
     }
 
     $field_map = $this->resolveAttendeeQuestionFieldMap();

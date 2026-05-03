@@ -49,8 +49,8 @@
     <div class="visually-hidden">{{ form.mel_checkout_confidence }}</div>
   {% endif %}
 {% else %}
-  {# mel-checkout--compact-flow: QA-visible hook + SCSS anchor for compact density (any Commerce flow). #}
-  <div class="mel-checkout mel-checkout--compact-flow">
+  {# mel-checkout--structured keeps the active Commerce step single-page while presenting guided sections. #}
+  <div class="mel-checkout mel-checkout--compact-flow mel-checkout--structured">
 
     {% if title %}
       <h1 class="mel-checkout__title">{{ title }}</h1>
@@ -63,8 +63,8 @@
     {% endif %}
 
     <div class="mel-checkout__intro">
-      <h2>{{ 'Secure checkout'|t }}</h2>
-      <p>{{ "You're almost done — review your details and complete your booking."|t }}</p>
+      <h2>{{ 'Complete your booking'|t }}</h2>
+      <p>{{ 'Add ticket holder details, answer attendee questions, then pay securely on this page.'|t }}</p>
     </div>
 
     <div class="mel-checkout-trust">
@@ -78,7 +78,7 @@
     </div>
 
     <div class="mel-checkout__helper">
-      {{ "We'll only use your details to send your ticket."|t }}
+      {{ 'Your order stays on one secure checkout page. Totals update when the checkout form refreshes.'|t }}
     </div>
 
     <div class="mel-checkout__layout mel-checkout__grid mel-checkout__grid--sidebar-flow">
@@ -90,7 +90,11 @@
           </div>
         {% endif %}
 
-        {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
+        {% if form.mel_fast_checkout is defined %}
+          {{ form.mel_fast_checkout }}
+        {% endif %}
+
+        {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence', 'mel_fast_checkout') }}
 
         {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}
           {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
@@ -112,21 +116,34 @@
           </div>
         {% endif %}
 
-        {% if form.mel_buyer_details is defined %}
-          <div class="mel-checkout-section mel-checkout-section--buyer">
-            {{ form.mel_buyer_details }}
+        {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
+          <div class="mel-checkout-section mel-checkout-section--attendees mel-checkout-section--ticket-holders">
+            <div class="mel-checkout-section__header">
+              <p class="mel-checkout-section__eyebrow">{{ 'Step 1'|t }}</p>
+              <h2 class="mel-checkout-heading">{{ 'Ticket holders'|t }}</h2>
+              <p class="mel-checkout-section__intro">{{ 'Grouped by ticket type. Add attendee questions here when the organiser asks for them.'|t }}</p>
+            </div>
+            {{ form.ticket_holder_paragraph }}
           </div>
         {% endif %}
 
-        {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
-          <div class="mel-checkout-section mel-checkout-section--attendees">
-            <h3 class="mel-checkout-heading">{{ 'Attendee details'|t }}</h3>
-            {{ form.ticket_holder_paragraph }}
+        {% if form.mel_buyer_details is defined %}
+          <div class="mel-checkout-section mel-checkout-section--buyer">
+            <div class="mel-checkout-section__header">
+              <p class="mel-checkout-section__eyebrow">{{ 'Step 2'|t }}</p>
+              <h2 class="mel-checkout-heading">{{ 'Contact details'|t }}</h2>
+              <p class="mel-checkout-section__intro">{{ "We'll send tickets and booking updates to these details."|t }}</p>
+            </div>
+            {{ form.mel_buyer_details }}
           </div>
         {% endif %}
 
         {% if form.mel_donation is defined %}
           <div class="mel-checkout-section mel-checkout-section--donation">
+            <div class="mel-checkout-section__header">
+              <p class="mel-checkout-section__eyebrow">{{ 'Optional'|t }}</p>
+              <h2 class="mel-checkout-heading">{{ 'Optional donation'|t }}</h2>
+            </div>
             {{ form.mel_donation }}
           </div>
         {% endif %}
@@ -139,7 +156,10 @@
 
         {% if form.payment_information is defined %}
           <div class="mel-checkout-section mel-checkout-section--payment">
-            <h3 class="mel-checkout-heading">{{ 'Payment'|t }}</h3>
+            <div class="mel-checkout-section__header">
+              <p class="mel-checkout-section__eyebrow">{{ 'Final step'|t }}</p>
+              <h2 class="mel-checkout-heading">{{ 'Payment'|t }}</h2>
+            </div>
             {{ form.payment_information }}
           </div>
         {% endif %}
