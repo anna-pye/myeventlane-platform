@@ -12,6 +12,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\node\NodeInterface;
 
@@ -28,6 +29,7 @@ final class CheckoutGroupedSummaryBuilder {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
     private readonly BookingFlowResolver $bookingFlowResolver,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -42,7 +44,7 @@ final class CheckoutGroupedSummaryBuilder {
     $cacheTags = $order->getCacheTags();
 
     foreach ($order->getItems() as $item) {
-      if ($this->isDonationItem($item)) {
+      if ($this->orderItemClassifier->isDonation($item)) {
         $donationPrice = $item->getTotalPrice();
         if ($donationPrice instanceof Price && !$donationPrice->isZero()) {
           $currencyCode = $donationPrice->getCurrencyCode();
@@ -164,10 +166,6 @@ final class CheckoutGroupedSummaryBuilder {
       'show_includes_gst_note' => $breakdown['show_includes_gst_note'],
       'cache_tags' => $cacheTags,
     ];
-  }
-
-  private function isDonationItem(OrderItemInterface $item): bool {
-    return in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation'], TRUE);
   }
 
   /**

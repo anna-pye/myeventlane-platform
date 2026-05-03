@@ -425,10 +425,6 @@ function mel_ticket_update_9012(): string {
 function mel_ticket_update_9013(): string {
   $database_schema = \Drupal::database()->schema();
   $table = 'mel_ticket_type__field_attendee_questions';
-  if ($database_schema->tableExists($table)) {
-    return 'mel_ticket_type attendee-question tables already exist; nothing to repair.';
-  }
-
   $entity_type_manager = \Drupal::entityTypeManager();
   $entity_type_manager->clearCachedDefinitions();
   $entity_type = $entity_type_manager->getDefinition('mel_ticket_type', FALSE);
@@ -439,8 +435,16 @@ function mel_ticket_update_9013(): string {
   $update_manager = \Drupal::entityDefinitionUpdateManager();
   $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
   $installed = [];
+  $already_installed = [];
+  $failed = [];
   foreach (['field_use_ticket_attendee_questions', 'field_attendee_questions'] as $name) {
     if (!isset($fields[$name])) {
+      continue;
+    }
+    $storage_exists = $update_manager->getFieldStorageDefinition($name, 'mel_ticket_type') !== NULL;
+    $table_exists = $name !== 'field_attendee_questions' || $database_schema->tableExists($table);
+    if ($storage_exists && $table_exists) {
+      $already_installed[] = $name;
       continue;
     }
     try {
@@ -457,17 +461,34 @@ function mel_ticket_update_9013(): string {
         'mel_ticket_update_9013 installFieldStorageDefinition @field: @message',
         ['@field' => $name, '@message' => $e->getMessage()]
       );
+      $failed[] = $name;
     }
   }
 
-  $exists_after = $database_schema->tableExists($table);
-  return $exists_after
-    ? 'Repaired mel_ticket_type attendee question field storage (' . implode(', ', $installed) . ').'
-    : sprintf(
-      'Repair attempted for [%s]; table %s is still missing. Check logs.',
+  $missing = [];
+  foreach (['field_use_ticket_attendee_questions', 'field_attendee_questions'] as $name) {
+    if ($update_manager->getFieldStorageDefinition($name, 'mel_ticket_type') === NULL) {
+      $missing[] = $name;
+    }
+  }
+  if (!$database_schema->tableExists($table)) {
+    $missing[] = $table;
+  }
+
+  if ($missing !== []) {
+    return sprintf(
+      'Repair attempted for [%s]; missing [%s]. Check logs%s.',
       implode(', ', $installed),
-      $table
+      implode(', ', array_unique($missing)),
+      $failed === [] ? '' : ' for failed fields [' . implode(', ', $failed) . ']'
     );
+  }
+
+  if ($installed === []) {
+    return 'mel_ticket_type attendee-question field storage already exists for [' . implode(', ', $already_installed) . '].';
+  }
+
+  return 'Repaired mel_ticket_type attendee question field storage (' . implode(', ', $installed) . ').';
 }
 
 /**

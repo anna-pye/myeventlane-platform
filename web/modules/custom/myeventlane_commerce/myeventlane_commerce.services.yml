@@ -11,6 +11,9 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_commerce']
 
+  myeventlane_commerce.order_item_classifier:
+    class: Drupal\myeventlane_commerce\Service\OrderItemClassifier
+
   myeventlane_commerce.paragraph_question_mapper:
     class: Drupal\myeventlane_commerce\Service\ParagraphQuestionMapper
 
@@ -41,6 +44,7 @@ services:
       - '@myeventlane_core.stripe'
       - '@config.factory'
       - '@logger.channel.myeventlane_commerce'
+      - '@myeventlane_commerce.order_item_classifier'
 
   myeventlane_commerce.platform_fee_order_processor:
     class: Drupal\myeventlane_commerce\OrderProcessor\PlatformFeeOrderProcessor

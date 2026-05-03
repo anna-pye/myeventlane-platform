@@ -337,7 +337,7 @@
 
       {% if mel_event_url %}
         {% set mel_share_title = events|length > 0 ? events[0].label() : 'MyEventLane event'|t %}
-        {% set mel_share_copy = 'I’m going to @event on MyEventLane.'|t({'@event': mel_share_title}) %}
+        {% set mel_share_copy = 'I’m going to '|t ~ mel_share_title ~ ' on MyEventLane.'|t %}
         <p class="mel-share-prompt">{{ 'Going with friends? Share this event'|t }}</p>
         <section class="mel-confirmation-share">
           <h3 class="mel-confirmation-share__title">{{ 'Share this event'|t }}</h3>

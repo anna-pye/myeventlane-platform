@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -35,12 +34,15 @@ final class StripeConnectPaymentService {
    *   The config factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\myeventlane_commerce\Service\OrderItemClassifier $orderItemClassifier
+   *   The order item classifier.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly StripeService $stripeService,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -165,20 +167,6 @@ final class StripeConnectPaymentService {
   }
 
   /**
-   * Checks if an order item is a donation (should be excluded from vendor payout).
-   *
-   * @param \Drupal\commerce_order\Entity\OrderItemInterface $item
-   *   The order item.
-   *
-   * @return bool
-   *   TRUE if the item is a donation, FALSE otherwise.
-   */
-  private function isDonationItem(OrderItemInterface $item): bool {
-    $bundle = $item->bundle();
-    return in_array($bundle, ['checkout_donation', 'platform_donation', 'rsvp_donation'], TRUE);
-  }
-
-  /**
    * Calculates ticket revenue (excludes donations, boosts, and other non-ticket items).
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
@@ -192,7 +180,7 @@ final class StripeConnectPaymentService {
 
     foreach ($order->getItems() as $item) {
       // Skip donation items (platform revenue, not vendor revenue).
-      if ($this->isDonationItem($item)) {
+      if ($this->orderItemClassifier->isDonation($item)) {
         continue;
       }
 
@@ -234,7 +222,7 @@ final class StripeConnectPaymentService {
     $ticketAmount = 0;
 
     foreach ($order->getItems() as $item) {
-      if ($this->isDonationItem($item)) {
+      if ($this->orderItemClassifier->isDonation($item)) {
         continue;
       }
 
@@ -272,7 +260,7 @@ final class StripeConnectPaymentService {
     $donationAmount = 0;
 
     foreach ($order->getItems() as $item) {
-      if ($this->isDonationItem($item)) {
+      if ($this->orderItemClassifier->isDonation($item)) {
         $totalPrice = $item->getTotalPrice();
         if ($totalPrice) {
           // Convert to cents.

@@ -23,6 +23,7 @@ services:
       - '@commerce_price.currency_formatter'
       - '@entity_type.manager'
       - '@config.factory'
+      - '@myeventlane_commerce.order_item_classifier'
 
   myeventlane_checkout_flow.checkout_grouped_summary_builder:
     class: Drupal\myeventlane_checkout_flow\Service\CheckoutGroupedSummaryBuilder
@@ -32,6 +33,7 @@ services:
       - '@date.formatter'
       - '@myeventlane_checkout_flow.order_pricing_breakdown'
       - '@myeventlane_event.booking_flow_resolver'
+      - '@myeventlane_commerce.order_item_classifier'
 
   myeventlane_checkout_flow.tax_invoice_presentation:
     class: Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder

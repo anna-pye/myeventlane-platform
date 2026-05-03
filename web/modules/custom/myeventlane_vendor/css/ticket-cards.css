@@ -329,6 +329,12 @@
   line-height: 1.2;
 }
 
+.mel-ticket-card__best-value-badge {
+  border-color: rgba(58, 134, 255, 0.36);
+  background: #eef5ff;
+  color: #1e4f9a;
+}
+
 .mel-ticket-card.is-view {
   display: flex;
   flex-direction: column;
