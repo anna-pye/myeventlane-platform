@@ -104,10 +104,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
     $cache_metadata = $display->getCacheMetadata();
     $form['#cache']['tags'] = $cache_metadata->getCacheTags();
     $form['#cache']['contexts'] = $cache_metadata->getCacheContexts();
-    $max_age = $cache_metadata->getCacheMaxAge();
-    if ($max_age !== NULL) {
-      $form['#cache']['max-age'] = $max_age;
-    }
+    $form['#cache']['max-age'] = 0;
 
     if (empty($nodes)) {
       $form['empty_state'] = [
