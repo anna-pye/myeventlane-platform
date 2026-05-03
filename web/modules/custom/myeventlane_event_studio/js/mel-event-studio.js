@@ -47,10 +47,10 @@
    * @type {{id: string, label: string}[]}
    */
   var MEL_STEPS = [
-    { id: 'basic', label: 'Basic info' },
-    { id: 'datetime', label: 'Date & location' },
-    { id: 'tickets', label: 'Tickets' },
-    { id: 'description', label: 'Description' },
+    { id: 'identity', label: 'Event identity' },
+    { id: 'tickets', label: 'How people join' },
+    { id: 'attendee', label: 'Attendee questions' },
+    { id: 'standout', label: 'Stand out' },
     { id: 'preview', label: 'Preview' },
     { id: 'publish', label: 'Publish' },
   ];
@@ -87,6 +87,11 @@
     }
     if (!el) {
       return;
+    }
+    var progHost = el.closest('[data-mel-reveal-section="mel-description"], [data-mel-reveal-section="mel-advanced"]');
+    if (progHost && progHost.classList.contains('mel-builder-reveal--hidden')) {
+      progHost.classList.remove('mel-builder-reveal--hidden');
+      progHost.setAttribute('aria-hidden', 'false');
     }
     var scrollTarget = el.closest('.js-form-item, .form-item, .fieldset, .mel-step') || el;
     scrollToTarget(scrollTarget);
@@ -1699,6 +1704,7 @@
             prevImg.removeAttribute('hidden');
             ph.setAttribute('hidden', 'hidden');
           }
+          scheduleApplyLivePreview(form, false);
         };
         r.readAsDataURL(f);
       });
@@ -1831,7 +1837,11 @@
     }
     var tt = valRadio(form, 'mel[field_event_type]');
     var capRaw = val(form, 'mel[rsvp_capacity]');
-    var collect = !!form.querySelector('[name="mel[collect_attendee_questions]"]')?.checked;
+    var collectHidden = form.querySelector('[name="mel[collect_attendee_questions]"]');
+    var hasAttendeeRows = parseAttendeeQuestionsState(form).length > 0;
+    var collect =
+      hasAttendeeRows ||
+      !!(collectHidden && String(collectHidden.value || '') === '1');
     var ext = val(form, 'mel[external_url]');
     var productRaw = val(form, 'mel[field_product_target]');
     var hasProduct = productRaw !== '';
@@ -1996,6 +2006,36 @@
     return Drupal.t('Ready to publish');
   }
 
+  function melUpdateNextBest(form) {
+    var el = document.getElementById('mel-builder-next-best');
+    if (!el || !form) {
+      return;
+    }
+    var rows = buildStructuredInsights(form);
+    if (!rows || !rows.length || !rows[0].text) {
+      el.textContent = '';
+      return;
+    }
+    el.textContent = rows[0].text || '';
+    return;
+  }
+
+  function melUpdatePrimaryCta(form) {
+    var btn = document.getElementById('mel-builder-primary-cta');
+    if (!btn || !form) {
+      return;
+    }
+    var rows = buildStructuredInsights(form);
+    var first = rows && rows[0];
+    if (first && first.target) {
+      btn.textContent = Drupal.t('Go to this step');
+      btn.setAttribute('data-mel-insight-target', first.target);
+    } else {
+      btn.textContent = Drupal.t('Review publish');
+      btn.removeAttribute('data-mel-insight-target');
+    }
+  }
+
   function updateProgress(form) {
     var percent = calculateScore(form);
 
@@ -2028,23 +2068,39 @@
     }
 
     if (!hasCoverFile(form)) {
-      add('high', Drupal.t('Add a cover image to increase visibility in discovery and social previews.'), 'mel[field_event_image][]');
+      add(
+        'high',
+        Drupal.t('Events with images get more visibility — add a cover now so your card pops in discovery and shares.'),
+        'mel[field_event_image][]',
+      );
     }
 
     if (!categoryFieldHasValue(form)) {
-      add('high', Drupal.t('Select a category so the right audience can find your event.'), 'mel[field_category]');
+      add(
+        'high',
+        Drupal.t('Pick a category that matches your audience — it powers filters and “you might like” placements.'),
+        'mel[field_category]',
+      );
     }
 
     if (val(form, 'mel[title]').length < 3) {
-      add('high', Drupal.t('Give your event a clear, specific title — it is the first thing people see.'), 'mel[title]');
+      add('high', Drupal.t('Lead with a specific title — people decide in seconds, so name the who, what, or where.'), 'mel[title]');
     }
 
     if (val(form, 'mel[summary]').length < 10) {
-      add('medium', Drupal.t('Write a short summary: one or two sentences on why someone should come.'), 'mel[summary]');
+      add(
+        'medium',
+        Drupal.t('Add a punchy one- or two-line summary — it appears under your title on lists and social previews.'),
+        'mel[summary]',
+      );
     }
 
     if (val(form, 'mel[body]').length < 40) {
-      add('medium', Drupal.t('Flesh out the description with timing, vibe, and what to expect.'), 'mel[body]');
+      add(
+        'medium',
+        Drupal.t('Expand the story with timing, vibe, and who should come — detail converts browsers into bookings.'),
+        'mel[body]',
+      );
     }
 
     var sd = form.querySelector('[name="mel[start_date][date]"]');
@@ -2086,10 +2142,6 @@
       } else if (!/^https?:\/\//i.test(u)) {
         add('high', Drupal.t('Use a full https:// link so the button works everywhere.'), 'mel[external_url]');
       }
-    }
-
-    if (tt === 'rsvp' && form.querySelector('[name="mel[collect_attendee_questions]"]') && form.querySelector('[name="mel[collect_attendee_questions]"]').checked) {
-      add('low', Drupal.t('You asked for extra attendee details — add specific questions in the Tickets workspace.'), 'mel[collect_attendee_questions]');
     }
 
     if (!val(form, 'mel[field_event_image_alt]') && hasCoverFile(form)) {
@@ -2187,6 +2239,33 @@
       .join('');
   }
 
+  function melIsPublishSelected(form) {
+    var el = form.querySelector('[name="mel[status]"]');
+    if (!el) {
+      return false;
+    }
+    if (el.type === 'checkbox') {
+      return !!el.checked;
+    }
+    return String(el.value) === '1';
+  }
+
+  function syncPublishActionCardUi(form) {
+    var card = form.querySelector('[data-mel-publish-card="1"]');
+    if (!card) {
+      return;
+    }
+    var pub = melIsPublishSelected(form);
+    var draft = card.querySelector('[data-mel-publish-panel="draft"]');
+    var live = card.querySelector('[data-mel-publish-panel="live"]');
+    if (draft) {
+      draft.hidden = pub;
+    }
+    if (live) {
+      live.hidden = !pub;
+    }
+  }
+
   function updateFooterCtaState(form) {
     var footer = form.querySelector('.mel-event-studio__footer-actions');
     var submit = form.querySelector(
@@ -2196,8 +2275,7 @@
       return;
     }
     var score = calculateScore(form);
-    var st = form.querySelector('[name="mel[status]"]');
-    var pub = !!(st && st.checked);
+    var pub = melIsPublishSelected(form);
     footer.classList.remove('mel-footer--draft-focus', 'mel-footer--publish-ready');
     if (pub && score >= 70) {
       footer.classList.add('mel-footer--publish-ready');
@@ -2241,9 +2319,11 @@
 
   function isStepComplete(step, form) {
     switch (step) {
-      case 'basic':
-        return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
-      case 'datetime': {
+      case 'identity': {
+        var titleVal = val(form, 'mel[title]').trim();
+        if (titleVal === '' || titleVal === Drupal.t('Untitled event')) {
+          return false;
+        }
         var sd = form.querySelector('[name="mel[start_date][date]"]');
         if (!sd || !sd.value) {
           return false;
@@ -2258,16 +2338,20 @@
         return parseHiddenLocation(form) !== '';
       }
       case 'tickets': {
-        var tt = valRadio(form, 'mel[field_event_type]');
-        if (tt === 'external') {
-          return !!val(form, 'mel[external_url]');
+        var tt2 = valRadio(form, 'mel[field_event_type]');
+        if (tt2 === 'external') {
+          return val(form, 'mel[external_url]') !== '';
         }
-        if (tt === 'paid') {
-          return !!val(form, 'mel[field_product_target]');
+        if (tt2 === 'paid') {
+          if (val(form, 'mel[field_product_target]') === '') {
+            return false;
+          }
+          return paidTicketTierSignalCount(form) >= 1;
         }
         return true;
       }
-      case 'description':
+      case 'attendee':
+      case 'standout':
       case 'preview':
       case 'publish':
       default:
@@ -2357,6 +2441,7 @@
         var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card');
         if (jumpPrev && form.contains(jumpPrev)) {
           e.preventDefault();
+          openLivePreviewDrawer();
           melScrollToSelector('#mel-preview-card');
           return;
         }
@@ -2426,55 +2511,238 @@
     }
   }
 
-  function publishReadiness(form, init, str) {
-    var blocking = [];
-    var tt = valRadio(form, 'mel[field_event_type]');
-    if (tt === 'external' && val(form, 'mel[external_url]') === '') {
-      blocking.push(Drupal.t('Booking URL'));
-    }
-    if (tt === 'paid' && val(form, 'mel[field_product_target]') === '') {
-      blocking.push(Drupal.t('Ticket product'));
-    }
-    if (tt === 'paid' && paidTicketTierSignalCount(form) < 1) {
-      blocking.push(Drupal.t('Ticket types'));
-    }
-    var mode = valRadio(form, 'mel[venue_mode]');
-    if (mode === 'saved' && val(form, 'mel[venue_saved]') === '') {
-      blocking.push(Drupal.t('Venue'));
-    }
-    if (mode === 'create' && (val(form, 'mel[venue_create_name]') === '' || parseHiddenLocation(form) === '')) {
-      blocking.push(Drupal.t('New venue details'));
-    }
-    if (mode === 'one_off' && parseHiddenLocation(form) === '') {
-      blocking.push(Drupal.t('Address'));
-    }
+  var PREVIEW_DEBOUNCE_MS = 300;
 
-    var pub = !!form.querySelector('[name="mel[status]"]')?.checked;
-    var parts = [];
-    parts.push(pub ? str.live || 'Live' : str.draft || 'Draft');
-    if (blocking.length) {
-      parts.push(
-        Drupal.t('Before publish: complete @items.', {
-          '@items': blocking.join(', '),
-        }),
-      );
-    } else {
-      parts.push(Drupal.t('Core details look ready to publish when you are.'));
+  function mergePreviewTiersForPricing(form) {
+    var domTiers = collectTiersFromDom(form);
+    if (domTiers.length) {
+      return domTiers;
     }
-    return parts.join(' ');
+    var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
+    return hidden ? parseTiersHidden(hidden.value) : [];
   }
 
-  function refreshIntelligence(form) {
-    var init = getSettings().initial || {};
-    var str = getSettings().strings || {};
-    var root = formRoot(form);
-
-    syncTicketBuilderEventType(form);
-    syncTicketTiersFromDomToHidden(form);
-    syncHighlightsFromDomToHidden(form);
-    if (form.getAttribute('data-mel-highlights-json-error') !== '1') {
-      updateHighlightErrors(form);
+  function formatPreviewMoney(amount, currencyCode) {
+    var code = (currencyCode || 'AUD').toUpperCase();
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: code,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (e) {
+      return String(amount) + ' ' + code;
     }
+  }
+
+  function resolverMatchesPublishedFormTicketType(tt, pr, initPublished) {
+    if (!initPublished || !pr || typeof pr.bookingMode !== 'string') {
+      return false;
+    }
+    if (tt !== pr.bookingMode) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Guest-facing ticket line: BookingFlowResolver via drupalSettings when the
+   * form matches the saved published node; paid mode uses tier merge live.
+   *
+   * @param {HTMLFormElement} form
+   * @return {string}
+   */
+  function buildPreviewPricingSummary(form) {
+    var ps = getSettings().previewStrings || {};
+    var init = getSettings().initial || {};
+    var tt = valRadio(form, 'mel[field_event_type]');
+    var pr = getSettings().previewResolver;
+
+    // Paid tiers are always merged from DOM / hidden tiers so unpublished edits stay live.
+    if (
+      resolverMatchesPublishedFormTicketType(tt, pr, !!init.published) &&
+      tt !== 'paid' &&
+      pr &&
+      pr.pricing &&
+      typeof pr.pricing.label === 'string' &&
+      pr.pricing.label !== ''
+    ) {
+      return pr.pricing.label;
+    }
+
+    if (tt === 'rsvp') {
+      return ps.freeRsvp || 'Free RSVP';
+    }
+    if (tt === 'external') {
+      return ps.external || 'External';
+    }
+    if (tt !== 'paid') {
+      return '—';
+    }
+    var tiers = mergePreviewTiersForPricing(form);
+    var defCur = getSettings().defaultCurrency || 'AUD';
+    var prices = [];
+    tiers.forEach(function (t) {
+      if (normalizeTicketKind(t.ticket_kind) !== 'paid') {
+        return;
+      }
+      var raw = t.price_number;
+      if (raw === null || raw === undefined || String(raw).trim() === '') {
+        return;
+      }
+      var n = parseFloat(String(raw).replace(',', '.'));
+      if (isNaN(n)) {
+        return;
+      }
+      var c = String(t.price_currency || defCur).toUpperCase();
+      prices.push({ n: n, c: c });
+    });
+    if (prices.length === 0) {
+      return ps.paidIncomplete || '';
+    }
+    var currency = prices[0].c;
+    var mixedCurrency = prices.some(function (p) {
+      return p.c !== currency;
+    });
+    if (mixedCurrency) {
+      return ps.multiplePrices || 'Multiple prices';
+    }
+    var nums = prices.map(function (p) {
+      return p.n;
+    });
+    nums.sort(function (a, b) {
+      return a - b;
+    });
+    var lowest = nums[0];
+    var hasMultiple = nums[nums.length - 1] > lowest + 1e-9;
+    var lowestNonZero = null;
+    for (var i = 0; i < nums.length; i++) {
+      if (nums[i] > 1e-9) {
+        lowestNonZero = nums[i];
+        break;
+      }
+    }
+    if (lowest <= 1e-9) {
+      if (lowestNonZero != null) {
+        return Drupal.t('From @price', { '@price': formatPreviewMoney(lowestNonZero, currency) });
+      }
+      return ps.free || 'Free';
+    }
+    if (hasMultiple) {
+      return Drupal.t('From @price', { '@price': formatPreviewMoney(lowest, currency) });
+    }
+    return formatPreviewMoney(lowest, currency);
+  }
+
+  function applyPreviewCtaButton(form) {
+    var a = document.getElementById('mel-preview-cta');
+    if (!a) {
+      return;
+    }
+    var ps = getSettings().previewStrings || {};
+    var urls = getSettings().urls || {};
+    var book = urls.book || '';
+    var tt = valRadio(form, 'mel[field_event_type]');
+    var ext = val(form, 'mel[external_url]');
+    var nid = getNid(form);
+    var init = getSettings().initial || {};
+    var pr = getSettings().previewResolver;
+
+    a.classList.remove('is-disabled');
+    a.removeAttribute('aria-disabled');
+    a.removeAttribute('target');
+    a.removeAttribute('rel');
+
+    if (
+      resolverMatchesPublishedFormTicketType(tt, pr, !!init.published) &&
+      tt !== 'external' &&
+      pr &&
+      typeof pr.cta === 'object' &&
+      pr.cta !== null &&
+      typeof pr.cta.label === 'string' &&
+      pr.cta.label !== '' &&
+        (tt !== 'paid' ||
+          (val(form, 'mel[field_product_target]') !== '' && paidTicketTierSignalCount(form) >= 1))
+    ) {
+      var cta = pr.cta;
+      var type = typeof cta.type === 'string' ? cta.type : '';
+      var href = '';
+      if (!cta.disabled && type === 'internal' && typeof cta.url === 'string' && /^https?:\/\//i.test(cta.url)) {
+        href = cta.url;
+      }
+      if (href) {
+        a.setAttribute('href', href);
+      } else {
+        a.setAttribute('href', '#');
+      }
+      if (cta.disabled) {
+        a.classList.add('is-disabled');
+        a.setAttribute('aria-disabled', 'true');
+      }
+      a.textContent = cta.label;
+      return;
+    }
+
+    if (tt === 'external') {
+      if (ext && /^https?:\/\//i.test(ext)) {
+        a.setAttribute('href', ext);
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+        a.textContent = ps.ctaExternal || 'View details';
+      } else {
+        a.setAttribute('href', '#');
+        a.textContent = ps.ctaDisabled || 'Complete ticket setup';
+        a.classList.add('is-disabled');
+        a.setAttribute('aria-disabled', 'true');
+      }
+      return;
+    }
+
+    if (!nid) {
+      a.setAttribute('href', '#');
+      a.textContent = ps.ctaSaveFirst || 'Save event to enable booking link';
+      a.classList.add('is-disabled');
+      a.setAttribute('aria-disabled', 'true');
+      return;
+    }
+
+    if (tt === 'rsvp') {
+      if (book) {
+        a.setAttribute('href', book);
+        a.textContent = ps.ctaRsvp || 'RSVP free';
+      } else {
+        a.setAttribute('href', '#');
+        a.textContent = ps.ctaDisabled || 'Complete ticket setup';
+        a.classList.add('is-disabled');
+        a.setAttribute('aria-disabled', 'true');
+      }
+      return;
+    }
+
+    if (tt === 'paid') {
+      var productOk = val(form, 'mel[field_product_target]') !== '';
+      var tiersOk = paidTicketTierSignalCount(form) >= 1;
+      if (productOk && tiersOk && book) {
+        a.setAttribute('href', book);
+        a.textContent = ps.ctaTickets || 'Get your tickets';
+      } else {
+        a.setAttribute('href', '#');
+        a.textContent = ps.ctaDisabled || 'Complete ticket setup';
+        a.classList.add('is-disabled');
+        a.setAttribute('aria-disabled', 'true');
+      }
+      return;
+    }
+
+    a.setAttribute('href', '#');
+    a.textContent = ps.ctaDisabled || 'Complete ticket setup';
+    a.classList.add('is-disabled');
+    a.setAttribute('aria-disabled', 'true');
+  }
+
+  function applyLivePreview(form) {
+    var str = getSettings().strings || {};
 
     var title = val(form, 'mel[title]') || '—';
     var titleEl = document.getElementById('mel-preview-title');
@@ -2500,18 +2768,170 @@
       locEl.textContent = locLine;
     }
 
-    var tickEl = document.getElementById('mel-preview-tickets');
-    if (tickEl) {
-      tickEl.textContent = ticketTypeLabel(valRadio(form, 'mel[field_event_type]'), str);
+    var modeEl = document.getElementById('mel-preview-booking-mode');
+    if (modeEl) {
+      modeEl.textContent = ticketTypeLabel(valRadio(form, 'mel[field_event_type]'), str);
+    }
+
+    var pricingEl = document.getElementById('mel-preview-pricing');
+    if (pricingEl) {
+      pricingEl.textContent = buildPreviewPricingSummary(form);
     }
 
     var statEl = document.getElementById('mel-preview-status');
     if (statEl) {
-      var pub = !!form.querySelector('[name="mel[status]"]')?.checked;
+      var pub = melIsPublishSelected(form);
       statEl.textContent = pub ? str.live || 'Live' : str.draft || 'Draft';
     }
 
     syncPreviewCardImage(form);
+    applyPreviewCtaButton(form);
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @param {boolean} useDebounce
+   */
+  function scheduleApplyLivePreview(form, useDebounce) {
+    if (!form._melPreviewTimer) {
+      form._melPreviewTimer = { id: null };
+    }
+    var st = form._melPreviewTimer;
+    if (st.id !== null) {
+      window.clearTimeout(st.id);
+      st.id = null;
+    }
+    if (!useDebounce) {
+      applyLivePreview(form);
+      return;
+    }
+    st.id = window.setTimeout(function () {
+      st.id = null;
+      applyLivePreview(form);
+    }, PREVIEW_DEBOUNCE_MS);
+  }
+
+  function initPreviewDrawer(form) {
+    var root = document.getElementById('mel-live-preview');
+    var toggle = document.getElementById('mel-preview-drawer-toggle');
+    if (!root || !toggle || toggle.dataset.melBound === '1') {
+      return;
+    }
+    toggle.dataset.melBound = '1';
+    var mq = typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 767px)') : null;
+    var ps = getSettings().previewStrings || {};
+
+    function syncAria() {
+      var open = root.classList.contains('mel-preview--drawer-open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? (ps.drawerClose || 'Hide preview') : (ps.drawerOpen || 'Show preview'));
+    }
+
+    function isMobile() {
+      return mq ? mq.matches : window.innerWidth < 768;
+    }
+
+    function setOpen(open) {
+      root.classList.toggle('mel-preview--drawer-open', !!open);
+      syncAria();
+    }
+
+    toggle.addEventListener('click', function () {
+      if (!isMobile()) {
+        return;
+      }
+      setOpen(!root.classList.contains('mel-preview--drawer-open'));
+    });
+
+    if (mq && typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', function () {
+        if (!mq.matches) {
+          setOpen(true);
+        }
+      });
+    } else if (mq && typeof mq.addListener === 'function') {
+      mq.addListener(function () {
+        if (!mq.matches) {
+          setOpen(true);
+        }
+      });
+    }
+
+    syncAria();
+    if (!isMobile()) {
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  }
+
+  function openLivePreviewDrawer() {
+    var root = document.getElementById('mel-live-preview');
+    var toggle = document.getElementById('mel-preview-drawer-toggle');
+    if (!root) {
+      return;
+    }
+    root.classList.add('mel-preview--drawer-open');
+    if (toggle) {
+      var ps = getSettings().previewStrings || {};
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-label', ps.drawerClose || 'Hide preview');
+    }
+  }
+
+  function publishReadiness(form, init, str) {
+    var blocking = [];
+    var tt = valRadio(form, 'mel[field_event_type]');
+    if (tt === 'external' && val(form, 'mel[external_url]') === '') {
+      blocking.push(Drupal.t('Booking URL'));
+    }
+    if (tt === 'paid' && val(form, 'mel[field_product_target]') === '') {
+      blocking.push(Drupal.t('Ticket product'));
+    }
+    if (tt === 'paid' && paidTicketTierSignalCount(form) < 1) {
+      blocking.push(Drupal.t('Ticket types'));
+    }
+    var mode = valRadio(form, 'mel[venue_mode]');
+    if (mode === 'saved' && val(form, 'mel[venue_saved]') === '') {
+      blocking.push(Drupal.t('Venue'));
+    }
+    if (mode === 'create' && (val(form, 'mel[venue_create_name]') === '' || parseHiddenLocation(form) === '')) {
+      blocking.push(Drupal.t('New venue details'));
+    }
+    if (mode === 'one_off' && parseHiddenLocation(form) === '') {
+      blocking.push(Drupal.t('Address'));
+    }
+
+    var pub = melIsPublishSelected(form);
+    var parts = [];
+    parts.push(pub ? str.live || 'Live' : str.draft || 'Draft');
+    if (blocking.length) {
+      parts.push(
+        Drupal.t('Before publish: complete @items.', {
+          '@items': blocking.join(', '),
+        }),
+      );
+    } else {
+      parts.push(Drupal.t('Core details look ready to publish when you are.'));
+    }
+    return parts.join(' ');
+  }
+
+  function refreshIntelligence(form, debouncePreview) {
+    if (debouncePreview === undefined) {
+      debouncePreview = false;
+    }
+    var init = getSettings().initial || {};
+    var str = getSettings().strings || {};
+    var root = formRoot(form);
+
+    syncTicketBuilderEventType(form);
+    syncTicketTiersFromDomToHidden(form);
+    syncHighlightsFromDomToHidden(form);
+    if (form.getAttribute('data-mel-highlights-json-error') !== '1') {
+      updateHighlightErrors(form);
+    }
+
     syncLocationDisplay(form);
     syncCategoryChips(form);
     syncTicketPaidShell(form);
@@ -2522,7 +2942,10 @@
 
     updateProgress(form);
     updateInsightsChecklist(form);
+    melUpdateNextBest(form);
+    melUpdatePrimaryCta(form);
     updatePreviewHints(form);
+    syncPublishActionCardUi(form);
     updateFooterCtaState(form);
 
     var pr = document.getElementById('mel-publish-readiness');
@@ -2532,6 +2955,348 @@
 
     if (root) {
       root.removeAttribute('data-mel-score');
+    }
+
+    syncCollectHiddenFromAttendees(form);
+    melProgressiveRevealBuilder(form);
+
+    scheduleApplyLivePreview(form, debouncePreview);
+  }
+
+  function parseAttendeeQuestionsState(form) {
+    var h = form.querySelector('[data-mel-attendee-questions-state="1"]');
+    if (!h || !String(h.value || '').trim()) {
+      return [];
+    }
+    try {
+      var d = JSON.parse(h.value);
+      return Array.isArray(d) ? d : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function writeAttendeeQuestionsState(form, rows, rerender) {
+    var h = form.querySelector('[data-mel-attendee-questions-state="1"]');
+    if (!h) {
+      return;
+    }
+    try {
+      h.value = JSON.stringify(rows);
+    } catch (err) {
+      h.value = '[]';
+    }
+    syncCollectHiddenFromAttendees(form);
+    var str = getSettings().strings || {};
+    syncTicketSummary(form, str);
+    melProgressiveRevealBuilder(form);
+    updateInsightsChecklist(form);
+    melUpdateNextBest(form);
+    updateFooterCtaState(form);
+    melMaybeOpenAttendeeDetails(form, rows.length > 0);
+    if (rerender) {
+      renderAttendeeQuestionRows(form);
+    }
+  }
+
+  function syncCollectHiddenFromAttendees(form) {
+    var sync = form.querySelector('[data-mel-collect-attendee-sync="1"]');
+    if (!sync) {
+      return;
+    }
+    var n = parseAttendeeQuestionsState(form).length;
+    sync.value = n > 0 ? '1' : '0';
+  }
+
+  function melMaybeOpenAttendeeDetails(form, shouldOpen) {
+    var det = form.querySelector('#mel-attendee-questions-details');
+    if (!det || det.tagName !== 'DETAILS') {
+      return;
+    }
+    if (shouldOpen) {
+      det.open = true;
+    }
+  }
+
+  function melProgressiveRevealBuilder(form) {
+    var identityComplete = isStepComplete('identity', form);
+
+    var descEl = form.querySelector('[data-mel-reveal-section="mel-description"]');
+    var advEl = form.querySelector('[data-mel-reveal-section="mel-advanced"]');
+    var ticketsEl = form.querySelector('[data-mel-reveal-section="tickets"]');
+    var attendeeEl = form.querySelector('[data-mel-reveal-section="attendee"]');
+
+    function setRevealHidden(el, hide) {
+      if (!el) {
+        return;
+      }
+      el.classList.toggle('mel-builder-reveal--hidden', !!hide);
+      el.setAttribute('aria-hidden', hide ? 'true' : 'false');
+    }
+
+    var suppressProgressive = !identityComplete;
+    try {
+      setRevealHidden(descEl, suppressProgressive);
+      setRevealHidden(advEl, suppressProgressive);
+    } catch (errReveal) {
+      setRevealHidden(descEl, false);
+      setRevealHidden(advEl, false);
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('MelEventStudio: progressive reveal fallback.', errReveal);
+      }
+    }
+
+    // Tickets, attendee questions, donations, and listing extras stay visible — no identity gate.
+    setRevealHidden(ticketsEl, false);
+    setRevealHidden(attendeeEl, false);
+
+    [ticketsEl, attendeeEl].forEach(function (el) {
+      if (!el || !el.classList.contains('mel-builder-reveal--hidden')) {
+        return;
+      }
+      el.classList.remove('mel-builder-reveal--hidden');
+      el.setAttribute('aria-hidden', 'false');
+    });
+  }
+
+  function renderAttendeeQuestionRows(form) {
+    var host = form.querySelector('[data-mel-attendee-question-list="1"]');
+    var hState = form.querySelector('[data-mel-attendee-questions-state="1"]');
+    if (!host || !hState) {
+      return;
+    }
+    var rows = parseAttendeeQuestionsState(form);
+    host.innerHTML = '';
+    rows.forEach(function (row, idx) {
+      var wrap = document.createElement('div');
+      wrap.className = 'mel-attendee-row';
+      wrap.setAttribute('data-mel-attendee-row-idx', String(idx));
+
+      if (row.vendor_question_id) {
+        var lib = null;
+        var libList = getSettings().vendorQuestionLibrary || [];
+        for (var qi = 0; qi < libList.length; qi++) {
+          if (String(libList[qi].id) === String(row.vendor_question_id)) {
+            lib = libList[qi];
+            break;
+          }
+        }
+        wrap.innerHTML =
+          '<p class="mel-attendee-row__lib"><span class="mel-attendee-row__label">' +
+          Drupal.checkPlain(lib ? lib.label : 'Library question') +
+          '</span> <button type="button" class="mel-btn mel-btn--ghost mel-attendee-remove" data-mel-attendee-remove="' +
+          String(idx) +
+          '">' +
+          Drupal.t('Remove') +
+          '</button></p>';
+      } else {
+        var req = row.required ? ' checked' : '';
+        var libSave = row.save_to_library ? ' checked' : '';
+        wrap.innerHTML =
+          '<div class="mel-form-grid mel-attendee-row__grid">' +
+          '<label class="form-item"><span class="form-item__label">' +
+          Drupal.t('Question') +
+          '</span><input type="text" class="mel-input mel-attendee-label" data-idx="' +
+          String(idx) +
+          '" value="' +
+          Drupal.checkPlain(row.label || '') +
+          '" /></label>' +
+          '<label class="form-item"><span class="form-item__label">' +
+          Drupal.t('Save to library') +
+          '</span><input type="checkbox" class="mel-attendee-save-lib" data-idx="' +
+          String(idx) +
+          '"' +
+          libSave +
+          ' /></label>' +
+          '</div>' +
+          '<label class="form-item"><input type="checkbox" class="mel-attendee-required" data-idx="' +
+          String(idx) +
+          '"' +
+          req +
+          ' /> ' +
+          Drupal.t('Required') +
+          '</label>' +
+          '<button type="button" class="mel-btn mel-btn--ghost mel-attendee-remove" data-mel-attendee-remove="' +
+          String(idx) +
+          '">' +
+          Drupal.t('Remove') +
+          '</button>';
+      }
+      host.appendChild(wrap);
+    });
+  }
+
+  function attendeePresetDefinitions() {
+    return {
+      dietary: {
+        label: Drupal.t('Dietary requirements'),
+        type: 'textarea',
+        machine_name: 'dietary_requirements',
+      },
+      accessibility: {
+        label: Drupal.t('Accessibility needs'),
+        type: 'textarea',
+        machine_name: 'accessibility_needs',
+      },
+      phone: { label: Drupal.t('Phone number'), type: 'tel', machine_name: 'phone_number' },
+    };
+  }
+
+  function melAttendeeAddPreset(form, key) {
+    var defs = attendeePresetDefinitions();
+    var def = defs[key];
+    if (!def) {
+      if (key === 'custom') {
+        var t = window.prompt(Drupal.t('Question text'), '');
+        if (!t || !String(t).trim()) {
+          return;
+        }
+        def = {
+          label: String(t).trim(),
+          type: 'textfield',
+          machine_name: '',
+        };
+      } else {
+        return;
+      }
+    }
+    var rows = parseAttendeeQuestionsState(form);
+    var machine = def.machine_name || '';
+    var dup = machine && rows.some(function (r) { return r.machine_name === machine; });
+    if (dup) {
+      return;
+    }
+    rows.push({
+      label: def.label,
+      type: def.type,
+      required: false,
+      save_to_library: false,
+      machine_name: machine,
+    });
+    writeAttendeeQuestionsState(form, rows, true);
+  }
+
+  function melAttendeeAddFromLibrary(form) {
+    var sel = form.querySelector('[data-mel-attendee-library-select="1"]');
+    if (!sel || !sel.value) {
+      return;
+    }
+    var id = parseInt(sel.value, 10);
+    if (isNaN(id) || id < 1) {
+      return;
+    }
+    var rows = parseAttendeeQuestionsState(form);
+    if (rows.some(function (r) { return r.vendor_question_id === id; })) {
+      return;
+    }
+    rows.push({ vendor_question_id: id });
+    writeAttendeeQuestionsState(form, rows, true);
+  }
+
+  function initAttendeeQuestionsBuilder(form) {
+    if (!form.querySelector('[data-mel-attendee-questions-state="1"]')) {
+      return;
+    }
+    renderAttendeeQuestionRows(form);
+    melMaybeOpenAttendeeDetails(form, parseAttendeeQuestionsState(form).length > 0);
+
+    if (!form.dataset.melAttendeeQuestionsBound) {
+      form.dataset.melAttendeeQuestionsBound = '1';
+
+      form.addEventListener('click', function (e) {
+        var addBtn = e.target.closest('#mel-attendee-add-question');
+        var menu = form.querySelector('#mel-attendee-preset-menu');
+        if (addBtn && form.contains(addBtn) && menu) {
+          e.preventDefault();
+          var hidden = menu.hasAttribute('hidden');
+          if (hidden) {
+            menu.removeAttribute('hidden');
+            addBtn.setAttribute('aria-expanded', 'true');
+          } else {
+            menu.setAttribute('hidden', 'hidden');
+            addBtn.setAttribute('aria-expanded', 'false');
+          }
+          return;
+        }
+        var preset = e.target.closest('[data-mel-attendee-preset]');
+        if (preset && form.contains(preset) && menu) {
+          e.preventDefault();
+          menu.setAttribute('hidden', 'hidden');
+          var ab = form.querySelector('#mel-attendee-add-question');
+          if (ab) {
+            ab.setAttribute('aria-expanded', 'false');
+          }
+          melAttendeeAddPreset(form, preset.getAttribute('data-mel-attendee-preset'));
+          return;
+        }
+        var libAdd = e.target.closest('[data-mel-attendee-library-add="1"]');
+        if (libAdd && form.contains(libAdd)) {
+          e.preventDefault();
+          melAttendeeAddFromLibrary(form);
+          return;
+        }
+        var rm = e.target.closest('[data-mel-attendee-remove]');
+        if (rm && form.contains(rm)) {
+          e.preventDefault();
+          var idx = parseInt(rm.getAttribute('data-mel-attendee-remove'), 10);
+          var rows = parseAttendeeQuestionsState(form);
+          if (!isNaN(idx) && idx >= 0 && idx < rows.length) {
+            rows.splice(idx, 1);
+            writeAttendeeQuestionsState(form, rows, true);
+          }
+        }
+      });
+
+      form.addEventListener(
+        'input',
+        function (e) {
+          if (e.target.classList && e.target.classList.contains('mel-attendee-label')) {
+            var idx = parseInt(e.target.getAttribute('data-idx'), 10);
+            var rows = parseAttendeeQuestionsState(form);
+            if (!isNaN(idx) && rows[idx]) {
+              rows[idx].label = e.target.value;
+              writeAttendeeQuestionsState(form, rows, false);
+            }
+          }
+        },
+        true,
+      );
+
+      form.addEventListener(
+        'change',
+        function (e) {
+          var idx;
+          if (e.target.classList && e.target.classList.contains('mel-attendee-required')) {
+            idx = parseInt(e.target.getAttribute('data-idx'), 10);
+            var rows2 = parseAttendeeQuestionsState(form);
+            if (!isNaN(idx) && rows2[idx]) {
+              rows2[idx].required = !!e.target.checked;
+              writeAttendeeQuestionsState(form, rows2, false);
+            }
+          }
+          if (e.target.classList && e.target.classList.contains('mel-attendee-save-lib')) {
+            idx = parseInt(e.target.getAttribute('data-idx'), 10);
+            var rows3 = parseAttendeeQuestionsState(form);
+            if (!isNaN(idx) && rows3[idx]) {
+              rows3[idx].save_to_library = !!e.target.checked;
+              writeAttendeeQuestionsState(form, rows3, false);
+            }
+          }
+        },
+        true,
+      );
+    }
+  }
+
+  function melScrollToFirstFormError(form) {
+    var msg = form.closest('.mel-event-studio') || document;
+    var errBox = msg.querySelector('.messages--error');
+    if (errBox) {
+      scrollToTarget(errBox);
+    }
+    var bad = form.querySelector('.form-item--error input, .form-item--error select, .form-item--error textarea');
+    if (bad && bad.name) {
+      melJumpToField(form, bad.name);
     }
   }
 
@@ -2553,9 +3318,78 @@
 
         initTicketBuilder(form);
         initHighlightsBuilder(form);
+        initAttendeeQuestionsBuilder(form);
         refreshIntelligence(form);
+        melScrollToFirstFormError(form);
         bindCoverFilePreview(form);
         initMelWizard(form);
+        initPreviewDrawer(form);
+
+        if (!form.dataset.melPublishCardBound) {
+          form.dataset.melPublishCardBound = '1';
+          form.addEventListener('click', function (e) {
+            var pubBtn = e.target.closest('#mel-publish-now');
+            if (pubBtn && form.contains(pubBtn) && !pubBtn.disabled) {
+              e.preventDefault();
+              var inp = form.querySelector('[name="mel[status]"]');
+              if (inp && inp.type === 'checkbox') {
+                inp.checked = true;
+              } else if (inp) {
+                inp.value = '1';
+              }
+              form.dispatchEvent(new Event('input', { bubbles: true }));
+              form.dispatchEvent(new Event('change', { bubbles: true }));
+              refreshIntelligence(form);
+              return;
+            }
+            var revBtn = e.target.closest('#mel-revert-draft');
+            if (revBtn && form.contains(revBtn)) {
+              e.preventDefault();
+              var inp2 = form.querySelector('[name="mel[status]"]');
+              if (inp2 && inp2.type === 'checkbox') {
+                inp2.checked = false;
+              } else if (inp2) {
+                inp2.value = '0';
+              }
+              form.dispatchEvent(new Event('input', { bubbles: true }));
+              form.dispatchEvent(new Event('change', { bubbles: true }));
+              refreshIntelligence(form);
+            }
+          });
+        }
+
+        form.addEventListener(
+          'input',
+          function () {
+            setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+          },
+          true,
+        );
+        form.addEventListener(
+          'change',
+          function () {
+            setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+          },
+          true,
+        );
+
+        var melBuilderShell = form.querySelector('[data-mel-builder="1"]');
+        if (melBuilderShell) {
+          var primaryCta = melBuilderShell.querySelector('#mel-builder-primary-cta');
+          if (primaryCta && !primaryCta.dataset.melBuilderBound) {
+            primaryCta.dataset.melBuilderBound = '1';
+            primaryCta.addEventListener('click', function (e) {
+              e.preventDefault();
+              syncAiControlsToForm(form);
+              var jumpName = primaryCta.getAttribute('data-mel-insight-target');
+              if (jumpName) {
+                melJumpToField(form, jumpName);
+              } else {
+                melScrollToSelector('#mel-step-publish');
+              }
+            });
+          }
+        }
 
         form.addEventListener(
           'input',
@@ -2596,8 +3430,9 @@
           });
         }
 
-        form.addEventListener('submit', function (e) {
+        form.addEventListener('submit', function () {
           syncAiControlsToForm(form);
+          setFormState(form, 'mel-studio--saving', Drupal.t('Saving…'));
         });
 
         form.addEventListener('click', function (e) {
@@ -2709,7 +3544,7 @@
           'input',
           function () {
             setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
-            refreshIntelligence(form);
+            refreshIntelligence(form, true);
           },
           true,
         );
@@ -2718,7 +3553,7 @@
           'change',
           function () {
             setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
-            refreshIntelligence(form);
+            refreshIntelligence(form, true);
           },
           true,
         );
@@ -2955,4 +3790,65 @@
     },
     true,
   );
+
+  function melCelebrateFallbackCopy(url) {
+    var ta = document.createElement('textarea');
+    ta.value = url || '';
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+
+  Drupal.behaviors.melEventStudioCelebrateShare = {
+    attach: function (context) {
+      once('mel-event-studio-celebrate-copy', '[data-mel-celebrate-copy]', context).forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          var url = btn.getAttribute('data-mel-celebrate-url') || '';
+          if (!url) {
+            return;
+          }
+          var announce = document.getElementById('mel-celebrate-feedback');
+          var copied = Drupal.t ? Drupal.t('Link copied.') : 'Link copied.';
+          function announceDone(ok) {
+            if (announce) {
+              announce.textContent = ok ? copied : '';
+            }
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function () { announceDone(true); }).catch(function () {
+              melCelebrateFallbackCopy(url);
+              announceDone(true);
+            });
+          }
+          else {
+            melCelebrateFallbackCopy(url);
+            announceDone(true);
+          }
+        });
+      });
+
+      once('mel-event-studio-celebrate-scroll', '[data-mel-celebrate-panel]', context).forEach(function (panel) {
+        if (typeof panel.scrollIntoView !== 'function') {
+          return;
+        }
+        if (melPrefersReducedMotion()) {
+          panel.focus({ preventScroll: true });
+          return;
+        }
+        panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        if (panel.focus) {
+          panel.focus({ preventScroll: true });
+        }
+      });
+    },
+  };
 })(Drupal, once);

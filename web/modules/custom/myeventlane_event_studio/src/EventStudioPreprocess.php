@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio;
 
+use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
@@ -90,6 +92,13 @@ final class EventStudioPreprocess {
 
     $element = $variables['element'] ?? [];
     $node = $element['#mel_studio_node'] ?? NULL;
+    $variables['mel_event_is_published'] = $node instanceof NodeInterface && $node->isPublished();
+
+    $variables['mel_attendee_details_open'] = FALSE;
+    if (isset($element['mel']['attendee_questions_editor']['items_state']['#default_value'])) {
+      $raw = trim((string) $element['mel']['attendee_questions_editor']['items_state']['#default_value']);
+      $variables['mel_attendee_details_open'] = $raw !== '' && $raw !== '[]';
+    }
 
     if ($node instanceof NodeInterface && $node->bundle() === 'event' && $vendor_ids !== []) {
       $flags = $state !== NULL ? $state->getFlags() : [];
@@ -136,6 +145,64 @@ final class EventStudioPreprocess {
     }
 
     $variables['mel_event_actions'] = $actions;
+
+    $variables['mel_publish_celebrate'] = FALSE;
+    $variables['mel_publish_celebrate_share_url_absolute'] = NULL;
+    $variables['mel_publish_celebrate_dismiss_url'] = NULL;
+    $variables['mel_publish_celebrate_share'] = [];
+    $variables['mel_publish_celebrate_calendar_url'] = NULL;
+    $variables['mel_publish_celebrate_node_id'] = NULL;
+
+    $celebrate_requested = FALSE;
+    if ($request !== NULL && (string) $request->query->get('mel_celebrate') === '1') {
+      $celebrate_requested = TRUE;
+    }
+
+    if ($celebrate_requested
+      && $node instanceof NodeInterface
+      && !$node->isNew()
+      && $node->bundle() === 'event'
+      && $node->isPublished()) {
+      $variables['mel_publish_celebrate'] = TRUE;
+
+      $canonical_absolute = Url::fromRoute(
+        'entity.node.canonical',
+        ['node' => (int) $node->id()],
+        ['absolute' => TRUE],
+      )->toString();
+
+      $variables['mel_publish_celebrate_share_url_absolute'] = $canonical_absolute;
+      $variables['mel_publish_celebrate_dismiss_url'] = Url::fromRoute('myeventlane_event_studio.edit', ['node' => (int) $node->id()])->toString();
+
+      $snippet = Unicode::truncate($node->label(), 220, TRUE, TRUE);
+      $tweet_q = UrlHelper::buildQuery([
+        'url' => $canonical_absolute,
+        'text' => $snippet,
+      ]);
+
+      $variables['mel_publish_celebrate_share'] = [
+        'facebook' => 'https://www.facebook.com/sharer/sharer.php?' . UrlHelper::buildQuery(['u' => $canonical_absolute]),
+        'linkedin' => 'https://www.linkedin.com/sharing/share-offsite/?' . UrlHelper::buildQuery(['url' => $canonical_absolute]),
+        'twitter' => 'https://twitter.com/intent/tweet?' . $tweet_q,
+      ];
+
+      $has_calendar = $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty();
+      if ($has_calendar) {
+        try {
+          $variables['mel_publish_celebrate_calendar_url'] = Url::fromRoute(
+            'myeventlane_event.calendar_ics',
+            ['node' => (int) $node->id()],
+            ['absolute' => TRUE],
+          )->toString();
+        }
+        catch (\Throwable) {
+          $variables['mel_publish_celebrate_calendar_url'] = NULL;
+        }
+      }
+
+      $variables['mel_publish_celebrate_node_id'] = (int) $node->id();
+    }
+
   }
 
 }
