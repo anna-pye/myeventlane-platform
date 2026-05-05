@@ -645,6 +645,21 @@ myeventlane_vendor.console.event_settings:
         bundle:
           - event
 
+myeventlane_vendor.console.event_archive:
+  path: '/vendor/events/{event}/archive'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_archive:handle'
+  methods: [POST]
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_managed_event_console:access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 myeventlane_vendor.console.event_unpublish:
   path: '/vendor/events/{event}/unpublish'
   defaults:

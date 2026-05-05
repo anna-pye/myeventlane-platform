@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 /**
@@ -17,6 +18,7 @@ final class UserVendorMembershipQuery {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
   ) {}
 
   /**
@@ -78,6 +80,12 @@ final class UserVendorMembershipQuery {
       $or->condition('uid', $uid);
       if ($vendorIds !== []) {
         $or->condition('field_event_vendor', $vendorIds, 'IN');
+        // Parity with VendorDashboardController::getUserEvents(): optional legacy
+        // event → vendor reference when present on the event bundle.
+        $eventFields = $this->entityFieldManager->getFieldDefinitions('node', 'event');
+        if (isset($eventFields['field_vendor'])) {
+          $or->condition('field_vendor', $vendorIds, 'IN');
+        }
       }
       $query->condition($or);
       $ids = $query->execute();

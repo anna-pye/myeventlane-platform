@@ -65,7 +65,8 @@ final class CurrentVendorResolver implements CurrentVendorResolverInterface {
 
     try {
       $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
-      $query = $storage->getQuery()->accessCheck(FALSE);
+      // Align with UserVendorMembershipQuery and billing helpers (access-aware).
+      $query = $storage->getQuery()->accessCheck(TRUE);
       $or = $query->orConditionGroup()
         ->condition('uid', $uid)
         ->condition('field_vendor_users', $uid);

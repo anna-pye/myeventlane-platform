@@ -75,6 +75,7 @@
   @include meta.load-css('components/mel-event-overview');
   @include meta.load-css('components/insights');
   @include meta.load-css('components/mel-vendor-events');
+  @include meta.load-css('components/mel-event-card-removal');
   @include meta.load-css('components/footer');
   @include meta.load-css('components/mel-header-footer');
   @include meta.load-css('components/wizard');

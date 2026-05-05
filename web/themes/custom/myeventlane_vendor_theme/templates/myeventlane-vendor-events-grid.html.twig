@@ -106,50 +106,65 @@
         {% set links = ev.links|default({}) %}
         {% set sev = ev.status_severity|default('neutral') %}
         <article class="mel-vendor-events-v2__card">
-          <div class="mel-vendor-events-v2__card-header">
-            <span class="mel-vendor-events-v2__status mel-vendor-events-v2__status--{{ sev|e('html_attr') }}">{{ ev.status_label|default('') }}</span>
-            {% if ev.needs_attention and ev.attention_label %}
-              <span class="mel-vendor-events-v2__attention">{{ ev.attention_label }}</span>
+          <div class="mel-vendor-events-v2__card-top">
+            {% set img = ev.image|default({}) %}
+            {% if img.url is defined and img.url %}
+              <div class="mel-event-card-thumb" aria-hidden="true">
+                <img class="mel-event-card-thumb__img" src="{{ img.url }}" alt="{{ img.alt|default('')|e('html_attr') }}" loading="lazy" width="56" height="56"/>
+              </div>
+            {% else %}
+              <div class="mel-event-card-thumb mel-event-card-thumb--placeholder" role="img" aria-label="{{ 'Event image'|t }}">{{ 'MEL'|t }}</div>
             {% endif %}
-          </div>
-          {% set issues = ev.presentation_issues|default([]) %}
-          {% if issues is iterable and issues|length > 0 %}
-            <div class="mel-vendor-events-v2__issues" role="group" aria-label="{{ 'Setup issues'|t }}">
-              {% for issue in issues %}
-                {% set isev = issue.severity|default('warning') %}
-                <span class="mel-vendor-events-v2__issue-chip mel-vendor-events-v2__issue-chip--{{ isev|e('html_attr') }}">
-                  <span class="mel-vendor-events-v2__issue-dot" aria-hidden="true"></span>
-                  {{ issue.label|default('') }}
-                </span>
-              {% endfor %}
+            <div class="mel-vendor-events-v2__card-body">
+              <div class="mel-vendor-events-v2__card-header">
+                <span class="mel-vendor-events-v2__status mel-vendor-events-v2__status--{{ sev|e('html_attr') }}">{{ ev.status_label|default('') }}</span>
+                {% if ev.needs_attention and ev.attention_label %}
+                  <span class="mel-vendor-events-v2__attention">{{ ev.attention_label }}</span>
+                {% endif %}
+              </div>
+              {% set issues = ev.presentation_issues|default([]) %}
+              {% if issues is iterable and issues|length > 0 %}
+                <div class="mel-vendor-events-v2__issues" role="group" aria-label="{{ 'Setup issues'|t }}">
+                  {% for issue in issues %}
+                    {% set isev = issue.severity|default('warning') %}
+                    <span class="mel-vendor-events-v2__issue-chip mel-vendor-events-v2__issue-chip--{{ isev|e('html_attr') }}">
+                      <span class="mel-vendor-events-v2__issue-dot" aria-hidden="true"></span>
+                      {{ issue.label|default('') }}
+                    </span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <h2 class="mel-vendor-events-v2__card-title">{{ ev.title|default('') }}</h2>
+              <div class="mel-vendor-events-v2__meta">
+                {% if ev.date_label %}
+                  <span class="mel-vendor-events-v2__meta-line">{{ ev.date_label }}</span>
+                {% endif %}
+                {% if ev.event_type_label %}
+                  <span class="mel-vendor-events-v2__meta-line">{{ ev.event_type_label }}</span>
+                {% endif %}
+              </div>
+              <div class="mel-vendor-events-v2__metrics">
+                {% if ev.metric_label %}
+                  <span class="mel-vendor-events-v2__metric">{{ ev.metric_label }}</span>
+                {% endif %}
+                {% if ev.revenue_label %}
+                  <span class="mel-vendor-events-v2__metric mel-vendor-events-v2__metric--revenue">{{ ev.revenue_label }}</span>
+                {% endif %}
+                {% if ev.capacity_label %}
+                  <span class="mel-vendor-events-v2__metric">{{ ev.capacity_label }}</span>
+                {% endif %}
+              </div>
             </div>
-          {% endif %}
-          <h2 class="mel-vendor-events-v2__card-title">{{ ev.title|default('') }}</h2>
-          <div class="mel-vendor-events-v2__meta">
-            {% if ev.date_label %}
-              <span class="mel-vendor-events-v2__meta-line">{{ ev.date_label }}</span>
-            {% endif %}
-            {% if ev.event_type_label %}
-              <span class="mel-vendor-events-v2__meta-line">{{ ev.event_type_label }}</span>
-            {% endif %}
-          </div>
-          <div class="mel-vendor-events-v2__metrics">
-            {% if ev.metric_label %}
-              <span class="mel-vendor-events-v2__metric">{{ ev.metric_label }}</span>
-            {% endif %}
-            {% if ev.revenue_label %}
-              <span class="mel-vendor-events-v2__metric mel-vendor-events-v2__metric--revenue">{{ ev.revenue_label }}</span>
-            {% endif %}
-            {% if ev.capacity_label %}
-              <span class="mel-vendor-events-v2__metric">{{ ev.capacity_label }}</span>
-            {% endif %}
           </div>
           <div class="mel-vendor-events-v2__card-actions">
             {% if links.manage is defined and links.manage %}
               <a class="mel-btn mel-btn--primary mel-vendor-events-v2__action-primary" href="{{ links.manage }}">{{ 'Manage'|t }}</a>
             {% endif %}
             {% if links.edit is defined and links.edit %}
-              <a class="mel-btn mel-btn--secondary mel-vendor-events-v2__action-secondary" href="{{ links.edit }}">{{ 'Edit event'|t }}</a>
+              <a class="mel-btn mel-btn--secondary mel-vendor-events-v2__action-secondary" href="{{ links.edit }}">{{ 'Edit'|t }}</a>
+            {% endif %}
+            {% if links.tickets is defined and links.tickets %}
+              <a class="mel-btn mel-btn--secondary mel-vendor-events-v2__action-secondary" href="{{ links.tickets }}">{{ 'Tickets'|t }}</a>
             {% endif %}
             <div class="mel-vendor-events-v2__optional-links">
               {% if links.rsvps is defined and links.rsvps %}
@@ -164,10 +179,14 @@
               {% if links.analytics is defined and links.analytics %}
                 <a class="mel-vendor-events-v2__link" href="{{ links.analytics }}">{{ 'Analytics'|t }}</a>
               {% endif %}
-              {% if links.tickets is defined and links.tickets %}
-                <a class="mel-vendor-events-v2__link" href="{{ links.tickets }}">{{ 'Advanced ticket manager'|t }}</a>
-              {% endif %}
             </div>
+            {% set removal = ev.removal|default(null) %}
+            {% if removal %}
+              <button type="button" class="mel-btn mel-event-card-remove-open mel-vendor-events-v2__action-secondary" data-mel-open-dialog="{{ removal.dialog_id|e('html_attr') }}" aria-haspopup="dialog">
+                {{ removal.danger_label|default('Archive'|t) }}
+              </button>
+              {% include '@myeventlane_vendor_theme/components/mel-event-card-removal-dialog.html.twig' with { removal: removal } only %}
+            {% endif %}
           </div>
         </article>
       {% endfor %}

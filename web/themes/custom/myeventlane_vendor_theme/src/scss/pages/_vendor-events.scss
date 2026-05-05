@@ -229,6 +229,20 @@ $mel-focus: #7c83fd;
   gap: sp.$spacing-3;
 }
 
+.mel-vendor-events-v2__card-top {
+  display: flex;
+  gap: sp.$spacing-4;
+  align-items: flex-start;
+}
+
+.mel-vendor-events-v2__card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-3;
+}
+
 .mel-vendor-events-v2__card-header {
   display: flex;
   flex-wrap: wrap;

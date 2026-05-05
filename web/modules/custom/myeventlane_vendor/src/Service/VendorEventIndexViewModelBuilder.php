@@ -44,6 +44,7 @@ final class VendorEventIndexViewModelBuilder {
     private readonly EntityFieldManagerInterface $entityFieldManager,
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly VendorEventRemovalService $vendorEventRemovalService,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -286,6 +287,8 @@ final class VendorEventIndexViewModelBuilder {
       'needs_attention' => $needsAttention,
       'attention_label' => $attentionLabel,
       'presentation_issues' => $presentationItems,
+      'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
+      'removal' => $this->vendorEventRemovalService->buildRemovalUiPayload($node, $account),
       'links' => [
         'manage' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_workspace', ['event' => $nid], $account),
         'edit' => $this->routeUrlIfAccessible('myeventlane_event_studio.edit', ['node' => $nid], $account),

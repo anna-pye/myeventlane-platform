@@ -14,6 +14,7 @@
 {% set empty_state = model.empty_state|default({}) %}
 {% set analytics_summary = model.analytics_summary|default({}) %}
 {% set analytics_items = analytics_summary.items|default([]) %}
+{% set dashboard_vendor_id = vendor.id|default(null) %}
 
 {% set hero_body %}
   {% if actions is iterable and actions|length > 0 %}
@@ -39,10 +40,6 @@
 <section class="mel-vendor-dashboard-v2">
   {% if onboarding_panel is defined and onboarding_panel %}
     <div class="mel-vendor-dashboard-v2__onboarding">{{ onboarding_panel }}</div>
-  {% endif %}
-
-  {% if mel_contribution_billing_strip is defined and mel_contribution_billing_strip %}
-    <div class="mel-vendor-dashboard-v2__billing-strip">{{ mel_contribution_billing_strip }}</div>
   {% endif %}
 
   <header class="mel-vendor-dashboard-v2__hero">
@@ -86,53 +83,7 @@
     </div>
   </header>
 
-  {% if mel_top_boost_opportunity is defined and mel_top_boost_opportunity %}
-    <div class="mel-vendor-dashboard-v2__boost-slot">
-      {% include '@myeventlane_vendor_theme/components/mel-top-boost-opportunity.html.twig' with {
-        event: {
-          title: mel_top_boost_opportunity.title,
-          image: mel_top_boost_opportunity.image|default(null),
-        },
-        performance: mel_top_boost_opportunity.performance,
-      } only %}
-    </div>
-  {% endif %}
-
   <div class="mel-vendor-dashboard-v2__mid-grid">
-    <section class="mel-vendor-dashboard-v2__section mel-vendor-dashboard-v2__readiness" aria-labelledby="mel-dash-readiness-title">
-      <div class="mel-vendor-dashboard-v2__section-header">
-        <h3 class="mel-vendor-dashboard-v2__section-title" id="mel-dash-readiness-title">{{ 'Readiness'|t }}</h3>
-        {% if readiness.score is defined %}
-          <p class="mel-vendor-dashboard-v2__section-meta">{{ '@pct% complete'|t({'@pct': readiness.score}) }}</p>
-        {% endif %}
-      </div>
-      <div class="mel-vendor-dashboard-v2__readiness-grid" role="list">
-        {% for item in readiness_items %}
-          {% set done = item.complete|default(false) %}
-          {% set sev = item.severity|default('neutral') %}
-          {% set row_content %}
-            <span class="mel-vendor-dashboard-v2__readiness-label">{{ item.label|default('') }}</span>
-            <span class="mel-vendor-dashboard-v2__readiness-status{% if done %} mel-vendor-dashboard-v2__readiness-status--done{% else %} mel-vendor-dashboard-v2__readiness-status--todo{% endif %}">
-              {% if done %}
-                {{ 'Done'|t }}
-              {% else %}
-                {{ 'Needs attention'|t }}
-              {% endif %}
-            </span>
-          {% endset %}
-          <div class="mel-vendor-dashboard-v2__readiness-item mel-vendor-dashboard-v2__readiness-item--{{ sev }}" role="listitem">
-            {% if item.url is defined and item.url %}
-              <a class="mel-vendor-dashboard-v2__readiness-link" href="{{ item.url }}">{{ row_content }}</a>
-            {% else %}
-              <div class="mel-vendor-dashboard-v2__readiness-static">{{ row_content }}</div>
-            {% endif %}
-          </div>
-        {% else %}
-          <p class="mel-vendor-dashboard-v2__muted">{{ 'Readiness checks will appear here once your account is set up.'|t }}</p>
-        {% endfor %}
-      </div>
-    </section>
-
     <section class="mel-vendor-dashboard-v2__section mel-vendor-dashboard-v2__actions" aria-labelledby="mel-dash-actions-title">
       <div class="mel-vendor-dashboard-v2__section-header">
         <h3 class="mel-vendor-dashboard-v2__section-title" id="mel-dash-actions-title">{{ 'What needs attention now'|t }}</h3>
@@ -164,6 +115,47 @@
         </div>
       {% endif %}
     </section>
+
+    <section class="mel-vendor-dashboard-v2__section mel-vendor-dashboard-v2__readiness" aria-labelledby="mel-dash-readiness-title">
+      <div class="mel-vendor-dashboard-v2__section-header">
+        <h3 class="mel-vendor-dashboard-v2__section-title" id="mel-dash-readiness-title">{{ 'Readiness'|t }}</h3>
+        {% if readiness.score is defined %}
+          <p class="mel-vendor-dashboard-v2__section-meta">{{ '@pct% complete'|t({'@pct': readiness.score}) }}</p>
+        {% endif %}
+      </div>
+      <div class="mel-vendor-dashboard-v2__readiness-grid" role="list">
+        {% if readiness_items is iterable and readiness_items|length > 0 %}
+          {% for item in readiness_items %}
+            {% set done = item.complete|default(false) %}
+            {% set sev = item.severity|default('neutral') %}
+            {% set row_content %}
+              <span class="mel-vendor-dashboard-v2__readiness-label">{{ item.label|default('') }}</span>
+              <span class="mel-vendor-dashboard-v2__readiness-status{% if done %} mel-vendor-dashboard-v2__readiness-status--done{% else %} mel-vendor-dashboard-v2__readiness-status--todo{% endif %}">
+                {% if done %}
+                  {{ 'Done'|t }}
+                {% else %}
+                  {{ 'Needs attention'|t }}
+                {% endif %}
+              </span>
+            {% endset %}
+            <div class="mel-vendor-dashboard-v2__readiness-item mel-vendor-dashboard-v2__readiness-item--{{ sev }}" role="listitem">
+              {% if item.url is defined and item.url %}
+                <a class="mel-vendor-dashboard-v2__readiness-link" href="{{ item.url }}">{{ row_content }}</a>
+              {% else %}
+                <div class="mel-vendor-dashboard-v2__readiness-static">{{ row_content }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% elseif dashboard_vendor_id %}
+          <div class="mel-vendor-dashboard-v2__empty mel-vendor-dashboard-v2__empty--positive">
+            <h4 class="mel-vendor-dashboard-v2__empty-title">{{ 'Your setup looks good.'|t }}</h4>
+            <p class="mel-vendor-dashboard-v2__empty-message">{{ 'Readiness checks are clear for your organiser account.'|t }}</p>
+          </div>
+        {% else %}
+          <p class="mel-vendor-dashboard-v2__muted">{{ 'Readiness checks will appear here once your account is set up.'|t }}</p>
+        {% endif %}
+      </div>
+    </section>
   </div>
 
   <section class="mel-vendor-dashboard-v2__section mel-vendor-dashboard-v2__kpis" aria-labelledby="mel-dash-kpis-title">
@@ -187,7 +179,11 @@
           <article class="mel-vendor-dashboard-v2__kpi mel-vendor-dashboard-v2__kpi--{{ ksev }}">{{ kpi_inner }}</article>
         {% endif %}
       {% else %}
-        <p class="mel-vendor-dashboard-v2__muted">{{ 'Metrics will appear here when available.'|t }}</p>
+        {% if dashboard_vendor_id %}
+          <p class="mel-vendor-dashboard-v2__muted">{{ 'Performance data will appear after your first RSVP, ticket sale, or event view.'|t }}</p>
+        {% else %}
+          <p class="mel-vendor-dashboard-v2__muted">{{ 'Metrics will appear here when available.'|t }}</p>
+        {% endif %}
       {% endfor %}
     </div>
   </section>
@@ -254,44 +250,66 @@
             {% set type_label = 'Setup needed'|t %}
           {% endif %}
           <article class="mel-vendor-dashboard-v2__event-card">
-            <div class="mel-vendor-dashboard-v2__event-card-head">
-              <span class="mel-vendor-dashboard-v2__event-status">{{ ev.status_label|default('') }}</span>
-              <h4 class="mel-vendor-dashboard-v2__event-title">{{ ev.title|default('') }}</h4>
-            </div>
-            {% if ev.date_label is defined and ev.date_label %}
-              <p class="mel-vendor-dashboard-v2__event-date">{{ ev.date_label }}</p>
-            {% endif %}
-            <p class="mel-vendor-dashboard-v2__event-type">{{ type_label }}</p>
-            {% set issues = ev.presentation_issues|default([]) %}
-            {% if issues is iterable and issues|length > 0 %}
-              <div class="mel-vendor-dashboard-v2__event-issues" role="group" aria-label="{{ 'Setup issues'|t }}">
-                {% for issue in issues %}
-                  {% set isev = issue.severity|default('warning') %}
-                  <span class="mel-vendor-dashboard-v2__issue-chip mel-vendor-dashboard-v2__issue-chip--{{ isev|e('html_attr') }}">
-                    <span class="mel-vendor-dashboard-v2__issue-dot" aria-hidden="true"></span>
-                    {{ issue.label|default('') }}
-                  </span>
-                {% endfor %}
+            <div class="mel-vendor-dashboard-v2__event-card-top">
+              {% set img = ev.image|default({}) %}
+              {% if img.url is defined and img.url %}
+                <div class="mel-event-card-thumb" aria-hidden="true">
+                  <img class="mel-event-card-thumb__img" src="{{ img.url }}" alt="{{ img.alt|default('')|e('html_attr') }}" loading="lazy" width="56" height="56"/>
+                </div>
+              {% else %}
+                <div class="mel-event-card-thumb mel-event-card-thumb--placeholder" role="img" aria-label="{{ 'Event image'|t }}">{{ 'MEL'|t }}</div>
+              {% endif %}
+              <div class="mel-vendor-dashboard-v2__event-card-main">
+                <div class="mel-vendor-dashboard-v2__event-card-head">
+                  <span class="mel-vendor-dashboard-v2__event-status">{{ ev.status_label|default('') }}</span>
+                  <h4 class="mel-vendor-dashboard-v2__event-title">{{ ev.title|default('') }}</h4>
+                </div>
+                {% if ev.date_label is defined and ev.date_label %}
+                  <p class="mel-vendor-dashboard-v2__event-date">{{ ev.date_label }}</p>
+                {% endif %}
+                <p class="mel-vendor-dashboard-v2__event-type">{{ type_label }}</p>
+                {% set issues = ev.presentation_issues|default([]) %}
+                {% if issues is iterable and issues|length > 0 %}
+                  <div class="mel-vendor-dashboard-v2__event-issues" role="group" aria-label="{{ 'Setup issues'|t }}">
+                    {% for issue in issues %}
+                      {% set isev = issue.severity|default('warning') %}
+                      <span class="mel-vendor-dashboard-v2__issue-chip mel-vendor-dashboard-v2__issue-chip--{{ isev|e('html_attr') }}">
+                        <span class="mel-vendor-dashboard-v2__issue-dot" aria-hidden="true"></span>
+                        {{ issue.label|default('') }}
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if ev.metric_label is defined and ev.metric_label %}
+                  <p class="mel-vendor-dashboard-v2__event-metric">{{ ev.metric_label }}</p>
+                {% endif %}
+                {% if ev.revenue_label is defined and ev.revenue_label %}
+                  <p class="mel-vendor-dashboard-v2__event-revenue">{{ 'Revenue: @r'|t({'@r': ev.revenue_label}) }}</p>
+                {% endif %}
+                {% if ev.capacity_label is defined and ev.capacity_label %}
+                  <p class="mel-vendor-dashboard-v2__event-capacity">{{ 'Capacity: @c'|t({'@c': ev.capacity_label}) }}</p>
+                {% endif %}
               </div>
-            {% endif %}
-            {% if ev.metric_label is defined and ev.metric_label %}
-              <p class="mel-vendor-dashboard-v2__event-metric">{{ ev.metric_label }}</p>
-            {% endif %}
-            {% if ev.revenue_label is defined and ev.revenue_label %}
-              <p class="mel-vendor-dashboard-v2__event-revenue">{{ 'Revenue: @r'|t({'@r': ev.revenue_label}) }}</p>
-            {% endif %}
-            {% if ev.capacity_label is defined and ev.capacity_label %}
-              <p class="mel-vendor-dashboard-v2__event-capacity">{{ 'Capacity: @c'|t({'@c': ev.capacity_label}) }}</p>
-            {% endif %}
-            <div class="mel-vendor-dashboard-v2__event-actions">
+            </div>
+            <div class="mel-vendor-dashboard-v2__event-actions mel-vendor-dashboard-v2__event-actions-row">
               {% if links.manage is defined and links.manage %}
                 <a class="mel-btn mel-btn--primary mel-btn--sm mel-vendor-dashboard-v2__event-btn" href="{{ links.manage }}">{{ 'Manage'|t }}</a>
               {% endif %}
               {% if links.edit is defined and links.edit %}
                 <a class="mel-btn mel-btn--secondary mel-btn--sm mel-vendor-dashboard-v2__event-btn" href="{{ links.edit }}">{{ 'Edit'|t }}</a>
               {% endif %}
+              {% if links.tickets is defined and links.tickets %}
+                <a class="mel-btn mel-btn--secondary mel-btn--sm mel-vendor-dashboard-v2__event-btn" href="{{ links.tickets }}">{{ 'Tickets'|t }}</a>
+              {% endif %}
               {% if links.analytics is defined and links.analytics %}
                 <a class="mel-btn mel-btn--ghost mel-btn--sm mel-vendor-dashboard-v2__event-btn" href="{{ links.analytics }}">{{ 'Analytics'|t }}</a>
+              {% endif %}
+              {% set removal = ev.removal|default(null) %}
+              {% if removal %}
+                <button type="button" class="mel-btn mel-btn--sm mel-event-card-remove-open" data-mel-open-dialog="{{ removal.dialog_id|e('html_attr') }}" aria-haspopup="dialog">
+                  {{ removal.danger_label|default('Archive'|t) }}
+                </button>
+                {% include '@myeventlane_vendor_theme/components/mel-event-card-removal-dialog.html.twig' with { removal: removal } only %}
               {% endif %}
             </div>
           </article>
@@ -308,4 +326,20 @@
       </div>
     {% endif %}
   </section>
+
+  {% if mel_contribution_billing_strip is defined and mel_contribution_billing_strip %}
+    <div class="mel-vendor-dashboard-v2__billing-strip mel-vendor-dashboard-v2__billing-strip--below-events">{{ mel_contribution_billing_strip }}</div>
+  {% endif %}
+
+  {% if mel_top_boost_opportunity is defined and mel_top_boost_opportunity %}
+    <div class="mel-vendor-dashboard-v2__boost-slot mel-vendor-dashboard-v2__boost-slot--below-events">
+      {% include '@myeventlane_vendor_theme/components/mel-top-boost-opportunity.html.twig' with {
+        event: {
+          title: mel_top_boost_opportunity.title,
+          image: mel_top_boost_opportunity.image|default(null),
+        },
+        performance: mel_top_boost_opportunity.performance,
+      } only %}
+    </div>
+  {% endif %}
 </section>

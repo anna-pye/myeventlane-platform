@@ -37,6 +37,13 @@ dashboard:
   dependencies:
     - myeventlane_vendor_theme/global-styling
 
+mel_event_card_remove:
+  js:
+    js/mel-event-card-remove.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Chart.js library (CDN)
 chartjs:
   version: 4.4.1
@@ -91,6 +98,7 @@ mel_vendor_events:
     - core/drupal
     - core/once
     - myeventlane_vendor_theme/global-styling
+    - myeventlane_vendor_theme/mel_event_card_remove
 
 mel_notifications:
   dependencies:
