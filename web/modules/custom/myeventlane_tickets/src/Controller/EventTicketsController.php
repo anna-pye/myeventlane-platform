@@ -7,12 +7,14 @@ namespace Drupal\myeventlane_tickets\Controller;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_tickets\Service\EventAccess;
+use Drupal\myeventlane_vendor\Form\EventTicketManagerForm;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -31,6 +33,8 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
   protected EntityFormBuilderInterface $entityFormBuilder;
 
+  protected FormBuilderInterface $formBuilder;
+
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
@@ -39,11 +43,13 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     private readonly EventAccess $eventAccess,
     EntityTypeManagerInterface $entityTypeManager,
     EntityFormBuilderInterface $entityFormBuilder,
+    FormBuilderInterface $formBuilder,
     private readonly TicketTierLifecycleService $ticketTierLifecycle,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger, $eventTabsService);
     $this->entityTypeManager = $entityTypeManager;
     $this->entityFormBuilder = $entityFormBuilder;
+    $this->formBuilder = $formBuilder;
   }
 
   /**
@@ -58,6 +64,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       $container->get('myeventlane_tickets.event_access'),
       $container->get('entity_type.manager'),
       $container->get('entity.form_builder'),
+      $container->get('form_builder'),
       $container->get('myeventlane_event.ticket_tier_lifecycle'),
     );
   }
@@ -70,6 +77,18 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       return;
     }
     parent::assertEventOwnership($event);
+  }
+
+  /**
+   * Tickets overview: Commerce-backed manager inside the workspace shell.
+   *
+   * Some environments still register this as the route controller; the canonical
+   * route uses \Drupal\myeventlane_vendor\Form\EventTicketManagerForm directly.
+   */
+  public function overview(NodeInterface $event): array {
+    $this->assertEventOwnership($event);
+    $form = $this->formBuilder->getForm(EventTicketManagerForm::class, $event);
+    return $this->buildTicketsPage($event, $form, 'overview');
   }
 
   /**
