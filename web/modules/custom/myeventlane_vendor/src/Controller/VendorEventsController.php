@@ -80,6 +80,11 @@ final class VendorEventsController extends VendorConsoleBaseController implement
           'contexts' => ['user'],
           'max-age' => 0,
         ],
+        '#attached' => [
+          'library' => [
+            'myeventlane_vendor_theme/mel_event_card_remove',
+          ],
+        ],
       ],
     ];
 

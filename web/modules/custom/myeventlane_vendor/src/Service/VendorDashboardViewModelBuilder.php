@@ -48,6 +48,7 @@ final class VendorDashboardViewModelBuilder {
     private readonly DateFormatterInterface $dateFormatter,
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly VendorEventRemovalService $vendorEventRemovalService,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -82,7 +83,7 @@ final class VendorDashboardViewModelBuilder {
 
     $events = [];
     try {
-      $events = $this->buildEventRows($uid);
+      $events = $this->buildEventRows($uid, $account);
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_vendor')->warning('Dashboard view model events build failed for uid @uid: @message', [
@@ -406,7 +407,7 @@ final class VendorDashboardViewModelBuilder {
   /**
    * @return list<array<string, mixed>>
    */
-  private function buildEventRows(int $uid): array {
+  private function buildEventRows(int $uid, AccountInterface $account): array {
     $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
     if ($ids === []) {
       return [];
@@ -427,7 +428,7 @@ final class VendorDashboardViewModelBuilder {
     $eventNodes = array_slice($eventNodes, 0, self::MAX_EVENTS);
     $rows = [];
     foreach ($eventNodes as $node) {
-      $rows[] = $this->buildEventRow($node);
+      $rows[] = $this->buildEventRow($node, $account);
     }
 
     return $rows;
@@ -436,7 +437,7 @@ final class VendorDashboardViewModelBuilder {
   /**
    * @return array<string, mixed>
    */
-  private function buildEventRow(NodeInterface $node): array {
+  private function buildEventRow(NodeInterface $node, AccountInterface $account): array {
     $nid = (int) $node->id();
     $published = $node->isPublished();
     $startTs = $this->getDateFieldTimestamp($node, 'field_event_start');
@@ -529,7 +530,8 @@ final class VendorDashboardViewModelBuilder {
       'metric_label' => $metricLabel,
       'revenue_label' => $revenueLabel,
       'presentation_issues' => $presentation['items'] ?? [],
-      'image' => NULL,
+      'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
+      'removal' => $this->vendorEventRemovalService->buildRemovalUiPayload($node, $account),
       'links' => [
         'manage' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_workspace', ['event' => $nid]),
         'edit' => $this->safeUrlFromRoute('myeventlane_event_studio.edit', ['node' => $nid]),

@@ -11,15 +11,18 @@ declare(strict_types=1);
  * Primary module file for MyEventLane Vendor.
  */
 
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Implements hook_user_login().
@@ -329,19 +332,29 @@ function myeventlane_vendor_page_attachments_alter(array &$attachments): void {
 
 /**
  * Implements hook_preprocess_node().
+ *
+ * - Vendor console studio: overview desk teaser URL override.
+ * - vendor_card view mode: PHP-built thumbnail, removal dialog payload, tickets
+ *   URL for organiser bulk list on /vendor/events.
  */
 function myeventlane_vendor_preprocess_node(array &$variables): void {
   $route_name = \Drupal::routeMatch()->getRouteName();
-  if ($route_name !== 'myeventlane_vendor.console.studio') {
-    return;
+  if ($route_name === 'myeventlane_vendor.console.studio') {
+    $desk = (string) \Drupal::request()->query->get('desk', '');
+    if ($desk === 'overview' && ($variables['view_mode'] ?? '') === 'teaser') {
+      $node = $variables['node'] ?? NULL;
+      if ($node instanceof NodeInterface && $node->bundle() === 'event') {
+        $variables['url'] = Url::fromRoute('myeventlane_vendor.console.studio', [], [
+          'query' => [
+            'desk' => 'overview',
+            'event' => (int) $node->id(),
+          ],
+        ])->toString();
+      }
+    }
   }
 
-  $desk = (string) \Drupal::request()->query->get('desk', '');
-  if ($desk !== 'overview') {
-    return;
-  }
-
-  if (($variables['view_mode'] ?? '') !== 'teaser') {
+  if (($variables['view_mode'] ?? '') !== 'vendor_card') {
     return;
   }
 
@@ -350,12 +363,50 @@ function myeventlane_vendor_preprocess_node(array &$variables): void {
     return;
   }
 
-  $variables['url'] = Url::fromRoute('myeventlane_vendor.console.studio', [], [
-    'query' => [
-      'desk' => 'overview',
-      'event' => (int) $node->id(),
-    ],
-  ])->toString();
+  /** @var \Drupal\myeventlane_vendor\Service\VendorEventRemovalService $removal */
+  $removal = \Drupal::service('myeventlane_vendor.vendor_event_removal');
+  $account = \Drupal::currentUser();
+  $variables['mel_event_card_image'] = $removal->buildEventThumbnailData($node);
+  $variables['mel_event_removal'] = $removal->buildRemovalUiPayload($node, $account);
+  $variables['mel_event_tickets_url'] = _myeventlane_vendor_vendor_card_tickets_url($node, $account);
+
+  if (isset($variables['content']['field_event_image'])) {
+    unset($variables['content']['field_event_image']);
+  }
+}
+
+/**
+ * Builds tickets deep-link URL for vendor_card when route access allows.
+ */
+function _myeventlane_vendor_vendor_card_tickets_url(NodeInterface $node, AccountInterface $account): ?string {
+  $route_name = 'myeventlane_vendor.console.event_tickets';
+  $route_provider = \Drupal::service('router.route_provider');
+  try {
+    $route_provider->getRouteByName($route_name);
+  }
+  catch (RouteNotFoundException) {
+    return NULL;
+  }
+
+  $params = ['event' => (int) $node->id()];
+  try {
+    /** @var \Drupal\Core\Access\AccessManagerInterface $access */
+    $access = \Drupal::service('access_manager');
+    $result = $access->checkNamedRoute($route_name, $params, $account, TRUE);
+    if (!$result instanceof AccessResultInterface || !$result->isAllowed()) {
+      return NULL;
+    }
+  }
+  catch (\Throwable) {
+    return NULL;
+  }
+
+  try {
+    return Url::fromRoute($route_name, $params)->toString();
+  }
+  catch (\Throwable) {
+    return NULL;
+  }
 }
 
 /**

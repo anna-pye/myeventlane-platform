@@ -401,6 +401,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'library' => [
           'myeventlane_vendor_theme/global-styling',
           'myeventlane_vendor_theme/dashboard',
+          'myeventlane_vendor_theme/mel_event_card_remove',
         ],
       ],
     ];

@@ -8,10 +8,13 @@
 #}
 <article{{ attributes.addClass('mel-card') }} data-view-mode>
   <div class="mel-card__image">
-    {% if content.field_event_image is defined and content.field_event_image|render|trim is not empty %}
-      {{ content.field_event_image }}
+    {% set img = mel_event_card_image|default({}) %}
+    {% if img.url is defined and img.url %}
+      <div class="mel-event-card-thumb" aria-hidden="true">
+        <img class="mel-event-card-thumb__img" src="{{ img.url }}" alt="{{ img.alt|default('')|e('html_attr') }}" loading="lazy" width="56" height="56"/>
+      </div>
     {% else %}
-      <div class="mel-card__image-placeholder" aria-hidden="true"></div>
+      <div class="mel-event-card-thumb mel-event-card-thumb--placeholder" role="img" aria-label="{{ 'Event image'|t }}">{{ 'MEL'|t }}</div>
     {% endif %}
   </div>
 
@@ -34,9 +37,19 @@
       {% endif %}
     </div>
 
-    <div class="mel-card__actions">
+    <div class="mel-card__actions mel-card__actions--vendor-console">
       <a href="{{ path('myeventlane_vendor.console.event_overview', {'event': node.id}) }}" class="mel-btn mel-btn--primary mel-btn--sm">{{ 'Manage'|t }}</a>
-      <a href="{{ path('myeventlane_event_studio.edit', {'node': node.id}) }}" class="mel-btn mel-btn--ghost mel-btn--sm">{{ 'Edit event'|t }}</a>
+      <a href="{{ path('myeventlane_event_studio.edit', {'node': node.id}) }}" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'Edit'|t }}</a>
+      {% if mel_event_tickets_url is defined and mel_event_tickets_url %}
+        <a href="{{ mel_event_tickets_url }}" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'Tickets'|t }}</a>
+      {% endif %}
+      {% set removal = mel_event_removal|default(null) %}
+      {% if removal %}
+        <button type="button" class="mel-btn mel-btn--sm mel-event-card-remove-open" data-mel-open-dialog="{{ removal.dialog_id|e('html_attr') }}" aria-haspopup="dialog">
+          {{ removal.danger_label|default('Archive'|t) }}
+        </button>
+        {% include '@myeventlane_vendor_theme/components/mel-event-card-removal-dialog.html.twig' with { removal: removal } only %}
+      {% endif %}
     </div>
   </div>
 </article>

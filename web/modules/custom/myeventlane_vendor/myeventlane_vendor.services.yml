@@ -50,6 +50,7 @@ services:
     class: Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery
     arguments:
       - '@entity_type.manager'
+      - '@entity_field.manager'
 
   myeventlane_vendor.event_studio_create:
     class: Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService
@@ -62,6 +63,25 @@ services:
 
   myeventlane_vendor.event_access_checker:
     class: Drupal\myeventlane_vendor\Service\EventVendorAccessChecker
+
+  myeventlane_vendor.access.vendor_managed_event_console:
+    class: Drupal\myeventlane_vendor\Access\VendorManagedEventConsoleAccess
+    arguments:
+      - '@myeventlane_vendor.access.vendor_console'
+      - '@myeventlane_vendor.event_access_checker'
+
+  myeventlane_vendor.vendor_event_removal:
+    class: Drupal\myeventlane_vendor\Service\VendorEventRemovalService
+    arguments:
+      - '@entity_type.manager'
+      - '@file_url_generator'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor.service.rsvp_stats'
+      - '@myeventlane_event_studio.save'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@csrf_token'
+      - '@string_translation'
+      - '@logger.factory'
 
   myeventlane_vendor.paid_publish_stripe_gate:
     class: Drupal\myeventlane_vendor\Service\PaidPublishStripeGate
@@ -217,6 +237,7 @@ services:
       - '@entity_field.manager'
       - '@string_translation'
       - '@logger.factory'
+      - '@myeventlane_vendor.vendor_event_removal'
 
   myeventlane_vendor.dashboard_view_model_builder:
     class: Drupal\myeventlane_vendor\Service\VendorDashboardViewModelBuilder
@@ -236,6 +257,7 @@ services:
       - '@date.formatter'
       - '@string_translation'
       - '@logger.factory'
+      - '@myeventlane_vendor.vendor_event_removal'
 
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService
@@ -453,6 +475,17 @@ services:
       - '@logger.channel.myeventlane_vendor'
       - '@request_stack'
       - '@myeventlane_vendor.event_workspace_view_model_builder'
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_vendor.controller.vendor_event_archive:
+    class: Drupal\myeventlane_vendor\Controller\VendorEventArchiveController
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_vendor.vendor_event_removal'
+      - '@csrf_token'
     tags:
       - { name: controller.service_arguments }
 
