@@ -31,6 +31,13 @@ final class VendorManagedEventConsoleAccess {
       return AccessResult::forbidden();
     }
 
+    // Align with VendorConsoleBaseController::assertEventOwnership().
+    if ($account->hasPermission('administer nodes')) {
+      return AccessResult::allowed()
+        ->addCacheableDependency($event)
+        ->addCacheContexts(['user.permissions']);
+    }
+
     if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
       return AccessResult::forbidden();
     }

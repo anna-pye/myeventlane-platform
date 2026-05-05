@@ -5,17 +5,6 @@
 (function (Drupal, once) {
   'use strict';
 
-  /**
-   * @param {HTMLDialogElement} dialog
-   */
-  function trapReturn(dialog) {
-    dialog.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        dialog.close();
-      }
-    });
-  }
-
   Drupal.behaviors.melEventCardRemove = {
     attach(context) {
       once('mel-event-card-remove-open', '[data-mel-open-dialog]', context).forEach((btn) => {
@@ -27,7 +16,6 @@
           const dialog = document.getElementById(id);
           if (dialog && dialog.tagName === 'DIALOG' && typeof dialog.showModal === 'function') {
             dialog.showModal();
-            trapReturn(dialog);
             const focusTarget = dialog.querySelector(
               'button[data-mel-dialog-close], button[type="submit"], a[href]',
             );

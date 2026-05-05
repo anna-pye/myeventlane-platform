@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -30,7 +29,6 @@ final class VendorEventRemovalService {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly TicketSalesService $ticketSalesService,
     private readonly RsvpStatsService $rsvpStatsService,
     private readonly EventStudioSaveService $eventStudioSaveService,
@@ -61,8 +59,9 @@ final class VendorEventRemovalService {
         try {
           $style = $this->entityTypeManager->getStorage('image_style')->load(self::THUMB_STYLE);
           if ($style) {
-            $relative = $style->buildUrl($file->getFileUri());
-            $url = $this->fileUrlGenerator->generateString($relative);
+            // ImageStyle::buildUrl() returns the usable URL; do not pass it to
+            // FileUrlGenerator (expects a stream wrapper URI).
+            $url = $style->buildUrl($file->getFileUri());
           }
         }
         catch (\Throwable $e) {
