@@ -331,9 +331,21 @@ function myeventlane_commerce_preprocess_myeventlane_event_book(array &$variable
 }
 
 /**
- * Ensure theme templates under /templates/commerce are discovered.
+ * Point selected theme hooks at the active theme's templates/commerce directory.
+ *
+ * Event booking uses a default Twig in myeventlane_commerce; the active theme
+ * may supply templates/commerce/myeventlane-event-book.html.twig (often a thin
+ * {% extends %} override).
  */
 function myeventlane_commerce_theme_registry_alter(array &$registry): void {
+  if (isset($registry['myeventlane_event_book'])) {
+    $theme = \Drupal::theme()->getActiveTheme()->getName();
+    $theme_path = \Drupal::service('extension.list.theme')->getPath($theme);
+    $commerce_tpl_dir = $theme_path . '/templates/commerce';
+    if (is_file($commerce_tpl_dir . '/myeventlane-event-book.html.twig')) {
+      $registry['myeventlane_event_book']['path'] = $commerce_tpl_dir;
+    }
+  }
   if (isset($registry['commerce_product'])) {
     $theme = \Drupal::theme()->getActiveTheme()->getName();
     $theme_path = \Drupal::service('extension.list.theme')->getPath($theme);
