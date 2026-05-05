@@ -342,7 +342,11 @@ function myeventlane_commerce_theme_registry_alter(array &$registry): void {
     $theme = \Drupal::theme()->getActiveTheme()->getName();
     $theme_path = \Drupal::service('extension.list.theme')->getPath($theme);
     $commerce_tpl_dir = $theme_path . '/templates/commerce';
-    if (is_file($commerce_tpl_dir . '/myeventlane-event-book.html.twig')) {
+    // is_file() is CWD-relative for relative paths; theme paths are relative to
+    // Drupal root, so resolve against \Drupal::root() (CLI cache rebuilds often
+    // run with a non-root CWD).
+    $commerce_tpl_uri = \Drupal::root() . '/' . $commerce_tpl_dir . '/myeventlane-event-book.html.twig';
+    if (is_file($commerce_tpl_uri)) {
       $registry['myeventlane_event_book']['path'] = $commerce_tpl_dir;
     }
   }
