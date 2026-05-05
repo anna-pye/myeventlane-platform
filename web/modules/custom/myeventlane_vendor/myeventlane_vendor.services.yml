@@ -74,7 +74,6 @@ services:
     class: Drupal\myeventlane_vendor\Service\VendorEventRemovalService
     arguments:
       - '@entity_type.manager'
-      - '@file_url_generator'
       - '@myeventlane_vendor.service.ticket_sales'
       - '@myeventlane_vendor.service.rsvp_stats'
       - '@myeventlane_event_studio.save'
