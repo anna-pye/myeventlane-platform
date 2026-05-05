@@ -347,11 +347,25 @@ final class FastCheckoutEligibility {
     $key = $machine_name !== '' ? $machine_name : $label;
     $key = str_replace(['-', ' '], '_', $key);
 
-    if ($key === 'name' && $type === 'textfield') {
+    $textTypes = ['textfield', 'text'];
+
+    if (in_array($key, ['name', 'full_name', 'attendee_name'], TRUE)
+      && in_array($type, $textTypes, TRUE)) {
       return 'name';
     }
 
-    if ($key === 'email' && in_array($type, ['email', 'textfield'], TRUE)) {
+    if (in_array($key, ['first_name', 'firstname', 'given_name'], TRUE)
+      && in_array($type, $textTypes, TRUE)) {
+      return 'first_name';
+    }
+
+    if (in_array($key, ['last_name', 'lastname', 'family_name', 'surname'], TRUE)
+      && in_array($type, $textTypes, TRUE)) {
+      return 'last_name';
+    }
+
+    if (in_array($key, ['email', 'email_address', 'attendee_email'], TRUE)
+      && in_array($type, ['email', 'textfield', 'text'], TRUE)) {
       return 'email';
     }
 
