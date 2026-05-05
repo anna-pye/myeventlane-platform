@@ -59,8 +59,15 @@ function myeventlane_checkout_flow_attach_fast_checkout(array &$form, FormStateI
 
   /** @var \Drupal\myeventlane_checkout_flow\Service\FastCheckoutEligibility $eligibility */
   $eligibility = \Drupal::service('myeventlane_checkout_flow.fast_checkout_eligibility');
+  if (!$eligibility->isFastCheckoutEligible($order)) {
+    if ($eligibility->hasFastCheckoutBlockingAttendeeQuestions($order)) {
+      myeventlane_checkout_flow_add_fast_checkout_unavailable_notice($form);
+    }
+    return;
+  }
+
   $gateway = $eligibility->getStripeGateway($order);
-  if (!$gateway || !$eligibility->isFastCheckoutEligible($order, $gateway)) {
+  if (!$gateway) {
     return;
   }
 
@@ -86,6 +93,12 @@ function myeventlane_checkout_flow_attach_fast_checkout(array &$form, FormStateI
     ],
   ];
 
+  if ($eligibility->hasMultipleTicketQuantity($order)) {
+    $form['mel_fast_checkout']['header']['multi_ticket_notice'] = [
+      '#markup' => '<p class="mel-fast-checkout__multi-ticket-notice">' . t("You'll be able to edit individual attendee details after purchase.") . '</p>',
+    ];
+  }
+
   if ($requires_minimal_data && !$has_minimal_data) {
     myeventlane_checkout_flow_add_fast_checkout_details_form($form, $order);
     return;
@@ -103,6 +116,22 @@ function myeventlane_checkout_flow_attach_fast_checkout(array &$form, FormStateI
   ];
   $form['mel_fast_checkout']['fallback'] = [
     '#markup' => '<p class="mel-fast-checkout__fallback">' . t('Or continue with details') . '</p>',
+  ];
+}
+
+/**
+ * Adds a friendly note when fast checkout is not suitable for this event.
+ */
+function myeventlane_checkout_flow_add_fast_checkout_unavailable_notice(array &$form): void {
+  $form['mel_fast_checkout_unavailable'] = [
+    '#type' => 'container',
+    '#weight' => -101,
+    '#attributes' => [
+      'class' => ['mel-fast-checkout-unavailable'],
+    ],
+    'message' => [
+      '#markup' => '<p>' . t("Fast checkout isn't available for this event because additional attendee details are required.") . '</p>',
+    ],
   ];
 }
 

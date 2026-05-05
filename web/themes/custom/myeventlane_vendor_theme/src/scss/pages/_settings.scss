@@ -505,6 +505,18 @@ fieldset {
 // RESPONSIVE ADJUSTMENTS
 // ============================================================================
 
+// TASK 10 — organiser profile hub (module ships .mel-vendor-settings-v2 rules).
+.mel-vendor-console .mel-vendor-settings-v2 {
+  width: 100%;
+}
+
+.mel-vendor-brand-v2__title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0 0 $spacing-4;
+  color: $text-primary;
+}
+
 @include respond-down(md) {
   .vertical-tabs {
     gap: $spacing-4;

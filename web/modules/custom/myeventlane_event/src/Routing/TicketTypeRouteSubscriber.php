@@ -10,7 +10,7 @@ use Symfony\Component\Routing\RouteCollection;
 /**
  * Restricts standalone mel_ticket_type add form to admins only.
  *
- * Organisers must create tiers via EventTicketsBuilder / workspace form (TicketTierLifecycleService).
+ * Organiser ticket management is handled by the canonical vendor tickets route.
  * The entity add route, if present, is admin-only maintenance.
  */
 final class TicketTypeRouteSubscriber extends RouteSubscriberBase {

@@ -8,12 +8,14 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Form\EventStudioForm;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -26,6 +28,7 @@ final class EventStudioController extends ControllerBase {
     private readonly VendorEventStudioCreateService $eventStudioCreate,
     private readonly LoggerInterface $logger,
     private readonly RequestStack $requestStack,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {
     // ControllerBase / EntityTypeManagerTrait already declare protected $entityTypeManager.
     $this->entityTypeManager = $entity_type_manager;
@@ -37,6 +40,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_vendor.event_studio_create'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
       $container->get('request_stack'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -98,6 +102,11 @@ final class EventStudioController extends ControllerBase {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
+    $account = $this->currentUser();
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      throw new AccessDeniedHttpException();
+    }
     $this->logger->notice('Vendor Event Studio entry: route=myeventlane_event_studio.edit event_id=@eid uid=@uid', [
       '@eid' => (string) $node->id(),
       '@uid' => (string) $this->currentUser()->id(),
@@ -115,7 +124,7 @@ final class EventStudioController extends ControllerBase {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
-    return (string) $this->t('Event Studio — @title', ['@title' => $node->getTitle()]);
+    return (string) $this->t('Edit event — @title', ['@title' => $node->getTitle()]);
   }
 
 }

@@ -586,7 +586,7 @@ myeventlane_vendor.console.event_order_view:
 myeventlane_vendor.console.event_tickets:
   path: '/vendor/events/{event}/tickets'
   defaults:
-    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::overview'
+    _form: '\Drupal\myeventlane_vendor\Form\EventTicketManagerForm'
     _title: 'Event tickets'
   requirements:
     _custom_access: 'myeventlane_tickets.access.event_tickets:access'

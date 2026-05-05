@@ -8,7 +8,6 @@ dependencies:
     - myeventlane_checkout_flow
     - myeventlane_checkout_paragraph
     - myeventlane_commerce
-    - myeventlane_donations
 _core:
   default_config_hash: MEL_EVENT_CHECKOUT_FLOW_HASH
 id: mel_event_checkout
@@ -32,11 +31,6 @@ configuration:
       display_label: 'Attendee details'
       step: checkout
       weight: 1
-      wrapper_element: fieldset
-    mel_donation:
-      display_label: 'Donation'
-      step: checkout
-      weight: 2
       wrapper_element: fieldset
     mel_legal_consent:
       display_label: 'Terms and conditions'

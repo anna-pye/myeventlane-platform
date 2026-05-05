@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_analytics\Controller;
 
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -12,10 +13,10 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_analytics\Service\AnalyticsDataService;
-use Drupal\myeventlane_analytics\Service\SalesAnalyticsService;
 use Drupal\myeventlane_analytics\Service\ConversionAnalyticsService;
 use Drupal\myeventlane_analytics\Service\ReportGeneratorService;
-use Drupal\myeventlane_dashboard\Service\DashboardEventLoader;
+use Drupal\myeventlane_analytics\Service\SalesAnalyticsService;
+use Drupal\myeventlane_analytics\Service\VendorAnalyticsViewModelBuilder;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -43,8 +44,9 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     private readonly SalesAnalyticsService $salesService,
     private readonly ConversionAnalyticsService $conversionService,
     private readonly ReportGeneratorService $reportService,
-    private readonly DashboardEventLoader $eventLoader,
+    private readonly VendorAnalyticsViewModelBuilder $vendorAnalyticsViewModelBuilder,
     private readonly EventVendorAccessChecker $eventAccessChecker,
+    private readonly AccessManagerInterface $accessManager,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger);
   }
@@ -61,8 +63,9 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
       $container->get('myeventlane_analytics.sales'),
       $container->get('myeventlane_analytics.conversion'),
       $container->get('myeventlane_analytics.report'),
-      $container->get('myeventlane_dashboard.event_loader'),
+      $container->get('myeventlane_analytics.vendor_view_model_builder'),
       $container->get('myeventlane_vendor.event_access_checker'),
+      $container->get('access_manager'),
     );
   }
 
@@ -73,50 +76,22 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
    *   Render array for the dashboard.
    */
   public function dashboard(): array {
-    $events = $this->eventLoader->loadEvents(FALSE, 50);
+    $analyticsModel = $this->vendorAnalyticsViewModelBuilder->build($this->currentUser, []);
 
-    // Get summary stats for all events.
-    $summaryStats = [
-      'total_events' => count($events),
-      'total_revenue' => 0.0,
-      'total_tickets' => 0,
-    ];
-
-    $eventAnalytics = [];
-    foreach ($events as $event) {
-      $eventId = (int) $event->id();
-      $timeSeries = $this->dataService->getSalesTimeSeries($eventId, 'day');
-
-      $eventRevenue = 0.0;
-      $eventTickets = 0;
-      foreach ($timeSeries as $point) {
-        $eventRevenue += $point['revenue'];
-        $eventTickets += $point['ticket_count'];
+    $cacheTags = ['node_list', 'user:' . $this->currentUser->id()];
+    foreach ($analyticsModel['events'] ?? [] as $row) {
+      if (!empty($row['nid'])) {
+        $cacheTags[] = 'node:' . (int) $row['nid'];
       }
-
-      $summaryStats['total_revenue'] += $eventRevenue;
-      $summaryStats['total_tickets'] += $eventTickets;
-
-      $eventAnalytics[] = [
-        'event' => $event,
-        'revenue' => $eventRevenue,
-        'tickets' => $eventTickets,
-        'url' => $event->toUrl('canonical')->toString(),
-        'analytics_url' => Url::fromRoute('myeventlane_analytics.event', ['node' => $eventId])->toString(),
-      ];
     }
 
-    // Sort by revenue descending.
-    usort($eventAnalytics, function ($a, $b) {
-      return $b['revenue'] <=> $a['revenue'];
-    });
-
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => 'Analytics Dashboard',
+      'title' => $analyticsModel['title'] ?? 'Analytics',
       'body' => [
         '#theme' => 'myeventlane_analytics_dashboard',
-        '#summary_stats' => $summaryStats,
-        '#event_analytics' => $eventAnalytics,
+        '#analytics_model' => $analyticsModel,
+        '#summary_stats' => [],
+        '#event_analytics' => [],
       ],
       '#attached' => [
         'library' => [
@@ -126,7 +101,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
       ],
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['node_list', 'user:' . $this->currentUser->id()],
+        'tags' => $cacheTags,
         'max-age' => 300,
       ],
     ]);
@@ -163,11 +138,20 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
       $totalTickets += $point['ticket_count'];
     }
 
+    $workspaceBackUrl = $this->safeUrlString('myeventlane_vendor.console.event_workspace', ['event' => $eventId]);
+    $vendorAnalyticsHomeUrl = $this->safeUrlString('myeventlane_analytics.dashboard', []);
+    $exportPdfUrl = $this->safeExportUrl('myeventlane_analytics.export_pdf', ['node' => $eventId]);
+    $exportExcelUrl = $this->safeExportUrl('myeventlane_analytics.export_excel', ['node' => $eventId]);
+
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
       'title' => 'Analytics: ' . $node->label(),
       'body' => [
         '#theme' => 'myeventlane_analytics_event',
         '#event' => $node,
+        '#workspace_back_url' => $workspaceBackUrl,
+        '#vendor_analytics_home_url' => $vendorAnalyticsHomeUrl,
+        '#export_pdf_url' => $exportPdfUrl,
+        '#export_excel_url' => $exportExcelUrl,
         '#time_series' => $timeSeries,
         '#ticket_breakdown' => $ticketBreakdown,
         '#sales_velocity' => $salesVelocity,
@@ -260,6 +244,10 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
       return AccessResult::forbidden('Not an event.');
     }
 
+    if ($account->hasPermission('administer nodes')) {
+      return AccessResult::allowed()->cachePerPermissions()->addCacheableDependency($node);
+    }
+
     if ($account->hasPermission('administer event attendees')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
@@ -277,6 +265,37 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     }
 
     return AccessResult::forbidden('You do not have access to view analytics for this event.');
+  }
+
+  /**
+   * Builds a URL string when the route exists; no access check.
+   *
+   * @param array<string, mixed> $parameters
+   */
+  private function safeUrlString(string $routeName, array $parameters): ?string {
+    try {
+      return Url::fromRoute($routeName, $parameters)->toString();
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+  }
+
+  /**
+   * Export/download URL only when the current user may run the route.
+   *
+   * @param array<string, mixed> $parameters
+   */
+  private function safeExportUrl(string $routeName, array $parameters): ?string {
+    try {
+      if (!$this->accessManager->checkNamedRoute($routeName, $parameters, $this->currentUser, TRUE)->isAllowed()) {
+        return NULL;
+      }
+      return Url::fromRoute($routeName, $parameters)->toString();
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
 }

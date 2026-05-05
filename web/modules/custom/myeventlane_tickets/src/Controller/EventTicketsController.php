@@ -7,18 +7,16 @@ namespace Drupal\myeventlane_tickets\Controller;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Url;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_tickets\Service\EventAccess;
-use Drupal\myeventlane_vendor\Form\EventTicketsWorkspaceForm;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -31,8 +29,6 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
   protected EntityTypeManagerInterface $entityTypeManager;
 
-  protected FormBuilderInterface $formBuilder;
-
   protected EntityFormBuilderInterface $entityFormBuilder;
 
   public function __construct(
@@ -42,13 +38,11 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     VendorEventTabsService $eventTabsService,
     private readonly EventAccess $eventAccess,
     EntityTypeManagerInterface $entityTypeManager,
-    FormBuilderInterface $formBuilder,
     EntityFormBuilderInterface $entityFormBuilder,
     private readonly TicketTierLifecycleService $ticketTierLifecycle,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger, $eventTabsService);
     $this->entityTypeManager = $entityTypeManager;
-    $this->formBuilder = $formBuilder;
     $this->entityFormBuilder = $entityFormBuilder;
   }
 
@@ -63,7 +57,6 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       $container->get('myeventlane_vendor.service.event_tabs'),
       $container->get('myeventlane_tickets.event_access'),
       $container->get('entity_type.manager'),
-      $container->get('form_builder'),
       $container->get('entity.form_builder'),
       $container->get('myeventlane_event.ticket_tier_lifecycle'),
     );
@@ -80,79 +73,11 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   }
 
   /**
-   * Overview: canonical ticket tier workspace (mel_ticket_type, no variations).
+   * Redirects legacy ticket type list URL to the canonical ticket manager.
    */
-  public function overview(NodeInterface $event): array {
+  public function typesRedirect(NodeInterface $event): RedirectResponse {
     $this->assertEventOwnership($event);
-
-    $tickets_form = $this->formBuilder->getForm(EventTicketsWorkspaceForm::class, $event);
-
-    $content = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-tickets-overview']],
-    ];
-
-    $content['tickets_workspace'] = $tickets_form;
-
-    $content['more_heading'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'h3',
-      '#value' => $this->t('More ticket tools'),
-      '#attributes' => ['class' => ['mel-tickets-overview__more-title']],
-    ];
-
-    $content['links'] = [
-      '#theme' => 'item_list',
-      '#items' => [
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Ticket groups'),
-          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_groups', ['event' => $event->id()]),
-        ],
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Access codes'),
-          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_access_codes', ['event' => $event->id()]),
-        ],
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Ticket settings'),
-          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_settings', ['event' => $event->id()]),
-        ],
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Embedded widgets'),
-          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets', ['event' => $event->id()]),
-        ],
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Door scanner'),
-          '#url' => Url::fromRoute('myeventlane_tickets.ticket_scan', ['event' => $event->id()]),
-        ],
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Check-in analytics'),
-          '#url' => Url::fromRoute('myeventlane_tickets.ticket_checkin_analytics', ['event' => $event->id()]),
-        ],
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Manual check-in'),
-          '#url' => Url::fromRoute('myeventlane_tickets.ticket_checkin', ['event' => $event->id()]),
-        ],
-      ],
-      '#attributes' => ['class' => ['mel-tickets-overview-links']],
-    ];
-
-    return $this->buildTicketsPage($event, $content, 'overview');
-  }
-
-  /**
-   * Ticket types tab: same mel_ticket_type workspace as overview.
-   */
-  public function typesList(NodeInterface $event): array {
-    $this->assertEventOwnership($event);
-    $form = $this->formBuilder->getForm(EventTicketsWorkspaceForm::class, $event);
-    return $this->buildTicketsPage($event, $form, 'types');
+    return new RedirectResponse('/vendor/events/' . $event->id() . '/tickets');
   }
 
   /**

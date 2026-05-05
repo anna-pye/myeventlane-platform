@@ -47,7 +47,7 @@
       {% else %}
         <a href="{{ path('user.login') }}" class="btn mel-btn-ghost">Login</a>
       {% endif %}
-        <a href="{{ path('myeventlane_event_studio.create') }}" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a>
+        <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a>
     </div>
 
     {# Mobile Toggle #}
@@ -77,7 +77,7 @@
         {% else %}
           <li><a href="{{ path('user.login') }}">Login</a></li>
         {% endif %}
-        <li><a href="{{ path('myeventlane_event_studio.create') }}" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a></li>
+        <li><a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a></li>
       </ul>
     </nav>
   </div>

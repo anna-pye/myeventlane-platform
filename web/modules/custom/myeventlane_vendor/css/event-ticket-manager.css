@@ -1,0 +1,229 @@
+.mel-ticket-manager-wrapper {
+  margin-block: 1rem;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.mel-ticket-manager-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.mel-ticket-manager-back-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.mel-ticket-manager-back-nav__link {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mel-ticket-manager-back-nav__link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.mel-ticket-manager-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.mel-ticket-manager-quick-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.mel-ticket-manager-quick-add .button,
+.mel-ticket-manager-quick-add input[type="submit"] {
+  min-height: 44px;
+  padding-inline: 1rem;
+}
+
+.mel-ticket-manager-quick-add .button:focus-visible,
+.mel-ticket-manager-quick-add input[type="submit"]:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.mel-ticket-manager-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mel-ticket-manager-row {
+  display: grid;
+  grid-template-columns: minmax(11rem, 1.85fr) minmax(6.5rem, 0.75fr) minmax(14rem, 1.45fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 1rem;
+  border: 1px solid #d8dee8;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.mel-ticket-manager-row.is-pending-delete {
+  opacity: 0.62;
+}
+
+.mel-ticket-manager-row__summary {
+  display: none;
+}
+
+.mel-ticket-manager-active-field {
+  padding-block: 0.25rem;
+}
+
+.mel-ticket-manager-active-field .form-type-checkbox {
+  margin: 0;
+}
+
+.mel-ticket-manager-active-field label,
+.mel-ticket-manager-active-field .form-checkbox label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding-block: 0.15rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.mel-ticket-manager-active-field input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.mel-ticket-manager-active-field input[type="checkbox"]:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.mel-ticket-manager-active-field .description {
+  display: block;
+  margin-block-start: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: #475569;
+  max-width: 22rem;
+}
+
+.mel-ticket-manager-row__more {
+  grid-column: 1 / -1;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.mel-ticket-manager-row__more .details-wrapper {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  margin-block-start: 0.75rem;
+}
+
+.mel-ticket-manager-row__more summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mel-ticket-manager-row__more summary:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.mel-ticket-manager-feedback,
+.mel-ticket-manager-warning {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+}
+
+.mel-ticket-manager-feedback {
+  color: #14532d;
+  background: #dcfce7;
+}
+
+.mel-ticket-manager-warning {
+  color: #713f12;
+  background: #fef3c7;
+}
+
+.mel-ticket-manager-feedback p,
+.mel-ticket-manager-warning p {
+  margin: 0;
+}
+
+.mel-ticket-manager-tools {
+  border: 0;
+  padding: 0;
+}
+
+.mel-ticket-manager-tools > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mel-ticket-manager-tools > summary:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.mel-ticket-manager-sync-intro {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.mel-ticket-manager-sync-intro__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.mel-ticket-manager-sync-actions {
+  margin-block-start: 0.5rem;
+  padding-block-start: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mel-ticket-manager-sync-actions .button--primary,
+.mel-ticket-manager-sync-actions input[type="submit"].button--primary {
+  min-height: 44px;
+  padding-block: 0.65rem;
+  padding-inline: 1.25rem;
+}
+
+.mel-ticket-manager-sync-actions .button--primary:focus-visible,
+.mel-ticket-manager-sync-actions input[type="submit"].button--primary:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .mel-ticket-manager-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .mel-ticket-manager-row {
+    padding: 0.85rem;
+  }
+}

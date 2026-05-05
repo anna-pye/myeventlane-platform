@@ -6,8 +6,8 @@ namespace Drupal\myeventlane_vendor_comms\Controller;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -19,12 +19,14 @@ final class VendorCommsController extends ControllerBase {
   /**
    * Constructs VendorCommsController.
    *
-   * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
-   *   The current user.
+   * @param \Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver|null $vendorOwnershipResolver
+   *   Optional resolver for store/event ownership checks.
+   * @param \Drupal\myeventlane_vendor\Service\EventVendorAccessChecker $eventVendorAccessChecker
+   *   Workspace parity for organiser team members.
    */
   public function __construct(
-    private readonly AccountProxyInterface $currentUser,
-    private readonly ?VendorOwnershipResolver $vendorOwnershipResolver = NULL,
+    private readonly ?VendorOwnershipResolver $vendorOwnershipResolver,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {}
 
   /**
@@ -32,10 +34,10 @@ final class VendorCommsController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('current_user'),
       $container->has('myeventlane_checkout_flow.vendor_ownership_resolver')
         ? $container->get('myeventlane_checkout_flow.vendor_ownership_resolver')
         : NULL,
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -49,19 +51,27 @@ final class VendorCommsController extends ControllerBase {
    *   Access result.
    */
   public function checkAccess(?NodeInterface $event = NULL): AccessResult {
-    $account = $this->currentUser;
+    $account = $this->currentUser();
 
-    // Admin users always allowed.
-    if ($account->hasPermission('administer commerce_order') || $account->hasPermission('bypass node access')) {
+    if ($account->hasPermission('administer commerce_order')
+      || $account->hasPermission('bypass node access')
+      || $account->hasPermission('administer nodes')) {
       return AccessResult::allowed()->addCacheContexts(['user.permissions']);
     }
 
-    // If event provided, verify vendor owns it.
     if ($event) {
+      $contexts = ['user.permissions', 'user'];
+      if ($this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
+        return AccessResult::allowed()
+          ->addCacheContexts($contexts)
+          ->addCacheableDependency($event);
+      }
       if ($this->vendorOwnershipResolver !== NULL) {
         $store = $this->vendorOwnershipResolver->getStoreForUser($account);
         if ($store && $this->vendorOwnershipResolver->vendorOwnsEvent($store, $event)) {
-          return AccessResult::allowed()->addCacheContexts(['user.permissions', 'user']);
+          return AccessResult::allowed()
+            ->addCacheContexts($contexts)
+            ->addCacheableDependency($event);
         }
       }
       return AccessResult::forbidden('You do not own this event.')->addCacheContexts(['user']);

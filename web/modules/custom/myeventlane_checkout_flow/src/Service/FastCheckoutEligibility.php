@@ -94,6 +94,33 @@ final class FastCheckoutEligibility {
   }
 
   /**
+   * Returns TRUE when attendee questions prevent fast checkout.
+   */
+  public function hasFastCheckoutBlockingAttendeeQuestions(OrderInterface $order): bool {
+    foreach ($this->getQuestionTemplates($order) as $question) {
+      if ($this->classifyBasicQuestion($question) === NULL) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Returns TRUE when a ticket line item has more than one attendee.
+   */
+  public function hasMultipleTicketQuantity(OrderInterface $order): bool {
+    foreach ($order->getItems() as $order_item) {
+      if (!$this->shouldCollectTicketHolders($order_item)) {
+        continue;
+      }
+      if ((int) $order_item->getQuantity() > 1) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
    * Returns TRUE when the order may proceed through express confirmation.
    */
   public function canConfirmFastCheckout(OrderInterface $order, PaymentGatewayInterface $gateway): bool {
@@ -156,12 +183,7 @@ final class FastCheckoutEligibility {
    * Ensures the order has no custom attendee questions beyond name/email.
    */
   private function attendeeQuestionsAreFastCheckoutCompatible(OrderInterface $order): bool {
-    foreach ($this->getQuestionTemplates($order) as $question) {
-      if ($this->classifyBasicQuestion($question) === NULL) {
-        return FALSE;
-      }
-    }
-    return TRUE;
+    return !$this->hasFastCheckoutBlockingAttendeeQuestions($order);
   }
 
   /**
@@ -325,23 +347,11 @@ final class FastCheckoutEligibility {
     $key = $machine_name !== '' ? $machine_name : $label;
     $key = str_replace(['-', ' '], '_', $key);
 
-    if (in_array($key, ['name', 'full_name', 'attendee_name', 'ticket_holder_name'], TRUE)
-      && in_array($type, ['textfield', 'text'], TRUE)) {
+    if ($key === 'name' && $type === 'textfield') {
       return 'name';
     }
 
-    if (in_array($key, ['first_name', 'firstname', 'given_name'], TRUE)
-      && in_array($type, ['textfield', 'text'], TRUE)) {
-      return 'first_name';
-    }
-
-    if (in_array($key, ['last_name', 'lastname', 'family_name', 'surname'], TRUE)
-      && in_array($type, ['textfield', 'text'], TRUE)) {
-      return 'last_name';
-    }
-
-    if (in_array($key, ['email', 'email_address', 'attendee_email'], TRUE)
-      && in_array($type, ['email', 'textfield', 'text'], TRUE)) {
+    if ($key === 'email' && in_array($type, ['email', 'textfield'], TRUE)) {
       return 'email';
     }
 

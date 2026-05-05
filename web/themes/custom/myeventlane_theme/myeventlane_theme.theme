@@ -29,6 +29,50 @@ use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
+use Drupal\myeventlane_core\VendorConsoleTrust;
+
+/**
+ * Public marketing create-event URL via onboarding gateway (/create-event).
+ */
+function _myeventlane_theme_public_create_event_url(): string {
+  try {
+    return Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+  }
+  catch (\Throwable) {
+    return '/create-event';
+  }
+}
+
+/**
+ * Vendor-console footer URLs with route access checks (matches vendor theme helper).
+ *
+ * @return array<string, string|null>
+ *   Keys: dashboard, events, analytics, payouts, create_event, settings, support.
+ */
+function _myeventlane_theme_vendor_console_footer_urls(): array {
+  $routes = [
+    'dashboard' => 'myeventlane_vendor.console.dashboard',
+    'events' => 'myeventlane_vendor.console.events',
+    'analytics' => 'myeventlane_analytics.dashboard',
+    'payouts' => 'myeventlane_vendor.console.payouts',
+    'create_event' => 'myeventlane_event_studio.create',
+    'settings' => 'myeventlane_vendor.console.settings',
+    'support' => 'myeventlane_escalations_portal.vendor_list',
+  ];
+  $out = [];
+  foreach ($routes as $key => $route_name) {
+    $out[$key] = NULL;
+    try {
+      if (!\Drupal::accessManager()->checkNamedRoute($route_name, [], \Drupal::currentUser(), TRUE)->isAllowed()) {
+        continue;
+      }
+      $out[$key] = Url::fromRoute($route_name)->toString();
+    }
+    catch (\Throwable) {
+    }
+  }
+  return $out;
+}
 
 /**
  * Implements hook_preprocess().
@@ -195,15 +239,16 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
     $variables['primary_menu'] = [];
   }
 
-  // Organiser context block.
-  // When user has organiser role, organiser links (Dashboard, My events, etc.)
-  // are injected into the account dropdown via hook_preprocess_menu__account.
-  // We hide organiser_context in the header to avoid duplication.
+  // Organiser context block: hide inline strip when trusted console users already
+  // have organiser tools in the account menu / dropdown (avoid duplicate CTAs).
   try {
     $organiser_block = $block_manager->createInstance('myeventlane_organiser_context', []);
     if ($organiser_block->access(\Drupal::currentUser())) {
       $build = $organiser_block->build();
-      if (\Drupal::currentUser()->hasPermission('access vendor dashboard') && !empty($build)) {
+      $account = \Drupal::currentUser()->getAccount();
+      $trust_hide_strip = $account->hasPermission('administer nodes')
+        || VendorConsoleTrust::accountIsTrustedForVendorConsole($account);
+      if ($trust_hide_strip && !empty($build)) {
         $variables['organiser_context'] = [];
       }
       else {
@@ -250,13 +295,8 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
     $variables['user_menu'] = [];
   }
 
-  // Create Event CTA URL (gateway handles vendor check / onboarding).
-  try {
-    $variables['create_event_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
-  }
-  catch (\Exception $e) {
-    $variables['create_event_url'] = '/create-event';
-  }
+  // Create Event CTA URL: gateway handles anonymous → login and vendor onboarding.
+  $variables['create_event_url'] = _myeventlane_theme_public_create_event_url();
 
   // Mobile drawer (only when not checkout).
   if (!$variables['is_checkout']) {
@@ -292,7 +332,22 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
   }
 
   $current_user = \Drupal::currentUser();
-  $is_vendor = $current_user->hasPermission('access vendor dashboard');
+  $account = $current_user->getAccount();
+  $access_manager = \Drupal::accessManager();
+  $dashboard_access = FALSE;
+  $events_access = FALSE;
+  try {
+    $dashboard_access = $access_manager->checkNamedRoute('myeventlane_vendor.console.dashboard', [], $account, TRUE)->isAllowed();
+  }
+  catch (\Throwable) {
+  }
+  try {
+    $events_access = $access_manager->checkNamedRoute('myeventlane_vendor.console.events', [], $account, TRUE)->isAllowed();
+  }
+  catch (\Throwable) {
+  }
+  $trusted_console = VendorConsoleTrust::accountIsTrustedForVendorConsole($account)
+    || $account->hasPermission('administer nodes');
 
   // Find and transform the Vendors menu item.
   foreach ($variables['items'] as $key => &$item) {
@@ -311,8 +366,7 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
         ],
       ];
 
-      // Show "Organiser dashboard" for organisers, "Become an organiser" for non-organisers.
-      if ($is_vendor) {
+      if ($dashboard_access) {
         $item['below']['organiser_dashboard'] = [
           'title' => t('Organiser dashboard'),
           'url' => Url::fromRoute('myeventlane_vendor.console.dashboard'),
@@ -323,7 +377,19 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
           'is_collapsed' => FALSE,
         ];
       }
-      else {
+      elseif ($events_access && $trusted_console) {
+        $item['below']['my_events'] = [
+          'title' => t('My events'),
+          'url' => Url::fromRoute('myeventlane_vendor.console.events'),
+          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+          'below' => [],
+          'in_active_trail' => FALSE,
+          'is_expanded' => FALSE,
+          'is_collapsed' => FALSE,
+        ];
+      }
+
+      if (!$trusted_console) {
         $item['below']['become_organiser'] = [
           'title' => t('Become an organiser'),
           'url' => Url::fromRoute('myeventlane_vendor.onboard'),
@@ -354,12 +420,7 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
 function myeventlane_theme_preprocess_mobile_drawer(array &$variables): void {
   $variables['drawer_menu'] = $variables['drawer_menu'] ?? [];
   $variables['drawer_organiser'] = $variables['drawer_organiser'] ?? [];
-  try {
-    $variables['create_event_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
-  }
-  catch (\Throwable) {
-    $variables['create_event_url'] = '/create-event';
-  }
+  $variables['create_event_url'] = _myeventlane_theme_public_create_event_url();
 
   $variables['mel_cart_url'] = '/cart';
   $variables['mel_cart_item_count'] = 0;
@@ -724,6 +785,15 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
           }
         }
       }
+      foreach ($order->getAdjustments() as $adjustment) {
+        if ((string) $adjustment->getLabel() !== 'Contribution') {
+          continue;
+        }
+        $amount = $adjustment->getAmount();
+        if ($amount instanceof Price && !$amount->isZero()) {
+          $donation_sum = $donation_sum === NULL ? $amount : $donation_sum->add($amount);
+        }
+      }
       $variables['mel_donation_total_formatted'] = NULL;
       if ($donation_sum instanceof Price && !$donation_sum->isZero()) {
         /** @var \Drupal\commerce_price\CurrencyFormatter $currency_formatter */
@@ -967,7 +1037,25 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   }
   $variables['mel_footer_categories'] = $categories;
   $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');
-  
+
+  // Internal footer context (layout/footer-internal.html.twig).
+  try {
+    $variables['footer_context'] = \Drupal::service('myeventlane_vendor.footer_context')->getContext();
+    if (!empty($variables['footer_context']['is_vendor'])) {
+      $variables['footer_context']['vendor_console_urls'] = _myeventlane_theme_vendor_console_footer_urls();
+    }
+  }
+  catch (\Throwable) {
+    $variables['footer_context'] = [
+      'store_name' => NULL,
+      'payout_balance' => '$0.00',
+      'environment' => getenv('SITE_ENV') ?: 'Production',
+      'open_tickets' => 0,
+      'is_vendor' => FALSE,
+      'is_admin' => FALSE,
+    ];
+  }
+
   // Check if vendor settings route exists for header menu.
   $route_exists = FALSE;
 
@@ -2712,6 +2800,23 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
 
   if (str_starts_with($form_id, 'commerce_checkout_flow_')) {
     $form['#attached']['library'][] = 'myeventlane_theme/mel_checkout';
+  }
+
+  // Checkout microcopy only: keep Commerce actions and handlers intact.
+  if (str_starts_with($form_id, 'commerce_checkout_flow_') && isset($form['actions']) && is_array($form['actions'])) {
+    foreach (Element::children($form['actions']) as $key) {
+      if (($form['actions'][$key]['#type'] ?? '') !== 'submit') {
+        continue;
+      }
+
+      $label = isset($form['actions'][$key]['#value']) ? (string) $form['actions'][$key]['#value'] : '';
+      if ($key === 'next' || $label === 'Continue to payment') {
+        $form['actions'][$key]['#value'] = t('Complete booking');
+      }
+      elseif ($key === 'submit' || $label === 'Submit') {
+        $form['actions'][$key]['#value'] = t('Secure your spot');
+      }
+    }
   }
 
   // Checkout: sidebar panes skip commerce_checkout_pane theme; add shell class

@@ -1,25 +1,25 @@
 {#
 /**
  * @file
- * Event Studio — left sidebar task navigation (anchors + mel-event-studio.js scroll-spy).
+ * Event Studio — left sidebar section navigation (anchors + mel-event-studio.js scroll-spy).
  *
- * Keeps #mel-wizard-nav and a.mel-nav-link for initMelWizard() / setWizardNavActive().
+ * Exactly one a.mel-nav-link per MEL_STEPS entry (same order as mel-event-studio.js).
  */
 #}
-<nav class="mel-es-nav mel-sidebar-nav mel-event-studio-nav mel-studio-nav mel-wizard-nav" id="mel-wizard-nav" aria-label="{{ 'Event tasks'|t }}">
-  <p class="mel-event-studio-nav__label">{{ 'Tasks'|t }}</p>
+<nav class="mel-es-nav mel-sidebar-nav mel-event-studio-nav mel-studio-nav mel-wizard-nav" id="mel-wizard-nav" aria-label="{{ 'Event steps'|t }}">
+  <p class="mel-event-studio-nav__label">{{ 'Steps'|t }}</p>
   <ul class="mel-sidebar-nav__list">
     <li>
-      <a href="#mel-step-identity" class="mel-nav-item mel-nav-link mel-event-studio-nav__item is-active active" data-step="identity" role="tab" aria-selected="true">{{ 'Event identity'|t }}</a>
+      <a href="#mel-step-identity" class="mel-nav-item mel-nav-link mel-event-studio-nav__item is-active active" data-step="identity" role="tab" aria-selected="true">{{ 'Basics & date'|t }}</a>
     </li>
     <li>
-      <a href="#mel-step-tickets" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="tickets" role="tab" aria-selected="false">{{ 'How people join'|t }}</a>
+      <a href="#mel-step-tickets" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="tickets" role="tab" aria-selected="false">{{ 'Tickets or RSVP'|t }}</a>
     </li>
     <li>
-      <a href="#mel-step-standout" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="standout" role="tab" aria-selected="false">{{ 'Stand out'|t }}</a>
+      <a href="#mel-step-standout" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="standout" role="tab" aria-selected="false">{{ 'Details'|t }}</a>
     </li>
     <li>
-      <a href="#mel-step-attendee" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="attendee" role="tab" aria-selected="false">{{ 'Attendee questions'|t }}</a>
+      <a href="#mel-step-attendee" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="attendee" role="tab" aria-selected="false">{{ 'Guest questions'|t }}</a>
     </li>
     <li>
       <a href="#mel-step-preview" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="preview" role="tab" aria-selected="false">{{ 'Preview'|t }}</a>
@@ -28,4 +28,9 @@
       <a href="#mel-step-publish" class="mel-nav-item mel-nav-link mel-event-studio-nav__item mel-event-studio-nav__item--publish" data-step="publish" role="tab" aria-selected="false">{{ 'Publish'|t }}</a>
     </li>
   </ul>
+  {% if mel_advanced_ticket_manager_url %}
+    <p class="mel-event-studio-nav__advanced">
+      <a href="{{ mel_advanced_ticket_manager_url }}" class="mel-nav-item mel-event-studio-nav__item mel-event-studio-nav__item--advanced">{{ 'Advanced ticket manager'|t }}</a>
+    </p>
+  {% endif %}
 </nav>

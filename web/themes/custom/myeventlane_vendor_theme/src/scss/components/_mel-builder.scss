@@ -549,6 +549,21 @@ $mel-builder-muted: $text-secondary;
   box-sizing: border-box;
 }
 
+.mel-event-studio .mel-tickets-paid-guidance {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: $mel-radius-sm;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mel-event-studio .mel-tickets-paid-guidance__text {
+  margin: 0;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $mel-builder-muted;
+}
+
 .mel-event-studio .mel-ticket-studio-autosave-hint {
   position: sticky;
   bottom: 0;

@@ -4,8 +4,15 @@ status: true
 dependencies:
   config:
     - commerce_product.commerce_product_variation_type.ticket_variation
+    - field.field.commerce_product_variation.ticket_variation.field_best_value
+    - field.field.commerce_product_variation.ticket_variation.field_capacity
+    - field.field.commerce_product_variation.ticket_variation.field_collect_questions
     - field.field.commerce_product_variation.ticket_variation.field_event
+    - field.field.commerce_product_variation.ticket_variation.field_limit_per_order
+    - field.field.commerce_product_variation.ticket_variation.field_show_remaining
+    - field.field.commerce_product_variation.ticket_variation.field_ticket_end
     - field.field.commerce_product_variation.ticket_variation.field_ticket_description
+    - field.field.commerce_product_variation.ticket_variation.field_ticket_start
   module:
     - commerce_price
 id: commerce_product_variation.ticket_variation.default
@@ -47,7 +54,14 @@ content:
     weight: 0
     region: content
 hidden:
+  field_best_value: true
+  field_capacity: true
+  field_collect_questions: true
+  field_limit_per_order: true
+  field_show_remaining: true
+  field_ticket_end: true
   field_ticket_description: true
+  field_ticket_start: true
   langcode: true
   list_price: true
   search_api_excerpt: true

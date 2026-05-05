@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkin\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\node\NodeInterface;
 use Drupal\myeventlane_checkin\Service\CheckInStorageInterface;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Controller for check-in pages.
@@ -21,6 +23,7 @@ final class CheckInController extends ControllerBase {
    */
   public function __construct(
     private readonly CheckInStorageInterface $checkInStorage,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {}
 
   /**
@@ -29,6 +32,7 @@ final class CheckInController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_checkin.storage'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -36,10 +40,7 @@ final class CheckInController extends ControllerBase {
    * Main check-in page.
    */
   public function page(NodeInterface $node): array {
-    // Check access.
-    if (!$this->checkEventAccess($node)) {
-      return ['#markup' => $this->t('Access denied.')];
-    }
+    $this->assertEventAccess($node);
 
     $attendees = $this->checkInStorage->getAttendees($node);
     $checkedInCount = count(array_filter($attendees, fn($a) => $a['checked_in']));
@@ -66,9 +67,7 @@ final class CheckInController extends ControllerBase {
    * QR scan page.
    */
   public function scan(NodeInterface $node): array {
-    if (!$this->checkEventAccess($node)) {
-      return ['#markup' => $this->t('Access denied.')];
-    }
+    $this->assertEventAccess($node);
 
     $build = [
       '#theme' => 'myeventlane_checkin_scan',
@@ -85,9 +84,7 @@ final class CheckInController extends ControllerBase {
    * Attendee list page.
    */
   public function list(NodeInterface $node): array {
-    if (!$this->checkEventAccess($node)) {
-      return ['#markup' => $this->t('Access denied.')];
-    }
+    $this->assertEventAccess($node);
 
     $attendees = $this->checkInStorage->getAttendees($node);
 
@@ -106,13 +103,9 @@ final class CheckInController extends ControllerBase {
   /**
    * Toggle check-in status.
    */
-  public function toggle(NodeInterface $node, int $attendee_id): JsonResponse {
-    if (!$this->checkEventAccess($node)) {
-      return new JsonResponse(['error' => 'Access denied'], 403);
-    }
+  public function toggle(NodeInterface $node, int $attendee_id, Request $request): JsonResponse {
+    $this->assertEventAccess($node);
 
-    // Determine attendee type from ID or request.
-    $request = \Drupal::request();
     $type = $request->query->get('type', 'rsvp');
 
     $newStatus = $this->checkInStorage->toggleCheckIn(
@@ -131,9 +124,7 @@ final class CheckInController extends ControllerBase {
    * Search attendees.
    */
   public function search(NodeInterface $node, Request $request): JsonResponse {
-    if (!$this->checkEventAccess($node)) {
-      return new JsonResponse(['error' => 'Access denied'], 403);
-    }
+    $this->assertEventAccess($node);
 
     $query = $request->query->get('q', '');
     $results = $this->checkInStorage->searchAttendees($node, $query);
@@ -144,17 +135,22 @@ final class CheckInController extends ControllerBase {
   }
 
   /**
-   * Checks if user has access to event check-in.
+   * Ensures the user may check in for this event (owner, vendor team, or admin).
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    */
-  private function checkEventAccess(NodeInterface $node): bool {
-    // Owner always has access.
-    if ((int) $node->getOwnerId() === (int) $this->currentUser()->id()) {
-      return TRUE;
+  private function assertEventAccess(NodeInterface $node): void {
+    $account = $this->currentUser();
+    if ($account->hasPermission('administer nodes')) {
+      return;
     }
-
-    // @todo Check vendor staff roles.
-    // For now, only owner.
-    return FALSE;
+    if ((int) $node->getOwnerId() === (int) $account->id()) {
+      return;
+    }
+    if ($this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      return;
+    }
+    throw new AccessDeniedHttpException();
   }
 
 }

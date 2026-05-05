@@ -117,6 +117,7 @@ final class EventStudioPreprocess {
       'view' => NULL,
       'booking' => NULL,
       'scan' => NULL,
+      'tickets' => NULL,
     ];
 
     if ($node instanceof NodeInterface && !$node->isNew()) {
@@ -141,6 +142,11 @@ final class EventStudioPreprocess {
       $scan = Url::fromRoute('myeventlane_tickets.ticket_scan', ['event' => $nid]);
       if ($scan->access()) {
         $actions['scan'] = $scan->toString();
+      }
+
+      $tickets = Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $nid]);
+      if ($tickets->access()) {
+        $actions['tickets'] = $tickets->toString();
       }
     }
 

@@ -67,6 +67,36 @@ function _myeventlane_vendor_theme_vendor_brand_home_url(): string {
 }
 
 /**
+ * Vendor-console internal footer links with route access applied in PHP.
+ *
+ * @return array<string, string|null>
+ *   Keys: dashboard, events, analytics, payouts, create_event, settings, support.
+ */
+function _myeventlane_vendor_theme_vendor_console_footer_urls(): array {
+  $routes = [
+    'dashboard' => 'myeventlane_vendor.console.dashboard',
+    'events' => 'myeventlane_vendor.console.events',
+    'analytics' => 'myeventlane_analytics.dashboard',
+    'payouts' => 'myeventlane_vendor.console.payouts',
+    'create_event' => 'myeventlane_event_studio.create',
+    'settings' => 'myeventlane_vendor.console.settings',
+    'support' => 'myeventlane_escalations_portal.vendor_list',
+  ];
+  $out = [];
+  foreach ($routes as $key => $route_name) {
+    $out[$key] = NULL;
+    if (!_myeventlane_vendor_theme_named_route_accessible($route_name, [])) {
+      continue;
+    }
+    $url = _myeventlane_vendor_theme_safe_route_url($route_name);
+    if ($url !== NULL) {
+      $out[$key] = $url;
+    }
+  }
+  return $out;
+}
+
+/**
  * Implements hook_page_attachments_alter().
  *
  * Themes do not implement hook_page_attachments(); this alter strips accidental
@@ -192,6 +222,9 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
       'is_vendor' => FALSE,
       'is_admin' => FALSE,
     ];
+  }
+  if (!empty($variables['footer_context']['is_vendor'])) {
+    $variables['footer_context']['vendor_console_urls'] = _myeventlane_vendor_theme_vendor_console_footer_urls();
   }
 
   // Event node add form: staff/support only. Vendors use Event Studio (myeventlane_event_studio.create).
@@ -366,18 +399,49 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
       $variables['page']['mel_vendor_route_tabs'] = [
         [
           'label' => t('Profile'),
-          'url' => \Drupal\Core\Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
+          'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
           'active' => TRUE,
         ],
         [
           'label' => t('Messaging Brand'),
-          'url' => \Drupal\Core\Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
+          'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
           'active' => FALSE,
         ],
       ];
       $variables['page']['shell_page_title'] = t('Settings');
     }
     catch (\Throwable) {
+    }
+  }
+  elseif ($route_name === 'myeventlane_vendor.console.messaging_brand') {
+    try {
+      $variables['page']['mel_vendor_route_tabs'] = [
+        [
+          'label' => t('Profile'),
+          'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
+          'active' => FALSE,
+        ],
+        [
+          'label' => t('Messaging Brand'),
+          'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
+          'active' => TRUE,
+        ],
+      ];
+      $variables['page']['shell_page_title'] = t('Settings');
+    }
+    catch (\Throwable) {
+    }
+  }
+
+  $variables['page']['shell_primary_action'] = NULL;
+  if ($current_user->isAuthenticated()
+    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_event_studio.create', [])) {
+    $create_url = _myeventlane_vendor_theme_safe_route_url('myeventlane_event_studio.create');
+    if ($create_url !== NULL) {
+      $variables['page']['shell_primary_action'] = [
+        'label' => t('Create Event'),
+        'url' => $create_url,
+      ];
     }
   }
 
@@ -410,8 +474,30 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
 
   // Build user menu for header.
   if ($current_user->isAuthenticated()) {
+    // Vendor console links (mirror account menu YAML; visibility = route access).
+    $vendor_console_links = [
+      ['title' => t('Dashboard'), 'route' => 'myeventlane_vendor.console.dashboard'],
+      ['title' => t('My events'), 'route' => 'myeventlane_vendor.console.events'],
+      ['title' => t('Create event'), 'route' => 'myeventlane_event_studio.create'],
+      ['title' => t('Settings'), 'route' => 'myeventlane_vendor.console.settings'],
+    ];
     $user_menu_items = [];
-    
+    foreach ($vendor_console_links as $link_def) {
+      try {
+        $vurl = \Drupal\Core\Url::fromRoute($link_def['route']);
+        if ($vurl->access()) {
+          $user_menu_items[] = [
+            '#type' => 'link',
+            '#title' => $link_def['title'],
+            '#url' => $vurl,
+            '#attributes' => ['class' => ['user-menu__item', 'user-menu__item--vendor-console']],
+          ];
+        }
+      }
+      catch (\Throwable) {
+      }
+    }
+
     // User profile link.
     $user_menu_items[] = [
       '#type' => 'link',
@@ -468,7 +554,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     $variables['page']['user_menu'] = [];
   }
 
-  // Build quick actions for header (Admin Portal button for admins, Create Event always).
+  // Build quick actions for header (Admin Portal for admins; Create Event when route allows).
   $variables['page']['quick_actions'] = [];
   
   // Admin Portal button (for administrators).
@@ -483,16 +569,21 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     ];
   }
   
-  // Create Event button (always shown for vendors/admins).
-  if ($current_user->isAuthenticated()) {
-    $variables['page']['quick_actions'][] = [
-      '#type' => 'link',
-      '#title' => t('+ Create Event'),
-      '#url' => \Drupal\Core\Url::fromRoute('myeventlane_event_studio.create'),
-      '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn--primary', 'mel-header__action-btn'],
-      ],
-    ];
+  // Create Event only when Event Studio create is allowed (same as shell_primary_action).
+  if ($current_user->isAuthenticated()
+    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_event_studio.create', [])) {
+    try {
+      $variables['page']['quick_actions'][] = [
+        '#type' => 'link',
+        '#title' => t('+ Create Event'),
+        '#url' => \Drupal\Core\Url::fromRoute('myeventlane_event_studio.create'),
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--primary', 'mel-header__action-btn'],
+        ],
+      ];
+    }
+    catch (\Throwable) {
+    }
   }
 
   // --- Vendor Alert Strip (STAGE A: data model, stub logic) ---
@@ -1155,6 +1246,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'header_stats' => NULL,
         'header_meta_line' => NULL,
         'workspace_event_boost' => NULL,
+        'vendor_event_workspace_model' => NULL,
       ],
       'template' => 'mel-event/mel-event-workspace',
     ],
@@ -1231,6 +1323,10 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'ticket_tier_rollup' => [],
         'boost_page_url' => NULL,
         'public_event_url' => NULL,
+        'workspace_back_url' => NULL,
+        'edit_event_url' => NULL,
+        'export_pdf_url' => NULL,
+        'export_excel_url' => NULL,
       ],
       'template' => 'event/analytics',
     ],
@@ -1806,17 +1902,41 @@ function _myeventlane_vendor_theme_get_initials(string $name): string {
 }
 
 /**
- * Helper: Determine active section from route name.
+ * Helper: Determine active sidebar section (PHP route + path prefixes).
  */
 function _myeventlane_vendor_theme_get_active_section(?string $route_name): string {
+  $path = \Drupal::request()?->getPathInfo() ?? '';
+
+  if ($route_name === 'myeventlane_vendor.console.messaging_brand') {
+    return 'profile';
+  }
+  if (str_starts_with($path, '/vendor/settings')) {
+    return 'profile';
+  }
+  if (str_starts_with($path, '/vendor/analytics')) {
+    return 'analytics';
+  }
+  if ($path === '/vendor/attendees') {
+    return 'attendees';
+  }
+  if (str_starts_with($path, '/vendor/studio')) {
+    return 'events';
+  }
+  if (str_starts_with($path, '/vendor/events')) {
+    return 'events';
+  }
+  if (str_contains($path, '/vendor/dashboard/messaging/brand')) {
+    return 'profile';
+  }
+  if ($path === '/vendor/dashboard' || str_starts_with($path, '/vendor/dashboard/')) {
+    return 'dashboard';
+  }
+
   if (!$route_name) {
     return 'dashboard';
   }
 
-  // Map route names to sidebar active sections.
-  // Routes use myeventlane_vendor.console.* pattern.
   $mapping = [
-    // Console routes.
     'myeventlane_vendor.console.dashboard' => 'dashboard',
     'myeventlane_vendor.console.events' => 'events',
     'myeventlane_vendor.console.events_add' => 'events',
@@ -1824,6 +1944,11 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.event_overview' => 'events',
     'myeventlane_vendor.console.event_tickets' => 'events',
     'myeventlane_vendor.console.event_publish' => 'events',
+    'myeventlane_vendor.console.event_promotion' => 'events',
+    'myeventlane_vendor_comms.branding' => 'events',
+    'myeventlane_vendor.console.event_editor' => 'events',
+    'myeventlane_vendor.console.event_analytics' => 'events',
+    'myeventlane_vendor.console.event_settings' => 'events',
     'myeventlane_vendor.console.event_orders' => 'orders',
     'myeventlane_vendor.console.event_order_view' => 'orders',
     'myeventlane_refunds.vendor_refund_requests' => 'refund_requests',
@@ -1835,14 +1960,26 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.payouts' => 'payouts',
     'myeventlane_vendor.console.boost' => 'growth',
     'myeventlane_vendor.console.audience' => 'audience',
-    'myeventlane_vendor.console.settings' => 'settings',
-    'myeventlane_vendor.console.messaging_brand' => 'settings',
+    'myeventlane_vendor.console.settings' => 'profile',
+    'myeventlane_pro.branding' => 'profile',
+    'myeventlane_venue.vendor_venues' => 'profile',
+    'myeventlane_venue.vendor_venue_add' => 'profile',
+    'myeventlane_venue.vendor_venue_edit' => 'profile',
+    'myeventlane_venue.vendor_venue_delete' => 'profile',
+    'myeventlane_analytics.dashboard' => 'analytics',
+    'myeventlane_analytics.event' => 'analytics',
+    'myeventlane_analytics.export_pdf' => 'analytics',
+    'myeventlane_analytics.export_excel' => 'analytics',
     'myeventlane_notifications.inbox' => 'notifications',
     'myeventlane_notifications.preferences' => 'notifications',
     'myeventlane_help_centre.vendor_help' => 'help',
     'myeventlane_help_centre.home' => 'help',
     'myeventlane_event_studio.create' => 'events',
     'myeventlane_event_studio.edit' => 'events',
+    'myeventlane_vendor.console.studio' => 'events',
+    'myeventlane_vendor.console.studio.event_data' => 'events',
+    'myeventlane_vendor.studio_event_schema' => 'events',
+    'myeventlane_vendor.studio_event_save' => 'events',
     'myeventlane_event.wizard.basics' => 'events',
     'myeventlane_event.wizard.when_where' => 'events',
     'myeventlane_event.wizard.tickets' => 'events',
@@ -1850,9 +1987,7 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_event.wizard.review' => 'events',
     'myeventlane_event.wizard.publish' => 'events',
     'myeventlane_event.wizard.success' => 'events',
-    // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
-    'myeventlane_vendor.console.dashboard' => 'dashboard',
   ];
 
   return $mapping[$route_name] ?? 'dashboard';
@@ -1887,8 +2022,8 @@ function _myeventlane_vendor_theme_build_onboarding_shell_nav_items(string $acti
       'route' => 'myeventlane_vendor.console.payouts',
     ],
     [
-      'key' => 'settings',
-      'label' => t('Settings'),
+      'key' => 'profile',
+      'label' => t('Profile'),
       'icon' => 'settings',
       'route' => 'myeventlane_vendor.console.settings',
     ],
@@ -1915,21 +2050,43 @@ function _myeventlane_vendor_theme_build_onboarding_shell_nav_items(string $acti
     }
     $item['url'] = $url;
     $item['is_disabled'] = FALSE;
-    $item['is_active'] = ($active_section === $item['key']);
-    $built[] = $item;
+    $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($item, $active_section);
   }
   return $built;
 }
 
 /**
+ * Adds route_name, is_active, and is_accessible to a shell nav item (Twig-safe).
+ *
+ * @param array<string, mixed> $item
+ *   Nav item with optional keys: route, url, is_disabled, key.
+ *
+ * @return array<string, mixed>
+ *   The decorated item.
+ */
+function _myeventlane_vendor_theme_decorate_shell_nav_item(array $item, string $active_section): array {
+  $route = $item['route'] ?? NULL;
+  $item['route_name'] = is_string($route) ? $route : NULL;
+  $url = $item['url'] ?? NULL;
+  $disabled = !empty($item['is_disabled']);
+  $item['is_accessible'] = is_string($url) && $url !== '' && !$disabled;
+  $item['is_active'] = (($item['key'] ?? '') === $active_section);
+  return $item;
+}
+
+/**
  * Full vendor console shell nav; omits items the account cannot access.
+ *
+ * Primary order: Dashboard, Events, Analytics (Pro-gated), Attendees (access),
+ * Profile; then secondary links (notifications, orders stub, refunds, …).
  *
  * @return array<int, array<string, mixed>>
  *   Sidebar items for vendor shell.
  */
 function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $active_section, ?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
   $wizard_children = _myeventlane_vendor_theme_build_event_wizard_submenu($route_name, $route_match);
-  $items = [
+
+  $primary = [
     [
       'key' => 'dashboard',
       'label' => t('Dashboard'),
@@ -1937,17 +2094,38 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
       'route' => 'myeventlane_vendor.console.dashboard',
     ],
     [
-      'key' => 'notifications',
-      'label' => t('Notifications'),
-      'icon' => 'notifications',
-      'route' => 'myeventlane_notifications.inbox',
-    ],
-    [
       'key' => 'events',
       'label' => t('Events'),
       'icon' => 'events',
       'route' => 'myeventlane_vendor.console.events',
       'children' => $wizard_children,
+    ],
+    [
+      'key' => 'analytics',
+      'label' => t('Analytics'),
+      'icon' => 'analytics',
+      'route' => 'myeventlane_analytics.dashboard',
+    ],
+    [
+      'key' => 'attendees',
+      'label' => t('Attendees'),
+      'icon' => 'attendees',
+      'route' => 'myeventlane_checkout_flow.vendor_attendees',
+    ],
+    [
+      'key' => 'profile',
+      'label' => t('Profile'),
+      'icon' => 'settings',
+      'route' => 'myeventlane_vendor.console.settings',
+    ],
+  ];
+
+  $secondary = [
+    [
+      'key' => 'notifications',
+      'label' => t('Notifications'),
+      'icon' => 'notifications',
+      'route' => 'myeventlane_notifications.inbox',
     ],
     [
       'key' => 'orders',
@@ -1960,12 +2138,6 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
       'label' => t('Refund requests'),
       'icon' => 'refunds',
       'route' => NULL,
-    ],
-    [
-      'key' => 'attendees',
-      'label' => t('Attendees'),
-      'icon' => 'attendees',
-      'route' => 'myeventlane_checkout_flow.vendor_attendees',
     ],
     [
       'key' => 'audience',
@@ -1986,12 +2158,6 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
       'route' => 'myeventlane_vendor.console.boost',
     ],
     [
-      'key' => 'settings',
-      'label' => t('Settings'),
-      'icon' => 'settings',
-      'route' => 'myeventlane_vendor.console.settings',
-    ],
-    [
       'key' => 'help',
       'label' => t('Help'),
       'icon' => 'help',
@@ -1999,6 +2165,8 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
       'path_fallback' => '/help',
     ],
   ];
+
+  $items = array_merge($primary, $secondary);
 
   $built = [];
   foreach ($items as $item) {
@@ -2021,17 +2189,16 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
         continue;
       }
       $item['url'] = $url;
+      $item['route'] = 'myeventlane_refunds.vendor_refund_requests';
       $item['is_disabled'] = FALSE;
-      $item['is_active'] = ($active_section === $item['key']);
-      $built[] = $item;
+      $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($item, $active_section);
       continue;
     }
 
     if ($item['key'] === 'orders') {
       $item['url'] = NULL;
       $item['is_disabled'] = TRUE;
-      $item['is_active'] = ($active_section === $item['key']);
-      $built[] = $item;
+      $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($item, $active_section);
       continue;
     }
 
@@ -2050,8 +2217,7 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
     }
     $item['url'] = $url;
     $item['is_disabled'] = $is_disabled;
-    $item['is_active'] = ($active_section === $item['key']);
-    $built[] = $item;
+    $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($item, $active_section);
   }
 
   return $built;

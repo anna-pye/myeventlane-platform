@@ -118,16 +118,14 @@ vendor_help_panel:
     - core/drupalSettings
     - core/once
 
-ticket_cards:
-  version: 1.10
-  js:
-    js/ticket-cards.js: {}
+event_ticket_manager:
+  version: 1.x
   css:
-    theme:
-      css/ticket-cards.css: {}
+    component:
+      css/event-ticket-manager.css: {}
+  js:
+    js/event-ticket-manager.js: {}
   dependencies:
     - core/drupal
-    - core/drupalSettings
-    - core/drupal.ajax
     - core/once
-    - paragraphs/drupal.paragraphs.widget
+

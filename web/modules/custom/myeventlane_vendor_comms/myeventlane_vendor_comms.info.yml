@@ -9,4 +9,5 @@ dependencies:
   - commerce:commerce_order
   - myeventlane_checkout_flow:myeventlane_checkout_flow
   - myeventlane_messaging:myeventlane_messaging
+  - myeventlane_vendor:myeventlane_vendor
 

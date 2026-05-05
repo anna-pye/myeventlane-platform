@@ -14,25 +14,34 @@
  * - total_tickets: Total tickets sold.
  */
 #}
-<div class="mel-analytics-event">
+<div class="mel-analytics-event mel-vendor-analytics-v2">
 
-  <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start;">
-    <div>
-      <a href="{{ path('myeventlane_analytics.dashboard') }}" style="color: #007bff; text-decoration: none;">← {{ 'Back to Analytics Dashboard'|t }}</a>
-      <h1 class="mel-analytics-title" style="margin-top: 1rem;">{{ 'Analytics: @event'|t({'@event': event.label}) }}</h1>
+  <header class="mel-vendor-analytics-v2__legacy-toolbar mel-analytics-event__toolbar">
+    <div class="mel-analytics-event__toolbar-main">
+      <nav class="mel-analytics-event__nav" aria-label="{{ 'Secondary navigation'|t }}">
+        <ul class="mel-analytics-event__nav-list">
+          {% if workspace_back_url %}
+            <li><a href="{{ workspace_back_url }}" class="mel-analytics-event__nav-link">{{ '← Back to event workspace'|t }}</a></li>
+          {% endif %}
+          {% if vendor_analytics_home_url %}
+            <li><a href="{{ vendor_analytics_home_url }}" class="mel-analytics-event__nav-link">{{ 'Vendor analytics home'|t }}</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      <h1 class="mel-analytics-title mel-vendor-analytics-v2__title">{{ 'Advanced analytics: @event'|t({'@event': event.label}) }}</h1>
+      <p class="mel-vendor-analytics-v2__subtitle">{{ 'Timeline, funnel, and exports. Primary workspace analytics live under Event workspace → Analytics.'|t }}</p>
     </div>
-    <div style="display: flex; gap: 0.75rem;">
-      <a href="{{ path('myeventlane_analytics.export_pdf', {'node': event.id()}) }}" 
-         class="mel-btn mel-btn-secondary" 
-         target="_blank">
-        {{ 'Export PDF'|t }}
-      </a>
-      <a href="{{ path('myeventlane_analytics.export_excel', {'node': event.id()}) }}" 
-         class="mel-btn mel-btn-secondary">
-        {{ 'Export Excel'|t }}
-      </a>
-    </div>
-  </div>
+    {% if export_pdf_url or export_excel_url %}
+      <div class="mel-analytics-event__exports">
+        {% if export_pdf_url %}
+          <a href="{{ export_pdf_url }}" class="mel-btn mel-btn-secondary" target="_blank" rel="noopener noreferrer">{{ 'Export PDF'|t }}</a>
+        {% endif %}
+        {% if export_excel_url %}
+          <a href="{{ export_excel_url }}" class="mel-btn mel-btn-secondary">{{ 'Export Excel'|t }}</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </header>
 
   {# Summary Cards #}
   <div class="mel-analytics-summary" style="

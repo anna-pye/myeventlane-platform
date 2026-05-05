@@ -294,4 +294,6 @@ function myeventlane_event_studio_preprocess_mel_event_studio(&$variables): void
   /** @var \Drupal\myeventlane_event_studio\EventStudioPreprocess $preprocess */
   $preprocess = \Drupal::service('myeventlane_event_studio.preprocess');
   $preprocess->preprocess($variables);
+
+  $variables['mel_advanced_ticket_manager_url'] = $element['#mel_advanced_ticket_manager_url'] ?? NULL;
 }

@@ -9,13 +9,19 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Clean Form API implementation for vendor messaging branding.
+ * Vendor messaging branding — edits canonical vendor entity fields only.
+ *
+ * Duplicates no logic from {@see \Drupal\myeventlane_vendor_settings\Form\VendorSettingsForm};
+ * long-form profile copy belongs on /vendor/settings (single source of truth).
  */
 final class VendorBrandingForm extends FormBase {
 
@@ -29,6 +35,8 @@ final class VendorBrandingForm extends FormBase {
     private readonly AccountProxyInterface $currentUser,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
     private readonly LoggerInterface $logger,
+    private readonly CurrentVendorResolverInterface $vendorResolver,
+    private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
   ) {}
 
   /**
@@ -40,6 +48,8 @@ final class VendorBrandingForm extends FormBase {
       $container->get('current_user'),
       $container->get('cache_tags.invalidator'),
       $container->get('logger.channel.myeventlane_messaging'),
+      $container->get('myeventlane_vendor.current_vendor_resolver'),
+      $container->get('myeventlane_vendor.user_vendor_membership_query'),
     );
   }
 
@@ -55,16 +65,13 @@ final class VendorBrandingForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?Vendor $vendor = NULL, ?string $action = NULL): array {
     $vendor = $vendor ?? $this->loadCurrentVendor();
-    if ($vendor instanceof Vendor) {
-      \Drupal::logger('mel_debug')->error('FORM BUILD ENTITY TYPE: @type ID: @id', [
-        '@type' => $vendor->getEntityTypeId(),
-        '@id' => $vendor->id(),
-      ]);
-    }
 
     $form['#tree'] = TRUE;
     $form['#action'] = $action ?: $this->getRequest()->getRequestUri();
+    $form['#attributes']['class'][] = 'mel-vendor-brand-v2';
+    $form['#attributes']['class'][] = 'mel-no-ajax';
     $form['#attached']['library'][] = 'myeventlane_messaging/vendor_branding';
+    $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
 
     if (!$vendor instanceof Vendor || !$this->currentUserCanEditVendor($vendor)) {
       $this->logger->error('Vendor branding form could not be built for user @uid.', [
@@ -82,7 +89,7 @@ final class VendorBrandingForm extends FormBase {
     }
 
     $form['vendor_id'] = [
-      '#type' => 'value',
+      '#type' => 'hidden',
       '#value' => (int) $vendor->id(),
     ];
 
@@ -93,20 +100,28 @@ final class VendorBrandingForm extends FormBase {
 
     $form['branding'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-branding']],
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-branding', 'mel-vendor-brand-v2__assets']],
     ];
 
     $form['branding']['heading'] = [
       '#type' => 'html_tag',
       '#tag' => 'h2',
       '#value' => $this->t('Messaging brand'),
+      '#attributes' => ['class' => ['mel-vendor-brand-v2__title']],
     ];
 
     $form['branding']['intro'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#attributes' => ['class' => ['mel-vendor-branding__intro']],
-      '#value' => $this->t('Set the logo, banner, colour, and description customers see in your branded messaging.'),
+      '#attributes' => ['class' => ['mel-vendor-branding__intro', 'mel-vendor-brand-v2__section-lede']],
+      '#value' => $this->t('Logo, banner, and accent colour are shared with your organiser profile and email previews. Edit your full public description under Profile settings.'),
+    ];
+
+    $form['branding']['profile_link'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Open organiser profile settings'),
+      '#url' => Url::fromRoute('myeventlane_vendor.console.settings'),
+      '#attributes' => ['class' => ['mel-vendor-brand-v2__header-link']],
     ];
 
     if ($form['logo_field_name']['#value'] !== '') {
@@ -143,27 +158,19 @@ final class VendorBrandingForm extends FormBase {
         '#title' => $this->t('Primary Brand Colour'),
         '#default_value' => $this->getPrimaryColor($vendor),
         '#description' => $this->t('Used for branded highlights in customer messaging.'),
-      ];
-    }
-
-    if ($vendor->hasField('field_description')) {
-      $form['branding']['description'] = [
-        '#type' => 'textarea',
-        '#title' => $this->t('Brand Description'),
-        '#default_value' => $this->getTextLongValue($vendor, 'field_description'),
-        '#rows' => 5,
-        '#description' => $this->t('Short description shown with your branded vendor presence.'),
+        '#attributes' => ['class' => ['mel-vendor-brand-v2__colour']],
       ];
     }
 
     $form['actions'] = [
       '#type' => 'actions',
+      '#attributes' => ['class' => ['mel-vendor-brand-v2__actions']],
     ];
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Save Branding'),
-      '#attributes' => ['class' => ['mel-button', 'mel-button--primary']],
+      '#value' => $this->t('Save branding'),
+      '#attributes' => ['class' => ['mel-button', 'mel-button--primary', 'mel-btn', 'mel-btn--primary']],
     ];
 
     return $form;
@@ -173,10 +180,6 @@ final class VendorBrandingForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->error('FORM VALIDATE VALUES: <pre>@data</pre>', [
-      '@data' => print_r($form_state->getValues(), TRUE),
-    ]);
-
     $vendor = $this->loadSubmittedVendor($form_state);
     if (!$vendor instanceof Vendor || !$this->currentUserCanEditVendor($vendor)) {
       $form_state->setErrorByName('vendor_id', $this->t('Vendor not found.'));
@@ -185,6 +188,19 @@ final class VendorBrandingForm extends FormBase {
         '@vendor_id' => (string) $form_state->getValue('vendor_id'),
       ]);
       return;
+    }
+
+    if (!$this->currentUser->hasPermission('administer myeventlane vendor')) {
+      $submitted_vid = (int) ($form_state->getValue('vendor_id') ?? 0);
+      $allowed_vids = $this->userVendorMembershipQuery->getVendorIdsForUser((int) $this->currentUser->id());
+      if (!$submitted_vid || !in_array($submitted_vid, $allowed_vids, TRUE)) {
+        $this->logger->warning('Vendor branding: rejected vendor_id uid=@uid vid=@vid', [
+          '@uid' => (string) $this->currentUser->id(),
+          '@vid' => (string) $submitted_vid,
+        ]);
+        $form_state->setErrorByName('vendor_id', $this->t('We could not verify your organiser account for this save. Please reload the page and try again.'));
+        return;
+      }
     }
 
     $values = $form_state->getValue('branding');
@@ -206,18 +222,7 @@ final class VendorBrandingForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->error('FORM VALUES: <pre>@data</pre>', [
-      '@data' => print_r($form_state->getValues(), TRUE),
-    ]);
-
     $vendor = $this->loadSubmittedVendor($form_state);
-    if ($vendor instanceof Vendor) {
-      \Drupal::logger('mel_debug')->error('ENTITY TYPE: @type ID: @id', [
-        '@type' => $vendor->getEntityTypeId(),
-        '@id' => $vendor->id(),
-      ]);
-    }
-
     $values = $form_state->getValue('branding');
 
     if (!$vendor instanceof Vendor || !$this->currentUserCanEditVendor($vendor) || !is_array($values)) {
@@ -234,18 +239,8 @@ final class VendorBrandingForm extends FormBase {
       $this->saveManagedFileField($vendor, $logo_field_name, $values['logo'] ?? [], 'logo');
       $this->saveManagedFileField($vendor, 'field_banner_image', $values['banner'] ?? [], 'banner');
       $this->savePrimaryColor($vendor, $values['primary_color'] ?? self::DEFAULT_PRIMARY_COLOR);
-      $this->saveTextLongField($vendor, 'field_description', $values['description'] ?? '');
 
-      try {
-        $vendor->save();
-        \Drupal::logger('mel_debug')->error('SAVE SUCCESS');
-      }
-      catch (\Exception $e) {
-        \Drupal::logger('mel_debug')->error('SAVE FAILED: @msg', [
-          '@msg' => $e->getMessage(),
-        ]);
-        throw $e;
-      }
+      $vendor->save();
 
       $this->cacheTagsInvalidator->invalidateTags([
         'myeventlane_vendor:' . $vendor->id(),
@@ -267,6 +262,11 @@ final class VendorBrandingForm extends FormBase {
    * Loads the current user's vendor entity.
    */
   private function loadCurrentVendor(): ?Vendor {
+    $resolved = $this->vendorResolver->resolveFromCurrentUser();
+    if ($resolved instanceof Vendor) {
+      return $resolved;
+    }
+
     $uid = (int) $this->currentUser->id();
     if ($uid <= 0) {
       return NULL;
@@ -391,13 +391,6 @@ final class VendorBrandingForm extends FormBase {
   }
 
   /**
-   * Gets the saved value from a text_long field.
-   */
-  private function getTextLongValue(Vendor $vendor, string $field_name): string {
-    return $this->getScalarFieldValue($vendor, $field_name);
-  }
-
-  /**
    * Saves a managed_file field value and marks the file permanent.
    *
    * @param array<mixed>|mixed $file_ids
@@ -447,8 +440,11 @@ final class VendorBrandingForm extends FormBase {
       $vendor->set('field_accent_colour', $color);
     }
 
-    if ($vendor->hasField('field_msg_accent_color') && in_array($color, $this->getMessagingAccentColorValues($vendor), TRUE)) {
-      $vendor->set('field_msg_accent_color', $color);
+    if ($vendor->hasField('field_msg_accent_color')) {
+      $allowed = $this->getMessagingAccentColorValues($vendor);
+      if ($allowed === [] || in_array($color, $allowed, TRUE)) {
+        $vendor->set('field_msg_accent_color', $color);
+      }
     }
   }
 
@@ -483,26 +479,6 @@ final class VendorBrandingForm extends FormBase {
     }
 
     return $values;
-  }
-
-  /**
-   * Saves a text_long field value with an explicit text format.
-   */
-  private function saveTextLongField(Vendor $vendor, string $field_name, mixed $value): void {
-    if (!$vendor->hasField($field_name)) {
-      return;
-    }
-
-    $text = is_scalar($value) ? trim((string) $value) : '';
-    if ($text === '') {
-      $vendor->set($field_name, NULL);
-      return;
-    }
-
-    $vendor->set($field_name, [
-      'value' => $text,
-      'format' => 'basic_html',
-    ]);
   }
 
 }

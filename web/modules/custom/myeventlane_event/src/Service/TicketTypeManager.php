@@ -8,8 +8,10 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -87,15 +89,48 @@ final class TicketTypeManager {
       }
     }
 
-    $this->removeOrphanedVariations($product, $activeVariationUuids);
+    $orphanOk = $this->removeOrphanedVariations($product, $activeVariationUuids);
+    if (!$orphanOk) {
+      $this->loggerFactory->get('myeventlane_event')->warning(
+        'Ticket sync for event @eid: one or more orphaned variations could not be verified unpublished after save.',
+        ['@eid' => (string) $event->id()],
+      );
+    }
+
     $this->syncProductTitle($product, $event);
-    $this->normalizeProductVariationIds($product);
+
+    $this->rebuildProductVariationReferences($event);
+
+    $productIdForNormalize = (int) $product->id();
+    $this->entityTypeManager->getStorage('commerce_product')->resetCache([$productIdForNormalize]);
+    $productFresh = $this->entityTypeManager->getStorage('commerce_product')->load($productIdForNormalize);
+    if ($productFresh instanceof ProductInterface) {
+      $this->normalizeProductVariationIds($productFresh);
+    }
+
     Cache::invalidateTags([
-      'commerce_product:' . (string) $product->id(),
+      'commerce_product:' . (string) $productIdForNormalize,
       'node:' . (string) $event->id(),
     ]);
 
-    return TRUE;
+    return $orphanOk;
+  }
+
+  /**
+   * Rebuilds commerce_product.variations from field_ticket_types tier mappings.
+   *
+   * Safe for CLI repair and post-sync reconciliation: never deletes variation
+   * entities; preserves IDs referenced by Commerce order items on this product.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return bool
+   *   TRUE when rebuild ran or was a no-op; FALSE when paid/both event lacks a
+   *   valid ticket product reference.
+   */
+  public function syncProductVariationReferencesForEvent(NodeInterface $event): bool {
+    return $this->rebuildProductVariationReferences($event);
   }
 
   /**
@@ -565,6 +600,16 @@ final class TicketTypeManager {
    * Syncs one paid ticket type to a product variation.
    */
   private function syncTicketTypeToVariation(TicketTypeInterface $ticket, object $product, NodeInterface $event): ?object {
+    $ticketId = (int) $ticket->id();
+    if ($ticketId > 0 && $this->entityTypeManager->hasDefinition('mel_ticket_type')) {
+      $ticketStorage = $this->entityTypeManager->getStorage('mel_ticket_type');
+      $ticketStorage->resetCache([$ticketId]);
+      $freshTicket = $ticketStorage->load($ticketId);
+      if ($freshTicket instanceof TicketTypeInterface) {
+        $ticket = $freshTicket;
+      }
+    }
+
     $label = $ticket->getTitle();
     if ($label === '') {
       $this->loggerFactory->get('myeventlane_event')->warning(
@@ -601,6 +646,8 @@ final class TicketTypeManager {
         $variation->set('field_event', ['target_id' => $event->id()]);
       }
       $variation->save();
+
+      $this->ensureVariationReferencedOnProduct($product, $variation);
 
       $this->loggerFactory->get('myeventlane_event')->notice(
         'Updated variation @vid for ticket type "@label"',
@@ -658,6 +705,170 @@ final class TicketTypeManager {
   }
 
   /**
+   * Ensures a variation ID is present on the parent Commerce product reference field.
+   */
+  private function ensureVariationReferencedOnProduct(ProductInterface $product, ProductVariationInterface $variation): void {
+    if ((int) $variation->getProductId() !== (int) $product->id()) {
+      return;
+    }
+    $pid = (int) $product->id();
+    $productStorage = $this->entityTypeManager->getStorage('commerce_product');
+    $productStorage->resetCache([$pid]);
+    $freshProduct = $productStorage->load($pid);
+    if (!$freshProduct instanceof ProductInterface || !method_exists($freshProduct, 'getVariationIds')) {
+      return;
+    }
+    $ids = $freshProduct->getVariationIds();
+    $intIds = is_array($ids) ? array_values(array_unique(array_map(static fn ($id): int => (int) $id, $ids))) : [];
+    $vid = (int) $variation->id();
+    if (in_array($vid, $intIds, TRUE)) {
+      return;
+    }
+    $intIds[] = $vid;
+    $freshProduct->set('variations', $intIds);
+    $freshProduct->save();
+  }
+
+  /**
+   * Rebuilds product.variations from field_ticket_types + order-item preservation rules.
+   *
+   * @return bool
+   *   TRUE on success or no-op; FALSE when event type or ticket product invalid.
+   */
+  private function rebuildProductVariationReferences(NodeInterface $event): bool {
+    if ($event->bundle() !== 'event') {
+      return FALSE;
+    }
+
+    $eventType = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
+    if (!in_array($eventType, ['paid', 'both'], TRUE)) {
+      return TRUE;
+    }
+
+    if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
+      return FALSE;
+    }
+
+    $targetId = (int) $event->get('field_product_target')->target_id;
+    if ($targetId < 1) {
+      return FALSE;
+    }
+
+    $productStorage = $this->entityTypeManager->getStorage('commerce_product');
+    $productStorage->resetCache([$targetId]);
+    $product = $productStorage->load($targetId);
+    if (!$product instanceof ProductInterface || $product->bundle() !== 'ticket') {
+      return FALSE;
+    }
+
+    $productId = (int) $product->id();
+    $required = [];
+
+    foreach ($this->loadEventTicketTypes($event) as $ticket) {
+      if (!$ticket instanceof TicketTypeInterface || $ticket->isArchived() || !$ticket->isPublished()) {
+        continue;
+      }
+      if ($ticket->get('commerce_variation')->isEmpty()) {
+        continue;
+      }
+      $mapped = $ticket->get('commerce_variation')->entity;
+      if (!$mapped instanceof ProductVariationInterface || $mapped->bundle() !== 'ticket_variation') {
+        continue;
+      }
+      if ((int) $mapped->getProductId() !== $productId) {
+        continue;
+      }
+      $required[(int) $mapped->id()] = (int) $mapped->id();
+    }
+
+    $productStorage->resetCache([$productId]);
+    $freshProduct = $productStorage->load($productId);
+    if (!$freshProduct instanceof ProductInterface || !method_exists($freshProduct, 'getVariationIds')) {
+      return TRUE;
+    }
+
+    $rawIds = $freshProduct->getVariationIds();
+    $currentIds = is_array($rawIds)
+      ? array_values(array_unique(array_map(static fn ($id): int => (int) $id, $rawIds)))
+      : [];
+
+    $preserve = [];
+    $varStorage = $this->entityTypeManager->getStorage('commerce_product_variation');
+    foreach ($currentIds as $vid) {
+      if ($vid < 1) {
+        continue;
+      }
+      $varStorage->resetCache([$vid]);
+      $existing = $varStorage->load($vid);
+      if (!$existing instanceof ProductVariationInterface) {
+        continue;
+      }
+      if ((int) $existing->getProductId() !== $productId) {
+        continue;
+      }
+      if ($this->variationHasAnyCommerceOrderItems($vid)) {
+        $preserve[$vid] = $vid;
+      }
+    }
+
+    $final = array_values(array_unique(array_merge(array_values($required), array_values($preserve))));
+    sort($final, SORT_NUMERIC);
+
+    $beforeSort = $currentIds;
+    sort($beforeSort, SORT_NUMERIC);
+    if ($final === $beforeSort) {
+      return TRUE;
+    }
+
+    $freshProduct->set('variations', $final);
+    $freshProduct->save();
+
+    foreach ($required as $reqVid) {
+      if (!in_array($reqVid, $final, TRUE)) {
+        $this->loggerFactory->get('myeventlane_event')->error(
+          'Product variation rebuild for event @eid: required variation @vid missing from commerce_product @pid reference list after save.',
+          [
+            '@eid' => (string) $event->id(),
+            '@vid' => (string) $reqVid,
+            '@pid' => (string) $productId,
+          ],
+        );
+      }
+    }
+
+    $this->loggerFactory->get('myeventlane_event')->notice(
+      'Rebuilt commerce_product @pid variation references for event @eid: @refs.',
+      [
+        '@pid' => (string) $productId,
+        '@eid' => (string) $event->id(),
+        '@refs' => (string) json_encode($final),
+      ],
+    );
+
+    Cache::invalidateTags([
+      'commerce_product:' . (string) $productId,
+      'node:' . (string) $event->id(),
+    ]);
+
+    return TRUE;
+  }
+
+  /**
+   * TRUE when any commerce order item references this variation (any order state).
+   */
+  private function variationHasAnyCommerceOrderItems(int $variationId): bool {
+    $itemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+    $found = $itemStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('purchased_entity', $variationId)
+      ->range(0, 1)
+      ->execute();
+    return !empty($found);
+  }
+
+  /**
    * Removes duplicate variation target IDs on the Commerce product (fixes booking UI drift).
    */
   private function normalizeProductVariationIds(ProductInterface $product): void {
@@ -686,20 +897,78 @@ final class TicketTypeManager {
    *
    * @param array<string> $activeVariationUuids
    *   UUIDs that should remain published for this product.
+   *
+   * @return bool
+   *   FALSE if any orphan was still published after save + storage reload.
    */
-  private function removeOrphanedVariations(object $product, array $activeVariationUuids): void {
-    $variations = $product->getVariations();
-    foreach ($variations as $variation) {
-      if (!in_array($variation->uuid(), $activeVariationUuids, TRUE)) {
-        $variation->setPublished(FALSE);
-        $variation->save();
+  private function removeOrphanedVariations(object $product, array $activeVariationUuids): bool {
+    if (!$product instanceof ProductInterface || !method_exists($product, 'getVariationIds')) {
+      return TRUE;
+    }
 
+    $pid = (int) $product->id();
+    $productStorage = $this->entityTypeManager->getStorage('commerce_product');
+    $productStorage->resetCache([$pid]);
+    $freshProduct = $productStorage->load($pid);
+    if (!$freshProduct instanceof ProductInterface) {
+      return TRUE;
+    }
+
+    $ids = $freshProduct->getVariationIds();
+    if (!is_array($ids) || $ids === []) {
+      return TRUE;
+    }
+
+    $varStorage = $this->entityTypeManager->getStorage('commerce_product_variation');
+    $allSucceeded = TRUE;
+
+    foreach ($ids as $rawId) {
+      $vid = (int) $rawId;
+      if ($vid < 1) {
+        continue;
+      }
+
+      $varStorage->resetCache([$vid]);
+      $variation = $varStorage->load($vid);
+      if (!$variation instanceof ProductVariationInterface) {
+        continue;
+      }
+
+      if (in_array($variation->uuid(), $activeVariationUuids, TRUE)) {
+        continue;
+      }
+
+      if (!$variation->isPublished()) {
+        continue;
+      }
+
+      if ($variation instanceof EntityPublishedInterface) {
+        $variation->setUnpublished();
+      }
+      elseif ($variation->hasField('status')) {
+        $variation->set('status', FALSE);
+      }
+      $variation->save();
+
+      $varStorage->resetCache([$vid]);
+      $reloaded = $varStorage->load($vid);
+
+      if (!$reloaded instanceof ProductVariationInterface || $reloaded->isPublished()) {
+        $allSucceeded = FALSE;
+        $this->loggerFactory->get('myeventlane_event')->warning(
+          'Orphan variation @vid remained published after unpublish attempt; manual review required.',
+          ['@vid' => (string) $vid],
+        );
+      }
+      else {
         $this->loggerFactory->get('myeventlane_event')->notice(
           'Unpublished orphaned variation @vid',
-          ['@vid' => $variation->id()]
+          ['@vid' => (string) $vid],
         );
       }
     }
+
+    return $allSucceeded;
   }
 
   /**

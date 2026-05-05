@@ -1,0 +1,23 @@
+uuid: dd3ff1ad-6fa0-4189-b786-c28286cdb18d
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_order.commerce_order_type.default
+    - field.storage.commerce_order.field_mel_donation
+id: commerce_order.default.field_mel_donation
+field_name: field_mel_donation
+entity_type: commerce_order
+bundle: default
+label: 'MEL donation'
+description: 'Per-order organiser contribution added from the booking form.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: $
+  suffix: ''
+field_type: decimal

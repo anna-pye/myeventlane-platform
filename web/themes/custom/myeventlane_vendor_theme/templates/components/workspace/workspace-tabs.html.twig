@@ -1,12 +1,14 @@
 {#
 /**
  * @file
- * Event workspace section links (horizontal). Data from VendorEventTabsService.
+ * Event workspace section links (horizontal). Data from VendorEventTabsService
+ * or TASK 8 workspace tab models (available flag).
  */
 #}
 {% if tabs %}
   {% for tab in tabs %}
-    {% if tab.disabled|default(false) %}
+    {% set unavailable = tab.disabled|default(false) or (tab.available is defined and tab.available == false) %}
+    {% if unavailable %}
       <span
         class="mel-tab mel-tab--disabled"
         role="tab"
@@ -14,7 +16,7 @@
         aria-selected="false"
         {% if tab.disabled_reason|default('') %}title="{{ tab.disabled_reason|e }}"{% endif %}
       >{{ tab.label }}</span>
-    {% else %}
+    {% elseif tab.url %}
       <a
         href="{{ tab.url }}"
         class="mel-tab{% if tab.active %} is-active{% endif %}"
@@ -22,6 +24,13 @@
         {% if tab.active %}aria-current="page"{% endif %}
         aria-selected="{{ tab.active ? 'true' : 'false' }}"
       >{{ tab.label }}</a>
+    {% else %}
+      <span
+        class="mel-tab mel-tab--disabled"
+        role="tab"
+        aria-disabled="true"
+        aria-selected="false"
+      >{{ tab.label }}</span>
     {% endif %}
   {% endfor %}
 {% endif %}

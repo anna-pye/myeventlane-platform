@@ -14,6 +14,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -74,8 +75,14 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
     $cache_metadata->addCacheContexts(['user.roles', 'user.permissions', 'route']);
     $cache_tags = [];
 
-    // A) Logged-in organiser tools: same gate as /vendor/dashboard (see VendorConsoleAccess).
-    if ($this->currentUser->hasPermission('access vendor dashboard')) {
+    // A) Logged-in organiser tools: align with VendorConsoleTrust + staff bypass
+    // (VendorConsoleAccess allows administer nodes on vendor paths; dashboard link
+    // still respects per-route access via Url::access() below).
+    $account = $this->currentUser->getAccount();
+    $show_organiser_tools = !$account->isAnonymous()
+      && ($account->hasPermission('administer nodes')
+        || VendorConsoleTrust::accountIsTrustedForVendorConsole($account));
+    if ($show_organiser_tools) {
       $vendor = $this->getVendorForUser((int) $this->currentUser->id());
       if ($vendor) {
         $cache_tags[] = 'myeventlane_vendor:' . $vendor->id();
@@ -168,7 +175,7 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
       ],
       [
         'title' => $this->t('Create event'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.create_event'),
+        'url' => Url::fromRoute('myeventlane_event_studio.create'),
       ],
       [
         'title' => $this->t('Settings'),

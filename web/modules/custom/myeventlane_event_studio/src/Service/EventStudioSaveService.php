@@ -37,7 +37,6 @@ final class EventStudioSaveService {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly VenueManager $venueManager,
     private readonly LoggerInterface $logger,
-    private readonly MelTicketTypeManager $melTicketTypeManager,
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly PaidPublishStripeGate $paidPublishStripeGate,
     private readonly VendorPublishRequirementsGate $publishRequirementsGate,
@@ -276,11 +275,6 @@ final class EventStudioSaveService {
       }
     }
 
-    $studio_tier_errors = $this->melTicketTypeManager->validateStudioTicketDefinitions($node, $account, $payload, $draft);
-    if ($studio_tier_errors !== []) {
-      return ['node' => NULL, 'errors' => $studio_tier_errors];
-    }
-
     try {
       $this->syncEventHighlights($node, $payload);
     }
@@ -302,8 +296,6 @@ final class EventStudioSaveService {
       $this->logger->error('Studio event save failed: @m', ['@m' => $e->getMessage()]);
       return ['node' => NULL, 'errors' => ['Save failed.']];
     }
-
-    $this->melTicketTypeManager->onEventStudioSaveComplete($node, $account, $payload, $draft);
 
     return ['node' => $node, 'errors' => []];
   }
@@ -490,7 +482,7 @@ final class EventStudioSaveService {
   }
 
   /**
-   * Maps Studio ticket payload to event fields (no Commerce / ticket builder logic).
+   * Maps Studio booking payload to event-level fields.
    *
    * @param array<string, mixed> $payload
    *
@@ -543,24 +535,29 @@ final class EventStudioSaveService {
 
     if ($node->hasField('field_product_target')) {
       if ($event_type === 'paid') {
-        if (array_key_exists('field_product_target', $payload)) {
-          $pid = $payload['field_product_target'];
-          $pid = is_int($pid) || is_numeric($pid) ? (int) $pid : 0;
-          if ($pid > 0) {
-            $product = $this->entityTypeManager->getStorage('commerce_product')->load($pid);
-            if ($product && $product->bundle() === 'ticket') {
-              $node->set('field_product_target', ['target_id' => $pid]);
-            }
-            else {
-              $this->logger->warning('Studio save ignored invalid ticket product id @id for nid @nid', [
-                '@id' => (string) $pid,
-                '@nid' => (string) $node->id(),
-              ]);
-              $node->set('field_product_target', NULL);
-            }
+        // Preserve field_product_target unless we successfully set a new valid product id.
+        // Missing key / empty / zero from POST must NOT clear an existing link: conditional ticket UI,
+        // autosave fragments, and multi-step wizard saves often omit the autocomplete while still paid.
+        // Switching booking mode away from paid clears in the branch below.
+        $has_explicit = array_key_exists('field_product_target', $payload);
+        $raw_pid = $has_explicit ? $payload['field_product_target'] : NULL;
+        $pid = ($raw_pid !== NULL && $raw_pid !== '' && (is_int($raw_pid) || is_numeric($raw_pid)))
+          ? (int) $raw_pid
+          : 0;
+
+        if ($pid > 0) {
+          $product = $this->entityTypeManager->getStorage('commerce_product')->load($pid);
+          if ($product && $product->bundle() === 'ticket') {
+            $node->set('field_product_target', ['target_id' => $pid]);
           }
           else {
-            $node->set('field_product_target', NULL);
+            $this->logger->warning('Studio save ignored invalid ticket product id @id for nid @nid', [
+              '@id' => (string) $pid,
+              '@nid' => (string) $node->id(),
+            ]);
+            if ($node->get('field_product_target')->isEmpty()) {
+              $node->set('field_product_target', NULL);
+            }
           }
         }
       }
@@ -569,27 +566,8 @@ final class EventStudioSaveService {
       }
     }
 
-    if ($node->hasField('field_ticket_types')) {
-      if (in_array($event_type, ['paid', 'rsvp'], TRUE) && array_key_exists('field_ticket_types', $payload) && is_array($payload['field_ticket_types'])) {
-        $rows = [];
-        if ($this->entityTypeManager->hasDefinition('mel_ticket_type')) {
-          $storage = $this->entityTypeManager->getStorage('mel_ticket_type');
-          foreach ($payload['field_ticket_types'] as $tid) {
-            $tid = (int) $tid;
-            if ($tid > 0 && $storage->load($tid)) {
-              $rows[] = ['target_id' => $tid];
-            }
-          }
-        }
-        $node->set('field_ticket_types', $rows);
-      }
-      elseif (!in_array($event_type, ['paid', 'rsvp'], TRUE)) {
-        $node->set('field_ticket_types', []);
-      }
-    }
-
     if (!$draft && $event_type === 'paid' && $node->hasField('field_product_target') && $node->get('field_product_target')->isEmpty()) {
-      return ['Paid events need a ticket product. Link one above or add it from the event Tickets tab.'];
+      return ['Paid events need a ticket product. Link one above or open the Advanced ticket manager from Event Studio.'];
     }
 
     return [];

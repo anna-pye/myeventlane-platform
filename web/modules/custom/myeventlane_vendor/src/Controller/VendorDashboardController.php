@@ -30,6 +30,7 @@ use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
+use Drupal\myeventlane_vendor\Service\VendorDashboardViewModelBuilder;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_domain_events\ProjectionReadModel\VendorMetricsReadModel;
 use Drupal\myeventlane_event_studio\DTO\MelEventData;
@@ -163,12 +164,18 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected mixed $boostPerformance = NULL;
 
   /**
+   * TASK 3 dashboard view model (data-only; Twig may consume in TASK 5).
+   */
+  protected VendorDashboardViewModelBuilder $dashboardViewModelBuilder;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
     MessengerInterface $messenger,
+    VendorDashboardViewModelBuilder $dashboard_view_model_builder,
     RouteProviderInterface $route_provider,
     RsvpStatsService $rsvp_stats,
     EntityTypeManagerInterface $entity_type_manager,
@@ -195,6 +202,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     mixed $boost_performance = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
+    $this->dashboardViewModelBuilder = $dashboard_view_model_builder;
     $this->routeProvider = $route_provider;
     $this->rsvpStats = $rsvp_stats;
     $this->entityTypeManager = $entity_type_manager;
@@ -229,6 +237,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
       $container->get('messenger'),
+      $container->get('myeventlane_vendor.dashboard_view_model_builder'),
       $container->get('router.route_provider'),
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
@@ -291,13 +300,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $quickActions = $this->getQuickActions();
     $upcomingCount = $this->getUpcomingEventsCount($this->getPublishedUserEvents($userId, $vendor));
 
-    // Chart configurations.
-    $charts = [
-      ['id' => 'revenue', 'title' => 'Revenue Over Time', 'type' => 'line'],
-      ['id' => 'tickets-by-type', 'title' => 'Tickets by Type', 'type' => 'donut'],
-      ['id' => 'traffic-sources', 'title' => 'Traffic Sources', 'type' => 'bar'],
-    ];
-
     // Check if new vendor (show welcome banner).
     $showWelcome = empty($userEvents);
 
@@ -306,9 +308,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $hasBoost = $this->vendorHasAnyBoost($publishedEventIds);
     $boostExportUrl = $hasBoost ? Url::fromRoute('myeventlane_vendor.console.boost_vendor_export')->toString() : NULL;
     $activeBoostEntitlements = $this->getActiveBoostEntitlements($userId);
-
-    // Chart data for JavaScript.
-    $chartData = $this->buildChartData($userId, $userEvents);
 
     // Format stripe status message for template (phase-driven copy in stripe-panel).
     $stripeStatusFormatted = $stripeStatus;
@@ -363,12 +362,13 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     $pageVars = [
+      'vendor_dashboard_view_model' => $this->dashboardViewModelBuilder->build($this->currentUser),
       'vendor' => $vendor,
       'vendor_edit_url' => $vendorEditUrl,
       'ai_usage_panel' => $aiUsagePanel,
       'audience_summary' => $audienceSummary,
       'kpis' => $kpis,
-      'charts' => $charts,
+      'charts' => [],
       'events' => $events,
       'mel_top_boost_opportunity' => $melTopBoostOpportunity,
       'best_event' => $bestEvent,
@@ -401,9 +401,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'library' => [
           'myeventlane_vendor_theme/global-styling',
           'myeventlane_vendor_theme/dashboard',
-        ],
-        'drupalSettings' => [
-          'vendorCharts' => $chartData,
         ],
       ],
     ];
@@ -1328,7 +1325,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'edit_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $eventId])->toString(),
         'manage_url' => '/vendor/events/' . $eventId . '/overview',
         'tickets_url' => '/vendor/events/' . $eventId . '/tickets',
-        'analytics_url' => '/vendor/analytics/event/' . $eventId,
+        'analytics_url' => $this->safeRouteUrl('myeventlane_vendor.console.event_analytics', ['event' => $eventId]) ?? '',
         'attendees_url' => '/vendor/events/' . $eventId . '/attendees',
         'waitlist_url' => '/vendor/event/' . $eventId . '/waitlist',
         'series_url' => $isSeriesTemplate ? Url::fromRoute('myeventlane_vendor.manage_event.series', ['event' => $eventId])->toString() : NULL,
@@ -1387,8 +1384,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       if (empty($ui['show']) && !$forceVisible) {
         continue;
       }
-      if ($forceVisible) {
-        $this->melDebugLogger->notice('BOOST CANDIDATE → @title | show=@show', [
+      if ((bool) $this->state->get('mel.debug_boost_candidates', FALSE)) {
+        // Explicit opt-in only (TASK 15): mel.dev_mode may affect UI without flooding watchdog.
+        $this->melDebugLogger->debug('BOOST CANDIDATE → @title | show=@show', [
           '@title' => (string) ($row['title'] ?? 'unknown'),
           '@show' => !empty($ui['show']) ? 'YES' : 'NO',
         ]);
@@ -2459,58 +2457,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       ];
     }
     return array_slice($rows, 0, 4);
-  }
-
-  /**
-   * Build chart data for JavaScript.
-   */
-  private function buildChartData(int $userId, array $userEvents): array {
-    // Generate last 7 days labels.
-    $labels = [];
-    $revenueData = [];
-
-    for ($i = 6; $i >= 0; $i--) {
-      $date = date('M j', strtotime("-$i days"));
-      $labels[] = $date;
-      $revenueData[] = 0; // Would be populated with real daily revenue.
-    }
-
-    return [
-      'revenue' => [
-        'type' => 'line',
-        'labels' => $labels,
-        'datasets' => [
-          [
-            'label' => 'Revenue',
-            'data' => $revenueData,
-            'borderColor' => '#6366f1',
-            'backgroundColor' => 'rgba(99, 102, 241, 0.1)',
-            'fill' => TRUE,
-          ],
-        ],
-      ],
-      'tickets-by-type' => [
-        'type' => 'doughnut',
-        'labels' => ['General Admission', 'VIP', 'Early Bird'],
-        'datasets' => [
-          [
-            'data' => [0, 0, 0],
-            'backgroundColor' => ['#6366f1', '#10b981', '#f59e0b'],
-          ],
-        ],
-      ],
-      'traffic-sources' => [
-        'type' => 'bar',
-        'labels' => ['Direct', 'Social', 'Search', 'Referral'],
-        'datasets' => [
-          [
-            'label' => 'Visitors',
-            'data' => [0, 0, 0, 0],
-            'backgroundColor' => '#6366f1',
-          ],
-        ],
-      ],
-    ];
   }
 
   /**

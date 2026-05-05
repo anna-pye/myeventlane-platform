@@ -43,7 +43,9 @@ services:
 
   myeventlane_checkout_flow.vendor_ownership_resolver:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
-    arguments: ['@entity_type.manager']
+    arguments:
+      - '@entity_type.manager'
+      - '@?myeventlane_vendor.current_vendor_resolver'
 
   myeventlane_checkout_flow.fast_checkout_eligibility:
     class: Drupal\myeventlane_checkout_flow\Service\FastCheckoutEligibility

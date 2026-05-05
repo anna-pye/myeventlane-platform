@@ -4,125 +4,203 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\node\NodeInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Builds event console tabs for RSVP vs ticketed mode.
  *
- * All primary sections are always listed so the nav stays consistent; items
- * that do not apply to the current event mode are shown disabled.
+ * Primary sections stay consistent; items that do not apply are shown disabled.
+ * URLs are generated from canonical routes (TASK 8).
  */
 final class VendorEventTabsService {
 
-  /**
-   * Constructs the service.
-   */
+  use StringTranslationTrait;
+
   public function __construct(
     private readonly EventModeManager $eventModeManager,
     private readonly ModuleHandlerInterface $moduleHandler,
-    private readonly TranslationInterface $stringTranslation,
-  ) {}
+    TranslationInterface $string_translation,
+    private readonly RouteProviderInterface $routeProvider,
+    private readonly AccessManagerInterface $accessManager,
+    private readonly AccountInterface $currentUser,
+  ) {
+    $this->stringTranslation = $string_translation;
+  }
 
   /**
-   * Gets tabs for the event console.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   * @param string $active
-   *   The key of the currently active tab.
+   * Gets tabs for the event console (legacy shape for workspace-tabs Twig).
    *
    * @return array<int, array<string, mixed>>
    *   Tab definitions: label, url, key, active, disabled (optional).
    */
   public function getTabs(NodeInterface $event, string $active): array {
-    $id = $event->id();
-    $isRsvp = $this->eventModeManager->isRsvpEnabled($event);
-    $isTickets = $this->eventModeManager->isTicketsEnabled($event);
-
-    $t = $this->stringTranslation;
-
-    // Fixed order: same structure on every event page.
-    $all = [
-      'overview' => [
-        'label' => (string) $t->translate('Overview'),
-        'url' => "/vendor/events/{$id}/overview",
-        'key' => 'overview',
-      ],
-      'tickets' => [
-        'label' => (string) $t->translate('Tickets'),
-        'url' => "/vendor/events/{$id}/tickets",
-        'key' => 'tickets',
-      ],
-      'orders' => [
-        'label' => (string) $t->translate('Orders'),
-        'url' => "/vendor/events/{$id}/orders",
-        'key' => 'orders',
-      ],
-      'refund_requests' => [
-        'label' => (string) $t->translate('Refund requests'),
-        'url' => "/vendor/events/{$id}/refund-requests",
-        'key' => 'refund_requests',
-      ],
-      'attendees' => [
-        'label' => (string) $t->translate('Attendees'),
-        'url' => "/vendor/events/{$id}/attendees",
-        'key' => 'attendees',
-      ],
-      'rsvps' => [
-        'label' => (string) $t->translate('RSVPs'),
-        'url' => "/vendor/events/{$id}/rsvps",
-        'key' => 'rsvps',
-      ],
-      'analytics' => [
-        'label' => (string) $t->translate('Analytics'),
-        'url' => "/vendor/events/{$id}/analytics",
-        'key' => 'analytics',
-      ],
-      'boost' => [
-        'label' => (string) $t->translate('Boost'),
-        'url' => "/vendor/events/{$id}/boost",
-        'key' => 'boost',
-      ],
-      'settings' => [
-        'label' => (string) $t->translate('Settings'),
-        'url' => "/vendor/events/{$id}/settings",
-        'key' => 'settings',
-      ],
-    ];
-
+    $account = $this->currentUser;
+    $rows = $this->buildTabRows($event);
     $tabs = [];
-    foreach ($all as $key => $tab) {
-      if ($key === 'refund_requests' && !$this->moduleHandler->moduleExists('myeventlane_refunds')) {
-        continue;
+    foreach ($rows as $row) {
+      /** @var array<string, mixed> $row */
+      $disabled = (bool) ($row['disabled'] ?? FALSE);
+      $urlObj = NULL;
+      if (!$disabled) {
+        $urlObj = $this->routeUrlIfAccessible((string) $row['route'], (array) $row['params'], $account);
       }
-
-      $disabled = FALSE;
-      $disabled_reason = '';
-      if ($key === 'refund_requests' && !$isTickets) {
-        $disabled = TRUE;
-        $disabled_reason = (string) $t->translate('Refund requests apply to ticketed events.');
+      $tab = [
+        'label' => (string) $row['label'],
+        'url' => $urlObj instanceof Url ? $urlObj->toString() : '',
+        'key' => (string) $row['key'],
+        'disabled' => $disabled,
+        'active' => !$disabled && ((string) $row['key'] === $active),
+      ];
+      $reason = (string) ($row['disabled_reason'] ?? '');
+      if ($reason !== '') {
+        $tab['disabled_reason'] = $reason;
       }
-      elseif (($key === 'orders' || $key === 'tickets' || $key === 'boost') && !$isTickets) {
-        $disabled = TRUE;
-        $disabled_reason = (string) $t->translate('Turn on paid tickets for this event to use this section.');
-      }
-      elseif ($key === 'rsvps' && !$isRsvp) {
-        $disabled = TRUE;
-        $disabled_reason = (string) $t->translate('RSVPs apply when this event has RSVP enabled.');
-      }
-
-      $tab['disabled'] = $disabled;
-      if ($disabled_reason !== '') {
-        $tab['disabled_reason'] = $disabled_reason;
-      }
-      $tab['active'] = !$disabled && ($key === $active);
       $tabs[] = $tab;
     }
 
     return $tabs;
+  }
+
+  /**
+   * Workspace view-model tabs (TASK 8): Url objects + availability flags.
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function buildWorkspaceTabs(NodeInterface $event, string $active, AccountInterface $account): array {
+    $out = [];
+    foreach ($this->buildTabRows($event) as $row) {
+      $key = (string) $row['key'];
+      $disabled = (bool) ($row['disabled'] ?? FALSE);
+      $url = NULL;
+      if (!$disabled) {
+        $url = $this->routeUrlIfAccessible((string) $row['route'], (array) $row['params'], $account);
+      }
+      $available = !$disabled && $url instanceof Url;
+      $out[] = [
+        'key' => $key,
+        'label' => (string) $row['label'],
+        'url' => $url,
+        'active' => $available && ($key === $active),
+        'available' => $available,
+      ];
+    }
+
+    return $out;
+  }
+
+  /**
+   * @return list<array<string, mixed>>
+   */
+  private function buildTabRows(NodeInterface $event): array {
+    $id = (int) $event->id();
+    $isRsvp = $this->eventModeManager->isRsvpEnabled($event);
+    $isTickets = $this->eventModeManager->isTicketsEnabled($event);
+    $t = $this->stringTranslation;
+
+    $rows = [
+      [
+        'key' => 'overview',
+        'label' => (string) $t->translate('Overview'),
+        'route' => 'myeventlane_vendor.console.event_workspace',
+        'params' => ['event' => $id],
+        'disabled' => FALSE,
+        'disabled_reason' => '',
+      ],
+      [
+        'key' => 'tickets',
+        'label' => (string) $t->translate('Advanced ticket manager'),
+        'route' => 'myeventlane_vendor.console.event_tickets',
+        'params' => ['event' => $id],
+        'disabled' => !$isTickets,
+        'disabled_reason' => (string) $t->translate('Turn on paid tickets for this event to use this section.'),
+      ],
+      [
+        'key' => 'rsvps',
+        'label' => (string) $t->translate('RSVPs'),
+        'route' => 'myeventlane_vendor.console.event_rsvps',
+        'params' => ['event' => $id],
+        'disabled' => !$isRsvp,
+        'disabled_reason' => (string) $t->translate('RSVPs apply when this event has RSVP enabled.'),
+      ],
+      [
+        'key' => 'attendees',
+        'label' => (string) $t->translate('Attendees'),
+        'route' => 'myeventlane_event_attendees.vendor_list',
+        'params' => ['node' => $id],
+        'disabled' => FALSE,
+        'disabled_reason' => '',
+      ],
+      [
+        'key' => 'orders',
+        'label' => (string) $t->translate('Orders'),
+        'route' => 'myeventlane_vendor.console.event_orders',
+        'params' => ['event' => $id],
+        'disabled' => !$isTickets,
+        'disabled_reason' => (string) $t->translate('Turn on paid tickets for this event to use this section.'),
+      ],
+    ];
+
+    if ($this->moduleHandler->moduleExists('myeventlane_refunds')) {
+      $rows[] = [
+        'key' => 'refund_requests',
+        'label' => (string) $t->translate('Refund requests'),
+        'route' => 'myeventlane_refunds.vendor_refund_requests',
+        'params' => ['node' => $id],
+        'disabled' => !$isTickets,
+        'disabled_reason' => (string) $t->translate('Refund requests apply to ticketed events.'),
+      ];
+    }
+
+    $rows[] = [
+      'key' => 'analytics',
+      'label' => (string) $t->translate('Analytics'),
+      'route' => 'myeventlane_vendor.console.event_analytics',
+      'params' => ['event' => $id],
+      'disabled' => FALSE,
+      'disabled_reason' => '',
+    ];
+
+    if ($this->routeExists('myeventlane_vendor.console.event_promotion')) {
+      $rows[] = [
+        'key' => 'promotion',
+        'label' => (string) $t->translate('Promotion'),
+        'route' => 'myeventlane_vendor.console.event_promotion',
+        'params' => ['event' => $id],
+        'disabled' => FALSE,
+        'disabled_reason' => '',
+      ];
+    }
+
+    if ($this->routeExists('myeventlane_boost.vendor_event_boost')) {
+      $rows[] = [
+        'key' => 'boost',
+        'label' => (string) $t->translate('Boost'),
+        'route' => 'myeventlane_boost.vendor_event_boost',
+        'params' => ['event' => $id],
+        'disabled' => !$isTickets,
+        'disabled_reason' => (string) $t->translate('Turn on paid tickets for this event to use this section.'),
+      ];
+    }
+
+    $rows[] = [
+      'key' => 'settings',
+      'label' => (string) $t->translate('Settings'),
+      'route' => 'myeventlane_vendor.console.event_settings',
+      'params' => ['event' => $id],
+      'disabled' => FALSE,
+      'disabled_reason' => '',
+    ];
+
+    return $rows;
   }
 
   /**
@@ -137,6 +215,44 @@ final class VendorEventTabsService {
    */
   public function isRsvpEnabled(NodeInterface $event): bool {
     return $this->eventModeManager->isRsvpEnabled($event);
+  }
+
+  private function routeExists(string $name): bool {
+    try {
+      $this->routeProvider->getRouteByName($name);
+      return TRUE;
+    }
+    catch (RouteNotFoundException) {
+      return FALSE;
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $parameters
+   */
+  private function routeUrlIfAccessible(string $routeName, array $parameters, AccountInterface $account): ?Url {
+    if (!$account->isAuthenticated()) {
+      return NULL;
+    }
+    if (!$this->routeExists($routeName)) {
+      return NULL;
+    }
+    try {
+      $access = $this->accessManager->checkNamedRoute($routeName, $parameters, $account, TRUE);
+      if (!$access->isAllowed()) {
+        return NULL;
+      }
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+
+    try {
+      return Url::fromRoute($routeName, $parameters);
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
 }

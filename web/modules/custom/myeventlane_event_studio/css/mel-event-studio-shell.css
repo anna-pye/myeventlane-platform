@@ -10,11 +10,11 @@
 /* Workspace: sidebar + main column                                            */
 /* -------------------------------------------------------------------------- */
 
-.mel-event-studio .mel-es-workspace {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 32px;
+.mel-event-studio .mel-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  align-items: start;
+  gap: 24px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -26,11 +26,16 @@
   width: 200px;
 }
 
+.mel-event-studio .mel-layout.mel-es-workspace--has-onboarding {
+  grid-template-columns: 200px 280px 1fr;
+}
+
+.mel-event-studio .mel-sidebar,
 .mel-event-studio .mel-es-workspace__sidebar {
   display: flex;
   flex-direction: column;
-  flex: 0 0 240px;
-  width: 240px;
+  gap: 16px;
+  width: 280px;
   max-width: 100%;
   position: sticky;
   top: 100px;
@@ -39,10 +44,35 @@
   z-index: 2;
 }
 
+.mel-event-studio .mel-sidebar > * {
+  margin-bottom: 16px;
+}
+
+.mel-event-studio .mel-sidebar > *:last-child {
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-main,
 .mel-event-studio .mel-es-workspace__main {
-  flex: 1 1 0;
   min-width: 0;
-  max-width: 900px;
+  max-width: 960px;
+  width: 100%;
+}
+
+.mel-event-studio .mel-builder {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.mel-event-studio .mel-builder__main {
+  min-width: 0;
+  width: 100%;
+}
+
+.mel-event-studio .mel-builder-sidebar__sticky--left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 0;
 }
 
 .mel-vendor-shell__content .mel-event-studio .mel-event-studio__form-full,
@@ -258,11 +288,14 @@
 }
 
 @media (max-width: 768px) {
+  .mel-event-studio .mel-layout,
   .mel-event-studio .mel-es-workspace {
+    display: flex;
     flex-direction: column;
     gap: 20px;
   }
 
+  .mel-event-studio .mel-sidebar,
   .mel-event-studio .mel-es-workspace__sidebar {
     position: static;
     width: 100%;
@@ -530,7 +563,6 @@
   align-items: center;
 }
 
-.mel-event-studio .mel-builder-card--tickets .mel-ticket-edit__actions .js-mel-ticket-save,
 .mel-event-studio .mel-builder-card--tickets .mel-ticket-edit__actions .js-mel-ticket-cancel {
   min-width: 128px;
 }
@@ -783,6 +815,38 @@
 .mel-event-studio .mel-ai-controls--sidebar .mel-ai-controls__row {
   flex-direction: column;
   gap: 8px;
+}
+
+.mel-event-studio .mel-preview-card--sidebar-shell {
+  padding: 14px;
+  overflow: visible;
+}
+
+.mel-event-studio .mel-preview {
+  position: sticky;
+  top: 16px;
+}
+
+.mel-event-studio .mel-preview-card--sidebar-shell > h4 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mel-event-studio .mel-preview-card--sidebar-shell .mel-preview-card {
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-preview-card--sidebar-shell .mel-event-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mel-event-studio .mel-preview-card--sidebar-shell .mel-event-actions .mel-btn {
+  width: 100%;
 }
 
 .mel-event-studio .mel-insights-card--sidebar {

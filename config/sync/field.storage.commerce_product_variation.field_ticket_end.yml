@@ -1,0 +1,20 @@
+uuid: 3f0b7af2-ab34-4d21-88ac-7dc453912161
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+    - datetime
+id: commerce_product_variation.field_ticket_end
+field_name: field_ticket_end
+entity_type: commerce_product_variation
+type: datetime
+settings:
+  datetime_type: datetime
+module: datetime
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

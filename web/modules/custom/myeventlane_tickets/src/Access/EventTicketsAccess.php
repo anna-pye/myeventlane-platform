@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_tickets\Service\EventAccess;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 
 /**
@@ -21,6 +22,7 @@ final class EventTicketsAccess implements AccessInterface {
    */
   public function __construct(
     private readonly EventAccess $eventAccess,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {}
 
   /**
@@ -51,23 +53,13 @@ final class EventTicketsAccess implements AccessInterface {
       return AccessResult::allowed()->cachePerUser()->addCacheableDependency($event);
     }
 
-    // Allow access vendor console + event ownership (same as vendor base).
+    // Allow access vendor console + workspace parity (owner or vendor team).
     if ($account->hasPermission('access vendor console')) {
       if ($account->hasPermission('administer nodes')) {
         return AccessResult::allowed()->cachePerUser()->addCacheableDependency($event);
       }
-      if ((int) $event->getOwnerId() === (int) $account->id()) {
+      if ($this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
         return AccessResult::allowed()->cachePerUser()->addCacheableDependency($event);
-      }
-      if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
-        $vendor = $event->get('field_event_vendor')->entity;
-        if ($vendor && $vendor->hasField('field_vendor_users')) {
-          foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-            if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
-              return AccessResult::allowed()->cachePerUser()->addCacheableDependency($event);
-            }
-          }
-        }
       }
     }
 

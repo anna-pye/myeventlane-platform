@@ -32,11 +32,10 @@ footer-internal:
     - core/drupal
     - core/once
 
-# Dashboard with Chart.js
+# Vendor dashboard shell styles (global bundle includes TASK 5 dashboard SCSS).
 dashboard:
   dependencies:
     - myeventlane_vendor_theme/global-styling
-    - myeventlane_vendor_theme/chartjs
 
 # Chart.js library (CDN)
 chartjs:

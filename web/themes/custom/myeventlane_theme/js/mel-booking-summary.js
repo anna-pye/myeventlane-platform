@@ -45,7 +45,7 @@
    * @returns {number}
    */
   function getOptionalDonation(form) {
-    const input = form.querySelector('[data-mel-booking-donation]');
+    const input = form.querySelector('[name="mel_donation"]');
     if (!input || input.disabled) {
       return 0;
     }
@@ -58,7 +58,7 @@
    * @returns {boolean}
    */
   function isDonationControl(t) {
-    return t instanceof HTMLElement && t.matches('[data-mel-booking-donation]');
+    return t instanceof HTMLElement && t.matches('[name="mel_donation"]');
   }
 
   /**
@@ -229,7 +229,7 @@
             dli.className = 'mel-booking-summary__item mel-booking-summary__item--donation';
             const dlabel = document.createElement('span');
             dlabel.className = 'mel-booking-summary__item-label';
-            dlabel.textContent = strings.donationLine || 'Optional support (estimate)';
+            dlabel.textContent = strings.donationLine || 'Contribution';
             const damt = document.createElement('span');
             damt.className = 'mel-booking-summary__item-amount';
             damt.textContent = fmt.format(donationLine);
@@ -285,7 +285,7 @@
         }
         let summary = lines.map((l) => `${l.qty} ${l.title}`).join(', ');
         if (donationLine > 0) {
-          summary += `. ${strings.donationLine || 'Optional support'} ${fmt.format(donationLine)}`;
+          summary += `. ${strings.donationLine || 'Contribution'} ${fmt.format(donationLine)}`;
         }
         const next = `${summary}. ${strings.subtotal || 'Subtotal'} ${fmt.format(displayTotal)}`;
         if (next !== lastAnnounce) {
@@ -309,11 +309,25 @@
       }
     });
 
-    const donationInput = form.querySelector('[data-mel-booking-donation]');
+    const donationInput = form.querySelector('[name="mel_donation"]');
     if (donationInput) {
       donationInput.addEventListener('input', onChange);
       donationInput.addEventListener('change', onChange);
     }
+
+    form.querySelectorAll('.mel-donation-chip[data-amount]').forEach((chip) => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        const amount = parseFloat(chip.getAttribute('data-amount') || '', 10);
+        if (!donationInput || !Number.isFinite(amount)) {
+          return;
+        }
+        donationInput.value = String(amount);
+        donationInput.dispatchEvent(new Event('input', { bubbles: true }));
+        donationInput.dispatchEvent(new Event('change', { bubbles: true }));
+        onChange();
+      });
+    });
 
     form.addEventListener(
       'input',

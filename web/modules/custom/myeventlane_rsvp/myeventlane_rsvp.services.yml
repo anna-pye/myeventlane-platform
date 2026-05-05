@@ -75,6 +75,7 @@ services:
 
   myeventlane_rsvp.vendor_event_access:
     class: Drupal\myeventlane_rsvp\Access\VendorEventAccess
+    arguments: ['@myeventlane_vendor.event_access_checker']
 
   myeventlane_rsvp.rsvp_cancel_access:
     class: Drupal\myeventlane_rsvp\Access\RsvpCancelAccess

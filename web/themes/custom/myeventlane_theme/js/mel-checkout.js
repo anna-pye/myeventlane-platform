@@ -7,6 +7,8 @@
     attach(context) {
       attachIdentityMemory(context);
       attachContactCollapse(context);
+      attachGuidedCheckout(context);
+      attachAttendeeCards(context);
 
       const forms = once(
         'mel-checkout-error-scroll',
@@ -22,6 +24,9 @@
             return;
           }
 
+          showErrorSummary(form);
+          highlightErrorSection(errorTarget);
+
           errorTarget.scrollIntoView({
             behavior: prefersReducedMotion() ? 'auto' : 'smooth',
             block: 'center',
@@ -35,6 +40,214 @@
       });
     },
   };
+
+  function attachGuidedCheckout(context) {
+    const checkouts = once(
+      'mel-checkout-guided-sections',
+      '.mel-checkout--structured',
+      context
+    );
+
+    checkouts.forEach((checkout) => {
+      const form = checkout.closest('form') || document.querySelector('.mel-checkout-shell form');
+      const sections = getGuidedSections(checkout);
+
+      if (!form || !sections.details || !sections.payment) {
+        return;
+      }
+
+      let initialised = false;
+      let frame = null;
+      const update = () => {
+        if (frame) {
+          window.cancelAnimationFrame(frame);
+        }
+        frame = window.requestAnimationFrame(() => {
+          updateGuidedSections(checkout, sections, initialised);
+          syncStickyCta(checkout);
+          initialised = true;
+        });
+      };
+
+      update();
+      form.addEventListener('input', update);
+      form.addEventListener('change', update);
+    });
+  }
+
+  function attachAttendeeCards(context) {
+    const panes = once(
+      'mel-checkout-attendee-cards',
+      '.mel-attendee-details-groups',
+      context
+    );
+
+    panes.forEach((pane) => {
+      const cards = Array.from(pane.querySelectorAll('details.mel-attendee-card'));
+      if (!cards.length) {
+        return;
+      }
+
+      const updateCards = (sourceCard = null, advance = false) => {
+        const firstIncomplete = cards.find((card) => !isSectionComplete(card));
+
+        cards.forEach((card) => {
+          const complete = isSectionComplete(card);
+          const activeInCard = card.contains(document.activeElement);
+          card.classList.toggle('is-complete', complete);
+          card.classList.toggle('has-errors', hasErrors(card));
+
+          if (hasErrors(card)) {
+            card.open = true;
+            return;
+          }
+
+          if (complete && card !== firstIncomplete && !activeInCard) {
+            card.open = false;
+          }
+        });
+
+        if (firstIncomplete) {
+          firstIncomplete.open = true;
+        }
+
+        if (advance && sourceCard && isSectionComplete(sourceCard) && !sourceCard.contains(document.activeElement)) {
+          const nextCard = cards.find((card) => !isSectionComplete(card));
+          if (nextCard && nextCard !== sourceCard) {
+            nextCard.open = true;
+            scrollToSection(nextCard);
+          }
+        }
+      };
+
+      updateCards();
+      cards.forEach((card) => {
+        card.addEventListener('input', () => updateCards(card, false));
+        card.addEventListener('change', () => updateCards(card, true));
+      });
+    });
+  }
+
+  function getGuidedSections(checkout) {
+    return {
+      details: checkout.querySelector('.mel-checkout-section[data-step="details"]'),
+      attendees: checkout.querySelector('.mel-checkout-section[data-step="attendees"]'),
+      payment: checkout.querySelector('.mel-checkout-section[data-step="payment"]'),
+    };
+  }
+
+  function updateGuidedSections(checkout, sections, allowScroll) {
+    const detailsComplete = isSectionComplete(sections.details);
+    const attendeesComplete = sections.attendees ? isSectionComplete(sections.attendees) : true;
+
+    revealSection(sections.details, true);
+    revealSection(sections.attendees, detailsComplete, allowScroll);
+    revealSection(sections.payment, detailsComplete && attendeesComplete, allowScroll);
+
+    checkout.classList.toggle('is-ready-for-payment', detailsComplete && attendeesComplete);
+  }
+
+  function revealSection(section, reveal, allowScroll = false) {
+    if (!section) {
+      return;
+    }
+
+    const wasRevealed = section.classList.contains('is-revealed');
+    section.classList.toggle('is-revealed', reveal);
+    section.classList.toggle('is-locked', !reveal);
+    section.setAttribute('aria-hidden', reveal ? 'false' : 'true');
+
+    if ('inert' in section) {
+      section.inert = !reveal;
+    }
+
+    if (reveal && allowScroll && !wasRevealed) {
+      scrollToSection(section);
+    }
+  }
+
+  function isSectionComplete(section) {
+    if (!section || hasErrors(section)) {
+      return false;
+    }
+
+    const controls = getRelevantControls(section);
+    return controls.every((control) => {
+      if (!control.required && !isRequiredGroupControl(control)) {
+        return true;
+      }
+
+      if (typeof control.checkValidity === 'function') {
+        return control.checkValidity();
+      }
+
+      return Boolean(control.value && control.value.trim());
+    });
+  }
+
+  function getRelevantControls(section) {
+    return Array.from(section.querySelectorAll('input, select, textarea')).filter((control) => {
+      if (control.disabled || control.type === 'hidden' || control.type === 'button' || control.type === 'submit') {
+        return false;
+      }
+
+      return !control.closest('[hidden], .visually-hidden, .mel-fast-checkout');
+    });
+  }
+
+  function isRequiredGroupControl(control) {
+    if (!control.required || (control.type !== 'checkbox' && control.type !== 'radio')) {
+      return false;
+    }
+
+    const namedControls = control.name && control.form
+      ? control.form.elements[control.name]
+      : null;
+    const group = namedControls && typeof namedControls.length === 'number'
+      ? Array.from(namedControls)
+      : [control];
+
+    return group.some((item) => item.checked);
+  }
+
+  function showErrorSummary(form) {
+    const checkout = form.querySelector('.mel-checkout--structured') || form;
+    const summary = checkout.querySelector('.mel-checkout-error-summary');
+    if (!summary) {
+      return;
+    }
+
+    summary.hidden = false;
+    summary.classList.add('is-visible');
+  }
+
+  function highlightErrorSection(target) {
+    const section = target.closest('.mel-checkout-section, .mel-attendee-card');
+    if (!section) {
+      return;
+    }
+
+    section.classList.add('has-errors');
+  }
+
+  function scrollToSection(section) {
+    section.scrollIntoView({
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
+
+  function syncStickyCta(checkout) {
+    const sticky = checkout.querySelector('.mel-checkout-sticky');
+    if (!sticky) {
+      return;
+    }
+
+    const total = sticky.querySelector('.mel-checkout-cta__total-value, .mel-checkout-total-inline__value');
+    if (total) {
+      sticky.setAttribute('data-total', total.textContent.trim());
+    }
+  }
 
   function attachIdentityMemory(context) {
     const panes = once(

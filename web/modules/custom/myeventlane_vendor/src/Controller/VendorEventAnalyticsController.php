@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -38,6 +40,8 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     private readonly VendorEventTabsService $eventTabsService,
     private readonly TicketTierLifecycleService $ticketTierLifecycle,
     private readonly TicketTierAnalyticsService $ticketTierAnalytics,
+    private readonly AccessManagerInterface $accessManager,
+    private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly ?ProActiveResolver $proActiveResolver = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
@@ -103,6 +107,25 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
 
     $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
 
+    $workspace_back_url = NULL;
+    try {
+      $workspace_back_url = Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()])->toString();
+    }
+    catch (\Throwable) {
+      $workspace_back_url = NULL;
+    }
+
+    $edit_event_url = NULL;
+    try {
+      $edit_event_url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
+    }
+    catch (\Throwable) {
+      $edit_event_url = NULL;
+    }
+
+    $export_pdf_url = $this->exportUrlIfAccessible($event, 'myeventlane_analytics.export_pdf');
+    $export_excel_url = $this->exportUrlIfAccessible($event, 'myeventlane_analytics.export_excel');
+
     return $this->buildVendorPage('mel_event_workspace', [
       'event' => $event,
       'tabs' => $tabs,
@@ -123,6 +146,10 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#ticket_tier_rollup' => $ticket_tier_rollup,
         '#boost_page_url' => $boost_page_url,
         '#public_event_url' => $public_event_url,
+        '#workspace_back_url' => $workspace_back_url,
+        '#edit_event_url' => $edit_event_url,
+        '#export_pdf_url' => $export_pdf_url,
+        '#export_excel_url' => $export_excel_url,
       ],
       '#attached' => [
         'library' => [
@@ -133,6 +160,26 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         ],
       ],
     ]);
+  }
+
+  /**
+   * Export route URL only when access checks pass for the current user.
+   */
+  private function exportUrlIfAccessible(NodeInterface $event, string $routeName): ?string {
+    $parameters = ['node' => $event->id()];
+    try {
+      if (!$this->accessManager->checkNamedRoute($routeName, $parameters, $this->currentUser, TRUE)->isAllowed()) {
+        return NULL;
+      }
+      return Url::fromRoute($routeName, $parameters)->toString();
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Event analytics export URL build failed for route @route: @message', [
+        '@route' => $routeName,
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
   }
 
 }

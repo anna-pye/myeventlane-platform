@@ -14,6 +14,7 @@ function myeventlane_analytics_theme(): array {
   return [
     'myeventlane_analytics_dashboard' => [
       'variables' => [
+        'analytics_model' => [],
         'summary_stats' => [],
         'event_analytics' => [],
       ],
@@ -22,6 +23,10 @@ function myeventlane_analytics_theme(): array {
     'myeventlane_analytics_event' => [
       'variables' => [
         'event' => NULL,
+        'workspace_back_url' => NULL,
+        'vendor_analytics_home_url' => NULL,
+        'export_pdf_url' => NULL,
+        'export_excel_url' => NULL,
         'time_series' => [],
         'ticket_breakdown' => [],
         'sales_velocity' => [],

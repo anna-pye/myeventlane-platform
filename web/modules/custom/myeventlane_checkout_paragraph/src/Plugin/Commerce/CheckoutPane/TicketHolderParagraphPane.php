@@ -13,6 +13,7 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
@@ -64,6 +65,13 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   private TicketAvailabilityService $ticketAvailability;
 
   /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountProxyInterface
+   */
+  private AccountProxyInterface $currentUser;
+
+  /**
    * {@inheritdoc}
    */
   public function getCacheContexts(): array {
@@ -82,6 +90,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $instance->emailValidator = $container->get('email.validator');
     $instance->ticketLabelResolver = $container->get('myeventlane_core.ticket_label_resolver');
     $instance->ticketAvailability = $container->get('myeventlane_commerce.ticket_availability');
+    $instance->currentUser = $container->get('current_user');
     return $instance;
   }
 
@@ -106,9 +115,6 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       return $pane_form;
     }
 
-    $attendee_details_enabled = $this->attendeeDetailsEnabled($form_state);
-    $attendee_toggle_selector = ':input[name="' . $this->getPluginId() . '[add_attendee_details]"]';
-
     $pane_form['intro'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-intro']],
@@ -116,16 +122,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         '#markup' => '<h3>' . $this->t('Attendee questions') . '</h3>',
       ],
       'desc' => [
-        '#markup' => '<p>' . $this->t('Add per-ticket details and answer organiser questions now if you have them.') . '</p>',
-      ],
-    ];
-
-    $pane_form['add_attendee_details'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Add ticket holder details and attendee questions'),
-      '#default_value' => $attendee_details_enabled ? 1 : 0,
-      '#attributes' => [
-        'class' => ['mel-attendee-details-toggle'],
+        '#markup' => '<p>' . $this->t('Add per-ticket details and answer organiser questions before continuing.') . '</p>',
       ],
     ];
 
@@ -133,12 +130,11 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-attendee-details-groups']],
       '#tree' => TRUE,
-      '#states' => [
-        'visible' => [
-          $attendee_toggle_selector => ['checked' => TRUE],
-        ],
-      ],
     ];
+    $logged_in_defaults = $this->getLoggedInAttendeeDefaults();
+
+    $holder_total = $this->getCollectableTicketHolderCount();
+    $holder_position = 0;
 
     foreach ($this->order->getItems() as $index => $order_item) {
       if (!$this->shouldCollectTicketHolders($order_item)) {
@@ -161,7 +157,8 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
 
       for ($delta = 0; $delta < $quantity; $delta++) {
         $holder = $holders[$delta] ?? NULL;
-        $pane_form['order_items'][$index][$delta] = $this->buildTicketHolderForm($holder, $templates, $index, $delta, $attendee_details_enabled);
+        $holder_position++;
+        $pane_form['order_items'][$index][$delta] = $this->buildTicketHolderForm($holder, $templates, $index, $delta, $logged_in_defaults, $holder_position, $holder_total);
       }
     }
 
@@ -169,16 +166,43 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   }
 
   /**
+   * Counts ticket-holder forms rendered in this pane.
+   */
+  private function getCollectableTicketHolderCount(): int {
+    $total = 0;
+    foreach ($this->order->getItems() as $order_item) {
+      if (!$this->shouldCollectTicketHolders($order_item)) {
+        continue;
+      }
+      $total += max(0, (int) $order_item->getQuantity());
+    }
+
+    return $total;
+  }
+
+  /**
    * Builds the form elements for a single ticket holder.
    */
-  private function buildTicketHolderForm(?ParagraphInterface $holder, array $templates, int $itemIndex, int $delta, bool $attendeeDetailsEnabled): array {
+  private function buildTicketHolderForm(?ParagraphInterface $holder, array $templates, int $itemIndex, int $delta, array $loggedInDefaults, int $holderPosition, int $holderTotal): array {
     $fieldset = [
       '#type' => 'details',
-      '#title' => $this->t('Attendee @num', ['@num' => $delta + 1]),
+      '#title' => $this->t('Ticket @current of @total', [
+        '@current' => $holderPosition,
+        '@total' => max(1, $holderTotal),
+      ]),
       '#open' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-card'],
+        'data-ticket-position' => (string) $holderPosition,
+        'data-ticket-total' => (string) max(1, $holderTotal),
       ],
+    ];
+
+    $fieldset['ticket_count_label'] = [
+      '#markup' => '<p class="mel-attendee-card__count">' . $this->t('Ticket @current of @total', [
+        '@current' => $holderPosition,
+        '@total' => max(1, $holderTotal),
+      ]) . '</p>',
     ];
 
     $fieldset['identity_heading'] = [
@@ -189,8 +213,8 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $fieldset['field_first_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('First name'),
-      '#default_value' => $holder?->get('field_first_name')->value ?? '',
-      '#required' => $attendeeDetailsEnabled,
+      '#default_value' => $this->defaultIfEmpty($holder?->get('field_first_name')->value ?? '', $loggedInDefaults['first_name'] ?? ''),
+      '#required' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
       ],
@@ -198,8 +222,8 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $fieldset['field_last_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Last name'),
-      '#default_value' => $holder?->get('field_last_name')->value ?? '',
-      '#required' => $attendeeDetailsEnabled,
+      '#default_value' => $this->defaultIfEmpty($holder?->get('field_last_name')->value ?? '', $loggedInDefaults['last_name'] ?? ''),
+      '#required' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
       ],
@@ -207,8 +231,8 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $fieldset['field_email'] = [
       '#type' => 'email',
       '#title' => $this->t('Email'),
-      '#default_value' => $holder?->get('field_email')->value ?? '',
-      '#required' => $attendeeDetailsEnabled,
+      '#default_value' => $this->defaultIfEmpty($holder?->get('field_email')->value ?? '', $loggedInDefaults['email'] ?? ''),
+      '#required' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
       ],
@@ -217,7 +241,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#type' => 'tel',
       '#title' => $this->t('Phone number'),
       '#default_value' => $holder && $holder->hasField('field_phone') ? ($holder->get('field_phone')->value ?? '') : '',
-      '#required' => $attendeeDetailsEnabled,
+      '#required' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
       ],
@@ -242,14 +266,18 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       $type = $question->hasField('field_question_type')
         ? (string) ($question->get('field_question_type')->value ?? 'text')
         : 'text';
-      $required = $question->hasField('field_question_required')
-        && (bool) ($question->get('field_question_required')->value ?? FALSE);
       $field_name = "extra_{$itemIndex}_{$delta}_{$q_index}";
 
       // Normalize: always read from field_attendee_extra_field.
       $default = '';
       if ($question->hasField('field_attendee_extra_field') && !$question->get('field_attendee_extra_field')->isEmpty()) {
         $default = $question->get('field_attendee_extra_field')->value ?? '';
+      }
+      if (trim((string) $default) === '') {
+        $basic_question = $this->classifyBasicAttendeeQuestion($question);
+        if ($basic_question !== NULL) {
+          $default = $loggedInDefaults[$basic_question] ?? '';
+        }
       }
 
       $options = [];
@@ -269,7 +297,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#options' => ['' => $this->t('- Select -')] + ($options ?: ['_' => $this->t('No options')]),
             '#default_value' => $default,
-            '#required' => $attendeeDetailsEnabled && $required,
+            '#required' => TRUE,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
@@ -281,7 +309,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#type' => 'checkbox',
             '#title' => $label,
             '#default_value' => (bool) $default,
-            '#required' => $attendeeDetailsEnabled && $required,
+            '#required' => TRUE,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
@@ -301,7 +329,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#options' => $options ?: ['_' => $this->t('Option')],
             '#default_value' => $decoded,
-            '#required' => $attendeeDetailsEnabled && $required,
+            '#required' => TRUE,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
@@ -315,7 +343,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#options' => $options ?: ['_' => $this->t('Option')],
             '#default_value' => $default,
-            '#required' => $attendeeDetailsEnabled && $required,
+            '#required' => TRUE,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
@@ -328,7 +356,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#rows' => 3,
             '#default_value' => $default,
-            '#required' => $attendeeDetailsEnabled && $required,
+            '#required' => TRUE,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
@@ -340,7 +368,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#type' => 'textfield',
             '#title' => $label,
             '#default_value' => is_scalar($default) || $default === NULL ? (string) ($default ?? '') : '',
-            '#required' => $attendeeDetailsEnabled && $required,
+            '#required' => TRUE,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
@@ -350,6 +378,79 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     }
 
     return $fieldset;
+  }
+
+  /**
+   * Gets account defaults for signed-in users.
+   *
+   * @return array{name?: string, email?: string, first_name?: string, last_name?: string}
+   *   Attendee defaults derived from the current account.
+   */
+  private function getLoggedInAttendeeDefaults(): array {
+    if (!$this->currentUser->isAuthenticated()) {
+      return [];
+    }
+
+    $name = trim($this->currentUser->getDisplayName());
+    $email = trim((string) $this->currentUser->getEmail());
+    [$first_name, $last_name] = $this->splitDisplayName($name);
+
+    return [
+      'name' => $name,
+      'email' => $email,
+      'first_name' => $first_name,
+      'last_name' => $last_name,
+    ];
+  }
+
+  /**
+   * Keeps existing attendee values ahead of account-derived defaults.
+   */
+  private function defaultIfEmpty(mixed $value, string $fallback): string {
+    $value = is_scalar($value) || $value === NULL ? trim((string) ($value ?? '')) : '';
+    return $value !== '' ? $value : $fallback;
+  }
+
+  /**
+   * Classifies the simple name/email attendee questions that can be prefilled.
+   */
+  private function classifyBasicAttendeeQuestion(ParagraphInterface $question): ?string {
+    $machine_name = $question->hasField('field_question_machine_name')
+      ? mb_strtolower(trim((string) ($question->get('field_question_machine_name')->value ?? '')))
+      : '';
+    $label = $question->hasField('field_question_label')
+      ? mb_strtolower(trim((string) ($question->get('field_question_label')->value ?? '')))
+      : '';
+    $type = $question->hasField('field_question_type')
+      ? mb_strtolower(trim((string) ($question->get('field_question_type')->value ?? 'textfield')))
+      : 'textfield';
+
+    $key = $machine_name !== '' ? $machine_name : $label;
+    $key = str_replace(['-', ' '], '_', $key);
+
+    if ($key === 'name' && $type === 'textfield') {
+      return 'name';
+    }
+
+    if ($key === 'email' && in_array($type, ['email', 'textfield'], TRUE)) {
+      return 'email';
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Splits a display name for the required first/last name fields.
+   *
+   * @return array{0: string, 1: string}
+   *   First name and last name.
+   */
+  private function splitDisplayName(string $name): array {
+    $parts = preg_split('/\s+/', trim($name)) ?: [];
+    $first_name = array_shift($parts) ?: '';
+    $last_name = trim(implode(' ', $parts));
+
+    return [$first_name, $last_name];
   }
 
   /**
@@ -372,22 +473,31 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       return;
     }
 
-    if (!$this->attendeeDetailsEnabled($form_state)) {
-      return;
-    }
-
     $pane_values = $form_state->getValue($this->getPluginId()) ?? [];
     $order_items = $pane_values['order_items'] ?? [];
     if (!is_array($order_items)) {
+      $form_state->setErrorByName("{$this->getPluginId()}][order_items", $this->t('Attendee details are required.'));
       return;
     }
 
-    foreach ($order_items as $index => $tickets) {
-      if (!is_array($tickets)) {
+    foreach ($this->order->getItems() as $index => $order_item) {
+      if (!$this->shouldCollectTicketHolders($order_item)) {
         continue;
       }
-      foreach ($tickets as $delta => $entry) {
-        if (!$this->isHolderFormDeltaKey($delta) || !is_array($entry)) {
+
+      $quantity = (int) $order_item->getQuantity();
+      $holders = $order_item->get('field_ticket_holder')->referencedEntities();
+      $templates = $this->getExtraQuestionTemplates($order_item);
+      $tickets = $order_items[$index] ?? [];
+      if (!is_array($tickets)) {
+        $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index", $this->t('Attendee details are required.'));
+        continue;
+      }
+
+      for ($delta = 0; $delta < $quantity; $delta++) {
+        $entry = $tickets[$delta] ?? [];
+        if (!is_array($entry)) {
+          $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta", $this->t('Attendee @num details are required.', ['@num' => $delta + 1]));
           continue;
         }
         // Validate required fields.
@@ -406,8 +516,75 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         if (empty($entry['field_phone'])) {
           $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_phone", $this->t('Phone number is required.'));
         }
+
+        $holder = $holders[$delta] ?? NULL;
+        $question_sources = ($holder instanceof ParagraphInterface
+          && $holder->hasField('field_attendee_questions')
+          && !$holder->get('field_attendee_questions')->isEmpty())
+          ? $holder->get('field_attendee_questions')->referencedEntities()
+          : $templates;
+        $this->validateQuestionAnswers($form_state, (int) $index, $delta, $entry, $question_sources);
       }
     }
+  }
+
+  /**
+   * Validates all attendee question answers for a ticket holder.
+   *
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   * @param int $itemIndex
+   *   The order item form index.
+   * @param int $delta
+   *   The ticket holder form delta.
+   * @param array $entry
+   *   Submitted ticket holder values.
+   * @param \Drupal\paragraphs\ParagraphInterface[] $questionSources
+   *   Question paragraphs rendered for this ticket holder.
+   */
+  private function validateQuestionAnswers(FormStateInterface $form_state, int $itemIndex, int $delta, array $entry, array $questionSources): void {
+    foreach ($questionSources as $q_index => $question) {
+      if (!$question instanceof ParagraphInterface) {
+        continue;
+      }
+
+      $field_key = "extra_{$itemIndex}_{$delta}_{$q_index}";
+      if (array_key_exists($field_key, $entry) && !$this->isEmptySubmittedAnswer($entry[$field_key])) {
+        continue;
+      }
+
+      $label = $question->hasField('field_question_label')
+        ? trim((string) ($question->get('field_question_label')->value ?? ''))
+        : '';
+      if ($label === '') {
+        $label = (string) $this->t('Attendee question');
+      }
+
+      $form_state->setErrorByName(
+        "{$this->getPluginId()}][order_items][$itemIndex][$delta][$field_key",
+        $this->t('@question is required.', ['@question' => $label])
+      );
+    }
+  }
+
+  /**
+   * Determines whether a submitted attendee answer is empty.
+   */
+  private function isEmptySubmittedAnswer(mixed $value): bool {
+    if ($value === NULL || $value === FALSE) {
+      return TRUE;
+    }
+
+    if (is_array($value)) {
+      foreach ($value as $item) {
+        if ($item !== NULL && $item !== FALSE && $item !== 0 && $item !== '0' && $item !== '') {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    }
+
+    return is_string($value) ? trim($value) === '' : FALSE;
   }
 
   /**
@@ -416,10 +593,6 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form): void {
     if (!$this->hasAnyQuestionTemplates()) {
       $this->saveMinimalTicketHoldersFromBuyerDetails($form_state);
-      return;
-    }
-
-    if (!$this->attendeeDetailsEnabled($form_state)) {
       return;
     }
 
@@ -658,57 +831,6 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
    */
   private function isHolderFormDeltaKey(mixed $key): bool {
     return is_int($key) || (is_string($key) && $key !== '' && ctype_digit($key));
-  }
-
-  /**
-   * Whether the buyer has chosen to reveal and submit attendee details.
-   */
-  private function attendeeDetailsEnabled(FormStateInterface $form_state): bool {
-    $pane_values = $form_state->getValue($this->getPluginId());
-    if (is_array($pane_values) && array_key_exists('add_attendee_details', $pane_values)) {
-      return !empty($pane_values['add_attendee_details']);
-    }
-
-    $user_input = $form_state->getUserInput();
-    if (isset($user_input[$this->getPluginId()]) && is_array($user_input[$this->getPluginId()])
-      && array_key_exists('add_attendee_details', $user_input[$this->getPluginId()])) {
-      return !empty($user_input[$this->getPluginId()]['add_attendee_details']);
-    }
-
-    return $this->hasExistingTicketHolderData();
-  }
-
-  /**
-   * Detects saved attendee data so existing details stay visible for editing.
-   */
-  private function hasExistingTicketHolderData(): bool {
-    foreach ($this->order->getItems() as $order_item) {
-      if (!$this->shouldCollectTicketHolders($order_item) || $order_item->get('field_ticket_holder')->isEmpty()) {
-        continue;
-      }
-
-      foreach ($order_item->get('field_ticket_holder')->referencedEntities() as $holder) {
-        if (!$holder instanceof ParagraphInterface) {
-          continue;
-        }
-        foreach (['field_first_name', 'field_last_name', 'field_email', 'field_phone'] as $field_name) {
-          if ($holder->hasField($field_name) && !$holder->get($field_name)->isEmpty()) {
-            return TRUE;
-          }
-        }
-        if ($holder->hasField('field_attendee_questions')) {
-          foreach ($holder->get('field_attendee_questions')->referencedEntities() as $question) {
-            if ($question instanceof ParagraphInterface
-              && $question->hasField('field_attendee_extra_field')
-              && !$question->get('field_attendee_extra_field')->isEmpty()) {
-              return TRUE;
-            }
-          }
-        }
-      }
-    }
-
-    return FALSE;
   }
 
   /**

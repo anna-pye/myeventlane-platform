@@ -1,0 +1,8 @@
+services:
+  myeventlane_vendor.commands.event_ticket_reconciliation:
+    class: Drupal\myeventlane_vendor\Commands\EventTicketReconciliationCommands
+    arguments:
+      - '@myeventlane_vendor.event_ticket_reconciliation'
+      - '@entity_type.manager'
+    tags:
+      - { name: drush.command }

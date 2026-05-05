@@ -6,8 +6,9 @@ namespace Drupal\myeventlane_checkout_flow\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
-use Drupal\node\NodeInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\node\NodeInterface;
 
 /**
  * Resolves vendor ownership for events and stores.
@@ -19,9 +20,12 @@ final class VendorOwnershipResolver {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface|null $currentVendorResolver
+   *   When the vendor module is enabled, resolves vendor (owner or team) for store linkage.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly ?CurrentVendorResolverInterface $currentVendorResolver = NULL,
   ) {}
 
   /**
@@ -69,22 +73,13 @@ final class VendorOwnershipResolver {
    *   The store, or NULL if not found.
    */
   public function getStoreForUser(AccountInterface $account): ?StoreInterface {
-    // Try to find store via vendor entity first.
-    if (\Drupal::moduleHandler()->moduleExists('myeventlane_vendor')) {
-      $vendor_storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
-      $vendors = $vendor_storage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('field_owner', $account->id())
-        ->range(0, 1)
-        ->execute();
-
-      if (!empty($vendors)) {
-        $vendor = $vendor_storage->load(reset($vendors));
-        if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
-          $store = $vendor->get('field_vendor_store')->entity;
-          if ($store instanceof StoreInterface) {
-            return $store;
-          }
+    // Prefer linked commerce store on the organiser vendor entity (owner or field_vendor_users).
+    if ($this->currentVendorResolver !== NULL) {
+      $vendor = $this->currentVendorResolver->resolveFromUser($account);
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store instanceof StoreInterface) {
+          return $store;
         }
       }
     }

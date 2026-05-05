@@ -7,3 +7,4 @@ dependencies:
   - drupal:node
   - myeventlane_core:myeventlane_core
   - myeventlane_attendee:myeventlane_attendee
+  - myeventlane_vendor:myeventlane_vendor

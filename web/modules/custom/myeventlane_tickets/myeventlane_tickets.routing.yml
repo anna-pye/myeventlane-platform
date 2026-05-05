@@ -45,7 +45,7 @@ myeventlane_tickets.download_pdf_by_code:
 myeventlane_tickets.event_tickets_types:
   path: '/vendor/events/{event}/tickets/types'
   defaults:
-    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::typesList'
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::typesRedirect'
     _title: 'Ticket types'
   requirements:
     _custom_access: 'myeventlane_tickets.access.event_tickets:access'

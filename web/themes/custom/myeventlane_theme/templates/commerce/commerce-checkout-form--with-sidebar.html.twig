@@ -75,85 +75,106 @@
       {{ 'Your order stays on one secure checkout page. Totals update when the checkout form refreshes.'|t }}
     </div>
 
+    <div class="mel-checkout-error-summary" role="alert" hidden>
+      {{ 'Please complete the required details to continue'|t }}
+    </div>
+
     <div class="mel-checkout__layout mel-checkout__grid mel-checkout__grid--sidebar-flow">
       <div class="mel-checkout__main">
 
-        {% if form.mel_fast_checkout is defined %}
-          {{ form.mel_fast_checkout }}
-        {% endif %}
+        <section class="mel-checkout-section mel-checkout-section--details" data-step="details" aria-labelledby="mel-checkout-step-details-title">
+          <div class="mel-checkout-section__header">
+            <p class="mel-checkout-section__eyebrow">{{ 'Step 1'|t }}</p>
+            <h2 id="mel-checkout-step-details-title" class="mel-checkout-heading">{{ 'Your details'|t }}</h2>
+            <p class="mel-checkout-section__intro">{{ "Tell us where to send tickets and add anything optional before attendee details."|t }}</p>
+          </div>
 
-        {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence', 'mel_fast_checkout') }}
+          {% if form.mel_fast_checkout is defined %}
+            {{ form.mel_fast_checkout }}
+          {% endif %}
 
-        {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}
-          {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
-            <div class="mel-contextual-help mel-contextual-help--checkout">
-              {{ mel_help_checkout_refund }}
+          {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence', 'mel_fast_checkout') }}
+
+          {% if form.mel_buyer_details is defined %}
+            <div class="mel-checkout-subsection mel-checkout-subsection--buyer">
+              {{ form.mel_buyer_details }}
             </div>
           {% endif %}
-        {% endif %}
-        {% if not (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) %}
-          {% if mel_help_checkout_guide is defined and mel_help_checkout_guide %}
-            <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-guide">
-              {{ mel_help_checkout_guide }}
+
+          {% if form.mel_donation is defined %}
+            <div class="mel-checkout-subsection mel-checkout-subsection--donation">
+              <div class="mel-checkout-subsection__header">
+                <p class="mel-checkout-section__eyebrow">{{ 'Optional'|t }}</p>
+                <h3 class="mel-checkout-subheading">{{ 'Optional donation'|t }}</h3>
+              </div>
+              {{ form.mel_donation }}
             </div>
           {% endif %}
-        {% endif %}
-        {% if mel_help_checkout_assistant is defined and mel_help_checkout_assistant %}
-          <div class="mel-checkout-help-assistant">
-            {{ mel_help_checkout_assistant }}
-          </div>
-        {% endif %}
 
-        {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
-          <div class="mel-checkout-section mel-checkout-section--attendees mel-checkout-section--ticket-holders">
-            <div class="mel-checkout-section__header">
-              <p class="mel-checkout-section__eyebrow">{{ 'Step 1'|t }}</p>
-              <h2 class="mel-checkout-heading">{{ 'Ticket holders'|t }}</h2>
-              <p class="mel-checkout-section__intro">{{ 'Grouped by ticket type. Add attendee questions here when the organiser asks for them.'|t }}</p>
+          {% if form.mel_legal_consent is defined %}
+            <div class="mel-checkout-subsection mel-checkout-subsection--legal">
+              {{ form.mel_legal_consent }}
             </div>
-            {{ form.ticket_holder_paragraph }}
-          </div>
-        {% endif %}
+          {% endif %}
 
-        {% if form.mel_buyer_details is defined %}
-          <div class="mel-checkout-section mel-checkout-section--buyer">
+          {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}
+            {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
+              <div class="mel-contextual-help mel-contextual-help--checkout">
+                {{ mel_help_checkout_refund }}
+              </div>
+            {% endif %}
+          {% endif %}
+          {% if not (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) %}
+            {% if mel_help_checkout_guide is defined and mel_help_checkout_guide %}
+              <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-guide">
+                {{ mel_help_checkout_guide }}
+              </div>
+            {% endif %}
+          {% endif %}
+          {% if mel_help_checkout_assistant is defined and mel_help_checkout_assistant %}
+            <div class="mel-checkout-help-assistant">
+              {{ mel_help_checkout_assistant }}
+            </div>
+          {% endif %}
+        </section>
+
+        {% if form.ticket_holder_paragraph is defined %}
+          {% set ticket_holder_content = form.ticket_holder_paragraph|render %}
+          {% if ticket_holder_content|striptags|trim is not empty %}
+          <section class="mel-checkout-section mel-checkout-section--attendees mel-checkout-section--ticket-holders" data-step="attendees" aria-labelledby="mel-checkout-step-attendees-title">
             <div class="mel-checkout-section__header">
               <p class="mel-checkout-section__eyebrow">{{ 'Step 2'|t }}</p>
-              <h2 class="mel-checkout-heading">{{ 'Contact details'|t }}</h2>
-              <p class="mel-checkout-section__intro">{{ "We'll send tickets and booking updates to these details."|t }}</p>
+              <h2 id="mel-checkout-step-attendees-title" class="mel-checkout-heading">{{ 'Ticket holders'|t }}</h2>
+              <p class="mel-checkout-section__intro">{{ 'Add each attendee once. Completed tickets fold away so the next ticket is ready.'|t }}</p>
             </div>
-            {{ form.mel_buyer_details }}
-          </div>
-        {% endif %}
-
-        {% if form.mel_donation is defined %}
-          <div class="mel-checkout-section mel-checkout-section--donation">
-            <div class="mel-checkout-section__header">
-              <p class="mel-checkout-section__eyebrow">{{ 'Optional'|t }}</p>
-              <h2 class="mel-checkout-heading">{{ 'Optional donation'|t }}</h2>
-            </div>
-            {{ form.mel_donation }}
-          </div>
-        {% endif %}
-
-        {% if form.mel_legal_consent is defined %}
-          <div class="mel-checkout-section mel-checkout-section--legal">
-            {{ form.mel_legal_consent }}
-          </div>
+            {{ ticket_holder_content }}
+          </section>
+          {% endif %}
         {% endif %}
 
         {% if form.payment_information is defined %}
-          <div class="mel-checkout-section mel-checkout-section--payment">
+          <section class="mel-checkout-section mel-checkout-section--payment" data-step="payment" aria-labelledby="mel-checkout-step-payment-title">
             <div class="mel-checkout-section__header">
-              <p class="mel-checkout-section__eyebrow">{{ 'Final step'|t }}</p>
-              <h2 class="mel-checkout-heading">{{ 'Payment'|t }}</h2>
+              <p class="mel-checkout-section__eyebrow">{{ 'Step 3'|t }}</p>
+              <h2 id="mel-checkout-step-payment-title" class="mel-checkout-heading">{{ 'Payment'|t }}</h2>
+              <p class="mel-checkout-section__intro">{{ 'Review your secure payment details, then complete your booking.'|t }}</p>
+            </div>
+            <div class="mel-checkout-payment-trust" aria-label="{{ 'Payment reassurance'|t }}">
+              <p class="mel-checkout-payment-trust__item">
+                <span class="mel-checkout-payment-trust__icon" aria-hidden="true">Lock</span>
+                {{ 'Secure checkout powered by Stripe'|t }}
+              </p>
+              <p class="mel-checkout-payment-trust__item">
+                <span class="mel-checkout-payment-trust__icon mel-checkout-payment-trust__icon--stripe" aria-hidden="true">Stripe</span>
+                {{ "You won’t be charged until you confirm"|t }}
+              </p>
             </div>
             {{ form.payment_information }}
-          </div>
+          </section>
         {% endif %}
 
         {% if form.actions %}
-          <div id="mel-checkout-cta" class="mel-checkout-section mel-checkout-section--cta">
+          <div id="mel-checkout-cta" class="mel-checkout-sticky" data-step="cta" aria-label="{{ 'Complete booking'|t }}">
             <div class="mel-checkout-cta">
               {# Total is form.actions.mel_cta_total (form_alter) so it rebuilds with AJAX next to submit. #}
               {{ form.actions }}

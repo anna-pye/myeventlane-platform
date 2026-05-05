@@ -115,7 +115,7 @@ myeventlane_rsvp.vendor_event_rsvps:
     _controller: '\Drupal\myeventlane_rsvp\Controller\VendorEventRsvpController::view'
     _title: 'Manage RSVPs'
   requirements:
-    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    _custom_access: 'myeventlane_rsvp.vendor_event_access:access'
     event: '\d+'
   options:
     parameters:
@@ -129,7 +129,7 @@ myeventlane_rsvp.export_csv:
     _controller: '\Drupal\myeventlane_rsvp\Controller\VendorRsvpExportController::export'
     _title: 'Export CSV'
   requirements:
-    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    _custom_access: 'myeventlane_rsvp.vendor_event_access:access'
     event: '\d+'
   options:
     parameters:
@@ -143,7 +143,7 @@ myeventlane_rsvp.checkin_list:
     _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpCheckinController::checkinPage'
     _title: 'RSVP Check-In'
   requirements:
-    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    _custom_access: 'myeventlane_rsvp.vendor_event_access:access'
     event: '\d+'
   options:
     parameters:
@@ -157,7 +157,7 @@ myeventlane_rsvp.checkin_list_pdf:
     _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpCheckinController::pdf'
     _title: 'RSVP Check-In PDF'
   requirements:
-    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    _custom_access: 'myeventlane_rsvp.vendor_event_access:access'
     event: '\d+'
   options:
     parameters:
@@ -171,7 +171,7 @@ myeventlane_rsvp.checkin_scan:
     _controller: '\Drupal\myeventlane_rsvp\Controller\QrCheckinController::scanPage'
     _title: 'QR Scan Check-In'
   requirements:
-    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    _custom_access: 'myeventlane_rsvp.vendor_event_access:access'
     event: '\d+'
   options:
     parameters:

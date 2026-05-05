@@ -4,7 +4,7 @@
  * Vendor sidebar icon set.
  *
  * Variables:
- * - icon: dashboard|notifications|events|orders|refunds|attendees|audience|payouts|growth|settings|help
+ * - icon: dashboard|notifications|events|orders|refunds|attendees|audience|payouts|growth|settings|help|analytics
  */
 #}
 {% if icon == 'dashboard' %}
@@ -42,6 +42,12 @@
     <path d="M2.8 15c.4-2.3 2.4-3.8 4.7-3.8 2.3 0 4.3 1.5 4.7 3.8"></path>
     <circle cx="14" cy="8" r="2"></circle>
     <path d="M11.9 14.8c.3-1.7 1.8-2.9 3.5-2.9.8 0 1.5.2 2.1.6"></path>
+  </svg>
+{% elseif icon == 'analytics' %}
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+    <path d="M3 16V10"></path>
+    <path d="M10 16V4"></path>
+    <path d="M17 16v-6"></path>
   </svg>
 {% elseif icon == 'audience' %}
   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
