@@ -81,16 +81,19 @@ final class CheckoutGroupedSummaryBuilder {
       }
     }
 
-    foreach ($order->getAdjustments() as $adjustment) {
-      if ((string) $adjustment->getLabel() !== 'Contribution') {
-        continue;
-      }
-      $donationPrice = $adjustment->getAmount();
-      if ($donationPrice instanceof Price && !$donationPrice->isZero()) {
-        $currencyCode = $donationPrice->getCurrencyCode();
-        $donationTotals[$currencyCode] = isset($donationTotals[$currencyCode])
-          ? $donationTotals[$currencyCode]->add($donationPrice)
-          : $donationPrice;
+    // Skip adjustments when donation line items already contributed (migration overlap).
+    if ($donationTotals === []) {
+      foreach ($order->getAdjustments() as $adjustment) {
+        if ((string) $adjustment->getLabel() !== 'Contribution') {
+          continue;
+        }
+        $donationPrice = $adjustment->getAmount();
+        if ($donationPrice instanceof Price && !$donationPrice->isZero()) {
+          $currencyCode = $donationPrice->getCurrencyCode();
+          $donationTotals[$currencyCode] = isset($donationTotals[$currencyCode])
+            ? $donationTotals[$currencyCode]->add($donationPrice)
+            : $donationPrice;
+        }
       }
     }
 
