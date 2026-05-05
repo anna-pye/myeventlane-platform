@@ -565,6 +565,14 @@
     }
   }
 
+  &__billing-strip--below-events {
+    margin-top: $spacing-2;
+  }
+
+  &__boost-slot--below-events {
+    margin-top: $spacing-3;
+  }
+
   &__section {
     width: 100%;
   }
@@ -859,6 +867,25 @@
     flex-direction: column;
     gap: $spacing-2;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  &__event-card-top {
+    display: flex;
+    gap: $spacing-4;
+    align-items: flex-start;
+  }
+
+  &__event-card-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2;
+  }
+
+  &__event-actions-row {
+    flex-wrap: wrap;
+    align-items: center;
   }
 
   &__event-card-head {

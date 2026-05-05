@@ -98,7 +98,10 @@ final class EventOverviewSalesSummaryTest extends KernelTestBase {
       $this->container->get('logger.factory'),
       $this->createMock(VendorSubscriptionService::class),
       $configFactory,
-      new UserVendorMembershipQuery($this->container->get('entity_type.manager')),
+      new UserVendorMembershipQuery(
+        $this->container->get('entity_type.manager'),
+        $this->container->get('entity_field.manager'),
+      ),
     );
   }
 
