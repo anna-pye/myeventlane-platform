@@ -198,10 +198,10 @@
    * @type {{id: string, label: string}[]}
    */
   var MEL_STEPS = [
-    { id: 'identity', label: 'Event identity' },
-    { id: 'tickets', label: 'How people join' },
-    { id: 'standout', label: 'Stand out' },
-    { id: 'attendee', label: 'Attendee questions' },
+    { id: 'identity', label: 'Basics & date' },
+    { id: 'tickets', label: 'Tickets or RSVP' },
+    { id: 'standout', label: 'Details' },
+    { id: 'attendee', label: 'Guest questions' },
     { id: 'preview', label: 'Preview' },
     { id: 'publish', label: 'Publish' },
   ];
@@ -611,8 +611,7 @@
   }
 
   /**
-   * Fills empty ticket product / ticket types autocomplete fields from server
-   * (entity label + id), using event title, inline tier titles, and optional nid.
+   * Fills an empty ticket product autocomplete field from server suggestions.
    *
    * @param {HTMLFormElement} form
    */
@@ -621,23 +620,18 @@
       return;
     }
     var productInp = form.querySelector('[name="mel[field_product_target]"]');
-    var typesInp = form.querySelector('[name="mel[field_ticket_types]"]');
-    if (!productInp || !typesInp) {
+    if (!productInp) {
       return;
     }
     var hasProduct = String(productInp.value || '').trim() !== '';
-    var hasTypes = String(typesInp.value || '').trim() !== '';
-    if (hasProduct && hasTypes) {
+    if (hasProduct) {
       return;
     }
     var eventTitle = val(form, 'mel[title]');
     if (eventTitle.length < 2) {
       return;
     }
-    var tierTitles = collectTierTitlesFromDom(form);
-    if (!hasTypes && tierTitles.length === 0 && hasProduct) {
-      return;
-    }
+    var tierTitles = [];
 
     if (form.getAttribute('data-mel-ticket-suggest-fetching') === '1') {
       return;
@@ -684,15 +678,9 @@
           productInp.value = d.product;
           changed = true;
         }
-        if (d.ticket_types && !String(typesInp.value || '').trim()) {
-          typesInp.value = d.ticket_types;
-          changed = true;
-        }
         if (changed) {
           productInp.dispatchEvent(new Event('change', { bubbles: true }));
-          typesInp.dispatchEvent(new Event('change', { bubbles: true }));
           productInp.dispatchEvent(new Event('input', { bubbles: true }));
-          typesInp.dispatchEvent(new Event('input', { bubbles: true }));
           setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
           refreshIntelligence(form);
         }
@@ -771,18 +759,6 @@
     }
     var m = s.match(/^(.*)\s\((\d+)\)\s*$/);
     return m ? m[1].trim() : s;
-  }
-
-  function countAutocompleteTags(raw) {
-    if (!raw || !String(raw).trim()) {
-      return 0;
-    }
-    return String(raw)
-      .split(',')
-      .map(function (p) {
-        return p.trim();
-      })
-      .filter(Boolean).length;
   }
 
   function getBuilderList(form) {
@@ -871,7 +847,14 @@
    * validation must not block those AJAX submits (only the main publish/save).
    */
   function isTicketBuilderSubmitter(submitter) {
-    if (!submitter || !submitter.name) {
+    if (!submitter) {
+      return false;
+    }
+    // Ticket manager "Save and sync tickets" must bypass Studio highlight gate (#name ticket_save_sync).
+    if (submitter.classList && submitter.classList.contains('mel-ticket-manager-save-sync')) {
+      return true;
+    }
+    if (!submitter.name) {
       return false;
     }
     var n = submitter.name;
@@ -1253,23 +1236,6 @@
     );
   }
 
-  function parseTiersHidden(raw) {
-    if (!raw || !String(raw).trim()) {
-      return [];
-    }
-    try {
-      var d = JSON.parse(raw);
-      if (!Array.isArray(d)) {
-        return [];
-      }
-      return d.filter(function (x) {
-        return x && typeof x === 'object';
-      });
-    } catch (e) {
-      return [];
-    }
-  }
-
   /**
    * Count of ticket tier "signals" the user can perceive as configured.
    *
@@ -1291,9 +1257,28 @@
       counts.push(ajaxShell.querySelectorAll('.js-mel-ticket-card[data-ticket-id]').length);
     }
 
-    var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-    if (hidden) {
-      counts.push(parseTiersHidden(hidden.value).length);
+    var mgrWrap = form.querySelector('[data-mel-ticket-manager-form="1"]');
+    if (mgrWrap) {
+      var mgrCount = 0;
+      mgrWrap.querySelectorAll('.mel-ticket-manager-row').forEach(function (row) {
+        var del = row.querySelector('input[type="checkbox"][name*="[more][delete]"]');
+        if (del && del.checked) {
+          return;
+        }
+        var activeEl = row.querySelector('input[type="checkbox"][name*="[active]"]');
+        if (activeEl && !activeEl.checked) {
+          return;
+        }
+        var titleEl = row.querySelector('input[name*="[title]"]');
+        var priceEl = row.querySelector('input[name*="[price]"]');
+        var title = titleEl ? String(titleEl.value || '').trim() : '';
+        var price = priceEl ? String(priceEl.value || '').trim() : '';
+        var priceOk = price !== '' && !isNaN(parseFloat(price)) && parseFloat(price) > 0;
+        if (title !== '' && priceOk) {
+          mgrCount++;
+        }
+      });
+      counts.push(mgrCount);
     }
 
     if (counts.length === 0) {
@@ -1666,11 +1651,7 @@
   }
 
   function syncTicketTiersFromDomToHidden(form) {
-    var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-    if (!hidden || !getBuilderList(form)) {
-      return;
-    }
-    hidden.value = JSON.stringify(collectTiersFromDom(form));
+    return;
   }
 
   function forceSyncTicketTiersBeforeSubmit(form) {
@@ -1680,9 +1661,8 @@
   }
 
   function syncTicketBuilderEventType(form) {
-    var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
     var list = getBuilderList(form);
-    if (!hidden || !list) {
+    if (!list) {
       return;
     }
     var tt = normalizeTicketKind(valRadio(form, 'mel[field_event_type]') || 'rsvp');
@@ -1792,12 +1772,11 @@
   }
 
   function initTicketBuilder(form) {
-    var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
     var list = getBuilderList(form);
-    if (!hidden || !list) {
+    if (!list) {
       return;
     }
-    var tiers = parseTiersHidden(hidden.value);
+    var tiers = [];
     renderTicketBuilderRows(form, list, tiers);
     form.setAttribute('data-mel-last-ticket-type', normalizeTicketKind(valRadio(form, 'mel[field_event_type]') || 'rsvp'));
 
@@ -2135,8 +2114,6 @@
 
     var productRaw = val(form, 'mel[field_product_target]');
     var hasProduct = productRaw !== '';
-    var typesRaw = val(form, 'mel[field_ticket_types]');
-    var typeCount = countAutocompleteTags(typesRaw);
 
     var nid = getNid(form);
     var url = ticketsWorkspaceUrl(nid);
@@ -2159,16 +2136,7 @@
         sumEl.textContent = autocompleteLabel(productRaw) || productRaw;
       }
       if (typesEl) {
-        if (typeCount > 0) {
-          typesEl.textContent =
-            typeCount === 1
-              ? Drupal.t('1 ticket type linked for checkout setup.')
-              : Drupal.t('@count ticket types linked for checkout setup.', {
-                  '@count': String(typeCount),
-                });
-        } else {
-          typesEl.textContent = Drupal.t('No extra ticket types linked — you can add them in the Tickets workspace.');
-        }
+        typesEl.textContent = Drupal.t('Manage ticket types in the Tickets workspace.');
       }
     } else {
       okBlock.setAttribute('hidden', 'hidden');
@@ -3698,13 +3666,46 @@
 
   var PREVIEW_DEBOUNCE_MS = 300;
 
-  function mergePreviewTiersForPricing(form) {
-    var domTiers = collectTiersFromDom(form);
-    if (domTiers.length) {
-      return domTiers;
+  function collectManagerTiersFromDom(form) {
+    var wrap = form.querySelector('[data-mel-ticket-manager-form="1"]');
+    if (!wrap) {
+      return [];
     }
-    var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-    return hidden ? parseTiersHidden(hidden.value) : [];
+    var out = [];
+    wrap.querySelectorAll('.mel-ticket-manager-row').forEach(function (row) {
+      var del = row.querySelector('input[type="checkbox"][name*="[more][delete]"]');
+      if (del && del.checked) {
+        return;
+      }
+      var activeEl = row.querySelector('input[type="checkbox"][name*="[active]"]');
+      if (activeEl && !activeEl.checked) {
+        return;
+      }
+      var titleEl = row.querySelector('input[name*="[title]"]');
+      var priceEl = row.querySelector('input[name*="[price]"]');
+      var currencyEl = row.querySelector('input[name*="[currency]"]');
+      var title = titleEl ? String(titleEl.value || '').trim() : '';
+      var price = priceEl ? String(priceEl.value || '').trim() : '';
+      if (title === '' && (price === '' || isNaN(parseFloat(price)))) {
+        return;
+      }
+      out.push({
+        ticket_kind: 'paid',
+        title: title,
+        price_number: price,
+        price_currency: currencyEl ? String(currencyEl.value || '').trim() : '',
+      });
+    });
+    return out;
+  }
+
+  function mergePreviewTiersForPricing(form) {
+    var out = collectTiersFromDom(form);
+    var mgr = collectManagerTiersFromDom(form);
+    if (mgr.length) {
+      out = out.concat(mgr);
+    }
+    return out;
   }
 
   function formatPreviewMoney(amount, currencyCode) {
@@ -3848,7 +3849,8 @@
       typeof pr.cta.label === 'string' &&
       pr.cta.label !== '' &&
         (tt !== 'paid' ||
-          (val(form, 'mel[field_product_target]') !== '' && paidTicketTierSignalCount(form) >= 1))
+          (val(form, 'mel[field_product_target]') !== '' &&
+            (paidTicketTierSignalCount(form) >= 1 || init.paidBookingReady === true)))
     ) {
       var cta = pr.cta;
       var type = typeof cta.type === 'string' ? cta.type : '';
@@ -3908,7 +3910,8 @@
     if (tt === 'paid') {
       var productOk = val(form, 'mel[field_product_target]') !== '';
       var tiersOk = paidTicketTierSignalCount(form) >= 1;
-      if (productOk && tiersOk && book) {
+      var paidReady = init.paidBookingReady === true;
+      if (productOk && (tiersOk || paidReady) && book) {
         a.setAttribute('href', book);
         a.textContent = ps.ctaTickets || 'Get your tickets';
       } else {

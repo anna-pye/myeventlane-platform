@@ -5,25 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Wizard step: tickets — reuses EventTicketsBuilder (same as Event Studio).
+ * Wizard step: booking mode and canonical ticket management link.
  */
 final class EventStudioTicketsForm extends EventStudioBaseForm {
-
-  protected EventTicketsBuilder $eventTicketsBuilder;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container): static {
-    $instance = parent::create($container);
-    $instance->eventTicketsBuilder = $container->get('myeventlane_vendor.ticket_builder');
-    return $instance;
-  }
 
   /**
    * {@inheritdoc}
@@ -57,9 +44,6 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
-    $form_state->set('event', $node);
-    $form_state->set('studio_node', $node);
-
     $form['mel']['tickets_intro'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
@@ -84,23 +68,6 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_event_type'] ?? 'rsvp',
     ];
-
-    $form['mel']['studio_ticket_tiers'] = [
-      '#type' => 'hidden',
-      '#default_value' => $melDefaults['studio_ticket_tiers'] ?? '[]',
-      '#attributes' => [
-        'id' => 'mel-studio-ticket-tiers-json',
-        'data-mel-studio-ticket-tiers' => '1',
-      ],
-    ];
-
-    $form_state->set('mel_ticket_builder_value_prefix', ['mel', 'embedded_ticket_wizard']);
-    $form['mel']['embedded_ticket_wizard'] = [
-      '#type' => 'container',
-      '#tree' => TRUE,
-      '#attributes' => ['class' => ['mel-ticket-wizard-embed']],
-    ];
-    $this->eventTicketsBuilder->build($form['mel']['embedded_ticket_wizard'], $form_state, $node);
 
     $form['mel']['rsvp_capacity'] = [
       '#type' => 'number',
@@ -151,35 +118,6 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       '#default_value' => !empty($melDefaults['collect_attendee_questions']),
       '#mel_option_card' => TRUE,
     ];
-
-    $form['#attached']['library'][] = 'myeventlane_vendor/ticket_cards';
-    $form['#attached']['library'][] = 'core/drupal.ajax';
-  }
-
-  /**
-   * Ticket builder AJAX actions (same contract as EventStudioForm).
-   */
-  public function handleAction(array &$form, FormStateInterface $form_state): void {
-    $event = $form_state->get('studio_node');
-    if (!$event instanceof NodeInterface) {
-      return;
-    }
-    $this->eventTicketsBuilder->handleAction($form, $form_state, $event);
-    $nid = (int) $event->id();
-    if ($nid > 0) {
-      $fresh = $this->entityTypeManager->getStorage('node')->load($nid);
-      if ($fresh instanceof NodeInterface) {
-        $form_state->set('studio_node', $fresh);
-        $form_state->set('event', $fresh);
-      }
-    }
-  }
-
-  /**
-   * AJAX replace target for the embedded ticket builder shell.
-   */
-  public function ajaxRebuildTicketBuilder(array &$form, FormStateInterface $form_state): array {
-    return $form['mel']['embedded_ticket_wizard']['builder_shell'] ?? [];
   }
 
 }

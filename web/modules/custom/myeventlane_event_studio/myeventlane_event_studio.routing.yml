@@ -99,6 +99,7 @@ myeventlane_event_studio.autosave:
   methods: [POST]
   requirements:
     _permission: 'access content'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 # Header CSRF: JS sends X-CSRF-Token from GET /session/token (same salt as
 # CsrfRequestHeaderAccessCheck). Do NOT use _csrf_token — that only validates ?token=.

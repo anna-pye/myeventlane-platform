@@ -3,6 +3,7 @@
  * Vendor messaging branding form styles.
  */
 
+.mel-vendor-brand-v2 .mel-card,
 #myeventlane-messaging-vendor-branding-form .mel-card {
   background: #ffffff;
   border: 1px solid #e9e3de;
@@ -85,4 +86,43 @@
   background: #e05a48;
   border-color: #e05a48;
   color: #ffffff;
+}
+
+.mel-vendor-brand-v2__section-lede {
+  margin: 0 0 16px;
+  color: #637185;
+  line-height: 1.5;
+}
+
+.mel-vendor-brand-v2__header-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 16px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #e9e3de;
+  font-weight: 700;
+  text-decoration: none;
+  color: #293241;
+}
+
+.mel-vendor-brand-v2__header-link:hover {
+  border-color: #f26d5b;
+  color: #f26d5b;
+}
+
+.mel-vendor-brand-v2__header-link:focus-visible {
+  outline: 3px solid rgba(124, 131, 253, 0.35);
+  outline-offset: 2px;
+}
+
+.mel-vendor-brand-v2__colour input[type="color"] {
+  width: 72px;
+  height: 48px;
+  padding: 4px;
+}
+
+.mel-vendor-brand-v2__actions {
+  margin-top: 8px;
 }

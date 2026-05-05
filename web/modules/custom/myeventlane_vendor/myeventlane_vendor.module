@@ -144,6 +144,7 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
     'myeventlane_vendor_events_grid' => [
       'variables' => [
         'events' => [],
+        'vendor_event_index_model' => NULL,
       ],
       'template' => 'myeventlane-vendor-events-grid',
       'path' => $vendor_theme_path . '/templates',
@@ -189,18 +190,6 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
         'show_boost' => FALSE,
       ],
       'template' => 'vendor/help-panel',
-    ],
-    'mel_ticket_card' => [
-      'variables' => [
-        'label' => '',
-        'kind_label' => '',
-        'price_display' => '',
-        'capacity_display' => '',
-        'sales_label' => '',
-        'status_badges' => [],
-        'sales_summary' => '',
-      ],
-      'template' => 'mel-ticket-card',
     ],
   ];
 }

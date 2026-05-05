@@ -1,12 +1,9 @@
 {#
 /**
  * @file
- * Vendor events list form: toolbar, bulk bar, card list/grid.
+ * Vendor events list form: bulk actions + view-mode toggle (TASK 6 shell below).
  *
- * Variables:
- * - element: The form render array.
- * - children: Full rendered children (avoid; we render explicit parts).
- * - create_event_url: Absolute path for create event CTA.
+ * Create-event CTA lives on the events index view model header — not duplicated here.
  */
 #}
 <form{{ attributes.addClass('mel-vendor-events-form') }}>
@@ -14,16 +11,13 @@
   {{ element.form_token }}
   {{ element.form_id }}
 
-  <div class="mel-events-toolbar mel-events-toolbar--page">
-    <div class="mel-events-toolbar__left">
-      <h2 class="mel-events-toolbar__title">{{ 'Your events'|t }}</h2>
-    </div>
-    <div class="mel-events-toolbar__right">
+  <div class="mel-vendor-events-bulk-toolbar">
+    <h2 class="mel-vendor-events-bulk-toolbar__title">{{ 'Bulk actions'|t }}</h2>
+    <div class="mel-vendor-events-bulk-toolbar__controls">
       <div class="mel-view-toggle" data-view-toggle>
         <button type="button" class="is-active" data-view="list">{{ 'List'|t }}</button>
         <button type="button" data-view="grid">{{ 'Grid'|t }}</button>
       </div>
-      <a href="{{ create_event_url }}" class="mel-btn mel-btn--primary">{{ '+ Create event'|t }}</a>
     </div>
   </div>
 

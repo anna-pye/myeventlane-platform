@@ -2,9 +2,29 @@
 /**
  * Event analytics — MEL insight dashboard (vendor console).
  *
- * Variables: event, overview, charts, ticket_tier_rollup, boost_page_url, public_event_url
+ * Variables: event, overview, charts, ticket_tier_rollup, boost_page_url, public_event_url,
+ * workspace_back_url, edit_event_url, export_pdf_url, export_excel_url
  */
 #}
+{% if workspace_back_url or edit_event_url or export_pdf_url or export_excel_url %}
+  <div class="mel-vendor-analytics-v2 mel-vendor-analytics-v2__workspace-toolbar" role="region" aria-label="{{ 'Analytics actions'|t }}">
+    <div class="mel-vendor-analytics-v2__workspace-toolbar-inner">
+      {% if workspace_back_url %}
+        <a href="{{ workspace_back_url }}" class="mel-btn mel-btn-secondary">{{ 'Back to event workspace'|t }}</a>
+      {% endif %}
+      {% if edit_event_url %}
+        <a href="{{ edit_event_url }}" class="mel-btn mel-btn-secondary">{{ 'Edit event'|t }}</a>
+      {% endif %}
+      {% if export_pdf_url %}
+        <a href="{{ export_pdf_url }}" class="mel-btn mel-btn-secondary" target="_blank" rel="noopener noreferrer">{{ 'Export PDF'|t }}</a>
+      {% endif %}
+      {% if export_excel_url %}
+        <a href="{{ export_excel_url }}" class="mel-btn mel-btn-secondary">{{ 'Export Excel'|t }}</a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
 {% set sales = overview.sales|default({}) %}
 {% set rsvp_block = overview.rsvps|default({}) %}
 {% set attendees = overview.attendees|default({}) %}

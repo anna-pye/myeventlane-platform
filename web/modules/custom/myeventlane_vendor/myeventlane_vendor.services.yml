@@ -17,6 +17,10 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_vendor']
 
+  logger.channel.myeventlane_ticket_reconciliation:
+    parent: logger.channel_base
+    arguments: ['myeventlane_ticket_reconciliation']
+
   logger.channel.mel_debug:
     parent: logger.channel_base
     arguments: ['mel_debug']
@@ -118,22 +122,6 @@ services:
   myeventlane_vendor.manage_event_navigation:
     class: Drupal\myeventlane_vendor\Service\ManageEventNavigation
 
-  myeventlane_vendor.ticket_builder:
-    class: Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder
-    arguments:
-      - '@myeventlane_event.ticket_tier_lifecycle'
-      - '@myeventlane_event.ticket_type_manager'
-      - '@myeventlane_commerce.ticket_status'
-      - '@myeventlane_commerce.ticket_tier_analytics'
-      - '@current_user'
-      - '@messenger'
-      - '@logger.factory'
-      - '@entity_type.manager'
-      - '@myeventlane_event.ticket_presets'
-      - '@date.formatter'
-    calls:
-      - [setStringTranslation, ['@string_translation']]
-
   myeventlane_vendor.service.ticket_sales:
     class: Drupal\myeventlane_vendor\Service\TicketSalesService
     arguments:
@@ -185,9 +173,95 @@ services:
       - '@myeventlane_boost.metrics'
       - '@?myeventlane_donations.service'
 
+  myeventlane_vendor.action_queue_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorActionQueueBuilder
+    arguments:
+      - '@router.route_provider'
+      - '@access_manager'
+      - '@logger.factory'
+      - '@string_translation'
+
+  myeventlane_vendor.event_presentation_alerts:
+    class: Drupal\myeventlane_vendor\Service\VendorEventPresentationAlertsBuilder
+    arguments:
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_event.ticket_type_manager'
+      - '@myeventlane_event.booking_flow_resolver'
+      - '@logger.channel.myeventlane_vendor'
+
+  myeventlane_vendor.event_ticket_reconciliation:
+    class: Drupal\myeventlane_vendor\Service\EventTicketReconciliationService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_event.ticket_type_manager'
+      - '@myeventlane_event.booking_flow_resolver'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@commerce_price.currency_formatter'
+      - '@logger.channel.myeventlane_ticket_reconciliation'
+      - '@string_translation'
+
+  myeventlane_vendor.event_index_view_model_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorEventIndexViewModelBuilder
+    arguments:
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor.service.rsvp_stats'
+      - '@myeventlane_core.event_state_resolver'
+      - '@myeventlane_vendor.event_presentation_alerts'
+      - '@router.route_provider'
+      - '@access_manager'
+      - '@datetime.time'
+      - '@date.formatter'
+      - '@entity_field.manager'
+      - '@string_translation'
+      - '@logger.factory'
+
+  myeventlane_vendor.dashboard_view_model_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorDashboardViewModelBuilder
+    arguments:
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.service.metrics_aggregator'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor.service.rsvp_stats'
+      - '@myeventlane_core.event_state_resolver'
+      - '@myeventlane_vendor.event_presentation_alerts'
+      - '@myeventlane_vendor.action_queue_builder'
+      - '@router.route_provider'
+      - '@access_manager'
+      - '@datetime.time'
+      - '@date.formatter'
+      - '@string_translation'
+      - '@logger.factory'
+
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService
-    arguments: ['@myeventlane_event.event_mode_manager', '@module_handler', '@string_translation']
+    arguments:
+      - '@myeventlane_event.event_mode_manager'
+      - '@module_handler'
+      - '@string_translation'
+      - '@router.route_provider'
+      - '@access_manager'
+      - '@current_user'
+
+  myeventlane_vendor.event_workspace_view_model_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorEventWorkspaceViewModelBuilder
+    arguments:
+      - '@myeventlane_core.event_state_resolver'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor.service.rsvp_stats'
+      - '@myeventlane_vendor.service.event_tabs'
+      - '@myeventlane_vendor.event_presentation_alerts'
+      - '@router.route_provider'
+      - '@access_manager'
+      - '@entity_field.manager'
+      - '@date.formatter'
+      - '@datetime.time'
+      - '@string_translation'
+      - '@logger.factory'
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
@@ -196,6 +270,7 @@ services:
       - '@myeventlane_core.domain_detector'
       - '@current_user'
       - '@messenger'
+      - '@myeventlane_vendor.dashboard_view_model_builder'
       - '@router.route_provider'
       - '@myeventlane_vendor.service.rsvp_stats'
       - '@entity_type.manager'
@@ -225,7 +300,13 @@ services:
 
   myeventlane_vendor.controller.vendor_events:
     class: Drupal\myeventlane_vendor\Controller\VendorEventsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@form_builder']
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@entity_type.manager'
+      - '@form_builder'
+      - '@myeventlane_vendor.event_index_view_model_builder'
     tags:
       - { name: controller.service_arguments }
 
@@ -300,7 +381,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_analytics:
     class: Drupal\myeventlane_vendor\Controller\VendorEventAnalyticsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.ticket_tier_lifecycle', '@myeventlane_commerce.ticket_tier_analytics', '@?myeventlane_pro.active_resolver']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.ticket_tier_lifecycle', '@myeventlane_commerce.ticket_tier_analytics', '@access_manager', '@logger.factory', '@?myeventlane_pro.active_resolver']
     tags:
       - { name: controller.service_arguments }
 
@@ -359,7 +440,7 @@ services:
 
   myeventlane_vendor.controller.vendor_dashboard_messaging_brand:
     class: Drupal\myeventlane_vendor\Controller\VendorDashboardMessagingBrandController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@form_builder', '@entity_type.manager', '@request_stack']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@form_builder', '@entity_type.manager']
     tags:
       - { name: controller.service_arguments }
 
@@ -371,6 +452,7 @@ services:
       - '@messenger'
       - '@logger.channel.myeventlane_vendor'
       - '@request_stack'
+      - '@myeventlane_vendor.event_workspace_view_model_builder'
     tags:
       - { name: controller.service_arguments }
 

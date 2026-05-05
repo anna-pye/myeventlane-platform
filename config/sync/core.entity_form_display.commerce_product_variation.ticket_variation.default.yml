@@ -4,16 +4,65 @@ status: true
 dependencies:
   config:
     - commerce_product.commerce_product_variation_type.ticket_variation
+    - field.field.commerce_product_variation.ticket_variation.field_collect_questions
+    - field.field.commerce_product_variation.ticket_variation.field_capacity
+    - field.field.commerce_product_variation.ticket_variation.field_best_value
     - field.field.commerce_product_variation.ticket_variation.field_event
+    - field.field.commerce_product_variation.ticket_variation.field_limit_per_order
+    - field.field.commerce_product_variation.ticket_variation.field_show_remaining
+    - field.field.commerce_product_variation.ticket_variation.field_ticket_end
     - field.field.commerce_product_variation.ticket_variation.field_ticket_description
+    - field.field.commerce_product_variation.ticket_variation.field_ticket_start
   module:
     - commerce_price
+    - datetime
     - text
 id: commerce_product_variation.ticket_variation.default
 targetEntityType: commerce_product_variation
 bundle: ticket_variation
 mode: default
 content:
+  field_best_value:
+    type: boolean_checkbox
+    weight: 1
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_capacity:
+    type: number
+    weight: 2
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  field_collect_questions:
+    type: boolean_checkbox
+    weight: 6
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_limit_per_order:
+    type: number
+    weight: 4
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  field_show_remaining:
+    type: boolean_checkbox
+    weight: 5
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_ticket_end:
+    type: datetime_default
+    weight: 8
+    region: content
+    settings: {  }
+    third_party_settings: {  }
   field_ticket_description:
     type: text_textarea
     weight: -2
@@ -22,9 +71,15 @@ content:
       rows: 4
       placeholder: ''
     third_party_settings: {  }
+  field_ticket_start:
+    type: datetime_default
+    weight: 7
+    region: content
+    settings: {  }
+    third_party_settings: {  }
   langcode:
     type: language_select
-    weight: 2
+    weight: 9
     region: content
     settings:
       include_locked: true

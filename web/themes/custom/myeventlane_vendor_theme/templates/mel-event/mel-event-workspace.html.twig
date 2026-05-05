@@ -1,20 +1,173 @@
 {#
 /**
  * @file
- * MEL Event Workspace — compact header (overview), horizontal tabs, main content.
- *
- * Tab labels/URLs mirror myeventlane_vendor.links.task.yml + Boost/Refund plugins.
- * insights: { score, primary, secondary, upsell } from EventIntelligenceService.
+ * MEL Event Workspace — workspace shell, TASK 8 overview, tabs, main content.
  */
 #}
+{% set model = vendor_event_workspace_model|default({}) %}
+{% set has_ws_model = model.event is defined and model.event.nid is defined %}
+
 <div class="mel-workspace mel-workspace--surface{% if sidebar %} mel-workspace--with-ticket-tools{% endif %}">
-  {% if header_stats is not empty %}
+  {% if has_ws_model and model.empty_state.title|default('') is not empty %}
+    <div class="mel-event-workspace-v2 mel-event-workspace-v2__empty" role="alert">
+      <h2 class="mel-event-workspace-v2__empty-title">{{ model.empty_state.title }}</h2>
+      <p class="mel-event-workspace-v2__empty-message">{{ model.empty_state.message|default('') }}</p>
+    </div>
+  {% elseif has_ws_model %}
+    <div class="mel-event-workspace-v2">
+      <header class="mel-event-workspace-v2__header">
+        <div class="mel-event-workspace-v2__header-text">
+          {% set st = model.event.status_severity|default('neutral') %}
+          <span class="mel-event-workspace-v2__status mel-event-workspace-v2__status--{{ st }}">{{ model.event.status_label|default('') }}</span>
+          <h1 class="mel-event-workspace-v2__title">{{ model.event.title|default('') }}</h1>
+          <p class="mel-event-workspace-v2__meta">
+            {% if model.event.date_label|default('') is not empty %}
+              <span class="mel-event-workspace-v2__meta-date">{{ model.event.date_label }}</span>
+            {% endif %}
+            {% if model.event.event_type_label|default('') is not empty %}
+              {% if model.event.date_label|default('') is not empty %}<span class="mel-event-workspace-v2__meta-sep" aria-hidden="true">·</span>{% endif %}
+              <span class="mel-event-workspace-v2__meta-type">{{ model.event.event_type_label }}</span>
+            {% endif %}
+          </p>
+        </div>
+        <div class="mel-event-workspace-v2__actions">
+          {% if model.actions.edit is not null %}
+            <a class="mel-event-workspace-v2__btn mel-event-workspace-v2__btn--primary" href="{{ model.actions.edit }}">{{ 'Edit event'|t }}</a>
+          {% else %}
+            <span class="mel-event-workspace-v2__btn mel-event-workspace-v2__btn--primary mel-event-workspace-v2__btn--disabled">{{ 'Edit event'|t }}</span>
+          {% endif %}
+          {% if model.actions.preview is not null %}
+            <a class="mel-event-workspace-v2__btn mel-event-workspace-v2__btn--secondary" href="{{ model.actions.preview }}">{{ 'Preview public event'|t }}</a>
+          {% endif %}
+          {% if model.actions.advanced_tickets is not null %}
+            <a class="mel-event-workspace-v2__btn mel-event-workspace-v2__btn--tertiary" href="{{ model.actions.advanced_tickets }}">{{ 'Advanced ticket manager'|t }}</a>
+          {% endif %}
+        </div>
+      </header>
+
+      {% if model.presentation_alerts is defined and model.presentation_alerts is iterable and model.presentation_alerts|length > 0 %}
+        <div class="mel-event-workspace-v2__presentation-alerts" role="region" aria-label="{{ 'Ticket and pricing setup'|t }}">
+          {% for alert in model.presentation_alerts %}
+            {% set asev = alert.severity|default('warning') %}
+            <div class="mel-vendor-alert mel-vendor-alert--{{ asev|e('html_attr') }} mel-event-workspace-v2__presentation-alert">
+              <div class="mel-vendor-alert__inner">
+                <span class="mel-vendor-alert__icon" aria-hidden="true"></span>
+                <div class="mel-vendor-alert__content">
+                  <p class="mel-vendor-alert__message">{{ alert.title|default('') }}</p>
+                  {% if alert.message|default('') is not empty %}
+                    <p class="mel-event-workspace-v2__presentation-alert-detail">{{ alert.message }}</p>
+                  {% endif %}
+                  {% if alert.action_url is defined and alert.action_url is not null and alert.action_label|default('') is not empty %}
+                    <div class="mel-event-workspace-v2__presentation-alert-actions">
+                      <a class="mel-event-workspace-v2__btn mel-event-workspace-v2__btn--secondary" href="{{ alert.action_url }}">{{ alert.action_label }}</a>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if model.next_action is defined and model.next_action is iterable %}
+        {% set na = model.next_action %}
+        {% set na_sev = na.severity|default('info') %}
+        <section class="mel-event-workspace-v2__next-action mel-event-workspace-v2__next-action--{{ na_sev }}" aria-label="{{ 'Suggested next step'|t }}">
+          <h2 class="mel-event-workspace-v2__card-title">{{ na.title|default('') }}</h2>
+          <p class="mel-event-workspace-v2__next-action-msg">{{ na.message|default('') }}</p>
+          {% if na.action_label|default('') is not empty and na.url is not null %}
+            <a class="mel-event-workspace-v2__btn mel-event-workspace-v2__btn--primary" href="{{ na.url }}">{{ na.action_label }}</a>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      <section class="mel-event-workspace-v2__readiness" aria-labelledby="mel-ws-readiness-heading">
+        <div class="mel-event-workspace-v2__readiness-head">
+          <h2 id="mel-ws-readiness-heading" class="mel-event-workspace-v2__card-title">{{ 'Readiness'|t }}</h2>
+          <span class="mel-event-workspace-v2__readiness-score">{{ model.readiness.score|default(0) }}%</span>
+        </div>
+        {% if model.readiness.items is iterable %}
+          <ul class="mel-event-workspace-v2__checklist">
+            {% for item in model.readiness.items %}
+              {% set ic = item.complete|default(false) %}
+              {% set isev = item.severity|default('neutral') %}
+              <li class="mel-event-workspace-v2__checklist-item mel-event-workspace-v2__checklist-item--{% if ic %}complete{% else %}incomplete{% endif %} mel-event-workspace-v2__checklist-item--{{ isev }}">
+                {% if item.url is not null and not ic %}
+                  <a href="{{ item.url }}" class="mel-event-workspace-v2__checklist-link">{{ item.label|default('') }}</a>
+                {% else %}
+                  <span class="mel-event-workspace-v2__checklist-label">{{ item.label|default('') }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </section>
+
+      {% if model.metrics is iterable and model.metrics is not empty %}
+        <section class="mel-event-workspace-v2__metrics" aria-label="{{ 'Booking summary'|t }}">
+          <h2 class="mel-event-workspace-v2__card-title visually-hidden">{{ 'Summary metrics'|t }}</h2>
+          <div class="mel-event-workspace-v2__grid mel-event-workspace-v2__grid--metrics">
+            {% for m in model.metrics %}
+              {% set ms = m.severity|default('neutral') %}
+              {% if m.url is not null %}
+                <a href="{{ m.url }}" class="mel-event-workspace-v2__metric mel-event-workspace-v2__metric--{{ ms }}">
+              {% else %}
+                <div class="mel-event-workspace-v2__metric mel-event-workspace-v2__metric--{{ ms }}">
+              {% endif %}
+                <span class="mel-event-workspace-v2__metric-label">{{ m.label|default('') }}</span>
+                <span class="mel-event-workspace-v2__metric-value">{{ m.value|default('—') }}</span>
+                {% if m.context|default('') is not empty %}
+                  <span class="mel-event-workspace-v2__metric-context">{{ m.context }}</span>
+                {% endif %}
+              {% if m.url is not null %}
+                </a>
+              {% else %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if model.tabs is iterable and model.tabs is not empty %}
+        <div class="mel-event-workspace-v2__tabs mel-workspace__tab-bar">
+          <nav class="mel-tabs mel-tabs--horizontal mel-event-workspace-v2__tab-nav" role="tablist" aria-label="{{ 'Event sections'|t }}">
+            {% include '@myeventlane_vendor_theme/components/workspace/workspace-tabs.html.twig' with { tabs: model.tabs } %}
+          </nav>
+        </div>
+      {% endif %}
+
+      <section class="mel-event-workspace-v2__shortcuts" aria-label="{{ 'Shortcuts'|t }}">
+        <h2 class="mel-event-workspace-v2__card-title">{{ 'Manage this event'|t }}</h2>
+        <div class="mel-event-workspace-v2__grid mel-event-workspace-v2__grid--shortcuts">
+          {% if model.actions.rsvps is not null %}
+            <a class="mel-event-workspace-v2__shortcut" href="{{ model.actions.rsvps }}"><span class="mel-event-workspace-v2__shortcut-label">{{ 'View RSVPs'|t }}</span></a>
+          {% endif %}
+          {% if model.actions.orders is not null %}
+            <a class="mel-event-workspace-v2__shortcut" href="{{ model.actions.orders }}"><span class="mel-event-workspace-v2__shortcut-label">{{ 'View orders'|t }}</span></a>
+          {% endif %}
+          {% if model.actions.attendees is not null %}
+            <a class="mel-event-workspace-v2__shortcut" href="{{ model.actions.attendees }}"><span class="mel-event-workspace-v2__shortcut-label">{{ 'View attendees'|t }}</span></a>
+          {% endif %}
+          {% if model.actions.checkin is not null %}
+            <a class="mel-event-workspace-v2__shortcut" href="{{ model.actions.checkin }}"><span class="mel-event-workspace-v2__shortcut-label">{{ 'Check in guests'|t }}</span></a>
+          {% endif %}
+          {% if model.actions.analytics is not null %}
+            <a class="mel-event-workspace-v2__shortcut" href="{{ model.actions.analytics }}"><span class="mel-event-workspace-v2__shortcut-label">{{ 'View analytics'|t }}</span></a>
+          {% endif %}
+          {% if model.actions.settings is not null %}
+            <a class="mel-event-workspace-v2__shortcut" href="{{ model.actions.settings }}"><span class="mel-event-workspace-v2__shortcut-label">{{ 'Event settings'|t }}</span></a>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  {% elseif header_stats is not empty %}
     {% include '@myeventlane_vendor_theme/mel-event/mel-event-header.html.twig' %}
   {% else %}
     {% include '@myeventlane_vendor_theme/components/workspace/workspace-header.html.twig' %}
   {% endif %}
 
-  {% if tabs %}
+  {% if not has_ws_model and tabs %}
     <div class="mel-workspace__tab-bar">
       <nav class="mel-tabs mel-tabs--horizontal" role="tablist" aria-label="{{ 'Event sections'|t }}">
         {% include '@myeventlane_vendor_theme/components/workspace/workspace-tabs.html.twig' %}
@@ -31,13 +184,13 @@
       {% endif %}
 
       <main class="mel-workspace__content">
-        {% if workspace_event_boost and workspace_event_boost.performance is defined and workspace_event_boost.performance.ui is defined and workspace_event_boost.performance.ui.show %}
+        {% if not has_ws_model and workspace_event_boost and workspace_event_boost.performance is defined and workspace_event_boost.performance.ui is defined and workspace_event_boost.performance.ui.show %}
           {% include '@myeventlane_vendor_theme/components/mel-boost-insights-panel.html.twig' with {
             performance: workspace_event_boost.performance
           } only %}
         {% endif %}
 
-        {% if insights is not empty and insights is iterable %}
+        {% if not has_ws_model and insights is not empty and insights is iterable %}
           <div class="mel-intelligence" role="region" aria-label="{{ 'Event guidance'|t }}">
             {% if insights.score is defined %}
               <div class="mel-score-card">
@@ -90,7 +243,7 @@
               </div>
             {% endif %}
           </div>
-        {% else %}
+        {% elseif not has_ws_model %}
           <div class="mel-insights-empty">
             <p>{{ "Your event is looking good. We'll let you know if anything needs attention."|t }}</p>
           </div>

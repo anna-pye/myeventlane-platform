@@ -7,25 +7,28 @@ namespace Drupal\myeventlane_event_studio\Form;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
-use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
+use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
+use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_vendor\Form\EventTicketManagerForm;
+use Drupal\myeventlane_vendor\Service\EventTicketReconciliationService;
 use Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate;
 use Drupal\myeventlane_location\Service\LocationProviderManager;
-use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -46,6 +49,8 @@ final class EventStudioForm extends FormBase {
 
   protected EntityFieldManagerInterface $entityFieldManager;
 
+  protected FormBuilderInterface $formBuilder;
+
   protected EventStudioSaveService $saveService;
 
   protected AccountProxyInterface $currentUser;
@@ -57,9 +62,11 @@ final class EventStudioForm extends FormBase {
    */
   protected EventHighlightHelper $eventHighlightHelper;
 
-  protected EventTicketsBuilder $eventTicketsBuilder;
-
   protected TicketTypeManager $ticketTypeManager;
+
+  protected TicketTierLifecycleService $ticketTierLifecycle;
+
+  protected EventTicketReconciliationService $eventTicketReconciliation;
 
   protected LoggerInterface $logger;
 
@@ -86,14 +93,16 @@ final class EventStudioForm extends FormBase {
     $instance = parent::create($container);
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->entityFieldManager = $container->get('entity_field.manager');
+    $instance->formBuilder = $container->get('form_builder');
     $instance->saveService = $container->get('myeventlane_event_studio.save');
     $instance->currentUser = $container->get('current_user');
     $instance->locationProvider = $container->has('myeventlane_location.provider_manager')
       ? $container->get('myeventlane_location.provider_manager')
       : NULL;
     $instance->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
-    $instance->eventTicketsBuilder = $container->get('myeventlane_vendor.ticket_builder');
     $instance->ticketTypeManager = $container->get('myeventlane_event.ticket_type_manager');
+    $instance->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
+    $instance->eventTicketReconciliation = $container->get('myeventlane_vendor.event_ticket_reconciliation');
     $instance->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
     $instance->melPayloadService = $container->get('myeventlane_event_studio.mel_payload');
     $instance->entityAutocompleteMelNormalizer = $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer');
@@ -119,7 +128,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventTicketsBuilder, $this->ticketTypeManager, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver)
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver)
       && isset($this->melPlatformSupportWizardForm)) {
       return;
     }
@@ -129,6 +138,9 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->entityFieldManager)) {
       $this->entityFieldManager = $container->get('entity_field.manager');
+    }
+    if (!isset($this->formBuilder)) {
+      $this->formBuilder = $container->get('form_builder');
     }
     if (!isset($this->saveService)) {
       $this->saveService = $container->get('myeventlane_event_studio.save');
@@ -142,11 +154,14 @@ final class EventStudioForm extends FormBase {
     if (!isset($this->eventHighlightHelper)) {
       $this->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
     }
-    if (!isset($this->eventTicketsBuilder)) {
-      $this->eventTicketsBuilder = $container->get('myeventlane_vendor.ticket_builder');
-    }
     if (!isset($this->ticketTypeManager)) {
       $this->ticketTypeManager = $container->get('myeventlane_event.ticket_type_manager');
+    }
+    if (!isset($this->ticketTierLifecycle)) {
+      $this->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
+    }
+    if (!isset($this->eventTicketReconciliation)) {
+      $this->eventTicketReconciliation = $container->get('myeventlane_vendor.event_ticket_reconciliation');
     }
     if (!isset($this->logger)) {
       $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
@@ -225,7 +240,7 @@ final class EventStudioForm extends FormBase {
     }
 
     // AJAX rebuilds do not receive $route_node; cached form state can lose studio_node. Ticket
-    // builder actions then exit early in handleAction() with no save. Rehydrate from hidden nid.
+    // Ticket saves can submit independently from the event save. Rehydrate from hidden nid.
     $user_input = $form_state->getUserInput();
     $nid_from_request = 0;
     if (is_array($user_input) && isset($user_input['nid'])) {
@@ -403,11 +418,6 @@ final class EventStudioForm extends FormBase {
       $product_default = $event->get('field_product_target')->entity;
     }
 
-    $ticket_types_default = [];
-    if ($event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()) {
-      $ticket_types_default = $event->get('field_ticket_types')->referencedEntities();
-    }
-
     $field_event_intro_default = '';
     if ($event->hasField('field_event_intro') && !$event->get('field_event_intro')->isEmpty()) {
       $field_event_intro_default = (string) ($event->get('field_event_intro')->value ?? '');
@@ -485,42 +495,19 @@ final class EventStudioForm extends FormBase {
       && $event->get('field_product_target')->isEmpty()) {
       $needs_ticket_product = TRUE;
     }
+    $paid_booking_ready = FALSE;
+    if ($has_saved_event && in_array($type_default, ['paid', 'both'], TRUE)) {
+      $paid_booking_ready = $this->ticketTypeManager->loadPublishedPaidTicketPrices($event) !== [];
+    }
 
     $venue_default = $this->entityAutocompleteMelNormalizer->normalizeSingle($venue_default, 'myeventlane_venue', 'mel.venue_saved');
     $product_default = $this->entityAutocompleteMelNormalizer->normalizeSingle($product_default, 'commerce_product', 'mel.field_product_target');
-    $ticket_types_default = $this->entityAutocompleteMelNormalizer->normalizeTags($ticket_types_default, 'mel_ticket_type', 'mel.field_ticket_types');
     $category_default = $this->entityAutocompleteMelNormalizer->normalizeTags($category_default, 'taxonomy_term', 'mel.field_category');
     $tags_default = $this->entityAutocompleteMelNormalizer->normalizeTags($tags_default, 'taxonomy_term', 'mel.field_tags');
     $field_accessibility_default = $this->entityAutocompleteMelNormalizer->normalizeTags($field_accessibility_default, 'taxonomy_term', 'mel.field_accessibility');
 
-    $studio_tiers_json = $this->encodeStudioTiersJsonForEvent($event);
-
     $title_trimmed = trim((string) $event->getTitle());
     $is_placeholder_title = $title_trimmed === '' || $title_trimmed === (string) $this->t('Untitled event');
-
-    $paid_type = ($type_default === 'paid');
-    $no_paid_tickets_yet = FALSE;
-    if ($paid_type) {
-      if ($has_saved_event) {
-        $no_paid_tickets_yet = !$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty();
-      }
-      else {
-        try {
-          $decoded_tiers = json_decode($studio_tiers_json, TRUE, 512, JSON_THROW_ON_ERROR);
-        }
-        catch (\JsonException) {
-          $decoded_tiers = [];
-        }
-        $no_paid_tickets_yet = !is_array($decoded_tiers) || $decoded_tiers === [];
-      }
-    }
-
-    $paid_no_mel_tickets = $has_saved_event && $paid_type
-      && $this->ticketTypeManager->loadAllEventTicketTypes($event) === [];
-    $show_first_ticket_guidance = $type_default !== 'external' && (
-      ($paid_type && !$has_saved_event && $no_paid_tickets_yet)
-      || $paid_no_mel_tickets
-    );
 
     // MEL contribution (donations / platform support): show for non-external events only.
     $show_mel_contribution = $type_default !== 'external';
@@ -865,20 +852,6 @@ final class EventStudioForm extends FormBase {
       '#default_value' => $lng_default,
     ];
 
-    if ($show_first_ticket_guidance) {
-      $form['mel']['first_ticket_guidance'] = [
-        '#type' => 'container',
-        '#weight' => -6,
-        '#attributes' => ['class' => ['mel-studio-guidance', 'mel-studio-guidance--tickets', 'messages', 'messages--status']],
-        'text' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Add your first ticket to get started'),
-          '#attributes' => ['class' => ['mel-studio-guidance__text']],
-        ],
-      ];
-    }
-
     $form['mel']['tickets_intro'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
@@ -904,101 +877,42 @@ final class EventStudioForm extends FormBase {
       '#default_value' => $type_default,
     ];
 
-    $form['mel']['studio_ticket_tiers'] = [
-      '#type' => 'hidden',
-      '#default_value' => $studio_tiers_json,
-      '#attributes' => [
-        'id' => 'mel-studio-ticket-tiers-json',
-        'data-mel-studio-ticket-tiers' => '1',
-      ],
-    ];
-
-    $form['mel']['ticket_simplicity_warn'] = [
+    $form['mel']['tickets_section'] = [
       '#type' => 'container',
-      '#attributes' => [
-        'id' => 'mel-ticket-simplicity-warn',
-        'class' => ['mel-ticket-simplicity-warn', 'messages', 'messages--warning'],
-        'hidden' => 'hidden',
-      ],
-      'inner' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Most events convert best with 3 to 5 ticket types. Keep the list simple unless attendees need more choices.'),
-        '#attributes' => ['class' => ['mel-ticket-simplicity-warn__text']],
-      ],
+      '#attributes' => ['class' => ['mel-tickets-section']],
     ];
-
     if ($has_saved_event) {
-      $form_state->set('event', $event);
-      $form['mel']['embedded_ticket_wizard'] = [
+      $form['mel']['tickets_section']['tickets_guidance'] = [
         '#type' => 'container',
-        '#tree' => TRUE,
-        '#weight' => 13,
-        '#attributes' => [
-          'class' => ['mel-ticket-wizard-embed'],
-        ],
-      ];
-      $form_state->set('mel_ticket_builder_value_prefix', ['mel', 'embedded_ticket_wizard']);
-      $this->eventTicketsBuilder->build($form['mel']['embedded_ticket_wizard'], $form_state, $event);
-    }
-
-    $form['mel']['studio_ticket_builder'] = [
-      '#type' => 'container',
-      '#access' => !$has_saved_event,
-      '#attributes' => [
-        'class' => ['mel-ticket-builder', 'mel-ticket-builder--draft', 'mel-stack', 'mel-stack--lg'],
-        'data-mel-draft-ticket-builder' => '1',
-      ],
-      'help' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Add ticket cards now. They stay as draft cards until the event saves, then valid cards become ticket entities.'),
-        '#attributes' => ['class' => ['mel-ticket-builder__help']],
-      ],
-      'warn' => [
-        '#type' => 'container',
-        '#attributes' => [
-          'id' => 'mel-ticket-tiers-warn',
-          'class' => ['mel-ticket-tiers-warn', 'messages', 'messages--warning'],
-          'hidden' => 'hidden',
-        ],
-        'inner' => [
+        '#attributes' => ['class' => ['mel-tickets-paid-guidance']],
+        'text' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Add at least one ticket type.'),
-          '#attributes' => ['class' => ['mel-ticket-tiers-warn__text']],
+          '#value' => $this->t('Add ticket rows with the quick actions, mark tickets Active when they are ready to sell, then click Save and sync tickets.'),
+          '#attributes' => ['class' => ['mel-tickets-paid-guidance__text']],
         ],
-      ],
-      'list' => [
+      ];
+      $form['mel']['tickets_section']['tickets'] = $this->formBuilder->getForm(EventTicketManagerForm::class, $event);
+    }
+    else {
+      $form['mel']['tickets_section']['save_first'] = [
         '#type' => 'container',
-        '#attributes' => [
-          'class' => ['mel-ticket-list', 'mel-ticket-list--draft', 'js-mel-ticket-sortable'],
-          'data-mel-ticket-card-list' => 'draft',
-          'aria-live' => 'polite',
+        '#attributes' => ['class' => ['mel-ticket-cta']],
+        'markup' => [
+          '#markup' => '
+            <div class="mel-ticket-cta__inner">
+              <h3>Tickets</h3>
+              <p>Save this event before adding ticket types.</p>
+              <span class="button button--primary is-disabled" aria-disabled="true">' . $this->t('Save event to manage tickets') . '</span>
+            </div>',
         ],
-      ],
-      'empty' => [
-        '#type' => 'container',
-        '#attributes' => [
-          'class' => ['mel-ticket-builder__empty', 'mel-ticket-builder__empty--draft'],
-          'data-mel-ticket-empty' => '1',
-        ],
-        'text' => [
-          '#markup' => '<p class="mel-ticket-builder__empty-title">' . $this->t('No ticket cards yet') . '</p>'
-            . '<p class="mel-ticket-builder__empty-body">' . $this->t('Use Add another ticket type to create an editable draft card. Invalid drafts stay in the browser until you complete them.') . '</p>',
-        ],
-      ],
-      'add' => [
-        '#type' => 'button',
-        '#value' => $this->t('Add another ticket type'),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--primary', 'button'],
-          'type' => 'button',
-          'id' => 'mel-add-ticket-tier',
-        ],
+      ];
+    }
+    $form['mel']['tickets_section']['#states'] = [
+      'visible' => [
+        ':input[name="mel[field_event_type]"]' => ['value' => 'paid'],
       ],
     ];
-    $form['#attached']['library'][] = 'myeventlane_vendor/ticket_cards';
 
     $form['mel']['rsvp_capacity'] = [
       '#type' => 'number',
@@ -1023,39 +937,8 @@ final class EventStudioForm extends FormBase {
         'target_bundles' => ['ticket' => 'ticket'],
       ],
       '#default_value' => $product_default,
-      '#description' => $this->t('Required for paid events: link your Commerce ticket product. Configure ticket types below once the event is saved.'),
+      '#description' => $this->t('Required for paid events: link your Commerce ticket product, then manage ticket types on the Tickets screen.'),
       '#attributes' => ['class' => ['mel-input']],
-      '#states' => [
-        'visible' => [
-          ':input[name="mel[field_event_type]"]' => ['value' => 'paid'],
-        ],
-      ],
-    ];
-
-    $form['mel']['field_ticket_types'] = [
-      '#type' => 'entity_autocomplete',
-      '#title' => $this->t('Ticket types'),
-      '#target_type' => 'mel_ticket_type',
-      '#tags' => TRUE,
-      '#default_value' => $ticket_types_default,
-      '#description' => $has_saved_event
-        ? $this->t('Ticket types are managed in the ticket builder above.')
-        : $this->t('Optional: attach existing ticket type entities. After your first save, use the full ticket builder in Event Studio.'),
-      '#attributes' => ['class' => ['mel-input']],
-      '#access' => !$has_saved_event,
-      '#states' => [
-        'visible' => [
-          ':input[name="mel[field_event_type]"]' => ['value' => 'paid'],
-        ],
-      ],
-    ];
-
-    $form['mel']['paid_ticket_panel'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-panel', 'mel-panel--placeholder']],
-      'text' => [
-        '#markup' => '<p class="mel-panel__text">' . $this->t('Use the ticket product above for checkout. Add and edit tiers in the ticket builder on this page.') . '</p>',
-      ],
       '#states' => [
         'visible' => [
           ':input[name="mel[field_event_type]"]' => ['value' => 'paid'],
@@ -1420,6 +1303,7 @@ final class EventStudioForm extends FormBase {
         'published' => $event->isPublished(),
         'hasCoverImage' => $has_cover,
         'needsTicketProduct' => $needs_ticket_product,
+        'paidBookingReady' => $paid_booking_ready,
         'ticketType' => $type_default,
         'venueMode' => $venue_mode_default,
       ],
@@ -1477,6 +1361,20 @@ final class EventStudioForm extends FormBase {
     ];
 
     $form['#mel_studio_node'] = $event;
+
+    // Optional advanced Commerce ticket workspace — surfaced in sidebar only (access-checked).
+    $form['#mel_advanced_ticket_manager_url'] = NULL;
+    if (!$event->isNew()) {
+      try {
+        $advanced_tickets = Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => (int) $event->id()]);
+        if ($advanced_tickets->access()) {
+          $form['#mel_advanced_ticket_manager_url'] = $advanced_tickets->toString();
+        }
+      }
+      catch (\Throwable) {
+        // Route may be absent in minimal installs.
+      }
+    }
 
     return $form;
   }
@@ -1562,6 +1460,61 @@ final class EventStudioForm extends FormBase {
         }
       }
     }
+
+    if ($event instanceof NodeInterface && in_array($event_type, ['paid', 'both'], TRUE)) {
+      $ticket_rows = $this->getEmbeddedTicketManagerTicketRows($form_state);
+      $active_count = 0;
+      $best_value_count = 0;
+      foreach ($ticket_rows as $row_key => $row) {
+        if (!is_array($row) || !empty($row['more']['delete'])) {
+          continue;
+        }
+        if (!$this->embeddedTicketRowHasInput($row)) {
+          continue;
+        }
+        $active_count++;
+        if (!empty($row['best_value'])) {
+          $best_value_count++;
+        }
+        $prefix = 'mel][tickets_section][tickets][tickets][' . $row_key;
+        $this->validateEmbeddedTicketManagerRow($form_state, $row, $prefix);
+      }
+      if ($active_count > 1 && $best_value_count > 1) {
+        $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Only one ticket can be marked as best value.'));
+      }
+      if ($event->id() !== NULL && $active_count === 0 && !$this->eventHasPaidTicketTypesOnField($event)) {
+        $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Paid events need at least one ticket with a name and price. Add a ticket row below or use the Advanced ticket manager.'));
+      }
+
+      $needs_active_paid = FALSE;
+      $sellable_paid = 0;
+      $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
+      foreach ($ticket_rows as $row_key => $row) {
+        if (!is_array($row) || !empty($row['more']['delete'])) {
+          continue;
+        }
+        if (!$this->embeddedTicketRowHasInput($row)) {
+          continue;
+        }
+        $price = trim((string) ($row['price'] ?? ''));
+        if ($price !== '' && is_numeric($price) && (float) $price > 0) {
+          $needs_active_paid = TRUE;
+        }
+        $vid = $this->ticketTierLifecycle->managerSubmittedVariationId($row_key, $row);
+        $loaded = $vid > 0 ? $variation_storage->load($vid) : NULL;
+        $variation = $loaded instanceof ProductVariationInterface ? $loaded : NULL;
+        if ($this->ticketTierLifecycle->managerPaidRowIsSellable($row, $variation)) {
+          $sellable_paid++;
+        }
+      }
+      if ($needs_active_paid && $sellable_paid === 0) {
+        $form_state->setErrorByName(
+          'mel][tickets_section][tickets][tickets',
+          $this->t('Turn on at least one active paid ticket before this event can sell tickets.'),
+        );
+      }
+    }
+
   }
 
   /**
@@ -1617,6 +1570,26 @@ final class EventStudioForm extends FormBase {
       else {
         $this->messenger()->addStatus($this->t('Event saved.'));
       }
+
+      $ticket_rows = $this->getEmbeddedTicketManagerTicketRows($form_state);
+      $saved_event_type = $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
+        ? (string) $node->get('field_event_type')->value
+        : '';
+      if ($ticket_rows !== [] && in_array($saved_event_type, ['paid', 'both'], TRUE)) {
+        $persist = $this->ticketTierLifecycle->persistTicketManagerRows($node, $this->currentUser(), $ticket_rows);
+        if (!$persist['ok']) {
+          foreach ($persist['messages'] as $msg) {
+            $this->messenger()->addError($msg);
+          }
+        }
+        else {
+          $this->logger->notice('Event Studio: ticket save/sync completed for nid @nid (persistTicketManagerRows).', [
+            '@nid' => (string) $node->id(),
+          ]);
+          $this->messenger()->addStatus($this->eventTicketReconciliation->formatPostTicketPersistAuditSummary($node));
+        }
+      }
+
       try {
         $redirect_options = [];
         if ($wentLiveTransition) {
@@ -1632,35 +1605,6 @@ final class EventStudioForm extends FormBase {
         $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()], $canonical_options));
       }
     }
-  }
-
-  /**
-   * Ticket builder AJAX actions (EventTicketsBuilder); preserves fresh node in form state.
-   */
-  public function handleAction(array &$form, FormStateInterface $form_state): void {
-    $this->ensureInjectedServices();
-    $event = $form_state->get('studio_node');
-    if (!$event instanceof NodeInterface) {
-      $this->logger->error('Event Studio ticket builder: studio_node missing from form state; ticket action skipped. Check nid rehydration on AJAX rebuild.');
-      $this->messenger()->addError($this->t('Could not attach tickets to this event (session state). Reload the page and try again.'));
-      return;
-    }
-    $this->eventTicketsBuilder->handleAction($form, $form_state, $event);
-    $nid = (int) $event->id();
-    if ($nid > 0) {
-      $fresh = $this->entityTypeManager->getStorage('node')->load($nid);
-      if ($fresh instanceof NodeInterface) {
-        $form_state->set('studio_node', $fresh);
-        $form_state->set('event', $fresh);
-      }
-    }
-  }
-
-  /**
-   * AJAX replace target for the embedded ticket builder shell.
-   */
-  public function ajaxRebuildTicketBuilder(array &$form, FormStateInterface $form_state): array {
-    return $form['mel']['embedded_ticket_wizard']['builder_shell'] ?? [];
   }
 
   /**
@@ -1848,55 +1792,6 @@ final class EventStudioForm extends FormBase {
     return $rows;
   }
 
-  private function encodeStudioTiersJsonForEvent(NodeInterface $event): string {
-    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
-      return '[]';
-    }
-    if (!$this->entityTypeManager->hasDefinition('mel_ticket_type')) {
-      return '[]';
-    }
-    $rows = [];
-    foreach ($event->get('field_ticket_types')->referencedEntities() as $entity) {
-      if (!$entity instanceof TicketTypeInterface) {
-        continue;
-      }
-      if ($entity->isArchived()) {
-        continue;
-      }
-      $row = [
-        'id' => (int) $entity->id(),
-        'title' => $entity->getTitle(),
-        'ticket_kind' => $entity->getTicketKind(),
-        'capacity' => NULL,
-      ];
-      if ($entity->hasField('capacity') && !$entity->get('capacity')->isEmpty()) {
-        $row['capacity'] = (int) $entity->get('capacity')->value;
-      }
-      $price = $entity->toPriceValue();
-      if ($price !== NULL) {
-        $row['price_number'] = $price->getNumber();
-        $row['price_currency'] = $price->getCurrencyCode();
-      }
-      $ext = $entity->getExternalUrlString();
-      if ($ext !== NULL && $ext !== '') {
-        $row['external_uri'] = $ext;
-      }
-      if (!$entity->get('sale_start')->isEmpty()) {
-        $row['sale_start'] = (string) $entity->get('sale_start')->value;
-      }
-      if (!$entity->get('sale_end')->isEmpty()) {
-        $row['sale_end'] = (string) $entity->get('sale_end')->value;
-      }
-      $rows[] = $row;
-    }
-    try {
-      return json_encode($rows, JSON_THROW_ON_ERROR);
-    }
-    catch (\JsonException) {
-      return '[]';
-    }
-  }
-
   private function resolveStudioDefaultCurrency(NodeInterface $event): string {
     if ($event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
       $store = $event->get('field_event_store')->entity;
@@ -2009,6 +1904,73 @@ final class EventStudioForm extends FormBase {
       }
     }
     return $out;
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function getEmbeddedTicketManagerTicketRows(FormStateInterface $form_state): array {
+    $mel = $form_state->getValue('mel');
+    if (!is_array($mel)) {
+      return [];
+    }
+    $section = $mel['tickets_section'] ?? [];
+    if (!is_array($section)) {
+      return [];
+    }
+    $embed = $section['tickets'] ?? [];
+    if (!is_array($embed)) {
+      return [];
+    }
+    $tickets = $embed['tickets'] ?? [];
+    return is_array($tickets) ? $tickets : [];
+  }
+
+  /**
+   * @param array<string, mixed> $values
+   */
+  private function embeddedTicketRowHasInput(array $values): bool {
+    $price = trim((string) ($values['price'] ?? ''));
+    return trim((string) ($values['title'] ?? '')) !== ''
+      || ($price !== '' && is_numeric($price) && (float) $price > 0)
+      || !empty($values['best_value']);
+  }
+
+  /**
+   * @param array<string, mixed> $values
+   */
+  private function validateEmbeddedTicketManagerRow(FormStateInterface $form_state, array $values, string $prefix): void {
+    if (trim((string) ($values['title'] ?? '')) === '') {
+      $form_state->setErrorByName($prefix . '][title', $this->t('Ticket name is required.'));
+    }
+
+    $price = trim((string) ($values['price'] ?? ''));
+    if ($price === '' || !is_numeric($price) || (float) $price < 0) {
+      $form_state->setErrorByName($prefix . '][price', $this->t('Ticket price must be zero or greater.'));
+    }
+
+    $more = isset($values['more']) && is_array($values['more']) ? $values['more'] : [];
+    $capacity = trim((string) ($more['capacity'] ?? ''));
+    if ($capacity !== '' && (!ctype_digit($capacity) || (int) $capacity < 0)) {
+      $form_state->setErrorByName($prefix . '][more][capacity', $this->t('Ticket capacity must be a whole number greater than or equal to zero.'));
+    }
+
+    $limit_per_order = trim((string) ($more['limit_per_order'] ?? ''));
+    if ($limit_per_order !== '' && (!ctype_digit($limit_per_order) || (int) $limit_per_order < 0)) {
+      $form_state->setErrorByName($prefix . '][more][limit_per_order', $this->t('Limit per order must be a whole number greater than or equal to zero.'));
+    }
+  }
+
+  private function eventHasPaidTicketTypesOnField(NodeInterface $event): bool {
+    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      return FALSE;
+    }
+    foreach ($event->get('field_ticket_types')->referencedEntities() as $entity) {
+      if ($entity instanceof TicketTypeInterface && !$entity->isArchived() && $entity->getTicketKind() === 'paid') {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

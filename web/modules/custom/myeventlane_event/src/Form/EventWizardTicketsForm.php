@@ -10,7 +10,6 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
-use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -18,15 +17,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Event wizard step: Tickets (wizard_step_4).
  *
- * Ticket tier UI is injected via EventTicketsBuilder (single Form API tree).
+ * Ticket settings step. Ticket rows are managed on the canonical ticket screen.
  */
 final class EventWizardTicketsForm extends EventWizardBaseForm {
 
   protected LoggerInterface $logger;
 
   protected TicketTypeManager $ticketTypeManager;
-
-  protected EventTicketsBuilder $ticketBuilder;
 
   /**
    * Null when the form was unserialized from cache; use {@see getMelPlatformSupportWizardForm()}.
@@ -42,13 +39,11 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     RendererInterface $renderer,
     LoggerInterface $logger,
     TicketTypeManager $ticket_type_manager,
-    EventTicketsBuilder $ticket_builder,
     MelPlatformSupportWizardFormHelper $mel_platform_support_wizard_form,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->logger = $logger;
     $this->ticketTypeManager = $ticket_type_manager;
-    $this->ticketBuilder = $ticket_builder;
     $this->melPlatformSupportWizardForm = $mel_platform_support_wizard_form;
   }
 
@@ -73,7 +68,6 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       $container->get('renderer'),
       $container->get('logger.factory')->get('myeventlane_event'),
       $container->get('myeventlane_event.ticket_type_manager'),
-      $container->get('myeventlane_vendor.ticket_builder'),
       $container->get('myeventlane_event.mel_platform_support_wizard_form'),
     );
   }
@@ -98,25 +92,12 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     $form_display->buildForm($event, $form, $form_state);
     unset($form['field_ticket_types']);
 
-    $form['mel_ticket_wizard'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-ticket-wizard']],
-      '#weight' => 12,
-    ];
-
-    $form_state->set('mel_ticket_builder_value_prefix', ['mel_ticket_wizard']);
-    $this->ticketBuilder->build($form['mel_ticket_wizard'], $form_state, $event);
-
     $this->applyTicketTypeStates($form);
-    $this->addCapacityWarning($form, $event);
     $this->getMelPlatformSupportWizardForm()->buildSection($form, $form_state, $event);
 
     $form['#title'] = $this->t('Create event: Tickets');
     $form['#event'] = $event;
     $form['#step_id'] = 'tickets';
-
-    $form['#attached']['library'][] = 'myeventlane_vendor/ticket_cards';
-    $form['#attached']['library'][] = 'core/drupal.ajax';
 
     $steps = $this->buildStepper($event, 'tickets');
     $form['#steps'] = $steps;
@@ -144,31 +125,6 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     return $form;
   }
-
-  /**
-   * Prefer event from form state (AJAX rebuilds); fall back to route entity.
-   */
-  private function getEventOrInjectedEvent(FormStateInterface $form_state): NodeInterface {
-    $event = $form_state->get('event');
-    return $event instanceof NodeInterface ? $event : $this->getEvent();
-  }
-
-  public function handleAction(array &$form, FormStateInterface $form_state): void {
-    $event = $this->getEventOrInjectedEvent($form_state);
-    $this->ticketBuilder->handleAction($form, $form_state, $event);
-    $nid = (int) $event->id();
-    if ($nid > 0) {
-      $fresh = $this->entityTypeManager->getStorage('node')->load($nid);
-      if ($fresh instanceof NodeInterface) {
-        $form_state->set('event', $fresh);
-      }
-    }
-  }
-
-  public function ajaxRebuildTicketBuilder(array &$form, FormStateInterface $form_state): array {
-    return $form['mel_ticket_wizard']['builder_shell'] ?? [];
-  }
-
   /**
    * {@inheritdoc}
    */
@@ -204,21 +160,22 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       }
 
       $this->getMelPlatformSupportWizardForm()->validate($form_state, $event, (string) $value);
+
     }
   }
 
   /**
    * {@inheritdoc}
    *
-   * Saves event fields only. Ticket add/remove is handled by handleAction.
+   * Saves event fields. Ticket rows are edited on the canonical ticket route.
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $event = $this->getEvent();
 
-    $saved_ticket_types = $event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()
-      ? $event->get('field_ticket_types')->getValue()
-      : [];
-
+    $submitted_event_type = $form_state->getValue('field_event_type');
+    $event_type = is_array($submitted_event_type)
+      ? (string) ($submitted_event_type[0]['value'] ?? $submitted_event_type['value'] ?? reset($submitted_event_type))
+      : (string) ($submitted_event_type ?: ($event->get('field_event_type')->value ?? ''));
     $form_display = EntityFormDisplay::collectRenderDisplay($event, 'wizard_step_4');
     $field_names = array_diff(array_keys($form_display->getComponents()), ['field_ticket_types']);
 
@@ -226,8 +183,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     $this->getMelPlatformSupportWizardForm()->apply($event, $form_state);
 
-    $event->set('field_ticket_types', $saved_ticket_types);
-    EventNodeRevisionSave::prepare($event, 'Event wizard: tickets step (field_ticket_types).');
+    EventNodeRevisionSave::prepare($event, 'Event wizard: tickets step.');
     $event->save();
 
     $this->logger->notice('Event wizard tickets step saved: event_id=@id, fields=@fields', [
@@ -235,19 +191,9 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       '@fields' => implode(', ', $field_names),
     ]);
 
-    $reloaded = $this->entityTypeManager->getStorage('node')->load($event->id());
-    if ($reloaded instanceof NodeInterface) {
-      if (!$this->ticketTypeManager->syncTicketTypesToVariations($reloaded)) {
-        $this->logger->notice('Ticket variation sync returned FALSE after tickets step for event @nid.', [
-          '@nid' => $event->id(),
-        ]);
-      }
-    }
-
-    $event_type = $event->get('field_event_type')->value ?? '';
     if (in_array($event_type, ['paid', 'both'], TRUE)) {
-      if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
-        $this->messenger()->addWarning($this->t('Add at least one ticket tier (for example a paid tier or RSVP) before you publish. Use the buttons above to create tickets.'));
+      if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
+        $this->messenger()->addWarning($this->t('Link a ticket product, then use the Tickets screen to add ticket types before publishing.'));
       }
     }
 
@@ -280,14 +226,6 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
         [$sel => ['value' => 'both']],
       ],
     ];
-    $not_external = [
-      'or' => [
-        [$sel => ['value' => 'rsvp']],
-        [$sel => ['value' => 'paid']],
-        [$sel => ['value' => 'both']],
-      ],
-    ];
-
     $fields = [
       'field_capacity' => $rsvp_or_paid_or_both,
       'field_waitlist_capacity' => $rsvp_or_both,
@@ -303,56 +241,6 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       }
     }
 
-    if (isset($form['mel_ticket_wizard'])) {
-      $form['mel_ticket_wizard']['#states'] = ['visible' => $not_external];
-    }
-  }
-
-  /**
-   * Adds capacity summary and non-blocking warning when allocation exceeds capacity.
-   */
-  private function addCapacityWarning(array &$form, NodeInterface $event): void {
-    $eventType = $event->get('field_event_type')->value ?? '';
-    if (!in_array($eventType, ['paid', 'both', 'rsvp'], TRUE)) {
-      return;
-    }
-
-    $capacity = 0;
-    if ($event->hasField('field_capacity') && !$event->get('field_capacity')->isEmpty()) {
-      $capacity = (int) $event->get('field_capacity')->value;
-    }
-
-    $allocated = 0;
-    foreach ($this->ticketTypeManager->loadEventTicketTypes($event) as $ticket) {
-      if (!$ticket->get('capacity')->isEmpty()) {
-        $allocated += (int) $ticket->get('capacity')->value;
-      }
-    }
-
-    if ($capacity > 0 || $allocated > 0) {
-      $form['capacity_summary'] = [
-        '#type' => 'container',
-        '#weight' => -10,
-        '#attributes' => ['class' => ['mel-wizard-capacity-summary']],
-      ];
-      $form['capacity_summary']['text'] = [
-        '#markup' => $this->t('Event capacity: @capacity. Allocated ticket quantities: @allocated.', [
-          '@capacity' => $capacity > 0 ? $capacity : $this->t('unlimited'),
-          '@allocated' => $allocated,
-        ]),
-      ];
-    }
-
-    if ($capacity > 0 && $allocated > $capacity) {
-      $form['capacity_warning'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-alert', 'mel-alert--warning']],
-        '#weight' => -5,
-        'message' => [
-          '#markup' => '<p>' . $this->t('Total ticket quantities exceed event capacity.') . '</p>',
-        ],
-      ];
-    }
   }
 
 }

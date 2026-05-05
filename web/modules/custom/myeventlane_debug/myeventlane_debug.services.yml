@@ -1,5 +1,8 @@
 services:
   myeventlane_debug.response_debug:
     class: Drupal\myeventlane_debug\EventSubscriber\ResponseDebugSubscriber
+    arguments:
+      - '@state'
+      - '@logger.factory'
     tags:
       - { name: event_subscriber }

@@ -26,3 +26,40 @@ function myeventlane_commerce_update_10002(): void {
   $config->set('receiptSubject', '');
   $config->save();
 }
+
+/**
+ * Add per-order MEL donation storage to default Commerce orders.
+ */
+function myeventlane_commerce_update_10003(): void {
+  if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('commerce_order', 'field_mel_donation')) {
+    \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name' => 'field_mel_donation',
+      'entity_type' => 'commerce_order',
+      'type' => 'decimal',
+      'settings' => [
+        'precision' => 10,
+        'scale' => 2,
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  if (!\Drupal\field\Entity\FieldConfig::loadByName('commerce_order', 'default', 'field_mel_donation')) {
+    \Drupal\field\Entity\FieldConfig::create([
+      'field_name' => 'field_mel_donation',
+      'entity_type' => 'commerce_order',
+      'bundle' => 'default',
+      'label' => 'MEL donation',
+      'description' => 'Per-order organiser contribution added from the booking form.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+      'settings' => [
+        'min' => NULL,
+        'max' => NULL,
+        'prefix' => '$',
+        'suffix' => '',
+      ],
+    ])->save();
+  }
+}

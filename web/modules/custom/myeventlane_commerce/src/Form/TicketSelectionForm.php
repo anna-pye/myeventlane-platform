@@ -17,12 +17,16 @@ use Drupal\myeventlane_commerce\Service\TicketTierWaitlistService;
 use Drupal\myeventlane_commerce\Service\TicketVariationSoldService;
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
+use Drupal\commerce_order\Adjustment;
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_price\CurrencyFormatter;
+use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\mel_ticket\Entity\TicketType;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
@@ -223,6 +227,7 @@ final class TicketSelectionForm extends FormBase {
         }
       }
 
+      $estimated_total = 0.0;
       foreach ($published_variations as $variation) {
         $variation_id = $variation->id();
         $variation_uuid = $variation->uuid();
@@ -263,6 +268,9 @@ final class TicketSelectionForm extends FormBase {
           if ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) {
             $qty_el['#default_value'] = $this->defaultSelectedQuantity($tier);
           }
+        }
+        if ($price instanceof Price) {
+          $estimated_total += ((float) $price->getNumber()) * (int) $qty_el['#default_value'];
         }
         $row_classes = ['mel-ticket-row', 'mel-card', 'mel-ticket-book-card'];
         if ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) {
@@ -338,14 +346,14 @@ final class TicketSelectionForm extends FormBase {
         ];
       }
 
-      $this->appendOptionalDonationSupport($form, $node);
+      $this->appendMelDonationField($form, $node, $estimated_total);
 
       $form['actions'] = [
         '#type' => 'actions',
         '#weight' => 20,
         'submit' => [
           '#type' => 'submit',
-          '#value' => $this->t('Reserve spot'),
+          '#value' => $this->t('Continue to checkout'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl', 'mel-add-to-cart-button']],
         ],
       ];
@@ -540,6 +548,13 @@ final class TicketSelectionForm extends FormBase {
         return;
       }
     }
+
+    if ($this->eventDonationsEnabled($node)) {
+      $donation = (float) $form_state->getValue('mel_donation', 0);
+      if ($donation < 0) {
+        $form_state->setErrorByName('mel_donation', $this->t('Contribution must be zero or more.'));
+      }
+    }
   }
 
   /**
@@ -613,6 +628,29 @@ final class TicketSelectionForm extends FormBase {
     $cart = $this->cartProvider->getCart('default', $store)
       ?: $this->cartProvider->createCart('default', $store);
 
+    $donation = $this->eventDonationsEnabled($node)
+      ? (float) $form_state->getValue('mel_donation', 0)
+      : 0.0;
+    $donation_currency = NULL;
+    if ($donation > 0) {
+      if (!$cart->hasField('field_mel_donation')) {
+        $this->logger('myeventlane_commerce')->error('Unable to add booking contribution because field_mel_donation is missing from commerce_order bundle @bundle.', [
+          '@bundle' => $cart->bundle(),
+        ]);
+        $this->messenger()->addError($this->t('We could not add the contribution to this booking. Please contact support.'));
+        return;
+      }
+
+      $donation_currency = $this->resolveDonationCurrency($cart, $per_variation, $variation_storage);
+      if ($donation_currency === NULL) {
+        $this->logger('myeventlane_commerce')->error('Unable to add booking contribution because no currency could be resolved for order @order_id.', [
+          '@order_id' => $cart->id() ?: 'new',
+        ]);
+        $this->messenger()->addError($this->t('We could not add the contribution to this booking. Please contact support.'));
+        return;
+      }
+    }
+
     $added = FALSE;
     foreach ($per_variation as $variation_id => $quantity) {
       /** @var \Drupal\commerce_product\Entity\ProductVariationInterface $variation */
@@ -628,6 +666,9 @@ final class TicketSelectionForm extends FormBase {
     }
 
     if ($added) {
+      if ($donation > 0 && $donation_currency !== NULL) {
+        $this->applyMelDonationToOrder($cart, $donation, $donation_currency);
+      }
       $this->messenger()->addStatus($this->t('Tickets added to cart.'));
       $form_state->setRedirect('commerce_cart.page');
     }
@@ -843,64 +884,109 @@ final class TicketSelectionForm extends FormBase {
     return (string) $this->t('Available');
   }
 
-  /**
-   * RSVP-style optional donation field for events with donations enabled.
-   *
-   * Not submitted to Commerce with ticket lines; shown in the live estimate
-   * only (see mel_booking_summary.js) when at least one ticket is selected.
-   */
-  private function appendOptionalDonationSupport(array &$form, NodeInterface $node): void {
-    if (!$node->hasField('field_enable_donations')
-      || $node->get('field_enable_donations')->isEmpty()
-      || !(bool) $node->get('field_enable_donations')->value) {
+  private function appendMelDonationField(array &$form, NodeInterface $node, float $estimated_total): void {
+    if (!$this->eventDonationsEnabled($node)) {
       return;
     }
-    $label = (string) $this->t('Support this event');
-    if ($node->hasField('field_donation_label') && !$node->get('field_donation_label')->isEmpty()) {
-      $trim = trim((string) $node->get('field_donation_label')->value);
-      if ($trim !== '') {
-        $label = $trim;
-      }
-    }
-    $default_amount = '';
-    if ($node->hasField('field_donation_default') && !$node->get('field_donation_default')->isEmpty()) {
-      $default_amount = (string) $node->get('field_donation_default')->value;
-    }
-    elseif ($node->hasField('field_donation_suggested_amount') && !$node->get('field_donation_suggested_amount')->isEmpty()) {
-      $default_amount = (string) $node->get('field_donation_suggested_amount')->value;
-    }
-    $currency = '';
-    /** @var \Drupal\commerce_product\Entity\ProductInterface|null $product */
-    $product = $form['#product'] ?? NULL;
-    if ($product !== NULL) {
-      foreach ($product->getVariations() as $v) {
-        if ($v->getPrice()) {
-          $currency = $v->getPrice()->getCurrencyCode();
-          break;
-        }
-      }
-    }
-    $placeholder = $currency !== '' ? $currency . ' 0' : '0';
 
-    $form['donation_support'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('💖 @label (optional)', ['@label' => $label]),
-      '#description' => $this->t('Estimate only. This is not added to your ticket cart — continue to checkout for ticket totals, or complete a separate support step when the organiser offers it.'),
-      '#attributes' => ['class' => ['mel-card', 'mel-booking-donation']],
-      '#weight' => 12,
+    $donation_default = 5;
+    if ($estimated_total > 50) {
+      $donation_default = 10;
+    }
+    if ($estimated_total > 100) {
+      $donation_default = 20;
+    }
+
+    $form['mel_donation_presets'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-donation-presets']],
+      '#weight' => 11,
     ];
-    $form['donation_support']['amount'] = [
+    foreach ([5, 10, 20] as $amount) {
+      $form['mel_donation_presets']["preset_$amount"] = [
+        '#type' => 'button',
+        '#value' => '$' . $amount,
+        '#attributes' => [
+          'class' => ['mel-donation-chip'],
+          'data-amount' => $amount,
+        ],
+      ];
+    }
+
+    $form['mel_donation'] = [
       '#type' => 'number',
-      '#title' => $label,
+      '#title' => $this->t('Support the organiser 💖'),
+      '#description' => $this->t('Help make this event possible — your contribution goes directly to the organiser.'),
       '#min' => 0,
-      '#step' => 0.01,
-      '#default_value' => $default_amount !== '' ? $default_amount : '',
+      '#step' => 1,
+      '#default_value' => $donation_default,
       '#attributes' => [
         'class' => ['mel-booking-donation__input'],
         'data-mel-booking-donation' => '1',
-        'placeholder' => $placeholder,
       ],
+      '#weight' => 12,
     ];
+  }
+
+  private function eventDonationsEnabled(NodeInterface $node): bool {
+    return $node->hasField('field_enable_donations')
+      && !$node->get('field_enable_donations')->isEmpty()
+      && (bool) $node->get('field_enable_donations')->value;
+  }
+
+  /**
+   * @param array<int, int> $perVariation
+   */
+  private function resolveDonationCurrency(OrderInterface $order, array $perVariation, EntityStorageInterface $variationStorage): ?string {
+    $total = $order->getTotalPrice();
+    if ($total instanceof Price) {
+      return $total->getCurrencyCode();
+    }
+
+    foreach (array_keys($perVariation) as $variation_id) {
+      $variation = $variationStorage->load($variation_id);
+      if ($variation instanceof ProductVariationInterface && $variation->getPrice() instanceof Price) {
+        return $variation->getPrice()->getCurrencyCode();
+      }
+    }
+
+    foreach ($order->getItems() as $item) {
+      $price = $item->getTotalPrice();
+      if ($price instanceof Price) {
+        return $price->getCurrencyCode();
+      }
+    }
+
+    return NULL;
+  }
+
+  private function applyMelDonationToOrder(OrderInterface $order, float $donation, string $currency): void {
+    if ($this->hasMelContributionAdjustment($order)) {
+      return;
+    }
+
+    $amount = number_format($donation, 2, '.', '');
+    $order->set('field_mel_donation', $amount);
+    $order->addAdjustment(new Adjustment([
+      'type' => 'custom',
+      'label' => 'Contribution',
+      'amount' => new Price($amount, $currency),
+      'included' => FALSE,
+      'locked' => TRUE,
+      'source_id' => 'myeventlane_order_donation',
+    ]));
+
+    $order->recalculateTotalPrice();
+    $order->save();
+  }
+
+  private function hasMelContributionAdjustment(OrderInterface $order): bool {
+    foreach ($order->getAdjustments() as $existing) {
+      if ((string) $existing->getLabel() === 'Contribution') {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

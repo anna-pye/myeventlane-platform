@@ -12,7 +12,6 @@ mel_event_studio:
     - core/drupal
     - core/once
     - myeventlane_location/address_autocomplete
-    - myeventlane_vendor/ticket_cards
 
 # Reuse Event Studio layout shell (sidebar + main) without wizard JS — onboarding, etc.
 mel_event_studio_shell_only:

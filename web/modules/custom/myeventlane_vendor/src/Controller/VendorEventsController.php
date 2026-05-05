@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
-use Drupal\Core\Url;
-use Drupal\myeventlane_core\Service\DomainDetector;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_vendor\Form\VendorEventsBulkActionsForm;
+use Drupal\myeventlane_vendor\Service\VendorEventIndexViewModelBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Vendor events listing controller.
@@ -37,6 +39,7 @@ final class VendorEventsController extends VendorConsoleBaseController implement
     MessengerInterface $messenger,
     EntityTypeManagerInterface $entity_type_manager,
     FormBuilderInterface $form_builder,
+    private readonly VendorEventIndexViewModelBuilder $eventIndexViewModelBuilder,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->entityTypeManager = $entity_type_manager;
@@ -53,23 +56,49 @@ final class VendorEventsController extends VendorConsoleBaseController implement
       $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
+      $container->get('myeventlane_vendor.event_index_view_model_builder'),
     );
   }
 
   /**
    * Displays a list of vendor events with bulk delete.
    */
-  public function list(): array {
-    // Build the form with bulk actions functionality.
-    $form = $this->formBuilder->getForm('Drupal\myeventlane_vendor\Form\VendorEventsBulkActionsForm');
+  public function list(Request $request): array {
+    $model = $this->eventIndexViewModelBuilder->build($this->currentUser, [
+      'status' => $request->query->get('status') ?? 'all',
+      'sort' => $request->query->get('sort') ?? 'soonest',
+    ]);
+
+    $body = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-vendor-events-console-layout']],
+      'index' => [
+        '#theme' => 'myeventlane_vendor_events_grid',
+        '#vendor_event_index_model' => $model,
+        '#events' => [],
+        '#cache' => [
+          'contexts' => ['user'],
+          'max-age' => 0,
+        ],
+      ],
+    ];
+
+    // Avoid duplicate empty states: index model covers the zero-event case.
+    $totalEvents = (int) ($model['summary']['total'] ?? 0);
+    if ($totalEvents > 0) {
+      $form = $this->formBuilder->getForm(VendorEventsBulkActionsForm::class);
+      $body['bulk'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-vendor-events-console-layout__bulk']],
+        'form' => $form,
+      ];
+    }
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => t('Events'),
-      'header_actions' => [
-        ['label' => t('Create Event'), 'url' => Url::fromRoute('myeventlane_event_studio.create')->toString()],
-      ],
+      'title' => NULL,
+      'header_actions' => [],
       'tabs' => [],
-      'body' => $form,
+      'body' => $body,
     ]);
   }
 

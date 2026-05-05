@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\Service;
 
+use Drupal\commerce_price\Price;
+use Drupal\commerce_product\Entity\ProductInterface;
+use Drupal\commerce_product\Entity\ProductVariation;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -354,8 +360,8 @@ final class TicketTierLifecycleService {
   /**
    * Converts ticket-builder style input into lifecycle-owned create values.
    *
-   * Event Studio and EventTicketsBuilder intentionally share this path so a
-   * "new ticket" row produces the same mel_ticket_type entity values anywhere.
+   * Lifecycle callers share this path so ticket input produces consistent
+   * mel_ticket_type entity values.
    *
    * @param array<string, mixed> $values
    *
@@ -784,6 +790,162 @@ final class TicketTierLifecycleService {
   }
 
   /**
+   * Canonical persistence for Advanced Ticket Manager / embedded Event Studio rows.
+   *
+   * Writes Commerce variations, ensures mel_ticket_type rows and field_ticket_types,
+   * then runs syncPaidTiers() so TicketTypeManager projection stays authoritative.
+   *
+   * @param array<string, mixed> $rows
+   *   Same shape as EventTicketManagerForm `tickets` form values.
+   *
+   * @return array{ok: bool, messages: list<string>}
+   */
+  public function persistTicketManagerRows(NodeInterface $event, AccountInterface $account, array $rows): array {
+    if ($event->bundle() !== 'event') {
+      return ['ok' => FALSE, 'messages' => ['Invalid event.']];
+    }
+
+    $eventType = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
+    if (!in_array($eventType, ['paid', 'both'], TRUE)) {
+      return ['ok' => TRUE, 'messages' => []];
+    }
+
+    $nid = (int) $event->id();
+    if ($nid < 1) {
+      return ['ok' => FALSE, 'messages' => ['Save the event before managing tickets.']];
+    }
+
+    $product = $this->loadTicketProductForManagerPersist($event);
+    if (!$product instanceof ProductInterface) {
+      return ['ok' => FALSE, 'messages' => ['Ticket product missing. Link a ticket product before saving tickets.']];
+    }
+
+    $row_metas = [];
+
+    try {
+      $existing_variations = $this->indexProductVariationsById($product);
+      $used_ids = [];
+
+      foreach ($rows as $row_key => $row) {
+        if (!is_array($row) || !empty($row['more']['delete']) || !$this->managerRowHasInput($row)) {
+          continue;
+        }
+
+        $variation_id = $this->managerSubmittedVariationId($row_key, $row);
+        if ($variation_id > 0) {
+          if (!isset($existing_variations[$variation_id])) {
+            $this->loggerFactory->get('myeventlane_event')->error(
+              'persistTicketManagerRows: variation @vid not on product @pid for event @nid.',
+              [
+                '@vid' => (string) $variation_id,
+                '@pid' => (string) $product->id(),
+                '@nid' => (string) $nid,
+              ],
+            );
+            return ['ok' => FALSE, 'messages' => ['Ticket data could not be matched to this event. Reload the page and try again.']];
+          }
+          $variation = $existing_variations[$variation_id];
+        }
+        else {
+          $variation = ProductVariation::create([
+            'type' => 'ticket_variation',
+            'sku' => $this->generateTicketManagerSku($event, (string) ($row['title'] ?? 'ticket')),
+            'title' => '',
+            'price' => new Price('0.00', (string) ($row['currency'] ?? 'AUD')),
+            'status' => 1,
+            'product_id' => $product->id(),
+          ]);
+        }
+
+        $this->applyManagerRowToVariation($variation, $row, $event);
+        $variation->save();
+        if (method_exists($product, 'hasVariation') && !$product->hasVariation($variation)) {
+          $product->addVariation($variation);
+        }
+        $vid = (int) $variation->id();
+        $used_ids[] = $vid;
+        $row_metas[] = [
+          'row' => $row,
+          'variation_id' => $vid,
+        ];
+      }
+
+      $removed_ids = array_diff(array_keys($existing_variations), $used_ids);
+      foreach ($removed_ids as $removed_id) {
+        $removed_variation = $existing_variations[(int) $removed_id] ?? NULL;
+        if (!$removed_variation instanceof ProductVariationInterface) {
+          continue;
+        }
+        $tier = $this->loadTierByVariationOnEvent($event, (int) $removed_variation->id());
+        if ($tier instanceof TicketTypeInterface) {
+          $this->archiveTicketOnEvent($event, $tier);
+        }
+        if (method_exists($product, 'removeVariation')) {
+          $product->removeVariation($removed_variation);
+        }
+        $removed_variation->delete();
+      }
+
+      $product->save();
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_event')->error(
+        'persistTicketManagerRows Commerce phase failed for event @nid: @message',
+        ['@nid' => (string) $nid, '@message' => $e->getMessage()],
+      );
+      return ['ok' => FALSE, 'messages' => ['Tickets could not be saved. Please check the details and try again.']];
+    }
+
+    $loadedEvent = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$loadedEvent instanceof NodeInterface) {
+      return ['ok' => FALSE, 'messages' => ['Event could not be reloaded after saving tickets.']];
+    }
+    $event = $loadedEvent;
+
+    $freshProduct = $this->loadTicketProductForManagerPersist($event);
+    if (!$freshProduct instanceof ProductInterface) {
+      return ['ok' => FALSE, 'messages' => ['Ticket product missing after save.']];
+    }
+
+    $ordered_tier_ids = [];
+
+    try {
+      foreach ($row_metas as $meta) {
+        $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($meta['variation_id']);
+        if (!$variation instanceof ProductVariationInterface) {
+          $this->loggerFactory->get('myeventlane_event')->error(
+            'persistTicketManagerRows: variation @vid missing after save for event @nid.',
+            ['@vid' => (string) $meta['variation_id'], '@nid' => (string) $nid],
+          );
+          return ['ok' => FALSE, 'messages' => ['Ticket rows could not be linked to Commerce variations. Reload and try again.']];
+        }
+        $ordered_tier_ids[] = $this->ensurePaidTierForManagerVariation($event, $account, $variation, $meta['row']);
+      }
+
+      $reloaded = $this->entityTypeManager->getStorage('node')->load($nid);
+      if ($reloaded instanceof NodeInterface) {
+        $this->applyMergedTicketTypesFromManager($reloaded, $freshProduct, $ordered_tier_ids);
+      }
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_event')->error(
+        'persistTicketManagerRows tier phase failed for event @nid: @message',
+        ['@nid' => (string) $nid, '@message' => $e->getMessage()],
+      );
+      return ['ok' => FALSE, 'messages' => ['Tickets saved in Commerce but canonical ticket types could not be updated. Contact support if this persists.']];
+    }
+
+    $this->loggerFactory->get('myeventlane_event')->info(
+      'persistTicketManagerRows completed for event @nid (@count tiers).',
+      ['@nid' => (string) $nid, '@count' => (string) count($ordered_tier_ids)],
+    );
+
+    return ['ok' => TRUE, 'messages' => []];
+  }
+
+  /**
    * Whether the ticket ID is referenced on the event.
    */
   public function ticketBelongsToEvent(NodeInterface $event, int $ticketId): bool {
@@ -830,14 +992,20 @@ final class TicketTierLifecycleService {
         ->sort('id')
         ->execute()),
     ));
-    $inverseIds = [];
+    $inverseAllIds = [];
+    $inversePublishedIds = [];
     foreach ($ticketStorage->loadMultiple($candidateIds) as $ticket) {
-      if ($ticket instanceof TicketTypeInterface && !$ticket->isArchived()) {
-        $inverseIds[] = (int) $ticket->id();
+      if (!$ticket instanceof TicketTypeInterface || $ticket->isArchived()) {
+        continue;
+      }
+      $tid = (int) $ticket->id();
+      $inverseAllIds[] = $tid;
+      if ($ticket->isPublished()) {
+        $inversePublishedIds[] = $tid;
       }
     }
 
-    if ($inverseIds === []) {
+    if ($inverseAllIds === []) {
       return;
     }
 
@@ -851,14 +1019,14 @@ final class TicketTierLifecycleService {
     }
     $fieldIds = array_values(array_unique($fieldIds));
 
-    $inverseSet = array_flip($inverseIds);
+    $inverseAllSet = array_flip($inverseAllIds);
     $merged = [];
     foreach ($fieldIds as $id) {
-      if (isset($inverseSet[$id])) {
+      if (isset($inverseAllSet[$id])) {
         $merged[] = $id;
       }
     }
-    foreach ($inverseIds as $id) {
+    foreach ($inversePublishedIds as $id) {
       if (!in_array($id, $merged, TRUE)) {
         $merged[] = $id;
       }
@@ -1031,7 +1199,18 @@ final class TicketTierLifecycleService {
       $ticket->set('ticket_kind', (string) $values['ticket_kind']);
     }
     if (array_key_exists('status', $values)) {
-      $ticket->set('status', (int) $values['status']);
+      $published = (bool) (int) $values['status'];
+      if ($ticket instanceof EntityPublishedInterface) {
+        if ($published) {
+          $ticket->setPublished();
+        }
+        else {
+          $ticket->setUnpublished();
+        }
+      }
+      else {
+        $ticket->set('status', $published ? 1 : 0);
+      }
     }
     if (array_key_exists('field_is_default_ticket', $values) && $ticket->hasField('field_is_default_ticket')) {
       $ticket->set('field_is_default_ticket', !empty($values['field_is_default_ticket']));
@@ -1321,6 +1500,338 @@ final class TicketTierLifecycleService {
 
     $event = $this->entityTypeManager->getStorage('node')->load($target_id);
     return $event instanceof NodeInterface && $event->bundle() === 'event' ? $event : NULL;
+  }
+
+  private function loadTicketProductForManagerPersist(NodeInterface $event): ?ProductInterface {
+    if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
+      return NULL;
+    }
+    $product = $event->get('field_product_target')->entity;
+    return $product instanceof ProductInterface ? $product : NULL;
+  }
+
+  /**
+   * @return array<int, \Drupal\commerce_product\Entity\ProductVariationInterface>
+   */
+  private function indexProductVariationsById(ProductInterface $product): array {
+    $indexed = [];
+    foreach ($product->getVariations() as $variation) {
+      if ($variation instanceof ProductVariationInterface && $variation->id() !== NULL) {
+        $indexed[(int) $variation->id()] = $variation;
+      }
+    }
+    return $indexed;
+  }
+
+  /**
+   * @param array<string, mixed> $values
+   */
+  private function managerRowHasInput(array $values): bool {
+    $price = trim((string) ($values['price'] ?? ''));
+    return trim((string) ($values['title'] ?? '')) !== ''
+      || ($price !== '' && is_numeric($price) && (float) $price > 0)
+      || !empty($values['best_value']);
+  }
+
+  /**
+   * @param int|string $row_key
+   * @param array<string, mixed> $row
+   */
+  public function managerSubmittedVariationId(int|string $row_key, array $row): int {
+    $submitted_id = (int) ($row['variation_id'] ?? 0);
+    if ($submitted_id > 0) {
+      return $submitted_id;
+    }
+    return is_numeric($row_key) ? (int) $row_key : 0;
+  }
+
+  private function generateTicketManagerSku(NodeInterface $event, string $title): string {
+    $slug = strtolower((string) preg_replace('/[^a-z0-9]+/', '-', $title));
+    $slug = trim($slug, '-') ?: 'ticket';
+    return 'ticket-' . (int) $event->id() . '-' . $slug . '-' . (string) time();
+  }
+
+  /**
+   * @param array<string, mixed> $values
+   */
+  private function applyManagerRowToVariation(ProductVariationInterface $variation, array $values, NodeInterface $event): void {
+    $variation->setTitle(trim((string) ($values['title'] ?? '')));
+    $variation->setPrice(new Price($this->normalizeManagerPriceNumber($values['price'] ?? '0'), (string) ($values['currency'] ?? 'AUD')));
+
+    if ($variation->hasField('field_best_value')) {
+      $variation->set('field_best_value', !empty($values['best_value']) ? 1 : 0);
+    }
+    $more = isset($values['more']) && is_array($values['more']) ? $values['more'] : [];
+    if ($variation->hasField('field_capacity')) {
+      $capacity = trim((string) ($more['capacity'] ?? ''));
+      $variation->set('field_capacity', $capacity === '' ? NULL : (int) $capacity);
+    }
+    if ($variation->hasField('field_limit_per_order')) {
+      $limit_per_order = trim((string) ($more['limit_per_order'] ?? ''));
+      $variation->set('field_limit_per_order', $limit_per_order === '' ? NULL : (int) $limit_per_order);
+    }
+    if ($variation->hasField('field_show_remaining')) {
+      $variation->set('field_show_remaining', !empty($more['show_remaining']) ? 1 : 0);
+    }
+    if ($variation->hasField('field_collect_questions')) {
+      $variation->set('field_collect_questions', !empty($more['collect_questions']) ? 1 : 0);
+    }
+    if ($variation->hasField('field_ticket_start')) {
+      $variation->set('field_ticket_start', $this->normalizeManagerSubmittedDate($more['ticket_start'] ?? NULL));
+    }
+    if ($variation->hasField('field_ticket_end')) {
+      $variation->set('field_ticket_end', $this->normalizeManagerSubmittedDate($more['ticket_end'] ?? NULL));
+    }
+    if ($variation->hasField('field_event')) {
+      $variation->set('field_event', ['target_id' => $event->id()]);
+    }
+
+    $variationForDefault = $variation->id() !== NULL ? $variation : NULL;
+    $active = $this->managerRowIsActive($values, $variationForDefault);
+    $this->applyManagerRowActiveToVariation($variation, $active);
+  }
+
+  /**
+   * Whether the ticket manager row marks the tier as active (published).
+   *
+   * Missing `active` in POST uses the existing variation publish state, or TRUE
+   * for new rows so paid tiers default to on-sale unless explicitly turned off.
+   */
+  public function managerRowIsActive(array $row, ?ProductVariationInterface $variation = NULL): bool {
+    if (array_key_exists('active', $row)) {
+      return !empty($row['active']);
+    }
+    if ($variation instanceof ProductVariationInterface && $variation->id() !== NULL) {
+      return $variation->isPublished();
+    }
+    return TRUE;
+  }
+
+  /**
+   * TRUE when a paid row is non-deleted, has input, is active, and has price &gt; 0.
+   */
+  public function managerPaidRowIsSellable(array $row, ?ProductVariationInterface $variation = NULL): bool {
+    if (!is_array($row) || !empty($row['more']['delete'])) {
+      return FALSE;
+    }
+    if (!$this->managerRowHasInput($row)) {
+      return FALSE;
+    }
+    if (!$this->managerRowIsActive($row, $variation)) {
+      return FALSE;
+    }
+    $price = trim((string) ($row['price'] ?? ''));
+    return $price !== '' && is_numeric($price) && (float) $price > 0;
+  }
+
+  private function applyManagerRowActiveToVariation(ProductVariationInterface $variation, bool $active): void {
+    if ($variation instanceof EntityPublishedInterface) {
+      if ($active) {
+        if (!$variation->isPublished()) {
+          $variation->setPublished();
+        }
+      }
+      elseif ($variation->isPublished()) {
+        $variation->setUnpublished();
+      }
+    }
+    elseif ($variation->hasField('status')) {
+      $variation->set('status', $active ? 1 : 0);
+    }
+  }
+
+  private function normalizeManagerPriceNumber(mixed $value): string {
+    $number = is_numeric($value) ? (float) $value : 0.0;
+    return number_format(max(0.0, $number), 2, '.', '');
+  }
+
+  private function normalizeManagerSubmittedDate(mixed $value): ?string {
+    if ($value instanceof DrupalDateTime) {
+      return $value->format('Y-m-d\TH:i:s');
+    }
+    if (is_array($value) && isset($value['date'], $value['time'])) {
+      $raw = trim((string) $value['date'] . ' ' . (string) $value['time']);
+      if ($raw !== '') {
+        return (new DrupalDateTime($raw))->format('Y-m-d\TH:i:s');
+      }
+    }
+    $raw = trim((string) $value);
+    return $raw === '' ? NULL : (new DrupalDateTime($raw))->format('Y-m-d\TH:i:s');
+  }
+
+  private function loadTierByVariationOnEvent(NodeInterface $event, int $variationId): ?TicketTypeInterface {
+    if (!$this->entityTypeManager->hasDefinition('mel_ticket_type')) {
+      return NULL;
+    }
+    $eventId = (int) $event->id();
+    if ($eventId < 1 || $variationId < 1) {
+      return NULL;
+    }
+    $ids = $this->entityTypeManager->getStorage('mel_ticket_type')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $eventId)
+      ->condition('commerce_variation', $variationId)
+      ->range(0, 2)
+      ->execute();
+    if ($ids === []) {
+      return NULL;
+    }
+    if (count($ids) > 1) {
+      $this->loggerFactory->get('myeventlane_event')->warning(
+        'Multiple mel_ticket_type rows reference commerce_variation @vid on event @nid; using lowest id.',
+        ['@vid' => (string) $variationId, '@nid' => (string) $eventId],
+      );
+    }
+    sort($ids, SORT_NUMERIC);
+    $tid = (int) reset($ids);
+    $ticket = $this->entityTypeManager->getStorage('mel_ticket_type')->load($tid);
+    return $ticket instanceof TicketTypeInterface ? $ticket : NULL;
+  }
+
+  /**
+   * @param array<string, mixed> $row
+   */
+  private function ensurePaidTierForManagerVariation(NodeInterface $event, AccountInterface $account, ProductVariationInterface $variation, array $row): int {
+    $tier = $this->loadTierByVariationOnEvent($event, (int) $variation->id());
+    $price = $variation->getPrice();
+    if ($price === NULL) {
+      $price = new Price('0.00', 'AUD');
+    }
+
+    $published = $this->managerRowIsActive($row, $variation);
+    $values = [
+      'title' => trim((string) $variation->getTitle()),
+      'price' => [
+        'number' => $price->getNumber(),
+        'currency_code' => $price->getCurrencyCode(),
+      ],
+      'status' => $published ? 1 : 0,
+      'field_is_best_value' => !empty($row['best_value']),
+    ];
+
+    if ($tier instanceof TicketTypeInterface) {
+      $this->applyValuesToTicket($tier, $values);
+      if ($tier->get('commerce_variation')->isEmpty() || (int) $tier->get('commerce_variation')->target_id !== (int) $variation->id()) {
+        $tier->set('commerce_variation', ['target_id' => (int) $variation->id()]);
+      }
+      if ($tier->hasField('event') && ($tier->get('event')->isEmpty() || (int) $tier->get('event')->target_id !== (int) $event->id())) {
+        $tier->set('event', ['target_id' => (int) $event->id()]);
+      }
+      $this->syncTierCapacityFromVariation($tier, $variation);
+      $this->validateTicketTypeForPersist($tier, $event);
+      $tier->save();
+      return (int) $tier->id();
+    }
+
+    /** @var \Drupal\mel_ticket\Entity\TicketTypeInterface $tier */
+    $tier = $this->entityTypeManager->getStorage('mel_ticket_type')->create([
+      'title' => trim((string) $variation->getTitle()) !== '' ? trim((string) $variation->getTitle()) : 'Ticket',
+      'ticket_kind' => 'paid',
+      'vendor_id' => ['target_id' => (int) $account->id()],
+      'event' => ['target_id' => (int) $event->id()],
+      'status' => $this->managerRowIsActive($row, $variation) ? 1 : 0,
+      'lifecycle_status' => TicketTypeInterface::LIFECYCLE_ACTIVE,
+      'is_reusable' => FALSE,
+      'price' => [
+        'number' => $price->getNumber(),
+        'currency_code' => $price->getCurrencyCode(),
+      ],
+      'commerce_variation' => ['target_id' => (int) $variation->id()],
+    ]);
+    if ($tier->hasField('field_is_best_value')) {
+      $tier->set('field_is_best_value', !empty($row['best_value']));
+    }
+    $this->syncTierCapacityFromVariation($tier, $variation);
+    $this->validateTicketTypeForPersist($tier, $event);
+    $tier->save();
+
+    return (int) $tier->id();
+  }
+
+  private function syncTierCapacityFromVariation(TicketTypeInterface $ticket, ProductVariationInterface $variation): void {
+    if (!$ticket->hasField('capacity') || !$variation->hasField('field_capacity')) {
+      return;
+    }
+    if ($variation->get('field_capacity')->isEmpty()) {
+      $ticket->set('capacity', NULL);
+      return;
+    }
+    $ticket->set('capacity', (int) $variation->get('field_capacity')->value);
+  }
+
+  /**
+   * @param list<int> $orderedPaidTierIds
+   */
+  private function applyMergedTicketTypesFromManager(NodeInterface $event, ProductInterface $product, array $orderedPaidTierIds): void {
+    if (!$event->hasField('field_ticket_types')) {
+      return;
+    }
+
+    $eventType = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
+
+    if ($eventType === 'paid') {
+      $merged = array_values(array_unique(array_map('intval', $orderedPaidTierIds)));
+    }
+    else {
+      $preserved = $this->preservedTicketTypeIdsForManagerMerge($event, $product);
+      $merged = array_merge($preserved, $orderedPaidTierIds);
+      $merged = array_values(array_unique(array_map('intval', $merged)));
+    }
+
+    $event->set(
+      'field_ticket_types',
+      array_map(static fn (int $id): array => ['target_id' => $id], $merged),
+    );
+    EventNodeRevisionSave::prepare($event, 'Ticket manager: synced canonical ticket types.');
+    $event->save();
+    $this->ticketTypeManager->normalizeDefaultTicketSelection($event);
+    $this->ticketTypeManager->normalizeBestValueTicketSelection($event);
+    $this->syncPaidTiers($event);
+  }
+
+  /**
+   * Preserves non–ticket-product paid tiers and all non-paid tiers when merging manager output on hybrid events.
+   *
+   * @return list<int>
+   */
+  private function preservedTicketTypeIdsForManagerMerge(NodeInterface $event, ProductInterface $product): array {
+    $productId = (int) $product->id();
+    $preserved = [];
+    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      return $preserved;
+    }
+
+    foreach ($event->get('field_ticket_types')->getValue() as $row) {
+      $tid = (int) ($row['target_id'] ?? 0);
+      if ($tid < 1) {
+        continue;
+      }
+      $t = $this->entityTypeManager->getStorage('mel_ticket_type')->load($tid);
+      if (!$t instanceof TicketTypeInterface || $t->isArchived()) {
+        continue;
+      }
+      if ($t->getTicketKind() !== 'paid') {
+        $preserved[] = $tid;
+        continue;
+      }
+      if ($t->get('commerce_variation')->isEmpty()) {
+        $preserved[] = $tid;
+        continue;
+      }
+      $v = $t->get('commerce_variation')->entity;
+      if (!$v instanceof ProductVariationInterface) {
+        $preserved[] = $tid;
+        continue;
+      }
+      if ((int) $v->getProductId() !== $productId) {
+        $preserved[] = $tid;
+        continue;
+      }
+    }
+
+    return $preserved;
   }
 
 }

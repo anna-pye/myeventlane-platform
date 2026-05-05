@@ -642,3 +642,457 @@
     grid-template-columns: 1fr;
   }
 }
+
+// -----------------------------------------------------------------------------
+// TASK 8 — Event workspace root (/vendor/events/{event})
+// -----------------------------------------------------------------------------
+
+.mel-event-workspace-v2 {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-lg;
+  padding: $mel-spacing-md;
+
+  @include respond-to(md) {
+    padding: $mel-spacing-lg;
+    gap: $mel-spacing-xl;
+  }
+}
+
+.mel-event-workspace-v2__header {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-md;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.mel-event-workspace-v2__header-text {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.mel-event-workspace-v2__title {
+  margin: $spacing-2 0 $spacing-2;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: 1.15;
+  color: $mel-ws-navy;
+}
+
+.mel-event-workspace-v2__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px $spacing-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.mel-event-workspace-v2__status--success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.mel-event-workspace-v2__status--warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.mel-event-workspace-v2__status--error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.mel-event-workspace-v2__status--neutral {
+  background: rgba($mel-ws-navy, 0.06);
+  color: rgba($mel-ws-navy, 0.72);
+  border-color: rgba($mel-ws-navy, 0.12);
+}
+
+.mel-event-workspace-v2__meta {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.45;
+}
+
+.mel-event-workspace-v2__meta-sep {
+  margin: 0 $spacing-2;
+}
+
+.mel-event-workspace-v2__actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+  flex: 0 0 auto;
+
+  @include respond-to(sm) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.mel-event-workspace-v2__btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: $spacing-2 $mel-spacing-md;
+  border-radius: 16px;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($mel-ws-purple, 0.28);
+  }
+}
+
+.mel-event-workspace-v2__btn--primary {
+  background: $mel-ws-coral;
+  color: #fff;
+  border-color: transparent;
+
+  &:hover {
+    background: #e55c49;
+    color: #fff;
+    text-decoration: none;
+  }
+}
+
+.mel-event-workspace-v2__btn--secondary {
+  background: #fff;
+  color: $mel-ws-navy;
+  border-color: rgba($mel-ws-navy, 0.14);
+
+  &:hover {
+    background: rgba($mel-ws-purple, 0.06);
+    border-color: rgba($mel-ws-purple, 0.22);
+    text-decoration: none;
+  }
+}
+
+.mel-event-workspace-v2__btn--tertiary {
+  background: transparent;
+  color: $mel-ws-purple;
+  border-color: rgba($mel-ws-purple, 0.35);
+
+  &:hover {
+    background: rgba($mel-ws-purple, 0.06);
+    text-decoration: none;
+  }
+}
+
+.mel-event-workspace-v2__btn--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.mel-event-workspace-v2__btn:focus-visible {
+  outline: 2px solid $mel-ws-purple;
+  outline-offset: 2px;
+}
+
+.mel-event-workspace-v2__presentation-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-md;
+}
+
+.mel-event-workspace-v2__presentation-alert .mel-vendor-alert__message {
+  margin-bottom: $spacing-2;
+}
+
+.mel-event-workspace-v2__presentation-alert-detail {
+  margin: 0 0 $spacing-3;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+  font-weight: $font-weight-normal;
+}
+
+.mel-event-workspace-v2__presentation-alert-actions {
+  margin-top: $spacing-2;
+}
+
+.mel-event-workspace-v2__presentation-alert-actions .mel-event-workspace-v2__btn {
+  min-height: 44px;
+}
+
+.mel-event-workspace-v2__next-action {
+  padding: $mel-spacing-md $mel-spacing-lg;
+  border-radius: 24px;
+  border: 1px solid rgba($mel-ws-navy, 0.08);
+  background: #fff;
+  box-shadow: $shadow-workspace-surface;
+
+  &--info {
+    border-left: 4px solid #3b82f6;
+  }
+
+  &--success {
+    border-left: 4px solid #10b981;
+  }
+
+  &--warning {
+    border-left: 4px solid #f59e0b;
+  }
+
+  &--error {
+    border-left: 4px solid #ef4444;
+  }
+}
+
+.mel-event-workspace-v2__card-title {
+  margin: 0 0 $spacing-2;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $mel-ws-navy;
+}
+
+.mel-event-workspace-v2__next-action-msg {
+  margin: 0 0 $mel-spacing-md;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
+.mel-event-workspace-v2__readiness {
+  padding: $mel-spacing-md $mel-spacing-lg;
+  border-radius: 24px;
+  border: 1px solid rgba($mel-ws-navy, 0.08);
+  background: #fff;
+  box-shadow: $shadow-workspace-surface;
+}
+
+.mel-event-workspace-v2__readiness-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $mel-spacing-md;
+  margin-bottom: $mel-spacing-sm;
+}
+
+.mel-event-workspace-v2__readiness-score {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $mel-ws-purple;
+}
+
+.mel-event-workspace-v2__checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.mel-event-workspace-v2__checklist-item {
+  position: relative;
+  padding-left: $mel-spacing-lg;
+  font-size: $font-size-sm;
+  line-height: 1.45;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.35em;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba($mel-ws-navy, 0.25);
+  }
+
+  &--complete::before {
+    background: #10b981;
+  }
+
+  &--error::before {
+    background: #ef4444;
+  }
+
+  &--warning::before {
+    background: #f59e0b;
+  }
+}
+
+.mel-event-workspace-v2__checklist-link {
+  color: $mel-ws-purple;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($mel-ws-purple, 0.28);
+    border-radius: 2px;
+  }
+}
+
+.mel-event-workspace-v2__checklist-label {
+  color: $mel-ws-navy;
+}
+
+.mel-event-workspace-v2__grid {
+  display: grid;
+  gap: $mel-spacing-md;
+  min-width: 0;
+}
+
+.mel-event-workspace-v2__grid--metrics {
+  grid-template-columns: 1fr;
+
+  @include respond-to(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.mel-event-workspace-v2__metric {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+  min-height: 44px;
+  padding: $mel-spacing-md;
+  border-radius: 16px;
+  border: 1px solid rgba($mel-ws-navy, 0.08);
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.04);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &:hover {
+    border-color: rgba($mel-ws-purple, 0.22);
+    box-shadow: 0 8px 22px rgba(17, 24, 39, 0.06);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($mel-ws-purple, 0.28);
+  }
+}
+
+.mel-event-workspace-v2__metric-label {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $text-muted;
+}
+
+.mel-event-workspace-v2__metric-value {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $mel-ws-navy;
+  line-height: 1.1;
+}
+
+.mel-event-workspace-v2__metric-context {
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+.mel-event-workspace-v2__tabs {
+  margin-top: $spacing-2;
+}
+
+.mel-event-workspace-v2__shortcuts {
+  padding: 0 0 $mel-spacing-md;
+}
+
+.mel-event-workspace-v2__grid--shortcuts {
+  grid-template-columns: 1fr;
+
+  @include respond-to(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.mel-event-workspace-v2__shortcut {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: $mel-spacing-md;
+  border-radius: 16px;
+  border: 1px solid rgba($mel-ws-navy, 0.08);
+  background: #fff;
+  text-decoration: none;
+  color: $mel-ws-navy;
+  font-weight: $font-weight-bold;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.04);
+
+  &:hover {
+    border-color: rgba($mel-ws-purple, 0.22);
+    color: $mel-ws-purple;
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($mel-ws-purple, 0.28);
+  }
+}
+
+.mel-event-workspace-v2__shortcut-label {
+  line-height: 1.3;
+}
+
+.mel-event-workspace-v2__empty {
+  padding: $mel-spacing-xl $mel-spacing-md;
+  text-align: center;
+}
+
+.mel-event-workspace-v2__empty-title {
+  margin: 0 0 $spacing-2;
+  font-size: $font-size-xl;
+  color: $mel-ws-navy;
+}
+
+.mel-event-workspace-v2__empty-message {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.mel-event-workspace-v2__content-anchor {
+  display: none;
+}

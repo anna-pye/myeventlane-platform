@@ -538,6 +538,29 @@
     line-height: 1.4;
   }
 
+  .mel-donation-presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .mel-donation-chip {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #eee;
+    cursor: pointer;
+  }
+
+  .mel-donation-chip:hover {
+    border-color: #f26d5b;
+  }
+
+  .mel-donation-chip:focus-visible {
+    outline: none;
+    box-shadow: colors.$mel-focus-ring;
+  }
+
   .mel-booking-donation {
     margin-top: spacing.mel-space(1);
     padding: spacing.mel-space(4);
@@ -819,6 +842,7 @@
         'main'
         'meta';
       gap: spacing.mel-space(3);
+      max-width: 100%;
     }
 
     .mel-ticket-row__meta {
@@ -829,6 +853,7 @@
       gap: spacing.mel-space(3);
       padding-top: spacing.mel-space(2);
       border-top: 1px solid rgba(colors.$mel-color-border, 0.75);
+      min-width: 0;
     }
 
     .mel-ticket-price {
@@ -836,7 +861,10 @@
     }
 
     .mel-ticket-quantity {
-      max-width: 6.5rem;
+      max-width: 100%;
+      width: 100%;
+      min-width: 6.5rem;
+      min-height: 44px;
     }
   }
 

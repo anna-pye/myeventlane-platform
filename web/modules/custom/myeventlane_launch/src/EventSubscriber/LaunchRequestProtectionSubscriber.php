@@ -90,7 +90,6 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
     if (in_array($routeName, [
       'myeventlane_event_studio.create',
       'myeventlane_vendor.console.events_add',
-      'myeventlane_event_studio.create',
     ], TRUE)) {
       if ($this->shouldSkipEventCreateRateLimit($routeName)) {
         return;

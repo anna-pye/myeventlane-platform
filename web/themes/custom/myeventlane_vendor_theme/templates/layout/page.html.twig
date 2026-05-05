@@ -13,13 +13,13 @@
 {# Hidden overlay must not block clicks. #}
 <div class="mel-sidebar-overlay" data-sidebar-overlay style="pointer-events:none;"></div>
 
-<div class="mel-vendor-shell{% if page.wizard_sidebar_active %} mel-vendor-shell--wizard-sidebar{% endif %}">
-  <aside id="mel-vendor-sidebar" class="mel-vendor-shell__sidebar mel-vendor-sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
+<div class="mel-vendor-console mel-vendor-shell{% if page.wizard_sidebar_active %} mel-vendor-shell--wizard-sidebar{% endif %}">
+  <aside id="mel-vendor-sidebar" class="mel-vendor-shell__sidebar mel-vendor-sidebar mel-vendor-console__sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
     {% include '@myeventlane_vendor_theme/includes/sidebar.html.twig' with { page: page } %}
   </aside>
 
-  <div class="mel-vendor-shell__main">
-    <header class="mel-shell-header" role="banner">
+  <div class="mel-vendor-shell__main mel-vendor-console__main">
+    <header class="mel-shell-header mel-vendor-console__header" role="banner">
       <div class="mel-shell-header__left">
         <button class="mel-shell-header__menu-btn"
                 type="button"
@@ -45,7 +45,7 @@
           </div>
         {% endif %}
         {% if page.shell_primary_action %}
-          <a href="{{ page.shell_primary_action.url }}" class="mel-btn mel-btn--primary">
+          <a href="{{ page.shell_primary_action.url }}" class="mel-btn mel-btn--primary mel-vendor-console__primary-action">
             {{ page.shell_primary_action.label }}
           </a>
         {% endif %}
@@ -64,7 +64,7 @@
       } only %}
     {% endif %}
 
-    <main class="mel-vendor-shell__content mel-vendor-main" role="main">
+    <main class="mel-vendor-shell__content mel-vendor-main mel-vendor-console__content" role="main">
       {% if page.highlighted %}
         {{ page.highlighted }}
       {% endif %}

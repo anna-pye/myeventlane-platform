@@ -2,7 +2,7 @@
 /**
  * @file
  * Internal footer for authenticated vendor + admin users.
- * Uses footer_context from FooterContextService; Twig stays dumb.
+ * Uses footer_context from FooterContextService + vendor_console_urls from preprocess.
  */
 #}
 {% set footer_context = footer_context|default({
@@ -44,18 +44,32 @@
       <div class="mel-footer__accordion">
         <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Your Events'|t }}</button>
         <div class="mel-footer__accordion-panel" data-label="{{ 'Your Events'|t }}">
-          <a href="/vendor/dashboard">{{ 'Dashboard'|t }}</a>
-          <a href="/vendor/events">{{ 'Manage events'|t }}</a>
-          <a href="/vendor/analytics">{{ 'Analytics'|t }}</a>
-          <a href="/vendor/payouts">{{ 'Payouts'|t }}</a>
+          {% if footer_context.vendor_console_urls.dashboard %}
+          <a href="{{ footer_context.vendor_console_urls.dashboard }}">{{ 'Dashboard'|t }}</a>
+          {% endif %}
+          {% if footer_context.vendor_console_urls.events %}
+          <a href="{{ footer_context.vendor_console_urls.events }}">{{ 'Manage events'|t }}</a>
+          {% endif %}
+          {% if footer_context.vendor_console_urls.analytics %}
+          <a href="{{ footer_context.vendor_console_urls.analytics }}">{{ 'Analytics'|t }}</a>
+          {% endif %}
+          {% if footer_context.vendor_console_urls.payouts %}
+          <a href="{{ footer_context.vendor_console_urls.payouts }}">{{ 'Payouts'|t }}</a>
+          {% endif %}
         </div>
       </div>
       <div class="mel-footer__accordion">
         <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Tools'|t }}</button>
         <div class="mel-footer__accordion-panel" data-label="{{ 'Tools'|t }}">
-          <a href="/node/add/event">{{ 'Create event'|t }}</a>
-          <a href="/vendor/settings">{{ 'Settings'|t }}</a>
-          <a href="/vendor/support">{{ 'Support'|t }}</a>
+          {% if vc_urls.create_event %}
+          <a href="{{ vc_urls.create_event }}">{{ 'Create event'|t }}</a>
+          {% endif %}
+          {% if vc_urls.settings %}
+          <a href="{{ vc_urls.settings }}">{{ 'Settings'|t }}</a>
+          {% endif %}
+          {% if vc_urls.support %}
+          <a href="{{ vc_urls.support }}">{{ 'Support'|t }}</a>
+          {% endif %}
         </div>
       </div>
       {% endif %}

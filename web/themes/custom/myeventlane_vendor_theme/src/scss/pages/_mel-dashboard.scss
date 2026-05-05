@@ -457,3 +457,541 @@
     color: $text-secondary;
   }
 }
+
+// -----------------------------------------------------------------------------
+// Vendor Console v2 — /vendor/dashboard (TASK 5)
+// -----------------------------------------------------------------------------
+
+.mel-vendor-dashboard-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-6;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: $spacing-6;
+
+  &__onboarding,
+  &__billing-strip,
+  &__boost-slot {
+    width: 100%;
+  }
+
+  &__hero {
+    background: $bg-primary;
+    border: 1px solid $mel-ws-border-soft;
+    border-radius: 24px;
+    box-shadow: 0 8px 28px $mel-ws-shadow-soft;
+    padding: $spacing-6 $spacing-5;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-5;
+
+    @include respond-to(md) {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: $spacing-8 $spacing-6;
+    }
+  }
+
+  &__hero-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__eyebrow {
+    margin: 0 0 $spacing-2;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $text-secondary;
+  }
+
+  &__hero-title {
+    margin: 0 0 $spacing-3;
+    font-size: clamp(1.35rem, 4vw, 1.75rem);
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    line-height: 1.25;
+  }
+
+  &__hero-body {
+    margin: 0;
+    font-size: $font-size-base;
+    color: $text-secondary;
+    line-height: 1.55;
+    max-width: 36rem;
+  }
+
+  &__pro-inline {
+    margin-top: $spacing-4;
+  }
+
+  &__hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3;
+    flex-shrink: 0;
+
+    @include respond-to(md) {
+      align-items: flex-end;
+    }
+  }
+
+  &__cta {
+    min-height: 44px;
+    min-width: 44px;
+    padding-left: $spacing-5;
+    padding-right: $spacing-5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  &__mid-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-5;
+
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+  }
+
+  &__section {
+    width: 100%;
+  }
+
+  &__section-header {
+    margin-bottom: $spacing-4;
+  }
+
+  &__section-title {
+    margin: 0 0 $spacing-1;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+
+  &__section-sub {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+
+  &__section-meta {
+    margin: $spacing-1 0 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+
+  &__muted {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+
+  &__readiness-grid {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3;
+  }
+
+  &__readiness-item {
+    border-radius: 14px;
+    border: 1px solid $border-color-light;
+    background: $bg-primary;
+    overflow: hidden;
+
+    &--success {
+      border-left: 4px solid $success;
+    }
+
+    &--warning {
+      border-left: 4px solid $warning;
+    }
+
+    &--neutral {
+      border-left: 4px solid $gray-300;
+    }
+  }
+
+  &__readiness-link,
+  &__readiness-static {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-1;
+    padding: $spacing-4;
+    color: inherit;
+    text-decoration: none;
+    min-height: 44px;
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  &__readiness-link:hover {
+    background: $gray-50;
+  }
+
+  &__readiness-label {
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+
+  &__readiness-status {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+
+    &--done::before {
+      content: '✓ ';
+      font-weight: $font-weight-bold;
+      color: $success;
+    }
+
+    &--todo::before {
+      content: '! ';
+      font-weight: $font-weight-bold;
+      color: $warning;
+    }
+  }
+
+  &__action-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3;
+  }
+
+  &__action {
+    border-radius: 16px;
+    border: 1px solid $border-color-light;
+    background: $bg-primary;
+    padding: $spacing-4 $spacing-5;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+
+    &--error {
+      border-left: 4px solid $danger;
+    }
+
+    &--warning {
+      border-left: 4px solid $warning;
+    }
+
+    &--info {
+      border-left: 4px solid $info;
+    }
+
+    &--success {
+      border-left: 4px solid $success;
+    }
+  }
+
+  &__action-head {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-3;
+  }
+
+  &__action-severity {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+    background: $gray-400;
+  }
+
+  &__action--error &__action-severity {
+    background: $danger;
+  }
+
+  &__action--warning &__action-severity {
+    background: $warning;
+  }
+
+  &__action--info &__action-severity {
+    background: $info;
+  }
+
+  &__action--success &__action-severity {
+    background: $success;
+  }
+
+  &__action-title {
+    margin: 0;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+
+  &__action-message {
+    margin: $spacing-2 0 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    line-height: 1.5;
+  }
+
+  &__action-footer {
+    margin-top: $spacing-4;
+  }
+
+  &__action-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  &__kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-4;
+
+    @include respond-to(sm) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include respond-to(lg) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  &__kpi {
+    border-radius: 16px;
+    border: 1px solid $border-color-light;
+    background: $bg-primary;
+    padding: $spacing-5;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2;
+    min-height: 120px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+
+    &--linked:hover {
+      border-color: $mel-ws-purple-border;
+      box-shadow: 0 4px 16px $mel-ws-shadow-soft;
+    }
+
+    &--linked:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+
+    &--neutral {
+      border-top: 3px solid $gray-300;
+    }
+  }
+
+  &__kpi-label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $text-secondary;
+  }
+
+  &__kpi-value {
+    font-size: 1.35rem;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__kpi-context {
+    font-size: $font-size-xs;
+    color: $text-muted;
+    line-height: 1.45;
+  }
+
+  &__analytics-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2;
+  }
+
+  &__analytics-item {
+    padding: $spacing-3 $spacing-4;
+    border-radius: 12px;
+    border: 1px solid $border-color-light;
+    background: $bg-primary;
+    font-size: $font-size-sm;
+  }
+
+  &__event-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-4;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include respond-to(xl) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  &__event-card {
+    border-radius: 16px;
+    border: 1px solid $border-color-light;
+    background: $bg-primary;
+    padding: $spacing-5;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  &__event-card-head {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-1;
+  }
+
+  &__event-status {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $mel-ws-purple;
+  }
+
+  &__event-title {
+    margin: 0;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    line-height: 1.35;
+  }
+
+  &__event-date,
+  &__event-type,
+  &__event-metric,
+  &__event-revenue,
+  &__event-capacity {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    line-height: 1.45;
+  }
+
+  &__event-type {
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+  }
+
+  &__event-issues {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-top: $spacing-1;
+  }
+
+  &__issue-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-2;
+    min-height: 28px;
+    padding: 2px $spacing-3;
+    border-radius: 999px;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    border: 1px solid $border-color-light;
+    color: $text-primary;
+
+    &--error {
+      border-color: rgba($danger, 0.45);
+      background: rgba($danger, 0.08);
+    }
+
+    &--warning {
+      border-color: rgba($warning, 0.45);
+      background: rgba($warning, 0.12);
+    }
+  }
+
+  &__issue-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: $text-secondary;
+  }
+
+  &__issue-chip--error &__issue-dot {
+    background: $danger;
+  }
+
+  &__issue-chip--warning &__issue-dot {
+    background: $warning;
+  }
+
+  &__event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-top: auto;
+    padding-top: $spacing-4;
+  }
+
+  &__event-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  &__empty {
+    border-radius: 16px;
+    border: 1px dashed $border-color;
+    background: rgba(255, 255, 255, 0.65);
+    padding: $spacing-8 $spacing-5;
+    text-align: center;
+
+    &--positive {
+      border-style: solid;
+      border-color: $border-color-light;
+      background: $gray-50;
+    }
+  }
+
+  &__empty-title {
+    margin: 0 0 $spacing-2;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+
+  &__empty-message {
+    margin: 0 0 $spacing-5;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    line-height: 1.55;
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

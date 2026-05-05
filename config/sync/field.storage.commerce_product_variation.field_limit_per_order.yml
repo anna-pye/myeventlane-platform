@@ -1,0 +1,20 @@
+uuid: 66f4858a-207c-44ee-aab4-150068f91d85
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+id: commerce_product_variation.field_limit_per_order
+field_name: field_limit_per_order
+entity_type: commerce_product_variation
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

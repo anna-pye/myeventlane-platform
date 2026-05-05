@@ -441,3 +441,70 @@
 .mel-shell-layout__utility-rail {
   align-self: start;
 }
+
+// =============================================================================
+// Vendor Console v2 shell foundation (TASK 2 — scoped under .mel-vendor-console)
+// =============================================================================
+
+.mel-vendor-console.mel-vendor-shell {
+  background: #fff9f5;
+
+  @media (prefers-reduced-motion: reduce) {
+    .mel-vendor-shell__sidebar {
+      transition: none;
+    }
+
+    .mel-sidebar-overlay {
+      transition: none;
+    }
+  }
+
+  .mel-vendor-shell__main {
+    background: #fff9f5;
+  }
+
+  .mel-shell-header {
+    background: rgba(255, 249, 245, 0.96);
+    border-bottom-color: #e9e3de;
+  }
+
+  .mel-shell-header__title {
+    color: #24303a;
+  }
+
+  .mel-shell-header__subtitle {
+    color: #5b6670;
+  }
+
+  .mel-vendor-shell__footer {
+    background: #ffffff;
+    border-top-color: #e9e3de;
+    color: #5b6670;
+  }
+
+  .mel-btn.mel-btn--primary,
+  .mel-vendor-console__primary-action.mel-btn--primary {
+    background: #f26d5b;
+    border-color: #f26d5b;
+    color: $text-inverse;
+    border-radius: 12px;
+    min-height: 44px;
+    padding-inline: $spacing-4;
+
+    &:hover {
+      background: #e55c49;
+      border-color: #e55c49;
+      color: $text-inverse;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  .mel-vendor-console__nav-item:focus-visible {
+    outline: 2px solid #7c83fd;
+    outline-offset: 2px;
+  }
+}

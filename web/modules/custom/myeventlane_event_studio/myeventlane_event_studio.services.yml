@@ -6,6 +6,7 @@ services:
       - '@myeventlane_vendor.event_studio_create'
       - '@logger.channel.myeventlane_event_studio'
       - '@request_stack'
+      - '@myeventlane_vendor.event_access_checker'
     tags:
       - { name: controller.service_arguments }
 
@@ -86,21 +87,12 @@ services:
       - '@?myeventlane_event_state.resolver'
       - '@?myeventlane_capacity.service'
 
-  myeventlane_event_studio.mel_ticket_type_manager:
-    class: Drupal\myeventlane_event_studio\Service\MelTicketTypeManager
-    arguments:
-      - '@entity_type.manager'
-      - '@myeventlane_event.ticket_tier_lifecycle'
-      - '@?myeventlane_domain_events.bus'
-      - '@logger.channel.myeventlane_event_studio'
-
   myeventlane_event_studio.save:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSaveService
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_venue.manager'
       - '@logger.channel.myeventlane_event_studio'
-      - '@myeventlane_event_studio.mel_ticket_type_manager'
       - '@myeventlane_event_studio.highlight_helper'
       - '@myeventlane_vendor.paid_publish_stripe_gate'
       - '@myeventlane_vendor.publish_requirements_gate'
@@ -115,5 +107,7 @@ services:
       - '@myeventlane_event_studio.highlight_helper'
       - '@tempstore.private'
       - '@logger.channel.myeventlane_event_studio'
+      - '@access_manager'
+      - '@myeventlane_vendor.event_access_checker'
     tags:
       - { name: controller.service_arguments }

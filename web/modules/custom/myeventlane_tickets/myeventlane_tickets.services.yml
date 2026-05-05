@@ -86,7 +86,9 @@ services:
 
   myeventlane_tickets.access.event_tickets:
     class: Drupal\myeventlane_tickets\Access\EventTicketsAccess
-    arguments: ['@myeventlane_tickets.event_access']
+    arguments:
+      - '@myeventlane_tickets.event_access'
+      - '@myeventlane_vendor.event_access_checker'
     tags:
       - { name: access_check }
 

@@ -25,7 +25,6 @@ function myeventlane_checkout_flow_install() {
       'myeventlane_checkout_flow',
       'myeventlane_checkout_paragraph',
       'myeventlane_commerce',
-      'myeventlane_donations',
     ],
   ]);
   $checkout_flow_config->set('id', 'mel_event_checkout');
@@ -49,12 +48,6 @@ function myeventlane_checkout_flow_install() {
         'display_label' => 'Attendee details',
         'step' => 'checkout',
         'weight' => 1,
-        'wrapper_element' => 'fieldset',
-      ],
-      'mel_donation' => [
-        'display_label' => 'Donation',
-        'step' => 'checkout',
-        'weight' => 2,
         'wrapper_element' => 'fieldset',
       ],
       'mel_legal_consent' => [
@@ -138,4 +131,30 @@ function myeventlane_checkout_flow_install() {
     ],
   ]);
   $order_item_config->save();
+}
+
+/**
+ * Disable the legacy checkout donation pane.
+ */
+function myeventlane_checkout_flow_update_10001(): void {
+  $config = \Drupal::configFactory()->getEditable('commerce_checkout.commerce_checkout_flow.mel_event_checkout');
+  if ($config->isNew()) {
+    return;
+  }
+
+  $panes = $config->get('configuration.panes') ?? [];
+  if (!is_array($panes) || !isset($panes['mel_donation'])) {
+    return;
+  }
+
+  unset($panes['mel_donation']);
+  $config->set('configuration.panes', $panes);
+
+  $dependencies = $config->get('dependencies.module') ?? [];
+  if (is_array($dependencies)) {
+    $dependencies = array_values(array_diff($dependencies, ['myeventlane_donations']));
+    $config->set('dependencies.module', $dependencies);
+  }
+
+  $config->save();
 }

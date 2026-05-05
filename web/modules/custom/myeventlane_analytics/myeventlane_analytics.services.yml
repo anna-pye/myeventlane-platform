@@ -23,6 +23,23 @@ services:
     class: Drupal\myeventlane_analytics\Service\ReportGeneratorService
     arguments: ['@entity_type.manager', '@renderer', '@myeventlane_analytics.data']
 
+  # Vendor-wide `/vendor/analytics` view model (TASK 9 — orchestration only).
+  myeventlane_analytics.vendor_view_model_builder:
+    class: Drupal\myeventlane_analytics\Service\VendorAnalyticsViewModelBuilder
+    arguments:
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.service.metrics_aggregator'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor.service.rsvp_stats'
+      - '@myeventlane_core.event_state_resolver'
+      - '@router.route_provider'
+      - '@access_manager'
+      - '@datetime.time'
+      - '@date.formatter'
+      - '@string_translation'
+      - '@logger.factory'
+
   # Trending score service.
   myeventlane_analytics.trending_score:
     class: Drupal\myeventlane_analytics\Service\TrendingScoreService

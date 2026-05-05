@@ -14,7 +14,6 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_messaging\Form\VendorBrandingForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Vendor console: messaging brand config page.
@@ -51,7 +50,6 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
     MessengerInterface $messenger,
     private readonly FormBuilderInterface $formBuilder,
     EntityTypeManagerInterface $entityTypeManager,
-    private readonly RequestStack $requestStack,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->entityTypeManager = $entityTypeManager;
@@ -67,7 +65,6 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
       $container->get('messenger'),
       $container->get('form_builder'),
       $container->get('entity_type.manager'),
-      $container->get('request_stack'),
     );
   }
 
@@ -79,12 +76,6 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
    */
   public function brand(): array|RedirectResponse {
     $this->assertVendorAccess();
-    $request = $this->requestStack->getCurrentRequest();
-    \Drupal::logger('mel_debug')->error('BRAND ROUTE REQUEST: method=@method uri=@uri post=<pre>@post</pre>', [
-      '@method' => $request->getMethod(),
-      '@uri' => $request->getRequestUri(),
-      '@post' => print_r($request->request->all(), TRUE),
-    ]);
 
     $vendor = $this->getCurrentVendorOrNull();
     if (!$vendor) {

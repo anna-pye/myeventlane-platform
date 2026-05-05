@@ -10,7 +10,7 @@
  *
  * One primary CTA above the fold: marketing discovery button (translated label below). Secondary link is text-style
  * and points to create-event gateway (login + organiser onboarding + event studio) —
- * label matches that action; see myeventlane_event_studio.create.
+ * label matches that action; public CTA uses myeventlane_vendor.create_event_gateway.
  *
  * For organiser help articles only (no duplicate create flow), use Help Centre e.g.
  * myeventlane_help_centre.organisers_index (/help/organisers) from body copy or footer.
@@ -39,7 +39,7 @@
         <a class="mel-btn mel-btn--primary hero__cta hero__cta--primary" href="{{ path('view.upcoming_events.page_events') }}">
           {{ 'Explore events'|t }}
         </a>
-        <a class="mel-link hero__cta hero__cta--secondary" href="{{ path('myeventlane_event_studio.create') }}">
+        <a class="mel-link hero__cta hero__cta--secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">
           {{ 'Create Event'|t }}
         </a>
       </div>

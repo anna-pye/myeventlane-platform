@@ -95,7 +95,6 @@ final class EventStudioWizardMelBaseline {
     }
 
     $tags = [
-      'field_ticket_types' => 'mel_ticket_type',
       'field_category' => 'taxonomy_term',
       'field_tags' => 'taxonomy_term',
       'field_accessibility' => 'taxonomy_term',

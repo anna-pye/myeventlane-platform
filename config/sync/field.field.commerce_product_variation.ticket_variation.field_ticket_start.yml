@@ -1,0 +1,21 @@
+uuid: 767594e8-6522-4583-95dc-a5eeae10da60
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.ticket_variation
+    - field.storage.commerce_product_variation.field_ticket_start
+  module:
+    - datetime
+id: commerce_product_variation.ticket_variation.field_ticket_start
+field_name: field_ticket_start
+entity_type: commerce_product_variation
+bundle: ticket_variation
+label: 'Ticket start time'
+description: 'Optional start time for this ticket variation.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

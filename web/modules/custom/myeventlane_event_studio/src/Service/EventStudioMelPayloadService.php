@@ -76,24 +76,6 @@ final class EventStudioMelPayloadService {
       $image_fid = (int) reset($image_fids);
     }
 
-    $tiers_raw = $mel['studio_ticket_tiers'] ?? '';
-    $studio_ticket_tiers = [];
-    if (is_string($tiers_raw) && $tiers_raw !== '') {
-      try {
-        $decoded = json_decode($tiers_raw, TRUE, 512, JSON_THROW_ON_ERROR);
-        if (is_array($decoded)) {
-          foreach ($decoded as $item) {
-            if (is_array($item)) {
-              $studio_ticket_tiers[] = $item;
-            }
-          }
-        }
-      }
-      catch (\JsonException) {
-        $studio_ticket_tiers = [];
-      }
-    }
-
     $payload = [
       'title' => $mel['title'] ?? '',
       'summary' => $mel['summary'] ?? '',
@@ -111,8 +93,6 @@ final class EventStudioMelPayloadService {
       'field_accessibility_entry' => trim((string) ($mel['field_accessibility_entry'] ?? '')),
       'field_accessibility_parking' => trim((string) ($mel['field_accessibility_parking'] ?? '')),
       'field_product_target' => $this->extractSingleEntityId($mel['field_product_target'] ?? NULL),
-      'field_ticket_types' => $this->extractMultipleEntityIds($mel['field_ticket_types'] ?? ''),
-      'studio_ticket_tiers' => $studio_ticket_tiers,
       'venue_choice' => $choice,
       'venue_id' => $venue_id,
       'new_venue_name' => $new_name,
@@ -148,15 +128,6 @@ final class EventStudioMelPayloadService {
     if ($nid > 0) {
       $loaded = $entityTypeManager->getStorage('node')->load($nid);
       if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
-        if ($loaded->hasField('field_ticket_types')) {
-          $payload['field_ticket_types'] = [];
-          foreach ($loaded->get('field_ticket_types')->getValue() as $row) {
-            $tid = (int) ($row['target_id'] ?? 0);
-            if ($tid > 0) {
-              $payload['field_ticket_types'][] = $tid;
-            }
-          }
-        }
         // Ticket product autocomplete may be omitted from POST when hidden or unchanged; do not
         // clear field_product_target on save when the node already has a linked product.
         $pid = $payload['field_product_target'] ?? NULL;

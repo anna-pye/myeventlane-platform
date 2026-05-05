@@ -1,64 +1,63 @@
 {#
 /**
  * @file
- * Template for the analytics dashboard.
+ * Vendor-wide analytics (`/vendor/analytics`).
  *
- * Available variables:
- * - summary_stats: Summary statistics across all events.
- * - event_analytics: Array of event analytics data.
- * - is_pro: Whether the user has Pro access (injected by myeventlane_pro).
- * - pro_upgrade_url: URL to Pro overview (injected by myeventlane_pro).
+ * Variables:
+ * - analytics_model: TASK 9 view model (title, subtitle, date_range, kpis, events, insights, empty_state).
+ * - is_pro, pro_upgrade_url: optional; from myeventlane_pro_preprocess.
+ * - summary_stats, event_analytics: legacy keys (empty); kept for compatibility.
  */
 #}
-<div class="mel-analytics-dashboard">
+{% set model = analytics_model|default({}) %}
+{% set date_items = model.date_range.items|default([]) %}
 
-  <h1 class="mel-analytics-title">{{ 'Analytics Dashboard'|t }}</h1>
+<div class="mel-vendor-analytics-v2 mel-analytics-dashboard">
 
-  {# Summary Cards — always visible #}
-  <div class="mel-analytics-summary" style="
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  ">
-    <div class="mel-analytics-card" style="
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    ">
-      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #666; font-weight: 600;">{{ 'Total Events'|t }}</h3>
-      <p style="margin: 0; font-size: 2rem; font-weight: 700; color: #333;">{{ summary_stats.total_events }}</p>
+  <header class="mel-vendor-analytics-v2__header mel-analytics-lock-content">
+    <div>
+      <h1 class="mel-vendor-analytics-v2__title">{{ model.title|default('Analytics'|t) }}</h1>
+      {% if model.subtitle %}
+        <p class="mel-vendor-analytics-v2__subtitle">{{ model.subtitle }}</p>
+      {% endif %}
     </div>
+    {% if date_items is not empty %}
+      <nav class="mel-vendor-analytics-v2__range" aria-label="{{ 'Date range'|t }}">
+        <ul class="mel-vendor-analytics-v2__range-list">
+          {% for item in date_items %}
+            <li>
+              {% if item.url %}
+                <a href="{{ item.url }}" class="mel-vendor-analytics-v2__range-link{% if item.active %} is-active{% endif %}">{{ item.label }}</a>
+              {% else %}
+                <span class="mel-vendor-analytics-v2__range-link{% if item.active %} is-active{% endif %}">{{ item.label }}</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+    {% endif %}
+  </header>
 
-    <div class="mel-analytics-card" style="
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    ">
-      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #666; font-weight: 600;">{{ 'Total Revenue'|t }}</h3>
-      <p style="margin: 0; font-size: 2rem; font-weight: 700; color: #28a745;">${{ summary_stats.total_revenue|number_format(2) }}</p>
-    </div>
+  {% if model.kpis is defined and model.kpis is not empty %}
+    <section class="mel-vendor-analytics-v2__kpis" aria-label="{{ 'Key metrics'|t }}">
+      {% for kpi in model.kpis %}
+        <article class="mel-vendor-analytics-v2__kpi mel-kpi-card mel-kpi-card--neutral">
+          <h2 class="mel-vendor-analytics-v2__kpi-label">{{ kpi.label }}</h2>
+          <p class="mel-vendor-analytics-v2__kpi-value">{{ kpi.value }}</p>
+          {% if kpi.context %}
+            <p class="mel-vendor-analytics-v2__kpi-context">{{ kpi.context }}</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
 
-    <div class="mel-analytics-card" style="
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    ">
-      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #666; font-weight: 600;">{{ 'Total Tickets'|t }}</h3>
-      <p style="margin: 0; font-size: 2rem; font-weight: 700; color: #333;">{{ summary_stats.total_tickets }}</p>
-    </div>
-  </div>
-
-  {# Detailed analytics — locked behind Pro #}
   <div class="mel-analytics-lock-wrapper{% if is_pro is defined and not is_pro %} mel-analytics-lock-wrapper--locked{% endif %}">
 
     {% if is_pro is defined and not is_pro %}
       <div class="mel-analytics-lock-overlay">
         <h2 class="mel-analytics-lock-overlay__title">{{ 'Unlock Full Analytics'|t }}</h2>
-        <p class="mel-analytics-lock-overlay__text">{{ 'Upgrade to Pro for advanced analytics, conversion funnels, and detailed per-event insights.'|t }}</p>
+        <p class="mel-analytics-lock-overlay__text">{{ 'Upgrade to Pro for workspace analytics, exports, and deeper per-event views.'|t }}</p>
         {% if pro_upgrade_url is defined and pro_upgrade_url %}
           <a href="{{ pro_upgrade_url }}" class="mel-pro-upgrade-btn">{{ 'Upgrade to unlock full analytics'|t }}</a>
         {% endif %}
@@ -66,69 +65,87 @@
     {% endif %}
 
     <div class="mel-analytics-lock-content">
-      <section class="mel-analytics-events" aria-labelledby="events-analytics-title">
-        <h2 id="events-analytics-title" class="mel-section-title">{{ 'Event Analytics'|t }}</h2>
 
-        {% if event_analytics is not empty %}
-          <div class="mel-analytics-events-table">
-            <table class="mel-table" style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background-color: #f5f5f5;">
-                  <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #ddd;">{{ 'Event'|t }}</th>
-                  <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Tickets Sold'|t }}</th>
-                  <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Revenue'|t }}</th>
-                  <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #ddd;">{{ 'Actions'|t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in event_analytics %}
-                  <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 1rem;">
-                      <a href="{{ item.url }}" style="font-weight: 600; color: #007bff; text-decoration: none;">{{ item.event.label }}</a>
-                    </td>
-                    <td style="padding: 1rem; text-align: right;">{{ item.tickets }}</td>
-                    <td style="padding: 1rem; text-align: right; font-weight: 600; color: #28a745;">${{ item.revenue|number_format(2) }}</td>
-                    <td style="padding: 1rem; text-align: center;">
-                      <a href="{{ item.analytics_url }}" class="mel-btn mel-btn-primary mel-btn-sm">{{ 'View Analytics'|t }}</a>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+      {% if model.insights is defined and model.insights is not empty %}
+        <section class="mel-vendor-analytics-v2__insights" aria-label="{{ 'Insights'|t }}">
+          {% for insight in model.insights %}
+            <div class="mel-vendor-analytics-v2__insight mel-vendor-analytics-v2__insight--{{ insight.severity|default('info') }}" role="status">
+              <h2 class="mel-vendor-analytics-v2__insight-title">{{ insight.title }}</h2>
+              <p class="mel-vendor-analytics-v2__insight-message">{{ insight.message }}</p>
+            </div>
+          {% endfor %}
+        </section>
+      {% endif %}
+
+      <section class="mel-vendor-analytics-v2__events" aria-labelledby="mel-vendor-analytics-events-heading">
+        <h2 id="mel-vendor-analytics-events-heading" class="mel-vendor-analytics-v2__section-title">{{ 'Event performance'|t }}</h2>
+
+        {% if model.events is defined and model.events is not empty %}
+          <ul class="mel-vendor-analytics-v2__event-list">
+            {% for row in model.events %}
+              <li class="mel-vendor-analytics-v2__event-card">
+                <div class="mel-vendor-analytics-v2__event-main">
+                  <h3 class="mel-vendor-analytics-v2__event-title">{{ row.title }}</h3>
+                  <p class="mel-vendor-analytics-v2__event-meta">
+                    <span class="mel-vendor-analytics-v2__badge">{{ row.status_label }}</span>
+                    {% if row.date_label %}
+                      <span class="mel-vendor-analytics-v2__event-date">{{ row.date_label }}</span>
+                    {% endif %}
+                  </p>
+                  <p class="mel-vendor-analytics-v2__event-type">{{ row.event_type_label }}</p>
+                  <dl class="mel-vendor-analytics-v2__metrics">
+                    {% if row.revenue_label %}
+                      <div class="mel-vendor-analytics-v2__metric">
+                        <dt>{{ 'Revenue'|t }}</dt>
+                        <dd>{{ row.revenue_label }}</dd>
+                      </div>
+                    {% endif %}
+                    {% if row.tickets_label %}
+                      <div class="mel-vendor-analytics-v2__metric">
+                        <dt>{{ 'Tickets'|t }}</dt>
+                        <dd>{{ row.tickets_label }}</dd>
+                      </div>
+                    {% endif %}
+                    {% if row.rsvp_label %}
+                      <div class="mel-vendor-analytics-v2__metric">
+                        <dt>{{ 'RSVPs'|t }}</dt>
+                        <dd>{{ row.rsvp_label }}</dd>
+                      </div>
+                    {% endif %}
+                    {% if row.conversion_label %}
+                      <div class="mel-vendor-analytics-v2__metric">
+                        <dt>{{ 'Conversion'|t }}</dt>
+                        <dd>{{ row.conversion_label }}</dd>
+                      </div>
+                    {% endif %}
+                  </dl>
+                </div>
+                <div class="mel-vendor-analytics-v2__event-actions">
+                  {% if row.analytics_url %}
+                    <a href="{{ row.analytics_url }}" class="mel-btn mel-btn-primary">{{ 'View event analytics'|t }}</a>
+                  {% endif %}
+                  {% if row.workspace_url %}
+                    <a href="{{ row.workspace_url }}" class="mel-btn mel-btn-secondary">{{ 'View workspace'|t }}</a>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
         {% else %}
-          <div class="mel-analytics-empty" style="
-            text-align: center;
-            padding: 3rem;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          ">
-            <p style="color: #666; font-size: 1.1rem;">{{ 'No events with analytics data yet.'|t }}</p>
-            <p style="color: #999; margin-top: 0.5rem;">{{ 'Create an event and start selling tickets to see analytics.'|t }}</p>
+          {% set empty = model.empty_state|default({}) %}
+          <div class="mel-vendor-analytics-v2__empty mel-empty-state">
+            {% if empty.title %}
+              <h3 class="mel-empty-state__title">{{ empty.title }}</h3>
+            {% endif %}
+            {% if empty.message %}
+              <p class="mel-empty-state__text">{{ empty.message }}</p>
+            {% endif %}
+            {% if empty.url and empty.action_label %}
+              <a href="{{ empty.url }}" class="mel-btn mel-btn-primary">{{ empty.action_label }}</a>
+            {% endif %}
           </div>
         {% endif %}
       </section>
     </div>
-
   </div>
-
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

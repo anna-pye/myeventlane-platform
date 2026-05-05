@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Controller;
 
 use Drupal\Component\Utility\Tags;
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
@@ -12,6 +13,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -30,6 +32,8 @@ final class EventStudioAutosaveController {
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly PrivateTempStoreFactory $privateTempStoreFactory,
     private readonly LoggerInterface $logger,
+    private readonly AccessManagerInterface $accessManager,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {}
 
   public function handle(Request $request): JsonResponse {
@@ -38,6 +42,11 @@ final class EventStudioAutosaveController {
     }
 
     $account = $this->currentUser;
+    if ($account->isAnonymous()) {
+      $this->logger->warning('Event Studio autosave denied: anonymous');
+      throw new AccessDeniedHttpException();
+    }
+
     $params = $request->request->all();
 
     $storage = $this->entityTypeManager->getStorage('node');
@@ -47,10 +56,32 @@ final class EventStudioAutosaveController {
       if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
         return new JsonResponse(['ok' => FALSE, 'message' => 'Not found'], 404);
       }
-      if (!$loaded->access('update', $account)) {
-        throw new AccessDeniedHttpException();
+
+      if (!$account->hasPermission('administer nodes')) {
+        if (!$loaded->access('update', $account)) {
+          $this->logger->warning('Event Studio autosave denied: node update nid=@nid uid=@uid', [
+            '@nid' => (string) $loaded->id(),
+            '@uid' => (string) $account->id(),
+          ]);
+          throw new AccessDeniedHttpException();
+        }
+        if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($loaded, $account)) {
+          $this->logger->warning('Event Studio autosave denied: workspace parity nid=@nid uid=@uid', [
+            '@nid' => (string) $loaded->id(),
+            '@uid' => (string) $account->id(),
+          ]);
+          throw new AccessDeniedHttpException();
+        }
       }
       $node = $loaded;
+    }
+    else {
+      if (!$this->accessManager->checkNamedRoute('myeventlane_event_studio.create', [], $account, TRUE)->isAllowed()) {
+        $this->logger->warning('Event Studio autosave denied: create route access uid=@uid', [
+          '@uid' => (string) $account->id(),
+        ]);
+        throw new AccessDeniedHttpException();
+      }
     }
 
     $incoming_autosave_ts = $this->parseAutosaveTimestamp($params);
@@ -187,7 +218,6 @@ final class EventStudioAutosaveController {
       'field_accessibility_entry' => trim((string) ($mel['field_accessibility_entry'] ?? $params['field_accessibility_entry'] ?? '')),
       'field_accessibility_parking' => trim((string) ($mel['field_accessibility_parking'] ?? $params['field_accessibility_parking'] ?? '')),
       'field_product_target' => $this->extractSingleEntityId($mel['field_product_target'] ?? $params['field_product_target'] ?? NULL),
-      'field_ticket_types' => $this->extractMultipleEntityIds($mel['field_ticket_types'] ?? $params['field_ticket_types'] ?? ''),
       'venue_choice' => $choice,
       'venue_id' => $venue_id,
       'new_venue_name' => $mel['venue_create_name'] ?? $params['venue']['create']['new_venue_name'] ?? $params['new_venue_name'] ?? '',
@@ -214,7 +244,6 @@ final class EventStudioAutosaveController {
       'status' => FALSE,
       'field_location_latitude' => $mel['field_location_latitude'] ?? $params['field_location_latitude'] ?? NULL,
       'field_location_longitude' => $mel['field_location_longitude'] ?? $params['field_location_longitude'] ?? NULL,
-      'studio_ticket_tiers' => $this->decodeStudioTicketTiers($mel['studio_ticket_tiers'] ?? NULL),
     ];
     if ($decoded_event_highlights !== NULL) {
       $payload['event_highlights'] = $decoded_event_highlights;
@@ -249,38 +278,6 @@ final class EventStudioAutosaveController {
     $allowed = $this->eventHighlightHelper->getAllowedIconKeys();
 
     return $this->eventHighlightHelper->normalizeHighlights($decoded, $allowed);
-  }
-
-  /**
-   * @return list<array<string, mixed>>
-   */
-  private function decodeStudioTicketTiers(mixed $raw): array {
-    if ($raw === NULL || $raw === '') {
-      return [];
-    }
-    if (is_array($raw)) {
-      $out = [];
-      foreach ($raw as $item) {
-        if (is_array($item)) {
-          $out[] = $item;
-        }
-      }
-      return $out;
-    }
-    if (!is_string($raw)) {
-      return [];
-    }
-    $decoded = json_decode($raw, TRUE);
-    if (!is_array($decoded)) {
-      return [];
-    }
-    $out = [];
-    foreach ($decoded as $item) {
-      if (is_array($item)) {
-        $out[] = $item;
-      }
-    }
-    return $out;
   }
 
   /**

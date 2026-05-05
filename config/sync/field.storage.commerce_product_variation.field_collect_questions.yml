@@ -1,0 +1,18 @@
+uuid: aa1d318a-8a2e-4c63-8555-e211d8ab2555
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+id: commerce_product_variation.field_collect_questions
+field_name: field_collect_questions
+entity_type: commerce_product_variation
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

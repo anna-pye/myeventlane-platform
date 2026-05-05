@@ -18,7 +18,7 @@
       {% if mode == 'create' %}
         {{ 'Create Event'|t }}
       {% else %}
-        {{ 'Event Studio'|t }}
+        {{ 'Edit event'|t }}
       {% endif %}
     </h1>
 
@@ -80,16 +80,142 @@
       </div>
     {% endif %}
 
-    <div class="mel-es-workspace{% if show_onboarding_sidebar %} mel-es-workspace--has-onboarding{% endif %}">
+    <div class="mel-layout mel-es-workspace{% if show_onboarding_sidebar %} mel-es-workspace--has-onboarding{% endif %}">
       {% if show_onboarding_sidebar %}
         <aside class="mel-es-workspace__sidebar mel-es-workspace__sidebar--onboarding" aria-label="{{ 'Organiser setup'|t }}">
           {% include '@myeventlane_vendor_theme/components/mel-onboard-studio-nav.html.twig' with { stages: onboarding_stages } %}
         </aside>
       {% endif %}
-      <aside class="mel-es-workspace__sidebar" aria-label="{{ 'Event steps'|t }}">
-        {% include '@myeventlane_event_studio/mel-event-studio-nav.html.twig' %}
+      <aside class="mel-sidebar mel-es-workspace__sidebar" aria-label="{{ 'Event tools'|t }}">
+        <div class="mel-builder-sidebar__sticky mel-builder-sidebar__sticky--left">
+          <div class="mel-preview-card mel-preview-card--sidebar-shell">
+            <h4>{{ 'Preview'|t }}</h4>
+            <aside
+              class="mel-preview"
+              id="mel-live-preview"
+              data-mel-live-preview="1"
+              aria-label="{{ 'Live preview'|t }}"
+            >
+              <button
+                type="button"
+                class="mel-preview__drawer-toggle"
+                id="mel-preview-drawer-toggle"
+                aria-expanded="false"
+                aria-controls="mel-preview-drawer-panel"
+              >
+                <span class="mel-preview__drawer-toggle-label">{{ 'Preview'|t }}</span>
+                <span class="mel-preview__drawer-hint" aria-hidden="true">{{ 'Tap to expand'|t }}</span>
+              </button>
+              <div class="mel-preview__panel" id="mel-preview-drawer-panel">
+                <div class="mel-event-studio__preview">
+                  <div id="mel-preview-card" data-mel-studio-preview-anchor="1">
+                    <article class="mel-preview-card">
+                      <div class="mel-preview-card__media" id="mel-preview-card-media">
+                        <img class="mel-preview-card__img" id="mel-preview-card-img" src="" alt="" width="640" height="336" loading="lazy" hidden />
+                        <div class="mel-preview-card__media-placeholder" id="mel-preview-card-placeholder">
+                          <span aria-hidden="true"></span>
+                        </div>
+                      </div>
+                      <div class="mel-preview-card__body">
+                        <h3 class="mel-preview-card__title" id="mel-preview-title">—</h3>
+                        <p class="mel-preview-card__meta">
+                          <time class="mel-preview-card__time" id="mel-preview-schedule" datetime="">—</time>
+                        </p>
+                        <p class="mel-preview-card__location" id="mel-preview-location">—</p>
+                        <p class="mel-preview-card__badge" id="mel-preview-booking-mode">—</p>
+                        <p class="mel-preview-card__pricing" id="mel-preview-pricing">—</p>
+                        <p class="mel-preview-card__status" id="mel-preview-status">—</p>
+                        <div class="mel-preview-card__cta">
+                          <a href="#" class="mel-btn mel-btn--primary mel-preview__cta" id="mel-preview-cta">{{ 'RSVP free'|t }}</a>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                  <div class="mel-preview-hints" id="mel-preview-hints" aria-live="polite"></div>
+                </div>
+
+                <div class="mel-event-actions">
+                  {% if mel_event_actions.view %}
+                    <a href="{{ mel_event_actions.view }}" class="mel-btn mel-btn--ghost" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
+                  {% endif %}
+                  {% if mel_event_actions.booking %}
+                    <a href="{{ mel_event_actions.booking }}" class="mel-btn mel-btn--secondary" target="_blank" rel="noopener noreferrer">{{ 'Booking page'|t }}</a>
+                  {% endif %}
+                  {% if mel_event_actions.scan %}
+                    <a href="{{ mel_event_actions.scan }}" class="mel-btn mel-btn--accent">{{ 'Scan tickets'|t }}</a>
+                  {% endif %}
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="mel-sidebar-tasks">
+            {% include '@myeventlane_event_studio/mel-event-studio-nav.html.twig' %}
+          </div>
+
+          <div class="mel-event-studio__progress">
+            <div class="mel-event-strength">
+              <div class="mel-event-strength__bar">
+                <div id="mel-event-strength-fill" class="mel-event-strength__fill"></div>
+              </div>
+              <div class="mel-event-strength__meta">
+                <span id="mel-event-strength-score">0%</span>
+                <span id="mel-event-strength-label">{{ 'Needs work'|t }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mel-builder-next-best-block">
+            <p class="mel-builder-next-best-label">{{ 'Next best action'|t }}</p>
+            <p id="mel-builder-next-best" class="mel-builder-next-best" aria-live="polite"></p>
+            <button type="button" class="mel-btn mel-btn--primary mel-builder-primary-cta" id="mel-builder-primary-cta">{{ 'Review publish'|t }}</button>
+          </div>
+
+          <div class="mel-publish-readiness-card mel-publish-card">
+            <h3 class="mel-aside-card__title">{{ 'Publish readiness'|t }}</h3>
+            <div id="mel-publish-readiness" class="mel-publish-readiness-body"></div>
+          </div>
+
+          <div class="mel-ai-controls mel-ai-controls--sidebar" role="region" aria-label="{{ 'AI style for generation'|t }}">
+            <div class="mel-ai-controls__row">
+              <label class="mel-ai-controls__group">
+                <span>{{ 'Tone'|t }}</span>
+                <select class="mel-input mel-ai-tone" aria-label="{{ 'AI tone'|t }}">
+                  <option value="community">{{ 'Community'|t }}</option>
+                  <option value="fun">{{ 'Fun'|t }}</option>
+                  <option value="professional">{{ 'Professional'|t }}</option>
+                  <option value="urgent">{{ 'Urgent'|t }}</option>
+                  <option value="luxury">{{ 'Premium'|t }}</option>
+                </select>
+              </label>
+              <label class="mel-ai-controls__group">
+                <span>{{ 'Audience'|t }}</span>
+                <select class="mel-input mel-ai-audience" aria-label="{{ 'AI audience'|t }}">
+                  <option value="general">{{ 'General'|t }}</option>
+                  <option value="lgbtq">{{ 'LGBTQIA+'|t }}</option>
+                  <option value="students">{{ 'Students'|t }}</option>
+                  <option value="professionals">{{ 'Professionals'|t }}</option>
+                  <option value="families">{{ 'Families'|t }}</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <details class="mel-builder-checklist-details mel-insights-card mel-insights-card--sidebar">
+            <summary class="mel-builder-checklist-summary">{{ 'Show full checklist'|t }}</summary>
+            <div id="mel-insights-list" class="mel-insights-checklist" role="list" aria-live="polite"></div>
+          </details>
+
+          <div class="mel-builder-sidebar__save">
+            <button type="button" class="mel-btn mel-btn--primary mel-builder-save-sidebar" id="mel-builder-save-sidebar" aria-label="{{ 'Save event'|t }}">
+              {{ 'Save'|t }}
+            </button>
+          </div>
+
+          <p class="mel-aside-footnote" id="mel-studio-form-state" role="status"></p>
+        </div>
       </aside>
-      <main class="mel-es-workspace__main">
+      <main class="mel-main mel-es-workspace__main">
 
     <div class="mel-studio-form-wrapper mel-event-studio__form-full mel-studio-main-full">
 
@@ -219,9 +345,6 @@
                 <button type="button" class="mel-builder-card__edit-btn">{{ 'Edit'|t }}</button>
               </div>
               <div class="mel-builder-card__body mel-builder-fields mel-builder-fields--stack">
-              {% if element.mel.first_ticket_guidance is defined %}
-                {{ element.mel.first_ticket_guidance }}
-              {% endif %}
               {{ element.mel.tickets_intro }}
               {{ element.mel.field_event_type }}
               <div class="mel-tickets-product-region">
@@ -229,13 +352,7 @@
                   <span class="mel-tickets-section-divider__label">{{ 'Your tickets'|t }}</span>
                 </div>
                 <div class="mel-tickets-list-well">
-                  <p class="mel-ticket-studio-autosave-hint" role="status">{{ 'Changes saved automatically'|t }}</p>
-                  {{ element.mel.studio_ticket_tiers }}
-                  {{ element.mel.ticket_simplicity_warn }}
-                  {% if element.mel.embedded_ticket_wizard is defined %}
-                    {{ element.mel.embedded_ticket_wizard }}
-                  {% endif %}
-                  {{ element.mel.studio_ticket_builder }}
+                  {{ element.mel.tickets_section }}
                 </div>
               </div>
               {{ element.mel.rsvp_capacity }}
@@ -243,11 +360,9 @@
               <div class="mel-ticket-paid-shell" id="mel-ticket-paid-shell" hidden>
                 <div class="mel-builder-fields mel-builder-fields--2col">
                   {{ element.mel.field_product_target }}
-                  {{ element.mel.field_ticket_types }}
                 </div>
               </div>
 
-              {{ element.mel.paid_ticket_panel }}
               {{ element.mel.external_url }}
               {{ element.mel.ticket_summary }}
 
@@ -581,137 +696,7 @@
 
         </div>{# /.mel-builder__main #}
 
-      <aside class="mel-builder__sidebar" aria-label="{{ 'Progress and next steps'|t }}">
-        <div class="mel-builder-sidebar__sticky">
-          <div class="mel-event-studio__progress">
-            <div class="mel-event-strength">
-              <div class="mel-event-strength__bar">
-                <div id="mel-event-strength-fill" class="mel-event-strength__fill"></div>
-              </div>
-              <div class="mel-event-strength__meta">
-                <span id="mel-event-strength-score">0%</span>
-                <span id="mel-event-strength-label">{{ 'Needs work'|t }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="mel-builder-next-best-block">
-            <p class="mel-builder-next-best-label">{{ 'Next best action'|t }}</p>
-            <p id="mel-builder-next-best" class="mel-builder-next-best" aria-live="polite"></p>
-            <button type="button" class="mel-btn mel-btn--primary mel-builder-primary-cta" id="mel-builder-primary-cta">{{ 'Review publish'|t }}</button>
-          </div>
-
-          <div class="mel-ai-controls mel-ai-controls--sidebar" role="region" aria-label="{{ 'AI style for generation'|t }}">
-            <div class="mel-ai-controls__row">
-              <label class="mel-ai-controls__group">
-                <span>{{ 'Tone'|t }}</span>
-                <select class="mel-input mel-ai-tone" aria-label="{{ 'AI tone'|t }}">
-                  <option value="community">{{ 'Community'|t }}</option>
-                  <option value="fun">{{ 'Fun'|t }}</option>
-                  <option value="professional">{{ 'Professional'|t }}</option>
-                  <option value="urgent">{{ 'Urgent'|t }}</option>
-                  <option value="luxury">{{ 'Premium'|t }}</option>
-                </select>
-              </label>
-              <label class="mel-ai-controls__group">
-                <span>{{ 'Audience'|t }}</span>
-                <select class="mel-input mel-ai-audience" aria-label="{{ 'AI audience'|t }}">
-                  <option value="general">{{ 'General'|t }}</option>
-                  <option value="lgbtq">{{ 'LGBTQIA+'|t }}</option>
-                  <option value="students">{{ 'Students'|t }}</option>
-                  <option value="professionals">{{ 'Professionals'|t }}</option>
-                  <option value="families">{{ 'Families'|t }}</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <details class="mel-builder-checklist-details mel-insights-card mel-insights-card--sidebar">
-            <summary class="mel-builder-checklist-summary">{{ 'Show full checklist'|t }}</summary>
-            <div id="mel-insights-list" class="mel-insights-checklist" role="list" aria-live="polite"></div>
-          </details>
-
-          <div class="mel-publish-readiness-card mel-publish-card">
-            <h3 class="mel-aside-card__title">{{ 'Publish readiness'|t }}</h3>
-            <div id="mel-publish-readiness" class="mel-publish-readiness-body"></div>
-          </div>
-
-          <div class="mel-builder-sidebar__save">
-            <button type="button" class="mel-btn mel-btn--primary mel-builder-save-sidebar" id="mel-builder-save-sidebar" aria-label="{{ 'Save event'|t }}">
-              {{ 'Save'|t }}
-            </button>
-          </div>
-
-          <p class="mel-aside-footnote" id="mel-studio-form-state" role="status"></p>
-        </div>
-      </aside>
-
       </div>{# /.mel-builder #}
-
-      {# Live preview — below builder grid (drawer behaviour unchanged on small viewports) #}
-      <div class="mel-studio-top mel-studio-top--solo mel-studio-preview-panel--bottom" id="mel-studio-preview-panel">
-        <div class="mel-studio-top__preview mel-studio-top__preview--wide">
-          <div class="mel-event-studio__top">
-            <aside
-              class="mel-preview"
-              id="mel-live-preview"
-              data-mel-live-preview="1"
-              aria-label="{{ 'Live preview'|t }}"
-            >
-              <button
-                type="button"
-                class="mel-preview__drawer-toggle"
-                id="mel-preview-drawer-toggle"
-                aria-expanded="false"
-                aria-controls="mel-preview-drawer-panel"
-              >
-                <span class="mel-preview__drawer-toggle-label">{{ 'Preview'|t }}</span>
-                <span class="mel-preview__drawer-hint" aria-hidden="true">{{ 'Tap to expand'|t }}</span>
-              </button>
-              <div class="mel-preview__panel" id="mel-preview-drawer-panel">
-                <div class="mel-event-studio__preview">
-                  <div id="mel-preview-card" data-mel-studio-preview-anchor="1">
-                    <article class="mel-preview-card">
-                      <div class="mel-preview-card__media" id="mel-preview-card-media">
-                        <img class="mel-preview-card__img" id="mel-preview-card-img" src="" alt="" width="640" height="336" loading="lazy" hidden />
-                        <div class="mel-preview-card__media-placeholder" id="mel-preview-card-placeholder">
-                          <span aria-hidden="true"></span>
-                        </div>
-                      </div>
-                      <div class="mel-preview-card__body">
-                        <h3 class="mel-preview-card__title" id="mel-preview-title">—</h3>
-                        <p class="mel-preview-card__meta">
-                          <time class="mel-preview-card__time" id="mel-preview-schedule" datetime="">—</time>
-                        </p>
-                        <p class="mel-preview-card__location" id="mel-preview-location">—</p>
-                        <p class="mel-preview-card__badge" id="mel-preview-booking-mode">—</p>
-                        <p class="mel-preview-card__pricing" id="mel-preview-pricing">—</p>
-                        <p class="mel-preview-card__status" id="mel-preview-status">—</p>
-                        <div class="mel-preview-card__cta">
-                          <a href="#" class="mel-btn mel-btn--primary mel-preview__cta" id="mel-preview-cta">{{ 'RSVP free'|t }}</a>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                  <div class="mel-preview-hints" id="mel-preview-hints" aria-live="polite"></div>
-                </div>
-
-                <div class="mel-event-actions">
-                  {% if mel_event_actions.view %}
-                    <a href="{{ mel_event_actions.view }}" class="mel-btn mel-btn--ghost" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
-                  {% endif %}
-                  {% if mel_event_actions.booking %}
-                    <a href="{{ mel_event_actions.booking }}" class="mel-btn mel-btn--secondary" target="_blank" rel="noopener noreferrer">{{ 'Booking page'|t }}</a>
-                  {% endif %}
-                  {% if mel_event_actions.scan %}
-                    <a href="{{ mel_event_actions.scan }}" class="mel-btn mel-btn--accent">{{ 'Scan tickets'|t }}</a>
-                  {% endif %}
-                </div>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </div>
 
       {{ element.nid }}
 

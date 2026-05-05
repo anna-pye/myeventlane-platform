@@ -46,7 +46,7 @@
         {% endif %}
         <div class="mel-event-perf__actions">
           <a href="{{ event.manage_url }}" class="mel-event-perf__action">{{ 'View'|t }}</a>
-          <a href="{{ event.edit_url }}" class="mel-event-perf__action">{{ 'Open Event Studio'|t }}</a>
+          <a href="{{ event.edit_url }}" class="mel-event-perf__action">{{ 'Edit event'|t }}</a>
           {% if event.boost_wizard_url is defined and event.boost_wizard_url %}
             <a href="{{ event.boost_wizard_url }}" class="mel-boost-button mel-event-perf__action mel-event-perf__action--boost" aria-label="{{ 'Boost this event'|t }}">🚀 {{ 'Boost This Event'|t }}</a>
           {% endif %}

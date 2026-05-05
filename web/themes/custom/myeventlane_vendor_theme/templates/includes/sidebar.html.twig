@@ -4,7 +4,7 @@
  * Left navigation sidebar for MyEventLane Vendor Console.
  */
 #}
-<nav class="mel-sidebar" aria-label="{{ 'Vendor navigation'|t }}">
+<nav class="mel-sidebar mel-vendor-console__nav" aria-label="{{ 'Vendor navigation'|t }}">
   {% if page.is_admin and page.admin_portal_url %}
     <div class="mel-sidebar__admin-link">
       <a href="{{ page.admin_portal_url }}" class="mel-sidebar__link mel-sidebar__link--admin" target="_blank" rel="noopener noreferrer">
@@ -29,7 +29,7 @@
       <li class="mel-sidebar__item{% if item.children|default([]) %} mel-sidebar__item--with-subnav{% endif %}">
         {% if item.url and not item.is_disabled %}
           <a href="{{ item.url }}"
-             class="mel-sidebar__link{% if item.is_active %} is-active{% endif %}"
+             class="mel-sidebar__link mel-vendor-console__nav-item mel-vendor-console__mobile-nav-item{% if item.is_active %} mel-vendor-console__nav-item--active is-active{% endif %}"
              {% if item.is_active %}aria-current="page"{% endif %}>
             <span class="mel-sidebar__link-icon" aria-hidden="true">
               {% include '@myeventlane_vendor_theme/components/sidebar-icon.html.twig' with { icon: item.icon|default('dashboard') } only %}
@@ -37,7 +37,7 @@
             <span class="mel-sidebar__link-label">{{ item.label }}</span>
           </a>
         {% else %}
-          <span class="mel-sidebar__link mel-sidebar__link--disabled"
+          <span class="mel-sidebar__link mel-vendor-console__nav-item mel-sidebar__link--disabled"
                 aria-disabled="true"
                 title="{{ 'Coming soon'|t }}">
             <span class="mel-sidebar__link-icon" aria-hidden="true">
@@ -54,7 +54,7 @@
               <li class="mel-sidebar__subitem">
                 {% if child.url and not child.is_disabled %}
                   <a href="{{ child.url }}"
-                     class="mel-sidebar__subnav-link{% if child.is_active %} is-active{% endif %}"
+                     class="mel-sidebar__subnav-link mel-vendor-console__nav-item mel-vendor-console__mobile-nav-item{% if child.is_active %} mel-vendor-console__nav-item--active is-active{% endif %}"
                      {% if child.is_active %}aria-current="page"{% endif %}>
                     {{ child.label }}
                   </a>

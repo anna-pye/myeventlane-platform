@@ -1,0 +1,18 @@
+uuid: 9bd0a556-9605-448d-980a-fe1b898bdb46
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+id: commerce_product_variation.field_show_remaining
+field_name: field_show_remaining
+entity_type: commerce_product_variation
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

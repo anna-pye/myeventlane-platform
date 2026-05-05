@@ -1,0 +1,23 @@
+uuid: 28c04d4b-71f5-4f7c-b71f-7379c3b99a15
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.ticket_variation
+    - field.storage.commerce_product_variation.field_best_value
+id: commerce_product_variation.ticket_variation.field_best_value
+field_name: field_best_value
+entity_type: commerce_product_variation
+bundle: ticket_variation
+label: 'Best value'
+description: 'Marks the ticket variation highlighted as the best value option.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Best value'
+  off_label: 'Not best value'
+field_type: boolean
