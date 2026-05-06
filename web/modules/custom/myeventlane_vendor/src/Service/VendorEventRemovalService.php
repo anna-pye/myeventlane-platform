@@ -60,8 +60,6 @@ final class VendorEventRemovalService {
    *   Keys: url (string), alt (string), is_placeholder (bool).
    */
   public function buildEventThumbnailData(NodeInterface $event): array {
-    $placeholder_url = $this->getMelEventPlaceholderAssetUrl();
-
     $title_alt = trim((string) $event->getTitle());
     if ($title_alt === '') {
       $title_alt = (string) $this->t('Event image');
@@ -79,7 +77,7 @@ final class VendorEventRemovalService {
     }
 
     $use_placeholder = TRUE;
-    $url = $placeholder_url;
+    $url = '';
 
     if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
       $file = $event->get('field_event_image')->entity;
@@ -98,11 +96,13 @@ final class VendorEventRemovalService {
               '@nid' => (string) $event->id(),
               '@message' => $e->getMessage(),
             ]);
-            $url = $placeholder_url;
-            $use_placeholder = TRUE;
           }
         }
       }
+    }
+
+    if ($use_placeholder) {
+      $url = $this->safeMelEventPlaceholderAssetUrl();
     }
 
     $alt = $use_placeholder ? $title_alt : ($field_alt ?? $title_alt);
@@ -136,10 +136,25 @@ final class VendorEventRemovalService {
     }
 
     return [
-      'url' => $this->getMelEventPlaceholderAssetUrl(),
+      'url' => $this->safeMelEventPlaceholderAssetUrl(),
       'alt' => $alt,
       'is_placeholder' => TRUE,
     ];
+  }
+
+  /**
+   * Resolves the placeholder asset URL without breaking callers on missing theme.
+   */
+  private function safeMelEventPlaceholderAssetUrl(): string {
+    try {
+      return $this->getMelEventPlaceholderAssetUrl();
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Event card placeholder asset URL failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return '';
+    }
   }
 
   /**

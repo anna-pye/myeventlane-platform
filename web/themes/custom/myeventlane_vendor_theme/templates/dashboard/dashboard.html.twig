@@ -259,6 +259,10 @@
                 <div class="mel-event-card-thumb{% if img_ph %} mel-event-card-thumb--placeholder{% endif %}"{% if not img_ph %} aria-hidden="true"{% endif %}>
                   <img class="mel-event-card-thumb__img" src="{{ img_url }}" alt="{{ img_alt|e('html_attr') }}" loading="lazy" width="56" height="56"/>
                 </div>
+              {% else %}
+                <div class="mel-event-card-thumb mel-event-card-thumb--fallback">
+                  <span class="mel-event-card-thumb__fallback-label" role="img" aria-label="{{ 'Event image'|t }}">{{ 'MEL'|t }}</span>
+                </div>
               {% endif %}
               <div class="mel-vendor-dashboard-v2__event-card-main">
                 <div class="mel-vendor-dashboard-v2__event-card-head">

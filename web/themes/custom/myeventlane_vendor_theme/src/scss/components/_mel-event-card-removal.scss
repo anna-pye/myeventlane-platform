@@ -32,6 +32,22 @@
       object-fit: cover;
     }
   }
+
+  // Text fallback when no URL (e.g. placeholder asset resolution failed).
+  &--fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__fallback-label {
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: c.$ml-vendor-text-dark;
+    text-transform: uppercase;
+    line-height: 1;
+  }
 }
 
 .mel-event-card-remove-open {
