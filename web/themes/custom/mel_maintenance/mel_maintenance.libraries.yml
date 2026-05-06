@@ -3,3 +3,9 @@ maintenance:
   css:
     theme:
       css/maintenance.css: {}
+
+errors:
+  version: VERSION
+  css:
+    theme:
+      css/errors.css: {}
