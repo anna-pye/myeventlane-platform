@@ -1,27 +1,37 @@
 {#
 /**
  * @file
- * Fallback mel_403 template (overridden by myeventlane_theme).
+ * Branded 403 page — self-contained (no regions).
  *
- * Assets attach from the theme override only (mel-error-pages library).
+ * @see mel_maintenance/scss/errors.scss (source of css/errors.css).
  *
- * @see system.site page.403 → /mel/403
+ * @ingroup themeable
  */
 #}
+{{ attach_library('myeventlane_theme/mel-error-pages') }}
 {% set mel_brand = 'MyEventLane'|t %}
 
-<div class="mel-err mel-err--403 mel-err--in-page" data-mel-error-inline>
+<div class="mel-err mel-err--403" data-mel-error-page>
   <div class="mel-err__bg" aria-hidden="true">
     <span class="mel-err__orb mel-err__orb--1"></span>
     <span class="mel-err__orb mel-err__orb--2"></span>
     <span class="mel-err__orb mel-err__orb--3"></span>
   </div>
 
-  <a href="#main-content" class="mel-err__skip-link">
-    {{ 'Skip to main content'|t }}
+  <a href="#mel-err-main" class="mel-err__skip-link">
+    {{ 'Skip to access message'|t }}
   </a>
 
-  <div class="mel-err__main" role="presentation">
+  <header class="mel-err__header" role="banner">
+    <div class="mel-err__brand mel-err__panel">
+      <img class="mel-err__logo-img" src="{{ base_path }}{{ directory }}/images/logo.svg" width="56" height="56" alt="{{ mel_brand }}"/>
+      <div class="mel-err__brand-text">
+        <p class="mel-err__brand-name">{{ mel_brand }}</p>
+      </div>
+    </div>
+  </header>
+
+  <main id="mel-err-main" class="mel-err__main" role="main" tabindex="-1">
     <div class="mel-err__hero">
       <div class="mel-err__badge" aria-hidden="true">403</div>
 
@@ -47,9 +57,8 @@
         </div>
       </div>
 
-      <section class="mel-err__intro mel-err__panel" aria-labelledby="mel-mel403-title">
-        <p class="mel-err__eyebrow">{{ mel_brand }}</p>
-        <h1 id="mel-mel403-title" class="mel-err__title">{{ 'This area is invite-only.'|t }}</h1>
+      <section class="mel-err__intro mel-err__panel" aria-labelledby="mel-err-403-title">
+        <h1 id="mel-err-403-title" class="mel-err__title">{{ 'This area is invite-only.'|t }}</h1>
         <p class="mel-err__lede">
           {{ 'You don’t currently have permission to access this page.'|t }}
         </p>
@@ -58,10 +67,20 @@
             <a class="mel-err__btn mel-err__btn--primary" href="{{ path('user.login') }}">{{ 'Log in'|t }}</a>
           </li>
           <li>
-            <a class="mel-err__btn mel-err__btn--secondary" href="{{ path('<front>') }}">{{ 'Return home'|t }}</a>
+            <a class="mel-err__btn mel-err__btn--secondary" href="{{ front_page }}">{{ 'Return home'|t }}</a>
           </li>
         </ul>
       </section>
     </div>
-  </div>
+  </main>
+
+  <footer class="mel-err__footer" role="contentinfo">
+    <div class="mel-err__footer-inner mel-err__panel">
+      <p class="mel-err__footer-line">
+        <strong>{{ mel_brand }}</strong>
+        — {{ 'Premium events, calm checkout, organiser-first tools.'|t }}
+      </p>
+      <p class="mel-err__footer-copy">© {{ "now"|date("Y") }} {{ mel_brand }}. {{ 'All rights reserved.'|t }}</p>
+    </div>
+  </footer>
 </div>
