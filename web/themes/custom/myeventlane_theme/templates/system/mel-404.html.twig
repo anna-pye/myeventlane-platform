@@ -1,23 +1,69 @@
-<div class="mel-error mel-error--404">
-  <div class="mel-error__container">
+{#
+/**
+ * @file
+ * Branded 404 content for custom error route /mel/404.
+ *
+ * Drupal uses this instead of page--404 because system.site page.404 points to
+ * /mel/404 (see config/sync/system.site.yml), which renders theme hook mel_404
+ * inside the standard page layout.
+ *
+ * @see \Drupal\myeventlane_core\Controller\ErrorController::pageNotFound()
+ */
+#}
+{{ attach_library('myeventlane_theme/mel-error-pages') }}
+{% set mel_brand = 'MyEventLane'|t %}
 
-    <h1 class="mel-error__title">Page not found</h1>
+<div class="mel-err mel-err--404 mel-err--in-page" data-mel-error-inline>
+  <div class="mel-err__bg" aria-hidden="true">
+    <span class="mel-err__orb mel-err__orb--1"></span>
+    <span class="mel-err__orb mel-err__orb--2"></span>
+    <span class="mel-err__orb mel-err__orb--3"></span>
+  </div>
 
-    <p class="mel-error__message">
-      The page you're looking for doesn't exist or may have moved.
-    </p>
+  <a href="#main-content" class="mel-err__skip-link">
+    {{ 'Skip to main content'|t }}
+  </a>
 
-    <div class="mel-error__actions">
+  <div class="mel-err__main" role="presentation">
+    <div class="mel-err__hero">
+      <div class="mel-err__badge" aria-hidden="true">404</div>
 
-      <a href="/" class="mel-btn mel-btn--primary">
-        Go to homepage
-      </a>
+      <div class="mel-err__mascot-wrap">
+        <div class="mel-err__mascot" role="img" aria-label="{{ 'MyEventLane mascot looking curious'|t }}">
+          <div class="mel-err__mascot-glow" aria-hidden="true"></div>
+          <div class="mel-err__mascot-body" aria-hidden="true">
+            <div class="mel-err__mascot-lanyard"></div>
+            <div class="mel-err__mascot-head">
+              <div class="mel-err__mascot-hair"></div>
+              <div class="mel-err__mascot-face">
+                <span class="mel-err__mascot-eye mel-err__mascot-eye--l"></span>
+                <span class="mel-err__mascot-eye mel-err__mascot-eye--r"></span>
+                <span class="mel-err__mascot-smile"></span>
+              </div>
+            </div>
+            <div class="mel-err__mascot-torso">
+              <span class="mel-err__mascot-badge mel-err__mascot-badge--a"></span>
+              <span class="mel-err__mascot-badge mel-err__mascot-badge--b"></span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <a href="/events" class="mel-btn mel-btn--secondary">
-        Browse events
-      </a>
-
+      <section class="mel-err__intro mel-err__panel" aria-labelledby="mel-mel404-title">
+        <p class="mel-err__eyebrow">{{ mel_brand }}</p>
+        <h1 id="mel-mel404-title" class="mel-err__title">{{ 'Oops! This event wandered off.'|t }}</h1>
+        <p class="mel-err__lede">
+          {{ 'The page you’re looking for may have been moved, removed, or never existed.'|t }}
+        </p>
+        <ul class="mel-err__actions">
+          <li>
+            <a class="mel-err__btn mel-err__btn--primary" href="{{ path('<front>') }}">{{ 'Back to homepage'|t }}</a>
+          </li>
+          <li>
+            <a class="mel-err__btn mel-err__btn--secondary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
+          </li>
+        </ul>
+      </section>
     </div>
-
   </div>
 </div>

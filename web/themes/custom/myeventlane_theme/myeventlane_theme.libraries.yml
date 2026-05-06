@@ -23,6 +23,13 @@ skeleton:
     - core/drupal
     - core/once
 
+# Branded 403/404 (standalone CSS; source SCSS in mel_maintenance/scss/errors.scss).
+mel-error-pages:
+  version: VERSION
+  css:
+    theme:
+      css/errors.css: {}
+
 myeventlane-global:
   # Legacy alias; assets are injected from Vite manifest via hook_library_info_alter().
   dependencies:

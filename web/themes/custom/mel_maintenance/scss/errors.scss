@@ -62,6 +62,25 @@ $bp-lg: 64em;
   isolation: isolate;
 }
 
+// Embedded in normal page layout (system.site page.403 / page.404 → /mel/403, /mel/404).
+.mel-err--in-page {
+  min-height: min(36rem, 78vh);
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: $mel-radius-lg;
+  overflow: hidden;
+
+  .mel-err__bg {
+    position: absolute;
+    inset: 0;
+  }
+
+  .mel-err__skip-link:focus {
+    transform: translateY(0);
+  }
+}
+
 .mel-err__bg {
   position: fixed;
   inset: 0;
@@ -551,6 +570,15 @@ $bp-lg: 64em;
   max-width: var(--mel-maxw);
   padding: 1.35rem 1.35rem 1.5rem;
   width: 100%;
+}
+
+.mel-err__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--mel-ink-muted);
 }
 
 .mel-err__title {
