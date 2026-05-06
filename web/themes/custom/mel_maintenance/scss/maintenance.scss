@@ -36,6 +36,16 @@ $bp-lg: 64em; // ~1024px
   --mel-glass-border: rgba(255, 255, 255, 0.55);
   --mel-maxw: 40rem;
 
+  // Maintenance theme ships no global reset; width: 100% + padding must not
+  // overflow the column (horizontal scroll on small viewports).
+  box-sizing: border-box;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: inherit;
+  }
+
   position: relative;
   min-height: 100vh;
   margin: 0;
