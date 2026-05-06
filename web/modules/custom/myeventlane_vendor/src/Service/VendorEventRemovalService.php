@@ -6,6 +6,8 @@ namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ThemeExtensionList;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -14,6 +16,7 @@ use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\node\NodeInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Safe archive/delete decisions and thumbnail data for vendor console cards.
@@ -27,6 +30,13 @@ final class VendorEventRemovalService {
 
   private const THUMB_STYLE = 'thumbnail';
 
+  /**
+   * Vendor theme that ships the shared MEL event placeholder asset.
+   */
+  private const PLACEHOLDER_THEME = 'myeventlane_vendor_theme';
+
+  private const PLACEHOLDER_FILE = 'images/mel-event-placeholder.svg';
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TicketSalesService $ticketSalesService,
@@ -36,6 +46,9 @@ final class VendorEventRemovalService {
     private readonly CsrfTokenGenerator $csrfToken,
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly FileSystemInterface $fileSystem,
+    private readonly ThemeExtensionList $themeExtensionList,
+    private readonly RequestStack $requestStack,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -44,40 +57,101 @@ final class VendorEventRemovalService {
    * Builds event card image data for Twig (no entity loading in templates).
    *
    * @return array<string, mixed>
-   *   Keys: url (string|null), alt (string), is_placeholder (bool).
+   *   Keys: url (string), alt (string), is_placeholder (bool).
    */
   public function buildEventThumbnailData(NodeInterface $event): array {
-    $alt = trim((string) $event->getTitle());
-    if ($alt === '') {
-      $alt = (string) $this->t('Event image');
+    $placeholder_url = $this->getMelEventPlaceholderAssetUrl();
+
+    $title_alt = trim((string) $event->getTitle());
+    if ($title_alt === '') {
+      $title_alt = (string) $this->t('Event image');
     }
 
-    $url = NULL;
+    $field_alt = NULL;
     if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
-      $file = $event->get('field_event_image')->entity;
-      if ($file instanceof FileInterface) {
-        try {
-          $style = $this->entityTypeManager->getStorage('image_style')->load(self::THUMB_STYLE);
-          if ($style) {
-            // ImageStyle::buildUrl() returns the usable URL; do not pass it to
-            // FileUrlGenerator (expects a stream wrapper URI).
-            $url = $style->buildUrl($file->getFileUri());
-          }
-        }
-        catch (\Throwable $e) {
-          $this->loggerFactory->get('myeventlane_vendor')->warning('Event card thumbnail URL failed for nid @nid: @message', [
-            '@nid' => (string) $event->id(),
-            '@message' => $e->getMessage(),
-          ]);
+      $first = $event->get('field_event_image')->first();
+      if ($first !== NULL) {
+        $trim = trim((string) ($first->alt ?? ''));
+        if ($trim !== '') {
+          $field_alt = $trim;
         }
       }
     }
 
+    $use_placeholder = TRUE;
+    $url = $placeholder_url;
+
+    if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
+      $file = $event->get('field_event_image')->entity;
+      if ($file instanceof FileInterface) {
+        $uri = $file->getFileUri();
+        if ($uri !== '' && $this->eventImageSourceIsReadable($uri)) {
+          try {
+            $style = $this->entityTypeManager->getStorage('image_style')->load(self::THUMB_STYLE);
+            if ($style) {
+              $url = $style->buildUrl($uri);
+              $use_placeholder = FALSE;
+            }
+          }
+          catch (\Throwable $e) {
+            $this->loggerFactory->get('myeventlane_vendor')->warning('Event card thumbnail URL failed for nid @nid: @message', [
+              '@nid' => (string) $event->id(),
+              '@message' => $e->getMessage(),
+            ]);
+            $url = $placeholder_url;
+            $use_placeholder = TRUE;
+          }
+        }
+      }
+    }
+
+    $alt = $use_placeholder ? $title_alt : ($field_alt ?? $title_alt);
+
     return [
       'url' => $url,
       'alt' => $alt,
-      'is_placeholder' => $url === NULL,
+      'is_placeholder' => $use_placeholder,
     ];
+  }
+
+  /**
+   * Whether the image URI resolves to a readable local file (no derivative IO).
+   */
+  private function eventImageSourceIsReadable(string $uri): bool {
+    $real = $this->fileSystem->realpath($uri);
+
+    return $real !== FALSE && is_file($real);
+  }
+
+  /**
+   * Placeholder thumbnail when no node is available (edge cases only).
+   *
+   * @return array<string, mixed>
+   *   Keys: url (string), alt (string), is_placeholder (TRUE).
+   */
+  public function buildPlaceholderThumbnailData(?string $event_title = NULL): array {
+    $alt = trim((string) ($event_title ?? ''));
+    if ($alt === '') {
+      $alt = (string) $this->t('Event image');
+    }
+
+    return [
+      'url' => $this->getMelEventPlaceholderAssetUrl(),
+      'alt' => $alt,
+      'is_placeholder' => TRUE,
+    ];
+  }
+
+  /**
+   * Public URL for the static placeholder SVG (theme asset, no derivative IO).
+   */
+  public function getMelEventPlaceholderAssetUrl(): string {
+    $relative = $this->themeExtensionList->getPath(self::PLACEHOLDER_THEME) . '/' . self::PLACEHOLDER_FILE;
+    $request = $this->requestStack->getCurrentRequest();
+    $base = $request ? $request->getBasePath() : '';
+    $base = rtrim($base, '/');
+
+    return ($base === '' ? '' : $base) . '/' . $relative;
   }
 
   /**

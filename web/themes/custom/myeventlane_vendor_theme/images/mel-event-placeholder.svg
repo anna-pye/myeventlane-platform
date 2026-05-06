@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-labelledby="mel-ph-title">
+  <title id="mel-ph-title">MyEventLane</title>
+  <defs>
+    <linearGradient id="mel-ph-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#faf8f5"/>
+      <stop offset="100%" stop-color="#f0ebe3"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="18" fill="url(#mel-ph-bg)"/>
+  <!-- Ticket / lane motif -->
+  <path d="M26 36h52a4 4 0 0 1 4 4v10a7 7 0 0 0 0 14v10a4 4 0 0 1-4 4H26a4 4 0 0 1-4-4V74a7 7 0 0 0 0-14V40a4 4 0 0 1 4-4z" fill="none" stroke="#c9bfb2" stroke-width="2.25" stroke-linejoin="round"/>
+  <circle cx="36" cy="54" r="3.5" fill="#a89888"/>
+  <path d="M46 49h22M46 57h16" stroke="#b8ab9e" stroke-width="2" stroke-linecap="round"/>
+  <path d="M72 44v22" stroke="#d4cec4" stroke-width="2" stroke-dasharray="4 5" stroke-linecap="round"/>
+  <text x="60" y="100" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="10" font-weight="650" fill="#6e655a">MyEventLane</text>
+</svg>

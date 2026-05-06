@@ -19,6 +19,7 @@ use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\VendorCardBuilder;
+use Drupal\myeventlane_vendor\Service\VendorEventRemovalService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -35,6 +36,7 @@ final class VendorDetailController extends ControllerBase {
     private readonly EntityIdNormalizer $entityIdNormalizer,
     private readonly ?EventRepository $eventRepository,
     private readonly VendorCardBuilder $vendorCardBuilder,
+    private readonly VendorEventRemovalService $vendorEventRemovalService,
     private readonly VendorFollowService $vendorFollowService,
     private readonly AnalyticsService $analytics,
     private readonly AccountInterface $account,
@@ -52,6 +54,7 @@ final class VendorDetailController extends ControllerBase {
       $container->get('myeventlane_core.entity_id_normalizer'),
       $container->has('myeventlane_event_studio.repository') ? $container->get('myeventlane_event_studio.repository') : NULL,
       $container->get('myeventlane_vendor.vendor_card_builder'),
+      $container->get('myeventlane_vendor.vendor_event_removal'),
       $container->get('myeventlane_core.vendor_follow'),
       $container->get('myeventlane_core.analytics'),
       $container->get('current_user'),
@@ -231,11 +234,16 @@ final class VendorDetailController extends ControllerBase {
 
     foreach ($this->eventRepository->loadMany($nids) as $dto) {
       $node = $nodes[$dto->id] ?? NULL;
+      $thumb = $node instanceof NodeInterface
+        ? $this->vendorEventRemovalService->buildEventThumbnailData($node)
+        : $this->vendorEventRemovalService->buildPlaceholderThumbnailData($dto->title);
+
       $cards[] = [
         'event_id' => $dto->id,
         'title' => $dto->title,
         'url' => Url::fromRoute('entity.node.canonical', ['node' => $dto->id])->toString(),
-        'image_render' => $node instanceof NodeInterface ? $this->eventImage($node) : NULL,
+        'card_image_url' => $thumb['url'],
+        'card_image_alt' => $thumb['alt'],
         'date_full' => $dto->start_timestamp > 0
           ? $this->dateFormatter->format($dto->start_timestamp, 'custom', 'M j, Y')
           : '',
@@ -246,24 +254,6 @@ final class VendorDetailController extends ControllerBase {
     }
 
     return $cards;
-  }
-
-  /**
-   * Builds a styled event card image render array.
-   */
-  private function eventImage(NodeInterface $event): ?array {
-    if (!$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
-      return NULL;
-    }
-
-    return $event->get('field_event_image')->view([
-      'type' => 'image',
-      'label' => 'hidden',
-      'settings' => [
-        'image_style' => 'mel_event_card_standard',
-        'image_link' => '',
-      ],
-    ]);
   }
 
 }

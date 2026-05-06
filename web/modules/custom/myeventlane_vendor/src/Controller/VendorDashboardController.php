@@ -31,6 +31,7 @@ use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Drupal\myeventlane_vendor\Service\VendorDashboardViewModelBuilder;
+use Drupal\myeventlane_vendor\Service\VendorEventRemovalService;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_domain_events\ProjectionReadModel\VendorMetricsReadModel;
 use Drupal\myeventlane_event_studio\DTO\MelEventData;
@@ -168,6 +169,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    */
   protected VendorDashboardViewModelBuilder $dashboardViewModelBuilder;
 
+  protected VendorEventRemovalService $vendorEventRemoval;
+
   /**
    * Constructs the controller.
    */
@@ -176,6 +179,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     AccountProxyInterface $current_user,
     MessengerInterface $messenger,
     VendorDashboardViewModelBuilder $dashboard_view_model_builder,
+    VendorEventRemovalService $vendor_event_removal,
     RouteProviderInterface $route_provider,
     RsvpStatsService $rsvp_stats,
     EntityTypeManagerInterface $entity_type_manager,
@@ -203,6 +207,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->dashboardViewModelBuilder = $dashboard_view_model_builder;
+    $this->vendorEventRemoval = $vendor_event_removal;
     $this->routeProvider = $route_provider;
     $this->rsvpStats = $rsvp_stats;
     $this->entityTypeManager = $entity_type_manager;
@@ -238,6 +243,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('current_user'),
       $container->get('messenger'),
       $container->get('myeventlane_vendor.dashboard_view_model_builder'),
+      $container->get('myeventlane_vendor.vendor_event_removal'),
       $container->get('router.route_provider'),
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
@@ -1136,7 +1142,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           'rsvp_state' => 'unset',
           'capacity' => 0,
         ];
-      $eventImageUrl = $dto->image_url;
+      $thumb = $eventNode instanceof NodeInterface
+        ? $this->vendorEventRemoval->buildEventThumbnailData($eventNode)
+        : $this->vendorEventRemoval->buildPlaceholderThumbnailData($dto->title);
+      $eventImageUrl = $thumb['url'];
 
       $startDate = $dto->start_timestamp > 0 ? date('M j, Y', $dto->start_timestamp) : '';
       $startTimestamp = $dto->start_timestamp;

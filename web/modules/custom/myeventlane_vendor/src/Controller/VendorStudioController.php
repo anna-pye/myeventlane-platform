@@ -18,6 +18,7 @@ use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
+use Drupal\myeventlane_vendor\Service\VendorEventRemovalService;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Psr\Log\LoggerInterface;
@@ -52,6 +53,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
     private readonly EventStudioSaveService $eventStudioSave,
     private readonly EntityIdNormalizer $entityIdNormalizer,
     private readonly EventRepository $eventRepository,
+    private readonly VendorEventRemovalService $vendorEventRemovalService,
     private readonly ?TicketSalesService $ticketSalesService = NULL,
     private readonly ?RsvpStatsService $rsvpStatsService = NULL,
     private readonly ?EventMetricsServiceInterface $eventMetricsService = NULL,
@@ -73,6 +75,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       $container->get('myeventlane_event_studio.save'),
       $container->get('myeventlane_core.entity_id_normalizer'),
       $container->get('myeventlane_event_studio.repository'),
+      $container->get('myeventlane_vendor.vendor_event_removal'),
       $container->has('myeventlane_vendor.service.ticket_sales') ? $container->get('myeventlane_vendor.service.ticket_sales') : NULL,
       $container->has('myeventlane_vendor.service.rsvp_stats') ? $container->get('myeventlane_vendor.service.rsvp_stats') : NULL,
       $container->has('myeventlane_metrics.service') ? $container->get('myeventlane_metrics.service') : NULL,
@@ -969,6 +972,8 @@ final class VendorStudioController extends VendorConsoleBaseController implement
     }
 
     $melEvents = $this->eventRepository->loadMany($event_ids);
+    /** @var \Drupal\node\NodeInterface[] $nodes */
+    $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($event_ids);
     $cards = [];
 
     foreach ($melEvents as $event) {
@@ -981,13 +986,20 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       $moderation = $event->moderation_state !== ''
         ? $event->moderation_state
         : ($event->published ? 'published' : 'draft');
+      $node = $nodes[$event_id] ?? NULL;
+      $thumb = ($node instanceof NodeInterface && $node->bundle() === 'event')
+        ? $this->vendorEventRemovalService->buildEventThumbnailData($node)
+        : $this->vendorEventRemovalService->buildPlaceholderThumbnailData($event->title);
+
       $cards[] = [
         'id' => $event_id,
         'nid' => $event_id,
         'title' => $event->title,
         'date' => $this->extractMelEventDateLabel($event),
         'location' => $this->extractMelEventLocationLabel($event),
-        'image' => $event->image_url ?? '',
+        'image' => $thumb['url'],
+        'image_alt' => $thumb['alt'],
+        'image_is_placeholder' => $thumb['is_placeholder'],
         'status' => $this->normalizeModerationState($moderation),
         'tickets_sold' => 0,
         'rsvp_count' => 0,

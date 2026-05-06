@@ -81,6 +81,9 @@ services:
       - '@csrf_token'
       - '@string_translation'
       - '@logger.factory'
+      - '@file_system'
+      - '@extension.list.theme'
+      - '@request_stack'
 
   myeventlane_vendor.paid_publish_stripe_gate:
     class: Drupal\myeventlane_vendor\Service\PaidPublishStripeGate
@@ -292,6 +295,7 @@ services:
       - '@current_user'
       - '@messenger'
       - '@myeventlane_vendor.dashboard_view_model_builder'
+      - '@myeventlane_vendor.vendor_event_removal'
       - '@router.route_provider'
       - '@myeventlane_vendor.service.rsvp_stats'
       - '@entity_type.manager'
