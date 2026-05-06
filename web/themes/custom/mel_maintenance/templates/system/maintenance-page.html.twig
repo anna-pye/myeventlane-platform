@@ -1,0 +1,113 @@
+{#
+/**
+ * @file
+ * Branded maintenance page for MyEventLane (mel_maintenance theme).
+ *
+ * @see template_preprocess_maintenance_page()
+ */
+#}
+{{ attach_library('mel_maintenance/maintenance') }}
+{% set mel_brand = site_name ?: 'MyEventLane' %}
+
+<div class="mel-mm" data-mel-maintenance>
+  <div class="mel-mm__bg" aria-hidden="true">
+    <span class="mel-mm__orb mel-mm__orb--1"></span>
+    <span class="mel-mm__orb mel-mm__orb--2"></span>
+    <span class="mel-mm__orb mel-mm__orb--3"></span>
+  </div>
+
+  <a href="#mel-mm-main" class="mel-mm__skip-link">
+    {{ 'Skip to maintenance message'|t }}
+  </a>
+
+  <header class="mel-mm__header">
+    <div class="mel-mm__brand glass-panel">
+      {% if logo %}
+        <img class="mel-mm__logo-img" src="{{ logo }}" width="56" height="56" alt="{{ mel_brand }}"/>
+      {% else %}
+        <img class="mel-mm__logo-img" src="{{ base_path }}{{ directory }}/logo.svg" width="56" height="56" alt="{{ mel_brand }}"/>
+      {% endif %}
+      <div class="mel-mm__brand-text">
+        <p class="mel-mm__brand-name">{{ mel_brand }}</p>
+        {% if site_slogan %}
+          <p class="mel-mm__brand-tag">{{ site_slogan }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main id="mel-mm-main" class="mel-mm__main" tabindex="-1">
+    <div class="mel-mm__hero">
+      <div class="mel-mm__mascot-wrap">
+        <div class="mel-mm__mascot" role="img" aria-label="{{ 'MyEventLane mascot, a friendly event guide'|t }}">
+          <div class="mel-mm__mascot-glow" aria-hidden="true"></div>
+          <div class="mel-mm__mascot-body" aria-hidden="true">
+            <div class="mel-mm__mascot-lanyard"></div>
+            <div class="mel-mm__mascot-head">
+              <div class="mel-mm__mascot-hair"></div>
+              <div class="mel-mm__mascot-face">
+                <span class="mel-mm__mascot-eye mel-mm__mascot-eye--l"></span>
+                <span class="mel-mm__mascot-eye mel-mm__mascot-eye--r"></span>
+                <span class="mel-mm__mascot-smile"></span>
+              </div>
+            </div>
+            <div class="mel-mm__mascot-torso">
+              <span class="mel-mm__mascot-badge mel-mm__mascot-badge--a" aria-hidden="true"></span>
+              <span class="mel-mm__mascot-badge mel-mm__mascot-badge--b" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mel-mm__intro glass-panel">
+        {% if title %}
+          <h1 class="mel-mm__title">{{ title }}</h1>
+        {% else %}
+          <h1 class="mel-mm__title">{{ "We're polishing the venue"|t }}</h1>
+        {% endif %}
+        <p class="mel-mm__lede">
+          {{ 'MyEventLane is briefly offline while we deploy improvements. Your events and tickets are safe — thanks for your patience.'|t }}
+        </p>
+      </div>
+    </div>
+
+    <section class="mel-mm__message glass-panel" aria-labelledby="mel-mm-message-heading">
+      <h2 id="mel-mm-message-heading" class="mel-mm__h2">{{ 'Status message'|t }}</h2>
+      <div class="mel-mm__message-body">
+        {{ page.highlighted }}
+        {{ page.content }}
+      </div>
+    </section>
+
+    <section class="mel-mm__cards" aria-labelledby="mel-mm-cards-heading">
+      <h2 id="mel-mm-cards-heading" class="visually-hidden">{{ 'What is happening'|t }}</h2>
+      <ul class="mel-mm__card-list">
+        <li class="mel-mm__card glass-panel">
+          <div class="mel-mm__card-icon mel-mm__card-icon--pulse" aria-hidden="true"></div>
+          <h3 class="mel-mm__card-title">{{ 'Live updates'|t }}</h3>
+          <p class="mel-mm__card-text">{{ 'We are applying database and configuration updates required for the next release.'|t }}</p>
+        </li>
+        <li class="mel-mm__card glass-panel">
+          <div class="mel-mm__card-icon mel-mm__card-icon--clock" aria-hidden="true"></div>
+          <h3 class="mel-mm__card-title">{{ 'Almost there'|t }}</h3>
+          <p class="mel-mm__card-text">{{ 'Most maintenance windows finish within a few minutes. Refresh occasionally to reconnect.'|t }}</p>
+        </li>
+        <li class="mel-mm__card glass-panel">
+          <div class="mel-mm__card-icon mel-mm__card-icon--heart" aria-hidden="true"></div>
+          <h3 class="mel-mm__card-title">{{ 'Need help?'|t }}</h3>
+          <p class="mel-mm__card-text">{{ 'If this page persists, contact your organiser or MyEventLane support with the time you saw this screen.'|t }}</p>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="mel-mm__footer">
+    <div class="mel-mm__footer-inner glass-panel">
+      <p class="mel-mm__footer-line">
+        <strong>{{ mel_brand }}</strong>
+        — {{ 'Premium events, calm checkout, organiser-first tools.'|t }}
+      </p>
+      <p class="mel-mm__footer-copy">© {{ "now"|date("Y") }} {{ mel_brand }}. {{ 'All rights reserved.'|t }}</p>
+    </div>
+  </footer>
+</div>

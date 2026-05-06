@@ -1,0 +1,5 @@
+maintenance:
+  version: VERSION
+  css:
+    theme:
+      css/maintenance.css: {}

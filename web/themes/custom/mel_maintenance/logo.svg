@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" role="img" aria-labelledby="melLogoTitle">
+  <title id="melLogoTitle">MyEventLane</title>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A6B"/>
+      <stop offset="50%" stop-color="#FF7AB8"/>
+      <stop offset="100%" stop-color="#C9A8FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="56" height="56" rx="14" fill="url(#g)"/>
+  <path fill="#1B1528" fill-opacity="0.9" d="M16 18h5v20h-5zm9 0h5l5 10 5-10h5v20h-5V26l-4 8h-2l-4-8v12h-5z"/>
+</svg>
