@@ -1716,6 +1716,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
 
     // MyEventLane Illustration System: Compute image URL, category slug, and placeholder URL.
     $file_url_generator = \Drupal::service('file_url_generator');
+    $file_system = \Drupal::service('file_system');
     $extension_list = \Drupal::service('extension.list.theme');
     $theme_path = $extension_list->getPath('myeventlane_theme');
     $base_path = base_path();
@@ -1752,8 +1753,12 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $event_files = $node->get('field_event_image')->referencedEntities();
       $image_entity = !empty($event_files) ? reset($event_files) : NULL;
       if ($image_entity) {
-        $event_image_uri = $image_entity->getFileUri();
-        $event_image_url = $file_url_generator->generateAbsoluteString($event_image_uri);
+        $candidate_uri = $image_entity->getFileUri();
+        $real_candidate = $candidate_uri !== '' ? $file_system->realpath($candidate_uri) : FALSE;
+        if ($real_candidate !== FALSE && is_file($real_candidate)) {
+          $event_image_uri = $candidate_uri;
+          $event_image_url = $file_url_generator->generateAbsoluteString($candidate_uri);
+        }
       }
     }
     $variables['mel_event_image_url'] = $event_image_url;
@@ -3023,6 +3028,7 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
   }
 
   $file_url_generator = \Drupal::service('file_url_generator');
+  $file_system = \Drupal::service('file_system');
   $image_url = NULL;
 
   // 1. Event image field.
@@ -3030,7 +3036,11 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     $files = $node->get('field_event_image')->referencedEntities();
     $file = !empty($files) ? reset($files) : NULL;
     if ($file instanceof File) {
-      $image_url = $file_url_generator->generateAbsoluteString($file->getFileUri());
+      $uri = $file->getFileUri();
+      $real_uri = $uri !== '' ? $file_system->realpath($uri) : FALSE;
+      if ($real_uri !== FALSE && is_file($real_uri)) {
+        $image_url = $file_url_generator->generateAbsoluteString($uri);
+      }
     }
   }
 
@@ -3044,7 +3054,11 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
         $category_files = $term->get('field_category_image')->referencedEntities();
         $file = !empty($category_files) ? reset($category_files) : NULL;
         if ($file instanceof File) {
-          $image_url = $file_url_generator->generateAbsoluteString($file->getFileUri());
+          $uri = $file->getFileUri();
+          $real_cat_uri = $uri !== '' ? $file_system->realpath($uri) : FALSE;
+          if ($real_cat_uri !== FALSE && is_file($real_cat_uri)) {
+            $image_url = $file_url_generator->generateAbsoluteString($uri);
+          }
         }
       }
     }

@@ -252,12 +252,13 @@
           <article class="mel-vendor-dashboard-v2__event-card">
             <div class="mel-vendor-dashboard-v2__event-card-top">
               {% set img = ev.image|default({}) %}
-              {% if img.url is defined and img.url %}
-                <div class="mel-event-card-thumb" aria-hidden="true">
-                  <img class="mel-event-card-thumb__img" src="{{ img.url }}" alt="{{ img.alt|default('')|e('html_attr') }}" loading="lazy" width="56" height="56"/>
+              {% set img_url = img.url|default('') %}
+              {% set img_alt = img.alt|default('') %}
+              {% set img_ph = img.is_placeholder|default(false) %}
+              {% if img_url %}
+                <div class="mel-event-card-thumb{% if img_ph %} mel-event-card-thumb--placeholder{% endif %}"{% if not img_ph %} aria-hidden="true"{% endif %}>
+                  <img class="mel-event-card-thumb__img" src="{{ img_url }}" alt="{{ img_alt|e('html_attr') }}" loading="lazy" width="56" height="56"/>
                 </div>
-              {% else %}
-                <div class="mel-event-card-thumb mel-event-card-thumb--placeholder" role="img" aria-label="{{ 'Event image'|t }}">{{ 'MEL'|t }}</div>
               {% endif %}
               <div class="mel-vendor-dashboard-v2__event-card-main">
                 <div class="mel-vendor-dashboard-v2__event-card-head">

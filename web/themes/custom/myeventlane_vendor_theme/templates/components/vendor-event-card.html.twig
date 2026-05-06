@@ -61,9 +61,12 @@
   data-event-id="{{ event.id|default('') }}"
   data-title="{{ event_title }}">
 {% endif %}
-  <div class="mel-event-card__thumb mel-event-thumb" aria-hidden="true">
-    {% if event.image is defined and event.image %}
-      <img src="{{ event.image }}" alt="{{ event_title }}">
+  {% set img_url = event.image|default('') %}
+  {% set img_alt = event.image_alt|default(event_title) %}
+  {% set img_ph = event.image_is_placeholder|default(false) %}
+  <div class="mel-event-card__thumb mel-event-thumb"{% if not img_ph %} aria-hidden="true"{% endif %}>
+    {% if img_url %}
+      <img class="mel-event-thumb__img{% if img_ph %} mel-event-thumb__img--placeholder{% endif %}" src="{{ img_url }}" alt="{{ img_alt|e('html_attr') }}" loading="lazy" width="72" height="58">
     {% else %}
       <div class="mel-event-thumb-placeholder"></div>
     {% endif %}
