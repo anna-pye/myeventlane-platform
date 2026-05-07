@@ -20,3 +20,19 @@ services:
   myeventlane_event_attendees.waitlist_notification:
     class: Drupal\myeventlane_event_attendees\Service\WaitlistNotificationService
     arguments: ['@plugin.manager.mail', '@renderer', '@language_manager']
+
+  logger.channel.myeventlane_event_attendees:
+    parent: logger.channel_base
+    arguments: ['myeventlane_event_attendees']
+
+  # MEL Attendee Operations Layer: canonical CSV export builder.
+  # Lives here (not in checkout_flow) so checkout_paragraph, rsvp, and views
+  # CSV controllers can delegate without circular module dependencies.
+  myeventlane_event_attendees.attendee_export_builder:
+    class: Drupal\myeventlane_event_attendees\Service\MelAttendeeExportBuilder
+    arguments:
+      - '@myeventlane_event_attendees.manager'
+      - '@myeventlane_event_attendees.vendor_presentation'
+      - '@date.formatter'
+      - '@logger.channel.myeventlane_event_attendees'
+      - '@string_translation'

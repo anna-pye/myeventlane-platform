@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL reassurance priority (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+body[data-mel-policy-tone-reassurance-priority='true'] .mel-intelligence-panel {
+  margin-block-end: spacing.mel-space(2);
+}

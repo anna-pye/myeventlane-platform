@@ -1,0 +1,39 @@
+{
+    "surface_policy_profile": "checkout_minimal_reassuring",
+    "active_policy_ids": [
+        "abandoned_checkout_safety",
+        "reduced_urgency_mode",
+        "suppress_cross_sell_guidance",
+        "suppress_marketing_guidance",
+        "suppress_recommendations"
+    ],
+    "suppression": {
+        "suppress_boost_prompts": false,
+        "suppress_cross_sell_guidance": true,
+        "suppress_marketing_guidance": true,
+        "suppress_nonessential_notifications": false,
+        "suppress_recommendations": true
+    },
+    "intelligence_governance": {
+        "suppress_definition_ids": [
+            "low_ticket_sales_prompt",
+            "public_discovery_events_hint",
+            "re_engagement_prompt",
+            "recommended_events",
+            "return_to_platform_prompt",
+            "revisit_recent_event",
+            "share_event_prompt",
+            "trust_building_prompt"
+        ],
+        "orchestration_cap_reduction": 0
+    },
+    "experience_governance": {
+        "elevate_competing_cta_suppression": true
+    },
+    "privacy": {
+        "vendor_isolation": true,
+        "no_moderation_internals": true,
+        "no_cross_account_signals": true,
+        "staff_registry_visible": false
+    }
+}

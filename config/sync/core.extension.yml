@@ -144,6 +144,7 @@ module:
   myeventlane_summary: 0
   myeventlane_support: 0
   myeventlane_support_console: 0
+  myeventlane_surface: 0
   myeventlane_theme_settings: 0
   myeventlane_tickets: 0
   myeventlane_vendor: 0

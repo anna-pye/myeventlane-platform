@@ -1,0 +1,13 @@
+// ==========================================================================
+// MEL overlays — scroll locking for governed modal/drawer shells
+// ==========================================================================
+
+body.mel-modal-open,
+body.mel-drawer-open {
+  overflow: hidden;
+}
+
+// Checkout trust flows avoid trapping scroll when optional overlays appear.
+html[data-mel-checkout-trust='true'] body.mel-drawer-open {
+  overflow: auto;
+}

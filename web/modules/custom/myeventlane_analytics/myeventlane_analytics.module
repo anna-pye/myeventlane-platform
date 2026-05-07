@@ -17,6 +17,7 @@ function myeventlane_analytics_theme(): array {
         'analytics_model' => [],
         'summary_stats' => [],
         'event_analytics' => [],
+        'mel_analytics_events_empty' => NULL,
       ],
       'template' => 'analytics-dashboard',
     ],

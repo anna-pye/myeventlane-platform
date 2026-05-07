@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL workflow progress surfaces (checklists + indicators)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-my-account__workflow-progress {
+  margin-bottom: spacing.mel-space(4);
+}

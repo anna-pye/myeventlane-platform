@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL governance panel layout (page region)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-region-observability {
+  margin-bottom: spacing.mel-space(4);
+}

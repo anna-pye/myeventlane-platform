@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * Card-style grouping for fields (customer-friendly shells; optional titles).
+ *
+ * Variables:
+ * - attributes
+ * - title
+ * - title_element: h2–h4 for section heading level.
+ * - content
+ * - classification
+ */
+#}
+{% set section_attributes = create_attribute(attributes|default({})) %}
+<section{{ section_attributes.addClass('mel-form-section', 'mel-form-section--' ~ classification|default('customer')) }}>
+  {% if title %}
+    <{{ title_element|default('h2') }} class="mel-form-section__title">{{ title }}</{{ title_element|default('h2') }}>
+  {% endif %}
+  <div class="mel-form-section__body">
+    {{ content }}
+  </div>
+</section>

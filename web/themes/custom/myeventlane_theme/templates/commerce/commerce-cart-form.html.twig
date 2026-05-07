@@ -3,29 +3,33 @@
  * @file
  * Theme override for the cart form.
  *
+ * Copy and empty states are supplied from PHP (MelReadinessHelper,
+ * GovernedOperationalTemplates). Twig is presentation-only.
+ *
  * Available variables:
  * - form: The cart form with all its elements.
+ * - mel_cart_shell_labels: label map (when myeventlane_surface is enabled).
+ * - mel_cart_empty_state: mel_empty_state render array when the cart has no line items.
+ * - grouped_items, items_without_event, item_event_map: from preprocess.
+ * - mel_cart_order_summary_build: grouped order summary from MelCheckoutSummaryPresenter (cart surface).
  */
 #}
+{% set L = mel_cart_shell_labels|default({}) %}
 
 <div class="mel-cart">
-  {# Single help strip: only when cart is empty (full-page empty state has its own). #}
-
-  {# Cart Items #}
   <div class="mel-cart-items">
     <div class="mel-cart-header">
       <h1 class="mel-cart-title">
-        {{ 'Your cart'|t }}
+        {{ L.page_title|default('') }}
         {% if form['#order_items']|length > 0 %}
-          <span class="mel-cart-count">({{ form['#order_items']|length }} {{ form['#order_items']|length == 1 ? 'item'|t : 'items'|t }})</span>
+          <span class="mel-cart-count">({{ form['#order_items']|length }} {{ form['#order_items']|length == 1 ? L.item_singular|default('') : L.items_plural|default('') }})</span>
         {% endif %}
       </h1>
     </div>
 
     {% if form['#order_items']|length > 0 %}
-      {# Events summary: aligns with line items below without implying each heading owns only the rows beneath it. #}
       {% if grouped_items is defined and grouped_items|length > 0 %}
-        <div class="mel-cart-event-overview" role="region" aria-label="{{ 'Events in your cart'|t }}">
+        <div class="mel-cart-event-overview" role="region" aria-label="{{ L.events_region|default('') }}">
           {% for event_id, group in grouped_items %}
             <article class="mel-cart-event-chip" data-event-id="{{ event_id }}">
               <h2 class="mel-cart-event-chip__title">{{ group.event.label() }}</h2>
@@ -50,13 +54,13 @@
           {% endfor %}
         </div>
         {% if items_without_event is defined and items_without_event|length > 0 %}
-          <p class="mel-cart-event-overview__note">{{ 'Some items are not linked to a single event — see the list below.'|t }}</p>
+          <p class="mel-cart-event-overview__note">{{ L.misc_items_note|default('') }}</p>
         {% endif %}
       {% endif %}
 
       <div class="mel-cart__intro">
-        <h2>{{ 'Review your tickets'|t }}</h2>
-        <p>{{ "You're almost there — check your details before checkout."|t }}</p>
+        <h2>{{ L.review_heading|default('') }}</h2>
+        <p>{{ L.review_intro|default('') }}</p>
       </div>
 
       <div class="mel-cart-items-table"{% if item_event_map is defined %} data-item-event-map="{{ item_event_map|json_encode }}"{% endif %}>
@@ -64,92 +68,40 @@
         {{ form.output }}
       </div>
 
-      <div class="mel-cart__reassurance">
-        <span>{{ '✔ Secure checkout'|t }}</span>
-        <span>{{ '✔ No hidden fees'|t }}</span>
-        <span>{{ '✔ Confirmation sent instantly'|t }}</span>
-      </div>
     {% else %}
-      <div class="mel-cart-empty mel-cart-empty--inline">
-        <div class="mel-cart-empty__visual" aria-hidden="true"></div>
-        <h2 class="mel-cart-empty__title">{{ 'Your cart is empty'|t }}</h2>
-        <p class="mel-cart-empty__text">{{ "When you're ready, browse events and add tickets in a few taps."|t }}</p>
-        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-cart-empty__cta">{{ 'Browse events'|t }}</a>
-        <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-empty__support" aria-label="{{ 'Help and support'|t }}">
-          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+      <div class="mel-cart-empty mel-cart-empty--inline mel-cart-empty--governed">
+        {% if mel_cart_empty_state is defined %}
+          {{ mel_cart_empty_state }}
+        {% endif %}
+        <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-empty__support" aria-label="{{ L.help_region_short|default('') }}">
+          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ L.help_centre|default('') }}</a>
           <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
-          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ L.support|default('') }}</a>
         </nav>
       </div>
     {% endif %}
   </div>
 
-  {# Cart Summary Sidebar #}
   {% if form['#order_items']|length > 0 %}
     <aside class="mel-cart-summary">
-      <h2 class="mel-cart-summary-title">{{ 'Order summary'|t }}</h2>
+      <h2 class="mel-cart-summary-title">{{ L.order_summary_title|default('') }}</h2>
 
-      <div class="mel-cart-summary-lines{% if mel_cart_pricing is defined %} mel-cart-summary-lines--breakdown{% endif %}">
-        {% if mel_cart_pricing is defined %}
-          {% if mel_cart_pricing.subtotal_formatted %}
-            <div class="mel-cart-summary-line mel-cart-summary-line--subtotal">
-              <span class="mel-cart-summary-label">{{ 'Subtotal'|t }}</span>
-              <span class="mel-cart-summary-value">{{ mel_cart_pricing.subtotal_formatted }}</span>
-            </div>
-          {% endif %}
-          {% for row in mel_cart_pricing.tax_rows %}
-            <div class="mel-cart-summary-line mel-cart-summary-line--tax">
-              <span class="mel-cart-summary-label">{{ row.label }}</span>
-              <span class="mel-cart-summary-value">{{ row.amount_formatted }}</span>
-            </div>
-          {% endfor %}
-          {% for row in mel_cart_pricing.fee_rows %}
-            <div class="mel-cart-summary-line mel-cart-summary-line--fee">
-              <span class="mel-cart-summary-label">{{ row.label }}</span>
-              <span class="mel-cart-summary-value">{{ row.amount_formatted }}</span>
-            </div>
-          {% endfor %}
-          {% if mel_cart_pricing.platform_fee_absorbed %}
-            <div class="mel-cart-summary-line mel-cart-summary-line--platform-fee">
-              <span class="mel-cart-summary-label">{{ 'Platform fee'|t }}</span>
-              <span class="mel-cart-summary-value">{{ 'Organiser absorbs'|t }}</span>
-            </div>
-          {% endif %}
+      <div class="mel-cart-summary-presented mel-cart-summary-presented--governed">
+        {% if mel_cart_order_summary_build is defined %}
+          {{ mel_cart_order_summary_build }}
         {% elseif form.totals is defined %}
           {{ form.totals }}
         {% endif %}
       </div>
 
-      <div class="mel-cart-total">
-        <span class="mel-cart-total-label">{{ 'Total'|t }}</span>
-        <span class="mel-cart-total-value">
-          {% if mel_cart_pricing is defined and mel_cart_pricing.total_formatted %}
-            {{ mel_cart_pricing.total_formatted }}
-          {% elseif form['#order'] is defined %}
-            {{ form['#order'].getTotalPrice()|commerce_price_format }}
-          {% endif %}
-        </span>
-      </div>
-
-      {% if mel_cart_pricing.show_cart_includes_gst_note|default(false) %}
-        <p class="mel-tax-note">{{ 'Includes GST'|t }}</p>
-      {% endif %}
-
       <div class="mel-cart-actions">
         {{ form.actions }}
       </div>
 
-      <div class="mel-cart-trust mel-cart-trust--inline" role="region" aria-label="{{ 'Secure checkout'|t }}">
-        <ul class="mel-cart-trust__list mel-cart-trust__list--compact">
-          <li>{{ 'Encrypted checkout'|t }}</li>
-          <li>{{ 'Confirmation emailed after payment'|t }}</li>
-        </ul>
-      </div>
-
-      <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-summary__support" aria-label="{{ 'Help with checkout'|t }}">
-        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+      <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-summary__support" aria-label="{{ L.help_region_short|default('') }}">
+        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ L.help_centre|default('') }}</a>
         <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
-        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ L.support|default('') }}</a>
       </nav>
     </aside>
   {% endif %}

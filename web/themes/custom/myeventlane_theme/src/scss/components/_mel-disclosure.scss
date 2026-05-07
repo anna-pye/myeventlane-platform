@@ -1,0 +1,43 @@
+// ==========================================================================
+// MEL progressive disclosure
+// ==========================================================================
+
+@use '../tokens/spacing' as space;
+@use '../tokens/colors' as *;
+@use '../tokens/radii' as *;
+
+.mel-disclosure__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: space.mel-space(2);
+  min-height: 44px;
+  padding: space.mel-space(2) space.mel-space(3);
+  border-radius: $mel-radius-md;
+  border: 1px solid $mel-color-border;
+  background: $mel-color-surface;
+  color: $mel-color-text;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mel-disclosure__toggle:focus-visible {
+  outline: 2px solid $mel-color-accent;
+  outline-offset: 2px;
+}
+
+.mel-disclosure__panel {
+  margin-top: space.mel-space(3);
+  padding: space.mel-space(4);
+  border-radius: $mel-radius-md;
+  border: 1px solid $mel-color-border;
+  background: $mel-color-surface-alt;
+}
+
+.mel-disclosure--mel-advanced-settings .mel-disclosure__toggle {
+  font-weight: 600;
+}
+
+html[data-mel-interaction-profile='vendor_operational'] .mel-disclosure__panel {
+  padding: space.mel-space(3);
+}

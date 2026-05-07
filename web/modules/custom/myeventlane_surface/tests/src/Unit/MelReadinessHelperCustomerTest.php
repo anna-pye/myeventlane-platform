@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\myeventlane_surface\Unit;
+
+use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\Tests\UnitTestCase;
+
+/**
+ * @coversDefaultClass \Drupal\myeventlane_surface\MelReadinessHelper
+ *
+ * @group myeventlane_surface
+ */
+final class MelReadinessHelperCustomerTest extends UnitTestCase {
+
+  private function helper(): MelReadinessHelper {
+    return new MelReadinessHelper($this->getStringTranslationStub());
+  }
+
+  /**
+   * @covers ::customerCommerceOrderStateLabel
+   */
+  public function testOrderStateMapsToGovernedCustomerLabels(): void {
+    $h = $this->helper();
+    $this->assertSame((string) $h->customerCommerceOrderStateLabel('completed', 'X'), (string) $h->customerCommerceOrderStateLabel('placed', 'Y'));
+    $this->assertNotSame('', (string) $h->customerCommerceOrderStateLabel('unknown_state_xyz', 'Custom fallback'));
+    $this->assertStringContainsString('Custom fallback', (string) $h->customerCommerceOrderStateLabel('unknown_state_xyz', 'Custom fallback'));
+  }
+
+  /**
+   * @covers ::customerMyTicketsOverviewEmptySlots
+   * @covers ::customerCategoryFollowEmptySlots
+   * @covers ::customerCategoryFollowWeeklyQuietSlots
+   * @covers ::customerMyEventsDashboardUpcomingEmptySlots
+   * @covers ::customerPrimaryBrowseEventsCta
+   */
+  public function testOperationalEmptySlotsAreNonEmptyStrings(): void {
+    $h = $this->helper();
+    $tickets = $h->customerMyTicketsOverviewEmptySlots();
+    $this->assertNotSame('', $tickets['heading']);
+    $this->assertNotSame('', $tickets['what_happened']);
+    $categories = $h->customerCategoryFollowEmptySlots();
+    $this->assertNotSame('', $categories['heading']);
+    $quiet = $h->customerCategoryFollowWeeklyQuietSlots();
+    $this->assertNotSame('', $quiet['heading']);
+    $this->assertNotSame('', $quiet['what_happened']);
+    $my_events = $h->customerMyEventsDashboardUpcomingEmptySlots();
+    $this->assertNotSame('', $my_events['heading']);
+    $this->assertNotSame('', $my_events['why_empty']);
+    $this->assertNotSame('', $h->customerPrimaryBrowseEventsCta());
+  }
+
+  /**
+   * @covers ::customerCheckoutOrderSummarySurfaceLabels
+   * @covers ::customerCheckoutCartRemovedUnavailableSlots
+   * @covers ::customerCartShellLabels
+   */
+  public function testCheckoutSummaryAndCartShellLabelsIncludeTrustFooter(): void {
+    $h = $this->helper();
+    $labels = $h->customerCheckoutOrderSummarySurfaceLabels();
+    $this->assertArrayHasKey('trust_footer_refund_hint', $labels);
+    $this->assertNotSame('', $labels['trust_footer_secure']);
+    $this->assertNotSame('', $labels['trust_footer_instant']);
+    $this->assertNotSame('', $labels['trust_footer_refund_hint']);
+    $removed = $h->customerCheckoutCartRemovedUnavailableSlots();
+    $this->assertNotSame('', $removed['heading']);
+    $this->assertNotSame('', $removed['what_happened']);
+    $cart = $h->customerCartShellLabels();
+    $this->assertSame($labels['trust_footer_secure'], $cart['reassurance_secure']);
+    $this->assertArrayHasKey('reassurance_refund_hint', $cart);
+  }
+
+}

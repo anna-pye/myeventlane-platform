@@ -55,6 +55,20 @@
         </div>
       </div>
     {% endif %}
+    {% if mel_intelligence_panel is defined and mel_intelligence_panel %}
+      <div class="mel-region-intelligence mel-guidance-stack">
+        <div class="mel-container">
+          {{ mel_intelligence_panel }}
+        </div>
+      </div>
+    {% endif %}
+    {% if mel_observability_panel is defined and mel_observability_panel %}
+      <div class="mel-region-observability mel-guidance-stack">
+        <div class="mel-container">
+          {{ mel_observability_panel }}
+        </div>
+      </div>
+    {% endif %}
     {% block content %}
       {{ page.content }}
     {% endblock %}

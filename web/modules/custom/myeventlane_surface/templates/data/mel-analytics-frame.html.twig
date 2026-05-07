@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * Analytics widget shell — spacing, legend, empty/loading slots (no chart engine).
+ */
+#}
+<div{{ attributes }}>
+  {% if summary_id %}
+    {% if summary %}
+      <p{{ summary_attributes }}>{{ summary }}</p>
+    {% else %}
+      <span{{ summary_attributes }} class="visually-hidden"></span>
+    {% endif %}
+  {% endif %}
+  {% if loading %}
+    <div class="mel-analytics-frame__loading">
+      {{ loading }}
+    </div>
+  {% endif %}
+  {% if empty %}
+    <div class="mel-analytics-frame__empty">
+      {{ empty }}
+    </div>
+  {% endif %}
+  <div class="mel-analytics-frame__chart">
+    {{ content }}
+  </div>
+  {% if legend %}
+    <div class="mel-analytics-frame__legend">
+      {{ legend }}
+    </div>
+  {% endif %}
+</div>

@@ -17,12 +17,20 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_surface\MelWorkflowContext;
 
 /**
  * Implements hook_form_FORM_ID_alter() for commerce_checkout_flow_mel_event_checkout.
  */
 function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkout_alter(array &$form, FormStateInterface $form_state): void {
   $step_id = $form['#step_id'] ?? NULL;
+  if ($step_id === 'complete') {
+    /** @var \Drupal\myeventlane_checkout_flow\Service\CheckoutUxAttacher $attacher */
+    $attacher = \Drupal::service('myeventlane_checkout_flow.checkout_ux_attacher');
+    $attacher->attachCompleteStepSidebar($form);
+    return;
+  }
   if ($step_id !== 'checkout') {
     return;
   }
@@ -298,6 +306,7 @@ function myeventlane_checkout_flow_theme(array $existing, string $type, string $
         'title' => NULL,
         'upcoming_orders' => [],
         'past_orders' => [],
+        'mel_my_tickets_empty' => NULL,
       ],
       'template' => 'myeventlane-my-tickets',
     ],
@@ -319,6 +328,8 @@ function myeventlane_checkout_flow_theme(array $existing, string $type, string $
           'revenue' => '0.00',
           'upcoming' => 0,
         ],
+        'mel_vendor_attendees_dashboard_empty' => NULL,
+        'operational_summaries' => [],
       ],
       'template' => 'myeventlane-vendor-attendees-dashboard',
     ],
@@ -341,4 +352,94 @@ function myeventlane_checkout_flow_theme(array $existing, string $type, string $
       'template' => 'myeventlane-vendor-checkin',
     ],
   ];
+}
+
+/**
+ * Implements hook_mel_observability_page_payload_alter().
+ *
+ * MEL Attendee Operations Layer: contributes deterministic, PII-free traces
+ * about the attendee operations surface and CSV export readiness, only when
+ * the surface is staff and the diagnostics permission gate has already passed
+ * (MelObservabilityManager strips traces for non-staff before reaching us).
+ *
+ * No attendee PII is emitted. Only category-level signals (route reached,
+ * presence of a per-event attendee surface) and generic readiness booleans.
+ */
+function myeventlane_checkout_flow_mel_observability_page_payload_alter(
+  array &$payload,
+  MelWorkflowContext $context,
+  array $merged_signals,
+  array $evaluations,
+): void {
+  if (!isset($payload['traces']) || !is_array($payload['traces'])) {
+    return;
+  }
+  if (($payload['surface'] ?? '') !== MelSurfaceId::Staff->value) {
+    return;
+  }
+  $route_name = (string) ($context->signals['route.name'] ?? '');
+  if ($route_name === '') {
+    return;
+  }
+  $relevant = [
+    'myeventlane_checkout_flow.vendor_attendees',
+    'myeventlane_event_attendees.vendor_list',
+    'myeventlane_event_attendees.vendor_export',
+    'myeventlane_checkout_paragraph.export_csv',
+    'myeventlane_views.attendee_csv',
+    'myeventlane_rsvp.export_csv',
+  ];
+  if (!in_array($route_name, $relevant, TRUE)) {
+    return;
+  }
+
+  $payload['traces'][] = [
+    'observability_id' => 'mel.obs.attendee.operations.surface',
+    'code' => 'attendee_operations_surface',
+    'message' => (string) t('Attendee operations surface (@route) governed by MelAttendeeOperationsPresenter / MelAttendeeExportBuilder.', ['@route' => $route_name]),
+    'deterministic_key' => 'mel.obs.attendee.operations.surface__' . preg_replace('/[^a-z0-9_.-]/i', '_', $route_name),
+  ];
+
+  if ($route_name === 'myeventlane_event_attendees.vendor_export'
+    || $route_name === 'myeventlane_checkout_paragraph.export_csv'
+    || $route_name === 'myeventlane_views.attendee_csv'
+    || $route_name === 'myeventlane_rsvp.export_csv'
+  ) {
+    $payload['traces'][] = [
+      'observability_id' => 'mel.obs.attendee.export.governance',
+      'code' => 'attendee_export_canonical_builder',
+      'message' => (string) t('CSV export delegates row generation to MelAttendeeExportBuilder; formula injection neutralised, BOM emitted.'),
+      'deterministic_key' => 'mel.obs.attendee.export.governance__canonical_builder',
+    ];
+  }
+}
+
+/**
+ * Implements hook_mel_state_domain_facts_alter().
+ */
+function myeventlane_checkout_flow_mel_state_domain_facts_alter(array &$facts, MelWorkflowContext $context): void {
+  if (!$context->checkoutSensitive) {
+    return;
+  }
+  if (empty($context->signals['route.commerce_checkout'])) {
+    return;
+  }
+
+  $param = \Drupal::routeMatch()->getParameter('commerce_order');
+  $order = NULL;
+  if ($param instanceof OrderInterface) {
+    $order = $param;
+  }
+  elseif (is_numeric($param)) {
+    $loaded = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $param);
+    $order = $loaded instanceof OrderInterface ? $loaded : NULL;
+  }
+
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutAttendeeRequirementResolver $resolver */
+  $resolver = \Drupal::service('myeventlane_checkout_flow.checkout_attendee_requirement_resolver');
+  $facts['checkout.state.attendee_complete'] = $resolver->isAttendeeCompletionSatisfied($order);
 }

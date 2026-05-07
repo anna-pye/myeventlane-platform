@@ -1,0 +1,1291 @@
+<?php
+
+/**
+ * @file
+ * MEL surface governance — Drupal remains infrastructure beneath product shells.
+ *
+ * Hooks:
+ * - hook_mel_workflow_signals_alter(): Adjust normalized workflow signals used
+ *   for UX orchestration (never as an access bypass). Parameters:
+ *   array &$signals, \Drupal\Core\Session\AccountInterface $account,
+ *   string $route_name, string $path.
+ * - hook_mel_state_domain_facts_alter(): Provide domain facts keyed by
+ *   MELStateRegistry signal contracts (interpretation only). Parameters:
+ *   array &$facts, \Drupal\myeventlane_surface\MelWorkflowContext $context.
+ * - hook_mel_experience_applicable_alter(): Adjust resolved applicable
+ *   experience definitions (continuity contracts only). Parameters:
+ *   array &$experiences, \Drupal\myeventlane_surface\MelWorkflowContext $context,
+ *   array $merged_signals.
+ * - hook_mel_experience_memory_alter(): Request-scoped continuation memory
+ *   (non-sensitive keys only). Parameters: array &$memory,
+ *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals.
+ * - hook_mel_experience_attachments_alter(): Final page continuity payload.
+ *   Parameters: array &$attachments, \Drupal\myeventlane_surface\MelWorkflowContext $context,
+ *   array $merged_signals.
+ * - hook_mel_intelligence_page_payload_alter(): Final intelligence orchestration payload
+ *   (recommendations, prioritisation trace, insights). Parameters: array &$payload,
+ *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals.
+ * - hook_mel_operational_policy_interpretation_alter(): Operational policy interpretation
+ *   payload (suppression, trust thresholds, explainability). Parameters: array &$interpretation,
+ *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals,
+ *   array $evaluations (state value strings keyed by state id).
+ * - hook_mel_observability_page_payload_alter(): Final MELObservabilitySystem payload (traces,
+ *   registry index, telemetry boundary reference). Parameters: array &$payload,
+ *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals,
+ *   array $evaluations (state value strings keyed by state id).
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_surface_theme(): array {
+  return [
+    'mel_surface_customer_profile_settings' => [
+      'variables' => [
+        'title' => '',
+        'form' => [],
+        'mel_form_classification' => 'customer',
+      ],
+      'template' => 'mel-surface-customer-profile-settings',
+    ],
+    'mel_surface_public' => [
+      'variables' => [
+        'content' => '',
+      ],
+      'template' => 'mel-surface-public',
+    ],
+    'mel_surface_auth' => [
+      'variables' => [
+        'content' => '',
+      ],
+      'template' => 'mel-surface-auth',
+    ],
+    'mel_surface_customer' => [
+      'variables' => [
+        'content' => '',
+      ],
+      'template' => 'mel-surface-customer',
+    ],
+    'mel_surface_vendor' => [
+      'variables' => [
+        'content' => '',
+      ],
+      'template' => 'mel-surface-vendor',
+    ],
+    'mel_form_wrapper' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+        'classification' => 'customer',
+        'title' => NULL,
+        'lede' => NULL,
+      ],
+      'template' => 'forms/mel-form-wrapper',
+    ],
+    'mel_form_section' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+        'classification' => 'customer',
+        'title' => '',
+        'title_element' => 'h2',
+      ],
+      'template' => 'forms/mel-form-section',
+    ],
+    'mel_form_field' => [
+      'variables' => [
+        'attributes' => [],
+        'label' => '',
+        'control' => '',
+        'help' => '',
+        'errors' => '',
+        'required' => FALSE,
+      ],
+      'template' => 'forms/mel-form-field',
+    ],
+    'mel_form_actions' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+        'classification' => 'customer',
+      ],
+      'template' => 'forms/mel-form-actions',
+    ],
+    'mel_form_error_summary' => [
+      'variables' => [
+        'attributes' => [],
+        'heading' => '',
+        'content' => '',
+      ],
+      'template' => 'forms/mel-form-error-summary',
+    ],
+    'mel_form_help' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'forms/mel-form-help',
+    ],
+    'mel_form_status' => [
+      'variables' => [
+        'attributes' => [],
+        'state' => 'info',
+        'content' => '',
+      ],
+      'template' => 'forms/mel-form-status',
+    ],
+    'mel_card' => [
+      'variables' => [
+        'attributes' => [],
+        'title_element' => 'h2',
+        'title' => NULL,
+        'content' => '',
+        'footer' => '',
+        'status' => '',
+        'meta' => '',
+        'actions' => '',
+        'empty' => '',
+        'modifiers' => [],
+        'mel_surface' => NULL,
+        'mel_density' => NULL,
+      ],
+      'template' => 'components/mel-card',
+    ],
+    'mel_card_section' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+        'title' => NULL,
+        'title_element' => 'h3',
+      ],
+      'template' => 'components/mel-card-section',
+    ],
+    'mel_card_header' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-card-header',
+    ],
+    'mel_card_meta' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-card-meta',
+    ],
+    'mel_card_actions' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-card-actions',
+    ],
+    'mel_card_status' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-card-status',
+    ],
+    'mel_card_empty' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-card-empty',
+    ],
+    'mel_status_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'heading' => '',
+        'heading_id' => '',
+        'content' => '',
+        'variant' => 'info',
+      ],
+      'template' => 'components/mel-status-panel',
+    ],
+    'mel_alert' => [
+      'variables' => [
+        'attributes' => [],
+        'variant' => 'info',
+        'content' => '',
+      ],
+      'template' => 'components/mel-alert',
+    ],
+    'mel_empty_state' => [
+      'variables' => [
+        'attributes' => [],
+        'heading' => '',
+        'heading_element' => 'h2',
+        'what_happened' => '',
+        'why_empty' => '',
+        'next_action' => '',
+        'cta' => NULL,
+        'illustration' => NULL,
+      ],
+      'template' => 'components/mel-empty-state',
+    ],
+    'mel_loading_state' => [
+      'variables' => [
+        'attributes' => [],
+        'message' => '',
+      ],
+      'template' => 'components/mel-loading-state',
+    ],
+    'mel_success_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'heading' => '',
+        'heading_id' => '',
+        'content' => '',
+        'variant' => 'success',
+      ],
+      'template' => 'components/mel-status-panel',
+    ],
+    'mel_warning_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'heading' => '',
+        'heading_id' => '',
+        'content' => '',
+        'variant' => 'warning',
+      ],
+      'template' => 'components/mel-status-panel',
+    ],
+    'mel_error_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'heading' => '',
+        'heading_id' => '',
+        'content' => '',
+        'variant' => 'error',
+      ],
+      'template' => 'components/mel-status-panel',
+    ],
+    'mel_cta_band' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-cta-band',
+    ],
+    'mel_inline_cta' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-inline-cta',
+    ],
+    'mel_sticky_cta' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-sticky-cta',
+    ],
+    'mel_next_step_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-next-step-panel',
+    ],
+    'mel_shell_nav' => [
+      'variables' => [
+        'attributes' => [],
+        'links' => [],
+        'contract' => NULL,
+        'aria_label' => '',
+        'nav_inner_classes' => [],
+        'list_classes' => [],
+        'item_classes' => [],
+        'link_classes' => [],
+        'active_link_class' => 'mel-shell-nav__link--active',
+      ],
+      'template' => 'components/mel-shell-nav',
+    ],
+    'mel_shell_sidebar' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-shell-sidebar',
+    ],
+    'mel_shell_tabs' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-shell-tabs',
+    ],
+    'mel_mobile_shell_nav' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-mobile-shell-nav',
+    ],
+    'mel_onboarding_step' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-onboarding-step',
+    ],
+    'mel_progress_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-progress-panel',
+    ],
+    'mel_checklist_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-checklist-panel',
+    ],
+    'mel_guided_next_step' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'components/mel-guided-next-step',
+    ],
+    'mel_intelligence_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'items' => [],
+        'insights' => [],
+        'explainability_details' => FALSE,
+        'intelligence_region_heading' => '',
+        'explainability_summary_label' => '',
+        'explainability_signals_label' => '',
+        'insights_aria_label' => '',
+        'dismiss_hint_template' => '',
+      ],
+      'template' => 'components/mel-intelligence-panel',
+    ],
+    'mel_observability_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'traces' => [],
+        'registry_meta' => [],
+        'telemetry_boundary_reference' => [],
+      ],
+      'template' => 'components/mel-observability-panel',
+    ],
+    'mel_data_table' => [
+      'variables' => [
+        'attributes' => [],
+        'scroll_attributes' => [],
+        'toolbar' => NULL,
+        'status' => NULL,
+        'actions' => NULL,
+        'empty' => NULL,
+        'pagination' => NULL,
+        'content' => '',
+        'contract' => NULL,
+        'responsive_stack' => FALSE,
+        'scroll_region_label' => '',
+        'caption_id' => '',
+      ],
+      'template' => 'data/mel-data-table',
+    ],
+    'mel_table_toolbar' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-table-toolbar',
+    ],
+    'mel_table_empty' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-table-empty',
+    ],
+    'mel_table_pagination' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-table-pagination',
+    ],
+    'mel_table_actions' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-table-actions',
+    ],
+    'mel_table_status' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-table-status',
+    ],
+    'mel_metric_card' => [
+      'variables' => [
+        'attributes' => [],
+        'label' => '',
+        'value' => '',
+        'delta' => NULL,
+        'trend' => NULL,
+        'status_variant' => NULL,
+        'loading' => FALSE,
+        'empty_message' => NULL,
+        'contract' => NULL,
+      ],
+      'template' => 'data/mel-metric-card',
+    ],
+    'mel_metric_grid' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-metric-grid',
+    ],
+    'mel_stat_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-stat-panel',
+    ],
+    'mel_summary_bar' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-summary-bar',
+    ],
+    'mel_analytics_frame' => [
+      'variables' => [
+        'attributes' => [],
+        'summary_attributes' => [],
+        'summary_id' => '',
+        'summary' => '',
+        'legend' => NULL,
+        'empty' => NULL,
+        'loading' => NULL,
+        'content' => '',
+        'contract' => NULL,
+        'engine' => NULL,
+      ],
+      'template' => 'data/mel-analytics-frame',
+    ],
+    'mel_activity_feed' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+        'contract' => NULL,
+        'feed_label' => '',
+      ],
+      'template' => 'data/mel-activity-feed',
+    ],
+    'mel_activity_item' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-activity-item',
+    ],
+    'mel_timeline' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-timeline',
+    ],
+    'mel_event_log' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'data/mel-event-log',
+    ],
+    'mel_export_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+        'contract' => NULL,
+      ],
+      'template' => 'data/mel-export-panel',
+    ],
+    'mel_export_notice' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+        'contract' => NULL,
+      ],
+      'template' => 'data/mel-export-notice',
+    ],
+    'mel_modal' => [
+      'variables' => [
+        'attributes' => [],
+        'overlay_attributes' => [],
+        'dialog_attributes' => [],
+        'contract_id' => '',
+        'title_id' => '',
+        'description_id' => '',
+        'initially_open' => FALSE,
+        'fullscreen_mobile' => TRUE,
+        'dismiss_overlay' => TRUE,
+        'header' => '',
+        'body' => '',
+        'actions' => '',
+        'footer' => '',
+        'title' => '',
+      ],
+      'template' => 'interactions/mel-modal',
+    ],
+    'mel_modal_header' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-modal-header',
+    ],
+    'mel_modal_body' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-modal-body',
+    ],
+    'mel_modal_actions' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-modal-actions',
+    ],
+    'mel_modal_confirmation' => [
+      'variables' => [
+        'attributes' => [],
+        'heading' => '',
+        'body' => '',
+        'confirm' => '',
+        'cancel' => '',
+      ],
+      'template' => 'interactions/mel-modal-confirmation',
+    ],
+    'mel_drawer' => [
+      'variables' => [
+        'attributes' => [],
+        'overlay_attributes' => [],
+        'panel_attributes' => [],
+        'contract_id' => '',
+        'label_id' => '',
+        'position' => 'end',
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-drawer',
+    ],
+    'mel_toast' => [
+      'variables' => [
+        'attributes' => [],
+        'variant' => 'info',
+        'title' => '',
+        'content' => '',
+        'actions' => '',
+        'dismissible' => TRUE,
+        'duration_ms' => 8000,
+        'stack_priority' => 0,
+      ],
+      'template' => 'interactions/mel-toast',
+    ],
+    'mel_inline_notice' => [
+      'variables' => [
+        'attributes' => [],
+        'variant' => 'info',
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-inline-notice',
+    ],
+    'mel_confirmation_banner' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-confirmation-banner',
+    ],
+    'mel_warning_banner' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-warning-banner',
+    ],
+    'mel_error_banner' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-error-banner',
+    ],
+    'mel_processing_banner' => [
+      'variables' => [
+        'attributes' => [],
+        'content' => '',
+      ],
+      'template' => 'interactions/mel-processing-banner',
+    ],
+    'mel_saving_state' => [
+      'variables' => [
+        'attributes' => [],
+        'message' => '',
+      ],
+      'template' => 'interactions/mel-saving-state',
+    ],
+    'mel_processing_state' => [
+      'variables' => [
+        'attributes' => [],
+        'message' => '',
+      ],
+      'template' => 'interactions/mel-processing-state',
+    ],
+    'mel_retry_state' => [
+      'variables' => [
+        'attributes' => [],
+        'message' => '',
+        'retry_url' => NULL,
+      ],
+      'template' => 'interactions/mel-retry-state',
+    ],
+    'mel_empty_loading' => [
+      'variables' => [
+        'attributes' => [],
+        'message' => '',
+      ],
+      'template' => 'interactions/mel-empty-loading',
+    ],
+    'mel_disclosure' => [
+      'variables' => [
+        'attributes' => [],
+        'toggle_attributes' => [],
+        'panel_attributes' => [],
+        'contract_id' => '',
+        'expanded' => FALSE,
+        'toggle_label' => '',
+        'panel_id' => '',
+        'toggle_id' => '',
+        'toggle_content' => '',
+        'panel_content' => '',
+      ],
+      'template' => 'interactions/mel-disclosure',
+    ],
+    'mel_expandable_section' => [
+      'variables' => [
+        'attributes' => [],
+        'toggle_attributes' => [],
+        'panel_attributes' => [],
+        'contract_id' => '',
+        'expanded' => FALSE,
+        'toggle_label' => '',
+        'panel_id' => '',
+        'toggle_id' => '',
+        'toggle_content' => '',
+        'panel_content' => '',
+      ],
+      'template' => 'interactions/mel-expandable-section',
+    ],
+    'mel_advanced_settings' => [
+      'variables' => [
+        'attributes' => [],
+        'toggle_attributes' => [],
+        'panel_attributes' => [],
+        'contract_id' => '',
+        'expanded' => FALSE,
+        'toggle_label' => '',
+        'panel_id' => '',
+        'toggle_id' => '',
+        'toggle_content' => '',
+        'panel_content' => '',
+      ],
+      'template' => 'interactions/mel-advanced-settings',
+    ],
+    'mel_collapsible_panel' => [
+      'variables' => [
+        'attributes' => [],
+        'toggle_attributes' => [],
+        'panel_attributes' => [],
+        'contract_id' => '',
+        'expanded' => FALSE,
+        'toggle_label' => '',
+        'panel_id' => '',
+        'toggle_id' => '',
+        'toggle_content' => '',
+        'panel_content' => '',
+      ],
+      'template' => 'interactions/mel-collapsible-panel',
+    ],
+  ];
+}
+
+/**
+ * Registers universal preprocess for MELDataPresentationSystem theme hooks.
+ *
+ * @param array<string, mixed> $theme_registry
+ */
+function myeventlane_surface_theme_registry_alter(array &$theme_registry): void {
+  foreach (_myeventlane_surface_data_presentation_theme_hooks() as $hook) {
+    if (isset($theme_registry[$hook])) {
+      $theme_registry[$hook]['preprocess functions'][] = 'myeventlane_surface_preprocess_mel_data_presentation';
+    }
+  }
+  foreach (_myeventlane_surface_interaction_theme_hooks() as $hook) {
+    if (isset($theme_registry[$hook])) {
+      $theme_registry[$hook]['preprocess functions'][] = 'myeventlane_surface_preprocess_mel_interaction';
+    }
+  }
+}
+
+/**
+ * @return list<string>
+ */
+function _myeventlane_surface_interaction_theme_hooks(): array {
+  return [
+    'mel_modal',
+    'mel_modal_header',
+    'mel_modal_body',
+    'mel_modal_actions',
+    'mel_modal_confirmation',
+    'mel_drawer',
+    'mel_toast',
+    'mel_inline_notice',
+    'mel_confirmation_banner',
+    'mel_warning_banner',
+    'mel_error_banner',
+    'mel_processing_banner',
+    'mel_saving_state',
+    'mel_processing_state',
+    'mel_retry_state',
+    'mel_empty_loading',
+    'mel_disclosure',
+    'mel_expandable_section',
+    'mel_advanced_settings',
+    'mel_collapsible_panel',
+  ];
+}
+
+/**
+ * @param array<string, mixed> $variables
+ */
+function myeventlane_surface_preprocess_mel_interaction(array &$variables): void {
+  $hook = (string) ($variables['theme_hook_original'] ?? '');
+  if ($hook === '' || !\Drupal::hasService('myeventlane_surface.interaction_preprocess')) {
+    return;
+  }
+  \Drupal::service('myeventlane_surface.interaction_preprocess')->preprocessForHook($hook, $variables);
+}
+
+function _myeventlane_surface_data_presentation_theme_hooks(): array {
+  return [
+    'mel_data_table',
+    'mel_table_toolbar',
+    'mel_table_empty',
+    'mel_table_pagination',
+    'mel_table_actions',
+    'mel_table_status',
+    'mel_metric_card',
+    'mel_metric_grid',
+    'mel_stat_panel',
+    'mel_summary_bar',
+    'mel_analytics_frame',
+    'mel_activity_feed',
+    'mel_activity_item',
+    'mel_timeline',
+    'mel_event_log',
+    'mel_export_panel',
+    'mel_export_notice',
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL data presentation themes.
+ *
+ * @param array<string, mixed> $variables
+ */
+function myeventlane_surface_preprocess_mel_data_presentation(array &$variables): void {
+  $hook = (string) ($variables['theme_hook_original'] ?? '');
+  if ($hook === '' || !\Drupal::hasService('myeventlane_surface.data_presentation_preprocess')) {
+    return;
+  }
+  \Drupal::service('myeventlane_surface.data_presentation_preprocess')->preprocessForHook($hook, $variables);
+}
+
+/**
+ * Dispatches MEL component preprocess normalisation.
+ *
+ * @param array<string, mixed> $variables
+ */
+function _myeventlane_surface_component_preprocess(string $hook, array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.component_preprocess')) {
+    return;
+  }
+  \Drupal::service('myeventlane_surface.component_preprocess')->preprocessForHook($hook, $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_card(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_card', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_card_section(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_card_section', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_card_header(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_card_header', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_card_meta(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_card_meta', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_card_actions(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_card_actions', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_card_status(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_card_status', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_card_empty(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_card_empty', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_status_panel(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_status_panel', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_alert(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_alert', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_empty_state(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_empty_state', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_loading_state(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_loading_state', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_success_panel(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_success_panel', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_warning_panel(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_warning_panel', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_error_panel(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_error_panel', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_cta_band(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_cta_band', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_inline_cta(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_inline_cta', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_sticky_cta(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_sticky_cta', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_next_step_panel(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_next_step_panel', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_shell_nav(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_shell_nav', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_shell_sidebar(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_shell_sidebar', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_shell_tabs(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_shell_tabs', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_mobile_shell_nav(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_mobile_shell_nav', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_onboarding_step(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_onboarding_step', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_progress_panel(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_progress_panel', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_checklist_panel(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_checklist_panel', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for MEL component theme hooks.
+ */
+function myeventlane_surface_preprocess_mel_guided_next_step(array &$variables): void {
+  _myeventlane_surface_component_preprocess('mel_guided_next_step', $variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for mel_intelligence_panel.
+ */
+function myeventlane_surface_preprocess_mel_intelligence_panel(array &$variables): void {
+  $raw = $variables['attributes'] ?? [];
+  if ($raw instanceof \Drupal\Core\Template\Attribute) {
+    return;
+  }
+  if (!is_array($raw)) {
+    $raw = [];
+  }
+  $variables['attributes'] = new \Drupal\Core\Template\Attribute($raw);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for mel_observability_panel.
+ */
+function myeventlane_surface_preprocess_mel_observability_panel(array &$variables): void {
+  $raw = $variables['attributes'] ?? [];
+  if ($raw instanceof \Drupal\Core\Template\Attribute) {
+    return;
+  }
+  if (!is_array($raw)) {
+    $raw = [];
+  }
+  $variables['attributes'] = new \Drupal\Core\Template\Attribute($raw);
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function myeventlane_surface_element_info_alter(array &$info): void {
+  if (!isset($info['form'])) {
+    return;
+  }
+  $info['form']['#pre_render'][] = [Drupal\myeventlane_surface\MelFormRootPreRenderBridge::class, 'preRender'];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for mel_surface_customer_profile_settings.
+ */
+function myeventlane_surface_preprocess_mel_surface_customer_profile_settings(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.form_manager')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\MelFormManager $manager */
+  $manager = \Drupal::service('myeventlane_surface.form_manager');
+  if ($manager->shouldGovernForms()) {
+    $variables['mel_form_classification'] = $manager->getClassification()->value;
+  }
+}
+
+/**
+ * Implements hook_preprocess_form().
+ */
+function myeventlane_surface_preprocess_form(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.form_preprocess')) {
+    return;
+  }
+  \Drupal::service('myeventlane_surface.form_preprocess')->preprocessForm($variables);
+}
+
+/**
+ * Implements hook_preprocess_form_element().
+ */
+function myeventlane_surface_preprocess_form_element(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.form_preprocess')) {
+    return;
+  }
+  \Drupal::service('myeventlane_surface.form_preprocess')->preprocessFormElement($variables);
+}
+
+/**
+ * Implements hook_preprocess_form_element_label().
+ */
+function myeventlane_surface_preprocess_form_element_label(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.form_preprocess')) {
+    return;
+  }
+  \Drupal::service('myeventlane_surface.form_preprocess')->preprocessFormElementLabel($variables);
+}
+
+/**
+ * Implements hook_preprocess_input__submit().
+ */
+function myeventlane_surface_preprocess_input__submit(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.form_preprocess')) {
+    return;
+  }
+  \Drupal::service('myeventlane_surface.form_preprocess')->preprocessInputSubmit($variables);
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function myeventlane_surface_preprocess_page(array &$variables): void {
+  \Drupal::service('myeventlane_surface.negotiator')->attachPageMetadata($variables);
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function myeventlane_surface_preprocess_html(array &$variables): void {
+  \Drupal::service('myeventlane_surface.negotiator')->attachHtmlMetadata($variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_order_detail.
+ *
+ * Adds governed order-state vocabulary for customer presentation (MELStateSystem).
+ */
+function myeventlane_surface_preprocess_myeventlane_order_detail(array &$variables): void {
+  if (!isset($variables['order']) || !is_array($variables['order'])) {
+    return;
+  }
+  $order_entity = $variables['order']['order'] ?? NULL;
+  if (!is_object($order_entity) || !method_exists($order_entity, 'getState')) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_surface.state_readiness_helper')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\MelReadinessHelper $helper */
+  $helper = \Drupal::service('myeventlane_surface.state_readiness_helper');
+  $variables['order']['state_customer_presentation'] = $helper->customerCommerceOrderStateLabel(
+    (string) $order_entity->getState()->getId(),
+    (string) $order_entity->getState()->getLabel()
+  );
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_tickets.
+ */
+function myeventlane_surface_preprocess_myeventlane_my_tickets(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.state_readiness_helper')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\MelReadinessHelper $helper */
+  $helper = \Drupal::service('myeventlane_surface.state_readiness_helper');
+  foreach (['upcoming_orders', 'past_orders'] as $delta_key) {
+    if (!isset($variables[$delta_key]) || !is_array($variables[$delta_key])) {
+      continue;
+    }
+    foreach ($variables[$delta_key] as &$row) {
+      if (!is_array($row) || !isset($row['order'])) {
+        continue;
+      }
+      $order_entity = $row['order'];
+      if (!is_object($order_entity) || !method_exists($order_entity, 'getState')) {
+        continue;
+      }
+      $row['state_customer_presentation'] = $helper->customerCommerceOrderStateLabel(
+        (string) $order_entity->getState()->getId(),
+        (string) $order_entity->getState()->getLabel()
+      );
+    }
+    unset($row);
+  }
+
+  $upcoming = $variables['upcoming_orders'] ?? [];
+  $past = $variables['past_orders'] ?? [];
+  if (is_array($upcoming) && is_array($past) && $upcoming === [] && $past === [] && \Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
+    /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+    $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
+    $variables['mel_my_tickets_empty'] = $templates->myTicketsOverviewEmpty();
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_categories.
+ */
+function myeventlane_surface_preprocess_myeventlane_my_categories(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
+  $followed = $variables['followed_categories'] ?? [];
+  if (is_array($followed) && $followed === []) {
+    $variables['mel_category_follow_empty'] = $templates->categoryFollowEmpty();
+    return;
+  }
+  if (is_array($followed) && $followed !== []) {
+    // Reused under each followed category when the weekly digest has no rows.
+    $variables['mel_category_follow_section_no_new_events'] = $templates->categoryFollowWeeklyQuietEmpty();
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_analytics_dashboard.
+ */
+function myeventlane_surface_preprocess_myeventlane_analytics_dashboard(array &$variables): void {
+  $model = $variables['analytics_model'] ?? [];
+  if (!is_array($model)) {
+    return;
+  }
+  $events = $model['events'] ?? [];
+  if (!is_array($events) || $events !== []) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
+  $empty = $model['empty_state'] ?? [];
+  $empty = is_array($empty) ? $empty : [];
+  $has_legacy_copy = ($empty['title'] ?? '') !== '' || ($empty['message'] ?? '') !== '';
+  $variables['mel_analytics_events_empty'] = $has_legacy_copy
+    ? $templates->analyticsEventsEmptyFromLegacy($empty)
+    : $templates->vendorAnalyticsNoEventRowsEmpty();
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_attendees_dashboard.
+ */
+function myeventlane_surface_preprocess_myeventlane_vendor_attendees_dashboard(array &$variables): void {
+  $cards = $variables['mel_cards'] ?? [];
+  $events = $variables['events'] ?? [];
+  if (!is_array($cards) || !is_array($events)) {
+    return;
+  }
+  // Mirror myeventlane-vendor-attendees-dashboard.html.twig: empty only when
+  // there are no mel_cards and no legacy event rows.
+  if ($cards !== [] || $events !== []) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
+  $variables['mel_vendor_attendees_dashboard_empty'] = $templates->vendorAttendeesDashboardEmpty();
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_account_dashboard.
+ */
+function myeventlane_surface_preprocess_myeventlane_my_account_dashboard(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
+  if (empty($variables['upcoming_tickets'])) {
+    $variables['mel_account_dashboard_tickets_empty'] = $templates->accountDashboardTicketsEmpty();
+  }
+  if (empty($variables['upcoming_rsvps'])) {
+    $variables['mel_account_dashboard_rsvps_empty'] = $templates->accountDashboardRsvpsEmpty();
+  }
+  if (empty($variables['past_events'])) {
+    $variables['mel_account_dashboard_past_empty'] = $templates->accountDashboardPastPreviewEmpty();
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_account_past_events.
+ */
+function myeventlane_surface_preprocess_myeventlane_my_account_past_events(array &$variables): void {
+  if (!empty($variables['past_events']) || !\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
+  $variables['mel_account_past_events_page_empty'] = $templates->accountPastEventsPageEmpty();
+}
+
+/**
+ * Implements hook_block_build_alter().
+ */
+function myeventlane_surface_block_build_alter(array &$build, \Drupal\Core\Block\BlockPluginInterface $block): void {
+  \Drupal::service('myeventlane_surface.block_governor')->alter($build, $block);
+}

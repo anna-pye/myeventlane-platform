@@ -151,6 +151,11 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
         'fee_rows' => [],
         'platform_fee_absorbed' => FALSE,
         'show_includes_gst_note' => FALSE,
+        'labels' => [],
+        'trust' => [],
+        'has_pricing_block' => TRUE,
+        'surface' => 'checkout',
+        'show_jump_to_payment' => TRUE,
       ],
       'template' => 'commerce/mel-checkout-order-summary-grouped',
     ],
@@ -171,6 +176,7 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
         'user_menu' => [],
         'mobile_drawer' => [],
         'is_checkout' => FALSE,
+        'is_auth_minimal' => FALSE,
         'create_event_url' => '/create-event',
       ],
       'template' => 'components/site-header/site-header',
@@ -199,6 +205,12 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
 function myeventlane_theme_preprocess_site_header(array &$variables): void {
   $route = \Drupal::routeMatch()->getRouteName();
   $variables['is_checkout'] = strpos((string) $route, 'commerce_checkout') === 0;
+  // Render arrays cannot pass scalar theme variables as sibling keys; resolve here.
+  $variables['is_auth_minimal'] = FALSE;
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
+    $surface = \Drupal::service('myeventlane_surface.resolver')->resolve();
+    $variables['is_auth_minimal'] = $surface === \Drupal\myeventlane_surface\MelSurfaceId::Auth;
+  }
 
   $extension_list = \Drupal::service('extension.list.theme');
   $theme_path = $extension_list->getPath('myeventlane_theme');
@@ -298,8 +310,18 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
   // Create Event CTA URL: gateway handles anonymous → login and vendor onboarding.
   $variables['create_event_url'] = _myeventlane_theme_public_create_event_url();
 
-  // Mobile drawer (only when not checkout).
-  if (!$variables['is_checkout']) {
+  // Strip commerce/marketing chrome on auth + checkout shells (surface-driven).
+  $minimal_shell = $variables['is_checkout'] || $variables['is_auth_minimal'];
+  if ($minimal_shell) {
+    $variables['primary_menu'] = [];
+    $variables['organiser_context'] = [];
+    $variables['mobile_drawer'] = [];
+    if ($variables['is_auth_minimal']) {
+      $variables['cart'] = [];
+      $variables['user_menu'] = [];
+    }
+  }
+  elseif (!$variables['is_checkout']) {
     $variables['mobile_drawer'] = [
       '#theme' => 'mobile_drawer',
       '#drawer_menu' => $variables['primary_menu'],
@@ -593,6 +615,26 @@ function _myeventlane_theme_attach_tax_invoice_variables(OrderInterface $order, 
 }
 
 /**
+ * Implements hook_preprocess_commerce_checkout_order_summary().
+ *
+ * Reuses MelCheckoutSummaryPresenter so core summary theme matches grouped parity.
+ */
+function myeventlane_theme_preprocess_commerce_checkout_order_summary(array &$variables): void {
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface) {
+    $variables['mel_checkout_order_summary_build'] = [];
+    return;
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_checkout_flow')) {
+    $variables['mel_checkout_order_summary_build'] = [];
+    return;
+  }
+  /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $presenter */
+  $presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
+  $variables['mel_checkout_order_summary_build'] = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'checkout']);
+}
+
+/**
  * Implements hook_preprocess_commerce_order().
  */
 function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
@@ -645,6 +687,36 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       $variables['mel_checkout_refunds_available'] = _myeventlane_theme_event_has_refunds_available($event);
       if ($event instanceof NodeInterface) {
         $variables['#cache']['tags'][] = 'node:' . $event->id();
+      }
+
+      // Governed checkout copy + attendee schema signal (resolver is Commerce-data only).
+      if (\Drupal::moduleHandler()->moduleExists('myeventlane_checkout_flow')) {
+        /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutAttendeeRequirementResolver $mel_checkout_resolver */
+        $mel_checkout_resolver = \Drupal::service('myeventlane_checkout_flow.checkout_attendee_requirement_resolver');
+        $requires_attendee_questions_schema = $mel_checkout_resolver->resolve($order_param)['requires_attendee_details'];
+        $variables['mel_requires_attendee_questions_schema'] = $requires_attendee_questions_schema;
+        /** @var \Drupal\myeventlane_surface\MelReadinessHelper $mel_checkout_ready */
+        $mel_checkout_ready = \Drupal::service('myeventlane_surface.state_readiness_helper');
+        $mel_refunds_chip = !empty($variables['mel_checkout_refunds_available']);
+        $variables['mel_checkout_presentation'] = [
+          'hero' => $mel_checkout_ready->customerCheckoutStructuredHero($mel_refunds_chip, $requires_attendee_questions_schema),
+          'trust_chips' => $mel_checkout_ready->customerCheckoutTrustChipsBuilt($mel_refunds_chip),
+          'trust_chip_region_label' => $mel_checkout_ready->customerCheckoutTrustChipsRegionLabel(),
+          'payment_region_label' => $mel_checkout_ready->customerCheckoutPaymentReassuranceRegionLabel(),
+          'payment_trust_lines' => $mel_checkout_ready->customerCheckoutPaymentTrustLines(),
+          'cta_secure_note' => $mel_checkout_ready->customerCheckoutCtaSecurePaymentNote(),
+          'summary_aria' => $mel_checkout_ready->customerCheckoutOrderSummaryAriaLabel(),
+          'summary_titles' => $mel_checkout_ready->customerCheckoutGroupedSummaryTitles(),
+          'sticky_support_nav' => $mel_checkout_ready->customerCheckoutStickySupportNav(),
+          'sticky_region' => $mel_checkout_ready->customerCheckoutStickyCtaAriaLabel(),
+          'step_buyer' => $mel_checkout_ready->customerCheckoutStepBuyer(),
+          'step_attendees' => $mel_checkout_ready->customerCheckoutStepAttendees(),
+          'step_payment' => $mel_checkout_ready->customerCheckoutStepPayment(),
+          'optional_chip' => $mel_checkout_ready->customerCheckoutOptionalDonationChip(),
+          'optional_donation_heading' => $mel_checkout_ready->customerCheckoutOptionalDonationHeading(),
+          'booking_summary_heading' => $mel_checkout_ready->customerCheckoutBookingSummaryHeading(),
+          'sidebar_help_aria' => $mel_checkout_ready->customerCheckoutSidebarHelpAriaLabel(),
+        ];
       }
 
       $total_price = $order_param->getTotalPrice();
@@ -748,6 +820,15 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       }
       $variables['mel_event_image_urls'] = $mel_event_image_urls;
 
+      /** @var \Drupal\myeventlane_surface\MelReadinessHelper $mel_completion_ready */
+      $mel_completion_ready = \Drupal::service('myeventlane_surface.state_readiness_helper');
+      $summary_labels = $mel_completion_ready->customerCheckoutOrderSummarySurfaceLabels();
+      $variables['mel_checkout_presentation'] = [
+        'booking_summary_heading' => $mel_completion_ready->customerCheckoutBookingSummaryHeading(),
+        'completion_hero' => $mel_completion_ready->customerCheckoutCompletionHero(),
+        'help_region_short' => $summary_labels['help_region_short'],
+      ];
+
       // Help centre URL for confirmation support block (canonical hub only).
       try {
         $variables['mel_help_centre_url'] = Url::fromRoute('myeventlane_help_centre.home')->toString();
@@ -810,6 +891,21 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         $mel_breakdown = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
         $variables['mel_order_pricing_breakdown'] = $mel_breakdown->build($order);
       }
+
+      $customer_id = $order->getCustomerId();
+      $customer_id = $customer_id !== NULL && $customer_id !== '' ? (int) $customer_id : NULL;
+      /** @var \Drupal\myeventlane_surface\MelCustomerContinuityPresenter $mel_continuity */
+      $mel_continuity = \Drupal::service('myeventlane_surface.customer_continuity_presenter');
+      $variables['mel_checkout_completion'] = $mel_continuity->buildCheckoutCompletionPresentation(
+        (string) ($order->getEmail() ?? ''),
+        (string) $order->getOrderNumber(),
+        $customer_id,
+        (int) $order->id(),
+        (bool) ($variables['mel_confirmation_has_tickets'] ?? FALSE),
+        $variables['mel_donation_total_formatted'] ?? NULL,
+        (array) ($variables['mel_calendar_links'] ?? []),
+        (string) ($variables['mel_event_url'] ?? ''),
+      );
 
       // Attach copy-link JS when share block is present.
       if ($variables['mel_event_url']) {
@@ -1126,10 +1222,14 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   }
 
   // Site header: compact global header (desktop + mobile).
+  // Theme variables for site_header are set in preprocess_site_header (not here — scalars are invalid child keys).
   $variables['site_header'] = [
     '#theme' => 'site_header',
     '#attached' => [
       'library' => ['myeventlane_theme/account-dropdown'],
+    ],
+    '#cache' => [
+      'contexts' => ['route', 'user'],
     ],
   ];
   
@@ -1141,7 +1241,8 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   
   // Load main menu block manually since page.html.twig includes header template directly
   // without rendering {{ page.header }} first, so blocks aren't automatically added.
-  if (empty($variables['page']['header']['main_menu']) && empty($variables['page']['header']['myeventlane_theme_main_menu'])) {
+  $auth_minimal = !empty($variables['mel_surface_auth_minimal']);
+  if (!$auth_minimal && empty($variables['page']['header']['main_menu']) && empty($variables['page']['header']['myeventlane_theme_main_menu'])) {
     try {
       $block_storage = \Drupal::entityTypeManager()->getStorage('block');
       $block = $block_storage->load('myeventlane_theme_main_menu');
@@ -1170,7 +1271,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   }
   
   // Add cart block to header if not already present
-  if (empty($variables['page']['header']['cart_block'])) {
+  if (!$auth_minimal && empty($variables['page']['header']['cart_block'])) {
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
       $cart_block = $block_manager->createInstance('commerce_cart', []);
@@ -2856,7 +2957,12 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
           $summary_total->getNumber(),
           $summary_total->getCurrencyCode()
         );
-        $label = $summary_total->isZero() ? t('Total') : t("You'll pay");
+        /** @var \Drupal\myeventlane_surface\MelReadinessHelper $mel_ready */
+        $mel_ready = \Drupal::service('myeventlane_surface.state_readiness_helper');
+        $summary_labels = $mel_ready->customerCheckoutOrderSummarySurfaceLabels();
+        $label = $summary_total->isZero()
+          ? $summary_labels['total_label']
+          : $mel_ready->customerCheckoutCtaYoullPayLabel();
         $form['actions']['mel_cta_total'] = [
           '#type' => 'inline_template',
           '#template' => '<div id="mel-checkout-total-wrapper" class="mel-checkout-total-inline mel-checkout-cta__total" aria-live="polite"><span class="mel-checkout-total-inline__label mel-checkout-cta__total-label">{{ label }}</span><span class="mel-checkout-total-inline__value mel-checkout-cta__total-value">{{ total }}</span></div>',
@@ -3342,38 +3448,57 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
  */
 function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): void {
   $form = $variables['form'];
-  
-  // Only process if we have order items.
-  if (empty($form['#order_items']) || !is_array($form['#order_items'])) {
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
+    /** @var \Drupal\myeventlane_surface\MelReadinessHelper $readiness */
+    $readiness = \Drupal::service('myeventlane_surface.state_readiness_helper');
+    $variables['mel_cart_shell_labels'] = $readiness->customerCartShellLabels();
+  }
+
+  $order_items = (isset($form['#order_items']) && is_array($form['#order_items'])) ? $form['#order_items'] : [];
+  if ($order_items === []) {
+    if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
+      /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $gov */
+      $gov = \Drupal::service('myeventlane_surface.governed_operational_templates');
+      $variant = (string) ($form['#mel_cart_empty_variant'] ?? 'default');
+      $variables['mel_cart_empty_state'] = match ($variant) {
+        'expired' => $gov->checkoutCartExpired('h2'),
+        'unavailable' => $gov->checkoutCartUnavailableTicket('h2'),
+        'removed' => $gov->checkoutCartRemovedUnavailableLineItem('h2'),
+        'payment_unavailable' => $gov->checkoutCartPaymentUnavailable('h2'),
+        'sold_out' => $gov->checkoutCartSoldOut('h2'),
+        default => $gov->checkoutCartEmpty('h2'),
+      };
+    }
+    $variables['grouped_items'] = [];
+    $variables['items_without_event'] = [];
+    $variables['item_event_map'] = [];
     return;
   }
-  
-  $order_items = $form['#order_items'];
+
   $grouped_items = [];
   $items_without_event = [];
   $item_event_map = [];
-  
-  // Group items by event and create mapping.
+
   foreach ($order_items as $order_item) {
     $item_id = (int) $order_item->id();
-    
+
     if (!$order_item->hasField('field_target_event') || $order_item->get('field_target_event')->isEmpty()) {
-      // Items without event go to a separate group.
       $items_without_event[] = $order_item;
       $item_event_map[$item_id] = NULL;
       continue;
     }
-    
+
     $event = $order_item->get('field_target_event')->entity;
     if (!$event) {
       $items_without_event[] = $order_item;
       $item_event_map[$item_id] = NULL;
       continue;
     }
-    
+
     $event_id = (int) $event->id();
     $item_event_map[$item_id] = $event_id;
-    
+
     if (!isset($grouped_items[$event_id])) {
       $grouped_items[$event_id] = [
         'event' => $event,
@@ -3381,21 +3506,20 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
         'item_ids' => [],
       ];
     }
-    
+
     $grouped_items[$event_id]['items'][] = $order_item;
     $grouped_items[$event_id]['item_ids'][] = $item_id;
   }
-  
-  // Add grouped items to variables for template.
+
   $variables['grouped_items'] = $grouped_items;
   $variables['items_without_event'] = $items_without_event;
   $variables['item_event_map'] = $item_event_map;
 
   $order = $form['#order'] ?? NULL;
-  if ($order instanceof OrderInterface && \Drupal::hasService('myeventlane_checkout_flow.order_pricing_breakdown')) {
-    /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $breakdown_builder */
-    $breakdown_builder = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
-    $variables['mel_cart_pricing'] = $breakdown_builder->build($order);
+  if ($order instanceof OrderInterface && \Drupal::hasService('myeventlane_checkout_flow.checkout_summary_presenter')) {
+    /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $cart_presenter */
+    $cart_presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
+    $variables['mel_cart_order_summary_build'] = $cart_presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'cart']);
   }
 }
 
@@ -3408,6 +3532,14 @@ function myeventlane_theme_preprocess_commerce_cart_empty_page(array &$variables
   $extension_list = \Drupal::service('extension.list.theme');
   $theme_path = $extension_list->getPath('myeventlane_theme');
   $variables['directory'] = $theme_path;
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
+    /** @var \Drupal\myeventlane_surface\MelReadinessHelper $readiness */
+    $readiness = \Drupal::service('myeventlane_surface.state_readiness_helper');
+    $variables['mel_cart_shell_labels'] = $readiness->customerCartShellLabels();
+    /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $gov */
+    $gov = \Drupal::service('myeventlane_surface.governed_operational_templates');
+    $variables['mel_cart_empty_state'] = $gov->checkoutCartEmpty('h1');
+  }
 }
 
 /**

@@ -1,0 +1,121 @@
+// ==========================================================================
+// MEL modal governance — single structural implementation (mel-modal*)
+// ==========================================================================
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as space;
+@use '../tokens/shadows' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/zindex' as z;
+@use '../tokens/breakpoints' as bp;
+
+.mel-modal {
+  position: fixed;
+  inset: 0;
+  z-index: z.mel-z('modal');
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: space.mel-space(4);
+}
+
+.mel-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: $mel-color-overlay;
+}
+
+.mel-modal__dialog {
+  position: relative;
+  z-index: calc(z.mel-z('modal') + 1);
+  width: min(100%, 36rem);
+  max-height: min(90vh, 48rem);
+  overflow: auto;
+  padding: space.mel-space(5);
+  background: $mel-color-surface;
+  border-radius: $mel-radius-lg;
+  box-shadow: $mel-shadow-lg;
+}
+
+.mel-modal--fullscreen-mobile .mel-modal__dialog {
+  @include bp.mel-break('md', max) {
+    width: 100%;
+    max-height: 100%;
+    min-height: 100%;
+    border-radius: 0;
+    padding: space.mel-space(6);
+  }
+}
+
+.mel-modal__fragment.mel-modal__header {
+  margin-bottom: space.mel-space(4);
+}
+
+.mel-modal__fragment.mel-modal__actions {
+  margin-top: space.mel-space(5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: space.mel-space(3);
+  justify-content: flex-end;
+}
+
+.mel-modal-confirmation__heading {
+  font-weight: 700;
+  margin-bottom: space.mel-space(3);
+}
+
+.mel-modal-confirmation__body {
+  margin-bottom: space.mel-space(4);
+}
+
+.mel-modal-confirmation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space.mel-space(3);
+  justify-content: flex-end;
+}
+
+html[data-mel-interaction-profile='checkout_trust'] .mel-modal__overlay {
+  opacity: 0.85;
+}
+
+html[data-mel-interaction-profile='auth_minimal'] .mel-modal__dialog {
+  padding: space.mel-space(4);
+}
+
+// Drawers share elevation tokens with modals but anchor to viewport edges.
+.mel-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: z.mel-z('modal');
+}
+
+.mel-drawer__overlay {
+  position: absolute;
+  inset: 0;
+  background: $mel-color-overlay;
+}
+
+.mel-drawer__panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  max-width: min(100%, 22rem);
+  width: 100%;
+  overflow: auto;
+  padding: space.mel-space(5);
+  background: $mel-color-surface;
+  box-shadow: $mel-shadow-lg;
+}
+
+.mel-drawer[data-mel-drawer-position='end'] .mel-drawer__panel {
+  right: 0;
+  left: auto;
+  border-radius: $mel-radius-lg 0 0 $mel-radius-lg;
+}
+
+.mel-drawer[data-mel-drawer-position='start'] .mel-drawer__panel {
+  left: 0;
+  right: auto;
+  border-radius: 0 $mel-radius-lg $mel-radius-lg 0;
+}

@@ -1,0 +1,31 @@
+// ==========================================================================
+// MEL governed traces (lists + spacing tokens)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/typography' as typo;
+
+.mel-observability-panel__traces {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+}
+
+.mel-observability-panel__trace {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(1);
+  font-size: typo.mel-font-size('sm');
+}
+
+.mel-observability-panel__code {
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.mel-observability-panel__message {
+  line-height: 1.45;
+}

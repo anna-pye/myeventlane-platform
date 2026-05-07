@@ -14,6 +14,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_rsvp\Service\RsvpMailer;
+use Drupal\myeventlane_surface\MelCustomerContinuityPresenter;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -31,6 +32,7 @@ final class RsvpThankYouController {
     private readonly RsvpMailer $mailer,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly AccountProxyInterface $currentUser,
+    private readonly MelCustomerContinuityPresenter $customerContinuityPresenter,
   ) {}
 
   public static function create(ContainerInterface $container): self {
@@ -41,6 +43,7 @@ final class RsvpThankYouController {
       $container->get('myeventlane_rsvp.mailer'),
       $container->get('module_handler'),
       $container->get('current_user'),
+      $container->get('myeventlane_surface.customer_continuity_presenter'),
     );
   }
 
@@ -63,7 +66,6 @@ final class RsvpThankYouController {
     $request = $this->requestStack->getCurrentRequest();
     $order_id = (int) ($request?->query->get('order') ?? 0);
 
-    $message = 'Your RSVP is confirmed.';
     $submission = NULL;
     $donation = 0.0;
     $donation_order_id = NULL;
@@ -157,12 +159,7 @@ final class RsvpThankYouController {
           ]);
         }
       }
-      $message = 'Payment received. Your RSVP is confirmed.';
     }
-    elseif ($donation_pending) {
-      $message = 'Checkout not completed. Your RSVP is saved but not confirmed.';
-    }
-
     if ($donation <= 0.0 && !$can_add_post_rsvp_contribution) {
       $logger->notice('Post-confirmation donation creation path is not available for RSVP thank-you upsell.');
     }
@@ -173,6 +170,20 @@ final class RsvpThankYouController {
         'rsvp_id' => (int) $submission->id(),
       ])->toString();
     }
+
+    $mel_continuity = $this->customerContinuityPresenter->buildRsvpThankYouPresentation(
+      $event,
+      $event->toUrl()->toString(),
+      $donation_pending,
+      $donation_completed,
+      $donation,
+      $donation_checkout_url,
+      $cancel_url,
+      $can_add_post_rsvp_contribution,
+      $attendee_name,
+      $attendee_email,
+      $guests,
+    );
 
     return [
       '#theme' => 'mel_rsvp_thankyou',
@@ -191,6 +202,7 @@ final class RsvpThankYouController {
       '#donation_pending' => $donation_pending,
       '#can_add_post_rsvp_contribution' => $can_add_post_rsvp_contribution,
       '#cancel_url' => $cancel_url,
+      'mel_continuity' => $mel_continuity,
       '#attached' => [
         'library' => [
           'myeventlane_rsvp/rsvp-thankyou',

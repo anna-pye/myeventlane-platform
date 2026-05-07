@@ -41,7 +41,7 @@ final class MelPostLoginSessionRedirectSubscriber implements EventSubscriberInte
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-    // After UserProfileRedirectSubscriber (30): replace profile redirect when hub pending.
+    // After SurfaceRouteSubscriber (30): replace profile redirect when hub pending.
     return [
       KernelEvents::REQUEST => ['onKernelRequest', 20],
     ];

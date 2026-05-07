@@ -13,6 +13,7 @@ use Drupal\myeventlane_account\Service\AccountLinksService;
 use Drupal\myeventlane_core\Service\DisplayNameResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\node\NodeInterface;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -37,7 +38,7 @@ final class MyAccountController extends ControllerBase {
     return new static(
       $container->get('myeventlane_account.account_links'),
       $container->get('myeventlane_core.display_name_resolver'),
-      $container->get('datetime.time')
+      $container->get('datetime.time'),
     );
   }
 
@@ -111,17 +112,42 @@ final class MyAccountController extends ControllerBase {
   }
 
   /**
-   * Redirects to the user edit form (Profile & Settings).
+   * Redirects legacy /my-settings to the canonical route including the user parameter.
    */
-  public function settings(): RedirectResponse {
+  public function settingsRedirect(): RedirectResponse {
+    $account = $this->currentUser();
+    $url = Url::fromRoute('myeventlane_account.settings', ['user' => $account->id()]);
+    return new RedirectResponse($url->toString(), 302);
+  }
+
+  /**
+   * Renders profile & settings inside the customer shell (no standalone Drupal edit route).
+   */
+  public function settings(UserInterface $user): array|RedirectResponse {
     $account = $this->currentUser();
     if ($account->isAnonymous()) {
-      return new RedirectResponse(Url::fromRoute('user.login')->toString(), 302);
+      return new RedirectResponse(
+        Url::fromRoute('user.login', [], ['query' => ['destination' => '/my-settings']])->toString(),
+        302,
+      );
     }
-    return new RedirectResponse(
-      Url::fromRoute('entity.user.edit_form', ['user' => $account->id()])->toString(),
-      302
-    );
+
+    $form = $this->entityFormBuilder()->getForm($user, 'default');
+
+    $cache = (new CacheableMetadata())
+      ->addCacheContexts(['user', 'route'])
+      ->addCacheableDependency($user);
+
+    $build = [
+      '#theme' => 'mel_surface_customer_profile_settings',
+      '#title' => $this->t('Profile & Settings'),
+      '#form' => $form,
+      '#attached' => [
+        'library' => ['myeventlane_theme/global-styling'],
+      ],
+    ];
+    $cache->applyTo($build);
+    return $build;
   }
 
   /**

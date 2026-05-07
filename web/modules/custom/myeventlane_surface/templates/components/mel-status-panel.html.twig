@@ -1,0 +1,14 @@
+{#
+/**
+ * @file
+ * Landmarked status panel — shared by mel_status_panel and variant-specific hooks.
+ */
+#}
+<section{{ attributes }}>
+  {% if heading %}
+    <h2{% if heading_id %} id="{{ heading_id }}"{% endif %} class="mel-status-panel__heading">{{ heading }}</h2>
+  {% endif %}
+  <div class="mel-status-panel__content">
+    {{ content }}
+  </div>
+</section>

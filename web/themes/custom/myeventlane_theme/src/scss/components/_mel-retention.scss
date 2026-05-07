@@ -1,0 +1,9 @@
+// ==========================================================================
+// Retention continuity — calm spacing; no visual urgency tokens
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-retention-hint {
+  margin-top: spacing.mel-space(2);
+}

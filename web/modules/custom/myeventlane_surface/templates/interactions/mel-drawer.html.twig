@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Drawer shell — mobile-first slide-over; vendor/customer contexts only in markup.
+ */
+#}
+<div{{ attributes }} hidden>
+  <div{{ overlay_attributes }}></div>
+  <aside{{ panel_attributes }}>
+    {{ content }}
+  </aside>
+</div>

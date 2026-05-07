@@ -5,15 +5,11 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkout_flow\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
-use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_stripe\Plugin\Commerce\PaymentGateway\StripePaymentElementInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
-use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
-use Drupal\node\NodeInterface;
+use Drupal\myeventlane_checkout_paragraph\CheckoutAttendeeSchemaInspectorInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\profile\Entity\ProfileInterface;
@@ -25,7 +21,7 @@ final class FastCheckoutEligibility {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly TicketAvailabilityService $ticketAvailability,
+    private readonly CheckoutAttendeeSchemaInspectorInterface $checkoutAttendeeSchema,
     private readonly LoggerChannelInterface $logger,
   ) {}
 
@@ -59,7 +55,7 @@ final class FastCheckoutEligibility {
    */
   public function hasTicketSelection(OrderInterface $order): bool {
     foreach ($order->getItems() as $order_item) {
-      if (!$this->shouldCollectTicketHolders($order_item)) {
+      if (!$this->checkoutAttendeeSchema->shouldCollectTicketHolders($order_item)) {
         continue;
       }
       if ((int) $order_item->getQuantity() > 0) {
@@ -110,7 +106,7 @@ final class FastCheckoutEligibility {
    */
   public function hasMultipleTicketQuantity(OrderInterface $order): bool {
     foreach ($order->getItems() as $order_item) {
-      if (!$this->shouldCollectTicketHolders($order_item)) {
+      if (!$this->checkoutAttendeeSchema->shouldCollectTicketHolders($order_item)) {
         continue;
       }
       if ((int) $order_item->getQuantity() > 1) {
@@ -193,141 +189,7 @@ final class FastCheckoutEligibility {
    *   Attendee question template paragraphs.
    */
   private function getQuestionTemplates(OrderInterface $order): array {
-    $templates = [];
-    $seen = [];
-
-    foreach ($order->getItems() as $order_item) {
-      if (!$this->shouldCollectTicketHolders($order_item)) {
-        continue;
-      }
-
-      foreach ($this->getQuestionTemplatesForOrderItem($order_item) as $template) {
-        $key = $this->questionTemplateDedupeKey($template);
-        if (isset($seen[$key])) {
-          continue;
-        }
-        $seen[$key] = TRUE;
-        $templates[] = $template;
-      }
-    }
-
-    return $templates;
-  }
-
-  /**
-   * Gets event and ticket-tier question templates for one order item.
-   *
-   * @return \Drupal\paragraphs\ParagraphInterface[]
-   *   Attendee question template paragraphs.
-   */
-  private function getQuestionTemplatesForOrderItem(OrderItemInterface $order_item): array {
-    $event = $this->resolveEventForOrderItem($order_item);
-    if (!$event instanceof FieldableEntityInterface) {
-      return [];
-    }
-
-    $event_templates = [];
-    if ($event->hasField('field_attendee_questions') && !$event->get('field_attendee_questions')->isEmpty()) {
-      $event_templates = $event->get('field_attendee_questions')->referencedEntities();
-    }
-
-    $tier_templates = [];
-    $variation = $order_item->getPurchasedEntity();
-    if ($variation instanceof ProductVariationInterface && $event instanceof NodeInterface) {
-      $tier = $this->ticketAvailability->resolveTierForVariation($event, $variation);
-      if ($tier !== NULL
-        && $tier->hasField('field_use_ticket_attendee_questions')
-        && $tier->get('field_use_ticket_attendee_questions')->value
-        && $tier->hasField('field_attendee_questions')
-        && !$tier->get('field_attendee_questions')->isEmpty()) {
-        $tier_templates = $tier->get('field_attendee_questions')->referencedEntities();
-      }
-    }
-
-    return $this->mergeQuestionTemplates($event_templates, $tier_templates);
-  }
-
-  /**
-   * Resolves the event node for a ticket order item.
-   */
-  private function resolveEventForOrderItem(OrderItemInterface $order_item): ?FieldableEntityInterface {
-    if ($order_item->hasField('field_target_event') && !$order_item->get('field_target_event')->isEmpty()) {
-      $event = $order_item->get('field_target_event')->entity;
-      if ($event instanceof FieldableEntityInterface) {
-        return $event;
-      }
-    }
-
-    $purchased_entity = $order_item->getPurchasedEntity();
-    if ($purchased_entity instanceof FieldableEntityInterface
-      && $purchased_entity->hasField('field_event')
-      && !$purchased_entity->get('field_event')->isEmpty()
-      && $purchased_entity->get('field_event')->entity instanceof FieldableEntityInterface) {
-      return $purchased_entity->get('field_event')->entity;
-    }
-
-    if ($purchased_entity !== NULL && method_exists($purchased_entity, 'getProduct')) {
-      $product = $purchased_entity->getProduct();
-      if ($product instanceof FieldableEntityInterface
-        && $product->hasField('field_event')
-        && !$product->get('field_event')->isEmpty()
-        && $product->get('field_event')->entity instanceof FieldableEntityInterface) {
-        return $product->get('field_event')->entity;
-      }
-    }
-
-    return NULL;
-  }
-
-  /**
-   * Merges question templates while preserving event-before-tier order.
-   *
-   * @param \Drupal\paragraphs\ParagraphInterface[] $event_templates
-   *   Event-level question templates.
-   * @param \Drupal\paragraphs\ParagraphInterface[] $tier_templates
-   *   Ticket-tier question templates.
-   *
-   * @return \Drupal\paragraphs\ParagraphInterface[]
-   *   Merged question templates.
-   */
-  private function mergeQuestionTemplates(array $event_templates, array $tier_templates): array {
-    $merged = [];
-    $seen = [];
-
-    foreach ([$event_templates, $tier_templates] as $batch) {
-      foreach ($batch as $template) {
-        if (!$template instanceof ParagraphInterface) {
-          continue;
-        }
-        $key = $this->questionTemplateDedupeKey($template);
-        if (isset($seen[$key])) {
-          continue;
-        }
-        $seen[$key] = TRUE;
-        $merged[] = $template;
-      }
-    }
-
-    return $merged;
-  }
-
-  /**
-   * Returns a stable key for attendee question template de-duplication.
-   */
-  private function questionTemplateDedupeKey(ParagraphInterface $paragraph): string {
-    if ($paragraph->hasField('field_question_machine_name') && !$paragraph->get('field_question_machine_name')->isEmpty()) {
-      $machine_name = trim((string) ($paragraph->get('field_question_machine_name')->value ?? ''));
-      if ($machine_name !== '') {
-        return 'machine:' . mb_strtolower($machine_name);
-      }
-    }
-    if ($paragraph->hasField('field_question_label') && !$paragraph->get('field_question_label')->isEmpty()) {
-      $label = trim((string) ($paragraph->get('field_question_label')->value ?? ''));
-      if ($label !== '') {
-        return 'label:' . mb_strtolower($label);
-      }
-    }
-    return $paragraph->id() !== NULL ? 'id:' . (string) $paragraph->id() : 'tmp:' . spl_object_id($paragraph);
+    return $this->checkoutAttendeeSchema->collectUniqueQuestionTemplatesForOrder($order);
   }
 
   /**
@@ -373,47 +235,6 @@ final class FastCheckoutEligibility {
   }
 
   /**
-   * Determines whether an order item should collect ticket holders.
-   */
-  private function shouldCollectTicketHolders(OrderItemInterface $order_item): bool {
-    if (!$order_item->hasField('field_ticket_holder')) {
-      return FALSE;
-    }
-
-    return !$this->isProSubscriptionOrderItem($order_item);
-  }
-
-  /**
-   * Detects Pro subscription line items that should not be treated as tickets.
-   */
-  private function isProSubscriptionOrderItem(OrderItemInterface $order_item): bool {
-    $purchased_entity = $order_item->getPurchasedEntity();
-    if ($purchased_entity === NULL) {
-      return FALSE;
-    }
-
-    if (method_exists($purchased_entity, 'bundle') && $purchased_entity->bundle() === 'mel_pro_subscription_variation') {
-      return TRUE;
-    }
-
-    if (method_exists($purchased_entity, 'getSku')) {
-      $sku = mb_strtolower(trim((string) $purchased_entity->getSku()));
-      if ($sku !== '' && str_starts_with($sku, 'mel-pro')) {
-        return TRUE;
-      }
-    }
-
-    if (method_exists($purchased_entity, 'getProduct')) {
-      $product = $purchased_entity->getProduct();
-      if ($product !== NULL && method_exists($product, 'bundle') && $product->bundle() === 'mel_pro_subscription_product') {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
-  }
-
-  /**
    * Saves buyer details to the order billing profile.
    */
   private function saveBillingProfile(OrderInterface $order, string $first_name, string $last_name): void {
@@ -441,11 +262,11 @@ final class FastCheckoutEligibility {
    */
   private function saveTicketHolderParagraphs(OrderInterface $order, string $name, string $first_name, string $last_name, string $email): void {
     foreach ($order->getItems() as $order_item) {
-      if (!$this->shouldCollectTicketHolders($order_item)) {
+      if (!$this->checkoutAttendeeSchema->shouldCollectTicketHolders($order_item)) {
         continue;
       }
 
-      $templates = $this->getQuestionTemplatesForOrderItem($order_item);
+      $templates = $this->checkoutAttendeeSchema->getMergedQuestionTemplatesForOrderItem($order_item);
       $holders = [];
       $quantity = (int) $order_item->getQuantity();
       for ($delta = 0; $delta < $quantity; $delta++) {

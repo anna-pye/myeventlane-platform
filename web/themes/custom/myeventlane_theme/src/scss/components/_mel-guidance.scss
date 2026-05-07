@@ -1,0 +1,11 @@
+// ==========================================================================
+// MEL guidance lane (shared intelligence + workflow hints)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-guidance-stack {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(3);
+}

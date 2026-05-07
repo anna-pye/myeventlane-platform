@@ -1,39 +1,11 @@
 {#
 /**
  * @file
- * Theme override for checkout order summary (when not replaced by a view).
+ * Checkout order summary — canonical build from MelCheckoutSummaryPresenter (PHP).
  *
- * Scoped table + totals for sidebar/main consistency with MEL commerce styles.
- *
- * Available variables:
- * - order_entity, checkout_step, totals, rendered_totals, attributes
+ * @see myeventlane_theme_preprocess_commerce_checkout_order_summary()
  */
 #}
-<div{{ attributes.addClass('checkout-order-summary', 'mel-checkout-order-summary') }}>
-  <h2 class="mel-checkout-order-summary__heading visually-hidden">{{ 'Order summary'|t }}</h2>
-  {% block order_items %}
-    <div class="mel-checkout-order-summary__items">
-      <table class="mel-checkout-order-summary__table">
-        <caption class="visually-hidden">{{ 'Tickets and quantities'|t }}</caption>
-        <tbody>
-          {% for order_item in order_entity.getItems %}
-            <tr>
-              <td class="mel-checkout-order-summary__qty">{{ order_item.getQuantity|number_format }}&nbsp;x</td>
-              {% if order_item.hasPurchasedEntity %}
-                <td class="mel-checkout-order-summary__label">{{ order_item.getPurchasedEntity|commerce_entity_render('summary') }}</td>
-              {% else %}
-                <td class="mel-checkout-order-summary__label">{{- order_item.label -}}</td>
-              {% endif %}
-              <td class="mel-checkout-order-summary__price">{{- order_item.getTotalPrice|commerce_price_format -}}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endblock %}
-  {% block totals %}
-    <div class="mel-checkout-order-summary__totals">
-      {{ rendered_totals }}
-    </div>
-  {% endblock %}
+<div{{ attributes.addClass('checkout-order-summary', 'mel-checkout-order-summary', 'mel-checkout-order-summary--presented') }}>
+  {{ mel_checkout_order_summary_build }}
 </div>

@@ -1,0 +1,13 @@
+// ==========================================================================
+// MELStateSystem — shell hooks (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-state-live-region {
+  margin-top: spacing.mel-space(2);
+}
+
+.mel-state-live-region--minimal {
+  margin-top: spacing.mel-space(1);
+}

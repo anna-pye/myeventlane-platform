@@ -1,0 +1,14 @@
+{#
+/**
+ * @file
+ * Recoverable failure — caller supplies retry control (link/button), not raw JS POST.
+ */
+#}
+<div{{ attributes }}>
+  {% if message %}
+    <span class="mel-async-state__message">{{ message }}</span>
+  {% endif %}
+  {% if retry_url %}
+    <a href="{{ retry_url }}" class="mel-async-state__retry">{{ 'Try again'|t }}</a>
+  {% endif %}
+</div>

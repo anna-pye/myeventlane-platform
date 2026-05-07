@@ -1,0 +1,26 @@
+// ==========================================================================
+// MEL lifecycle chips / labels (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+@use '../tokens/radii';
+
+.mel-lifecycle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: spacing.mel-space(1);
+  padding: spacing.mel-space(1) spacing.mel-space(2);
+  border-radius: radii.$mel-radius-pill;
+  border: 1px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface;
+  color: colors.$mel-color-text;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.mel-lifecycle-chip[data-mel-severity='critical'],
+.mel-lifecycle-chip[data-mel-severity='high'] {
+  border-color: colors.$mel-color-warning;
+  background: colors.$mel-color-warning-bg;
+}

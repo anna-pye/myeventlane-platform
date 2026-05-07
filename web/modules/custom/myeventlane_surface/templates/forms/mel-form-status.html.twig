@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Inline status chip — SUCCESS | WARNING | ERROR | INFO | LOADING | DISABLED.
+ *
+ * Variable state maps to mel-state-* classes (see _mel-form-states.scss).
+ */
+#}
+{% set status_attributes = create_attribute(attributes|default({})) %}
+<div{{ status_attributes.addClass('mel-form-status', 'mel-form-status--' ~ state|default('info')) }}>
+  {{ content }}
+</div>

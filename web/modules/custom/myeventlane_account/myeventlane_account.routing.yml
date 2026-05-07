@@ -24,15 +24,31 @@ myeventlane_account.dashboard:
   options:
     _admin_route: FALSE
 
-myeventlane_account.settings:
+# Bare path redirects to /my-settings/{current_user} for bookmarks and login destinations.
+myeventlane_account.settings_redirect:
   path: '/my-settings'
+  defaults:
+    _controller: '\Drupal\myeventlane_account\Controller\MyAccountController::settingsRedirect'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+# Canonical profile form — includes {user} so contrib (e.g. social_auth) can read route parameters.
+myeventlane_account.settings:
+  path: '/my-settings/{user}'
   defaults:
     _controller: '\Drupal\myeventlane_account\Controller\MyAccountController::settings'
     _title: 'Profile & Settings'
   requirements:
     _user_is_logged_in: 'TRUE'
+    _custom_access: '\Drupal\myeventlane_account\Access\MySettingsRouteAccess::access'
+    user: \d+
   options:
     _admin_route: FALSE
+    parameters:
+      user:
+        type: entity:user
 
 myeventlane_account.past_events:
   path: '/my-past-events'

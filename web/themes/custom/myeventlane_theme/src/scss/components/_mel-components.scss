@@ -1,0 +1,40 @@
+// ==========================================================================
+// MEL Component System — surface-aware layout helpers (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+// Dashboard section stack — CustomerShell vs VendorShell density via data attribute.
+.mel-dashboard-section {
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-dashboard-section--comfortable {
+  margin-bottom: spacing.mel-space(8);
+}
+
+.mel-dashboard-section--dense {
+  margin-bottom: spacing.mel-space(5);
+}
+
+.mel-component:focus-visible {
+  outline: 2px solid var(--mel-color-focus, currentColor);
+  outline-offset: 2px;
+}
+
+.mel-onboarding-step,
+.mel-onboarding-progress,
+.mel-onboarding-checklist,
+.mel-onboarding-guided-next {
+  width: 100%;
+  min-width: 0;
+}
+
+[data-mel-surface='vendor'] .mel-onboarding-step {
+  padding-block: spacing.mel-space(2);
+}
+
+[data-mel-surface='customer'] .mel-onboarding-step {
+  padding-block: spacing.mel-space(4);
+}

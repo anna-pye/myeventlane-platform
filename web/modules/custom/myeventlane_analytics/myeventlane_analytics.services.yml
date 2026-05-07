@@ -38,6 +38,7 @@ services:
       - '@datetime.time'
       - '@date.formatter'
       - '@string_translation'
+      - '@myeventlane_surface.state_readiness_helper'
       - '@logger.factory'
 
   # Trending score service.

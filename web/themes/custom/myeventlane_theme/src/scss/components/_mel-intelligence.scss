@@ -1,0 +1,81 @@
+// ==========================================================================
+// MEL intelligence system — region shell (orchestration metadata only)
+// ==========================================================================
+
+@use 'sass:color';
+@use '../tokens/colors' as mel_colors;
+@use '../tokens/spacing';
+@use '../tokens/typography' as typography;
+@use '../tokens/radii';
+
+.mel-intelligence-panel {
+  margin: spacing.mel-space(4) 0;
+}
+
+/// Public commerce paths — transactional trust, not browsing “ideas”.
+.mel-intelligence-panel--public-checkout-story {
+  .mel-intelligence-panel__headline {
+    font-size: typography.mel-font-size('lg');
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .mel-intelligence-panel__item {
+    border: 1px solid mel_colors.$mel-color-border-strong;
+    background: color.mix(mel_colors.$mel-color-surface, mel_colors.$mel-color-grey-light, 55%);
+    box-shadow: 0 1px 2px rgb(36 48 58 / 6%);
+  }
+}
+
+.mel-intelligence-panel__items {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(3);
+}
+
+.mel-intelligence-panel__item {
+  padding: spacing.mel-space(3);
+  border-radius: radii.$mel-radius-sm;
+}
+
+.mel-intelligence-panel__headline {
+  margin: 0 0 spacing.mel-space(2);
+}
+
+.mel-intelligence-panel__action {
+  margin: 0 0 spacing.mel-space(2);
+}
+
+.mel-intelligence-panel__why {
+  margin-top: spacing.mel-space(2);
+
+  summary {
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+}
+
+.mel-intelligence-panel__signals {
+  font-size: typography.mel-font-size('sm');
+}
+
+.mel-intelligence-panel__dismiss-hint {
+  font-size: typography.mel-font-size('sm');
+  margin-top: spacing.mel-space(2);
+}
+
+.mel-intelligence-panel__insights {
+  margin-top: spacing.mel-space(4);
+}
+
+.mel-intelligence-panel__insight {
+  margin: 0 0 spacing.mel-space(2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-intelligence-panel__item {
+    scroll-behavior: auto;
+  }
+}

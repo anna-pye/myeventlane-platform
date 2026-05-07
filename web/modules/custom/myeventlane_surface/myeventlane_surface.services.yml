@@ -1,0 +1,502 @@
+services:
+  myeventlane_surface.manager:
+    class: Drupal\myeventlane_surface\SurfaceManager
+    arguments:
+      - '@myeventlane_surface.registry'
+
+  myeventlane_surface.registry:
+    class: Drupal\myeventlane_surface\SurfaceRegistry
+
+  myeventlane_surface.resolver:
+    class: Drupal\myeventlane_surface\SurfaceResolver
+    arguments:
+      - '@current_route_match'
+      - '@request_stack'
+
+  myeventlane_surface.insight_helper:
+    class: Drupal\myeventlane_surface\MelInsightHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.intelligence_registry:
+    class: Drupal\myeventlane_surface\MelIntelligenceRegistry
+
+  myeventlane_surface.recommendation_resolver:
+    class: Drupal\myeventlane_surface\MelRecommendationResolver
+
+  myeventlane_surface.priority_resolver:
+    class: Drupal\myeventlane_surface\MelPriorityResolver
+
+  myeventlane_surface.adaptive_guidance_helper:
+    class: Drupal\myeventlane_surface\MelAdaptiveGuidanceHelper
+
+  myeventlane_surface.engagement_orchestrator:
+    class: Drupal\myeventlane_surface\MelEngagementOrchestrator
+
+  myeventlane_surface.intelligence_accessibility_helper:
+    class: Drupal\myeventlane_surface\MelIntelligenceAccessibilityHelper
+
+  myeventlane_surface.intelligence_manager:
+    class: Drupal\myeventlane_surface\MelIntelligenceManager
+    arguments:
+      - '@myeventlane_surface.intelligence_registry'
+      - '@myeventlane_surface.workflow_resolver'
+      - '@myeventlane_surface.state_resolver'
+      - '@myeventlane_surface.state_registry'
+      - '@myeventlane_surface.experience_manager'
+      - '@myeventlane_surface.recommendation_resolver'
+      - '@myeventlane_surface.priority_resolver'
+      - '@myeventlane_surface.adaptive_guidance_helper'
+      - '@myeventlane_surface.engagement_orchestrator'
+      - '@myeventlane_surface.insight_helper'
+      - '@myeventlane_surface.intelligence_accessibility_helper'
+      - '@myeventlane_surface.operational_policy_manager'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_surface'
+      - '@myeventlane_surface.state_readiness_helper'
+
+  myeventlane_surface.operational_policy_registry:
+    class: Drupal\myeventlane_surface\MelOperationalPolicyRegistry
+
+  myeventlane_surface.policy_resolver:
+    class: Drupal\myeventlane_surface\MelPolicyResolver
+    arguments:
+      - '@myeventlane_surface.operational_policy_registry'
+
+  myeventlane_surface.policy_trust_threshold_helper:
+    class: Drupal\myeventlane_surface\MelTrustThresholdHelper
+
+  myeventlane_surface.policy_escalation_helper:
+    class: Drupal\myeventlane_surface\MelEscalationPolicyHelper
+
+  myeventlane_surface.policy_suppression_helper:
+    class: Drupal\myeventlane_surface\MelSuppressionPolicyHelper
+    arguments:
+      - '@myeventlane_surface.operational_policy_registry'
+
+  myeventlane_surface.policy_automation_boundary_helper:
+    class: Drupal\myeventlane_surface\MelAutomationBoundaryHelper
+
+  myeventlane_surface.policy_communication_helper:
+    class: Drupal\myeventlane_surface\MelCommunicationPolicyHelper
+
+  myeventlane_surface.policy_accessibility_helper:
+    class: Drupal\myeventlane_surface\MelPolicyAccessibilityHelper
+
+  myeventlane_surface.operational_policy_manager:
+    class: Drupal\myeventlane_surface\MelOperationalPolicyManager
+    arguments:
+      - '@myeventlane_surface.operational_policy_registry'
+      - '@myeventlane_surface.policy_resolver'
+      - '@myeventlane_surface.state_registry'
+      - '@myeventlane_surface.state_resolver'
+      - '@myeventlane_surface.policy_trust_threshold_helper'
+      - '@myeventlane_surface.policy_escalation_helper'
+      - '@myeventlane_surface.policy_suppression_helper'
+      - '@myeventlane_surface.policy_automation_boundary_helper'
+      - '@myeventlane_surface.policy_communication_helper'
+      - '@myeventlane_surface.policy_accessibility_helper'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_surface'
+      - '@string_translation'
+
+  myeventlane_surface.observability_registry:
+    class: Drupal\myeventlane_surface\MelObservabilityRegistry
+
+  myeventlane_surface.trace_resolver:
+    class: Drupal\myeventlane_surface\MelTraceResolver
+    arguments:
+      - '@myeventlane_surface.observability_registry'
+
+  myeventlane_surface.observability_suppression_trace_helper:
+    class: Drupal\myeventlane_surface\MelSuppressionTraceHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.observability_state_trace_helper:
+    class: Drupal\myeventlane_surface\MelStateTraceHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.observability_experience_trace_helper:
+    class: Drupal\myeventlane_surface\MelExperienceTraceHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.observability_intelligence_trace_helper:
+    class: Drupal\myeventlane_surface\MelIntelligenceTraceHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.observability_policy_trace_helper:
+    class: Drupal\myeventlane_surface\MelPolicyTraceHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.telemetry_boundary_helper:
+    class: Drupal\myeventlane_surface\MelTelemetryBoundaryHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.observability_accessibility_helper:
+    class: Drupal\myeventlane_surface\MelObservabilityAccessibilityHelper
+
+  myeventlane_surface.observability_diagnostics_access:
+    class: Drupal\myeventlane_surface\MelObservabilityDiagnosticsAccess
+
+  myeventlane_surface.governance_debug_access:
+    class: Drupal\myeventlane_surface\MelGovernanceDebugAccess
+
+  myeventlane_surface.governance_payload_inspector:
+    class: Drupal\myeventlane_surface\MelGovernancePayloadInspector
+
+  myeventlane_surface.governance_presentation_sanitizer:
+    class: Drupal\myeventlane_surface\MelGovernancePresentationSanitizer
+
+  myeventlane_surface.observability_manager:
+    class: Drupal\myeventlane_surface\MelObservabilityManager
+    arguments:
+      - '@myeventlane_surface.observability_registry'
+      - '@myeventlane_surface.trace_resolver'
+      - '@myeventlane_surface.observability_suppression_trace_helper'
+      - '@myeventlane_surface.observability_state_trace_helper'
+      - '@myeventlane_surface.observability_experience_trace_helper'
+      - '@myeventlane_surface.observability_intelligence_trace_helper'
+      - '@myeventlane_surface.observability_policy_trace_helper'
+      - '@myeventlane_surface.telemetry_boundary_helper'
+      - '@myeventlane_surface.observability_accessibility_helper'
+      - '@myeventlane_surface.workflow_resolver'
+      - '@myeventlane_surface.state_resolver'
+      - '@myeventlane_surface.state_registry'
+      - '@myeventlane_surface.observability_diagnostics_access'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_surface'
+      - '@string_translation'
+
+  myeventlane_surface.negotiator:
+    class: Drupal\myeventlane_surface\SurfaceNegotiator
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.manager'
+      - '@myeventlane_surface.form_manager'
+      - '@myeventlane_surface.component_manager'
+      - '@myeventlane_surface.navigation_manager'
+      - '@myeventlane_surface.workflow_manager'
+      - '@myeventlane_surface.data_presentation_manager'
+      - '@myeventlane_surface.interaction_manager'
+      - '@myeventlane_surface.state_manager'
+      - '@myeventlane_surface.experience_manager'
+      - '@myeventlane_surface.intelligence_manager'
+      - '@myeventlane_surface.operational_policy_manager'
+      - '@myeventlane_surface.observability_manager'
+      - '@current_user'
+      - '@myeventlane_surface.observability_diagnostics_access'
+      - '@current_route_match'
+      - '@myeventlane_surface.governance_debug_access'
+      - '@myeventlane_surface.governance_payload_inspector'
+      - '@myeventlane_surface.governance_presentation_sanitizer'
+      - '@myeventlane_surface.access_helper'
+      - '@myeventlane_surface.state_readiness_helper'
+
+  myeventlane_surface.workflow_registry:
+    class: Drupal\myeventlane_surface\MelWorkflowRegistry
+
+  myeventlane_surface.workflow_resolver:
+    class: Drupal\myeventlane_surface\MelWorkflowResolver
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@current_route_match'
+      - '@request_stack'
+      - '@current_user'
+      - '@myeventlane_surface.access_helper'
+      - '@module_handler'
+      - '@myeventlane_onboarding.manager'
+      - '@path.matcher'
+
+  myeventlane_surface.workflow_progress_helper:
+    class: Drupal\myeventlane_surface\MelWorkflowProgressHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.workflow_cta_helper:
+    class: Drupal\myeventlane_surface\MelWorkflowCTAHelper
+    arguments:
+      - '@myeventlane_onboarding.manager'
+      - '@logger.channel.myeventlane_surface'
+      - '@string_translation'
+      - '@myeventlane_surface.state_manager'
+
+  myeventlane_surface.workflow_accessibility_helper:
+    class: Drupal\myeventlane_surface\MelWorkflowAccessibilityHelper
+
+  myeventlane_surface.workflow_manager:
+    class: Drupal\myeventlane_surface\MelWorkflowManager
+    arguments:
+      - '@myeventlane_surface.workflow_registry'
+      - '@myeventlane_surface.workflow_resolver'
+      - '@myeventlane_surface.workflow_progress_helper'
+      - '@myeventlane_surface.workflow_cta_helper'
+      - '@myeventlane_surface.workflow_accessibility_helper'
+      - '@logger.channel.myeventlane_surface'
+      - '@string_translation'
+
+  myeventlane_surface.customer_continuity_presenter:
+    class: Drupal\myeventlane_surface\MelCustomerContinuityPresenter
+    arguments:
+      - '@myeventlane_surface.state_readiness_helper'
+
+  myeventlane_surface.vendor_dashboard_action_queue_governance:
+    class: Drupal\myeventlane_surface\MelVendorDashboardActionQueueGovernance
+    arguments:
+      - '@myeventlane_surface.workflow_resolver'
+      - '@myeventlane_surface.workflow_registry'
+      - '@myeventlane_surface.operational_policy_manager'
+      - '@myeventlane_surface.workflow_manager'
+      - '@logger.channel.myeventlane_surface'
+
+  myeventlane_surface.access_helper:
+    class: Drupal\myeventlane_surface\SurfaceAccessHelper
+    arguments:
+      - '@current_route_match'
+      - '@request_stack'
+
+  myeventlane_surface.block_governor:
+    class: Drupal\myeventlane_surface\Block\SurfaceBlockGovernor
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.access_helper'
+
+  myeventlane_surface.route_subscriber:
+    class: Drupal\myeventlane_surface\EventSubscriber\SurfaceRouteSubscriber
+    arguments:
+      - '@current_route_match'
+      - '@current_user'
+      - '@logger.channel.myeventlane_surface'
+    tags:
+      - { name: event_subscriber }
+
+  logger.channel.myeventlane_surface:
+    parent: logger.channel_base
+    arguments: ['myeventlane_surface']
+
+  myeventlane_surface.form_classification_resolver:
+    class: Drupal\myeventlane_surface\MelFormClassificationResolver
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@current_route_match'
+      - '@request_stack'
+
+  myeventlane_surface.form_manager:
+    class: Drupal\myeventlane_surface\MelFormManager
+    arguments:
+      - '@myeventlane_surface.form_classification_resolver'
+      - '@myeventlane_surface.resolver'
+      - '@theme.manager'
+
+  myeventlane_surface.form_helper:
+    class: Drupal\myeventlane_surface\MelFormHelper
+
+  myeventlane_surface.form_accessibility:
+    class: Drupal\myeventlane_surface\MelFormAccessibilityHelper
+
+  myeventlane_surface.form_preprocess:
+    class: Drupal\myeventlane_surface\MelFormPreprocess
+    arguments:
+      - '@myeventlane_surface.form_manager'
+      - '@myeventlane_surface.form_helper'
+      - '@myeventlane_surface.form_accessibility'
+
+  myeventlane_surface.component_registry:
+    class: Drupal\myeventlane_surface\MelComponentRegistry
+
+  myeventlane_surface.component_manager:
+    class: Drupal\myeventlane_surface\MelComponentManager
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.component_registry'
+
+  myeventlane_surface.component_accessibility:
+    class: Drupal\myeventlane_surface\MelComponentAccessibilityHelper
+
+  myeventlane_surface.navigation_manager:
+    class: Drupal\myeventlane_surface\MelNavigationManager
+    arguments:
+      - '@myeventlane_surface.resolver'
+
+  myeventlane_surface.component_preprocess:
+    class: Drupal\myeventlane_surface\MelComponentPreprocess
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.component_manager'
+      - '@myeventlane_surface.component_accessibility'
+
+  myeventlane_surface.data_presentation_registry:
+    class: Drupal\myeventlane_surface\MelDataPresentationRegistry
+
+  myeventlane_surface.data_table_helper:
+    class: Drupal\myeventlane_surface\MelDataTableHelper
+
+  myeventlane_surface.metric_helper:
+    class: Drupal\myeventlane_surface\MelMetricHelper
+
+  myeventlane_surface.analytics_helper:
+    class: Drupal\myeventlane_surface\MelAnalyticsHelper
+
+  myeventlane_surface.data_accessibility:
+    class: Drupal\myeventlane_surface\MelDataAccessibilityHelper
+
+  myeventlane_surface.data_presentation_manager:
+    class: Drupal\myeventlane_surface\MelDataPresentationManager
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.data_presentation_registry'
+      - '@myeventlane_surface.component_manager'
+      - '@myeventlane_surface.data_table_helper'
+      - '@myeventlane_surface.metric_helper'
+      - '@myeventlane_surface.analytics_helper'
+
+  myeventlane_surface.data_presentation_preprocess:
+    class: Drupal\myeventlane_surface\MelDataPresentationPreprocess
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.data_presentation_manager'
+      - '@myeventlane_surface.data_table_helper'
+      - '@myeventlane_surface.metric_helper'
+      - '@myeventlane_surface.analytics_helper'
+      - '@myeventlane_surface.data_accessibility'
+
+  myeventlane_surface.interaction_registry:
+    class: Drupal\myeventlane_surface\MelInteractionRegistry
+
+  myeventlane_surface.focus_manager:
+    class: Drupal\myeventlane_surface\MelFocusManager
+
+  myeventlane_surface.interaction_accessibility:
+    class: Drupal\myeventlane_surface\MelInteractionAccessibilityHelper
+
+  myeventlane_surface.modal_helper:
+    class: Drupal\myeventlane_surface\MelModalHelper
+    arguments:
+      - '@myeventlane_surface.interaction_registry'
+      - '@myeventlane_surface.interaction_accessibility'
+
+  myeventlane_surface.notification_helper:
+    class: Drupal\myeventlane_surface\MelNotificationHelper
+    arguments:
+      - '@myeventlane_surface.interaction_accessibility'
+
+  myeventlane_surface.async_state_helper:
+    class: Drupal\myeventlane_surface\MelAsyncStateHelper
+    arguments:
+      - '@myeventlane_surface.interaction_accessibility'
+
+  myeventlane_surface.disclosure_helper:
+    class: Drupal\myeventlane_surface\MelDisclosureHelper
+    arguments:
+      - '@myeventlane_surface.interaction_registry'
+      - '@myeventlane_surface.interaction_accessibility'
+
+  myeventlane_surface.interaction_manager:
+    class: Drupal\myeventlane_surface\MelInteractionManager
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@current_route_match'
+      - '@request_stack'
+      - '@myeventlane_surface.interaction_registry'
+      - '@myeventlane_surface.focus_manager'
+
+  myeventlane_surface.interaction_preprocess:
+    class: Drupal\myeventlane_surface\MelInteractionPreprocess
+    arguments:
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.interaction_manager'
+      - '@myeventlane_surface.modal_helper'
+      - '@myeventlane_surface.notification_helper'
+      - '@myeventlane_surface.async_state_helper'
+      - '@myeventlane_surface.disclosure_helper'
+      - '@myeventlane_surface.interaction_accessibility'
+
+  myeventlane_surface.state_registry:
+    class: Drupal\myeventlane_surface\MelStateRegistry
+
+  myeventlane_surface.state_resolver:
+    class: Drupal\myeventlane_surface\MelStateResolver
+    arguments:
+      - '@myeventlane_surface.workflow_resolver'
+      - '@module_handler'
+
+  myeventlane_surface.state_readiness_helper:
+    class: Drupal\myeventlane_surface\MelReadinessHelper
+    arguments:
+      - '@string_translation'
+
+  myeventlane_surface.governed_operational_templates:
+    class: Drupal\myeventlane_surface\GovernedOperationalTemplates
+    arguments:
+      - '@myeventlane_surface.state_readiness_helper'
+
+  myeventlane_surface.state_lifecycle_helper:
+    class: Drupal\myeventlane_surface\MelLifecycleHelper
+
+  myeventlane_surface.state_trust_helper:
+    class: Drupal\myeventlane_surface\MelTrustStateHelper
+
+  myeventlane_surface.state_eligibility_helper:
+    class: Drupal\myeventlane_surface\MelEligibilityHelper
+
+  myeventlane_surface.state_accessibility_helper:
+    class: Drupal\myeventlane_surface\MelStateAccessibilityHelper
+
+  myeventlane_surface.state_manager:
+    class: Drupal\myeventlane_surface\MelStateManager
+    arguments:
+      - '@myeventlane_surface.state_registry'
+      - '@myeventlane_surface.state_resolver'
+      - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_surface.state_lifecycle_helper'
+      - '@myeventlane_surface.state_trust_helper'
+      - '@myeventlane_surface.state_eligibility_helper'
+      - '@myeventlane_surface.state_accessibility_helper'
+      - '@logger.channel.myeventlane_surface'
+      - '@string_translation'
+
+  myeventlane_surface.experience_registry:
+    class: Drupal\myeventlane_surface\MelExperienceRegistry
+
+  myeventlane_surface.journey_resolver:
+    class: Drupal\myeventlane_surface\MelJourneyResolver
+
+  myeventlane_surface.resume_state_helper:
+    class: Drupal\myeventlane_surface\MelResumeStateHelper
+
+  myeventlane_surface.retention_helper:
+    class: Drupal\myeventlane_surface\MelRetentionHelper
+
+  myeventlane_surface.continuation_helper:
+    class: Drupal\myeventlane_surface\MelContinuationHelper
+
+  myeventlane_surface.escalation_continuity_helper:
+    class: Drupal\myeventlane_surface\MelEscalationContinuityHelper
+
+  myeventlane_surface.experience_accessibility_helper:
+    class: Drupal\myeventlane_surface\MelExperienceAccessibilityHelper
+
+  myeventlane_surface.experience_manager:
+    class: Drupal\myeventlane_surface\MelExperienceManager
+    arguments:
+      - '@myeventlane_surface.experience_registry'
+      - '@myeventlane_surface.workflow_resolver'
+      - '@myeventlane_surface.workflow_registry'
+      - '@myeventlane_surface.state_resolver'
+      - '@myeventlane_surface.journey_resolver'
+      - '@myeventlane_surface.resume_state_helper'
+      - '@myeventlane_surface.retention_helper'
+      - '@myeventlane_surface.continuation_helper'
+      - '@myeventlane_surface.escalation_continuity_helper'
+      - '@myeventlane_surface.experience_accessibility_helper'
+      - '@myeventlane_surface.state_manager'
+      - '@myeventlane_surface.interaction_manager'
+      - '@module_handler'
+      - '@request_stack'
+      - '@logger.channel.myeventlane_surface'
+      - '@string_translation'

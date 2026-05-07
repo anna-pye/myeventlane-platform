@@ -1,0 +1,18 @@
+// ==========================================================================
+// MEL export panels & notices
+// ==========================================================================
+
+@use '../tokens/spacing' as spacing;
+@use '../tokens/colors';
+@use '../tokens/radii';
+
+.mel-export-panel {
+  padding: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-md;
+  border: 1px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface-alt;
+}
+
+.mel-export-notice {
+  margin-block-start: spacing.mel-space(3);
+}

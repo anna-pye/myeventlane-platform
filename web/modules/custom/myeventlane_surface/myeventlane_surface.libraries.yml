@@ -1,0 +1,40 @@
+interactions:
+  js:
+    js/mel-interactions.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+experience:
+  js:
+    js/mel-experience.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+intelligence:
+  js:
+    js/mel-intelligence.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+operational_policy:
+  js:
+    js/mel-policy.js: {}
+  dependencies:
+    - core/drupal
+
+observability:
+  js:
+    js/mel-observability.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+governance_debug:
+  js:
+    js/mel-governance-debug.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

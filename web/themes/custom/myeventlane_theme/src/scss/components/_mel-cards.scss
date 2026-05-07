@@ -1,0 +1,35 @@
+// ==========================================================================
+// MEL governed cards — modifiers compose with existing .mel-card partial
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+
+.mel-card.mel-card--governed {
+  scroll-margin-top: spacing.mel-space(2);
+}
+
+[data-mel-density='dense'] .mel-card--governed.mel-card--compact {
+  .mel-card-body,
+  .mel-card-header,
+  .mel-card-footer {
+    padding-block: spacing.mel-space(4);
+    padding-inline: spacing.mel-space(4);
+  }
+}
+
+[data-mel-density='comfortable'] .mel-card--governed {
+  .mel-card__meta {
+    color: colors.$mel-color-text-muted;
+    font-size: var(--mel-font-size-sm, 0.875rem);
+    line-height: var(--mel-leading-relaxed, 1.6);
+  }
+}
+
+.mel-card-section__title {
+  margin: 0 0 spacing.mel-space(3);
+}
+
+.mel-card-section + .mel-card-section {
+  margin-top: spacing.mel-space(5);
+}

@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL escalation policy shell hints (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+body[data-mel-policy-tone-escalation-tone='true'] .mel-intelligence-panel {
+  margin-block-start: spacing.mel-space(1);
+}

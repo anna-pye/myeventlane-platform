@@ -12,6 +12,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
+use Drupal\myeventlane_event_attendees\Service\MelAttendeeExportBuilder;
 use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -30,6 +31,7 @@ final class VendorAttendeeController extends ControllerBase {
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly VendorAttendeePresentationService $vendorPresentation,
+    private readonly MelAttendeeExportBuilder $exportBuilder,
   ) {}
 
   /**
@@ -40,6 +42,7 @@ final class VendorAttendeeController extends ControllerBase {
       $container->get('myeventlane_event_attendees.manager'),
       $container->get('date.formatter'),
       $container->get('myeventlane_event_attendees.vendor_presentation'),
+      $container->get('myeventlane_event_attendees.attendee_export_builder'),
     );
   }
 
@@ -322,11 +325,10 @@ final class VendorAttendeeController extends ControllerBase {
       ];
     }
 
-    // Empty state.
+    // Empty state — governed via mel_empty_state through
+    // GovernedOperationalTemplates if available, with a sane fallback.
     if (empty($attendees)) {
-      $build['empty'] = [
-        '#markup' => '<p>' . $this->t('No attendees yet. Share your event to start collecting RSVPs or ticket sales.') . '</p>',
-      ];
+      $build['empty'] = $this->governedEmptyAttendees();
     }
 
     $build['#cache'] = [
@@ -335,6 +337,33 @@ final class VendorAttendeeController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * Builds the governed empty state for "no attendees yet" surfaces.
+   *
+   * Uses the optional governed_operational_templates service when available
+   * (myeventlane_surface), with a static markup fallback when the service is
+   * not registered (e.g. minimal install profiles).
+   *
+   * @return array<string, mixed>
+   */
+  private function governedEmptyAttendees(): array {
+    if (\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
+      try {
+        return \Drupal::service('myeventlane_surface.governed_operational_templates')
+          ->vendorAttendeeOperationsNoAttendeesYet();
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_event_attendees')->warning(
+          'Governed empty state failed: @msg.',
+          ['@msg' => $e->getMessage()]
+        );
+      }
+    }
+    return [
+      '#markup' => '<p>' . $this->t('No attendees yet. Share your event to start collecting RSVPs or ticket sales.') . '</p>',
+    ];
   }
 
   /**
@@ -349,80 +378,25 @@ final class VendorAttendeeController extends ControllerBase {
     $request = \Drupal::request();
     $obfuscateEmails = (bool) $request->query->get('obfuscate', FALSE);
 
-    $filename = sprintf('attendees-%s-%s.csv',
-      preg_replace('/[^a-z0-9]+/', '-', strtolower($node->label())),
-      date('Y-m-d')
-    );
+    $filename = $this->exportBuilder->buildFilename($node, 'attendees');
+    $rows = $this->exportBuilder->buildRowsForEvent($node, $obfuscateEmails);
 
-    $response = new StreamedResponse(function () use ($node, $obfuscateEmails) {
+    $entities = $this->attendanceManager->getAttendeesForEvent((int) $node->id());
+    $pairTotal = 0;
+    foreach ($entities as $entity) {
+      if ($entity instanceof EventAttendee) {
+        $pairTotal += count($this->vendorPresentation->normalizeCustomAnswers($entity));
+      }
+    }
+    $this->vendorPresentation->logVendorParityBatch('csv_export', (int) $node->id(), count($entities), $pairTotal);
+
+    $exportBuilder = $this->exportBuilder;
+    $response = new StreamedResponse(static function () use ($exportBuilder, $rows): void {
       $handle = fopen('php://output', 'w');
       if (!$handle) {
         return;
       }
-
-      $entities = $this->attendanceManager->getAttendeesForEvent((int) $node->id());
-      $pairTotal = 0;
-      foreach ($entities as $entity) {
-        if ($entity instanceof EventAttendee) {
-          $pairTotal += count($this->vendorPresentation->normalizeCustomAnswers($entity));
-        }
-      }
-      $this->vendorPresentation->logVendorParityBatch('csv_export', (int) $node->id(), count($entities), $pairTotal);
-
-      // Header row (aligned with vendor attendees list fields).
-      fputcsv($handle, [
-        'Name',
-        'Email',
-        'Phone',
-        'Source',
-        'Product variation',
-        'Ticket Code',
-        'Custom answers',
-        'Checked In',
-        'Checked In At',
-      ]);
-
-      foreach ($entities as $attendee) {
-        if (!$attendee instanceof EventAttendee) {
-          continue;
-        }
-        $row = $this->vendorPresentation->buildCsvExportRow($attendee);
-
-        $email = $row['email'];
-        if ($obfuscateEmails && $email) {
-          $parts = explode('@', $email);
-          if (count($parts) === 2) {
-            $email = substr($parts[0], 0, 2) . '***@' . $parts[1];
-          }
-        }
-
-        $checkedInAt = $row['checked_in_at'] ?? '';
-        if ($checkedInAt && $row['checked_in']) {
-          try {
-            $dt = new \DateTime($checkedInAt);
-            $checkedInAt = $dt->format('Y-m-d H:i:s');
-          }
-          catch (\Exception $e) {
-            $checkedInAt = '';
-          }
-        }
-        else {
-          $checkedInAt = '';
-        }
-
-        fputcsv($handle, [
-          $row['name'],
-          $email,
-          $row['phone'],
-          ucfirst((string) $row['source']),
-          $row['ticket_type'] ?? '',
-          $row['ticket_code'] ?? '',
-          $row['custom_answers'] ?? '',
-          $row['checked_in'] ? 'Yes' : 'No',
-          $checkedInAt,
-        ]);
-      }
-
+      $exportBuilder->streamCsv($handle, $rows);
       fclose($handle);
     });
 

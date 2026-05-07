@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL onboarding orchestration chrome (shell-level hints)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-my-account__workflow-primary {
+  margin-bottom: spacing.mel-space(4);
+}

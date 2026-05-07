@@ -1,0 +1,41 @@
+{#
+/**
+ * @file
+ * Canonical MEL card — compose slots via render arrays; surface modifiers from preprocess.
+ */
+#}
+<article{{ attributes }}>
+  {% if title %}
+    <header class="mel-card-header mel-card__header">
+      <{{ title_element }} class="mel-card-title mel-card__title">{{ title }}</{{ title_element }}>
+    </header>
+  {% endif %}
+  {% if status %}
+    <div class="mel-card-status mel-card__status" role="status">
+      {{ status }}
+    </div>
+  {% endif %}
+  {% if meta %}
+    <div class="mel-card-meta mel-card__meta">
+      {{ meta }}
+    </div>
+  {% endif %}
+  <div class="mel-card-body mel-card__body">
+    {% if empty %}
+      <div class="mel-card-empty mel-card__empty">
+        {{ empty }}
+      </div>
+    {% endif %}
+    {{ content }}
+  </div>
+  {% if actions %}
+    <div class="mel-card-actions mel-card__actions">
+      {{ actions }}
+    </div>
+  {% endif %}
+  {% if footer %}
+    <footer class="mel-card-footer mel-card__footer">
+      {{ footer }}
+    </footer>
+  {% endif %}
+</article>

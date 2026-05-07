@@ -12,10 +12,18 @@ services:
   myeventlane_checkout_flow.checkout_ux_attacher:
     class: Drupal\myeventlane_checkout_flow\Service\CheckoutUxAttacher
     arguments:
-      - '@myeventlane_checkout_flow.checkout_grouped_summary_builder'
+      - '@myeventlane_checkout_flow.checkout_summary_presenter'
       - '@current_route_match'
       - '@logger.channel.myeventlane_checkout_flow'
       - '@entity_type.manager'
+      - '@myeventlane_surface.state_readiness_helper'
+
+  myeventlane_checkout_flow.checkout_summary_presenter:
+    class: Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter
+    arguments:
+      - '@myeventlane_checkout_flow.checkout_grouped_summary_builder'
+      - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_surface.governed_operational_templates'
 
   myeventlane_checkout_flow.order_pricing_breakdown:
     class: Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder
@@ -24,6 +32,7 @@ services:
       - '@entity_type.manager'
       - '@config.factory'
       - '@myeventlane_commerce.order_item_classifier'
+      - '@myeventlane_surface.state_readiness_helper'
 
   myeventlane_checkout_flow.checkout_grouped_summary_builder:
     class: Drupal\myeventlane_checkout_flow\Service\CheckoutGroupedSummaryBuilder
@@ -34,6 +43,8 @@ services:
       - '@myeventlane_checkout_flow.order_pricing_breakdown'
       - '@myeventlane_event.booking_flow_resolver'
       - '@myeventlane_commerce.order_item_classifier'
+      - '@myeventlane_surface.state_readiness_helper'
+      - '@file_url_generator'
 
   myeventlane_checkout_flow.tax_invoice_presentation:
     class: Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder
@@ -51,7 +62,7 @@ services:
     class: Drupal\myeventlane_checkout_flow\Service\FastCheckoutEligibility
     arguments:
       - '@entity_type.manager'
-      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_checkout_paragraph.checkout_attendee_schema'
       - '@logger.channel.myeventlane_checkout_flow'
 
   myeventlane_checkout_flow.fast_checkout_access_check:
@@ -67,6 +78,11 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_checkout_flow']
 
+  myeventlane_checkout_flow.checkout_attendee_requirement_resolver:
+    class: Drupal\myeventlane_checkout_flow\Service\MelCheckoutAttendeeRequirementResolver
+    arguments:
+      - '@myeventlane_checkout_paragraph.checkout_attendee_schema'
+
   myeventlane_checkout_flow.checkout_rate_limit_subscriber:
     class: Drupal\myeventlane_checkout_flow\EventSubscriber\CheckoutRateLimitSubscriber
     arguments:
@@ -81,4 +97,31 @@ services:
     class: Drupal\myeventlane_checkout_flow\EventSubscriber\FastCheckoutRouteSubscriber
     tags:
       - { name: event_subscriber }
+
+  # MEL Attendee Operations Layer
+  # Single operational presenter, access policy, export builder, and check-in
+  # transition manager for vendor attendee surfaces. See
+  # docs/adoption/mel-attendee-operations-audit.md.
+  myeventlane_checkout_flow.attendee_operations_access:
+    class: Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsAccess
+    arguments:
+      - '@myeventlane_vendor.event_access_checker'
+      - '@logger.channel.myeventlane_checkout_flow'
+
+  myeventlane_checkout_flow.attendee_operations_presenter:
+    class: Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsPresenter
+    arguments:
+      - '@myeventlane_event_attendees.manager'
+      - '@myeventlane_event_attendees.vendor_presentation'
+      - '@date.formatter'
+      - '@logger.channel.myeventlane_checkout_flow'
+      - '@string_translation'
+
+  myeventlane_checkout_flow.attendee_checkin_manager:
+    class: Drupal\myeventlane_checkout_flow\Service\MelAttendeeCheckinManager
+    arguments:
+      - '@myeventlane_event_attendees.manager'
+      - '@myeventlane_checkout_flow.attendee_operations_access'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_checkout_flow'
 

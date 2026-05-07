@@ -8,10 +8,13 @@
  * - events: (legacy) Array of event data - kept for backward compatibility
  * - mel_cards: Array of event card data keyed by event ID
  * - mel_kpis: { events, tickets_sold, revenue, upcoming }
+ * - operational_summaries: Per-event operational totals from
+ *   MelAttendeeOperationsPresenter (id, title, url, totals).
+ * - mel_vendor_attendees_dashboard_empty: Governed empty render (mel_empty_state).
  */
 #}
 
-<div class="mel-attendees-page mel-vendor-attendees-dashboard">
+<div class="mel-attendees-page mel-vendor-attendees-dashboard mel-attendee-operations">
   <div class="mel-page-header">
     <h1 class="mel-page-title">{{ title }}</h1>
     <p class="mel-page-description">
@@ -47,53 +50,51 @@
 
     <div class="mel-attendees-event-cards">
       {% for event_id, mel in mel_cards %}
-        <div class="mel-attendees-event-card">
-          <div class="mel-attendees-event-card__header">
-            <div>
-              <h3 class="mel-attendees-event-card__title">{{ mel.title }}</h3>
-              {% if mel.date %}
-                <span class="mel-attendees-event-card__date">{{ mel.date }}</span>
-              {% endif %}
-            </div>
-            {% if mel.status == 'selling-fast' %}
-              <span class="mel-attendees-event-card__status mel-attendees-event-card__status--selling-fast">{{ 'Selling fast'|t }}</span>
-            {% elseif mel.status == 'low' %}
-              <span class="mel-attendees-event-card__status mel-attendees-event-card__status--low">{{ 'Low sales'|t }}</span>
-            {% endif %}
-          </div>
-          <div class="mel-attendees-event-card__metrics">
-            <div class="mel-attendees-event-card__metric">
-              <span class="mel-attendees-event-card__metric-label">{{ 'Tickets'|t }}</span>
-              <strong class="mel-attendees-event-card__metric-value">{{ mel.tickets }}</strong>
-            </div>
-            <div class="mel-attendees-event-card__metric">
-              <span class="mel-attendees-event-card__metric-label">{{ 'Sold'|t }}</span>
-              <strong class="mel-attendees-event-card__metric-value">{{ mel.sold }}</strong>
-            </div>
-            <div class="mel-attendees-event-card__metric">
-              <span class="mel-attendees-event-card__metric-label">{{ 'Attendees'|t }}</span>
-              <strong class="mel-attendees-event-card__metric-value">{{ mel.attendees }}</strong>
-            </div>
-            <div class="mel-attendees-event-card__metric">
-              <span class="mel-attendees-event-card__metric-label">{{ 'Revenue'|t }}</span>
-              <strong class="mel-attendees-event-card__metric-value">${{ mel.revenue }}</strong>
-            </div>
-          </div>
-          <div class="mel-attendees-event-card__progress">
-            <div class="mel-attendees-event-card__progress-bar" role="progressbar" aria-valuenow="{{ mel.sold_percentage }}" aria-valuemin="0" aria-valuemax="100">
-              <div class="mel-attendees-event-card__progress-fill" style="width: {{ mel.sold_percentage }}%"></div>
-            </div>
-          </div>
-          <div class="mel-attendees-event-card__actions">
-            <a href="{{ mel.checkin_url }}" class="mel-btn mel-btn-primary">{{ 'Check-in'|t }}</a>
-            <a href="{{ mel.attendees_url }}" class="mel-btn mel-btn-secondary">{{ 'View'|t }}</a>
-            {% if mel.export_url %}
-              <a href="{{ mel.export_url }}" class="mel-btn mel-btn-ghost" target="_blank" rel="noopener">{{ 'Export'|t }}</a>
-            {% endif %}
-          </div>
-        </div>
+        {% include '@myeventlane_checkout_flow/components/mel-attendees-event-card.html.twig' with {
+          mel: mel
+        } only %}
       {% endfor %}
     </div>
+
+    {% if operational_summaries is defined and operational_summaries is not empty %}
+      <section class="mel-attendee-operations__summaries" aria-labelledby="mel-attendee-ops-summary-heading">
+        <h2 id="mel-attendee-ops-summary-heading" class="mel-attendee-operations__summaries-heading">
+          {{ 'Operational readiness'|t }}
+        </h2>
+        <ul class="mel-attendee-operations__summary-list">
+          {% for summary in operational_summaries %}
+            <li class="mel-attendee-operations__summary-item">
+              <a class="mel-attendee-operations__summary-link" href="{{ summary.url }}">
+                <span class="mel-attendee-operations__summary-title">{{ summary.title }}</span>
+                <span class="mel-attendee-operations__summary-totals">
+                  <span class="mel-attendee-operations__chip mel-attendee-operations__chip--registered">
+                    {{ '@n registered'|t({'@n': summary.totals.active}) }}
+                  </span>
+                  <span class="mel-attendee-operations__chip mel-attendee-operations__chip--checked-in">
+                    {{ '@n checked in'|t({'@n': summary.totals.checked_in}) }}
+                  </span>
+                  {% if summary.totals.pending > 0 %}
+                    <span class="mel-attendee-operations__chip mel-attendee-operations__chip--pending">
+                      {{ '@n pending'|t({'@n': summary.totals.pending}) }}
+                    </span>
+                  {% endif %}
+                  {% if summary.totals.refunded > 0 %}
+                    <span class="mel-attendee-operations__chip mel-attendee-operations__chip--refunded">
+                      {{ '@n refunded'|t({'@n': summary.totals.refunded}) }}
+                    </span>
+                  {% endif %}
+                  {% if summary.totals.invalid > 0 %}
+                    <span class="mel-attendee-operations__chip mel-attendee-operations__chip--invalid">
+                      {{ '@n need attention'|t({'@n': summary.totals.invalid}) }}
+                    </span>
+                  {% endif %}
+                </span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
   {% elseif events is not empty %}
     {# Fallback when mel_cards not provided (e.g. before cache clear) #}
     <div class="mel-events-list mel-mt-6">
@@ -134,14 +135,10 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="mel-attendees-empty mel-empty-state mel-mt-6">
-      <div class="mel-card">
-        <div class="mel-card-body mel-attendees-empty__body">
-          <p class="mel-empty-message">
-            {{ "You don't have any events yet."|t }}
-          </p>
-        </div>
+    {% if mel_vendor_attendees_dashboard_empty is defined and mel_vendor_attendees_dashboard_empty %}
+      <div class="mel-mt-6">
+        {{ mel_vendor_attendees_dashboard_empty }}
       </div>
-    </div>
+    {% endif %}
   {% endif %}
 </div>

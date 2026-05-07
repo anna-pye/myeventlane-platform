@@ -1,0 +1,18 @@
+// ==========================================================================
+// MELInteractionSystem — surface density hints (behavioural, not content)
+// ==========================================================================
+
+// Vendor shell: favour tighter interaction chrome.
+html[data-mel-interaction-profile='vendor_operational'] {
+  --mel-interaction-touch-target: 44px;
+}
+
+// Customer shell: slightly larger tap targets for disclosure toggles.
+html[data-mel-interaction-profile='customer_guided'] {
+  --mel-interaction-touch-target: 48px;
+}
+
+// Auth: reduce visual noise for modal/dialog chrome.
+html[data-mel-interaction-profile='auth_minimal'] {
+  --mel-interaction-shadow-strength: 0.85;
+}

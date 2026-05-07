@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
+use Drupal\myeventlane_event_attendees\Service\MelAttendeeExportBuilder;
 use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
@@ -34,6 +35,7 @@ final class AttendeeExportController extends ControllerBase implements Container
     private readonly VendorAttendeePresentationService $vendorPresentation,
     private readonly MessengerInterface $messengerService,
     private readonly EventVendorAccessChecker $eventAccessChecker,
+    private readonly MelAttendeeExportBuilder $exportBuilder,
   ) {}
 
   /**
@@ -45,6 +47,7 @@ final class AttendeeExportController extends ControllerBase implements Container
       $container->get('myeventlane_event_attendees.vendor_presentation'),
       $container->get('messenger'),
       $container->get('myeventlane_vendor.event_access_checker'),
+      $container->get('myeventlane_event_attendees.attendee_export_builder'),
     );
   }
 
@@ -73,66 +76,33 @@ final class AttendeeExportController extends ControllerBase implements Container
       return $this->redirect('<front>');
     }
 
-    $filename = 'attendees-' . $event->id() . '-' . date('Y-m-d') . '.csv';
+    $filename = $this->exportBuilder->buildFilename($event, 'attendees');
+    $rows = $this->exportBuilder->buildRowsForEvent($event);
 
-    return new StreamedResponse(function () use ($event) {
+    $entities = $this->attendanceManager->getAttendeesForEvent((int) $event->id());
+    $pairTotal = 0;
+    foreach ($entities as $entity) {
+      if ($entity instanceof EventAttendee) {
+        $pairTotal += count($this->vendorPresentation->normalizeCustomAnswers($entity));
+      }
+    }
+    $this->vendorPresentation->logVendorParityBatch(
+      'checkout_paragraph_csv_export',
+      (int) $event->id(),
+      count($entities),
+      $pairTotal,
+    );
+
+    $exportBuilder = $this->exportBuilder;
+    return new StreamedResponse(static function () use ($exportBuilder, $rows): void {
       $handle = fopen('php://output', 'w');
       if (!$handle) {
         return;
       }
-
-      $entities = $this->attendanceManager->getAttendeesForEvent((int) $event->id());
-      $pairTotal = 0;
-      foreach ($entities as $entity) {
-        if ($entity instanceof EventAttendee) {
-          $pairTotal += count($this->vendorPresentation->normalizeCustomAnswers($entity));
-        }
-      }
-      $this->vendorPresentation->logVendorParityBatch(
-        'checkout_paragraph_csv_export',
-        (int) $event->id(),
-        count($entities),
-        $pairTotal,
-      );
-
-      if ($entities === []) {
-        fclose($handle);
-        return;
-      }
-
-      fputcsv($handle, [
-        (string) $this->t('Name'),
-        (string) $this->t('Email'),
-        (string) $this->t('Phone'),
-        (string) $this->t('Source'),
-        (string) $this->t('Product variation'),
-        (string) $this->t('Ticket Code'),
-        (string) $this->t('Custom answers'),
-        (string) $this->t('Checked In'),
-        (string) $this->t('Checked In At'),
-      ]);
-
-      foreach ($entities as $attendee) {
-        if (!$attendee instanceof EventAttendee) {
-          continue;
-        }
-        $row = $this->vendorPresentation->buildCsvExportRow($attendee);
-        fputcsv($handle, [
-          $row['name'],
-          $row['email'],
-          $row['phone'],
-          $row['source'],
-          $row['ticket_type'],
-          $row['ticket_code'],
-          $row['custom_answers'],
-          $row['checked_in'] ? (string) $this->t('Yes') : (string) $this->t('No'),
-          $row['checked_in_at'],
-        ]);
-      }
-
+      $exportBuilder->streamCsv($handle, $rows);
       fclose($handle);
     }, 200, [
-      'Content-Type' => 'text/csv',
+      'Content-Type' => 'text/csv; charset=utf-8',
       'Content-Disposition' => 'attachment; filename="' . $filename . '"',
     ]);
   }

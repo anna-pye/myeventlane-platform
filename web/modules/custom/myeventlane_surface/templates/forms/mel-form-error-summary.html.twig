@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * Landmark for validation summaries (render above form when building custom UX).
+ */
+#}
+{% set summary_attributes = create_attribute(attributes|default({})) %}
+<div{{ summary_attributes.addClass('mel-form-error-summary').setAttribute('role', 'alert').setAttribute('tabindex', '-1') }}>
+  {% if heading %}
+    <h2 class="mel-form-error-summary__title">{{ heading }}</h2>
+  {% endif %}
+  <div class="mel-form-error-summary__body">
+    {{ content }}
+  </div>
+</div>

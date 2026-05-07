@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL trust policy presentation hooks (tokens only)
+// ==========================================================================
+
+@use '../tokens/colors';
+
+body[data-mel-policy-tone-trust-sensitive-tone='true'] {
+  color: colors.$mel-color-text;
+}

@@ -1,0 +1,12 @@
+name: 'MyEventLane Surface'
+type: module
+description: 'Canonical MEL product surface registry, route/shell negotiation, and cross-cutting UX governance (Drupal as infrastructure).'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - drupal:user
+  - drupal:block
+  - drupal:system
+  - myeventlane_core:myeventlane_core

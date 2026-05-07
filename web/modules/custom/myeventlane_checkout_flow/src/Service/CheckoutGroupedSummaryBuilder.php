@@ -11,17 +11,16 @@ use Drupal\commerce_price\Price;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
+use Drupal\myeventlane_surface\MelReadinessHelper;
 use Drupal\node\NodeInterface;
 
 /**
  * Builds event-grouped checkout summary rows for presentation only.
  */
-final class CheckoutGroupedSummaryBuilder {
-
-  use StringTranslationTrait;
+final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuilderInterface {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -30,6 +29,8 @@ final class CheckoutGroupedSummaryBuilder {
     private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
     private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly MelReadinessHelper $readinessHelper,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {}
 
   /**
@@ -106,6 +107,7 @@ final class CheckoutGroupedSummaryBuilder {
     }
 
     $events_map = [];
+    $labels = $this->readinessHelper->customerCheckoutOrderSummarySurfaceLabels();
 
     foreach ($line_buckets as $bucket) {
       $eid = $bucket['event_id'];
@@ -117,6 +119,7 @@ final class CheckoutGroupedSummaryBuilder {
           'date' => '',
           'location' => '',
           'display_pricing' => '',
+          'thumbnail_url' => '',
           'items' => [],
         ];
         if ($eid !== NULL) {
@@ -130,13 +133,16 @@ final class CheckoutGroupedSummaryBuilder {
             $events_map[$group_key]['display_pricing'] = is_array($displayPricing)
               ? (string) ($displayPricing['label'] ?? '')
               : '';
+            $events_map[$group_key]['thumbnail_url'] = $this->resolveEventThumbnailUrl($node);
           }
           else {
-            $events_map[$group_key]['title'] = (string) $this->t('Event');
+            $events_map[$group_key]['title'] = $labels['event_fallback_title'];
+            $events_map[$group_key]['thumbnail_url'] = '';
           }
         }
         else {
-          $events_map[$group_key]['title'] = (string) $this->t('Additional items');
+          $events_map[$group_key]['title'] = $labels['additional_items_title'];
+          $events_map[$group_key]['thumbnail_url'] = '';
         }
       }
 
@@ -159,6 +165,21 @@ final class CheckoutGroupedSummaryBuilder {
     usort($grouped_items, static function (array $a, array $b): int {
       return strcasecmp($a['title'], $b['title']);
     });
+
+    if ($grouped_items === [] && $donationFormatted !== '') {
+      $grouped_items = [[
+        'title' => $this->readinessHelper->customerCheckoutContributionSummaryGroupTitle(),
+        'date' => '',
+        'location' => '',
+        'display_pricing' => '',
+        'thumbnail_url' => '',
+        'items' => [[
+          'quantity' => 1,
+          'ticket_type' => $this->readinessHelper->customerCheckoutContributionLineLabel(),
+          'total_price' => $donationFormatted,
+        ]],
+      ]];
+    }
 
     $order_total = '';
     $total_price = $order->getTotalPrice();
@@ -210,6 +231,18 @@ final class CheckoutGroupedSummaryBuilder {
       return '';
     }
     return $this->dateFormatter->format($date->getTimestamp(), 'medium');
+  }
+
+  private function resolveEventThumbnailUrl(NodeInterface $node): string {
+    if (!$node->hasField('field_event_image') || $node->get('field_event_image')->isEmpty()) {
+      return '';
+    }
+    $files = $node->get('field_event_image')->referencedEntities();
+    $file = !empty($files) ? reset($files) : NULL;
+    if (!$file || !method_exists($file, 'getFileUri')) {
+      return '';
+    }
+    return $this->fileUrlGenerator->generateString($file->getFileUri());
   }
 
   private function formatEventLocation(NodeInterface $node): string {

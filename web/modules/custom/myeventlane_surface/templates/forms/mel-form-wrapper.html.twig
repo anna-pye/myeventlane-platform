@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Canonical outer wrapper for MEL-facing forms (shells, checkout, settings).
+ *
+ * Variables:
+ * - attributes: Attributes object or compatible array.
+ * - content: Rendered children (typically Form API root).
+ * - classification: MelFormClassification machine name.
+ * - title: Optional heading text.
+ * - lede: Optional supporting text.
+ */
+#}
+{% set wrapper_attributes = create_attribute(attributes|default({})) %}
+<div{{ wrapper_attributes.addClass('mel-form-wrapper', 'mel-form-wrapper--' ~ classification|default('customer')) }}>
+  {% if title %}
+    <header class="mel-form-wrapper__header">
+      <h1 class="mel-form-wrapper__title">{{ title }}</h1>
+      {% if lede %}
+        <p class="mel-form-wrapper__lede">{{ lede }}</p>
+      {% endif %}
+    </header>
+  {% endif %}
+  <div class="mel-form-wrapper__body">
+    {{ content }}
+  </div>
+</div>

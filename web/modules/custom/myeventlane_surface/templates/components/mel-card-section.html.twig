@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Logical section inside a card or dashboard stack.
+ */
+#}
+<section{{ attributes }}>
+  {% if title %}
+    <{{ title_element }} class="mel-card-section__title">{{ title }}</{{ title_element }}>
+  {% endif %}
+  {{ content }}
+</section>

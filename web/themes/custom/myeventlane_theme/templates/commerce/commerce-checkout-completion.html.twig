@@ -1,29 +1,19 @@
 {#
 /**
  * @file
- * Theme override for checkout completion page.
+ * Checkout completion — governed copy via mel_checkout_completion (MelCustomerContinuityPresenter).
  *
- * MEL success layout: clear, honest paid vs free vs donation-only copy.
- * Preserves order/ticket/calendar logic; presentation + totals labelling only.
+ * Event/ticket iteration stays here (Commerce entities); strings come from PHP only.
  *
- * Available variables:
- * - order_entity: The order entity.
- * - order_totals: Order totals from OrderTotalSummary (optional).
- * - order_items_attendees: Map of order item ID => attendee rows.
- * - mel_event_image_urls: Map of event node ID => image URL.
- * - mel_calendar_links: apple/google/outlook URLs.
- * - mel_event_url: Canonical URL to first event.
- * - mel_logged_in: Current user authenticated.
- * - mel_confirm_paid: TRUE when order total is non-zero (from preprocess).
- * - mel_confirmation_has_tickets: TRUE when order has non-donation line items.
- * - mel_donation_total_formatted: Donation sum formatted for display, or NULL.
- * - mel_order_pricing_breakdown: GST-aware subtotal/tax/fees from Commerce adjustments (or NULL).
+ * @see myeventlane_theme_preprocess_commerce_checkout_form()
  */
 #}
 {% set mel_confirm_paid = mel_confirm_paid|default(false) %}
 {% set mel_confirmation_has_tickets = mel_confirmation_has_tickets|default(false) %}
+{% set mcc = mel_checkout_completion|default({}) %}
+{% set hero = mcc.hero|default({}) %}
+{% set lab = mcc.labels|default({}) %}
 
-{# Build events and ticket_items from order #}
 {% set events = [] %}
 {% set ticket_items = [] %}
 
@@ -57,23 +47,16 @@
   {% endif %}
 {% endfor %}
 
-<div class="mel-confirmation mel-confirmation--frictionless">
-  <header class="mel-confirmation__hero">
+<div class="mel-confirmation mel-confirmation--frictionless mel-checkout-success-surface">
+  <header class="mel-confirmation__hero mel-checkout-success-surface__hero" role="region" aria-labelledby="mel-confirmation-hero-title">
     <div class="mel-confirmation__hero-icon" aria-hidden="true">✓</div>
     <div class="mel-confirmation__hero-content">
-      {% if mel_donation_total_formatted and not mel_confirmation_has_tickets %}
-        <h1 class="mel-confirmation__title">{{ 'Thank you'|t }}</h1>
-      {% elseif mel_confirmation_has_tickets %}
-        <h1 class="mel-confirmation__title">{{ "You're in"|t }}</h1>
-      {% else %}
-        <h1 class="mel-confirmation__title">{{ 'Done'|t }}</h1>
+      <h1 id="mel-confirmation-hero-title" class="mel-confirmation__title">{{ hero.heading|default('') }}</h1>
+      {% if hero.lead|default('') %}
+        <p class="mel-confirmation__soft-lead">{{ hero.lead }}</p>
       {% endif %}
-      <p class="mel-confirmation__subtitle">
-        {{ 'Confirmation sent to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
-      </p>
-      <p class="mel-confirmation__reference">
-        {{ 'Order'|t }} <strong>#{{ order_entity.getOrderNumber() }}</strong>
-      </p>
+      <p class="mel-confirmation__subtitle">{{ mcc.confirmation.email_line|default('') }}</p>
+      <p class="mel-confirmation__reference">{{ mcc.confirmation.order_line|default('') }}</p>
     </div>
   </header>
 
@@ -88,7 +71,7 @@
             </div>
           {% endif %}
           <div class="mel-confirmation-card__body">
-            <p class="mel-confirmation-card__eyebrow">{{ 'Event summary'|t }}</p>
+            <p class="mel-confirmation-card__eyebrow">{{ lab.event_summary_eyebrow|default('') }}</p>
             <h2 id="mel-confirmation-event-summary-{{ event.id() }}" class="mel-confirmation-card__title">{{ event.label() }}</h2>
             <div class="mel-confirmation-card__meta">
               {% if event.hasField('field_event_start') and not event.get('field_event_start').isEmpty() %}
@@ -149,8 +132,8 @@
     {% elseif ticket_items|length > 0 %}
       <section class="mel-confirmation-card mel-confirmation__summary">
         <div class="mel-confirmation-card__body">
-          <p class="mel-confirmation-card__eyebrow">{{ 'Event summary'|t }}</p>
-          <h2 class="mel-confirmation-card__title">{{ 'Your tickets'|t }}</h2>
+          <p class="mel-confirmation-card__eyebrow">{{ lab.event_summary_eyebrow|default('') }}</p>
+          <h2 class="mel-confirmation-card__title">{{ lab.your_tickets_title|default('') }}</h2>
           <div class="mel-confirmation-card__tickets">
             {% for item in ticket_items %}
               <div class="mel-confirmation-card__ticket-row">
@@ -170,47 +153,51 @@
     {% if mel_donation_total_formatted %}
       <div class="mel-confirmation-card mel-confirmation-card--donation">
         <div class="mel-confirmation-card__body">
-          <h2 class="mel-confirmation-card__title">{{ 'Donation confirmed'|t }}</h2>
-          <p class="mel-confirmation-card__donation-amount">{{ mel_donation_total_formatted|raw }}</p>
+          <h2 class="mel-confirmation-card__title">{{ lab.donation_confirmed_title|default('') }}</h2>
+          <p class="mel-confirmation-card__donation-amount">{{ mel_donation_total_formatted }}</p>
         </div>
       </div>
     {% endif %}
 
+    {% set what_next = mcc.what_next|default({}) %}
+    {% set organiser_trust = mcc.organiser_trust|default({}) %}
+    <section class="mel-confirmation-card mel-confirmation-card--next mel-confirmation__next" aria-labelledby="mel-confirmation-what-next">
+      <div class="mel-confirmation-card__body">
+        <h2 id="mel-confirmation-what-next" class="mel-confirmation-card__title">{{ what_next.title|default('') }}</h2>
+        <p class="mel-confirmation-card__text">{{ what_next.body|default('') }}</p>
+      </div>
+    </section>
+
+    <section class="mel-confirmation-card mel-confirmation-card--trust mel-confirmation__organiser-trust" aria-labelledby="mel-confirmation-organiser-trust">
+      <div class="mel-confirmation-card__body">
+        <h2 id="mel-confirmation-organiser-trust" class="mel-confirmation-card__title">{{ organiser_trust.title|default('') }}</h2>
+        <p class="mel-confirmation-card__text">{{ organiser_trust.body|default('') }}</p>
+      </div>
+    </section>
+
     <div class="mel-confirmation-actions mel-confirmation-actions--frictionless">
-      {% if mel_confirmation_has_tickets and order_entity.getCustomerId() %}
-        <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
-           class="mel-confirmation-button mel-confirmation-button--primary">
-          {{ 'View ticket'|t }}
-        </a>
-      {% elseif order_entity.getCustomerId() %}
-        <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
-           class="mel-confirmation-button mel-confirmation-button--primary">
-          {{ 'View order'|t }}
+      {% if mcc.primary_action %}
+        <a href="{{ mcc.primary_action.url }}" class="mel-confirmation-button mel-confirmation-button--primary">
+          {{ mcc.primary_action.label }}
         </a>
       {% else %}
         <div class="mel-confirmation-actions__guest-note">
-          <p>{{ 'Your ticket link and order details have been sent to your email.'|t }}</p>
-          <p>{{ 'Order number: <strong>@order_number</strong>'|t({'@order_number': order_entity.getOrderNumber()})|raw }}</p>
+          <p>{{ mcc.guest.body|default('') }}</p>
+          <p>{{ mcc.guest.order_intro|default('') }} <strong>{{ mcc.guest.order_number|default('') }}</strong></p>
         </div>
       {% endif %}
 
-      {% if mel_calendar_links|length > 0 %}
+      {% if mcc.calendar is defined and mcc.calendar|length > 0 %}
         <div class="mel-calendar-actions mel-calendar-actions--frictionless">
-          {% if mel_calendar_links.apple is defined and mel_calendar_links.apple %}
-            <a href="{{ mel_calendar_links.apple }}" class="mel-calendar-btn mel-calendar-btn--primary" target="_blank" rel="noopener noreferrer">{{ 'Add to calendar'|t }}</a>
-          {% endif %}
-          {% if mel_calendar_links.google is defined and mel_calendar_links.google %}
-            <a href="{{ mel_calendar_links.google }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Google Calendar'|t }}</a>
-          {% endif %}
-          {% if mel_calendar_links.outlook is defined and mel_calendar_links.outlook %}
-            <a href="{{ mel_calendar_links.outlook }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Outlook'|t }}</a>
-          {% endif %}
+          {% for row in mcc.calendar %}
+            <a href="{{ row.url }}" class="mel-calendar-btn{% if loop.first %} mel-calendar-btn--primary{% endif %}" target="_blank" rel="noopener noreferrer">{{ row.label }}</a>
+          {% endfor %}
         </div>
       {% endif %}
 
-      {% if mel_event_url and events|length > 0 %}
-        <a href="{{ mel_event_url }}" class="mel-confirmation-button mel-confirmation-button--secondary">
-          {{ 'View event'|t }}
+      {% if mcc.view_event %}
+        <a href="{{ mcc.view_event.url }}" class="mel-confirmation-button mel-confirmation-button--secondary">
+          {{ mcc.view_event.label }}
         </a>
       {% endif %}
     </div>

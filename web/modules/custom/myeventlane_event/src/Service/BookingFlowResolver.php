@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\Service;
 
+use CommerceGuys\Intl\Formatter\CurrencyFormatter as IntlCurrencyFormatter;
+use CommerceGuys\Intl\NumberFormat\NumberFormatRepositoryInterface;
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_price\Price;
+use Drupal\commerce_price\Repository\CurrencyRepositoryInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Url;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
@@ -43,12 +46,16 @@ final class BookingFlowResolver {
   public const SUBMIT_OUTCOME_EXTERNAL_PROVIDER = 'external_provider';
   public const SUBMIT_OUTCOME_NONE = 'none';
 
+  private ?IntlCurrencyFormatter $displayCurrencyFormatter = NULL;
+
   public function __construct(
     private readonly EventModeManager $modeManager,
     private readonly EventStateResolverInterface $stateResolver,
     private readonly TicketAvailabilityService $ticketAvailability,
     private readonly TicketTypeManager $ticketTypeManager,
-    private readonly CurrencyFormatter $currencyFormatter,
+    private readonly NumberFormatRepositoryInterface $numberFormatRepository,
+    private readonly CurrencyRepositoryInterface $currencyRepository,
+    private readonly LanguageManagerInterface $languageManager,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -404,9 +411,14 @@ final class BookingFlowResolver {
 
   /**
    * Formats a price for compact public event display.
+   *
+   * Uses Commerce Guys intl directly with repository services — not the
+   * commerce_price.currency_formatter container service — so node preprocess
+   * cannot recurse into formatter construction (lazy proxies still call the
+   * same service during partial container builds).
    */
   private function formatDisplayPrice(Price $price): string {
-    return $this->currencyFormatter->format(
+    return $this->getDisplayCurrencyFormatter()->format(
       $price->getNumber(),
       $price->getCurrencyCode(),
       [
@@ -415,6 +427,44 @@ final class BookingFlowResolver {
         'maximum_fraction_digits' => 2,
       ]
     );
+  }
+
+  private function getDisplayCurrencyFormatter(): IntlCurrencyFormatter {
+    if ($this->displayCurrencyFormatter === NULL) {
+      $this->displayCurrencyFormatter = new IntlCurrencyFormatter(
+        $this->numberFormatRepository,
+        $this->currencyRepository,
+        [
+          'locale' => $this->localeForFormatting(),
+          'maximum_fraction_digits' => 6,
+          'rounding_mode' => 'none',
+        ]
+      );
+    }
+    return $this->displayCurrencyFormatter;
+  }
+
+  /**
+   * Maps Drupal language IDs to BCP 47-style locales for intl formatting.
+   */
+  private function localeForFormatting(): string {
+    $langcode = $this->languageManager->getCurrentLanguage()->getId();
+    if (str_contains($langcode, '-')) {
+      return $langcode;
+    }
+
+    return match ($langcode) {
+      'en' => 'en-US',
+      'fr' => 'fr-FR',
+      'de' => 'de-DE',
+      'es' => 'es-ES',
+      'it' => 'it-IT',
+      'pt-br' => 'pt-BR',
+      'pt-pt' => 'pt-PT',
+      'nl' => 'nl-NL',
+      'ja' => 'ja-JP',
+      default => $langcode . '-' . strtoupper($langcode),
+    };
   }
 
   /**

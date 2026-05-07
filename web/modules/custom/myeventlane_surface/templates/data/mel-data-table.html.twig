@@ -1,0 +1,36 @@
+{#
+/**
+ * @file
+ * Governed operational table shell — wraps Views / Drupal table markup (presentation only).
+ */
+#}
+<section{{ attributes }}>
+  {% if toolbar %}
+    <div class="mel-data-table__toolbar-slot">
+      {{ toolbar }}
+    </div>
+  {% endif %}
+  {% if status %}
+    <div class="mel-data-table__status-slot">
+      {{ status }}
+    </div>
+  {% endif %}
+  <div{{ scroll_attributes }}>
+    {{ content }}
+  </div>
+  {% if empty %}
+    <div class="mel-data-table__empty-slot">
+      {{ empty }}
+    </div>
+  {% endif %}
+  {% if pagination or actions %}
+    <div class="mel-data-table__footer">
+      {% if pagination %}
+        <div class="mel-data-table__pagination-slot">{{ pagination }}</div>
+      {% endif %}
+      {% if actions %}
+        <div class="mel-data-table__actions-slot">{{ actions }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>

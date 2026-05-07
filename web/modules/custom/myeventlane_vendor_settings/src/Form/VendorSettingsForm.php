@@ -15,6 +15,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\OnboardingManager;
+use Drupal\myeventlane_surface\MelWorkflowManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
 use Drupal\myeventlane_vendor\Form\FormActionUrlFixer;
@@ -69,6 +70,11 @@ class VendorSettingsForm extends FormBase {
   protected RouteProviderInterface $routeProvider;
 
   /**
+   * Dedupes onboarding panel when MELWorkflowSystem already renders primary region.
+   */
+  protected ?MelWorkflowManager $melWorkflowManager = NULL;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
@@ -86,6 +92,9 @@ class VendorSettingsForm extends FormBase {
     $instance->userVendorMembershipQuery = $container->get('myeventlane_vendor.user_vendor_membership_query');
     $instance->accessManager = $container->get('access_manager');
     $instance->routeProvider = $container->get('router.route_provider');
+    $instance->melWorkflowManager = $container->has('myeventlane_surface.workflow_manager')
+      ? $container->get('myeventlane_surface.workflow_manager')
+      : NULL;
     // Satisfies FormBase::$routeMatch so getRouteMatch() does not call \Drupal::routeMatch().
     $instance->routeMatch = $container->get('current_route_match');
     $instance->setRequestStack($container->get('request_stack'));
@@ -330,7 +339,9 @@ class VendorSettingsForm extends FormBase {
           $onboardingManager->refreshFlags($state);
           $show_panel = !$onboardingManager->isCompleted($state)
             && !$onboardingManager->isInviteReady($state);
-          if ($show_panel) {
+          $governed_primary = $this->melWorkflowManager instanceof MelWorkflowManager
+            && $this->melWorkflowManager->willRenderPrimaryWorkflowRegion();
+          if ($show_panel && !$governed_primary) {
             $stage = $state->getStage();
             $stage_labels = [
               'probe' => $this->t('Get started'),

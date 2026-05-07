@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Long-running processing indicator.
+ */
+#}
+<div{{ attributes }}>
+  <span class="mel-async-state__spinner" aria-hidden="true"></span>
+  {% if message %}
+    <span class="mel-async-state__message">{{ message }}</span>
+  {% endif %}
+</div>

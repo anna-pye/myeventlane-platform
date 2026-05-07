@@ -13,14 +13,17 @@
  *
  * Flags:
  * - is_checkout (bool) If true, show simplified header.
+ * - is_auth_minimal (bool) If true, hide discovery chrome (MEL auth surface).
  */
 #}
+
+{% set minimal_discovery = is_checkout or is_auth_minimal %}
 
 <header class="site-header" role="banner">
   <div class="site-header__inner">
 
     <div class="site-header__left">
-      {% if not is_checkout %}
+      {% if not minimal_discovery %}
         <div class="site-header__burger">
           {{ mobile_drawer }}
         </div>
@@ -29,7 +32,7 @@
         {{ branding }}
       </div>
 
-      {% if not is_checkout %}
+      {% if not minimal_discovery %}
         <nav class="site-header__nav" aria-label="Primary">
           {{ primary_menu }}
         </nav>
@@ -37,7 +40,16 @@
     </div>
 
     <div class="site-header__right">
-      {% if not is_checkout %}
+      {% if not minimal_discovery %}
+        <div class="site-header__create-event">
+          <a href="{{ create_event_url }}" class="site-header__create-event-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            {{ 'Create Event'|t }}
+          </a>
+        </div>
         <div class="site-header__organiser">
           {{ organiser_context }}
         </div>

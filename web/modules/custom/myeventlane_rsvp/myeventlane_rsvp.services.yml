@@ -36,6 +36,7 @@ services:
       - '@myeventlane_rsvp.mailer'
       - '@module_handler'
       - '@current_user'
+      - '@myeventlane_surface.customer_continuity_presenter'
     tags:
       - { name: controller.service_arguments }
 

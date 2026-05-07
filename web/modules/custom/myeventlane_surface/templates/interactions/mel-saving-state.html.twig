@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Saving async state — aria-busy from preprocess.
+ */
+#}
+<div{{ attributes }}>
+  <span class="mel-async-state__spinner" aria-hidden="true"></span>
+  {% if message %}
+    <span class="mel-async-state__message">{{ message }}</span>
+  {% endif %}
+</div>

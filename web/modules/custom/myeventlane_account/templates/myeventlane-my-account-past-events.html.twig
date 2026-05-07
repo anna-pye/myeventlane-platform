@@ -1,106 +1,66 @@
 {#
 /**
  * @file
- * Customer Past Events page template.
+ * Customer Past Events page template (body only).
  *
- * Variables:
- * - display_name: User display name (for header).
- * - avatar_url: URL to user picture.
- * - avatar_initials: Fallback initials.
- * - past_events: Array of past event data.
- * - account_links: Array of nav links.
- * - show_review_cta: Boolean feature flag.
- * - review_eligible: Map of event_id => bool.
+ * Page shell from page--account.html.twig (sidebar, workflow regions, H1).
  */
 #}
 
-<div class="mel-my-account">
-  <div class="mel-my-account__layout">
-    {# Left navigation #}
-    <nav class="mel-my-account__nav" aria-label="{{ 'Account navigation'|t }}">
-      <div class="mel-my-account__nav-card">
-        <ul class="mel-my-account__nav-list">
-          {% for link in account_links %}
-            <li class="mel-my-account__nav-item">
-              <a href="{{ link.url }}" class="mel-my-account__nav-link{% if link.active %} mel-my-account__nav-link--active{% endif %}"
-                 {% if link.active %}aria-current="page"{% endif %}>
-                {{ link.title }}
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </nav>
-
-    {# Main content #}
-    <main class="mel-my-account__main">
-      <header class="mel-my-account__header">
-        <h1 class="mel-my-account__welcome">{{ 'Past Events'|t }}</h1>
-        <div class="mel-my-account__avatar" aria-hidden="true">
-          {% if avatar_url %}
-            <img src="{{ avatar_url }}" alt="" width="44" height="44" />
-          {% else %}
-            <span class="mel-my-account__avatar-initials">{{ avatar_initials }}</span>
-          {% endif %}
-        </div>
-      </header>
-
-      {% if past_events is not empty %}
-        <section class="mel-dashboard__section" aria-label="{{ 'Past events list'|t }}">
-          <div class="mel-my-account__cards">
-            {% for event in past_events %}
-              {% set primary_review = show_review_cta and review_eligible[event.id] is defined and review_eligible[event.id] %}
-              <article class="mel-card mel-my-account__card mel-my-account__card--past">
-                <div class="mel-card__image{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
-                  {% if event.image_url %}
-                    <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
-                  {% endif %}
-                </div>
-                <div class="mel-card__body">
-                  <h2 class="mel-card__title">{{ event.title }}</h2>
-                  <div class="mel-card__meta">
-                    {% if event.start_date %}
-                      <time datetime="{{ event.start_date }}">{{ event.start_date }}</time><br>
-                    {% endif %}
-                    {% if event.location %}
-                      {{ event.location }}
-                    {% endif %}
-                  </div>
-                  <div class="mel-card__actions">
-                    {% if primary_review %}
-                      <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-button mel-button--primary">{{ 'Leave a review'|t }}</a>
-                    {% elseif event.pdf_available %}
-                      {% if event.has_ticket_code %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
-                      {% else %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
-                      {% endif %}
-                    {% else %}
-                      <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View Event'|t }}</a>
-                    {% endif %}
-                    {% if primary_review or event.pdf_available or event.ics_url %}
-                      <div class="mel-card__links">
-                        {% if primary_review or event.pdf_available %}
-                          <a href="{{ event.url }}">{{ 'View Event'|t }}</a>
-                        {% endif %}
-                        {% if event.ics_url %}
-                          <a href="{{ event.ics_url }}" download>{{ 'Add to Calendar'|t }}</a>
-                        {% endif %}
-                      </div>
-                    {% endif %}
-                  </div>
-                  {% if event.has_ticket_code %}
-                    <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
-                  {% endif %}
-                </div>
-              </article>
-            {% endfor %}
+{% if past_events is not empty %}
+  <section class="mel-dashboard__section" aria-label="{{ 'Past events list'|t }}">
+    <div class="mel-my-account__cards">
+      {% for event in past_events %}
+        {% set primary_review = show_review_cta and review_eligible[event.id] is defined and review_eligible[event.id] %}
+        <article class="mel-card mel-my-account__card mel-my-account__card--past">
+          <div class="mel-card__image{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
+            {% if event.image_url %}
+              <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
+            {% endif %}
           </div>
-        </section>
-      {% else %}
-        <p class="mel-my-account__empty">{{ "No past events yet — once you've attended something, it'll show up here."|t }}</p>
-        <a href="{{ path('<front>') }}" class="mel-btn mel-btn--primary">{{ 'Browse events'|t }}</a>
-      {% endif %}
-    </main>
-  </div>
-</div>
+          <div class="mel-card__body">
+            <h2 class="mel-card__title">{{ event.title }}</h2>
+            <div class="mel-card__meta">
+              {% if event.start_date %}
+                <time datetime="{{ event.start_date }}">{{ event.start_date }}</time><br>
+              {% endif %}
+              {% if event.location %}
+                {{ event.location }}
+              {% endif %}
+            </div>
+            <div class="mel-card__actions">
+              {% if primary_review %}
+                <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-button mel-button--primary">{{ 'Leave a review'|t }}</a>
+              {% elseif event.pdf_available %}
+                {% if event.has_ticket_code %}
+                  <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
+                {% else %}
+                  <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
+                {% endif %}
+              {% else %}
+                <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View Event'|t }}</a>
+              {% endif %}
+              {% if primary_review or event.pdf_available or event.ics_url %}
+                <div class="mel-card__links">
+                  {% if primary_review or event.pdf_available %}
+                    <a href="{{ event.url }}">{{ 'View Event'|t }}</a>
+                  {% endif %}
+                  {% if event.ics_url %}
+                    <a href="{{ event.ics_url }}" download>{{ 'Add to Calendar'|t }}</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+            {% if event.has_ticket_code %}
+              <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% else %}
+  {% if mel_account_past_events_page_empty is defined and mel_account_past_events_page_empty %}
+    {{ mel_account_past_events_page_empty }}
+  {% endif %}
+{% endif %}

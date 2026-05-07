@@ -494,8 +494,13 @@
         "controller": "\\Drupal\\myeventlane_account\\Controller\\MyAccountController::pastEvents",
         "title": "Past Events"
     },
-    "myeventlane_account.settings": {
+    "myeventlane_account.settings_redirect": {
         "path": "\/my-settings",
+        "controller": "\\Drupal\\myeventlane_account\\Controller\\MyAccountController::settingsRedirect",
+        "title": "Profile & Settings"
+    },
+    "myeventlane_account.settings": {
+        "path": "\/my-settings\/{user}",
         "controller": "\\Drupal\\myeventlane_account\\Controller\\MyAccountController::settings",
         "title": "Profile & Settings"
     },

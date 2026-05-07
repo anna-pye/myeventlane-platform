@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Optional manual composition wrapper — Form API remains default renderer.
+ *
+ * Use when building bespoke flows; keep label / control / help wiring explicit.
+ */
+#}
+{% set field_attributes = create_attribute(attributes|default({})) %}
+<div{{ field_attributes.addClass('mel-form-field') }}>
+  {% if label %}
+    <div class="mel-form-field__label">
+      {{ label }}
+      {% if required %}
+        <span class="mel-form-field__required" aria-hidden="true">*</span>
+      {% endif %}
+    </div>
+  {% endif %}
+  <div class="mel-form-field__control">
+    {{ control }}
+  </div>
+  {% if help %}
+    <div class="mel-form-field__help description">
+      {{ help }}
+    </div>
+  {% endif %}
+  {% if errors %}
+    <div class="mel-form-field__errors" role="alert">
+      {{ errors }}
+    </div>
+  {% endif %}
+</div>
