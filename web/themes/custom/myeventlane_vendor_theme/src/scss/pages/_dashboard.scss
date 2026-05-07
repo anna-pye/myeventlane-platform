@@ -471,6 +471,41 @@
   }
 }
 
+.mel-vendor-dashboard-governance {
+  display: grid;
+  gap: $spacing-4;
+  margin-bottom: $spacing-6;
+  padding: $spacing-4;
+  border: 1px solid rgba($ml-vendor-navy, 0.12);
+  border-radius: $radius-card;
+  background: #fff;
+
+  &__heading {
+    margin: 0 0 $spacing-2;
+    font-size: 1rem;
+    color: $ml-vendor-navy;
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: $text-secondary;
+  }
+
+  &__list--policy {
+    list-style: disc;
+  }
+
+  &__item {
+    margin-bottom: $spacing-1;
+  }
+
+  &__block + &__block {
+    padding-top: $spacing-3;
+    border-top: 1px solid rgba($ml-vendor-navy, 0.08);
+  }
+}
+
 .mel-workspace-page {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);

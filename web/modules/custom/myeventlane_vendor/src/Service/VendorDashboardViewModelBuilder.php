@@ -16,6 +16,8 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
+use Drupal\myeventlane_surface\MelDataPresentationManager;
+use Drupal\myeventlane_surface\MelReadinessHelper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\node\NodeInterface;
@@ -49,6 +51,8 @@ final class VendorDashboardViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly VendorEventRemovalService $vendorEventRemovalService,
+    private readonly MelReadinessHelper $readinessHelper,
+    private readonly MelDataPresentationManager $dataPresentationManager,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -97,7 +101,7 @@ final class VendorDashboardViewModelBuilder {
     $model = [
       'vendor' => $vendorPayload,
       'readiness' => $readiness,
-      'kpis' => $kpis,
+      'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip($kpis),
       'action_queue' => [],
       'events' => $events,
       'analytics_summary' => $analyticsSummary,
@@ -113,6 +117,8 @@ final class VendorDashboardViewModelBuilder {
       ]);
       $model['action_queue'] = [];
     }
+
+    $model['hero_shell_hint'] = $this->heroShellHint($model);
 
     return $model;
   }
@@ -134,14 +140,17 @@ final class VendorDashboardViewModelBuilder {
         'has_public_profile' => FALSE,
         'score' => 0,
         'items' => [],
+        'row_complete_label' => $this->readinessHelper->vendorReadinessRowCompleteLabel(),
+        'row_incomplete_label' => $this->readinessHelper->vendorReadinessRowIncompleteLabel(),
       ],
-      'kpis' => [],
+      'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip([]),
       'action_queue' => [],
       'events' => [],
       'analytics_summary' => [
         'available' => FALSE,
         'items' => [],
       ],
+      'hero_shell_hint' => $this->readinessHelper->vendorHeroShellLaunchHint(),
       'empty_state' => $this->buildEmptyState($account, TRUE),
     ];
   }
@@ -190,11 +199,13 @@ final class VendorDashboardViewModelBuilder {
       $stripeReady = $this->readStripeReadyFromVendorStore($vendor, $account);
     }
 
+    $labels = $this->readinessHelper->vendorReadinessPresentationLabels();
+
     $items = [];
 
     $items[] = [
       'key' => 'profile',
-      'label' => (string) $this->t('Organiser profile'),
+      'label' => $labels['profile'],
       'complete' => $profileComplete,
       'severity' => $profileComplete ? 'success' : 'warning',
       'url' => $this->routeExists('myeventlane_vendor.console.settings')
@@ -204,7 +215,7 @@ final class VendorDashboardViewModelBuilder {
 
     $items[] = [
       'key' => 'public_profile',
-      'label' => (string) $this->t('Public organiser page'),
+      'label' => $labels['public_profile'],
       'complete' => $hasPublicProfile && $vendor instanceof Vendor,
       'severity' => ($hasPublicProfile && $vendor instanceof Vendor) ? 'success' : 'neutral',
       'url' => ($vendor instanceof Vendor && $this->routeExists('entity.myeventlane_vendor.canonical'))
@@ -215,7 +226,7 @@ final class VendorDashboardViewModelBuilder {
     $stripeSeverity = $stripeReady ? 'success' : 'warning';
     $items[] = [
       'key' => 'stripe',
-      'label' => (string) $this->t('Stripe payments'),
+      'label' => $labels['stripe'],
       'complete' => $stripeReady,
       'severity' => $stripeSeverity,
       'url' => $this->routeExists('myeventlane_vendor.stripe_connect')
@@ -239,6 +250,8 @@ final class VendorDashboardViewModelBuilder {
       'has_public_profile' => $hasPublicProfile && $vendor instanceof Vendor,
       'score' => $score,
       'items' => $items,
+      'row_complete_label' => $this->readinessHelper->vendorReadinessRowCompleteLabel(),
+      'row_incomplete_label' => $this->readinessHelper->vendorReadinessRowIncompleteLabel(),
     ];
   }
 
@@ -339,12 +352,13 @@ final class VendorDashboardViewModelBuilder {
    */
   private function fallbackKpisUnavailable(): array {
     $na = (string) $this->t('Unavailable');
+    $ctx = $this->readinessHelper->vendorKpiUnavailableContextLine();
     return [
       [
         'key' => 'revenue',
         'label' => (string) $this->t('Revenue'),
         'value' => $na,
-        'context' => (string) $this->t('Could not load metrics'),
+        'context' => $ctx,
         'trend' => NULL,
         'severity' => 'neutral',
         'url' => NULL,
@@ -353,7 +367,7 @@ final class VendorDashboardViewModelBuilder {
         'key' => 'tickets_sold',
         'label' => (string) $this->t('Tickets sold'),
         'value' => $na,
-        'context' => (string) $this->t('Could not load metrics'),
+        'context' => $ctx,
         'trend' => NULL,
         'severity' => 'neutral',
         'url' => NULL,
@@ -362,7 +376,7 @@ final class VendorDashboardViewModelBuilder {
         'key' => 'rsvps',
         'label' => (string) $this->t('RSVPs'),
         'value' => $na,
-        'context' => (string) $this->t('Could not load metrics'),
+        'context' => $ctx,
         'trend' => NULL,
         'severity' => 'neutral',
         'url' => NULL,
@@ -371,7 +385,7 @@ final class VendorDashboardViewModelBuilder {
         'key' => 'upcoming_events',
         'label' => (string) $this->t('Upcoming events'),
         'value' => $na,
-        'context' => (string) $this->t('Could not load metrics'),
+        'context' => $ctx,
         'trend' => NULL,
         'severity' => 'neutral',
         'url' => NULL,
@@ -446,15 +460,15 @@ final class VendorDashboardViewModelBuilder {
 
     if (!$published) {
       $status = 'draft';
-      $statusLabel = (string) $this->t('Draft');
+      $statusLabel = $this->readinessHelper->vendorLifecycleDraftLabel();
     }
     elseif ($endTs > 0 && $endTs < $now) {
       $status = 'past';
-      $statusLabel = (string) $this->t('Past');
+      $statusLabel = $this->readinessHelper->vendorLifecyclePastLabel();
     }
     else {
       $status = 'upcoming';
-      $statusLabel = (string) $this->t('Upcoming');
+      $statusLabel = $this->readinessHelper->vendorLifecycleUpcomingLabel();
     }
 
     $dateLabel = '';
@@ -593,9 +607,10 @@ final class VendorDashboardViewModelBuilder {
    * @return array<string, string|\Drupal\Core\Url|null>
    */
   private function buildEmptyState(AccountInterface $account, bool $noEvents): array {
-    $title = (string) $this->t('Welcome to your organiser dashboard');
-    $message = (string) $this->t('Create your first event to start selling tickets or collecting RSVPs.');
-    $actionLabel = (string) $this->t('Create event');
+    $copy = $this->readinessHelper->vendorDashboardEmptyStrings(!$noEvents);
+    $title = $copy['empty_title'];
+    $message = $copy['empty_message'];
+    $actionLabel = $copy['empty_action_label'];
     $url = NULL;
 
     if ($noEvents && $this->routeExists('myeventlane_event_studio.create')) {
@@ -609,8 +624,8 @@ final class VendorDashboardViewModelBuilder {
       }
     }
     elseif (!$noEvents) {
-      $message = (string) $this->t('Use the event list and workspace tabs to manage ticket sales, RSVPs, and orders.');
-      $actionLabel = (string) $this->t('View events');
+      $message = $copy['empty_message'];
+      $actionLabel = $copy['empty_action_label'];
       if ($this->routeExists('myeventlane_vendor.console.events')) {
         try {
           if ($this->accessManager->checkNamedRoute('myeventlane_vendor.console.events', [], $account, TRUE)->isAllowed()) {
@@ -629,6 +644,21 @@ final class VendorDashboardViewModelBuilder {
       'action_label' => $actionLabel,
       'url' => $url,
     ];
+  }
+
+  /**
+   * @param array<string, mixed> $model
+   */
+  private function heroShellHint(array $model): string {
+    $actions = $model['action_queue'] ?? [];
+    if (is_array($actions) && $actions !== []) {
+      return $this->readinessHelper->vendorHeroShellNeedsAttentionHint();
+    }
+    $events = $model['events'] ?? [];
+    if (is_array($events) && $events !== []) {
+      return $this->readinessHelper->vendorHeroShellEventsComfortableHint();
+    }
+    return $this->readinessHelper->vendorHeroShellLaunchHint();
   }
 
   private function routeExists(string $name): bool {

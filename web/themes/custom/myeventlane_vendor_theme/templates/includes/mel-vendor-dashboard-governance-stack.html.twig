@@ -1,0 +1,80 @@
+{#
+/**
+ * MEL governance stack for vendor dashboard — consumes page preprocess payloads only.
+ */
+#}
+{% set state = mel_state|default({}) %}
+{% set policy = mel_operational_policy|default({}) %}
+{% set experience = mel_experience|default({}) %}
+{% set explain = policy.explainability|default({}) %}
+{% set explain_lines = explain.lines|default([]) %}
+{% set readiness = state.readiness_summaries|default([]) %}
+{% set resume = experience.resume_candidates|default([]) %}
+{% set dp = mel_data_presentation_context|default({}) %}
+
+<div
+  class="mel-vendor-dashboard-governance mel-guidance-stack"
+  role="region"
+  aria-label="{{ 'Console guidance and readiness'|t }}"
+  data-mel-layout-profile="{{ dp.layout_profile|default('') }}"
+  data-mel-data-density="{{ dp.density|default('') }}"
+>
+  {% if readiness is iterable and readiness|length > 0 %}
+    <section class="mel-vendor-dashboard-governance__block mel-vendor-dashboard-governance__state" aria-labelledby="mel-vendor-gov-state-heading">
+      <h2 id="mel-vendor-gov-state-heading" class="mel-vendor-dashboard-governance__heading">{{ 'Readiness signals'|t }}</h2>
+      <ul class="mel-vendor-dashboard-governance__list">
+        {% for summary in readiness %}
+          <li class="mel-vendor-dashboard-governance__item">{{ summary }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if mel_workflow_region_primary is defined and mel_workflow_region_primary %}
+    <div class="mel-vendor-dashboard-governance__block mel-vendor-dashboard-governance__workflow-primary">
+      {{ mel_workflow_region_primary }}
+    </div>
+  {% endif %}
+
+  {% if mel_workflow_region_progress is defined and mel_workflow_region_progress %}
+    <div class="mel-vendor-dashboard-governance__block mel-vendor-dashboard-governance__workflow-progress">
+      {{ mel_workflow_region_progress }}
+    </div>
+  {% endif %}
+
+  {% if resume is iterable and resume|length > 0 %}
+    <section class="mel-vendor-dashboard-governance__block mel-vendor-dashboard-governance__experience" aria-labelledby="mel-vendor-gov-exp-heading">
+      <h2 id="mel-vendor-gov-exp-heading" class="mel-vendor-dashboard-governance__heading">{{ 'Continue where you left off'|t }}</h2>
+      <ul class="mel-vendor-dashboard-governance__list">
+        {% for item in resume %}
+          {% if item.experience_id is defined and item.experience_id %}
+            <li class="mel-vendor-dashboard-governance__item">{{ 'Resume path: @id'|t({'@id': item.experience_id}) }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if explain_lines is iterable and explain_lines|length > 0 %}
+    <section class="mel-vendor-dashboard-governance__block mel-vendor-dashboard-governance__policy" aria-labelledby="mel-vendor-gov-policy-heading">
+      <h2 id="mel-vendor-gov-policy-heading" class="mel-vendor-dashboard-governance__heading">{{ 'Operational notices'|t }}</h2>
+      <ul class="mel-vendor-dashboard-governance__list mel-vendor-dashboard-governance__list--policy">
+        {% for line in explain_lines %}
+          <li class="mel-vendor-dashboard-governance__item">{{ line }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if mel_intelligence_panel is defined and mel_intelligence_panel %}
+    <div class="mel-vendor-dashboard-governance__block mel-vendor-dashboard-governance__intelligence">
+      {{ mel_intelligence_panel }}
+    </div>
+  {% endif %}
+
+  {% if mel_observability_panel is defined and mel_observability_panel %}
+    <div class="mel-vendor-dashboard-governance__block mel-vendor-dashboard-governance__observability">
+      {{ mel_observability_panel }}
+    </div>
+  {% endif %}
+</div>

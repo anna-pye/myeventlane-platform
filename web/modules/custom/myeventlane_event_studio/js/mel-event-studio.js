@@ -209,8 +209,284 @@
   /** @type {WeakMap<HTMLFormElement, number>} */
   var melBuilderCardFocusRafIds = new WeakMap();
 
+  /** @type {WeakMap<HTMLFormElement, Record<string, unknown>>} */
+  var melGovernanceRuntimeByForm = new WeakMap();
+
+  /** @type {WeakMap<HTMLFormElement, Set<string>>} */
+  var melGovernancePendingComponentsByForm = new WeakMap();
+
+  /** @type {WeakMap<HTMLFormElement, number>} */
+  var melGovernanceRefreshGenerationByForm = new WeakMap();
+
   function getSettings() {
     return (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudio) || {};
+  }
+
+  /**
+   * @param {HTMLFormElement|null} [form]
+   * @return {Record<string, unknown>}
+   */
+  function getGovernanceSettings(form) {
+    var base =
+      (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudioGovernance) || {};
+    if (!form) {
+      return base;
+    }
+    var overlay = melGovernanceRuntimeByForm.get(form);
+    if (!overlay) {
+      return base;
+    }
+    return /** @type {Record<string, unknown>} */ (Object.assign({}, base, overlay));
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @param {Record<string, unknown>} delta
+   */
+  function mergeGovernanceRuntime(form, delta) {
+    if (!form || !delta || typeof delta !== 'object') {
+      return;
+    }
+    var cur = melGovernanceRuntimeByForm.get(form) || {};
+    melGovernanceRuntimeByForm.set(form, Object.assign({}, cur, delta));
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @return {Record<string, unknown>}
+   */
+  function governanceBaselineSnapshot(form) {
+    var base =
+      (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudioGovernance) || {};
+    var overlay = melGovernanceRuntimeByForm.get(form) || {};
+    return /** @type {Record<string, unknown>} */ (Object.assign({}, base, overlay));
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @return {Promise<void>}
+   */
+  function fetchGovernanceIncrementalRefresh(form) {
+    var studio = getSettings();
+    var url = studio.urls && studio.urls.governanceRefresh;
+    if (!url || !form) {
+      return Promise.resolve();
+    }
+    var baseGov =
+      (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudioGovernance) || {};
+    if (!baseGov.enabled) {
+      return Promise.resolve();
+    }
+    var baseline = governanceBaselineSnapshot(form);
+    return melGetCsrfToken()
+      .then(function (token) {
+        if (!token) {
+          return Promise.reject(new Error('empty_csrf_token'));
+        }
+        return fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': token,
+          },
+          body: JSON.stringify({ baseline: baseline }),
+        });
+      })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, status: response.status, data: data };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.data || !result.data.ok) {
+          return;
+        }
+        var d = result.data.delta;
+        if (d && typeof d === 'object') {
+          mergeGovernanceRuntime(form, /** @type {Record<string, unknown>} */ (d));
+        }
+      })
+      .catch(function (err) {
+        if (window.console && window.console.warn) {
+          window.console.warn('Event Studio governance refresh failed.', err);
+        }
+      });
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @param {Record<string, unknown>} urls
+   */
+  function updateGovernanceUrls(form, urls) {
+    if (!form || !urls || typeof urls !== 'object') {
+      return;
+    }
+    var studio = getSettings();
+    studio.urls = studio.urls || {};
+    if (urls.governanceRefresh) {
+      studio.urls.governanceRefresh = String(urls.governanceRefresh);
+    }
+    if (urls.governanceComponents && typeof urls.governanceComponents === 'object') {
+      studio.urls.governanceComponents = Object.assign(
+        {},
+        studio.urls.governanceComponents || {},
+        urls.governanceComponents,
+      );
+    }
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @param {string[]} components
+   */
+  function markGovernanceComponentsDirty(form, components) {
+    if (!form || !components || !components.length) {
+      return;
+    }
+    var set = melGovernancePendingComponentsByForm.get(form);
+    if (!set) {
+      set = new Set();
+      melGovernancePendingComponentsByForm.set(form, set);
+    }
+    components.forEach(function (component) {
+      set.add(component);
+    });
+  }
+
+  /**
+   * @param {Event} event
+   * @return {string[]}
+   */
+  function governanceComponentsForEvent(event) {
+    var target = event && event.target && event.target.nodeType === 1 ? event.target : null;
+    if (!target) {
+      return ['state', 'workflow'];
+    }
+    var name = String(target.getAttribute('name') || target.id || '');
+    if (/(ticket|product|external_url|field_event_type|rsvp|donation)/.test(name)) {
+      return ['workflow', 'state'];
+    }
+    if (/(venue|location|start_date|end_date|sales|publish)/.test(name)) {
+      return ['workflow', 'state'];
+    }
+    if (/(onboarding|payout|vendor)/.test(name)) {
+      return ['continuity', 'workflow'];
+    }
+    if (/(moderation|status|visibility|summary|body|title|category|image|highlight)/.test(name)) {
+      return ['state', 'intelligence'];
+    }
+    return ['state', 'intelligence'];
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @return {string[]}
+   */
+  function consumeGovernanceComponents(form) {
+    var set = melGovernancePendingComponentsByForm.get(form);
+    if (!set || !set.size) {
+      return ['state', 'workflow'];
+    }
+    var out = Array.from(set);
+    set.clear();
+    return out;
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @param {string[]} components
+   * @return {Promise<void>}
+   */
+  function fetchGovernanceComponents(form, components) {
+    var gov = getGovernanceSettings(form);
+    if (!form || !gov.enabled || !components || !components.length) {
+      return Promise.resolve();
+    }
+    var studio = getSettings();
+    var urls = (studio.urls && studio.urls.governanceComponents) || {};
+    if (!urls || typeof urls !== 'object') {
+      return Promise.resolve();
+    }
+    var generation = (melGovernanceRefreshGenerationByForm.get(form) || 0) + 1;
+    melGovernanceRefreshGenerationByForm.set(form, generation);
+    var unique = Array.from(new Set(components)).filter(function (component) {
+      return !!urls[component];
+    });
+    if (!unique.length) {
+      return Promise.resolve();
+    }
+
+    return melGetCsrfToken()
+      .then(function (token) {
+        if (!token) {
+          return Promise.reject(new Error('empty_csrf_token'));
+        }
+        return Promise.all(
+          unique.map(function (component) {
+            return fetch(String(urls[component]), {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                Accept: 'application/json',
+                'X-CSRF-Token': token,
+              },
+            })
+              .then(function (response) {
+                return response.json().then(function (data) {
+                  return { ok: response.ok, status: response.status, data: data };
+                });
+              })
+              .then(function (result) {
+                if (melGovernanceRefreshGenerationByForm.get(form) !== generation) {
+                  return;
+                }
+                if (!result.ok || !result.data || !result.data.ok || !result.data.html) {
+                  return;
+                }
+                replaceGovernanceComponent(form, String(result.data.component || component), String(result.data.html));
+              });
+          }),
+        );
+      })
+      .then(function () {})
+      .catch(function (err) {
+        if (window.console && window.console.warn) {
+          window.console.warn('Event Studio governance component refresh failed.', err);
+        }
+      });
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @param {string} component
+   * @param {string} html
+   */
+  function replaceGovernanceComponent(form, component, html) {
+    if (!component || !html) {
+      return;
+    }
+    var shell = form ? form.closest('[data-mel-studio-shell="1"]') : document;
+    var current = shell.querySelector('[data-mel-governance-component="' + component + '"]');
+    if (!current) {
+      return;
+    }
+    var active = document.activeElement;
+    var focusId = active && current.contains(active) ? active.id || '' : '';
+    var template = document.createElement('template');
+    template.innerHTML = html.trim();
+    var next = template.content.firstElementChild;
+    if (!next) {
+      return;
+    }
+    current.replaceWith(next);
+    if (focusId) {
+      var replacementFocus = document.getElementById(focusId);
+      if (replacementFocus && replacementFocus.focus) {
+        replacementFocus.focus({ preventScroll: true });
+      }
+    }
   }
 
   function formRoot(form) {
@@ -2618,6 +2894,9 @@
     if (!el || !form) {
       return;
     }
+    if (getGovernanceSettings(form).enabled) {
+      return;
+    }
     var rows = buildStructuredInsights(form);
     if (!rows || !rows.length || !rows[0].text) {
       el.textContent = '';
@@ -2630,6 +2909,9 @@
   function melUpdatePrimaryCta(form) {
     var btn = document.getElementById('mel-builder-primary-cta');
     if (!btn || !form) {
+      return;
+    }
+    if (getGovernanceSettings(form).enabled) {
       return;
     }
     var rows = buildStructuredInsights(form);
@@ -2769,6 +3051,9 @@
   function updateInsightsChecklist(form) {
     var insights = document.getElementById('mel-insights-list');
     if (!insights) {
+      return;
+    }
+    if (getGovernanceSettings(form).enabled) {
       return;
     }
     var items = buildStructuredInsights(form);
@@ -4112,6 +4397,7 @@
     var init = getSettings().initial || {};
     var str = getSettings().strings || {};
     var root = formRoot(form);
+    var governanceEnabled = !!getGovernanceSettings(form).enabled;
 
     syncTicketBuilderEventType(form);
     syncTicketTiersFromDomToHidden(form);
@@ -4137,7 +4423,7 @@
     updateFooterCtaState(form);
 
     var pr = document.getElementById('mel-publish-readiness');
-    if (pr) {
+    if (pr && !governanceEnabled) {
       pr.textContent = publishReadiness(form, init, str);
     }
 
@@ -4941,35 +5227,43 @@
 
         form.addEventListener(
           'input',
-          function () {
+          function (e) {
             setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+            markGovernanceComponentsDirty(form, governanceComponentsForEvent(e));
           },
           true,
         );
         form.addEventListener(
           'change',
-          function () {
+          function (e) {
             setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+            markGovernanceComponentsDirty(form, governanceComponentsForEvent(e));
           },
           true,
         );
 
         var melBuilderShell = form.querySelector('[data-mel-builder="1"]');
-        if (melBuilderShell) {
-          var primaryCta = melBuilderShell.querySelector('#mel-builder-primary-cta');
-          if (primaryCta && !primaryCta.dataset.melBuilderBound) {
-            primaryCta.dataset.melBuilderBound = '1';
-            primaryCta.addEventListener('click', function (e) {
-              e.preventDefault();
-              syncAiControlsToForm(form);
-              var jumpName = primaryCta.getAttribute('data-mel-insight-target');
-              if (jumpName) {
-                melJumpToField(form, jumpName);
-              } else {
-                melScrollToSelector('#mel-step-publish');
-              }
-            });
-          }
+        if (melBuilderShell && !melBuilderShell.dataset.melBuilderPrimaryCtaBound) {
+          melBuilderShell.dataset.melBuilderPrimaryCtaBound = '1';
+          melBuilderShell.addEventListener('click', function (e) {
+            var primaryCta = e.target.closest('#mel-builder-primary-cta');
+            if (!primaryCta || !melBuilderShell.contains(primaryCta)) {
+              return;
+            }
+            e.preventDefault();
+            syncAiControlsToForm(form);
+            var workflowHref = primaryCta.getAttribute('data-mel-primary-cta-href');
+            if (workflowHref) {
+              window.location.href = workflowHref;
+              return;
+            }
+            var jumpName = primaryCta.getAttribute('data-mel-insight-target');
+            if (jumpName) {
+              melJumpToField(form, jumpName);
+            } else {
+              melScrollToSelector('#mel-step-publish');
+            }
+          });
         }
 
         if (!form.dataset.melBuilderValidationUiBound) {
@@ -5259,7 +5553,17 @@
                     form.appendChild(hidden);
                   }
                   hidden.value = String(nid);
-                  refreshIntelligence(form);
+                  if (result.data.governance_urls && typeof result.data.governance_urls === 'object') {
+                    updateGovernanceUrls(form, result.data.governance_urls);
+                  }
+                  var governanceComponents = consumeGovernanceComponents(form);
+                  fetchGovernanceIncrementalRefresh(form)
+                    .then(function () {
+                      return fetchGovernanceComponents(form, governanceComponents);
+                    })
+                    .finally(function () {
+                      refreshIntelligence(form);
+                    });
                   setFormState(form, 'mel-studio--saved', Drupal.t('Draft saved'));
                   window.setTimeout(function () {
                     if (!form.classList.contains('mel-studio--dirty')) {
@@ -5310,6 +5614,7 @@
           if (hLng && d.lng != null) {
             hLng.value = String(d.lng);
           }
+          markGovernanceComponentsDirty(form, ['workflow', 'state']);
           refreshIntelligence(form);
         });
       });

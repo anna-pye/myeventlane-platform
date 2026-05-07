@@ -63,6 +63,7 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
 
     $is_studio = $route_name === 'myeventlane_event_studio.create'
       || str_starts_with($route_name, 'myeventlane_event_studio.edit')
+      || $route_name === 'myeventlane_event_studio.governance_refresh'
       || $route_name === 'myeventlane_vendor.manage_event.edit'
       || $route_name === 'myeventlane_vendor.console.event_editor';
     if (!$is_studio) {

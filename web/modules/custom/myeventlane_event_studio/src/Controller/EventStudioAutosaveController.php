@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -136,7 +137,40 @@ final class EventStudioAutosaveController {
     return new JsonResponse([
       'ok' => TRUE,
       'nid' => $saved_node?->id(),
+      'governance_urls' => $saved_node instanceof NodeInterface ? $this->buildGovernanceUrls($saved_node) : [],
     ]);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildGovernanceUrls(NodeInterface $node): array {
+    $nid = (int) $node->id();
+    if ($nid <= 0) {
+      return [];
+    }
+
+    return [
+      'governanceRefresh' => Url::fromRoute('myeventlane_event_studio.governance_refresh', ['node' => $nid])->toString(),
+      'governanceComponents' => [
+        'intelligence' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+          'node' => $nid,
+          'component' => 'intelligence',
+        ])->toString(),
+        'workflow' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+          'node' => $nid,
+          'component' => 'workflow',
+        ])->toString(),
+        'state' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+          'node' => $nid,
+          'component' => 'state',
+        ])->toString(),
+        'continuity' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+          'node' => $nid,
+          'component' => 'continuity',
+        ])->toString(),
+      ],
+    ];
   }
 
   /**

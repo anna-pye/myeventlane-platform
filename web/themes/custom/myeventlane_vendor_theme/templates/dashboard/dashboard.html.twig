@@ -16,15 +16,16 @@
 {% set analytics_items = analytics_summary.items|default([]) %}
 {% set dashboard_vendor_id = vendor.id|default(null) %}
 
-{% set hero_body %}
-  {% if actions is iterable and actions|length > 0 %}
-    {{ 'Start with the most important task below.'|t }}
-  {% elseif model_events is iterable and model_events|length > 0 %}
-    {{ 'Your events are set up. Keep an eye on bookings and upcoming activity.'|t }}
-  {% else %}
-    {{ 'Create your first event and start taking RSVPs or selling tickets.'|t }}
-  {% endif %}
-{% endset %}
+{% set hero_body = '' %}
+{% if model.hero_shell_hint is defined and model.hero_shell_hint %}
+  {% set hero_body = model.hero_shell_hint %}
+{% elseif actions is iterable and actions|length > 0 %}
+  {% set hero_body = 'Start with the most important task below.'|t %}
+{% elseif model_events is iterable and model_events|length > 0 %}
+  {% set hero_body = 'Your events are set up. Keep an eye on bookings and upcoming activity.'|t %}
+{% else %}
+  {% set hero_body = 'Create your first event and start taking RSVPs or selling tickets.'|t %}
+{% endif %}
 
 {% set events_empty = model_events is not iterable or model_events|length == 0 %}
 {% set hero_primary_url = NULL %}
@@ -132,9 +133,9 @@
               <span class="mel-vendor-dashboard-v2__readiness-label">{{ item.label|default('') }}</span>
               <span class="mel-vendor-dashboard-v2__readiness-status{% if done %} mel-vendor-dashboard-v2__readiness-status--done{% else %} mel-vendor-dashboard-v2__readiness-status--todo{% endif %}">
                 {% if done %}
-                  {{ 'Done'|t }}
+                  {{ readiness.row_complete_label|default('Complete'|t) }}
                 {% else %}
-                  {{ 'Needs attention'|t }}
+                  {{ readiness.row_incomplete_label|default('Action required'|t) }}
                 {% endif %}
               </span>
             {% endset %}
@@ -164,9 +165,10 @@
       <p class="mel-vendor-dashboard-v2__section-sub">{{ 'Based on published events you manage.'|t }}</p>
     </div>
     <div class="mel-vendor-dashboard-v2__kpi-grid">
-      {% for kpi in kpis %}
-        {% set ksev = kpi.severity|default('neutral') %}
-        {% set kpi_inner %}
+        {% for kpi in kpis %}
+          {% set ksev = kpi.severity|default('neutral') %}
+          {% set kpi_contract = kpi.mel_data_presentation_contract|default('') %}
+          {% set kpi_inner %}
           <span class="mel-vendor-dashboard-v2__kpi-label">{{ kpi.label|default('') }}</span>
           <span class="mel-vendor-dashboard-v2__kpi-value">{{ kpi.value|default('—') }}</span>
           {% if kpi.context is defined and kpi.context %}
@@ -174,9 +176,9 @@
           {% endif %}
         {% endset %}
         {% if kpi.url is defined and kpi.url %}
-          <a class="mel-vendor-dashboard-v2__kpi mel-vendor-dashboard-v2__kpi--linked mel-vendor-dashboard-v2__kpi--{{ ksev }}" href="{{ kpi.url }}">{{ kpi_inner }}</a>
+          <a class="mel-vendor-dashboard-v2__kpi mel-vendor-dashboard-v2__kpi--linked mel-vendor-dashboard-v2__kpi--{{ ksev }}" href="{{ kpi.url }}" {% if kpi_contract %}data-mel-presentation-contract="{{ kpi_contract }}" data-mel-component-contract="{{ kpi.mel_component_contract|default('') }}"{% endif %}>{{ kpi_inner }}</a>
         {% else %}
-          <article class="mel-vendor-dashboard-v2__kpi mel-vendor-dashboard-v2__kpi--{{ ksev }}">{{ kpi_inner }}</article>
+          <article class="mel-vendor-dashboard-v2__kpi mel-vendor-dashboard-v2__kpi--{{ ksev }}" {% if kpi_contract %}data-mel-presentation-contract="{{ kpi_contract }}" data-mel-component-contract="{{ kpi.mel_component_contract|default('') }}"{% endif %}>{{ kpi_inner }}</article>
         {% endif %}
       {% else %}
         {% if dashboard_vendor_id %}

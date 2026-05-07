@@ -73,7 +73,10 @@
         <div class="mel-shell-layout mel-shell-layout--with-utility">
           <div class="mel-shell-layout__main">
             {% if is_dashboard_route %}
-              <section class="mel-dashboard-page">
+              <section class="mel-dashboard-page mel-dashboard-page--governed">
+                {% if mel_surface|default('') == 'vendor' %}
+                  {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
+                {% endif %}
                 {{ page.content }}
               </section>
             {% elseif page.mel_vendor_route_tabs %}
@@ -88,7 +91,10 @@
         </div>
       {% else %}
         {% if is_dashboard_route %}
-          <section class="mel-dashboard-page">
+          <section class="mel-dashboard-page mel-dashboard-page--governed">
+            {% if mel_surface|default('') == 'vendor' %}
+              {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
+            {% endif %}
             {{ page.content }}
           </section>
         {% elseif page.mel_vendor_route_tabs %}

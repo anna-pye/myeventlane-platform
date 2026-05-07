@@ -101,6 +101,39 @@ myeventlane_event_studio.autosave:
     _permission: 'access content'
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
+myeventlane_event_studio.governance_refresh:
+  path: '/vendor/events/{node}/studio/governance-refresh'
+  defaults:
+    _controller: myeventlane_event_studio.governance_refresh_controller:refresh
+  methods: [POST]
+  requirements:
+    _permission: 'access content'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _entity_access: 'node.update'
+    _csrf_request_header_token: 'TRUE'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.governance_component:
+  path: '/vendor/events/{node}/studio/component/{component}'
+  defaults:
+    _controller: myeventlane_event_studio.governance_component_controller:render
+  methods: [POST]
+  requirements:
+    _permission: 'access content'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _entity_access: 'node.update'
+    _csrf_request_header_token: 'TRUE'
+    node: \d+
+    component: 'intelligence|workflow|state|continuity'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
 # Header CSRF: JS sends X-CSRF-Token from GET /session/token (same salt as
 # CsrfRequestHeaderAccessCheck). Do NOT use _csrf_token — that only validates ?token=.
 myeventlane_event_studio.ai_generate:
