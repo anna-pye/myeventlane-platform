@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Governance Kernel slice for CI (deterministic, minimal module graph).
+  Run from web/: cd web && ../vendor/bin/phpunit -c phpunit-governance.xml
+
+  Full surface Kernel coverage (broader graph): run the directory explicitly locally.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="core/tests/bootstrap.php"
+         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd">
+  <php>
+    <ini name="error_reporting" value="32767"/>
+    <ini name="memory_limit" value="-1"/>
+    <env name="SIMPLETEST_DB" value="sqlite://localhost/:memory:"/>
+  </php>
+  <testsuites>
+    <testsuite name="governance-kernel">
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelGovernanceSnapshotKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelGovernanceDebugKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelOperationalPolicyKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelSurfaceRouteGovernanceKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelIntelligenceDeterminismKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Unit/MelGovernancePresentationSanitizerTest.php</file>
+      <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelCheckoutAttendeeRequirementResolverTest.php</file>
+      <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelCheckoutSummaryPresenterTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelVendorDashboardReadinessGovernanceKernelTest.php</file>
+      <file>modules/custom/myeventlane_account/tests/src/Kernel/CustomerHubPageAccountKernelTest.php</file>
+      <!-- MEL Attendee Operations Layer (state, presenter, access, check-in, export builder) -->
+      <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelAttendeeAttendanceStateTest.php</file>
+      <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelAttendeeOperationsPresenterTest.php</file>
+      <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelAttendeeOperationsAccessTest.php</file>
+      <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelAttendeeCheckinManagerTest.php</file>
+      <file>modules/custom/myeventlane_event_attendees/tests/src/Unit/MelAttendeeExportBuilderTest.php</file>
+    </testsuite>
+  </testsuites>
+</phpunit>

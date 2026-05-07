@@ -1,0 +1,25 @@
+uuid: 87e7801e-0682-4d0b-9d2b-4f6d70c8fcf8
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.account
+  module:
+    - system
+  theme:
+    - mel_maintenance
+id: mel_maintenance_useraccountmenu
+theme: mel_maintenance
+region: header
+weight: -7
+provider: null
+plugin: 'system_menu_block:account'
+settings:
+  id: 'system_menu_block:account'
+  label: 'User account menu'
+  label_display: '0'
+  provider: system
+  level: 1
+  depth: null
+  expand_all_items: false
+visibility: {  }

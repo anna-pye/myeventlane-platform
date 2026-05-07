@@ -87,7 +87,7 @@ services:
       - '@plugin.manager.mail'
       - '@renderer'
       - '@flag'
-      - '@myeventlane_boost.manager'
+      - '@?myeventlane_boost.manager'
       - '@datetime.time'
 
   myeventlane_core.category_digest_cron:
@@ -243,7 +243,7 @@ services:
     arguments:
       - '@database'
       - '@entity_type.manager'
-      - '@myeventlane_boost.manager'
+      - '@?myeventlane_boost.manager'
 
   myeventlane_core.homepage_organiser:
     class: Drupal\myeventlane_core\Service\HomepageOrganiserService

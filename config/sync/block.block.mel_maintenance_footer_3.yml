@@ -1,0 +1,25 @@
+uuid: 54753946-d3f1-49ea-bb37-a716246d0cd6
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.footer
+  module:
+    - system
+  theme:
+    - mel_maintenance
+id: mel_maintenance_footer_3
+theme: mel_maintenance
+region: header
+weight: -7
+provider: null
+plugin: 'system_menu_block:footer'
+settings:
+  id: 'system_menu_block:footer'
+  label: Footer
+  label_display: '0'
+  provider: system
+  level: 1
+  depth: null
+  expand_all_items: false
+visibility: {  }

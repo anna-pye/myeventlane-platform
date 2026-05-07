@@ -74,6 +74,11 @@
   },
   "minimum-stability": "stable",
   "prefer-stable": true,
+  "scripts": {
+    "governance:test": "cd web && ../vendor/bin/phpunit -c phpunit-governance.xml",
+    "governance:audit": "php scripts/governance/architecture-audit.php && php scripts/governance/surface-audit.php && php scripts/governance/template-parity-audit.php",
+    "governance:snapshot:update": "cd web && MEL_UPDATE_GOVERNANCE_SNAPSHOTS=1 ../vendor/bin/phpunit -c phpunit-governance.xml --filter testCheckoutAnonymousPublicSnapshot"
+  },
   "config": {
     "allow-plugins": {
       "composer/installers": true,

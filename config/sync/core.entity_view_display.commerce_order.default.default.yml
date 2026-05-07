@@ -149,6 +149,7 @@ content:
     weight: 5
     region: content
 hidden:
+  field_mel_donation: true
   order_number: true
   search_api_excerpt: true
   total_paid: true

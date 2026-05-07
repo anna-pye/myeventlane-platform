@@ -1,0 +1,23 @@
+uuid: af0648b0-176d-47d1-9582-d60c4643f280
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - mel_maintenance
+id: mel_maintenance_footer_brand
+theme: mel_maintenance
+region: header
+weight: -5
+provider: null
+plugin: system_branding_block
+settings:
+  id: system_branding_block
+  label: 'Site branding (footer)'
+  label_display: '0'
+  provider: system
+  use_site_logo: true
+  use_site_name: false
+  use_site_slogan: true
+visibility: {  }

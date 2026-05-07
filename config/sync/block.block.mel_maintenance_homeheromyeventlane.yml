@@ -1,0 +1,25 @@
+uuid: d53060c4-2e84-434c-be5b-57bd6cf82cbd
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_front
+    - system
+  theme:
+    - mel_maintenance
+id: mel_maintenance_homeheromyeventlane
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: myeventlane_home_hero
+settings:
+  id: myeventlane_home_hero
+  label: 'Home Hero (MyEventLane)'
+  label_display: '0'
+  provider: myeventlane_front
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: "<front>\r\n"

@@ -32,6 +32,7 @@ final class MelKernelAuthRouteSilencer {
   public static function shouldBypassAuthAccountRoutes(Request $request): bool {
     $path = $request->getPathInfo();
     return str_starts_with($path, '/user/login')
+      || str_starts_with($path, '/user/register')
       || str_starts_with($path, '/user/logout')
       || str_starts_with($path, '/user/password')
       || str_starts_with($path, '/user/reset');

@@ -1,0 +1,30 @@
+uuid: ac4b21fd-b9c7-4432-9aa7-b4781f3b60e2
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.front_recommended_events
+  module:
+    - system
+    - views
+  theme:
+    - mel_maintenance
+id: mel_maintenance_views_block__front_recommended_events_block_1
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: 'views_block:front_recommended_events-block_1'
+settings:
+  id: 'views_block:front_recommended_events-block_1'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

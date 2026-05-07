@@ -36,6 +36,8 @@ function myeventlane_core_theme(): array {
     'myeventlane_my_categories' => [
       'variables' => [
         'followed_categories' => [],
+        'mel_category_follow_empty' => NULL,
+        'mel_category_follow_section_no_new_events' => NULL,
       ],
       'template' => 'myeventlane-my-categories',
     ],

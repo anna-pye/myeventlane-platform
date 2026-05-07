@@ -12,11 +12,9 @@
   <h1 class="mel-page-title">{{ 'My Categories'|t }}</h1>
 
   {% if followed_categories is empty %}
-    <div class="mel-card mel-card--empty">
-      <p>{{ 'You are not following any categories yet.'|t }}</p>
-      <p>{{ 'Browse events and click "Follow" on categories you\'re interested in to see new events here.'|t }}</p>
-      <a href="{{ path('<front>') }}" class="mel-btn mel-btn-primary">{{ 'Browse Events'|t }}</a>
-    </div>
+    {% if mel_category_follow_empty is defined and mel_category_follow_empty %}
+      {{ mel_category_follow_empty }}
+    {% endif %}
   {% else %}
     <p class="mel-intro-text">{{ 'Here are the categories you follow and new events this week:'|t }}</p>
 
@@ -81,9 +79,9 @@
             {% endfor %}
           </div>
         {% else %}
-          <div class="mel-card mel-card--empty">
-            <p>{{ 'No new events in this category this week.'|t }}</p>
-          </div>
+          {% if mel_category_follow_section_no_new_events is defined and mel_category_follow_section_no_new_events %}
+            {{ mel_category_follow_section_no_new_events }}
+          {% endif %}
         {% endif %}
       </section>
     {% endfor %}

@@ -1,0 +1,25 @@
+uuid: 7951c91c-d8bb-4bcc-a40b-f00ae162e5fd
+langcode: en
+status: false
+dependencies:
+  config:
+    - system.menu.main
+  module:
+    - system
+  theme:
+    - mel_maintenance
+id: mel_maintenance_mainmenu
+theme: mel_maintenance
+region: header
+weight: -8
+provider: null
+plugin: 'system_menu_block:main'
+settings:
+  id: 'system_menu_block:main'
+  label: 'Main Menu'
+  label_display: '0'
+  provider: system
+  level: 1
+  depth: null
+  expand_all_items: false
+visibility: {  }

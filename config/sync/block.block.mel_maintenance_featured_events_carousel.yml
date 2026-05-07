@@ -1,0 +1,30 @@
+uuid: 2aa37030-e55f-41fe-96d0-a64c091dc342
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.featured_events_carousel
+  module:
+    - system
+    - views
+  theme:
+    - mel_maintenance
+id: mel_maintenance_featured_events_carousel
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: 'views_block:featured_events_carousel-featured_events_carousel'
+settings:
+  id: 'views_block:featured_events_carousel-featured_events_carousel'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

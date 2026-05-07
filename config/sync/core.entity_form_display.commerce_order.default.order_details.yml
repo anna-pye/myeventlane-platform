@@ -30,6 +30,7 @@ hidden:
   billing_profile: true
   coupons: true
   customer_comments: true
+  field_mel_donation: true
   ip_address: true
   order_items: true
   order_number: true

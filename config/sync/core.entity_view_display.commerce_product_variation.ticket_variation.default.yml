@@ -59,8 +59,8 @@ hidden:
   field_collect_questions: true
   field_limit_per_order: true
   field_show_remaining: true
-  field_ticket_end: true
   field_ticket_description: true
+  field_ticket_end: true
   field_ticket_start: true
   langcode: true
   list_price: true

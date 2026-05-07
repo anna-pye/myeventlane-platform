@@ -1,0 +1,30 @@
+uuid: fec5fc5d-7d58-4098-ab5a-ab34655771bb
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.front_discover_events
+  module:
+    - system
+    - views
+  theme:
+    - mel_maintenance
+id: mel_maintenance_front_discover_events
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: 'views_block:front_discover_events-block_discover'
+settings:
+  id: 'views_block:front_discover_events-block_discover'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

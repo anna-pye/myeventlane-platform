@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "description": "Canonical vs theme-override template pairs for MEL governance parity tooling. Modes: theme_delegates_include (override must only include module template), parallel_markup (normalized body must match unless intentional_divergence). The parity audit script emits duplicate_path_warnings when two registry pairs point at the same canonical or override filesystem path (accidental duplicate ownership). governance_leakage_guard scans theme Twig for staff-only intelligence explainability fragments that must remain server-gated.",
+  "governance_leakage_guard": {
+    "roots_relative": [
+      "web/themes/custom/myeventlane_theme/templates",
+      "web/themes/custom/myeventlane_vendor_theme/templates"
+    ],
+    "forbidden_substrings": [
+      "Why you are seeing this",
+      "Signals evaluated",
+      "trigger_signal_keys"
+    ]
+  },
+  "pairs": [
+    {
+      "id": "customer_order_detail",
+      "canonical_module": "myeventlane_checkout_flow",
+      "canonical_relative": "templates/myeventlane-order-detail.html.twig",
+      "override_theme": "myeventlane_theme",
+      "override_relative": "templates/myeventlane-order-detail.html.twig",
+      "mode": "theme_delegates_include",
+      "include_target": "@myeventlane_checkout_flow/templates/myeventlane-order-detail.html.twig",
+      "canonical_owner": "myeventlane_checkout_flow (commerce customer self-service)",
+      "override_owner": "myeventlane_theme (presentation shim; must stay thin)",
+      "intentional_divergence": false
+    },
+    {
+      "id": "customer_my_tickets",
+      "canonical_module": "myeventlane_checkout_flow",
+      "canonical_relative": "templates/myeventlane-my-tickets.html.twig",
+      "override_theme": "myeventlane_theme",
+      "override_relative": "templates/myeventlane-my-tickets.html.twig",
+      "mode": "theme_delegates_include",
+      "include_target": "@myeventlane_checkout_flow/templates/myeventlane-my-tickets.html.twig",
+      "canonical_owner": "myeventlane_checkout_flow",
+      "override_owner": "myeventlane_theme",
+      "intentional_divergence": false
+    },
+    {
+      "id": "vendor_attendees_dashboard",
+      "canonical_module": "myeventlane_checkout_flow",
+      "canonical_relative": "templates/myeventlane-vendor-attendees-dashboard.html.twig",
+      "override_theme": "myeventlane_theme",
+      "override_relative": "templates/myeventlane-vendor-attendees-dashboard.html.twig",
+      "mode": "theme_delegates_include",
+      "include_target": "@myeventlane_checkout_flow/templates/myeventlane-vendor-attendees-dashboard.html.twig",
+      "canonical_owner": "myeventlane_checkout_flow",
+      "override_owner": "myeventlane_theme",
+      "intentional_divergence": false
+    },
+    {
+      "id": "customer_rsvp_thankyou",
+      "canonical_module": "myeventlane_rsvp",
+      "canonical_relative": "templates/mel-rsvp-thankyou.html.twig",
+      "override_theme": "myeventlane_theme",
+      "override_relative": "templates/rsvp/mel-rsvp-thankyou.html.twig",
+      "mode": "theme_delegates_include",
+      "include_target": "@myeventlane_rsvp/templates/mel-rsvp-thankyou.html.twig",
+      "canonical_owner": "myeventlane_rsvp (continuity payload + MelCustomerContinuityPresenter)",
+      "override_owner": "myeventlane_theme",
+      "intentional_divergence": false
+    }
+  ]
+}
