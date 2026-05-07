@@ -1,0 +1,10 @@
+// ==========================================================================
+// MEL operational policy shell hooks (tokens only; interpretation layer)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+// Optional layout spacing when policy profile is present on body (no new palette).
+body[data-mel-policy-profile] {
+  scroll-padding-top: spacing.mel-space(1);
+}

@@ -130,6 +130,36 @@ final class OnboardingManager {
   }
 
   /**
+   * Loads customer-track onboarding state for a user when it exists.
+   *
+   * Read-only: does not create rows. Used for workflow/intelligence signals.
+   *
+   * @param int $uid
+   *   Drupal user ID.
+   *
+   * @return \Drupal\myeventlane_core\Entity\OnboardingStateInterface|null
+   *   Newest customer-track state, or NULL if none.
+   */
+  public function loadCustomerStateByUid(int $uid): ?OnboardingStateInterface {
+    if ($uid <= 0) {
+      return NULL;
+    }
+    $storage = $this->getStorage();
+    $existing = $storage->loadByProperties([
+      'uid' => $uid,
+      'track' => OnboardingStateInterface::TRACK_CUSTOMER,
+    ]);
+    if ($existing === []) {
+      return NULL;
+    }
+    $state = reset($existing);
+    if (is_array($state)) {
+      $state = reset($state);
+    }
+    return $state instanceof OnboardingStateInterface ? $state : NULL;
+  }
+
+  /**
    * Loads the latest (newest by id) onboarding state for a vendor.
    *
    * Returns a single state deterministically. Logs a one-time warning if

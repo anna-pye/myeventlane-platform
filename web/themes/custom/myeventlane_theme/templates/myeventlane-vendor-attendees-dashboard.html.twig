@@ -1,99 +1,10 @@
 {#
 /**
  * @file
- * Template for vendor Attendees & Sales dashboard.
+ * Theme override — delegates to myeventlane_checkout_flow (MEL template parity).
  *
- * Available variables:
- * - title: Page title
- * - events: (legacy) Array of event data - kept for backward compatibility
- * - mel_cards: Array of event card data keyed by event ID
- * - mel_kpis: { events, tickets_sold, revenue, upcoming }
+ * Event card markup remains owned by the checkout_flow component include.
  */
 #}
 
-<div class="mel-attendees-page mel-vendor-attendees-dashboard">
-  <div class="mel-page-header">
-    <h1 class="mel-page-title">{{ title }}</h1>
-    <p class="mel-page-description">
-      {{ 'View attendees and sales for your events.'|t }}
-    </p>
-  </div>
-
-  {% if mel_cards is not empty %}
-    <div class="mel-attendees-kpi-bar">
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Events'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">{{ mel_kpis.events }}</span>
-      </div>
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Tickets Sold'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">{{ mel_kpis.tickets_sold }}</span>
-      </div>
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Revenue'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">${{ mel_kpis.revenue }}</span>
-      </div>
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Upcoming'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">{{ mel_kpis.upcoming }}</span>
-      </div>
-    </div>
-
-    <div class="mel-attendees-event-cards">
-      {% for event_id, mel in mel_cards %}
-        {% include '@myeventlane_theme/components/mel-attendees-event-card.html.twig' with {
-          mel: mel
-        } only %}
-      {% endfor %}
-    </div>
-  {% elseif events is not empty %}
-    {# Fallback when mel_cards not provided (e.g. before cache clear) #}
-    <div class="mel-events-list mel-mt-6">
-      {% for event_data in events %}
-        <div class="mel-card mel-event-card mel-mt-4">
-          <div class="mel-card-body">
-            <div class="mel-event-header">
-              <h2 class="mel-event-title">
-                <a href="{{ event_data.url }}" class="mel-link">{{ event_data.title }}</a>
-              </h2>
-              {% if event_data.start_date %}
-                <div class="mel-event-date">📅 {{ event_data.start_date }}</div>
-              {% endif %}
-            </div>
-            <div class="mel-event-stats mel-mt-4">
-              <div class="mel-stat-row">
-                <div class="mel-stat-item">
-                  <div class="mel-stat-label">{{ 'Tickets Sold'|t }}</div>
-                  <div class="mel-stat-value">{{ event_data.tickets_sold }}</div>
-                </div>
-                <div class="mel-stat-item">
-                  <div class="mel-stat-label">{{ 'Attendees'|t }}</div>
-                  <div class="mel-stat-value">{{ event_data.attendee_count }}</div>
-                </div>
-                <div class="mel-stat-item">
-                  <div class="mel-stat-label">{{ 'Revenue'|t }}</div>
-                  <div class="mel-stat-value">${{ event_data.revenue|number_format(2) }}</div>
-                </div>
-              </div>
-            </div>
-            <div class="mel-event-actions mel-mt-4">
-              <a href="{{ url('myeventlane_checkin.page', {'node': event_data.id}) }}" class="mel-btn mel-btn-primary">✓ {{ 'Check In'|t }}</a>
-              <a href="{{ url('myeventlane_event_attendees.vendor_list', {'node': event_data.id}) }}" class="mel-btn mel-btn-secondary">{{ 'View Attendees'|t }}</a>
-              <a href="{{ url('myeventlane_views.attendee_csv', [], {'query': {'download_csv': event_data.id}}) }}" class="mel-btn mel-btn-secondary" target="_blank">📥 {{ 'Export CSV'|t }}</a>
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="mel-attendees-empty mel-empty-state mel-mt-6">
-      <div class="mel-card">
-        <div class="mel-card-body mel-attendees-empty__body">
-          <p class="mel-empty-message">
-            {{ "You don't have any events yet."|t }}
-          </p>
-        </div>
-      </div>
-    </div>
-  {% endif %}
-</div>
+{% include '@myeventlane_checkout_flow/templates/myeventlane-vendor-attendees-dashboard.html.twig' %}

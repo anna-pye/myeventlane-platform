@@ -1,0 +1,11 @@
+// ==========================================================================
+// MEL prioritisation / trace affordances (diagnostic styling hooks)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/typography' as typography;
+
+.mel-priorities-trace {
+  margin-top: spacing.mel-space(2);
+  font-size: typography.mel-font-size('sm');
+}

@@ -1,0 +1,20 @@
+uuid: edf35180-7676-40a5-aed8-b2f94499d7a1
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - mel_maintenance
+id: mel_maintenance_messages
+theme: mel_maintenance
+region: header
+weight: -50
+provider: null
+plugin: system_messages_block
+settings:
+  id: system_messages_block
+  label: 'Status messages'
+  label_display: '0'
+  provider: system
+visibility: {  }

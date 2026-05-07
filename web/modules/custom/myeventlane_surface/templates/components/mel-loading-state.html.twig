@@ -1,0 +1,11 @@
+{#
+/**
+ * @file
+ * Loading indicator — live region semantics from preprocess.
+ */
+#}
+<div{{ attributes }}>
+  {% if message %}
+    <span class="mel-loading-state__message">{{ message }}</span>
+  {% endif %}
+</div>

@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Metric tile — labels and values are rendered from upstream (no queries here).
+ */
+#}
+<div{{ attributes }}>
+  {% if loading %}
+    <div class="mel-metric-card__loading">
+      {{ 'Loading…'|t }}
+    </div>
+  {% elseif empty_message %}
+    <p class="mel-metric-card__empty">{{ empty_message }}</p>
+  {% else %}
+    <div class="mel-metric-card__label">{{ label }}</div>
+    <div class="mel-metric-card__value">{{ value }}</div>
+    {% if delta %}
+      {% set trend_class = trend ? 'mel-metric-card__delta--' ~ trend : 'mel-metric-card__delta--flat' %}
+      <div class="mel-metric-card__delta {{ trend_class }}">{{ delta }}</div>
+    {% endif %}
+    {% if status_variant %}
+      <span class="mel-metric-card__status mel-metric-card__status--{{ status_variant }}"></span>
+    {% endif %}
+  {% endif %}
+</div>

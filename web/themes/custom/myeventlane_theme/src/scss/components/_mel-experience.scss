@@ -1,0 +1,16 @@
+// ==========================================================================
+// MEL experience continuity shell hooks (orchestration metadata only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-experience-region {
+  margin: spacing.mel-space(4) 0;
+}
+
+.mel-experience-region__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(3);
+  align-items: center;
+}

@@ -1,0 +1,6 @@
+name: 'MEL kernel route fixtures'
+type: module
+description: 'Registers stub routes required by myeventlane_surface kernel tests (PathMatcher + Url::fromRoute).'
+core_version_requirement: ^11
+package: Testing
+hidden: true

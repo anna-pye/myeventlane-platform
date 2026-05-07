@@ -28,7 +28,7 @@ final class CategoryDigestGenerator {
     private readonly MailManagerInterface $mailManager,
     private readonly RendererInterface $renderer,
     private readonly FlagServiceInterface $flagService,
-    private readonly BoostManager $boostManager,
+    private readonly ?BoostManager $boostManager,
     private readonly TimeInterface $time,
   ) {}
 
@@ -141,8 +141,8 @@ final class CategoryDigestGenerator {
         $venue = $event->get('field_venue_name')->value;
       }
 
-      // Use canonical API to check boost status.
-      $isBoosted = $this->boostManager->isBoosted($event);
+      // Use canonical API to check boost status when Boost is enabled.
+      $isBoosted = $this->boostManager !== NULL && $this->boostManager->isBoosted($event);
 
       $eventsByCategory[$categoryId]['events'][] = [
         'id' => $event->id(),

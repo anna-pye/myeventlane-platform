@@ -106,7 +106,11 @@ services:
       - '@myeventlane_event_state.resolver'
       - '@myeventlane_commerce.ticket_availability'
       - '@myeventlane_event.ticket_type_manager'
-      - '@commerce_price.currency_formatter'
+      # Build intl formatter from repos — do not inject commerce_price.currency_formatter
+      # (lazy proxy still resolves that service and can self-cycle during container compile).
+      - '@commerce_price.number_format_repository'
+      - '@commerce_price.currency_repository'
+      - '@language_manager'
       - '@logger.channel.myeventlane_event'
 
   myeventlane_event.cta_resolver:

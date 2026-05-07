@@ -1,0 +1,50 @@
+// ==========================================================================
+// MEL governed empty states — composes with utilities/_empty-states.scss
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+
+.mel-empty-state--governed {
+  padding: spacing.mel-space(8) spacing.mel-space(5);
+  margin: spacing.mel-space(4) 0;
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-xl;
+  box-shadow: shadows.$mel-shadow-sm;
+}
+
+.mel-empty-state__heading {
+  margin: 0 0 spacing.mel-space(3);
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+}
+
+.mel-empty-state__what,
+.mel-empty-state__why,
+.mel-empty-state__next {
+  margin: 0 0 spacing.mel-space(3);
+  color: colors.$mel-color-text-muted;
+  font-size: typography.mel-font-size(base);
+  line-height: typography.$mel-leading-relaxed;
+  max-width: 36rem;
+}
+
+.mel-empty-state__cta {
+  margin-top: spacing.mel-space(5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(3);
+}
+
+.mel-empty-state__illustration {
+  margin-bottom: spacing.mel-space(4);
+}
+
+[data-mel-surface='vendor'] .mel-empty-state--governed {
+  padding: spacing.mel-space(6) spacing.mel-space(4);
+}

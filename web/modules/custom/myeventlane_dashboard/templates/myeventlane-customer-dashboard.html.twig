@@ -77,11 +77,10 @@
       </div>
     </section>
   {% else %}
-    <section class="mel-dashboard-section">
-      <div class="mel-card mel-card--empty">
-        <p>{{ 'You have no upcoming events.'|t }}</p>
-        <a href="{{ path('<front>') }}" class="mel-btn mel-btn-primary">{{ 'Browse Events'|t }}</a>
-      </div>
+    <section class="mel-dashboard-section" aria-label="{{ 'Upcoming events'|t }}">
+      {% if mel_customer_dashboard_upcoming_empty is defined and mel_customer_dashboard_upcoming_empty %}
+        {{ mel_customer_dashboard_upcoming_empty }}
+      {% endif %}
     </section>
   {% endif %}
 

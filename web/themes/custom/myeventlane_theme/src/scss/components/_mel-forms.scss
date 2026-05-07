@@ -1,0 +1,98 @@
+// ==========================================================================
+// MELFormSystem — canonical layout + surface density (tokens only)
+// ==========================================================================
+// Drupal Form API owns structure; these classes are attached via
+// myeventlane_surface preprocess + shells. Do not fork per-page wrappers.
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/radii';
+
+.mel-form-system {
+  width: 100%;
+}
+
+// Density tokens (spacing rhythm inside governed forms).
+.mel-form--density-minimal {
+  --mel-form-stack: #{spacing.mel-space(3)};
+  --mel-form-actions-gap: #{spacing.mel-space(3)};
+}
+
+.mel-form--density-friendly {
+  --mel-form-stack: #{spacing.mel-space(4)};
+  --mel-form-actions-gap: #{spacing.mel-space(3)};
+}
+
+.mel-form--density-comfortable {
+  --mel-form-stack: #{spacing.mel-space(3)};
+  --mel-form-actions-gap: #{spacing.mel-space(2)};
+}
+
+.mel-form--density-trust {
+  --mel-form-stack: #{spacing.mel-space(5)};
+  --mel-form-actions-gap: #{spacing.mel-space(4)};
+}
+
+.mel-form-system.mel-form {
+  .form-item,
+  .mel-form-field {
+    margin-bottom: var(--mel-form-stack, #{spacing.mel-space(4)});
+  }
+
+  .form-actions,
+  .mel-form-actions {
+    gap: var(--mel-form-actions-gap, #{spacing.mel-space(3)});
+  }
+}
+
+// Checkout / trust surfaces — sticky CTA safe region (compose with layout).
+.mel-form--checkout .mel-form-actions,
+.mel-form--checkout .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-block: spacing.mel-space(3);
+  margin-top: spacing.mel-space(4);
+  background: linear-gradient(180deg, transparent 0%, colors.$mel-color-surface 35%);
+}
+
+// Customer profile shell (consolidated from former _mel-surface-forms partial).
+.mel-surface-customer-settings {
+  max-width: 42rem;
+}
+
+.mel-surface-customer-settings__title {
+  margin-block-end: spacing.mel-space(2);
+}
+
+.mel-surface-customer-settings__lede {
+  margin-block-end: spacing.mel-space(4);
+  opacity: 0.85;
+}
+
+.mel-surface-customer-settings__card,
+.mel-form-section__body {
+  padding: spacing.mel-space(4);
+  border-radius: var(--mel-radius-lg, 12px);
+  border: 1px solid var(--mel-color-border-subtle, rgba(0, 0, 0, 0.08));
+  background: var(--mel-color-surface-raised, #fff);
+}
+
+.mel-form-section__title {
+  margin-block: 0 spacing.mel-space(3);
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+}
+
+.mel-form-wrapper__title {
+  margin-block: 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(2xl);
+  font-weight: typography.$mel-font-bold;
+}
+
+.mel-form-wrapper__lede {
+  margin-block-end: spacing.mel-space(4);
+  color: colors.$mel-color-text-muted;
+}

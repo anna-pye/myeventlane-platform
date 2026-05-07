@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Confirmation modal content scaffold — actions rendered by Form API / callers.
+ */
+#}
+<div{{ attributes }}>
+  {% if heading %}
+    <div class="mel-modal-confirmation__heading">{{ heading }}</div>
+  {% endif %}
+  {% if body %}
+    <div class="mel-modal-confirmation__body">{{ body }}</div>
+  {% endif %}
+  <div class="mel-modal-confirmation__actions">
+    {% if cancel %}{{ cancel }}{% endif %}
+    {% if confirm %}{{ confirm }}{% endif %}
+  </div>
+</div>

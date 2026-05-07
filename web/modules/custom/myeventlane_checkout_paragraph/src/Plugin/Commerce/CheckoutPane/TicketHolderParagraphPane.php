@@ -7,15 +7,17 @@ namespace Drupal\myeventlane_checkout_paragraph\Plugin\Commerce\CheckoutPane;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
-use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Component\Utility\EmailValidatorInterface;
 use Drupal\Component\Utility\Html;
-use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
+use Drupal\myeventlane_checkout_paragraph\CheckoutAttendeeSchemaInspectorInterface;
+use Drupal\myeventlane_checkout_paragraph\Support\AttendeeHolderMissingEvaluator;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
+use Drupal\myeventlane_surface\MelReadinessHelper;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\paragraphs\ParagraphInterface;
@@ -58,18 +60,20 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   private TicketLabelResolver $ticketLabelResolver;
 
   /**
-   * Paid tier resolver (variation → mel_ticket_type) for merged questions.
-   *
-   * @var \Drupal\myeventlane_commerce\Service\TicketAvailabilityService
-   */
-  private TicketAvailabilityService $ticketAvailability;
-
-  /**
    * The current user.
    *
    * @var \Drupal\Core\Session\AccountProxyInterface
    */
   private AccountProxyInterface $currentUser;
+
+  /**
+   * Canonical attendee question schema for this order surface.
+   */
+  private CheckoutAttendeeSchemaInspectorInterface $checkoutAttendeeSchema;
+
+  private MelReadinessHelper $readinessHelper;
+
+  private DateFormatterInterface $dateFormatter;
 
   /**
    * {@inheritdoc}
@@ -89,8 +93,10 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $instance->logger = $container->get('logger.factory')->get('myeventlane_checkout_paragraph');
     $instance->emailValidator = $container->get('email.validator');
     $instance->ticketLabelResolver = $container->get('myeventlane_core.ticket_label_resolver');
-    $instance->ticketAvailability = $container->get('myeventlane_commerce.ticket_availability');
+    $instance->checkoutAttendeeSchema = $container->get('myeventlane_checkout_paragraph.checkout_attendee_schema');
+    $instance->readinessHelper = $container->get('myeventlane_surface.state_readiness_helper');
     $instance->currentUser = $container->get('current_user');
+    $instance->dateFormatter = $container->get('date.formatter');
     return $instance;
   }
 
@@ -99,15 +105,33 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
     $pane_form['#tree'] = TRUE;
-    $pane_form['#attached']['library'][] = 'myeventlane_checkout_paragraph/checkout_attendee_groups';
 
     if (!$this->isVisible()) {
       return $pane_form;
     }
 
-    if (!$this->hasAnyQuestionTemplates()) {
+    if (!$this->orderRequiresTicketHolderAttendeeCapture()) {
       $pane_form['#attributes']['class'][] = 'mel-attendee-details-pane';
       $pane_form['#attributes']['class'][] = 'mel-attendee-details-pane--empty';
+      $slots = $this->readinessHelper->customerCheckoutTicketHolderMinimalAutoAssignedSlots();
+      $pane_form['no_schema_status'] = [
+        '#theme' => 'mel_empty_state',
+        '#heading' => $slots['heading'],
+        '#what_happened' => $slots['what_happened'],
+        '#why_empty' => $slots['why_empty'],
+        '#next_action' => $slots['next_action'],
+        '#heading_element' => 'h3',
+        '#cta' => NULL,
+        '#illustration' => NULL,
+        '#attributes' => [
+          'class' => [
+            'mel-empty-state',
+            'mel-empty-state--checkout',
+            'mel-checkout-empty-state--attendee-auto',
+          ],
+        ],
+        '#weight' => -2,
+      ];
       $pane_form['no_attendee_questions'] = [
         '#type' => 'hidden',
         '#value' => '1',
@@ -115,14 +139,22 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       return $pane_form;
     }
 
+    $has_vendor_questions = $this->checkoutAttendeeSchema->orderHasMergedQuestionTemplates($this->order);
+    $intro_title = $has_vendor_questions
+      ? (string) $this->t('Attendee questions')
+      : (string) $this->t('Ticket holder details');
+    $intro_body = $has_vendor_questions
+      ? (string) $this->t('Add per-ticket details and answer organiser questions before continuing.')
+      : (string) $this->t('Enter the name and email for each ticket. Phone is optional unless the organiser requires it for check-in.');
+
     $pane_form['intro'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-intro']],
+      '#attributes' => ['class' => ['mel-intro', 'mel-attendees-pane-intro']],
       'title' => [
-        '#markup' => '<h3>' . $this->t('Attendee questions') . '</h3>',
+        '#markup' => '<p class="mel-attendees-pane-intro__title">' . Html::escape($intro_title) . '</p>',
       ],
       'desc' => [
-        '#markup' => '<p>' . $this->t('Add per-ticket details and answer organiser questions before continuing.') . '</p>',
+        '#markup' => '<p class="mel-attendees-pane-intro__body">' . Html::escape($intro_body) . '</p>',
       ],
     ];
 
@@ -135,6 +167,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
 
     $holder_total = $this->getCollectableTicketHolderCount();
     $holder_position = 0;
+    $prev_event_key = NULL;
 
     foreach ($this->order->getItems() as $index => $order_item) {
       if (!$this->shouldCollectTicketHolders($order_item)) {
@@ -143,23 +176,58 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
 
       $quantity = (int) $order_item->getQuantity();
       $holders = $order_item->get('field_ticket_holder')->referencedEntities();
-      $templates = $this->getExtraQuestionTemplates($order_item);
+      $templates = $this->checkoutAttendeeSchema->getMergedQuestionTemplatesForOrderItem($order_item);
 
       $ticket_label = $this->ticketLabelResolver->getTicketLabel($order_item);
-      $pane_form['order_items'][$index] = [
+      $event_id = $this->resolveEventIdFromOrderItem($order_item);
+      $event_key = $event_id !== NULL ? (string) $event_id : 'other';
+
+      $group = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-checkout-ticket-group']],
         '#tree' => TRUE,
-        'ticket_title' => [
+      ];
+
+      if ($event_key !== $prev_event_key) {
+        $group['event_context'] = $this->buildEventContext($event_id);
+        $prev_event_key = $event_key;
+      }
+
+      $group['ticket_type_header'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-checkout-ticket-group__type-row']],
+        'title' => [
           '#markup' => '<h4 class="mel-checkout-ticket-type-title">' . Html::escape($ticket_label) . '</h4>',
         ],
       ];
+      if ($quantity > 1) {
+        $group['ticket_type_header']['qty'] = [
+          '#type' => 'container',
+          '#attributes' => [
+            'class' => ['mel-checkout-ticket-group__qty'],
+            'aria-label' => (string) $this->t('@count tickets of this type', ['@count' => $quantity]),
+          ],
+          '#markup' => '×' . (string) $quantity,
+        ];
+      }
 
       for ($delta = 0; $delta < $quantity; $delta++) {
         $holder = $holders[$delta] ?? NULL;
         $holder_position++;
-        $pane_form['order_items'][$index][$delta] = $this->buildTicketHolderForm($holder, $templates, $index, $delta, $logged_in_defaults, $holder_position, $holder_total);
+        $group[$delta] = $this->buildTicketHolderForm(
+          $order_item,
+          $holder,
+          $templates,
+          (int) $index,
+          $delta,
+          $logged_in_defaults,
+          $holder_position,
+          $holder_total,
+          $ticket_label
+        );
       }
+
+      $pane_form['order_items'][$index] = $group;
     }
 
     return $pane_form;
@@ -183,30 +251,81 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   /**
    * Builds the form elements for a single ticket holder.
    */
-  private function buildTicketHolderForm(?ParagraphInterface $holder, array $templates, int $itemIndex, int $delta, array $loggedInDefaults, int $holderPosition, int $holderTotal): array {
+  private function buildTicketHolderForm(
+    OrderItemInterface $order_item,
+    ?ParagraphInterface $holder,
+    array $templates,
+    int $itemIndex,
+    int $delta,
+    array $loggedInDefaults,
+    int $holderPosition,
+    int $holderTotal,
+    string $ticketTypeLabel,
+  ): array {
+    $missing = AttendeeHolderMissingEvaluator::missingForHolder(
+      $order_item,
+      $delta,
+      $this->checkoutAttendeeSchema,
+      $itemIndex
+    );
+    $is_complete = $missing === [];
+    $status_id = Html::getId('mel-holder-status-' . $itemIndex . '-' . $delta);
+
+    $summary_title = (string) $this->t('Ticket @current of @total — @type', [
+      '@current' => $holderPosition,
+      '@total' => max(1, $holderTotal),
+      '@type' => $ticketTypeLabel,
+    ]);
+
     $fieldset = [
       '#type' => 'details',
-      '#title' => $this->t('Ticket @current of @total', [
-        '@current' => $holderPosition,
-        '@total' => max(1, $holderTotal),
-      ]),
+      '#title' => $summary_title,
       '#open' => TRUE,
       '#attributes' => [
-        'class' => ['mel-attendee-card'],
+        'class' => array_values(array_unique(array_filter([
+          'mel-attendee-card',
+          'mel-attendee-details',
+          $is_complete ? 'mel-attendee-card--complete' : 'mel-attendee-card--incomplete',
+        ]))),
         'data-ticket-position' => (string) $holderPosition,
         'data-ticket-total' => (string) max(1, $holderTotal),
+        'data-mel-holder-status' => $is_complete ? 'complete' : 'incomplete',
+        'aria-describedby' => $status_id,
       ],
     ];
 
-    $fieldset['ticket_count_label'] = [
-      '#markup' => '<p class="mel-attendee-card__count">' . $this->t('Ticket @current of @total', [
-        '@current' => $holderPosition,
-        '@total' => max(1, $holderTotal),
-      ]) . '</p>',
+    $fieldset['holder_status'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => $status_id,
+        'class' => ['visually-hidden'],
+      ],
+      'text' => [
+        '#markup' => $is_complete
+          ? (string) $this->t('This ticket holder entry is complete.')
+          : (string) $this->t('This ticket holder entry is incomplete. Required fields or organiser questions still need answers.'),
+      ],
+      '#weight' => -12,
+    ];
+
+    $fieldset['status_chip'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => array_values(array_filter([
+          'mel-attendee-card__status-chip',
+          $is_complete ? 'mel-attendee-card__status-chip--complete' : 'mel-attendee-card__status-chip--incomplete',
+        ])),
+        'aria-hidden' => 'true',
+      ],
+      '#markup' => '<span class="mel-attendee-card__status-chip-text">' . ($is_complete
+        ? Html::escape((string) $this->t('Complete'))
+        : Html::escape((string) $this->t('Incomplete'))) . '</span>',
+      '#weight' => -11,
     ];
 
     $fieldset['identity_heading'] = [
-      '#markup' => '<h5 class="mel-attendee-card__heading">' . $this->t('Ticket holder') . '</h5>',
+      '#markup' => '<p class="mel-attendee-card__section-label">' . Html::escape((string) $this->t('Ticket holder')) . '</p>',
+      '#weight' => -5,
     ];
 
     // Required fields: first_name, last_name, email.
@@ -217,6 +336,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#required' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
+        'autocomplete' => 'section-checkout given-name',
       ],
     ];
     $fieldset['field_last_name'] = [
@@ -226,6 +346,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#required' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
+        'autocomplete' => 'section-checkout family-name',
       ],
     ];
     $fieldset['field_email'] = [
@@ -235,15 +356,21 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#required' => TRUE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
+        'autocomplete' => 'section-checkout email',
       ],
     ];
     $fieldset['field_phone'] = [
       '#type' => 'tel',
-      '#title' => $this->t('Phone number'),
+      '#title' => $this->t('Phone number (optional)'),
       '#default_value' => $holder && $holder->hasField('field_phone') ? ($holder->get('field_phone')->value ?? '') : '',
-      '#required' => TRUE,
+      '#required' => FALSE,
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
+        'autocomplete' => 'section-checkout tel',
+        'inputmode' => 'tel',
+      ],
+      '#wrapper_attributes' => [
+        'class' => ['mel-attendee-field--phone-secondary'],
       ],
     ];
 
@@ -253,7 +380,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       : $templates;
     if ($question_sources !== []) {
       $fieldset['questions_heading'] = [
-        '#markup' => '<h5 class="mel-attendee-card__heading mel-attendee-card__heading--questions">' . $this->t('Attendee questions') . '</h5>',
+        '#markup' => '<p class="mel-attendee-card__section-label mel-attendee-card__section-label--questions">' . Html::escape((string) $this->t('Organiser questions')) . '</p>',
       ];
     }
     foreach ($question_sources as $q_index => $question) {
@@ -301,6 +428,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
+            '#description' => (string) $this->t('Required.'),
           ];
           break;
 
@@ -333,6 +461,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
+            '#description' => (string) $this->t('Select all that apply. Required.'),
           ];
           break;
 
@@ -347,6 +476,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
+            '#description' => (string) $this->t('Required.'),
           ];
           break;
 
@@ -360,6 +490,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
+            '#description' => (string) $this->t('Required.'),
           ];
           break;
 
@@ -372,12 +503,82 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
+            '#description' => (string) $this->t('Required.'),
           ];
           break;
       }
     }
 
     return $fieldset;
+  }
+
+  /**
+   * Event grouping header (presentation) aligned with grouped order summary.
+   */
+  private function buildEventContext(?int $event_id): array {
+    $labels = $this->readinessHelper->customerCheckoutOrderSummarySurfaceLabels();
+    $build = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-checkout-attendee-event']],
+    ];
+
+    if ($event_id === NULL) {
+      $title = (string) ($labels['additional_items_title'] ?? '');
+      $build['title'] = [
+        '#markup' => '<h3 class="mel-checkout-attendee-event__title">' . Html::escape($title) . '</h3>',
+      ];
+      return $build;
+    }
+
+    $node = $this->entityTypeManager->getStorage('node')->load($event_id);
+    if ($node instanceof NodeInterface && $node->bundle() === 'event') {
+      $meta = $this->formatEventDateLine($node);
+      $build['title'] = [
+        '#markup' => '<h3 class="mel-checkout-attendee-event__title">' . Html::escape($node->label()) . '</h3>',
+      ];
+      if ($meta !== '') {
+        $build['meta'] = [
+          '#markup' => '<p class="mel-checkout-attendee-event__meta">' . Html::escape($meta) . '</p>',
+        ];
+      }
+      $build['#cache']['tags'] = Cache::mergeTags($this->order->getCacheTags(), $node->getCacheTags());
+    }
+    else {
+      $fallback = (string) ($labels['event_fallback_title'] ?? '');
+      $build['title'] = [
+        '#markup' => '<h3 class="mel-checkout-attendee-event__title">' . Html::escape($fallback) . '</h3>',
+      ];
+    }
+
+    return $build;
+  }
+
+  /**
+   * Resolves event node ID from an order item (same rules as grouped summary).
+   */
+  private function resolveEventIdFromOrderItem(OrderItemInterface $item): ?int {
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      return (int) $item->get('field_target_event')->target_id;
+    }
+    if (!method_exists($item, 'getPurchasedEntity')) {
+      return NULL;
+    }
+    $purchased = $item->getPurchasedEntity();
+    if ($purchased && $purchased->hasField('field_event') && !$purchased->get('field_event')->isEmpty()) {
+      return (int) $purchased->get('field_event')->target_id;
+    }
+    return NULL;
+  }
+
+  private function formatEventDateLine(NodeInterface $node): string {
+    if (!$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
+      return '';
+    }
+    $date = $node->get('field_event_start')->date;
+    if (!$date) {
+      return '';
+    }
+    return $this->dateFormatter->format($date->getTimestamp(), 'medium');
   }
 
   /**
@@ -453,6 +654,14 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     return [$first_name, $last_name];
   }
 
+  private function shouldCollectTicketHolders(OrderItemInterface $order_item): bool {
+    return $this->checkoutAttendeeSchema->shouldCollectTicketHolders($order_item);
+  }
+
+  private function orderRequiresTicketHolderAttendeeCapture(): bool {
+    return $this->checkoutAttendeeSchema->orderRequiresTicketHolderAttendeeCapture($this->order);
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -469,7 +678,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function validatePaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form): void {
-    if (!$this->hasAnyQuestionTemplates()) {
+    if (!$this->orderRequiresTicketHolderAttendeeCapture()) {
       return;
     }
 
@@ -487,7 +696,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
 
       $quantity = (int) $order_item->getQuantity();
       $holders = $order_item->get('field_ticket_holder')->referencedEntities();
-      $templates = $this->getExtraQuestionTemplates($order_item);
+      $templates = $this->checkoutAttendeeSchema->getMergedQuestionTemplatesForOrderItem($order_item);
       $tickets = $order_items[$index] ?? [];
       if (!is_array($tickets)) {
         $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index", $this->t('Attendee details are required.'));
@@ -512,9 +721,6 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         }
         elseif (!$this->emailValidator->isValid($entry['field_email'])) {
           $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_email", $this->t('Please enter a valid email address.'));
-        }
-        if (empty($entry['field_phone'])) {
-          $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_phone", $this->t('Phone number is required.'));
         }
 
         $holder = $holders[$delta] ?? NULL;
@@ -591,15 +797,30 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form): void {
-    if (!$this->hasAnyQuestionTemplates()) {
-      $this->saveMinimalTicketHoldersFromBuyerDetails($form_state);
+    if (!$this->isVisible()) {
+      return;
+    }
+
+    if (!$this->orderRequiresTicketHolderAttendeeCapture()) {
       return;
     }
 
     $pane_values = $form_state->getValue($this->getPluginId()) ?? [];
     $order_items_values = $pane_values['order_items'] ?? NULL;
 
-    if (!is_array($order_items_values)) {
+    if (!$this->ticketHolderPaneSubmittedPayloadIsPresent($order_items_values)) {
+      if (!$this->checkoutAttendeeSchema->orderHasMergedQuestionTemplates($this->order)) {
+        $this->logger->warning(
+          'Ticket holder checkout pane submitted without order_items payload for order @order; applying buyer-derived minimal holders (identity-only schema).',
+          ['@order' => (string) $this->order->id()]
+        );
+        $this->saveMinimalTicketHoldersFromBuyerDetails($form_state);
+        return;
+      }
+      $this->logger->error(
+        'Ticket holder checkout pane submitted without order_items payload for order @order while organiser attendee questions exist; cannot auto-fill.',
+        ['@order' => (string) $this->order->id()]
+      );
       return;
     }
 
@@ -623,17 +844,12 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   private function saveTicketHolders(OrderItemInterface $order_item, array $ticket_values, int $itemIndex): void {
     $quantity = (int) $order_item->getQuantity();
     $holders = $order_item->get('field_ticket_holder')->referencedEntities();
-    $createdParagraphIds = [];
-    $templates = $this->getExtraQuestionTemplates($order_item);
+    $templates = $this->checkoutAttendeeSchema->getMergedQuestionTemplatesForOrderItem($order_item);
 
     // Ensure enough holder paragraphs exist.
     if (count($holders) < $quantity) {
       for ($i = count($holders); $i < $quantity; $i++) {
-        $newHolder = $this->createHolderWithQuestions($templates);
-        $holders[] = $newHolder;
-        if ($newHolder instanceof ParagraphInterface && !$newHolder->isNew()) {
-          $createdParagraphIds[] = (int) $newHolder->id();
-        }
+        $holders[] = $this->createHolderWithQuestions($templates);
       }
       $order_item->set('field_ticket_holder', $holders);
     }
@@ -658,14 +874,11 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         $paragraph->set('field_phone', $entry['field_phone'] ?? '');
       }
 
-      $clonedTemplateCount = $this->ensureHolderHasQuestionParagraphs($paragraph, $templates);
-      $answersSaved = 0;
-      $questionChildCount = 0;
+      $this->ensureHolderHasQuestionParagraphs($paragraph, $templates);
 
       // Save extra questions - normalize to field_attendee_extra_field.
       if ($paragraph->hasField('field_attendee_questions')) {
         $children = $paragraph->get('field_attendee_questions')->referencedEntities();
-        $questionChildCount = count($children);
         foreach ($children as $q_index => $child) {
           $field_key = "extra_{$itemIndex}_{$delta}_{$q_index}";
           $value = $entry[$field_key] ?? NULL;
@@ -675,7 +888,6 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             $normalized_value = is_array($value) ? json_encode($value) : (string) $value;
             $child->set('field_attendee_extra_field', $normalized_value);
             $child->save();
-            $answersSaved++;
           }
         }
       }
@@ -688,38 +900,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       $order_item->save();
       $this->verifyParagraphAttachment($paragraph, $order_item);
 
-      $holderPid = $paragraph->id() !== NULL ? (string) $paragraph->id() : 'new';
-      $this->logger->notice(
-        'TEMP_DEBUG attendee_questions: order_item=@oi holder_delta=@d holder_pid=@hp templates_cloned_this_save=@tc answers_saved=@as question_children=@qc',
-        [
-          '@oi' => $order_item->id() !== NULL ? (string) $order_item->id() : 'new',
-          '@d' => (string) $delta,
-          '@hp' => $holderPid,
-          '@tc' => (string) $clonedTemplateCount,
-          '@as' => (string) $answersSaved,
-          '@qc' => (string) $questionChildCount,
-        ]
-      );
     }
-
-    $paragraphIds = [];
-    foreach ($holders as $holderParagraph) {
-      if ($holderParagraph instanceof ParagraphInterface && !$holderParagraph->isNew()) {
-        $paragraphIds[] = (int) $holderParagraph->id();
-      }
-    }
-
-    // TEMP_DEBUG: remove after multi-holder verification on staging/production.
-    $this->logger->notice(
-      'TEMP_DEBUG saveTicketHolders: order_item=@item qty_expected=@qty paragraph_count=@count paragraph_ids=@ids created_paragraph_ids=@created',
-      [
-        '@item' => $order_item->id() !== NULL ? (string) $order_item->id() : 'new',
-        '@qty' => (string) $quantity,
-        '@count' => (string) count($paragraphIds),
-        '@ids' => $paragraphIds !== [] ? implode(',', $paragraphIds) : 'none',
-        '@created' => $createdParagraphIds !== [] ? implode(',', $createdParagraphIds) : 'none',
-      ]
-    );
 
     $this->logger->info('Saved @count ticket holder(s) for order item @id.', [
       '@count' => count($holders),
@@ -779,13 +960,6 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     }
 
     $holder->save();
-    $this->logger->notice(
-      'TEMP_DEBUG attendee_questions: new_holder created cloned_template_count=@n holder_pid=@hp',
-      [
-        '@n' => (string) count($clones),
-        '@hp' => $holder->id() !== NULL ? (string) $holder->id() : 'new',
-      ]
-    );
     return $holder;
   }
 
@@ -834,23 +1008,42 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   }
 
   /**
-   * Detects whether any ticket item has organiser/ticket-level questions.
+   * TRUE when form state includes a nested value per collectible ticket delta.
+   *
+   * @param mixed $order_items_values
+   *   Value at ticket_holder_paragraph][order_items from form state.
    */
-  private function hasAnyQuestionTemplates(): bool {
-    foreach ($this->order->getItems() as $order_item) {
+  private function ticketHolderPaneSubmittedPayloadIsPresent(mixed $order_items_values): bool {
+    if (!is_array($order_items_values)) {
+      return FALSE;
+    }
+    foreach ($this->order->getItems() as $index => $order_item) {
       if (!$this->shouldCollectTicketHolders($order_item)) {
         continue;
       }
-      if ($this->getExtraQuestionTemplates($order_item) !== []) {
-        return TRUE;
+      $quantity = (int) $order_item->getQuantity();
+      if ($quantity < 1) {
+        continue;
+      }
+      $tickets = $order_items_values[$index] ?? NULL;
+      if (!is_array($tickets)) {
+        return FALSE;
+      }
+      for ($delta = 0; $delta < $quantity; $delta++) {
+        if (!array_key_exists($delta, $tickets) || !is_array($tickets[$delta])) {
+          return FALSE;
+        }
       }
     }
-
-    return FALSE;
+    return TRUE;
   }
 
   /**
-   * Creates hidden minimal holder paragraphs from the checkout contact pane.
+   * Creates ticket holder paragraphs from checkout buyer/contact fields.
+   *
+   * Used when the order has no vendor attendee question templates but the pane
+   * did not return a normal order_items payload (AJAX rebuild edge, regression).
+   * Does not replace full Form API submission when order_items is present.
    */
   private function saveMinimalTicketHoldersFromBuyerDetails(FormStateInterface $form_state): void {
     $buyer_values = $form_state->getValue('mel_buyer_details') ?? [];
@@ -914,169 +1107,6 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         '@id' => $order_item->id(),
       ]);
     }
-  }
-
-  /**
-   * Resolves the event node for an order item (event questions + tier lookup).
-   */
-  private function resolveEventForOrderItem(OrderItemInterface $order_item): ?FieldableEntityInterface {
-    $event = NULL;
-    if ($order_item->hasField('field_target_event') && !$order_item->get('field_target_event')->isEmpty()) {
-      $event = $order_item->get('field_target_event')->entity;
-    }
-
-    $purchased_entity = $order_item->getPurchasedEntity();
-
-    if (
-      !$event
-      && $purchased_entity instanceof FieldableEntityInterface
-      && $purchased_entity->hasField('field_event')
-      && !$purchased_entity->get('field_event')->isEmpty()
-    ) {
-      $event = $purchased_entity->get('field_event')->entity;
-    }
-
-    if (!$event && $purchased_entity && method_exists($purchased_entity, 'getProduct')) {
-      $product = $purchased_entity->getProduct();
-      if (
-        $product instanceof FieldableEntityInterface
-        && $product->hasField('field_event')
-        && !$product->get('field_event')->isEmpty()
-      ) {
-        $event = $product->get('field_event')->entity;
-      }
-    }
-
-    return $event instanceof FieldableEntityInterface ? $event : NULL;
-  }
-
-  /**
-   * Event-level questions followed by ticket-tier questions, deduped.
-   *
-   * @return \Drupal\paragraphs\ParagraphInterface[]
-   */
-  private function mergeQuestionTemplateParagraphs(array $event_templates, array $tier_templates): array {
-    $seen = [];
-    $out = [];
-    foreach ([$event_templates, $tier_templates] as $batch) {
-      foreach ($batch as $paragraph) {
-        if (!$paragraph instanceof ParagraphInterface) {
-          continue;
-        }
-        $key = $this->questionTemplateDedupeKey($paragraph);
-        if (isset($seen[$key])) {
-          continue;
-        }
-        $seen[$key] = TRUE;
-        $out[] = $paragraph;
-      }
-    }
-    return $out;
-  }
-
-  private function questionTemplateDedupeKey(ParagraphInterface $paragraph): string {
-    if ($paragraph->hasField('field_question_machine_name') && !$paragraph->get('field_question_machine_name')->isEmpty()) {
-      $machine = trim((string) ($paragraph->get('field_question_machine_name')->value ?? ''));
-      if ($machine !== '') {
-        return 'machine:' . mb_strtolower($machine);
-      }
-    }
-    if ($paragraph->hasField('field_question_label') && !$paragraph->get('field_question_label')->isEmpty()) {
-      $label = trim((string) ($paragraph->get('field_question_label')->value ?? ''));
-      if ($label !== '') {
-        return 'label:' . mb_strtolower($label);
-      }
-    }
-    if ($paragraph->id() !== NULL) {
-      return 'id:' . (string) $paragraph->id();
-    }
-    return 'tmp:' . spl_object_id($paragraph);
-  }
-
-  /**
-   * Loads merged attendee question templates (event + per-ticket type).
-   *
-   * @return \Drupal\paragraphs\ParagraphInterface[]
-   *   Template paragraphs in order: event first, then ticket-specific.
-   */
-  private function getExtraQuestionTemplates(OrderItemInterface $order_item): array {
-    $event = $this->resolveEventForOrderItem($order_item);
-    if (!$event instanceof FieldableEntityInterface) {
-      $purchased_entity = $order_item->getPurchasedEntity();
-      $this->logger->warning(
-        'Unable to resolve event for order item @id when building attendee questions. Purchased entity type: @type.',
-        [
-          '@id' => (string) $order_item->id(),
-          '@type' => $purchased_entity ? $purchased_entity->getEntityTypeId() : 'none',
-        ]
-      );
-      return [];
-    }
-
-    $event_templates = [];
-    if ($event->hasField('field_attendee_questions') && !$event->get('field_attendee_questions')->isEmpty()) {
-      $event_templates = $event->get('field_attendee_questions')->referencedEntities();
-    }
-
-    $tier_templates = [];
-    $variation = $order_item->getPurchasedEntity();
-    if ($variation instanceof ProductVariationInterface && $event instanceof NodeInterface) {
-      $tier = $this->ticketAvailability->resolveTierForVariation($event, $variation);
-      if ($tier !== NULL
-        && $tier->hasField('field_use_ticket_attendee_questions')
-        && $tier->get('field_use_ticket_attendee_questions')->value
-        && $tier->hasField('field_attendee_questions')
-        && !$tier->get('field_attendee_questions')->isEmpty()) {
-        $tier_templates = $tier->get('field_attendee_questions')->referencedEntities();
-      }
-    }
-
-    return $this->mergeQuestionTemplateParagraphs($event_templates, $tier_templates);
-  }
-
-  /**
-   * Determines whether an order item should collect ticket holder fields.
-   */
-  private function shouldCollectTicketHolders(OrderItemInterface $order_item): bool {
-    if (!$order_item->hasField('field_ticket_holder')) {
-      return FALSE;
-    }
-
-    if ($this->isProSubscriptionOrderItem($order_item)) {
-      return FALSE;
-    }
-
-    return TRUE;
-  }
-
-  /**
-   * Detects Pro subscription line items that must skip attendee collection.
-   */
-  private function isProSubscriptionOrderItem(OrderItemInterface $order_item): bool {
-    $purchased_entity = $order_item->getPurchasedEntity();
-    if ($purchased_entity === NULL) {
-      return FALSE;
-    }
-
-    if (method_exists($purchased_entity, 'bundle') && $purchased_entity->bundle() === 'mel_pro_subscription_variation') {
-      return TRUE;
-    }
-
-    if (method_exists($purchased_entity, 'getSku')) {
-      $sku = strtolower(trim((string) $purchased_entity->getSku()));
-      if ($sku !== '' && str_starts_with($sku, 'mel-pro')) {
-        return TRUE;
-      }
-    }
-
-    if (method_exists($purchased_entity, 'getProduct')) {
-      $product = $purchased_entity->getProduct();
-      if ($product !== NULL && method_exists($product, 'bundle') && $product->bundle() === 'mel_pro_subscription_product') {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
   }
 
 }

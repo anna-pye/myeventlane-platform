@@ -58,7 +58,7 @@
                     <strong>Placed:</strong> {{ order_data.placed_date }}
                   </span>
                   <span class="mel-order-status">
-                    <strong>Status:</strong> {{ order_data.state }}
+                    <strong>Status:</strong> {{ order_data.state_customer_presentation|default(order_data.state) }}
                   </span>
                 </div>
                 <div class="mel-order-total mel-mt-2">
@@ -143,21 +143,13 @@
     </div>
   {% endif %}
 
-  {# Empty State #}
+  {# Empty state: mel_empty_state via myeventlane_surface_preprocess (MELComponentSystem). #}
   {% if upcoming_orders|length == 0 and past_orders|length == 0 %}
-    <div class="mel-empty-state mel-mt-6">
-      <div class="mel-card">
-        <div class="mel-card-body" style="text-align: center; padding: 40px;">
-          <p class="mel-empty-message">
-            You haven't purchased any tickets yet, or your order is on a different account.
-            Purchases only appear here when you are logged in as the same user who completed checkout.
-          </p>
-          <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-primary mel-mt-4">
-            Browse Events
-          </a>
-        </div>
+    {% if mel_my_tickets_empty is defined and mel_my_tickets_empty %}
+      <div class="mel-section mel-mt-6">
+        {{ mel_my_tickets_empty }}
       </div>
-    </div>
+    {% endif %}
   {% endif %}
 </div>
 

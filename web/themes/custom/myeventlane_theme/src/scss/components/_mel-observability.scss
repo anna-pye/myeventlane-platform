@@ -1,0 +1,15 @@
+// ==========================================================================
+// MELObservabilitySystem — staff governance shell (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/radii' as radii;
+@use '../tokens/colors' as *;
+
+.mel-observability-panel {
+  margin: spacing.mel-space(4) 0;
+  padding: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-md;
+  border: 1px solid rgba($mel-color-secondary, 0.25);
+  background: $mel-color-surface-alt;
+}

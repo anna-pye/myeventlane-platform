@@ -49,3 +49,11 @@ jobs:
       - name: Run Drupal check (optional)
         run: vendor/bin/drupal-check web/modules/custom web/themes/custom
         continue-on-error: true
+
+      - name: Governance audit tooling
+        run: composer run-script governance:audit
+
+      - name: Governance kernel tests + snapshots
+        env:
+          SIMPLETEST_DB: sqlite://localhost/:memory:
+        run: composer run-script governance:test

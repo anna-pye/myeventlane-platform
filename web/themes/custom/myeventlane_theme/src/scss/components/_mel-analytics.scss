@@ -1,0 +1,40 @@
+// ==========================================================================
+// MEL analytics frames — Chart.js / Recharts / legacy embed shells
+// ==========================================================================
+
+@use '../tokens/spacing' as spacing;
+@use '../tokens/colors';
+@use '../tokens/radii';
+
+.mel-analytics-frame {
+  border-radius: radii.$mel-radius-md;
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+}
+
+.mel-analytics-frame__chart {
+  position: relative;
+  min-height: spacing.mel-space(8);
+}
+
+.mel-analytics-frame__legend {
+  margin-block-start: spacing.mel-space(4);
+  font-size: var(--mel-font-size-sm, 0.875rem);
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-analytics-frame__loading,
+.mel-analytics-frame__empty {
+  margin-block-end: spacing.mel-space(3);
+}
+
+.mel-analytics-frame__summary {
+  margin-block-end: spacing.mel-space(3);
+  font-size: var(--mel-font-size-sm, 0.875rem);
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-analytics-frame--plain {
+  border: 0;
+  background: transparent;
+}

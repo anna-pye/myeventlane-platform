@@ -1,0 +1,30 @@
+uuid: 62bf44c7-135d-4805-a9b9-f1aaf8d830b7
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.front_featured_events
+  module:
+    - system
+    - views
+  theme:
+    - mel_maintenance
+id: mel_maintenance_front_featured_events
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: 'views_block:front_featured_events-block_featured'
+settings:
+  id: 'views_block:front_featured_events-block_featured'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

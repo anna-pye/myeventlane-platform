@@ -1,0 +1,76 @@
+// ==========================================================================
+// MEL async loading states (mel-saving-state, mel-processing-state, …)
+// ==========================================================================
+
+@use '../tokens/spacing' as space;
+@use '../tokens/colors' as *;
+
+@keyframes mel-async-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mel-async-state {
+  display: inline-flex;
+  align-items: center;
+  gap: space.mel-space(3);
+  min-height: 44px;
+}
+
+.mel-async-state__spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 2px solid $mel-color-border;
+  border-top-color: $mel-color-primary;
+  animation: mel-async-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-async-state__spinner {
+    animation: none;
+    border-top-color: $mel-color-border;
+  }
+}
+
+.mel-async-state__message {
+  font-size: 0.9375rem;
+  color: $mel-color-text-muted;
+}
+
+.mel-async-state--retry .mel-async-state__message {
+  color: $mel-color-text;
+}
+
+.mel-async-state__retry {
+  font-weight: 600;
+}
+
+.mel-empty-loading__skeleton {
+  min-height: space.mel-space(8);
+  border-radius: space.mel-space(2);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05),
+    rgba(0, 0, 0, 0.08),
+    rgba(0, 0, 0, 0.05)
+  );
+  background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mel-empty-loading__skeleton {
+    animation: mel-async-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes mel-async-pulse {
+  0% {
+    background-position: 0 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}

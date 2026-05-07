@@ -1,0 +1,56 @@
+// ==========================================================================
+// MEL CTA regions — one primary action per band (spacing via tokens)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+
+.mel-cta-band {
+  padding: spacing.mel-space(6) spacing.mel-space(4);
+  margin: spacing.mel-space(6) 0;
+  background: colors.$mel-color-surface-alt;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-xl;
+  box-shadow: shadows.$mel-shadow-sm;
+}
+
+.mel-cta-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: spacing.mel-space(3);
+  margin: spacing.mel-space(4) 0;
+}
+
+.mel-cta-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: spacing.mel-space(4);
+  margin-top: spacing.mel-space(5);
+  background: color-mix(in srgb, colors.$mel-color-surface 92%, transparent);
+  border-top: 1px solid colors.$mel-color-border;
+  backdrop-filter: blur(6px);
+}
+
+.mel-cta-next-step {
+  padding: spacing.mel-space(5);
+  border-radius: radii.$mel-radius-lg;
+  border: 1px dashed colors.$mel-color-border;
+  background: colors.$mel-color-surface;
+}
+
+[data-mel-surface='public'] .mel-cta-band {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--mel-peach, #f6c8b1) 35%, #fff),
+    color-mix(in srgb, var(--mel-lilac, #d7c8f6) 25%, #fff)
+  );
+}
+
+[data-mel-surface='auth'] .mel-cta-band {
+  box-shadow: none;
+  background: colors.$mel-color-surface;
+}

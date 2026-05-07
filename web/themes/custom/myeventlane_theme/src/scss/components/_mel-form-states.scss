@@ -1,0 +1,106 @@
+// ==========================================================================
+// MELFormSystem — shared validation / status surfaces (WCAG-minded contrast)
+// ==========================================================================
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/typography';
+
+@mixin mel-state-surface($fg, $bg, $border) {
+  color: $fg;
+  background: $bg;
+  border: 1px solid $border;
+  border-radius: radii.$mel-radius-md;
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+  line-height: typography.$mel-leading-relaxed;
+}
+
+.mel-state-success {
+  @include mel-state-surface(
+    color.adjust(colors.$mel-color-success, $lightness: -22%),
+    rgba(colors.$mel-color-success, 0.12),
+    rgba(colors.$mel-color-success, 0.35)
+  );
+}
+
+.mel-state-warning {
+  @include mel-state-surface(
+    color.adjust(colors.$mel-color-warning, $lightness: -28%),
+    rgba(colors.$mel-color-warning, 0.14),
+    rgba(colors.$mel-color-warning, 0.4)
+  );
+}
+
+.mel-state-error {
+  @include mel-state-surface(
+    color.adjust(colors.$mel-color-error, $lightness: -12%),
+    rgba(colors.$mel-color-error, 0.08),
+    rgba(colors.$mel-color-error, 0.35)
+  );
+}
+
+.mel-state-info {
+  @include mel-state-surface(
+    colors.$mel-color-text,
+    rgba(colors.$mel-color-primary, 0.06),
+    rgba(colors.$mel-color-primary, 0.22)
+  );
+}
+
+.mel-state-loading {
+  @include mel-state-surface(
+    colors.$mel-color-text-muted,
+    colors.$mel-color-bg,
+    colors.$mel-color-border
+  );
+  font-style: italic;
+}
+
+.mel-state-disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.mel-form-status {
+  display: flex;
+  align-items: flex-start;
+  gap: spacing.mel-space(2);
+}
+
+.mel-form-status--success {
+  @extend .mel-state-success;
+}
+
+.mel-form-status--warning {
+  @extend .mel-state-warning;
+}
+
+.mel-form-status--error {
+  @extend .mel-state-error;
+}
+
+.mel-form-status--info {
+  @extend .mel-state-info;
+}
+
+.mel-form-status--loading {
+  @extend .mel-state-loading;
+}
+
+.mel-form-status--disabled {
+  @extend .mel-state-disabled;
+}
+
+.mel-form-error-summary {
+  margin-bottom: spacing.mel-space(4);
+}
+
+.mel-form-error-summary__title {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-error;
+}

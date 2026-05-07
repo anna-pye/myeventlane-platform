@@ -1,0 +1,19 @@
+// ==========================================================================
+// MEL trust indicators (public-safe emphasis via tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+
+.mel-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: spacing.mel-space(1);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-trust-badge__icon {
+  color: colors.$mel-color-success;
+}

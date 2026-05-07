@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Toast — stacks governed by mel_interaction_context.toast_stack_limit (behaviour layer).
+ */
+#}
+<div{{ attributes }}>
+  <div class="mel-toast__icon" aria-hidden="true"></div>
+  <div class="mel-toast__body">
+    {% if title %}
+      <div class="mel-toast__title">{{ title }}</div>
+    {% endif %}
+    {% if content %}
+      <div class="mel-toast__text">{{ content }}</div>
+    {% endif %}
+  </div>
+  {% if actions %}
+    <div class="mel-toast__actions">{{ actions }}</div>
+  {% endif %}
+</div>

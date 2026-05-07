@@ -1,0 +1,31 @@
+uuid: 3f167ae6-3b6f-4a49-adee-29a415e9e10e
+langcode: en
+status: false
+dependencies:
+  module:
+    - help
+    - user
+  theme:
+    - mel_maintenance
+_core:
+  default_config_hash: VfPFqqxfkomud5CO8DUijw85QIl9GIxh_nIxLOYESxg
+id: mel_maintenance_help
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: help_block
+settings:
+  id: help_block
+  label: Help
+  label_display: '0'
+  provider: help
+visibility:
+  user_role:
+    id: user_role
+    negate: false
+    context_mapping:
+      user: '@user.current_user_context:current_user'
+    roles:
+      vendor: vendor
+      administrator: administrator

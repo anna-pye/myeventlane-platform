@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL recommendation sequencing (layout hooks only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-recommendations-region {
+  margin: spacing.mel-space(4) 0;
+}

@@ -12,7 +12,9 @@ use Drupal\image\ImageStyleInterface;
 use Drupal\myeventlane_account\Service\AccountLinksService;
 use Drupal\myeventlane_core\Service\DisplayNameResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\myeventlane_surface\GovernedOperationalTemplates;
 use Drupal\node\NodeInterface;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -28,6 +30,7 @@ final class MyAccountController extends ControllerBase {
     private readonly AccountLinksService $accountLinksService,
     private readonly DisplayNameResolver $displayNameResolver,
     private readonly TimeInterface $time,
+    private readonly GovernedOperationalTemplates $operationalTemplates,
   ) {}
 
   /**
@@ -37,7 +40,8 @@ final class MyAccountController extends ControllerBase {
     return new static(
       $container->get('myeventlane_account.account_links'),
       $container->get('myeventlane_core.display_name_resolver'),
-      $container->get('datetime.time')
+      $container->get('datetime.time'),
+      $container->get('myeventlane_surface.governed_operational_templates'),
     );
   }
 
@@ -106,22 +110,56 @@ final class MyAccountController extends ControllerBase {
         'library' => ['myeventlane_theme/global-styling'],
       ],
     ];
+    if ($upcomingTickets === []) {
+      $build['#mel_account_dashboard_tickets_empty'] = $this->operationalTemplates->accountDashboardTicketsEmpty();
+    }
+    if ($upcomingRsvps === []) {
+      $build['#mel_account_dashboard_rsvps_empty'] = $this->operationalTemplates->accountDashboardRsvpsEmpty();
+    }
+    if ($pastEvents === []) {
+      $build['#mel_account_dashboard_past_empty'] = $this->operationalTemplates->accountDashboardPastPreviewEmpty();
+    }
     $cache->applyTo($build);
     return $build;
   }
 
   /**
-   * Redirects to the user edit form (Profile & Settings).
+   * Redirects legacy /my-settings to the canonical route including the user parameter.
    */
-  public function settings(): RedirectResponse {
+  public function settingsRedirect(): RedirectResponse {
+    $account = $this->currentUser();
+    $url = Url::fromRoute('myeventlane_account.settings', ['user' => $account->id()]);
+    return new RedirectResponse($url->toString(), 302);
+  }
+
+  /**
+   * Renders profile & settings inside the customer shell (no standalone Drupal edit route).
+   */
+  public function settings(UserInterface $user): array|RedirectResponse {
     $account = $this->currentUser();
     if ($account->isAnonymous()) {
-      return new RedirectResponse(Url::fromRoute('user.login')->toString(), 302);
+      return new RedirectResponse(
+        Url::fromRoute('user.login', [], ['query' => ['destination' => '/my-settings']])->toString(),
+        302,
+      );
     }
-    return new RedirectResponse(
-      Url::fromRoute('entity.user.edit_form', ['user' => $account->id()])->toString(),
-      302
-    );
+
+    $form = $this->entityFormBuilder()->getForm($user, 'default');
+
+    $cache = (new CacheableMetadata())
+      ->addCacheContexts(['user', 'route'])
+      ->addCacheableDependency($user);
+
+    $build = [
+      '#theme' => 'mel_surface_customer_profile_settings',
+      '#title' => $this->t('Profile & Settings'),
+      '#form' => $form,
+      '#attached' => [
+        'library' => ['myeventlane_theme/global-styling'],
+      ],
+    ];
+    $cache->applyTo($build);
+    return $build;
   }
 
   /**
@@ -166,6 +204,9 @@ final class MyAccountController extends ControllerBase {
         'library' => ['myeventlane_theme/global-styling'],
       ],
     ];
+    if ($pastEvents === []) {
+      $build['#mel_account_past_events_page_empty'] = $this->operationalTemplates->accountPastEventsPageEmpty();
+    }
     $cache->applyTo($build);
     return $build;
   }

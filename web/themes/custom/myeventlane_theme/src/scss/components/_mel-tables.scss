@@ -1,0 +1,51 @@
+// ==========================================================================
+// MEL governed table shells (wrappers only — semantic tables stay in markup)
+// ==========================================================================
+
+@use '../tokens/spacing' as spacing;
+@use '../tokens/colors';
+@use '../tokens/radii';
+
+.mel-data-table {
+  border-radius: radii.$mel-radius-md;
+}
+
+.mel-data-table__scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mel-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(3);
+  align-items: center;
+}
+
+.mel-table-toolbar--dense {
+  gap: spacing.mel-space(2);
+}
+
+.mel-table-empty {
+  padding-block: spacing.mel-space(5);
+  padding-inline: spacing.mel-space(4);
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-table-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+  align-items: center;
+}
+
+.mel-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+}
+
+.mel-table-status {
+  font-size: var(--mel-font-size-sm, 0.875rem);
+  color: colors.$mel-color-text-muted;
+}

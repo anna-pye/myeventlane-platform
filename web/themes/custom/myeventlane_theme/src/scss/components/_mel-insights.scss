@@ -1,0 +1,11 @@
+// ==========================================================================
+// MEL operational insights (deterministic copy containers)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+}

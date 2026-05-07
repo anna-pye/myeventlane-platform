@@ -11,7 +11,10 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_checkout_flow\Service\AttendeeEventStatsService;
+use Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsPresenter;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
+use Drupal\myeventlane_surface\GovernedOperationalTemplates;
+use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -24,7 +27,9 @@ final class VendorAttendeesController extends ControllerBase {
     EntityTypeManagerInterface $entityTypeManager,
     AccountProxyInterface $currentUser,
     private readonly TicketLabelResolver $ticketLabelResolver,
-    private readonly ?AttendeeEventStatsService $attendeeStats = NULL,
+    private readonly ?AttendeeEventStatsService $attendeeStats,
+    private readonly MelAttendeeOperationsPresenter $operationsPresenter,
+    private readonly GovernedOperationalTemplates $operationalTemplates,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
@@ -36,7 +41,9 @@ final class VendorAttendeesController extends ControllerBase {
       $container->get('current_user'),
       $container->get('myeventlane_core.ticket_label_resolver'),
       $container->has('myeventlane_checkout_flow.attendee_event_stats')
-        ? $container->get('myeventlane_checkout_flow.attendee_event_stats') : NULL
+        ? $container->get('myeventlane_checkout_flow.attendee_event_stats') : NULL,
+      $container->get('myeventlane_checkout_flow.attendee_operations_presenter'),
+      $container->get('myeventlane_surface.governed_operational_templates'),
     );
   }
 
@@ -76,6 +83,7 @@ final class VendorAttendeesController extends ControllerBase {
 
     $events = $this->getVendorEvents($store);
     $eventData = [];
+    $operationalSummaries = [];
     $melCards = [];
     $melKpis = [
       'events' => 0,
@@ -104,19 +112,36 @@ final class VendorAttendeesController extends ControllerBase {
         'attendee_count' => $stats['attendee_count'],
         'revenue' => $stats['revenue'],
       ];
+
+      if ($event instanceof NodeInterface) {
+        $vm = $this->operationsPresenter->buildEventViewModel($event);
+        $operationalSummaries[(int) $event->id()] = [
+          'event_id' => (int) $event->id(),
+          'title' => (string) $event->label(),
+          'url' => $event->toUrl()->toString(),
+          'totals' => $vm['readiness'],
+        ];
+      }
     }
 
-    return [
+    $build = [
       '#theme' => 'myeventlane_vendor_attendees_dashboard',
       '#title' => $this->t('Attendees & Sales'),
       '#events' => $eventData,
       '#mel_cards' => $melCards,
       '#mel_kpis' => $melKpis,
+      '#operational_summaries' => $operationalSummaries,
       '#cache' => [
         'contexts' => ['user'],
         'tags' => ['node_list:event'],
       ],
     ];
+
+    if (empty($events)) {
+      $build['#mel_vendor_attendees_dashboard_empty'] = $this->operationalTemplates->vendorAttendeesDashboardEmpty();
+    }
+
+    return $build;
   }
 
   private function getVendorEvents(StoreInterface $store): array {

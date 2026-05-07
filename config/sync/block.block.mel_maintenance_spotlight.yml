@@ -1,0 +1,30 @@
+uuid: aa0cceda-d766-43c5-88ce-82363a12522e
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.featured_events
+  module:
+    - system
+    - views
+  theme:
+    - mel_maintenance
+id: mel_maintenance_spotlight
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: 'views_block:featured_events-block_spotlight'
+settings:
+  id: 'views_block:featured_events-block_spotlight'
+  label: Spotlight
+  label_display: '0'
+  provider: views
+  views_label: Spotlight
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

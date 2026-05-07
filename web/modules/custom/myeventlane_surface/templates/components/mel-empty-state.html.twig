@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Canonical empty state — what happened, why empty, next step, optional CTA.
+ */
+#}
+<div{{ attributes }}>
+  {% if illustration %}
+    <div class="mel-empty-state__illustration" aria-hidden="true">
+      {{ illustration }}
+    </div>
+  {% endif %}
+  <{{ heading_element }} class="mel-empty-state__heading">{{ heading }}</{{ heading_element }}>
+  {% if what_happened %}
+    <p class="mel-empty-state__what">{{ what_happened }}</p>
+  {% endif %}
+  {% if why_empty %}
+    <p class="mel-empty-state__why">{{ why_empty }}</p>
+  {% endif %}
+  {% if next_action %}
+    <p class="mel-empty-state__next">{{ next_action }}</p>
+  {% endif %}
+  {% if cta %}
+    <div class="mel-empty-state__cta">
+      {{ cta }}
+    </div>
+  {% endif %}
+</div>

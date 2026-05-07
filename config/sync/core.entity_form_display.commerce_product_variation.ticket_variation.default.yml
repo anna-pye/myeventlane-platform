@@ -57,12 +57,6 @@ content:
     settings:
       display_label: true
     third_party_settings: {  }
-  field_ticket_end:
-    type: datetime_default
-    weight: 8
-    region: content
-    settings: {  }
-    third_party_settings: {  }
   field_ticket_description:
     type: text_textarea
     weight: -2
@@ -70,6 +64,12 @@ content:
     settings:
       rows: 4
       placeholder: ''
+    third_party_settings: {  }
+  field_ticket_end:
+    type: datetime_default
+    weight: 8
+    region: content
+    settings: {  }
     third_party_settings: {  }
   field_ticket_start:
     type: datetime_default

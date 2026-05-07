@@ -1,0 +1,57 @@
+// ==========================================================================
+// MEL data presentation — layout profiles & shared presentation contracts
+// ==========================================================================
+
+@use '../tokens/spacing' as spacing;
+@use '../tokens/colors';
+@use '../tokens/breakpoints';
+
+// Surface-aware density hooks (shell sets data-mel-surface on document).
+[data-mel-surface='customer'] .mel-data-table,
+[data-mel-surface='public'] .mel-data-table {
+  --mel-data-row-gap: #{spacing.mel-space(4)};
+}
+
+[data-mel-surface='vendor'] .mel-data-table {
+  --mel-data-row-gap: #{spacing.mel-space(3)};
+}
+
+[data-mel-surface='staff'] .mel-data-table {
+  --mel-data-row-gap: #{spacing.mel-space(2)};
+}
+
+.mel-data-table__toolbar-slot,
+.mel-data-table__status-slot {
+  margin-block-end: spacing.mel-space(3);
+}
+
+.mel-data-table__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(3);
+  align-items: center;
+  justify-content: space-between;
+  margin-block-start: spacing.mel-space(4);
+}
+
+.mel-data-table__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mel-analytics-frame[data-mel-density='dense'] {
+  padding-block: spacing.mel-space(3);
+  padding-inline: spacing.mel-space(3);
+}
+
+.mel-analytics-frame[data-mel-density='comfortable'],
+.mel-analytics-frame[data-mel-density='compact'] {
+  padding-block: spacing.mel-space(5);
+  padding-inline: spacing.mel-space(4);
+}
+
+@include breakpoints.mel-break('md', max) {
+  .mel-data-table__frame--stack-sm table {
+    min-width: 100%;
+  }
+}

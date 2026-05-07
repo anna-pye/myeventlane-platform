@@ -1,0 +1,19 @@
+// ==========================================================================
+// MEL readiness interpretation (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+
+.mel-readiness-summary {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+  color: colors.$mel-color-text;
+}
+
+.mel-readiness-summary__item {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}

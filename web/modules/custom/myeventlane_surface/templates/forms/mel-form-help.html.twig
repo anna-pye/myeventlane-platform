@@ -1,0 +1,10 @@
+{#
+/**
+ * @file
+ * Helper text pattern matching core .description semantics (WCAG-friendly).
+ */
+#}
+{% set help_attributes = create_attribute(attributes|default({})) %}
+<div{{ help_attributes.addClass('mel-form-help', 'description') }}>
+  {{ content }}
+</div>

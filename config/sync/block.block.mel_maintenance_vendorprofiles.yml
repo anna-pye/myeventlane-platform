@@ -1,0 +1,29 @@
+uuid: 7ff38800-d6a3-4d67-93fa-4d9b4dc24561
+langcode: en
+status: false
+dependencies:
+  module:
+    - ctools_block
+  theme:
+    - mel_maintenance
+id: mel_maintenance_vendorprofiles
+theme: mel_maintenance
+region: content
+weight: 0
+provider: null
+plugin: 'entity_field:user:vendor_profiles'
+settings:
+  id: 'entity_field:user:vendor_profiles'
+  label: 'Vendor profiles'
+  label_display: visible
+  provider: ctools_block
+  context_mapping:
+    entity: '@user.current_user_context:current_user'
+  formatter:
+    type: entity_reference_label
+    weight: 0
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+visibility: {  }

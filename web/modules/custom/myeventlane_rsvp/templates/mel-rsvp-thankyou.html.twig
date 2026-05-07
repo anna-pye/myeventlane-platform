@@ -1,67 +1,73 @@
+{#
+/**
+ * RSVP thank-you — customer continuity from mel_continuity (MEL governance).
+ *
+ * Theme override (thin delegate): myeventlane_theme/templates/rsvp/mel-rsvp-thankyou.html.twig
+ */
+#}
+{% set mc = mel_continuity|default({}) %}
+
 <div class="mel-rsvp-thankyou">
-  <div class="mel-card mel-card--confirmation">
+  <div class="mel-card mel-card--confirmation" role="region" aria-labelledby="mel-rsvp-confirm-heading">
+    <h1 id="mel-rsvp-confirm-heading" class="mel-title">{{ mc.headline|default("You're going") }} <span aria-hidden="true">🎉</span></h1>
 
-    <h1 class="mel-title">You're going 🎉</h1>
+    <p class="mel-subtitle">{{ mc.subtitle|default('') }}</p>
 
-    <p class="mel-subtitle">
-      Your spot is confirmed for <strong>{{ event.label }}</strong>
-    </p>
-
-    {% if attendee_name %}
-      <p class="mel-meta">Booked as {{ attendee_name }}</p>
+    {% if mc.status_line is defined and mc.status_line %}
+      <p class="mel-meta"{% if mc.donation_band is defined and mc.donation_band and mc.donation_band.type == 'pending' %} aria-live="polite"{% endif %}>
+        {{ mc.status_line }}
+      </p>
     {% endif %}
 
-    {% if attendee_email %}
-      <p class="mel-meta">{{ attendee_email }}</p>
-    {% endif %}
+    {% for line in mc.meta_lines|default([]) %}
+      <p class="mel-meta">{{ line }}</p>
+    {% endfor %}
 
-    {% set donation_amount = donation|default(0)|number_format(2, '.', '') %}
-    {% if donation and donation > 0 and donation_pending %}
-      <section class="mel-donation-cta mel-donation-cta--pending">
-        <h2 class="mel-donation-cta__title">💛 Support this event</h2>
-        <p class="mel-donation-cta__body">Your RSVP is confirmed. Complete your optional contribution to help keep this event running.</p>
-        {% if donation_checkout_url %}
-          <div class="mel-donation-cta__actions">
-            <a href="{{ donation_checkout_url }}" class="mel-btn mel-btn--primary">
-              Complete your ${{ donation_amount }} contribution
-            </a>
+    {% if mc.donation_band is defined and mc.donation_band %}
+      {% if mc.donation_band.type == 'pending' %}
+        <section class="mel-donation-cta mel-donation-cta--pending" aria-labelledby="mel-rsvp-donation-pending-title">
+          <div class="mel-donation-cta__icon" aria-hidden="true">💛</div>
+          <h2 id="mel-rsvp-donation-pending-title" class="mel-donation-cta__title">{{ mc.donation_band.title }}</h2>
+          <p class="mel-donation-cta__body">{{ mc.donation_band.body }}</p>
+          <div class="mel-donation-progress">
+            <div class="mel-donation-progress__bar"></div>
+            <div class="mel-donation-progress__label">{{ mc.donation_band.progress_label }}</div>
           </div>
-        {% endif %}
-      </section>
-    {% elseif donation and donation > 0 and donation_completed %}
-      <section class="mel-donation-cta mel-donation-cta--complete">
-        <h2 class="mel-donation-cta__title">💛 Thank you for your support</h2>
-        <p class="mel-donation-cta__body">Thank you — your contribution has been completed.</p>
-        <span class="mel-donation-cta__badge">Contribution complete</span>
-      </section>
-    {% else %}
-      <section class="mel-donation-cta mel-donation-cta--upsell">
-        <h2 class="mel-donation-cta__title">💛 Support this event</h2>
-        <p class="mel-donation-cta__body">This event is community-powered. Add a small contribution if you'd like to support it.</p>
-        {% if can_add_post_rsvp_contribution %}
-          <div class="mel-donation-cta__actions">
-            <a href="{{ event_url }}" class="mel-btn mel-btn--primary">Add a contribution</a>
-          </div>
-        {% endif %}
-      </section>
+          {% if donation_checkout_url %}
+            <div class="mel-donation-cta__actions">
+              <a href="{{ donation_checkout_url }}" class="mel-btn mel-btn--primary">
+                {{ mc.donation_band.contribution_button_label|default('') }}
+              </a>
+            </div>
+            <p class="mel-donation-cta__reassurance">{{ mc.donation_band.reassurance }}</p>
+          {% endif %}
+        </section>
+      {% elseif mc.donation_band.type == 'complete' %}
+        <section class="mel-donation-cta mel-donation-cta--complete">
+          <h2 class="mel-donation-cta__title">{{ mc.donation_band.title }}</h2>
+          <p class="mel-donation-cta__body">{{ mc.donation_band.body }}</p>
+          <span class="mel-donation-cta__badge">{{ mc.donation_band.badge }}</span>
+        </section>
+      {% elseif mc.donation_band.type == 'upsell' %}
+        <section class="mel-donation-cta mel-donation-cta--upsell">
+          <h2 class="mel-donation-cta__title">{{ mc.donation_band.title }}</h2>
+          <p class="mel-donation-cta__body">{{ mc.donation_band.body }}</p>
+        </section>
+      {% endif %}
     {% endif %}
 
-    <div class="mel-actions">
-
-      <a href="{{ event_url }}" class="mel-btn mel-btn--primary">
-        View Event
-      </a>
-
-      <a href="/calendar/download/{{ event.id }}" class="mel-btn mel-btn--ghost">
-        Add to Calendar
-      </a>
-
-      <a href="{{ cancel_url }}" class="mel-btn mel-btn--danger">
-        Cancel RSVP
-      </a>
-
+    <div class="mel-actions mel-continuity-actions" data-mel-continuity-actions="rsvp_thankyou">
+      {% for action in mc.continuity_actions|default([]) %}
+        {% set btn_class = 'mel-btn mel-btn--secondary' %}
+        {% if action.variant == 'primary' %}
+          {% set btn_class = 'mel-btn mel-btn--primary' %}
+        {% elseif action.variant == 'danger' %}
+          {% set btn_class = 'mel-btn mel-btn--danger' %}
+        {% endif %}
+        <a href="{{ action.url }}" class="{{ btn_class }}"{% if action.download %} download{% endif %} data-mel-continuity-key="{{ action.key }}">
+          {{ action.label }}
+        </a>
+      {% endfor %}
     </div>
-
   </div>
-
 </div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_account\Service;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 
@@ -20,6 +21,7 @@ final class AccountLinksService {
    */
   public function __construct(
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly AccountProxyInterface $currentUser,
   ) {}
 
   /**
@@ -55,6 +57,17 @@ final class AccountLinksService {
     catch (\Throwable) {
     }
 
+    $profile_settings_url = '/my-settings';
+    if ($this->currentUser->isAuthenticated()) {
+      try {
+        $profile_settings_url = Url::fromRoute('myeventlane_account.settings', [
+          'user' => $this->currentUser->id(),
+        ])->toString();
+      }
+      catch (\Throwable) {
+      }
+    }
+
     return [
       [
         'title' => $this->t('Dashboard'),
@@ -68,7 +81,7 @@ final class AccountLinksService {
       ],
       [
         'title' => $this->t('Profile & Settings'),
-        'url' => Url::fromRoute('myeventlane_account.settings')->toString(),
+        'url' => $profile_settings_url,
         'active' => FALSE,
       ],
       [

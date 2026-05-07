@@ -20,7 +20,7 @@
         <strong>Placed:</strong> {{ order.placed_date }}
       </span>
       <span class="mel-order-status">
-        <strong>Status:</strong> {{ order.state }}
+        <strong>Status:</strong> {{ order.state_customer_presentation|default(order.state) }}
       </span>
     </div>
     {% if order.total_price > 0 %}

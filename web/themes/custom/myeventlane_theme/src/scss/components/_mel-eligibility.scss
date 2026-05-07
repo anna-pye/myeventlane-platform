@@ -1,0 +1,16 @@
+// ==========================================================================
+// MEL feature eligibility hints (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+@use '../tokens/colors';
+
+.mel-eligibility-hint {
+  margin: spacing.mel-space(2) 0 0;
+  padding: spacing.mel-space(2);
+  border-radius: 0;
+  border: 1px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface-alt;
+  color: colors.$mel-color-text;
+  font-size: 0.875rem;
+}

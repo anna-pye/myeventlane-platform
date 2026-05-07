@@ -1,0 +1,41 @@
+{#
+/**
+ * @file
+ * Intelligence region — all user-facing wording is supplied from PHP (MelReadinessHelper / payload).
+ */
+#}
+<section{{ attributes }}>
+  <h2 id="mel-intelligence-region-label" class="visually-hidden">{{ intelligence_region_heading }}</h2>
+  {% if items is not empty %}
+    <div class="mel-intelligence-panel__items" data-mel-intelligence-live="polite">
+      {% for item in items %}
+        <article class="mel-intelligence-panel__item" data-mel-intelligence-id="{{ item.id }}">
+          <h3 class="mel-intelligence-panel__headline">{{ item.headline }}</h3>
+          <p class="mel-intelligence-panel__action">{{ item.recommended_action }}</p>
+          {% if explainability_details %}
+            <details class="mel-intelligence-panel__why">
+              <summary>{{ explainability_summary_label }}</summary>
+              <p>{{ item.why_shown }}</p>
+              {% if item.trigger_signal_keys is not empty %}
+                <p class="mel-intelligence-panel__signals">
+                  <span class="mel-intelligence-panel__signals-label">{{ explainability_signals_label }}:</span>
+                  {{ item.trigger_signal_keys|join(', ') }}
+                </p>
+              {% endif %}
+            </details>
+          {% endif %}
+          {% if dismiss_hint_template is not empty and item.dismissible %}
+            <p class="mel-intelligence-panel__dismiss-hint">{{ dismiss_hint_template }}</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if insights is not empty %}
+    <aside class="mel-intelligence-panel__insights" aria-label="{{ insights_aria_label }}">
+      {% for insight in insights %}
+        <p class="mel-intelligence-panel__insight" data-mel-insight-id="{{ insight.id }}">{{ insight.headline }}</p>
+      {% endfor %}
+    </aside>
+  {% endif %}
+</section>

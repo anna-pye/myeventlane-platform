@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL completion / reassurance orchestration
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-workflow-region .mel-status-panel--success {
+  margin-top: spacing.mel-space(2);
+}

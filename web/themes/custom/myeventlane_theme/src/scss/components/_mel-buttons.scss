@@ -1,0 +1,58 @@
+// ==========================================================================
+// MELFormSystem — button hierarchy inside governed forms only
+// ==========================================================================
+// Scopes Drupal submit markup (.button, .button--primary) to mel-form-system so
+// Gin/admin stays untouched.
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/typography';
+
+.mel-btn--destructive {
+  color: color.adjust(colors.$mel-color-error, $lightness: -18%);
+  background: rgba(colors.$mel-color-error, 0.12);
+  border: 1px solid rgba(colors.$mel-color-error, 0.45);
+  box-shadow: none;
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  &:hover {
+    background: rgba(colors.$mel-color-error, 0.18);
+  }
+}
+
+.mel-form-system {
+  .form-actions,
+  .mel-form-actions {
+    align-items: center;
+
+    input[type='submit'],
+    input[type='button'],
+    button {
+      min-height: 44px;
+      min-width: 44px;
+      border-radius: radii.$mel-radius-md;
+      font-family: typography.$mel-font-family;
+      font-weight: typography.$mel-font-semibold;
+    }
+  }
+
+  // Reinforce hierarchy when modules omit mel-btn classes (Commerce-safe).
+  input[type='submit'].button--primary,
+  button.button--primary {
+    box-shadow: shadows.$mel-shadow-2;
+  }
+
+  input[type='submit'].button--secondary,
+  button.button--secondary {
+    background: colors.$mel-color-surface;
+    color: colors.$mel-color-primary;
+    border: 1px solid colors.$mel-color-primary;
+    box-shadow: none;
+  }
+}

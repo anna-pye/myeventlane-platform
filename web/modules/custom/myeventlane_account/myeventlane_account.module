@@ -27,6 +27,9 @@ function myeventlane_account_theme(): array {
         'account_links' => [],
         'show_review_cta' => FALSE,
         'review_eligible' => [],
+        'mel_account_dashboard_tickets_empty' => NULL,
+        'mel_account_dashboard_rsvps_empty' => NULL,
+        'mel_account_dashboard_past_empty' => NULL,
       ],
       'template' => 'myeventlane-my-account-dashboard',
     ],
@@ -40,6 +43,7 @@ function myeventlane_account_theme(): array {
         'account_links' => [],
         'show_review_cta' => FALSE,
         'review_eligible' => [],
+        'mel_account_past_events_page_empty' => NULL,
       ],
       'template' => 'myeventlane-my-account-past-events',
     ],
@@ -132,9 +136,12 @@ function myeventlane_account_menu_links_discovery_alter(array &$links): void {
  */
 function myeventlane_account_theme_suggestions_page_alter(array &$suggestions, array $variables): void {
   $route = \Drupal::routeMatch()->getRouteName();
-  // My Tickets, My Events, and order detail need the account layout wrapper.
-  // Dashboard and Past Events already include the sidebar in their templates.
+  // Unified customer hub shell: sidebar + governed workflow regions (MELWorkflowSystem).
+  // Dashboard and Past Events use page__account; body templates are content-only.
   $account_routes = [
+    'myeventlane_account.dashboard',
+    'myeventlane_account.past_events',
+    'myeventlane_account.settings',
     'myeventlane_checkout_flow.my_tickets',
     'myeventlane_checkout_flow.order_detail',
     'myeventlane_dashboard.customer',
@@ -159,8 +166,29 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
   $account_links_service = \Drupal::service('myeventlane_account.account_links');
 
   $variables['account_show_sidebar'] = TRUE;
-  $variables['account_links'] = $account_links_service->buildLinks('dashboard');
-  $variables['display_name'] = $account->getDisplayName();
+  $links = $account_links_service->buildLinks('dashboard');
+  $variables['account_links'] = $links;
+  if (\Drupal::hasService('myeventlane_core.display_name_resolver')) {
+    $variables['display_name'] = \Drupal::service('myeventlane_core.display_name_resolver')->getDisplayName($account);
+  }
+  else {
+    $variables['display_name'] = $account->getDisplayName();
+  }
+
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $variables['account_show_header_logo'] = $route_name === 'myeventlane_account.dashboard';
+  $variables['account_heading'] = NULL;
+  if ($route_name === 'myeventlane_account.past_events') {
+    $variables['account_heading'] = t('Past Events');
+  }
+
+  if (\Drupal::hasService('myeventlane_surface.navigation_manager')) {
+    $variables['mel_account_shell_nav'] = [
+      '#theme' => 'mel_shell_nav',
+      '#links' => $links,
+      '#contract' => \Drupal::service('myeventlane_surface.navigation_manager')->getContract(),
+    ];
+  }
 
   _myeventlane_account_add_header_vars($variables);
 }

@@ -11,6 +11,7 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
+use Drupal\myeventlane_surface\MelReadinessHelper;
 
 /**
  * Builds GST-aware pricing rows from Commerce orders (adjustments + subtotals).
@@ -25,6 +26,7 @@ final class OrderPricingBreakdownBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly MelReadinessHelper $readinessHelper,
   ) {}
 
   /**
@@ -52,7 +54,7 @@ final class OrderPricingBreakdownBuilder {
         continue;
       }
       $raw_label = trim((string) $adjustment->getLabel());
-      $label = $raw_label === '' ? 'Tax' : $raw_label;
+      $label = $raw_label === '' ? $this->readinessHelper->customerCheckoutTaxRowFallbackLabel() : $raw_label;
       $label = $this->decorateGstRowLabel($label);
       $tax_rows[] = [
         'label' => $label,
@@ -78,7 +80,7 @@ final class OrderPricingBreakdownBuilder {
       }
       $fee_label = trim((string) $adjustment->getLabel());
       if ($fee_label === '') {
-        $fee_label = 'Fees';
+        $fee_label = $this->readinessHelper->customerCheckoutFeeRowFallbackLabel();
       }
       $fee_rows[] = [
         'label' => $fee_label,

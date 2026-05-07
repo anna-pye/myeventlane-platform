@@ -1,0 +1,9 @@
+// ==========================================================================
+// MEL suppression governance — density helpers (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-suppression--reduced-density {
+  gap: spacing.mel-space(2);
+}

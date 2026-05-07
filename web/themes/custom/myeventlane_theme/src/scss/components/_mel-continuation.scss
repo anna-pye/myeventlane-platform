@@ -1,0 +1,9 @@
+// ==========================================================================
+// Cross-surface / journey continuation affordances (tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-continuation-panel {
+  margin: spacing.mel-space(3) 0;
+}

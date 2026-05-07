@@ -1,0 +1,30 @@
+uuid: 04f272c6-741d-4893-ae67-2ee218bf9d5f
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.mel_home_events
+  module:
+    - system
+    - views
+  theme:
+    - mel_maintenance
+id: mel_maintenance_views_block__mel_home_events_discover
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: 'views_block:mel_home_events-discover'
+settings:
+  id: 'views_block:mel_home_events-discover'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Advanced settings disclosure — vendor/staff density; access enforced upstream.
+ */
+#}
+<section{{ attributes }}>
+  <button{{ toggle_attributes }}>
+    {% if toggle_content %}
+      {{ toggle_content }}
+    {% elseif toggle_label %}
+      {{ toggle_label }}
+    {% endif %}
+  </button>
+  <div{{ panel_attributes }}{% if not expanded %} hidden{% endif %}>
+    {{ panel_content }}
+  </div>
+</section>

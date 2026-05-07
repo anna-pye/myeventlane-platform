@@ -132,16 +132,9 @@
             {% endfor %}
           </ul>
         {% else %}
-          {% set empty = model.empty_state|default({}) %}
-          <div class="mel-vendor-analytics-v2__empty mel-empty-state">
-            {% if empty.title %}
-              <h3 class="mel-empty-state__title">{{ empty.title }}</h3>
-            {% endif %}
-            {% if empty.message %}
-              <p class="mel-empty-state__text">{{ empty.message }}</p>
-            {% endif %}
-            {% if empty.url and empty.action_label %}
-              <a href="{{ empty.url }}" class="mel-btn mel-btn-primary">{{ empty.action_label }}</a>
+          <div class="mel-vendor-analytics-v2__empty">
+            {% if mel_analytics_events_empty is defined and mel_analytics_events_empty %}
+              {{ mel_analytics_events_empty }}
             {% endif %}
           </div>
         {% endif %}

@@ -1,0 +1,9 @@
+// ==========================================================================
+// Escalation continuity — operational only; no trust-score visuals
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-escalation-continuity {
+  margin: spacing.mel-space(3) 0;
+}

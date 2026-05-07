@@ -1,0 +1,23 @@
+uuid: 4890339e-5da0-43fe-8bc2-d4f3fc90a969
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - mel_maintenance
+id: mel_maintenance_site_branding
+theme: mel_maintenance
+region: header
+weight: 0
+provider: null
+plugin: system_branding_block
+settings:
+  id: system_branding_block
+  label: 'Site branding'
+  label_display: '0'
+  provider: system
+  use_site_logo: true
+  use_site_name: false
+  use_site_slogan: true
+visibility: {  }

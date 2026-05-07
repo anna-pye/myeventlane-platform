@@ -1,50 +1,59 @@
 {#
 /**
  * @file
- * MEL grouped checkout sidebar: events → ticket lines → subtotal / GST / fees → total.
- *
- * Totals use Commerce order adjustments via OrderPricingBreakdownBuilder (PHP).
+ * Grouped checkout order summary — variables only (MelCheckoutSummaryPresenter + Commerce data).
  */
 #}
-{% if grouped_items is not empty %}
-<div class="mel-checkout-order-summary mel-summary-grouped" role="region" aria-labelledby="mel-checkout-summary-heading">
-  <h2 id="mel-checkout-summary-heading" class="visually-hidden">{{ 'Order summary'|t }}</h2>
-  {% for event in grouped_items %}
-    <div class="mel-summary-event">
-      <h3 class="mel-summary-event__title">{{ event.title }}</h3>
-      {% if event.display_pricing|default('') %}
-        <div class="mel-summary-event__pricing">{{ event.display_pricing }}</div>
-      {% endif %}
-      {% if event.date or event.location %}
-        <div class="mel-summary-meta">
-          {% if event.date %}<span class="mel-summary-meta__date">{{ event.date }}</span>{% endif %}
-          {% if event.location %}<span class="mel-summary-meta__location">{{ event.location }}</span>{% endif %}
-        </div>
-      {% endif %}
+{% set labels = labels|default({}) %}
+{% set trust = trust|default({}) %}
+{% set surface = surface|default('checkout') %}
+{% if grouped_items is not empty or subtotal_formatted or optional_donation_formatted|default('') or tax_rows is not empty or fee_rows is not empty or platform_fee_absorbed %}
+<div class="mel-checkout-order-summary mel-summary-grouped mel-summary-grouped--{{ surface|e('html_attr') }}" role="region" aria-label="{{ labels.summary_region }}">
+  <h2 class="visually-hidden">{{ labels.core_heading_visually_hidden }}</h2>
 
-      {% for item in event.items %}
-        <div class="mel-summary-item">
-          <span class="mel-summary-item__label">
-            <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
-            <span class="mel-summary-item__ticket-type">{{ item.ticket_type }}</span>
-          </span>
-          <span class="mel-summary-item__price">{{ item.total_price }}</span>
+  {% for event in grouped_items %}
+    <article class="mel-summary-event mel-summary-event--card">
+      {% if event.thumbnail_url|default('') %}
+        <div class="mel-summary-event__media" aria-hidden="true">
+          <img src="{{ event.thumbnail_url }}" alt="" class="mel-summary-event__thumb" loading="lazy" width="72" height="72" />
         </div>
-      {% endfor %}
-    </div>
+      {% endif %}
+      <div class="mel-summary-event__body">
+        <h3 class="mel-summary-event__title">{{ event.title }}</h3>
+        {% if event.display_pricing|default('') %}
+          <div class="mel-summary-event__pricing">{{ event.display_pricing }}</div>
+        {% endif %}
+        {% if event.date or event.location %}
+          <div class="mel-summary-meta">
+            {% if event.date %}<span class="mel-summary-meta__date">{{ event.date }}</span>{% endif %}
+            {% if event.location %}<span class="mel-summary-meta__location">{{ event.location }}</span>{% endif %}
+          </div>
+        {% endif %}
+
+        {% for item in event.items %}
+          <div class="mel-summary-item">
+            <span class="mel-summary-item__label">
+              <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
+              <span class="mel-summary-item__ticket-type">{{ item.ticket_type }}</span>
+            </span>
+            <span class="mel-summary-item__price">{{ item.total_price }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
   {% endfor %}
 
-  <div class="mel-summary-breakdown" role="group" aria-label="{{ 'Pricing breakdown'|t }}">
+  <div class="mel-summary-breakdown" role="group" aria-label="{{ labels.pricing_breakdown_region }}">
     {% if subtotal_formatted %}
       <div class="mel-summary-row mel-summary-row--subtotal">
-        <span class="mel-summary-row__label">{{ 'Subtotal'|t }}</span>
+        <span class="mel-summary-row__label">{{ labels.subtotal_label }}</span>
         <span class="mel-summary-row__value">{{ subtotal_formatted }}</span>
       </div>
     {% endif %}
 
     {% if optional_donation_formatted|default('') %}
       <div class="mel-summary-row mel-summary-row--donation">
-        <span class="mel-summary-row__label">{{ 'Contribution'|t }}</span>
+        <span class="mel-summary-row__label">{{ labels.contribution_label }}</span>
         <span class="mel-summary-row__value">{{ optional_donation_formatted }}</span>
       </div>
     {% endif %}
@@ -65,21 +74,29 @@
 
     {% if platform_fee_absorbed %}
       <div class="mel-summary-row mel-summary-row--platform-fee">
-        <span class="mel-summary-row__label">{{ 'Platform fee'|t }}</span>
-        <span class="mel-summary-row__value">{{ 'Organiser absorbs'|t }}</span>
+        <span class="mel-summary-row__label">{{ labels.platform_fee_label }}</span>
+        <span class="mel-summary-row__value">{{ labels.platform_fee_absorbed_value }}</span>
       </div>
     {% endif %}
   </div>
 
-  <div class="mel-summary-total mel-summary-total--inline">
-    <span class="mel-summary-total__label">{{ 'Total'|t }}</span>
+  <div class="mel-summary-total mel-summary-total--inline mel-summary-total--emphasis mel-summary-total--coral">
+    <span class="mel-summary-total__label">{{ labels.total_label }}</span>
     <strong class="mel-summary-total__value">{{ order_total }}</strong>
   </div>
 
   {% if show_includes_gst_note %}
-    <p class="mel-tax-note">{{ 'All prices include GST'|t }}</p>
+    <p class="mel-tax-note">{{ labels.gst_note }}</p>
   {% endif %}
 
-  <a class="mel-checkout-summary__jump" href="#mel-checkout-cta">{{ 'Jump to payment'|t }}</a>
+  <footer class="mel-checkout-summary__trustfoot" role="status" aria-live="polite">
+    <p class="mel-checkout-summary__trustline">{{ trust.line_secure }}</p>
+    <p class="mel-checkout-summary__trustline">{{ trust.line_instant }}</p>
+    <p class="mel-checkout-summary__trustline mel-checkout-summary__trustline--muted">{{ trust.line_refund }}</p>
+  </footer>
+
+  {% if show_jump_to_payment|default(true) %}
+    <a class="mel-checkout-summary__jump" href="#mel-checkout-cta">{{ labels.jump_payment }}</a>
+  {% endif %}
 </div>
 {% endif %}

@@ -1,0 +1,16 @@
+// ==========================================================================
+// MEL workflow orchestration regions (behavioural layer; tokens only)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-workflow-region {
+  margin: spacing.mel-space(4) 0;
+}
+
+.mel-workflow-next-step__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(3);
+  align-items: center;
+}

@@ -126,6 +126,7 @@ content:
     region: content
 hidden:
   changed: true
+  field_mel_donation: true
   ip_address: true
   search_api_excerpt: true
   store_id: true

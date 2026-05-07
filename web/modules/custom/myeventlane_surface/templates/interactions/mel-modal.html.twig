@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * Governed modal shell — overlay + dialog; Drupal Forms/AJAX supply inner payloads.
+ */
+#}
+<div{{ attributes }}{% if not initially_open %} hidden{% endif %}>
+  <div{{ overlay_attributes }}></div>
+  <div{{ dialog_attributes }}>
+    {{ header }}
+    {{ body }}
+    {{ actions }}
+    {{ footer }}
+  </div>
+</div>

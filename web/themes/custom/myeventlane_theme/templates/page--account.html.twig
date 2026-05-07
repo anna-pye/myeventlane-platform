@@ -9,6 +9,8 @@
  * - avatar_url: URL to user picture.
  * - avatar_initials: Fallback initials.
  * - display_name: User display name.
+ * - account_show_header_logo: When TRUE, prepend dashboard home/logo control (dashboard route).
+ * - account_heading: Optional custom H1 markup object; when absent, greeting uses Welcome line.
  */
 #}
 
@@ -17,28 +19,45 @@
 {% block content %}
   <div class="mel-my-account">
     <div class="mel-my-account__layout">
-      {# Left sidebar - same as Dashboard / Past Events #}
-      <nav class="mel-my-account__nav" aria-label="{{ 'Account navigation'|t }}">
-        <div class="mel-my-account__nav-card">
-          <ul class="mel-my-account__nav-list">
-            {% for link in account_links %}
-              <li class="mel-my-account__nav-item">
-                <a href="{{ link.url }}" class="mel-my-account__nav-link{% if link.active %} mel-my-account__nav-link--active{% endif %}"
-                   {% if link.active %}aria-current="page"{% endif %}>
-                  {{ link.title }}
-                </a>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      </nav>
+      {# Left sidebar — MELComponentSystem mel_shell_nav + navigation contract #}
+      {% if mel_account_shell_nav %}
+        {{ mel_account_shell_nav }}
+      {% else %}
+        <nav class="mel-my-account__nav" aria-label="{{ 'Account navigation'|t }}">
+          <div class="mel-my-account__nav-card">
+            <ul class="mel-my-account__nav-list">
+              {% for link in account_links %}
+                <li class="mel-my-account__nav-item">
+                  <a href="{{ link.url }}" class="mel-my-account__nav-link{% if link.active %} mel-my-account__nav-link--active{% endif %}"
+                     {% if link.active %}aria-current="page"{% endif %}>
+                    {{ link.title }}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </nav>
+      {% endif %}
 
       {# Main content - div to avoid nested main (page.html.twig already has main) #}
       <div class="mel-my-account__main">
         {# Header row: welcome + avatar (global site_header already provides branding). #}
         <header class="mel-my-account__header">
+          {% if account_show_header_logo %}
+            <a href="{{ path('<front>') }}" class="mel-my-account__logo" aria-label="{{ 'Home'|t }}">
+              {% if logo_url %}
+                <img src="{{ logo_url }}" alt="" width="32" height="32" />
+              {% else %}
+                <span class="mel-my-account__logo-text">MyEventLane</span>
+              {% endif %}
+            </a>
+          {% endif %}
           <h1 class="mel-my-account__welcome">
-            {{ 'Welcome, @name!'|t({'@name': display_name}) }}
+            {% if account_heading %}
+              {{ account_heading }}
+            {% else %}
+              {{ 'Welcome, @name!'|t({'@name': display_name}) }}
+            {% endif %}
           </h1>
           <div class="mel-my-account__avatar" aria-hidden="true">
             {% if avatar_url %}
@@ -49,7 +68,19 @@
           </div>
         </header>
 
-        {# Page content (My Tickets, My Events, or order detail) #}
+        {% if mel_workflow_region_primary is defined and mel_workflow_region_primary %}
+          <div class="mel-my-account__workflow-primary">
+            {{ mel_workflow_region_primary }}
+          </div>
+        {% endif %}
+
+        {% if mel_workflow_region_progress is defined and mel_workflow_region_progress %}
+          <div class="mel-my-account__workflow-progress">
+            {{ mel_workflow_region_progress }}
+          </div>
+        {% endif %}
+
+        {# Page content (My Tickets, My Events, order detail) #}
         <div class="mel-my-account__content">
           {{ page.content }}
         </div>

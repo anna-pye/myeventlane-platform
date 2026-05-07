@@ -1,0 +1,10 @@
+{#
+/**
+ * @file
+ * Primary / secondary action row — complements Drupal .form-actions region.
+ */
+#}
+{% set actions_attributes = create_attribute(attributes|default({})) %}
+<div{{ actions_attributes.addClass('mel-form-actions', 'mel-form-actions--' ~ classification|default('customer')) }}>
+  {{ content }}
+</div>

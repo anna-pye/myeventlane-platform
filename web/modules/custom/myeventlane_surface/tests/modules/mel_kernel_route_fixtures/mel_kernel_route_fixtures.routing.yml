@@ -1,0 +1,18 @@
+# Stubs Commerce checkout route names used in governance kernel tests —
+# Url::fromRouteMatch() requires routes to exist in RouteProvider, not only on
+# the request attributes.
+commerce_checkout.review:
+  path: '/checkout/review'
+  defaults:
+    _controller: '\Drupal\system\Controller\Http4xxController:on404'
+    _title: 'Checkout review (kernel fixture)'
+  requirements:
+    _access: 'TRUE'
+
+commerce_checkout.order_information:
+  path: '/checkout/order'
+  defaults:
+    _controller: '\Drupal\system\Controller\Http4xxController:on404'
+    _title: 'Checkout order info (kernel fixture)'
+  requirements:
+    _access: 'TRUE'

@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Skeleton / placeholder loading — pairs with utilities/_skeletons.scss patterns.
+ */
+#}
+<div{{ attributes }}>
+  <div class="mel-empty-loading__skeleton" aria-hidden="true"></div>
+  {% if message %}
+    <span class="mel-empty-loading__message">{{ message }}</span>
+  {% endif %}
+</div>

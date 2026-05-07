@@ -1,0 +1,9 @@
+access mel observability diagnostics:
+  title: 'Access MEL observability diagnostics'
+  description: 'View staff-only orchestration and governance traces.'
+  restrict access: true
+
+access mel governance debug:
+  title: 'Access MEL governance debug overlays'
+  description: 'Attach staff-only governance debug hints (IDs and suppression maps only).'
+  restrict access: true

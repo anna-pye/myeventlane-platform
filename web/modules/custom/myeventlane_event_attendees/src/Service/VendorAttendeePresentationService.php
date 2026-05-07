@@ -16,7 +16,7 @@ use Drupal\node\NodeInterface;
  * Paid ticket holder paragraphs remain the checkout snapshot; vendor surfaces
  * use {@see \Drupal\myeventlane_event_attendees\Entity\EventAttendee} as canonical.
  */
-final class VendorAttendeePresentationService {
+final class VendorAttendeePresentationService implements VendorAttendeePresentationServiceInterface {
 
   public function __construct(
     private readonly TicketLabelResolver $ticketLabelResolver,

@@ -1,0 +1,40 @@
+{#
+/**
+ * @file
+ * Staff-only governance traces — copy from PHP (mel_observability), not hardcoded here.
+ */
+#}
+<section{{ attributes }}>
+  <h2 id="mel-observability-region-label" class="visually-hidden">{{ 'Governance traces'|t }}</h2>
+  {% if traces is not empty %}
+    <ul class="mel-observability-panel__traces" data-mel-observability-live="polite">
+      {% for row in traces %}
+        <li class="mel-observability-panel__trace" data-mel-observability-id="{{ row.observability_id }}">
+          <span class="mel-observability-panel__code">{{ row.code }}</span>
+          <span class="mel-observability-panel__message">{{ row.message }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if registry_meta is not empty %}
+    <details class="mel-observability-panel__registry">
+      <summary>{{ 'Observability registry (staff)'|t }}</summary>
+      <ul>
+        {% for meta in registry_meta %}
+          <li><strong>{{ meta.id }}</strong> — {{ meta.category }} — {{ meta.sources }}</li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% endif %}
+  {% if telemetry_boundary_reference is not empty %}
+    <details class="mel-observability-panel__telemetry">
+      <summary>{{ 'Telemetry boundaries'|t }}</summary>
+      <dl>
+        {% for key, text in telemetry_boundary_reference %}
+          <dt>{{ key }}</dt>
+          <dd>{{ text }}</dd>
+        {% endfor %}
+      </dl>
+    </details>
+  {% endif %}
+</section>

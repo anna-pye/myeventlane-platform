@@ -1,0 +1,9 @@
+// ==========================================================================
+// Resume-state orchestration surfaces (delegates copy to workflows/onboarding)
+// ==========================================================================
+
+@use '../tokens/spacing';
+
+.mel-resume-prompt {
+  margin: spacing.mel-space(3) 0;
+}

@@ -19,6 +19,7 @@ use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
+use Drupal\myeventlane_surface\MelReadinessHelper;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -48,6 +49,7 @@ final class VendorAnalyticsViewModelBuilder {
     private readonly TimeInterface $time,
     private readonly DateFormatterInterface $dateFormatter,
     TranslationInterface $string_translation,
+    private readonly MelReadinessHelper $readinessHelper,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {
     $this->stringTranslation = $string_translation;
@@ -123,8 +125,8 @@ final class VendorAnalyticsViewModelBuilder {
       'events' => [],
       'insights' => [],
       'empty_state' => [
-        'title' => (string) $this->t('Sign in to view analytics'),
-        'message' => (string) $this->t('Analytics are available to signed-in organisers.'),
+        'title' => $this->readinessHelper->vendorOrganiserPortalSignInTitle(),
+        'message' => $this->readinessHelper->vendorOrganiserPortalSignInAnalyticsBody(),
         'action_label' => NULL,
         'url' => NULL,
       ],
@@ -404,9 +406,8 @@ final class VendorAnalyticsViewModelBuilder {
       ];
     }
 
-    $title = (string) $this->t('No events yet');
-    $message = (string) $this->t('Create an event to see ticket and RSVP performance here.');
-    $actionLabel = (string) $this->t('Create event');
+    $copy = $this->readinessHelper->vendorActionNoEventsStrings();
+    $actionLabel = $copy['action_label'];
     $url = NULL;
 
     if ($this->routeExists('myeventlane_event_studio.create')) {
@@ -421,8 +422,8 @@ final class VendorAnalyticsViewModelBuilder {
     }
 
     return [
-      'title' => $title,
-      'message' => $message,
+      'title' => $copy['title'],
+      'message' => $copy['message'],
       'action_label' => $actionLabel,
       'url' => $url,
     ];

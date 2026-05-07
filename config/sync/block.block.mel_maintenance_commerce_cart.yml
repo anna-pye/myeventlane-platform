@@ -1,0 +1,22 @@
+uuid: 4e055b93-71c3-44f2-864d-28ce678d4022
+langcode: en
+status: false
+dependencies:
+  module:
+    - commerce_cart
+  theme:
+    - mel_maintenance
+id: mel_maintenance_commerce_cart
+theme: mel_maintenance
+region: header
+weight: -8
+provider: null
+plugin: commerce_cart
+settings:
+  id: commerce_cart
+  label: Cart
+  label_display: '0'
+  provider: commerce_cart
+  dropdown: false
+  show_if_empty: false
+visibility: {  }

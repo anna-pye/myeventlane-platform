@@ -627,23 +627,47 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
     return;
   }
 
+  $trust_strip_help_marketing = FALSE;
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
+    /** @var \Drupal\myeventlane_surface\MelWorkflowResolver $mel_workflow */
+    $mel_workflow = \Drupal::service('myeventlane_surface.workflow_resolver');
+    $workflow_context = $mel_workflow->buildContext();
+    /** @var \Drupal\myeventlane_surface\MelStateResolver $mel_state_resolver */
+    $mel_state_resolver = \Drupal::service('myeventlane_surface.state_resolver');
+    $merged_signals = $mel_state_resolver->mergeDomainSignals($workflow_context);
+    $evaluations = [];
+    foreach (\Drupal::service('myeventlane_surface.state_registry')->all() as $sid => $definition) {
+      $evaluations[$sid] = $mel_state_resolver->evaluate($definition, $workflow_context, $merged_signals)->value;
+    }
+    /** @var \Drupal\myeventlane_surface\MelPolicyResolver $mel_policy_resolver */
+    $mel_policy_resolver = \Drupal::service('myeventlane_surface.policy_resolver');
+    $active_policy_ids = $mel_policy_resolver->resolveActivePolicyIds($workflow_context, $merged_signals, $evaluations);
+    /** @var \Drupal\myeventlane_surface\MelSuppressionPolicyHelper $suppress_helper */
+    $suppress_helper = \Drupal::service('myeventlane_surface.policy_suppression_helper');
+    $suppress_map = $suppress_helper->suppressionMap($active_policy_ids);
+    $trust_strip_help_marketing = $workflow_context->checkoutSensitive
+      && (!empty($suppress_map['suppress_marketing_guidance']) || !empty($suppress_map['suppress_recommendations']));
+  }
+
   $step_id = $variables['form']['#step_id'] ?? NULL;
   $route_name = \Drupal::routeMatch()->getRouteName();
 
-  $engine = \Drupal::service('myeventlane_help.recommendation_engine');
-  $recommendation = $engine->getRecommendations($route_name, 'checkout');
+  if (!$trust_strip_help_marketing) {
+    $engine = \Drupal::service('myeventlane_help.recommendation_engine');
+    $recommendation = $engine->getRecommendations($route_name, 'checkout');
 
-  $builder = \Drupal::service('myeventlane_help_centre.support_panel_builder');
-  if (!empty($recommendation['panel_key'])) {
-    $panel = $builder->build((string) $recommendation['panel_key'], 'checkout', $route_name);
-  }
-  else {
-    $panel = $builder->buildForRoute($route_name, 'checkout') ?? [];
-  }
-  if ($panel !== []) {
-    $panel['#checkout_step_id'] = $step_id;
-    _myeventlane_help_centre_attach_support_panel_articles($panel, $recommendation, 'checkout');
-    $variables['mel_support_panel'] = $panel;
+    $builder = \Drupal::service('myeventlane_help_centre.support_panel_builder');
+    if (!empty($recommendation['panel_key'])) {
+      $panel = $builder->build((string) $recommendation['panel_key'], 'checkout', $route_name);
+    }
+    else {
+      $panel = $builder->buildForRoute($route_name, 'checkout') ?? [];
+    }
+    if ($panel !== []) {
+      $panel['#checkout_step_id'] = $step_id;
+      _myeventlane_help_centre_attach_support_panel_articles($panel, $recommendation, 'checkout');
+      $variables['mel_support_panel'] = $panel;
+    }
   }
 
   $resolver = _myeventlane_help_centre_resolver();
@@ -654,7 +678,7 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
       $variables['mel_contextual_help_checkout_confirmation'] = $confirm;
     }
   }
-  else {
+  elseif (!$trust_strip_help_marketing) {
     $checkout = $resolver->buildCard('checkout_booking', []);
     if ($checkout !== []) {
       $variables['mel_contextual_help_checkout'] = $checkout;
@@ -663,15 +687,17 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
 
   $has_inline_card = !empty($variables['mel_contextual_help_checkout'] ?? [])
     || !empty($variables['mel_support_panel'] ?? []);
-  if (!$has_inline_card) {
+  if (!$has_inline_card || $trust_strip_help_marketing) {
     $item = myeventlane_help_centre_get_link('refunds_checkout');
     if ($item) {
       $variables['mel_help_checkout_refund'] = myeventlane_help_link($item['text'], $item['url']);
     }
 
-    $guide = myeventlane_help_centre_get_link('checkout');
-    if ($guide) {
-      $variables['mel_help_checkout_guide'] = myeventlane_help_link($guide['text'], $guide['url']);
+    if (!$trust_strip_help_marketing) {
+      $guide = myeventlane_help_centre_get_link('checkout');
+      if ($guide) {
+        $variables['mel_help_checkout_guide'] = myeventlane_help_link($guide['text'], $guide['url']);
+      }
     }
   }
 

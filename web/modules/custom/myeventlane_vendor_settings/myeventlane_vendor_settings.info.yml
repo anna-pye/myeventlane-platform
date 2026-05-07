@@ -9,3 +9,4 @@ dependencies:
   - commerce:commerce_store
   - myeventlane_vendor:myeventlane_vendor
   - myeventlane_core:myeventlane_core
+  - myeventlane_surface:myeventlane_surface
