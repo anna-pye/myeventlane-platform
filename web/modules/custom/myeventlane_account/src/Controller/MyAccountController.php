@@ -12,6 +12,7 @@ use Drupal\image\ImageStyleInterface;
 use Drupal\myeventlane_account\Service\AccountLinksService;
 use Drupal\myeventlane_core\Service\DisplayNameResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\myeventlane_surface\GovernedOperationalTemplates;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -29,6 +30,7 @@ final class MyAccountController extends ControllerBase {
     private readonly AccountLinksService $accountLinksService,
     private readonly DisplayNameResolver $displayNameResolver,
     private readonly TimeInterface $time,
+    private readonly GovernedOperationalTemplates $operationalTemplates,
   ) {}
 
   /**
@@ -39,6 +41,7 @@ final class MyAccountController extends ControllerBase {
       $container->get('myeventlane_account.account_links'),
       $container->get('myeventlane_core.display_name_resolver'),
       $container->get('datetime.time'),
+      $container->get('myeventlane_surface.governed_operational_templates'),
     );
   }
 
@@ -107,6 +110,15 @@ final class MyAccountController extends ControllerBase {
         'library' => ['myeventlane_theme/global-styling'],
       ],
     ];
+    if ($upcomingTickets === []) {
+      $build['#mel_account_dashboard_tickets_empty'] = $this->operationalTemplates->accountDashboardTicketsEmpty();
+    }
+    if ($upcomingRsvps === []) {
+      $build['#mel_account_dashboard_rsvps_empty'] = $this->operationalTemplates->accountDashboardRsvpsEmpty();
+    }
+    if ($pastEvents === []) {
+      $build['#mel_account_dashboard_past_empty'] = $this->operationalTemplates->accountDashboardPastPreviewEmpty();
+    }
     $cache->applyTo($build);
     return $build;
   }
@@ -192,6 +204,9 @@ final class MyAccountController extends ControllerBase {
         'library' => ['myeventlane_theme/global-styling'],
       ],
     ];
+    if ($pastEvents === []) {
+      $build['#mel_account_past_events_page_empty'] = $this->operationalTemplates->accountPastEventsPageEmpty();
+    }
     $cache->applyTo($build);
     return $build;
   }

@@ -377,7 +377,7 @@ function myeventlane_checkout_flow_mel_observability_page_payload_alter(
   if (($payload['surface'] ?? '') !== MelSurfaceId::Staff->value) {
     return;
   }
-  $route_name = (string) ($context->signals['route.name'] ?? '');
+  $route_name = $context->routeName;
   if ($route_name === '') {
     return;
   }

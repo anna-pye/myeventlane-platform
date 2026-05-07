@@ -1252,38 +1252,6 @@ function myeventlane_surface_preprocess_myeventlane_vendor_attendees_dashboard(a
 }
 
 /**
- * Implements hook_preprocess_HOOK() for myeventlane_my_account_dashboard.
- */
-function myeventlane_surface_preprocess_myeventlane_my_account_dashboard(array &$variables): void {
-  if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
-    return;
-  }
-  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
-  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
-  if (empty($variables['upcoming_tickets'])) {
-    $variables['mel_account_dashboard_tickets_empty'] = $templates->accountDashboardTicketsEmpty();
-  }
-  if (empty($variables['upcoming_rsvps'])) {
-    $variables['mel_account_dashboard_rsvps_empty'] = $templates->accountDashboardRsvpsEmpty();
-  }
-  if (empty($variables['past_events'])) {
-    $variables['mel_account_dashboard_past_empty'] = $templates->accountDashboardPastPreviewEmpty();
-  }
-}
-
-/**
- * Implements hook_preprocess_HOOK() for myeventlane_my_account_past_events.
- */
-function myeventlane_surface_preprocess_myeventlane_my_account_past_events(array &$variables): void {
-  if (!empty($variables['past_events']) || !\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
-    return;
-  }
-  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
-  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
-  $variables['mel_account_past_events_page_empty'] = $templates->accountPastEventsPageEmpty();
-}
-
-/**
  * Implements hook_block_build_alter().
  */
 function myeventlane_surface_block_build_alter(array &$build, \Drupal\Core\Block\BlockPluginInterface $block): void {
