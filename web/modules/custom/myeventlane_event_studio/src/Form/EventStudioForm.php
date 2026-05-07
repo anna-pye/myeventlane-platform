@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -23,6 +24,8 @@ use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
+use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceBuilder;
+use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceComponentBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_vendor\Form\EventTicketManagerForm;
@@ -78,6 +81,10 @@ final class EventStudioForm extends FormBase {
 
   protected BookingFlowResolver $bookingFlowResolver;
 
+  protected EventStudioGovernanceBuilder $eventStudioGovernanceBuilder;
+
+  protected EventStudioGovernanceComponentBuilder $eventStudioGovernanceComponentBuilder;
+
   /**
    * Lazily restored for cached form AJAX (see {@see getMelPlatformSupportWizardForm()}).
    *
@@ -109,6 +116,8 @@ final class EventStudioForm extends FormBase {
     $instance->publishRequirementsGate = $container->get('myeventlane_vendor.publish_requirements_gate');
     $instance->bookingFlowResolver = $container->get('myeventlane_event.booking_flow_resolver');
     $instance->melPlatformSupportWizardForm = $container->get('myeventlane_event.mel_platform_support_wizard_form');
+    $instance->eventStudioGovernanceBuilder = $container->get('myeventlane_event_studio.governance_builder');
+    $instance->eventStudioGovernanceComponentBuilder = $container->get('myeventlane_event_studio.governance_component_builder');
     return $instance;
   }
 
@@ -128,7 +137,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver)
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder)
       && isset($this->melPlatformSupportWizardForm)) {
       return;
     }
@@ -180,6 +189,12 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->melPlatformSupportWizardForm)) {
       $this->melPlatformSupportWizardForm = $container->get('myeventlane_event.mel_platform_support_wizard_form');
+    }
+    if (!isset($this->eventStudioGovernanceBuilder)) {
+      $this->eventStudioGovernanceBuilder = $container->get('myeventlane_event_studio.governance_builder');
+    }
+    if (!isset($this->eventStudioGovernanceComponentBuilder)) {
+      $this->eventStudioGovernanceComponentBuilder = $container->get('myeventlane_event_studio.governance_component_builder');
     }
   }
 
@@ -1329,6 +1344,29 @@ final class EventStudioForm extends FormBase {
       'vendorQuestionLibrary' => $this->buildVendorQuestionLibraryPayload(),
       'urls' => [
         'book' => $book_url,
+        'governanceRefresh' => !$event->isNew()
+          ? Url::fromRoute('myeventlane_event_studio.governance_refresh', ['node' => (int) $event->id()])->toString()
+          : '',
+        'governanceComponents' => !$event->isNew()
+          ? [
+            'intelligence' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+              'node' => (int) $event->id(),
+              'component' => 'intelligence',
+            ])->toString(),
+            'workflow' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+              'node' => (int) $event->id(),
+              'component' => 'workflow',
+            ])->toString(),
+            'state' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+              'node' => (int) $event->id(),
+              'component' => 'state',
+            ])->toString(),
+            'continuity' => Url::fromRoute('myeventlane_event_studio.governance_component', [
+              'node' => (int) $event->id(),
+              'component' => 'continuity',
+            ])->toString(),
+          ]
+          : [],
       ],
       'previewResolver' => $preview_resolver,
       'previewStrings' => [
@@ -1361,6 +1399,33 @@ final class EventStudioForm extends FormBase {
     ];
 
     $form['#mel_studio_node'] = $event;
+
+    $governance_bundle = $this->eventStudioGovernanceBuilder->buildForEvent($event);
+    CacheableMetadata::createFromRenderArray([
+      '#cache' => $governance_bundle['#cache'] ?? ['contexts' => [], 'tags' => []],
+    ])->applyTo($form);
+    $form['#mel_studio_governance'] = $governance_bundle['twig'] ?? ['enabled' => FALSE];
+    if (!empty($governance_bundle['enabled'])) {
+      $form['#mel_studio_governance']['components'] = $this->eventStudioGovernanceComponentBuilder->buildAll($governance_bundle);
+    }
+    if (!empty($governance_bundle['enabled']) && is_array($governance_bundle['js'] ?? NULL)) {
+      $form['#attached']['drupalSettings']['melEventStudioGovernance'] = $governance_bundle['js'];
+      foreach ([
+        'myeventlane_surface/interactions',
+        'myeventlane_surface/experience',
+        'myeventlane_surface/intelligence',
+        'myeventlane_surface/operational_policy',
+      ] as $mel_library) {
+        $form['#attached']['library'][] = $mel_library;
+      }
+      if (($governance_bundle['js']['observabilityTier'] ?? '') !== '') {
+        $form['#attached']['library'][] = 'myeventlane_surface/observability';
+        $form['#attached']['drupalSettings']['melObservability'] = [
+          'enabled' => TRUE,
+          'tier' => (string) $governance_bundle['js']['observabilityTier'],
+        ];
+      }
+    }
 
     // Optional advanced Commerce ticket workspace — surfaced in sidebar only (access-checked).
     $form['#mel_advanced_ticket_manager_url'] = NULL;

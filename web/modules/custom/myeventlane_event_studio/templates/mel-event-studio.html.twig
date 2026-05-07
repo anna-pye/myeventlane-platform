@@ -12,7 +12,7 @@
     {{ element.mel_contextual_help_card }}
   {% endif %}
 
-  <div class="mel-event-studio mel-event-studio--builder-inline-validation mel-event-studio--{{ mode|default('create') }}" data-mel-studio-shell="1">
+  <div class="mel-event-studio mel-event-studio--builder-inline-validation mel-event-studio--{{ mode|default('create') }}{% if mel_studio_governance.enabled|default(false) %} mel-event-studio--governance{% endif %}" data-mel-studio-shell="1">
     {{ element.mel.ai_settings }}
     <h1 class="mel-event-studio__page-title visually-hidden">
       {% if mode == 'create' %}
@@ -165,16 +165,44 @@
             </div>
           </div>
 
-          <div class="mel-builder-next-best-block">
-            <p class="mel-builder-next-best-label">{{ 'Next best action'|t }}</p>
-            <p id="mel-builder-next-best" class="mel-builder-next-best" aria-live="polite"></p>
-            <button type="button" class="mel-btn mel-btn--primary mel-builder-primary-cta" id="mel-builder-primary-cta">{{ 'Review publish'|t }}</button>
-          </div>
+          {% set gov = mel_studio_governance|default({'enabled': false}) %}
 
-          <div class="mel-publish-readiness-card mel-publish-card">
-            <h3 class="mel-aside-card__title">{{ 'Publish readiness'|t }}</h3>
-            <div id="mel-publish-readiness" class="mel-publish-readiness-body"></div>
-          </div>
+          {% if gov.enabled %}
+            <div class="mel-studio-governance-sidebar" data-mel-studio-governance-root="1">
+              {{ gov.components.state }}
+              {{ gov.components.workflow }}
+              {{ gov.components.continuity }}
+              {{ gov.components.intelligence }}
+
+              {% set policy_lines = gov.policy.hint_lines|default([])|merge(gov.policy.lifecycle_lines|default([])) %}
+              <section id="mel-operational-policy-panel" class="mel-studio-governance-region mel-operational-policy-panel" aria-label="{{ 'Operational tone'|t }}" role="region">
+                <h3 class="mel-aside-card__title">{{ 'Operational tone'|t }}</h3>
+                <ul id="mel-governance-policy-list" class="mel-operational-policy-panel__list">
+                  {% for line in policy_lines %}
+                    <li>{{ line }}</li>
+                  {% endfor %}
+                </ul>
+                <p id="mel-governance-policy-empty" class="mel-operational-policy-panel__empty"{% if policy_lines is not empty %} hidden{% endif %}>{{ 'Standard vendor workspace tone.'|t }}</p>
+              </section>
+
+              {% if gov.observability_panel %}
+                <section id="mel-observability-panel" class="mel-studio-governance-region mel-observability-panel" aria-label="{{ 'Diagnostics'|t }}" role="region">
+                  {{ gov.observability_panel }}
+                </section>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="mel-builder-next-best-block">
+              <p class="mel-builder-next-best-label">{{ 'Next best action'|t }}</p>
+              <p id="mel-builder-next-best" class="mel-builder-next-best" aria-live="polite"></p>
+              <button type="button" class="mel-btn mel-btn--primary mel-builder-primary-cta" id="mel-builder-primary-cta">{{ 'Review publish'|t }}</button>
+            </div>
+
+            <div class="mel-publish-readiness-card mel-publish-card">
+              <h3 class="mel-aside-card__title">{{ 'Publish readiness'|t }}</h3>
+              <div id="mel-publish-readiness" class="mel-publish-readiness-body"></div>
+            </div>
+          {% endif %}
 
           <div class="mel-ai-controls mel-ai-controls--sidebar" role="region" aria-label="{{ 'AI style for generation'|t }}">
             <div class="mel-ai-controls__row">
@@ -201,10 +229,12 @@
             </div>
           </div>
 
-          <details class="mel-builder-checklist-details mel-insights-card mel-insights-card--sidebar">
-            <summary class="mel-builder-checklist-summary">{{ 'Show full checklist'|t }}</summary>
-            <div id="mel-insights-list" class="mel-insights-checklist" role="list" aria-live="polite"></div>
-          </details>
+          {% if not mel_studio_governance.enabled|default(false) %}
+            <details class="mel-builder-checklist-details mel-insights-card mel-insights-card--sidebar">
+              <summary class="mel-builder-checklist-summary">{{ 'Show full checklist'|t }}</summary>
+              <div id="mel-insights-list" class="mel-insights-checklist" role="list" aria-live="polite" data-mel-field-tips-list="1"></div>
+            </details>
+          {% endif %}
 
           <div class="mel-builder-sidebar__save">
             <button type="button" class="mel-btn mel-btn--primary mel-builder-save-sidebar" id="mel-builder-save-sidebar" aria-label="{{ 'Save event'|t }}">
@@ -215,7 +245,7 @@
           <p class="mel-aside-footnote" id="mel-studio-form-state" role="status"></p>
         </div>
       </aside>
-      <main class="mel-main mel-es-workspace__main">
+      <main id="mel-studio-content" class="mel-main mel-es-workspace__main mel-studio-content">
 
     <div class="mel-studio-form-wrapper mel-event-studio__form-full mel-studio-main-full">
 

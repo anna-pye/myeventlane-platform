@@ -78,6 +78,27 @@ services:
       - '@database'
       - '@logger.channel.myeventlane_event_studio'
 
+  myeventlane_event_studio.governance_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioGovernanceBuilder
+    arguments:
+      - '@?myeventlane_surface.workflow_manager'
+      - '@?myeventlane_surface.state_manager'
+      - '@?myeventlane_surface.operational_policy_manager'
+      - '@?myeventlane_surface.experience_manager'
+      - '@?myeventlane_surface.intelligence_manager'
+      - '@?myeventlane_surface.observability_manager'
+      - '@current_user'
+      - '@?myeventlane_surface.observability_diagnostics_access'
+      - '@?myeventlane_surface.resolver'
+      - '@?myeventlane_surface.governance_presentation_sanitizer'
+      - '@string_translation'
+
+  myeventlane_event_studio.governance_component_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioGovernanceComponentBuilder
+    arguments:
+      - '@string_translation'
+      - '@myeventlane_surface.state_readiness_helper'
+
   myeventlane_event_studio.repository:
     class: Drupal\myeventlane_event_studio\Service\EventRepository
     arguments:
@@ -97,6 +118,28 @@ services:
       - '@myeventlane_vendor.paid_publish_stripe_gate'
       - '@myeventlane_vendor.publish_requirements_gate'
       - '@?myeventlane_questions.template_cloner'
+
+  myeventlane_event_studio.governance_refresh_controller:
+    class: Drupal\myeventlane_event_studio\Controller\EventStudioGovernanceRefreshController
+    arguments:
+      - '@myeventlane_event_studio.governance_builder'
+      - '@current_user'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@logger.channel.myeventlane_event_studio'
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_event_studio.governance_component_controller:
+    class: Drupal\myeventlane_event_studio\Controller\EventStudioGovernanceComponentController
+    arguments:
+      - '@myeventlane_event_studio.governance_builder'
+      - '@myeventlane_event_studio.governance_component_builder'
+      - '@renderer'
+      - '@current_user'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@logger.channel.myeventlane_event_studio'
+    tags:
+      - { name: controller.service_arguments }
 
   myeventlane_event_studio.autosave_controller:
     class: Drupal\myeventlane_event_studio\Controller\EventStudioAutosaveController

@@ -38,6 +38,8 @@ use Drupal\myeventlane_event_studio\DTO\MelEventData;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor_analytics\Service\VendorKpiService;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
+use Drupal\myeventlane_surface\MelOperationalPolicyManager;
+use Drupal\myeventlane_surface\MelWorkflowManager;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -172,6 +174,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected VendorEventRemovalService $vendorEventRemoval;
 
   /**
+   * Optional MELOperationalPolicySystem (suppresses duplicate upsell paths).
+   */
+  protected ?MelOperationalPolicyManager $operationalPolicyManager = NULL;
+
+  /**
+   * Optional MEL workflow orchestration (dedupes dashboard onboarding CTAs).
+   */
+  protected ?MelWorkflowManager $melWorkflowManager = NULL;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
@@ -204,6 +216,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ?GrowthTrackingService $growth_tracking = NULL,
     ?CsrfTokenGenerator $csrf_token = NULL,
     mixed $boost_performance = NULL,
+    ?MelOperationalPolicyManager $operational_policy_manager = NULL,
+    ?MelWorkflowManager $mel_workflow_manager = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->dashboardViewModelBuilder = $dashboard_view_model_builder;
@@ -232,6 +246,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->growthTracking = $growth_tracking;
     $this->csrfToken = $csrf_token;
     $this->boostPerformance = $boost_performance;
+    $this->operationalPolicyManager = $operational_policy_manager;
+    $this->melWorkflowManager = $mel_workflow_manager;
   }
 
   /**
@@ -268,6 +284,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->has('myeventlane_growth.tracking') ? $container->get('myeventlane_growth.tracking') : NULL,
       $container->get('csrf_token'),
       $container->has('myeventlane_boost.performance') ? $container->get('myeventlane_boost.performance') : NULL,
+      $container->has('myeventlane_surface.operational_policy_manager') ? $container->get('myeventlane_surface.operational_policy_manager') : NULL,
+      $container->has('myeventlane_surface.workflow_manager') ? $container->get('myeventlane_surface.workflow_manager') : NULL,
     );
   }
 
@@ -298,7 +316,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     // Build all dashboard data.
     $kpis = $this->buildKpiCards($eventNodes, $vendor);
     $events = $this->getEventsTableData($userEvents);
-    $melTopBoostOpportunity = $this->getTopBoostOpportunity($events);
+    $suppress_promotional = $this->shouldSuppressVendorDashboardPromotions();
+    $melTopBoostOpportunity = $suppress_promotional ? NULL : $this->getTopBoostOpportunity($events);
     $bestEvent = $this->getBestPerformingEvent($userEvents);
     $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
     $notifications = $this->getNotifications($userId, $userEvents, $vendor);
@@ -432,7 +451,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
             $pageVars['show_onboarding_badge'] = TRUE;
             $pageVars['next_onboarding_route'] = $next_route ?: 'myeventlane_vendor.onboard.profile';
           }
-          if ($show_panel) {
+          $governed_primary = $this->melWorkflowManager !== NULL
+            && $this->melWorkflowManager->willRenderPrimaryWorkflowRegion();
+          if ($show_panel && !$governed_primary) {
             $stage = $state->getStage();
             $stage_labels = [
               'probe' => $this->t('Get started'),
@@ -459,7 +480,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     $pageVars['growth_cards'] = [];
-    if ($this->growthInsight && $this->growthTracking) {
+    if (!$suppress_promotional && $this->growthInsight && $this->growthTracking) {
       $publishedIds = $this->getPublishedUserEvents($userId, $vendor);
       $publishedCount = count($publishedIds);
       $lastLoginTs = 0;
@@ -1638,6 +1659,31 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     return $bestEvent;
+  }
+
+  /**
+   * Uses MELOperationalPolicySystem suppression instead of ad hoc Twig checks.
+   */
+  private function shouldSuppressVendorDashboardPromotions(): bool {
+    if ($this->operationalPolicyManager === NULL) {
+      return FALSE;
+    }
+    try {
+      $interpretation = $this->operationalPolicyManager->buildPageInterpretation();
+      $suppression = $interpretation['suppression'] ?? [];
+      if (!is_array($suppression)) {
+        return FALSE;
+      }
+      return !empty($suppression['suppress_boost_prompts'])
+        || !empty($suppression['suppress_marketing_guidance'])
+        || !empty($suppression['suppress_cross_sell_guidance']);
+    }
+    catch (\Throwable $e) {
+      $this->melDebugLogger->warning('Vendor dashboard operational policy read failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return FALSE;
+    }
   }
 
   /**

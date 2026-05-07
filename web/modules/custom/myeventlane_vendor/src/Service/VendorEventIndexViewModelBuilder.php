@@ -15,6 +15,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\EventStateResolver;
+use Drupal\myeventlane_surface\MelReadinessHelper;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -45,6 +46,7 @@ final class VendorEventIndexViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly VendorEventRemovalService $vendorEventRemovalService,
+    private readonly MelReadinessHelper $readinessHelper,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -135,8 +137,8 @@ final class VendorEventIndexViewModelBuilder {
       ],
       'events' => [],
       'empty_state' => [
-        'title' => (string) $this->t('Sign in to manage events'),
-        'message' => (string) $this->t('You need an organiser account to view this page.'),
+        'title' => $this->readinessHelper->vendorOrganiserPortalSignInTitle(),
+        'message' => $this->readinessHelper->vendorOrganiserPortalSignInEventsBody(),
         'action_label' => (string) $this->t('Create event'),
         'url' => NULL,
       ],

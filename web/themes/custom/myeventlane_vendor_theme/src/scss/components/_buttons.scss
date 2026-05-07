@@ -133,6 +133,22 @@
   }
 }
 
+// Soft destructive (MELFormSystem — aligns with public theme mel-btn--destructive)
+.mel-btn--destructive {
+  color: color.adjust($danger, $lightness: -12%);
+  background-color: rgba($danger, 0.12);
+  border-color: rgba($danger, 0.45);
+
+  &:hover {
+    background-color: rgba($danger, 0.18);
+    border-color: rgba($danger, 0.55);
+  }
+
+  &:focus {
+    box-shadow: $shadow-focus-danger;
+  }
+}
+
 // Success button
 .mel-btn--success {
   background-color: $success;

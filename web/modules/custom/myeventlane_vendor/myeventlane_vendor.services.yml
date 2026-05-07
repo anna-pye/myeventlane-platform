@@ -201,6 +201,8 @@ services:
       - '@router.route_provider'
       - '@access_manager'
       - '@logger.factory'
+      - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_surface.vendor_dashboard_action_queue_governance'
       - '@string_translation'
 
   myeventlane_vendor.event_presentation_alerts:
@@ -240,6 +242,7 @@ services:
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_vendor.vendor_event_removal'
+      - '@myeventlane_surface.state_readiness_helper'
 
   myeventlane_vendor.dashboard_view_model_builder:
     class: Drupal\myeventlane_vendor\Service\VendorDashboardViewModelBuilder
@@ -260,6 +263,8 @@ services:
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_vendor.vendor_event_removal'
+      - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_surface.data_presentation_manager'
 
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService
@@ -320,6 +325,8 @@ services:
       - '@?myeventlane_growth.tracking'
       - '@csrf_token'
       - '@?myeventlane_boost.performance'
+      - '@?myeventlane_surface.operational_policy_manager'
+      - '@?myeventlane_surface.workflow_manager'
     tags:
       - { name: controller.service_arguments }
 

@@ -16,7 +16,7 @@ use Drupal\node\NodeInterface;
  * This does not assert vendor domain or global vendor console permissions; those
  * belong on routes or calling code. Admin/staff bypasses are left to callers.
  */
-final class EventVendorAccessChecker {
+final class EventVendorAccessChecker implements EventVendorAccessCheckerInterface {
 
   /**
    * TRUE when the account is the event author or listed on the linked vendor.

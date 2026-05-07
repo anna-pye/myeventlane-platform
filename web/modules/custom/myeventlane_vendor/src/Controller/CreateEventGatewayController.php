@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_legal\Service\LegalGatekeeper;
@@ -26,11 +25,6 @@ class CreateEventGatewayController extends ControllerBase {
    * The onboarding manager.
    */
   private readonly OnboardingManager $onboardingManager;
-
-  /**
-   * The renderer.
-   */
-  private readonly RendererInterface $renderer;
 
   /**
    * The legal gatekeeper.
@@ -57,14 +51,12 @@ class CreateEventGatewayController extends ControllerBase {
    */
   public function __construct(
     OnboardingManager $onboarding_manager,
-    RendererInterface $renderer,
     LegalGatekeeper $legal_gatekeeper,
     RequestStack $request_stack,
     UserVendorMembershipQuery $user_vendor_membership_query,
     VendorEventStudioCreateService $event_studio_create,
   ) {
     $this->onboardingManager = $onboarding_manager;
-    $this->renderer = $renderer;
     $this->legalGatekeeper = $legal_gatekeeper;
     $this->requestStack = $request_stack;
     $this->userVendorMembershipQuery = $user_vendor_membership_query;
@@ -77,7 +69,6 @@ class CreateEventGatewayController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_onboarding.manager'),
-      $container->get('renderer'),
       $container->get('myeventlane_legal.gatekeeper'),
       $container->get('request_stack'),
       $container->get('myeventlane_vendor.user_vendor_membership_query'),
@@ -92,7 +83,7 @@ class CreateEventGatewayController extends ControllerBase {
    * - Anonymous → login with return to /create-event (MEL continue when available)
    * - No vendor entity → organiser profile onboarding (destination /create-event)
    * - Stripe not ready (non-admin) → soft warning; Connect only required at publish
-   * - Vendor + incomplete onboarding → non-blocking messenger guidance
+   * - Vendor + incomplete onboarding → status warning; Event Studio shows MEL workflow
    * - Legal terms → soft warning if not accepted; accept before publish
    * - Unpublished draft event → Event Studio edit
    * - Else → Event Studio create
@@ -203,39 +194,8 @@ class CreateEventGatewayController extends ControllerBase {
       );
     }
 
-    try {
-      $user = $this->entityTypeManager()->getStorage('user')->load((int) $current_user->id());
-      if ($vendor instanceof Vendor && $user instanceof UserInterface && $vendor->id()) {
-        $state = $this->onboardingManager->loadOrCreateVendor($user, $vendor);
-        $this->onboardingManager->refreshFlags($state);
-        if (!$this->onboardingManager->isCompleted($state)) {
-          $stage = $state->getStage();
-          $stage_labels = [
-            'probe' => $this->t('Get started'),
-            'present' => $this->t('Profile'),
-            'listen' => $this->t('Payments'),
-            'ask' => $this->t('First event'),
-            'invite' => $this->t('Boost'),
-            'complete' => $this->t('Complete'),
-          ];
-          $next = $this->onboardingManager->getNextActionForAuthenticatedVendor($state);
-          $panel = [
-            '#theme' => 'myeventlane_vendor_onboarding_panel',
-            '#stage_label' => $stage_labels[$stage] ?? $stage,
-            '#flags' => $state->getFlags(),
-            '#next_action' => $next,
-            '#vendor' => $vendor,
-          ];
-          $markup = (string) $this->renderer->renderInIsolation($panel);
-          if (trim($markup) !== '') {
-            $this->messenger()->addStatus($markup);
-          }
-        }
-      }
-    }
-    catch (\Throwable $e) {
-      $this->getLogger('myeventlane_vendor')->warning('Create-event gateway onboarding flash failed: @m', ['@m' => $e->getMessage()]);
-    }
+    // Onboarding CTAs: Event Studio (create/edit) renders MELWorkflowSystem primary
+    // progress — do not duplicate myeventlane_vendor_onboarding_panel in messenger.
 
     if (!$this->legalGatekeeper->hasVendorAcceptedTerms()) {
       $this->messenger()->addWarning($this->t('Accept terms to publish.'));

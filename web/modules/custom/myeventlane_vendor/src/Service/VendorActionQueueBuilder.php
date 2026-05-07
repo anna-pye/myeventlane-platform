@@ -11,12 +11,16 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_surface\MelVendorDashboardActionQueueGovernance;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Builds a prioritised vendor dashboard action queue from the TASK 3 view model.
  *
  * Uses only data already present on the dashboard model plus route/access checks.
+ * Readiness wording is sourced from MELStateSystem (MelReadinessHelper); prioritisation is
+ * adjusted by workflow and operational-policy governance (presentation only).
  */
 final class VendorActionQueueBuilder {
 
@@ -26,20 +30,12 @@ final class VendorActionQueueBuilder {
 
   private const MAX_DRAFT_EVENT_ACTIONS = 2;
 
-  /**
-   * Severity rank for tie-breaking (lower = earlier when priority matches).
-   */
-  private const SEVERITY_RANK = [
-    'error' => 0,
-    'warning' => 1,
-    'info' => 2,
-    'success' => 3,
-  ];
-
   public function __construct(
     private readonly RouteProviderInterface $routeProvider,
     private readonly AccessManagerInterface $accessManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly MelReadinessHelper $readinessHelper,
+    private readonly MelVendorDashboardActionQueueGovernance $actionGovernance,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -87,13 +83,14 @@ final class VendorActionQueueBuilder {
 
     // 1. No vendor profile.
     if ($vendorMissing) {
+      $copy = $this->readinessHelper->vendorActionNoVendorProfileStrings();
       $actions[] = [
         'key' => 'no_vendor_profile',
         'priority' => 10,
         'severity' => 'warning',
-        'title' => (string) $this->t('Complete your organiser setup'),
-        'message' => (string) $this->t('Set up your organiser profile before creating or managing events.'),
-        'action_label' => (string) $this->t('Set up profile'),
+        'title' => $copy['title'],
+        'message' => $copy['message'],
+        'action_label' => $copy['action_label'],
         'url' => $this->routeUrlIfAccessible('myeventlane_vendor.console.settings', [], $account),
         'context' => [
           'type' => 'vendor_profile',
@@ -108,13 +105,14 @@ final class VendorActionQueueBuilder {
     $profileIncomplete = !$profileCompleteTop || $profileItemComplete === FALSE;
     if (!$vendorMissing && $profileIncomplete) {
       $vid = is_int($vendorId) ? $vendorId : NULL;
+      $copy = $this->readinessHelper->vendorActionProfileIncompleteStrings();
       $actions[] = [
         'key' => 'profile_incomplete',
         'priority' => 20,
         'severity' => 'warning',
-        'title' => (string) $this->t('Complete your public profile'),
-        'message' => (string) $this->t('Add the basics so attendees know who is running your events.'),
-        'action_label' => (string) $this->t('Edit profile'),
+        'title' => $copy['title'],
+        'message' => $copy['message'],
+        'action_label' => $copy['action_label'],
         'url' => $this->routeUrlIfAccessible('myeventlane_vendor.console.settings', [], $account),
         'context' => [
           'type' => 'vendor_profile',
@@ -137,14 +135,15 @@ final class VendorActionQueueBuilder {
 
       $nid = isset($event['nid']) ? (int) $event['nid'] : 0;
       $url = $this->pickEventEditOrTicketsUrl($event);
+      $copy = $this->readinessHelper->vendorActionMissingBookingStrings();
 
       $actions[] = [
         'key' => 'missing_booking_' . ($nid > 0 ? (string) $nid : 'unknown'),
         'priority' => 25,
         'severity' => 'error',
-        'title' => (string) $this->t('Add RSVP or tickets'),
-        'message' => (string) $this->t('This event is visible but does not appear to have a booking option.'),
-        'action_label' => (string) $this->t('Edit tickets'),
+        'title' => $copy['title'],
+        'message' => $copy['message'],
+        'action_label' => $copy['action_label'],
         'url' => $url,
         'context' => [
           'type' => 'event',
@@ -162,17 +161,15 @@ final class VendorActionQueueBuilder {
     if ($needsStripeAction && !$vendorMissing) {
       $severity = $hasPaidOrBoth ? 'error' : 'warning';
       $priority = $hasPaidOrBoth ? 30 : 80;
-      $message = $hasPaidOrBoth
-        ? (string) $this->t('Connect Stripe before publishing or selling paid tickets.')
-        : (string) $this->t('Connect payouts when you are ready to sell paid tickets.');
+      $copy = $this->readinessHelper->vendorActionStripePayoutStrings($hasPaidOrBoth);
 
       $actions[] = [
         'key' => 'stripe_payout_incomplete',
         'priority' => $priority,
         'severity' => $severity,
-        'title' => (string) $this->t('Finish payout setup'),
-        'message' => $message,
-        'action_label' => (string) $this->t('Connect Stripe'),
+        'title' => $copy['title'],
+        'message' => $copy['message'],
+        'action_label' => $copy['action_label'],
         'url' => $this->stripeDashboardUrl($account),
         'context' => [
           'type' => 'stripe',
@@ -183,13 +180,14 @@ final class VendorActionQueueBuilder {
 
     // 4. No events yet.
     if ($events === []) {
+      $copy = $this->readinessHelper->vendorActionNoEventsStrings();
       $actions[] = [
         'key' => 'no_events_yet',
         'priority' => 40,
         'severity' => 'info',
-        'title' => (string) $this->t('Create your first event'),
-        'message' => (string) $this->t('Start with the event basics, then add RSVP or tickets.'),
-        'action_label' => (string) $this->t('Create event'),
+        'title' => $copy['title'],
+        'message' => $copy['message'],
+        'action_label' => $copy['action_label'],
         'url' => $this->routeUrlIfAccessible('myeventlane_event_studio.create', [], $account),
         'context' => [
           'type' => 'events',
@@ -213,13 +211,15 @@ final class VendorActionQueueBuilder {
         ? $links['edit']
         : NULL;
 
+      $copy = $this->readinessHelper->vendorActionDraftEventStrings();
+
       $actions[] = [
         'key' => 'draft_event_' . ($nid > 0 ? (string) $nid : (string) $draftCount),
         'priority' => 50,
         'severity' => 'warning',
-        'title' => (string) $this->t('Finish your draft event'),
-        'message' => (string) $this->t('Complete the missing details and publish when ready.'),
-        'action_label' => (string) $this->t('Continue editing'),
+        'title' => $copy['title'],
+        'message' => $copy['message'],
+        'action_label' => $copy['action_label'],
         'url' => $url,
         'context' => [
           'type' => 'event',
@@ -233,13 +233,14 @@ final class VendorActionQueueBuilder {
 
     // 8. Analytics unavailable but paid activity exists.
     if (!$analyticsAvailable && $hasPaidOrBoth) {
+      $copy = $this->readinessHelper->vendorActionAnalyticsUnavailableStrings();
       $actions[] = [
         'key' => 'analytics_unavailable',
         'priority' => 90,
         'severity' => 'info',
-        'title' => (string) $this->t('Analytics are not available'),
-        'message' => (string) $this->t('Ticket sales are visible, but advanced analytics are not available for this account.'),
-        'action_label' => (string) $this->t('View events'),
+        'title' => $copy['title'],
+        'message' => $copy['message'],
+        'action_label' => $copy['action_label'],
         'url' => $this->routeUrlIfAccessible('myeventlane_vendor.console.events', [], $account),
         'context' => [
           'type' => 'analytics',
@@ -248,7 +249,7 @@ final class VendorActionQueueBuilder {
       ];
     }
 
-    $this->sortActions($actions);
+    $actions = $this->actionGovernance->apply($actions);
 
     if (count($actions) > self::MAX_ACTIONS) {
       $actions = array_slice($actions, 0, self::MAX_ACTIONS);
@@ -353,24 +354,6 @@ final class VendorActionQueueBuilder {
       return $url;
     }
     return $this->routeUrlIfAccessible('myeventlane_vendor.stripe_manage', [], $account);
-  }
-
-  /**
-   * @param list<array<string, mixed>> $actions
-   */
-  private function sortActions(array &$actions): void {
-    usort($actions, function (array $a, array $b): int {
-      $pa = (int) ($a['priority'] ?? 1000);
-      $pb = (int) ($b['priority'] ?? 1000);
-      if ($pa !== $pb) {
-        return $pa <=> $pb;
-      }
-      $sa = (string) ($a['severity'] ?? '');
-      $sb = (string) ($b['severity'] ?? '');
-      $ra = self::SEVERITY_RANK[$sa] ?? 99;
-      $rb = self::SEVERITY_RANK[$sb] ?? 99;
-      return $ra <=> $rb;
-    });
   }
 
   private function routeExists(string $routeName): bool {

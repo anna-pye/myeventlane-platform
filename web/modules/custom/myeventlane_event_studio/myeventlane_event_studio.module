@@ -296,4 +296,5 @@ function myeventlane_event_studio_preprocess_mel_event_studio(&$variables): void
   $preprocess->preprocess($variables);
 
   $variables['mel_advanced_ticket_manager_url'] = $element['#mel_advanced_ticket_manager_url'] ?? NULL;
+  $variables['mel_studio_governance'] = $element['#mel_studio_governance'] ?? ['enabled' => FALSE];
 }

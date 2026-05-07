@@ -6,6 +6,7 @@ core_version_requirement: ^11
 lifecycle: stable
 
 dependencies:
+  - myeventlane_surface:myeventlane_surface
   - myeventlane_event_studio:myeventlane_event_studio
   - myeventlane_legal:myeventlane_legal
   - myeventlane_core:myeventlane_core
