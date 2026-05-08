@@ -55,5 +55,5 @@ jobs:
 
       - name: Governance kernel tests + snapshots
         env:
-          SIMPLETEST_DB: sqlite://localhost/:memory:
+          SIMPLETEST_DB: "sqlite://localhost/:memory:"
         run: composer run-script governance:test
