@@ -1138,7 +1138,7 @@ function myeventlane_surface_preprocess_myeventlane_order_detail(array &$variabl
   if (!\Drupal::hasService('myeventlane_surface.state_readiness_helper')) {
     return;
   }
-  /** @var \Drupal\myeventlane_surface\MelReadinessHelper $helper */
+  /** @var \Drupal\myeventlane_core\MelReadinessHelper $helper */
   $helper = \Drupal::service('myeventlane_surface.state_readiness_helper');
   $variables['order']['state_customer_presentation'] = $helper->customerCommerceOrderStateLabel(
     (string) $order_entity->getState()->getId(),
@@ -1153,7 +1153,7 @@ function myeventlane_surface_preprocess_myeventlane_my_tickets(array &$variables
   if (!\Drupal::hasService('myeventlane_surface.state_readiness_helper')) {
     return;
   }
-  /** @var \Drupal\myeventlane_surface\MelReadinessHelper $helper */
+  /** @var \Drupal\myeventlane_core\MelReadinessHelper $helper */
   $helper = \Drupal::service('myeventlane_surface.state_readiness_helper');
   foreach (['upcoming_orders', 'past_orders'] as $delta_key) {
     if (!isset($variables[$delta_key]) || !is_array($variables[$delta_key])) {

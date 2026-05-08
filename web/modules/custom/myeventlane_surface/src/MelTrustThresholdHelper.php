@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+
 /**
  * Trust threshold interpretation for operational policy (no trust scoring).
  */

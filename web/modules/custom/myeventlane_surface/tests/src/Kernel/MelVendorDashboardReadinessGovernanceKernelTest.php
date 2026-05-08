@@ -15,7 +15,7 @@ final class MelVendorDashboardReadinessGovernanceKernelTest extends MelSurfaceGo
    * Urgent Stripe action queue copy must mirror the blocking readiness headline.
    */
   public function testStripeUrgentCopyMatchesBlockingReadiness(): void {
-    /** @var \Drupal\myeventlane_surface\MelReadinessHelper $helper */
+    /** @var \Drupal\myeventlane_core\MelReadinessHelper $helper */
     $helper = $this->container->get('myeventlane_surface.state_readiness_helper');
     $blocking = $helper->vendorStripeReadinessBlockingLine();
     $this->assertSame($blocking, $helper->vendorActionStripePayoutStrings(TRUE)['message']);

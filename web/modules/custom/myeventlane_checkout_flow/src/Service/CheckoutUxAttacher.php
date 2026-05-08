@@ -14,7 +14,7 @@ namespace Drupal\myeventlane_checkout_flow\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Psr\Log\LoggerInterface;
 
 /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+
 /**
  * Resolves observability visibility tier and contract applicability per surface.
  */

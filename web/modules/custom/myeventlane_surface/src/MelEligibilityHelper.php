@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelStateEvaluation;
+
 /**
  * Lists interpreted feature eligibility facets for UX prompts (not permissions).
  */
 final class MelEligibilityHelper {
 
   /**
-   * @param array<string, \Drupal\myeventlane_surface\MelStateEvaluation> $evaluations
+   * @param array<string, \Drupal\myeventlane_core\MelStateEvaluation> $evaluations
    *
    * @return list<string>
    */

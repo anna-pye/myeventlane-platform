@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+use Drupal\myeventlane_core\MelStateEvaluation;
+
 /**
  * Surfaces safe trust indicators per shell (no moderation leakage).
  */
 final class MelTrustStateHelper {
 
   /**
-   * @param array<string, \Drupal\myeventlane_surface\MelStateEvaluation> $evaluations
+   * @param array<string, \Drupal\myeventlane_core\MelStateEvaluation> $evaluations
    * @param array<string, \Drupal\myeventlane_surface\StateDefinition> $definitions
    *
    * @return list<string>

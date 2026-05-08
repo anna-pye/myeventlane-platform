@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_surface\Kernel;
 
-use Drupal\myeventlane_surface\MelStateEvaluation;
+use Drupal\myeventlane_core\MelStateEvaluation;
 use Drupal\myeventlane_surface\MelStateManager;
 use Drupal\myeventlane_surface\MelStateRegistry;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\myeventlane_surface\MelTrustStateHelper;
 use Symfony\Component\Routing\Route;
 

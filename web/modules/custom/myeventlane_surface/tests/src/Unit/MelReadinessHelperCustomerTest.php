@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_surface\Unit;
 
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\myeventlane_surface\MelReadinessHelper
+ * @coversDefaultClass \Drupal\myeventlane_core\MelReadinessHelper
  *
  * @group myeventlane_surface
  */

@@ -11,7 +11,7 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 
 /**
  * Builds GST-aware pricing rows from Commerce orders (adjustments + subtotals).

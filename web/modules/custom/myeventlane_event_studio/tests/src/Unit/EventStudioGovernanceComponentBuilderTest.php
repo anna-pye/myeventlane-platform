@@ -7,7 +7,7 @@ namespace Drupal\Tests\myeventlane_event_studio\Unit;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceComponentBuilder;
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use PHPUnit\Framework\TestCase;
 
 /**

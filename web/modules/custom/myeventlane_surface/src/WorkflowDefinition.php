@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+
 /**
  * Canonical behavioural contract for a MEL workflow (UX orchestration only).
  *
@@ -15,7 +17,7 @@ final readonly class WorkflowDefinition {
 
   /**
    * @param list<string> $surfaceOwnership
-   *   Values must match \Drupal\myeventlane_surface\MelSurfaceId::value.
+   *   Values must match \Drupal\myeventlane_core\MelSurfaceId::value.
    * @param list<string> $requiredSignals
    *   Signal keys that must read TRUE while the workflow is considered “in flight”.
    * @param list<string> $completionSignals

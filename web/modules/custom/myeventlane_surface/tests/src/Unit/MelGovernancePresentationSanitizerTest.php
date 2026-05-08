@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_surface\Unit;
 
 use Drupal\myeventlane_surface\MelGovernancePresentationSanitizer;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelSurfaceId;
 use PHPUnit\Framework\TestCase;
 
 /**

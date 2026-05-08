@@ -17,7 +17,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_surface\MelDataPresentationManager;
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\node\NodeInterface;

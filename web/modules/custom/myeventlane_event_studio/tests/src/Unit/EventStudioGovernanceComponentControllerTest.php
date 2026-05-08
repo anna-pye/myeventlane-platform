@@ -11,7 +11,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_event_studio\Controller\EventStudioGovernanceComponentController;
 use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceComponentBuilder;
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use PHPUnit\Framework\TestCase;

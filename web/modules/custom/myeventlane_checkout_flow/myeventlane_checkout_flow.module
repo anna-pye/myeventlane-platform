@@ -17,7 +17,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\myeventlane_surface\MelWorkflowContext;
 
 /**

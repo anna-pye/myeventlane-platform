@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_surface\Kernel;
 
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelSurfaceId;
 use Symfony\Component\Routing\Route;
 
 /**
