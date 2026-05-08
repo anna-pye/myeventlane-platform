@@ -14,7 +14,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\node\NodeInterface;
 
 /**

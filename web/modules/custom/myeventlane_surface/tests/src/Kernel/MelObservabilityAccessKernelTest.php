@@ -6,7 +6,7 @@ namespace Drupal\Tests\myeventlane_surface\Kernel;
 
 use Drupal\myeventlane_surface\MelObservabilityDiagnosticsAccess;
 use Drupal\myeventlane_surface\MelObservabilityVisibilityLevel;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Symfony\Component\Routing\Route;

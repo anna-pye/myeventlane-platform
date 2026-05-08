@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\myeventlane_surface;
+namespace Drupal\myeventlane_core;
 
 /**
  * Result of interpreting a single canonical state against merged signals/facts.

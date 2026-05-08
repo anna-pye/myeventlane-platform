@@ -17,7 +17,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_checkout_paragraph\CheckoutAttendeeSchemaInspectorInterface;
 use Drupal\myeventlane_checkout_paragraph\Support\AttendeeHolderMissingEvaluator;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
-use Drupal\myeventlane_surface\MelReadinessHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\paragraphs\ParagraphInterface;

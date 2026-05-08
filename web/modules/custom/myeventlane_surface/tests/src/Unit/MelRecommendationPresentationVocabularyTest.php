@@ -8,16 +8,16 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_surface\MelInsightHelper;
-use Drupal\myeventlane_surface\MelReadinessHelper;
-use Drupal\myeventlane_surface\MelStateEvaluation;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_core\MelStateEvaluation;
+use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\myeventlane_surface\MelWorkflowContext;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Recommendation presentation hygiene: no leakage phrasing / robotic dismissals.
  *
- * @coversDefaultClass \Drupal\myeventlane_surface\MelReadinessHelper
+ * @coversDefaultClass \Drupal\myeventlane_core\MelReadinessHelper
  *
  * @group myeventlane_surface
  */

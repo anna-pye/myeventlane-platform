@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+
 /**
  * Canonical UX continuity contract (orchestration hints only).
  *
@@ -15,7 +17,7 @@ final readonly class ExperienceDefinition {
 
   /**
    * @param list<string> $surfaceOwnership
-   *   Values must match \Drupal\myeventlane_surface\MelSurfaceId::value.
+   *   Values must match \Drupal\myeventlane_core\MelSurfaceId::value.
    * @param list<string> $linkedWorkflowIds
    *   References \Drupal\myeventlane_surface\MelWorkflowRegistry ids.
    * @param list<string> $continuityTriggerSignalsAll

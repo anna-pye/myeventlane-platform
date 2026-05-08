@@ -7,8 +7,8 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
-use Drupal\myeventlane_surface\MelReadinessHelper;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_core\MelSurfaceId;
 
 /**
  * Builds Event Studio governance component render arrays.

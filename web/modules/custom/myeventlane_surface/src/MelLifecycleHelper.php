@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelStateEvaluation;
+
 /**
  * Chooses a single primary lifecycle label from interpreted states (chips/badges).
  */
@@ -27,7 +29,7 @@ final class MelLifecycleHelper {
   ];
 
   /**
-   * @param array<string, \Drupal\myeventlane_surface\MelStateEvaluation> $evaluations
+   * @param array<string, \Drupal\myeventlane_core\MelStateEvaluation> $evaluations
    */
   public function resolvePrimaryLifecycleId(array $evaluations): ?string {
     foreach (self::PRIMARY_ORDER as $id) {

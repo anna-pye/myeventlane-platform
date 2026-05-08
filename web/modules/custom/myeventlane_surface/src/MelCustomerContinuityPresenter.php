@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_surface;
 
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
+use Drupal\myeventlane_core\MelReadinessHelper;
 
 /**
  * Customer confirmation surfaces: governed CTA ordering without duplicating workflow rules.

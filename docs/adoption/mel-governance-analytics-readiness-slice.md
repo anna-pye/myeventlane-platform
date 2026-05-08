@@ -82,7 +82,7 @@ Legacy `VendorDashboardController` mega-dashboard strings are **untouched** in t
 
 | File | Change |
 |------|--------|
-| `web/modules/custom/myeventlane_surface/src/MelReadinessHelper.php` | Canonical vendor strings; hero/empty/lifecycle/readiness row lines; action queue copy bundles; readiness summary uses same Stripe/profile/first-event lines. |
+| `web/modules/custom/myeventlane_core/src/MelReadinessHelper.php` | Canonical vendor strings; hero/empty/lifecycle/readiness row lines; action queue copy bundles; readiness summary uses same Stripe/profile/first-event lines. |
 | `web/modules/custom/myeventlane_surface/src/MelVendorDashboardActionQueueGovernance.php` | **New** — workflow-weighted priority, suppression, primary-CTA demotion. |
 | `web/modules/custom/myeventlane_surface/src/MelDataPresentationManager.php` | `decorateVendorDashboardMetricStrip()`. |
 | `web/modules/custom/myeventlane_surface/myeventlane_surface.services.yml` | Registers governance service. |

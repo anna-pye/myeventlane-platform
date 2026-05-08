@@ -17,7 +17,7 @@ use Drupal\myeventlane_surface\MelObservabilityManager;
 use Drupal\myeventlane_surface\MelGovernancePresentationSanitizer;
 use Drupal\myeventlane_surface\MelOperationalPolicyManager;
 use Drupal\myeventlane_surface\MelStateManager;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\myeventlane_surface\MelWorkflowManager;
 use Drupal\myeventlane_surface\SurfaceResolver;
 use Drupal\node\NodeInterface;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_surface\Block;
 
 use Drupal\Core\Block\BlockPluginInterface;
-use Drupal\myeventlane_surface\MelSurfaceId;
+use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\myeventlane_surface\SurfaceAccessHelper;
 use Drupal\myeventlane_surface\SurfaceResolver;
 

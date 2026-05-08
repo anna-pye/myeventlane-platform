@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+use Drupal\myeventlane_core\MelStateEvaluation;
+
 /**
  * Filters intelligence contracts using deterministic triggers (no scoring).
  */

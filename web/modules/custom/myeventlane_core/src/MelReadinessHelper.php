@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\myeventlane_surface;
+namespace Drupal\myeventlane_core;
 
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\MelSurfaceId;
+use Drupal\myeventlane_core\MelStateEvaluation;
 
 /**
  * Neutral readiness copy derived from interpretation results (no access gating).
@@ -22,7 +24,7 @@ final class MelReadinessHelper {
   }
 
   /**
-   * @param array<string, \Drupal\myeventlane_surface\MelStateEvaluation> $evaluations
+   * @param array<string, \Drupal\myeventlane_core\MelStateEvaluation> $evaluations
    *   Map of canonical state id to evaluation.
    * @param array<string, bool|int|string> $mergedSignals
    *   Workflow signals plus optional domain facts.

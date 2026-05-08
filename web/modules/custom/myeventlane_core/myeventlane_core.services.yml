@@ -297,9 +297,8 @@ services:
       - '@datetime.time'
       - '@?workspaces.manager'
 
-  # Bridge: several MEL modules depend on this id; it is only in surface's YAML when
-  # myeventlane_surface is enabled. Registering it from core (always on) prevents
-  # container compile failure when the DB has enabled dependents without surface.
+  # Canonical implementation lives in core so the autoload namespace is registered for
+  # every bootstrap (Drupal only adds disabled modules' PSR-4 when they are enabled).
   myeventlane_surface.state_readiness_helper:
-    class: Drupal\myeventlane_surface\MelReadinessHelper
+    class: Drupal\myeventlane_core\MelReadinessHelper
     arguments: ['@string_translation']

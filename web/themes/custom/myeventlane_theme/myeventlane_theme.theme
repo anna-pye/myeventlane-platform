@@ -209,7 +209,7 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
   $variables['is_auth_minimal'] = FALSE;
   if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
     $surface = \Drupal::service('myeventlane_surface.resolver')->resolve();
-    $variables['is_auth_minimal'] = $surface === \Drupal\myeventlane_surface\MelSurfaceId::Auth;
+    $variables['is_auth_minimal'] = $surface === \Drupal\myeventlane_core\MelSurfaceId::Auth;
   }
 
   $extension_list = \Drupal::service('extension.list.theme');
@@ -695,7 +695,7 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         $mel_checkout_resolver = \Drupal::service('myeventlane_checkout_flow.checkout_attendee_requirement_resolver');
         $requires_attendee_questions_schema = $mel_checkout_resolver->resolve($order_param)['requires_attendee_details'];
         $variables['mel_requires_attendee_questions_schema'] = $requires_attendee_questions_schema;
-        /** @var \Drupal\myeventlane_surface\MelReadinessHelper $mel_checkout_ready */
+        /** @var \Drupal\myeventlane_core\MelReadinessHelper $mel_checkout_ready */
         $mel_checkout_ready = \Drupal::service('myeventlane_surface.state_readiness_helper');
         $mel_refunds_chip = !empty($variables['mel_checkout_refunds_available']);
         $variables['mel_checkout_presentation'] = [
@@ -820,7 +820,7 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       }
       $variables['mel_event_image_urls'] = $mel_event_image_urls;
 
-      /** @var \Drupal\myeventlane_surface\MelReadinessHelper $mel_completion_ready */
+      /** @var \Drupal\myeventlane_core\MelReadinessHelper $mel_completion_ready */
       $mel_completion_ready = \Drupal::service('myeventlane_surface.state_readiness_helper');
       $summary_labels = $mel_completion_ready->customerCheckoutOrderSummarySurfaceLabels();
       $variables['mel_checkout_presentation'] = [
@@ -2957,7 +2957,7 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
           $summary_total->getNumber(),
           $summary_total->getCurrencyCode()
         );
-        /** @var \Drupal\myeventlane_surface\MelReadinessHelper $mel_ready */
+        /** @var \Drupal\myeventlane_core\MelReadinessHelper $mel_ready */
         $mel_ready = \Drupal::service('myeventlane_surface.state_readiness_helper');
         $summary_labels = $mel_ready->customerCheckoutOrderSummarySurfaceLabels();
         $label = $summary_total->isZero()
@@ -3450,7 +3450,7 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
   $form = $variables['form'];
 
   if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
-    /** @var \Drupal\myeventlane_surface\MelReadinessHelper $readiness */
+    /** @var \Drupal\myeventlane_core\MelReadinessHelper $readiness */
     $readiness = \Drupal::service('myeventlane_surface.state_readiness_helper');
     $variables['mel_cart_shell_labels'] = $readiness->customerCartShellLabels();
   }
@@ -3533,7 +3533,7 @@ function myeventlane_theme_preprocess_commerce_cart_empty_page(array &$variables
   $theme_path = $extension_list->getPath('myeventlane_theme');
   $variables['directory'] = $theme_path;
   if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
-    /** @var \Drupal\myeventlane_surface\MelReadinessHelper $readiness */
+    /** @var \Drupal\myeventlane_core\MelReadinessHelper $readiness */
     $readiness = \Drupal::service('myeventlane_surface.state_readiness_helper');
     $variables['mel_cart_shell_labels'] = $readiness->customerCartShellLabels();
     /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $gov */
