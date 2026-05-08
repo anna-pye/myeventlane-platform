@@ -92,11 +92,16 @@ if [ -n "$INVALID_FILES" ]; then
   exit 1
 fi
 
-# 6. Checksum verification
+# 6. Checksum verification (sha1sum: coreutils; staging hosts often omit Perl's shasum)
 cd "$RELEASE_PATH"
 
+if ! command -v sha1sum >/dev/null 2>&1; then
+  echo "ERROR: sha1sum not found — install coreutils (GNU coreutils busybox)."
+  exit 1
+fi
+
 echo "Running checksum verification..."
-shasum -c dist-checksums.txt
+sha1sum -c dist-checksums.txt
 
 echo "Checksum verification passed"
 echo "== MEL deploy asset validation complete =="
@@ -161,6 +166,15 @@ vendor/bin/drush cr --uri="$SITE_URI" || true
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 
 cd "$CURRENT_PATH"
+
+# Fail fast after switching current: clearer than a later obscure drush exit.
+echo "Verifying Drupal bootstrap (Drush against new release)..."
+BOOTSTRAP="$(vendor/bin/drush status --uri="$SITE_URI" --field=bootstrap 2>/dev/null | tr -d '\r\n' || true)"
+if [ "$BOOTSTRAP" != "Successful" ]; then
+  echo "ERROR: Drupal did not bootstrap after release switch (bootstrap field: '${BOOTSTRAP:-empty}')." >&2
+  vendor/bin/drush status --uri="$SITE_URI" || true
+  exit 1
+fi
 
 # ---- CONFIG SYNC: mirror artifact → shared sync directory (single source of truth per release) ----
 # Staging uses a shared path (e.g. /home/mel/staging/config/sync) referenced by settings.php.

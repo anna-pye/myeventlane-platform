@@ -95,8 +95,8 @@ jobs:
           [ -n "$JS_FILES" ] || exit 1
 
           rm -f "$MANIFEST"
-          shasum $ASSET_DIR/main*.css > "$MANIFEST"
-          shasum $ASSET_DIR/*.js >> "$MANIFEST"
+          sha1sum $ASSET_DIR/main*.css > "$MANIFEST"
+          sha1sum $ASSET_DIR/*.js >> "$MANIFEST"
 
           [ -s "$MANIFEST" ] || exit 1
 
