@@ -296,3 +296,10 @@ services:
       - '@current_user'
       - '@datetime.time'
       - '@?workspaces.manager'
+
+  # Bridge: several MEL modules depend on this id; it is only in surface's YAML when
+  # myeventlane_surface is enabled. Registering it from core (always on) prevents
+  # container compile failure when the DB has enabled dependents without surface.
+  myeventlane_surface.state_readiness_helper:
+    class: Drupal\myeventlane_surface\MelReadinessHelper
+    arguments: ['@string_translation']

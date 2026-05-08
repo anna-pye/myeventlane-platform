@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain cset.
 # Falls back to SITE_URI containing "staging" vs production *.myeventlane.com.au (no staging).
+#
+# On failure after maintenance is enabled and/or current/ is switched, EXIT cleanup rolls
+# back current/ to the previous release (if known) and turns maintenance off so staging
+# does not stay wedged offline.
 
 APP_PATH="${APP_PATH:-$HOME/staging}"
 # Shared config sync directory on the server (must match $settings['config_sync_directory'] in
@@ -18,6 +22,32 @@ RELEASE_PATH="$APP_PATH/releases/$TIMESTAMP"
 CURRENT_PATH="$APP_PATH/current"
 SHARED_PATH="$APP_PATH/shared"
 DEFAULT_PATH="$RELEASE_PATH/web/sites/default"
+
+DEPLOY_SUCCEEDED=0
+MEL_CURRENT_SWITCHED=0
+MEL_MM_ENABLED_ATTEMPTED=0
+MEL_PREVIOUS_CURRENT=""
+
+mel_deploy_cleanup() {
+  if [ "${DEPLOY_SUCCEEDED:-0}" = "1" ]; then
+    return 0
+  fi
+  echo "" >&2
+  echo "DEPLOY FAILED — cleanup: restoring previous release (if any) and clearing maintenance mode..." >&2
+  if [ "${MEL_CURRENT_SWITCHED:-0}" = "1" ] && [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -d "$MEL_PREVIOUS_CURRENT" ]; then
+    echo "  Rolling back current symlink to: $MEL_PREVIOUS_CURRENT" >&2
+    ln -sfn "$MEL_PREVIOUS_CURRENT" "$CURRENT_PATH" || true
+  fi
+  local drush_cwd=""
+  drush_cwd="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
+  if [ -n "$drush_cwd" ] && [ -x "$drush_cwd/vendor/bin/drush" ]; then
+    if [ "${MEL_MM_ENABLED_ATTEMPTED:-0}" = "1" ]; then
+      ( cd "$drush_cwd" && vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI" 2>/dev/null || true )
+    fi
+    ( cd "$drush_cwd" && vendor/bin/drush cr --uri="$SITE_URI" 2>/dev/null || true )
+  fi
+}
+trap mel_deploy_cleanup EXIT
 
 echo "Deploying release: $TIMESTAMP"
 
@@ -120,7 +150,10 @@ echo "Vendor theme dist OK"
 # ---- SHARED FILES ----
 rm -rf "$DEFAULT_PATH/files"
 ln -sfn "$SHARED_PATH/files" "$DEFAULT_PATH/files"
-chmod -R 775 "$SHARED_PATH/files"
+# Non-fatal: trees with root-owned upload files often make chmod -R fail under deploy user.
+if ! chmod -R 775 "$SHARED_PATH/files" 2>/dev/null; then
+  echo "WARNING: chmod -R 775 on $SHARED_PATH/files did not complete (non-fatal); check ownership for web user." >&2
+fi
 
 if [ -f "$SHARED_PATH/settings.php" ]; then
   rm -f "$DEFAULT_PATH/settings.php"
@@ -159,20 +192,27 @@ if [ ! -x "vendor/bin/drush" ]; then
 fi
 
 # ---- MAINTENANCE MODE ----
+MEL_MM_ENABLED_ATTEMPTED=1
 vendor/bin/drush sset system.maintenance_mode 1 --uri="$SITE_URI" || true
 vendor/bin/drush cr --uri="$SITE_URI" || true
 
+# Capture previous live release before switching (for rollback).
+if [ -e "$CURRENT_PATH" ]; then
+  MEL_PREVIOUS_CURRENT="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
+fi
+
 # ---- SWITCH RELEASE (ATOMIC) ----
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
+MEL_CURRENT_SWITCHED=1
 
 cd "$CURRENT_PATH"
 
-# Fail fast after switching current: clearer than a later obscure drush exit.
+# Fail fast after switching current: use full status output (not only --field) so stderr is visible if Drush warns.
 echo "Verifying Drupal bootstrap (Drush against new release)..."
-BOOTSTRAP="$(vendor/bin/drush status --uri="$SITE_URI" --field=bootstrap 2>/dev/null | tr -d '\r\n' || true)"
-if [ "$BOOTSTRAP" != "Successful" ]; then
-  echo "ERROR: Drupal did not bootstrap after release switch (bootstrap field: '${BOOTSTRAP:-empty}')." >&2
-  vendor/bin/drush status --uri="$SITE_URI" || true
+DRUSH_STATUS_OUT="$(vendor/bin/drush status --uri="$SITE_URI" 2>&1)" || true
+if ! echo "$DRUSH_STATUS_OUT" | grep -qE 'Drupal bootstrap\s*:\s*Successful'; then
+  echo "ERROR: Drupal did not bootstrap after release switch." >&2
+  echo "$DRUSH_STATUS_OUT" >&2
   exit 1
 fi
 
@@ -271,6 +311,8 @@ fi
 vendor/bin/drush cr --uri="$SITE_URI"
 vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI"
 vendor/bin/drush cr --uri="$SITE_URI"
+
+DEPLOY_SUCCEEDED=1
 
 echo "Release deployed: $RELEASE_PATH"
 echo "Current points to: $(readlink -f "$CURRENT_PATH")"
