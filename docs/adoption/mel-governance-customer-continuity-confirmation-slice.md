@@ -92,7 +92,7 @@ Scope: consume existing MELWorkflowSystem, MELExperienceSystem, MELStateSystem, 
 
 | Path | Change |
 |------|--------|
-| `web/modules/custom/myeventlane_surface/src/MelReadinessHelper.php` | Customer RSVP + order-state vocabulary |
+| `web/modules/custom/myeventlane_core/src/MelReadinessHelper.php` | Customer RSVP + order-state vocabulary |
 | `web/modules/custom/myeventlane_surface/src/MelCustomerContinuityPresenter.php` | **New** — RSVP thank-you continuity payload |
 | `web/modules/custom/myeventlane_surface/src/MelWorkflowManager.php` | Suppress duplicate `first_rsvp` completion on thank-you route; align `willRenderPrimaryWorkflowRegion()` |
 | `web/modules/custom/myeventlane_surface/myeventlane_surface.services.yml` | Register `customer_continuity_presenter` |

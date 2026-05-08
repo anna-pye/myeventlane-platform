@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+use Drupal\myeventlane_core\MelStateEvaluation;
+
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\MelReadinessHelper;
 
 /**
  * Canonical interpretation layer for readiness, lifecycle, trust, and eligibility UX.
@@ -148,7 +152,7 @@ final class MelStateManager {
 
   /**
    * @param array<string, bool|int|string> $merged
-   * @param array<string, \Drupal\myeventlane_surface\MelStateEvaluation> $evaluations
+   * @param array<string, \Drupal\myeventlane_core\MelStateEvaluation> $evaluations
    */
   private function shouldElevateStripeCta(MelWorkflowContext $context, array $merged, array $evaluations): bool {
     if ($context->surface !== MelSurfaceId::Vendor) {

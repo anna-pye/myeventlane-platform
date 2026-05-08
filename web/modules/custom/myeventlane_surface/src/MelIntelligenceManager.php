@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_surface;
 
+use Drupal\myeventlane_core\MelSurfaceId;
+use Drupal\myeventlane_core\MelStateEvaluation;
+
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_core\MelReadinessHelper;
 
 /**
  * Canonical orchestration entry point for MEL intelligence (governance only).

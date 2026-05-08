@@ -112,7 +112,7 @@ Per-template operational sentences for the migrated screens were removed from Tw
 | `scripts/governance/template-parity-audit.php` | New audit script. |
 | `composer.json` | `governance:audit` runs template parity. |
 | `web/modules/custom/myeventlane_surface/src/GovernedOperationalTemplates.php` | New — builds `mel_empty_state` render arrays. |
-| `web/modules/custom/myeventlane_surface/src/MelReadinessHelper.php` | Customer empty + browse CTA vocabulary. |
+| `web/modules/custom/myeventlane_core/src/MelReadinessHelper.php` | Customer empty + browse CTA vocabulary. |
 | `web/modules/custom/myeventlane_surface/myeventlane_surface.services.yml` | Registers `governed_operational_templates`. |
 | `web/modules/custom/myeventlane_surface/myeventlane_surface.module` | Preprocess: my tickets, categories, analytics, vendor attendees, account dashboard, past events. |
 | `web/modules/custom/myeventlane_checkout_flow/myeventlane_checkout_flow.info.yml` | Depends on `myeventlane_surface`. |

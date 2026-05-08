@@ -12,7 +12,7 @@ This document describes the **canonical governance layer** introduced with `myev
 | **VendorShell** | Vendor console | Path prefix `/vendor` |
 | **StaffSurface** | Administration | `_admin_route` option or `/admin` prefix |
 
-Implementation: `MelSurfaceId`, `SurfaceRegistry`, `SurfaceResolver`, `SurfaceManager`.
+Implementation: `MelSurfaceId` (`web/modules/custom/myeventlane_core/src/MelSurfaceId.php`), `SurfaceRegistry`, `SurfaceResolver`, `SurfaceManager`.
 
 ## 2. Route ownership map
 
