@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * RSVP list for the customer hub (card layout, no tables).
+ */
+#}
+<div class="mel-account-rsvp-list">
+  {% if rows is empty %}
+    <div class="mel-account-empty-state">
+      <p class="mel-account-empty-state__text">{{ 'You have not RSVPed to any events yet.'|t }}</p>
+      <a href="{{ path('<front>') }}" class="mel-button mel-button--primary">{{ 'Browse events'|t }}</a>
+    </div>
+  {% else %}
+    <div class="mel-my-account__cards">
+      {% for row in rows %}
+        {% include '@myeventlane_theme/account/mel-account-rsvp-card.html.twig' with { row: row } only %}
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

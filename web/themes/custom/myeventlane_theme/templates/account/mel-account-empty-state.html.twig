@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Customer hub empty state.
+ */
+#}
+<div class="mel-account-empty-state mel-my-account__empty">
+  {% if title %}
+    <h2 class="mel-account-empty-state__title">{{ title }}</h2>
+  {% endif %}
+  {% if message %}
+    <p class="mel-account-empty-state__text">{{ message }}</p>
+  {% endif %}
+  {% if primary_url and primary_label %}
+    <a href="{{ primary_url }}" class="mel-button mel-button--primary">{{ primary_label }}</a>
+  {% endif %}
+</div>

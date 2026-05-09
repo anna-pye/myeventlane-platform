@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Landmark section wrapper for hub pages.
+ */
+#}
+<section{{ attributes.addClass('mel-my-account__section', 'mel-account-section') }}>
+  {% if title %}
+    <h2 class="mel-my-account__section-title">{{ title }}</h2>
+  {% endif %}
+  {{ content }}
+</section>

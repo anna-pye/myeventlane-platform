@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_account\Kernel;
 
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_surface\MelCustomerRouteCatalog;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -68,6 +69,12 @@ final class CustomerHubPageAccountKernelTest extends KernelTestBase {
 
       $this->popRequest();
     }
+  }
+
+  public function testCustomerRouteCatalogMarksHubShellRoutes(): void {
+    $this->assertTrue(MelCustomerRouteCatalog::isAccountPageShellRoute('myeventlane_notifications.inbox'));
+    $this->assertTrue(MelCustomerRouteCatalog::isCustomerSurface('myeventlane_rsvp.ics_bundle', '/'));
+    $this->assertTrue(MelCustomerRouteCatalog::pathMatchesCustomerPrefix('/my-saved-events'));
   }
 
   public function testNegotiatorExposesWorkflowRegionVariablesOnDashboardRoute(): void {

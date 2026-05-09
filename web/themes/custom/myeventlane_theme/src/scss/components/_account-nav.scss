@@ -1,0 +1,6 @@
+// Customer hub navigation — extends mel-my-account / mel-shell-nav contracts.
+// Keep visual rules in pages/_my-account.scss until migrated token-by-token.
+
+.mel-account-nav {
+  // Hook for future token-only nav; sidebar uses .mel-my-account__nav* today.
+}

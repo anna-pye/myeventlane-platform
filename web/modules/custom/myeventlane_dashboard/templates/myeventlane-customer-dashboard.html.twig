@@ -1,144 +1,45 @@
 {#
 /**
  * @file
- * Template for the MyEventLane customer "My Events" dashboard.
- *
- * Available variables:
- * - welcome_message: Personalized welcome message.
- * - upcoming_events: Array of upcoming event data.
- * - past_events: Array of past event data.
+ * Customer "My events" — unified card layout (no tables).
  */
 #}
-<div class="mel-dashboard-wrapper mel-dashboard-wrapper--customer">
+<div class="mel-dashboard-wrapper mel-dashboard-wrapper--customer mel-account-my-events">
 
-  <h1 class="mel-dashboard-title">{{ 'My Events'|t }}</h1>
-
-  {# Welcome message #}
   {% if welcome_message %}
-    <div class="mel-dashboard-welcome">
-      <p>{{ welcome_message }}</p>
-    </div>
+    <p class="mel-dashboard-welcome">{{ welcome_message }}</p>
   {% endif %}
 
-  {# Upcoming events #}
   {% if upcoming_events is not empty %}
-    <section class="mel-dashboard-section" aria-labelledby="upcoming-events-title">
-      <h2 id="upcoming-events-title" class="mel-section-title">{{ 'Upcoming Events'|t }} ({{ upcoming_events|length }})</h2>
-      <div class="mel-events-table">
-        <table class="mel-table">
-          <thead>
-            <tr>
-              <th>{{ 'Event'|t }}</th>
-              <th>{{ 'Date & Time'|t }}</th>
-              <th>{{ 'Type'|t }}</th>
-              <th>{{ 'Actions'|t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for event in upcoming_events %}
-              <tr>
-                <td>
-                  <a href="{{ event.url }}">{{ event.title }}</a>
-                </td>
-                <td>
-                  {% if event.start_date %}
-                    <time>{{ event.start_date }}{% if event.start_time %} at {{ event.start_time }}{% endif %}</time>
-                  {% else %}
-                    <span class="mel-muted">{{ 'Date TBD'|t }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if event.source == 'rsvp' %}
-                    <span class="mel-badge mel-badge--info">{{ 'RSVP'|t }}</span>
-                  {% else %}
-                    <span class="mel-badge mel-badge--success">{{ 'Ticket'|t }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <div class="mel-table-actions">
-                    <a href="{{ event.url }}" class="mel-btn mel-btn-small mel-btn-secondary">{{ 'View Event'|t }}</a>
-                    {% if event.order_item_id %}
-                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
-                    {% elseif event.ticket_code %}
-                      <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
-                    {% endif %}
-                    {% if event.ics_url %}
-                      <a href="{{ event.ics_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Add to Calendar'|t }}</a>
-                    {% endif %}
-                    {% if event.ticket_code %}
-                      <span class="mel-ticket-code" title="{{ 'Ticket Code'|t }}: {{ event.ticket_code }}">{{ event.ticket_code }}</span>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <section class="mel-my-account__section mel-dashboard__section" aria-labelledby="upcoming-events-title">
+      <h2 id="upcoming-events-title" class="mel-my-account__section-title">{{ 'Upcoming'|t }}</h2>
+      <div class="mel-my-account__cards">
+        {% for event in upcoming_events %}
+          {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with { event: event } only %}
+        {% endfor %}
       </div>
     </section>
   {% else %}
-    <section class="mel-dashboard-section" aria-label="{{ 'Upcoming events'|t }}">
-      {% if mel_customer_dashboard_upcoming_empty is defined and mel_customer_dashboard_upcoming_empty %}
-        {{ mel_customer_dashboard_upcoming_empty }}
-      {% endif %}
+    <section class="mel-my-account__section" aria-label="{{ 'Upcoming events'|t }}">
+      <div class="mel-account-empty-state mel-my-account__empty">
+        <h2 class="mel-account-empty-state__title">{{ 'Nothing upcoming yet'|t }}</h2>
+        <p class="mel-account-empty-state__text">{{ 'When you book tickets or RSVP, your events will show up here.'|t }}</p>
+        <a href="{{ path('<front>') }}" class="mel-button mel-button--primary">{{ 'Browse events'|t }}</a>
+      </div>
     </section>
   {% endif %}
 
-  {# Past events (collapsible) #}
   {% if past_events is not empty %}
-    <section class="mel-dashboard-section" aria-labelledby="past-events-title">
-      <details class="mel-details">
-        <summary class="mel-section-title">{{ 'Past Events'|t }} ({{ past_events|length }})</summary>
-        <div class="mel-events-table">
-          <table class="mel-table">
-            <thead>
-              <tr>
-                <th>{{ 'Event'|t }}</th>
-                <th>{{ 'Date'|t }}</th>
-                <th>{{ 'Type'|t }}</th>
-                <th>{{ 'Actions'|t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for event in past_events %}
-                <tr>
-                  <td>
-                    <a href="{{ event.url }}">{{ event.title }}</a>
-                  </td>
-                  <td>
-                    {% if event.start_date %}
-                      <time>{{ event.start_date }}</time>
-                    {% else %}
-                      <span class="mel-muted">{{ 'No date'|t }}</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if event.source == 'rsvp' %}
-                      <span class="mel-badge mel-badge--info">{{ 'RSVP'|t }}</span>
-                    {% else %}
-                      <span class="mel-badge mel-badge--success">{{ 'Ticket'|t }}</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <div class="mel-table-actions">
-                      <a href="{{ event.url }}" class="mel-btn mel-btn-small mel-btn-secondary">{{ 'View Event'|t }}</a>
-                      {% if event.order_item_id %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
-                      {% elseif event.ticket_code %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
-                      {% endif %}
-                      {% if event.ics_url %}
-                        <a href="{{ event.ics_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Add to Calendar'|t }}</a>
-                      {% endif %}
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <section class="mel-my-account__section mel-dashboard__section" aria-labelledby="past-events-title">
+      <h2 id="past-events-title" class="mel-my-account__section-title">{{ 'Past'|t }}</h2>
+      <details class="mel-details mel-account-my-events__past">
+        <summary class="mel-my-account__section-title mel-account-my-events__past-summary">{{ 'Show past events'|t }}</summary>
+        <div class="mel-my-account__cards">
+          {% for event in past_events %}
+            {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with { event: event } only %}
+          {% endfor %}
         </div>
       </details>
     </section>
   {% endif %}
-
 </div>

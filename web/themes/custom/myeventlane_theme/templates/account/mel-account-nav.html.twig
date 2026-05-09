@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * Canonical hub navigation list (sidebar / mobile fallback).
+ *
+ * Variables: links (array of title, url, active).
+ */
+#}
+<nav class="mel-account-nav mel-my-account__nav" aria-label="{{ 'Account navigation'|t }}">
+  <div class="mel-account-nav__card mel-my-account__nav-card">
+    <ul class="mel-account-nav__list mel-my-account__nav-list">
+      {% for link in links %}
+        <li class="mel-account-nav__item mel-my-account__nav-item">
+          <a href="{{ link.url }}" class="mel-account-nav__link mel-my-account__nav-link{% if link.active %} mel-my-account__nav-link--active{% endif %}"
+             {% if link.active %}aria-current="page"{% endif %}>
+            {{ link.title }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</nav>

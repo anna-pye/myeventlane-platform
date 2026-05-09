@@ -1,0 +1,28 @@
+{#
+/**
+ * RSVP row card for customer hub lists.
+ */
+#}
+<article class="mel-card mel-my-account__card mel-account-rsvp-card">
+  <div class="mel-card__body">
+    <h3 class="mel-card__title">
+      {% if row.url %}
+        <a href="{{ row.url }}">{{ row.title }}</a>
+      {% else %}
+        {{ row.title }}
+      {% endif %}
+    </h3>
+    <div class="mel-card__meta">
+      <span class="mel-badge mel-badge--info">{{ row.status }}</span>
+      <time>{{ row.date }}</time>
+    </div>
+    <div class="mel-card__actions">
+      {% if row.cancel_url %}
+        <a href="{{ row.cancel_url }}" class="mel-button mel-button--secondary">{{ 'Cancel RSVP'|t }}</a>
+      {% endif %}
+      {% if row.url %}
+        <a href="{{ row.url }}" class="mel-button mel-button--primary">{{ 'View event'|t }}</a>
+      {% endif %}
+    </div>
+  </div>
+</article>
