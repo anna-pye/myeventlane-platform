@@ -308,9 +308,30 @@ else
 fi
 
 # ---- FINALISE ----
-vendor/bin/drush cr --uri="$SITE_URI"
+# These drush invocations are strict (no "|| true"): failures must surface in CI/SSH logs.
+echo "Finalize: drush cr (post-domain cset)..."
+set +e
+_mel_drush_cr_out="$(vendor/bin/drush cr --uri="$SITE_URI" 2>&1)"
+_mel_drush_cr_rc=$?
+set -e
+printf '%s\n' "$_mel_drush_cr_out"
+if [ "$_mel_drush_cr_rc" -ne 0 ]; then
+  echo "ERROR: drush cr failed during finalize (exit $_mel_drush_cr_rc)." >&2
+  exit "$_mel_drush_cr_rc"
+fi
+
 vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI"
-vendor/bin/drush cr --uri="$SITE_URI"
+
+echo "Finalize: drush cr (after maintenance off)..."
+set +e
+_mel_drush_cr2_out="$(vendor/bin/drush cr --uri="$SITE_URI" 2>&1)"
+_mel_drush_cr2_rc=$?
+set -e
+printf '%s\n' "$_mel_drush_cr2_out"
+if [ "$_mel_drush_cr2_rc" -ne 0 ]; then
+  echo "ERROR: second drush cr failed during finalize (exit $_mel_drush_cr2_rc)." >&2
+  exit "$_mel_drush_cr2_rc"
+fi
 
 DEPLOY_SUCCEEDED=1
 

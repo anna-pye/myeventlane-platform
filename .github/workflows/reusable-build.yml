@@ -153,6 +153,17 @@ jobs:
             exit 1
           }
 
+      - name: Validate artifact registers state_readiness_helper (staging Drush)
+        run: |
+          set -euo pipefail
+          archive_path="${{ steps.package.outputs.artifact_path }}"
+          if ! tar -xOzf "$archive_path" web/modules/custom/myeventlane_core/myeventlane_core.services.yml | grep -q 'myeventlane_surface.state_readiness_helper:'; then
+            echo "❌ Artifact myeventlane_core.services.yml missing myeventlane_surface.state_readiness_helper"
+            echo "   (remote deploy runs drush cr; without this service the container will not compile.)"
+            exit 1
+          fi
+          echo "OK: state_readiness_helper present in packaged core services.yml"
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v6
         with:
