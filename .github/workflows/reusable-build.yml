@@ -157,12 +157,18 @@ jobs:
         run: |
           set -euo pipefail
           archive_path="${{ steps.package.outputs.artifact_path }}"
-          if ! tar -xOzf "$archive_path" web/modules/custom/myeventlane_core/myeventlane_core.services.yml | grep -q 'myeventlane_surface.state_readiness_helper:'; then
+          # GNU tar stores paths as ./web/... when archiving "."; member must match exactly.
+          member=$(tar -tzf "$archive_path" | grep -E '(^|/)myeventlane_core\.services\.yml$' | head -1)
+          if [ -z "$member" ]; then
+            echo "❌ Artifact missing myeventlane_core.services.yml (cannot validate state_readiness_helper)."
+            exit 1
+          fi
+          if ! tar -xOzf "$archive_path" "$member" | grep -q 'myeventlane_surface.state_readiness_helper:'; then
             echo "❌ Artifact myeventlane_core.services.yml missing myeventlane_surface.state_readiness_helper"
             echo "   (remote deploy runs drush cr; without this service the container will not compile.)"
             exit 1
           fi
-          echo "OK: state_readiness_helper present in packaged core services.yml"
+          echo "OK: state_readiness_helper present in packaged core services.yml ($member)"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v6
