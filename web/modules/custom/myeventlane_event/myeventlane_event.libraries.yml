@@ -44,6 +44,7 @@ door_checkin:
     theme:
       css/mel-door-checkin.css: {}
   js:
+    js/mel-door-result.js: {}
     js/mel-door-checkin.js: {}
   dependencies:
     - core/drupal

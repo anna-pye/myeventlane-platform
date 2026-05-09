@@ -2,54 +2,32 @@
   Event tickets view.
   Variables: event, sales, tickets.
 #}
-<div class="mel-workspace-page mel-event-tickets-page">
-  <section class="mel-section" aria-labelledby="mel-tickets-kpi-heading">
-    <header class="mel-section__header">
-      <div>
-        <h2 class="mel-section__title" id="mel-tickets-kpi-heading">{{ 'Sales & shortcuts'|t }}</h2>
-        <p class="mel-section__intro">{{ 'A quick read on revenue and links to ticket tools.'|t }}</p>
-      </div>
-    </header>
-    <div class="mel-card-grid">
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <h3 class="mel-card__title">{{ 'Sales summary'|t }}</h3>
-      </div>
-      <div class="mel-card__body">
-        <div class="mel-stats">
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Gross'|t }}</div>
-            <div class="mel-stat__value">{{ sales.gross|default('$0') }}</div>
-          </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Net'|t }}</div>
-            <div class="mel-stat__value">{{ sales.net|default('$0') }}</div>
-          </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Tickets sold'|t }}</div>
-            <div class="mel-stat__value">{{ sales.tickets_sold|default(0) }}</div>
-          </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Remaining'|t }}</div>
-            <div class="mel-stat__value">
-              {% if sales.tickets_available|default(0) == 'Tickets available' %}
-                {{ 'Tickets available'|t }}
-              {% elseif sales.tickets_available|default(0) == 'No limit' %}
-                {{ 'No limit'|t }}
-              {% else %}
-                {{ sales.tickets_available|default(0) }}
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
+{% set ta = sales.tickets_available|default(0) %}
+{% set rem_tickets = ta == 'Tickets available'
+  ? 'Tickets available'|t
+  : (ta == 'No limit' ? 'No limit'|t : ta) %}
+<div class="mel-workspace-page mel-event-tickets-page mel-live-operations mel-vendor-console-stack">
+  <section aria-labelledby="mel-tickets-kpi-heading">
+    <div class="mel-live-ops__attendees-head">
+      <h2 id="mel-tickets-kpi-heading" class="mel-live-ops__panel-title">{{ 'Sales & shortcuts'|t }}</h2>
+      <p class="mel-live-ops__panel-intro">{{ 'A quick read on revenue and links to ticket tools.'|t }}</p>
     </div>
-
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <h3 class="mel-card__title">{{ 'Actions'|t }}</h3>
+    <div class="mel-live-ops__split">
+      <div class="mel-live-ops__stack">
+        {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+          metric_title: 'Sales summary'|t,
+          metric_title_id: 'mel-tickets-sales-summary',
+          metric_items: [
+            { label: 'Gross'|t, value: sales.gross|default('$0') },
+            { label: 'Net'|t, value: sales.net|default('$0') },
+            { label: 'Tickets sold'|t, value: sales.tickets_sold|default(0) },
+            { label: 'Remaining'|t, value: rem_tickets },
+          ],
+        } only %}
       </div>
-      <div class="mel-card__body">
+      <div class="mel-live-ops__panel">
+        <h3 class="mel-live-ops__panel-title">{{ 'Actions'|t }}</h3>
+        <p class="mel-live-ops__panel-intro">{{ 'Configure pricing, checkout, and payouts for this event.'|t }}</p>
         <div class="mel-list mel-list--actions">
           <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">
             {{ 'Edit ticket types'|t }}
@@ -63,16 +41,13 @@
         </div>
       </div>
     </div>
-    </div>
   </section>
 
-  <section class="mel-section" aria-labelledby="mel-tickets-types-heading">
-    <header class="mel-section__header">
-      <div>
-        <h2 class="mel-section__title" id="mel-tickets-types-heading">{{ 'Ticket types'|t }}</h2>
-        <p class="mel-section__intro">{{ 'What you are selling and how each tier is tracking.'|t }}</p>
-      </div>
-    </header>
+  <section aria-labelledby="mel-tickets-types-heading">
+    <div class="mel-live-ops__attendees-head">
+      <h2 id="mel-tickets-types-heading" class="mel-live-ops__panel-title">{{ 'Ticket types'|t }}</h2>
+      <p class="mel-live-ops__panel-intro">{{ 'What you are selling and how each tier is tracking.'|t }}</p>
+    </div>
     <div class="mel-card mel-card--static">
       <div class="mel-card__header">
         <h3 class="mel-card__title">{{ 'Inventory'|t }}</h3>

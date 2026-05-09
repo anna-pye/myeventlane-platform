@@ -1,22 +1,7 @@
 {#
 /**
  * @file
- * Component: Attendees dashboard event card.
- *
- * Available variables:
- * - mel: {
- *     title: string,
- *     date: string,
- *     tickets: int,
- *     sold: int,
- *     attendees: int,
- *     revenue: string,
- *     sold_percentage: float,
- *     status: string (normal|low|selling-fast),
- *     checkin_url: string,
- *     attendees_url: string,
- *     export_url: string
- *   }
+ * Component: Attendees dashboard event card (operational-first CTAs).
  */
 #}
 <div class="mel-attendees-event-card">
@@ -27,11 +12,16 @@
         <span class="mel-attendees-event-card__date">{{ mel.date }}</span>
       {% endif %}
     </div>
-    {% if mel.status == 'selling-fast' %}
-      <span class="mel-attendees-event-card__status mel-attendees-event-card__status--selling-fast">{{ 'Selling fast'|t }}</span>
-    {% elseif mel.status == 'low' %}
-      <span class="mel-attendees-event-card__status mel-attendees-event-card__status--low">{{ 'Low sales'|t }}</span>
-    {% endif %}
+    <div class="mel-attendees-event-card__pill-row">
+      {% if mel.ops_event_active %}
+        <span class="mel-attendees-event-card__live-pill" role="status">{{ 'Event day active'|t }}</span>
+      {% endif %}
+      {% if mel.status == 'selling-fast' %}
+        <span class="mel-attendees-event-card__status mel-attendees-event-card__status--selling-fast">{{ 'Selling fast'|t }}</span>
+      {% elseif mel.status == 'low' %}
+        <span class="mel-attendees-event-card__status mel-attendees-event-card__status--low">{{ 'Low sales'|t }}</span>
+      {% endif %}
+    </div>
   </div>
 
   <div class="mel-attendees-event-card__metrics">
@@ -55,15 +45,47 @@
 
   <div class="mel-attendees-event-card__progress">
     <div class="mel-attendees-event-card__progress-bar" role="progressbar" aria-valuenow="{{ mel.sold_percentage }}" aria-valuemin="0" aria-valuemax="100">
-      <div class="mel-attendees-event-card__progress-fill" style="width: {{ mel.sold_percentage }}%"></div>
+      <div class="mel-attendees-event-card__progress-fill" style="width: {{ mel.sold_percentage }}%;"></div>
     </div>
   </div>
 
-  <div class="mel-attendees-event-card__actions">
-    <a href="{{ mel.checkin_url }}" class="mel-btn mel-btn-primary">{{ 'Check-in'|t }}</a>
-    <a href="{{ mel.attendees_url }}" class="mel-btn mel-btn-secondary">{{ 'View'|t }}</a>
+  {% set door_url = mel.door_checkin_url|default(mel.checkin_url) %}
+
+  {% if mel.ops_total_attendees is defined and mel.ops_total_attendees > 0 %}
+    {% set pct = mel.ops_check_in_percent|default(0) %}
+    <div class="mel-attendees-event-card__ops" aria-label="{{ 'Live operational strip'|t }}">
+      <div class="mel-attendees-event-card__ops-header">
+        <span class="mel-attendees-event-card__ops-kicker">{{ 'Door progress'|t }}</span>
+        <span class="mel-attendees-event-card__ops-pct">{{ pct }}%</span>
+      </div>
+      <div class="mel-attendees-event-card__ops-bar">
+        <span class="mel-attendees-event-card__ops-fill" style="width: {{ pct }}%;"></span>
+      </div>
+      <div class="mel-attendees-event-card__ops-grid">
+        <span class="mel-attendees-event-card__ops-chip mel-attendees-event-card__ops-chip--people">
+          {{ '@in / @total'|t({'@in': mel.ops_checked_in|default(0), '@total': mel.ops_total_attendees}) }}
+        </span>
+        {% if mel.ops_remaining_capacity is not null %}
+          <span class="mel-attendees-event-card__ops-chip">{{ '@n spots'|t({'@n': mel.ops_remaining_capacity}) }}</span>
+        {% endif %}
+        {% if mel.ops_ready is defined and mel.ops_ready > 0 %}
+          <span class="mel-attendees-event-card__ops-chip mel-attendees-event-card__ops-chip--ready">{{ '@n ready gate'|t({'@n': mel.ops_ready}) }}</span>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="mel-attendees-event-card__actions mel-attendees-event-card__actions--ops">
+    {% if door_url %}
+      <a href="{{ door_url }}" class="mel-btn mel-btn--primary">{{ 'Door mode'|t }}</a>
+    {% endif %}
+    {% set ops_url = mel.operations_url|default('') %}
+    {% if ops_url %}
+      <a href="{{ ops_url }}" class="mel-btn mel-btn--secondary">{{ 'Operations'|t }}</a>
+    {% endif %}
+    <a href="{{ mel.attendees_url }}" class="mel-btn mel-btn--ghost">{{ 'Attendee list'|t }}</a>
     {% if mel.export_url %}
-      <a href="{{ mel.export_url }}" class="mel-btn mel-btn-ghost" target="_blank" rel="noopener">{{ 'Export'|t }}</a>
+      <a href="{{ mel.export_url }}" class="mel-btn mel-btn--ghost" target="_blank" rel="noopener">{{ 'Export'|t }}</a>
     {% endif %}
   </div>
 </div>

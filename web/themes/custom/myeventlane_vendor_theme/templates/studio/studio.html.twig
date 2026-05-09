@@ -36,27 +36,31 @@
           <span class="mel-status-badge mel-status-badge--{{ active_event.status|default('draft')|clean_class }}">{{ active_event.status|default('draft')|capitalize }}</span>
         </div>
 
-        <div class="mel-command-center">
+        <div class="mel-command-center mel-live-ops__metric-board" role="list">
 
-          <div class="mel-kpi-card">
-            <span>Tickets Sold</span>
-            <strong data-mel-metric-tickets>{{ active_event.tickets_metric|default(0) }}</strong>
-          </div>
+          <article class="mel-live-ops__stat-card mel-live-ops__stat-card--total" role="listitem">
+            <span class="mel-live-ops__stat-icon" aria-hidden="true"></span>
+            <span class="mel-live-ops__stat-label">{{ 'Tickets sold'|t }}</span>
+            <strong class="mel-live-ops__stat-value" data-mel-metric-tickets>{{ active_event.tickets_metric|default(0) }}</strong>
+          </article>
 
-          <div class="mel-kpi-card">
-            <span>RSVPs</span>
-            <strong data-mel-metric-rsvps>{{ active_event.rsvps_metric|default(0) }}</strong>
-          </div>
+          <article class="mel-live-ops__stat-card mel-live-ops__stat-card--in" role="listitem">
+            <span class="mel-live-ops__stat-icon" aria-hidden="true"></span>
+            <span class="mel-live-ops__stat-label">{{ 'RSVPs'|t }}</span>
+            <strong class="mel-live-ops__stat-value" data-mel-metric-rsvps>{{ active_event.rsvps_metric|default(0) }}</strong>
+          </article>
 
-          <div class="mel-kpi-card">
-            <span>Revenue</span>
-            <strong data-mel-metric-revenue>${{ active_event.revenue_metric|default('0') }}</strong>
-          </div>
+          <article class="mel-live-ops__stat-card mel-live-ops__stat-card--ready" role="listitem">
+            <span class="mel-live-ops__stat-icon" aria-hidden="true"></span>
+            <span class="mel-live-ops__stat-label">{{ 'Revenue'|t }}</span>
+            <strong class="mel-live-ops__stat-value" data-mel-metric-revenue>${{ active_event.revenue_metric|default('0') }}</strong>
+          </article>
 
-          <div class="mel-kpi-card">
-            <span>Health</span>
-            <strong data-mel-metric-health>{{ active_event.health_label|default('Draft') }}</strong>
-          </div>
+          <article class="mel-live-ops__stat-card mel-live-ops__stat-card--capacity" role="listitem">
+            <span class="mel-live-ops__stat-icon" aria-hidden="true"></span>
+            <span class="mel-live-ops__stat-label">{{ 'Health'|t }}</span>
+            <strong class="mel-live-ops__stat-value" data-mel-metric-health>{{ active_event.health_label|default('Draft') }}</strong>
+          </article>
 
         </div>
 

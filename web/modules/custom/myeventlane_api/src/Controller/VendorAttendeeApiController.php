@@ -188,7 +188,12 @@ final class VendorAttendeeApiController extends VendorApiBaseController {
     }
 
     if (is_object($this->melAttendeeCheckinManager) && method_exists($this->melAttendeeCheckinManager, 'markManualOverride')) {
-      $this->melAttendeeCheckinManager->markManualOverride($attendee, $actor, $checked_in);
+      /** @var array<string, mixed> $result */
+      $result = $this->melAttendeeCheckinManager->markManualOverride($attendee, $actor, $checked_in);
+      $fail = $this->checkInManagerFailureResponse($result);
+      if ($fail !== NULL) {
+        return $fail;
+      }
     }
     else {
       if ($checked_in) {
@@ -207,7 +212,45 @@ final class VendorAttendeeApiController extends VendorApiBaseController {
       return $this->responseFormatter->error('SERVER_ERROR', 'Attendee reload failed.', 500);
     }
 
+    // Fail closed if persisted state diverges from the requested toggle (covers noop races).
+    if ($attendee->isCheckedIn() !== $checked_in) {
+      return $this->responseFormatter->error(
+        'CONFLICT',
+        'Check-in request could not be applied; attendee state unchanged.',
+        409,
+      );
+    }
+
     return $this->responseFormatter->success($this->serializeAttendee($attendee));
+  }
+
+  /**
+   * Maps a failed MelAttendeeCheckinManager result to a JSON API error response.
+   *
+   * @param array<string, mixed> $result
+   *   Outcome shape from {@see \Drupal\myeventlane_checkout_flow\Service\MelAttendeeCheckinManager}.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse|null
+   *   JsonResponse when the operation definitively failed, or NULL when success flag is TRUE.
+   */
+  private function checkInManagerFailureResponse(array $result): ?JsonResponse {
+    if ($result['success'] ?? FALSE) {
+      return NULL;
+    }
+    $reason = (string) ($result['reason'] ?? '');
+    if ($reason === 'forbidden') {
+      return $this->responseFormatter->error('FORBIDDEN', 'Check-in operation was denied for this attendee or event.', 403);
+    }
+    if (str_starts_with($reason, 'state_not_eligible')) {
+      return $this->responseFormatter->error('INVALID_STATE', 'Attendee is not eligible for this check-in update.', 422);
+    }
+    if ($reason === 'no_event') {
+      return $this->responseFormatter->error('INVALID_STATE', 'Attendee record cannot be resolved to an event.', 422);
+    }
+    if ($reason === 'transition_failed') {
+      return $this->responseFormatter->error('SERVER_ERROR', 'Persisting check-in failed.', 500);
+    }
+    return $this->responseFormatter->error('OPERATION_FAILED', 'Could not apply check-in changes.', 400);
   }
 
   /**

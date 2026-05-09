@@ -56,13 +56,14 @@
 
 .vertical-tabs__menu,
 #vendor-settings-form .vertical-tabs__menu {
-  flex: 0 0 240px !important;
+  flex: 0 0 15rem !important;
   margin: 0;
   padding: $spacing-2 !important;
   list-style: none;
   background: $bg-primary !important;
   border: 1px solid $border-color-light !important;
-  border-radius: $radius-lg !important;
+  border-radius: $radius-xl !important;
+  box-shadow: $shadow-xs;
   
   @include respond-down(md) {
     flex: 1;
@@ -131,11 +132,16 @@
   flex: 1;
   background: $bg-primary;
   border: 1px solid $border-color-light;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   padding: $spacing-6;
-  min-height: 400px;
-  
+  min-height: 25rem;
+  box-shadow: $shadow-card;
+
   @include respond-down(md) {
+    padding: $spacing-5;
+  }
+
+  @media (max-width: 479px) {
     padding: $spacing-4;
   }
 }
@@ -155,12 +161,14 @@
 details {
   margin-bottom: $spacing-6;
   border: 1px solid $border-color-light;
-  border-radius: $radius-md;
+  border-radius: $radius-xl;
   background: $bg-primary;
   overflow: hidden;
-  
+  box-shadow: $shadow-xs;
+
   &[open] {
     border-color: $border-color;
+    box-shadow: $shadow-card;
   }
 }
 
@@ -169,11 +177,12 @@ details > summary {
   background: $bg-secondary;
   cursor: pointer;
   font-weight: $font-weight-semibold;
-  font-size: $font-size-lg;
+  font-size: $font-size-xl;
+  line-height: $line-height-tight;
   color: $text-primary;
   list-style: none;
   user-select: none;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.16s ease;
   
   &::-webkit-details-marker {
     display: none;
@@ -183,8 +192,14 @@ details > summary {
     content: '▶';
     display: inline-block;
     margin-right: $spacing-3;
-    transition: transform 0.2s ease;
+    transition: transform 0.16s ease;
     color: $primary;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba($primary, 0.25);
+    background: $bg-tertiary;
   }
   
   &:hover {
@@ -378,27 +393,42 @@ table {
     border-radius: $radius-md;
     border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
-    
+    min-height: 2.75rem;
+    transition:
+      background-color 0.16s ease,
+      border-color 0.16s ease,
+      box-shadow 0.16s ease,
+      transform 0.16s ease;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: $shadow-focus;
+    }
+
     &.button--primary {
+      border-radius: $radius-full;
       background: $primary;
       color: $text-inverse;
-      
-      &:hover {
-        background: $primary-dark;
-        transform: translateY(-1px);
-        box-shadow: $shadow-md;
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background: $primary-dark;
+          transform: translateY(-1px);
+          box-shadow: $shadow-md;
+        }
       }
     }
-    
+
     &.button--secondary {
       background: $bg-secondary;
       color: $text-primary;
       border: 1px solid $border-color;
-      
-      &:hover {
-        background: $bg-tertiary;
-        border-color: $border-color;
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background: $bg-tertiary;
+          border-color: $border-color;
+        }
       }
     }
   }
@@ -426,10 +456,11 @@ table {
 
 fieldset {
   border: 1px solid $border-color-light;
-  border-radius: $radius-md;
-  padding: $spacing-5;
+  border-radius: $radius-xl;
+  padding: $spacing-6;
   margin-bottom: $spacing-6;
-  background: $bg-secondary;
+  background: $bg-primary;
+  box-shadow: $shadow-xs;
   
   legend {
     font-weight: $font-weight-semibold;
@@ -521,20 +552,38 @@ fieldset {
   .vertical-tabs {
     gap: $spacing-4;
   }
-  
+
   .vertical-tabs__panes {
     padding: $spacing-4;
   }
-  
+
   .form-item {
     margin-bottom: $spacing-4;
   }
-  
+
   .form-actions {
     flex-direction: column;
-    
+
     .button {
       width: 100%;
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #vendor-settings-form input,
+  #vendor-settings-form textarea,
+  #vendor-settings-form select,
+  details > summary,
+  details > summary::before {
+    transition-duration: 0.01ms !important;
+  }
+  .form-actions .button {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+  .form-actions .button.button--primary:hover {
+    transform: none;
+    box-shadow: none;
   }
 }

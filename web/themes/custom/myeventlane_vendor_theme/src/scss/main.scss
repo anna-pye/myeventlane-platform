@@ -62,7 +62,6 @@
   @include meta.load-css('components/quick-actions');
   @include meta.load-css('components/vendor-alert');
   @include meta.load-css('components/pro-grace-banner');
-  @include meta.load-css('components/vendor-kpi-strip');
   @include meta.load-css('components/vendor-event-performance');
   @include meta.load-css('components/mel-top-boost-opportunity');
   @include meta.load-css('components/onboarding-panel');
@@ -99,12 +98,15 @@
   @include meta.load-css('@mel-theme/components/mel-empty-states');
   @include meta.load-css('@mel-theme/components/mel-status-panels');
   @include meta.load-css('@mel-theme/components/mel-cta');
+  @include meta.load-css('@mel-theme/components/live-operations');
 
   @include meta.load-css('pages/dashboard');
+  @include meta.load-css('pages/dashboard-live-ops');
   @include meta.load-css('pages/dashboard-mel-support');
   @include meta.load-css('pages/event-form');
   @include meta.load-css('pages/analytics');
   @include meta.load-css('pages/mel-dashboard');
   @include meta.load-css('pages/vendor-events');
   @include meta.load-css('pages/settings');
+  @include meta.load-css('pages/vendor-console-stack');
 }

@@ -72,6 +72,11 @@ final class VendorEventsController extends VendorConsoleBaseController implement
     $body = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-vendor-events-console-layout']],
+      '#attached' => [
+        'library' => [
+          'myeventlane_vendor_theme/mel_vendor_events',
+        ],
+      ],
       'index' => [
         '#theme' => 'myeventlane_vendor_events_grid',
         '#vendor_event_index_model' => $model,
@@ -79,11 +84,6 @@ final class VendorEventsController extends VendorConsoleBaseController implement
         '#cache' => [
           'contexts' => ['user'],
           'max-age' => 0,
-        ],
-        '#attached' => [
-          'library' => [
-            'myeventlane_vendor_theme/mel_event_card_remove',
-          ],
         ],
       ],
     ];

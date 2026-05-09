@@ -5,38 +5,26 @@
  * Variables: event, attendees, summary, is_tickets_enabled, public_event_url
  */
 #}
-<div class="mel-workspace-page mel-page mel-attendees">
+<div class="mel-workspace-page mel-page mel-attendees mel-live-operations mel-vendor-console-stack">
   <p class="mel-page__next" role="status">
     {% trans %}Next: open <strong>Check-in</strong> on the day — search this list quickly at the door.{% endtrans %}
   </p>
 
-  <div class="mel-kpi-row">
-    <div class="mel-kpi-card mel-kpi-card--sky">
-      <p class="mel-kpi-card__label">{{ 'Total attendees'|t }}</p>
-      <p class="mel-kpi-card__value">{{ summary.total|default(0) }}</p>
-    </div>
-    <div class="mel-kpi-card mel-kpi-card--mint">
-      <p class="mel-kpi-card__label">{{ 'Checked-in'|t }}</p>
-      <p class="mel-kpi-card__value">{{ summary.checked_in|default(0) }}</p>
-    </div>
-    <div class="mel-kpi-card">
-      <p class="mel-kpi-card__label">{{ 'Ticket holders'|t }}</p>
-      <p class="mel-kpi-card__value">{{ summary.ticket|default(0) }}</p>
-    </div>
-    <div class="mel-kpi-card mel-kpi-card--peach">
-      <p class="mel-kpi-card__label">{{ 'Capacity'|t }}</p>
-      <p class="mel-kpi-card__value">
-        {% if summary.capacity is not same as('Unlimited') %}
-          {{ summary.total|default(0) }}/{{ summary.capacity }}
-        {% else %}
-          {{ summary.capacity|default('—') }}
-        {% endif %}
-      </p>
-      {% if summary.remaining is not null and summary.capacity is not same as('Unlimited') %}
-        <p class="mel-kpi-card__hint">{{ '@left spots left'|t({'@left': summary.remaining}) }}</p>
-      {% endif %}
-    </div>
-  </div>
+  {% set cap_note = (summary.remaining is not null and summary.capacity is not same as('Unlimited')) ? ('@left spots left'|t({'@left': summary.remaining})) : null %}
+  {% set cap_display = summary.capacity is same as('Unlimited')
+    ? summary.capacity|default('—')
+    : (summary.total|default(0) ~ '/' ~ summary.capacity) %}
+  {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+    metric_title: 'Summary'|t,
+    metric_title_id: 'mel-attendees-metrics',
+    metric_intro: 'Headcount and capacity for this event.'|t,
+    metric_items: [
+      { label: 'Total attendees'|t, value: summary.total|default(0) },
+      { label: 'Checked-in'|t, value: summary.checked_in|default(0) },
+      { label: 'Ticket holders'|t, value: summary.ticket|default(0) },
+      { label: 'Capacity'|t, value: cap_display, note: cap_note },
+    ],
+  } only %}
 
   <div class="mel-card">
     <div class="mel-card__header">

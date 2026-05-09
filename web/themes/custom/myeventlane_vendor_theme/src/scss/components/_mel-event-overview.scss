@@ -15,49 +15,60 @@
 // -----------------------------------------------------------------------------
 
 .mel-event-header {
+  box-sizing: border-box;
   background: linear-gradient(135deg, #fdf2f8, #f0f9ff);
-  border-radius: 16px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border-radius: $radius-2xl;
+  padding: $spacing-5 $spacing-6;
+  box-shadow: $shadow-workspace-lift;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: $spacing-4;
   border: 1px solid rgba($mel-ws-navy, 0.06);
+
+  @media (max-width: 479px) {
+    padding: $spacing-4;
+    gap: $spacing-3;
+  }
 }
 
 .mel-event-header__top {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: $spacing-3;
 
   @include respond-to(md) {
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
+    gap: $spacing-4;
   }
 }
 
 .mel-event-title__heading {
   margin: 0;
-  font-size: 1.375rem;
+  font-size: clamp(1.25rem, 2.5vw, 1.375rem);
   font-weight: $font-weight-bold;
-  line-height: 1.2;
+  line-height: $line-height-tight;
   color: $mel-ws-navy;
   letter-spacing: $letter-spacing-tight;
 }
 
 .mel-event-meta {
-  margin-top: 4px;
+  margin-top: $spacing-1;
   font-size: $font-size-sm;
-  color: #6b7280;
-  line-height: 1.4;
+  color: $text-muted;
+  line-height: $line-height-relaxed;
 }
 
 .mel-event-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 24px;
-  padding-top: 4px;
+  gap: $spacing-4 $spacing-6;
+  padding-top: $spacing-1;
+
+  @media (max-width: 479px) {
+    gap: $spacing-3 $spacing-4;
+  }
 }
 
 .mel-stat--header {
@@ -83,10 +94,10 @@
 
   .mel-stat__hint {
     display: block;
-    margin-top: 4px;
-    font-size: 0.75rem;
-    color: #6b7280;
-    line-height: 1.35;
+    margin-top: $spacing-1;
+    font-size: $font-size-xs;
+    color: $text-muted;
+    line-height: $line-height-normal;
     max-width: 22ch;
   }
 }
@@ -94,12 +105,13 @@
 .mel-event-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: $spacing-2;
   align-items: center;
   justify-content: flex-start;
 
   @include respond-to(md) {
     justify-content: flex-end;
+    gap: $spacing-3;
   }
 }
 
@@ -115,13 +127,17 @@
 
 .mel-overview-layout {
   display: grid;
-  gap: 16px;
+  gap: $spacing-4;
   grid-template-columns: 1fr;
 
   @media (min-width: 1024px) {
     grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
-    gap: 20px;
+    gap: $spacing-6;
     align-items: start;
+  }
+
+  @media (max-width: 479px) {
+    gap: $spacing-3;
   }
 }
 
@@ -129,7 +145,11 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: $spacing-4;
+
+  @media (max-width: 479px) {
+    gap: $spacing-3;
+  }
 }
 
 .mel-grid__sidebar {
@@ -146,31 +166,36 @@
 
 .mel-overview-grid--secondary {
   display: grid;
-  gap: 16px;
+  gap: $spacing-4;
   margin-bottom: 0;
   grid-template-columns: 1fr;
 
   @media (min-width: 720px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
 
-.mel-card--quick-actions--sidebar {
-  padding: $mel-spacing-lg;
-
-  .mel-card__header {
-    margin-bottom: 12px;
+  @media (max-width: 479px) {
+    gap: $spacing-3;
   }
 }
 
-.mel-kpi-row--overview {
-  display: none;
+.mel-card--quick-actions--sidebar {
+  padding: $spacing-5;
+
+  .mel-card__header {
+    margin-bottom: $spacing-3;
+  }
 }
 
 .mel-overview-grid {
   display: grid;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: $spacing-4;
+  margin-bottom: $spacing-4;
+
+  @media (max-width: 479px) {
+    gap: $spacing-3;
+    margin-bottom: $spacing-3;
+  }
 
   &--primary {
     grid-template-columns: 1fr;

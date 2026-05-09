@@ -363,8 +363,24 @@ function myeventlane_checkout_flow_theme(array $existing, string $type, string $
         'search' => [],
         'operational_actions' => [],
         'mel_venue_operations_empty' => NULL,
+        // Per-purpose CSRF token bag consumed by the manual check-in form
+        // and the AJAX behaviour. Validated by
+        // VendorAttendeeController::checkIn() against the matching id.
+        'csrf' => [],
       ],
       'template' => 'mel-venue-operations',
+    ],
+    'mel_vendor_door_checkin' => [
+      'variables' => [
+        'event' => NULL,
+        'event_id' => NULL,
+        'validate_url' => NULL,
+        'search_url' => NULL,
+        'csrf_token' => NULL,
+        'operations_url' => NULL,
+        'door_context' => [],
+      ],
+      'template' => 'mel-vendor-door-checkin',
     ],
   ];
 }
@@ -399,6 +415,8 @@ function myeventlane_checkout_flow_mel_observability_page_payload_alter(
   $relevant = [
     'myeventlane_checkout_flow.vendor_attendees',
     'myeventlane_event_attendees.vendor_operations',
+    'myeventlane_event_attendees.vendor_operations_door',
+    'myeventlane_event_attendees.vendor_operations_door_validate',
     'myeventlane_event_attendees.vendor_list',
     'myeventlane_event_attendees.vendor_export',
     'myeventlane_checkout_paragraph.export_csv',

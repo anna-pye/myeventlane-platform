@@ -9,11 +9,14 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Url;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_checkout_flow\Service\AttendeeEventStatsService;
+use Drupal\myeventlane_checkout_flow\Service\MelAttendeeCheckinManager;
 use Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsPresenter;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_core\GovernedOperationalTemplates;
+use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -30,6 +33,8 @@ final class VendorAttendeesController extends ControllerBase {
     private readonly ?AttendeeEventStatsService $attendeeStats,
     private readonly MelAttendeeOperationsPresenter $operationsPresenter,
     private readonly GovernedOperationalTemplates $operationalTemplates,
+    private readonly AttendanceManagerInterface $attendanceManager,
+    private readonly MelAttendeeCheckinManager $checkinManager,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
@@ -44,6 +49,8 @@ final class VendorAttendeesController extends ControllerBase {
         ? $container->get('myeventlane_checkout_flow.attendee_event_stats') : NULL,
       $container->get('myeventlane_checkout_flow.attendee_operations_presenter'),
       $container->get('myeventlane_surface.governed_operational_templates'),
+      $container->get('myeventlane_event_attendees.manager'),
+      $container->get('myeventlane_checkout_flow.attendee_checkin_manager'),
     );
   }
 
@@ -97,6 +104,64 @@ final class VendorAttendeesController extends ControllerBase {
       $melCards = $stats['cards'];
       $melKpis = $stats['kpis'];
     }
+
+    foreach ($melCards as $eid => &$card) {
+      if (!is_array($card)) {
+        continue;
+      }
+      $event = $events[$eid] ?? NULL;
+      if (!$event instanceof NodeInterface) {
+        continue;
+      }
+      try {
+        $door = Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => (int) $eid])->toString();
+        $card['door_checkin_url'] = $door;
+        $card['checkin_url'] = $door;
+      }
+      catch (\Throwable) {
+      }
+      try {
+        $card['operations_url'] = Url::fromRoute(
+          'myeventlane_event_attendees.vendor_operations',
+          ['node' => (int) $eid],
+        )->toString();
+      }
+      catch (\Throwable) {
+        $card['operations_url'] = '';
+      }
+      $readiness = $this->checkinManager->readinessForEvent($event);
+      $availability = $this->attendanceManager->getAvailability($event);
+      $card['ops_checked_in'] = (int) ($readiness['checked_in'] ?? 0);
+      $card['ops_total_attendees'] = (int) ($readiness['total'] ?? 0);
+      $totalOpsAtt = (int) ($readiness['total'] ?? 0);
+      $card['ops_check_in_percent'] = $totalOpsAtt > 0
+        ? round(100.0 * (int) ($readiness['checked_in'] ?? 0) / $totalOpsAtt, 1)
+        : 0.0;
+      $card['ops_remaining_capacity'] = $availability['remaining'];
+      $card['ops_ready'] = (int) ($readiness['ready'] ?? 0);
+      $now = time();
+      $startTs = 0;
+      if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+        $raw = $event->get('field_event_start')->value;
+        if (is_string($raw)) {
+          $startTs = strtotime($raw) ?: 0;
+        }
+      }
+      $endTs = $startTs;
+      if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
+        $rawEnd = $event->get('field_event_end')->value;
+        if (is_string($rawEnd)) {
+          $parsed = strtotime($rawEnd);
+          if ($parsed) {
+            $endTs = $parsed;
+          }
+        }
+      }
+      $card['ops_event_active'] = $event->isPublished() && $startTs > 0
+        && $now >= ($startTs - 6 * 3600)
+        && $now <= ($endTs > $startTs ? $endTs + 4 * 3600 : $startTs + 18 * 3600);
+    }
+    unset($card);
 
     foreach ($events as $event) {
       $stats = $this->calculateEventStats($event);

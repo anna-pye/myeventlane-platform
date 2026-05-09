@@ -5,30 +5,22 @@
  * Variables: event, summary, series, rsvps, public_event_url
  */
 #}
-<div class="mel-workspace-page mel-page mel-rsvps">
+<div class="mel-workspace-page mel-page mel-rsvps mel-live-operations mel-vendor-console-stack">
   <p class="mel-page__next" role="status">
     {% trans %}Next: invite people who should be there — share your public link and use <strong>Check-in</strong> on the door.{% endtrans %}
   </p>
 
-  <div class="mel-kpi-row">
-    <div class="mel-kpi-card mel-kpi-card--sky">
-      <p class="mel-kpi-card__label">{{ 'Total RSVPs'|t }}</p>
-      <p class="mel-kpi-card__value">{{ summary.total_submissions|default(summary.total|default(0)) }}</p>
-      <p class="mel-kpi-card__hint">{{ 'Non-cancelled'|t }}</p>
-    </div>
-    <div class="mel-kpi-card mel-kpi-card--mint">
-      <p class="mel-kpi-card__label">{{ 'Confirmed'|t }}</p>
-      <p class="mel-kpi-card__value">{{ summary.confirmed|default(0) }}</p>
-    </div>
-    <div class="mel-kpi-card">
-      <p class="mel-kpi-card__label">{{ 'Pending'|t }}</p>
-      <p class="mel-kpi-card__value">{{ summary.pending|default(0) }}</p>
-    </div>
-    <div class="mel-kpi-card mel-kpi-card--peach">
-      <p class="mel-kpi-card__label">{{ 'Waitlisted'|t }}</p>
-      <p class="mel-kpi-card__value">{{ summary.waitlisted|default(0) }}</p>
-    </div>
-  </div>
+  {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+    metric_title: 'RSVP pulse'|t,
+    metric_title_id: 'mel-rsvps-metrics',
+    metric_intro: 'Non-cancelled responses and funnel health.'|t,
+    metric_items: [
+      { label: 'Total RSVPs'|t, value: summary.total_submissions|default(summary.total|default(0)), note: 'Non-cancelled'|t },
+      { label: 'Confirmed'|t, value: summary.confirmed|default(0) },
+      { label: 'Pending'|t, value: summary.pending|default(0) },
+      { label: 'Waitlisted'|t, value: summary.waitlisted|default(0) },
+    ],
+  } only %}
 
   <div class="mel-card">
     <div class="mel-card__header">

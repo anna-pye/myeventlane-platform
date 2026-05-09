@@ -1,0 +1,16 @@
+mel_vendor_door_checkin:
+  version: 1.x
+  js:
+    js/mel-vendor-door-checkin.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
+mel_vendor_venue_operations:
+  version: 1.x
+  js:
+    js/mel-venue-operations.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

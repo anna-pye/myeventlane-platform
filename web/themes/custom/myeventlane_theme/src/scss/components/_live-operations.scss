@@ -1,0 +1,1714 @@
+// ==========================================================================
+// MEL Live Operations — vendor venue dashboard + Door Mode scanning chrome
+// ==========================================================================
+
+@use '../tokens/colors' as melc;
+@use '../tokens/spacing' as melsp;
+@use '../tokens/radii' as melrad;
+@use '../tokens/shadows' as melsh;
+@use '../tokens/breakpoints' as melbp;
+@use '../tokens/typography' as melt;
+@use '../abstracts/mixins' as melmix;
+
+$mel-live-surface-stop: melc.$mel-color-surface-alt;
+$mel-live-accent: melc.$mel-color-primary;
+$mel-live-lavender: melc.$mel-color-accent;
+// Venue motion: restrained easing (no flashy motion).
+$mel-live-ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
+$mel-live-ease-material: cubic-bezier(0.4, 0, 0.2, 1);
+$mel-live-dur-quick: 0.18s;
+$mel-live-dur-panel: 0.42s;
+
+// Enables smooth dial updates when `--mel-ops-progress` changes (Chrome 85+, Safari 15.4+).
+@property --mel-ops-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+// =============================================================================
+// Quick action bar — pill toolbar (runs above hero for thumbs on mobile).
+// =============================================================================
+
+.mel-live-ops__quick-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: melsp.mel-space(3) (-1 * melsp.mel-space(2)) melsp.mel-space(4);
+  padding: melsp.mel-space(3) melsp.mel-space(3) melsp.mel-space(2);
+  background: #{melc.$mel-color-surface-alt};
+  border-radius: melrad.$mel-radius-md;
+  box-shadow: melsh.$mel-shadow-sm;
+  scroll-margin-top: melsp.mel-space(2);
+
+  // Narrow phones (~390px): ease horizontal bleed so the pill lane stays tappable.
+  @include melbp.mel-break(sm, max) {
+    margin-left: calc(-1 * #{melsp.mel-space(1)});
+    margin-right: calc(-1 * #{melsp.mel-space(1)});
+    padding-inline: melsp.mel-space(2);
+  }
+
+  @include melbp.mel-break(md) {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: melrad.$mel-radius-lg;
+  }
+
+  &:focus-within {
+    box-shadow:
+      melsh.$mel-shadow-sm,
+      0 0 0 2px rgba(124, 131, 253, 0.22);
+  }
+}
+
+.mel-live-ops__quick-inner {
+  display: grid;
+  grid-auto-flow: column;
+  gap: melsp.mel-space(2);
+  overflow-x: auto;
+  padding-bottom: melsp.mel-space(2);
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+
+  @include melbp.mel-break(sm, max) {
+    gap: melsp.mel-space(2);
+    padding-bottom: melsp.mel-space(1);
+    scroll-padding-inline: melsp.mel-space(2);
+  }
+}
+
+.mel-live-ops__action {
+  --mel-qa-bg: rgba(124, 131, 253, 0.16);
+  --mel-qa-fg: #{melc.$mel-color-text};
+  --mel-qa-border: rgba(124, 131, 253, 0.35);
+
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: melsp.mel-space(2);
+  min-height: 3rem;
+  padding-inline: melsp.mel-space(4);
+  border-radius: melrad.$mel-radius-pill;
+  border: 1px solid var(--mel-qa-border);
+  background: var(--mel-qa-bg);
+  color: var(--mel-qa-fg);
+  font-weight: melt.$mel-font-semibold;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  transition:
+    transform $mel-live-dur-quick $mel-live-ease-material,
+    box-shadow $mel-live-dur-quick $mel-live-ease-material;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.45);
+
+  @include melmix.pastel-focus-visible;
+
+  &[data-icon='scan'] .mel-live-ops__action-glyph::before {
+    content: '◎';
+    font-size: melt.mel-font-size(md);
+    line-height: 1;
+  }
+
+  &[data-icon='list'] .mel-live-ops__action-glyph::before {
+    content: '☰';
+  }
+
+  &[data-icon='export'] .mel-live-ops__action-glyph::before {
+    content: '↧';
+  }
+
+  &[data-icon='search'] .mel-live-ops__action-glyph::before {
+    content: '⌕';
+  }
+
+  &[data-icon='settings'] .mel-live-ops__action-glyph::before {
+    content: '⚙';
+  }
+
+  &.mel-live-ops__action--featured {
+    order: -1;
+
+    .mel-live-ops__action-glyph::before {
+      font-size: melt.mel-font-size(lg);
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.55),
+        melsh.$mel-shadow-sm;
+    }
+  }
+
+  @include melbp.mel-break(sm, max) {
+    min-height: 2.75rem;
+    padding-inline: melsp.mel-space(3);
+  }
+
+  &--lavender {
+    --mel-qa-bg: #{melc.$mel-color-accent-alt};
+    --mel-qa-border: rgba(124, 131, 253, 0.45);
+    color: #{melc.$mel-color-text};
+  }
+
+  &--primary {
+    --mel-qa-bg: linear-gradient(
+      144deg,
+      #{melc.$mel-color-primary} 0%,
+      #{melc.$mel-color-primary-hover} 100%
+    );
+    --mel-qa-border: rgba(228, 90, 70, 0.45);
+    color: #{melc.$mel-color-on-primary};
+    box-shadow:
+      inset 0 1px rgba(255, 255, 255, 0.22),
+      0 14px 32px rgba(242, 109, 91, 0.24);
+    font-weight: melt.$mel-font-bold;
+  }
+
+  &--muted {
+    --mel-qa-bg: rgba(36, 48, 58, 0.05);
+    --mel-qa-border: rgba(36, 48, 58, 0.12);
+    color: #{melc.$mel-color-text-muted};
+  }
+}
+
+.mel-live-ops__action-glyph {
+  display: inline-flex;
+}
+
+// -----------------------------------------------------------------------------
+// Venue operations layout + hero layered card (24px radius, gradient surface).
+// -----------------------------------------------------------------------------
+
+.mel-live-operations.mel-venue-operations {
+  padding-bottom: melsp.mel-space(8);
+}
+
+.mel-live-ops__hero-surface {
+  border-radius: melrad.$mel-radius-lg;
+  padding: clamp(#{melsp.mel-space(4)}, 6vw, #{melsp.mel-space(6)});
+  backdrop-filter: blur(8px);
+  background:
+    radial-gradient(1200px circle at -10% 0%, rgba(124, 131, 253, 0.18), transparent 55%),
+    radial-gradient(900px circle at 120% 110%, rgba(242, 109, 91, 0.16), transparent 45%),
+    linear-gradient(
+      128deg,
+      #{melc.$mel-color-surface} 18%,
+      $mel-live-surface-stop 100%
+    );
+  border: 1px solid #{melc.$mel-color-border};
+  box-shadow: melsh.$mel-shadow-glass;
+}
+
+.mel-live-ops__hero-layout {
+  display: grid;
+  gap: melsp.mel-space(6);
+  align-items: start;
+
+  @include melbp.mel-break(md) {
+    grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.82fr);
+  }
+}
+
+.mel-live-ops__hero-title {
+  margin: melsp.mel-space(2) 0 melsp.mel-space(3);
+  font-size: clamp(#{melt.mel-font-size(2xl)}, 4vw, #{melt.mel-font-size(4xl)});
+  font-weight: melt.$mel-font-extrabold;
+  letter-spacing: melt.$mel-tracking-tight;
+  color: #{melc.$mel-color-text};
+}
+
+.mel-live-ops__hero-datetime,
+.mel-live-ops__hero-venue {
+  margin: melsp.mel-space(1) 0 0;
+  color: #{melc.$mel-color-text-muted};
+  font-size: melt.mel-font-size(sm);
+}
+
+.mel-live-ops__eyebrow {
+  margin: 0;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: melt.mel-font-size(xs);
+  font-weight: melt.$mel-font-semibold;
+  color: #{melc.$mel-color-accent};
+}
+
+.mel-live-ops__live-pulse {
+  display: flex;
+  gap: melsp.mel-space(2);
+  align-items: center;
+  font-weight: melt.$mel-font-semibold;
+  margin: melsp.mel-space(4) 0 melsp.mel-space(2);
+}
+
+.mel-live-ops__pulse-dot {
+  inline-size: melsp.mel-space(3);
+  block-size: melsp.mel-space(3);
+  border-radius: 50%;
+  background: #{$mel-live-accent};
+  box-shadow: 0 0 0 6px rgba(242, 109, 91, 0.18);
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: mel-live-dot-breathe 1.65s infinite ease-out;
+  }
+}
+
+@keyframes mel-live-dot-breathe {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(242, 109, 91, 0.18);
+  }
+
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(242, 109, 91, 0.12);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(242, 109, 91, 0.18);
+  }
+}
+
+.mel-live-ops__chip-row {
+  margin-top: melsp.mel-space(4);
+  display: flex;
+  gap: melsp.mel-space(2);
+  flex-wrap: wrap;
+}
+
+.mel-live-ops__chip-row--compact {
+  margin-top: melsp.mel-space(2);
+}
+
+.mel-live-ops__chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: melsp.mel-space(1) melsp.mel-space(3);
+  border-radius: melrad.$mel-radius-pill;
+  font-weight: melt.$mel-font-semibold;
+  border: 1px solid #{melc.$mel-color-border};
+  font-size: melt.mel-font-size(xs);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+
+  .mel-live-ops__timeline &,
+  .mel-live-ops__attendee-row & {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+}
+
+.mel-live-ops__chip--live {
+  background: rgba($mel-live-accent, 0.14);
+  border-color: rgba($mel-live-accent, 0.45);
+}
+
+.mel-live-ops__chip--calm {
+  background: #{$mel-live-lavender};
+  border-color: rgba(124, 131, 253, 0.35);
+}
+
+.mel-live-ops__chip--lavender {
+  background: #{$mel-live-lavender};
+  border-color: rgba(124, 131, 253, 0.45);
+}
+
+.mel-live-ops__chip--capacity {
+  background: #{melc.$mel-color-pastel-peach};
+  border-color: rgba($mel-live-accent, 0.38);
+}
+
+.mel-live-ops__chip--success {
+  background: #{melc.$mel-color-success-bg};
+  color: #{melc.$mel-color-success};
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.mel-live-ops__chip--info {
+  background: #{melc.$mel-color-info-bg};
+  color: #{melc.$mel-color-text};
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.mel-live-ops__chip--warn {
+  background: #{melc.$mel-color-warning-bg};
+}
+
+.mel-live-ops__sync-meta {
+  font-size: melt.mel-font-size(sm);
+  color: #{melc.$mel-color-text-muted};
+  margin-top: melsp.mel-space(2);
+}
+
+// Progress dial + ribbon bar.
+.mel-live-ops__progress-shell {
+  --mel-ops-progress: 0;
+
+  display: grid;
+  gap: melsp.mel-space(3);
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: --mel-ops-progress 0.62s $mel-live-ease-out-soft;
+  }
+}
+
+.mel-live-ops__progress-shell[data-mel-ops-progress-delta='up'] .mel-live-ops__progress-ring {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: mel-live-ops-ring-nudge 0.85s $mel-live-ease-out-soft 1;
+  }
+}
+
+.mel-live-ops__progress-ring {
+  position: relative;
+  inline-size: 150px;
+  block-size: 150px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    #{$mel-live-accent} calc(var(--mel-ops-progress, 0) * 1%),
+    rgba(233, 227, 222, 0.9) 0
+  );
+  box-shadow:
+    inset 0 8px 20px rgba(255, 255, 255, 0.6),
+    melsh.$mel-shadow-sm;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: melsp.mel-space(3);
+    border-radius: inherit;
+    background: #{melc.$mel-color-surface};
+    box-shadow: inset 0 1px #{melc.$mel-color-border};
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: melsp.mel-space(1);
+    border-radius: inherit;
+    border: 1px solid rgba(242, 109, 91, 0.12);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+@keyframes mel-live-ops-ring-nudge {
+  0% {
+    box-shadow:
+      inset 0 8px 20px rgba(255, 255, 255, 0.6),
+      melsh.$mel-shadow-sm,
+      0 0 0 0 rgba(242, 109, 91, 0);
+  }
+
+  45% {
+    box-shadow:
+      inset 0 8px 20px rgba(255, 255, 255, 0.6),
+      melsh.$mel-shadow-sm,
+      0 0 0 10px rgba(242, 109, 91, 0.12);
+  }
+
+  100% {
+    box-shadow:
+      inset 0 8px 20px rgba(255, 255, 255, 0.6),
+      melsh.$mel-shadow-sm,
+      0 0 0 0 rgba(242, 109, 91, 0);
+  }
+}
+
+.mel-live-ops__progress-ring-label {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+}
+
+.mel-live-ops__progress-percent {
+  font-size: melt.mel-font-size(xl);
+  font-weight: melt.$mel-font-extrabold;
+  color: #{melc.$mel-color-text};
+}
+
+.mel-live-ops__progress-caption {
+  margin-top: melsp.mel-space(1);
+  font-size: melt.mel-font-size(xs);
+  color: #{melc.$mel-color-text-muted};
+  text-transform: uppercase;
+}
+
+.mel-live-ops__progress-track {
+  block-size: 10px;
+  border-radius: melrad.$mel-radius-pill;
+  background: rgba(36, 48, 58, 0.08);
+  overflow: hidden;
+}
+
+.mel-live-ops__progress-fill {
+  display: block;
+  block-size: 100%;
+  border-radius: melrad.$mel-radius-pill;
+  background: linear-gradient(120deg, #{$mel-live-lavender}, #{$mel-live-accent});
+  transition: width 0.58s $mel-live-ease-out-soft;
+}
+
+.mel-live-ops__hero-summary {
+  padding: melsp.mel-space(3);
+  border-radius: melrad.$mel-radius-md;
+  border: 1px solid #{melc.$mel-color-border};
+  background: #{melc.$mel-color-surface-alt};
+}
+
+.mel-live-ops__hero-cta {
+  width: 100%;
+  min-height: 3.25rem;
+  margin-top: melsp.mel-space(4);
+  border-radius: melrad.$mel-radius-pill;
+  font-weight: melt.$mel-font-semibold !important;
+  justify-content: center !important;
+}
+
+.mel-live-ops__summary-line {
+  margin: 0;
+  font-weight: melt.$mel-font-semibold;
+}
+
+.mel-live-ops__summary-muted {
+  margin: melsp.mel-space(2) 0 0;
+  font-size: melt.mel-font-size(sm);
+  color: #{melc.$mel-color-text-muted};
+}
+
+// Metrics board (6 pastel stat cards / 2-column mobile rhythm).
+.mel-command-center.mel-live-ops__metric-board {
+  // Overrides legacy flex command-center when both classes are used (e.g. Event Studio).
+  display: grid;
+  margin-top: 0;
+}
+
+.mel-live-ops__panel .mel-live-ops__metric-board {
+  margin-top: melsp.mel-space(3);
+}
+
+.mel-live-ops__metric-board {
+  margin-top: melsp.mel-space(5);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: melsp.mel-space(3);
+
+  @include melbp.mel-break(sm, max) {
+    gap: melsp.mel-space(2);
+  }
+
+  @include melbp.mel-break(lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: melsp.mel-space(4);
+  }
+
+  @include melbp.mel-break(xl) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.mel-live-ops__stat-card {
+  padding: melsp.mel-space(4);
+  border-radius: melrad.$mel-radius-md;
+  border: 1px solid #{melc.$mel-color-border};
+  box-shadow: melsh.$mel-shadow-sm;
+  background: #{melc.$mel-color-surface};
+  transition:
+    transform $mel-live-dur-quick $mel-live-ease-material,
+    border-color $mel-live-dur-quick $mel-live-ease-material,
+    box-shadow $mel-live-dur-quick $mel-live-ease-material;
+  display: grid;
+  gap: melsp.mel-space(2);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-2px);
+      border-color: rgba(124, 131, 253, 0.45);
+      box-shadow: melsh.$mel-shadow-lg;
+    }
+  }
+}
+
+a.mel-live-ops__stat-card {
+  text-decoration: none;
+  color: inherit;
+
+  @include melmix.pastel-focus-visible;
+}
+
+.mel-live-ops__stat-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 12px;
+  background: #{$mel-live-lavender};
+  box-shadow:
+    inset 0 2px rgba(255, 255, 255, 0.45),
+    0 4px 10px rgba(124, 131, 253, 0.15);
+}
+
+.mel-live-ops__stat-card--total .mel-live-ops__stat-icon::before {
+  content: '🎟';
+}
+
+.mel-live-ops__stat-card--in .mel-live-ops__stat-icon {
+  background: #{melc.$mel-color-success-bg};
+}
+
+.mel-live-ops__stat-card--in .mel-live-ops__stat-icon::before {
+  content: '✓';
+  display: grid;
+  place-items: center;
+  font-weight: melt.$mel-font-extrabold;
+}
+
+.mel-live-ops__stat-card--remain .mel-live-ops__stat-icon::before {
+  content: '↺';
+}
+
+.mel-live-ops__stat-card--ready .mel-live-ops__stat-icon::before {
+  content: '☀';
+}
+
+.mel-live-ops__stat-card--blocked .mel-live-ops__stat-icon::before {
+  content: '!';
+}
+
+.mel-live-ops__stat-card--capacity .mel-live-ops__stat-icon::before {
+  content: '⌂';
+}
+
+.mel-live-ops__stat-label {
+  margin: melsp.mel-space(3) 0 0;
+  font-size: melt.mel-font-size(sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #{melc.$mel-color-text-muted};
+}
+
+.mel-live-ops__stat-value {
+  margin: melsp.mel-space(2) 0 0;
+  font-size: melt.mel-font-size(2xl);
+  font-weight: melt.$mel-font-extrabold;
+  letter-spacing: melt.$mel-tracking-tight;
+  font-variant-numeric: tabular-nums;
+  transition:
+    color 0.38s $mel-live-ease-out-soft,
+    transform 0.38s $mel-live-ease-out-soft;
+
+  [data-mel-metric].mel-live-ops__stat-card--pulse & {
+    @media (prefers-reduced-motion: no-preference) {
+      color: #{melc.$mel-color-text};
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.mel-live-ops__stat-note {
+  margin: melsp.mel-space(2) 0 0;
+  font-size: melt.mel-font-size(sm);
+  color: #{melc.$mel-color-text-muted};
+}
+
+// Split pane — search sticks on mobile-first stack.
+.mel-live-ops__split {
+  margin-top: melsp.mel-space(6);
+  display: grid;
+  gap: melsp.mel-space(5);
+
+  @include melbp.mel-break(md) {
+    grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.1fr);
+    align-items: flex-start;
+  }
+
+  // ~iPad portrait: comfortable scan distance for roster.
+  @media (min-width: 768px) and (max-width: 900px) {
+    gap: melsp.mel-space(6);
+  }
+}
+
+.mel-live-ops__stack {
+  display: grid;
+  gap: melsp.mel-space(5);
+}
+
+.mel-live-ops__search-panel {
+  position: sticky;
+  top: melsp.mel-space(4);
+  z-index: 1;
+}
+
+.mel-live-ops__search-card {
+  padding: melsp.mel-space(5);
+  border-radius: melrad.$mel-radius-lg;
+  border: 1px solid #{melc.$mel-color-border};
+  background: #{melc.$mel-color-surface};
+  box-shadow: melsh.$mel-shadow-sm;
+}
+
+.mel-live-ops__search-heading {
+  font-size: melt.mel-font-size(md);
+  font-weight: melt.$mel-font-semibold;
+  margin: 0;
+}
+
+.mel-live-ops__search-intro {
+  margin: melsp.mel-space(2) 0 melsp.mel-space(4);
+  color: #{melc.$mel-color-text-muted};
+}
+
+.mel-live-ops__search-field-wrap {
+  position: relative;
+  display: grid;
+}
+
+.mel-live-ops__search-icon {
+  pointer-events: none;
+  position: absolute;
+  left: melsp.mel-space(5);
+  top: 50%;
+  transform: translateY(-55%);
+}
+
+.mel-live-ops__search-icon::before {
+  content: '⌕';
+}
+
+.mel-live-ops__search-field {
+  min-height: 52px;
+  border-radius: melrad.$mel-radius-pill;
+  border: 1px solid #{melc.$mel-color-border};
+  padding: melsp.mel-space(4) melsp.mel-space(10) melsp.mel-space(4) #{melsp.mel-space(8)};
+  font-size: melt.mel-font-size(md);
+
+  &::placeholder {
+    color: #{melc.$mel-color-text-light};
+    font-size: melt.mel-font-size(sm);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #{$mel-live-lavender};
+    box-shadow: 0 0 0 #{melsp.mel-space(2)} rgba(124, 131, 253, 0.25);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: #{$mel-live-lavender};
+    box-shadow:
+      0 0 0 #{melsp.mel-space(2)} rgba(124, 131, 253, 0.25),
+      melsh.$mel-shadow-sm;
+  }
+}
+
+.mel-live-ops__search-clear {
+  position: absolute;
+  right: melsp.mel-space(4);
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: melrad.$mel-radius-pill;
+  border: 1px solid #{melc.$mel-color-border};
+  padding: melsp.mel-space(2) melsp.mel-space(3);
+  background: #{melc.$mel-color-surface-alt};
+  font-size: melt.mel-font-size(sm);
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  @include melmix.pastel-focus-visible;
+}
+
+// Generic operational panel shell (dashboard + multi-surface reuse).
+.mel-live-ops__panel {
+  padding: melsp.mel-space(5);
+  border-radius: melrad.$mel-radius-lg;
+  border: 1px solid #{melc.$mel-color-border};
+  background: #{melc.$mel-color-surface-alt};
+  box-shadow: melsh.$mel-shadow-sm;
+}
+
+// Timeline / recent arrivals.
+.mel-live-ops__timeline {
+  padding: melsp.mel-space(5);
+  border-radius: melrad.$mel-radius-lg;
+  border: 1px dashed rgba(124, 131, 253, 0.35);
+  background: #{melc.$mel-color-surface-alt};
+}
+
+.mel-live-ops__panel-title {
+  margin: 0;
+  font-size: melt.mel-font-size(lg);
+  font-weight: melt.$mel-font-semibold;
+}
+
+.mel-live-ops__panel-intro {
+  margin: melsp.mel-space(2) 0 melsp.mel-space(4);
+  color: #{melc.$mel-color-text-muted};
+}
+
+.mel-live-ops__timeline-feed {
+  display: flex;
+  flex-direction: column;
+  gap: melsp.mel-space(4);
+
+  @include melbp.mel-break(sm, max) {
+    gap: melsp.mel-space(3);
+  }
+}
+
+.mel-live-ops__timeline-card {
+  border-radius: melrad.$mel-radius-lg;
+  border: 1px solid #{melc.$mel-color-border};
+  padding: melsp.mel-space(4);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: melsp.mel-space(4);
+  background:
+    radial-gradient(circle at 0% -20%, rgba(124, 131, 253, 0.15), transparent 45%),
+    #{melc.$mel-color-surface};
+  box-shadow: melsh.$mel-shadow-sm;
+}
+
+.mel-live-ops__timeline-avatar {
+  font-weight: melt.$mel-font-semibold;
+  border-radius: melrad.$mel-radius-pill;
+  inline-size: 48px;
+  block-size: 48px;
+  display: grid;
+  place-items: center;
+  background: #{$mel-live-lavender};
+  color: #{melc.$mel-color-text};
+}
+
+.mel-live-ops__timeline-headline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: melsp.mel-space(2);
+  align-items: center;
+}
+
+.mel-live-ops__timeline-name {
+  font-weight: melt.$mel-font-semibold;
+}
+
+.mel-live-ops__timeline-time {
+  margin-top: melsp.mel-space(2);
+  font-size: melt.mel-font-size(sm);
+  color: #{melc.$mel-color-text-muted};
+}
+
+.mel-live-ops__attendees-head {
+  margin-bottom: melsp.mel-space(5);
+}
+
+.mel-live-ops__filter-empty {
+  border-radius: melrad.$mel-radius-md;
+  border: 1px solid #{melc.$mel-color-warning};
+  padding: melsp.mel-space(3);
+  background: #{melc.$mel-color-warning-bg};
+}
+
+.mel-live-ops__attendee-row {
+  display: grid;
+  gap: melsp.mel-space(5);
+  margin-bottom: melsp.mel-space(5);
+  padding: melsp.mel-space(5);
+  border-radius: melrad.$mel-radius-lg;
+  border: 1px solid #{melc.$mel-color-border};
+  box-shadow: melsh.$mel-shadow-sm;
+  background:
+    radial-gradient(circle at 100% -10%, rgba(242, 109, 91, 0.12), transparent 52%),
+    #{melc.$mel-color-surface};
+  transition:
+    border-color $mel-live-dur-panel $mel-live-ease-material,
+    box-shadow $mel-live-dur-panel $mel-live-ease-material,
+    background 0.5s $mel-live-ease-out-soft;
+
+  &[hidden] {
+    display: none !important;
+  }
+
+  @include melbp.mel-break(md) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: flex-start;
+  }
+
+  &.mel-live-ops__attendee-row--checkin-settle {
+    border-color: rgba(34, 197, 94, 0.48);
+    box-shadow:
+      melsh.$mel-shadow-md,
+      0 0 0 1px rgba(34, 197, 94, 0.15),
+      0 12px 40px rgba(34, 197, 94, 0.09);
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: mel-live-ops-row-settle 0.92s $mel-live-ease-out-soft 1 forwards;
+    }
+  }
+
+  &.mel-live-ops__attendee-row--checkin-alert {
+    // Keep parent's multi-property choreography (do not shorthand-replace with border-only).
+    transition:
+      border-color 0.3s $mel-live-ease-material,
+      box-shadow $mel-live-dur-panel $mel-live-ease-material,
+      background 0.5s $mel-live-ease-out-soft;
+    border-color: rgba(239, 68, 68, 0.42);
+    box-shadow:
+      melsh.$mel-shadow-sm,
+      0 0 0 1px rgba(239, 68, 68, 0.12);
+  }
+
+  &[data-checked-in-state='1'] .mel-live-ops__done-pill,
+  &[data-checked-in-state='1'] .mel-live-ops__state-chip--checked_in {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: mel-live-ops-soft-pulse 1.35s $mel-live-ease-out-soft 1;
+    }
+  }
+}
+
+@keyframes mel-live-ops-row-settle {
+  0% {
+    transform: translateY(2px);
+    box-shadow: melsh.$mel-shadow-sm;
+  }
+
+  100% {
+    transform: translateY(0);
+    box-shadow:
+      melsh.$mel-shadow-md,
+      0 0 0 1px rgba(34, 197, 94, 0.12),
+      0 10px 36px rgba(34, 197, 94, 0.08);
+  }
+}
+
+@keyframes mel-live-ops-soft-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.18);
+  }
+
+  70% {
+    box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.mel-live-ops__attendee-main {
+  display: flex;
+  align-items: flex-start;
+  gap: melsp.mel-space(4);
+}
+
+.mel-live-ops__attendee-avatar {
+  flex: 0 0 auto;
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: melrad.$mel-radius-pill;
+  display: grid;
+  place-items: center;
+  font-size: melt.mel-font-size(sm);
+  font-weight: melt.$mel-font-bold;
+  letter-spacing: melt.$mel-tracking-tight;
+  color: #{melc.$mel-color-text};
+  border: 1px solid rgba(124, 131, 253, 0.35);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.75), transparent 62%),
+    linear-gradient(
+      145deg,
+      #{$mel-live-lavender} 0%,
+      rgba(124, 131, 253, 0.35) 100%
+    );
+  box-shadow:
+    inset 0 2px rgba(255, 255, 255, 0.55),
+    0 4px 12px rgba(36, 48, 58, 0.08);
+}
+
+.mel-live-ops__attendee-name {
+  display: block;
+  font-weight: melt.$mel-font-semibold;
+  font-size: melt.mel-font-size(lg);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: #{melc.$mel-color-text};
+}
+
+.mel-live-ops__attendee-email {
+  color: #{melc.$mel-color-text-muted};
+  word-break: break-word;
+}
+
+.mel-live-ops__attendee-email,
+.mel-live-ops__attendee-ticket,
+.mel-live-ops__ticket-code-line {
+  margin: melsp.mel-space(2) 0 0;
+  font-size: melt.mel-font-size(sm);
+}
+
+.mel-live-ops__attendee-ticket {
+  font-weight: melt.$mel-font-semibold;
+  color: #{melc.$mel-color-text};
+  display: inline-flex;
+  align-items: center;
+  gap: melsp.mel-space(2);
+  padding: melsp.mel-space(1) melsp.mel-space(3);
+  border-radius: melrad.$mel-radius-pill;
+  background: rgba(124, 131, 253, 0.12);
+  border: 1px solid rgba(124, 131, 253, 0.22);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.mel-live-ops__attendee-checked {
+  margin: melsp.mel-space(2) 0 0;
+  font-size: melt.mel-font-size(sm);
+  font-weight: melt.$mel-font-semibold;
+  color: #{melc.$mel-color-success};
+}
+
+.mel-live-ops__ticket-code {
+  font-family: melt.$mel-font-family-mono;
+  font-weight: melt.$mel-font-semibold;
+  font-size: melt.mel-font-size(sm);
+  padding-inline: #{melsp.mel-space(2)};
+}
+
+.mel-live-ops__state-chip {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: melrad.$mel-radius-pill;
+  padding-inline: melsp.mel-space(4);
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  font-weight: melt.$mel-font-semibold;
+  border: 1px solid #{melc.$mel-color-border};
+  background: #{melc.$mel-color-pastel-sky};
+}
+
+.mel-live-ops__state-chip--checked_in {
+  background: #{melc.$mel-color-success-bg};
+  color: #{melc.$mel-color-success};
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.mel-live-ops__state-chip--pending {
+  background: #{melc.$mel-color-info-bg};
+  color: #{melc.$mel-color-text};
+}
+
+.mel-live-ops__state-chip--refunded {
+  background: #{melc.$mel-color-warning-bg};
+  color: #{melc.$mel-color-text};
+}
+
+.mel-live-ops__state-chip--invalid,
+.mel-live-ops__state-chip--cancelled {
+  background: #{melc.$mel-color-error-bg};
+  color: #{melc.$mel-color-error};
+}
+
+.mel-live-ops__done-pill {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding-inline: melsp.mel-space(5);
+  min-height: 3rem;
+  min-width: 11rem;
+  border-radius: melrad.$mel-radius-pill;
+  background: #{melc.$mel-color-success-bg};
+  color: #{melc.$mel-color-success};
+  font-weight: melt.$mel-font-semibold;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.mel-live-ops__check-btn {
+  min-height: 3rem;
+  min-width: max(11rem, 44px);
+  border-radius: melrad.$mel-radius-pill;
+  justify-content: center !important;
+}
+
+.mel-live-ops__attendee-side {
+  display: flex;
+  gap: melsp.mel-space(4);
+  flex-direction: column;
+  align-items: stretch;
+
+  @include melbp.mel-break(md) {
+    justify-items: end;
+    text-align: right;
+    align-items: flex-end;
+  }
+}
+
+.mel-live-ops__muted {
+  color: #{melc.$mel-color-text-muted};
+}
+
+// =============================================================================
+// Door result card (shared public + vendor).
+// =============================================================================
+
+.mel-door-result-card {
+  position: relative;
+  border-radius: melrad.$mel-radius-lg;
+  border: 1px solid #{melc.$mel-color-border};
+  padding: melsp.mel-space(5);
+  background: #{melc.$mel-color-surface-alt};
+  box-shadow: melsh.$mel-shadow-sm;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      border-color 0.35s $mel-live-ease-material,
+      background 0.35s $mel-live-ease-material;
+  }
+
+  &[data-state='success'] {
+    border-color: rgba(34, 197, 94, 0.45);
+    background: #{melc.$mel-color-success-bg};
+  }
+
+  &[data-state='warning'] {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: #{melc.$mel-color-warning-bg};
+  }
+
+  &[data-state='error'] {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: #{melc.$mel-color-error-bg};
+  }
+
+  &[data-state='loading'] {
+    border-color: rgba(124, 131, 253, 0.45);
+    background: #{melc.$mel-color-info-bg};
+  }
+}
+
+.mel-door-result-card__title {
+  margin: melsp.mel-space(3) 0 0;
+  font-size: melt.mel-font-size(xl);
+  font-weight: melt.$mel-font-bold;
+}
+
+.mel-door-result-card__meta {
+  margin: melsp.mel-space(2) 0 0;
+  color: #{melc.$mel-color-text-muted};
+}
+
+.mel-door-result-card__detail {
+  margin: melsp.mel-space(2) 0 0;
+  font-size: melt.mel-font-size(sm);
+}
+
+.mel-door-result-card__badges {
+  margin-top: melsp.mel-space(3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: melsp.mel-space(2);
+}
+
+.mel-door-result-card__badge {
+  padding: melsp.mel-space(1) melsp.mel-space(3);
+  border-radius: melrad.$mel-radius-pill;
+  background: rgba(124, 131, 253, 0.18);
+  font-size: melt.mel-font-size(xs);
+  font-weight: melt.$mel-font-semibold;
+}
+
+.mel-door-candidate-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: melsp.mel-space(1);
+  margin-bottom: melsp.mel-space(3);
+  padding: melsp.mel-space(4);
+  border-radius: melrad.$mel-radius-md;
+  border: 1px solid #{melc.$mel-color-border};
+  background: #{melc.$mel-color-surface};
+  text-align: left;
+  cursor: pointer;
+  font-family: melt.$mel-font-family;
+}
+
+.mel-door-candidate-card__name {
+  font-weight: melt.$mel-font-semibold;
+}
+
+.mel-door-candidate-card__email {
+  font-size: melt.mel-font-size(sm);
+  color: #{melc.$mel-color-text-muted};
+}
+
+.mel-live-ops__empty-wrap {
+  margin-top: melsp.mel-space(5);
+}
+
+// =============================================================================
+// Vendor Door chrome (dark immersive lane).
+// =============================================================================
+
+.mel-vendor-door {
+  position: relative;
+  border-radius: melrad.$mel-radius-xl;
+  background: radial-gradient(circle at 12% -10%, rgba(124, 131, 253, 0.22), transparent 52%),
+    linear-gradient(160deg, #131b22 15%, #{melc.$mel-color-text} 100%);
+  color: #{melc.$mel-color-surface};
+  padding: melsp.mel-space(5) melsp.mel-space(4) clamp(#{melsp.mel-space(8)}, 10vw, #{melsp.mel-space(9)});
+
+  @include melbp.mel-break(md, max) {
+    padding-bottom: melsp.mel-space(10);
+    border-radius: 0;
+    margin-inline: calc(-1 * clamp(#{melsp.mel-space(3)}, 4vw, #{melsp.mel-space(5)}));
+  }
+
+  &__top {
+    margin-bottom: melsp.mel-space(5);
+  }
+
+  &__top-row {
+    display: flex;
+    justify-content: space-between;
+    gap: melsp.mel-space(3);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  &__back {
+    padding: melsp.mel-space(2) melsp.mel-space(4);
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    border-radius: melrad.$mel-radius-pill;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #{melc.$mel-color-surface};
+    text-decoration: none;
+    font-weight: melt.$mel-font-semibold;
+
+    @include melmix.pastel-focus-visible;
+  }
+
+  &__sync-chip {
+    font-size: melt.mel-font-size(sm);
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: melrad.$mel-radius-pill;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: melsp.mel-space(2) melsp.mel-space(4);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  &__event-heading {
+    margin: melsp.mel-space(4) 0 0;
+    font-size: clamp(#{melt.mel-font-size(xl)}, 4vw, #{melt.mel-font-size(3xl)});
+    font-weight: melt.$mel-font-extrabold;
+    letter-spacing: melt.$mel-tracking-tight;
+  }
+
+  &__live-count {
+    display: flex;
+    align-items: center;
+    gap: melsp.mel-space(3);
+    margin-top: melsp.mel-space(3);
+    font-weight: melt.$mel-font-semibold;
+  }
+
+  &__live-dot {
+    inline-size: melsp.mel-space(3);
+    block-size: melsp.mel-space(3);
+    border-radius: 50%;
+    background: #{$mel-live-accent};
+    box-shadow: 0 0 0 6px rgba(242, 109, 91, 0.25);
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: mel-live-dot-breathe 1.75s infinite ease-out;
+    }
+  }
+
+  &__mini-metrics {
+    display: inline-flex;
+    gap: melsp.mel-space(2);
+    font-size: melt.mel-font-size(sm);
+    opacity: 0.85;
+  }
+
+  &__main {
+    display: grid;
+    gap: melsp.mel-space(7);
+    margin-bottom: melsp.mel-space(6);
+    scroll-padding-bottom: calc(108px + env(safe-area-inset-bottom));
+
+    @include melbp.mel-break(md, max) {
+      // Sticky QR control + home indicator — keep manual card above the fold.
+      padding-bottom: calc(#{melsp.mel-space(10)} + env(safe-area-inset-bottom, 0px));
+    }
+
+    @media (max-height: 520px) and (orientation: landscape) {
+      gap: melsp.mel-space(5);
+      margin-bottom: melsp.mel-space(5);
+      padding-bottom: calc(#{melsp.mel-space(8)} + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  &__scanner-shell {
+    background: rgba(0, 0, 0, 0.38);
+    border-radius: melrad.$mel-radius-lg;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: melsp.mel-space(5);
+    box-shadow:
+      inset 0 12px 32px rgba(0, 0, 0, 0.25),
+      0 26px 64px rgba(0, 0, 0, 0.32);
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        1200px circle at 50% -20%,
+        rgba(255, 255, 255, 0.06),
+        transparent 45%
+      );
+    }
+  }
+
+  &__scanner-heading h2 {
+    margin: 0;
+    font-size: melt.mel-font-size(lg);
+  }
+
+  &__scanner-heading p {
+    margin: melsp.mel-space(2) 0 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: melt.mel-font-size(sm);
+  }
+
+  &__camera-frame {
+    position: relative;
+    margin-top: melsp.mel-space(5);
+    border-radius: melrad.$mel-radius-lg + 10px;
+    padding: clamp(#{melsp.mel-space(4)}, 10vw, #{melsp.mel-space(6)});
+    min-height: clamp(220px, 48vw, 320px);
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+    background:
+      radial-gradient(ellipse at 50% 120%, rgba(242, 109, 91, 0.12), transparent 55%),
+      linear-gradient(165deg, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.08) 100%);
+    outline: solid 1px rgba(255, 255, 255, 0.08);
+
+    @media (max-width: 420px) {
+      min-height: clamp(210px, 52vw, 300px);
+    }
+
+    &:has(#mel-vendor-door-camera:not([hidden])) .mel-vendor-door__mega-cta,
+    &[data-mel-door-scan-running='1'] .mel-vendor-door__mega-cta {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    &:has(#mel-vendor-door-camera:not([hidden])) .mel-vendor-door__camera-glow,
+    &[data-mel-door-scan-running='1'] .mel-vendor-door__camera-glow {
+      opacity: 0.85;
+      border-color: rgba(124, 131, 253, 0.78);
+      @media (prefers-reduced-motion: no-preference) {
+        animation-duration: 1.85s;
+      }
+    }
+
+    &:has(#mel-vendor-door-camera:not([hidden])) .mel-vendor-door__camera-grid,
+    &[data-mel-door-scan-running='1'] .mel-vendor-door__camera-grid {
+      opacity: 1;
+    }
+  }
+
+  &__camera-grid {
+    pointer-events: none;
+    position: absolute;
+    inset: clamp(#{melsp.mel-space(4)}, 6vw, #{melsp.mel-space(5)});
+    border-radius: melrad.$mel-radius-xl;
+    z-index: 2;
+    opacity: 0.55;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)) top 0 left 50% /
+        calc(56% + 26px) 2px no-repeat,
+      linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)) bottom 0 left 50% /
+        calc(56% + 26px) 2px no-repeat,
+      linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)) top 50% left 0 /
+        2px calc(56% + 26px) no-repeat,
+      linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)) top 50% right 0 /
+        2px calc(56% + 26px) no-repeat;
+
+    transition: opacity 0.42s $mel-live-ease-out-soft;
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+      0 0 24px rgba(0, 0, 0, 0.2);
+  }
+
+  &__camera-glow {
+    pointer-events: none;
+    position: absolute;
+    inset: 14px;
+    border-radius: melrad.$mel-radius-xl;
+    border: 3px solid rgba(124, 131, 253, 0.55);
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: mel-door-scan-pulse 2.5s infinite ease-in-out alternate;
+      box-shadow: 0 0 25px rgba(124, 131, 253, 0.45), inset 0 0 12px rgba(124, 131, 253, 0.25);
+      transition:
+        opacity 0.45s $mel-live-ease-out-soft,
+        border-color 0.45s $mel-live-ease-out-soft;
+    }
+  }
+
+  &__mega-cta {
+    position: relative;
+    z-index: 4;
+    min-height: 3.375rem !important;
+    min-width: min(280px, 86vw);
+    border-radius: melrad.$mel-radius-pill !important;
+    box-shadow:
+      inset 0 1px rgba(255, 255, 255, 0.25),
+      0 26px 40px rgba(242, 109, 91, 0.35);
+
+    @include melmix.pastel-focus-visible;
+
+    transition:
+      opacity 0.38s $mel-live-ease-out-soft,
+      transform 0.32s $mel-live-ease-out-soft,
+      box-shadow $mel-live-dur-quick $mel-live-ease-material;
+  }
+
+  &__torch-control {
+    position: relative;
+    z-index: 5;
+    margin-top: melsp.mel-space(3);
+    justify-self: center;
+    border-radius: melrad.$mel-radius-pill !important;
+    min-height: 2.875rem !important;
+    padding-inline: melsp.mel-space(5) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    color: #{melc.$mel-color-surface} !important;
+
+    @include melmix.pastel-focus-visible;
+
+    &[aria-pressed='true'] {
+      background: rgba(255, 255, 255, 0.22) !important;
+      border-color: rgba(255, 229, 180, 0.55) !important;
+      box-shadow: inset 0 0 16px rgba(255, 220, 150, 0.25);
+    }
+  }
+
+  &__camera {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    border-radius: inherit;
+
+    &.is-active {
+      z-index: 3;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: clamp(#{melsp.mel-space(3)}, 5vw, #{melsp.mel-space(4)});
+        pointer-events: none;
+        border-radius: melrad.$mel-radius-lg;
+        box-shadow:
+          inset 0 0 24px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: contrast(1.04) saturate(1.06);
+      transition: opacity 0.35s $mel-live-ease-out-soft;
+    }
+  }
+
+  &__manual-card {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: melrad.$mel-radius-xl;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: melsp.mel-space(6);
+    box-shadow:
+      inset 0 18px 32px rgba(0, 0, 0, 0.2),
+      0 20px 50px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(24px);
+
+    & h2 {
+      margin: 0;
+      font-size: melt.mel-font-size(lg);
+    }
+  }
+
+  &__manual-intro p {
+    margin: melsp.mel-space(2) 0 melsp.mel-space(5);
+    color: rgba(255, 255, 255, 0.82);
+    font-size: melt.mel-font-size(sm);
+  }
+
+  &__field-label {
+    display: block;
+    font-weight: melt.$mel-font-semibold;
+    margin-bottom: melsp.mel-space(2);
+    color: #{melc.$mel-color-surface};
+    font-size: melt.mel-font-size(sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__field-input {
+    min-height: 3.375rem !important;
+    border-radius: melrad.$mel-radius-xl !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+    padding: melsp.mel-space(4) melsp.mel-space(5) !important;
+    font-size: melt.mel-font-size(lg);
+    font-weight: melt.$mel-font-semibold;
+    letter-spacing: 0.025em;
+    background: rgba(0, 0, 0, 0.5) !important;
+    color: #{melc.$mel-color-surface} !important;
+  }
+
+  &__result-card.mel-door-result-card {
+    background: rgba(19, 23, 30, 0.65);
+    color: #{melc.$mel-color-surface};
+    border-color: rgba(255, 255, 255, 0.2);
+
+    &[data-state='success'] {
+      border-color: rgba(34, 197, 94, 0.58);
+      background: rgba(24, 40, 32, 0.85);
+    }
+
+    &[data-state='warning'] {
+      border-color: rgba(245, 158, 11, 0.62);
+      background: rgba(44, 32, 22, 0.88);
+    }
+
+    &[data-state='error'] {
+      border-color: rgba(239, 68, 68, 0.65);
+      background: rgba(44, 20, 20, 0.88);
+    }
+
+    &[data-state='loading'] {
+      border-color: rgba(124, 131, 253, 0.62);
+      background: rgba(24, 24, 40, 0.88);
+    }
+  }
+
+  &__result-card .mel-door-result-card__meta {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  &__sticky-scan {
+    position: fixed;
+    inset-inline: 16px;
+    bottom: clamp(#{melsp.mel-space(4)}, env(safe-area-inset-bottom));
+    display: grid;
+    gap: melsp.mel-space(3);
+    z-index: 20;
+
+    @include melbp.mel-break(md) {
+      display: none;
+    }
+  }
+
+  &__sticky-btn {
+    justify-content: center !important;
+    min-height: 3.5rem !important;
+    box-shadow:
+      inset 0 2px rgba(255, 255, 255, 0.25),
+      0 26px 40px rgba(242, 109, 91, 0.45);
+  }
+
+  &__manual-hint {
+    margin-top: melsp.mel-space(5);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: melt.mel-font-size(sm);
+  }
+
+  &__candidate-stack {
+    margin-top: melsp.mel-space(4);
+    max-block-size: 320px;
+    overflow-y: auto;
+  }
+
+  &__candidate-stack[hidden],
+  &__camera[hidden] {
+    display: none !important;
+  }
+
+  &__live-strong {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: melt.mel-font-size(xs);
+    color: rgba(255, 255, 255, 0.65);
+    margin-inline-end: melsp.mel-space(2);
+  }
+}
+
+@keyframes mel-door-scan-pulse {
+  0% {
+    transform: scale(0.99);
+    opacity: 0.55;
+    box-shadow:
+      0 0 20px rgba(124, 131, 253, 0.35),
+      inset 0 0 14px rgba(124, 131, 253, 0.18);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow:
+      0 0 45px rgba(124, 131, 253, 0.55),
+      inset 0 0 26px rgba(124, 131, 253, 0.25);
+  }
+}
+
+// Lightweight public Door page alignment.
+.mel-checkin__panel {
+  margin-top: melsp.mel-space(5);
+  padding: melsp.mel-space(6);
+  border-radius: melrad.$mel-radius-xl;
+  border: 1px solid #{melc.$mel-color-border};
+  box-shadow: melsh.$mel-shadow-md;
+}
+
+.mel-checkin__field-label {
+  font-weight: melt.$mel-font-semibold;
+}
+
+// -----------------------------------------------------------------------------
+// Event workspace shell — shortcut grid (shared vendor hub + operations rhythm)
+// -----------------------------------------------------------------------------
+
+.mel-live-ops__shortcut-grid {
+  display: grid;
+  gap: melsp.mel-space(3);
+  grid-template-columns: 1fr;
+
+  @include melbp.mel-break(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include melbp.mel-break(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.mel-live-ops__shortcut-tile {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: melsp.mel-space(4);
+  border-radius: melrad.$mel-radius-lg;
+  border: 1px solid #{melc.$mel-color-border};
+  background: #{melc.$mel-color-surface};
+  text-decoration: none;
+  color: #{melc.$mel-color-text};
+  font-weight: melt.$mel-font-semibold;
+  box-shadow: melsh.$mel-shadow-sm;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+
+  @include melmix.pastel-focus-visible;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: rgba(124, 131, 253, 0.35);
+      color: #{melc.$mel-color-accent};
+      box-shadow: melsh.$mel-shadow-md;
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Reduced motion — keep live-ops calm for vestibular / OS preferences.
+// -----------------------------------------------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-live-ops__action,
+  .mel-live-ops__stat-card,
+  .mel-live-ops__shortcut-tile,
+  .mel-live-ops__progress-fill,
+  .mel-live-ops__progress-shell {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+
+  .mel-live-ops__action:hover,
+  .mel-live-ops__stat-card:hover,
+  .mel-live-ops__shortcut-tile:hover {
+    transform: none;
+  }
+
+  .mel-live-ops__pulse-dot {
+    animation: none !important;
+  }
+
+  .mel-vendor-door__camera-glow {
+    animation: none !important;
+  }
+
+  .mel-vendor-door__live-dot {
+    animation: none !important;
+  }
+
+  .mel-live-ops__progress-shell[data-mel-ops-progress-delta='up'] .mel-live-ops__progress-ring {
+    animation: none !important;
+  }
+
+  .mel-live-ops__attendee-row.mel-live-ops__attendee-row--checkin-settle {
+    animation: none !important;
+  }
+
+  .mel-live-ops__attendee-row[data-checked-in-state='1'] .mel-live-ops__done-pill,
+  .mel-live-ops__attendee-row[data-checked-in-state='1'] .mel-live-ops__state-chip--checked_in {
+    animation: none !important;
+  }
+}
+
+.mel-live-ops__shortcut-tile-label {
+  line-height: 1.35;
+}
+
+.mel-live-ops__readiness-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: melsp.mel-space(3);
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+
+  @include melmix.pastel-focus-visible;
+
+  &:hover {
+    color: inherit;
+    text-decoration: none;
+  }
+}
