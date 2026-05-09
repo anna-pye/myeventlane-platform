@@ -206,4 +206,5 @@ theme:
   myeventlane_admin: 0
   radix: 0
   myeventlane_radix: 0
+  mel_maintenance: 0
 profile: standard
