@@ -410,6 +410,7 @@
 
 .mel-vendor-shell__content {
   flex: 1;
+  background: var(--mel-bg);
   padding: $spacing-4 $spacing-5 $spacing-6;
 
   @include respond-to(md) {

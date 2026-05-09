@@ -2,15 +2,9 @@
 /**
  * @file
  * Door Mode check-in: scan or search, JSON validate (no full reload).
- *
- * @var \Drupal\node\NodeInterface|null event
- * @var int event_id
- * @var string validate_url
- * @var string search_url
- * @var string csrf_token
  */
 #}
-<div class="mel-checkin" data-mel-door-checkin>
+<div class="mel-checkin mel-live-operations" data-mel-door-checkin>
   <header class="mel-checkin__header">
     <h1 class="mel-checkin__title">{{ 'Check-in'|t }}</h1>
     {% if event %}
@@ -18,19 +12,34 @@
     {% endif %}
   </header>
 
-  <label class="visually-hidden" for="checkin-input">{{ 'Scan or type name'|t }}</label>
-  <input
-    type="text"
-    id="checkin-input"
-    class="mel-checkin__input"
-    autocomplete="off"
-    autocapitalize="words"
-    enterkeyhint="search"
-    inputmode="search"
-    placeholder="{{ 'Scan QR or search name or email'|t }}"
-  />
+  <div class="mel-checkin__panel">
+    <label class="mel-checkin__field-label visually-hidden" for="checkin-input">{{ 'Scan or type name'|t }}</label>
+    <input
+      type="text"
+      id="checkin-input"
+      class="mel-checkin__input"
+      autocomplete="off"
+      autocapitalize="words"
+      enterkeyhint="search"
+      inputmode="search"
+      placeholder="{{ 'Scan QR or search name or email'|t }}"
+    />
 
-  <div id="checkin-result" class="mel-checkin__result" role="status" aria-live="polite"></div>
+    <div
+      id="checkin-result"
+      class="mel-door-result-card mel-checkin__result-card"
+      role="status"
+      aria-live="polite"
+      hidden
+      data-state=""
+    >
+      <div class="mel-door-result-card__icon-row" aria-hidden="true"></div>
+      <p data-mel-door-result-title class="mel-door-result-card__title"></p>
+      <p data-mel-door-result-meta class="mel-door-result-card__meta"></p>
+      <p data-mel-door-result-detail class="mel-door-result-card__detail"></p>
+      <div class="mel-door-result-card__badges mel-checkin__result-badges" data-mel-door-result-badges data-mel-door-acc="suppress" hidden></div>
+    </div>
 
-  <ul id="checkin-candidates" class="mel-checkin__candidates" hidden></ul>
+    <div id="checkin-candidates" class="mel-door-candidate-stack mel-checkin__candidates-stack" hidden></div>
+  </div>
 </div>

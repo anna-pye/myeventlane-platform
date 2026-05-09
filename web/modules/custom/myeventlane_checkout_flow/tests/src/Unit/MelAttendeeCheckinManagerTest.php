@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_checkout_flow\Unit;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_checkout_flow\Service\MelAttendeeCheckinManager;
@@ -126,6 +127,30 @@ final class MelAttendeeCheckinManagerTest extends UnitTestCase {
   /**
    * @covers ::reverseCheckIn
    */
+  /**
+   * @covers ::checkInAttendee
+   */
+  public function testCheckInAttendeeDelegatesToCheckIn(): void {
+    $manager = $this->mockManager();
+    $manager->expects($this->once())->method('checkIn')->willReturn(TRUE);
+    $access = $this->mockAccess(allowed: TRUE);
+    $checkin = $this->makeCheckin($manager, $access);
+
+    $event = $this->mockEvent('event');
+    $attendee = $this->createMock(EventAttendee::class);
+    $attendee->method('getEvent')->willReturn($event);
+    $attendee->method('getStatus')->willReturn(EventAttendee::STATUS_CONFIRMED);
+    $attendee->method('hasField')->willReturn(FALSE);
+    $attendee->method('id')->willReturn(50);
+
+    $out = $checkin->checkInAttendee($attendee, $this->mockActor(7), 'vendor_list');
+    $this->assertTrue($out['success']);
+    $this->assertTrue($out['transitioned']);
+  }
+
+  /**
+   * @covers ::reverseCheckIn
+   */
   public function testReverseCheckInDeniedByAccess(): void {
     $manager = $this->mockManager();
     $access = $this->mockAccess(allowed: FALSE);
@@ -146,11 +171,13 @@ final class MelAttendeeCheckinManagerTest extends UnitTestCase {
   ): MelAttendeeCheckinManager {
     $time = $this->createMock(TimeInterface::class);
     $time->method('getRequestTime')->willReturn(1700000000);
+    $etm = $this->createMock(EntityTypeManagerInterface::class);
     return new MelAttendeeCheckinManager(
       $manager,
       $access,
       $time,
       $this->createMock(LoggerChannelInterface::class),
+      $etm,
     );
   }
 

@@ -95,11 +95,21 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
     $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString();
 
     $checkin_url = '#';
-    if ($this->moduleHandler->moduleExists('myeventlane_checkin')) {
+    try {
+      $checkin_url = Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString();
+    }
+    catch (\Throwable $e) {
       try {
-        $checkin_url = Url::fromRoute('myeventlane_checkin.page', ['node' => $node->id()])->toString();
+        $checkin_url = Url::fromRoute('myeventlane_event_attendees.vendor_operations', ['node' => $node->id()])->toString();
       }
-      catch (\Throwable $e) {
+      catch (\Throwable $e2) {
+        if ($this->moduleHandler->moduleExists('myeventlane_checkin')) {
+          try {
+            $checkin_url = Url::fromRoute('myeventlane_checkin.page', ['node' => $node->id()])->toString();
+          }
+          catch (\Throwable $e3) {
+          }
+        }
       }
     }
 

@@ -10,19 +10,36 @@
 @use '../tokens/typography' as *;
 @use '../tokens/spacing' as *;
 @use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
 @use '../tokens/breakpoints' as *;
 
 .mel-attendees-event-card {
+  box-sizing: border-box;
   background: $ml-vendor-card;
-  border-radius: $radius-xl;
-  padding: $spacing-5;
+  border-radius: $radius-2xl;
+  padding: $spacing-6;
   margin-bottom: $spacing-6;
-  border: 1px solid $ml-vendor-border;
-  box-shadow: 0 2px 8px rgba(13, 21, 32, 0.04);
-  transition: box-shadow 0.2s ease;
+  border: 1px solid $border-color-light;
+  box-shadow: $shadow-card;
+  transition:
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
 
-  &:hover {
-    box-shadow: 0 6px 20px rgba(13, 21, 32, 0.08);
+  @media (max-width: 479px) {
+    padding: $spacing-5;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: rgba($mel-ws-purple, 0.2);
+      box-shadow: $shadow-card-hover;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-attendees-event-card {
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -35,8 +52,8 @@
 }
 
 .mel-attendees-event-card__title {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-bold;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
   color: $text-primary;
   margin: 0 0 $spacing-1;
   line-height: $line-height-tight;
@@ -113,11 +130,112 @@
   transition: width 0.4s ease;
 }
 
+.mel-attendees-event-card__pill-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $spacing-2;
+}
+
+.mel-attendees-event-card__live-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-1 $spacing-3;
+  border-radius: $radius-full;
+  background: $success-light;
+  color: $success;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-attendees-event-card__ops {
+  margin-top: $spacing-4;
+  padding: $spacing-4;
+  border-radius: $radius-lg;
+  border: 1px solid $ml-vendor-border;
+  background:
+    radial-gradient(circle at 92% -10%, rgba(124, 131, 253, 0.16), transparent 55%),
+    $ml-vendor-bg;
+}
+
+.mel-attendees-event-card__ops-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-3;
+}
+
+.mel-attendees-event-card__ops-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+}
+
+.mel-attendees-event-card__ops-pct {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $mel-ws-purple;
+}
+
+.mel-attendees-event-card__ops-bar {
+  margin-top: $spacing-2;
+  height: 10px;
+  border-radius: $radius-full;
+  background: $ml-slate-100;
+  overflow: hidden;
+}
+
+.mel-attendees-event-card__ops-fill {
+  display: block;
+  height: 100%;
+  border-radius: $radius-full;
+  background: linear-gradient(120deg, $mel-ws-purple, $mel-ws-coral);
+  transition: width 0.35s ease;
+}
+
+.mel-attendees-event-card__ops-grid {
+  margin-top: $spacing-3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+}
+
+.mel-attendees-event-card__ops-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-1 $spacing-2;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  border: 1px solid rgba(124, 131, 253, 0.25);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.mel-attendees-event-card__ops-chip--people {
+  font-weight: $font-weight-semibold;
+  border-color: $ml-vendor-border;
+  background: $ml-vendor-card;
+}
+
+.mel-attendees-event-card__ops-chip--ready {
+  color: $mel-ws-purple;
+}
+
 .mel-attendees-event-card__actions {
   display: flex;
   flex-wrap: wrap;
   gap: $spacing-3;
   margin-top: $spacing-5;
+
+  &--ops .mel-btn--primary {
+    box-shadow:
+      inset 0 1px rgba(255, 255, 255, 0.25),
+      0 14px 32px rgba(242, 109, 91, 0.25);
+    font-weight: $font-weight-semibold;
+  }
 
   @include respond-down(md) {
     flex-direction: column;

@@ -14,8 +14,9 @@
 @use '../tokens/typography' as *;
 @use '../tokens/breakpoints' as *;
 
-$radius-settings-card: 1.125rem; // 18px
-$shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
+// Card shell matches live-operations panel radii (24px) + shared shadow scale.
+$radius-settings-card: $radius-2xl;
+$shadow-settings-card: $shadow-card;
 
 // ============================================================================
 // PAGE SHELL
@@ -28,7 +29,7 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 }
 
 .mel-event-settings-page__section {
-  margin-bottom: 24px;
+  margin-bottom: $spacing-8;
 
   &:last-child {
     margin-bottom: 0;
@@ -40,7 +41,7 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
   flex-direction: column;
   align-items: stretch;
   gap: $spacing-4;
-  margin-bottom: 8px;
+  margin-bottom: $spacing-2;
 
   @include respond-to(md) {
     flex-direction: row;
@@ -57,12 +58,9 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 }
 
 .mel-event-settings-page__title {
-  margin: 0 0 8px;
-  font-size: clamp(1.5rem, 2.5vw, 1.875rem);
-  font-weight: $font-weight-bold;
-  letter-spacing: -0.02em;
+  @include page-title;
+  margin: 0 0 $spacing-2;
   color: $ml-vendor-navy;
-  line-height: 1.2;
 }
 
 .mel-event-settings-page__meta-line {
@@ -77,7 +75,7 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: $spacing-3;
 
   @include respond-to(md) {
     flex-shrink: 0;
@@ -115,12 +113,16 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 .mel-event-settings-page__tabs {
   display: flex;
   align-items: stretch;
-  gap: 24px;
-  margin: 0 0 24px;
-  padding: 0 0 12px;
+  gap: $spacing-6;
+  margin: 0 0 $spacing-6;
+  padding: 0 0 $spacing-3;
   border-bottom: 1px solid rgba($ml-vendor-navy, 0.12);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 479px) {
+    gap: $spacing-4;
+  }
 
   &::-webkit-scrollbar {
     height: 4px;
@@ -128,21 +130,27 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 }
 
 .mel-event-settings-page__tab {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  padding: 0 2px 12px;
-  margin-bottom: -13px;
+  min-height: 2.75rem;
+  padding: 0 $spacing-1 $spacing-3;
+  margin-bottom: -0.8125rem;
   font-size: $font-size-label;
   font-weight: $font-weight-medium;
   color: $text-secondary;
   text-decoration: none;
   white-space: nowrap;
   border-bottom: 2px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease, font-weight 0.15s ease;
+  transition:
+    color 0.14s ease,
+    border-color 0.14s ease;
 
-  &:hover {
-    color: $text-primary;
-    text-decoration: none;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: $text-primary;
+      text-decoration: none;
+    }
   }
 
   &:focus-visible {
@@ -164,20 +172,25 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 // ============================================================================
 
 .mel-meta-chip {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: $spacing-1 $spacing-3;
   font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
   color: $text-secondary;
   background: rgba($ml-vendor-navy, 0.06);
   border: 1px solid rgba($ml-vendor-navy, 0.08);
   border-radius: $radius-full;
-  line-height: 1.3;
+  line-height: 1.2;
 
   &--compact {
-    padding: 3px 8px;
+    min-height: auto;
+    padding: $spacing-1 $spacing-2;
     font-size: 0.6875rem;
+    font-weight: $font-weight-medium;
   }
 
   &--soft {
@@ -220,8 +233,8 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 // ============================================================================
 
 .mel-settings-card {
-  background-color: #fff;
-  border: 1px solid rgba($ml-vendor-navy, 0.08);
+  background-color: $bg-primary;
+  border: 1px solid $border-color-light;
   border-radius: $radius-settings-card;
   box-shadow: $shadow-settings-card;
 }
@@ -231,14 +244,14 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
   align-items: flex-start;
   justify-content: space-between;
   gap: $spacing-4;
-  padding: 24px 24px 16px;
+  padding: $spacing-6 $spacing-6 $spacing-4;
 
   @include respond-down(md) {
-    padding: 18px 18px 14px;
+    padding: $spacing-5 $spacing-5 $spacing-4;
   }
 
   .mel-settings-card__intro {
-    margin-top: 4px;
+    margin-top: $spacing-1;
   }
 
   &--split {
@@ -251,7 +264,7 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 6px;
+  gap: $spacing-2;
   max-width: 100%;
 
   @include respond-down(md) {
@@ -260,16 +273,18 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 }
 
 .mel-settings-card__title {
-  @include section-title;
   margin: 0;
-  font-size: 1.125rem;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  line-height: $line-height-tight;
 }
 
 .mel-settings-card__body {
-  padding: 0 24px 24px;
+  padding: 0 $spacing-6 $spacing-6;
 
   @include respond-down(md) {
-    padding: 0 18px 18px;
+    padding: 0 $spacing-5 $spacing-5;
   }
 
   .mel-settings-card__header + & {
@@ -334,7 +349,7 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
 .mel-status-summary__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: $spacing-2;
   align-content: flex-start;
 }
 
@@ -342,7 +357,8 @@ $shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
-  padding: 8px 14px;
+  min-height: 2.25rem;
+  padding: $spacing-2 $spacing-3;
   font-size: $font-size-sm;
   font-weight: $font-weight-semibold;
   border-radius: $radius-full;

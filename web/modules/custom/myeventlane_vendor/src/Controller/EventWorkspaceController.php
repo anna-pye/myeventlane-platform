@@ -50,7 +50,7 @@ final class EventWorkspaceController extends VendorConsoleBaseController {
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
-        '#attributes' => ['class' => ['mel-event-workspace-v2__content-anchor']],
+        '#attributes' => ['class' => ['mel-live-ops__content-anchor']],
         '#value' => '',
       ],
     ]);

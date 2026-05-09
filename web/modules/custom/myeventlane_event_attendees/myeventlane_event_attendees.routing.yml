@@ -39,6 +39,54 @@ myeventlane_event_attendees.vendor_list:
         bundle:
           - event
 
+# Vendor: single operational venue surface (controller in myeventlane_checkout_flow).
+myeventlane_event_attendees.vendor_operations:
+  path: '/vendor/events/{node}/operations'
+  defaults:
+    _controller: 'myeventlane_checkout_flow.controller.vendor_event_operations:page'
+    _title: 'Live operations'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+# Vendor: Door Mode (scanner + manual) — canonical check-in surface.
+myeventlane_event_attendees.vendor_operations_door:
+  path: '/vendor/events/{node}/operations/door'
+  defaults:
+    _controller: 'myeventlane_checkout_flow.controller.vendor_event_operations:doorPage'
+    _title: 'Door check-in'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+# Vendor: Door Mode JSON (search + check-in); same mutation path as public door.
+myeventlane_event_attendees.vendor_operations_door_validate:
+  path: '/vendor/events/{node}/operations/door/validate'
+  defaults:
+    _controller: 'myeventlane_checkout_flow.controller.vendor_event_operations:doorValidate'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _method: 'GET|POST'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
 # Vendor: export attendees as CSV.
 myeventlane_event_attendees.vendor_export:
   path: '/vendor/events/{node}/attendees/export'

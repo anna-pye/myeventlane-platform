@@ -7,6 +7,7 @@
 @use '../tokens/spacing' as *;
 @use '../tokens/typography' as *;
 @use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
 @use '../tokens/breakpoints' as *;
 
 // ============================================================================
@@ -14,9 +15,18 @@
 // ============================================================================
 
 .mel-analytics {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: $section-gap;
+  gap: $mel-spacing-xl;
+
+  @media (max-width: 479px) {
+    gap: $mel-spacing-lg;
+  }
+}
+
+.mel-analytics .mel-live-ops__split--analytics-charts {
+  margin-top: 0;
 }
 
 // ============================================================================
@@ -27,23 +37,27 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-4;
-  
+
   @include respond-to(md) {
     flex-direction: row;
     align-items: flex-start;
     justify-content: space-between;
+    gap: $spacing-6;
   }
 }
 
 .mel-analytics__title {
   @include page-title;
   margin: 0;
+  color: $text-primary;
 }
 
 .mel-analytics__subtitle {
   font-size: $font-size-body;
   color: $text-secondary;
   margin-top: $spacing-1;
+  line-height: $line-height-relaxed;
+  max-width: 52ch;
 }
 
 .mel-analytics__filters {
@@ -51,6 +65,12 @@
   align-items: center;
   gap: $spacing-3;
   flex-wrap: wrap;
+  width: 100%;
+
+  @include respond-to(md) {
+    justify-content: flex-end;
+    width: auto;
+  }
 }
 
 // ============================================================================
@@ -58,18 +78,34 @@
 // ============================================================================
 
 .mel-date-range {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: $spacing-2;
+  min-height: 2.75rem;
   padding: $spacing-2 $spacing-4;
   background: $bg-primary;
   border: 1px solid $border-color;
-  border-radius: $radius-button;
+  border-radius: $radius-full;
   font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
-  
-  &:hover {
-    border-color: $border-color-dark;
+  box-shadow: $shadow-xs;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: rgba($mel-ws-purple, 0.35);
+      box-shadow: $shadow-sm;
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: $primary;
+    box-shadow: $shadow-focus;
   }
 }
 
@@ -89,11 +125,16 @@
 
 .mel-analytics__kpis {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-4;
-  
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-3;
+
   @include respond-to(md) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: $spacing-4;
+  }
+
+  @media (max-width: 479px) {
+    gap: $spacing-2;
   }
 }
 

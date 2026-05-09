@@ -1,0 +1,62 @@
+{#
+/**
+ * @file
+ * Reusable metric board: mel-live-ops__metric-board + mel-live-ops__stat-card.
+ *
+ * Variables:
+ * - metric_items: array of { label, value, optional note, optional url }
+ * - metric_title, metric_title_id, metric_intro: optional section chrome
+ * - metric_wrap_section: (default true) wrap in section.mel-live-ops__metrics + titles
+ */
+#}
+{% set metric_wrap_section = metric_wrap_section|default(true) %}
+{% set mods = ['total', 'in', 'ready', 'capacity', 'remain', 'blocked'] %}
+{% if metric_items is iterable and metric_items|length > 0 %}
+  {% if metric_wrap_section %}
+    <section
+      class="mel-live-ops__metrics"
+      {% if metric_title_id %}aria-labelledby="{{ metric_title_id }}"{% endif %}
+    >
+      {% if metric_title is defined and metric_title %}
+        {% if metric_title_id %}
+          <h2 id="{{ metric_title_id }}" class="mel-live-ops__panel-title">{{ metric_title }}</h2>
+        {% else %}
+          <h2 class="mel-live-ops__panel-title">{{ metric_title }}</h2>
+        {% endif %}
+        {% if metric_intro is defined and metric_intro %}
+          <p class="mel-live-ops__panel-intro">{{ metric_intro }}</p>
+        {% endif %}
+      {% endif %}
+  {% endif %}
+      <div class="mel-live-ops__metric-board" role="list">
+        {% for item in metric_items %}
+          {% set stat_mod = mods[loop.index0 % mods|length] %}
+          {% if item.url is defined and item.url %}
+            <a
+              class="mel-live-ops__stat-card mel-live-ops__stat-card--{{ stat_mod }}"
+              role="listitem"
+              href="{{ item.url }}"
+            >
+              <span class="mel-live-ops__stat-icon" aria-hidden="true"></span>
+              <span class="mel-live-ops__stat-label">{{ item.label|default('') }}</span>
+              <span class="mel-live-ops__stat-value">{{ item.value|default('—') }}</span>
+              {% if item.note is defined and item.note %}
+                <span class="mel-live-ops__stat-note">{{ item.note }}</span>
+              {% endif %}
+            </a>
+          {% else %}
+            <article class="mel-live-ops__stat-card mel-live-ops__stat-card--{{ stat_mod }}" role="listitem">
+              <span class="mel-live-ops__stat-icon" aria-hidden="true"></span>
+              <span class="mel-live-ops__stat-label">{{ item.label|default('') }}</span>
+              <span class="mel-live-ops__stat-value">{{ item.value|default('—') }}</span>
+              {% if item.note is defined and item.note %}
+                <span class="mel-live-ops__stat-note">{{ item.note }}</span>
+              {% endif %}
+            </article>
+          {% endif %}
+        {% endfor %}
+      </div>
+  {% if metric_wrap_section %}
+    </section>
+  {% endif %}
+{% endif %}

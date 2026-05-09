@@ -124,4 +124,45 @@ services:
       - '@myeventlane_checkout_flow.attendee_operations_access'
       - '@datetime.time'
       - '@logger.channel.myeventlane_checkout_flow'
+      - '@entity_type.manager'
+
+  myeventlane_checkout_flow.door_checkin_validate:
+    class: Drupal\myeventlane_checkout_flow\Service\MelDoorCheckinValidateService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_checkout_flow'
+      - '@date.formatter'
+      - '@?myeventlane_checkout_paragraph.checkin_token'
+      - '@myeventlane_checkout_flow.attendee_checkin_manager'
+
+  myeventlane_checkout_flow.venue_operations_view_model:
+    class: Drupal\myeventlane_checkout_flow\Service\MelVenueOperationsViewModelBuilder
+    arguments:
+      - '@myeventlane_checkout_flow.attendee_checkin_manager'
+      - '@myeventlane_checkout_flow.attendee_operations_presenter'
+      - '@myeventlane_event_attendees.manager'
+      - '@myeventlane_event_attendees.vendor_presentation'
+      - '@myeventlane_surface.state_readiness_helper'
+      - '@date.formatter'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_checkout_flow'
+      - '@datetime.time'
+      - '@csrf_token'
+
+  myeventlane_checkout_flow.controller.vendor_event_operations:
+    class: Drupal\myeventlane_checkout_flow\Controller\VendorEventOperationsController
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_checkout_flow.venue_operations_view_model'
+      - '@myeventlane_vendor.service.event_tabs'
+      - '@myeventlane_surface.governed_operational_templates'
+      - '@myeventlane_checkout_flow.attendee_operations_access'
+      - '@myeventlane_checkout_flow.door_checkin_validate'
+      - '@csrf_token'
+      - '@module_handler'
+    tags:
+      - { name: controller.service_arguments }
 

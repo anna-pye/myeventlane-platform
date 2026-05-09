@@ -4,16 +4,15 @@
   purchaser_name, purchaser_email, ticket_count, net_sales, fees, total,
   status, view_link, resend_link).
 #}
+<div class="mel-live-operations mel-vendor-console-stack">
 {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
   <div class="mel-contextual-help mel-contextual-help--vendor-console">
     {{ mel_vendor_contextual_help }}
   </div>
 {% endif %}
 
-<div class="mel-card">
-  <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Orders'|t }}</div>
-  </div>
+<section class="mel-live-ops__panel mel-orders-console" aria-labelledby="mel-orders-console-title">
+  <h2 id="mel-orders-console-title" class="mel-live-ops__panel-title">{{ 'Orders'|t }}</h2>
 
   {% if orders|length > 0 %}
     <div class="mel-table mel-table--striped mel-table--cols-11">
@@ -99,4 +98,5 @@
       </div>
     </div>
   {% endif %}
+</section>
 </div>

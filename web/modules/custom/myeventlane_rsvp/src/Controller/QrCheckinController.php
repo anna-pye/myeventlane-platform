@@ -42,6 +42,7 @@ final class QrCheckinController extends ControllerBase {
     private readonly FloodInterface $flood,
     private readonly AccountProxyInterface $account,
     private readonly ?AttendanceManager $attendanceManager = NULL,
+    private readonly mixed $melAttendeeCheckinManager = NULL,
   ) {}
 
   /**
@@ -55,6 +56,9 @@ final class QrCheckinController extends ControllerBase {
       $c->get('current_user'),
       $c->has('myeventlane_event_attendees.manager')
         ? $c->get('myeventlane_event_attendees.manager')
+        : NULL,
+      $c->has('myeventlane_checkout_flow.attendee_checkin_manager')
+        ? $c->get('myeventlane_checkout_flow.attendee_checkin_manager')
         : NULL,
     );
   }
@@ -195,8 +199,73 @@ final class QrCheckinController extends ControllerBase {
       ]);
     }
 
-    if ($this->attendanceManager instanceof AttendanceManager) {
-      $this->attendanceManager->checkIn($attendee);
+    if (is_object($this->melAttendeeCheckinManager) && method_exists($this->melAttendeeCheckinManager, 'checkInAttendee')) {
+      /** @var array<string, mixed> $result */
+      $result = $this->melAttendeeCheckinManager->checkInAttendee(
+        $attendee,
+        $this->account->getAccount(),
+        'qr_scan',
+      );
+      if (!($result['success'] ?? FALSE)) {
+        $reason = (string) ($result['reason'] ?? '');
+        if ($reason === 'forbidden') {
+          throw new AccessDeniedHttpException('You do not have access to complete this check-in.');
+        }
+        if (str_starts_with($reason, 'state_not_eligible')) {
+          return $this->jsonResponse([
+            'status' => 'invalid',
+            'message' => 'This attendee cannot be checked in right now.',
+          ]);
+        }
+        if ($reason === 'transition_failed') {
+          return $this->jsonResponse([
+            'status' => 'error',
+            'message' => 'Check-in could not be saved.',
+          ]);
+        }
+        if ($reason === 'no_event') {
+          return $this->jsonResponse([
+            'status' => 'invalid',
+            'message' => 'Event data is unavailable for this attendee.',
+          ]);
+        }
+        return $this->jsonResponse([
+          'status' => 'error',
+          'message' => 'Check-in failed.',
+        ]);
+      }
+
+      $reasonOk = (string) ($result['reason'] ?? '');
+      if ($reasonOk === 'already_checked_in') {
+        return $this->jsonResponse([
+          'status' => 'repeat',
+          'message' => 'Already checked in',
+          'name' => $attendee->label(),
+        ]);
+      }
+
+      if (!($result['transitioned'] ?? FALSE)) {
+        return $this->jsonResponse([
+          'status' => 'error',
+          'message' => 'Check-in did not complete.',
+        ]);
+      }
+
+      $storage = $this->em->getStorage('event_attendee');
+      $storage->resetCache([(int) $attendee->id()]);
+      $reloaded = $storage->load($attendee->id());
+      if ($reloaded instanceof EventAttendee) {
+        $attendee = $reloaded;
+      }
+    }
+    elseif ($this->attendanceManager instanceof AttendanceManager) {
+      if (!$this->attendanceManager->checkIn($attendee)) {
+        return $this->jsonResponse([
+          'status' => 'repeat',
+          'message' => 'Already checked in',
+          'name' => $attendee->label(),
+        ]);
+      }
     }
     else {
       $attendee->checkIn();

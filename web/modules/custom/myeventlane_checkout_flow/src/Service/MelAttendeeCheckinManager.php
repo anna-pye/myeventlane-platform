@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_checkout_flow\Service;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_checkout_flow\MelAttendeeAttendanceState;
@@ -51,12 +52,165 @@ final class MelAttendeeCheckinManager {
    */
   public const SOURCE_ADMIN_OVERRIDE = 'admin_override';
 
+  /**
+   * Source path: door-mode JSON validate endpoint.
+   */
+  public const SOURCE_DOOR_JSON = 'door_json';
+
+  /**
+   * Source path: explicit arrival / manual door list confirmation.
+   */
+  public const SOURCE_MARK_ARRIVED = 'mark_arrived';
+
   public function __construct(
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly MelAttendeeOperationsAccessInterface $access,
     private readonly TimeInterface $time,
     private readonly LoggerChannelInterface $logger,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
+
+  /**
+   * Canonical alias for {@see self::checkIn()}.
+   *
+   * @return array{
+   *   success: bool,
+   *   transitioned: bool,
+   *   reason: string,
+   *   state: string,
+   *   actor_uid: int,
+   *   timestamp: int,
+   *   audit_id: string
+   * }
+   */
+  public function checkInAttendee(EventAttendee $attendee, AccountInterface $actor, string $source = self::SOURCE_VENDOR_LIST): array {
+    return $this->checkIn($attendee, $actor, $source);
+  }
+
+  /**
+   * Canonical alias for {@see self::reverseCheckIn()}.
+   *
+   * @return array{
+   *   success: bool,
+   *   transitioned: bool,
+   *   reason: string,
+   *   state: string,
+   *   actor_uid: int,
+   *   timestamp: int,
+   *   audit_id: string
+   * }
+   */
+  public function undoCheckIn(EventAttendee $attendee, AccountInterface $actor): array {
+    return $this->reverseCheckIn($attendee, $actor);
+  }
+
+  /**
+   * Marks arrival using the same eligibility rules as check-in.
+   *
+   * @return array{
+   *   success: bool,
+   *   transitioned: bool,
+   *   reason: string,
+   *   state: string,
+   *   actor_uid: int,
+   *   timestamp: int,
+   *   audit_id: string
+   * }
+   */
+  public function markArrived(EventAttendee $attendee, AccountInterface $actor): array {
+    return $this->checkIn($attendee, $actor, self::SOURCE_MARK_ARRIVED);
+  }
+
+  /**
+   * Staff-style override: force checked-in or undo from confirmed state.
+   *
+   * @return array{
+   *   success: bool,
+   *   transitioned: bool,
+   *   reason: string,
+   *   state: string,
+   *   actor_uid: int,
+   *   timestamp: int,
+   *   audit_id: string
+   * }
+   */
+  public function markManualOverride(EventAttendee $attendee, AccountInterface $actor, bool $checkedIn): array {
+    return $checkedIn
+      ? $this->checkIn($attendee, $actor, self::SOURCE_ADMIN_OVERRIDE)
+      : $this->reverseCheckIn($attendee, $actor);
+  }
+
+  /**
+   * Resolves a ticket-holder paragraph to an event_attendee and checks in.
+   *
+   * Used by door JSON, QR token scan, and paragraph forms so canonical entity
+   * state and paragraph mirrors stay aligned.
+   *
+   * @return array{
+   *   success: bool,
+   *   transitioned: bool,
+   *   reason: string,
+   *   state: string,
+   *   actor_uid: int,
+   *   timestamp: int,
+   *   audit_id: string,
+   *   attendee_id?: int|null
+   * }
+   */
+  public function checkInForTicketParagraph(ParagraphInterface $paragraph, NodeInterface $event, AccountInterface $actor, string $source = self::SOURCE_QR_SCAN): array {
+    if ($paragraph->bundle() !== 'attendee_answer') {
+      return $this->paragraphResult($actor, FALSE, FALSE, 'invalid_paragraph', MelAttendeeAttendanceState::Invalid->value, NULL);
+    }
+    if ($event->bundle() !== 'event') {
+      return $this->paragraphResult($actor, FALSE, FALSE, 'invalid_event', MelAttendeeAttendanceState::Invalid->value, NULL);
+    }
+    $eventId = (int) $event->id();
+    $attendee = $this->resolveTicketAttendeeFromParagraph($paragraph, $eventId);
+    if (!$attendee instanceof EventAttendee) {
+      $this->logger->warning('Paragraph check-in: no event_attendee for paragraph=@pid event=@eid.', [
+        '@pid' => (string) $paragraph->id(),
+        '@eid' => (string) $eventId,
+      ]);
+      return $this->paragraphResult($actor, FALSE, FALSE, 'attendee_not_found', MelAttendeeAttendanceState::Invalid->value, NULL);
+    }
+    if ((int) $attendee->getEventId() !== $eventId) {
+      return $this->paragraphResult($actor, FALSE, FALSE, 'event_mismatch', MelAttendeeAttendanceState::Invalid->value, (int) $attendee->id());
+    }
+    $out = $this->checkIn($attendee, $actor, $source);
+    $out['attendee_id'] = (int) $attendee->id();
+    return $out;
+  }
+
+  /**
+   * Reverses check-in for the event_attendee resolved from a ticket paragraph.
+   *
+   * @return array{
+   *   success: bool,
+   *   transitioned: bool,
+   *   reason: string,
+   *   state: string,
+   *   actor_uid: int,
+   *   timestamp: int,
+   *   audit_id: string,
+   *   attendee_id?: int|null
+   * }
+   */
+  public function undoCheckInForTicketParagraph(ParagraphInterface $paragraph, NodeInterface $event, AccountInterface $actor): array {
+    if ($paragraph->bundle() !== 'attendee_answer') {
+      return $this->paragraphResult($actor, FALSE, FALSE, 'invalid_paragraph', MelAttendeeAttendanceState::Invalid->value, NULL);
+    }
+    $eventId = (int) $event->id();
+    $attendee = $this->resolveTicketAttendeeFromParagraph($paragraph, $eventId);
+    if (!$attendee instanceof EventAttendee) {
+      return $this->paragraphResult($actor, FALSE, FALSE, 'attendee_not_found', MelAttendeeAttendanceState::Invalid->value, NULL);
+    }
+    if ((int) $attendee->getEventId() !== $eventId) {
+      return $this->paragraphResult($actor, FALSE, FALSE, 'event_mismatch', MelAttendeeAttendanceState::Invalid->value, (int) $attendee->id());
+    }
+    $out = $this->reverseCheckIn($attendee, $actor);
+    $out['attendee_id'] = (int) $attendee->id();
+    return $out;
+  }
 
   /**
    * Result shape for check-in transitions.
@@ -213,6 +367,9 @@ final class MelAttendeeCheckinManager {
 
     try {
       $attendee->setStatus(EventAttendee::STATUS_CONFIRMED);
+      if ($attendee->hasField('checked_in_at')) {
+        $attendee->set('checked_in_at', NULL);
+      }
       $attendee->save();
     }
     catch (\Throwable $e) {
@@ -358,6 +515,167 @@ final class MelAttendeeCheckinManager {
   }
 
   /**
+   * Locates the canonical event_attendee for a ticket-holder paragraph.
+   */
+  private function resolveTicketAttendeeFromParagraph(ParagraphInterface $paragraph, int $eventId): ?EventAttendee {
+    $pid = (int) $paragraph->id();
+    if ($pid <= 0) {
+      return NULL;
+    }
+    $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+    if (!is_object($orderItemStorage) || !method_exists($orderItemStorage, 'getQuery')) {
+      return NULL;
+    }
+    $ids = $orderItemStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('field_ticket_holder', $pid)
+      ->execute();
+    if (!$ids) {
+      return NULL;
+    }
+    foreach ($ids as $oiid) {
+      $oi = $orderItemStorage->load($oiid);
+      if (!$oi instanceof OrderItemInterface) {
+        continue;
+      }
+      $oiEventId = NULL;
+      if ($oi->hasField('field_target_event') && !$oi->get('field_target_event')->isEmpty()) {
+        $oiEventId = (int) $oi->get('field_target_event')->target_id;
+      }
+      if ($oiEventId !== $eventId) {
+        continue;
+      }
+      $holders = $oi->get('field_ticket_holder')->referencedEntities();
+      $index = -1;
+      foreach ($holders as $i => $h) {
+        if ($h instanceof ParagraphInterface && (int) $h->id() === $pid) {
+          $index = (int) $i;
+          break;
+        }
+      }
+      if ($index < 0) {
+        continue;
+      }
+      $aids = $this->entityTypeManager->getStorage('event_attendee')->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event', $eventId)
+        ->condition('order_item', (int) $oi->id())
+        ->condition('source', EventAttendee::SOURCE_TICKET)
+        ->execute();
+      if (!$aids) {
+        continue;
+      }
+      /** @var \Drupal\myeventlane_event_attendees\Entity\EventAttendee[] $attendees */
+      $attendees = array_values($this->entityTypeManager->getStorage('event_attendee')->loadMultiple($aids));
+      $resolved = $this->resolveAttendeeForHolderSlot($paragraph, $index, $attendees);
+      if ($resolved instanceof EventAttendee) {
+        return $resolved;
+      }
+    }
+    return NULL;
+  }
+
+  /**
+   * Pairs a holder paragraph to the correct event_attendee for one order item.
+   *
+   * Holder order follows field_ticket_holder deltas (checkout order).
+   * Attendee rows for the same order item are matched by:
+   * 1. Normalised email + name fingerprint (stable when IDs are out of slot order).
+   * 2. Else insertion order: created ASC, then id ASC, aligned by holder index
+   *    (matches OrderCompletedSubscriber paid-ticket slot creation order).
+   *
+   * @param list<EventAttendee> $attendees
+   */
+  private function resolveAttendeeForHolderSlot(
+    ParagraphInterface $paragraph,
+    int $holderIndex,
+    array $attendees,
+  ): ?EventAttendee {
+    if ($attendees === []) {
+      return NULL;
+    }
+    $needle = $this->holderIdentityFingerprint($paragraph);
+    if ($needle !== '') {
+      $matches = [];
+      foreach ($attendees as $attendee) {
+        if (!$attendee instanceof EventAttendee) {
+          continue;
+        }
+        if ($this->attendeeIdentityFingerprint($attendee) === $needle) {
+          $matches[] = $attendee;
+        }
+      }
+      if (count($matches) === 1) {
+        return $matches[0];
+      }
+      if (count($matches) > 1) {
+        $this->logger->notice('Paragraph→event_attendee: duplicate identity fingerprint; disambiguating by holder index @idx among @c matches (creation order).', [
+          '@idx' => (string) $holderIndex,
+          '@c' => (string) count($matches),
+          'holder_index' => $holderIndex,
+          'match_count' => count($matches),
+        ]);
+        usort($matches, $this->compareAttendeesByCreation(...));
+        $last = count($matches) - 1;
+        return $matches[min(max($holderIndex, 0), $last)];
+      }
+    }
+
+    if ($needle === '' && count($attendees) > 1) {
+      $this->logger->notice('Paragraph→event_attendee: empty holder identity; pairing slot @idx by creation order among @c ticket attendees.', [
+        '@idx' => (string) $holderIndex,
+        '@c' => (string) count($attendees),
+        'holder_index' => $holderIndex,
+        'attendee_count' => count($attendees),
+      ]);
+    }
+
+    $ordered = $attendees;
+    usort($ordered, $this->compareAttendeesByCreation(...));
+    return $ordered[$holderIndex] ?? NULL;
+  }
+
+  /**
+   * Normalised identity for a ticket-holder paragraph (email + display name).
+   */
+  private function holderIdentityFingerprint(ParagraphInterface $paragraph): string {
+    $first = $paragraph->hasField('field_first_name') && !$paragraph->get('field_first_name')->isEmpty()
+      ? trim((string) $paragraph->get('field_first_name')->value)
+      : '';
+    $last = $paragraph->hasField('field_last_name') && !$paragraph->get('field_last_name')->isEmpty()
+      ? trim((string) $paragraph->get('field_last_name')->value)
+      : '';
+    $email = $paragraph->hasField('field_email') && !$paragraph->get('field_email')->isEmpty()
+      ? strtolower(trim((string) $paragraph->get('field_email')->value))
+      : '';
+    $name = strtolower(trim(preg_replace('/\s+/', ' ', $first . ' ' . $last) ?? ''));
+    if ($email === '' && $name === '') {
+      return '';
+    }
+    return $email . '|' . $name;
+  }
+
+  /**
+   * Normalised identity for an event_attendee row (email + name field).
+   */
+  private function attendeeIdentityFingerprint(EventAttendee $attendee): string {
+    $email = strtolower(trim($attendee->getEmail()));
+    $name = strtolower(trim(preg_replace('/\s+/', ' ', $attendee->getName()) ?? ''));
+    if ($email === '' && $name === '') {
+      return '';
+    }
+    return $email . '|' . $name;
+  }
+
+  private function compareAttendeesByCreation(EventAttendee $a, EventAttendee $b): int {
+    $timeCmp = $a->getCreatedTime() <=> $b->getCreatedTime();
+    if ($timeCmp !== 0) {
+      return $timeCmp;
+    }
+    return ((int) $a->id()) <=> ((int) $b->id());
+  }
+
+  /**
    * Builds the audited result shape.
    */
   private function result(bool $success, bool $transitioned, string $reason, string $state, AccountInterface $actor): array {
@@ -371,6 +689,17 @@ final class MelAttendeeCheckinManager {
       'timestamp' => $now,
       'audit_id' => sprintf('mel.attendee.checkin.%s.%d.%d', $reason, (int) $actor->id(), $now),
     ];
+  }
+
+  /**
+   * @param array<string, mixed> $base
+   *
+   * @return array<string, mixed>
+   */
+  private function paragraphResult(AccountInterface $actor, bool $success, bool $transitioned, string $reason, string $state, ?int $attendeeId): array {
+    $base = $this->result($success, $transitioned, $reason, $state, $actor);
+    $base['attendee_id'] = $attendeeId;
+    return $base;
   }
 
 }
