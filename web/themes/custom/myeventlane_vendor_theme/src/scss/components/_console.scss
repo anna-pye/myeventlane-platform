@@ -24,6 +24,13 @@
   gap: $spacing-4;
 }
 
+// Vendor routes using console-page.html.twig (events index, analytics shell, etc.).
+// Aligns vertical rhythm with mel_event_workspace / live operations main column.
+.mel-console--workspace-body {
+  gap: $spacing-6;
+  width: 100%;
+}
+
 .mel-console__header {
   display: flex;
   flex-wrap: wrap;

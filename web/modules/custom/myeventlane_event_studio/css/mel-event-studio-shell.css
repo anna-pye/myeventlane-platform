@@ -2,7 +2,7 @@
  * @file
  * Event Studio — MEL layout shell (module-owned, loads on all vendor Event Studio pages).
  *
- * Uses BEM block .mel-es-workspace (NOT .mel-studio-layout) so vendor-workspace.css legacy
+ * Uses BEM block .mel-es-workspace (NOT .mel-studio-layout) so vendor dist/workspace.css
  * grid rules for .mel-vendor-shell__content .mel-studio-layout never apply here.
  */
 
