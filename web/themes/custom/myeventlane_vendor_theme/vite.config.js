@@ -48,6 +48,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      // Stable path to public theme SCSS for shared partials (CI-safe; no ../../../).
+      '@mel-theme': resolve(__dirname, '../myeventlane_theme/src/scss'),
     },
   },
   server: {
