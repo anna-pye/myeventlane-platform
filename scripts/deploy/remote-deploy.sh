@@ -320,7 +320,16 @@ if [ "$_mel_drush_cr_rc" -ne 0 ]; then
   exit "$_mel_drush_cr_rc"
 fi
 
-vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI"
+echo "Finalize: drush sset system.maintenance_mode 0..."
+set +e
+_mel_drush_mm_out="$(vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI" 2>&1)"
+_mel_drush_mm_rc=$?
+set -e
+printf '%s\n' "$_mel_drush_mm_out"
+if [ "$_mel_drush_mm_rc" -ne 0 ]; then
+  echo "ERROR: drush sset system.maintenance_mode 0 failed during finalize (exit $_mel_drush_mm_rc)." >&2
+  exit "$_mel_drush_mm_rc"
+fi
 
 echo "Finalize: drush cr (after maintenance off)..."
 set +e
