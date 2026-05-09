@@ -8,6 +8,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_checkout_flow\Service\MelAttendeeCheckinManager;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -22,6 +23,7 @@ final class VendorCheckInController extends ControllerBase {
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     AccountProxyInterface $currentUser,
+    private readonly MelAttendeeCheckinManager $checkinManager,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
@@ -31,6 +33,7 @@ final class VendorCheckInController extends ControllerBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('current_user'),
+      $container->get('myeventlane_checkout_flow.attendee_checkin_manager'),
     );
   }
 
@@ -103,25 +106,27 @@ final class VendorCheckInController extends ControllerBase {
       }
     }
 
-    $is_checked_in = $paragraph->hasField('field_checked_in') && !$paragraph->get('field_checked_in')->isEmpty()
-      ? (bool) $paragraph->get('field_checked_in')->value : FALSE;
+    $result = $this->checkinManager->checkInForTicketParagraph(
+      $paragraph,
+      $event,
+      $this->currentUser()->getAccount(),
+      MelAttendeeCheckinManager::SOURCE_QR_SCAN,
+    );
 
-    if ($is_checked_in) {
+    if (!$result['success'] && $result['reason'] === 'forbidden') {
+      $this->messenger()->addError($this->t('Access denied.'));
+      return $this->redirect('<front>');
+    }
+
+    if ($result['success'] && !$result['transitioned'] && $result['reason'] === 'already_checked_in') {
       $this->messenger()->addWarning($this->t('This attendee is already checked in.'));
       return $this->redirect('myeventlane_checkin.page', ['node' => $event->id()], [], 302);
     }
 
-    if ($paragraph->hasField('field_checked_in')) {
-      $paragraph->set('field_checked_in', 1);
+    if (!$result['success']) {
+      $this->messenger()->addError($this->t('Check-in could not be completed.'));
+      return $this->redirect('myeventlane_checkin.page', ['node' => $event->id()], [], 302);
     }
-    if ($paragraph->hasField('field_checked_in_timestamp')) {
-      $paragraph->set('field_checked_in_timestamp', time());
-    }
-    if ($paragraph->hasField('field_checked_in_by')) {
-      $paragraph->set('field_checked_in_by', $this->currentUser->id());
-    }
-
-    $paragraph->save();
 
     $this->messenger()->addStatus($this->t('Attendee checked in successfully via QR code.'));
     return $this->redirect('myeventlane_checkin.page', ['node' => $event->id()], [], 302);

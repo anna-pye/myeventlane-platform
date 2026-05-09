@@ -36,6 +36,7 @@ final class CheckinController extends ControllerBase {
     private readonly LoggerInterface $logger,
     private readonly CsrfTokenGenerator $csrfToken,
     private readonly ?CheckInTokenService $checkInToken,
+    private readonly mixed $melAttendeeCheckinManager,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
@@ -53,6 +54,9 @@ final class CheckinController extends ControllerBase {
       $container->get('csrf_token'),
       $container->has('myeventlane_checkout_paragraph.checkin_token')
         ? $container->get('myeventlane_checkout_paragraph.checkin_token')
+        : NULL,
+      $container->has('myeventlane_checkout_flow.attendee_checkin_manager')
+        ? $container->get('myeventlane_checkout_flow.attendee_checkin_manager')
         : NULL,
     );
   }
@@ -216,11 +220,28 @@ final class CheckinController extends ControllerBase {
       return new JsonResponse(['status' => 'error', 'message' => 'Access denied.'], 403);
     }
 
-    $already = $paragraph->hasField('field_checked_in') && !$paragraph->get('field_checked_in')->isEmpty()
-      ? (bool) $paragraph->get('field_checked_in')->value
-      : FALSE;
+    $event = $this->entityTypeManager()->getStorage('node')->load($eventId);
+    if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+      return new JsonResponse(['status' => 'error', 'message' => 'Event not found.'], 404);
+    }
 
-    if ($already) {
+    if (!is_object($this->melAttendeeCheckinManager) || !method_exists($this->melAttendeeCheckinManager, 'checkInForTicketParagraph')) {
+      $this->logger->error('Door check-in: MelAttendeeCheckinManager unavailable; refusing paragraph-only mutation.');
+      return new JsonResponse(['status' => 'error', 'message' => 'Check-in service unavailable.'], 503);
+    }
+
+    $result = $this->melAttendeeCheckinManager->checkInForTicketParagraph(
+      $paragraph,
+      $event,
+      $this->currentUser(),
+      'door_json',
+    );
+
+    if (!$result['success'] && $result['reason'] === 'forbidden') {
+      return new JsonResponse(['status' => 'error', 'message' => 'Access denied.'], 403);
+    }
+
+    if ($result['success'] && !$result['transitioned'] && $result['reason'] === 'already_checked_in') {
       $this->logger->notice('Duplicate check-in attempt for paragraph @pid at event @eid by user @uid.', [
         '@pid' => (string) $paragraphId,
         '@eid' => (string) $eventId,
@@ -233,16 +254,18 @@ final class CheckinController extends ControllerBase {
       ]);
     }
 
-    if ($paragraph->hasField('field_checked_in')) {
-      $paragraph->set('field_checked_in', 1);
+    if (!$result['success']) {
+      $this->logger->warning('Door check-in blocked: paragraph @pid event @eid reason @reason.', [
+        '@pid' => (string) $paragraphId,
+        '@eid' => (string) $eventId,
+        '@reason' => (string) ($result['reason'] ?? ''),
+      ]);
+      return new JsonResponse([
+        'status' => 'error',
+        'message' => 'Check-in not allowed for this attendee.',
+        'checked_in' => FALSE,
+      ], 400);
     }
-    if ($paragraph->hasField('field_checked_in_timestamp')) {
-      $paragraph->set('field_checked_in_timestamp', time());
-    }
-    if ($paragraph->hasField('field_checked_in_by')) {
-      $paragraph->set('field_checked_in_by', $this->currentUser()->id());
-    }
-    $paragraph->save();
 
     $this->logger->notice('Check-in success paragraph @pid event @eid by user @uid.', [
       '@pid' => (string) $paragraphId,

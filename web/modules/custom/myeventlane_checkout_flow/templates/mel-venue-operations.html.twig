@@ -1,0 +1,125 @@
+{#
+/**
+ * @file
+ * Vendor venue operations — single operational surface (structure only).
+ *
+ * Variables: event, hero, metrics, attendee_rows, readiness_breakdown,
+ * recent_activity, links, search, operational_actions, mel_venue_operations_empty.
+ */
+#}
+<div class="mel-venue-operations mel-attendee-operations" data-mel-venue-operations>
+  <section class="mel-venue-operations__hero" aria-labelledby="mel-venue-ops-hero-title">
+    <div class="mel-venue-operations__hero-main">
+      <p class="mel-venue-operations__eyebrow">{{ 'Live operations'|t }}</p>
+      <h1 id="mel-venue-ops-hero-title" class="mel-venue-operations__title">{{ hero.title|default('') }}</h1>
+      {% if hero.start|default('') is not empty %}
+        <p class="mel-venue-operations__meta">{{ hero.start }}</p>
+      {% endif %}
+      {% if hero.venue|default('') is not empty %}
+        <p class="mel-venue-operations__venue">{{ hero.venue }}</p>
+      {% endif %}
+    </div>
+    <div class="mel-venue-operations__hero-side">
+      <p class="mel-venue-operations__state-line">{{ hero.attendance_state|default('') }}</p>
+      <p class="mel-venue-operations__readiness-line">{{ hero.readiness|default('') }}</p>
+    </div>
+  </section>
+
+  {% if mel_venue_operations_empty %}
+    <div class="mel-venue-operations__empty">
+      {{ mel_venue_operations_empty }}
+    </div>
+  {% endif %}
+
+  <section class="mel-venue-operations__metrics" aria-labelledby="mel-venue-ops-metrics-title">
+    <h2 id="mel-venue-ops-metrics-title" class="visually-hidden">{{ 'Operational metrics'|t }}</h2>
+    <ul class="mel-venue-operations__metric-grid">
+      <li class="mel-venue-operations__metric">
+        <span class="mel-venue-operations__metric-label">{{ 'Checked in'|t }}</span>
+        <span class="mel-venue-operations__metric-value mel-venue-operations__chip mel-venue-operations__chip--success">{{ metrics.checked_in|default(0) }}</span>
+      </li>
+      <li class="mel-venue-operations__metric">
+        <span class="mel-venue-operations__metric-label">{{ 'Not checked in'|t }}</span>
+        <span class="mel-venue-operations__metric-value mel-venue-operations__chip">{{ metrics.not_checked_in|default(0) }}</span>
+      </li>
+      <li class="mel-venue-operations__metric">
+        <span class="mel-venue-operations__metric-label">{{ 'Total attendees'|t }}</span>
+        <span class="mel-venue-operations__metric-value">{{ metrics.total_attendees|default(0) }}</span>
+      </li>
+      <li class="mel-venue-operations__metric">
+        <span class="mel-venue-operations__metric-label">{{ 'Remaining capacity'|t }}</span>
+        <span class="mel-venue-operations__metric-value">
+          {% if metrics.remaining_capacity is null %}
+            {{ 'Unlimited'|t }}
+          {% else %}
+            {{ metrics.remaining_capacity }}
+          {% endif %}
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  {% if operational_actions is iterable and operational_actions|length > 0 %}
+    <section class="mel-venue-operations__actions" aria-label="{{ 'Operational shortcuts'|t }}">
+      <ul class="mel-venue-operations__action-row">
+        {% for action in operational_actions %}
+          <li>
+            <a class="mel-btn mel-btn--{{ action.style|default('secondary') }}" href="{{ action.url }}">{{ action.label }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <section class="mel-venue-operations__search" aria-label="{{ 'Find an attendee'|t }}">
+    <form class="mel-venue-operations__search-form" method="get" action="{{ search.form_action|default('#') }}">
+      <label class="visually-hidden" for="mel-venue-ops-search">{{ 'Search'|t }}</label>
+      <input id="mel-venue-ops-search" class="mel-venue-operations__search-input" type="search" name="q" placeholder="{{ search.placeholder|default('') }}" />
+      <button type="submit" class="mel-btn mel-btn--primary">{{ 'Search'|t }}</button>
+    </form>
+    <p class="mel-venue-operations__search-hint">{{ 'Search opens the attendee list filtered by your query.'|t }}</p>
+  </section>
+
+  <div class="mel-venue-operations__split">
+    <section class="mel-venue-operations__attendees" aria-labelledby="mel-venue-ops-attendees-title">
+      <h2 id="mel-venue-ops-attendees-title">{{ 'Attendee operations'|t }}</h2>
+      {% if attendee_rows is empty %}
+        <p class="mel-venue-operations__muted">{{ 'No attendee cards to show yet.'|t }}</p>
+      {% else %}
+        <ul class="mel-venue-operations__card-list">
+          {% for row in attendee_rows|slice(0, 40) %}
+            <li class="mel-venue-operations__card">
+              <div class="mel-venue-operations__card-head">
+                <span class="mel-venue-operations__card-name">{{ row.name|default('') }}</span>
+                <span class="mel-venue-operations__chip mel-venue-operations__chip--state mel-venue-operations__chip--{{ row.state.value|default('unknown')|e('html_attr') }}">{{ row.state.label|default('') }}</span>
+              </div>
+              <p class="mel-venue-operations__card-meta">{{ row.email|default('') }}</p>
+              {% if row.ticket.code|default('') is not empty %}
+                <p class="mel-venue-operations__card-code"><span class="visually-hidden">{{ 'Ticket code'|t }} </span>{{ row.ticket.code }}</p>
+              {% endif %}
+              <div class="mel-venue-operations__card-actions">
+                <a class="mel-btn mel-btn--secondary mel-btn--small" href="{{ links.attendees_list }}#attendee-{{ row.id|default('') }}">{{ 'Open in list'|t }}</a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+
+    <aside class="mel-venue-operations__aside" aria-label="{{ 'Recent activity'|t }}">
+      <h2>{{ 'Recent check-ins'|t }}</h2>
+      {% if recent_activity is empty %}
+        <p class="mel-venue-operations__muted">{{ 'No recent check-ins recorded.'|t }}</p>
+      {% else %}
+        <ol class="mel-venue-operations__activity">
+          {% for item in recent_activity %}
+            <li>
+              <span class="mel-venue-operations__activity-name">{{ item.name }}</span>
+              <time class="mel-venue-operations__activity-time" datetime="">{{ item.checked_in_at_formatted|default('') }}</time>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </aside>
+  </div>
+</div>

@@ -42,6 +42,7 @@ final class QrCheckinController extends ControllerBase {
     private readonly FloodInterface $flood,
     private readonly AccountProxyInterface $account,
     private readonly ?AttendanceManager $attendanceManager = NULL,
+    private readonly mixed $melAttendeeCheckinManager = NULL,
   ) {}
 
   /**
@@ -55,6 +56,9 @@ final class QrCheckinController extends ControllerBase {
       $c->get('current_user'),
       $c->has('myeventlane_event_attendees.manager')
         ? $c->get('myeventlane_event_attendees.manager')
+        : NULL,
+      $c->has('myeventlane_checkout_flow.attendee_checkin_manager')
+        ? $c->get('myeventlane_checkout_flow.attendee_checkin_manager')
         : NULL,
     );
   }
@@ -195,7 +199,14 @@ final class QrCheckinController extends ControllerBase {
       ]);
     }
 
-    if ($this->attendanceManager instanceof AttendanceManager) {
+    if (is_object($this->melAttendeeCheckinManager) && method_exists($this->melAttendeeCheckinManager, 'checkInAttendee')) {
+      $this->melAttendeeCheckinManager->checkInAttendee(
+        $attendee,
+        $this->account->getAccount(),
+        'qr_scan',
+      );
+    }
+    elseif ($this->attendanceManager instanceof AttendanceManager) {
       $this->attendanceManager->checkIn($attendee);
     }
     else {

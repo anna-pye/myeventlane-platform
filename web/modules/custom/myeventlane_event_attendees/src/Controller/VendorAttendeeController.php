@@ -32,6 +32,7 @@ final class VendorAttendeeController extends ControllerBase {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly VendorAttendeePresentationService $vendorPresentation,
     private readonly MelAttendeeExportBuilder $exportBuilder,
+    private readonly mixed $melAttendeeCheckinManager,
   ) {}
 
   /**
@@ -43,6 +44,9 @@ final class VendorAttendeeController extends ControllerBase {
       $container->get('date.formatter'),
       $container->get('myeventlane_event_attendees.vendor_presentation'),
       $container->get('myeventlane_event_attendees.attendee_export_builder'),
+      $container->has('myeventlane_checkout_flow.attendee_checkin_manager')
+        ? $container->get('myeventlane_checkout_flow.attendee_checkin_manager')
+        : NULL,
     );
   }
 
@@ -413,8 +417,37 @@ final class VendorAttendeeController extends ControllerBase {
    * Checks in an attendee (AJAX endpoint).
    */
   public function checkIn(EventAttendee $event_attendee): Response {
-    $success = $this->attendanceManager->checkIn($event_attendee);
+    if (is_object($this->melAttendeeCheckinManager) && method_exists($this->melAttendeeCheckinManager, 'checkInAttendee')) {
+      $result = $this->melAttendeeCheckinManager->checkInAttendee(
+        $event_attendee,
+        $this->currentUser(),
+        'vendor_list',
+      );
+      if (!$result['success'] && $result['reason'] === 'forbidden') {
+        return new Response(json_encode([
+          'success' => FALSE,
+          'message' => (string) $this->t('Access denied.'),
+        ]), 403, ['Content-Type' => 'application/json']);
+      }
+      if ($result['success'] && $result['reason'] === 'already_checked_in') {
+        return new Response(json_encode([
+          'success' => FALSE,
+          'message' => (string) $this->t('@name is already checked in.', ['@name' => $event_attendee->getName()]),
+        ]), 200, ['Content-Type' => 'application/json']);
+      }
+      if ($result['success'] && $result['transitioned']) {
+        return new Response(json_encode([
+          'success' => TRUE,
+          'message' => (string) $this->t('@name has been checked in.', ['@name' => $event_attendee->getName()]),
+        ]), 200, ['Content-Type' => 'application/json']);
+      }
+      return new Response(json_encode([
+        'success' => FALSE,
+        'message' => (string) $this->t('Check-in could not be completed.'),
+      ]), 200, ['Content-Type' => 'application/json']);
+    }
 
+    $success = $this->attendanceManager->checkIn($event_attendee);
     if ($success) {
       return new Response(json_encode([
         'success' => TRUE,

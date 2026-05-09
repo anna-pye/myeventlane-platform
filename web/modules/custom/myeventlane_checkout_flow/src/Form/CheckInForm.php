@@ -6,12 +6,26 @@ namespace Drupal\myeventlane_checkout_flow\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+use Drupal\myeventlane_checkout_flow\Service\MelAttendeeCheckinManager;
+use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Form for checking in an attendee.
+ * Form for checking in an attendee (delegates to MelAttendeeCheckinManager).
  */
 final class CheckInForm extends FormBase {
+
+  public function __construct(
+    private readonly MelAttendeeCheckinManager $checkinManager,
+  ) {}
+
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('myeventlane_checkout_flow.attendee_checkin_manager'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -63,7 +77,7 @@ final class CheckInForm extends FormBase {
       return;
     }
 
-    $paragraph_storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+    $paragraph_storage = $this->entityTypeManager()->getStorage('paragraph');
     $paragraph = $paragraph_storage->load($paragraph_id);
 
     if (!$paragraph instanceof ParagraphInterface || $paragraph->bundle() !== 'attendee_answer') {
@@ -71,7 +85,7 @@ final class CheckInForm extends FormBase {
     }
 
     // Verify access.
-    $accessHandler = \Drupal::entityTypeManager()->getAccessControlHandler('paragraph');
+    $accessHandler = $this->entityTypeManager()->getAccessControlHandler('paragraph');
     $access = $accessHandler->access($paragraph, 'update', $this->currentUser());
     if (!$access) {
       $this->messenger()->addError($this->t('Access denied.'));
@@ -81,46 +95,52 @@ final class CheckInForm extends FormBase {
     // Get event.
     $accessResolver = \Drupal::service('myeventlane_checkout_paragraph.access_resolver');
     $event = $accessResolver->getEvent($paragraph);
-    if (!$event) {
+    if (!$event instanceof NodeInterface) {
       return;
     }
 
-    // Toggle check-in.
     $is_checked_in = $paragraph->hasField('field_checked_in') && !$paragraph->get('field_checked_in')->isEmpty()
-      ? (bool) $paragraph->get('field_checked_in')->value : FALSE;
+      ? (bool) $paragraph->get('field_checked_in')->value
+      : FALSE;
 
-    $new_status = !$is_checked_in;
+    $actor = $this->currentUser();
 
-    if ($paragraph->hasField('field_checked_in')) {
-      $paragraph->set('field_checked_in', $new_status ? 1 : 0);
-    }
-
-    if ($new_status) {
-      if ($paragraph->hasField('field_checked_in_timestamp')) {
-        $paragraph->set('field_checked_in_timestamp', time());
+    if (!$is_checked_in) {
+      $result = $this->checkinManager->checkInForTicketParagraph(
+        $paragraph,
+        $event,
+        $actor,
+        MelAttendeeCheckinManager::SOURCE_VENDOR_LIST,
+      );
+      if (!$result['success'] && $result['reason'] === 'forbidden') {
+        $this->messenger()->addError($this->t('Access denied.'));
+        return;
       }
-      if ($paragraph->hasField('field_checked_in_by')) {
-        $paragraph->set('field_checked_in_by', $this->currentUser()->id());
+      if (!$result['success']) {
+        $this->messenger()->addError($this->t('Check-in could not be completed.'));
+        return;
       }
+      $this->messenger()->addStatus($this->t('Attendee checked in successfully.'));
     }
     else {
-      if ($paragraph->hasField('field_checked_in_timestamp')) {
-        $paragraph->set('field_checked_in_timestamp', NULL);
+      $result = $this->checkinManager->undoCheckInForTicketParagraph($paragraph, $event, $actor);
+      if (!$result['success'] && $result['reason'] === 'forbidden') {
+        $this->messenger()->addError($this->t('Access denied.'));
+        return;
       }
-      if ($paragraph->hasField('field_checked_in_by')) {
-        $paragraph->set('field_checked_in_by', NULL);
+      if (!$result['success']) {
+        $this->messenger()->addError($this->t('Could not undo check-in.'));
+        return;
       }
+      $this->messenger()->addStatus($this->t('Check-in undone.'));
     }
 
-    $paragraph->save();
-
-    $this->messenger()->addStatus(
-      $new_status
-        ? $this->t('Attendee checked in successfully.')
-        : $this->t('Check-in undone.')
-    );
-
-    $form_state->setRedirect('myeventlane_checkin.page', ['node' => $event->id()]);
+    try {
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_attendees.vendor_operations', ['node' => $event->id()]));
+    }
+    catch (\Throwable $e) {
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_checkin.page', ['node' => $event->id()]));
+    }
   }
 
 }

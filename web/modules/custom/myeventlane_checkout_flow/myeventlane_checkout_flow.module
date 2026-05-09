@@ -351,6 +351,21 @@ function myeventlane_checkout_flow_theme(array $existing, string $type, string $
       ],
       'template' => 'myeventlane-vendor-checkin',
     ],
+    'mel_venue_operations' => [
+      'variables' => [
+        'event' => NULL,
+        'hero' => [],
+        'metrics' => [],
+        'attendee_rows' => [],
+        'readiness_breakdown' => [],
+        'recent_activity' => [],
+        'links' => [],
+        'search' => [],
+        'operational_actions' => [],
+        'mel_venue_operations_empty' => NULL,
+      ],
+      'template' => 'mel-venue-operations',
+    ],
   ];
 }
 
@@ -383,6 +398,7 @@ function myeventlane_checkout_flow_mel_observability_page_payload_alter(
   }
   $relevant = [
     'myeventlane_checkout_flow.vendor_attendees',
+    'myeventlane_event_attendees.vendor_operations',
     'myeventlane_event_attendees.vendor_list',
     'myeventlane_event_attendees.vendor_export',
     'myeventlane_checkout_paragraph.export_csv',

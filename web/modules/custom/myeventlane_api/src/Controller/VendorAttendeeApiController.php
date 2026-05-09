@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_api\Controller;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\user\UserInterface;
 use Drupal\myeventlane_api\Service\ApiAuthenticationService;
 use Drupal\myeventlane_api\Service\ApiResponseFormatter;
 use Drupal\myeventlane_api\Service\RateLimiterService;
@@ -29,6 +30,7 @@ final class VendorAttendeeApiController extends VendorApiBaseController {
     RateLimiterService $rateLimiter,
     EntityTypeManagerInterface $entityTypeManager,
     private readonly AttendanceManagerInterface $attendanceManager,
+    private readonly mixed $melAttendeeCheckinManager,
   ) {
     parent::__construct($authenticationService, $responseFormatter, $rateLimiter);
     $this->entityTypeManager = $entityTypeManager;
@@ -44,6 +46,9 @@ final class VendorAttendeeApiController extends VendorApiBaseController {
       $container->get('myeventlane_api.rate_limiter'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_event_attendees.manager'),
+      $container->has('myeventlane_checkout_flow.attendee_checkin_manager')
+        ? $container->get('myeventlane_checkout_flow.attendee_checkin_manager')
+        : NULL,
     );
   }
 
@@ -177,16 +182,30 @@ final class VendorAttendeeApiController extends VendorApiBaseController {
       return $this->responseFormatter->error('FORBIDDEN', 'Attendee does not belong to this event.', 403);
     }
 
-    // Update check-in status.
-    if ($checked_in) {
-      $attendee->checkIn();
+    $actor = $this->entityTypeManager->getStorage('user')->load((int) $vendor->getOwnerId());
+    if (!$actor instanceof UserInterface) {
+      return $this->responseFormatter->error('SERVER_ERROR', 'Could not resolve vendor actor for check-in.', 500);
+    }
+
+    if (is_object($this->melAttendeeCheckinManager) && method_exists($this->melAttendeeCheckinManager, 'markManualOverride')) {
+      $this->melAttendeeCheckinManager->markManualOverride($attendee, $actor, $checked_in);
     }
     else {
-      // Uncheck-in (set back to confirmed).
-      $attendee->setStatus(EventAttendee::STATUS_CONFIRMED);
-      $attendee->set('checked_in_at', NULL);
+      if ($checked_in) {
+        $attendee->checkIn();
+      }
+      else {
+        $attendee->setStatus(EventAttendee::STATUS_CONFIRMED);
+        $attendee->set('checked_in_at', NULL);
+      }
+      $attendee->save();
     }
-    $attendee->save();
+
+    $storage->resetCache([$attendee->id()]);
+    $attendee = $storage->load($attendee_id);
+    if (!$attendee instanceof EventAttendee) {
+      return $this->responseFormatter->error('SERVER_ERROR', 'Attendee reload failed.', 500);
+    }
 
     return $this->responseFormatter->success($this->serializeAttendee($attendee));
   }

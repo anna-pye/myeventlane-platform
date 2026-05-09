@@ -140,6 +140,14 @@ final class VendorEventTabsService {
         'disabled_reason' => '',
       ],
       [
+        'key' => 'operations',
+        'label' => (string) $t->translate('Live operations'),
+        'route' => 'myeventlane_event_attendees.vendor_operations',
+        'params' => ['node' => $id],
+        'disabled' => FALSE,
+        'disabled_reason' => '',
+      ],
+      [
         'key' => 'orders',
         'label' => (string) $t->translate('Orders'),
         'route' => 'myeventlane_vendor.console.event_orders',

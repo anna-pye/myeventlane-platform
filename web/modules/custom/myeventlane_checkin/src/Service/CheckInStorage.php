@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkin\Service;
 
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\node\NodeInterface;
 
 /**
@@ -17,6 +18,7 @@ final class CheckInStorage implements CheckInStorageInterface {
    */
   public function __construct(
     private readonly AttendeeRepositoryResolver $repositoryResolver,
+    private readonly mixed $melAttendeeCheckinManager,
   ) {}
 
   /**
@@ -104,10 +106,20 @@ final class CheckInStorage implements CheckInStorageInterface {
         // Try event_attendee.
         $storage = $entityTypeManager->getStorage('event_attendee');
         $attendeeEntity = $storage->load($attendeeId);
-        if ($attendeeEntity && $attendeeEntity->hasField('event') && !$attendeeEntity->get('event')->isEmpty()) {
+        if ($attendeeEntity && $attendeeEntity instanceof EventAttendee && $attendeeEntity->hasField('event') && !$attendeeEntity->get('event')->isEmpty()) {
           $eventId = (int) $attendeeEntity->get('event')->target_id;
           $event = $entityTypeManager->getStorage('node')->load($eventId);
           if ($event instanceof NodeInterface) {
+            $actor = $entityTypeManager->getStorage('user')->load($checkedInBy);
+            if ($actor && is_object($this->melAttendeeCheckinManager) && method_exists($this->melAttendeeCheckinManager, 'markManualOverride')) {
+              $current = $attendeeEntity->isCheckedIn();
+              $res = $this->melAttendeeCheckinManager->markManualOverride($attendeeEntity, $actor, !$current);
+              if (!($res['success'] ?? FALSE)) {
+                return $current;
+              }
+              $reloaded = $storage->load($attendeeId);
+              return $reloaded instanceof EventAttendee && $reloaded->isCheckedIn();
+            }
             $repository = $this->repositoryResolver->getRepository($event);
             $attendee = $repository->loadByIdentifier($event, $identifier);
             if ($attendee) {
