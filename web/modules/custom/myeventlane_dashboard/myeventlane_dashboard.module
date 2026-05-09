@@ -147,7 +147,7 @@ function myeventlane_dashboard_preprocess_myeventlane_customer_dashboard(array &
   if (!is_array($upcoming) || $upcoming !== [] || !\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
     return;
   }
-  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $templates */
   $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
   $variables['mel_customer_dashboard_upcoming_empty'] = $templates->customerMyEventsDashboardUpcomingEmpty();
 }

@@ -7,7 +7,7 @@ namespace Drupal\Tests\myeventlane_checkout_flow\Unit;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\myeventlane_checkout_flow\Service\CheckoutGroupedSummaryBuilderInterface;
 use Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter;
-use Drupal\myeventlane_surface\GovernedOperationalTemplates;
+use Drupal\myeventlane_core\GovernedOperationalTemplates;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\Tests\UnitTestCase;
 

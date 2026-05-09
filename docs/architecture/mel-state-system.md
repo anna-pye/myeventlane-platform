@@ -146,6 +146,7 @@ Full metadata (severity, UX/CTA implications, accessibility notes) lives on each
 | `MelStateResolver.php` | Merge workflow signals + `hook_mel_state_domain_facts_alter` + aliases |
 | `MelStateManager.php` | Page interpretation + CTA governance hints |
 | `web/modules/custom/myeventlane_core/src/MelReadinessHelper.php` | Readiness copy (DI: service id `myeventlane_surface.state_readiness_helper` in `myeventlane_core.services.yml`) |
+| `web/modules/custom/myeventlane_core/src/GovernedOperationalTemplates.php` | `mel_empty_state` compositions from readiness slots (DI: service id `myeventlane_surface.governed_operational_templates` in `myeventlane_core.services.yml`) |
 | `MelLifecycleHelper.php` | Lifecycle precedence |
 | `MelTrustStateHelper.php` | Role-aware trust visibility |
 | `MelEligibilityHelper.php` | Feature eligibility listing |
