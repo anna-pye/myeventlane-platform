@@ -288,7 +288,7 @@ Governance / observability / surface integration:
 - `web/modules/custom/myeventlane_checkout_flow/myeventlane_checkout_flow.info.yml`
 - `web/modules/custom/myeventlane_event_attendees/myeventlane_event_attendees.services.yml`
 - `web/modules/custom/myeventlane_core/src/MelReadinessHelper.php` (new attendee operations slots)
-- `web/modules/custom/myeventlane_surface/src/GovernedOperationalTemplates.php` (matching builders)
+- `web/modules/custom/myeventlane_core/src/GovernedOperationalTemplates.php` (matching builders)
 - `web/modules/custom/myeventlane_checkout_flow/templates/myeventlane-vendor-attendees-dashboard.html.twig` (operational summaries section)
 
 Theme:

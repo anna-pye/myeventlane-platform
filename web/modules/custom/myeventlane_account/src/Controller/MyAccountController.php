@@ -12,7 +12,7 @@ use Drupal\image\ImageStyleInterface;
 use Drupal\myeventlane_account\Service\AccountLinksService;
 use Drupal\myeventlane_core\Service\DisplayNameResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
-use Drupal\myeventlane_surface\GovernedOperationalTemplates;
+use Drupal\myeventlane_core\GovernedOperationalTemplates;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;

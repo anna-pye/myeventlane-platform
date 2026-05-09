@@ -13,7 +13,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_checkout_flow\Service\AttendeeEventStatsService;
 use Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsPresenter;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
-use Drupal\myeventlane_surface\GovernedOperationalTemplates;
+use Drupal\myeventlane_core\GovernedOperationalTemplates;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;

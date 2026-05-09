@@ -425,11 +425,6 @@ services:
       - '@myeventlane_surface.workflow_resolver'
       - '@module_handler'
 
-  myeventlane_surface.governed_operational_templates:
-    class: Drupal\myeventlane_surface\GovernedOperationalTemplates
-    arguments:
-      - '@myeventlane_surface.state_readiness_helper'
-
   myeventlane_surface.state_lifecycle_helper:
     class: Drupal\myeventlane_surface\MelLifecycleHelper
 

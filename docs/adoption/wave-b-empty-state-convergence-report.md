@@ -69,7 +69,7 @@ These join existing customer empty slots (`customerMyTicketsOverviewEmptySlots`,
 | File | Change |
 | --- | --- |
 | `web/modules/custom/myeventlane_core/src/MelReadinessHelper.php` | New customer vocabulary for My Events empty + category quiet week |
-| `web/modules/custom/myeventlane_surface/src/GovernedOperationalTemplates.php` | `categoryFollowWeeklyQuietEmpty`, `customerMyEventsDashboardUpcomingEmpty`, `vendorAnalyticsNoEventRowsEmpty` |
+| `web/modules/custom/myeventlane_core/src/GovernedOperationalTemplates.php` | `categoryFollowWeeklyQuietEmpty`, `customerMyEventsDashboardUpcomingEmpty`, `vendorAnalyticsNoEventRowsEmpty` |
 | `web/modules/custom/myeventlane_surface/src/MelComponentAccessibilityHelper.php` | `applyEmptyStateSemantics()` |
 | `web/modules/custom/myeventlane_surface/src/MelComponentPreprocess.php` | Wire empty-state preprocess to accessibility helper |
 | `web/modules/custom/myeventlane_surface/myeventlane_surface.module` | Categories preprocess branch + analytics empty fallback |

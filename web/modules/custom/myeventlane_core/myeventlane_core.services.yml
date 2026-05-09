@@ -302,3 +302,9 @@ services:
   myeventlane_surface.state_readiness_helper:
     class: Drupal\myeventlane_core\MelReadinessHelper
     arguments: ['@string_translation']
+
+  # Same rationale as state_readiness_helper: checkout/account depend on this id while
+  # myeventlane_surface may be disabled on some envs until config is aligned.
+  myeventlane_surface.governed_operational_templates:
+    class: Drupal\myeventlane_core\GovernedOperationalTemplates
+    arguments: ['@myeventlane_surface.state_readiness_helper']

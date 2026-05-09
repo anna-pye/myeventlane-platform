@@ -80,25 +80,25 @@
   @include meta.load-css('components/mel-header-footer');
   @include meta.load-css('components/wizard');
   @include meta.load-css('components/support');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/support-panel');
+  @include meta.load-css('@mel-theme/components/support-panel');
   @include meta.load-css('components/help-assistant');
   @include meta.load-css('components/refund');
   @include meta.load-css('components/ai-panels');
   @include meta.load-css('components/klaro-consent');
 
   // Shared partials from the public theme (SCSS only — no public CSS library).
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/vendor-events');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/vendor-studio-editor');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/studio-inspector');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/help-centre');
+  @include meta.load-css('@mel-theme/components/vendor-events');
+  @include meta.load-css('@mel-theme/components/vendor-studio-editor');
+  @include meta.load-css('@mel-theme/components/studio-inspector');
+  @include meta.load-css('@mel-theme/components/help-centre');
   // Event Studio layout (preview + insights grid, full-width form) — shared with public theme.
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/event-studio');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/mel-components');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/mel-cards');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/mel-navigation');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/mel-empty-states');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/mel-status-panels');
-  @include meta.load-css('../../../myeventlane_theme/src/scss/components/mel-cta');
+  @include meta.load-css('@mel-theme/components/event-studio');
+  @include meta.load-css('@mel-theme/components/mel-components');
+  @include meta.load-css('@mel-theme/components/mel-cards');
+  @include meta.load-css('@mel-theme/components/mel-navigation');
+  @include meta.load-css('@mel-theme/components/mel-empty-states');
+  @include meta.load-css('@mel-theme/components/mel-status-panels');
+  @include meta.load-css('@mel-theme/components/mel-cta');
 
   @include meta.load-css('pages/dashboard');
   @include meta.load-css('pages/dashboard-mel-support');

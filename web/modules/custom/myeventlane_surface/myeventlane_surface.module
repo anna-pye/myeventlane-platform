@@ -1178,7 +1178,7 @@ function myeventlane_surface_preprocess_myeventlane_my_tickets(array &$variables
   $upcoming = $variables['upcoming_orders'] ?? [];
   $past = $variables['past_orders'] ?? [];
   if (is_array($upcoming) && is_array($past) && $upcoming === [] && $past === [] && \Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
-    /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+    /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $templates */
     $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
     $variables['mel_my_tickets_empty'] = $templates->myTicketsOverviewEmpty();
   }
@@ -1191,7 +1191,7 @@ function myeventlane_surface_preprocess_myeventlane_my_categories(array &$variab
   if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
     return;
   }
-  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $templates */
   $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
   $followed = $variables['followed_categories'] ?? [];
   if (is_array($followed) && $followed === []) {
@@ -1219,7 +1219,7 @@ function myeventlane_surface_preprocess_myeventlane_analytics_dashboard(array &$
   if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
     return;
   }
-  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $templates */
   $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
   $empty = $model['empty_state'] ?? [];
   $empty = is_array($empty) ? $empty : [];
@@ -1246,7 +1246,7 @@ function myeventlane_surface_preprocess_myeventlane_vendor_attendees_dashboard(a
   if (!\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
     return;
   }
-  /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $templates */
+  /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $templates */
   $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
   $variables['mel_vendor_attendees_dashboard_empty'] = $templates->vendorAttendeesDashboardEmpty();
 }

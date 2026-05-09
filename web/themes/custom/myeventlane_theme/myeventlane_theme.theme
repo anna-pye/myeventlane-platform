@@ -3458,7 +3458,7 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
   $order_items = (isset($form['#order_items']) && is_array($form['#order_items'])) ? $form['#order_items'] : [];
   if ($order_items === []) {
     if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
-      /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $gov */
+      /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $gov */
       $gov = \Drupal::service('myeventlane_surface.governed_operational_templates');
       $variant = (string) ($form['#mel_cart_empty_variant'] ?? 'default');
       $variables['mel_cart_empty_state'] = match ($variant) {
@@ -3536,7 +3536,7 @@ function myeventlane_theme_preprocess_commerce_cart_empty_page(array &$variables
     /** @var \Drupal\myeventlane_core\MelReadinessHelper $readiness */
     $readiness = \Drupal::service('myeventlane_surface.state_readiness_helper');
     $variables['mel_cart_shell_labels'] = $readiness->customerCartShellLabels();
-    /** @var \Drupal\myeventlane_surface\GovernedOperationalTemplates $gov */
+    /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $gov */
     $gov = \Drupal::service('myeventlane_surface.governed_operational_templates');
     $variables['mel_cart_empty_state'] = $gov->checkoutCartEmpty('h1');
   }
