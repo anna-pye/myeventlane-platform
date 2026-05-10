@@ -129,7 +129,10 @@ abstract class EventStudioBaseForm extends FormBase {
    * Redirect and messaging after a successful wizard step save.
    */
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
-    $this->messenger()->addStatus($this->t('Saved.'));
+    $message = $this->isDraftWizardSave() && !$saved->isPublished()
+      ? $this->t('Saved as draft.')
+      : $this->t('Saved.');
+    $this->messenger()->addStatus($message);
     $form_state->setRedirect($this->getNextRouteName(), ['node' => $saved->id()]);
   }
 

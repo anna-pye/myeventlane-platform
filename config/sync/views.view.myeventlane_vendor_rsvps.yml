@@ -108,6 +108,18 @@ display:
           label: Updated
           order: DESC
           plugin_id: date
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: text_custom
+          empty: true
+          tokenize: false
+          content: '<div class="mel-vendor-rsvps__empty" role="status"><h2>No RSVPs yet</h2><p>RSVPs will appear here as people respond. You can share your event link from the Event Editor.</p></div>'
       display_extenders: {  }
   page_1:
     id: page_1

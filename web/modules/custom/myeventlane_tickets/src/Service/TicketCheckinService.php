@@ -115,7 +115,7 @@ final class TicketCheckinService {
         '@event' => (string) $route_event_id,
         '@message' => $e->getMessage(),
       ]);
-      $result = $this->result(FALSE, 'error', 'A server error occurred while checking in this ticket.', (string) $ticket->get('ticket_code')->value);
+      $result = $this->result(FALSE, 'error', "Check-in couldn't be completed. Try again or use manual check-in.", (string) $ticket->get('ticket_code')->value);
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
       return $result;
     }

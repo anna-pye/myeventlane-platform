@@ -86,12 +86,12 @@
     <div class="mel-live-ops__hero-surface">
       <div class="mel-live-ops__hero-layout">
         <div class="mel-live-ops__hero-primary">
-          <p class="mel-live-ops__eyebrow">{{ 'Vendor Console'|t }}</p>
+          <p class="mel-live-ops__eyebrow">{{ 'Organiser console'|t }}</p>
           <h1 id="mel-dash-hero-title" class="mel-live-ops__hero-title">
             {% if vendor.label is defined and vendor.label %}
               {{ 'Welcome back, @name'|t({'@name': vendor.label}) }}
             {% else %}
-              {{ 'Welcome to your Vendor Console'|t }}
+              {{ 'Welcome to your organiser dashboard'|t }}
             {% endif %}
           </h1>
           <p class="mel-live-ops__hero-venue">{{ hero_body }}</p>
@@ -152,8 +152,8 @@
     <div class="mel-live-ops__stack">
       <section class="mel-live-ops__panel mel-vendor-dashboard__panel" aria-labelledby="mel-dash-actions-title">
         <div class="mel-live-ops__timeline-head">
-          <h2 class="mel-live-ops__panel-title" id="mel-dash-actions-title">{{ 'What needs attention now'|t }}</h2>
-          <p class="mel-live-ops__panel-intro">{{ 'Fix blockers early so launches stay smooth.'|t }}</p>
+          <h2 class="mel-live-ops__panel-title" id="mel-dash-actions-title">{{ 'What to do next'|t }}</h2>
+          <p class="mel-live-ops__panel-intro">{{ 'Small setup steps now help publishing and payouts go smoothly.'|t }}</p>
         </div>
         {% if actions is iterable and actions|length > 0 %}
           <div class="mel-live-ops__timeline-feed" role="list">

@@ -63,7 +63,7 @@ final class HelpAssistantService {
     if (!(bool) $config->get('enabled')) {
       return $this->withStructuredFields([
         'status' => 'disabled',
-        'answer' => 'Sorry, the Help Assistant is unavailable right now.',
+        'answer' => (string) $this->t('The Help Assistant is unavailable right now. You can browse the Help Centre or contact Support.'),
         'confidence' => 'low',
         'escalation_recommended' => TRUE,
         'message' => $this->buildEscalationText($supportUrl),
@@ -94,7 +94,7 @@ final class HelpAssistantService {
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, $resultCount, 'low');
       return $this->withStructuredFields([
         'status' => 'ai_disabled',
-        'answer' => 'AI help is currently unavailable. You can still browse help articles below.',
+        'answer' => (string) $this->t('AI help is currently unavailable. You can still browse the help articles below.'),
         'confidence' => 'low',
         'escalation_recommended' => FALSE,
         'message' => '',
@@ -666,13 +666,13 @@ final class HelpAssistantService {
    */
   private function buildFallbackPayload(array $articles, string $confidence, string $supportUrl, bool $empty_retrieval = FALSE): array {
     if ($empty_retrieval) {
-      $answer = (string) $this->t('We couldn’t find a perfect answer in the Help Centre yet. Try rephrasing your question or open one of the guides below when they appear.');
+      $answer = (string) $this->t('We couldn’t find a clear answer in the Help Centre. Try rephrasing your question, or browse the guides linked below.');
     }
     elseif ($articles === []) {
-      $answer = (string) $this->t('We couldn’t find a perfect answer yet. Try contacting support with your event or booking details.');
+      $answer = (string) $this->t('We couldn’t find a clear answer yet. If you contact Support with your event or booking details, we can help directly.');
     }
     else {
-      $answer = (string) $this->t('We couldn’t find a perfect answer — here are some helpful guides from the Help Centre.');
+      $answer = (string) $this->t('We couldn’t find a clear answer — here are some related guides from the Help Centre.');
     }
 
     return $this->withStructuredFields([
@@ -687,9 +687,9 @@ final class HelpAssistantService {
 
   private function buildEscalationText(string $supportUrl): string {
     if ($supportUrl !== '') {
-      return (string) $this->t('I cannot confirm this from the Help Centre. For a personalised answer, open a support request at @url.', ['@url' => $supportUrl]);
+      return (string) $this->t('I’m not sure from the Help Centre. For a personal answer, open a support request: @url.', ['@url' => $supportUrl]);
     }
-    return (string) $this->t('I cannot confirm this from the Help Centre. Please contact support for personalised help.');
+    return (string) $this->t('I’m not sure from the Help Centre. Please contact Support for a personal answer.');
   }
 
   private function sanitiseQuestion(string $question): string {

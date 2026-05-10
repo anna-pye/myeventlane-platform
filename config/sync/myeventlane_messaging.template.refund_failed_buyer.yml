@@ -5,9 +5,9 @@ body_html: |-
 
   Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) could not be fully confirmed yet.
 
-  Our team has been notified and will review this.
+  Our team has been notified and will review this. We'll email you again once it's resolved.
 
-  Reference: {{ error_message }}
+  Order reference: {{ order_number }}
 utm:
   enable: true
   params:

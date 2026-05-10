@@ -96,14 +96,14 @@ function myeventlane_checkout_flow_attach_fast_checkout(array &$form, FormStateI
         '#markup' => '<h2 id="mel-fast-checkout-title" class="mel-fast-checkout__title">' . t('Express checkout') . '</h2>',
       ],
       'intro' => [
-        '#markup' => '<p class="mel-fast-checkout__intro">' . t('Use Stripe Link, Apple Pay, or Google Pay when available for this device.') . '</p>',
+        '#markup' => '<p class="mel-fast-checkout__intro">' . t('Pay faster with Apple Pay, Google Pay, or Link when your browser offers them.') . '</p>',
       ],
     ],
   ];
 
   if ($eligibility->hasMultipleTicketQuantity($order)) {
     $form['mel_fast_checkout']['header']['multi_ticket_notice'] = [
-      '#markup' => '<p class="mel-fast-checkout__multi-ticket-notice">' . t("You'll be able to edit individual attendee details after purchase.") . '</p>',
+      '#markup' => '<p class="mel-fast-checkout__multi-ticket-notice">' . t("You can update each ticket holder's details later from your booking, if the organiser allows it.") . '</p>',
     ];
   }
 
@@ -138,7 +138,7 @@ function myeventlane_checkout_flow_add_fast_checkout_unavailable_notice(array &$
       'class' => ['mel-fast-checkout-unavailable'],
     ],
     'message' => [
-      '#markup' => '<p>' . t("Fast checkout isn't available for this event because additional attendee details are required.") . '</p>',
+      '#markup' => '<p>' . t("Express checkout isn't available — this event needs a few details for each ticket first.") . '</p>',
     ],
   ];
 }

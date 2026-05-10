@@ -87,7 +87,7 @@ final class EventStudioPublishForm extends EventStudioBaseForm {
         '<div class="mel-publish-action-card" role="region" aria-labelledby="mel-publish-action-title-wizard" data-mel-publish-card="1">' .
         '<div class="mel-publish-action-card__panel mel-publish-action-card__draft"' . $draft_hidden . ' data-mel-publish-panel="draft">' .
         '<h3 id="mel-publish-action-title-wizard" class="mel-publish-action-card__title">' . $this->t('Publish event') . '</h3>' .
-        '<p class="mel-publish-action-card__desc">' . $this->t('Make your event live and visible') . '</p>' .
+        '<p class="mel-publish-action-card__desc">' . $this->t('After publishing, your public page can show RSVPs or tickets you\'ve turned on.') . '</p>' .
         '<button type="button" class="mel-btn mel-btn--primary" id="mel-publish-now">' . $this->t('Publish now') . '</button>' .
         '</div>' .
         '<div class="mel-publish-action-card__panel mel-publish-action-card__live"' . $live_hidden . ' data-mel-publish-panel="live">' .

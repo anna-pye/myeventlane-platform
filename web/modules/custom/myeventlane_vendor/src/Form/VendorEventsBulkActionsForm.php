@@ -119,12 +119,12 @@ final class VendorEventsBulkActionsForm extends FormBase {
         'text' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Create your first event and start selling tickets.'),
+          '#value' => $this->t('Create an event to add details, RSVPs, or tickets.'),
           '#attributes' => ['class' => ['mel-empty__text']],
         ],
         'action' => [
           '#type' => 'link',
-          '#title' => $this->t('Create your first event'),
+          '#title' => $this->t('Create event'),
           '#url' => Url::fromRoute('myeventlane_event_studio.create'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
         ],

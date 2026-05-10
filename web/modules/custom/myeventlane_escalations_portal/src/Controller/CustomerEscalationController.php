@@ -150,7 +150,7 @@ final class CustomerEscalationController extends ControllerBase {
     return [
       '#theme' => 'mel_support_layout',
       '#title' => $this->t('Submit a support request'),
-      '#intro' => $this->t('Describe your issue and we\'ll get back to you as soon as possible.'),
+      '#intro' => $this->t('Tell us what\'s going on — we\'ll reply by email.'),
       '#content' => $form,
     ];
   }

@@ -46,7 +46,7 @@ final class MelReadinessHelper {
       }
       if (($evaluations['publishable'] ?? NULL) === MelStateEvaluation::Unsatisfied
         && ($evaluations['moderation_hold'] ?? NULL) === MelStateEvaluation::Satisfied) {
-        $messages[] = (string) $this->t('Publishing is paused until moderation clears this event.');
+        $messages[] = (string) $this->t('Publishing is paused while our team finishes reviewing this listing.');
       }
     }
 
@@ -64,7 +64,7 @@ final class MelReadinessHelper {
   }
 
   public function vendorStripeReadinessBlockingLine(): string {
-    return (string) $this->t('Stripe connection is required before you can charge for tickets.');
+    return (string) $this->t('Connect Stripe to accept card payments for paid tickets.');
   }
 
   public function vendorOrganiserProfileIncompleteLine(): string {
@@ -100,7 +100,7 @@ final class MelReadinessHelper {
       'incomplete' => $this->vendorReadinessRowIncompleteLabel(),
       'profile' => (string) $this->t('Organiser profile'),
       'public_profile' => (string) $this->t('Public organiser page'),
-      'stripe' => (string) $this->t('Stripe payouts'),
+      'stripe' => (string) $this->t('Stripe account'),
       'analytics_unavailable' => (string) $this->t('Analytics unavailable'),
     ];
   }
@@ -259,7 +259,7 @@ final class MelReadinessHelper {
    * Checkout reassurance when organiser attendee questions mandate the ticket-holder pane.
    */
   public function customerCheckoutAttendeeRequiredBeforePaymentLine(): string {
-    return (string) $this->t('Attendee details are required before payment.');
+    return (string) $this->t('Ticket holder details are required before payment.');
   }
 
   public function customerCheckoutTrustChipsRegionLabel(): string {
@@ -416,7 +416,7 @@ final class MelReadinessHelper {
     return [
       'eyebrow' => (string) $this->t('Step 2'),
       'heading' => (string) $this->t('Ticket holders'),
-      'intro' => (string) $this->t('Add each attendee once. Sections fold closed as you finish so the next ticket stays in focus.'),
+      'intro' => (string) $this->t('Add each ticket holder once. Sections fold closed as you finish so the next ticket stays in focus.'),
     ];
   }
 
