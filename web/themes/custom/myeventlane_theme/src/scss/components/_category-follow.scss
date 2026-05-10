@@ -1,0 +1,136 @@
+// ==========================================================================
+// Category follow CTA (Flag follow_category) — discovery + taxonomy + event info
+// ==========================================================================
+
+@use '../tokens/colors';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/typography';
+@use '../tokens/breakpoints';
+
+.mel-category-follow-region {
+  margin-top: spacing.mel-space(3);
+  margin-bottom: spacing.mel-space(2);
+}
+
+.mel-category-follow-region--discovery {
+  margin-top: spacing.mel-space(2);
+  margin-bottom: spacing.mel-space(4);
+}
+
+.mel-category-follow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: spacing.mel-space(2);
+}
+
+.mel-category-follow--taxonomy {
+  justify-content: flex-start;
+}
+
+.mel-category-follow--discovery {
+  justify-content: flex-start;
+}
+
+.mel-category-follow--event-info {
+  justify-content: flex-end;
+  flex: 1 1 auto;
+}
+
+.mel-category-follow--account {
+  justify-content: flex-end;
+}
+
+.mel-category-follow__btn {
+  font-weight: typography.$mel-font-semibold;
+}
+
+.mel-category-follow__flag-wrap {
+  line-height: 0;
+
+  .flag {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .flag a {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: spacing.mel-space(2) spacing.mel-space(4);
+    border-radius: radii.$mel-radius-full;
+    font-family: typography.$mel-font-family;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    line-height: 1.2;
+    text-decoration: none;
+    border: 1px solid colors.$mel-color-primary;
+    color: colors.$mel-color-primary;
+    background: colors.$mel-color-surface;
+    box-shadow: none;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .flag a:hover {
+    background: color-mix(in srgb, colors.$mel-color-primary 8%, colors.$mel-color-surface);
+  }
+
+  .flag a:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  .flag.action-unflag a,
+  .flag a.is-active {
+    color: colors.$mel-color-primary;
+    background: color-mix(in srgb, colors.$mel-color-primary 12%, colors.$mel-color-surface);
+    border-color: color-mix(in srgb, colors.$mel-color-primary 55%, colors.$mel-color-surface);
+  }
+
+  .ajax-progress {
+    position: absolute;
+    inset-inline-start: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.mel-info-row--category-follow .mel-info-row__value--split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: spacing.mel-space(3);
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mel-info-row__category-label {
+  font-weight: typography.$mel-font-medium;
+}
+
+@include breakpoints.mel-break(sm, max) {
+  .mel-info-row--category-follow .mel-info-row__value--split {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mel-category-follow--event-info {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .mel-category-follow--account {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}

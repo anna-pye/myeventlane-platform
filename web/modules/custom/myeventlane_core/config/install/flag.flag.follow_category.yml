@@ -5,15 +5,15 @@ flag_type: entity:taxonomy_term
 global: false
 types:
   - categories
-link_type: confirm
-link_text: 'Follow'
-link_text_short: 'Follow'
-unlink_text: 'Unfollow'
-unlink_text_short: 'Unfollow'
-flag_short: 'Follow'
+link_type: ajax_link
+link_text: 'Follow category'
+link_text_short: 'Follow category'
+unlink_text: 'Following ✓'
+unlink_text_short: 'Following ✓'
+flag_short: 'Follow category'
 flag_long: 'Follow this category'
 flag_message: 'You are now following %label'
-unflag_short: 'Unfollow'
+unflag_short: 'Following ✓'
 unflag_long: 'Stop following this category'
 unflag_message: 'You are no longer following %label'
 unflag_denied_text: 'You may not unfollow %label'

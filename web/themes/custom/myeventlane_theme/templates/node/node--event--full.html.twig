@@ -758,9 +758,19 @@
             {% endif %}
 
             {% if mel_category_label is defined and mel_category_label %}
-              <div class="mel-info-row">
+              <div class="mel-info-row mel-info-row--category-follow">
                 <div class="mel-info-row__label">{{ 'Category'|t }}</div>
-                <div class="mel-info-row__value">{{ mel_category_label }}</div>
+                <div class="mel-info-row__value mel-info-row__value--split">
+                  <span class="mel-info-row__category-label">{{ mel_category_label }}</span>
+                  {% if mel_category_follow_flag|default(null) or mel_category_follow_login_url|default(null) %}
+                    {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
+                      mel_category_follow_flag: mel_category_follow_flag|default(null),
+                      mel_category_follow_login_url: mel_category_follow_login_url|default(null),
+                      category_display_name: mel_category_label,
+                      mel_category_follow_modifier: 'event-info'
+                    } %}
+                  {% endif %}
+                </div>
               </div>
             {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
               <div class="mel-info-row">

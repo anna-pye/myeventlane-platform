@@ -48,6 +48,7 @@ permissions:
   - 'delete own files'
   - 'delete own social auth profile'
   - 'flag event_save'
+  - 'flag follow_category'
   - 'manage own commerce_payment_method'
   - 'post comments'
   - request_refunds
@@ -56,6 +57,7 @@ permissions:
   - 'skip comment approval'
   - 'toggle check-in status'
   - 'unflag event_save'
+  - 'unflag follow_category'
   - 'update own customer profile'
   - 'update platform_donation commerce_order'
   - 'update rsvp_donation commerce_order'
