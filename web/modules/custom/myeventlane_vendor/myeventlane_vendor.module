@@ -84,6 +84,7 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
         'steps' => [],
         'current_step' => NULL,
         'content' => NULL,
+        'placeholder_shell' => FALSE,
       ],
       'template' => 'myeventlane-manage-event',
     ],

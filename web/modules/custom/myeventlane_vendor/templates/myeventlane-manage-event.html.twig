@@ -18,7 +18,7 @@
  * - prev_step_url: URL to previous step
  */
 #}
-<div class="mel-manage-event-wrapper">
+<div class="mel-manage-event-wrapper{% if placeholder_shell %} mel-coming-soon-shell{% endif %}">
   <div class="mel-manage-event-header">
     <div class="mel-manage-event-header-content">
       <div class="mel-event-info">
@@ -74,7 +74,7 @@
           <h2 class="mel-page-title">{{ page_title }}</h2>
         </div>
 
-        <div class="mel-content-area">
+        <div class="mel-content-area{% if placeholder_shell %} mel-coming-soon-content-shell{% endif %}">
           {{ content }}
         </div>
 

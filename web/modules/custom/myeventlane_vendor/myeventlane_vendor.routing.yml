@@ -835,6 +835,9 @@ myeventlane_vendor.manage_event.series:
         bundle:
           - event
 
+# Placeholder surfaces (ManageEventPlaceholderController): non-functional UX stubs;
+# noindex via controller + ManageEventPlaceholderNoIndexSubscriber. Not linked from
+# contextual help panels (manage-event layout has no mel_vendor_contextual_help).
 myeventlane_vendor.manage_event.promote:
   path: '/vendor/event/{event}/promote'
   defaults:
