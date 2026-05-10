@@ -59,6 +59,22 @@
         </div>
       </header>
 
+      <section class="mel-live-ops__panel" aria-label="{{ 'Event operational state'|t }}">
+        <div class="mel-live-ops__chip-row">
+          <span class="mel-live-ops__chip mel-live-ops__chip--{{ st_chip }}">{{ model.event.status_label|default('') }}</span>
+          {% if model.event.event_type_label|default('') is not empty %}
+            <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ model.event.event_type_label }}</span>
+          {% endif %}
+          <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ '@pct% readiness'|t({'@pct': model.readiness.score|default(0)}) }}</span>
+          {% if model.actions.checkin is not null %}
+            <a class="mel-live-ops__chip mel-live-ops__chip--lavender" href="{{ model.actions.checkin }}">{{ 'Check-in ready'|t }}</a>
+          {% endif %}
+          {% if model.actions.preview is not null %}
+            <a class="mel-live-ops__chip mel-live-ops__chip--lavender" href="{{ model.actions.preview }}">{{ 'Public preview'|t }}</a>
+          {% endif %}
+        </div>
+      </section>
+
       {% if model.presentation_alerts is defined and model.presentation_alerts is iterable and model.presentation_alerts|length > 0 %}
         <div class="mel-live-ops__presentation-alerts" role="region" aria-label="{{ 'Ticket and pricing setup'|t }}">
           {% for alert in model.presentation_alerts %}
@@ -103,6 +119,72 @@
                 {% endif %}
               </div>
             </article>
+          </div>
+        </section>
+      {% endif %}
+
+      {% set ops_readiness = model.operational_readiness|default({}) %}
+      {% set ops_readiness_items = ops_readiness.items|default([]) %}
+      {% if ops_readiness_items is iterable and ops_readiness_items|length > 0 %}
+        <section class="mel-live-ops__panel" aria-labelledby="mel-ws-operational-readiness-heading">
+          <div class="mel-live-ops__timeline-head">
+            <h2 id="mel-ws-operational-readiness-heading" class="mel-live-ops__panel-title">{{ ops_readiness.heading|default('Operational readiness'|t) }}</h2>
+            <p class="mel-live-ops__panel-intro">{{ ops_readiness.intro|default('What is ready, what attendees can see, and what still needs setup.'|t) }}</p>
+          </div>
+          <div class="mel-live-ops__timeline-feed" role="list">
+            {% for item in ops_readiness_items %}
+              {% set sev = item.severity|default('info') %}
+              {% set chip_mod =
+                sev == 'success' ? 'success' :
+                (sev == 'warning' or sev == 'error') ? 'warn' :
+                (sev == 'neutral' ? 'calm' : 'info')
+              %}
+              <article class="mel-live-ops__timeline-card" role="listitem">
+                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ sev == 'success' ? '✓' : '•' }}</div>
+                <div class="mel-live-ops__timeline-body">
+                  <div class="mel-live-ops__timeline-headline">
+                    <span class="mel-live-ops__timeline-name">{{ item.label|default('') }}</span>
+                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                  </div>
+                  {% if item.message|default('') is not empty %}
+                    <p class="mel-live-ops__muted">{{ item.message }}</p>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% set lifecycle_guidance = model.lifecycle_guidance|default({}) %}
+      {% set lifecycle_guidance_items = lifecycle_guidance.items|default([]) %}
+      {% if lifecycle_guidance_items is iterable and lifecycle_guidance_items|length > 0 %}
+        <section class="mel-live-ops__panel" aria-labelledby="mel-ws-lifecycle-guidance-heading">
+          <div class="mel-live-ops__timeline-head">
+            <h2 id="mel-ws-lifecycle-guidance-heading" class="mel-live-ops__panel-title">{{ lifecycle_guidance.heading|default('Lifecycle guidance'|t) }}</h2>
+            <p class="mel-live-ops__panel-intro">{{ lifecycle_guidance.intro|default('Contextual notes that explain this event state without adding new rules or alerts.'|t) }}</p>
+          </div>
+          <div class="mel-live-ops__timeline-feed" role="list">
+            {% for item in lifecycle_guidance_items %}
+              {% set sev = item.severity|default('info') %}
+              {% set chip_mod =
+                sev == 'success' ? 'success' :
+                (sev == 'warning' or sev == 'error') ? 'warn' :
+                (sev == 'neutral' ? 'calm' : 'info')
+              %}
+              <article class="mel-live-ops__timeline-card" role="listitem">
+                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ sev == 'success' ? '✓' : '•' }}</div>
+                <div class="mel-live-ops__timeline-body">
+                  <div class="mel-live-ops__timeline-headline">
+                    <span class="mel-live-ops__timeline-name">{{ item.stage|default('') }}</span>
+                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                  </div>
+                  {% if item.message|default('') is not empty %}
+                    <p class="mel-live-ops__muted">{{ item.message }}</p>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
           </div>
         </section>
       {% endif %}
@@ -187,7 +269,7 @@
 
       <section class="mel-live-ops__panel" aria-labelledby="mel-ws-shortcuts-heading">
         <h2 id="mel-ws-shortcuts-heading" class="mel-live-ops__panel-title">{{ 'Manage this event'|t }}</h2>
-        <p class="mel-live-ops__panel-intro">{{ 'Quick links to ticketing, guests, and reports.'|t }}</p>
+        <p class="mel-live-ops__panel-intro">{{ 'Quick links to ticketing, attendees, check-in, publishing, and reports for this event.'|t }}</p>
         <div class="mel-live-ops__shortcut-grid">
           {% if model.actions.rsvps is not null %}
             <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.rsvps }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View RSVPs'|t }}</span></a>

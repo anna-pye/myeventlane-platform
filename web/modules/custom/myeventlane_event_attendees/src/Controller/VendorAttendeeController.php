@@ -134,7 +134,7 @@ final class VendorAttendeeController extends ControllerBase {
    * Page title callback for attendee list.
    */
   public function listTitle(NodeInterface $node): string {
-    return (string) $this->t('Attendees for @event', ['@event' => $node->label()]);
+    return (string) $this->t('Ticket holders for @event', ['@event' => $node->label()]);
   }
 
   /**
@@ -236,7 +236,7 @@ final class VendorAttendeeController extends ControllerBase {
     if (!empty($grouped['rsvp'])) {
       $build['rsvp_section'] = [
         '#type' => 'details',
-        '#title' => $this->t('RSVP Attendees (@count)', ['@count' => count($grouped['rsvp'])]),
+        '#title' => $this->t('RSVP responses (@count)', ['@count' => count($grouped['rsvp'])]),
         '#open' => TRUE,
       ];
 
@@ -275,7 +275,7 @@ final class VendorAttendeeController extends ControllerBase {
       $build['ticket_section']['title'] = [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Ticket Attendees (@count)', ['@count' => count($grouped['ticket'])]),
+        '#value' => $this->t('Ticket holders (@count)', ['@count' => count($grouped['ticket'])]),
       ];
 
       foreach ($ticketTypeGroups as $variationId => $group) {
@@ -386,7 +386,7 @@ final class VendorAttendeeController extends ControllerBase {
       }
     }
     return [
-      '#markup' => '<p>' . $this->t('No attendees yet. Share your event to start collecting RSVPs or ticket sales.') . '</p>',
+      '#markup' => '<p>' . $this->t('No ticket holders or RSVPs yet. Share your event link to start collecting responses or ticket sales.') . '</p>',
     ];
   }
 

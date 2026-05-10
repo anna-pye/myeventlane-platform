@@ -46,16 +46,27 @@ services:
       - '@request_stack'
       - '@logger.channel.myeventlane_tickets'
 
-  myeventlane_tickets.ticket_checkin_service:
-    class: Drupal\myeventlane_tickets\Service\TicketCheckinService
+  mel_ticket_capability.manager:
+    class: Drupal\myeventlane_tickets\Service\TicketCapabilityManager
+    arguments:
+      - '@datetime.time'
+
+  mel_scanner.operation_manager:
+    class: Drupal\myeventlane_tickets\Service\ScannerOperationManager
     arguments:
       - '@entity_type.manager'
       - '@datetime.time'
       - '@current_user'
       - '@myeventlane_tickets.ticket_qr_payload'
       - '@myeventlane_tickets.ticket_checkin_logger'
-      - '@config.factory'
+      - '@mel_ticket_capability.manager'
+      - '@database'
       - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.ticket_checkin_service:
+    class: Drupal\myeventlane_tickets\Service\TicketCheckinService
+    arguments:
+      - '@mel_scanner.operation_manager'
 
   myeventlane_tickets.ticket_pdf_template_builder:
     class: Drupal\myeventlane_tickets\Service\TicketPdfTemplateBuilder

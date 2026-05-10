@@ -14,6 +14,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -38,6 +39,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     private readonly TimeInterface $time,
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly MelReadinessHelper $readinessHelper,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -142,6 +144,12 @@ final class VendorEventWorkspaceViewModelBuilder {
     $score = $readinessItems !== []
       ? (int) round(100 * $completeCount / count($readinessItems))
       : 0;
+    $hasBanner = $event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty();
+    $hasCategory = $event->hasField('field_category') && !$event->get('field_category')->isEmpty();
+    $hasTags = $event->hasField('field_tags') && !$event->get('field_tags')->isEmpty();
+    $isPromoted = $event->hasField('field_promoted')
+      && !$event->get('field_promoted')->isEmpty()
+      && (bool) $event->get('field_promoted')->value;
 
     $nextAction = $this->buildNextAction(
       $eventType,
@@ -197,6 +205,28 @@ final class VendorEventWorkspaceViewModelBuilder {
         'score' => $score,
         'items' => $readinessItems,
       ],
+      'operational_readiness' => [
+        'heading' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryHeading(),
+        'intro' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryIntro(),
+        'items' => $this->readinessHelper->vendorEventWorkspaceOperationalSummary(
+          $eventType,
+          $status,
+          $ticketsSold,
+          $ordersCount,
+          $rsvpCount,
+        ),
+      ],
+      'lifecycle_guidance' => $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
+        $eventType,
+        $status,
+        $ticketsSold,
+        $ordersCount,
+        $rsvpCount,
+        $hasBanner,
+        $hasCategory,
+        $hasTags,
+        $isPromoted,
+      ),
       'next_action' => $nextAction,
       'metrics' => $metrics,
       'tabs' => $tabs,
@@ -227,6 +257,22 @@ final class VendorEventWorkspaceViewModelBuilder {
         'public_url' => NULL,
       ],
       'readiness' => ['score' => 0, 'items' => []],
+      'operational_readiness' => [
+        'heading' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryHeading(),
+        'intro' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryIntro(),
+        'items' => [],
+      ],
+      'lifecycle_guidance' => $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
+        'unknown',
+        'unknown',
+        0,
+        0,
+        0,
+        FALSE,
+        FALSE,
+        FALSE,
+        FALSE,
+      ),
       'next_action' => [
         'severity' => 'warning',
         'title' => (string) $this->t('Something went wrong'),

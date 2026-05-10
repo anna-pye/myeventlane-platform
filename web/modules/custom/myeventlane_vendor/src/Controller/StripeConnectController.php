@@ -197,7 +197,7 @@ final class StripeConnectController extends ControllerBase {
       $log->error('Stripe connect: no vendor profile for user @uid', [
         '@uid' => (string) $currentUser->id(),
       ]);
-      $this->messenger()->addError($this->t('No vendor profile found for your account. Please contact support.'));
+      $this->messenger()->addError($this->t('We couldn\'t find your organiser profile. Please contact Support.'));
       return $this->redirectToDashboard();
     }
 
@@ -207,7 +207,7 @@ final class StripeConnectController extends ControllerBase {
         '@vid' => (string) $vendor->id(),
         '@uid' => (string) $currentUser->id(),
       ]);
-      $this->messenger()->addError($this->t('Your vendor store is not ready yet. Complete vendor onboarding, then return to connect Stripe.'));
+      $this->messenger()->addError($this->t('Your organiser account isn\'t ready yet. Finish onboarding, then return to connect Stripe.'));
       return $this->redirectToDashboard();
     }
     $this->syncVendorStoreReference($vendor, $store);
@@ -222,7 +222,7 @@ final class StripeConnectController extends ControllerBase {
       $store
     );
     if ($queryAccountStr !== '' && $accountId === NULL) {
-      $this->messenger()->addError($this->t('Stripe account mismatch. Please start Connect again or contact support.'));
+      $this->messenger()->addError($this->t('Something didn\'t match with your Stripe account. Please start the Stripe connection again, or contact Support.'));
       return $this->redirectToDashboard();
     }
 
@@ -353,7 +353,7 @@ final class StripeConnectController extends ControllerBase {
 
     $vendor = $this->getCurrentUserVendor();
     if (!$vendor) {
-      $this->messenger()->addError($this->t('No vendor profile found for your account.'));
+      $this->messenger()->addError($this->t('We couldn\'t find your organiser profile.'));
       return $this->redirectToDashboard();
     }
 
@@ -369,10 +369,10 @@ final class StripeConnectController extends ControllerBase {
     $accountId = $this->resolveValidatedAccountId($qidStr !== '' ? $qidStr : NULL, $store);
     if ($accountId === NULL) {
       if ($qidStr !== '') {
-        $this->messenger()->addError($this->t('Stripe account mismatch. Please use Connect from your dashboard again.'));
+        $this->messenger()->addError($this->t('Something didn\'t match with your Stripe account. Please start the Stripe connection again from your dashboard.'));
       }
       else {
-        $this->messenger()->addWarning($this->t('Stripe account not found. Please start the connection process again.'));
+        $this->messenger()->addWarning($this->t('We couldn\'t find your Stripe account. Please start the Stripe connection again.'));
       }
       return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
         'query' => $dest ? ['destination' => $dest] : [],
@@ -393,7 +393,7 @@ final class StripeConnectController extends ControllerBase {
     }
     catch (\Exception $e) {
       $log->error('Stripe callback: @m', ['@m' => $e->getMessage()]);
-      $this->messenger()->addError($this->t('Failed to verify Stripe account status. Please try again.'));
+      $this->messenger()->addError($this->t('We couldn\'t check your Stripe account status. Please try again, or contact Support if it keeps happening.'));
       if ($dest !== '') {
         return new RedirectResponse($dest);
       }
@@ -424,9 +424,9 @@ final class StripeConnectController extends ControllerBase {
       $this->messenger()->addWarning($this->t('Please complete the remaining steps in your Stripe account setup.'));
     }
     else {
-      $this->messenger()->addWarning($this->t('Stripe account status: @status.', [
-        '@status' => (string) ($status['status'] ?? 'unknown'),
-      ]));
+      // Internal status is logged separately; show a calm next-step message
+      // to organisers instead of leaking raw Stripe state strings.
+      $this->messenger()->addWarning($this->t('Your Stripe account isn\'t fully set up yet. Open your Stripe dashboard to finish onboarding.'));
     }
 
     if ($dest !== '') {

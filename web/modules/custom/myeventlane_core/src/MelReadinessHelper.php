@@ -46,7 +46,7 @@ final class MelReadinessHelper {
       }
       if (($evaluations['publishable'] ?? NULL) === MelStateEvaluation::Unsatisfied
         && ($evaluations['moderation_hold'] ?? NULL) === MelStateEvaluation::Satisfied) {
-        $messages[] = (string) $this->t('Publishing is paused until moderation clears this event.');
+        $messages[] = (string) $this->t('Publishing is paused while our team finishes reviewing this listing.');
       }
     }
 
@@ -64,7 +64,7 @@ final class MelReadinessHelper {
   }
 
   public function vendorStripeReadinessBlockingLine(): string {
-    return (string) $this->t('Stripe connection is required before you can charge for tickets.');
+    return (string) $this->t('Connect Stripe to accept card payments for paid tickets.');
   }
 
   public function vendorOrganiserProfileIncompleteLine(): string {
@@ -100,7 +100,7 @@ final class MelReadinessHelper {
       'incomplete' => $this->vendorReadinessRowIncompleteLabel(),
       'profile' => (string) $this->t('Organiser profile'),
       'public_profile' => (string) $this->t('Public organiser page'),
-      'stripe' => (string) $this->t('Stripe payouts'),
+      'stripe' => (string) $this->t('Stripe account'),
       'analytics_unavailable' => (string) $this->t('Analytics unavailable'),
     ];
   }
@@ -259,7 +259,7 @@ final class MelReadinessHelper {
    * Checkout reassurance when organiser attendee questions mandate the ticket-holder pane.
    */
   public function customerCheckoutAttendeeRequiredBeforePaymentLine(): string {
-    return (string) $this->t('Attendee details are required before payment.');
+    return (string) $this->t('Ticket holder details are required before payment.');
   }
 
   public function customerCheckoutTrustChipsRegionLabel(): string {
@@ -416,7 +416,7 @@ final class MelReadinessHelper {
     return [
       'eyebrow' => (string) $this->t('Step 2'),
       'heading' => (string) $this->t('Ticket holders'),
-      'intro' => (string) $this->t('Add each attendee once. Sections fold closed as you finish so the next ticket stays in focus.'),
+      'intro' => (string) $this->t('Add each ticket holder once. Sections fold closed as you finish so the next ticket stays in focus.'),
     ];
   }
 
@@ -1224,6 +1224,386 @@ final class MelReadinessHelper {
 
   public function eventStudioFieldTipsEmptyHeading(): string {
     return (string) $this->t('No field tips yet');
+  }
+
+  // -------------------------------------------------------------------------
+  // Operational readiness intelligence.
+  // Presentation-only summaries for vendor surfaces. Business rules remain in
+  // the existing state, publishing, Stripe, Commerce, RSVP, and attendee layers.
+  // -------------------------------------------------------------------------
+
+  /**
+   * @param list<array<string, mixed>> $events
+   *
+   * @return list<array{key: string, label: string, message: string, severity: string}>
+   */
+  public function vendorDashboardOperationalReadinessSummary(array $readiness, array $events): array {
+    $published = 0;
+    $draft = 0;
+    $paidOrHybrid = FALSE;
+    $bookingReady = FALSE;
+    $attendeeActivity = FALSE;
+    $promotionReady = FALSE;
+
+    foreach ($events as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      $status = (string) ($event['status'] ?? '');
+      if ($status === 'draft') {
+        $draft++;
+      }
+      elseif ($status === 'upcoming' || $status === 'past' || $status === 'published') {
+        $published++;
+      }
+
+      $eventType = (string) ($event['event_type'] ?? 'unknown');
+      if ($eventType !== 'unknown') {
+        $bookingReady = TRUE;
+      }
+      if ($eventType === 'paid' || $eventType === 'both') {
+        $paidOrHybrid = TRUE;
+      }
+
+      if (!empty($event['metric_label'])) {
+        $attendeeActivity = TRUE;
+      }
+
+      $image = $event['image'] ?? [];
+      if (is_array($image) && !empty($image['url']) && empty($image['is_placeholder'])) {
+        $promotionReady = TRUE;
+      }
+    }
+
+    $stripeReady = (bool) ($readiness['stripe_ready'] ?? FALSE);
+
+    return [
+      [
+        'key' => 'publishing',
+        'label' => (string) $this->t('Publishing'),
+        'message' => $published > 0
+          ? (string) $this->t('Your event is live and ready for bookings.')
+          : ($draft > 0
+            ? (string) $this->t("Your draft is saved and won't appear publicly until you publish.")
+            : (string) $this->t('Create your first event when you are ready.')),
+        'severity' => $published > 0 ? 'success' : 'info',
+      ],
+      [
+        'key' => 'tickets_rsvp',
+        'label' => (string) $this->t('Tickets & RSVP'),
+        'message' => $bookingReady
+          ? (string) $this->t('People have a clear way to book or RSVP.')
+          : (string) $this->t('Add ticket types or RSVP settings before you rely on bookings.'),
+        'severity' => $bookingReady ? 'success' : 'warning',
+      ],
+      [
+        'key' => 'payments_payouts',
+        'label' => (string) $this->t('Payments & payouts'),
+        'message' => $stripeReady
+          ? (string) $this->t('Payout setup is connected for paid ticket activity.')
+          : ($paidOrHybrid
+            ? $this->vendorStripeReadinessBlockingLine()
+            : (string) $this->t("Connect payouts when you're ready to sell paid tickets.")),
+        'severity' => $stripeReady ? 'success' : ($paidOrHybrid ? 'warning' : 'info'),
+      ],
+      [
+        'key' => 'attendees',
+        'label' => (string) $this->t('Attendee readiness'),
+        'message' => $attendeeActivity
+          ? (string) $this->t('Attendee activity is flowing into your organiser tools.')
+          : (string) $this->t('Your attendees will appear here after bookings begin.'),
+        'severity' => $attendeeActivity ? 'success' : 'info',
+      ],
+      [
+        'key' => 'promotion',
+        'label' => (string) $this->t('Promotion & discovery'),
+        'message' => $promotionReady
+          ? (string) $this->t('Your listing has visual content that can help it stand out.')
+          : (string) $this->t('Add a banner image to help your event stand out in discovery.'),
+        'severity' => $promotionReady ? 'success' : 'info',
+      ],
+    ];
+  }
+
+  /**
+   * @return list<array{key: string, message: string, severity: string}>
+   */
+  public function vendorDashboardFirstEventGuidance(bool $has_published_events, bool $has_ticket_sales, bool $stripe_ready): array {
+    if ($has_published_events || $has_ticket_sales || $stripe_ready) {
+      return [];
+    }
+    return [
+      [
+        'key' => 'create_first_event',
+        'message' => (string) $this->t('Create your first event.'),
+        'severity' => 'info',
+      ],
+      [
+        'key' => 'add_booking_mode',
+        'message' => (string) $this->t('Add tickets or RSVPs so people know how to join.'),
+        'severity' => 'info',
+      ],
+      [
+        'key' => 'connect_payouts_when_ready',
+        'message' => (string) $this->t("Connect payouts when you're ready to sell paid tickets."),
+        'severity' => 'info',
+      ],
+    ];
+  }
+
+  /**
+   * Builds lifecycle guidance from dashboard-ready event rows.
+   *
+   * @param list<array<string, mixed>> $events
+   *
+   * @return array{heading: string, intro: string, items: list<array{key: string, stage: string, message: string, severity: string}>}
+   */
+  public function vendorDashboardLifecycleSummary(array $readiness, array $events, bool $analytics_available): array {
+    $hasEvents = $events !== [];
+    $hasPublished = FALSE;
+    $hasDraft = FALSE;
+    $hasBooking = FALSE;
+    $hasActivity = FALSE;
+    $hasVisualContent = FALSE;
+    $hasPromotedEvent = FALSE;
+
+    foreach ($events as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      $status = (string) ($event['status'] ?? '');
+      $hasPublished = $hasPublished || in_array($status, ['upcoming', 'published', 'past'], TRUE);
+      $hasDraft = $hasDraft || $status === 'draft';
+
+      $eventType = (string) ($event['event_type'] ?? 'unknown');
+      $hasBooking = $hasBooking || $eventType !== 'unknown';
+      $hasActivity = $hasActivity || !empty($event['metric_label']);
+
+      $image = $event['image'] ?? [];
+      $hasVisualContent = $hasVisualContent || (is_array($image) && !empty($image['url']) && empty($image['is_placeholder']));
+      $hasPromotedEvent = $hasPromotedEvent || !empty($event['is_promoted']);
+    }
+
+    $stripeReady = (bool) ($readiness['stripe_ready'] ?? FALSE);
+
+    return [
+      'heading' => (string) $this->t('Lifecycle guidance'),
+      'intro' => (string) $this->t('Helpful context based on the organiser, event, booking, attendee, and discovery signals already shown here.'),
+      'items' => [
+        [
+          'key' => 'event_setup',
+          'stage' => (string) $this->t('Event Setup'),
+          'message' => $hasEvents
+            ? (string) $this->t('Your event workspace is ready for setup, publishing, and attendee follow-up.')
+            : (string) $this->t('Create your first event to start adding details, RSVPs, or tickets.'),
+          'severity' => $hasEvents ? 'success' : 'info',
+        ],
+        [
+          'key' => 'publishing_readiness',
+          'stage' => (string) $this->t('Publishing Readiness'),
+          'message' => $hasPublished
+            ? (string) $this->t('At least one event is visible to attendees.')
+            : ($hasDraft
+              ? (string) $this->t('Your draft event stays private until you publish it.')
+              : (string) $this->t('Publishing guidance will appear after you create an event.')),
+          'severity' => $hasPublished ? 'success' : 'info',
+        ],
+        [
+          'key' => 'booking_readiness',
+          'stage' => (string) $this->t('Booking Readiness'),
+          'message' => $hasBooking
+            ? (string) $this->t('RSVP or ticket setup is present on at least one event.')
+            : (string) $this->t('Add RSVP settings or ticket types when you are ready to accept bookings.'),
+          'severity' => $hasBooking ? 'success' : 'info',
+        ],
+        [
+          'key' => 'discovery_readiness',
+          'stage' => (string) $this->t('Discovery Readiness'),
+          'message' => $hasVisualContent
+            ? ($hasPromotedEvent
+              ? (string) $this->t('Your event has visual content and an active promoted placement signal.')
+              : (string) $this->t('Your event has visual content that can support discovery and sharing.'))
+            : (string) $this->t('Adding a banner image can help your event stand out in discovery.'),
+          'severity' => $hasVisualContent ? 'success' : 'info',
+        ],
+        [
+          'key' => 'attendee_activity',
+          'stage' => (string) $this->t('Attendee Activity'),
+          'message' => $hasActivity
+            ? (string) $this->t('Your event has active bookings or RSVPs in organiser tools.')
+            : (string) $this->t('Bookings will appear here after attendees reserve tickets or RSVP.'),
+          'severity' => $hasActivity ? 'success' : 'info',
+        ],
+        [
+          'key' => 'event_momentum',
+          'stage' => (string) $this->t('Event Momentum'),
+          'message' => $analytics_available
+            ? (string) $this->t('Analytics are available from the organiser dashboard when you want to review activity.')
+            : ($stripeReady
+              ? (string) $this->t('Your payout setup is ready for paid ticket activity when your events use paid tickets.')
+              : (string) $this->t('Connect Stripe only when you plan to sell paid tickets.')),
+          'severity' => 'info',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * @return list<array{key: string, label: string, message: string, severity: string}>
+   */
+  public function vendorEventWorkspaceOperationalSummary(string $event_type, string $status, int $tickets_sold, int $orders_count, int $rsvp_count): array {
+    $isPublished = $status === 'published' || $status === 'past' || $status === 'upcoming';
+    $hasBooking = $event_type !== 'unknown';
+    $hasActivity = $tickets_sold > 0 || $orders_count > 0 || $rsvp_count > 0;
+    $isPaid = $event_type === 'paid' || $event_type === 'both';
+
+    return [
+      [
+        'key' => 'visibility',
+        'label' => (string) $this->t('Public visibility'),
+        'message' => $isPublished
+          ? (string) $this->t('This event page is visible to attendees.')
+          : (string) $this->t("This event is still in draft and won't appear publicly."),
+        'severity' => $isPublished ? 'success' : 'warning',
+      ],
+      [
+        'key' => 'booking',
+        'label' => (string) $this->t('Booking setup'),
+        'message' => $hasBooking
+          ? (string) $this->t('Attendees have a booking path for this event.')
+          : (string) $this->t('Add ticket types or RSVP settings before publishing.'),
+        'severity' => $hasBooking ? 'success' : 'warning',
+      ],
+      [
+        'key' => 'paid_tickets',
+        'label' => (string) $this->t('Paid ticket readiness'),
+        'message' => $isPaid
+          ? (string) $this->t('Paid ticket setup uses the existing Stripe and Commerce publish checks.')
+          : (string) $this->t('Paid tickets are not enabled for this event.'),
+        'severity' => $isPaid ? 'info' : 'neutral',
+      ],
+      [
+        'key' => 'attendees',
+        'label' => (string) $this->t('Attendees'),
+        'message' => $hasActivity
+          ? (string) $this->t('Bookings are visible in attendee and check-in tools.')
+          : (string) $this->t('Ticket holders will appear here after bookings begin.'),
+        'severity' => $hasActivity ? 'success' : 'info',
+      ],
+      [
+        'key' => 'day_of_event',
+        'label' => (string) $this->t('Day-of-event readiness'),
+        'message' => (string) $this->t('Use check-in during your event to validate tickets.'),
+        'severity' => 'info',
+      ],
+    ];
+  }
+
+  /**
+   * Builds event-scoped lifecycle guidance from existing workspace signals.
+   *
+   * @return array{heading: string, intro: string, items: list<array{key: string, stage: string, message: string, severity: string}>}
+   */
+  public function vendorEventWorkspaceLifecycleSummary(string $event_type, string $status, int $tickets_sold, int $orders_count, int $rsvp_count, bool $has_banner, bool $has_category, bool $has_tags, bool $is_promoted): array {
+    $isPublished = $status === 'published' || $status === 'past' || $status === 'upcoming';
+    $hasBooking = $event_type !== 'unknown';
+    $hasActivity = $tickets_sold > 0 || $orders_count > 0 || $rsvp_count > 0;
+    $hasDiscoveryTaxonomy = $has_category || $has_tags;
+    $isPast = $status === 'past';
+
+    return [
+      'heading' => (string) $this->t('Lifecycle guidance'),
+      'intro' => (string) $this->t('Contextual notes that explain this event state without adding new rules or alerts.'),
+      'items' => [
+        [
+          'key' => 'launch_readiness',
+          'stage' => (string) $this->t('Launch Readiness'),
+          'message' => $isPublished
+            ? (string) $this->t('Your event is visible to attendees.')
+            : (string) $this->t('This event is still in draft. Publish when your details and booking setup are ready.'),
+          'severity' => $isPublished ? 'success' : 'info',
+        ],
+        [
+          'key' => 'booking_readiness',
+          'stage' => (string) $this->t('Booking Readiness'),
+          'message' => $hasBooking
+            ? ($event_type === 'rsvp'
+              ? (string) $this->t('RSVPs are active for this event.')
+              : ($event_type === 'paid'
+                ? (string) $this->t('Paid tickets use the existing Stripe and Commerce publish checks.')
+                : (string) $this->t('RSVPs and paid tickets are active for this event.')))
+            : (string) $this->t('Ticket sales and RSVPs are not currently enabled.'),
+          'severity' => $hasBooking ? 'success' : 'warning',
+        ],
+        [
+          'key' => 'discovery_readiness',
+          'stage' => (string) $this->t('Discovery Readiness'),
+          'message' => $has_banner && $hasDiscoveryTaxonomy
+            ? ($is_promoted
+              ? (string) $this->t('Your event has discovery details and an active promoted placement signal.')
+              : (string) $this->t('Your banner image and category or tag details can support discovery.'))
+            : ($has_banner
+              ? (string) $this->t('Adding categories or tags can help people understand where this event fits.')
+              : (string) $this->t('Adding a banner image can help your event stand out in discovery.')),
+          'severity' => ($has_banner && $hasDiscoveryTaxonomy) ? 'success' : 'info',
+        ],
+        [
+          'key' => 'attendee_momentum',
+          'stage' => (string) $this->t('Attendee Momentum'),
+          'message' => $hasActivity
+            ? (string) $this->t('Your event already has bookings. Check-in tools are ready when you need them.')
+            : (string) $this->t('Bookings will appear here after attendees reserve tickets or RSVP.'),
+          'severity' => $hasActivity ? 'success' : 'info',
+        ],
+        [
+          'key' => 'post_event_followup',
+          'stage' => (string) $this->t('Post-Event Follow-up'),
+          'message' => $isPast
+            ? (string) $this->t('Your event has ended. Ticket holders and RSVP responses remain available from this workspace.')
+            : (string) $this->t('After the event, attendee activity remains available from your organiser dashboard and event workspace.'),
+          'severity' => $isPast ? 'neutral' : 'info',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * @param array{terms: bool, profile: bool, stripe: bool} $flags
+   *
+   * @return list<string>
+   */
+  public function eventStudioPublishReadinessLines(array $flags): array {
+    $items = [];
+    if (empty($flags['stripe'])) {
+      $items[] = $this->vendorStripeReadinessBlockingLine();
+    }
+    if (empty($flags['profile'])) {
+      $items[] = $this->vendorOrganiserProfileIncompleteLine();
+    }
+    if (empty($flags['terms'])) {
+      $items[] = (string) $this->t('Accept terms to publish.');
+    }
+    return $items;
+  }
+
+  public function vendorDashboardOperationalSummaryHeading(): string {
+    return (string) $this->t('Operational readiness');
+  }
+
+  public function vendorDashboardOperationalSummaryIntro(): string {
+    return (string) $this->t('A calm snapshot of publishing, bookings, payouts, attendees, and discovery.');
+  }
+
+  public function vendorEventWorkspaceOperationalSummaryHeading(): string {
+    return (string) $this->t('Operational readiness');
+  }
+
+  public function vendorEventWorkspaceOperationalSummaryIntro(): string {
+    return (string) $this->t('What is ready, what attendees can see, and what still needs setup.');
+  }
+
+  public function vendorAttendeeCheckinGuidanceLine(): string {
+    return (string) $this->t('Use check-in during your event to validate tickets.');
   }
 
   // -------------------------------------------------------------------------

@@ -222,7 +222,8 @@
       <p class="mel-live-ops__filter-empty" data-mel-ops-filter-empty hidden role="status">{{ 'Nothing matches your search.'|t }}</p>
 
       {% if attendee_rows is empty %}
-        <p class="mel-live-ops__muted">{{ 'No attendee rows loaded yet.'|t }}</p>
+        <p class="mel-live-ops__muted">{{ empty_guidance.no_rows|default('Ticket holders will appear here after bookings begin.'|t) }}</p>
+        <p class="mel-live-ops__muted">{{ empty_guidance.checkin|default('Use check-in during your event to validate tickets.'|t) }}</p>
       {% else %}
         {% set attendee_limit = attendee_rows|length > 120 ? 120 : attendee_rows|length %}
         {% for row in attendee_rows|slice(0, attendee_limit) %}

@@ -21,20 +21,73 @@ display:
     position: 0
     display_options:
       title: 'RSVP Submissions'
+      fields:
+        id:
+          id: id
+          table: rsvp_submission
+          field: id
+          plugin_id: numeric
+          label: 'RSVP ID'
+        attendee_name:
+          id: attendee_name
+          table: rsvp_submission
+          field: attendee_name
+          plugin_id: string
+          label: Attendee
+        status:
+          id: status
+          table: rsvp_submission
+          field: status
+          plugin_id: string
+          label: Status
+        changed:
+          id: changed
+          table: rsvp_submission
+          field: changed
+          plugin_id: date
+          label: Updated
+      pager:
+        type: full
+        options:
+          offset: 0
+          items_per_page: 50
       access:
         type: myeventlane_rsvp_vendor_access
         options: {  }
       cache:
         type: tag
         options: {  }
-      query:
-        type: views_query
-        options: {  }
-      pager:
-        type: full
-        options:
-          items_per_page: 50
-          offset: 0
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: text_custom
+          empty: true
+          content: '<div class="mel-vendor-rsvps__empty" role="status"><h2>No RSVPs yet</h2><p>RSVPs will appear here as people respond. You can share your event link from the Event Editor.</p></div>'
+          tokenize: false
+      sorts:
+        changed:
+          id: changed
+          table: rsvp_submission
+          field: changed
+          plugin_id: date
+          order: DESC
+          label: Updated
+      filters:
+        status:
+          id: status
+          table: rsvp_submission
+          field: status
+          plugin_id: string
+          operator: '!='
+          value: cancelled
+          group: 1
+          exposed: false
+          label: Status
       style:
         type: table
         options:
@@ -64,50 +117,9 @@ display:
       row:
         type: fields
         options: {  }
-      fields:
-        id:
-          id: id
-          table: rsvp_submission
-          field: id
-          label: 'RSVP ID'
-          plugin_id: numeric
-        attendee_name:
-          id: attendee_name
-          table: rsvp_submission
-          field: attendee_name
-          label: Attendee
-          plugin_id: string
-        status:
-          id: status
-          table: rsvp_submission
-          field: status
-          label: Status
-          plugin_id: string
-        changed:
-          id: changed
-          table: rsvp_submission
-          field: changed
-          label: Updated
-          plugin_id: date
-      filters:
-        status:
-          id: status
-          table: rsvp_submission
-          field: status
-          plugin_id: string
-          label: Status
-          operator: '!='
-          value: cancelled
-          group: 1
-          exposed: false
-      sorts:
-        changed:
-          id: changed
-          table: rsvp_submission
-          field: changed
-          label: Updated
-          order: DESC
-          plugin_id: date
+      query:
+        type: views_query
+        options: {  }
       display_extenders: {  }
   page_1:
     id: page_1
@@ -115,10 +127,10 @@ display:
     display_plugin: page
     position: 1
     display_options:
-      path: dashboard/rsvps
-      menu:
-        type: none
       access:
         type: myeventlane_rsvp_vendor_access
         options: {  }
       display_extenders: {  }
+      path: dashboard/rsvps
+      menu:
+        type: none

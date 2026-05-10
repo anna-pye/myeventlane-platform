@@ -6,10 +6,12 @@ namespace Drupal\Tests\myeventlane_tickets\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
  * Kernel tests for ticket check-in validation service.
@@ -28,6 +30,16 @@ final class TicketCheckinServiceTest extends KernelTestBase {
     'field',
     'node',
     'options',
+    'datetime',
+    'datetime_range',
+    'commerce',
+    'commerce_price',
+    'commerce_order',
+    'commerce_product',
+    'entity_reference_revisions',
+    'paragraphs',
+    'mel_ticket',
+    'myeventlane_vendor',
     'myeventlane_tickets',
   ];
 
@@ -45,6 +57,29 @@ final class TicketCheckinServiceTest extends KernelTestBase {
    * Logged-in scanner user fixture.
    */
   private User $scannerUser;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function register(ContainerBuilder $container): void {
+    parent::register($container);
+
+    foreach (array_keys($container->getDefinitions()) as $service_id) {
+      if (str_starts_with($service_id, 'myeventlane_vendor.') && $service_id !== 'myeventlane_vendor.event_access_checker') {
+        $container->removeDefinition($service_id);
+      }
+    }
+
+    $container->register('myeventlane_vendor.event_access_checker', EventVendorAccessChecker::class);
+    $container->register('myeventlane_onboarding.manager', \stdClass::class);
+    $container->register('myeventlane_core.vendor_follow', \stdClass::class);
+    $container->register('myeventlane_event_studio.save', \stdClass::class);
+    $container->register('myeventlane_legal.gatekeeper', \stdClass::class);
+    $container->register('myeventlane_core.domain_detector', \stdClass::class);
+    $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
+    $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
+    $container->register('myeventlane_boost.manager', \stdClass::class);
+  }
 
   /**
    * {@inheritdoc}
@@ -84,6 +119,7 @@ final class TicketCheckinServiceTest extends KernelTestBase {
     ]);
     $this->eventB->save();
 
+    require_once DRUPAL_ROOT . '/modules/custom/myeventlane_tickets/myeventlane_tickets.install';
     \myeventlane_tickets_update_8005();
   }
 
@@ -156,15 +192,85 @@ final class TicketCheckinServiceTest extends KernelTestBase {
   }
 
   /**
+   * Legacy order-item ticket codes still resolve to a ticket entity.
+   */
+  public function testLegacyOrderItemCodeStillValidates(): void {
+    $ticket = $this->createTicket('MEL-CANONICAL-LEGACY', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'order_item_id' => 987,
+    ]);
+    $legacy_code = sprintf('MEL-%d-123-987-ABC123', (int) $this->eventA->id());
+
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $legacy_code, 'kernel-device-5', 'online');
+
+    $this->assertTrue($result['ok']);
+    $this->assertSame('admitted', $result['result']);
+
+    $reloaded = Ticket::load($ticket->id());
+    $this->assertSame(Ticket::STATUS_CHECKED_IN, (string) $reloaded->get('status')->value);
+  }
+
+  /**
+   * Structured mel:v1 entitlement payloads redeem through the scanner service.
+   */
+  public function testStructuredPayloadRedeemsDrinkVoucherOnce(): void {
+    $ticket = $this->createTicket('MEL-DRINK-0001', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
+      'redemption_limit' => 1,
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+
+    $this->assertStringStartsWith('mel:v1:json:', $payload);
+
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-6', 'online');
+
+    $this->assertTrue($result['ok']);
+    $this->assertSame('redeemed', $result['result']);
+
+    $reloaded = Ticket::load($ticket->id());
+    $this->assertSame(1, (int) $reloaded->get('redemption_count')->value);
+    $this->assertSame(Ticket::FULFILMENT_REDEEMED, (string) $reloaded->get('fulfilment_status')->value);
+
+    $second_result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-6', 'online');
+
+    $this->assertFalse($second_result['ok']);
+    $this->assertSame('redemption_limit_reached', $second_result['result']);
+  }
+
+  /**
+   * Expired entitlement payloads are blocked before mutation.
+   */
+  public function testExpiredStructuredPayloadIsBlocked(): void {
+    $ticket = $this->createTicket('MEL-EXPIRED-0001', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_FOOD,
+      'expires_at' => gmdate('Y-m-d\TH:i:s', time() - 3600),
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-7', 'online');
+
+    $this->assertFalse($result['ok']);
+    $this->assertSame('expired', $result['result']);
+
+    $reloaded = Ticket::load($ticket->id());
+    $this->assertSame(0, (int) $reloaded->get('redemption_count')->value);
+  }
+
+  /**
    * Creates one ticket fixture.
    */
-  private function createTicket(string $ticket_code, int $event_id, string $status): Ticket {
-    $ticket = Ticket::create([
+  private function createTicket(string $ticket_code, int $event_id, string $status, array $overrides = []): Ticket {
+    $values = [
       'ticket_code' => $ticket_code,
       'event_id' => $event_id,
       'purchaser_uid' => $this->scannerUser->id(),
       'status' => $status,
-    ]);
+    ] + $overrides;
+
+    $ticket = Ticket::create($values);
     $ticket->save();
     return $ticket;
   }

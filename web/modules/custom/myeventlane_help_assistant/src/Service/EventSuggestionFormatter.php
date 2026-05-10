@@ -181,7 +181,7 @@ final class EventSuggestionFormatter {
       'missing_image' => (string) $this->t('Add an event image'),
       'missing_category' => (string) $this->t('Choose a category'),
       'missing_accessibility' => (string) $this->t('Add accessibility details'),
-      'boost_visibility' => (string) $this->t('Boost your event'),
+      'boost_visibility' => (string) $this->t('Promote your event'),
       'calendar_confirmations_off' => (string) $this->t('Turn on confirmations'),
       'calendar_ics_path' => (string) $this->t('Enable calendar downloads'),
       'near_capacity' => (string) $this->t('Nearly at capacity'),
@@ -360,7 +360,7 @@ final class EventSuggestionFormatter {
       $url = Url::fromRoute('myeventlane_boost.vendor_boost_wizard', ['event' => $event->id()])->toString();
       return [
         'type' => 'link',
-        'label' => (string) $this->t('Boost event'),
+        'label' => (string) $this->t('Promote event'),
         'url' => $url,
       ];
     }

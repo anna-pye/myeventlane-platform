@@ -95,6 +95,8 @@ final class AccountLinksService {
       }
     }
 
+    $discoverUrl = '/events';
+
     $ticketsUrl = Url::fromRoute('myeventlane_checkout_flow.my_tickets', [], ['absolute' => FALSE])->toString();
     $dashboardUrl = Url::fromRoute('myeventlane_account.dashboard', [], ['absolute' => FALSE])->toString();
 
@@ -106,19 +108,39 @@ final class AccountLinksService {
     catch (\Throwable) {
     }
 
+    $supportRoutesMatch = [];
+    if ($this->moduleHandler->moduleExists('myeventlane_escalations_portal')) {
+      $supportRoutesMatch = [
+        'myeventlane_escalations_portal.customer_support',
+        'myeventlane_escalations_portal.customer_support_tickets',
+        'myeventlane_escalations_portal.customer_list',
+        'myeventlane_escalations_portal.customer_add',
+        'myeventlane_escalations_portal.customer_view',
+        'myeventlane_escalations_portal.customer_reopen',
+      ];
+    }
+
     $definitions = [
+      [
+        'id' => 'discover',
+        'title' => $this->t('Discover'),
+        'url' => $discoverUrl,
+        'in_quick' => TRUE,
+        'routes_match' => [],
+      ],
       [
         'id' => 'dashboard',
         'title' => $this->t('Dashboard'),
         'url' => $dashboardUrl,
         'in_quick' => FALSE,
+        'show_in_sidebar' => FALSE,
         'routes_match' => [
           'myeventlane_account.dashboard',
         ],
       ],
       [
         'id' => 'tickets',
-        'title' => $this->t('My Tickets'),
+        'title' => $this->t('Tickets'),
         'url' => $ticketsUrl,
         'in_quick' => TRUE,
         'show_in_sidebar' => TRUE,
@@ -148,16 +170,6 @@ final class AccountLinksService {
         ],
       ],
       [
-        'id' => 'notifications',
-        'title' => $this->t('Notifications'),
-        'url' => $notificationsUrl,
-        'in_quick' => TRUE,
-        'routes_match' => [
-          'myeventlane_notifications.inbox',
-          'myeventlane_notifications.preferences',
-        ],
-      ],
-      [
         'id' => 'categories',
         'title' => $this->t('Categories'),
         'url' => $categoriesUrl,
@@ -168,11 +180,28 @@ final class AccountLinksService {
       ],
       [
         'id' => 'followed_organisers',
-        'title' => $this->t('Followed organisers'),
+        'title' => $this->t('Organisers'),
         'url' => $followedOrganisersUrl,
         'in_quick' => TRUE,
         'routes_match' => [
           'myeventlane_account.followed_organisers',
+        ],
+      ],
+      [
+        'id' => 'support',
+        'title' => $this->t('Support'),
+        'url' => $supportUrl,
+        'in_quick' => TRUE,
+        'routes_match' => $supportRoutesMatch,
+      ],
+      [
+        'id' => 'notifications',
+        'title' => $this->t('Notifications'),
+        'url' => $notificationsUrl,
+        'in_quick' => TRUE,
+        'routes_match' => [
+          'myeventlane_notifications.inbox',
+          'myeventlane_notifications.preferences',
         ],
       ],
       [
@@ -186,17 +215,11 @@ final class AccountLinksService {
         ],
       ],
       [
-        'id' => 'support',
-        'title' => $this->t('Support'),
-        'url' => $supportUrl,
-        'in_quick' => TRUE,
-        'routes_match' => [],
-      ],
-      [
         'id' => 'logout',
         'title' => $this->t('Log out'),
         'url' => Url::fromRoute('user.logout', [], ['absolute' => FALSE])->toString(),
         'in_quick' => FALSE,
+        'show_in_sidebar' => FALSE,
         'routes_match' => [],
       ],
     ];

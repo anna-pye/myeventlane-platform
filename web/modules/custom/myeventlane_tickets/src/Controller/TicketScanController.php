@@ -61,7 +61,7 @@ final class TicketScanController extends ControllerBase {
         '#markup' => '<div class="mel-checkin-camera-wrap"><div id="mel-checkin-camera" class="mel-checkin-camera"></div><div id="mel-checkin-status-overlay" class="mel-checkin-status-overlay is-idle"><div class="mel-checkin-status-icon" id="mel-checkin-status-icon">...</div><div class="mel-checkin-status-text" id="mel-checkin-status-text">' . $this->t('Ready to scan') . '</div><div class="mel-checkin-status-subtext" id="mel-checkin-status-subtext"></div></div></div>',
       ],
       'manual' => [
-        '#markup' => '<form id="mel-checkin-manual-form" class="mel-checkin-manual-form"><label for="mel-checkin-manual-input">' . $this->t('Manual entry') . '</label><input id="mel-checkin-manual-input" type="text" maxlength="512" autocomplete="off" placeholder="' . $this->t('Paste ticket code or payload') . '" /><button type="submit">' . $this->t('Validate') . '</button></form>',
+        '#markup' => '<form id="mel-checkin-manual-form" class="mel-checkin-manual-form"><label for="mel-checkin-manual-input">' . $this->t('Manual entry') . '</label><input id="mel-checkin-manual-input" type="text" maxlength="512" autocomplete="off" placeholder="' . $this->t('Paste ticket code or QR text') . '" /><button type="submit">' . $this->t('Validate') . '</button></form>',
       ],
     ];
 

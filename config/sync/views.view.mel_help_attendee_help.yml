@@ -41,6 +41,18 @@ display:
       cache:
         type: tag
         options: {  }
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: text_custom
+          empty: true
+          content: '<div class="mel-help-listing__empty" role="status"><h2>No articles match yet</h2><p>Try the search at the top of the page, or browse the Help Centre for more topics.</p></div>'
+          tokenize: false
       sorts:
         changed:
           id: changed

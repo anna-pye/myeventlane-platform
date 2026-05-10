@@ -141,10 +141,10 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
 
     $has_vendor_questions = $this->checkoutAttendeeSchema->orderHasMergedQuestionTemplates($this->order);
     $intro_title = $has_vendor_questions
-      ? (string) $this->t('Attendee questions')
+      ? (string) $this->t('Questions from the organiser')
       : (string) $this->t('Ticket holder details');
     $intro_body = $has_vendor_questions
-      ? (string) $this->t('Add per-ticket details and answer organiser questions before continuing.')
+      ? (string) $this->t('Answer these for each ticket before you pay.')
       : (string) $this->t('Enter the name and email for each ticket. Phone is optional unless the organiser requires it for check-in.');
 
     $pane_form['intro'] = [
@@ -303,7 +303,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       'text' => [
         '#markup' => $is_complete
           ? (string) $this->t('This ticket holder entry is complete.')
-          : (string) $this->t('This ticket holder entry is incomplete. Required fields or organiser questions still need answers.'),
+          : (string) $this->t('Incomplete — required fields or organiser questions are missing.'),
       ],
       '#weight' => -12,
     ];
@@ -388,7 +388,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         ? (string) ($question->get('field_question_label')->value ?? '')
         : '';
       if ($label === '') {
-        $label = 'Extra Question';
+        $label = (string) $this->t('Additional question');
       }
       $type = $question->hasField('field_question_type')
         ? (string) ($question->get('field_question_type')->value ?? 'text')

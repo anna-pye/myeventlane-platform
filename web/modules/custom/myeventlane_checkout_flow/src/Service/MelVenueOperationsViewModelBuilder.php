@@ -153,6 +153,10 @@ final class MelVenueOperationsViewModelBuilder {
       'recent_activity' => $recent,
       'links' => $links,
       'search' => $search,
+      'empty_guidance' => [
+        'no_rows' => $this->readinessHelper->vendorAttendeeOperationsNoAttendeesYetSlots()['why_empty'],
+        'checkin' => $this->readinessHelper->vendorAttendeeCheckinGuidanceLine(),
+      ],
       'operational_actions' => $this->buildOperationalActions($eventId),
       // Per-purpose CSRF token consumed by the manual check-in form (hidden
       // `_token` field) and the AJAX behaviour (`X-CSRF-Token` header).

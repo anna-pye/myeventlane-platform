@@ -1911,25 +1911,31 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
   $path = \Drupal::request()?->getPathInfo() ?? '';
 
   if ($route_name === 'myeventlane_vendor.console.messaging_brand') {
-    return 'profile';
+    return 'messaging';
   }
   if (str_starts_with($path, '/vendor/settings')) {
-    return 'profile';
+    return 'settings';
   }
   if (str_starts_with($path, '/vendor/analytics')) {
     return 'analytics';
   }
   if ($path === '/vendor/attendees') {
-    return 'attendees';
+    return 'ticket_holders';
+  }
+  if (preg_match('#^/event/\d+/tickets/checkin#', $path)) {
+    return 'checkin';
+  }
+  if (str_starts_with($path, '/vendor/support')) {
+    return 'support';
   }
   if (str_starts_with($path, '/vendor/studio')) {
-    return 'events';
+    return 'event_editor';
   }
   if (str_starts_with($path, '/vendor/events')) {
     return 'events';
   }
   if (str_contains($path, '/vendor/dashboard/messaging/brand')) {
-    return 'profile';
+    return 'messaging';
   }
   if ($path === '/vendor/dashboard' || str_starts_with($path, '/vendor/dashboard/')) {
     return 'dashboard';
@@ -1949,7 +1955,6 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.event_publish' => 'events',
     'myeventlane_vendor.console.event_promotion' => 'events',
     'myeventlane_vendor_comms.branding' => 'events',
-    'myeventlane_vendor.console.event_editor' => 'events',
     'myeventlane_vendor.console.event_analytics' => 'events',
     'myeventlane_vendor.console.event_settings' => 'events',
     'myeventlane_vendor.console.event_orders' => 'orders',
@@ -1957,32 +1962,37 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_refunds.vendor_refund_requests' => 'refund_requests',
     'myeventlane_refunds.vendor_refund_request_approve' => 'refund_requests',
     'myeventlane_refunds.vendor_refund_request_reject' => 'refund_requests',
-    'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
-    'myeventlane_event_attendees.vendor_list' => 'attendees',
-    'myeventlane_vendor.console.event_rsvps' => 'attendees',
+    'myeventlane_checkout_flow.vendor_attendees' => 'ticket_holders',
+    'myeventlane_event_attendees.vendor_list' => 'ticket_holders',
+    'myeventlane_vendor.console.event_rsvps' => 'ticket_holders',
+    'myeventlane_tickets.ticket_checkin' => 'checkin',
+    'myeventlane_tickets.ticket_checkin_validate' => 'checkin',
     'myeventlane_vendor.console.payouts' => 'payouts',
-    'myeventlane_vendor.console.boost' => 'growth',
-    'myeventlane_vendor.console.audience' => 'audience',
-    'myeventlane_vendor.console.settings' => 'profile',
-    'myeventlane_pro.branding' => 'profile',
-    'myeventlane_venue.vendor_venues' => 'profile',
-    'myeventlane_venue.vendor_venue_add' => 'profile',
-    'myeventlane_venue.vendor_venue_edit' => 'profile',
-    'myeventlane_venue.vendor_venue_delete' => 'profile',
+    'myeventlane_vendor.console.boost' => 'promote',
+    'myeventlane_vendor.console.audience' => 'dashboard',
+    'myeventlane_vendor.console.settings' => 'settings',
+    'myeventlane_pro.branding' => 'settings',
+    'myeventlane_venue.vendor_venues' => 'settings',
+    'myeventlane_venue.vendor_venue_add' => 'settings',
+    'myeventlane_venue.vendor_venue_edit' => 'settings',
+    'myeventlane_venue.vendor_venue_delete' => 'settings',
     'myeventlane_analytics.dashboard' => 'analytics',
     'myeventlane_analytics.event' => 'analytics',
     'myeventlane_analytics.export_pdf' => 'analytics',
     'myeventlane_analytics.export_excel' => 'analytics',
-    'myeventlane_notifications.inbox' => 'notifications',
-    'myeventlane_notifications.preferences' => 'notifications',
-    'myeventlane_help_centre.vendor_help' => 'help',
-    'myeventlane_help_centre.home' => 'help',
+    'myeventlane_escalations_portal.vendor_list' => 'support',
+    'myeventlane_escalations_portal.vendor_view' => 'support',
+    'myeventlane_escalations_portal.vendor_resolve' => 'support',
+    'myeventlane_escalations_portal.vendor_reopen' => 'support',
+    'myeventlane_help_centre.vendor_help' => 'support',
+    'myeventlane_help_centre.home' => 'dashboard',
     'myeventlane_event_studio.create' => 'events',
-    'myeventlane_event_studio.edit' => 'events',
-    'myeventlane_vendor.console.studio' => 'events',
-    'myeventlane_vendor.console.studio.event_data' => 'events',
-    'myeventlane_vendor.studio_event_schema' => 'events',
-    'myeventlane_vendor.studio_event_save' => 'events',
+    'myeventlane_event_studio.edit' => 'event_editor',
+    'myeventlane_vendor.console.event_editor' => 'event_editor',
+    'myeventlane_vendor.console.studio' => 'event_editor',
+    'myeventlane_vendor.console.studio.event_data' => 'event_editor',
+    'myeventlane_vendor.studio_event_schema' => 'event_editor',
+    'myeventlane_vendor.studio_event_save' => 'event_editor',
     'myeventlane_event.wizard.basics' => 'events',
     'myeventlane_event.wizard.when_where' => 'events',
     'myeventlane_event.wizard.tickets' => 'events',
@@ -2025,14 +2035,14 @@ function _myeventlane_vendor_theme_build_onboarding_shell_nav_items(string $acti
       'route' => 'myeventlane_vendor.console.payouts',
     ],
     [
-      'key' => 'profile',
-      'label' => t('Profile'),
+      'key' => 'settings',
+      'label' => t('Organiser settings'),
       'icon' => 'settings',
       'route' => 'myeventlane_vendor.console.settings',
     ],
     [
-      'key' => 'help',
-      'label' => t('Help'),
+      'key' => 'support',
+      'label' => t('Support'),
       'icon' => 'help',
       'route' => 'myeventlane_help_centre.home',
       'path_fallback' => '/help',
@@ -2080,21 +2090,25 @@ function _myeventlane_vendor_theme_decorate_shell_nav_item(array $item, string $
 /**
  * Full vendor console shell nav; omits items the account cannot access.
  *
- * Primary order: Dashboard, Events, Analytics (Pro-gated), Attendees (access),
- * Profile; then secondary links (notifications, orders stub, refunds, …).
+ * Order matches product IA: dashboard → events → editor → orders → ticket
+ * holders → check-in → payouts → promote → messaging → analytics → support
+ * → organiser settings. Event-scoped links enable when an event context
+ * exists on the route match.
  *
  * @return array<int, array<string, mixed>>
  *   Sidebar items for vendor shell.
  */
 function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $active_section, ?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
   $wizard_children = _myeventlane_vendor_theme_build_event_wizard_submenu($route_name, $route_match);
+  $event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
 
-  $primary = [
+  $definitions = [
     [
       'key' => 'dashboard',
       'label' => t('Dashboard'),
       'icon' => 'dashboard',
       'route' => 'myeventlane_vendor.console.dashboard',
+      'children' => [],
     ],
     [
       'key' => 'events',
@@ -2104,123 +2118,147 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
       'children' => $wizard_children,
     ],
     [
-      'key' => 'analytics',
-      'label' => t('Analytics'),
-      'icon' => 'analytics',
-      'route' => 'myeventlane_analytics.dashboard',
-    ],
-    [
-      'key' => 'attendees',
-      'label' => t('Attendees'),
-      'icon' => 'attendees',
-      'route' => 'myeventlane_checkout_flow.vendor_attendees',
-    ],
-    [
-      'key' => 'profile',
-      'label' => t('Profile'),
-      'icon' => 'settings',
-      'route' => 'myeventlane_vendor.console.settings',
-    ],
-  ];
-
-  $secondary = [
-    [
-      'key' => 'notifications',
-      'label' => t('Notifications'),
-      'icon' => 'notifications',
-      'route' => 'myeventlane_notifications.inbox',
+      'key' => 'event_editor',
+      'label' => t('Event Editor'),
+      'icon' => 'events',
+      'route' => 'myeventlane_vendor.console.studio',
+      'children' => [],
     ],
     [
       'key' => 'orders',
       'label' => t('Orders'),
       'icon' => 'orders',
       'route' => NULL,
+      'children' => [],
+      'event_route' => 'myeventlane_vendor.console.event_orders',
     ],
     [
-      'key' => 'refund_requests',
-      'label' => t('Refund requests'),
-      'icon' => 'refunds',
+      'key' => 'ticket_holders',
+      'label' => t('Ticket holders'),
+      'icon' => 'attendees',
+      'route' => 'myeventlane_checkout_flow.vendor_attendees',
+      'children' => [],
+    ],
+    [
+      'key' => 'checkin',
+      'label' => t('Check-in'),
+      'icon' => 'attendees',
       'route' => NULL,
-    ],
-    [
-      'key' => 'audience',
-      'label' => t('Audience'),
-      'icon' => 'audience',
-      'route' => 'myeventlane_vendor.console.audience',
+      'children' => [],
+      'event_route' => 'myeventlane_tickets.ticket_checkin',
     ],
     [
       'key' => 'payouts',
       'label' => t('Payouts'),
       'icon' => 'payouts',
       'route' => 'myeventlane_vendor.console.payouts',
+      'children' => [],
     ],
     [
-      'key' => 'growth',
-      'label' => t('Growth'),
+      'key' => 'promote',
+      'label' => t('Promote event'),
       'icon' => 'growth',
       'route' => 'myeventlane_vendor.console.boost',
+      'children' => [],
     ],
     [
-      'key' => 'help',
-      'label' => t('Help'),
+      'key' => 'messaging',
+      'label' => t('Messaging'),
+      'icon' => 'notifications',
+      'route' => 'myeventlane_vendor.console.messaging_brand',
+      'children' => [],
+    ],
+    [
+      'key' => 'analytics',
+      'label' => t('Analytics'),
+      'icon' => 'analytics',
+      'route' => 'myeventlane_analytics.dashboard',
+      'children' => [],
+    ],
+    [
+      'key' => 'support',
+      'label' => t('Support'),
       'icon' => 'help',
-      'route' => 'myeventlane_help_centre.home',
-      'path_fallback' => '/help',
+      'route' => 'myeventlane_escalations_portal.vendor_list',
+      'children' => [],
+    ],
+    [
+      'key' => 'settings',
+      'label' => t('Organiser settings'),
+      'icon' => 'settings',
+      'route' => 'myeventlane_vendor.console.settings',
+      'children' => [],
     ],
   ];
 
-  $items = array_merge($primary, $secondary);
-
   $built = [];
-  foreach ($items as $item) {
-    if ($item['key'] === 'refund_requests') {
-      if (!\Drupal::moduleHandler()->moduleExists('myeventlane_refunds')) {
-        continue;
-      }
-      if (!\Drupal::currentUser()->hasPermission('manage_refunds')) {
-        continue;
-      }
-      $event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
+  foreach ($definitions as $def) {
+    $item = [
+      'key' => $def['key'],
+      'label' => $def['label'],
+      'icon' => $def['icon'],
+      'children' => $def['children'] ?? [],
+    ];
+
+    if (!empty($def['event_route'])) {
+      $event_route = (string) $def['event_route'];
+      $item['route'] = $event_route;
       if ($event_id === NULL) {
-        continue;
+        $item['url'] = NULL;
+        $item['is_disabled'] = TRUE;
       }
-      if (!_myeventlane_vendor_theme_named_route_accessible('myeventlane_refunds.vendor_refund_requests', ['node' => $event_id])) {
-        continue;
+      else {
+        $params = ['event' => $event_id];
+        if (!_myeventlane_vendor_theme_named_route_accessible($event_route, $params)) {
+          $item['url'] = NULL;
+          $item['is_disabled'] = TRUE;
+        }
+        else {
+          $url = _myeventlane_vendor_theme_safe_route_url($event_route, $params);
+          $item['url'] = $url;
+          $item['is_disabled'] = $url === NULL;
+        }
       }
-      $url = _myeventlane_vendor_theme_safe_route_url('myeventlane_refunds.vendor_refund_requests', ['node' => $event_id]);
-      if ($url === NULL) {
-        continue;
-      }
-      $item['url'] = $url;
-      $item['route'] = 'myeventlane_refunds.vendor_refund_requests';
-      $item['is_disabled'] = FALSE;
       $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($item, $active_section);
       continue;
     }
 
-    if ($item['key'] === 'orders') {
-      $item['url'] = NULL;
-      $item['is_disabled'] = TRUE;
-      $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($item, $active_section);
+    $route = (string) ($def['route'] ?? '');
+    if ($route === '') {
       continue;
     }
-
-    if (!empty($item['route'])) {
-      if (!_myeventlane_vendor_theme_named_route_accessible((string) $item['route'], [])) {
-        continue;
-      }
-      $url = _myeventlane_vendor_theme_safe_route_url((string) $item['route']);
-      if ($url === NULL && !empty($item['path_fallback'])) {
-        $url = (string) $item['path_fallback'];
-      }
-      $is_disabled = $url === NULL;
-    }
-    else {
+    if (!_myeventlane_vendor_theme_named_route_accessible($route, [])) {
       continue;
     }
+    $url = _myeventlane_vendor_theme_safe_route_url($route);
+    if ($url === NULL && !empty($def['path_fallback'])) {
+      $url = (string) $def['path_fallback'];
+    }
+    $item['route'] = $route;
     $item['url'] = $url;
-    $item['is_disabled'] = $is_disabled;
+    $item['is_disabled'] = $url === NULL;
     $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($item, $active_section);
+  }
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_refunds')
+    && \Drupal::currentUser()->hasPermission('manage_refunds')) {
+    $refund_event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
+    if ($refund_event_id !== NULL
+      && _myeventlane_vendor_theme_named_route_accessible('myeventlane_refunds.vendor_refund_requests', ['node' => $refund_event_id])) {
+      $refund_url = _myeventlane_vendor_theme_safe_route_url('myeventlane_refunds.vendor_refund_requests', ['node' => $refund_event_id]);
+      if ($refund_url !== NULL) {
+        $refund_item = [
+          'key' => 'refund_requests',
+          'label' => t('Refund requests'),
+          'icon' => 'refunds',
+          'route' => 'myeventlane_refunds.vendor_refund_requests',
+          'url' => $refund_url,
+          'children' => [],
+          'is_disabled' => FALSE,
+        ];
+        $built[] = _myeventlane_vendor_theme_decorate_shell_nav_item($refund_item, $active_section);
+      }
+    }
   }
 
   return $built;
@@ -2272,7 +2310,7 @@ function _myeventlane_vendor_theme_build_event_wizard_submenu(?string $route_nam
 
   return [
     [
-      'label' => t('Event builder'),
+      'label' => t('Event Editor'),
       'url' => $url,
       'is_disabled' => $url === NULL,
       'is_active' => in_array($route_name, $studio_routes, TRUE),

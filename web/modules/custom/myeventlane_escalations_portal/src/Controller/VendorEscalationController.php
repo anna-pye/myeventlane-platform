@@ -51,7 +51,7 @@ final class VendorEscalationController extends ControllerBase {
   public function list(): array {
     $vendor = $this->vendorResolver->resolveFromUser($this->currentUser());
     if (!$vendor) {
-      return ['#markup' => '<p>' . $this->t('You are not associated with a vendor.') . '</p>'];
+      return ['#markup' => '<p>' . $this->t('You are not associated with an organiser account.') . '</p>'];
     }
 
     $ids = $this->entityTypeManager()->getStorage('escalation')
@@ -105,7 +105,7 @@ final class VendorEscalationController extends ControllerBase {
         $this->t('Created'),
       ],
       '#rows' => $rows,
-      '#empty' => $this->t('No escalations assigned to your vendor.'),
+      '#empty' => $this->t('No support requests are assigned to your organiser account yet.'),
       '#attributes' => ['class' => ['mel-support-table']],
     ];
 
@@ -126,8 +126,8 @@ final class VendorEscalationController extends ControllerBase {
 
     return [
       '#theme' => 'mel_support_layout',
-      '#title' => $this->t('Vendor Support'),
-      '#intro' => $this->t('Manage escalations assigned to your vendor.'),
+      '#title' => $this->t('Support'),
+      '#intro' => $this->t('Manage support requests for your organiser account.'),
       '#content' => array_filter([
         'helper' => $helper,
         'table' => $table,
@@ -141,7 +141,7 @@ final class VendorEscalationController extends ControllerBase {
   public function view(int $escalation): array {
     $entity = $this->entityTypeManager()->getStorage('escalation')->load($escalation);
     if (!$entity) {
-      return ['#markup' => $this->t('Escalation not found.')];
+      return ['#markup' => $this->t('Support request not found.')];
     }
 
     /** @var \Drupal\myeventlane_escalations\Entity\Escalation $entity */
@@ -256,7 +256,7 @@ final class VendorEscalationController extends ControllerBase {
   public function viewTitle(int $escalation): string {
     $entity = $this->entityTypeManager()->getStorage('escalation')->load($escalation);
     if (!$entity) {
-      return (string) $this->t('Escalation');
+      return (string) $this->t('Support request');
     }
     return (string) $entity->get('subject')->value;
   }
@@ -267,7 +267,7 @@ final class VendorEscalationController extends ControllerBase {
   public function resolve(int $escalation): RedirectResponse {
     $entity = $this->entityTypeManager()->getStorage('escalation')->load($escalation);
     if (!$entity) {
-      $this->messenger()->addError($this->t('Escalation not found.'));
+      $this->messenger()->addError($this->t('Support request not found.'));
       return new RedirectResponse('/vendor/support');
     }
 
@@ -286,7 +286,7 @@ final class VendorEscalationController extends ControllerBase {
   public function reopen(int $escalation): RedirectResponse {
     $entity = $this->entityTypeManager()->getStorage('escalation')->load($escalation);
     if (!$entity) {
-      $this->messenger()->addError($this->t('Escalation not found.'));
+      $this->messenger()->addError($this->t('Support request not found.'));
       return new RedirectResponse('/vendor/support');
     }
 

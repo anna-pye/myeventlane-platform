@@ -58,7 +58,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
     $pane_form['email'] = [
       '#type' => 'email',
       '#title' => $this->t('Email address'),
-      '#description' => $this->t('We\'ll send your order confirmation and tickets to this address.'),
+      '#description' => $this->t('We\'ll email your order confirmation and tickets here.'),
       '#required' => TRUE,
       '#default_value' => $customer->getEmail() ?: $billing_profile->get('address')->first()?->get('email')?->value ?? '',
       '#attributes' => [
@@ -95,7 +95,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
     $pane_form['mobile'] = [
       '#type' => 'tel',
       '#title' => $this->t('Mobile number'),
-      '#description' => $this->t('Optional. We may use this to contact you about your order.'),
+      '#description' => $this->t('Optional — we\'ll only use this if we need to reach you about this booking.'),
       '#default_value' => $mobile_default,
       '#attributes' => [
         'autocomplete' => 'tel',

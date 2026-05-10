@@ -61,7 +61,7 @@ body_html: |
 
       <div style="text-align: center; margin: 15px 0 30px 0;">
         <a href="{{ support_url }}" style="color: #f26d5b; font-size: 14px; text-decoration: underline;">
-          Need help? Contact Vendor Support
+          Need help? Contact MyEventLane support
         </a>
       </div>
 

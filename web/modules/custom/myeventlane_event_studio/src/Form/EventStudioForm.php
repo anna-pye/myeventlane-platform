@@ -15,6 +15,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
@@ -85,6 +86,8 @@ final class EventStudioForm extends FormBase {
 
   protected EventStudioGovernanceComponentBuilder $eventStudioGovernanceComponentBuilder;
 
+  protected MelReadinessHelper $readinessHelper;
+
   /**
    * Lazily restored for cached form AJAX (see {@see getMelPlatformSupportWizardForm()}).
    *
@@ -118,6 +121,7 @@ final class EventStudioForm extends FormBase {
     $instance->melPlatformSupportWizardForm = $container->get('myeventlane_event.mel_platform_support_wizard_form');
     $instance->eventStudioGovernanceBuilder = $container->get('myeventlane_event_studio.governance_builder');
     $instance->eventStudioGovernanceComponentBuilder = $container->get('myeventlane_event_studio.governance_component_builder');
+    $instance->readinessHelper = $container->get('myeventlane_surface.state_readiness_helper');
     return $instance;
   }
 
@@ -137,7 +141,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder)
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder, $this->readinessHelper)
       && isset($this->melPlatformSupportWizardForm)) {
       return;
     }
@@ -196,6 +200,9 @@ final class EventStudioForm extends FormBase {
     if (!isset($this->eventStudioGovernanceComponentBuilder)) {
       $this->eventStudioGovernanceComponentBuilder = $container->get('myeventlane_event_studio.governance_component_builder');
     }
+    if (!isset($this->readinessHelper)) {
+      $this->readinessHelper = $container->get('myeventlane_surface.state_readiness_helper');
+    }
   }
 
   protected function getMelPlatformSupportWizardForm(): MelPlatformSupportWizardFormHelper {
@@ -224,16 +231,7 @@ final class EventStudioForm extends FormBase {
 
     if (!$this->currentUser->hasPermission('administer nodes') && (int) $this->currentUser->id() > 0) {
       $flags = $this->publishRequirementsGate->getReadinessFlags($this->currentUser->getAccount());
-      $items = [];
-      if (!$flags['stripe']) {
-        $items[] = $this->t('Connect Stripe before publishing your event.');
-      }
-      if (!$flags['profile']) {
-        $items[] = $this->t('Complete your organiser profile.');
-      }
-      if (!$flags['terms']) {
-        $items[] = $this->t('Accept terms to publish.');
-      }
+      $items = $this->readinessHelper->eventStudioPublishReadinessLines($flags);
       if ($items !== []) {
         $form['mel_studio_readiness'] = [
           '#type' => 'container',

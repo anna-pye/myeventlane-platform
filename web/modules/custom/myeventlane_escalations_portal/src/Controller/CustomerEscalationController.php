@@ -114,7 +114,7 @@ final class CustomerEscalationController extends ControllerBase {
         '#attributes' => ['class' => ['mel-support-actions']],
         'link' => [
           '#type' => 'link',
-          '#title' => $this->t('Submit a new escalation'),
+          '#title' => $this->t('New support request'),
           '#url' => Url::fromRoute('myeventlane_escalations_portal.customer_add'),
           '#attributes' => ['class' => ['button', 'button--primary']],
         ],
@@ -129,15 +129,15 @@ final class CustomerEscalationController extends ControllerBase {
           $this->t('Created'),
         ],
         '#rows' => $rows,
-        '#empty' => $this->t('You have no support escalations yet.'),
+        '#empty' => $this->t('You have no support requests yet. When you contact us, your conversations will appear here.'),
         '#attributes' => ['class' => ['mel-support-table']],
       ],
     ];
 
     return [
       '#theme' => 'mel_support_layout',
-      '#title' => $this->t('My Support'),
-      '#intro' => $this->t('View and manage your support escalations.'),
+      '#title' => $this->t('Support'),
+      '#intro' => $this->t('View and manage your support requests.'),
       '#content' => $content,
     ];
   }
@@ -149,8 +149,8 @@ final class CustomerEscalationController extends ControllerBase {
     $form = $this->formBuilder()->getForm(CustomerEscalationForm::class);
     return [
       '#theme' => 'mel_support_layout',
-      '#title' => $this->t('Submit an Escalation'),
-      '#intro' => $this->t('Describe your issue and we\'ll get back to you as soon as possible.'),
+      '#title' => $this->t('Submit a support request'),
+      '#intro' => $this->t('Tell us what\'s going on — we\'ll reply by email.'),
       '#content' => $form,
     ];
   }
@@ -161,7 +161,7 @@ final class CustomerEscalationController extends ControllerBase {
   public function view(int $escalation): array {
     $entity = $this->entityTypeManager()->getStorage('escalation')->load($escalation);
     if (!$entity) {
-      return ['#markup' => $this->t('Escalation not found.')];
+      return ['#markup' => $this->t('Support request not found.')];
     }
 
     /** @var \Drupal\myeventlane_escalations\Entity\Escalation $entity */
@@ -247,7 +247,7 @@ final class CustomerEscalationController extends ControllerBase {
   public function viewTitle(int $escalation): string {
     $entity = $this->entityTypeManager()->getStorage('escalation')->load($escalation);
     if (!$entity) {
-      return (string) $this->t('Escalation');
+      return (string) $this->t('Support request');
     }
     return (string) $entity->get('subject')->value;
   }
@@ -258,7 +258,7 @@ final class CustomerEscalationController extends ControllerBase {
   public function reopen(int $escalation): RedirectResponse {
     $entity = $this->entityTypeManager()->getStorage('escalation')->load($escalation);
     if (!$entity) {
-      $this->messenger()->addError($this->t('Escalation not found.'));
+      $this->messenger()->addError($this->t('Support request not found.'));
       return new RedirectResponse('/my/support/escalations');
     }
 
@@ -271,7 +271,7 @@ final class CustomerEscalationController extends ControllerBase {
     $entity->save();
 
     $this->mailer->notifyVendorReopened($entity);
-    $this->messenger()->addStatus($this->t('Your escalation has been reopened.'));
+    $this->messenger()->addStatus($this->t('Your support request has been reopened.'));
 
     return new RedirectResponse('/my/support/escalations/' . $escalation);
   }
@@ -302,12 +302,12 @@ final class CustomerEscalationController extends ControllerBase {
         "\xE2\x9C\x85",
       ],
       $status === 'closed' => [
-        (string) $this->t('This escalation has been closed.'),
+        (string) $this->t('This support request has been closed.'),
         'closed',
         "\xF0\x9F\x93\x81",
       ],
       $status === 'new' => [
-        (string) $this->t('Your escalation has been received and is being reviewed.'),
+        (string) $this->t('We have received your support request and are reviewing it.'),
         'info',
         "\xF0\x9F\x93\xA8",
       ],
@@ -327,7 +327,7 @@ final class CustomerEscalationController extends ControllerBase {
         "\xF0\x9F\x92\xAC",
       ],
       default => [
-        (string) $this->t('Your escalation is being handled.'),
+        (string) $this->t('Your support request is being handled.'),
         'info',
         "\xF0\x9F\x93\x8B",
       ],
