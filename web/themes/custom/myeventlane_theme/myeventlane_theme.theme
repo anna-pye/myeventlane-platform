@@ -141,6 +141,17 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       ],
       'template' => 'mel-post-login-hub',
     ],
+    'mel_account_hero' => [
+      'variables' => [
+        'headline' => '',
+        'body' => '',
+        'primary_label' => '',
+        'primary_url' => '',
+        'secondary_label' => '',
+        'secondary_url' => '',
+      ],
+      'template' => 'account/mel-account-hero',
+    ],
     'mel_checkout_order_summary_grouped' => [
       'variables' => [
         'grouped_items' => [],
@@ -612,6 +623,7 @@ function _myeventlane_theme_attach_tax_invoice_variables(OrderInterface $order, 
   $variables['invoice_date_display'] = $data['invoice_date_display'];
   $variables['mel_invoice_fee_lines'] = $data['fee_lines'];
   $variables['mel_invoice_tax_lines'] = $data['tax_lines'];
+  $variables['invoice_lines_include_gst_column'] = $data['invoice_lines_include_gst_column'] ?? FALSE;
 }
 
 /**
@@ -1790,6 +1802,88 @@ function _myeventlane_theme_event_event_save_flag_link($node): ?array {
 }
 
 /**
+ * Builds Flag module AJAX link render array for follow_category on a category term.
+ */
+function _myeventlane_theme_category_follow_flag_link(TermInterface $term): ?array {
+  if ($term->bundle() !== 'categories') {
+    return NULL;
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('flag') || !\Drupal::hasService('flag.link_builder') || !\Drupal::hasService('flag')) {
+    return NULL;
+  }
+  /** @var \Drupal\flag\FlagService $flagService */
+  $flagService = \Drupal::service('flag');
+  $flag = $flagService->getFlagById('follow_category');
+  if (!$flag) {
+    return NULL;
+  }
+  $bundles = $flag->getBundles();
+  if ($bundles !== [] && !in_array($term->bundle(), $bundles, TRUE)) {
+    return NULL;
+  }
+  $tid = (string) $term->id();
+
+  return [
+    '#lazy_builder' => [
+      'flag.link_builder:build',
+      [
+        'taxonomy_term',
+        $tid,
+        'follow_category',
+        'default',
+      ],
+    ],
+    '#create_placeholder' => TRUE,
+  ];
+}
+
+/**
+ * Adds mel_category_follow_* variables for discovery/account-adjacent CTAs.
+ *
+ * Anonymous users get a login destination link; authenticated users get Flag AJAX.
+ */
+function _myeventlane_theme_merge_category_follow_cta(array &$variables, ?TermInterface $term): void {
+  $variables['mel_category_follow_flag'] = NULL;
+  $variables['mel_category_follow_login_url'] = NULL;
+
+  if (!$term instanceof TermInterface || $term->bundle() !== 'categories') {
+    return;
+  }
+
+  if ((int) \Drupal::currentUser()->id() === 0) {
+    try {
+      $variables['mel_category_follow_login_url'] = Url::fromRoute('user.login', [], [
+        'query' => ['destination' => \Drupal::request()->getRequestUri()],
+      ])->toString();
+    }
+    catch (\Throwable) {
+      $variables['mel_category_follow_login_url'] = '/user/login';
+    }
+    return;
+  }
+
+  $build = _myeventlane_theme_category_follow_flag_link($term);
+  $variables['mel_category_follow_flag'] = $build;
+
+  if (!$build) {
+    return;
+  }
+
+  if (!isset($variables['#cache'])) {
+    $variables['#cache'] = [];
+  }
+  if (!isset($variables['#cache']['contexts'])) {
+    $variables['#cache']['contexts'] = [];
+  }
+  if (!isset($variables['#cache']['tags'])) {
+    $variables['#cache']['tags'] = [];
+  }
+  $variables['#cache']['contexts'][] = 'user';
+  $variables['#cache']['tags'][] = 'flag.flag.follow_category';
+  $variables['#cache']['tags'][] = 'taxonomy_term:' . $term->id();
+}
+
+/**
  * Implements hook_preprocess_node().
  *
  * Adds classes and context for event form pages.
@@ -2436,6 +2530,13 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
     $variables['mel_header_categories'] = $categories;
     // Same term as the page: highlight this category in mel-page-header (term template scope).
     $variables['mel_active_category_tid'] = (string) $term->id();
+
+    _myeventlane_theme_merge_category_follow_cta($variables, $term);
+    if (\Drupal::moduleHandler()->moduleExists('flag')) {
+      $variables += ['#attached' => []];
+      $variables['#attached'] += ['library' => []];
+      $variables['#attached']['library'][] = 'flag/link_ajax';
+    }
   }
 }
 
@@ -2466,6 +2567,21 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
       }
     }
     $variables['mel_chip_listing_fragment'] = (bool) \Drupal::request()->attributes->get('mel_chip_listing_fragment');
+
+    if (
+      $view->current_display === 'page_category'
+      && empty($variables['mel_chip_listing_fragment'])
+      && isset($variables['term'])
+      && $variables['term'] instanceof TermInterface
+      && $variables['term']->bundle() === 'categories'
+    ) {
+      _myeventlane_theme_merge_category_follow_cta($variables, $variables['term']);
+      if (\Drupal::moduleHandler()->moduleExists('flag')) {
+        $variables += ['#attached' => []];
+        $variables['#attached'] += ['library' => []];
+        $variables['#attached']['library'][] = 'flag/link_ajax';
+      }
+    }
   }
 
   if ($view->id() === 'upcoming_events' && in_array($view->current_display, ['page_events', 'page_category', 'page_today', 'page_this_weekend', 'page_free'], TRUE)) {
@@ -3133,6 +3249,9 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     return;
   }
 
+  $variables['mel_category_follow_flag'] = NULL;
+  $variables['mel_category_follow_login_url'] = NULL;
+
   $file_url_generator = \Drupal::service('file_url_generator');
   $file_system = \Drupal::service('file_system');
   $image_url = NULL;
@@ -3229,6 +3348,7 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
   // Category label/slug for hero badge and Event Info card (first category term).
   $variables['mel_category_label'] = NULL;
   $variables['mel_category_slug'] = 'default';
+  $category_follow_term = NULL;
   if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
     $refs = $node->get('field_category')->referencedEntities();
     if (!empty($refs)) {
@@ -3238,7 +3358,17 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
         $variables['mel_category_slug'] = function_exists('_myeventlane_theme_get_category_slug')
           ? _myeventlane_theme_get_category_slug($term)
           : str_replace([' ', '&', '+'], ['-', 'and', ''], strtolower($term->label()));
+        $category_follow_term = $term;
       }
+    }
+  }
+
+  if (($variables['view_mode'] ?? '') === 'full' && $category_follow_term instanceof TermInterface) {
+    _myeventlane_theme_merge_category_follow_cta($variables, $category_follow_term);
+    if (\Drupal::moduleHandler()->moduleExists('flag')) {
+      $variables += ['#attached' => []];
+      $variables['#attached'] += ['library' => []];
+      $variables['#attached']['library'][] = 'flag/link_ajax';
     }
   }
 

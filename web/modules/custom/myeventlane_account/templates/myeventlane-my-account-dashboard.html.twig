@@ -7,6 +7,12 @@
  */
 #}
 
+{% if account_hero %}
+  <div class="mel-my-account__hero-slot">
+    {{ account_hero }}
+  </div>
+{% endif %}
+
 <section class="mel-my-account__section mel-dashboard__section" aria-labelledby="your-tickets-title">
   <h2 id="your-tickets-title" class="mel-my-account__section-title">{{ 'Your tickets'|t }}</h2>
   {% if upcoming_tickets is not empty %}
@@ -35,6 +41,22 @@
   {% else %}
     {% if mel_account_dashboard_rsvps_empty is defined and mel_account_dashboard_rsvps_empty %}
       {{ mel_account_dashboard_rsvps_empty }}
+    {% endif %}
+  {% endif %}
+</section>
+
+<section class="mel-my-account__section mel-dashboard__section" aria-labelledby="saved-events-title">
+  <h2 id="saved-events-title" class="mel-my-account__section-title">{{ 'Saved events'|t }}</h2>
+  {% if saved_events is not empty %}
+    <div class="mel-my-account__cards">
+      {% for event in saved_events %}
+        {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with { event: event } only %}
+      {% endfor %}
+    </div>
+    <a href="{{ path('view.mel_saved_events.page_1') }}" class="mel-my-account__view-all">{{ 'View all saved events'|t }}</a>
+  {% else %}
+    {% if mel_account_dashboard_saved_empty is defined and mel_account_dashboard_saved_empty %}
+      {{ mel_account_dashboard_saved_empty }}
     {% endif %}
   {% endif %}
 </section>

@@ -16,3 +16,4 @@ dependencies:
   - myeventlane_checkout_flow:myeventlane_checkout_flow
   - myeventlane_event_attendees:myeventlane_event_attendees
   - myeventlane_rsvp:myeventlane_rsvp
+  - myeventlane_vendor:myeventlane_vendor

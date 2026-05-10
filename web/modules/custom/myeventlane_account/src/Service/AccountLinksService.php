@@ -77,6 +77,13 @@ final class AccountLinksService {
     catch (\Throwable) {
     }
 
+    $followedOrganisersUrl = '/my-organisers';
+    try {
+      $followedOrganisersUrl = Url::fromRoute('myeventlane_account.followed_organisers', [], ['absolute' => FALSE])->toString();
+    }
+    catch (\Throwable) {
+    }
+
     $settingsUrl = '/my-settings';
     if ($this->currentUser->isAuthenticated()) {
       try {
@@ -150,6 +157,15 @@ final class AccountLinksService {
         'in_quick' => TRUE,
         'routes_match' => [
           'myeventlane_core.my_categories',
+        ],
+      ],
+      [
+        'id' => 'followed_organisers',
+        'title' => $this->t('Followed organisers'),
+        'url' => $followedOrganisersUrl,
+        'in_quick' => TRUE,
+        'routes_match' => [
+          'myeventlane_account.followed_organisers',
         ],
       ],
       [

@@ -9,38 +9,71 @@
  * - logo: Styled image render array, or NULL.
  * - tagline: Optional short description.
  * - event_count: Optional upcoming event count.
- * - category: Optional category label. Currently NULL until a real vendor
- *   category field exists.
+ * - category: Optional category label.
+ * - vendor_follow: Optional array from VendorCardBuilder (show, is_authenticated, …).
  */
 #}
-<a href="{{ url }}" class="mel-vendor-card">
-  <div class="mel-vendor-card__media">
-    {% if logo %}
-      {{ logo }}
-    {% else %}
-      <div class="mel-vendor-card__placeholder" aria-hidden="true">
-        {{ name|first|upper }}
-      </div>
-    {% endif %}
-  </div>
+{% set vf = vendor_follow|default(null) %}
+<article class="mel-vendor-card">
+  <a href="{{ url }}" class="mel-vendor-card__link">
+    <div class="mel-vendor-card__media">
+      {% if logo %}
+        {{ logo }}
+      {% else %}
+        <div class="mel-vendor-card__placeholder" aria-hidden="true">
+          {{ name|first|upper }}
+        </div>
+      {% endif %}
+    </div>
 
-  <div class="mel-vendor-card__content">
-    <h3 class="mel-vendor-card__name">{{ name }}</h3>
+    <div class="mel-vendor-card__content">
+      <h3 class="mel-vendor-card__name">{{ name }}</h3>
 
-    {% if tagline %}
-      <p class="mel-vendor-card__tagline">{{ tagline }}</p>
-    {% endif %}
+      {% if tagline %}
+        <p class="mel-vendor-card__tagline">{{ tagline }}</p>
+      {% endif %}
 
-    {% if event_count %}
-      <p class="mel-meta mel-vendor-card__meta">
-        {{ event_count }} {{ event_count == 1 ? 'upcoming event'|t : 'upcoming events'|t }}
-      </p>
-    {% endif %}
+      {% if event_count %}
+        <p class="mel-meta mel-vendor-card__meta">
+          {{ event_count }} {{ event_count == 1 ? 'upcoming event'|t : 'upcoming events'|t }}
+        </p>
+      {% endif %}
 
-    {% if category %}
-      <span class="mel-chip">{{ category }}</span>
-    {% endif %}
-  </div>
+      {% if category %}
+        <span class="mel-chip">{{ category }}</span>
+      {% endif %}
+    </div>
 
-  <div class="mel-vendor-card__arrow" aria-hidden="true">→</div>
-</a>
+    <div class="mel-vendor-card__arrow" aria-hidden="true">→</div>
+  </a>
+
+  {% if vf and vf.show %}
+    <div class="mel-vendor-card__follow">
+      {% if vf.is_authenticated %}
+        {% if vf.is_following %}
+          <button
+            type="button"
+            class="mel-follow-button mel-follow-button--card is-following"
+            data-vendor-id="{{ vf.vendor_id }}"
+            data-follow-url="{{ vf.follow_toggle_url }}"
+            aria-pressed="true"
+          >
+            {{ 'Following ✓'|t }}
+          </button>
+        {% else %}
+          <button
+            type="button"
+            class="mel-follow-button mel-follow-button--card"
+            data-vendor-id="{{ vf.vendor_id }}"
+            data-follow-url="{{ vf.follow_toggle_url }}"
+            aria-pressed="false"
+          >
+            {{ 'Follow organiser'|t }}
+          </button>
+        {% endif %}
+      {% else %}
+        <a class="mel-follow-button mel-follow-button--card" href="{{ vf.follow_login_url }}">{{ 'Log in to follow'|t }}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</article>

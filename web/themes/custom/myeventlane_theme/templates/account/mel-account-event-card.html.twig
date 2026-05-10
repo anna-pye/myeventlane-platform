@@ -25,12 +25,16 @@
       {% endif %}
     </div>
     <div class="mel-card__actions">
-      {% if event.source == 'rsvp' %}
+      {% if event.source == 'saved' %}
+        <span class="mel-badge mel-badge--neutral">{{ 'Saved'|t }}</span>
+      {% elseif event.source == 'rsvp' %}
         <span class="mel-badge mel-badge--info">{{ 'RSVP'|t }}</span>
       {% else %}
         <span class="mel-badge mel-badge--success">{{ 'Ticket'|t }}</span>
       {% endif %}
-      {% if event.pdf_available %}
+      {% if event.source == 'saved' %}
+        <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View event'|t }}</a>
+      {% elseif event.pdf_available %}
         {% if event.has_ticket_code %}
           <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View ticket'|t }}</a>
         {% else %}

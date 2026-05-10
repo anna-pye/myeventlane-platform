@@ -145,6 +145,7 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       'invoice_fee_lines' => $invoice['fee_lines'],
       'tax_lines' => $invoice['tax_lines'],
       'invoice_tax_lines' => $invoice['tax_lines'],
+      'invoice_lines_include_gst_column' => $invoice['invoice_lines_include_gst_column'] ?? FALSE,
       'events' => $this->formatEventsBrief($events),
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
     ];

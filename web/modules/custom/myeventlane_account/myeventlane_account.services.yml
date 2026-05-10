@@ -16,6 +16,13 @@ services:
       - '@current_user'
       - '@current_route_match'
 
+  myeventlane_account.customer_account_hero_builder:
+    class: Drupal\myeventlane_account\Service\CustomerAccountHeroBuilder
+    arguments:
+      - '@myeventlane_surface.state_resolver'
+      - '@myeventlane_surface.state_registry'
+      - '@string_translation'
+
   myeventlane_account.customer_route_redirect_subscriber:
     class: Drupal\myeventlane_account\EventSubscriber\CustomerAccountRouteRedirectSubscriber
     arguments:

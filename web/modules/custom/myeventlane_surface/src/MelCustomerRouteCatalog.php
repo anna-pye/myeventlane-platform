@@ -30,6 +30,7 @@ final class MelCustomerRouteCatalog {
     'myeventlane_notifications.preferences',
     'myeventlane_core.my_categories',
     'view.mel_saved_events.page_1',
+    'myeventlane_account.followed_organisers',
   ];
 
   /**
@@ -47,6 +48,7 @@ final class MelCustomerRouteCatalog {
     '/my-saved-events',
     '/my-notifications',
     '/my-categories',
+    '/my-organisers',
   ];
 
   /**

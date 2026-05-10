@@ -117,4 +117,50 @@ final class VendorFollowService {
       ->execute());
   }
 
+  /**
+   * Loads vendors the account follows, keyed by vendor ID (deduped).
+   *
+   * @return \Drupal\myeventlane_vendor\Entity\Vendor[]
+   *   Vendors sorted alphabetically by label.
+   */
+  public function loadFollowedVendors(AccountInterface $account): array {
+    $uid = (int) $account->id();
+    if ($uid <= 0) {
+      return [];
+    }
+
+    $followIds = $this->entityTypeManager
+      ->getStorage('myeventlane_vendor_follow')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('user_id', $uid)
+      ->execute();
+
+    if ($followIds === []) {
+      return [];
+    }
+
+    $follows = $this->entityTypeManager
+      ->getStorage('myeventlane_vendor_follow')
+      ->loadMultiple($followIds);
+
+    $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+    $vendors = [];
+    foreach ($follows as $follow) {
+      $vid = (int) ($follow->get('vendor_id')->target_id ?? 0);
+      if ($vid <= 0 || isset($vendors[$vid])) {
+        continue;
+      }
+      $vendor = $vendorStorage->load($vid);
+      if ($vendor instanceof Vendor && $vendor->access('view', $account)) {
+        $vendors[$vid] = $vendor;
+      }
+    }
+
+    $list = array_values($vendors);
+    usort($list, static fn(Vendor $a, Vendor $b): int => strcasecmp($a->label(), $b->label()));
+
+    return $list;
+  }
+
 }

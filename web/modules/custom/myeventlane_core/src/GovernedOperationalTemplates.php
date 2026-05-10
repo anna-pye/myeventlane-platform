@@ -236,6 +236,66 @@ final class GovernedOperationalTemplates {
   /**
    * @return array<string, mixed>
    */
+  public function accountDashboardSavedEventsEmpty(): array {
+    $s = $this->readiness->customerAccountDashboardSavedEventsEmptySlots();
+    return $this->buildMelEmptyState([
+      'heading' => $s['heading'],
+      'heading_element' => 'h3',
+      'what_happened' => $s['what_happened'],
+      'why_empty' => $s['why_empty'],
+      'next_action' => $s['next_action'],
+      'cta' => $this->browseEventsPrimaryLink('view.upcoming_events.page_events', (string) $s['cta_label']),
+    ]);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function customerCategoriesFollowEmpty(): array {
+    $s = $this->readiness->customerCategoriesFollowEmptySlots();
+    return $this->buildMelEmptyState([
+      'heading' => $s['heading'],
+      'heading_element' => 'h2',
+      'what_happened' => $s['what_happened'],
+      'why_empty' => $s['why_empty'],
+      'next_action' => $s['next_action'],
+      'cta' => $this->browseEventsPrimaryLink('view.upcoming_events.page_events', (string) $s['cta_label']),
+    ]);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function customerCategoriesNoNewEventsThisWeek(): array {
+    $s = $this->readiness->customerCategoriesNoNewEventsThisWeekSlots();
+    return $this->buildMelEmptyState([
+      'heading' => $s['heading'],
+      'heading_element' => 'h3',
+      'what_happened' => $s['what_happened'],
+      'why_empty' => $s['why_empty'],
+      'next_action' => $s['next_action'],
+      'cta' => NULL,
+    ]);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function customerFollowedOrganisersEmpty(): array {
+    $s = $this->readiness->customerFollowedOrganisersEmptySlots();
+    return $this->buildMelEmptyState([
+      'heading' => $s['heading'],
+      'heading_element' => 'h2',
+      'what_happened' => $s['what_happened'],
+      'why_empty' => $s['why_empty'],
+      'next_action' => $s['next_action'],
+      'cta' => $this->browseEventsPrimaryLink('view.upcoming_events.page_events', (string) $s['cta_label']),
+    ]);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
   private function browseEventsPrimaryLink(string $route = 'view.upcoming_events.page_events', ?string $title = NULL): array {
     $label = $title ?? (string) $this->readiness->customerPrimaryBrowseEventsCta();
     try {

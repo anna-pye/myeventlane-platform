@@ -15,6 +15,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Sends customers away from legacy Drupal profile routes to the MEL hub.
+ *
+ * Also requires login for customer-only hub pages implemented as Views or
+ * lightweight controllers (saved events, followed organisers).
  */
 final class CustomerAccountRouteRedirectSubscriber implements EventSubscriberInterface {
 
@@ -34,11 +37,22 @@ final class CustomerAccountRouteRedirectSubscriber implements EventSubscriberInt
     if (!$event->isMainRequest()) {
       return;
     }
-    if (!$this->currentUser->isAuthenticated()) {
-      return;
-    }
 
     $route = $this->routeMatch->getRouteName();
+
+    if (!$this->currentUser->isAuthenticated()) {
+      if (in_array($route, [
+        'view.mel_saved_events.page_1',
+        'myeventlane_account.followed_organisers',
+      ], TRUE)) {
+        $destination = $event->getRequest()->getRequestUri();
+        $login = Url::fromRoute('user.login', [], [
+          'query' => ['destination' => $destination],
+        ])->toString();
+        $event->setResponse(new RedirectResponse($login, 302));
+      }
+      return;
+    }
     $parameterUser = $this->routeMatch->getParameter('user');
     if (!$parameterUser instanceof UserInterface) {
       return;

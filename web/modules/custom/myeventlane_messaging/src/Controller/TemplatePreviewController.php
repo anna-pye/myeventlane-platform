@@ -185,12 +185,14 @@ final class TemplatePreviewController extends ControllerBase {
         'order_total_gst' => '$9.00',
         'order_total' => '$99.00',
         'invoice_date_short' => '29 Apr 2026',
+        'invoice_lines_include_gst_column' => TRUE,
         'invoice_lines' => [
           [
             'title' => 'General Admission',
             'quantity' => 2,
             'unit_price' => '$45.00',
             'line_total' => '$90.00',
+            'gst' => '$9.00',
           ],
         ],
         'invoice_fee_lines' => [],
@@ -211,12 +213,14 @@ final class TemplatePreviewController extends ControllerBase {
         'events' => [
           ['title' => 'Sample Event'],
         ],
+        'invoice_lines_include_gst_column' => TRUE,
         'line_items' => [
           [
             'title' => 'General Admission',
             'quantity' => 2,
             'unit_price' => '$25.00',
             'line_total' => '$50.00',
+            'gst' => '$5.00',
           ],
         ],
         'invoice_lines' => [
@@ -225,6 +229,7 @@ final class TemplatePreviewController extends ControllerBase {
             'quantity' => 2,
             'unit_price' => '$25.00',
             'line_total' => '$50.00',
+            'gst' => '$5.00',
           ],
         ],
         'fee_lines' => [

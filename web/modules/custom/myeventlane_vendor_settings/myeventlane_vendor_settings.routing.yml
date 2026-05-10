@@ -6,3 +6,5 @@ myeventlane_vendor.console.settings:
     _title: 'Vendor settings'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _theme: myeventlane_vendor_theme

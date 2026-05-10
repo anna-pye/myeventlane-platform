@@ -1,21 +1,31 @@
 uuid: 6f24dbe3-fca8-4aca-90a2-1c0d08b64130
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  config:
+    - taxonomy.vocabulary.categories
+  module:
+    - flag
 id: follow_category
 label: 'Follow Category'
-bundles: {  }
+bundles:
+  - categories
 entity_type: taxonomy_term
 global: false
-flag_short: Follow
+flag_short: 'Follow category'
 flag_long: 'Follow this category'
 flag_message: 'You are now following %label'
-unflag_short: Unfollow
+unflag_short: 'Following ✓'
 unflag_long: 'Stop following this category'
 unflag_message: 'You are no longer following %label'
 unflag_denied_text: 'You may not unfollow %label'
 weight: 0
 flag_type: 'entity:taxonomy_term'
-link_type: confirm
-flagTypeConfig: {  }
+link_type: ajax_link
+flagTypeConfig:
+  show_in_links: {  }
+  show_as_field: false
+  show_on_form: false
+  show_contextual_link: false
+  extra_permissions: {  }
 linkTypeConfig: {  }

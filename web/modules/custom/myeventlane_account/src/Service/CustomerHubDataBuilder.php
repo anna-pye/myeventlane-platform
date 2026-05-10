@@ -81,6 +81,56 @@ final class CustomerHubDataBuilder {
   }
 
   /**
+   * Saved events for the hub (event_save flag), newest saves first for preview.
+   *
+   * Aligns visibility with the mel_saved_events View: published event nodes in a
+   * published moderation state when moderation is present.
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function buildSavedEventsPreview(int $userId, int $limit = 6): array {
+    if ($userId <= 0 || !$this->entityTypeManager->hasDefinition('flagging')) {
+      return [];
+    }
+
+    $flaggingStorage = $this->entityTypeManager->getStorage('flagging');
+    $flaggingIds = $flaggingStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('flag_id', 'event_save')
+      ->condition('uid', $userId)
+      ->execute();
+
+    if ($flaggingIds === []) {
+      return [];
+    }
+
+    $byId = [];
+    foreach ($flaggingStorage->loadMultiple($flaggingIds) as $flagging) {
+      $entity = $flagging->getFlaggable();
+      if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
+        continue;
+      }
+      if (!$this->isPublishedCustomerVisibleEvent($entity)) {
+        continue;
+      }
+      $nid = (int) $entity->id();
+      if (isset($byId[$nid])) {
+        continue;
+      }
+      $byId[$nid] = $this->buildEventItem($entity, 'saved', '', NULL, NULL);
+    }
+
+    $list = array_values($byId);
+    $sortTs = static fn(array $a, array $b): int => ($a['start_timestamp'] ?: 0) <=> ($b['start_timestamp'] ?: 0);
+    usort($list, $sortTs);
+
+    if ($limit > 0) {
+      return array_slice($list, 0, $limit);
+    }
+    return $list;
+  }
+
+  /**
    * @return array<int, array<string, mixed>>
    *   Map keyed by event node ID.
    */
@@ -234,6 +284,19 @@ final class CustomerHubDataBuilder {
       return $endTs < $now;
     }
     return $startTs > 0 && $startTs < $now;
+  }
+
+  /**
+   * Matches mel_saved_events visibility (published + editorial published state).
+   */
+  private function isPublishedCustomerVisibleEvent(NodeInterface $event): bool {
+    if (!$event->isPublished()) {
+      return FALSE;
+    }
+    if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()) {
+      return ($event->get('moderation_state')->value ?? '') === 'published';
+    }
+    return TRUE;
   }
 
   /**

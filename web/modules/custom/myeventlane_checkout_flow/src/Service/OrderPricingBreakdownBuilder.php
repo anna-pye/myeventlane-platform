@@ -158,6 +158,92 @@ final class OrderPricingBreakdownBuilder {
       && $this->australianGstTaxTypeIsActive();
   }
 
+  /**
+   * Aggregates tax adjustments from the order and each line item.
+   *
+   * Commerce often stores GST on line items (inclusive pricing); order-level tax
+   * rows alone omit invoice GST. Aligns with platform BAS aggregation patterns.
+   *
+   * @return array{
+   *   tax_rows: list<array{label: string, amount_formatted: string}>,
+   *   total_formatted: string,
+   * }
+   */
+  public function buildAggregatedTaxInvoiceRows(OrderInterface $order): array {
+    /** @var array<string, array{raw_label: string, amount: Price}> $buckets */
+    $buckets = [];
+
+    $push = function (string $raw_label, Price $amount) use (&$buckets): void {
+      if ($amount->isZero()) {
+        return;
+      }
+      $trimmed = trim($raw_label);
+      $key = strtolower($trimmed);
+      if ($key === '') {
+        $key = 'gst';
+      }
+      if (!isset($buckets[$key])) {
+        $buckets[$key] = [
+          'raw_label' => $trimmed !== '' ? $trimmed : $this->readinessHelper->customerCheckoutTaxRowFallbackLabel(),
+          'amount' => $amount,
+        ];
+        return;
+      }
+      $buckets[$key]['amount'] = $buckets[$key]['amount']->add($amount);
+    };
+
+    foreach ($order->getAdjustments() as $adjustment) {
+      if ($adjustment->getType() !== 'tax') {
+        continue;
+      }
+      $amount = $adjustment->getAmount();
+      if (!$amount instanceof Price) {
+        continue;
+      }
+      $raw = trim((string) $adjustment->getLabel());
+      if ($raw === '') {
+        $raw = $this->readinessHelper->customerCheckoutTaxRowFallbackLabel();
+      }
+      $push($raw, $amount);
+    }
+
+    foreach ($order->getItems() as $item) {
+      foreach ($item->getAdjustments() as $adjustment) {
+        if ($adjustment->getType() !== 'tax') {
+          continue;
+        }
+        $amount = $adjustment->getAmount();
+        if (!$amount instanceof Price) {
+          continue;
+        }
+        $raw = trim((string) $adjustment->getLabel());
+        if ($raw === '') {
+          $raw = $this->readinessHelper->customerCheckoutTaxRowFallbackLabel();
+        }
+        $push($raw, $amount);
+      }
+    }
+
+    ksort($buckets);
+
+    $tax_rows = [];
+    $total = NULL;
+    foreach ($buckets as $bucket) {
+      $label = $this->decorateGstRowLabel($bucket['raw_label']);
+      $price = $bucket['amount'];
+      $tax_rows[] = [
+        'label' => $label,
+        'amount_formatted' => $this->formatPrice($price),
+      ];
+      $total = $total instanceof Price ? $total->add($price) : $price;
+    }
+
+    return [
+      'tax_rows' => $tax_rows,
+      'total_formatted' => $total instanceof Price ? $this->formatPrice($total) : '',
+    ];
+  }
+
   private function decorateGstRowLabel(string $label): string {
     $pct = $this->getAustralianGstPercentDisplay();
     if ($pct === NULL) {

@@ -51,6 +51,7 @@ services:
     arguments:
       - '@commerce_price.currency_formatter'
       - '@date.formatter'
+      - '@myeventlane_checkout_flow.order_pricing_breakdown'
 
   myeventlane_checkout_flow.vendor_ownership_resolver:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
