@@ -122,7 +122,9 @@ final class VendorDashboardViewModelBuilder {
       'action_queue' => [],
       'events' => $events,
       'current_event' => $events[0] ?? NULL,
+      'organiser_actions' => $this->buildOrganiserActions($account),
       'organiser_overview' => [],
+      'attention_events' => [],
       'upcoming_events' => [],
       'analytics_summary' => $analyticsSummary,
       'empty_state' => $this->buildEmptyState($account, $events === []),
@@ -141,6 +143,7 @@ final class VendorDashboardViewModelBuilder {
     $model['priority_action'] = $this->primaryAction($model['action_queue']);
     $model['secondary_actions'] = $this->secondaryActions($model['action_queue']);
     $model['organiser_overview'] = $this->buildOrganiserOverview($model);
+    $model['attention_events'] = $this->buildAttentionEvents($events);
     $model['upcoming_events'] = $this->buildUpcomingEvents($events);
     $model['activity_items'] = $this->buildActivityItems($events, $readiness);
     $model['hero_shell_hint'] = $this->heroShellHint($model);
@@ -179,7 +182,9 @@ final class VendorDashboardViewModelBuilder {
       'action_queue' => [],
       'events' => [],
       'current_event' => NULL,
+      'organiser_actions' => [],
       'organiser_overview' => [],
+      'attention_events' => [],
       'upcoming_events' => [],
       'priority_action' => NULL,
       'secondary_actions' => [],
@@ -571,6 +576,7 @@ final class VendorDashboardViewModelBuilder {
     }
 
     $presentation = $this->presentationAlerts->buildChipSummary($node, $hasProduct, $eventType);
+    $presentationIssues = is_array($presentation['items'] ?? NULL) ? $presentation['items'] : [];
     $isPromoted = $node->hasField('field_promoted')
       && !$node->get('field_promoted')->isEmpty()
       && (bool) $node->get('field_promoted')->value;
@@ -628,7 +634,8 @@ final class VendorDashboardViewModelBuilder {
       'attendee_summary' => $this->attendeeSummary($ticketsSold, $rsvpCount),
       'operation_summary' => $this->eventOperationSummary($status, $eventType),
       'metrics' => $this->buildEventMetrics($ticketsSold, $rsvpCount, $revenueLabel, $capacityLabel),
-      'presentation_issues' => $presentation['items'] ?? [],
+      'presentation_issues' => $presentationIssues,
+      'attention_reasons' => $this->buildAttentionReasons($status, $eventType, $startTs, $endTs, $presentationIssues),
       'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
       'is_promoted' => $isPromoted,
       'removal' => $this->vendorEventRemovalService->buildRemovalUiPayload($node, $account),
@@ -717,6 +724,30 @@ final class VendorDashboardViewModelBuilder {
       return (string) $this->t('Your event is live and paid ticket sales are active.');
     }
     return (string) $this->t('Your event is live and ready for attendees.');
+  }
+
+  /**
+   * @param list<array<string, mixed>> $presentationIssues
+   *
+   * @return list<string>
+   */
+  private function buildAttentionReasons(string $status, string $eventType, int $startTs, int $endTs, array $presentationIssues): array {
+    $now = (int) $this->time->getRequestTime();
+    $reasons = [];
+    if ($status === 'draft') {
+      $reasons[] = (string) $this->t('Draft');
+    }
+    if ($eventType === 'unknown') {
+      $reasons[] = (string) $this->t('Missing tickets or RSVP setup');
+    }
+    if ($status === 'upcoming' && $startTs > 0 && $startTs <= $now && ($endTs === 0 || $endTs >= $now)) {
+      $reasons[] = (string) $this->t('Event today');
+    }
+    if ($presentationIssues !== []) {
+      $reasons[] = (string) $this->t('Presentation needs review');
+    }
+
+    return array_slice(array_values(array_unique($reasons)), 0, 3);
   }
 
   /**
@@ -1016,13 +1047,92 @@ final class VendorDashboardViewModelBuilder {
   }
 
   /**
+   * @return list<array<string, mixed>>
+   */
+  private function buildOrganiserActions(AccountInterface $account): array {
+    $actions = [];
+    $this->appendOrganiserAction(
+      $actions,
+      'create',
+      (string) $this->t('Create event'),
+      $this->safeUrlFromRouteIfAccessible('myeventlane_event_studio.create', [], $account),
+    );
+    $this->appendOrganiserAction(
+      $actions,
+      'events',
+      (string) $this->t('Manage events'),
+      $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.events', [], $account),
+    );
+    $this->appendOrganiserAction(
+      $actions,
+      'audience',
+      (string) $this->t('View attendees'),
+      $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.audience', [], $account),
+    );
+    $this->appendOrganiserAction(
+      $actions,
+      'support',
+      (string) $this->t('Open support'),
+      $this->safeUrlFromRouteIfAccessible('myeventlane_help_centre.vendors_index', [], $account),
+    );
+
+    return $actions;
+  }
+
+  /**
+   * @param list<array<string, mixed>> $actions
+   */
+  private function appendOrganiserAction(array &$actions, string $key, string $label, ?Url $url): void {
+    if (!$url instanceof Url) {
+      return;
+    }
+    $actions[] = [
+      'key' => $key,
+      'label' => $label,
+      'url' => $url,
+    ];
+  }
+
+  /**
+   * @param list<array<string, mixed>> $events
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function buildAttentionEvents(array $events): array {
+    $rows = [];
+    foreach ($events as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      $reasons = $event['attention_reasons'] ?? [];
+      if (!is_array($reasons) || $reasons === []) {
+        continue;
+      }
+      $rows[] = [
+        'title' => (string) ($event['title'] ?? ''),
+        'date_label' => (string) ($event['date_label'] ?? ''),
+        'status' => (string) ($event['status'] ?? ''),
+        'status_label' => (string) ($event['status_label'] ?? ''),
+        'booking_state_label' => (string) ($event['booking_state_label'] ?? ''),
+        'metric_label' => (string) ($event['metric_label'] ?? ''),
+        'reasons' => array_values($reasons),
+        'links' => is_array($event['links'] ?? NULL) ? $event['links'] : [],
+      ];
+      if (count($rows) >= 6) {
+        break;
+      }
+    }
+    return $rows;
+  }
+
+  /**
    * @param list<array<string, mixed>> $events
    *
    * @return list<array<string, mixed>>
    */
   private function buildUpcomingEvents(array $events): array {
     $rows = [];
-    foreach (array_slice($events, 1) as $event) {
+    foreach ($events as $event) {
       if (!is_array($event)) {
         continue;
       }

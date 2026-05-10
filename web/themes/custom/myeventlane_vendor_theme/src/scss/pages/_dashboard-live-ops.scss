@@ -66,52 +66,28 @@
     }
   }
 
-  &__event-hero .mel-live-ops__hero-surface {
+  &__mission-hero .mel-live-ops__hero-surface {
     background:
-      radial-gradient(780px circle at 100% 0%, rgba($ml-accent-coral, 0.08), transparent 40%),
+      radial-gradient(780px circle at 100% 0%, rgba($info, 0.08), transparent 40%),
       linear-gradient(135deg, $bg-primary 0%, rgba($ml-slate-50, 0.72) 100%);
   }
 
-  &__event-hero-layout {
+  &__mission-hero-layout {
     @include respond-to(md) {
-      grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.46fr);
+      grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.36fr);
     }
   }
 
-  &__event-summary {
-    margin: $spacing-4 0 0;
-    color: $text-primary;
-    font-weight: $font-weight-semibold;
+  &__mission-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-top: $spacing-4;
   }
 
-  &__event-media {
-    overflow: hidden;
-    min-height: 9rem;
-    border: 1px solid rgba($ml-vendor-navy, 0.1);
-    border-radius: $radius-workspace-card;
-    background: $ml-slate-100;
-    box-shadow: $shadow-sm;
-
-    img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      min-height: 9rem;
-      object-fit: cover;
-    }
-  }
-
-  &__event-media--placeholder,
-  &__event-media-fallback {
+  &__mission-actions {
     display: grid;
-    place-items: center;
-  }
-
-  &__event-media-fallback {
-    min-height: 9rem;
-    color: $text-secondary;
-    font-weight: $font-weight-bold;
-    letter-spacing: $letter-spacing-wider;
+    gap: $spacing-2;
   }
 
   &__section-head {
@@ -124,6 +100,7 @@
   }
 
   &__overview-strip,
+  &__attention-strip,
   &__activity-stream,
   &__upcoming-strip {
     padding: $spacing-4;
@@ -131,6 +108,32 @@
     border-radius: $radius-workspace-card;
     background: $bg-primary;
     box-shadow: $shadow-xs;
+  }
+
+  &__attention-row {
+    display: grid;
+    grid-auto-columns: minmax(16rem, 1fr);
+    grid-auto-flow: column;
+    gap: $spacing-3;
+    overflow-x: auto;
+    padding-bottom: $spacing-1;
+    scroll-snap-type: x proximity;
+
+    @include respond-to(lg) {
+      grid-auto-flow: initial;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      overflow: visible;
+    }
+  }
+
+  &__attention-card {
+    display: grid;
+    gap: $spacing-3;
+    padding: $spacing-3;
+    border: 1px solid rgba($warning, 0.2);
+    border-radius: $radius-lg;
+    background: linear-gradient(135deg, $bg-primary 0%, rgba($warning-light, 0.18) 100%);
+    scroll-snap-align: start;
   }
 
   &__overview-items {
