@@ -172,7 +172,7 @@ $mel-account-settings-radius: radii.$mel-radius-md;
   }
 }
 
-@media (min-width: 48rem) {
+@media (width >= 48rem) {
   .mel-account-settings__card {
     padding: spacing.mel-space(5);
   }
