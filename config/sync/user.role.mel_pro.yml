@@ -13,6 +13,7 @@ dependencies:
     - myeventlane_boost
     - myeventlane_escalations_refunds
     - myeventlane_event_state
+    - myeventlane_help_centre
     - myeventlane_refunds
     - myeventlane_vendor
     - myeventlane_vendor_ai
@@ -52,4 +53,5 @@ permissions:
   - 'view paragraph content event_highlight'
   - 'view stripe dashboard links'
   - 'view unpublished paragraphs'
+  - 'view vendor help centre'
   - 'view vendor refund summary'

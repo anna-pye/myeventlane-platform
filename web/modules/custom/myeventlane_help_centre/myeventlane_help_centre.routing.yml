@@ -89,6 +89,8 @@ myeventlane_help_centre.article_feedback:
       node:
         type: entity:node
 
+# Legacy entrypoint: redirects (301) to myeventlane_help_centre.home. Looser gate so
+# bookmarks still resolve; topic pages require view vendor help centre (see vendor_topic).
 myeventlane_help_centre.vendor_help:
   path: '/vendor/help'
   defaults:

@@ -170,6 +170,22 @@ jobs:
           fi
           echo "OK: state_readiness_helper present in packaged core services.yml ($member)"
 
+      - name: Validate artifact registers followed organisers route (customer hub)
+        run: |
+          set -euo pipefail
+          archive_path="${{ steps.package.outputs.artifact_path }}"
+          member=$(tar -tzf "$archive_path" | grep -E '(^|/)myeventlane_account\.routing\.yml$' | head -1)
+          if [ -z "$member" ]; then
+            echo "❌ Artifact missing myeventlane_account.routing.yml (cannot validate followed_organisers route)."
+            exit 1
+          fi
+          if ! tar -xOzf "$archive_path" "$member" | grep -q 'myeventlane_account\.followed_organisers:'; then
+            echo "❌ Artifact myeventlane_account.routing.yml missing myeventlane_account.followed_organisers"
+            echo "   (/my-organisers must ship with releases or staging returns 404.)"
+            exit 1
+          fi
+          echo "OK: followed_organisers route present in packaged account routing.yml ($member)"
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v6
         with:
