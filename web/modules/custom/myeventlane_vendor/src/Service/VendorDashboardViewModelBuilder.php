@@ -122,6 +122,8 @@ final class VendorDashboardViewModelBuilder {
       'action_queue' => [],
       'events' => $events,
       'current_event' => $events[0] ?? NULL,
+      'organiser_overview' => [],
+      'upcoming_events' => [],
       'analytics_summary' => $analyticsSummary,
       'empty_state' => $this->buildEmptyState($account, $events === []),
     ];
@@ -138,7 +140,9 @@ final class VendorDashboardViewModelBuilder {
 
     $model['priority_action'] = $this->primaryAction($model['action_queue']);
     $model['secondary_actions'] = $this->secondaryActions($model['action_queue']);
-    $model['activity_items'] = $this->buildActivityItems($events);
+    $model['organiser_overview'] = $this->buildOrganiserOverview($model);
+    $model['upcoming_events'] = $this->buildUpcomingEvents($events);
+    $model['activity_items'] = $this->buildActivityItems($events, $readiness);
     $model['hero_shell_hint'] = $this->heroShellHint($model);
 
     return $model;
@@ -175,6 +179,8 @@ final class VendorDashboardViewModelBuilder {
       'action_queue' => [],
       'events' => [],
       'current_event' => NULL,
+      'organiser_overview' => [],
+      'upcoming_events' => [],
       'priority_action' => NULL,
       'secondary_actions' => [],
       'activity_items' => [],
@@ -903,12 +909,161 @@ final class VendorDashboardViewModelBuilder {
   }
 
   /**
+   * Builds compact organiser-wide signals from existing dashboard payloads.
+   *
+   * @param array<string, mixed> $model
+   *
+   * @return list<array<string, string>>
+   */
+  private function buildOrganiserOverview(array $model): array {
+    $events = $model['events'] ?? [];
+    if (!is_array($events)) {
+      $events = [];
+    }
+
+    $publishedActive = 0;
+    $draft = 0;
+    $bookings = 0;
+    foreach ($events as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      $status = (string) ($event['status'] ?? '');
+      if ($status === 'draft') {
+        $draft++;
+      }
+      elseif ($status !== 'past') {
+        $publishedActive++;
+      }
+
+      $metrics = $event['metrics'] ?? [];
+      if (!is_array($metrics)) {
+        continue;
+      }
+      foreach ($metrics as $metric) {
+        if (!is_array($metric) || ($metric['key'] ?? '') !== 'bookings') {
+          continue;
+        }
+        $bookings += (int) ($metric['value'] ?? 0);
+      }
+    }
+
+    $upcoming = $this->overviewKpiValue($model['kpis'] ?? [], 'upcoming_events', (string) $publishedActive);
+    $readiness = $model['readiness'] ?? [];
+    $payoutReady = is_array($readiness) && (bool) ($readiness['stripe_ready'] ?? FALSE);
+    $priorityAction = $model['priority_action'] ?? NULL;
+    $priorityCount = is_array($priorityAction) ? 1 : 0;
+
+    return [
+      [
+        'key' => 'live_events',
+        'label' => (string) $this->t('Live events'),
+        'value' => (string) $publishedActive,
+        'context' => (string) $this->t('Published focus set'),
+        'severity' => $publishedActive > 0 ? 'success' : 'neutral',
+      ],
+      [
+        'key' => 'draft_events',
+        'label' => (string) $this->t('Draft events'),
+        'value' => (string) $draft,
+        'context' => (string) $this->t('Need publishing review'),
+        'severity' => $draft > 0 ? 'warning' : 'neutral',
+      ],
+      [
+        'key' => 'upcoming_events',
+        'label' => (string) $this->t('Upcoming events'),
+        'value' => $upcoming,
+        'context' => (string) $this->t('Published soon or ongoing'),
+        'severity' => 'neutral',
+      ],
+      [
+        'key' => 'bookings',
+        'label' => (string) $this->t('Bookings'),
+        'value' => (string) $bookings,
+        'context' => (string) $this->t('Tickets + RSVPs in view'),
+        'severity' => $bookings > 0 ? 'success' : 'neutral',
+      ],
+      [
+        'key' => 'priority',
+        'label' => (string) $this->t('Priority items'),
+        'value' => (string) $priorityCount,
+        'context' => (string) $this->t('From action queue'),
+        'severity' => $priorityCount > 0 ? 'warning' : 'success',
+      ],
+      [
+        'key' => 'payouts',
+        'label' => (string) $this->t('Payouts'),
+        'value' => $payoutReady ? (string) $this->t('Ready') : (string) $this->t('Setup'),
+        'context' => (string) $this->t('Stripe readiness'),
+        'severity' => $payoutReady ? 'success' : 'warning',
+      ],
+    ];
+  }
+
+  /**
+   * @param mixed $kpis
+   */
+  private function overviewKpiValue(mixed $kpis, string $key, string $fallback): string {
+    if (!is_array($kpis)) {
+      return $fallback;
+    }
+    foreach ($kpis as $kpi) {
+      if (is_array($kpi) && ($kpi['key'] ?? '') === $key) {
+        return (string) ($kpi['value'] ?? $fallback);
+      }
+    }
+    return $fallback;
+  }
+
+  /**
    * @param list<array<string, mixed>> $events
    *
    * @return list<array<string, mixed>>
    */
-  private function buildActivityItems(array $events): array {
+  private function buildUpcomingEvents(array $events): array {
+    $rows = [];
+    foreach (array_slice($events, 1) as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      $status = (string) ($event['status'] ?? '');
+      if ($status === 'past') {
+        continue;
+      }
+      $rows[] = [
+        'title' => (string) ($event['title'] ?? ''),
+        'date_label' => (string) ($event['date_label'] ?? ''),
+        'status' => $status,
+        'status_label' => (string) ($event['status_label'] ?? ''),
+        'booking_state_label' => (string) ($event['booking_state_label'] ?? ''),
+        'metric_label' => (string) ($event['metric_label'] ?? ''),
+        'links' => is_array($event['links'] ?? NULL) ? $event['links'] : [],
+      ];
+      if (count($rows) >= 4) {
+        break;
+      }
+    }
+    return $rows;
+  }
+
+  /**
+   * @param list<array<string, mixed>> $events
+   * @param array<string, mixed> $readiness
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function buildActivityItems(array $events, array $readiness): array {
     $items = [];
+    if ((bool) ($readiness['stripe_ready'] ?? FALSE)) {
+      $items[] = [
+        'type' => 'success',
+        'message' => (string) $this->t('Stripe payouts are active.'),
+        'url' => $this->routeExists('myeventlane_vendor.console.payouts')
+          ? $this->safeUrlFromRoute('myeventlane_vendor.console.payouts')
+          : NULL,
+      ];
+    }
+
     foreach ($events as $event) {
       if (!is_array($event)) {
         continue;
@@ -923,14 +1078,14 @@ final class VendorDashboardViewModelBuilder {
       if ($status === 'draft') {
         $items[] = [
           'type' => 'warning',
-          'message' => (string) $this->t('Draft event waiting: @event.', ['@event' => $title]),
+          'message' => (string) $this->t('@event is still in draft.', ['@event' => $title]),
           'url' => $url,
         ];
       }
       else {
         $items[] = [
           'type' => 'info',
-          'message' => (string) $this->t('Event state: @event is @state.', [
+          'message' => (string) $this->t('@event is @state.', [
             '@event' => $title,
             '@state' => (string) ($event['status_label'] ?? $status),
           ]),
@@ -942,7 +1097,7 @@ final class VendorDashboardViewModelBuilder {
       if ($metricLabel !== '') {
         $items[] = [
           'type' => 'success',
-          'message' => (string) $this->t('Activity on @event: @metrics.', [
+          'message' => (string) $this->t('@metrics for @event.', [
             '@event' => $title,
             '@metrics' => $metricLabel,
           ]),

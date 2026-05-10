@@ -13,12 +13,14 @@
 {% set first_event_guidance = operational_readiness.first_event_guidance|default([]) %}
 {% set lifecycle_guidance = model.lifecycle_guidance|default({}) %}
 {% set lifecycle_guidance_items = lifecycle_guidance.items|default([]) %}
+{% set organiser_overview = model.organiser_overview|default([]) %}
 {% set kpis = model.kpis|default([]) %}
 {% set actions = model.action_queue|default([]) %}
 {% set priority_action = model.priority_action|default(actions|first|default(null)) %}
 {% set secondary_actions = model.secondary_actions|default(actions|slice(1)) %}
 {% set model_events = model.events|default([]) %}
 {% set focus_event = model.current_event|default(model_events|first|default({})) %}
+{% set upcoming_events = model.upcoming_events|default([]) %}
 {% set empty_state = model.empty_state|default({}) %}
 {% set analytics_summary = model.analytics_summary|default({}) %}
 {% set analytics_items = analytics_summary.items|default([]) %}
@@ -130,6 +132,33 @@
     </div>
   </section>
 
+  {% if organiser_overview is iterable and organiser_overview|length > 0 %}
+    <section class="mel-vendor-dashboard__overview-strip" aria-labelledby="mel-dash-overview-title">
+      <div class="mel-vendor-dashboard__section-head">
+        <div>
+          <p class="mel-live-ops__eyebrow">{{ 'Mission control'|t }}</p>
+          <h2 id="mel-dash-overview-title" class="mel-live-ops__panel-title">{{ 'Organiser overview'|t }}</h2>
+        </div>
+        {% if model_events is iterable and model_events|length > 0 %}
+          <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ 'Across your events'|t }}</span>
+        {% endif %}
+      </div>
+      <div class="mel-vendor-dashboard__overview-items" role="list">
+        {% for item in organiser_overview|slice(0, 6) %}
+          {% set overview_sev = item.severity|default('neutral') %}
+          {% set overview_chip = overview_sev == 'success' ? 'success' : (overview_sev == 'warning' or overview_sev == 'error' ? 'warn' : 'calm') %}
+          <article class="mel-vendor-dashboard__overview-item mel-vendor-dashboard__overview-item--{{ overview_chip }}" role="listitem">
+            <span class="mel-vendor-dashboard__overview-label">{{ item.label|default('') }}</span>
+            <strong class="mel-vendor-dashboard__overview-value">{{ item.value|default('0') }}</strong>
+            {% if item.context is defined and item.context %}
+              <span class="mel-vendor-dashboard__overview-context">{{ item.context }}</span>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
   <section class="mel-live-ops__metrics mel-vendor-dashboard__metric-strip" aria-labelledby="mel-dash-kpis-title">
     <h2 id="mel-dash-kpis-title" class="mel-live-ops__panel-title">{{ 'Quick metrics'|t }}</h2>
     <p class="mel-live-ops__panel-intro">
@@ -182,31 +211,75 @@
     </nav>
   {% endif %}
 
-  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--activity">
-    <summary>{{ 'Recent activity'|t }}</summary>
-    <div class="mel-live-ops__panel mel-vendor-dashboard__panel">
-      {% if activity_items is iterable and activity_items|length > 0 %}
-        <div class="mel-live-ops__timeline-feed" role="list">
-          {% for item in activity_items|slice(0, 6) %}
-            {% set row_type = item.type|default('info') %}
-            {% set row_chip = row_type == 'success' ? 'success' : (row_type == 'warning' or row_type == 'error' ? 'warn' : 'info') %}
-            <article class="mel-live-ops__timeline-card" role="listitem">
-              <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ row_type == 'success' ? '+' : 'i' }}</div>
-              <div class="mel-live-ops__timeline-body">
-                <p class="mel-live-ops__timeline-name">{{ item.message|default('') }}</p>
-                {% if item.url is defined and item.url %}
-                  <a class="mel-live-ops__readiness-link" href="{{ item.url }}">{{ 'Open'|t }}</a>
-                {% endif %}
-              </div>
-              <span class="mel-live-ops__chip mel-live-ops__chip--{{ row_chip }}">{{ row_type == 'success' ? ('Activity'|t) : ('Update'|t) }}</span>
-            </article>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="mel-live-ops__muted">{{ 'Operational activity will appear after bookings, RSVPs, check-ins, or event updates.'|t }}</p>
-      {% endif %}
+  <section class="mel-vendor-dashboard__activity-stream" aria-labelledby="mel-dash-activity-title">
+    <div class="mel-vendor-dashboard__section-head">
+      <div>
+        <p class="mel-live-ops__eyebrow">{{ 'Operational activity'|t }}</p>
+        <h2 id="mel-dash-activity-title" class="mel-live-ops__panel-title">{{ 'Recent signals'|t }}</h2>
+      </div>
+      <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ 'Sparse updates'|t }}</span>
     </div>
-  </details>
+    {% if activity_items is iterable and activity_items|length > 0 %}
+      <div class="mel-vendor-dashboard__activity-list" role="list">
+        {% for item in activity_items|slice(0, 4) %}
+          {% set row_type = item.type|default('info') %}
+          {% set row_chip = row_type == 'success' ? 'success' : (row_type == 'warning' or row_type == 'error' ? 'warn' : 'info') %}
+          <article class="mel-vendor-dashboard__activity-item" role="listitem">
+            <span class="mel-live-ops__chip mel-live-ops__chip--{{ row_chip }}">{{ row_type == 'success' ? ('Signal'|t) : ('Update'|t) }}</span>
+            <p class="mel-vendor-dashboard__activity-message">{{ item.message|default('') }}</p>
+            {% if item.url is defined and item.url %}
+              <a class="mel-live-ops__readiness-link" href="{{ item.url }}">{{ 'Open'|t }}</a>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="mel-live-ops__muted">{{ 'Operational activity will appear after bookings, RSVPs, check-ins, or event updates.'|t }}</p>
+    {% endif %}
+  </section>
+
+  {% if upcoming_events is iterable and upcoming_events|length > 0 %}
+    <section class="mel-vendor-dashboard__upcoming-strip" aria-labelledby="mel-dash-upcoming-title">
+      <div class="mel-vendor-dashboard__section-head">
+        <div>
+          <p class="mel-live-ops__eyebrow">{{ 'Upcoming events'|t }}</p>
+          <h2 id="mel-dash-upcoming-title" class="mel-live-ops__panel-title">{{ 'Next in view'|t }}</h2>
+        </div>
+        {% if empty_state.url is defined and empty_state.url %}
+          <a class="mel-live-ops__readiness-link" href="{{ empty_state.url }}">{{ 'View all events'|t }}</a>
+        {% endif %}
+      </div>
+      <div class="mel-vendor-dashboard__upcoming-row" role="list">
+        {% for ev in upcoming_events %}
+          {% set links = ev.links|default({}) %}
+          {% set status = ev.status|default('upcoming') %}
+          {% set status_chip = status == 'draft' ? 'warn' : 'lavender' %}
+          <article class="mel-vendor-dashboard__upcoming-card" role="listitem">
+            <div>
+              <h3 class="mel-vendor-dashboard__upcoming-title">{{ ev.title|default('Untitled event'|t) }}</h3>
+              {% if ev.date_label is defined and ev.date_label %}
+                <p class="mel-vendor-dashboard__upcoming-date">{{ ev.date_label }}</p>
+              {% endif %}
+            </div>
+            <div class="mel-live-ops__chip-row mel-live-ops__chip-row--compact" role="group" aria-label="{{ 'Event state'|t }}">
+              {% if ev.status_label is defined and ev.status_label %}
+                <span class="mel-live-ops__chip mel-live-ops__chip--{{ status_chip }}">{{ ev.status_label }}</span>
+              {% endif %}
+              {% if ev.booking_state_label is defined and ev.booking_state_label %}
+                <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ ev.booking_state_label }}</span>
+              {% endif %}
+            </div>
+            {% if ev.metric_label is defined and ev.metric_label %}
+              <p class="mel-vendor-dashboard__upcoming-meta">{{ ev.metric_label }}</p>
+            {% endif %}
+            {% if links.manage is defined and links.manage %}
+              <a class="mel-live-ops__readiness-link" href="{{ links.manage }}">{{ 'Open event'|t }}</a>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 
   <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--setup">
     <summary>{{ 'Review event setup'|t }}</summary>
