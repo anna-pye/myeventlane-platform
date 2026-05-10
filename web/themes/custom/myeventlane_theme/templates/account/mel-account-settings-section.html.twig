@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Optional card wrapper for static account settings regions (used from PHP render arrays).
+ *
+ * Variables:
+ * - attributes: Attributes for the section element.
+ * - title: Section heading (plain text).
+ * - title_id: Id for the heading (aria-labelledby target).
+ * - content: Renderable children.
+ */
+#}
+{% set section_attributes = create_attribute(attributes|default({})) %}
+<section{{ section_attributes.addClass('mel-account-settings__card') }} {% if title_id %}aria-labelledby="{{ title_id }}"{% endif %}>
+  {% if title and title_id %}
+    <h2 id="{{ title_id }}" class="mel-account-settings__heading">{{ title }}</h2>
+  {% endif %}
+  <div class="mel-account-settings__card-body">
+    {{ content }}
+  </div>
+</section>

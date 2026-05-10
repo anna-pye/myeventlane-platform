@@ -11,6 +11,7 @@
  * - display_name: User display name.
  * - account_show_header_logo: When TRUE, prepend dashboard home/logo control (dashboard route).
  * - account_heading: Optional custom H1 markup object; when absent, greeting uses Welcome line.
+ * - account_settings_compact_header: TRUE on Settings hub routes (tighter header; form owns sections).
  */
 #}
 
@@ -42,7 +43,7 @@
       {# Main content - div to avoid nested main (page.html.twig already has main) #}
       <div class="mel-my-account__main">
         {# Header row: welcome + avatar (global site_header already provides branding). #}
-        <header class="mel-my-account__header">
+        <header class="mel-my-account__header{% if account_settings_compact_header %} mel-my-account__header--settings-compact{% endif %}">
           {% if account_show_header_logo %}
             <a href="{{ path('<front>') }}" class="mel-my-account__logo" aria-label="{{ 'Home'|t }}">
               {% if logo_url %}

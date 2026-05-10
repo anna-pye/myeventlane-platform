@@ -8,6 +8,8 @@
 declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\myeventlane_surface\MelCustomerRouteCatalog;
@@ -25,6 +27,7 @@ function myeventlane_account_theme(): array {
         'avatar_initials' => '',
         'upcoming_tickets' => [],
         'upcoming_rsvps' => [],
+        'saved_events' => [],
         'past_events' => [],
         'account_links' => [],
         'hub_quick_links' => [],
@@ -34,9 +37,18 @@ function myeventlane_account_theme(): array {
         'review_eligible' => [],
         'mel_account_dashboard_tickets_empty' => NULL,
         'mel_account_dashboard_rsvps_empty' => NULL,
+        'mel_account_dashboard_saved_empty' => NULL,
         'mel_account_dashboard_past_empty' => NULL,
+        'account_hero' => NULL,
       ],
       'template' => 'myeventlane-my-account-dashboard',
+    ],
+    'mel_account_followed_organisers' => [
+      'variables' => [
+        'vendors' => [],
+        'empty' => NULL,
+      ],
+      'template' => 'mel-account-followed-organisers',
     ],
     'myeventlane_my_account_past_events' => [
       'variables' => [
@@ -165,11 +177,18 @@ function myeventlane_account_theme_suggestions_page_alter(array &$suggestions, a
  * Adds account sidebar variables for customer account pages.
  */
 function myeventlane_account_preprocess_page__account(array &$variables): void {
+  $variables['account_settings_compact_header'] = FALSE;
   $account = \Drupal::currentUser();
 
   if ($account->isAnonymous()) {
     return;
   }
+
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $variables['account_settings_compact_header'] = in_array($route_name, [
+    'myeventlane_account.settings',
+    'myeventlane_account.settings_redirect',
+  ], TRUE);
 
   $account_links_service = \Drupal::service('myeventlane_account.account_links');
 
@@ -213,6 +232,7 @@ function _myeventlane_account_page_heading(?string $route_name) {
     'myeventlane_checkout_flow.order_tax_invoice_pdf' => t('Payment receipt'),
     'myeventlane_dashboard.customer' => t('My events'),
     'view.mel_saved_events.page_1' => t('Saved events'),
+    'myeventlane_account.followed_organisers' => t('Followed organisers'),
     'myeventlane_notifications.inbox' => t('Notifications'),
     'myeventlane_notifications.preferences' => t('Notification preferences'),
     'myeventlane_core.my_categories' => t('Categories'),
@@ -257,8 +277,11 @@ function myeventlane_account_preprocess_menu__account(array &$variables): void {
  * Implements hook_form_FORM_ID_alter().
  */
 function myeventlane_account_form_user_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  // Hide path (URL alias) from customers - not relevant for profile editing.
-  if (isset($form['path'])) {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $is_customer_settings = ($route_name === 'myeventlane_account.settings');
+
+  // Path aliases are an operator concern; hide only on the customer settings route.
+  if ($is_customer_settings && isset($form['path'])) {
     $form['path']['#access'] = FALSE;
   }
 
@@ -268,9 +291,354 @@ function myeventlane_account_form_user_form_alter(array &$form, FormStateInterfa
   }
 
   $form['#attributes']['class'][] = 'mel-account-user-form';
+
+  if ($is_customer_settings) {
+    $form['#attributes']['class'][] = 'mel-account-settings-form';
+    _myeventlane_account_customer_settings_form_alter($form);
+    return;
+  }
+
   foreach (['account', 'locale', 'timezone', 'contact'] as $group_key) {
     if (isset($form[$group_key]) && is_array($form[$group_key])) {
       $form[$group_key]['#attributes']['class'][] = 'mel-account-settings__group';
     }
   }
+}
+
+/**
+ * Customer /my-settings/{user} only: section cards, labels, and privileged field suppression.
+ *
+ * Preserves user entity form submit/validate by keeping original #parents on moved elements.
+ */
+function _myeventlane_account_customer_settings_form_alter(array &$form): void {
+  if (isset($form['account']['roles'])) {
+    $form['account']['roles']['#access'] = FALSE;
+  }
+
+  if (isset($form['account']['name'])) {
+    $form['account']['name']['#title'] = t('Sign-in username');
+    $form['account']['name']['#description'] = t('Your unique username for signing in.');
+  }
+  if (isset($form['account']['mail'])) {
+    $form['account']['mail']['#title'] = t('Email');
+    $form['account']['mail']['#description'] = t('Used for bookings, receipts, and updates you opt into.');
+  }
+  if (isset($form['account']['current_pass'])) {
+    $form['account']['current_pass']['#description'] = t('Required when you change your email or password.');
+  }
+  if (isset($form['account']['pass'])) {
+    $form['account']['pass']['#description'] = t('Leave blank to keep your current password.');
+  }
+
+  $card_attr = ['class' => ['mel-account-settings__card']];
+
+  $form['mel_settings_profile'] = [
+    '#type' => 'container',
+    '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-profile-title'],
+    '#weight' => -200,
+  ];
+  $form['mel_settings_profile']['_title'] = [
+    '#type' => 'html_tag',
+    '#tag' => 'h2',
+    '#value' => t('Profile'),
+    '#attributes' => [
+      'id' => 'mel-settings-profile-title',
+      'class' => ['mel-account-settings__heading'],
+    ],
+    '#weight' => -50,
+  ];
+
+  foreach (['field_display_name', 'user_picture', 'field_pronouns', 'field_city'] as $key) {
+    if (!isset($form[$key])) {
+      continue;
+    }
+    $element = $form[$key];
+    unset($form[$key]);
+    $element['#parents'] = [$key];
+    $element['#weight'] = $element['#weight'] ?? 0;
+    $form['mel_settings_profile'][$key] = $element;
+  }
+
+  if (!empty($form['account']) && is_array($form['account'])) {
+    foreach (['mail', 'name'] as $key) {
+      if (!isset($form['account'][$key])) {
+        continue;
+      }
+      $element = $form['account'][$key];
+      unset($form['account'][$key]);
+      $element['#parents'] = ['account', $key];
+      $form['mel_settings_profile'][$key] = $element;
+    }
+  }
+
+  $form['mel_settings_security'] = [
+    '#type' => 'container',
+    '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-security-title'],
+    '#weight' => -190,
+  ];
+  $form['mel_settings_security']['_title'] = [
+    '#type' => 'html_tag',
+    '#tag' => 'h2',
+    '#value' => t('Security'),
+    '#attributes' => [
+      'id' => 'mel-settings-security-title',
+      'class' => ['mel-account-settings__heading'],
+    ],
+    '#weight' => -50,
+  ];
+
+  if (!empty($form['account']) && is_array($form['account'])) {
+    foreach (['current_pass', 'pass'] as $key) {
+      if (!isset($form['account'][$key])) {
+        continue;
+      }
+      $element = $form['account'][$key];
+      unset($form['account'][$key]);
+      $element['#parents'] = ['account', $key];
+      $form['mel_settings_security'][$key] = $element;
+    }
+  }
+
+  try {
+    $reset_url = Url::fromRoute('user.pass');
+    $reset_link = Link::fromTextAndUrl(t('Email me a password reset link'), $reset_url)->toRenderable();
+    $reset_link['#weight'] = 40;
+    if (!isset($reset_link['#attributes']) || !is_array($reset_link['#attributes'])) {
+      $reset_link['#attributes'] = [];
+    }
+    $reset_link['#attributes']['class'][] = 'mel-account-settings__inline-link';
+    $form['mel_settings_security']['_reset_link'] = $reset_link;
+  }
+  catch (\Throwable) {
+  }
+
+  $prefs_link = [];
+  try {
+    $prefs_link = [
+      '#type' => 'link',
+      '#title' => t('Open notification preferences'),
+      '#url' => Url::fromRoute('myeventlane_notifications.preferences'),
+      '#attributes' => ['class' => ['mel-account-settings__inline-link']],
+      '#weight' => 30,
+    ];
+  }
+  catch (\Throwable) {
+  }
+
+  if (isset($form['contact']) || $prefs_link !== []) {
+    $form['mel_settings_notifications'] = [
+      '#type' => 'container',
+      '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-notify-title'],
+      '#weight' => -180,
+    ];
+    $form['mel_settings_notifications']['_title'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h2',
+      '#value' => t('Notifications'),
+      '#attributes' => [
+        'id' => 'mel-settings-notify-title',
+        'class' => ['mel-account-settings__heading'],
+      ],
+      '#weight' => -50,
+    ];
+
+    if (isset($form['contact'])) {
+      $element = $form['contact'];
+      unset($form['contact']);
+      $element['#parents'] = ['contact'];
+      $form['mel_settings_notifications']['contact'] = $element;
+    }
+
+    if ($prefs_link !== []) {
+      $form['mel_settings_notifications']['prefs_link'] = $prefs_link;
+    }
+  }
+
+  $form['mel_settings_preferences'] = [
+    '#type' => 'container',
+    '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-prefs-title'],
+    '#weight' => -170,
+  ];
+  $form['mel_settings_preferences']['_title'] = [
+    '#type' => 'html_tag',
+    '#tag' => 'h2',
+    '#value' => t('Preferences'),
+    '#attributes' => [
+      'id' => 'mel-settings-prefs-title',
+      'class' => ['mel-account-settings__heading'],
+    ],
+    '#weight' => -50,
+  ];
+
+  $form['mel_settings_preferences']['_region_note'] = [
+    '#type' => 'html_tag',
+    '#tag' => 'h3',
+    '#value' => t('Language & region'),
+    '#attributes' => ['class' => ['mel-account-settings__subheading']],
+    '#weight' => -40,
+  ];
+
+  if (isset($form['language'])) {
+    $element = $form['language'];
+    unset($form['language']);
+    $element['#parents'] = ['language'];
+    $element['#type'] = 'container';
+    unset($element['#title']);
+    if (isset($element['preferred_admin_langcode'])) {
+      $element['preferred_admin_langcode']['#access'] = FALSE;
+    }
+    if (isset($element['preferred_langcode'])) {
+      $element['preferred_langcode']['#description'] = t('Emails and on-site wording follow this preference where available.');
+    }
+    $form['mel_settings_preferences']['language'] = $element;
+  }
+
+  if (isset($form['timezone'])) {
+    $element = $form['timezone'];
+    unset($form['timezone']);
+    $element['#parents'] = ['timezone'];
+    $element['#type'] = 'container';
+    unset($element['#title']);
+    if (isset($element['timezone']) && is_array($element['timezone'])) {
+      $element['timezone']['#description'] = t('Event times and reminders use this zone.');
+    }
+    $form['mel_settings_preferences']['timezone'] = $element;
+  }
+
+  foreach (['field_accessibility_preferences', 'social_auth'] as $key) {
+    if (!isset($form[$key])) {
+      continue;
+    }
+    $element = $form[$key];
+    unset($form[$key]);
+    $element['#parents'] = [$key];
+    $form['mel_settings_preferences'][$key] = $element;
+  }
+
+  $prefs_more = _myeventlane_account_customer_settings_preference_links();
+  if ($prefs_more !== []) {
+    $form['mel_settings_preferences']['_discover'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h3',
+      '#value' => t('Discover'),
+      '#attributes' => ['class' => ['mel-account-settings__subheading']],
+      '#weight' => 35,
+    ];
+    $form['mel_settings_preferences']['prefs_more'] = $prefs_more + ['#weight' => 36];
+  }
+
+  $support = _myeventlane_account_customer_settings_support_section();
+  if ($support !== []) {
+    $form['mel_settings_support'] = [
+      '#type' => 'container',
+      '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-support-title'],
+      '#weight' => -160,
+    ];
+    $form['mel_settings_support']['_title'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h2',
+      '#value' => t('Support'),
+      '#attributes' => [
+        'id' => 'mel-settings-support-title',
+        'class' => ['mel-account-settings__heading'],
+      ],
+      '#weight' => -50,
+    ];
+    $form['mel_settings_support']['body'] = $support + ['#weight' => 0];
+  }
+
+  if (isset($form['account'])) {
+    $account_children = Element::children($form['account']);
+    if ($account_children === []) {
+      unset($form['account']);
+    }
+    else {
+      $form['account']['#access'] = FALSE;
+    }
+  }
+
+  if (isset($form['actions'])) {
+    $form['actions']['#weight'] = 200;
+    $form['actions']['#attributes']['class'][] = 'mel-account-settings__actions';
+  }
+}
+
+/**
+ * Quick links for preferences (categories, saved events).
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_account_customer_settings_preference_links(): array {
+  if (!\Drupal::hasService('myeventlane_account.account_links')) {
+    return [];
+  }
+  /** @var \Drupal\myeventlane_account\Service\AccountLinksService $svc */
+  $svc = \Drupal::service('myeventlane_account.account_links');
+  $nav = $svc->buildNavigationItems();
+  $by_id = [];
+  foreach ($nav as $item) {
+    $by_id[$item['id'] ?? ''] = $item;
+  }
+  $render_links = [];
+  foreach ([
+    'categories' => t('Manage categories'),
+    'saved_events' => t('Saved events'),
+    'followed_organisers' => t('Followed organisers'),
+  ] as $id => $label) {
+    if (empty($by_id[$id]['url'])) {
+      continue;
+    }
+    try {
+      $render_links[] = Link::fromTextAndUrl($label, Url::fromUserInput($by_id[$id]['url']))->toRenderable();
+    }
+    catch (\Throwable) {
+    }
+  }
+  if ($render_links === []) {
+    return [];
+  }
+  return [
+    '#theme' => 'item_list',
+    '#items' => $render_links,
+    '#attributes' => ['class' => ['mel-account-settings__support-list', 'mel-account-settings__prefs-links']],
+  ];
+}
+
+/**
+ * Support links for the settings hub (help + tickets).
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_account_customer_settings_support_section(): array {
+  if (!\Drupal::hasService('myeventlane_account.account_links')) {
+    return [];
+  }
+  $nav = \Drupal::service('myeventlane_account.account_links')->buildNavigationItems();
+  $by_id = [];
+  foreach ($nav as $item) {
+    $by_id[$item['id'] ?? ''] = $item;
+  }
+  $render_links = [];
+  if (!empty($by_id['support']['url'])) {
+    try {
+      $render_links[] = Link::fromTextAndUrl(t('Contact support'), Url::fromUserInput($by_id['support']['url']))->toRenderable();
+    }
+    catch (\Throwable) {
+    }
+  }
+  try {
+    $render_links[] = Link::fromTextAndUrl(t('Help centre'), Url::fromRoute('help.main'))->toRenderable();
+  }
+  catch (\Throwable) {
+  }
+
+  if ($render_links === []) {
+    return [];
+  }
+
+  return [
+    '#theme' => 'item_list',
+    '#items' => $render_links,
+    '#attributes' => ['class' => ['mel-account-settings__support-list']],
+  ];
 }

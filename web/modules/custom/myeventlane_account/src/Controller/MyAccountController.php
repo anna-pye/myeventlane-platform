@@ -9,6 +9,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_account\Service\AccountLinksService;
+use Drupal\myeventlane_account\Service\CustomerAccountHeroBuilder;
 use Drupal\myeventlane_account\Service\CustomerHubDataBuilder;
 use Drupal\myeventlane_core\Service\DisplayNameResolver;
 use Drupal\myeventlane_core\GovernedOperationalTemplates;
@@ -31,6 +32,7 @@ final class MyAccountController extends ControllerBase {
     private readonly TimeInterface $time,
     private readonly GovernedOperationalTemplates $operationalTemplates,
     private readonly CustomerHubDataBuilder $customerHubDataBuilder,
+    private readonly CustomerAccountHeroBuilder $customerAccountHeroBuilder,
   ) {}
 
   /**
@@ -43,6 +45,7 @@ final class MyAccountController extends ControllerBase {
       $container->get('datetime.time'),
       $container->get('myeventlane_surface.governed_operational_templates'),
       $container->get('myeventlane_account.customer_hub_data_builder'),
+      $container->get('myeventlane_account.customer_account_hero_builder'),
     );
   }
 
@@ -69,30 +72,47 @@ final class MyAccountController extends ControllerBase {
     $upcomingTickets = $participation['upcoming_tickets'];
     $upcomingRsvps = $participation['upcoming_rsvps'];
     $pastEvents = $participation['past_events'];
+    $savedEventsPreview = $this->customerHubDataBuilder->buildSavedEventsPreview($userId, 3);
 
     $accountLinks = $this->accountLinksService->buildNavigationItems();
 
     $cache = (new CacheableMetadata())
       ->addCacheContexts(['user', 'route'])
-      ->addCacheTags(['user:' . $userId, 'node_list'])
+      ->addCacheTags(['user:' . $userId, 'node_list', 'flag.flag.event_save'])
       ->setCacheMaxAge(300);
-    foreach (array_merge($upcomingTickets, $upcomingRsvps, $pastEvents) as $event) {
+    foreach (array_merge($upcomingTickets, $upcomingRsvps, $pastEvents, $savedEventsPreview) as $event) {
       $cache->addCacheTags(['node:' . $event['id']]);
     }
 
     $reviewEligible = $this->getReviewEligibleEvents(array_slice($pastEvents, 0, 3), $userId);
+
+    $heroData = $this->customerAccountHeroBuilder->buildDashboardHero(
+      $userId,
+      count($upcomingTickets),
+      count($upcomingRsvps),
+    );
 
     $build = [
       '#theme' => 'myeventlane_my_account_dashboard',
       '#display_name' => $displayName,
       '#upcoming_tickets' => array_slice($upcomingTickets, 0, 3),
       '#upcoming_rsvps' => array_slice($upcomingRsvps, 0, 3),
+      '#saved_events' => $savedEventsPreview,
       '#past_events' => array_slice($pastEvents, 0, 3),
       '#account_links' => $accountLinks,
       '#show_review_cta' => $this->config('myeventlane_account.reviews')->get('enabled') ?? FALSE,
       '#review_eligible' => $reviewEligible,
       '#attached' => [
         'library' => ['myeventlane_theme/global-styling'],
+      ],
+      '#account_hero' => [
+        '#theme' => 'mel_account_hero',
+        '#headline' => $heroData['headline'],
+        '#body' => $heroData['body'],
+        '#primary_label' => $heroData['primary_label'],
+        '#primary_url' => $heroData['primary_url'],
+        '#secondary_label' => $heroData['secondary_label'],
+        '#secondary_url' => $heroData['secondary_url'],
       ],
     ];
     if ($upcomingTickets === []) {
@@ -103,6 +123,9 @@ final class MyAccountController extends ControllerBase {
     }
     if ($pastEvents === []) {
       $build['#mel_account_dashboard_past_empty'] = $this->operationalTemplates->accountDashboardPastPreviewEmpty();
+    }
+    if ($savedEventsPreview === []) {
+      $build['#mel_account_dashboard_saved_empty'] = $this->operationalTemplates->accountDashboardSavedEventsEmpty();
     }
     $cache->applyTo($build);
     return $build;
@@ -137,7 +160,7 @@ final class MyAccountController extends ControllerBase {
 
     $build = [
       '#theme' => 'mel_surface_customer_profile_settings',
-      '#title' => $this->t('Settings'),
+      '#intro' => $this->t('Personal details, sign-in security, and how we stay in touch.'),
       '#form' => $form,
       '#attached' => [
         'library' => ['myeventlane_theme/global-styling'],
