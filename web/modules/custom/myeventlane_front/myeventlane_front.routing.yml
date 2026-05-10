@@ -1,0 +1,23 @@
+myeventlane_front.about:
+  path: '/about'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\MarketingPageController::about'
+    _title: 'About MyEventLane'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.story:
+  path: '/story'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\MarketingPageController::story'
+    _title: 'MyEventLane Story'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.blog:
+  path: '/blog'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\MarketingPageController::blog'
+    _title: 'MyEventLane Blog'
+  requirements:
+    _permission: 'access content'

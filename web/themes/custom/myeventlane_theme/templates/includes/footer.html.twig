@@ -15,7 +15,13 @@
 
       <div class="mel-footer__col">
         <h4>{{ 'Find events'|t }}</h4>
-        {{ drupal_menu('footer-find') }}
+        <ul class="menu mel-footer__links">
+          <li><a href="{{ path('view.upcoming_events.page_events') }}">{{ 'All events'|t }}</a></li>
+          <li><a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Nearby events'|t }}</a></li>
+          <li><a href="{{ path('view.upcoming_events.page_today') }}">{{ 'Today'|t }}</a></li>
+          <li><a href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a></li>
+          <li><a href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free & RSVP'|t }}</a></li>
+        </ul>
         {% if mel_footer_categories %}
           <ul class="mel-footer__dynamic">
             {% for item in mel_footer_categories %}
@@ -27,7 +33,13 @@
 
       <div class="mel-footer__col">
         <h4>{{ 'Host events'|t }}</h4>
-        {{ drupal_menu('footer-host') }}
+        <ul class="menu mel-footer__links">
+          <li><a href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Create event'|t }}</a></li>
+          <li><a href="{{ path('myeventlane_help_centre.organisers_index') }}">{{ 'How to create an event'|t }}</a></li>
+          <li><a href="{{ path('myeventlane_help_centre.organisers_index') }}">{{ 'Set up tickets and RSVPs'|t }}</a></li>
+          <li><a href="{{ path('myeventlane_help_centre.vendors_index') }}">{{ 'Managing your events'|t }}</a></li>
+          <li><a href="{{ path('myeventlane_vendor.organisers') }}">{{ 'Event organisers'|t }}</a></li>
+        </ul>
         {% if mel_is_organiser %}
           <ul class="mel-footer__dynamic">
             <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">{{ 'Vendor dashboard'|t }}</a></li>
@@ -38,7 +50,12 @@
 
       <div class="mel-footer__col mel-footer__col--wide">
         <h4>{{ 'About MyEventLane'|t }}</h4>
-        {{ drupal_menu('footer-about') }}
+        <ul class="menu mel-footer__links">
+          <li><a href="{{ path('myeventlane_front.about') }}">{{ 'About MyEventLane'|t }}</a></li>
+          <li><a href="{{ path('myeventlane_front.story') }}">{{ 'MyEventLane Story'|t }}</a></li>
+          <li><a href="{{ path('myeventlane_front.blog') }}">{{ 'Blog'|t }}</a></li>
+          <li><a href="{{ path('myeventlane_public_trust.page') }}">{{ 'Trust & transparency'|t }}</a></li>
+        </ul>
         <div class="mel-footer__trust">
           <span>{{ 'Community-first platform'|t }}</span>
           <span>{{ 'Secure payments via Stripe'|t }}</span>
