@@ -300,6 +300,7 @@ services:
       - '@datetime.time'
       - '@string_translation'
       - '@logger.factory'
+      - '@myeventlane_surface.state_readiness_helper'
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:

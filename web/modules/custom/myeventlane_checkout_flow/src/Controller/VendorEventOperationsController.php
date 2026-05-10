@@ -90,6 +90,7 @@ final class VendorEventOperationsController extends VendorConsoleBaseController 
       '#recent_activity' => $vm['recent_activity'],
       '#links' => $vm['links'],
       '#search' => $vm['search'],
+      '#empty_guidance' => $vm['empty_guidance'] ?? [],
       '#operational_actions' => $vm['operational_actions'],
       '#mel_venue_operations_empty' => $empty,
       '#csrf' => $vm['csrf'] ?? [],

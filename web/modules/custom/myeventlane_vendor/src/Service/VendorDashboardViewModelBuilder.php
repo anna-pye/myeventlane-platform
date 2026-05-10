@@ -101,6 +101,16 @@ final class VendorDashboardViewModelBuilder {
     $model = [
       'vendor' => $vendorPayload,
       'readiness' => $readiness,
+      'operational_readiness' => [
+        'heading' => $this->readinessHelper->vendorDashboardOperationalSummaryHeading(),
+        'intro' => $this->readinessHelper->vendorDashboardOperationalSummaryIntro(),
+        'items' => $this->readinessHelper->vendorDashboardOperationalReadinessSummary($readiness, $events),
+        'first_event_guidance' => $this->readinessHelper->vendorDashboardFirstEventGuidance(
+          $this->hasPublishedManagedEvents($uid),
+          $this->eventsIncludeTicketSales($events),
+          (bool) ($readiness['stripe_ready'] ?? FALSE),
+        ),
+      ],
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip($kpis),
       'action_queue' => [],
       'events' => $events,
@@ -142,6 +152,12 @@ final class VendorDashboardViewModelBuilder {
         'items' => [],
         'row_complete_label' => $this->readinessHelper->vendorReadinessRowCompleteLabel(),
         'row_incomplete_label' => $this->readinessHelper->vendorReadinessRowIncompleteLabel(),
+      ],
+      'operational_readiness' => [
+        'heading' => $this->readinessHelper->vendorDashboardOperationalSummaryHeading(),
+        'intro' => $this->readinessHelper->vendorDashboardOperationalSummaryIntro(),
+        'items' => $this->readinessHelper->vendorDashboardOperationalReadinessSummary([], []),
+        'first_event_guidance' => $this->readinessHelper->vendorDashboardFirstEventGuidance(FALSE, FALSE, FALSE),
       ],
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip([]),
       'action_queue' => [],
@@ -416,6 +432,33 @@ final class VendorDashboardViewModelBuilder {
       ]);
       return 0;
     }
+  }
+
+  private function hasPublishedManagedEvents(int $uid): bool {
+    try {
+      return $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, TRUE) !== [];
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Published event readiness check failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return FALSE;
+    }
+  }
+
+  /**
+   * @param list<array<string, mixed>> $events
+   */
+  private function eventsIncludeTicketSales(array $events): bool {
+    foreach ($events as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      if (!empty($event['metric_label']) && str_contains((string) $event['metric_label'], 'ticket')) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**

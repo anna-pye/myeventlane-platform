@@ -17,6 +17,9 @@
 {% set vendor = model.vendor|default({}) %}
 {% set readiness = model.readiness|default({}) %}
 {% set readiness_items = readiness.items|default([]) %}
+{% set operational_readiness = model.operational_readiness|default({}) %}
+{% set operational_readiness_items = operational_readiness.items|default([]) %}
+{% set first_event_guidance = operational_readiness.first_event_guidance|default([]) %}
 {% set kpis = model.kpis|default([]) %}
 {% set actions = model.action_queue|default([]) %}
 {% set model_events = model.events|default([]) %}
@@ -150,6 +153,49 @@
 
   <div class="mel-live-ops__split">
     <div class="mel-live-ops__stack">
+      {% if operational_readiness_items is iterable and operational_readiness_items|length > 0 %}
+        <section class="mel-live-ops__panel mel-vendor-dashboard__panel" aria-labelledby="mel-dash-operational-readiness-title">
+          <div class="mel-live-ops__timeline-head">
+            <h2 class="mel-live-ops__panel-title" id="mel-dash-operational-readiness-title">{{ operational_readiness.heading|default('Operational readiness'|t) }}</h2>
+            <p class="mel-live-ops__panel-intro">{{ operational_readiness.intro|default('A calm snapshot of publishing, bookings, payouts, attendees, and discovery.'|t) }}</p>
+          </div>
+          <div class="mel-live-ops__timeline-feed" role="list">
+            {% for item in operational_readiness_items %}
+              {% set sev = item.severity|default('info') %}
+              {% set chip_mod =
+                sev == 'success' ? 'success' :
+                (sev == 'warning' or sev == 'error') ? 'warn' :
+                (sev == 'neutral' ? 'calm' : 'info')
+              %}
+              <article class="mel-live-ops__timeline-card" role="listitem">
+                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ sev == 'success' ? '✓' : '•' }}</div>
+                <div class="mel-live-ops__timeline-body">
+                  <div class="mel-live-ops__timeline-headline">
+                    <span class="mel-live-ops__timeline-name">{{ item.label|default('') }}</span>
+                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                  </div>
+                  {% if item.message|default('') is not empty %}
+                    <p class="mel-live-ops__muted">{{ item.message }}</p>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+          {% if first_event_guidance is iterable and first_event_guidance|length > 0 %}
+            <div class="mel-live-ops__timeline-feed" role="list" aria-label="{{ 'First event guidance'|t }}">
+              {% for item in first_event_guidance %}
+                <article class="mel-live-ops__timeline-card" role="listitem">
+                  <div class="mel-live-ops__timeline-avatar" aria-hidden="true">•</div>
+                  <div class="mel-live-ops__timeline-body">
+                    <p class="mel-live-ops__timeline-name">{{ item.message|default('') }}</p>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </section>
+      {% endif %}
+
       <section class="mel-live-ops__panel mel-vendor-dashboard__panel" aria-labelledby="mel-dash-actions-title">
         <div class="mel-live-ops__timeline-head">
           <h2 class="mel-live-ops__panel-title" id="mel-dash-actions-title">{{ 'What to do next'|t }}</h2>

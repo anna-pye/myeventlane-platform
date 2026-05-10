@@ -107,6 +107,39 @@
         </section>
       {% endif %}
 
+      {% set ops_readiness = model.operational_readiness|default({}) %}
+      {% set ops_readiness_items = ops_readiness.items|default([]) %}
+      {% if ops_readiness_items is iterable and ops_readiness_items|length > 0 %}
+        <section class="mel-live-ops__panel" aria-labelledby="mel-ws-operational-readiness-heading">
+          <div class="mel-live-ops__timeline-head">
+            <h2 id="mel-ws-operational-readiness-heading" class="mel-live-ops__panel-title">{{ ops_readiness.heading|default('Operational readiness'|t) }}</h2>
+            <p class="mel-live-ops__panel-intro">{{ ops_readiness.intro|default('What is ready, what attendees can see, and what still needs setup.'|t) }}</p>
+          </div>
+          <div class="mel-live-ops__timeline-feed" role="list">
+            {% for item in ops_readiness_items %}
+              {% set sev = item.severity|default('info') %}
+              {% set chip_mod =
+                sev == 'success' ? 'success' :
+                (sev == 'warning' or sev == 'error') ? 'warn' :
+                (sev == 'neutral' ? 'calm' : 'info')
+              %}
+              <article class="mel-live-ops__timeline-card" role="listitem">
+                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ sev == 'success' ? '✓' : '•' }}</div>
+                <div class="mel-live-ops__timeline-body">
+                  <div class="mel-live-ops__timeline-headline">
+                    <span class="mel-live-ops__timeline-name">{{ item.label|default('') }}</span>
+                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                  </div>
+                  {% if item.message|default('') is not empty %}
+                    <p class="mel-live-ops__muted">{{ item.message }}</p>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
       <section class="mel-live-ops__panel" aria-labelledby="mel-ws-readiness-heading">
         <div class="mel-live-ops__timeline-head">
           <h2 id="mel-ws-readiness-heading" class="mel-live-ops__panel-title">{{ 'Readiness'|t }}</h2>

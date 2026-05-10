@@ -14,6 +14,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -38,6 +39,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     private readonly TimeInterface $time,
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly MelReadinessHelper $readinessHelper,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -197,6 +199,17 @@ final class VendorEventWorkspaceViewModelBuilder {
         'score' => $score,
         'items' => $readinessItems,
       ],
+      'operational_readiness' => [
+        'heading' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryHeading(),
+        'intro' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryIntro(),
+        'items' => $this->readinessHelper->vendorEventWorkspaceOperationalSummary(
+          $eventType,
+          $status,
+          $ticketsSold,
+          $ordersCount,
+          $rsvpCount,
+        ),
+      ],
       'next_action' => $nextAction,
       'metrics' => $metrics,
       'tabs' => $tabs,
@@ -227,6 +240,11 @@ final class VendorEventWorkspaceViewModelBuilder {
         'public_url' => NULL,
       ],
       'readiness' => ['score' => 0, 'items' => []],
+      'operational_readiness' => [
+        'heading' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryHeading(),
+        'intro' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryIntro(),
+        'items' => [],
+      ],
       'next_action' => [
         'severity' => 'warning',
         'title' => (string) $this->t('Something went wrong'),
