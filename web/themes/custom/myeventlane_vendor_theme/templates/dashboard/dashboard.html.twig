@@ -20,6 +20,8 @@
 {% set operational_readiness = model.operational_readiness|default({}) %}
 {% set operational_readiness_items = operational_readiness.items|default([]) %}
 {% set first_event_guidance = operational_readiness.first_event_guidance|default([]) %}
+{% set lifecycle_guidance = model.lifecycle_guidance|default({}) %}
+{% set lifecycle_guidance_items = lifecycle_guidance.items|default([]) %}
 {% set kpis = model.kpis|default([]) %}
 {% set actions = model.action_queue|default([]) %}
 {% set model_events = model.events|default([]) %}
@@ -193,6 +195,37 @@
               {% endfor %}
             </div>
           {% endif %}
+        </section>
+      {% endif %}
+
+      {% if lifecycle_guidance_items is iterable and lifecycle_guidance_items|length > 0 %}
+        <section class="mel-live-ops__panel mel-vendor-dashboard__panel" aria-labelledby="mel-dash-lifecycle-guidance-title">
+          <div class="mel-live-ops__timeline-head">
+            <h2 class="mel-live-ops__panel-title" id="mel-dash-lifecycle-guidance-title">{{ lifecycle_guidance.heading|default('Lifecycle guidance'|t) }}</h2>
+            <p class="mel-live-ops__panel-intro">{{ lifecycle_guidance.intro|default('Helpful context based on the organiser and event signals already shown here.'|t) }}</p>
+          </div>
+          <div class="mel-live-ops__timeline-feed" role="list">
+            {% for item in lifecycle_guidance_items %}
+              {% set sev = item.severity|default('info') %}
+              {% set chip_mod =
+                sev == 'success' ? 'success' :
+                (sev == 'warning' or sev == 'error') ? 'warn' :
+                (sev == 'neutral' ? 'calm' : 'info')
+              %}
+              <article class="mel-live-ops__timeline-card" role="listitem">
+                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ sev == 'success' ? '✓' : '•' }}</div>
+                <div class="mel-live-ops__timeline-body">
+                  <div class="mel-live-ops__timeline-headline">
+                    <span class="mel-live-ops__timeline-name">{{ item.stage|default('') }}</span>
+                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                  </div>
+                  {% if item.message|default('') is not empty %}
+                    <p class="mel-live-ops__muted">{{ item.message }}</p>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
         </section>
       {% endif %}
 

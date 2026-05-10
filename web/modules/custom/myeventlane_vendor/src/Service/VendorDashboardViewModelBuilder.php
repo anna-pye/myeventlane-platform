@@ -111,6 +111,11 @@ final class VendorDashboardViewModelBuilder {
           (bool) ($readiness['stripe_ready'] ?? FALSE),
         ),
       ],
+      'lifecycle_guidance' => $this->readinessHelper->vendorDashboardLifecycleSummary(
+        $readiness,
+        $events,
+        (bool) ($analyticsSummary['available'] ?? FALSE),
+      ),
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip($kpis),
       'action_queue' => [],
       'events' => $events,
@@ -159,6 +164,7 @@ final class VendorDashboardViewModelBuilder {
         'items' => $this->readinessHelper->vendorDashboardOperationalReadinessSummary([], []),
         'first_event_guidance' => $this->readinessHelper->vendorDashboardFirstEventGuidance(FALSE, FALSE, FALSE),
       ],
+      'lifecycle_guidance' => $this->readinessHelper->vendorDashboardLifecycleSummary([], [], FALSE),
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip([]),
       'action_queue' => [],
       'events' => [],
@@ -536,6 +542,9 @@ final class VendorDashboardViewModelBuilder {
     }
 
     $presentation = $this->presentationAlerts->buildChipSummary($node, $hasProduct, $eventType);
+    $isPromoted = $node->hasField('field_promoted')
+      && !$node->get('field_promoted')->isEmpty()
+      && (bool) $node->get('field_promoted')->value;
 
     $capacity = (int) ($domain['capacity'] ?? 0);
     $capacityLabel = $capacity > 0
@@ -588,6 +597,7 @@ final class VendorDashboardViewModelBuilder {
       'revenue_label' => $revenueLabel,
       'presentation_issues' => $presentation['items'] ?? [],
       'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
+      'is_promoted' => $isPromoted,
       'removal' => $this->vendorEventRemovalService->buildRemovalUiPayload($node, $account),
       'links' => [
         'manage' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_workspace', ['event' => $nid]),

@@ -144,6 +144,12 @@ final class VendorEventWorkspaceViewModelBuilder {
     $score = $readinessItems !== []
       ? (int) round(100 * $completeCount / count($readinessItems))
       : 0;
+    $hasBanner = $event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty();
+    $hasCategory = $event->hasField('field_category') && !$event->get('field_category')->isEmpty();
+    $hasTags = $event->hasField('field_tags') && !$event->get('field_tags')->isEmpty();
+    $isPromoted = $event->hasField('field_promoted')
+      && !$event->get('field_promoted')->isEmpty()
+      && (bool) $event->get('field_promoted')->value;
 
     $nextAction = $this->buildNextAction(
       $eventType,
@@ -210,6 +216,17 @@ final class VendorEventWorkspaceViewModelBuilder {
           $rsvpCount,
         ),
       ],
+      'lifecycle_guidance' => $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
+        $eventType,
+        $status,
+        $ticketsSold,
+        $ordersCount,
+        $rsvpCount,
+        $hasBanner,
+        $hasCategory,
+        $hasTags,
+        $isPromoted,
+      ),
       'next_action' => $nextAction,
       'metrics' => $metrics,
       'tabs' => $tabs,
@@ -245,6 +262,17 @@ final class VendorEventWorkspaceViewModelBuilder {
         'intro' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryIntro(),
         'items' => [],
       ],
+      'lifecycle_guidance' => $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
+        'unknown',
+        'unknown',
+        0,
+        0,
+        0,
+        FALSE,
+        FALSE,
+        FALSE,
+        FALSE,
+      ),
       'next_action' => [
         'severity' => 'warning',
         'title' => (string) $this->t('Something went wrong'),
