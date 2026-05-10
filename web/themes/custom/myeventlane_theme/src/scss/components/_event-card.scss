@@ -1017,15 +1017,22 @@
   pointer-events: none;
 }
 
-// Event grid: hidden until `data-loaded="true"`, then opacity transition in from skeleton.js.
+// Canonical grid contract:
+// A grid participates in skeleton loading only when `.mel-event-skeleton` exists
+// as its previous sibling and the grid starts with `data-loaded="false"`.
+// Grids without `data-loaded` are not owned by skeleton.js and render immediately.
 .mel-event-grid {
-  opacity: 0;
   transition: opacity 0.25s ease;
+}
+
+.mel-event-grid:not([data-loaded]) {
+  opacity: 1;
 }
 
 // Hide real grid until script reveals it (avoids double skeleton + cards on first paint).
 .mel-event-grid[data-loaded="false"] {
   display: none;
+  opacity: 0;
 }
 
 .mel-event-grid[data-loaded="true"] {
@@ -1057,8 +1064,14 @@
     transition: none;
   }
 
+  .mel-event-grid:not([data-loaded]),
   .mel-event-grid[data-loaded="true"] {
     opacity: 1;
+  }
+
+  .mel-event-grid[data-loaded="false"] {
+    display: none;
+    opacity: 0;
   }
 }
 

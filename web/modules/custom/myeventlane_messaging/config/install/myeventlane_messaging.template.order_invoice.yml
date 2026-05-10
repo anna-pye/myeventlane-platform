@@ -44,6 +44,9 @@ body_html: |
                 <th style="padding: 8px 4px;">Description</th>
                 <th style="padding: 8px 4px; text-align: center; width: 56px;">Qty</th>
                 <th style="padding: 8px 4px; text-align: right;">Unit</th>
+                {% if invoice_lines_include_gst_column|default(false) %}
+                <th style="padding: 8px 4px; text-align: right;">GST</th>
+                {% endif %}
                 <th style="padding: 8px 4px; text-align: right;">Total</th>
               </tr>
             </thead>
@@ -53,6 +56,9 @@ body_html: |
                   <td style="padding: 10px 4px; vertical-align: top;">{{ row.title }}</td>
                   <td style="padding: 10px 4px; text-align: center;">{{ row.quantity }}</td>
                   <td style="padding: 10px 4px; text-align: right; white-space: nowrap;">{{ row.unit_price }}</td>
+                  {% if invoice_lines_include_gst_column|default(false) %}
+                  <td style="padding: 10px 4px; text-align: right; white-space: nowrap;">{{ row.gst|default('—') }}</td>
+                  {% endif %}
                   <td style="padding: 10px 4px; text-align: right; white-space: nowrap;">{{ row.line_total }}</td>
                 </tr>
               {% endfor %}
@@ -86,7 +92,7 @@ body_html: |
       {% endif %}
 
       {% if order_total_gst and tax_lines|length == 0 and invoice_tax_lines|length == 0 %}
-        <p style="margin: 12px 0; font-size: 14px; color: #34495e;"><strong>GST (10%):</strong> {{ order_total_gst }}</p>
+        <p style="margin: 12px 0; font-size: 14px; color: #34495e;"><strong>Total GST:</strong> {{ order_total_gst }}</p>
       {% endif %}
 
       <div style="margin: 28px 0; padding: 18px 20px; background-color: #fef5ec; border-radius: 8px;">

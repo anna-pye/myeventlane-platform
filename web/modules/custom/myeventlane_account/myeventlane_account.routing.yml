@@ -59,3 +59,13 @@ myeventlane_account.past_events:
     _user_is_logged_in: 'TRUE'
   options:
     _admin_route: FALSE
+
+myeventlane_account.followed_organisers:
+  path: '/my-organisers'
+  defaults:
+    _controller: '\Drupal\myeventlane_account\Controller\FollowedOrganisersController::page'
+    _title: 'Followed organisers'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: FALSE

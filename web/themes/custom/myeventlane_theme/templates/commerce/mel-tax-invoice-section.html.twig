@@ -6,6 +6,7 @@
  * Expects variables from _myeventlane_theme_attach_tax_invoice_variables().
  */
 #}
+{% set show_gst_col = invoice_lines_include_gst_column|default(false) %}
 {% set show_invoice = mel_confirm_paid|default(false) and (
   vendor_name|default('')
   or order_total_gst|default('')
@@ -36,6 +37,9 @@
             <th scope="col">{{ 'Item'|t }}</th>
             <th scope="col">{{ 'Qty'|t }}</th>
             <th scope="col">{{ 'Unit price'|t }}</th>
+            {% if show_gst_col %}
+              <th scope="col">{{ 'GST'|t }}</th>
+            {% endif %}
             <th scope="col">{{ 'Subtotal'|t }}</th>
           </tr>
         </thead>
@@ -45,6 +49,9 @@
               <td>{{ row.title }}</td>
               <td>{{ row.quantity }}</td>
               <td>{{ row.unit_price }}</td>
+              {% if show_gst_col %}
+                <td>{{ row.gst|default('—') }}</td>
+              {% endif %}
               <td>{{ row.line_total }}</td>
             </tr>
           {% endfor %}
@@ -57,8 +64,8 @@
     {% for tax in mel_invoice_tax_lines|default([]) %}
       <div class="mel-invoice__adjustment"><span>{{ tax.label }}</span><span>{{ tax.amount }}</span></div>
     {% endfor %}
-    {% if order_total_gst %}
-      <p class="mel-invoice__gst"><strong>{{ 'GST (10%)'|t }}</strong> {{ order_total_gst }}</p>
+    {% if order_total_gst and mel_invoice_tax_lines|default([])|length == 0 %}
+      <p class="mel-invoice__gst"><strong>{{ 'Total GST'|t }}</strong> {{ order_total_gst }}</p>
     {% endif %}
     <p class="mel-invoice__total"><strong>{{ 'Total'|t }}</strong> {{ order_total|default('') }}</p>
     <p class="mel-invoice__legal">{{ 'This document is a tax invoice for GST purposes.'|t }}</p>

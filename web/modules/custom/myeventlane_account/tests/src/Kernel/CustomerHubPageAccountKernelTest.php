@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_account\Kernel;
 
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_surface\MelCustomerRouteCatalog;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,8 +57,13 @@ final class CustomerHubPageAccountKernelTest extends KernelTestBase {
     foreach ([
       'myeventlane_account.dashboard',
       'myeventlane_account.past_events',
+      'myeventlane_account.settings',
     ] as $route_name) {
-      $path = $route_name === 'myeventlane_account.dashboard' ? '/my-account' : '/my-past-events';
+      $path = match ($route_name) {
+        'myeventlane_account.dashboard' => '/my-account',
+        'myeventlane_account.settings' => '/my-settings/1',
+        default => '/my-past-events',
+      };
       $this->pushRouteRequest($path, $route_name, new Route($path));
 
       $suggestions = ['page'];
@@ -68,6 +74,14 @@ final class CustomerHubPageAccountKernelTest extends KernelTestBase {
 
       $this->popRequest();
     }
+  }
+
+  public function testCustomerRouteCatalogMarksHubShellRoutes(): void {
+    $this->assertTrue(MelCustomerRouteCatalog::isAccountPageShellRoute('myeventlane_notifications.inbox'));
+    $this->assertTrue(MelCustomerRouteCatalog::isCustomerSurface('myeventlane_rsvp.ics_bundle', '/'));
+    $this->assertTrue(MelCustomerRouteCatalog::pathMatchesCustomerPrefix('/my-saved-events'));
+    $this->assertTrue(MelCustomerRouteCatalog::isAccountPageShellRoute('myeventlane_account.followed_organisers'));
+    $this->assertTrue(MelCustomerRouteCatalog::pathMatchesCustomerPrefix('/my-organisers'));
   }
 
   public function testNegotiatorExposesWorkflowRegionVariablesOnDashboardRoute(): void {
@@ -88,6 +102,11 @@ final class CustomerHubPageAccountKernelTest extends KernelTestBase {
     $this->assertArrayHasKey('mel_workflow_region_primary', $variables);
     $this->assertArrayHasKey('mel_workflow_region_progress', $variables);
     $this->assertArrayHasKey('mel_workflow', $variables);
+
+    // Stacked intelligence items + repeated dismiss copy belong off the account shell;
+    // the dashboard uses a single account hero instead (SurfaceNegotiator).
+    $this->assertArrayHasKey('mel_intelligence_panel', $variables);
+    $this->assertNull($variables['mel_intelligence_panel']);
 
     $this->popRequest();
   }

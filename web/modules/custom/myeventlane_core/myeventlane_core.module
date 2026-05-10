@@ -190,6 +190,39 @@ function myeventlane_core_entity_presave(EntityInterface $entity): void {
 }
 
 /**
+ * Implements hook_entity_insert().
+ */
+function myeventlane_core_entity_insert(EntityInterface $entity): void {
+  myeventlane_core_invalidate_vendor_follow_list_cache($entity);
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function myeventlane_core_entity_delete(EntityInterface $entity): void {
+  myeventlane_core_invalidate_vendor_follow_list_cache($entity);
+}
+
+/**
+ * Busts render cache for customer followed-organisers and vendor follower counts.
+ *
+ * Several UIs attach the synthetic tag `myeventlane_vendor_follow_list`; entity
+ * CRUD on myeventlane_vendor_follow must invalidate it or follows look stale
+ * after customer-shell cached pages.
+ *
+ * @see \Drupal\myeventlane_account\Controller\FollowedOrganisersController
+ * @see \Drupal\myeventlane_vendor\Controller\VendorDetailController
+ */
+function myeventlane_core_invalidate_vendor_follow_list_cache(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'myeventlane_vendor_follow') {
+    return;
+  }
+  if (\Drupal::hasService('cache_tags.invalidator')) {
+    \Drupal::service('cache_tags.invalidator')->invalidateTags(['myeventlane_vendor_follow_list']);
+  }
+}
+
+/**
  * Implements hook_views_post_execute().
  *
  * Log commerce_cart_form result count for debugging empty cart table.

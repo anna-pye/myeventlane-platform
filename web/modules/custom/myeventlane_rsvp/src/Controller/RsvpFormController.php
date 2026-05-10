@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_rsvp\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\myeventlane_rsvp\Service\UserRsvpRepository;
 use Drupal\user\UserInterface;
@@ -71,29 +70,25 @@ final class RsvpFormController extends ControllerBase {
     foreach ($rsvps as $rsvp) {
       $nid = isset($rsvp->event_id) ? (int) $rsvp->event_id : 0;
       $event = ($nid > 0) ? $nodeStorage->load($nid) : NULL;
+      $cancelUrl = NULL;
+      if (isset($rsvp->id) && ($rsvp->status ?? '') !== 'cancelled') {
+        $cancelUrl = Url::fromRoute('myeventlane_rsvp.cancel_confirm', ['rsvp_id' => (int) $rsvp->id])->toString();
+      }
       $rows[] = [
-        'event' => $event ? $event->toLink()->toString() : $this->t('(Event deleted)'),
-        'status' => ucfirst($rsvp->status ?? 'confirmed'),
+        'title' => $event ? $event->label() : (string) $this->t('(Event deleted)'),
+        'url' => $event ? $event->toUrl()->toString() : '',
+        'status' => ucfirst((string) ($rsvp->status ?? 'confirmed')),
         'date' => date('M j, Y', (int) ($rsvp->created ?? time())),
-        'actions' => isset($rsvp->id) && ($rsvp->status ?? '') !== 'cancelled'
-          ? Link::fromTextAndUrl(
-            $this->t('Cancel RSVP'),
-            Url::fromRoute('myeventlane_rsvp.cancel_confirm', ['rsvp_id' => (int) $rsvp->id])
-          )->toString()
-          : $this->t('—'),
+        'cancel_url' => $cancelUrl,
       ];
     }
 
     return [
-      '#type' => 'table',
-      '#header' => [
-        $this->t('Event'),
-        $this->t('Status'),
-        $this->t('Date'),
-        $this->t('Actions'),
-      ],
+      '#theme' => 'myeventlane_rsvp_account_rsvps',
       '#rows' => $rows,
-      '#empty' => $this->t('You have not RSVPed to any events yet.'),
+      '#attached' => [
+        'library' => ['myeventlane_theme/global-styling'],
+      ],
       '#cache' => [
         'contexts' => ['user'],
         'tags' => ['rsvp_submission_list'],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Pager\PagerManagerInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -23,6 +24,7 @@ class VendorPublicController extends ControllerBase {
     protected readonly EntityTypeManagerInterface $entityTypeManagerService,
     protected readonly PagerManagerInterface $pagerManager,
     protected readonly VendorCardBuilder $vendorCardBuilder,
+    protected readonly CsrfTokenGenerator $csrfToken,
   ) {}
 
   /**
@@ -33,6 +35,7 @@ class VendorPublicController extends ControllerBase {
       $container->get('entity_type.manager'),
       $container->get('pager.manager'),
       $container->get('myeventlane_vendor.vendor_card_builder'),
+      $container->get('csrf_token'),
     );
   }
 
@@ -65,7 +68,7 @@ class VendorPublicController extends ControllerBase {
 
     foreach ($vendors as $vendor) {
       if ($vendor instanceof Vendor) {
-        $cards[] = $this->vendorCardBuilder->build($vendor);
+        $cards[] = $this->vendorCardBuilder->build($vendor, TRUE);
         $cache_tags = array_merge($cache_tags, $vendor->getCacheTags());
       }
     }
@@ -76,9 +79,17 @@ class VendorPublicController extends ControllerBase {
       'pager' => [
         '#type' => 'pager',
       ],
+      '#attached' => [
+        'library' => ['myeventlane_core/vendor_public'],
+        'drupalSettings' => [
+          'melVendorPublic' => [
+            'csrfToken' => $this->csrfToken->get(''),
+          ],
+        ],
+      ],
       '#cache' => [
         'tags' => array_values(array_unique($cache_tags)),
-        'contexts' => ['route', 'url.query_args:page', 'user.permissions'],
+        'contexts' => ['route', 'url.query_args:page', 'user', 'user.permissions'],
       ],
     ];
   }

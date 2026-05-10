@@ -6,6 +6,7 @@
 #}
 {% set inv = invoice|default({}) %}
 {% set order = order_entity %}
+{% set show_gst_col = inv.invoice_lines_include_gst_column|default(false) %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,21 +40,22 @@
       line-height: 1.55;
       font-size: 12px;
     }
-    table {
+    .mel-pdf-invoice-table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 12px;
       margin-bottom: 8px;
       font-size: 12px;
     }
-    th, td {
+    .mel-pdf-invoice-table th,
+    .mel-pdf-invoice-table td {
       border-bottom: 1px solid #e0e0e0;
       padding: 8px 4px;
       text-align: left;
       color: #34495e;
     }
-    th:nth-child(2), td:nth-child(2) { text-align: center; width: 40px; }
-    th:nth-child(3), th:nth-child(4), td:nth-child(3), td:nth-child(4) { text-align: right; }
+    .mel-pdf-col-qty { text-align: center; width: 40px; }
+    .mel-pdf-col-money { text-align: right; white-space: nowrap; }
     thead tr { border-bottom: 1px solid #e0e0e0; }
     .mel-pdf-adjust {
       display: flex;
@@ -76,7 +78,7 @@
       font-weight: 700;
       color: #2c3e50;
     }
-    .mel-pdf-gst {
+    .mel-pdf-gst-fallback {
       margin-top: 10px;
       font-size: 12px;
       color: #34495e;
@@ -103,22 +105,28 @@
       {% endif %}
     </div>
     {% if inv.invoice_lines is defined and inv.invoice_lines|length > 0 %}
-      <table>
+      <table class="mel-pdf-invoice-table">
         <thead>
           <tr>
             <th>{{ 'Item'|t }}</th>
-            <th>{{ 'Qty'|t }}</th>
-            <th>{{ 'Unit'|t }}</th>
-            <th>{{ 'Subtotal'|t }}</th>
+            <th class="mel-pdf-col-qty">{{ 'Qty'|t }}</th>
+            <th class="mel-pdf-col-money">{{ 'Unit'|t }}</th>
+            {% if show_gst_col %}
+              <th class="mel-pdf-col-money">{{ 'GST'|t }}</th>
+            {% endif %}
+            <th class="mel-pdf-col-money">{{ 'Subtotal'|t }}</th>
           </tr>
         </thead>
         <tbody>
           {% for row in inv.invoice_lines %}
             <tr>
               <td>{{ row.title }}</td>
-              <td>{{ row.quantity }}</td>
-              <td>{{ row.unit_price }}</td>
-              <td>{{ row.line_total }}</td>
+              <td class="mel-pdf-col-qty">{{ row.quantity }}</td>
+              <td class="mel-pdf-col-money">{{ row.unit_price }}</td>
+              {% if show_gst_col %}
+                <td class="mel-pdf-col-money">{{ row.gst|default('—') }}</td>
+              {% endif %}
+              <td class="mel-pdf-col-money">{{ row.line_total }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -134,8 +142,8 @@
         <div class="mel-pdf-adjust"><span>{{ tax.label }}</span><span>{{ tax.amount }}</span></div>
       {% endfor %}
     {% endif %}
-    {% if inv.order_total_gst is defined and inv.order_total_gst %}
-      <p class="mel-pdf-gst"><strong>{{ 'GST (10%)'|t }}</strong> {{ inv.order_total_gst }}</p>
+    {% if inv.order_total_gst is defined and inv.order_total_gst and (inv.tax_lines is not defined or inv.tax_lines|length == 0) %}
+      <p class="mel-pdf-gst-fallback"><strong>{{ 'Total GST'|t }}</strong> {{ inv.order_total_gst }}</p>
     {% endif %}
     {% if inv.order_total is defined and inv.order_total %}
       <div class="mel-pdf-total-wrap">

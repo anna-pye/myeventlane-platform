@@ -16,4 +16,15 @@
   hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false)
 } %}
 
+{% if mel_category_follow_flag|default(null) or mel_category_follow_login_url|default(null) %}
+  <div class="mel-container mel-category-follow-region">
+    {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
+      mel_category_follow_flag: mel_category_follow_flag|default(null),
+      mel_category_follow_login_url: mel_category_follow_login_url|default(null),
+      category_display_name: name,
+      mel_category_follow_modifier: 'taxonomy'
+    } %}
+  </div>
+{% endif %}
+
 {{ content }}

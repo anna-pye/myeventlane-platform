@@ -121,6 +121,13 @@ function myeventlane_rsvp_block_build_alter(array &$build, BlockPluginInterface 
  */
 function myeventlane_rsvp_theme($existing, $type, $theme, $path): array {
   return [
+    'myeventlane_rsvp_account_rsvps' => [
+      'variables' => [
+        'rows' => [],
+      ],
+      'template' => 'myeventlane-rsvp-account-rsvps',
+      'path' => $path . '/templates',
+    ],
     'mel_rsvp_thankyou' => [
       'variables' => [
         'event' => NULL,

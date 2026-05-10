@@ -7,6 +7,7 @@
 <section{{ attributes }}>
   <h2 id="mel-intelligence-region-label" class="visually-hidden">{{ intelligence_region_heading }}</h2>
   {% if items is not empty %}
+    {% set dismissible_items = items|filter(item => item.dismissible|default(false)) %}
     <div class="mel-intelligence-panel__items" data-mel-intelligence-live="polite">
       {% for item in items %}
         <article class="mel-intelligence-panel__item" data-mel-intelligence-id="{{ item.id }}">
@@ -24,11 +25,11 @@
               {% endif %}
             </details>
           {% endif %}
-          {% if dismiss_hint_template is not empty and item.dismissible %}
-            <p class="mel-intelligence-panel__dismiss-hint">{{ dismiss_hint_template }}</p>
-          {% endif %}
         </article>
       {% endfor %}
+      {% if dismiss_hint_template is not empty and dismissible_items|length > 0 %}
+        <p class="mel-intelligence-panel__dismiss-hint">{{ dismiss_hint_template }}</p>
+      {% endif %}
     </div>
   {% endif %}
   {% if insights is not empty %}

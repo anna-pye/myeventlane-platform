@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Customer settings shell — single intro line; page template owns H1.
+ *
+ * Variables:
+ * - intro: Introductory sentence (translated string).
+ * - form: User entity form render array.
+ * - mel_form_classification: MEL form density classification (optional).
+ */
+#}
+<div class="mel-account-settings mel-form-system mel-form-system--customer-settings">
+  {% if intro %}
+    <p class="mel-account-settings__intro">{{ intro }}</p>
+  {% endif %}
+  {{ form }}
+</div>

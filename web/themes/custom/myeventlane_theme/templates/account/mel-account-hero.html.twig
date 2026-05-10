@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * Single customer dashboard hero — copy from CustomerAccountHeroBuilder only.
+ */
+#}
+<section class="mel-account-hero" role="region" aria-labelledby="mel-account-hero-heading">
+  <div class="mel-account-hero__inner">
+    <h2 id="mel-account-hero-heading" class="mel-account-hero__headline">{{ headline }}</h2>
+    {% if body %}
+      <p class="mel-account-hero__body">{{ body }}</p>
+    {% endif %}
+    <div class="mel-account-hero__actions">
+      {% if primary_label and primary_url %}
+        <a href="{{ primary_url }}" class="mel-button mel-button--primary">{{ primary_label }}</a>
+      {% endif %}
+      {% if secondary_label and secondary_url %}
+        <a href="{{ secondary_url }}" class="mel-button mel-button--ghost">{{ secondary_label }}</a>
+      {% endif %}
+    </div>
+  </div>
+</section>

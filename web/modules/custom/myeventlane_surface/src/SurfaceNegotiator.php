@@ -98,7 +98,14 @@ final class SurfaceNegotiator {
     $variables['#attached'] += ['library' => []];
     $variables['#attached']['library'][] = 'myeventlane_surface/interactions';
     $variables['#attached']['library'][] = 'myeventlane_surface/experience';
-    $variables['#attached']['library'][] = 'myeventlane_surface/intelligence';
+    // Buyer-facing surfaces do not ship intelligence panel JS/CSS on public theme pages.
+    if (!in_array($surface, [
+      MelSurfaceId::Public,
+      MelSurfaceId::Auth,
+      MelSurfaceId::Customer,
+    ], TRUE)) {
+      $variables['#attached']['library'][] = 'myeventlane_surface/intelligence';
+    }
     $variables['#attached']['library'][] = 'myeventlane_surface/operational_policy';
 
     $workflow_with_cache = $this->workflowManager->buildPageAttachments();
@@ -146,6 +153,16 @@ final class SurfaceNegotiator {
       $intelligence_cache,
       $surface,
     );
+
+    // Public marketplace, login/register, and customer hub: no intelligence panel chrome.
+    // Vendor console and staff tooling keep the panel where Vendor/Staff surfaces apply.
+    if (in_array($surface, [
+      MelSurfaceId::Public,
+      MelSurfaceId::Auth,
+      MelSurfaceId::Customer,
+    ], TRUE)) {
+      $variables['mel_intelligence_panel'] = NULL;
+    }
 
     $mel_observability_raw = $this->observabilityManager->buildPagePayload(
       $mel_state_raw,

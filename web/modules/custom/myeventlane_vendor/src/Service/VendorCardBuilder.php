@@ -7,7 +7,9 @@ namespace Drupal\myeventlane_vendor\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\VendorFollowService;
 use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Psr\Log\LoggerInterface;
@@ -24,6 +26,8 @@ final class VendorCardBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerInterface $logger,
     private readonly TimeInterface $time,
+    private readonly AccountProxyInterface $currentUser,
+    private readonly VendorFollowService $vendorFollowService,
   ) {}
 
   /**
@@ -32,8 +36,8 @@ final class VendorCardBuilder {
    * @return array<string, mixed>
    *   Component variables for components/vendor-card.html.twig.
    */
-  public function build(Vendor $vendor): array {
-    return [
+  public function build(Vendor $vendor, bool $include_follow_control = FALSE): array {
+    $build = [
       'url' => Url::fromRoute('entity.myeventlane_vendor.canonical', [
         'myeventlane_vendor' => $vendor->id(),
       ])->toString(),
@@ -42,6 +46,51 @@ final class VendorCardBuilder {
       'tagline' => $this->fieldText($vendor, ['field_tagline', 'field_summary']),
       'event_count' => $this->countUpcomingEvents($vendor),
       'category' => NULL,
+    ];
+
+    if ($include_follow_control) {
+      $build['vendor_follow'] = $this->buildVendorFollowVariables($vendor);
+    }
+
+    return $build;
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildVendorFollowVariables(Vendor $vendor): array {
+    $vid = (int) $vendor->id();
+    $account = $this->currentUser;
+    $uid = (int) $account->id();
+
+    $destination = Url::fromRoute('entity.myeventlane_vendor.canonical', [
+      'myeventlane_vendor' => $vid,
+    ])->toString();
+
+    $login_url = '';
+    if ($uid <= 0) {
+      try {
+        $login_url = Url::fromRoute('user.login', [], [
+          'query' => ['destination' => $destination],
+        ])->toString();
+      }
+      catch (\Throwable) {
+        $login_url = '/user/login?destination=' . rawurlencode($destination);
+      }
+    }
+
+    return [
+      'show' => TRUE,
+      'vendor_id' => $vid,
+      'is_authenticated' => $uid > 0,
+      'is_following' => $uid > 0 && $this->vendorFollowService->isFollowing($account, $vendor),
+      'follow_toggle_url' => $uid > 0
+        ? Url::fromRoute('myeventlane_core.vendor_follow_toggle', [
+          'myeventlane_vendor' => $vid,
+        ])->toString()
+        : '',
+      'follow_login_url' => $login_url,
+      'follower_count' => $this->vendorFollowService->countFollowers($vendor),
     ];
   }
 

@@ -1,32 +1,23 @@
 {#
 /**
  * @file
- * Template for My Tickets overview page.
- *
- * Available variables:
- * - title: Page title
- * - upcoming_orders: Array of order data for upcoming events
- * - past_orders: Array of order data for past events
+ * My Tickets — customer language; shell provides page H1.
  */
 #}
-
 <div class="mel-my-tickets">
   <div class="mel-page-header">
-    <h1 class="mel-page-title">{{ title }}</h1>
     <p class="mel-page-description">
-      View your ticket orders, download calendar files, and access event details.
+      {{ 'Your bookings, calendar files, and event access in one place.'|t }}
     </p>
   </div>
 
-  {# Upcoming Events #}
   {% if upcoming_orders|length > 0 %}
     <div class="mel-section mel-mt-6">
-      <h2 class="mel-section-title">Upcoming Events</h2>
+      <h2 class="mel-section-title">{{ 'Upcoming'|t }}</h2>
       <div class="mel-order-cards">
         {% for order_data in upcoming_orders %}
           <div class="mel-card mel-order-card mel-mt-4">
             <div class="mel-card-body">
-              {# Event Names #}
               {% if order_data.events|length > 0 %}
                 <div class="mel-order-events">
                   {% for event in order_data.events %}
@@ -35,12 +26,12 @@
                     </h3>
                     {% if event.start_date %}
                       <div class="mel-event-meta">
-                        <span class="mel-event-date">📅 {{ event.start_date }}</span>
+                        <span class="mel-event-date">{{ event.start_date }}</span>
                         {% if event.start_time %}
                           <span class="mel-event-time">{{ event.start_time }}</span>
                         {% endif %}
                         {% if event.location %}
-                          <span class="mel-event-location">📍 {{ event.location }}</span>
+                          <span class="mel-event-location">{{ event.location }}</span>
                         {% endif %}
                       </div>
                     {% endif %}
@@ -48,36 +39,34 @@
                 </div>
               {% endif %}
 
-              {# Order Info #}
               <div class="mel-order-info mel-mt-4">
                 <div class="mel-order-meta">
                   <span class="mel-order-number">
-                    <strong>Order:</strong> {{ order_data.order_number }}
+                    <strong>{{ 'Booking'|t }}:</strong> {{ order_data.order_number }}
                   </span>
                   <span class="mel-order-date">
-                    <strong>Placed:</strong> {{ order_data.placed_date }}
+                    <strong>{{ 'Purchased'|t }}:</strong> {{ order_data.placed_date }}
                   </span>
                   <span class="mel-order-status">
-                    <strong>Status:</strong> {{ order_data.state_customer_presentation|default(order_data.state) }}
+                    <strong>{{ 'Status'|t }}:</strong> {{ order_data.state_customer_presentation|default(order_data.state) }}
                   </span>
                 </div>
                 <div class="mel-order-total mel-mt-2">
-                  <strong>Total:</strong> ${{ order_data.total_price|number_format(2) }}
+                  <strong>{{ 'Amount paid'|t }}:</strong> ${{ order_data.total_price|number_format(2) }}
                 </div>
               </div>
 
-              {# Actions #}
               <div class="mel-order-actions mel-mt-4">
                 <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"
-                   class="mel-btn mel-btn-primary">
-                  View Details
+                   class="mel-button mel-button--primary">
+                  {{ 'View booking'|t }}
                 </a>
                 {% if order_data.events|length > 0 %}
                   {% for event in order_data.events %}
                     <a href="{{ event.ics_url }}"
-                       class="mel-btn mel-btn-secondary"
+                       class="mel-button mel-button--secondary"
                        download>
-                      📅 Download Calendar
+                      {{ 'Add to calendar'|t }}
                     </a>
                   {% endfor %}
                 {% endif %}
@@ -89,18 +78,14 @@
     </div>
   {% endif %}
 
-  {# Past Events — open by default when there are no upcoming orders so purchases are visible. #}
   {% if past_orders|length > 0 %}
     <div class="mel-section mel-mt-6">
       <details class="mel-past-events"{{ upcoming_orders|length == 0 ? ' open' : '' }}>
-        <summary class="mel-section-title">
-          <h2>Past Events ({{ past_orders|length }})</h2>
-        </summary>
+        <summary class="mel-section-title">{{ 'Past'|t }} ({{ past_orders|length }})</summary>
         <div class="mel-order-cards mel-mt-4">
           {% for order_data in past_orders %}
             <div class="mel-card mel-order-card mel-mt-4">
               <div class="mel-card-body">
-                {# Event Names #}
                 {% if order_data.events|length > 0 %}
                   <div class="mel-order-events">
                     {% for event in order_data.events %}
@@ -109,30 +94,28 @@
                       </h3>
                       {% if event.start_date %}
                         <div class="mel-event-meta">
-                          <span class="mel-event-date">📅 {{ event.start_date }}</span>
+                          <span class="mel-event-date">{{ event.start_date }}</span>
                         </div>
                       {% endif %}
                     {% endfor %}
                   </div>
                 {% endif %}
 
-                {# Order Info #}
                 <div class="mel-order-info mel-mt-4">
                   <div class="mel-order-meta">
                     <span class="mel-order-number">
-                      <strong>Order:</strong> {{ order_data.order_number }}
+                      <strong>{{ 'Booking'|t }}:</strong> {{ order_data.order_number }}
                     </span>
                     <span class="mel-order-date">
-                      <strong>Placed:</strong> {{ order_data.placed_date }}
+                      <strong>{{ 'Purchased'|t }}:</strong> {{ order_data.placed_date }}
                     </span>
                   </div>
                 </div>
 
-                {# Actions #}
                 <div class="mel-order-actions mel-mt-4">
                   <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"
-                     class="mel-btn mel-btn-secondary">
-                    View Details
+                     class="mel-button mel-button--secondary">
+                    {{ 'View booking'|t }}
                   </a>
                 </div>
               </div>
@@ -143,7 +126,6 @@
     </div>
   {% endif %}
 
-  {# Empty state: mel_empty_state via myeventlane_surface_preprocess (MELComponentSystem). #}
   {% if upcoming_orders|length == 0 and past_orders|length == 0 %}
     {% if mel_my_tickets_empty is defined and mel_my_tickets_empty %}
       <div class="mel-section mel-mt-6">
@@ -152,4 +134,3 @@
     {% endif %}
   {% endif %}
 </div>
-

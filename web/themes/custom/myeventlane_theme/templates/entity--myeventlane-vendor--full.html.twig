@@ -34,11 +34,11 @@
     {% if follow_url and is_authenticated %}
       {% if is_following %}
         <button class="mel-follow-button is-following" data-vendor-id="{{ vendor_id }}" data-follow-url="{{ follow_url }}" aria-pressed="true">
-          {{ 'Following'|t }}
+          {{ 'Following ✓'|t }}
         </button>
       {% else %}
         <button class="mel-follow-button" data-vendor-id="{{ vendor_id }}" data-follow-url="{{ follow_url }}" aria-pressed="false">
-          {{ 'Follow'|t }}
+          {{ 'Follow organiser'|t }}
         </button>
       {% endif %}
     {% elseif follow_url %}

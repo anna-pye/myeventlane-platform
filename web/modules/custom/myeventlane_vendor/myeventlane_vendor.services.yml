@@ -45,6 +45,8 @@ services:
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_vendor'
       - '@datetime.time'
+      - '@current_user'
+      - '@myeventlane_core.vendor_follow'
 
   myeventlane_vendor.user_vendor_membership_query:
     class: Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery

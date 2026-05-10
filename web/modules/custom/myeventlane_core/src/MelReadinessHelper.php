@@ -923,6 +923,70 @@ final class MelReadinessHelper {
     ];
   }
 
+  /**
+   * @return array{heading: string, what_happened: string, why_empty: string, next_action: string, cta_label: string}
+   */
+  public function customerAccountDashboardSavedEventsEmptySlots(): array {
+    return [
+      'heading' => (string) $this->t('No saved events yet'),
+      'what_happened' => (string) $this->t('Save events to find them later.'),
+      'why_empty' => '',
+      'next_action' => (string) $this->t('Tap Save on an event page when something catches your eye.'),
+      'cta_label' => $this->customerPrimaryBrowseEventsCta(),
+    ];
+  }
+
+  /**
+   * @return array{heading: string, what_happened: string, why_empty: string, next_action: string, cta_label: string}
+   */
+  public function customerSavedEventsPageEmptySlots(): array {
+    return [
+      'heading' => (string) $this->t('No saved events yet'),
+      'what_happened' => (string) $this->t('Save events to find them later.'),
+      'why_empty' => '',
+      'next_action' => (string) $this->t('Browse upcoming events and tap Save when you want to come back.'),
+      'cta_label' => $this->customerPrimaryBrowseEventsCta(),
+    ];
+  }
+
+  /**
+   * @return array{heading: string, what_happened: string, why_empty: string, next_action: string, cta_label: string}
+   */
+  public function customerCategoriesFollowEmptySlots(): array {
+    return [
+      'heading' => (string) $this->t('No followed categories yet'),
+      'what_happened' => (string) $this->t('Follow categories to personalise your event feed.'),
+      'why_empty' => '',
+      'next_action' => (string) $this->t('Open a category you like and choose Follow to hear when new events land.'),
+      'cta_label' => $this->customerPrimaryBrowseEventsCta(),
+    ];
+  }
+
+  /**
+   * @return array{heading: string, what_happened: string, why_empty: string, next_action: string}
+   */
+  public function customerCategoriesNoNewEventsThisWeekSlots(): array {
+    return [
+      'heading' => (string) $this->t('No new events this week'),
+      'what_happened' => (string) $this->t('When organisers publish something new in this category, it will show up here.'),
+      'why_empty' => '',
+      'next_action' => (string) $this->t('You can still browse all events in this category from its page.'),
+    ];
+  }
+
+  /**
+   * @return array{heading: string, what_happened: string, why_empty: string, next_action: string, cta_label: string}
+   */
+  public function customerFollowedOrganisersEmptySlots(): array {
+    return [
+      'heading' => (string) $this->t('No followed organisers yet'),
+      'what_happened' => (string) $this->t('Follow organisers you love to hear about future events.'),
+      'why_empty' => '',
+      'next_action' => (string) $this->t('Visit an organiser profile and tap Follow to add them here.'),
+      'cta_label' => $this->customerPrimaryBrowseEventsCta(),
+    ];
+  }
+
   // --- MELIntelligenceSystem presentation (centralised vocabulary) -----------------
 
   /**

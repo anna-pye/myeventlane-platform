@@ -825,7 +825,7 @@ function myeventlane_vendor_theme_theme_suggestions_page_alter(array &$suggestio
   if (in_array($route_name, _myeventlane_vendor_theme_event_builder_layout_routes(), TRUE)) {
     $suggestions[] = 'page__vendor__event_wizard';
   }
-  elseif ($route_name === 'myeventlane_vendor.dashboard') {
+  elseif ($route_name === 'myeventlane_vendor.console.dashboard') {
     $suggestions[] = 'page__vendor__dashboard';
   }
   elseif (str_starts_with($route_name ?? '', 'myeventlane_vendor.')) {

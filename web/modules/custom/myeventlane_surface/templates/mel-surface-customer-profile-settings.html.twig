@@ -2,18 +2,12 @@
 /**
  * @file
  * Canonical customer profile settings shell — Form API underneath, MEL owns chrome.
+ *
+ * Page shell provides the H1; this template only adds a short intro + form.
  */
 #}
-<div class="mel-surface-customer-settings mel-form-system">
-  <header class="mel-surface-customer-settings__header">
-    <h1 class="mel-surface-customer-settings__title">{{ title }}</h1>
-    <p class="mel-surface-customer-settings__lede">{{ 'Update how you appear and how we reach you.'|t }}</p>
-  </header>
-  {% include '@myeventlane_surface/forms/mel-form-section.html.twig' with {
-    attributes: create_attribute().addClass('mel-surface-customer-settings__card'),
-    title: '',
-    title_element: 'h2',
-    classification: mel_form_classification|default('customer'),
-    content: form,
-  } %}
-</div>
+{% include '@myeventlane_theme/account/mel-account-settings.html.twig' with {
+  intro: intro,
+  form: form,
+  mel_form_classification: mel_form_classification|default('customer'),
+} only %}

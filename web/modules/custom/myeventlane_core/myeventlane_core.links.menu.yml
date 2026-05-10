@@ -1,17 +1,3 @@
-# User account menu links.
-myeventlane_core.my_saved_events:
-  title: 'Saved events'
-  description: 'Events you have saved to your list in MyEventLane.'
-  route_name: view.mel_saved_events.page_1
-  menu_name: account
-  weight: 5
-myeventlane_core.my_categories:
-  title: 'My Categories'
-  description: 'View categories you follow and new events'
-  route_name: myeventlane_core.my_categories
-  menu_name: account
-  weight: 10
-
 # Admin config: MyEventLane section (parent for General, Boost, Tickets, etc.).
 myeventlane_core.config:
   title: 'MyEventLane'

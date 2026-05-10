@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Followed organisers — body inside customer account shell (page--account).
+ *
+ * Variables:
+ * - vendors: Prepared vendor card rows for vendor-card component.
+ * - empty: Render array when there are no follows.
+ */
+#}
+<section class="mel-my-account__section mel-dashboard__section" aria-label="{{ 'Followed organisers list'|t }}">
+  {% if vendors is not empty %}
+    <div class="mel-my-account__vendor-grid" role="list">
+      {% for vendor in vendors %}
+        <div role="listitem">
+          {% include '@myeventlane_theme/components/vendor-card.html.twig' with vendor %}
+        </div>
+      {% endfor %}
+    </div>
+  {% elseif empty %}
+    {{ empty }}
+  {% endif %}
+</section>

@@ -1,0 +1,7 @@
+// Customer account hub — composition entry for account partials + legacy layout.
+
+@use '../components/account-nav';
+@use '../components/account-cards';
+@use '../components/account-hero';
+@use '../components/account-settings';
+@use 'my-account';

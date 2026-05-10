@@ -79,7 +79,7 @@ final class MyTicketsController extends ControllerBase {
    *   Page title (translatable).
    */
   public function orderDetailTitle(OrderInterface $commerce_order) {
-    return $this->t('Order @order_number', ['@order_number' => $commerce_order->getOrderNumber()]);
+    return $this->t('Booking @order_number', ['@order_number' => $commerce_order->getOrderNumber()]);
   }
 
   /**
@@ -143,7 +143,7 @@ final class MyTicketsController extends ControllerBase {
 
     return [
       '#theme' => 'myeventlane_my_tickets',
-      '#title' => $this->t('My Tickets'),
+      '#title' => $this->t('My tickets'),
       '#upcoming_orders' => $upcomingOrders,
       '#past_orders' => $pastOrders,
       '#cache' => [
@@ -175,7 +175,7 @@ final class MyTicketsController extends ControllerBase {
 
     return [
       '#theme' => 'myeventlane_order_detail',
-      '#title' => $this->t('Order @order_number', ['@order_number' => $commerce_order->getOrderNumber()]),
+      '#title' => $this->t('Booking @order_number', ['@order_number' => $commerce_order->getOrderNumber()]),
       '#order' => $orderData,
       '#cache' => [
         'contexts' => ['user'],
@@ -308,6 +308,11 @@ final class MyTicketsController extends ControllerBase {
       $hasUpcomingEvents = TRUE;
     }
 
+    $stateId = $order->getState()->getId();
+    $stateCustomer = in_array($stateId, ['completed', 'fulfillment', 'fulfilled', 'placed'], TRUE)
+      ? $this->t('Confirmed')
+      : $order->getState()->getLabel();
+
     return [
       'order' => $order,
       'order_id' => $order->id(),
@@ -315,6 +320,7 @@ final class MyTicketsController extends ControllerBase {
       'order_url' => $order->toUrl('canonical', ['absolute' => TRUE])->toString(),
       'placed_date' => $order->getPlacedTime() ? date('F j, Y g:i A', $order->getPlacedTime()) : NULL,
       'state' => $order->getState()->getLabel(),
+      'state_customer_presentation' => $stateCustomer,
       'total_price' => $order->getTotalPrice() ? (float) $order->getTotalPrice()->getNumber() : 0.0,
       'events' => array_values($events),
       'ticket_items' => $ticketItems,

@@ -679,7 +679,7 @@ display:
           plugin_id: moderation_state_filter
           operator: 'not in'
           value:
-            editorial-published: editorial-published
+            published: published
           group: 1
           exposed: false
           expose:

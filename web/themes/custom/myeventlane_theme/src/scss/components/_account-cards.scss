@@ -1,0 +1,39 @@
+// Hub event / RSVP cards — shared with discovery .mel-card patterns.
+
+@use '../tokens/radii';
+@use '../tokens/colors';
+@use '../tokens/spacing';
+
+.mel-account-event-card,
+.mel-account-rsvp-card {
+  .mel-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing.mel-space(2);
+    align-items: center;
+  }
+}
+
+.mel-account-empty-state {
+  padding: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-lg;
+  background: colors.$mel-color-surface;
+  text-align: center;
+}
+
+.mel-account-empty-state__title {
+  margin: 0 0 0.5rem;
+}
+
+.mel-account-empty-state__text {
+  margin: 0 0 1rem;
+}
+
+.mel-account-my-events__past-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.mel-account-my-events__past summary::-webkit-details-marker {
+  display: none;
+}

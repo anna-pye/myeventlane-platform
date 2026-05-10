@@ -62,7 +62,7 @@ final class VendorFollowController extends ControllerBase {
     return new JsonResponse([
       'status' => 'ok',
       'following' => $following,
-      'label' => $following ? $this->t('Following') : $this->t('Follow'),
+      'label' => $following ? $this->t('Following ✓') : $this->t('Follow organiser'),
       'followers' => $this->vendorFollowService->countFollowers($myeventlane_vendor),
     ]);
   }

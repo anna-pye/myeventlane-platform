@@ -1,0 +1,38 @@
+{#
+/**
+ * @file
+ * Follow category CTA — Flag (authenticated) or login destination (anonymous).
+ *
+ * Variables:
+ * - mel_category_follow_flag: Render array from Flag lazy builder, or NULL.
+ * - mel_category_follow_login_url: Login URL with destination, or NULL.
+ * - category_display_name: Human-readable category name for accessibility copy.
+ * - mel_category_follow_modifier: Optional BEM modifier for layout context.
+ */
+#}
+{% set _cat = category_display_name|default('') %}
+{% set _mod = mel_category_follow_modifier|default('') %}
+{% if mel_category_follow_login_url %}
+  <div class="mel-category-follow{% if _mod %} mel-category-follow--{{ _mod }}{% endif %}" data-mel-category-follow>
+    <a
+      href="{{ mel_category_follow_login_url }}"
+      class="mel-btn mel-btn-secondary mel-btn-sm mel-btn--pill mel-category-follow__btn"
+    >
+      {{ 'Follow category'|t }}
+    </a>
+    {% if _cat %}
+      <span class="visually-hidden">{{ 'Sign in to follow @category.'|t({'@category': _cat}) }}</span>
+    {% endif %}
+  </div>
+{% elseif mel_category_follow_flag %}
+  <div
+    class="mel-category-follow{% if _mod %} mel-category-follow--{{ _mod }}{% endif %}"
+    data-mel-category-follow
+    {% if _cat %}aria-label="{{ 'Follow or unfollow @category'|t({'@category': _cat}) }}"{% endif %}
+    role="group"
+  >
+    <div class="mel-category-follow__flag-wrap">
+      {{ mel_category_follow_flag }}
+    </div>
+  </div>
+{% endif %}

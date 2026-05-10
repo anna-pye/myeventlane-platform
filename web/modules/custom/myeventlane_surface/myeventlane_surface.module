@@ -44,7 +44,7 @@ function myeventlane_surface_theme(): array {
   return [
     'mel_surface_customer_profile_settings' => [
       'variables' => [
-        'title' => '',
+        'intro' => '',
         'form' => [],
         'mel_form_classification' => 'customer',
       ],

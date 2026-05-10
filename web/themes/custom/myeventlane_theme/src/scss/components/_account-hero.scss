@@ -1,0 +1,68 @@
+// Single dashboard hero — calm surface, MEL tokens, mobile-first.
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+.mel-account-hero {
+  margin: 0 0 spacing.mel-space(5);
+}
+
+.mel-account-hero__inner {
+  border-radius: radii.$mel-radius-lg;
+  padding: spacing.mel-space(4) spacing.mel-space(4);
+  background: linear-gradient(
+    135deg,
+    color.adjust(colors.$mel-color-surface, $lightness: -1.5%),
+    colors.$mel-color-surface
+  );
+  border: 1px solid rgba(41, 50, 65, 0.08);
+  box-shadow: shadows.$mel-shadow-sm;
+
+  @media (prefers-reduced-motion: reduce) {
+    background: colors.$mel-color-surface;
+  }
+
+  @include breakpoints.mel-break(md) {
+    padding: spacing.mel-space(5) spacing.mel-space(6);
+  }
+}
+
+.mel-account-hero__headline {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(lg);
+  font-weight: 600;
+  line-height: 1.25;
+  color: colors.$mel-color-text;
+}
+
+.mel-account-hero__body {
+  margin: 0 0 spacing.mel-space(4);
+  max-width: 40rem;
+  font-size: typography.mel-font-size(md);
+  line-height: 1.5;
+  color: rgba(41, 50, 65, 0.82);
+}
+
+.mel-account-hero__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: spacing.mel-space(2);
+
+  @include breakpoints.mel-break(sm) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .mel-button {
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+}

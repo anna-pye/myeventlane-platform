@@ -310,6 +310,11 @@ myeventlane_vendor.console.dashboard:
     _title: 'Vendor dashboard'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    # Explicit vendor theme (same pattern as console.studio). Ensures the runtime
+    # theme registry resolves myeventlane_vendor_dashboard to dashboard/dashboard,
+    # not the legacy override shipped under myeventlane_theme.
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.console.studio:
   path: '/vendor/studio'
@@ -755,6 +760,8 @@ myeventlane_vendor.console.messaging_brand:
     _title: 'Messaging brand'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _theme: myeventlane_vendor_theme
 
 # /vendor/settings is defined by myeventlane_vendor_settings (VendorSettingsForm).
 
