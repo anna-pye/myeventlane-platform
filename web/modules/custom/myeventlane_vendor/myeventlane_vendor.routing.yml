@@ -295,7 +295,7 @@ myeventlane_vendor.shell.vendor_root:
   path: '/vendor'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_dashboard:entrypointRedirect'
-    _title: 'Vendor'
+    _title: 'Organiser console'
   requirements:
     _access: 'TRUE'
 
@@ -307,7 +307,7 @@ myeventlane_vendor.console.dashboard:
   path: '/vendor/dashboard'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_dashboard:dashboard'
-    _title: 'Vendor dashboard'
+    _title: 'Organiser dashboard'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:
@@ -514,7 +514,7 @@ myeventlane_vendor.console.event_workspace:
   path: '/vendor/events/{event}'
   defaults:
     _controller: 'myeventlane_vendor.controller.event_workspace:workspace'
-    _title: 'Event workspace'
+    _title: 'Event Manager'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
@@ -741,7 +741,7 @@ myeventlane_vendor.console.boost:
   path: '/vendor/boost'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_boost:boost'
-    _title: 'Boost'
+    _title: 'Promote event'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 

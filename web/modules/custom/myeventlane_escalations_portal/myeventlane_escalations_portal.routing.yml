@@ -3,7 +3,7 @@ myeventlane_escalations_portal.customer_support:
   path: '/my/support'
   defaults:
     _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::list'
-    _title: 'My Support'
+    _title: 'Support'
   requirements:
     _permission: 'view own escalation'
 
@@ -12,7 +12,7 @@ myeventlane_escalations_portal.customer_support_tickets:
   path: '/support/tickets'
   defaults:
     _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::list'
-    _title: 'My Support'
+    _title: 'Support'
   requirements:
     _permission: 'view own escalation'
 
@@ -20,7 +20,7 @@ myeventlane_escalations_portal.customer_list:
   path: '/my/support/escalations'
   defaults:
     _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::list'
-    _title: 'My Escalations'
+    _title: 'Support requests'
   requirements:
     _permission: 'view own escalation'
 
@@ -28,7 +28,7 @@ myeventlane_escalations_portal.customer_add:
   path: '/my/support/escalations/add'
   defaults:
     _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::add'
-    _title: 'Submit an Escalation'
+    _title: 'Submit a support request'
   requirements:
     _permission: 'create escalation'
 
@@ -54,7 +54,7 @@ myeventlane_escalations_portal.vendor_list:
   path: '/vendor/support'
   defaults:
     _controller: '\Drupal\myeventlane_escalations_portal\Controller\VendorEscalationController::list'
-    _title: 'Vendor Support'
+    _title: 'Support'
   requirements:
     _permission: 'view vendor escalations'
 

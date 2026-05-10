@@ -4,7 +4,7 @@
  * Left navigation sidebar for MyEventLane Vendor Console.
  */
 #}
-<nav class="mel-sidebar mel-vendor-console__nav" aria-label="{{ 'Vendor navigation'|t }}">
+<nav class="mel-sidebar mel-vendor-console__nav" aria-label="{{ 'Organiser navigation'|t }}">
   {% if page.is_admin and page.admin_portal_url %}
     <div class="mel-sidebar__admin-link">
       <a href="{{ page.admin_portal_url }}" class="mel-sidebar__link mel-sidebar__link--admin" target="_blank" rel="noopener noreferrer">
@@ -14,7 +14,7 @@
   {% endif %}
 
   <div class="mel-sidebar__brand">
-    <a href="{{ page.vendor_shell_brand_url|default(path('myeventlane_vendor.console.dashboard')) }}" class="mel-sidebar__logo" aria-label="{{ 'Vendor dashboard'|t }}">
+    <a href="{{ page.vendor_shell_brand_url|default(path('myeventlane_vendor.console.dashboard')) }}" class="mel-sidebar__logo" aria-label="{{ 'Organiser dashboard'|t }}">
       <span class="mel-sidebar__logo-mark">M</span>
       <span class="mel-sidebar__logo-text">MyEventLane</span>
     </a>
@@ -92,7 +92,7 @@
         </div>
         <div class="mel-sidebar__user-info">
           <div class="mel-sidebar__user-name">{{ page.user_name }}</div>
-          <div class="mel-sidebar__user-role">{{ page.user_role|default('Vendor'|t) }}</div>
+          <div class="mel-sidebar__user-role">{{ page.user_role|default('Organiser'|t) }}</div>
         </div>
       </div>
     {% endif %}

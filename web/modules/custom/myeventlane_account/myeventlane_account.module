@@ -226,7 +226,7 @@ function _myeventlane_account_page_heading(?string $route_name) {
   return match ($route_name) {
     'myeventlane_account.past_events' => t('Past events'),
     'myeventlane_account.settings', 'myeventlane_account.settings_redirect' => t('Settings'),
-    'myeventlane_checkout_flow.my_tickets' => t('My tickets'),
+    'myeventlane_checkout_flow.my_tickets' => t('Tickets'),
     'myeventlane_checkout_flow.order_detail' => t('Your booking'),
     'myeventlane_checkout_flow.order_tax_invoice_pdf' => t('Payment receipt'),
     'myeventlane_dashboard.customer' => t('My events'),

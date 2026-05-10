@@ -687,9 +687,9 @@ final class HelpAssistantService {
 
   private function buildEscalationText(string $supportUrl): string {
     if ($supportUrl !== '') {
-      return 'I cannot confirm this from the Help Centre. Please contact support via ' . $supportUrl . '.';
+      return (string) $this->t('I cannot confirm this from the Help Centre. For a personalised answer, open a support request at @url.', ['@url' => $supportUrl]);
     }
-    return 'I cannot confirm this from the Help Centre. Please contact support for personalised help.';
+    return (string) $this->t('I cannot confirm this from the Help Centre. Please contact support for personalised help.');
   }
 
   private function sanitiseQuestion(string $question): string {

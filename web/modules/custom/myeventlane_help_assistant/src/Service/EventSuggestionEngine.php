@@ -257,7 +257,7 @@ final class EventSuggestionEngine {
         'success',
         'revenue',
         self::P_REVENUE,
-        (string) $this->t('Boosting your event can help it reach more people and stand out in listings.'),
+        (string) $this->t('Promoting your event can help it reach more people and stand out in listings.'),
         $action,
       );
     }
