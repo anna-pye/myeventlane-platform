@@ -205,7 +205,6 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
     $variables['display_name'] = $account->getDisplayName();
   }
 
-  $route_name = \Drupal::routeMatch()->getRouteName();
   $variables['account_show_header_logo'] = $route_name === 'myeventlane_account.dashboard';
   $variables['account_heading'] = _myeventlane_account_page_heading($route_name);
 
