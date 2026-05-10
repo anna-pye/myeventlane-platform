@@ -51,8 +51,8 @@ display:
           admin_label: ''
           plugin_id: text_custom
           empty: true
-          tokenize: false
           content: '<div class="mel-help-listing__empty" role="status"><h2>No articles match yet</h2><p>Try the search at the top of the page, or browse the Help Centre for more topics.</p></div>'
+          tokenize: false
       sorts:
         changed:
           id: changed

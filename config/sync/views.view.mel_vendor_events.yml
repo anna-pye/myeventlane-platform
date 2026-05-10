@@ -49,8 +49,8 @@ display:
           admin_label: ''
           plugin_id: text_custom
           empty: true
-          tokenize: false
           content: '<div class="mel-vendor-events__empty" role="status"><h2>No events yet</h2><p>Create an event to add details, RSVPs, or tickets.</p></div>'
+          tokenize: false
       sorts:
         created:
           id: created
