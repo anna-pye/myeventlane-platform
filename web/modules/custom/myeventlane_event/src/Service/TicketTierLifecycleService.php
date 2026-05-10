@@ -819,7 +819,19 @@ final class TicketTierLifecycleService {
 
     $product = $this->loadTicketProductForManagerPersist($event);
     if (!$product instanceof ProductInterface) {
-      return ['ok' => FALSE, 'messages' => ['Ticket product missing. Link a ticket product before saving tickets.']];
+      $this->syncPaidTiers($event);
+      $loadedEvent = $this->entityTypeManager->getStorage('node')->load($nid);
+      if ($loadedEvent instanceof NodeInterface) {
+        $event = $loadedEvent;
+      }
+      $product = $this->loadTicketProductForManagerPersist($event);
+      if (!$product instanceof ProductInterface) {
+        $this->loggerFactory->get('myeventlane_event')->error(
+          'persistTicketManagerRows could not create a ticket product for event @nid.',
+          ['@nid' => (string) $nid],
+        );
+        return ['ok' => FALSE, 'messages' => ['Ticket product missing. Link a ticket product before saving tickets.']];
+      }
     }
 
     $row_metas = [];

@@ -212,33 +212,33 @@ final class MelOperationalPolicyManager {
       $lines[] = $this->explainLineForPolicyId($id);
     }
     if (!empty($suppression['suppress_recommendations']) && !in_array('suppress_recommendations', $active_policy_ids, TRUE)) {
-      $lines[] = $this->t('Some suggestions are hidden because this screen is checkout-sensitive or trust-sensitive.');
+      $lines[] = (string) $this->t('Some suggestions are hidden because this screen is checkout-sensitive or trust-sensitive.');
     }
     return [
       'lines' => array_values(array_filter($lines)),
-      'framework' => $this->t('Operational policy explains UX density and tone hints only; enforcement stays in Drupal, Commerce, and moderation systems.'),
+      'framework' => (string) $this->t('Operational policy explains UX density and tone hints only; enforcement stays in Drupal, Commerce, and moderation systems.'),
     ];
   }
 
   private function explainLineForPolicyId(string $id): ?string {
     return match ($id) {
-      'moderation_attention_required' => $this->t('Trust-sensitive layout is active to keep moderation details private.'),
-      'moderation_safe_tone' => $this->t('Moderation-safe tone hints apply; operational detail stays within staff tools.'),
-      'payout_review_required' => $this->t('Payout readiness is still completing; promotional prompts are reduced.'),
-      'escalation_review_required', 'escalation_tone' => $this->t('Escalation continuity is prioritised over growth prompts.'),
-      'suppress_recommendations' => $this->t('Recommendations are reduced to avoid competing with your primary task.'),
-      'suppress_marketing_guidance' => $this->t('Marketing-style prompts are reduced on this screen.'),
-      'suppress_boost_prompts' => $this->t('Boost prompts are hidden while trust or payout requirements need attention.'),
-      'suppress_nonessential_notifications' => $this->t('Nonessential prompts are reduced to lower interruption density.'),
-      'suppress_cross_sell_guidance' => $this->t('Cross-sell guidance is reduced to protect checkout focus.'),
-      'abandoned_checkout_safety' => $this->t('Checkout recovery tone is emphasised; Commerce still owns payment steps.'),
-      'cancelled_event_suppression' => $this->t('Growth prompts are reduced for cancelled events.'),
-      'inactive_vendor_safeguard' => $this->t('Vendor setup prompts stay focused until onboarding completes.'),
-      'stale_draft_protection' => $this->t('Draft lifecycle prompts favour completion over promotion.'),
-      'trust_sensitive_tone', 'trust_warning_active' => $this->t('Messaging follows trust-sensitive guidance without exposing internal review detail.'),
-      'reduced_urgency_mode' => $this->t('Urgency and promotional cadence are intentionally lowered.'),
-      'reassurance_priority' => $this->t('Reassurance is emphasised for this customer moment.'),
-      'verified_vendor_required' => $this->t('Verification prompts stay factual until the verified vendor signal is satisfied.'),
+      'moderation_attention_required' => (string) $this->t('Trust-sensitive layout is active to keep moderation details private.'),
+      'moderation_safe_tone' => (string) $this->t('Moderation-safe tone hints apply; operational detail stays within staff tools.'),
+      'payout_review_required' => (string) $this->t('Payout readiness is still completing; promotional prompts are reduced.'),
+      'escalation_review_required', 'escalation_tone' => (string) $this->t('Escalation continuity is prioritised over growth prompts.'),
+      'suppress_recommendations' => (string) $this->t('Recommendations are reduced to avoid competing with your primary task.'),
+      'suppress_marketing_guidance' => (string) $this->t('Marketing-style prompts are reduced on this screen.'),
+      'suppress_boost_prompts' => (string) $this->t('Boost prompts are hidden while trust or payout requirements need attention.'),
+      'suppress_nonessential_notifications' => (string) $this->t('Nonessential prompts are reduced to lower interruption density.'),
+      'suppress_cross_sell_guidance' => (string) $this->t('Cross-sell guidance is reduced to protect checkout focus.'),
+      'abandoned_checkout_safety' => (string) $this->t('Checkout recovery tone is emphasised; Commerce still owns payment steps.'),
+      'cancelled_event_suppression' => (string) $this->t('Growth prompts are reduced for cancelled events.'),
+      'inactive_vendor_safeguard' => (string) $this->t('Vendor setup prompts stay focused until onboarding completes.'),
+      'stale_draft_protection' => (string) $this->t('Draft lifecycle prompts favour completion over promotion.'),
+      'trust_sensitive_tone', 'trust_warning_active' => (string) $this->t('Messaging follows trust-sensitive guidance without exposing internal review detail.'),
+      'reduced_urgency_mode' => (string) $this->t('Urgency and promotional cadence are intentionally lowered.'),
+      'reassurance_priority' => (string) $this->t('Reassurance is emphasised for this customer moment.'),
+      'verified_vendor_required' => (string) $this->t('Verification prompts stay factual until the verified vendor signal is satisfied.'),
       default => NULL,
     };
   }
