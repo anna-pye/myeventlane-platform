@@ -1,0 +1,135 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Install and update hooks for MEL Universal Ticket.
+ */
+
+use Drupal\myeventlane_tickets\Entity\RedemptionLog;
+use Drupal\myeventlane_tickets\Entity\Ticket;
+
+/**
+ * Implements hook_install().
+ */
+function mel_universal_ticket_install(): void {
+  mel_universal_ticket_ensure_ticket_capability_fields();
+  mel_universal_ticket_ensure_redemption_log_fields();
+}
+
+/**
+ * Ensures ticket capability base fields exist on existing databases.
+ */
+function mel_universal_ticket_update_9001(): string {
+  return mel_universal_ticket_ensure_ticket_capability_fields();
+}
+
+/**
+ * Ensures redemption log fields added by the foundation exist.
+ */
+function mel_universal_ticket_update_9002(): string {
+  return mel_universal_ticket_ensure_redemption_log_fields();
+}
+
+/**
+ * Installs missing universal ticket field storage definitions safely.
+ */
+function mel_universal_ticket_ensure_ticket_capability_fields(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $entity_type_manager->getDefinition('myeventlane_ticket', FALSE);
+  if (!$entity_type) {
+    return 'myeventlane_ticket entity type is not available.';
+  }
+
+  $definitions = Ticket::baseFieldDefinitions($entity_type);
+  $field_names = [
+    'entitlement_type',
+    'redemption_limit',
+    'redemption_count',
+    'fulfilment_status',
+    'collect_window',
+    'collect_location',
+    'vehicle_registration',
+    'vendor_reference',
+    'expires_at',
+    'metadata_json',
+  ];
+
+  $installed = [];
+  $reused = [];
+  foreach ($field_names as $field_name) {
+    if ($update_manager->getFieldStorageDefinition($field_name, 'myeventlane_ticket')) {
+      $reused[] = $field_name;
+      continue;
+    }
+    if (!isset($definitions[$field_name])) {
+      \Drupal::logger('mel_universal_ticket')->error('Ticket capability field definition @field is missing.', [
+        '@field' => $field_name,
+      ]);
+      throw new \RuntimeException(sprintf('Ticket capability field definition %s is missing.', $field_name));
+    }
+
+    $update_manager->installFieldStorageDefinition(
+      $field_name,
+      'myeventlane_ticket',
+      'mel_universal_ticket',
+      $definitions[$field_name],
+    );
+    $installed[] = $field_name;
+  }
+
+  if ($installed === []) {
+    return 'Reused existing myeventlane_ticket capability fields: ' . implode(', ', $reused) . '.';
+  }
+
+  return 'Installed myeventlane_ticket capability fields: ' . implode(', ', $installed) . '. Reused: ' . implode(', ', $reused) . '.';
+}
+
+/**
+ * Installs missing redemption log field storage definitions safely.
+ */
+function mel_universal_ticket_ensure_redemption_log_fields(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  if (!$entity_type_manager->hasDefinition('mel_redemption_log')) {
+    return 'mel_redemption_log entity type is not available.';
+  }
+
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $entity_type_manager->getDefinition('mel_redemption_log');
+  $definitions = RedemptionLog::baseFieldDefinitions($entity_type);
+  $field_names = [
+    'entitlement_type',
+    'ip_address',
+  ];
+
+  $installed = [];
+  $reused = [];
+  foreach ($field_names as $field_name) {
+    if ($update_manager->getFieldStorageDefinition($field_name, 'mel_redemption_log')) {
+      $reused[] = $field_name;
+      continue;
+    }
+    if (!isset($definitions[$field_name])) {
+      \Drupal::logger('mel_universal_ticket')->error('Redemption log field definition @field is missing.', [
+        '@field' => $field_name,
+      ]);
+      throw new \RuntimeException(sprintf('Redemption log field definition %s is missing.', $field_name));
+    }
+
+    $update_manager->installFieldStorageDefinition(
+      $field_name,
+      'mel_redemption_log',
+      'mel_universal_ticket',
+      $definitions[$field_name],
+    );
+    $installed[] = $field_name;
+  }
+
+  if ($installed === []) {
+    return 'Reused existing mel_redemption_log fields: ' . implode(', ', $reused) . '.';
+  }
+
+  return 'Installed mel_redemption_log fields: ' . implode(', ', $installed) . '. Reused: ' . implode(', ', $reused) . '.';
+}

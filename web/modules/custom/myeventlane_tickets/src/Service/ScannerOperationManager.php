@@ -13,6 +13,7 @@ use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Ticket\TicketQrPayload;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Routes scanner operations for ticket-backed entitlements.
@@ -68,6 +69,7 @@ final class ScannerOperationManager {
     private readonly TicketCheckinLogger $checkinLogger,
     private readonly TicketCapabilityManager $capabilityManager,
     private readonly Connection $database,
+    private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -237,11 +239,13 @@ final class ScannerOperationManager {
       }
       $values = [
         'ticket_id' => (int) $ticket->id(),
+        'entitlement_type' => $ticket->getEntitlementType(),
         'staff_uid' => (int) $this->currentUser->id() ?: NULL,
         'vendor_id' => $this->resolveVendorId($ticket),
         'event_id' => (int) $ticket->get('event_id')->target_id,
         'action_type' => $action,
         'device_identifier' => $this->normalizeDeviceId($device_id),
+        'ip_address' => $this->requestStack->getCurrentRequest()?->getClientIp(),
         'notes' => $message,
         'metadata_json' => [
           'ok' => $ok,

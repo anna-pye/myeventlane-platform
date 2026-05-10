@@ -1,0 +1,9 @@
+name: 'MEL Universal Ticket'
+type: module
+description: 'Extends existing MyEventLane tickets with universal entitlement foundation capabilities.'
+core_version_requirement: ^11
+package: 'Custom'
+dependencies:
+  - myeventlane_tickets:myeventlane_tickets
+  - drupal:datetime
+  - drupal:datetime_range

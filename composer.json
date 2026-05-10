@@ -27,6 +27,7 @@
     "drupal/commerce": "^3.0@beta",
     "drupal/commerce_paypal": "^2.0",
     "drupal/commerce_recurring": "^1.0@RC",
+    "drupal/commerce_shipping": "^3.0",
     "drupal/commerce_stripe": "^2",
     "drupal/conditional_fields": "^4.0@alpha",
     "drupal/core-composer-scaffold": "^11.2",

@@ -61,6 +61,7 @@ services:
       - '@myeventlane_tickets.ticket_checkin_logger'
       - '@mel_ticket_capability.manager'
       - '@database'
+      - '@request_stack'
       - '@logger.channel.myeventlane_tickets'
 
   myeventlane_tickets.ticket_checkin_service:

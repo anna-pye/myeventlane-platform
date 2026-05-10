@@ -2,6 +2,25 @@
 
 Phase 2A extends the existing `myeventlane_ticket` content entity into the canonical operational entitlement object. This document records the current implementation before schema and scanner changes so future work does not create a second entitlement, QR, wallet, scanner, or ownership system.
 
+## Phase 2A Foundation Status
+
+`mel_universal_ticket` owns the universal entitlement foundation orchestration layer. It does not replace `myeventlane_tickets`; it depends on the existing ticket module and safely verifies that the capability base fields already present on `myeventlane_ticket` are installed.
+
+The requested `field_*` capability names map to existing code-defined base fields on `myeventlane_ticket`:
+
+- `field_entitlement_type` reuses `entitlement_type`
+- `field_redemption_limit` reuses `redemption_limit`
+- `field_redemption_count` reuses `redemption_count`
+- `field_fulfilment_status` reuses `fulfilment_status`
+- `field_collect_window` reuses `collect_window`
+- `field_collect_location` reuses `collect_location`
+- `field_vehicle_registration` reuses `vehicle_registration`
+- `field_vendor_reference` reuses `vendor_reference`
+- `field_expires_at` reuses `expires_at`
+- `field_metadata_json` reuses `metadata_json`
+
+This avoids duplicate storage and preserves existing ticket rows, revisions, QR compatibility, wallet rendering, and Commerce order flows.
+
 ## Canonical Object
 
 `myeventlane_ticket` is defined in `web/modules/custom/myeventlane_tickets/src/Entity/Ticket.php`.

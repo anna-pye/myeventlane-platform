@@ -45,7 +45,7 @@ final class TicketQrPayload {
   /**
    * Parses ticket input and validates signature when signed format is used.
    *
-   * @return array{ticket_code: string, event_id: int|null, signed: bool, ticket_uuid?: string, entitlement_type?: string, owner_id?: int, expires_at?: int}|null
+   * @return array{ticket_code: string, event_id: int|null, signed: bool, ticket_uuid?: string, entitlement_type?: string, owner_id?: int, expires_at?: int, redemption_metadata?: array<string, mixed>}|null
    *   Parsed data or NULL when invalid.
    */
   public function parseAndValidate(string $input): ?array {
@@ -105,7 +105,10 @@ final class TicketQrPayload {
       'type' => $ticket->getEntitlementType(),
       'tid' => $ticket->uuid(),
       'eid' => (int) $ticket->get('event_id')->target_id,
-      'owner' => (int) $ticket->get('purchaser_uid')->target_id,
+      'cap' => [
+        'limit' => $ticket->getRedemptionLimit(),
+        'multi' => $ticket->getRedemptionLimit() > 1,
+      ],
     ];
 
     $expires_at = $this->getExpiresAtTimestamp($ticket);
@@ -133,7 +136,7 @@ final class TicketQrPayload {
   /**
    * Parses and validates the structured mel:v1 JSON payload.
    *
-   * @return array{ticket_code: string, event_id: int|null, signed: bool, ticket_uuid?: string, entitlement_type?: string, owner_id?: int, expires_at?: int}|null
+   * @return array{ticket_code: string, event_id: int|null, signed: bool, ticket_uuid?: string, entitlement_type?: string, owner_id?: int, expires_at?: int, redemption_metadata?: array<string, mixed>}|null
    *   Parsed data or NULL when invalid.
    */
   private function parseStructuredPayload(string $input): ?array {
@@ -193,6 +196,9 @@ final class TicketQrPayload {
     }
     if (isset($payload['exp']) && is_numeric($payload['exp'])) {
       $result['expires_at'] = (int) $payload['exp'];
+    }
+    if (isset($payload['cap']) && is_array($payload['cap'])) {
+      $result['redemption_metadata'] = $payload['cap'];
     }
 
     return $result;
