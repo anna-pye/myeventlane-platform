@@ -34,6 +34,8 @@ final class VendorDashboardViewModelBuilder {
 
   private const MAX_EVENTS = 6;
 
+  private const MAX_EVENT_QUICK_ACTIONS = 6;
+
   public function __construct(
     private readonly CurrentVendorResolverInterface $currentVendorResolver,
     private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
@@ -119,6 +121,7 @@ final class VendorDashboardViewModelBuilder {
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip($kpis),
       'action_queue' => [],
       'events' => $events,
+      'current_event' => $events[0] ?? NULL,
       'analytics_summary' => $analyticsSummary,
       'empty_state' => $this->buildEmptyState($account, $events === []),
     ];
@@ -133,6 +136,9 @@ final class VendorDashboardViewModelBuilder {
       $model['action_queue'] = [];
     }
 
+    $model['priority_action'] = $this->primaryAction($model['action_queue']);
+    $model['secondary_actions'] = $this->secondaryActions($model['action_queue']);
+    $model['activity_items'] = $this->buildActivityItems($events);
     $model['hero_shell_hint'] = $this->heroShellHint($model);
 
     return $model;
@@ -168,6 +174,10 @@ final class VendorDashboardViewModelBuilder {
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip([]),
       'action_queue' => [],
       'events' => [],
+      'current_event' => NULL,
+      'priority_action' => NULL,
+      'secondary_actions' => [],
+      'activity_items' => [],
       'analytics_summary' => [
         'available' => FALSE,
         'items' => [],
@@ -484,7 +494,20 @@ final class VendorDashboardViewModelBuilder {
       }
     }
 
-    usort($eventNodes, static function (NodeInterface $a, NodeInterface $b): int {
+    $now = (int) $this->time->getRequestTime();
+    usort($eventNodes, function (NodeInterface $a, NodeInterface $b) use ($now): int {
+      $aRank = $this->eventFocusRank($a, $now);
+      $bRank = $this->eventFocusRank($b, $now);
+      if ($aRank !== $bRank) {
+        return $aRank <=> $bRank;
+      }
+
+      $aStart = $this->getDateFieldTimestamp($a, 'field_event_start');
+      $bStart = $this->getDateFieldTimestamp($b, 'field_event_start');
+      if ($aStart > 0 && $bStart > 0 && $aStart !== $bStart) {
+        return $aStart <=> $bStart;
+      }
+
       return $b->getChangedTime() <=> $a->getChangedTime();
     });
 
@@ -592,9 +615,13 @@ final class VendorDashboardViewModelBuilder {
       'status_label' => $statusLabel,
       'date_label' => $dateLabel,
       'event_type' => $eventType,
+      'booking_state_label' => $this->bookingStateLabel($eventType),
       'capacity_label' => $capacityLabel,
       'metric_label' => $metricLabel,
       'revenue_label' => $revenueLabel,
+      'attendee_summary' => $this->attendeeSummary($ticketsSold, $rsvpCount),
+      'operation_summary' => $this->eventOperationSummary($status, $eventType),
+      'metrics' => $this->buildEventMetrics($ticketsSold, $rsvpCount, $revenueLabel, $capacityLabel),
       'presentation_issues' => $presentation['items'] ?? [],
       'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
       'is_promoted' => $isPromoted,
@@ -607,8 +634,33 @@ final class VendorDashboardViewModelBuilder {
         'orders' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_orders', ['event' => $nid]),
         'attendees' => $this->safeUrlFromRoute('myeventlane_event_attendees.vendor_list', ['node' => $nid]),
         'analytics' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_analytics', ['event' => $nid]),
+        'checkin' => $this->safeUrlFromRouteIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account),
+        'share' => $published ? $this->safeUrlFromRouteIfAccessible('entity.node.canonical', ['node' => $nid], $account) : NULL,
+        'promote' => $this->promoteUrl($nid, $account),
+        'support' => $this->safeUrlFromRouteIfAccessible('myeventlane_help_centre.vendors_index', [], $account),
       ],
+      'quick_actions' => $this->buildEventQuickActions($nid, $published, $account),
     ];
+  }
+
+  private function eventFocusRank(NodeInterface $node, int $now): int {
+    $startTs = $this->getDateFieldTimestamp($node, 'field_event_start');
+    $endTs = $this->getDateFieldTimestamp($node, 'field_event_end');
+    $published = $node->isPublished();
+
+    if ($published && $startTs > 0 && $startTs <= $now && ($endTs === 0 || $endTs >= $now)) {
+      return 0;
+    }
+    if (!$published) {
+      return 1;
+    }
+    if ($published && $startTs > 0 && $startTs > $now) {
+      return 2;
+    }
+    if ($published && $startTs === 0) {
+      return 3;
+    }
+    return 4;
   }
 
   private function getDateFieldTimestamp(NodeInterface $node, string $field): int {
@@ -620,6 +672,128 @@ final class VendorDashboardViewModelBuilder {
       return (int) $item->date->getTimestamp();
     }
     return 0;
+  }
+
+  private function bookingStateLabel(string $eventType): string {
+    return match ($eventType) {
+      'paid' => (string) $this->t('Paid ticket sales are active.'),
+      'rsvp' => (string) $this->t('RSVP collection is active.'),
+      'both' => (string) $this->t('Tickets and RSVPs are active.'),
+      default => (string) $this->t('Booking setup needs review.'),
+    };
+  }
+
+  private function attendeeSummary(int $ticketsSold, int $rsvpCount): string {
+    $parts = [];
+    if ($ticketsSold > 0) {
+      $parts[] = (string) $this->t('@count tickets sold', ['@count' => $ticketsSold]);
+    }
+    if ($rsvpCount > 0) {
+      $parts[] = (string) $this->t('@count RSVPs received', ['@count' => $rsvpCount]);
+    }
+    if ($parts === []) {
+      return (string) $this->t('No attendee activity yet.');
+    }
+    return implode(' · ', $parts);
+  }
+
+  private function eventOperationSummary(string $status, string $eventType): string {
+    if ($status === 'draft') {
+      return (string) $this->t('Your event is still in draft and not publicly visible.');
+    }
+    if ($status === 'past') {
+      return (string) $this->t('This event has finished. Use attendees and analytics for follow-up.');
+    }
+    if ($eventType === 'unknown') {
+      return (string) $this->t('Your event is live, but booking setup needs review.');
+    }
+    if ($eventType === 'paid' || $eventType === 'both') {
+      return (string) $this->t('Your event is live and paid ticket sales are active.');
+    }
+    return (string) $this->t('Your event is live and ready for attendees.');
+  }
+
+  /**
+   * @return list<array<string, string>>
+   */
+  private function buildEventMetrics(int $ticketsSold, int $rsvpCount, string $revenueLabel, ?string $capacityLabel): array {
+    $metrics = [
+      [
+        'key' => 'bookings',
+        'label' => (string) $this->t('Bookings'),
+        'value' => (string) ($ticketsSold + $rsvpCount),
+        'context' => (string) $this->t('Tickets + RSVPs'),
+      ],
+      [
+        'key' => 'attendees',
+        'label' => (string) $this->t('Attendees'),
+        'value' => (string) ($ticketsSold + $rsvpCount),
+        'context' => (string) $this->t('Expected guests'),
+      ],
+      [
+        'key' => 'revenue',
+        'label' => (string) $this->t('Revenue'),
+        'value' => $revenueLabel,
+        'context' => (string) $this->t('Gross ticket sales'),
+      ],
+      [
+        'key' => 'rsvps',
+        'label' => (string) $this->t('RSVPs'),
+        'value' => (string) $rsvpCount,
+        'context' => (string) $this->t('Confirmed responses'),
+      ],
+    ];
+
+    if ($capacityLabel !== NULL) {
+      $metrics[] = [
+        'key' => 'capacity',
+        'label' => (string) $this->t('Capacity'),
+        'value' => $capacityLabel,
+        'context' => (string) $this->t('Configured limit'),
+      ];
+    }
+
+    return $metrics;
+  }
+
+  /**
+   * @return list<array<string, mixed>>
+   */
+  private function buildEventQuickActions(int $nid, bool $published, AccountInterface $account): array {
+    $actions = [];
+    $this->appendQuickAction($actions, 'edit', (string) $this->t('Edit event'), $this->safeUrlFromRouteIfAccessible('myeventlane_event_studio.edit', ['node' => $nid], $account), 'settings');
+    $this->appendQuickAction($actions, 'attendees', (string) $this->t('View attendees'), $this->safeUrlFromRouteIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account), 'list');
+    $this->appendQuickAction($actions, 'checkin', (string) $this->t('Open check-in'), $this->safeUrlFromRouteIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account), 'scan');
+    if ($published) {
+      $this->appendQuickAction($actions, 'share', (string) $this->t('Share event'), $this->safeUrlFromRouteIfAccessible('entity.node.canonical', ['node' => $nid], $account), 'export');
+      $this->appendQuickAction($actions, 'promote', (string) $this->t('Promote event'), $this->promoteUrl($nid, $account), 'search');
+    }
+    $this->appendQuickAction($actions, 'support', (string) $this->t('Open support'), $this->safeUrlFromRouteIfAccessible('myeventlane_help_centre.vendors_index', [], $account), 'search');
+
+    return array_slice($actions, 0, self::MAX_EVENT_QUICK_ACTIONS);
+  }
+
+  /**
+   * @param list<array<string, mixed>> $actions
+   */
+  private function appendQuickAction(array &$actions, string $key, string $label, ?Url $url, string $icon): void {
+    if (!$url instanceof Url) {
+      return;
+    }
+    $actions[] = [
+      'key' => $key,
+      'label' => $label,
+      'url' => $url,
+      'icon' => $icon,
+    ];
+  }
+
+  private function promoteUrl(int $nid, AccountInterface $account): ?Url {
+    $url = $this->safeUrlFromRouteIfAccessible('myeventlane_boost.vendor_event_boost', ['event' => $nid], $account);
+    if ($url instanceof Url) {
+      return $url;
+    }
+    return $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.manage_event.promote', ['event' => $nid], $account);
   }
 
   /**
@@ -700,6 +874,90 @@ final class VendorDashboardViewModelBuilder {
   }
 
   /**
+   * @param list<array<string, mixed>> $actions
+   *
+   * @return array<string, mixed>|null
+   */
+  private function primaryAction(array $actions): ?array {
+    foreach ($actions as $action) {
+      if (is_array($action)) {
+        return $action;
+      }
+    }
+    return NULL;
+  }
+
+  /**
+   * @param list<array<string, mixed>> $actions
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function secondaryActions(array $actions): array {
+    $secondary = [];
+    foreach (array_slice($actions, 1) as $action) {
+      if (is_array($action)) {
+        $secondary[] = $action;
+      }
+    }
+    return $secondary;
+  }
+
+  /**
+   * @param list<array<string, mixed>> $events
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function buildActivityItems(array $events): array {
+    $items = [];
+    foreach ($events as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      $title = (string) ($event['title'] ?? '');
+      if ($title === '') {
+        continue;
+      }
+      $links = $event['links'] ?? [];
+      $url = is_array($links) && isset($links['manage']) && $links['manage'] instanceof Url ? $links['manage'] : NULL;
+      $status = (string) ($event['status'] ?? '');
+      if ($status === 'draft') {
+        $items[] = [
+          'type' => 'warning',
+          'message' => (string) $this->t('Draft event waiting: @event.', ['@event' => $title]),
+          'url' => $url,
+        ];
+      }
+      else {
+        $items[] = [
+          'type' => 'info',
+          'message' => (string) $this->t('Event state: @event is @state.', [
+            '@event' => $title,
+            '@state' => (string) ($event['status_label'] ?? $status),
+          ]),
+          'url' => $url,
+        ];
+      }
+
+      $metricLabel = (string) ($event['metric_label'] ?? '');
+      if ($metricLabel !== '') {
+        $items[] = [
+          'type' => 'success',
+          'message' => (string) $this->t('Activity on @event: @metrics.', [
+            '@event' => $title,
+            '@metrics' => $metricLabel,
+          ]),
+          'url' => $url,
+        ];
+      }
+      if (count($items) >= 6) {
+        break;
+      }
+    }
+
+    return array_slice($items, 0, 6);
+  }
+
+  /**
    * @param array<string, mixed> $model
    */
   private function heroShellHint(array $model): string {
@@ -741,6 +999,31 @@ final class VendorDashboardViewModelBuilder {
       ]);
       return NULL;
     }
+  }
+
+  /**
+   * @param array<string, mixed> $parameters
+   * @param array<string, mixed> $options
+   */
+  private function safeUrlFromRouteIfAccessible(string $route, array $parameters, AccountInterface $account, array $options = []): ?Url {
+    if (!$account->isAuthenticated() || !$this->routeExists($route)) {
+      return NULL;
+    }
+    try {
+      $access = $this->accessManager->checkNamedRoute($route, $parameters, $account, TRUE);
+      if (!$access->isAllowed()) {
+        return NULL;
+      }
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Failed to check dashboard action access for route @route: @message', [
+        '@route' => $route,
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+
+    return $this->safeUrlFromRoute($route, $parameters, $options);
   }
 
 }
