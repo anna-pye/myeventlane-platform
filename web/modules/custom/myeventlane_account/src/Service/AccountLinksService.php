@@ -96,8 +96,15 @@ final class AccountLinksService {
     }
 
     $ticketsUrl = Url::fromRoute('myeventlane_checkout_flow.my_tickets', [], ['absolute' => FALSE])->toString();
-    $eventsUrl = Url::fromRoute('myeventlane_dashboard.customer', [], ['absolute' => FALSE])->toString();
     $dashboardUrl = Url::fromRoute('myeventlane_account.dashboard', [], ['absolute' => FALSE])->toString();
+
+    // myeventlane_dashboard is optional; mirror other hub links that guard optional routes.
+    $eventsUrl = $dashboardUrl;
+    try {
+      $eventsUrl = Url::fromRoute('myeventlane_dashboard.customer', [], ['absolute' => FALSE])->toString();
+    }
+    catch (\Throwable) {
+    }
 
     $definitions = [
       [
