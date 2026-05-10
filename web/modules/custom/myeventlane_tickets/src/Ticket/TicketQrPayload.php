@@ -31,6 +31,10 @@ final class TicketQrPayload {
       return $ticket_code;
     }
 
+    if ($this->shouldUseStructuredPayload($ticket)) {
+      return $this->buildStructuredPayload($ticket);
+    }
+
     $issued_ts = (int) $ticket->getCreatedTime();
     $message = $ticket_code . ':' . $event_id . ':' . $issued_ts;
     $sig = $this->base64UrlEncode(hash_hmac('sha256', $message, $this->getSecret(), TRUE));
@@ -41,7 +45,7 @@ final class TicketQrPayload {
   /**
    * Parses ticket input and validates signature when signed format is used.
    *
-   * @return array{ticket_code: string, event_id: int|null, signed: bool}|null
+   * @return array{ticket_code: string, event_id: int|null, signed: bool, ticket_uuid?: string, entitlement_type?: string, owner_id?: int, expires_at?: int}|null
    *   Parsed data or NULL when invalid.
    */
   public function parseAndValidate(string $input): ?array {
@@ -56,6 +60,10 @@ final class TicketQrPayload {
         'event_id' => NULL,
         'signed' => FALSE,
       ];
+    }
+
+    if (str_starts_with($input, 'mel:v1:json:')) {
+      return $this->parseStructuredPayload($input);
     }
 
     $parts = explode(':', $input, 6);
@@ -89,6 +97,129 @@ final class TicketQrPayload {
   }
 
   /**
+   * Builds the structured mel:v1 payload for non-admission entitlements.
+   */
+  private function buildStructuredPayload(Ticket $ticket): string {
+    $payload = [
+      'v' => 1,
+      'type' => $ticket->getEntitlementType(),
+      'tid' => $ticket->uuid(),
+      'eid' => (int) $ticket->get('event_id')->target_id,
+      'owner' => (int) $ticket->get('purchaser_uid')->target_id,
+    ];
+
+    $expires_at = $this->getExpiresAtTimestamp($ticket);
+    if ($expires_at !== NULL) {
+      $payload['exp'] = $expires_at;
+    }
+
+    try {
+      $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+    }
+    catch (\JsonException $e) {
+      $this->logger->error('Failed to encode structured ticket QR payload for ticket @ticket: @message', [
+        '@ticket' => (string) $ticket->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+
+    $encoded = $this->base64UrlEncode($json);
+    $sig = $this->base64UrlEncode(hash_hmac('sha256', $encoded, $this->getSecret(), TRUE));
+
+    return sprintf('mel:v1:json:%s:%s', $encoded, $sig);
+  }
+
+  /**
+   * Parses and validates the structured mel:v1 JSON payload.
+   *
+   * @return array{ticket_code: string, event_id: int|null, signed: bool, ticket_uuid?: string, entitlement_type?: string, owner_id?: int, expires_at?: int}|null
+   *   Parsed data or NULL when invalid.
+   */
+  private function parseStructuredPayload(string $input): ?array {
+    $parts = explode(':', $input, 5);
+    if (count($parts) !== 5) {
+      return NULL;
+    }
+
+    [, $version, $format, $encoded, $sig] = $parts;
+    if ($version !== 'v1' || $format !== 'json' || $encoded === '' || $sig === '') {
+      return NULL;
+    }
+
+    $expected_sig = $this->base64UrlEncode(hash_hmac('sha256', $encoded, $this->getSecret(), TRUE));
+    if (!hash_equals($expected_sig, $sig)) {
+      $this->logger->warning('Invalid structured ticket QR signature.');
+      return NULL;
+    }
+
+    $json = $this->base64UrlDecode($encoded);
+    if ($json === NULL) {
+      return NULL;
+    }
+
+    try {
+      $payload = json_decode($json, TRUE, 512, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException $e) {
+      $this->logger->warning('Invalid structured ticket QR JSON: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+
+    if (!is_array($payload) || (int) ($payload['v'] ?? 0) !== 1) {
+      return NULL;
+    }
+
+    $ticket_uuid = trim((string) ($payload['tid'] ?? ''));
+    if ($ticket_uuid === '') {
+      return NULL;
+    }
+
+    $event_id = isset($payload['eid']) && is_numeric($payload['eid']) ? (int) $payload['eid'] : NULL;
+    $result = [
+      'ticket_code' => isset($payload['code']) ? (string) $payload['code'] : '',
+      'event_id' => $event_id,
+      'signed' => TRUE,
+      'ticket_uuid' => $ticket_uuid,
+    ];
+
+    if (isset($payload['type']) && is_string($payload['type'])) {
+      $result['entitlement_type'] = $payload['type'];
+    }
+    if (isset($payload['owner']) && is_numeric($payload['owner'])) {
+      $result['owner_id'] = (int) $payload['owner'];
+    }
+    if (isset($payload['exp']) && is_numeric($payload['exp'])) {
+      $result['expires_at'] = (int) $payload['exp'];
+    }
+
+    return $result;
+  }
+
+  /**
+   * Determines if this ticket needs the structured payload variant.
+   */
+  private function shouldUseStructuredPayload(Ticket $ticket): bool {
+    if ($ticket->getEntitlementType() !== Ticket::ENTITLEMENT_TICKET) {
+      return TRUE;
+    }
+    return $this->getExpiresAtTimestamp($ticket) !== NULL;
+  }
+
+  /**
+   * Reads optional expiry as a Unix timestamp.
+   */
+  private function getExpiresAtTimestamp(Ticket $ticket): ?int {
+    if (!$ticket->hasField('expires_at') || $ticket->get('expires_at')->isEmpty()) {
+      return NULL;
+    }
+    $timestamp = strtotime((string) $ticket->get('expires_at')->value . ' UTC');
+    return $timestamp === FALSE ? NULL : $timestamp;
+  }
+
+  /**
    * Gets QR signing secret from settings.php first, then config fallback.
    */
   private function getSecret(): string {
@@ -116,6 +247,15 @@ final class TicketQrPayload {
    */
   private function base64UrlEncode(string $binary): string {
     return rtrim(strtr(base64_encode($binary), '+/', '-_'), '=');
+  }
+
+  /**
+   * Decodes URL-safe base64 without padding.
+   */
+  private function base64UrlDecode(string $encoded): ?string {
+    $padded = str_pad(strtr($encoded, '-_', '+/'), strlen($encoded) % 4 === 0 ? strlen($encoded) : strlen($encoded) + 4 - strlen($encoded) % 4, '=', STR_PAD_RIGHT);
+    $decoded = base64_decode($padded, TRUE);
+    return $decoded === FALSE ? NULL : $decoded;
   }
 
 }

@@ -350,3 +350,97 @@ function myeventlane_tickets_update_8006(): string {
     return 'allowed_ticket_types may already exist: ' . $e->getMessage();
   }
 }
+
+/**
+ * Adds universal entitlement fields to existing myeventlane_ticket rows.
+ */
+function myeventlane_tickets_update_8007(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_ticket', FALSE);
+  if (!$entity_type) {
+    return 'myeventlane_ticket entity type not found; rebuild caches and re-run updates.';
+  }
+
+  $definitions = Ticket::baseFieldDefinitions($entity_type);
+  $field_names = [
+    'entitlement_type',
+    'redemption_limit',
+    'redemption_count',
+    'fulfilment_status',
+    'collect_window',
+    'collect_location',
+    'vehicle_registration',
+    'vendor_reference',
+    'expires_at',
+    'metadata_json',
+  ];
+
+  $installed = [];
+  $already_installed = [];
+  foreach ($field_names as $field_name) {
+    if ($update_manager->getFieldStorageDefinition($field_name, 'myeventlane_ticket')) {
+      $already_installed[] = $field_name;
+      continue;
+    }
+    if (!isset($definitions[$field_name])) {
+      \Drupal::logger('myeventlane_tickets')->error('Universal entitlement field @field is missing from Ticket::baseFieldDefinitions().', [
+        '@field' => $field_name,
+      ]);
+      continue;
+    }
+
+    try {
+      $update_manager->installFieldStorageDefinition(
+        $field_name,
+        'myeventlane_ticket',
+        'myeventlane_tickets',
+        $definitions[$field_name],
+      );
+      $installed[] = $field_name;
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_tickets')->error('Failed to install myeventlane_ticket.@field: @message', [
+        '@field' => $field_name,
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+  }
+
+  if ($installed === []) {
+    return 'Universal entitlement ticket fields already installed: ' . implode(', ', $already_installed);
+  }
+
+  return 'Installed universal entitlement ticket fields: ' . implode(', ', $installed);
+}
+
+/**
+ * Installs append-only redemption log entity storage.
+ */
+function myeventlane_tickets_update_8008(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager->clearCachedDefinitions();
+
+  $definition = $entity_type_manager->getDefinition('mel_redemption_log', FALSE);
+  if (!$definition) {
+    return 'mel_redemption_log entity type not found; rebuild caches and re-run updates.';
+  }
+
+  $base_table = $definition->getBaseTable();
+  if ($base_table && \Drupal::database()->schema()->tableExists($base_table)) {
+    return 'mel_redemption_log storage already exists.';
+  }
+
+  try {
+    $update_manager->installEntityType($definition);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_tickets')->error('Failed to install mel_redemption_log entity type: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    throw $e;
+  }
+
+  return 'Installed mel_redemption_log entity type.';
+}

@@ -48,6 +48,21 @@ final class Ticket extends ContentEntityBase {
   use EntityChangedTrait;
   use EntityOwnerTrait;
 
+  public const ENTITLEMENT_TICKET = 'ticket';
+  public const ENTITLEMENT_MERCH = 'merch';
+  public const ENTITLEMENT_PARKING = 'parking';
+  public const ENTITLEMENT_DRINK = 'drink';
+  public const ENTITLEMENT_FOOD = 'food';
+  public const ENTITLEMENT_VIP = 'vip';
+  public const ENTITLEMENT_ADDON = 'addon';
+
+  public const FULFILMENT_PENDING = 'pending';
+  public const FULFILMENT_READY = 'ready';
+  public const FULFILMENT_COLLECTED = 'collected';
+  public const FULFILMENT_REDEEMED = 'redeemed';
+  public const FULFILMENT_EXPIRED = 'expired';
+  public const FULFILMENT_CANCELLED = 'cancelled';
+
   public const STATUS_ISSUED_UNASSIGNED = 'issued_unassigned';
   public const STATUS_ASSIGNED = 'assigned';
   public const STATUS_CHECKED_IN = 'checked_in';
@@ -146,6 +161,81 @@ final class Ticket extends ContentEntityBase {
       ->setRequired(FALSE)
       ->setSetting('target_type', 'user');
 
+    $fields['entitlement_type'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Entitlement type'))
+      ->setDescription(t('Operational entitlement represented by this ticket row.'))
+      ->setRequired(TRUE)
+      ->setSetting('allowed_values', [
+        self::ENTITLEMENT_TICKET => 'Ticket',
+        self::ENTITLEMENT_MERCH => 'Merch pickup',
+        self::ENTITLEMENT_PARKING => 'Parking',
+        self::ENTITLEMENT_DRINK => 'Drink voucher',
+        self::ENTITLEMENT_FOOD => 'Food voucher',
+        self::ENTITLEMENT_VIP => 'VIP access',
+        self::ENTITLEMENT_ADDON => 'Event add-on',
+      ])
+      ->setDefaultValue(self::ENTITLEMENT_TICKET);
+
+    $fields['redemption_limit'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('Redemption limit'))
+      ->setDescription(t('Maximum successful operational redemptions allowed.'))
+      ->setRequired(FALSE)
+      ->setDefaultValue(1);
+
+    $fields['redemption_count'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('Redemption count'))
+      ->setDescription(t('Number of successful operational redemptions recorded.'))
+      ->setRequired(FALSE)
+      ->setDefaultValue(0);
+
+    $fields['fulfilment_status'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Fulfilment status'))
+      ->setDescription(t('Operational fulfilment state for pickup and redemption workflows.'))
+      ->setRequired(TRUE)
+      ->setSetting('allowed_values', [
+        self::FULFILMENT_PENDING => 'Pending',
+        self::FULFILMENT_READY => 'Ready',
+        self::FULFILMENT_COLLECTED => 'Collected',
+        self::FULFILMENT_REDEEMED => 'Redeemed',
+        self::FULFILMENT_EXPIRED => 'Expired',
+        self::FULFILMENT_CANCELLED => 'Cancelled',
+      ])
+      ->setDefaultValue(self::FULFILMENT_PENDING);
+
+    $fields['collect_window'] = BaseFieldDefinition::create('daterange')
+      ->setLabel(t('Collection window'))
+      ->setDescription(t('Optional start and end window for pickup or redemption.'))
+      ->setRequired(FALSE)
+      ->setSetting('datetime_type', 'datetime');
+
+    $fields['collect_location'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(t('Collection location'))
+      ->setDescription(t('Human-readable collection or redemption location.'))
+      ->setRequired(FALSE);
+
+    $fields['vehicle_registration'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Vehicle registration'))
+      ->setDescription(t('Optional vehicle registration for parking passes.'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 32);
+
+    $fields['vendor_reference'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Vendor reference'))
+      ->setDescription(t('Vendor responsible for fulfilment or redemption when scoped below the event.'))
+      ->setRequired(FALSE)
+      ->setSetting('target_type', 'myeventlane_vendor');
+
+    $fields['expires_at'] = BaseFieldDefinition::create('datetime')
+      ->setLabel(t('Expires at'))
+      ->setDescription(t('Optional entitlement expiry timestamp.'))
+      ->setRequired(FALSE)
+      ->setSetting('datetime_type', 'datetime');
+
+    $fields['metadata_json'] = BaseFieldDefinition::create('map')
+      ->setLabel(t('Metadata'))
+      ->setDescription(t('Structured operational metadata for integrations and future fulfilment workflows.'))
+      ->setRequired(FALSE);
+
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'));
 
@@ -153,6 +243,49 @@ final class Ticket extends ContentEntityBase {
       ->setLabel(t('Changed'));
 
     return $fields;
+  }
+
+  /**
+   * Returns the operational entitlement type.
+   */
+  public function getEntitlementType(): string {
+    $value = $this->hasField('entitlement_type') ? (string) ($this->get('entitlement_type')->value ?? '') : '';
+    return $value !== '' ? $value : self::ENTITLEMENT_TICKET;
+  }
+
+  /**
+   * Returns the configured redemption limit.
+   */
+  public function getRedemptionLimit(): int {
+    if (!$this->hasField('redemption_limit') || $this->get('redemption_limit')->isEmpty()) {
+      return 1;
+    }
+    return max(0, (int) $this->get('redemption_limit')->value);
+  }
+
+  /**
+   * Returns the current redemption count.
+   */
+  public function getRedemptionCount(): int {
+    if (!$this->hasField('redemption_count') || $this->get('redemption_count')->isEmpty()) {
+      return 0;
+    }
+    return max(0, (int) $this->get('redemption_count')->value);
+  }
+
+  /**
+   * Returns the fulfilment status.
+   */
+  public function getFulfilmentStatus(): string {
+    $value = $this->hasField('fulfilment_status') ? (string) ($this->get('fulfilment_status')->value ?? '') : '';
+    return $value !== '' ? $value : self::FULFILMENT_PENDING;
+  }
+
+  /**
+   * Returns the created timestamp for QR signing and audit display.
+   */
+  public function getCreatedTime(): int {
+    return $this->hasField('created') ? (int) $this->get('created')->value : 0;
   }
 
 }
