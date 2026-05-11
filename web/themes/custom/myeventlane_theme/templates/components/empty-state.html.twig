@@ -1,0 +1,35 @@
+{#
+/**
+ * @file
+ * Reusable MEL empty state.
+ *
+ * Variables:
+ * - title: Empty state heading.
+ * - text: Supporting copy.
+ * - cta_primary_url: Optional primary CTA URL.
+ * - cta_primary_label: Optional primary CTA label.
+ * - cta_secondary_url: Optional secondary CTA URL.
+ * - cta_secondary_label: Optional secondary CTA label.
+ */
+#}
+<div class="mel-empty-state mel-empty-state--governed">
+  {% if title %}
+    <h3 class="mel-empty-state__heading">{{ title }}</h3>
+  {% endif %}
+
+  {% if text %}
+    <p class="mel-empty-state__what">{{ text }}</p>
+  {% endif %}
+
+  {% if (cta_primary_url and cta_primary_label) or (cta_secondary_url and cta_secondary_label) %}
+    <p class="mel-empty-state__cta">
+      {% if cta_primary_url and cta_primary_label %}
+        <a class="mel-btn mel-btn--cta" href="{{ cta_primary_url }}">{{ cta_primary_label }}</a>
+      {% endif %}
+
+      {% if cta_secondary_url and cta_secondary_label %}
+        <a class="mel-link" href="{{ cta_secondary_url }}">{{ cta_secondary_label }}</a>
+      {% endif %}
+    </p>
+  {% endif %}
+</div>

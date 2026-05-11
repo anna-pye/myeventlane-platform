@@ -40,6 +40,7 @@ final class EventStudioSaveService {
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly PaidPublishStripeGate $paidPublishStripeGate,
     private readonly VendorPublishRequirementsGate $publishRequirementsGate,
+    private readonly EventReadinessService $eventReadiness,
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
   ) {}
 
@@ -288,6 +289,13 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => $attendee_errors];
     }
 
+    if (!$draft && $willPublish) {
+      $readiness = $this->eventReadiness->evaluate($node, $account);
+      if (!$readiness->ready) {
+        return ['node' => NULL, 'errors' => $readiness->errors];
+      }
+    }
+
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio draft.' : 'Event Studio save.');
     try {
       $node->save();
@@ -397,6 +405,10 @@ final class EventStudioSaveService {
         if ($stripeMsg !== NULL) {
           throw new \InvalidArgumentException($stripeMsg);
         }
+      }
+      $readiness = $this->eventReadiness->evaluate($node, $account);
+      if (!$readiness->ready) {
+        throw new \InvalidArgumentException(implode(' ', $readiness->errors));
       }
     }
     $node->setPublished($published);

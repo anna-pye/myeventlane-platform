@@ -9,7 +9,7 @@ dependencies:
     - myeventlane_theme
 id: myeventlane_theme_homeheromyeventlane
 theme: myeventlane_theme
-region: hero
+region: homepage_hero
 weight: 0
 provider: null
 plugin: myeventlane_home_hero
@@ -22,4 +22,4 @@ visibility:
   request_path:
     id: request_path
     negate: false
-    pages: "<front>\r\n"
+    pages: '<front>'

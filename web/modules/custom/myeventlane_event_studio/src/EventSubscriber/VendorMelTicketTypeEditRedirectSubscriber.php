@@ -73,7 +73,7 @@ final class VendorMelTicketTypeEditRedirectSubscriber implements EventSubscriber
       throw new AccessDeniedHttpException('Edit ticket types in Event Studio.');
     }
 
-    $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_nid])->toString();
+    $url = Url::fromRoute('myeventlane_event_studio.workspace_tickets', ['node' => $event_nid])->toString();
     $this->logger->notice('Vendor mel_ticket_type edit redirect: tid=@tid event_id=@eid uid=@uid', [
       '@tid' => (string) $ticket->id(),
       '@eid' => (string) $event_nid,

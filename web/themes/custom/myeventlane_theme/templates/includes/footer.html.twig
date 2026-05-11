@@ -2,7 +2,7 @@
 /**
  * @file
  * Main site footer.
- * Condensed 3-column layout (Find events, Host events, About) + compact legal row.
+ * Menu-backed discovery footer for public marketplace pages.
  */
 #}
 
@@ -11,7 +11,7 @@
 
   <div class="mel-footer__container">
 
-    <div class="mel-footer__nav">
+    <nav class="mel-footer__nav" aria-label="{{ 'Footer navigation'|t }}">
 
       <div class="mel-footer__col">
         <h4>{{ 'Find events'|t }}</h4>
@@ -36,7 +36,7 @@
         {% endif %}
       </div>
 
-      <div class="mel-footer__col mel-footer__col--wide">
+      <div class="mel-footer__col">
         <h4>{{ 'About MyEventLane'|t }}</h4>
         {{ drupal_menu('footer-about') }}
         <div class="mel-footer__trust">
@@ -46,7 +46,12 @@
         </div>
       </div>
 
-    </div>
+      <div class="mel-footer__col">
+        <h4>{{ 'Community'|t }}</h4>
+        {{ drupal_menu('footer-community') }}
+      </div>
+
+    </nav>
 
   </div>
 

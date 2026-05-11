@@ -10,7 +10,7 @@ use Drupal\node\NodeInterface;
 /**
  * Wizard step: description, discovery, and policies.
  */
-final class EventStudioDescriptionForm extends EventStudioBaseForm {
+class EventStudioDescriptionForm extends EventStudioBaseForm {
 
   /**
    * {@inheritdoc}
@@ -23,14 +23,14 @@ final class EventStudioDescriptionForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function getNextRouteName(): string {
-    return 'myeventlane_event_studio.edit_preview';
+    return 'myeventlane_event_studio.workspace_settings';
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getPreviousRouteName(): ?string {
-    return 'myeventlane_event_studio.edit_tickets';
+    return 'myeventlane_event_studio.workspace_tickets';
   }
 
   /**

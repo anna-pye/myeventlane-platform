@@ -23,14 +23,14 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function getNextRouteName(): string {
-    return 'myeventlane_event_studio.edit_description';
+    return 'myeventlane_event_studio.workspace_content';
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getPreviousRouteName(): ?string {
-    return 'myeventlane_event_studio.edit_datetime';
+    return 'myeventlane_event_studio.workspace_information';
   }
 
   /**

@@ -1,137 +1,125 @@
 {#
 /**
  * @file
- * MEL homepage — code-driven discovery.
+ * MEL homepage — region-driven discovery.
  */
 #}
 {% extends "page.html.twig" %}
 
 {% block hero %}
-  {% set popular_tags = popular_tags|default([]) %}
-  {% include '@myeventlane_theme/components/hero/hero.twig' with { popular_tags: popular_tags } %}
+  {% if page.homepage_hero %}
+    <div class="mel-region-homepage-hero">
+      {{ page.homepage_hero }}
+    </div>
+  {% elseif page.hero %}
+    <div class="mel-region-hero">
+      {{ page.hero }}
+    </div>
+  {% else %}
+    {% set popular_tags = popular_tags|default([]) %}
+    {% include '@myeventlane_theme/components/hero/hero.twig' with { popular_tags: popular_tags } %}
+  {% endif %}
 {% endblock %}
 
 {% block content %}
   {{ attach_library('myeventlane_theme/front') }}
 
-  {% set mel_home_featured_markup %}
-    {{ drupal_view('front_featured_events', 'block_featured') }}
-  {% endset %}
-
-  {% set mel_home_discover_markup %}
-    {{ drupal_view('mel_home_events', 'embed_discover') }}
-  {% endset %}
-
-  {% set mel_home_free_markup %}
-    {{ drupal_view('mel_home_events', 'under_20') }}
-  {% endset %}
-
-  {% set mel_home_tonight_markup %}
-    {{ drupal_view('mel_home_events', 'tonight') }}
-  {% endset %}
-
-  {% set mel_home_categories_markup %}
-    {{ drupal_block('myeventlane_category_pills') }}
-  {% endset %}
-
   <div class="mel-page mel-page--home">
 
-    {% if mel_home_featured_markup|trim %}
+    {% if page.homepage_featured %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--featured',
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
         header_extra_class: 'mel-section__header--featured',
         title: 'Featured events'|t,
-        subtitle: 'Hand-picked events worth your evening.'|t,
+        subtitle: 'The can’t-miss pick at the top of the lane.'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'Browse marketplace'|t,
         link_class: 'mel-link',
-        content: mel_home_featured_markup
+        content: page.homepage_featured
       } %}
     {% endif %}
 
-    {% if mel_home_discover_markup|trim %}
+    {% if page.homepage_latest %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--discover',
+        section_class: 'mel-section--latest mel-section--discover',
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
-        title: 'Find something you’ll love'|t,
-        subtitle: 'Browse what’s happening near you.'|t,
+        title: 'Upcoming events'|t,
+        subtitle: 'What’s coming up across MyEventLane.'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'See all'|t,
         content_wrapper_class: 'mel-section__discover-view',
-        content: mel_home_discover_markup
+        content: page.homepage_latest
       } %}
     {% endif %}
 
-    {% if mel_home_tonight_markup|trim %}
-      {% set mel_home_tonight_section_content %}
-        <div class="mel-section__discover-view">
-          {{ mel_home_tonight_markup }}
-        </div>
-        <div class="mel-section__content-footer">
-          <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-section__link">{{ 'See all upcoming events →'|t }}</a>
-        </div>
-      {% endset %}
+    {% if page.homepage_tonight %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--time mel-section--tonight-urgent',
+        section_class: 'mel-section--tonight mel-section--discover',
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
-        title: 'Going out tonight?'|t,
-        subtitle: 'These events are happening soon — don’t miss out.'|t,
-        content: mel_home_tonight_section_content
+        title: 'On tonight'|t,
+        subtitle: 'Last-minute plans and events already warming up.'|t,
+        link_url: path('view.upcoming_events.page_today'),
+        link_text: 'See today'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_tonight
       } %}
     {% endif %}
 
-    {% if mel_home_free_markup|trim %}
+    {% if page.homepage_nearby %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--free',
+        section_class: 'mel-section--nearby',
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
-        title: 'Free & RSVP'|t,
-        subtitle: 'Low-friction ways to join in.'|t,
-        link_url: path('view.upcoming_events.page_free'),
-        link_text: 'See all'|t,
-        content: mel_home_free_markup
+        title: 'Nearby events'|t,
+        subtitle: 'Find experiences close to you.'|t,
+        link_url: '/events/nearby',
+        link_text: 'Explore nearby'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_nearby
       } %}
     {% endif %}
 
-    {% if mel_home_categories_markup|trim %}
-      <section class="mel-section mel-section--categories" aria-labelledby="mel-home-categories-title">
-        <div class="mel-container mel-container--wide">
-          <div class="mel-section__header">
-            <div class="mel-section__intro">
-              <h2 id="mel-home-categories-title" class="mel-section__title">{{ 'Browse by category'|t }}</h2>
-              <p class="mel-section__subtitle">{{ 'Pick a lane — we’ll show matching events.'|t }}</p>
-            </div>
-          </div>
-
-          <div class="mel-section__content">
-            <div class="mel-category-strip">
-              {{ mel_home_categories_markup }}
-            </div>
-          </div>
-        </div>
-      </section>
+    {% if page.homepage_online %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--online',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        title: 'Online events'|t,
+        subtitle: 'Join from wherever you are.'|t,
+        link_url: '/events/online',
+        link_text: 'See online events'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_online
+      } %}
     {% endif %}
 
-    <section class="mel-section mel-section--host mel-section--full" aria-labelledby="mel-host-cta-title">
-      <div class="mel-container mel-container--wide">
-        <div class="mel-host-cta">
-          <div class="mel-host-cta__copy">
-            <h2 id="mel-host-cta-title" class="mel-host-cta__title">{{ 'Ready to host your next event?'|t }}</h2>
-            <p class="mel-host-cta__text">
-              {{ 'List for free, sell tickets with transparent fees, and grow your community on MyEventLane.'|t }}
-            </p>
-          </div>
-          <div class="mel-host-cta__actions">
-            <a class="mel-btn mel-btn--cta" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Create Event'|t }}</a>
-            <a class="mel-btn mel-btn-secondary" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Host help'|t }}</a>
-          </div>
-        </div>
-      </div>
-    </section>
+    {% if page.homepage_blog %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--blog',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        title: 'Guides for better nights out'|t,
+        subtitle: 'Lightweight ideas for discovering, hosting, and growing events.'|t,
+        link_url: '/blog',
+        link_text: 'Read more'|t,
+        content_wrapper_class: 'mel-section__blog-view',
+        content: page.homepage_blog
+      } %}
+    {% endif %}
+
+    {% if page.homepage_host_cta %}
+      {{ page.homepage_host_cta }}
+    {% else %}
+      {% include '@myeventlane_theme/includes/mel-host-cta-default.html.twig' %}
+    {% endif %}
+
+    {% if page.homepage_newsletter %}
+      {{ page.homepage_newsletter }}
+    {% endif %}
 
   </div>
 {% endblock %}

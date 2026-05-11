@@ -1,0 +1,30 @@
+uuid: e034a4c9-6fe3-42dd-aca1-f71bef9817c0
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.mel_blog
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_homepage_blog
+theme: myeventlane_theme
+region: homepage_blog
+weight: 0
+provider: null
+plugin: 'views_block:mel_blog-homepage_preview'
+settings:
+  id: 'views_block:mel_blog-homepage_preview'
+  label: 'Homepage blog guides'
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

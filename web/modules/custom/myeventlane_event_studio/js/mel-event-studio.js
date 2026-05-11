@@ -5489,6 +5489,10 @@
           true,
         );
 
+        if (form.closest('[data-mel-studio-shell]')) {
+          return;
+        }
+
         var timeoutId = null;
         var url = Drupal.url('vendor/events/autosave');
 
@@ -5507,14 +5511,18 @@
               var body = new FormData(form);
               var autosaveTs = Date.now();
               body.append('mel_autosave_ts', String(autosaveTs));
-              fetch(url, {
-                method: 'POST',
-                body: body,
-                credentials: 'same-origin',
-                headers: {
-                  Accept: 'application/json',
-                },
-              })
+              melGetCsrfToken()
+                .then(function (token) {
+                  return fetch(url, {
+                    method: 'POST',
+                    body: body,
+                    credentials: 'same-origin',
+                    headers: {
+                      Accept: 'application/json',
+                      'X-CSRF-Token': token,
+                    },
+                  });
+                })
                 .then(function (response) {
                   return response.json().then(function (data) {
                     return { ok: response.ok, status: response.status, data: data };

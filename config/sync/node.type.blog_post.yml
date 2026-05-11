@@ -1,0 +1,11 @@
+uuid: 267d387b-0dbd-41f9-89fc-9823f9c224c4
+langcode: en
+status: true
+dependencies: {  }
+name: 'Blog post'
+type: blog_post
+description: 'Marketing, organiser education, and public guide content.'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: true

@@ -1,0 +1,45 @@
+{#
+/**
+ * @file
+ * Canonical Event Studio operational workspace shell.
+ */
+#}
+<div class="mel-event-studio mel-event-studio--workspace" data-mel-studio-shell="1">
+  {{ include('@myeventlane_event_studio/mel-event-studio-topbar.html.twig', {
+    topbar: topbar
+  }, with_context = false) }}
+
+  <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}">
+    <div class="mel-event-studio-readiness-strip__summary">
+      <strong>{{ readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t }}</strong>
+      <span>{{ readiness.state }}</span>
+    </div>
+    <div class="mel-event-studio-readiness-strip__counts">
+      <span>{{ readiness.errors|length }} {{ 'blocker(s)'|t }}</span>
+      <span>{{ readiness.warnings|length }} {{ 'warning(s)'|t }}</span>
+      <span>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
+    </div>
+  </section>
+
+  <button
+    class="mel-event-studio-sidebar-toggle"
+    type="button"
+    aria-controls="mel-event-studio-sidebar"
+    aria-expanded="false"
+    data-mel-studio-sidebar-toggle
+  >{{ 'Sections'|t }}</button>
+
+  <div class="mel-event-studio-workspace">
+    {{ include('@myeventlane_event_studio/mel-event-studio-sidebar.html.twig', {
+      sections: sections,
+      current_section: current_section
+    }, with_context = false) }}
+
+    <main class="mel-event-studio-workspace__main" id="mel-event-studio-section" tabindex="-1">
+      {{ include('@myeventlane_event_studio/mel-event-studio-section.html.twig', {
+        label: current_section_label,
+        content: section_content
+      }, with_context = false) }}
+    </main>
+  </div>
+</div>

@@ -969,9 +969,17 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       $stores = $product_entity->getStores();
       if ($stores !== [] && \Drupal::hasService('myeventlane_checkout_flow.order_pricing_breakdown')) {
         $store_entity = reset($stores);
-        /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $gst_breakdown */
-        $gst_breakdown = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
-        $variables['mel_show_price_includes_gst_note'] = $gst_breakdown->eventPaidListingShouldShowIncludesGstNote($store_entity);
+        try {
+          /** @var \Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder $gst_breakdown */
+          $gst_breakdown = \Drupal::service('myeventlane_checkout_flow.order_pricing_breakdown');
+          $variables['mel_show_price_includes_gst_note'] = $gst_breakdown->eventPaidListingShouldShowIncludesGstNote($store_entity);
+        }
+        catch (\Throwable $e) {
+          \Drupal::logger('myeventlane_event')->warning('Unable to resolve GST display note for event @nid during node preprocess: @message', [
+            '@nid' => (string) $node->id(),
+            '@message' => $e->getMessage(),
+          ]);
+        }
       }
     }
   }

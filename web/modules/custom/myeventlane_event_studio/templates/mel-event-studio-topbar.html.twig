@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * Canonical Event Studio top bar.
+ */
+#}
+<header class="mel-event-studio-topbar" role="banner">
+  <div class="mel-event-studio-topbar__event">
+    <p class="mel-event-studio-topbar__eyebrow">{{ 'Event Studio'|t }}</p>
+    <h1 class="mel-event-studio-topbar__title">{{ topbar.title }}</h1>
+  </div>
+  <div class="mel-event-studio-topbar__meta" aria-label="{{ 'Event status'|t }}">
+    <span class="mel-event-studio-topbar__badge">{{ topbar.status }}</span>
+    <span class="mel-event-studio-topbar__state">{{ topbar.state }}</span>
+    <span class="mel-event-studio-topbar__saved">{{ topbar.last_saved }}</span>
+    <span class="mel-event-studio-topbar__autosave{% if topbar.restore_draft %} has-draft{% endif %}" id="mel-studio-form-state" role="status">
+      {% if topbar.restore_draft %}
+        <a href="{{ topbar.restore_url }}">{{ 'Restore draft available'|t }}</a>
+      {% endif %}
+    </span>
+  </div>
+  <div class="mel-event-studio-topbar__actions">
+    <a class="mel-btn mel-btn--ghost" href="{{ topbar.preview_url }}" target="_blank" rel="noopener noreferrer">{{ 'Preview'|t }}</a>
+    <a class="mel-btn mel-btn--primary" href="{{ topbar.publish_url }}">{{ 'Publish'|t }}</a>
+  </div>
+</header>

@@ -23,7 +23,7 @@ final class EventStudioBasicForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function getNextRouteName(): string {
-    return 'myeventlane_event_studio.edit_datetime';
+    return 'myeventlane_event_studio.workspace_information';
   }
 
   /**

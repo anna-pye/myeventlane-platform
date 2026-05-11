@@ -11,47 +11,73 @@
  */
 #}
 
-<section class="mel-home-hero" aria-label="Find events">
-  <div class="mel-home-hero__art{% if hero_hide_on_mobile|default(false) %} mel-home-hero__art--hide-mobile{% endif %}" aria-hidden="true">
-    {% if hero_image_url %}
-      {% if hero_image_url_mobile|default(null) and not hero_hide_on_mobile|default(false) %}
-        <picture>
-          <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
-          <img
-            class="mel-home-hero__art-img"
-            src="{{ hero_image_url }}"
-            alt="{{ hero_alt }}"
-            loading="eager"
-          />
-        </picture>
-      {% else %}
-        <img
-          class="mel-home-hero__art-img"
-          src="{{ hero_image_url }}"
-          alt="{{ hero_alt }}"
-          loading="eager"
-        />
-      {% endif %}
-    {% else %}
-      <div class="mel-home-hero__art-img mel-home-hero__art-img--placeholder"></div>
-    {% endif %}
-  </div>
-
+<section class="mel-home-hero" aria-labelledby="mel-home-hero-title">
   <div class="mel-home-hero__inner">
-    <h1 class="mel-home-hero__title">Find events near you</h1>
+    <div class="mel-home-hero__content">
+      <p class="mel-home-hero__eyebrow">{{ 'MyEventLane'|t }}</p>
+      <h1 id="mel-home-hero-title" class="mel-home-hero__title">{{ 'Your lane to great events.'|t }}</h1>
+      <p class="mel-home-hero__text">
+        {{ 'Find workshops, gigs, markets, festivals, and community moments worth leaving the house for.'|t }}
+      </p>
 
-    <form class="mel-home-hero__search" role="search" action="#" method="get">
-      <label class="visually-hidden" for="mel-home-search">Search events</label>
-      <input id="mel-home-search" name="q" type="search" placeholder="Search events" />
-      <button type="submit" aria-label="Search">
-        <span aria-hidden="true">🔍</span>
-      </button>
-    </form>
+      <form class="mel-home-hero__search" role="search" action="{{ path('view.upcoming_events.page_events') }}" method="get">
+        <label class="visually-hidden" for="mel-home-search">{{ 'Search events'|t }}</label>
+        <input
+          id="mel-home-search"
+          name="q"
+          type="search"
+          placeholder="{{ 'Search events, organisers, or places'|t }}"
+        />
+        <button type="submit">{{ 'Search'|t }}</button>
+      </form>
 
-    {% if pills %}
-      <div class="mel-home-hero__pills">
-        {{ pills }}
+      <div class="mel-home-hero__actions" role="group" aria-label="{{ 'Homepage actions'|t }}">
+        <a class="mel-btn mel-btn--primary mel-home-hero__primary" href="{{ path('view.upcoming_events.page_events') }}">
+          {{ 'Explore events'|t }}
+        </a>
+        <a class="mel-link mel-home-hero__secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">
+          {{ 'Create event'|t }}
+        </a>
       </div>
-    {% endif %}
+
+      {% if pills %}
+        <div class="mel-home-hero__pills" aria-label="{{ 'Popular categories'|t }}">
+          {{ pills }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mel-home-hero__art{% if hero_hide_on_mobile|default(false) %} mel-home-hero__art--hide-mobile{% endif %}">
+      <div class="mel-home-hero__art-frame">
+        {% if featured_events %}
+          <div class="mel-home-hero__feature-rotator" data-mel-home-hero-rotator aria-label="{{ 'Featured event highlights'|t }}">
+            {{ featured_events }}
+          </div>
+        {% elseif hero_image_url %}
+          {% if hero_image_url_mobile|default(null) and not hero_hide_on_mobile|default(false) %}
+            <picture aria-hidden="true">
+              <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
+              <img
+                class="mel-home-hero__art-img"
+                src="{{ hero_image_url }}"
+                alt=""
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
+          {% else %}
+            <img
+              class="mel-home-hero__art-img"
+              src="{{ hero_image_url }}"
+              alt=""
+              loading="eager"
+              decoding="async"
+            />
+          {% endif %}
+        {% else %}
+          <div class="mel-home-hero__art-img mel-home-hero__art-img--placeholder" aria-hidden="true"></div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </section>

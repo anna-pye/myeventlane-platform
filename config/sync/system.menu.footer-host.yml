@@ -1,0 +1,8 @@
+uuid: a2bb4b7e-ff72-4e94-96c5-47369f20ca91
+langcode: en
+status: true
+dependencies: {  }
+id: footer-host
+label: 'Footer - Host events'
+description: 'Footer navigation menu.'
+locked: false

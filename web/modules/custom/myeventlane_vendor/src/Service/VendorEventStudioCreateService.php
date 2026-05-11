@@ -11,7 +11,9 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -63,6 +65,37 @@ final class VendorEventStudioCreateService {
       ]);
       return NULL;
     }
+  }
+
+  /**
+   * Creates the minimal draft event scaffold used by the canonical Studio flow.
+   */
+  public function createDraftEventForUser(int $uid): NodeInterface {
+    if ($uid <= 0) {
+      throw new \InvalidArgumentException('A valid user id is required to create a draft event.');
+    }
+
+    try {
+      $storage = $this->entityTypeManager->getStorage('node');
+      /** @var \Drupal\node\NodeInterface $node */
+      $node = $storage->create([
+        'type' => 'event',
+        'title' => $this->t('Untitled event'),
+        'uid' => $uid,
+        'status' => 0,
+      ]);
+      EventNodeRevisionSave::prepare($node, 'Event Studio draft created.');
+      $node->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('VendorEventStudioCreateService: failed to persist draft event uid=@uid @message', [
+        '@uid' => (string) $uid,
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+
+    return $node;
   }
 
   /**

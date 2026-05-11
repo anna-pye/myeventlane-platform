@@ -11,7 +11,7 @@ use Drupal\node\NodeInterface;
 /**
  * Wizard step: publishing (live / draft).
  */
-final class EventStudioPublishForm extends EventStudioBaseForm {
+class EventStudioPublishForm extends EventStudioBaseForm {
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ final class EventStudioPublishForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function getPreviousRouteName(): ?string {
-    return 'myeventlane_event_studio.edit_preview';
+    return 'myeventlane_event_studio.workspace_content';
   }
 
   /**
@@ -65,7 +65,7 @@ final class EventStudioPublishForm extends EventStudioBaseForm {
     $just_went_live = $saved->isPublished() && !$snapshot;
     if ($just_went_live) {
       $this->messenger()->addStatus($this->t('Your event is live'));
-      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_studio.edit', ['node' => $saved->id()], ['query' => ['mel_celebrate' => '1']]));
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_studio.workspace', ['node' => $saved->id()], ['query' => ['mel_celebrate' => '1']]));
       return;
     }
     $this->messenger()->addStatus($this->t('Event saved.'));

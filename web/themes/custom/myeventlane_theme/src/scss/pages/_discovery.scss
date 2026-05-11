@@ -1,5 +1,5 @@
 // ==========================================================================
-// MEL discovery — upcoming events / browse grids (1 → 2 → 3 columns)
+// MEL discovery — upcoming events / browse grids (1 -> 2 -> 4 columns)
 // ==========================================================================
 // Contexts:
 // - `.mel-discovery` — upcoming_events Views wrappers (see views-view--upcoming-events*.twig)
@@ -14,7 +14,7 @@
   min-width: 0;
 }
 
-// Shared grid: explicit columns (layout/_grid.scss uses auto-fit minmax — subtler than this).
+// Shared grid: explicit columns for scannable discovery density.
 .mel-discovery .mel-event-grid.mel-grid--events,
 .mel-home-discover .mel-event-grid.mel-grid--events {
   display: grid;
@@ -33,13 +33,13 @@
   .mel-discovery .mel-event-grid.mel-grid--events,
   .mel-home-discover .mel-event-grid.mel-grid--events {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: mel.$mel-ds-space-lg;
+    gap: mel.$mel-ds-space-md;
   }
 }
 
 @include breakpoints.mel-break(lg) {
   .mel-discovery .mel-event-grid.mel-grid--events,
   .mel-home-discover .mel-event-grid.mel-grid--events {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

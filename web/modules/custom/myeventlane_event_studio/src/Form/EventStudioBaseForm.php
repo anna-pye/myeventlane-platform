@@ -10,14 +10,17 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioWizardMelBaseline;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Shared route-based Event Studio wizard (save + redirect per step).
@@ -31,8 +34,13 @@ abstract class EventStudioBaseForm extends FormBase {
     protected EventStudioSaveService $saveService,
     protected EventStudioMelPayloadService $melPayloadService,
     protected EventStudioWizardMelBaseline $wizardMelBaseline,
+    protected EventVendorAccessChecker $eventVendorAccessChecker,
+    protected EventStudioAutosaveService $autosaveService,
+    RequestStack $request_stack,
     protected LoggerInterface $logger,
-  ) {}
+  ) {
+    $this->requestStack = $request_stack;
+  }
 
   /**
    * {@inheritdoc}
@@ -45,6 +53,9 @@ abstract class EventStudioBaseForm extends FormBase {
       $container->get('myeventlane_event_studio.save'),
       $container->get('myeventlane_event_studio.mel_payload'),
       $container->get('myeventlane_event_studio.wizard_mel_baseline'),
+      $container->get('myeventlane_vendor.event_access_checker'),
+      $container->get('myeventlane_event_studio.autosave'),
+      $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
   }
@@ -79,7 +90,8 @@ abstract class EventStudioBaseForm extends FormBase {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
-    if ((int) $node->getOwnerId() !== (int) $this->currentUser->id() && !$this->currentUser->hasPermission('administer nodes')) {
+    if (!$this->currentUser->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $this->currentUser)) {
       throw new AccessDeniedHttpException();
     }
   }
@@ -176,11 +188,24 @@ abstract class EventStudioBaseForm extends FormBase {
     $form['#attributes']['class'][] = 'mel-event-studio-wizard-form';
     $form['#attributes']['data-mel-event-studio-wizard'] = '1';
     $form['#attributes']['data-mel-event-studio-form'] = '1';
+    $form['#attributes']['data-mel-event-studio-section'] = $this->getCurrentStepId();
     $form['#tree'] = TRUE;
 
     $form['nid'] = [
       '#type' => 'hidden',
       '#default_value' => (string) (int) $node->id(),
+    ];
+    $form['mel_studio_section'] = [
+      '#type' => 'hidden',
+      '#default_value' => $this->getCurrentStepId(),
+    ];
+    $form['mel_studio_changed'] = [
+      '#type' => 'hidden',
+      '#default_value' => (string) $node->getChangedTime(),
+    ];
+    $form['mel_studio_revision'] = [
+      '#type' => 'hidden',
+      '#default_value' => (string) (int) $node->getRevisionId(),
     ];
 
     $form['wizard_nav'] = [
@@ -190,6 +215,15 @@ abstract class EventStudioBaseForm extends FormBase {
     ];
 
     $melDefaults = $this->wizardMelBaseline->getBaselineMel($node);
+    $draft = $this->autosaveService->getDraft($node, $this->getCurrentStepId());
+    $request = $this->requestStack->getCurrentRequest();
+    if ($draft !== NULL && $request !== NULL && $request->query->getBoolean('restore_draft')) {
+      $draftMel = $draft['mel'] ?? [];
+      if (is_array($draftMel)) {
+        $melDefaults = $this->mergeMel($melDefaults, $draftMel);
+        $this->messenger()->addStatus($this->t('Restored your autosaved draft for this section. Save when you are ready to keep it.'));
+      }
+    }
 
     $form['mel'] = [
       '#type' => 'container',
@@ -271,6 +305,26 @@ abstract class EventStudioBaseForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {}
 
   /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    if ($nid < 1) {
+      return;
+    }
+    $loaded = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
+      return;
+    }
+
+    $baseChanged = (int) ($form_state->getValue('mel_studio_changed') ?? 0);
+    $baseRevisionId = (int) ($form_state->getValue('mel_studio_revision') ?? 0);
+    if ($this->autosaveService->isStaleSubmission($loaded, $baseChanged, $baseRevisionId)) {
+      $form_state->setErrorByName('', $this->t('This section was updated elsewhere. Refresh to continue editing safely.'));
+    }
+  }
+
+  /**
    * Saves merged mel via EventStudioSaveService and redirects to the next route.
    */
   public function submitContinue(array &$form, FormStateInterface $form_state): void {
@@ -291,6 +345,7 @@ abstract class EventStudioBaseForm extends FormBase {
       return;
     }
 
+    $this->autosaveService->clearDraft($saved, $this->getCurrentStepId());
     $this->onWizardStepSaveSuccess($saved, $form_state);
   }
 

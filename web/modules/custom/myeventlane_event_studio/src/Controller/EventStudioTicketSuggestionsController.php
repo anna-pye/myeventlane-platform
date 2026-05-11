@@ -8,6 +8,7 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_event_studio\Service\EventStudioTicketLinkSuggestionService;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +25,7 @@ final class EventStudioTicketSuggestionsController implements ContainerInjection
       $container->get('myeventlane_event_studio.ticket_link_suggestion'),
       $container->get('entity_type.manager'),
       $container->get('current_user'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -31,6 +33,7 @@ final class EventStudioTicketSuggestionsController implements ContainerInjection
     private readonly EventStudioTicketLinkSuggestionService $suggestionService,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountProxyInterface $currentUser,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {}
 
   public function suggest(Request $request): JsonResponse {
@@ -57,24 +60,24 @@ final class EventStudioTicketSuggestionsController implements ContainerInjection
     }
 
     $nid = isset($data['nid']) ? (int) $data['nid'] : 0;
-    $nidForService = NULL;
-    if ($nid > 0) {
-      $storage = $this->entityTypeManager->getStorage('node');
-      $loaded = $storage->load($nid);
-      if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
-        return new JsonResponse(['ok' => FALSE, 'error' => 'Not found'], 404);
-      }
-      if (!$loaded->access('update', $this->currentUser)) {
-        throw new AccessDeniedHttpException();
-      }
-      $nidForService = $nid;
+    if ($nid < 1) {
+      return new JsonResponse(['ok' => FALSE, 'error' => 'Event context is required.'], 400);
+    }
+    $storage = $this->entityTypeManager->getStorage('node');
+    $loaded = $storage->load($nid);
+    if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
+      return new JsonResponse(['ok' => FALSE, 'error' => 'Not found'], 404);
+    }
+    if (!$this->currentUser->hasPermission('administer nodes')
+      && (!$loaded->access('update', $this->currentUser) || !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($loaded, $this->currentUser))) {
+      throw new AccessDeniedHttpException();
     }
 
     $strings = $this->suggestionService->suggest(
       $this->currentUser,
       $eventTitle,
       $tierTitles,
-      $nidForService,
+      $nid,
     );
 
     return new JsonResponse([

@@ -14,6 +14,231 @@ myeventlane_event_studio.edit:
     _title_callback: myeventlane_event_studio.controller:editTitle
   requirements:
     _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace:
+  path: '/vendor/events/{node}/studio'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'overview'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_information:
+  path: '/vendor/events/{node}/studio/information'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'information'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_branding:
+  path: '/vendor/events/{node}/studio/branding'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'branding'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_content:
+  path: '/vendor/events/{node}/studio/content'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'content'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_tickets:
+  path: '/vendor/events/{node}/studio/tickets'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'tickets'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_questions:
+  path: '/vendor/events/{node}/studio/questions'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'questions'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_capacity:
+  path: '/vendor/events/{node}/studio/capacity'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'capacity'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_merchandise:
+  path: '/vendor/events/{node}/studio/merchandise'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'merchandise'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_addons:
+  path: '/vendor/events/{node}/studio/addons'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'addons'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_add_ons:
+  path: '/vendor/events/{node}/studio/add-ons'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'addons'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_promotions:
+  path: '/vendor/events/{node}/studio/promotions'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'promotions'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_attendees:
+  path: '/vendor/events/{node}/studio/attendees'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'attendees'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_fulfilment:
+  path: '/vendor/events/{node}/studio/fulfilment'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'fulfilment'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_orders:
+  path: '/vendor/events/{node}/studio/orders'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'orders'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_analytics:
+  path: '/vendor/events/{node}/studio/analytics'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'analytics'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_settings:
+  path: '/vendor/events/{node}/studio/settings'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
+    section: 'settings'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     node: \d+
   options:
     parameters:
@@ -27,6 +252,7 @@ myeventlane_event_studio.edit_basic:
     _title: 'Basic info'
   requirements:
     _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
       node:
@@ -39,6 +265,7 @@ myeventlane_event_studio.edit_datetime:
     _title: 'Date & location'
   requirements:
     _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
       node:
@@ -51,6 +278,7 @@ myeventlane_event_studio.edit_tickets:
     _title: 'Tickets'
   requirements:
     _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
       node:
@@ -63,6 +291,7 @@ myeventlane_event_studio.edit_description:
     _title: 'Description'
   requirements:
     _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
       node:
@@ -75,6 +304,7 @@ myeventlane_event_studio.edit_preview:
     _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioPreviewController::title'
   requirements:
     _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
       node:
@@ -87,6 +317,7 @@ myeventlane_event_studio.edit_publish:
     _title: 'Publish'
   requirements:
     _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
       node:
@@ -100,6 +331,7 @@ myeventlane_event_studio.autosave:
   requirements:
     _permission: 'access content'
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _csrf_request_header_token: 'TRUE'
 
 myeventlane_event_studio.governance_refresh:
   path: '/vendor/events/{node}/studio/governance-refresh'
@@ -143,6 +375,7 @@ myeventlane_event_studio.ai_generate:
   methods: [POST]
   requirements:
     _permission: 'access content'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     _csrf_request_header_token: 'TRUE'
 
 myeventlane_event_studio.ai_rewrite:
@@ -152,6 +385,7 @@ myeventlane_event_studio.ai_rewrite:
   methods: [POST]
   requirements:
     _permission: 'access content'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     _csrf_request_header_token: 'TRUE'
 
 myeventlane_event_studio.ticket_link_suggestions:
@@ -161,4 +395,5 @@ myeventlane_event_studio.ticket_link_suggestions:
   methods: [POST]
   requirements:
     _permission: 'access content'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     _csrf_request_header_token: 'TRUE'
