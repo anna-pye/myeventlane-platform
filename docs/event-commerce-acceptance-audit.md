@@ -136,12 +136,30 @@ Searches of `config/sync` found no references to `EventCommerceResolver`, `Event
 - `ddev drush cr`: pass.
 - `ddev drush updb -y`: pass, no pending updates.
 - `ddev drush config:status`: pass, no active/sync differences.
+- `git diff --check`: pass.
+- `ddev drush ev` fixture check: confirmed published RSVP event `1381` and published paid event `1592`.
+- `ddev drush ev` resolver smoke check: confirmed `myeventlane_event.commerce_resolver` and `myeventlane_event.commerce_classification_registry` are registered, event `1592` resolves ticket product `97`, and one ticket purchasable variation is returned without writes.
+- DDEV HTTP smoke checks: `/node/1381` returned `200`, `/node/1592` returned `200`, `/event/1381/rsvp` redirected to `/event/1381/book` and returned `200`, and anonymous `/vendor/events/1592/studio` returned `403`.
 
-`git diff --check` and real browser validation are recorded below after the final audit pass.
+Real browser validation is recorded below.
 
 ## Browser Validation
 
-Browser validation against DDEV was started at `https://myeventlane.ddev.site`. Final route/action results are pending and must be recorded before this audit is treated as complete.
+Browser validation against DDEV was started at `https://myeventlane.ddev.site` through the Cursor browser automation path. That pass did not return a final result within the audit window, so the browser portion is not marked complete.
+
+Command-line DDEV smoke checks were completed for the same fixture routes:
+
+- Published RSVP event page `1381`: reachable.
+- Published paid event page `1592`: reachable.
+- RSVP route for event `1381`: reachable through the existing booking redirect.
+- Anonymous Studio access for event `1592`: denied with `403`.
+
+The following manual browser matrix items remain open before treating this as a fully browser-passed acceptance audit:
+
+- Submit a real RSVP through the DDEV browser and confirm the thank-you/dashboard visibility path.
+- Add a paid ticket to cart, update quantity, remove an item, proceed through checkout, and verify whether payment completion is blocked by local Stripe configuration.
+- Complete or explicitly block ticket issuance verification from a paid order in the browser.
+- Verify Studio autosave/readiness/ticket editing through authenticated browser interactions.
 
 ## Residual Risks
 
