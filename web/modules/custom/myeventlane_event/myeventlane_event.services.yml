@@ -73,6 +73,16 @@ services:
       - '@myeventlane_event.ticket_type_manager'
       - '@myeventlane_event.ticket_product_event_ownership'
 
+  myeventlane_event.commerce_resolver:
+    class: Drupal\myeventlane_event\Service\EventCommerceResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_event'
+      - '@myeventlane_event.commerce_classification_registry'
+
+  myeventlane_event.commerce_classification_registry:
+    class: Drupal\myeventlane_event\Service\EventCommerceClassificationRegistry
+
   myeventlane_event.event_mode_manager:
     class: Drupal\myeventlane_event\Service\EventModeManager
     arguments:

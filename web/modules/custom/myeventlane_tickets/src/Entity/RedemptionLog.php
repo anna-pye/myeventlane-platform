@@ -53,6 +53,21 @@ final class RedemptionLog extends ContentEntityBase {
       ->setRequired(TRUE)
       ->setSetting('target_type', 'myeventlane_ticket');
 
+    $fields['entitlement_type'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Entitlement type'))
+      ->setDescription(t('Snapshot of the ticket entitlement type at the time of the action.'))
+      ->setRequired(TRUE)
+      ->setSetting('allowed_values', [
+        Ticket::ENTITLEMENT_TICKET => 'Ticket',
+        Ticket::ENTITLEMENT_MERCH => 'Merch pickup',
+        Ticket::ENTITLEMENT_PARKING => 'Parking',
+        Ticket::ENTITLEMENT_DRINK => 'Drink voucher',
+        Ticket::ENTITLEMENT_FOOD => 'Food voucher',
+        Ticket::ENTITLEMENT_VIP => 'VIP access',
+        Ticket::ENTITLEMENT_ADDON => 'Event add-on',
+      ])
+      ->setDefaultValue(Ticket::ENTITLEMENT_TICKET);
+
     $fields['staff_uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Staff user'))
       ->setDescription(t('User account that performed the operation.'))
@@ -86,6 +101,12 @@ final class RedemptionLog extends ContentEntityBase {
       ->setLabel(t('Device identifier'))
       ->setRequired(FALSE)
       ->setSetting('max_length', 128);
+
+    $fields['ip_address'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('IP address'))
+      ->setDescription(t('Requester IP address captured for operational audit history.'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 64);
 
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'));

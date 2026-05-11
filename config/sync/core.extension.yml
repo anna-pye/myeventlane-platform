@@ -75,6 +75,7 @@ module:
   media: 0
   media_library: 0
   mel_ticket: 0
+  mel_universal_ticket: 0
   menu_link_attributes: 0
   menu_link_content: 0
   menu_ui: 0

@@ -1,0 +1,10 @@
+services:
+  mel_universal_ticket.capability_manager:
+    class: Drupal\mel_universal_ticket\Service\UniversalTicketCapabilityManager
+    arguments:
+      - '@datetime.time'
+
+  logger.channel.mel_universal_ticket:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: ['@logger.factory', 'get']
+    arguments: ['mel_universal_ticket']

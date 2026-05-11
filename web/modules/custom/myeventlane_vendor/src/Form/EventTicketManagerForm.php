@@ -156,8 +156,13 @@ final class EventTicketManagerForm extends FormBase {
       }
     }
 
+    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
+    $supports_auto_product = in_array($event_type, ['paid', 'both'], TRUE);
+
     $product = $this->loadTicketProduct($event);
-    if (!$product instanceof ProductInterface) {
+    if (!$product instanceof ProductInterface && !$supports_auto_product) {
       $form['missing_product'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['messages', 'messages--error']],
@@ -168,7 +173,17 @@ final class EventTicketManagerForm extends FormBase {
       return $form;
     }
 
-    $ticket_rows = $this->buildTicketRows($product, $form_state);
+    if (!$product instanceof ProductInterface) {
+      $form['missing_product_notice'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['messages', 'messages--status']],
+        'message' => [
+          '#markup' => '<p>' . $this->t('Add a ticket row below. The ticket product will be created when you save and sync tickets.') . '</p>',
+        ],
+      ];
+    }
+
+    $ticket_rows = $product instanceof ProductInterface ? $this->buildTicketRows($product, $form_state) : [];
     $new_ticket_rows = $form_state->get('new_ticket_rows');
     if (!is_array($new_ticket_rows)) {
       $new_ticket_rows = [];
@@ -512,9 +527,11 @@ final class EventTicketManagerForm extends FormBase {
       return;
     }
 
+    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
     $product = $this->loadTicketProduct($event);
-    if (!$product instanceof ProductInterface) {
-      // Expected incomplete paid/both setup: UI already warns; avoid watchdog noise (TASK 15).
+    if (!$product instanceof ProductInterface && !in_array($event_type, ['paid', 'both'], TRUE)) {
       $form_state->setErrorByName('', $this->t('Ticket product missing. Finish ticket setup in Event Studio or link a ticket product before saving tickets.'));
       return;
     }
@@ -542,9 +559,6 @@ final class EventTicketManagerForm extends FormBase {
       $form_state->setErrorByName('tickets', $this->t('Only one ticket can be marked as best value.'));
     }
 
-    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
-      ? (string) $event->get('field_event_type')->value
-      : '';
     if (in_array($event_type, ['paid', 'both'], TRUE)) {
       $needs_active_paid = FALSE;
       $sellable_paid = 0;
@@ -616,8 +630,11 @@ final class EventTicketManagerForm extends FormBase {
       return;
     }
 
+    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
     $product = $this->loadTicketProduct($event);
-    if (!$product instanceof ProductInterface) {
+    if (!$product instanceof ProductInterface && !in_array($event_type, ['paid', 'both'], TRUE)) {
       $this->messenger()->addError($this->t('Ticket product missing. Finish ticket setup before saving tickets.'));
       return;
     }
