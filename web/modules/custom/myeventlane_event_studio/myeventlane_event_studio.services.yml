@@ -194,3 +194,18 @@ services:
       - '@myeventlane_event_studio.autosave'
     tags:
       - { name: controller.service_arguments }
+
+  myeventlane_event_studio.publish_controller:
+    class: Drupal\myeventlane_event_studio\Controller\EventStudioPublishController
+    arguments:
+      - '@myeventlane_event_studio.save'
+      - '@myeventlane_event_studio.readiness'
+      - '@myeventlane_event_studio.autosave'
+      - '@plugin.manager.myeventlane_event_studio_section'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@current_user'
+      - '@date.formatter'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@string_translation'
+    tags:
+      - { name: controller.service_arguments }

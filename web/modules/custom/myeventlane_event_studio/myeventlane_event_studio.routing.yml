@@ -333,6 +333,21 @@ myeventlane_event_studio.autosave:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     _csrf_request_header_token: 'TRUE'
 
+myeventlane_event_studio.publish:
+  path: '/vendor/events/{node}/studio/publish'
+  defaults:
+    _controller: myeventlane_event_studio.publish_controller:publish
+  methods: [POST]
+  requirements:
+    _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    _csrf_request_header_token: 'TRUE'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
 myeventlane_event_studio.governance_refresh:
   path: '/vendor/events/{node}/studio/governance-refresh'
   defaults:

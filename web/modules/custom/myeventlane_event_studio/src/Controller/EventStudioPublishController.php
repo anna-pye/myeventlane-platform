@@ -1,0 +1,262 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\myeventlane_event_studio\Controller;
+
+use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Url;
+use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
+use Drupal\myeventlane_event_studio\EventStudioSectionManager;
+use Drupal\myeventlane_event_studio\Service\EventReadinessService;
+use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
+use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+/**
+ * Shell-owned Event Studio publish operation.
+ */
+final class EventStudioPublishController {
+
+  use StringTranslationTrait;
+
+  public function __construct(
+    private readonly EventStudioSaveService $saveService,
+    private readonly EventReadinessService $eventReadiness,
+    private readonly EventStudioAutosaveService $autosaveService,
+    private readonly EventStudioSectionManager $sectionManager,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly AccountProxyInterface $currentUser,
+    private readonly DateFormatterInterface $dateFormatter,
+    private readonly LoggerInterface $logger,
+    TranslationInterface $stringTranslation,
+  ) {
+    $this->stringTranslation = $stringTranslation;
+  }
+
+  public function publish(NodeInterface $node, Request $request): JsonResponse {
+    if ($node->bundle() !== 'event') {
+      throw new NotFoundHttpException();
+    }
+
+    $account = $this->currentUser;
+    if ($account->isAnonymous()) {
+      $this->logger->warning('Event Studio publish denied: anonymous user for event @nid', [
+        '@nid' => (string) $node->id(),
+      ]);
+      throw new AccessDeniedHttpException();
+    }
+
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      $this->logger->warning('Event Studio publish denied: no vendor parity for event @nid uid=@uid', [
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+      ]);
+      throw new AccessDeniedHttpException();
+    }
+
+    $data = $this->requestPayload($request);
+    if (!empty($data['dirty'])) {
+      return $this->blockedResponse(
+        409,
+        'unsaved_changes',
+        [(string) $this->t('Save this section before publishing.')],
+        $node,
+      );
+    }
+
+    $baseChanged = $this->parsePositiveInt($data['changed'] ?? $data['mel_studio_changed'] ?? NULL);
+    $baseRevisionId = $this->parsePositiveInt($data['revision_id'] ?? $data['mel_studio_revision'] ?? NULL);
+    if ($this->autosaveService->isStaleSubmission($node, $baseChanged, $baseRevisionId)) {
+      return $this->blockedResponse(
+        409,
+        'stale_state',
+        [(string) $this->t('This event changed after this section loaded. Refresh to continue safely.')],
+        $node,
+      );
+    }
+
+    $draftSection = $this->firstAutosaveDraftSection($node);
+    if ($draftSection !== NULL) {
+      return $this->blockedResponse(
+        409,
+        'autosave_draft',
+        [(string) $this->t('An autosaved draft is waiting in @section. Restore or save it before publishing.', [
+          '@section' => $this->sectionManager->sectionTitle($draftSection),
+        ])],
+        $node,
+        $draftSection,
+      );
+    }
+
+    $readiness = $this->eventReadiness->evaluate($node, $account);
+    if (!$readiness->ready) {
+      return $this->readinessResponse(
+        FALSE,
+        422,
+        $node,
+        $readiness,
+        (string) $this->t('Cannot publish yet'),
+        'cannot_publish',
+        $readiness->errors,
+      );
+    }
+
+    try {
+      $this->saveService->setNodePublishedState($node, $account, TRUE, 'Event Studio shell publish action.');
+    }
+    catch (\InvalidArgumentException $e) {
+      $this->logger->notice('Event Studio publish blocked for event @nid uid=@uid: @message', [
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $afterBlockReadiness = $this->eventReadiness->evaluate($node, $account);
+      return $this->readinessResponse(
+        FALSE,
+        422,
+        $node,
+        $afterBlockReadiness,
+        (string) $this->t('Cannot publish yet'),
+        'cannot_publish',
+        [$e->getMessage()],
+      );
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio publish failed for event @nid uid=@uid: @message', [
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return $this->blockedResponse(
+        500,
+        'publish_failed',
+        [(string) $this->t('Publish failed. Try again shortly.')],
+        $node,
+      );
+    }
+
+    $readiness = $this->eventReadiness->evaluate($node, $account);
+    return $this->readinessResponse(
+      TRUE,
+      200,
+      $node,
+      $readiness,
+      (string) $this->t('Published successfully'),
+      'published',
+      [],
+    );
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function requestPayload(Request $request): array {
+    $decoded = json_decode($request->getContent(), TRUE);
+    if (is_array($decoded)) {
+      return $decoded;
+    }
+    return $request->request->all();
+  }
+
+  private function parsePositiveInt(mixed $value): int {
+    if (!is_numeric($value)) {
+      return 0;
+    }
+    $parsed = (int) $value;
+    return $parsed > 0 ? $parsed : 0;
+  }
+
+  private function firstAutosaveDraftSection(NodeInterface $node): ?string {
+    foreach (array_keys($this->sectionManager->activeSections($node, $this->currentUser)) as $sectionId) {
+      if ($this->autosaveService->hasDraft($node, (string) $sectionId)) {
+        return (string) $sectionId;
+      }
+    }
+    return NULL;
+  }
+
+  /**
+   * @param list<string> $messages
+   */
+  private function blockedResponse(int $status, string $code, array $messages, NodeInterface $node, ?string $restoreSection = NULL): JsonResponse {
+    $readiness = $this->eventReadiness->evaluate($node, $this->currentUser);
+    return $this->readinessResponse(
+      FALSE,
+      $status,
+      $node,
+      $readiness,
+      (string) $this->t('Cannot publish yet'),
+      $code,
+      $messages,
+      $restoreSection,
+    );
+  }
+
+  /**
+   * @param list<string> $messages
+   */
+  private function readinessResponse(
+    bool $ok,
+    int $status,
+    NodeInterface $node,
+    EventReadinessResult $readiness,
+    string $message,
+    string $state,
+    array $messages,
+    ?string $restoreSection = NULL,
+  ): JsonResponse {
+    $payload = [
+      'ok' => $ok,
+      'state' => $state,
+      'message' => $message,
+      'messages' => $messages,
+      'published' => $node->isPublished(),
+      'topbar' => [
+        'status' => $node->isPublished() ? (string) $this->t('Published') : (string) $this->t('Draft'),
+        'state' => $node->isPublished() ? (string) $this->t('Published') : $this->operationalState($readiness),
+        'lastSaved' => $node->getChangedTime() > 0 ? (string) $this->t('Last saved @time', [
+          '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
+        ]) : (string) $this->t('Not saved yet'),
+      ],
+      'readiness' => [
+        'ready' => $readiness->ready,
+        'errors' => $readiness->errors,
+        'warnings' => $readiness->warnings,
+        'completed' => $readiness->completed,
+        'state' => $this->operationalState($readiness),
+      ],
+      'changed' => $node->getChangedTime(),
+      'revisionId' => (int) $node->getRevisionId(),
+    ];
+
+    if ($restoreSection !== NULL) {
+      $payload['restoreUrl'] = Url::fromRoute($this->sectionManager->sectionRouteName($restoreSection), [
+        'node' => $node->id(),
+      ], [
+        'query' => ['restore_draft' => '1'],
+      ])->toString();
+      $payload['restoreSection'] = $restoreSection;
+    }
+
+    return new JsonResponse($payload, $status);
+  }
+
+  private function operationalState(EventReadinessResult $result): string {
+    if (!$result->ready) {
+      return (string) $this->t('Needs Attention');
+    }
+    return (string) $this->t('Ready');
+  }
+
+}

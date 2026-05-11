@@ -412,6 +412,10 @@ final class EventStudioSaveService {
       }
     }
     $node->setPublished($published);
+    if ($published && $node->hasField('moderation_state') && !$node->get('moderation_state')->isEmpty()
+        && (string) $node->get('moderation_state')->value === 'draft') {
+      $node->set('moderation_state', 'published');
+    }
     EventNodeRevisionSave::prepare($node, $revision_log);
     if ($node->getEntityType()->isRevisionable()) {
       $node->setRevisionUserId((int) $account->id());
