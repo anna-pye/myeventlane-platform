@@ -5,8 +5,7 @@
  */
 #}
 {% if rows %}
-  {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
-  <div class="mel-event-grid mel-grid mel-grid--events" data-loaded="false">
+  <div class="mel-event-grid mel-grid mel-grid--events">
     {% for row in rows %}
       {{- row.content -}}
     {% endfor %}
