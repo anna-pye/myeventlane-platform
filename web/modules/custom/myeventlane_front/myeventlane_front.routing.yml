@@ -1,7 +1,23 @@
 myeventlane_front.about:
   path: '/about'
   defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectAbout'
+    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
     _title: 'About MyEventLane'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.story:
+  path: '/our-story'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
+    _title: 'Our story'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.contact:
+  path: '/contact'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
+    _title: 'Contact'
   requirements:
     _permission: 'access content'

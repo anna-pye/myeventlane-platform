@@ -8,14 +8,14 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Routing\LocalRedirectResponse;
 
 /**
- * Redirects legacy About links to the current public help hub.
+ * Redirects legacy front-page content routes to the current public help hub.
  */
 final class LegacyAboutController extends ControllerBase {
 
   /**
-   * Redirects the retired /about entry point.
+   * Redirects retired footer entry points.
    */
-  public function redirectAbout(): LocalRedirectResponse {
+  public function redirectToHelp(): LocalRedirectResponse {
     return new LocalRedirectResponse('/help', 301);
   }
 
