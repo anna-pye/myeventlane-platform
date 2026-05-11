@@ -539,6 +539,7 @@ final class EventTicketManagerForm extends FormBase {
     $rows = $form_state->getValue('tickets') ?? [];
     $best_value_count = 0;
     $active_count = 0;
+    $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
     if (is_array($rows)) {
       foreach ($rows as $row_key => $row) {
         if (!is_array($row) || !empty($row['more']['delete'])) {
@@ -551,7 +552,10 @@ final class EventTicketManagerForm extends FormBase {
         if (!empty($row['best_value'])) {
           $best_value_count++;
         }
-        $this->validateTicketValues($form_state, $row, 'tickets][' . $row_key);
+        $vid = $this->ticketTierLifecycle->managerSubmittedVariationId($row_key, $row);
+        $loaded_variation = $vid > 0 ? $variation_storage->load($vid) : NULL;
+        $variation = $loaded_variation instanceof ProductVariationInterface ? $loaded_variation : NULL;
+        $this->validateTicketValues($form_state, $row, 'tickets][' . $row_key, $variation);
       }
     }
 
@@ -562,7 +566,6 @@ final class EventTicketManagerForm extends FormBase {
     if (in_array($event_type, ['paid', 'both'], TRUE)) {
       $needs_active_paid = FALSE;
       $sellable_paid = 0;
-      $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
       foreach ($rows as $row_key => $row) {
         if (!is_array($row) || !empty($row['more']['delete'])) {
           continue;
@@ -596,8 +599,8 @@ final class EventTicketManagerForm extends FormBase {
    * @param array<string, mixed> $values
    *   Submitted ticket values.
    */
-  private function validateTicketValues(FormStateInterface $form_state, array $values, string $prefix): void {
-    if (trim((string) ($values['title'] ?? '')) === '') {
+  private function validateTicketValues(FormStateInterface $form_state, array $values, string $prefix, ?ProductVariationInterface $variation = NULL): void {
+    if ($this->ticketTierLifecycle->resolveManagerRowTitle($values, $variation) === '') {
       $form_state->setErrorByName($prefix . '][title', $this->t('Ticket name is required.'));
     }
 
