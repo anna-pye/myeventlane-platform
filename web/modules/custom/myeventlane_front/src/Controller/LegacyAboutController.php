@@ -20,6 +20,13 @@ final class LegacyAboutController extends ControllerBase {
   }
 
   /**
+   * Redirects the retired blog route name to the current blog page.
+   */
+  public function redirectToBlog(): LocalRedirectResponse {
+    return new LocalRedirectResponse('/blog', 301);
+  }
+
+  /**
    * Redirects retired policy entry points.
    */
   public function redirectToPolicies(): LocalRedirectResponse {
