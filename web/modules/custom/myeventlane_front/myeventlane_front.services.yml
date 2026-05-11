@@ -1,0 +1,7 @@
+services:
+  myeventlane_front.featured_events_render_builder:
+    class: Drupal\myeventlane_front\Service\FeaturedEventsRenderBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@views.executable'
+      - '@logger.factory'

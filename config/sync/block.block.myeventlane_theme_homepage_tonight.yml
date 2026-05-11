@@ -1,0 +1,30 @@
+uuid: 6f3a640b-9098-4ec8-99f0-6f22f614b462
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.upcoming_events
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_homepage_tonight
+theme: myeventlane_theme
+region: homepage_tonight
+weight: 0
+provider: null
+plugin: 'views_block:upcoming_events-homepage_tonight'
+settings:
+  id: 'views_block:upcoming_events-homepage_tonight'
+  label: 'Homepage tonight events'
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

@@ -1,0 +1,25 @@
+uuid: ab70d546-3179-4b67-8308-351bbec13721
+langcode: en
+status: false
+dependencies:
+  module:
+    - myeventlane_blocks
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_homepage_categories
+theme: myeventlane_theme
+region: homepage_categories
+weight: 0
+provider: null
+plugin: myeventlane_category_pills
+settings:
+  id: myeventlane_category_pills
+  label: 'Homepage categories'
+  label_display: '0'
+  provider: myeventlane_blocks
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'
