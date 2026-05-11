@@ -14,14 +14,6 @@ myeventlane_front.story:
   requirements:
     _permission: 'access content'
 
-myeventlane_front.blog:
-  path: '/blog'
-  defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToBlog'
-    _title: 'Blog'
-  requirements:
-    _permission: 'access content'
-
 myeventlane_front.contact:
   path: '/contact'
   defaults:
@@ -33,7 +25,7 @@ myeventlane_front.contact:
 myeventlane_front.privacy:
   path: '/privacy'
   defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToPrivacy'
+    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToPolicies'
     _title: 'Privacy policy'
   requirements:
     _permission: 'access content'
@@ -41,15 +33,7 @@ myeventlane_front.privacy:
 myeventlane_front.terms:
   path: '/terms'
   defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToTerms'
+    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToPolicies'
     _title: 'Terms'
-  requirements:
-    _permission: 'access content'
-
-myeventlane_front.cookies:
-  path: '/cookies'
-  defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToCookies'
-    _title: 'Cookies'
   requirements:
     _permission: 'access content'
