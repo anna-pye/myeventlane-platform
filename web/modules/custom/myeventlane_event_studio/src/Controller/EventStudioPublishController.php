@@ -70,10 +70,13 @@ final class EventStudioPublishController {
       return $this->blockedResponse(
         409,
         'unsaved_changes',
-        [(string) $this->t('Save this section before publishing.')],
+        [(string) $this->t('Save this section before changing publish state.')],
         $node,
       );
     }
+
+    $action = (string) ($data['action'] ?? 'publish');
+    $publishing = $action !== 'unpublish';
 
     $baseChanged = $this->parsePositiveInt($data['changed'] ?? $data['mel_studio_changed'] ?? NULL);
     $baseRevisionId = $this->parsePositiveInt($data['revision_id'] ?? $data['mel_studio_revision'] ?? NULL);
@@ -91,12 +94,16 @@ final class EventStudioPublishController {
       return $this->blockedResponse(
         409,
         'autosave_draft',
-        [(string) $this->t('An autosaved draft is waiting in @section. Restore or save it before publishing.', [
+        [(string) $this->t('An autosaved draft is waiting in @section. Restore or save it before changing publish state.', [
           '@section' => $this->sectionManager->sectionTitle($draftSection),
         ])],
         $node,
         $draftSection,
       );
+    }
+
+    if (!$publishing) {
+      return $this->setPublishedState($node, FALSE);
     }
 
     $readiness = $this->eventReadiness->evaluate($node, $account);
@@ -112,8 +119,18 @@ final class EventStudioPublishController {
       );
     }
 
+    return $this->setPublishedState($node, TRUE);
+  }
+
+  private function setPublishedState(NodeInterface $node, bool $published): JsonResponse {
+    $account = $this->currentUser;
     try {
-      $this->saveService->setNodePublishedState($node, $account, TRUE, 'Event Studio shell publish action.');
+      $this->saveService->setNodePublishedState(
+        $node,
+        $account,
+        $published,
+        $published ? 'Event Studio shell publish action.' : 'Event Studio shell unpublish action.',
+      );
     }
     catch (\InvalidArgumentException $e) {
       $this->logger->notice('Event Studio publish blocked for event @nid uid=@uid: @message', [
@@ -152,8 +169,8 @@ final class EventStudioPublishController {
       200,
       $node,
       $readiness,
-      (string) $this->t('Published successfully'),
-      'published',
+      $published ? (string) $this->t('Published successfully') : (string) $this->t('Unpublished successfully'),
+      $published ? 'published' : 'draft',
       [],
     );
   }

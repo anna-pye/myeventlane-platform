@@ -878,12 +878,31 @@ final class TicketTierLifecycleService {
             return ['ok' => FALSE, 'messages' => ['Ticket data could not be matched to this event. Reload the page and try again.']];
           }
           $variation = $existing_variations[$variation_id];
+          $row['title'] = $this->resolveManagerRowTitle($row, $variation);
+          if ($row['title'] === '') {
+            $this->loggerFactory->get('myeventlane_event')->warning(
+              'persistTicketManagerRows: rejected existing ticket row @vid without a name for event @nid.',
+              [
+                '@vid' => (string) $variation_id,
+                '@nid' => (string) $nid,
+              ],
+            );
+            return ['ok' => FALSE, 'messages' => ['Ticket name is required.']];
+          }
         }
         else {
+          $title = trim((string) ($row['title'] ?? ''));
+          if ($title === '') {
+            $this->loggerFactory->get('myeventlane_event')->warning(
+              'persistTicketManagerRows: rejected new ticket row without a name for event @nid.',
+              ['@nid' => (string) $nid],
+            );
+            return ['ok' => FALSE, 'messages' => ['Ticket name is required.']];
+          }
           $variation = ProductVariation::create([
             'type' => 'ticket_variation',
-            'sku' => $this->generateTicketManagerSku($event, (string) ($row['title'] ?? 'ticket')),
-            'title' => '',
+            'sku' => $this->generateTicketManagerSku($event, $title),
+            'title' => $title,
             'price' => new Price('0.00', (string) ($row['currency'] ?? 'AUD')),
             'status' => 1,
             'product_id' => $product->id(),
@@ -1613,7 +1632,7 @@ final class TicketTierLifecycleService {
    * @param array<string, mixed> $values
    */
   private function applyManagerRowToVariation(ProductVariationInterface $variation, array $values, NodeInterface $event): void {
-    $variation->setTitle(trim((string) ($values['title'] ?? '')));
+    $variation->setTitle($this->resolveManagerRowTitle($values, $variation));
     $variation->setPrice(new Price($this->normalizeManagerPriceNumber($values['price'] ?? '0'), (string) ($values['currency'] ?? 'AUD')));
 
     if ($variation->hasField('field_best_value')) {
@@ -1647,6 +1666,25 @@ final class TicketTierLifecycleService {
     $variationForDefault = $variation->id() !== NULL ? $variation : NULL;
     $active = $this->managerRowIsActive($values, $variationForDefault);
     $this->applyManagerRowActiveToVariation($variation, $active);
+  }
+
+  /**
+   * Keeps existing ticket names when a nested manager submission omits the text input.
+   *
+   * @param array<string, mixed> $values
+   */
+  public function resolveManagerRowTitle(array $values, ?ProductVariationInterface $variation = NULL): string {
+    $title = trim((string) ($values['title'] ?? ''));
+    if ($title !== '') {
+      return $title;
+    }
+    if ($variation instanceof ProductVariationInterface) {
+      $existing = trim((string) $variation->getTitle());
+      if ($existing !== '') {
+        return $existing;
+      }
+    }
+    return '';
   }
 
   /**

@@ -78,24 +78,80 @@ class EventStudioPublishForm extends EventStudioBaseForm {
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
     $form_state->set('mel_was_published_snapshot', $node->isPublished());
     $published = !empty($melDefaults['status']);
-    $draft_hidden = $published ? ' hidden' : '';
-    $live_hidden = $published ? '' : ' hidden';
+    $form['mel']['publish_action_card'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-publish-action-card'],
+        'role' => 'region',
+        'aria-labelledby' => 'mel-publish-action-title-wizard',
+        'data-mel-publish-card' => '1',
+      ],
+      'draft' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-publish-action-card__panel', 'mel-publish-action-card__draft'],
+          'data-mel-publish-panel' => 'draft',
+        ] + ($published ? ['hidden' => 'hidden'] : []),
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Publish event'),
+          '#attributes' => [
+            'id' => 'mel-publish-action-title-wizard',
+            'class' => ['mel-publish-action-card__title'],
+          ],
+        ],
+        'description' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('After publishing, your public page can show RSVPs or tickets you\'ve turned on.'),
+          '#attributes' => ['class' => ['mel-publish-action-card__desc']],
+        ],
+        'publish_now' => [
+          '#type' => 'html_tag',
+          '#tag' => 'button',
+          '#value' => $this->t('Publish now'),
+          '#attributes' => [
+            'type' => 'button',
+            'class' => ['mel-btn', 'mel-btn--primary'],
+            'id' => 'mel-publish-now',
+          ],
+        ],
+      ],
+      'live' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-publish-action-card__panel', 'mel-publish-action-card__live'],
+          'data-mel-publish-panel' => 'live',
+        ] + ($published ? [] : ['hidden' => 'hidden']),
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Your event is live'),
+          '#attributes' => ['class' => ['mel-publish-action-card__title']],
+        ],
+        'description' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Updates publish when you save.'),
+          '#attributes' => ['class' => ['mel-publish-action-card__desc']],
+        ],
+        'unpublish' => [
+          '#type' => 'html_tag',
+          '#tag' => 'button',
+          '#value' => $this->t('Unpublish'),
+          '#attributes' => [
+            'type' => 'button',
+            'class' => ['mel-btn', 'mel-btn--ghost'],
+            'id' => 'mel-revert-draft',
+            'data-mel-unpublish-action' => '',
+          ],
+        ],
+      ],
+    ];
     $form['mel']['status'] = [
       '#type' => 'hidden',
       '#default_value' => $published ? '1' : '0',
-      '#prefix' =>
-        '<div class="mel-publish-action-card" role="region" aria-labelledby="mel-publish-action-title-wizard" data-mel-publish-card="1">' .
-        '<div class="mel-publish-action-card__panel mel-publish-action-card__draft"' . $draft_hidden . ' data-mel-publish-panel="draft">' .
-        '<h3 id="mel-publish-action-title-wizard" class="mel-publish-action-card__title">' . $this->t('Publish event') . '</h3>' .
-        '<p class="mel-publish-action-card__desc">' . $this->t('After publishing, your public page can show RSVPs or tickets you\'ve turned on.') . '</p>' .
-        '<button type="button" class="mel-btn mel-btn--primary" id="mel-publish-now">' . $this->t('Publish now') . '</button>' .
-        '</div>' .
-        '<div class="mel-publish-action-card__panel mel-publish-action-card__live"' . $live_hidden . ' data-mel-publish-panel="live">' .
-        '<h3 class="mel-publish-action-card__title">' . $this->t('Your event is live') . '</h3>' .
-        '<p class="mel-publish-action-card__desc">' . $this->t('Updates publish when you save.') . '</p>' .
-        '<button type="button" class="mel-btn mel-btn--ghost" id="mel-revert-draft">' . $this->t('Unpublish') . '</button>' .
-        '</div>',
-      '#suffix' => '</div>',
     ];
   }
 

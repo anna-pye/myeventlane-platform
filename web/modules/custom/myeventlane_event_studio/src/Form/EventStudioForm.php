@@ -1528,6 +1528,7 @@ final class EventStudioForm extends FormBase {
       $ticket_rows = $this->getEmbeddedTicketManagerTicketRows($form_state);
       $active_count = 0;
       $best_value_count = 0;
+      $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
       foreach ($ticket_rows as $row_key => $row) {
         if (!is_array($row) || !empty($row['more']['delete'])) {
           continue;
@@ -1540,7 +1541,10 @@ final class EventStudioForm extends FormBase {
           $best_value_count++;
         }
         $prefix = 'mel][tickets_section][tickets][tickets][' . $row_key;
-        $this->validateEmbeddedTicketManagerRow($form_state, $row, $prefix);
+        $vid = $this->ticketTierLifecycle->managerSubmittedVariationId($row_key, $row);
+        $loaded = $vid > 0 ? $variation_storage->load($vid) : NULL;
+        $variation = $loaded instanceof ProductVariationInterface ? $loaded : NULL;
+        $this->validateEmbeddedTicketManagerRow($form_state, $row, $prefix, $variation);
       }
       if ($active_count > 1 && $best_value_count > 1) {
         $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Only one ticket can be marked as best value.'));
@@ -1551,7 +1555,6 @@ final class EventStudioForm extends FormBase {
 
       $needs_active_paid = FALSE;
       $sellable_paid = 0;
-      $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
       foreach ($ticket_rows as $row_key => $row) {
         if (!is_array($row) || !empty($row['more']['delete'])) {
           continue;
@@ -2002,8 +2005,8 @@ final class EventStudioForm extends FormBase {
   /**
    * @param array<string, mixed> $values
    */
-  private function validateEmbeddedTicketManagerRow(FormStateInterface $form_state, array $values, string $prefix): void {
-    if (trim((string) ($values['title'] ?? '')) === '') {
+  private function validateEmbeddedTicketManagerRow(FormStateInterface $form_state, array $values, string $prefix, ?ProductVariationInterface $variation = NULL): void {
+    if ($this->ticketTierLifecycle->resolveManagerRowTitle($values, $variation) === '') {
       $form_state->setErrorByName($prefix . '][title', $this->t('Ticket name is required.'));
     }
 
