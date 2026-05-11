@@ -168,7 +168,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       '#type' => 'actions',
       'submit' => [
         '#type' => 'submit',
-        '#value' => $this->t('Save tickets'),
+        '#value' => $this->t('Save and sync tickets'),
         '#button_type' => 'primary',
       ],
     ];

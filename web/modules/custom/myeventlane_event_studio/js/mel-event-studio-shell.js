@@ -83,6 +83,11 @@
     };
   }
 
+  function publishUrlFor(button) {
+    const topbarButton = document.querySelector('[data-mel-publish-action]');
+    return button.dataset.melPublishUrl || topbarButton?.dataset.melPublishUrl || studioSettings().publishUrl;
+  }
+
   function setPublishButtonState(button, state) {
     if (!button) {
       return;
@@ -109,6 +114,20 @@
     else {
       button.textContent = Drupal.t('Publish');
     }
+  }
+
+  function updatePublishPanels(shell, published) {
+    shell.querySelectorAll('[data-mel-publish-panel="draft"], .mel-publish-action-card__draft').forEach((panel) => {
+      panel.hidden = !!published;
+      panel.setAttribute('aria-hidden', published ? 'true' : 'false');
+    });
+    shell.querySelectorAll('[data-mel-publish-panel="live"], .mel-publish-action-card__live').forEach((panel) => {
+      panel.hidden = !published;
+      panel.setAttribute('aria-hidden', published ? 'false' : 'true');
+    });
+    shell.querySelectorAll('[name="mel[status]"]').forEach((input) => {
+      input.value = published ? '1' : '0';
+    });
   }
 
   function setText(root, selector, text) {
@@ -148,6 +167,9 @@
     }
     if (button && result.revisionId) {
       button.dataset.melNodeRevision = String(result.revisionId);
+    }
+    if (button) {
+      setPublishButtonState(button, result.published ? 'published' : 'idle');
     }
   }
 
@@ -317,7 +339,7 @@
           if (button.disabled) {
             return;
           }
-          const publishUrl = button.dataset.melPublishUrl || studioSettings().publishUrl;
+          const publishUrl = publishUrlFor(button);
           if (!publishUrl) {
             renderPublishFeedback(shell, Drupal.t('Cannot publish yet'), [Drupal.t('Publish action is unavailable. Refresh and try again.')]);
             setPublishButtonState(button, 'cannot_publish');
@@ -355,11 +377,83 @@
             }
             renderPublishFeedback(shell, result.message || Drupal.t('Published successfully'), []);
             setPublishButtonState(button, 'published');
+            updatePublishPanels(shell, true);
           }
           catch (error) {
             console.error('Event Studio publish failed.', error);
             renderPublishFeedback(shell, Drupal.t('Cannot publish yet'), [Drupal.t('Publish failed. Check your connection and try again.')]);
             setPublishButtonState(button, 'cannot_publish');
+          }
+        });
+      });
+
+      once('mel-event-studio-shell-unpublish', '[data-mel-unpublish-action]', context).forEach((button) => {
+        const shell = button.closest('[data-mel-studio-shell]');
+        if (!shell) {
+          return;
+        }
+        button.addEventListener('click', async (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          event.stopPropagation();
+          if (button.disabled) {
+            return;
+          }
+          const publishUrl = publishUrlFor(button);
+          if (!publishUrl) {
+            renderPublishFeedback(shell, Drupal.t('Cannot unpublish yet'), [Drupal.t('Unpublish action is unavailable. Refresh and try again.')]);
+            return;
+          }
+          const metadata = {
+            ...publishMetadata(shell, button),
+            action: 'unpublish',
+          };
+          if (metadata.dirty) {
+            renderPublishFeedback(shell, Drupal.t('Cannot unpublish yet'), [Drupal.t('Save this section before changing publish state.')]);
+            return;
+          }
+          const originalLabel = button.textContent;
+          button.disabled = true;
+          button.setAttribute('aria-disabled', 'true');
+          button.textContent = Drupal.t('Unpublishing...');
+          hidePublishFeedback(shell);
+          try {
+            const token = await getCsrfToken();
+            const response = await fetch(publishUrl, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': token,
+              },
+              body: JSON.stringify(metadata),
+            });
+            const result = await response.json().catch(() => ({}));
+            updateTopbar(shell, result);
+            updateReadiness(shell, result.readiness);
+            if (!response.ok || !result.ok) {
+              const messages = result.messages && result.messages.length
+                ? result.messages
+                : [Drupal.t('Unpublish could not complete.')];
+              renderPublishFeedback(shell, result.message || Drupal.t('Cannot unpublish yet'), messages, result.restoreUrl);
+              button.disabled = false;
+              button.removeAttribute('aria-disabled');
+              button.textContent = originalLabel || Drupal.t('Unpublish');
+              return;
+            }
+            renderPublishFeedback(shell, result.message || Drupal.t('Unpublished successfully'), []);
+            updatePublishPanels(shell, false);
+            sectionForms(shell).forEach((form) => setFormPublishState(form, 'clean'));
+            button.disabled = false;
+            button.removeAttribute('aria-disabled');
+            button.textContent = originalLabel || Drupal.t('Unpublish');
+          }
+          catch (error) {
+            console.error('Event Studio unpublish failed.', error);
+            renderPublishFeedback(shell, Drupal.t('Cannot unpublish yet'), [Drupal.t('Unpublish failed. Check your connection and try again.')]);
+            button.disabled = false;
+            button.removeAttribute('aria-disabled');
+            button.textContent = originalLabel || Drupal.t('Unpublish');
           }
         });
       });
