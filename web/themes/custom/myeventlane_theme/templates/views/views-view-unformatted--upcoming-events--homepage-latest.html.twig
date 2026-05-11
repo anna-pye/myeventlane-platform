@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Homepage latest events grid.
+ */
+#}
+{% if rows %}
+  {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
+  <div class="mel-event-grid mel-grid mel-grid--events mel-home-event-grid" data-loaded="false">
+    {% for row in rows %}
+      {{- row.content -}}
+    {% endfor %}
+  </div>
+{% else %}
+  {% include '@myeventlane_theme/components/empty-state.html.twig' with {
+    title: 'No upcoming events yet'|t,
+    text: 'Check back soon or explore the marketplace for more events.'|t,
+    cta_primary_url: '/events',
+    cta_primary_label: 'Explore events'|t,
+    cta_secondary_url: '/create-event',
+    cta_secondary_label: 'Create event'|t
+  } %}
+{% endif %}

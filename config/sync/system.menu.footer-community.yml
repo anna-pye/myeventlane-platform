@@ -1,0 +1,8 @@
+uuid: 76624a45-d3cf-4fd3-910a-0ce8cb74aafd
+langcode: en
+status: true
+dependencies: {  }
+id: footer-community
+label: 'Footer - Community'
+description: 'Footer navigation menu.'
+locked: false

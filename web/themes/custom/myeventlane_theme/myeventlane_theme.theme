@@ -1129,10 +1129,23 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $tree = $term_storage->loadTree('categories', 0, 10, TRUE);
   $categories = [];
   foreach ($tree as $term) {
-    $categories[] = [
-      'title' => $term->label(),
-      'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
-    ];
+    if ($term instanceof TermInterface && $term->hasField('status') && !$term->isPublished()) {
+      continue;
+    }
+
+    $count = \Drupal::entityQuery('node')
+      ->condition('type', 'event')
+      ->condition('status', 1)
+      ->condition('field_category', $term->id())
+      ->accessCheck(FALSE)
+      ->count()
+      ->execute();
+    if ($count > 3) {
+      $categories[] = [
+        'title' => $term->label(),
+        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+      ];
+    }
   }
   $variables['mel_footer_categories'] = $categories;
   $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');

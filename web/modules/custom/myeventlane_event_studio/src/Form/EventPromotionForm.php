@@ -1,0 +1,50 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\myeventlane_event_studio\Form;
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Isolated Event Studio form for promotion section convergence.
+ */
+final class EventPromotionForm extends EventStudioBaseForm {
+
+  public function getFormId(): string {
+    return 'myeventlane_event_studio_promotion_form';
+  }
+
+  protected function getNextRouteName(): string {
+    return 'myeventlane_event_studio.workspace_promotions';
+  }
+
+  protected function getPreviousRouteName(): ?string {
+    return NULL;
+  }
+
+  protected function getCurrentStepId(): string {
+    return 'promotions';
+  }
+
+  protected function getContinueButtonLabel() {
+    return $this->t('Save promotions');
+  }
+
+  protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
+    $this->messenger()->addStatus($this->t('Promotion settings saved.'));
+    $form_state->setRedirect('myeventlane_event_studio.workspace_promotions', ['node' => $saved->id()]);
+  }
+
+  protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $form['notice'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
+      'copy' => [
+        '#markup' => '<p>' . $this->t('Promotion tools now live inside Event Studio. Existing communications services remain the source of truth; this section intentionally does not create a parallel promotion system.') . '</p>',
+      ],
+    ];
+  }
+
+}

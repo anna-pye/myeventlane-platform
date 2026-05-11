@@ -4,6 +4,7 @@ enabled_entity_types:
   - myeventlane_vendor
   - profile
   - user
+  - node
 punctuation:
   double_quotes: 0
   quotes: 0

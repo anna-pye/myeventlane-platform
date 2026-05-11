@@ -83,6 +83,9 @@ services:
   myeventlane_event.commerce_classification_registry:
     class: Drupal\myeventlane_event\Service\EventCommerceClassificationRegistry
 
+  myeventlane_event.operational_type_registry:
+    class: Drupal\myeventlane_event\Service\EventOperationalTypeRegistry
+
   myeventlane_event.event_mode_manager:
     class: Drupal\myeventlane_event\Service\EventModeManager
     arguments:
@@ -108,6 +111,7 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_event.ticket_type_manager'
       - '@logger.factory'
+      - '@myeventlane_vendor.event_access_checker'
 
   myeventlane_event.booking_flow_resolver:
     class: Drupal\myeventlane_event\Service\BookingFlowResolver

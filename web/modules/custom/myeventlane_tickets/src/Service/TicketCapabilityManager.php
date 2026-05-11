@@ -164,7 +164,7 @@ class TicketCapabilityManager {
   /**
    * Reads a string base field while preserving legacy rows without new fields.
    */
-  private function readStringField(Ticket $ticket, string $field_name, string $default): string {
+  protected function readStringField(Ticket $ticket, string $field_name, string $default): string {
     if (!$ticket->hasField($field_name) || $ticket->get($field_name)->isEmpty()) {
       return $default;
     }
@@ -176,7 +176,7 @@ class TicketCapabilityManager {
   /**
    * Reads a non-negative integer base field.
    */
-  private function readIntField(Ticket $ticket, string $field_name, int $default): int {
+  protected function readIntField(Ticket $ticket, string $field_name, int $default): int {
     if (!$ticket->hasField($field_name) || $ticket->get($field_name)->isEmpty()) {
       return $default;
     }

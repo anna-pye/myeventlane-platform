@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * Canonical Event Studio sidebar navigation.
+ */
+#}
+<aside class="mel-event-studio-sidebar" id="mel-event-studio-sidebar" aria-label="{{ 'Event Studio sections'|t }}">
+  <div class="mel-event-studio-sidebar__inner">
+    {% for group, items in sections %}
+      <nav class="mel-event-studio-sidebar__group" aria-labelledby="mel-studio-nav-{{ loop.index }}">
+        <h2 class="mel-event-studio-sidebar__heading" id="mel-studio-nav-{{ loop.index }}">{{ group }}</h2>
+        <ul class="mel-event-studio-sidebar__list">
+          {% for item in items %}
+            <li class="mel-event-studio-sidebar__item">
+              <a
+                class="mel-event-studio-sidebar__link{% if item.active %} is-active{% endif %}"
+                href="{{ item.url }}"
+                {% if item.active %}aria-current="page"{% endif %}
+              >{{ item.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+    {% endfor %}
+  </div>
+</aside>

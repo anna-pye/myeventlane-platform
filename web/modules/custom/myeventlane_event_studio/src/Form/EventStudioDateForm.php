@@ -39,14 +39,14 @@ final class EventStudioDateForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function getNextRouteName(): string {
-    return 'myeventlane_event_studio.edit_tickets';
+    return 'myeventlane_event_studio.workspace_tickets';
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getPreviousRouteName(): ?string {
-    return 'myeventlane_event_studio.edit_basic';
+    return 'myeventlane_event_studio.workspace_information';
   }
 
   /**

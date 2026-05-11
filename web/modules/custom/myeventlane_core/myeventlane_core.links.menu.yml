@@ -22,3 +22,126 @@ entity.myeventlane_onboarding_state.collection:
   route_name: entity.myeventlane_onboarding_state.collection
   parent: myeventlane_core.config
   weight: 5
+
+# Public footer discovery links. These are static menu links so footer IA is
+# deployable with code/config rather than database-only menu-link content.
+myeventlane_core.footer_find_events.all_events:
+  title: 'All events'
+  route_name: view.upcoming_events.page_events
+  menu_name: footer-find
+  weight: 0
+
+myeventlane_core.footer_find_events.today:
+  title: 'Today'
+  route_name: view.upcoming_events.page_today
+  menu_name: footer-find
+  weight: 1
+
+myeventlane_core.footer_find_events.this_weekend:
+  title: 'This weekend'
+  route_name: view.upcoming_events.page_this_weekend
+  menu_name: footer-find
+  weight: 2
+
+myeventlane_core.footer_find_events.free:
+  title: 'Free events'
+  route_name: view.upcoming_events.page_free
+  menu_name: footer-find
+  weight: 3
+
+myeventlane_core.footer_find_events.popular:
+  title: 'Popular events'
+  route_name: view.upcoming_events.page_popular
+  menu_name: footer-find
+  weight: 4
+
+myeventlane_core.footer_find_events.blog:
+  title: 'Blog & guides'
+  route_name: view.mel_blog.page_blog
+  menu_name: footer-find
+  weight: 5
+
+myeventlane_core.footer_host.create_event:
+  title: 'Create event'
+  route_name: myeventlane_vendor.create_event_gateway
+  menu_name: footer-host
+  weight: 0
+
+myeventlane_core.footer_host.help_centre:
+  title: 'Help centre'
+  route_name: myeventlane_help_centre.home
+  menu_name: footer-host
+  weight: 1
+
+myeventlane_core.footer_host.sell_more_tickets:
+  title: 'How to sell more tickets'
+  url: 'internal:/blog/how-to-sell-more-tickets'
+  menu_name: footer-host
+  weight: 2
+
+myeventlane_core.footer_host.promote_event:
+  title: 'Promote your event'
+  url: 'internal:/blog/event-promotion-tips'
+  menu_name: footer-host
+  weight: 3
+
+myeventlane_core.footer_host.setup_guide:
+  title: 'Event setup guide'
+  url: 'internal:/blog/event-setup-guide'
+  menu_name: footer-host
+  weight: 4
+
+myeventlane_core.footer_about.about:
+  title: 'About MyEventLane'
+  url: 'internal:/about'
+  menu_name: footer-about
+  weight: 0
+
+myeventlane_core.footer_about.story:
+  title: 'Our story'
+  url: 'internal:/our-story'
+  menu_name: footer-about
+  weight: 1
+
+myeventlane_core.footer_about.blog:
+  title: 'Blog'
+  route_name: view.mel_blog.page_blog
+  menu_name: footer-about
+  weight: 2
+
+myeventlane_core.footer_about.contact:
+  title: 'Contact'
+  url: 'internal:/contact'
+  menu_name: footer-about
+  weight: 3
+
+myeventlane_core.footer_about.privacy:
+  title: 'Privacy policy'
+  url: 'internal:/privacy'
+  menu_name: footer-about
+  weight: 4
+
+myeventlane_core.footer_about.terms:
+  title: 'Terms'
+  url: 'internal:/terms'
+  menu_name: footer-about
+  weight: 5
+
+myeventlane_core.footer_community.instagram:
+  title: 'Instagram'
+  url: 'https://www.instagram.com/myeventlane'
+  menu_name: footer-community
+  weight: 0
+
+myeventlane_core.footer_community.facebook:
+  title: 'Facebook'
+  url: 'https://www.facebook.com/myeventlane'
+  menu_name: footer-community
+  weight: 1
+
+myeventlane_core.footer_community.linkedin:
+  title: 'LinkedIn'
+  url: 'https://www.linkedin.com/company/myeventlane'
+  menu_name: footer-community
+  weight: 2
+

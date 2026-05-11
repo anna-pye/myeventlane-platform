@@ -1,19 +1,32 @@
 {#
 /**
  * @file
- * Featured events — full-bleed hero slider (homepage block_featured).
+ * Featured events — homepage featured card grid.
  */
 #}
 {% if rows %}
-  <div class="mel-featured-hero">
-
-    <div class="mel-featured-hero__track">
+  <div class="mel-featured-carousel mel-featured-home-carousel" data-mel-featured-carousel aria-label="{{ 'Featured events'|t }}">
+    <div class="mel-featured-carousel__track mel-featured-home-carousel__track" tabindex="0">
       {% for row in rows %}
-        <div class="mel-featured-hero__slide">
+        <div class="mel-featured-carousel__item mel-featured-home-carousel__item{% if loop.first %} is-active{% endif %}" data-mel-featured-slide>
           {{ row.content }}
         </div>
       {% endfor %}
     </div>
-
+    {% if rows|length > 1 %}
+      <div class="mel-featured-carousel__controls" aria-label="{{ 'Featured event carousel controls'|t }}">
+        <button class="mel-featured-carousel__button mel-featured-carousel__button--prev" type="button" data-mel-featured-prev aria-label="{{ 'Show previous featured event'|t }}">
+          <span aria-hidden="true">‹</span>
+        </button>
+        <div class="mel-featured-carousel__dots" role="tablist" aria-label="{{ 'Featured event slides'|t }}">
+          {% for row in rows %}
+            <button class="mel-featured-carousel__dot{% if loop.first %} is-active{% endif %}" type="button" data-mel-featured-dot="{{ loop.index0 }}" role="tab" aria-selected="{{ loop.first ? 'true' : 'false' }}" aria-label="{{ 'Show featured event @number'|t({'@number': loop.index}) }}"></button>
+          {% endfor %}
+        </div>
+        <button class="mel-featured-carousel__button mel-featured-carousel__button--next" type="button" data-mel-featured-next aria-label="{{ 'Show next featured event'|t }}">
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
+    {% endif %}
   </div>
 {% endif %}

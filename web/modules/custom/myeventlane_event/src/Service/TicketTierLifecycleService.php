@@ -15,6 +15,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use InvalidArgumentException;
 
@@ -36,6 +37,7 @@ final class TicketTierLifecycleService {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TicketTypeManager $ticketTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {}
 
   /**
@@ -201,7 +203,10 @@ final class TicketTierLifecycleService {
       ? []
       : $event->get('field_ticket_types')->getValue();
     $ids = [];
-    foreach ($refs as $row) {
+      foreach ($refs as $row) {
+        if (!is_array($row)) {
+          continue;
+        }
       if (!empty($row['target_id'])) {
         $ids[] = (int) $row['target_id'];
       }
@@ -236,7 +241,7 @@ final class TicketTierLifecycleService {
         : $event->get('field_ticket_types')->getValue();
       $filtered = array_values(array_filter(
         $refs,
-        static fn (array $item): bool => (int) ($item['target_id'] ?? 0) !== $ticketId
+        static fn (mixed $item): bool => !is_array($item) || (int) ($item['target_id'] ?? 0) !== $ticketId
       ));
       if ($filtered !== $refs) {
         $event->set('field_ticket_types', $filtered);
@@ -271,6 +276,9 @@ final class TicketTierLifecycleService {
     $current = [];
     if (!$event->get('field_ticket_types')->isEmpty()) {
       foreach ($event->get('field_ticket_types')->getValue() as $row) {
+        if (!is_array($row)) {
+          continue;
+        }
         if (!empty($row['target_id'])) {
           $current[] = (int) $row['target_id'];
         }
@@ -404,6 +412,12 @@ final class TicketTierLifecycleService {
     if (array_key_exists('field_is_best_value', $values)) {
       $payload['field_is_best_value'] = !empty($values['field_is_best_value']) ? 1 : 0;
     }
+    if (array_key_exists('sale_start', $values)) {
+      $payload['sale_start'] = $this->normalizeTicketDateValue($values['sale_start']);
+    }
+    if (array_key_exists('sale_end', $values)) {
+      $payload['sale_end'] = $this->normalizeTicketDateValue($values['sale_end']);
+    }
 
     if (in_array($kind, ['paid', 'rsvp'], TRUE)) {
       $payload['capacity'] = $this->normalizeOptionalPositiveInteger(
@@ -453,8 +467,7 @@ final class TicketTierLifecycleService {
     AccountInterface $account,
     array $values,
   ): array {
-    if ((int) $ticket->get('vendor_id')->target_id !== (int) $account->id()
-      && !$account->hasPermission('administer mel_ticket_type entities')) {
+    if (!$this->accountCanManageTicketForEvent($event, $ticket, $account)) {
       throw new InvalidArgumentException('Ticket not found on this event.');
     }
 
@@ -523,6 +536,12 @@ final class TicketTierLifecycleService {
     }
     if (array_key_exists('field_is_best_value', $values)) {
       $payload['field_is_best_value'] = !empty($values['field_is_best_value']) ? 1 : 0;
+    }
+    if (array_key_exists('sale_start', $values)) {
+      $payload['sale_start'] = $this->normalizeTicketDateValue($values['sale_start']);
+    }
+    if (array_key_exists('sale_end', $values)) {
+      $payload['sale_end'] = $this->normalizeTicketDateValue($values['sale_end']);
     }
 
     if (array_key_exists('hidden_label', $values)) {
@@ -1106,11 +1125,20 @@ final class TicketTierLifecycleService {
     if (!$this->ticketBelongsToEvent($event, $ticketId)) {
       return NULL;
     }
-    if ((int) $entity->get('vendor_id')->target_id !== (int) $account->id()
-      && !$account->hasPermission('administer mel_ticket_type entities')) {
+    if (!$this->accountCanManageTicketForEvent($event, $entity, $account)) {
       return NULL;
     }
     return $entity;
+  }
+
+  private function accountCanManageTicketForEvent(NodeInterface $event, TicketTypeInterface $ticket, AccountInterface $account): bool {
+    if ($account->hasPermission('administer mel_ticket_type entities')) {
+      return TRUE;
+    }
+    if ((int) $ticket->get('vendor_id')->target_id === (int) $account->id()) {
+      return TRUE;
+    }
+    return $this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account);
   }
 
   private function clearTicketEventReference(NodeInterface $event, int $ticketId): bool {
@@ -1421,6 +1449,24 @@ final class TicketTierLifecycleService {
       throw new InvalidArgumentException($message);
     }
     return (int) $raw;
+  }
+
+  private function normalizeTicketDateValue(mixed $value): ?string {
+    if ($value instanceof DrupalDateTime) {
+      return $value->format('Y-m-d\TH:i:s');
+    }
+    if (is_array($value) && isset($value['date'], $value['time'])) {
+      $raw = trim((string) $value['date'] . ' ' . (string) $value['time']);
+      if ($raw === '') {
+        return NULL;
+      }
+      return (new DrupalDateTime($raw))->format('Y-m-d\TH:i:s');
+    }
+    $raw = trim((string) $value);
+    if ($raw === '') {
+      return NULL;
+    }
+    return (new DrupalDateTime($raw))->format('Y-m-d\TH:i:s');
   }
 
   private function resolveEventKind(NodeInterface $event): string {

@@ -1,31 +1,357 @@
 // ==========================================================================
 // Home Hero Component
 // ==========================================================================
-// Homepage hero with brand, search, and popular tags.
-// BEM: .hero, .mel-home-hero
-//
-// Hero artwork is delivered via <img>/<picture> in hero.twig (runtime URLs or
-// text-free abstract SVG). Do not point CSS backgrounds at the event
-// placeholder asset — it is for listing/event shells only.
+// Homepage hero with brand, search, category pills, and Page Visuals art.
 
+@use '../base/mel-ds-tokens' as mel;
 @use '../tokens/breakpoints';
 
-// Hide hero art on mobile when hero_hide_on_mobile is set (Page Visuals).
+.mel-home-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(2rem, 5vw, 4.75rem) 24px clamp(1.5rem, 4vw, 3rem);
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, mel.$mel-ds-color-primary 20%, transparent), transparent 34rem),
+    radial-gradient(circle at 88% 10%, rgba(255, 210, 147, 0.36), transparent 28rem),
+    radial-gradient(circle at 72% 84%, rgba(186, 230, 210, 0.34), transparent 30rem),
+    linear-gradient(135deg, #fff7f2 0%, #f7f1ff 52%, #eefaf4 100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(41, 50, 65, 0.08) 1px, transparent 1px);
+    background-size: 18px 18px;
+    mask-image: linear-gradient(90deg, #000 0%, transparent 76%);
+    pointer-events: none;
+  }
+}
+
+.mel-home-hero__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  width: min(100%, 1240px);
+  margin: 0 auto;
+
+  @include breakpoints.mel-break(lg) {
+    grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+    align-items: center;
+    gap: 48px;
+  }
+}
+
+.mel-home-hero__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.mel-home-hero__eyebrow {
+  margin: 0 0 10px;
+  color: mel.$mel-ds-color-primary;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mel-home-hero__title {
+  max-width: 11ch;
+  margin: 0;
+  color: mel.$mel-ds-color-text;
+  font-family: mel.$mel-ds-font-main;
+  font-size: clamp(2.75rem, 8vw, 5.6rem);
+  font-weight: 850;
+  letter-spacing: -0.055em;
+  line-height: 0.94;
+}
+
+.mel-home-hero__text {
+  max-width: 42rem;
+  margin: 18px 0 0;
+  color: color-mix(in srgb, mel.$mel-ds-color-text 74%, #fff 26%);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.58;
+}
+
+.mel-home-hero__search {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  width: min(100%, 720px);
+  margin-top: 24px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 54px rgba(98, 81, 130, 0.14);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  @include breakpoints.mel-break(sm) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+.mel-home-hero__search input {
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: mel.$mel-ds-color-text;
+  font: inherit;
+
+  &::placeholder {
+    color: mel.$mel-ds-color-muted;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, mel.$mel-ds-color-primary 28%, transparent);
+  }
+}
+
+.mel-home-hero__search button {
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: mel.$mel-ds-color-primary;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  box-shadow: 0 10px 28px color-mix(in srgb, mel.$mel-ds-color-primary 32%, transparent);
+
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 5px color-mix(in srgb, mel.$mel-ds-color-primary 38%, transparent);
+  }
+}
+
+.mel-home-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  margin-top: 18px;
+}
+
+.mel-home-hero__secondary {
+  font-weight: 700;
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-home-hero__pills {
+  width: min(100%, 760px);
+  margin-top: 22px;
+}
+
+.mel-home-hero__pills .mel-category-pills,
+.mel-home-hero__pills .mel-category-strip,
+.mel-home-hero__pills ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-home-hero__pills a,
+.mel-home-hero__pills .mel-pill,
+.mel-home-hero__pills .mel-category-pill {
+  min-height: 40px;
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(74, 63, 104, 0.12);
+  text-decoration: none;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(74, 63, 104, 0.16);
+  }
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, mel.$mel-ds-color-primary 38%, transparent);
+    outline-offset: 3px;
+  }
+}
+
+.mel-home-hero__art {
+  min-width: 0;
+
+  @include breakpoints.mel-break(lg, max) {
+    order: -1;
+  }
+}
+
 .mel-home-hero__art--hide-mobile {
   @include breakpoints.mel-break(md, max) {
     display: none;
   }
 }
 
+.mel-home-hero__art-frame {
+  position: relative;
+  min-height: clamp(220px, 34vw, 420px);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: clamp(24px, 4vw, 38px);
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(242, 109, 91, 0.22), rgba(124, 131, 253, 0.24));
+  box-shadow:
+    0 22px 64px rgba(54, 45, 77, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+  picture {
+    display: block;
+    height: 100%;
+  }
+}
+
+.mel-home-hero__feature-rotator {
+  position: relative;
+  min-height: clamp(260px, 34vw, 430px);
+  isolation: isolate;
+}
+
+.mel-home-hero__feature-rotator .mel-featured-carousel,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel,
+.mel-home-hero__feature-rotator .mel-featured-carousel__track,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__track {
+  height: 100%;
+  min-height: inherit;
+}
+
+.mel-home-hero__feature-rotator .mel-featured-carousel {
+  overflow: hidden;
+}
+
+.mel-home-hero__feature-rotator .mel-featured-carousel::before,
+.mel-home-hero__feature-rotator .mel-featured-carousel::after {
+  display: none;
+}
+
+.mel-home-hero__feature-rotator .mel-featured-carousel__track {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  scroll-snap-type: none;
+}
+
+.mel-home-hero__feature-rotator .mel-featured-carousel__item {
+  grid-area: 1 / 1;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(18px, 0, 0) scale(0.985);
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s ease;
+}
+
+.mel-home-hero__feature-rotator .mel-featured-carousel__item:first-child,
+.mel-home-hero__feature-rotator .mel-featured-carousel__item.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.mel-home-hero__feature-rotator.is-enhanced .mel-featured-carousel__item:first-child:not(.is-active) {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-18px, 0, 0) scale(0.985);
+}
+
+.mel-home-hero__feature-rotator .mel-event-card--featured,
+.mel-home-hero__feature-rotator .mel-event-hero-card {
+  min-height: clamp(260px, 34vw, 430px);
+  border-radius: clamp(24px, 4vw, 38px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 18px 48px rgba(31, 38, 51, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.mel-home-hero__feature-rotator .mel-event-hero-card__overlay {
+  background:
+    linear-gradient(90deg, rgba(13, 18, 28, 0.7) 0%, rgba(13, 18, 28, 0.28) 52%, rgba(13, 18, 28, 0.08) 100%),
+    linear-gradient(0deg, rgba(13, 18, 28, 0.72) 0%, transparent 58%);
+}
+
+.mel-home-hero__feature-rotator .mel-featured-carousel__controls {
+  display: none;
+}
+
+.mel-home-hero__feature-rotator .mel-event-hero-card__content,
+.mel-home-hero__feature-rotator .mel-event-card__body {
+  width: min(100%, 390px);
+  padding: clamp(20px, 3vw, 30px);
+}
+
+.mel-home-hero__feature-rotator .mel-event-hero-card__title,
+.mel-home-hero__feature-rotator .mel-event-card__title {
+  font-size: clamp(1.45rem, 3vw, 2.35rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.mel-home-hero__feature-rotator .mel-event-hero-card__when,
+.mel-home-hero__feature-rotator .mel-event-hero-card__where,
+.mel-home-hero__feature-rotator .mel-event-card__when,
+.mel-home-hero__feature-rotator .mel-event-card__location {
+  font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-home-hero__feature-rotator .mel-featured-carousel__item {
+    transition: none;
+    transform: none;
+  }
+}
+
+.mel-home-hero__art-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: clamp(220px, 34vw, 420px);
+  object-fit: cover;
+}
+
+.mel-home-hero__art-img--placeholder {
+  background:
+    radial-gradient(circle at 26% 30%, rgba(255, 255, 255, 0.58), transparent 22%),
+    radial-gradient(circle at 70% 22%, rgba(246, 196, 122, 0.52), transparent 28%),
+    radial-gradient(circle at 68% 74%, rgba(124, 131, 253, 0.42), transparent 30%),
+    linear-gradient(135deg, rgba(242, 109, 91, 0.32), rgba(255, 255, 255, 0.2));
+}
+
+// Fallback legacy hero component used when no homepage hero block is placed.
 .hero {
-  // Semi-transparent tint that blends into the page-shell gradient.
-  // NOT opaque — the body/page radials show through, creating continuity.
   background: var(--mel-gradient-hero);
   padding: clamp(1.5rem, 4vw, 3.25rem) 1.5rem;
   position: relative;
   overflow: hidden;
 
-  // Soft radial depth — reinforces the gradient in the hero zone
   &::before {
     content: '';
     position: absolute;
@@ -42,198 +368,5 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 0;
-
-    @include breakpoints.mel-break(md, max) {
-      gap: 0;
-    }
-  }
-
-  // Text overlays the image (desktop)
-  &__text {
-    @include breakpoints.mel-break(md) {
-      position: relative;
-      z-index: 1;
-    }
-  }
-
-  &__headline {
-    font-size: clamp(2rem, 4.5vw, 2.75rem);
-    font-weight: 700;
-    color: var(--mel-ink);
-    margin: 0 0 1rem;
-    line-height: 1.15;
-    max-width: 22ch;
-  }
-
-  &__supporting {
-    max-width: 36rem;
-    margin: 0 0 1.75rem;
-    line-height: 1.6;
-    font-size: clamp(1rem, 2.2vw, 1.125rem);
-    color: var(--mel-muted);
-  }
-
-  &__ctas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem 1rem;
-    align-items: center;
-    margin-bottom: 0.5rem;
-
-    @include breakpoints.mel-break(md) {
-      position: relative;
-      z-index: 1;
-    }
-  }
-
-  &__cta {
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  &__tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    margin-top: 2rem;
-
-    @include breakpoints.mel-break(md) {
-      position: relative;
-      z-index: 1;
-      margin-top: 2.25rem;
-    }
-  }
-
-  &__tags-label {
-    font-size: 0.875rem;
-    color: var(--mel-muted);
-    margin-right: 0.25rem;
-  }
-
-  &__tag {
-    display: inline-flex;
-    align-items: center;
-    height: 32px;
-    padding: 0 12px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    border-radius: 999px;
-    border: none;
-    color: var(--mel-ink);
-    text-decoration: none;
-    transition: all 0.15s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    background: var(--mel-lilac);
-    color: var(--mel-navy);
-
-    // Mel colours - rotate through palette (child 1 = label, 2+ = pills)
-    &:nth-child(2) { background: var(--mel-coral); color: #fff; }
-    &:nth-child(3) { background: var(--mel-blue); color: #fff; }
-    &:nth-child(4) { background: var(--mel-lilac); color: var(--mel-navy); }
-    &:nth-child(5) { background: var(--mel-peach); color: var(--mel-navy); }
-    &:nth-child(6) { background: var(--mel-mint); color: var(--mel-navy); }
-    &:nth-child(7) { background: var(--mel-orange); color: #fff; }
-    &:nth-child(8) { background: var(--mel-sky); color: var(--mel-navy); }
-    &:nth-child(9) { background: var(--mel-butter); color: var(--mel-navy); }
-    &:nth-child(10) { background: var(--mel-coral); color: #fff; }
-    &:nth-child(11) { background: var(--mel-blue); color: #fff; }
-    &:nth-child(12) { background: var(--mel-lilac); color: var(--mel-navy); }
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 2px var(--mel-surface), 0 0 0 5px var(--mel-focus);
-    }
-  }
-
-  &__visual {
-    min-height: 280px;
-
-    // Mobile: show art above content
-    @include breakpoints.mel-break(md, max) {
-      order: 0;
-      min-height: 200px;
-      margin-top: 0;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-
-    // Desktop: image under the copy; text stays readable above
-    @include breakpoints.mel-break(md) {
-      position: absolute;
-      top: 5px;
-      left: 0;
-      right: 0;
-      width: 100%;
-      min-height: 280px;
-      z-index: 0;
-    }
-  }
-
-  &__visual-inner {
-    width: 100%;
-    height: 100%;
-    min-height: 280px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    picture {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    @include breakpoints.mel-break(md, max) {
-      min-height: 200px;
-      max-width: min(100%, 420px);
-      margin: 0 auto;
-    }
-
-    @include breakpoints.mel-break(md) {
-      width: 100%;
-      min-height: 280px;
-      align-items: flex-start;
-      justify-content: flex-end;
-    }
-  }
-
-  &__visual-img {
-    width: 100%;
-    height: auto;
-    max-height: 320px;
-    object-fit: contain;
-    object-position: center top;
-    display: block;
-    filter: drop-shadow(0 18px 40px rgba(110, 90, 160, 0.12));
-
-    @include breakpoints.mel-break(md) {
-      max-height: none;
-      max-width: min(560px, 52vw);
-      min-height: 280px;
-      object-fit: contain;
-      object-position: right top;
-      margin-left: auto;
-    }
-
-    &--fallback {
-      border-radius: clamp(20px, 4vw, 28px);
-    }
-  }
-
-  &__content {
-    // Mobile: content below the art
-    @include breakpoints.mel-break(md, max) {
-      order: 1;
-    }
   }
 }

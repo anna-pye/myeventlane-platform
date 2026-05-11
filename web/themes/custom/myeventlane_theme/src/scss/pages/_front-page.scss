@@ -1,77 +1,465 @@
 // ==========================================================================
-// MEL homepage — v2 conversion layout (scoped to .mel-page--home)
+// MEL homepage visual system (scoped to .mel-page--home)
 // ==========================================================================
 
 @use '../base/mel-ds-tokens' as mel;
 @use '../tokens/breakpoints';
 
-// ---------------------------------------------------------------------------
-// Category strip — homepage block (`myeventlane_category_pills`)
-// ---------------------------------------------------------------------------
-
-.mel-section--categories .mel-category-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.mel-page--home {
+  background:
+    radial-gradient(circle at 8% 10%, rgba(242, 109, 91, 0.05), transparent 30rem),
+    radial-gradient(circle at 92% 38%, rgba(124, 131, 253, 0.06), transparent 32rem);
 }
 
-.mel-section--categories .mel-category-strip .mel-category-pill {
-  border-radius: 999px;
-  padding: 6px 12px;
-  background: #efe9ff;
-  font-size: 14px;
-  font-weight: 600;
+.mel-page--home .mel-section {
+  padding-block: clamp(1.25rem, 3.5vw, 2.45rem);
+}
+
+.mel-page--home .mel-section__header {
+  margin-bottom: 18px;
+}
+
+.mel-page--home .mel-section__title {
+  letter-spacing: -0.025em;
+}
+
+.mel-page--home .mel-section__link,
+.mel-page--home .mel-section__header a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+  color: mel.$mel-ds-color-primary;
   text-decoration: none;
-  color: inherit;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
+}
 
-  &:hover {
-    background: #e2d9ff;
-    transform: translateY(-1px);
-  }
+.mel-page--home .mel-section__link:focus-visible,
+.mel-page--home .mel-section__header a:focus-visible {
+  outline: 3px solid color-mix(in srgb, mel.$mel-ds-color-primary 36%, transparent);
+  outline-offset: 3px;
+  border-radius: 999px;
 }
 
 // ---------------------------------------------------------------------------
-// Featured — marketplace hero rail (homepage only)
+// Category strip - homepage block (`myeventlane_category_pills`)
+// ---------------------------------------------------------------------------
+
+.mel-page--home .mel-section--categories {
+  display: none;
+}
+
+// ---------------------------------------------------------------------------
+// Featured - premium editorial carousel from the existing featured View.
 // ---------------------------------------------------------------------------
 
 .mel-page--home .mel-section--featured {
-  margin-top: 0;
-  margin-bottom: 0;
+  padding-top: clamp(1.1rem, 3vw, 2rem);
+  padding-bottom: clamp(1.35rem, 3.5vw, 2.4rem);
 }
 
-// ---------------------------------------------------------------------------
-// Discover / Free — tighter marketplace density (homepage listings)
-// ---------------------------------------------------------------------------
+.mel-page--home .mel-section--featured .mel-container {
+  max-width: 1240px;
+}
 
-.mel-page--home .mel-section--discover .mel-grid.mel-grid--events,
-.mel-page--home .mel-section--free .mel-grid.mel-grid--events,
-.mel-page--home .mel-section--time .mel-grid.mel-grid--events {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+.mel-page--home .mel-featured-home-carousel {
+  overflow: hidden;
+}
+
+.mel-page--home .mel-featured-home-carousel::before,
+.mel-page--home .mel-featured-home-carousel::after {
+  display: none;
+}
+
+.mel-page--home .mel-featured-home-carousel__track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  padding: 6px 0 18px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-padding-inline: 0;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, mel.$mel-ds-color-primary 45%, transparent);
+    outline-offset: 4px;
+    border-radius: 28px;
+  }
+}
+
+.mel-page--home .mel-featured-home-carousel__item {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card-article,
+.mel-page--home .mel-featured-home-carousel .mel-event-card {
+  display: block;
+  height: 100%;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured,
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card {
+  width: 100%;
+  min-height: clamp(360px, 42vw, 520px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: clamp(24px, 3vw, 34px);
+  overflow: hidden;
+  background: #1f2633;
+  box-shadow: 0 26px 70px rgba(31, 38, 51, 0.2);
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card {
+  color: #fff;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__overlay {
+  background:
+    linear-gradient(90deg, rgba(13, 18, 28, 0.78) 0%, rgba(13, 18, 28, 0.32) 52%, rgba(13, 18, 28, 0.06) 100%),
+    linear-gradient(0deg, rgba(13, 18, 28, 0.8) 0%, transparent 62%);
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__title {
+  max-width: 11ch;
+  font-size: clamp(2.2rem, 5.2vw, 4.4rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__when,
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__where,
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__status,
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__status-note {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__cta-chip {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+.mel-page--home .mel-featured-carousel__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
+  margin-top: 14px;
+}
 
-  @media (width <= 768px) {
-    grid-template-columns: 1fr;
+.mel-page--home .mel-featured-carousel__button,
+.mel-page--home .mel-featured-carousel__dot {
+  border: 0;
+  cursor: pointer;
+}
+
+.mel-page--home .mel-featured-carousel__button {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 10%, transparent);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: mel.$mel-ds-color-text;
+  font-size: 24px;
+  line-height: 1;
+  box-shadow: 0 10px 28px rgba(55, 45, 82, 0.1);
+}
+
+.mel-page--home .mel-featured-carousel__dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mel-page--home .mel-featured-carousel__dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, mel.$mel-ds-color-text 22%, transparent);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    width 0.2s ease;
+}
+
+.mel-page--home .mel-featured-carousel__dot.is-active {
+  width: 24px;
+  background: mel.$mel-ds-color-primary;
+}
+
+.mel-page--home .mel-featured-carousel__button:focus-visible,
+.mel-page--home .mel-featured-carousel__dot:focus-visible {
+  outline: 3px solid color-mix(in srgb, mel.$mel-ds-color-primary 36%, transparent);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-page--home .mel-featured-carousel__button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 34px rgba(55, 45, 82, 0.14);
+  }
+
+  .mel-page--home .mel-featured-carousel__dot:hover {
+    transform: scale(1.12);
+  }
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__link {
+  position: relative;
+  min-height: inherit;
+  color: #fff;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(90deg, rgba(13, 18, 28, 0.78) 0%, rgba(13, 18, 28, 0.32) 48%, rgba(13, 18, 28, 0.12) 100%),
+    linear-gradient(0deg, rgba(13, 18, 28, 0.78) 0%, transparent 58%);
+  pointer-events: none;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image .mel-event-card__image-element,
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: clamp(360px, 42vw, 520px);
+  object-fit: cover;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image-badge {
+  z-index: 4;
+  top: 22px;
+  left: 22px;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__body {
+  position: relative;
+  z-index: 3;
+  justify-content: flex-end;
+  width: min(100%, 560px);
+  min-height: clamp(360px, 42vw, 520px);
+  padding: clamp(24px, 5vw, 48px);
+  color: #fff;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__title {
+  min-height: 0;
+  margin-bottom: 12px;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__when,
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__location,
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__status,
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__status-secondary {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__location-slot {
+  min-height: 0;
+  margin-bottom: 12px;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__cta-row {
+  margin-top: 8px;
+}
+
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__cta-chip {
+  background: mel.$mel-ds-color-primary;
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured:hover,
+  .mel-page--home .mel-featured-home-carousel .mel-event-hero-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 30px 76px rgba(31, 38, 51, 0.24);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-page--home .mel-featured-home-carousel__track {
+    scroll-behavior: auto;
+  }
+
+  .mel-page--home .mel-featured-carousel__dot {
+    transition: none;
+  }
+}
+
+@media (width <= 640px) {
+  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured,
+  .mel-page--home .mel-featured-home-carousel .mel-event-hero-card,
+  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image .mel-event-card__image-element,
+  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__placeholder,
+  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__body {
+    min-height: clamp(300px, 88vw, 360px);
+  }
+
+  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__body {
+    padding: 22px;
   }
 }
 
 // ---------------------------------------------------------------------------
-// On tonight — urgency band
+// Discovery - dense marketplace grid across homepage rails.
 // ---------------------------------------------------------------------------
 
-.mel-page--home .mel-section--tonight-urgent {
-  position: relative;
-  padding-left: mel.$mel-ds-space-lg;
-  border-radius: mel.$mel-ds-radius-md;
-  background: color-mix(in srgb, mel.$mel-ds-color-accent 8%, mel.$mel-ds-color-surface);
-  box-shadow: inset 4px 0 0 color-mix(in srgb, mel.$mel-ds-color-accent 70%, transparent);
+.mel-page--home .mel-section--latest {
+  padding-top: clamp(1rem, 2.6vw, 1.9rem);
 }
 
-// ---------------------------------------------------------------------------
-// Card CTAs — clearer affordance on hover (full card is still one link)
-// ---------------------------------------------------------------------------
+.mel-page--home .mel-section--tonight {
+  position: relative;
+  overflow: hidden;
+}
+
+.mel-page--home .mel-section--tonight::before {
+  content: '';
+  position: absolute;
+  inset: 10% 0 auto auto;
+  width: min(34vw, 360px);
+  height: min(34vw, 360px);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(124, 131, 253, 0.12), transparent 68%);
+  pointer-events: none;
+}
+
+.mel-page--home .mel-section--discover .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--latest .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--nearby .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--online .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--tonight .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--free .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--time .mel-grid.mel-grid--events {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+
+  @media (width <= 1024px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (width <= 640px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.mel-page--home .mel-home-event-grid > * {
+  min-width: 0;
+}
+
+.mel-page--home .mel-card-reason--tonight {
+  width: fit-content;
+  margin: 0 0 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, mel.$mel-ds-color-primary 14%, #fff);
+  color: mel.$mel-ds-color-primary;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card,
+.mel-page--home .mel-section--latest .mel-event-card,
+.mel-page--home .mel-section--nearby .mel-event-card,
+.mel-page--home .mel-section--online .mel-event-card,
+.mel-page--home .mel-section--tonight .mel-event-card {
+  height: 100%;
+  border-radius: 18px;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card__image,
+.mel-page--home .mel-section--latest .mel-event-card__image,
+.mel-page--home .mel-section--nearby .mel-event-card__image,
+.mel-page--home .mel-section--online .mel-event-card__image,
+.mel-page--home .mel-section--tonight .mel-event-card__image {
+  aspect-ratio: 4 / 3;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card__body,
+.mel-page--home .mel-section--latest .mel-event-card__body,
+.mel-page--home .mel-section--nearby .mel-event-card__body,
+.mel-page--home .mel-section--online .mel-event-card__body,
+.mel-page--home .mel-section--tonight .mel-event-card__body {
+  padding: 12px 13px 13px;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card__title,
+.mel-page--home .mel-section--latest .mel-event-card__title,
+.mel-page--home .mel-section--nearby .mel-event-card__title,
+.mel-page--home .mel-section--online .mel-event-card__title,
+.mel-page--home .mel-section--tonight .mel-event-card__title {
+  margin-bottom: 8px;
+  font-size: 16px;
+  line-height: 1.22;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card__when,
+.mel-page--home .mel-section--latest .mel-event-card__when,
+.mel-page--home .mel-section--nearby .mel-event-card__when,
+.mel-page--home .mel-section--online .mel-event-card__when,
+.mel-page--home .mel-section--tonight .mel-event-card__when,
+.mel-page--home .mel-section--discover .mel-event-card__status,
+.mel-page--home .mel-section--latest .mel-event-card__status,
+.mel-page--home .mel-section--nearby .mel-event-card__status,
+.mel-page--home .mel-section--online .mel-event-card__status,
+.mel-page--home .mel-section--tonight .mel-event-card__status {
+  font-size: 13px;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card__location-slot,
+.mel-page--home .mel-section--latest .mel-event-card__location-slot,
+.mel-page--home .mel-section--nearby .mel-event-card__location-slot,
+.mel-page--home .mel-section--online .mel-event-card__location-slot,
+.mel-page--home .mel-section--tonight .mel-event-card__location-slot {
+  min-height: 1.2em;
+  margin-bottom: 6px;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card__location,
+.mel-page--home .mel-section--latest .mel-event-card__location,
+.mel-page--home .mel-section--nearby .mel-event-card__location,
+.mel-page--home .mel-section--online .mel-event-card__location,
+.mel-page--home .mel-section--tonight .mel-event-card__location {
+  font-size: 12px;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card__cta-chip,
+.mel-page--home .mel-section--latest .mel-event-card__cta-chip,
+.mel-page--home .mel-section--nearby .mel-event-card__cta-chip,
+.mel-page--home .mel-section--online .mel-event-card__cta-chip,
+.mel-page--home .mel-section--tonight .mel-event-card__cta-chip {
+  min-height: 44px;
+  padding-inline: 12px;
+  border-radius: 999px;
+  font-size: 12px;
+}
 
 @media (hover: hover) and (pointer: fine) {
   .mel-page--home .mel-event-card:hover .mel-event-card__cta-chip {
@@ -79,13 +467,46 @@
     border-color: color-mix(in srgb, mel.$mel-ds-color-primary 40%, transparent);
     color: mel.$mel-ds-color-text;
   }
+}
 
-  .mel-page--home .mel-event-card--featured:hover .mel-event-card__cta-chip {
-    background: mel.$mel-ds-color-primary;
-    color: #fff;
-    border-color: transparent;
-    box-shadow: 0 4px 14px color-mix(in srgb, mel.$mel-ds-color-primary 35%, transparent);
+// ---------------------------------------------------------------------------
+// Blog preview - editorial, lightweight, no homepage exposed filters.
+// ---------------------------------------------------------------------------
+
+.mel-page--home .mel-blog-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+
+  @media (width <= 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  @media (width <= 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-page--home .mel-blog-preview-grid__item {
+  min-width: 0;
+}
+
+.mel-page--home .mel-section--blog .views-exposed-form,
+.mel-page--home .mel-section--blog form.views-exposed-form {
+  display: none;
+}
+
+.mel-page--home .mel-section--blog article,
+.mel-page--home .mel-blog-preview-grid__item > * {
+  height: 100%;
+}
+
+.mel-page--home .mel-section--blog .node {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 12px 36px rgba(55, 45, 82, 0.08);
 }
 
 // ---------------------------------------------------------------------------
@@ -101,6 +522,7 @@
   flex-direction: column;
   gap: mel.$mel-ds-space-xl;
   padding: mel.$mel-ds-space-2xl mel.$mel-ds-space-lg;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
   border-radius: mel.$mel-ds-radius-lg;
   background: linear-gradient(
     135deg,
@@ -108,7 +530,6 @@
     color-mix(in srgb, mel.$mel-ds-color-primary 10%, mel.$mel-ds-color-bg) 100%
   );
   box-shadow: mel.$mel-ds-shadow-soft;
-  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
 
   @include breakpoints.mel-break(md) {
     flex-direction: row;
@@ -119,66 +540,27 @@
 }
 
 .mel-host-cta__title {
+  margin: 0 0 mel.$mel-ds-space-sm;
+  color: mel.$mel-ds-color-text;
   font-family: mel.$mel-ds-font-main;
   font-size: mel.$mel-ds-font-h2;
   font-weight: 700;
-  margin: 0 0 mel.$mel-ds-space-sm;
-  color: mel.$mel-ds-color-text;
   line-height: 1.2;
 }
 
 .mel-host-cta__text {
+  max-width: 36rem;
+  margin: 0;
+  color: mel.$mel-ds-color-text;
   font-family: mel.$mel-ds-font-main;
   font-size: mel.$mel-ds-font-body;
   line-height: 1.55;
-  color: mel.$mel-ds-color-text;
-  margin: 0;
-  max-width: 36rem;
   opacity: 0.92;
 }
 
 .mel-host-cta__actions {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   gap: mel.$mel-ds-space-sm mel.$mel-ds-space-md;
-  flex-shrink: 0;
-}
-
-// ---------------------------------------------------------------------------
-// Final CTA band
-// ---------------------------------------------------------------------------
-
-.mel-section--final-cta {
-  margin-bottom: mel.$mel-ds-space-xl;
-}
-
-.mel-final-cta {
-  text-align: center;
-  padding: mel.$mel-ds-space-2xl mel.$mel-ds-space-lg;
-  border-radius: mel.$mel-ds-radius-md;
-  background: mel.$mel-ds-color-surface;
-  box-shadow: mel.$mel-ds-shadow-soft;
-  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 10%, transparent);
-  max-width: 720px;
-  margin: 0 auto;
-}
-
-.mel-final-cta__title {
-  font-family: mel.$mel-ds-font-main;
-  font-size: mel.$mel-ds-font-h3;
-  font-weight: 700;
-  margin: 0 0 mel.$mel-ds-space-sm;
-  color: mel.$mel-ds-color-text;
-}
-
-.mel-final-cta__text {
-  font-family: mel.$mel-ds-font-main;
-  font-size: mel.$mel-ds-font-small;
-  line-height: 1.55;
-  color: mel.$mel-ds-color-muted;
-  margin: 0 0 mel.$mel-ds-space-lg;
-}
-
-.mel-final-cta__btn {
-  min-width: 200px;
 }

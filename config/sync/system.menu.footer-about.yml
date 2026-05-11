@@ -1,0 +1,8 @@
+uuid: 2521859f-51d3-4032-a7d1-f325f6bd066a
+langcode: en
+status: true
+dependencies: {  }
+id: footer-about
+label: 'Footer - About'
+description: 'Footer navigation menu.'
+locked: false

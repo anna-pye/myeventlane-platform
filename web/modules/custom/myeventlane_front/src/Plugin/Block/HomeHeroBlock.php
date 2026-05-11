@@ -8,6 +8,7 @@ use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\myeventlane_front\Service\FeaturedEventsRenderBuilder;
 use Drupal\myeventlane_page_visuals\Service\PageVisualResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -31,6 +32,7 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
     $plugin_id,
     $plugin_definition,
     private readonly BlockManagerInterface $blockManager,
+    private readonly FeaturedEventsRenderBuilder $featuredEventsRenderBuilder,
     private readonly PageVisualResolver $pageVisualResolver,
     private readonly RouteMatchInterface $routeMatch,
   ) {
@@ -46,6 +48,7 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       $plugin_id,
       $plugin_definition,
       $container->get('plugin.manager.block'),
+      $container->get('myeventlane_front.featured_events_render_builder'),
       $container->get('myeventlane.page_visual_resolver'),
       $container->get('current_route_match'),
     );
@@ -57,7 +60,7 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
   public function build(): array {
     $pills = [];
     try {
-      $instance = $this->blockManager->createInstance('views_block:front_category_pills-pill', []);
+      $instance = $this->blockManager->createInstance('myeventlane_category_pills', []);
       $pills = $instance->build();
       $pills['#cache']['contexts'][] = 'url.path';
     }
@@ -86,10 +89,16 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
     $build = [
       '#theme' => 'myeventlane_home_hero',
       '#pills' => $pills,
+      '#featured_events' => $this->featuredEventsRenderBuilder->build(),
       '#hero_image_url' => $hero_image_url,
       '#hero_image_url_mobile' => $hero_image_url_mobile,
       '#hero_hide_on_mobile' => $hero_hide_on_mobile,
       '#hero_alt' => $hero_alt,
+      '#attached' => [
+        'library' => [
+          'myeventlane_theme/home-hero-rotator',
+        ],
+      ],
       '#cache' => [
         'contexts' => array_unique($cache_contexts),
         'tags' => array_unique($cache_tags),

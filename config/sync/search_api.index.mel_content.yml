@@ -132,7 +132,7 @@ field_settings:
         - anonymous
       view_mode:
         'entity:node':
-          article: teaser
+          blog_post: teaser
           event: teaser
           page: teaser
   status:
@@ -177,7 +177,7 @@ datasource_settings:
     bundles:
       default: false
       selected:
-        - article
+        - blog_post
         - event
         - help_article
         - help_landing_page

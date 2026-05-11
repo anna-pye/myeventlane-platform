@@ -15,6 +15,16 @@ regions:
   pre_content: 'Pre-content'
   highlighted: Highlighted
   content: Content
+  homepage_hero: 'Homepage Hero'
+  homepage_featured: 'Homepage Featured'
+  homepage_categories: 'Homepage Categories'
+  homepage_latest: 'Homepage Latest'
+  homepage_tonight: 'Homepage Tonight'
+  homepage_nearby: 'Homepage Nearby'
+  homepage_online: 'Homepage Online'
+  homepage_host_cta: 'Homepage Host CTA'
+  homepage_blog: 'Homepage Blog'
+  homepage_newsletter: 'Homepage Newsletter'
   host_cta: 'Home: Host CTA'
   bottom_cta: 'Home: Bottom CTA'
   below_content: 'Below content'

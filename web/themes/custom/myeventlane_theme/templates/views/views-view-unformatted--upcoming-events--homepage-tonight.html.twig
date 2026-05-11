@@ -1,0 +1,14 @@
+{#
+/**
+ * @file
+ * Homepage tonight events grid.
+ */
+#}
+{% if rows %}
+  {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
+  <div class="mel-event-grid mel-grid mel-grid--events mel-home-event-grid mel-home-event-grid--tonight" data-loaded="false">
+    {% for row in rows %}
+      {{- row.content -}}
+    {% endfor %}
+  </div>
+{% endif %}

@@ -23,6 +23,13 @@ skeleton:
     - core/drupal
     - core/once
 
+home-hero-rotator:
+  js:
+    js/home-hero-rotator.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Branded 403/404 (standalone CSS; source SCSS in mel_maintenance/scss/errors.scss).
 mel-error-pages:
   version: VERSION
@@ -62,7 +69,7 @@ front:
   dependencies:
     - core/drupal
     - core/once
-    - myeventlane_theme/global-styling
+    - myeventlane_theme/home-hero-rotator
 
 # Help Centre search (/help/search) — compiled into dist/main.scss via Vite.
 help_search:

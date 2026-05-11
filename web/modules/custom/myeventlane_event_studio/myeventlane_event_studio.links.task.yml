@@ -1,0 +1,5 @@
+myeventlane_event_studio.workspace:
+  route_name: myeventlane_event_studio.workspace
+  base_route: entity.node.canonical
+  title: 'Event Studio'
+  weight: 20

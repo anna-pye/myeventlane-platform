@@ -1,0 +1,8 @@
+uuid: 5ac7b370-6a3a-4e54-b8cb-80c35d233c83
+langcode: en
+status: true
+dependencies: {  }
+id: footer-find
+label: 'Footer - Find events'
+description: 'Footer navigation menu.'
+locked: false

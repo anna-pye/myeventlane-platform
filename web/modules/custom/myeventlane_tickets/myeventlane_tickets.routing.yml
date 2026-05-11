@@ -59,10 +59,10 @@ myeventlane_tickets.event_tickets_types:
 myeventlane_tickets.event_tickets_settings:
   path: '/vendor/events/{event}/tickets/settings'
   defaults:
-    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::settings'
+    _controller: 'myeventlane_event_studio.controller:redirectEventToTicketsWorkspace'
     _title: 'Ticket settings'
   requirements:
-    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
       event:

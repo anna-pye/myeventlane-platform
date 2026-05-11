@@ -1,0 +1,19 @@
+uuid: fa1dcc76-f1a8-4546-a82d-15aa726b0353
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_excerpt
+    - node.type.blog_post
+id: node.blog_post.field_excerpt
+field_name: field_excerpt
+entity_type: node
+bundle: blog_post
+label: Excerpt
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

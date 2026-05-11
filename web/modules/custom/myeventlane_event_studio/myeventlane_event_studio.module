@@ -30,6 +30,47 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-wizard-nav',
     ],
+    'mel_event_studio_workspace' => [
+      'variables' => [
+        'node' => NULL,
+        'sections' => [],
+        'current_section' => 'overview',
+        'current_section_label' => '',
+        'section_content' => NULL,
+        'topbar' => [],
+        'readiness' => [],
+      ],
+      'template' => 'mel-event-studio-workspace',
+    ],
+    'mel_event_studio_sidebar' => [
+      'variables' => [
+        'sections' => [],
+        'current_section' => 'overview',
+      ],
+      'template' => 'mel-event-studio-sidebar',
+    ],
+    'mel_event_studio_topbar' => [
+      'variables' => [
+        'topbar' => [],
+      ],
+      'template' => 'mel-event-studio-topbar',
+    ],
+    'mel_event_studio_section' => [
+      'variables' => [
+        'label' => '',
+        'content' => NULL,
+      ],
+      'template' => 'mel-event-studio-section',
+    ],
+    'mel_event_studio_empty_state' => [
+      'variables' => [
+        'title' => '',
+        'body' => '',
+        'prompt' => '',
+        'guidance' => [],
+      ],
+      'template' => 'mel-event-studio-empty-state',
+    ],
     'mel_event_studio_wizard_preview' => [
       'variables' => [
         'node' => NULL,
@@ -120,6 +161,21 @@ function _myeventlane_event_studio_is_event_studio_route(?string $route_name = N
     'myeventlane_event_studio.edit_description',
     'myeventlane_event_studio.edit_preview',
     'myeventlane_event_studio.edit_publish',
+    'myeventlane_event_studio.workspace',
+    'myeventlane_event_studio.workspace_information',
+    'myeventlane_event_studio.workspace_branding',
+    'myeventlane_event_studio.workspace_content',
+    'myeventlane_event_studio.workspace_tickets',
+    'myeventlane_event_studio.workspace_questions',
+    'myeventlane_event_studio.workspace_capacity',
+    'myeventlane_event_studio.workspace_merchandise',
+    'myeventlane_event_studio.workspace_addons',
+    'myeventlane_event_studio.workspace_promotions',
+    'myeventlane_event_studio.workspace_attendees',
+    'myeventlane_event_studio.workspace_fulfilment',
+    'myeventlane_event_studio.workspace_orders',
+    'myeventlane_event_studio.workspace_analytics',
+    'myeventlane_event_studio.workspace_settings',
   ];
   return in_array($route_name, $routes, TRUE);
 }

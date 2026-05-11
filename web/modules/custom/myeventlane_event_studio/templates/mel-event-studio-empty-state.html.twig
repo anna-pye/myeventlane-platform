@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * Reusable Event Studio empty state.
+ */
+#}
+<div class="mel-event-studio-empty-state">
+  <h3 class="mel-event-studio-empty-state__title">{{ title }}</h3>
+  <p class="mel-event-studio-empty-state__body">{{ body }}</p>
+
+  {% if prompt %}
+    <p class="mel-event-studio-empty-state__prompt">{{ prompt }}</p>
+  {% endif %}
+
+  {% if guidance %}
+    <ul class="mel-event-studio-empty-state__guidance">
+      {% for item in guidance %}
+        <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

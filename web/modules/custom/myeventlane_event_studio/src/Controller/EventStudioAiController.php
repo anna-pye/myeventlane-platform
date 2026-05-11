@@ -67,7 +67,7 @@ final class EventStudioAiController implements ContainerInjectionInterface {
       'audience' => $audience,
     ], $uid, NULL);
 
-    \Drupal::logger('myeventlane_ai')->notice('AI result ok=@ok', [
+    $this->logger->notice('Event Studio AI result ok=@ok', [
       '@ok' => !empty($response['ok']) ? '1' : '0',
     ]);
 
@@ -121,7 +121,7 @@ final class EventStudioAiController implements ContainerInjectionInterface {
 
     $response = $this->aiGenerator->rewriteEventContentReliable($payload, $uid, NULL);
 
-    \Drupal::logger('myeventlane_ai')->notice('AI rewrite ok=@ok', [
+    $this->logger->notice('Event Studio AI rewrite ok=@ok', [
       '@ok' => !empty($response['ok']) ? '1' : '0',
     ]);
 

@@ -10,10 +10,11 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
+use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_vendor\Service\CurrentVendorResolver;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -31,10 +32,11 @@ final class EventStudioAutosaveController {
     private readonly AccountProxyInterface $currentUser,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventHighlightHelper $eventHighlightHelper,
-    private readonly PrivateTempStoreFactory $privateTempStoreFactory,
     private readonly LoggerInterface $logger,
     private readonly AccessManagerInterface $accessManager,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly CurrentVendorResolver $currentVendorResolver,
+    private readonly EventStudioAutosaveService $autosaveService,
   ) {}
 
   public function handle(Request $request): JsonResponse {
@@ -51,50 +53,40 @@ final class EventStudioAutosaveController {
     $params = $request->request->all();
 
     $storage = $this->entityTypeManager->getStorage('node');
-    $node = NULL;
-    if (!empty($params['nid'])) {
-      $loaded = $storage->load((int) $params['nid']);
-      if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
-        return new JsonResponse(['ok' => FALSE, 'message' => 'Not found'], 404);
-      }
-
-      if (!$account->hasPermission('administer nodes')) {
-        if (!$loaded->access('update', $account)) {
-          $this->logger->warning('Event Studio autosave denied: node update nid=@nid uid=@uid', [
-            '@nid' => (string) $loaded->id(),
-            '@uid' => (string) $account->id(),
-          ]);
-          throw new AccessDeniedHttpException();
-        }
-        if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($loaded, $account)) {
-          $this->logger->warning('Event Studio autosave denied: workspace parity nid=@nid uid=@uid', [
-            '@nid' => (string) $loaded->id(),
-            '@uid' => (string) $account->id(),
-          ]);
-          throw new AccessDeniedHttpException();
-        }
-      }
-      $node = $loaded;
-    }
-    else {
+    if (empty($params['nid'])) {
       if (!$this->accessManager->checkNamedRoute('myeventlane_event_studio.create', [], $account, TRUE)->isAllowed()) {
         $this->logger->warning('Event Studio autosave denied: create route access uid=@uid', [
           '@uid' => (string) $account->id(),
         ]);
         throw new AccessDeniedHttpException();
       }
+      return new JsonResponse([
+        'ok' => FALSE,
+        'errors' => ['Open the Event Studio draft before autosaving.'],
+      ], 422);
     }
 
+    $loaded = $storage->load((int) $params['nid']);
+    if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
+      return new JsonResponse(['ok' => FALSE, 'message' => 'Not found'], 404);
+    }
+    $this->assertCanAutosaveEvent($loaded);
+    $node = $loaded;
+
     $incoming_autosave_ts = $this->parseAutosaveTimestamp($params);
-    if ($node !== NULL && $incoming_autosave_ts !== NULL) {
-      $store = $this->privateTempStoreFactory->get('myeventlane_event_studio_autosave');
-      $stored_ts = $store->get('node.' . $node->id());
-      if ($stored_ts !== NULL && is_numeric($stored_ts) && $incoming_autosave_ts < (float) $stored_ts) {
-        return new JsonResponse([
-          'ok' => FALSE,
-          'latest_ts' => (float) $stored_ts,
-        ], 409);
-      }
+    if ($incoming_autosave_ts === NULL) {
+      $incoming_autosave_ts = (float) round(microtime(TRUE) * 1000);
+    }
+
+    $section = $this->normalizeSection($params['mel_studio_section'] ?? 'section');
+    $base_changed = $this->parsePositiveInt($params['mel_studio_changed'] ?? NULL);
+    $base_revision_id = $this->parsePositiveInt($params['mel_studio_revision'] ?? NULL);
+    if ($this->autosaveService->isStaleSubmission($node, $base_changed, $base_revision_id)) {
+      $this->autosaveService->clearDraft($node, $section);
+      return new JsonResponse([
+        'ok' => FALSE,
+        'message' => 'This section was updated elsewhere. Refresh to continue editing safely.',
+      ], 409);
     }
 
     $mel = $params['mel'] ?? [];
@@ -121,24 +113,49 @@ final class EventStudioAutosaveController {
       $event_highlights_items_state = is_array($eh) ? trim((string) ($eh['items_state'] ?? '')) : '';
     }
 
-    $payload = $this->payloadFromRequestParams($params, $decoded_event_highlights, $event_highlights_items_state);
-    $result = $this->saveService->save($payload, $node, $account, TRUE);
-    if ($result['errors'] !== []) {
-      return new JsonResponse(['ok' => FALSE, 'errors' => $result['errors']], 422);
+    if ($decoded_event_highlights !== NULL) {
+      $mel['event_highlights'] = [
+        'items_state' => $event_highlights_items_state ?? '',
+        'decoded' => $decoded_event_highlights,
+      ];
     }
-
-    $saved_node = $result['node'];
-    // Always key tempstore by the node returned from save() (nid exists after first create).
-    if ($saved_node !== NULL && $incoming_autosave_ts !== NULL) {
-      $store = $this->privateTempStoreFactory->get('myeventlane_event_studio_autosave');
-      $store->set('node.' . $saved_node->id(), (float) $incoming_autosave_ts);
-    }
+    $this->autosaveService->storeDraft($node, $section, $mel, $incoming_autosave_ts, $base_changed, $base_revision_id);
 
     return new JsonResponse([
       'ok' => TRUE,
-      'nid' => $saved_node?->id(),
-      'governance_urls' => $saved_node instanceof NodeInterface ? $this->buildGovernanceUrls($saved_node) : [],
+      'nid' => $node->id(),
+      'section' => $section,
+      'message' => 'Saved just now',
+      'restore_available' => TRUE,
+      'changed' => $node->getChangedTime(),
+      'revision_id' => (int) $node->getRevisionId(),
+      'governance_urls' => $this->buildGovernanceUrls($node),
     ]);
+  }
+
+  private function assertCanAutosaveEvent(NodeInterface $event): void {
+    $account = $this->currentUser;
+    if ($account->hasPermission('administer nodes')) {
+      return;
+    }
+
+    $vendor = $this->currentVendorResolver->resolveFromEvent($event)
+      ?? $this->currentVendorResolver->resolveFromUser($account);
+    if ($vendor === NULL) {
+      $this->logger->warning('Event Studio autosave denied: no vendor context nid=@nid uid=@uid', [
+        '@nid' => (string) $event->id(),
+        '@uid' => (string) $account->id(),
+      ]);
+      throw new AccessDeniedHttpException();
+    }
+
+    if (!$event->access('update', $account) || !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
+      $this->logger->warning('Event Studio autosave denied: edit access nid=@nid uid=@uid', [
+        '@nid' => (string) $event->id(),
+        '@uid' => (string) $account->id(),
+      ]);
+      throw new AccessDeniedHttpException();
+    }
   }
 
   /**
@@ -184,6 +201,22 @@ final class EventStudioAutosaveController {
       return (float) $params['mel_autosave_ts'];
     }
     return NULL;
+  }
+
+  private function parsePositiveInt(mixed $value): int {
+    if (!is_numeric($value)) {
+      return 0;
+    }
+    $parsed = (int) $value;
+    return $parsed > 0 ? $parsed : 0;
+  }
+
+  private function normalizeSection(mixed $value): string {
+    $section = trim((string) $value);
+    if ($section === '') {
+      return 'section';
+    }
+    return preg_replace('/[^a-z0-9_:-]+/i', '_', $section) ?: 'section';
   }
 
   /**
