@@ -1124,24 +1124,15 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['directory'] = base_path() . $theme_path;
   }
 
-  // Footer: dynamic categories (only if > 3 published events) + organiser detection.
+  // Footer: list every category without count queries on each page request.
   $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
   $tree = $term_storage->loadTree('categories', 0, 10, TRUE);
   $categories = [];
   foreach ($tree as $term) {
-    $count = \Drupal::entityQuery('node')
-      ->condition('type', 'event')
-      ->condition('status', 1)
-      ->condition('field_category', $term->id())
-      ->accessCheck(FALSE)
-      ->count()
-      ->execute();
-    if ($count > 3) {
-      $categories[] = [
-        'title' => $term->label(),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
-      ];
-    }
+    $categories[] = [
+      'title' => $term->label(),
+      'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+    ];
   }
   $variables['mel_footer_categories'] = $categories;
   $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');
