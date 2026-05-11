@@ -9,16 +9,22 @@
     topbar: topbar
   }, with_context = false) }}
 
-  <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}">
+  <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip>
     <div class="mel-event-studio-readiness-strip__summary">
-      <strong>{{ readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t }}</strong>
-      <span>{{ readiness.state }}</span>
+      <strong data-mel-readiness-title>{{ readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t }}</strong>
+      <span data-mel-readiness-state>{{ readiness.state }}</span>
     </div>
     <div class="mel-event-studio-readiness-strip__counts">
-      <span>{{ readiness.errors|length }} {{ 'blocker(s)'|t }}</span>
-      <span>{{ readiness.warnings|length }} {{ 'warning(s)'|t }}</span>
-      <span>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
+      <span data-mel-readiness-errors-count>{{ readiness.errors|length }} {{ 'blocker(s)'|t }}</span>
+      <span data-mel-readiness-warnings-count>{{ readiness.warnings|length }} {{ 'warning(s)'|t }}</span>
+      <span data-mel-readiness-completed-count>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
     </div>
+  </section>
+
+  <section class="mel-event-studio-publish-feedback" aria-live="polite" aria-atomic="true" data-mel-publish-feedback hidden>
+    <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-feedback-title>{{ 'Cannot publish yet'|t }}</h2>
+    <ul class="mel-event-studio-publish-feedback__list" data-mel-publish-feedback-list></ul>
+    <a class="mel-event-studio-publish-feedback__restore" href="#" data-mel-publish-restore hidden>{{ 'Restore draft'|t }}</a>
   </section>
 
   <button

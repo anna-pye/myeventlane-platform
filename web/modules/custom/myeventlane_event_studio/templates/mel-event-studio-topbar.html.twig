@@ -10,9 +10,9 @@
     <h1 class="mel-event-studio-topbar__title">{{ topbar.title }}</h1>
   </div>
   <div class="mel-event-studio-topbar__meta" aria-label="{{ 'Event status'|t }}">
-    <span class="mel-event-studio-topbar__badge">{{ topbar.status }}</span>
-    <span class="mel-event-studio-topbar__state">{{ topbar.state }}</span>
-    <span class="mel-event-studio-topbar__saved">{{ topbar.last_saved }}</span>
+    <span class="mel-event-studio-topbar__badge" data-mel-publish-status>{{ topbar.status }}</span>
+    <span class="mel-event-studio-topbar__state" data-mel-publish-state>{{ topbar.state }}</span>
+    <span class="mel-event-studio-topbar__saved" data-mel-publish-last-saved>{{ topbar.last_saved }}</span>
     <span class="mel-event-studio-topbar__autosave{% if topbar.restore_draft %} has-draft{% endif %}" id="mel-studio-form-state" role="status">
       {% if topbar.restore_draft %}
         <a href="{{ topbar.restore_url }}">{{ 'Restore draft available'|t }}</a>
@@ -21,6 +21,15 @@
   </div>
   <div class="mel-event-studio-topbar__actions">
     <a class="mel-btn mel-btn--ghost" href="{{ topbar.preview_url }}" target="_blank" rel="noopener noreferrer">{{ 'Preview'|t }}</a>
-    <a class="mel-btn mel-btn--primary" href="{{ topbar.publish_url }}">{{ 'Publish'|t }}</a>
+    <button
+      class="mel-btn mel-btn--primary"
+      type="button"
+      data-mel-publish-action
+      data-mel-publish-url="{{ topbar.publish_url|e('html_attr') }}"
+      data-mel-current-section="{{ topbar.current_section|e('html_attr') }}"
+      data-mel-node-changed="{{ topbar.changed }}"
+      data-mel-node-revision="{{ topbar.revision_id }}"
+      {% if topbar.published %}disabled aria-disabled="true"{% endif %}
+    >{{ topbar.published ? 'Published'|t : 'Publish'|t }}</button>
   </div>
 </header>

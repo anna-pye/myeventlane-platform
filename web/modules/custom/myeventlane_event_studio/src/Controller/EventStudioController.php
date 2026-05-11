@@ -174,6 +174,10 @@ final class EventStudioController extends ControllerBase {
             'autosaveDelay' => 12000,
             'currentSection' => $section,
             'draftAvailable' => $this->autosaveService->hasDraft($node, $section),
+            'publishUrl' => Url::fromRoute('myeventlane_event_studio.publish', ['node' => $node->id()])->toString(),
+            'nodeChanged' => $node->getChangedTime(),
+            'nodeRevisionId' => (int) $node->getRevisionId(),
+            'published' => $node->isPublished(),
           ],
         ],
       ],
@@ -220,7 +224,12 @@ final class EventStudioController extends ControllerBase {
         'query' => ['restore_draft' => '1'],
       ])->toString(),
       'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
-      'publish_url' => Url::fromRoute('myeventlane_event_studio.workspace_settings', ['node' => $node->id()])->toString(),
+      'publish_url' => Url::fromRoute('myeventlane_event_studio.publish', ['node' => $node->id()])->toString(),
+      'published' => $node->isPublished(),
+      'can_publish' => $readiness->ready,
+      'current_section' => $section,
+      'changed' => $node->getChangedTime(),
+      'revision_id' => (int) $node->getRevisionId(),
     ];
   }
 

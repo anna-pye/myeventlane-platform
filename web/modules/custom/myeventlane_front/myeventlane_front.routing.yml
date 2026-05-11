@@ -22,6 +22,14 @@ myeventlane_front.contact:
   requirements:
     _permission: 'access content'
 
+myeventlane_front.blog:
+  path: '/legacy-blog'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToBlog'
+    _title: 'Blog'
+  requirements:
+    _permission: 'access content'
+
 myeventlane_front.privacy:
   path: '/privacy'
   defaults:
