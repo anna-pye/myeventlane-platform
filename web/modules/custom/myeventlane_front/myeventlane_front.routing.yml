@@ -1,55 +1,23 @@
 myeventlane_front.about:
   path: '/about'
   defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
+    _controller: '\Drupal\myeventlane_front\Controller\MarketingPageController::about'
     _title: 'About MyEventLane'
   requirements:
     _permission: 'access content'
 
 myeventlane_front.story:
-  path: '/our-story'
+  path: '/story'
   defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
-    _title: 'Our story'
+    _controller: '\Drupal\myeventlane_front\Controller\MarketingPageController::story'
+    _title: 'MyEventLane Story'
   requirements:
     _permission: 'access content'
 
 myeventlane_front.blog:
   path: '/blog'
   defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToBlog'
-    _title: 'Blog'
-  requirements:
-    _permission: 'access content'
-
-myeventlane_front.contact:
-  path: '/contact'
-  defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
-    _title: 'Contact'
-  requirements:
-    _permission: 'access content'
-
-myeventlane_front.privacy:
-  path: '/privacy'
-  defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToPrivacy'
-    _title: 'Privacy policy'
-  requirements:
-    _permission: 'access content'
-
-myeventlane_front.terms:
-  path: '/terms'
-  defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToTerms'
-    _title: 'Terms'
-  requirements:
-    _permission: 'access content'
-
-myeventlane_front.cookies:
-  path: '/cookies'
-  defaults:
-    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToCookies'
-    _title: 'Cookies'
+    _controller: '\Drupal\myeventlane_front\Controller\MarketingPageController::blog'
+    _title: 'MyEventLane Blog'
   requirements:
     _permission: 'access content'

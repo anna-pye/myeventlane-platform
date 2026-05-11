@@ -69,7 +69,7 @@ front:
   dependencies:
     - core/drupal
     - core/once
-    - myeventlane_theme/home-hero-rotator
+    - myeventlane_theme/global-styling
 
 # Help Centre search (/help/search) — compiled into dist/main.scss via Vite.
 help_search:
