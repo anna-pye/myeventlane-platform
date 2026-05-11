@@ -1,0 +1,7 @@
+myeventlane_front.about:
+  path: '/about'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectAbout'
+    _title: 'About MyEventLane'
+  requirements:
+    _permission: 'access content'
