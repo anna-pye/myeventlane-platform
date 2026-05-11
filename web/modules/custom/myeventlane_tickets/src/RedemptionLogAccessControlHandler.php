@@ -91,18 +91,6 @@ final class RedemptionLogAccessControlHandler extends EntityAccessControlHandler
    * TRUE when the account belongs to the vendor scope captured on the log/event.
    */
   private function accountHasVendorScope(EntityInterface $entity, NodeInterface $event, AccountInterface $account): bool {
-    $vendor_id = NULL;
-    if ($entity->hasField('vendor_id') && !$entity->get('vendor_id')->isEmpty()) {
-      $vendor_id = (int) $entity->get('vendor_id')->target_id;
-    }
-    elseif ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
-      $vendor_id = (int) $event->get('field_event_vendor')->target_id;
-    }
-
-    if ($vendor_id === NULL) {
-      return FALSE;
-    }
-
     $vendor = NULL;
     if ($entity->hasField('vendor_id') && !$entity->get('vendor_id')->isEmpty()) {
       $vendor = $entity->get('vendor_id')->entity;

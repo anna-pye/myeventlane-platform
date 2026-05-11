@@ -361,6 +361,7 @@ function myeventlane_checkout_flow_theme(array $existing, string $type, string $
         'recent_activity' => [],
         'links' => [],
         'search' => [],
+        'empty_guidance' => [],
         'operational_actions' => [],
         'mel_venue_operations_empty' => NULL,
         // Per-purpose CSRF token bag consumed by the manual check-in form

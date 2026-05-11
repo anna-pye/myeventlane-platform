@@ -1129,6 +1129,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $tree = $term_storage->loadTree('categories', 0, 10, TRUE);
   $categories = [];
   foreach ($tree as $term) {
+    if ($term instanceof TermInterface && $term->hasField('status') && !$term->isPublished()) {
+      continue;
+    }
+
     $count = \Drupal::entityQuery('node')
       ->condition('type', 'event')
       ->condition('status', 1)
