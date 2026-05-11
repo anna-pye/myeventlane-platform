@@ -115,6 +115,7 @@ class EventStudioPublishForm extends EventStudioBaseForm {
             'type' => 'button',
             'class' => ['mel-btn', 'mel-btn--primary'],
             'id' => 'mel-publish-now',
+            'data-mel-card-publish-action' => '',
           ],
         ],
       ],

@@ -105,12 +105,17 @@ final class EventStudioSaveService {
       }
     }
 
-    // Editorial workflow: `draft` is not a published moderation state. Content Moderation's
-    // presave syncs the entity published flag to that state, undoing setPublished(TRUE).
-    // When the vendor intends to publish, transition to `published` so presave stays aligned.
-    if (!$draft && $willPublish && $node->hasField('moderation_state') && !$node->get('moderation_state')->isEmpty()
-        && (string) $node->get('moderation_state')->value === 'draft') {
-      $node->set('moderation_state', 'published');
+    // Keep Content Moderation aligned with the requested published flag.
+    // Draft revisions are not default revisions in the editorial workflow, so
+    // unpublishing a live event must use the unpublished default state.
+    if (!$draft && $node->hasField('moderation_state') && !$node->get('moderation_state')->isEmpty()) {
+      $moderationState = (string) $node->get('moderation_state')->value;
+      if ($willPublish && $moderationState !== 'published') {
+        $node->set('moderation_state', 'published');
+      }
+      if (!$willPublish && $moderationState === 'published') {
+        $node->set('moderation_state', 'archived');
+      }
     }
 
     if ($node->hasField('field_event_summary') && isset($payload['summary'])) {
