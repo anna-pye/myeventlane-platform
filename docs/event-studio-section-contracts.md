@@ -12,6 +12,18 @@ Every Event Studio section must have two explicit pieces:
 
 Routes stay explicit for auditability and operational debugging. Plugins govern metadata and shell behavior.
 
+A Studio section is the canonical owner of:
+
+- Rendering.
+- Operational state.
+- Writable, readonly, deferred, and coming-soon behavior.
+- Save and autosave boundaries.
+- Readiness participation metadata.
+- Empty-state behavior.
+- Mobile priority metadata.
+
+The workspace controller orchestrates the event workspace only. It must not own a hardcoded section rendering map.
+
 ## Plugin Metadata
 
 Each section plugin must define:
@@ -22,38 +34,42 @@ Each section plugin must define:
 | `title` | Human-readable section title. |
 | `group` | Sidebar group such as Manage Event, Commerce, or Operations. |
 | `routeName` | Existing explicit route name. |
+| `section_state` | One of `active`, `readonly`, `deferred`, or `coming_soon`. |
 | `routeFragment` | Stable URL/autosave fragment when different from id. |
 | `weight` | Navigation order inside the group. |
 | `icon` | Optional shell icon metadata. |
 | `accessPolicy` | Access contract identifier. |
-| `renderTarget` | Rendering contract, such as controller or future form/controller target. |
-| `readinessParticipant` | Whether the section contributes readiness signals. |
+| `renderTarget` | Rendering contract resolved by the section renderer. |
+| `writable` | Whether the section can mutate operational state. |
+| `readiness_participant` | Whether the section contributes readiness metadata. |
+| `empty_state_type` | Empty-state behavior, such as `none`, `deferred`, `readonly_empty`, or `coming_soon`. |
+| `mobile_priority` | Mobile ordering and responsiveness priority; lower values load earlier. |
 | `operationalArea` | Event, ticket, commerce product, fulfilment, operations, or analytics. |
-| `deferred` | True for reserved placeholders without full feature implementation. |
+| `navigationVisible` | Whether the section appears in Studio navigation. |
 
 ## Current Section Inventory
 
-| Section | Route | Domain |
-| --- | --- | --- |
-| `overview` | `myeventlane_event_studio.workspace` | event |
-| `information` | `myeventlane_event_studio.workspace_information` | event |
-| `branding` | `myeventlane_event_studio.workspace_branding` | event |
-| `content` | `myeventlane_event_studio.workspace_content` | event |
-| `tickets` | `myeventlane_event_studio.workspace_tickets` | ticket |
-| `questions` | `myeventlane_event_studio.workspace_questions` | commerce |
-| `capacity` | `myeventlane_event_studio.workspace_capacity` | ticket |
-| `merchandise` | `myeventlane_event_studio.workspace_merchandise` | commerce product |
-| `addons` | `myeventlane_event_studio.workspace_addons` | commerce product |
-| `promotions` | `myeventlane_event_studio.workspace_promotions` | event |
-| `attendees` | `myeventlane_event_studio.workspace_attendees` | operations |
-| `fulfilment` | `myeventlane_event_studio.workspace_fulfilment` | fulfilment |
-| `orders` | `myeventlane_event_studio.workspace_orders` | commerce |
-| `analytics` | `myeventlane_event_studio.workspace_analytics` | analytics |
-| `settings` | `myeventlane_event_studio.workspace_settings` | event |
+| Section | Route | Domain | State |
+| --- | --- | --- | --- |
+| `overview` | `myeventlane_event_studio.workspace` | event | active |
+| `information` | `myeventlane_event_studio.workspace_information` | event | active |
+| `branding` | `myeventlane_event_studio.workspace_branding` | event | active |
+| `content` | `myeventlane_event_studio.workspace_content` | event | active |
+| `tickets` | `myeventlane_event_studio.workspace_tickets` | ticket | active |
+| `questions` | `myeventlane_event_studio.workspace_questions` | commerce | active |
+| `capacity` | `myeventlane_event_studio.workspace_capacity` | ticket | active |
+| `merchandise` | `myeventlane_event_studio.workspace_merchandise` | commerce product | deferred |
+| `addons` | `myeventlane_event_studio.workspace_addons` | commerce product | deferred |
+| `promotions` | `myeventlane_event_studio.workspace_promotions` | event | active |
+| `attendees` | `myeventlane_event_studio.workspace_attendees` | operations | readonly |
+| `fulfilment` | `myeventlane_event_studio.workspace_fulfilment` | fulfilment | deferred |
+| `orders` | `myeventlane_event_studio.workspace_orders` | commerce | readonly |
+| `analytics` | `myeventlane_event_studio.workspace_analytics` | analytics | readonly |
+| `settings` | `myeventlane_event_studio.workspace_settings` | event | active |
 
 ## Rendering Rules
 
-The Studio controller may continue to render existing section forms while the shell is being stabilized. New domain sections must not add large business logic directly to `EventStudioController`.
+Section plugins expose `build(NodeInterface $event): array`. Rendering is resolved from the plugin contract through the section manager and section renderer. New domain sections must not add large business logic directly to `EventStudioController`.
 
 Future render targets must declare:
 
@@ -73,17 +89,9 @@ Every new section route must:
 - Preserve admin override.
 - Deny anonymous users and customers server-side.
 
-Section plugins may expose access metadata, but they must not replace route access.
+`EventStudioAccess` is the canonical route/security gate. Section plugins may expose operational availability metadata, but they must not duplicate anonymous/customer/vendor/admin security policy.
 
-The default plugin access policy is `event_update`. It must:
-
-- Deny anonymous users.
-- Preserve the `administer nodes` override.
-- Require vendor workspace parity through `EventVendorAccessChecker`.
-- Require event entity update access.
-- Add user and permission cache contexts when access depends on account state.
-
-The Studio controller must deny direct section rendering when plugin access is denied. A section hidden from navigation must not be reachable by direct URL unless a reviewed access policy explicitly allows it.
+The Studio controller must deny direct section rendering when route access or section operational availability is denied. A section hidden from navigation must not be reachable by direct URL unless a reviewed operational policy explicitly allows it.
 
 ## UX Rules
 
@@ -101,6 +109,10 @@ Raw placeholder render arrays are not allowed for new sections. Use `EventStudio
 
 Deferred sections must remain operational placeholders. They may reserve navigation, route, and metadata contracts, but they must not add hidden product, fulfilment, scanning, POS, or analytics behavior before the owning domain exists.
 
+Readonly sections must not expose mutation forms. Filters, pagination, and export hooks must be implemented through event-scoped reporting services, not raw Commerce admin tables or unrestricted entity trees.
+
+Dirty-state tracking is currently shell-assisted. Future reporting and async sections must move dirty-state ownership to section-level contracts so readonly widgets cannot accidentally block publish.
+
 ## Anti-Patterns
 
 Do not:
@@ -113,6 +125,7 @@ Do not:
 - Add section-specific autosave protocols.
 - Add readiness conditionals directly in Twig or JavaScript.
 - Add plugin access policies without route-layer parity and entity-access review.
+- Add new behavior to `mel-event-studio.js`; workspace behavior belongs in `mel-event-studio-shell.js` while wizard JS remains transitional compatibility.
 
 ## Change Protocol
 

@@ -11,12 +11,25 @@
         <h2 class="mel-event-studio-sidebar__heading" id="mel-studio-nav-{{ loop.index }}">{{ group }}</h2>
         <ul class="mel-event-studio-sidebar__list">
           {% for item in items %}
-            <li class="mel-event-studio-sidebar__item">
+            <li
+              class="mel-event-studio-sidebar__item mel-event-studio-sidebar__item--{{ item.section_state|default('active')|clean_class }}"
+              data-section-id="{{ item.id }}"
+              data-section-state="{{ item.section_state|default('active') }}"
+              data-operational-area="{{ item.operational_area|default('event') }}"
+              data-route-fragment="{{ item.route_fragment|default(item.id) }}"
+              data-mobile-priority="{{ item.mobile_priority|default(100) }}"
+              data-mel-section-writable="{{ item.writable|default(true) ? '1' : '0' }}"
+            >
               <a
                 class="mel-event-studio-sidebar__link{% if item.active %} is-active{% endif %}"
                 href="{{ item.url }}"
                 {% if item.active %}aria-current="page"{% endif %}
-              >{{ item.label }}</a>
+              >
+                <span class="mel-event-studio-sidebar__label">{{ item.label }}</span>
+                {% if item.section_state is defined and item.section_state != 'active' %}
+                  <span class="mel-event-studio-sidebar__state">{{ item.section_state == 'readonly' ? 'Readonly'|t : (item.section_state == 'deferred' ? 'Planned'|t : 'Coming soon'|t) }}</span>
+                {% endif %}
+              </a>
             </li>
           {% endfor %}
         </ul>

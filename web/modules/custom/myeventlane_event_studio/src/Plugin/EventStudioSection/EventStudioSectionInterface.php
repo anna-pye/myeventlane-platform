@@ -14,6 +14,21 @@ use Drupal\node\NodeInterface;
  */
 interface EventStudioSectionInterface extends PluginInspectionInterface {
 
+  public const STATE_ACTIVE = 'active';
+
+  public const STATE_READONLY = 'readonly';
+
+  public const STATE_DEFERRED = 'deferred';
+
+  public const STATE_COMING_SOON = 'coming_soon';
+
+  public const STATES = [
+    self::STATE_ACTIVE,
+    self::STATE_READONLY,
+    self::STATE_DEFERRED,
+    self::STATE_COMING_SOON,
+  ];
+
   /**
    * Returns the human-readable section title.
    */
@@ -60,7 +75,17 @@ interface EventStudioSectionInterface extends PluginInspectionInterface {
   public function renderTarget(): string;
 
   /**
-   * Returns TRUE when this section participates in readiness.
+   * Returns the governed operational state.
+   */
+  public function sectionState(): string;
+
+  /**
+   * Returns TRUE when this section can mutate operational state.
+   */
+  public function isWritable(): bool;
+
+  /**
+   * Returns TRUE when this section participates in readiness metadata.
    */
   public function participatesInReadiness(): bool;
 
@@ -70,12 +95,34 @@ interface EventStudioSectionInterface extends PluginInspectionInterface {
   public function operationalArea(): string;
 
   /**
+   * Returns the empty-state behavior identifier.
+   */
+  public function emptyStateType(): string;
+
+  /**
+   * Returns the mobile priority, lower values load earlier.
+   */
+  public function mobilePriority(): int;
+
+  /**
+   * Returns TRUE when the section should be shown in navigation.
+   */
+  public function isVisibleInNavigation(): bool;
+
+  /**
    * Returns TRUE when the section is intentionally placeholder-only.
    */
   public function isDeferred(): bool;
 
   /**
-   * Evaluates section-level access.
+   * Builds the governed section content.
+   *
+   * @return array<string, mixed>
+   */
+  public function build(NodeInterface $event): array;
+
+  /**
+   * Evaluates section operational availability.
    */
   public function access(NodeInterface $event, AccountInterface $account): AccessResultInterface;
 

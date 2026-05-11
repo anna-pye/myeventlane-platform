@@ -54,7 +54,21 @@
     if (!shell) {
       return [];
     }
-    return Array.from(shell.querySelectorAll('form'));
+    return Array.from(shell.querySelectorAll('form')).filter((form) => isWritableForm(form));
+  }
+
+  function isWritableForm(form) {
+    const section = form.closest('[data-mel-section-writable]');
+    if (section && section.dataset.melSectionWritable === '0') {
+      return false;
+    }
+    if (form.dataset.melSectionWritable === '0') {
+      return false;
+    }
+    if (studioSettings().currentSectionWritable === false) {
+      return false;
+    }
+    return true;
   }
 
   function dirtyForms(shell) {
@@ -194,6 +208,18 @@
     }
   }
 
+  function applyMobilePriorities(shell) {
+    if (!shell) {
+      return;
+    }
+    shell.querySelectorAll('.mel-event-studio-sidebar__item[data-mobile-priority]').forEach((item) => {
+      const priority = Number(item.dataset.mobilePriority || 100);
+      if (Number.isFinite(priority)) {
+        item.style.order = String(priority);
+      }
+    });
+  }
+
   function renderPublishFeedback(shell, title, messages, restoreUrl) {
     const feedback = shell.querySelector('[data-mel-publish-feedback]');
     if (!feedback) {
@@ -239,11 +265,16 @@
 
   Drupal.behaviors.melEventStudioShellAutosave = {
     attach(context) {
+      once('mel-event-studio-mobile-priority', '[data-mel-studio-shell]', context).forEach((shell) => {
+        applyMobilePriorities(shell);
+      });
+
       once('mel-event-studio-sidebar-toggle', '[data-mel-studio-sidebar-toggle]', context).forEach((button) => {
         const shell = button.closest('[data-mel-studio-shell]');
         if (!shell) {
           return;
         }
+        applyMobilePriorities(shell);
         button.addEventListener('click', () => {
           const isOpen = shell.classList.toggle('is-sidebar-open');
           button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -264,6 +295,9 @@
       });
 
       once('mel-event-studio-publish-form-state', '[data-mel-studio-shell] form', context).forEach((form) => {
+        if (!isWritableForm(form)) {
+          return;
+        }
         setFormPublishState(form, 'clean');
         form.addEventListener('input', () => setFormPublishState(form, 'dirty'), true);
         form.addEventListener('change', () => setFormPublishState(form, 'dirty'), true);
@@ -271,6 +305,9 @@
       });
 
       once('mel-event-studio-shell-autosave', 'form[data-mel-event-studio-form="1"]', context).forEach((form) => {
+        if (!isWritableForm(form)) {
+          return;
+        }
         if (form.matches('.mel-event-studio-operational-tickets')) {
           return;
         }

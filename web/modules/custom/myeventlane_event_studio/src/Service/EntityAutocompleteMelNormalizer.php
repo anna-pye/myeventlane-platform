@@ -25,6 +25,12 @@ final class EntityAutocompleteMelNormalizer {
     if ($value === NULL || $value === '') {
       return NULL;
     }
+    if (is_array($value)) {
+      $value = $this->extractSingleEntityValue($value);
+      if ($value === NULL || $value === '') {
+        return NULL;
+      }
+    }
     if ($value instanceof EntityInterface) {
       if ($value->getEntityTypeId() === $entity_type_id) {
         return $value;
@@ -42,6 +48,32 @@ final class EntityAutocompleteMelNormalizer {
     }
     $this->logDiscard($context_key, $entity_type_id, $value);
     return NULL;
+  }
+
+  /**
+   * @param array<mixed> $value
+   */
+  private function extractSingleEntityValue(array $value): mixed {
+    if ($value === []) {
+      return NULL;
+    }
+    if (array_key_exists('target_id', $value)) {
+      return $value['target_id'];
+    }
+
+    $items = array_values(array_filter($value, static fn(mixed $item): bool => $item !== NULL && $item !== ''));
+    if (count($items) !== 1) {
+      return $value;
+    }
+
+    $item = $items[0];
+    if ($item instanceof EntityInterface || is_numeric($item)) {
+      return $item;
+    }
+    if (is_array($item) && array_key_exists('target_id', $item)) {
+      return $item['target_id'];
+    }
+    return $value;
   }
 
   /**

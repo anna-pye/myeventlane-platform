@@ -11,7 +11,7 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -34,25 +34,32 @@ abstract class EventStudioSectionBase extends PluginBase implements EventStudioS
     array $configuration,
     string $plugin_id,
     mixed $plugin_definition,
-    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly EventStudioSectionRenderer $sectionRenderer,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
+    $state = (string) ($this->pluginDefinition['section_state'] ?? '');
+    if (!in_array($state, EventStudioSectionInterface::STATES, TRUE)) {
+      throw new InvalidPluginDefinitionException($plugin_id, sprintf(
+        'Event Studio section "%s" must declare a valid section_state.',
+        $plugin_id,
+      ));
+    }
   }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    $checker = $container->get('myeventlane_vendor.event_access_checker');
-    if (!$checker instanceof EventVendorAccessChecker) {
-      throw new InvalidPluginDefinitionException((string) $plugin_id, 'Event Studio section plugins require the EventVendorAccessChecker service.');
+    $renderer = $container->get('myeventlane_event_studio.section_renderer');
+    if (!$renderer instanceof EventStudioSectionRenderer) {
+      throw new InvalidPluginDefinitionException((string) $plugin_id, 'Event Studio section plugins require the EventStudioSectionRenderer service.');
     }
 
     return new static(
       $configuration,
       (string) $plugin_id,
       $plugin_definition,
-      $checker,
+      $renderer,
     );
   }
 
@@ -128,8 +135,22 @@ abstract class EventStudioSectionBase extends PluginBase implements EventStudioS
   /**
    * {@inheritdoc}
    */
+  public function sectionState(): string {
+    return (string) $this->pluginDefinition['section_state'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isWritable(): bool {
+    return (bool) ($this->pluginDefinition['writable'] ?? TRUE);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function participatesInReadiness(): bool {
-    return (bool) ($this->pluginDefinition['readinessParticipant'] ?? FALSE);
+    return (bool) ($this->pluginDefinition['readiness_participant'] ?? FALSE);
   }
 
   /**
@@ -142,8 +163,36 @@ abstract class EventStudioSectionBase extends PluginBase implements EventStudioS
   /**
    * {@inheritdoc}
    */
+  public function emptyStateType(): string {
+    return (string) ($this->pluginDefinition['empty_state_type'] ?? 'none');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function mobilePriority(): int {
+    return (int) ($this->pluginDefinition['mobile_priority'] ?? 100);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isVisibleInNavigation(): bool {
+    return (bool) ($this->pluginDefinition['navigationVisible'] ?? TRUE);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isDeferred(): bool {
-    return (bool) ($this->pluginDefinition['deferred'] ?? FALSE);
+    return $this->sectionState() === EventStudioSectionInterface::STATE_DEFERRED;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function build(NodeInterface $event): array {
+    return $this->sectionRenderer->build($this, $event);
   }
 
   /**
@@ -154,42 +203,15 @@ abstract class EventStudioSectionBase extends PluginBase implements EventStudioS
       return AccessResult::forbidden()->addCacheContexts(['route']);
     }
 
-    if ($account->isAnonymous()) {
+    if ($this->sectionState() === EventStudioSectionInterface::STATE_COMING_SOON) {
       return AccessResult::forbidden()
         ->addCacheableDependency($event)
-        ->addCacheContexts(['user.roles']);
-    }
-
-    if ($account->hasPermission('administer nodes')) {
-      return AccessResult::allowed()
-        ->addCacheableDependency($event)
-        ->addCacheContexts(['user.permissions']);
-    }
-
-    if ($this->accessPolicy() !== 'event_update') {
-      return AccessResult::forbidden()
-        ->addCacheableDependency($event)
-        ->addCacheContexts(['user', 'user.permissions']);
-    }
-
-    if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
-      return AccessResult::forbidden()
-        ->addCacheableDependency($event)
-        ->addCacheContexts(['user', 'user.permissions']);
-    }
-
-    $entity_access = $event->access('update', $account, TRUE);
-    if (!$entity_access->isAllowed()) {
-      return $entity_access
-        ->andIf(AccessResult::forbidden())
-        ->addCacheableDependency($event)
-        ->addCacheContexts(['user', 'user.permissions']);
+        ->addCacheContexts(['route']);
     }
 
     return AccessResult::allowed()
-      ->andIf($entity_access)
       ->addCacheableDependency($event)
-      ->addCacheContexts(['user', 'user.permissions']);
+      ->addCacheContexts(['route']);
   }
 
 }

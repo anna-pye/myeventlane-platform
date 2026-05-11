@@ -1383,12 +1383,30 @@
 .mel-event-studio-sidebar__link {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   min-height: 44px;
   padding: 0 12px;
   border-radius: 12px;
   color: #334155;
   font-weight: 650;
   text-decoration: none;
+}
+
+.mel-event-studio-sidebar__label {
+  min-width: 0;
+}
+
+.mel-event-studio-sidebar__state {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .mel-event-studio-sidebar__link:hover,

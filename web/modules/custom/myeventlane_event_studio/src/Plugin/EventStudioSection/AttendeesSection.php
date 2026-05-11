@@ -14,9 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Attendees',
   group: 'Operations',
   routeName: 'myeventlane_event_studio.workspace_attendees',
+  section_state: 'readonly',
   weight: 200,
   icon: 'attendees',
+  renderTarget: 'readonly_summary',
+  writable: FALSE,
+  readiness_participant: FALSE,
+  empty_state_type: 'readonly_empty',
+  mobile_priority: 90,
   operationalArea: 'operations',
-  deferred: TRUE,
 )]
 final class AttendeesSection extends EventStudioSectionBase {}

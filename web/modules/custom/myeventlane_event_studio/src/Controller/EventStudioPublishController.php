@@ -195,7 +195,10 @@ final class EventStudioPublishController {
   }
 
   private function firstAutosaveDraftSection(NodeInterface $node): ?string {
-    foreach (array_keys($this->sectionManager->activeSections($node, $this->currentUser)) as $sectionId) {
+    foreach ($this->sectionManager->activeSections($node, $this->currentUser) as $sectionId => $section) {
+      if (!$section->isWritable()) {
+        continue;
+      }
       if ($this->autosaveService->hasDraft($node, (string) $sectionId)) {
         return (string) $sectionId;
       }

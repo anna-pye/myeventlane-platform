@@ -14,9 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Overview',
   group: 'Manage Event',
   routeName: 'myeventlane_event_studio.workspace',
+  section_state: 'active',
   weight: 0,
   icon: 'overview',
-  readinessParticipant: TRUE,
+  renderTarget: 'overview',
+  writable: FALSE,
+  readiness_participant: TRUE,
+  empty_state_type: 'none',
+  mobile_priority: 0,
   operationalArea: 'event',
 )]
 final class OverviewSection extends EventStudioSectionBase {}

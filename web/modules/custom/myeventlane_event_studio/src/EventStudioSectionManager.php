@@ -57,7 +57,7 @@ final class EventStudioSectionManager extends DefaultPluginManager {
   }
 
   /**
-   * Returns active sections keyed by section id.
+   * Returns navigable sections keyed by section id.
    *
    * @return array<string, \Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface>
    */
@@ -66,6 +66,9 @@ final class EventStudioSectionManager extends DefaultPluginManager {
     foreach (array_keys($this->getDefinitions()) as $section_id) {
       $section = $this->section((string) $section_id);
       if (!$section instanceof EventStudioSectionInterface) {
+        continue;
+      }
+      if (!$section->isVisibleInNavigation()) {
         continue;
       }
       if (!$this->sectionAccess((string) $section_id, $event, $account)->isAllowed()) {
@@ -94,6 +97,30 @@ final class EventStudioSectionManager extends DefaultPluginManager {
   }
 
   /**
+   * Builds operational metadata for a section.
+   *
+   * @return array<string, mixed>
+   */
+  public function sectionMetadata(EventStudioSectionInterface $section): array {
+    return [
+      'id' => (string) $section->getPluginId(),
+      'label' => $section->title(),
+      'group' => $section->group(),
+      'icon' => $section->icon(),
+      'route_fragment' => $section->routeFragment(),
+      'section_state' => $section->sectionState(),
+      'writable' => $section->isWritable(),
+      'readiness_participant' => $section->participatesInReadiness(),
+      'operational_area' => $section->operationalArea(),
+      'empty_state_type' => $section->emptyStateType(),
+      'mobile_priority' => $section->mobilePriority(),
+      'navigation_visible' => $section->isVisibleInNavigation(),
+      'deferred' => $section->isDeferred(),
+      'readonly' => $section->sectionState() === EventStudioSectionInterface::STATE_READONLY,
+    ];
+  }
+
+  /**
    * Builds grouped sidebar links for active sections.
    *
    * @return array<string, array<int, array<string, mixed>>>
@@ -103,13 +130,8 @@ final class EventStudioSectionManager extends DefaultPluginManager {
     foreach ($this->activeSections($event, $account) as $section_id => $section) {
       $group = $section->group();
       $groups[$group] ??= [];
-      $groups[$group][] = [
-        'id' => $section_id,
-        'label' => $section->title(),
-        'icon' => $section->icon(),
-        'route_fragment' => $section->routeFragment(),
-        'operational_area' => $section->operationalArea(),
-        'deferred' => $section->isDeferred(),
+      $metadata = $this->sectionMetadata($section);
+      $groups[$group][] = $metadata + [
         'url' => Url::fromRoute($section->routeName(), ['node' => $event->id()])->toString(),
         'active' => $section_id === $current_section,
       ];
