@@ -1,8 +1,32 @@
 (function (Drupal, drupalSettings, once) {
   'use strict';
 
-  const tokenPromise = fetch('/session/token', { credentials: 'same-origin' }).then((response) => response.text());
+  let tokenPromise = null;
   const stateClasses = ['is-unsaved', 'is-saving', 'is-saved', 'is-error', 'has-draft'];
+
+  function getCsrfToken() {
+    if (!tokenPromise) {
+      tokenPromise = fetch(Drupal.url('session/token'), { credentials: 'same-origin' })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`CSRF token request failed with ${response.status}`);
+          }
+          return response.text();
+        })
+        .then((token) => {
+          const trimmed = token.trim();
+          if (!trimmed) {
+            throw new Error('CSRF token response was empty.');
+          }
+          return trimmed;
+        })
+        .catch((error) => {
+          tokenPromise = null;
+          throw error;
+        });
+    }
+    return tokenPromise;
+  }
 
   function setStatus(status, message, state) {
     if (!status) {
@@ -50,6 +74,7 @@
         const status = document.getElementById('mel-studio-form-state');
         const delay = Number(drupalSettings.myeventlaneEventStudio?.autosaveDelay || 12000);
         const autosaveUrl = drupalSettings.myeventlaneEventStudio?.autosaveUrl;
+        const currentSection = drupalSettings.myeventlaneEventStudio?.currentSection;
         if (!autosaveUrl) {
           return;
         }
@@ -64,9 +89,12 @@
           timer = window.setTimeout(async () => {
             const data = new FormData(form);
             data.set('mel_autosave_ts', String(Date.now()));
+            if (currentSection) {
+              data.set('mel_studio_section', currentSection);
+            }
             setStatus(status, Drupal.t('Saving...'), 'is-saving');
             try {
-              const token = await tokenPromise;
+              const token = await getCsrfToken();
               const response = await fetch(autosaveUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -90,6 +118,7 @@
               setStatus(status, Drupal.t('Saved just now'), 'is-saved');
             }
             catch (error) {
+              console.error('Event Studio autosave failed.', error);
               setStatus(status, Drupal.t('Draft could not be saved. Retry by editing again.'), 'is-error');
             }
           }, delay);
