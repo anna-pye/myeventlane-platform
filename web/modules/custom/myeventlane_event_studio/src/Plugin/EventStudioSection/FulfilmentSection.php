@@ -14,9 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Fulfilment',
   group: 'Operations',
   routeName: 'myeventlane_event_studio.workspace_fulfilment',
+  section_state: 'deferred',
   weight: 210,
   icon: 'fulfilment',
+  renderTarget: 'deferred_empty',
+  writable: FALSE,
+  readiness_participant: FALSE,
+  empty_state_type: 'deferred',
+  mobile_priority: 180,
   operationalArea: 'fulfilment',
-  deferred: TRUE,
 )]
 final class FulfilmentSection extends EventStudioSectionBase {}

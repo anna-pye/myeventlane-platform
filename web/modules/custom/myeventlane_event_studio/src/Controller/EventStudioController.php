@@ -9,17 +9,8 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
-use Drupal\myeventlane_event_studio\Form\EventBrandingForm;
-use Drupal\myeventlane_event_studio\Form\EventCheckoutQuestionsForm;
-use Drupal\myeventlane_event_studio\Form\EventContentForm;
-use Drupal\myeventlane_event_studio\Form\EventInformationForm;
-use Drupal\myeventlane_event_studio\Form\EventStudioOperationalTicketsForm;
-use Drupal\myeventlane_event_studio\Form\EventStudioTicketsForm;
-use Drupal\myeventlane_event_studio\Form\EventPromotionForm;
-use Drupal\myeventlane_event_studio\Form\EventSettingsForm;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
-use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService;
@@ -46,7 +37,6 @@ final class EventStudioController extends ControllerBase {
     private readonly EventReadinessService $eventReadiness,
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly EventStudioSectionManager $sectionManager,
-    private readonly EventStudioEmptyStateBuilder $emptyStateBuilder,
   ) {
     // ControllerBase / EntityTypeManagerTrait already declare protected $entityTypeManager.
     $this->entityTypeManager = $entity_type_manager;
@@ -63,7 +53,6 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.readiness'),
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('plugin.manager.myeventlane_event_studio_section'),
-      $container->get('myeventlane_event_studio.empty_state_builder'),
     );
   }
 
@@ -145,6 +134,10 @@ final class EventStudioController extends ControllerBase {
     if (!$this->sectionManager->hasSection($section)) {
       throw new NotFoundHttpException();
     }
+    $sectionPlugin = $this->sectionManager->section($section);
+    if ($sectionPlugin === NULL) {
+      throw new NotFoundHttpException();
+    }
     if (!$this->sectionManager->sectionAccess($section, $node, $account)->isAllowed()) {
       throw new AccessDeniedHttpException();
     }
@@ -156,6 +149,7 @@ final class EventStudioController extends ControllerBase {
     ]);
 
     $readiness = $this->eventReadiness->evaluate($node, $account);
+    $sectionMetadata = $this->sectionManager->sectionMetadata($sectionPlugin);
 
     return [
       '#theme' => 'mel_event_studio_workspace',
@@ -163,7 +157,8 @@ final class EventStudioController extends ControllerBase {
       '#sections' => $this->sectionManager->buildNavigation($node, $account, $section),
       '#current_section' => $section,
       '#current_section_label' => $this->sectionManager->sectionTitle($section),
-      '#section_content' => $this->buildSectionContent($node, $section, $readiness),
+      '#current_section_metadata' => $sectionMetadata,
+      '#section_content' => $sectionPlugin->build($node),
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
       '#readiness' => $this->buildReadinessSummary($readiness),
       '#attached' => [
@@ -173,6 +168,8 @@ final class EventStudioController extends ControllerBase {
             'autosaveUrl' => Url::fromRoute('myeventlane_event_studio.autosave')->toString(),
             'autosaveDelay' => 12000,
             'currentSection' => $section,
+            'currentSectionWritable' => $sectionPlugin->isWritable(),
+            'currentSectionState' => $sectionPlugin->sectionState(),
             'draftAvailable' => $this->autosaveService->hasDraft($node, $section),
             'publishUrl' => Url::fromRoute('myeventlane_event_studio.publish', ['node' => $node->id()])->toString(),
             'nodeChanged' => $node->getChangedTime(),
@@ -231,131 +228,6 @@ final class EventStudioController extends ControllerBase {
       'changed' => $node->getChangedTime(),
       'revision_id' => (int) $node->getRevisionId(),
     ];
-  }
-
-  /**
-   * @return array<string, mixed>
-   */
-  private function buildSectionContent(NodeInterface $node, string $section, EventReadinessResult $readiness): array {
-    return match ($section) {
-      'information' => $this->formBuilder()->getForm(EventInformationForm::class, $node),
-      'branding' => $this->formBuilder()->getForm(EventBrandingForm::class, $node),
-      'content' => $this->formBuilder()->getForm(EventContentForm::class, $node),
-      'tickets' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-section__form-stack']],
-        'mode' => $this->formBuilder()->getForm(EventStudioTicketsForm::class, $node),
-        'operational' => $this->formBuilder()->getForm(EventStudioOperationalTicketsForm::class, $node),
-      ],
-      'questions' => $this->formBuilder()->getForm(EventCheckoutQuestionsForm::class, $node),
-      'promotions' => $this->formBuilder()->getForm(EventPromotionForm::class, $node),
-      'settings' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-section__form-stack']],
-        'readiness' => $this->buildReadinessCard($readiness),
-        'settings' => $this->formBuilder()->getForm(EventSettingsForm::class, $node),
-      ],
-      'overview' => $this->buildOverviewSection($node, $readiness),
-      default => $this->buildDeferredSection($section),
-    };
-  }
-
-  /**
-   * @return array<string, mixed>
-   */
-  private function buildOverviewSection(NodeInterface $node, EventReadinessResult $readiness): array {
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
-      'summary' => [
-        '#markup' => '<p>' . $this->t('Use the sidebar to manage one operational area at a time. Event information, content, tickets, and publishing now load as independent Studio sections.') . '</p>',
-      ],
-      'actions' => [
-        '#theme' => 'item_list',
-        '#items' => [
-          $this->t('Review event information before publishing.'),
-          $this->t('Manage tickets through the existing MEL ticket lifecycle path.'),
-          $this->t('Use Settings to review readiness and publish without leaving Studio.'),
-        ],
-      ],
-      'readiness' => $this->buildReadinessCard($readiness),
-    ];
-  }
-
-  /**
-   * @return array<string, mixed>
-   */
-  private function buildDeferredSection(string $section): array {
-    $label = $this->sectionManager->sectionTitle($section);
-    return $this->emptyStateBuilder->deferredSection($label);
-  }
-
-  /**
-   * @return array<string, mixed>
-   */
-  private function buildReadinessCard(EventReadinessResult $result): array {
-    $build = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-readiness-card', $result->ready ? 'is-ready' : 'needs-attention']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $result->ready ? $this->t('Ready to publish') : $this->t('Needs attention'),
-        '#attributes' => ['class' => ['mel-readiness-card__title']],
-      ],
-      'summary' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $result->ready
-          ? $this->t('No publish blockers detected. Review warnings before going live.')
-          : $this->t('Resolve the blocking items before publishing.'),
-        '#attributes' => ['class' => ['mel-readiness-card__summary']],
-      ],
-    ];
-
-    if ($result->errors !== []) {
-      $build['errors_title'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'h4',
-        '#value' => $this->t('Blocking errors'),
-        '#attributes' => ['class' => ['mel-readiness-card__heading']],
-      ];
-      $build['errors'] = [
-        '#theme' => 'item_list',
-        '#items' => $result->errors,
-        '#attributes' => ['class' => ['mel-readiness-card__list', 'mel-readiness-card__list--errors']],
-      ];
-    }
-
-    if ($result->warnings !== []) {
-      $build['warnings_title'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'h4',
-        '#value' => $this->t('Warnings'),
-        '#attributes' => ['class' => ['mel-readiness-card__heading']],
-      ];
-      $build['warnings'] = [
-        '#theme' => 'item_list',
-        '#items' => $result->warnings,
-        '#attributes' => ['class' => ['mel-readiness-card__list', 'mel-readiness-card__list--warnings']],
-      ];
-    }
-
-    if ($result->completed !== []) {
-      $build['completed_title'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'h4',
-        '#value' => $this->t('Complete'),
-        '#attributes' => ['class' => ['mel-readiness-card__heading']],
-      ];
-      $build['completed'] = [
-        '#theme' => 'item_list',
-        '#items' => $result->completed,
-        '#attributes' => ['class' => ['mel-readiness-card__list', 'mel-readiness-card__list--completed']],
-      ];
-    }
-
-    return $build;
   }
 
   /**

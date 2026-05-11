@@ -14,9 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Analytics',
   group: 'Operations',
   routeName: 'myeventlane_event_studio.workspace_analytics',
+  section_state: 'readonly',
   weight: 230,
   icon: 'analytics',
+  renderTarget: 'readonly_summary',
+  writable: FALSE,
+  readiness_participant: FALSE,
+  empty_state_type: 'readonly_empty',
+  mobile_priority: 110,
   operationalArea: 'analytics',
-  deferred: TRUE,
 )]
 final class AnalyticsSection extends EventStudioSectionBase {}

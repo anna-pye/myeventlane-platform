@@ -14,9 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Branding',
   group: 'Manage Event',
   routeName: 'myeventlane_event_studio.workspace_branding',
+  section_state: 'active',
   weight: 20,
   icon: 'branding',
-  readinessParticipant: TRUE,
+  renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventBrandingForm',
+  writable: TRUE,
+  readiness_participant: TRUE,
+  empty_state_type: 'none',
+  mobile_priority: 20,
   operationalArea: 'event',
 )]
 final class BrandingSection extends EventStudioSectionBase {}

@@ -4,7 +4,15 @@
  * Canonical Event Studio operational workspace shell.
  */
 #}
-<div class="mel-event-studio mel-event-studio--workspace" data-mel-studio-shell="1">
+<div
+  class="mel-event-studio mel-event-studio--workspace"
+  data-mel-studio-shell="1"
+  data-current-section-id="{{ current_section_metadata.id|default(current_section) }}"
+  data-current-section-state="{{ current_section_metadata.section_state|default('active') }}"
+  data-current-operational-area="{{ current_section_metadata.operational_area|default('event') }}"
+  data-current-mobile-priority="{{ current_section_metadata.mobile_priority|default(100) }}"
+  data-mel-section-writable="{{ current_section_metadata.writable|default(true) ? '1' : '0' }}"
+>
   {{ include('@myeventlane_event_studio/mel-event-studio-topbar.html.twig', {
     topbar: topbar
   }, with_context = false) }}
@@ -41,7 +49,17 @@
       current_section: current_section
     }, with_context = false) }}
 
-    <main class="mel-event-studio-workspace__main" id="mel-event-studio-section" tabindex="-1">
+    <main
+      class="mel-event-studio-workspace__main"
+      id="mel-event-studio-section"
+      tabindex="-1"
+      data-section-id="{{ current_section_metadata.id|default(current_section) }}"
+      data-section-state="{{ current_section_metadata.section_state|default('active') }}"
+      data-operational-area="{{ current_section_metadata.operational_area|default('event') }}"
+      data-route-fragment="{{ current_section_metadata.route_fragment|default(current_section) }}"
+      data-mobile-priority="{{ current_section_metadata.mobile_priority|default(100) }}"
+      data-mel-section-writable="{{ current_section_metadata.writable|default(true) ? '1' : '0' }}"
+    >
       {{ include('@myeventlane_event_studio/mel-event-studio-section.html.twig', {
         label: current_section_label,
         content: section_content

@@ -14,9 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Settings',
   group: 'Manage Event',
   routeName: 'myeventlane_event_studio.workspace_settings',
+  section_state: 'active',
   weight: 50,
   icon: 'settings',
-  readinessParticipant: TRUE,
+  renderTarget: 'settings_with_readiness',
+  writable: TRUE,
+  readiness_participant: TRUE,
+  empty_state_type: 'none',
+  mobile_priority: 50,
   operationalArea: 'event',
 )]
 final class SettingsSection extends EventStudioSectionBase {}

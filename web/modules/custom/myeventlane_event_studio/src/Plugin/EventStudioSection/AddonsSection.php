@@ -14,10 +14,15 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Add-ons',
   group: 'Commerce',
   routeName: 'myeventlane_event_studio.workspace_addons',
+  section_state: 'deferred',
   weight: 140,
   icon: 'addons',
   routeFragment: 'addons',
+  renderTarget: 'deferred_empty',
+  writable: FALSE,
+  readiness_participant: FALSE,
+  empty_state_type: 'deferred',
+  mobile_priority: 170,
   operationalArea: 'commerce_product',
-  deferred: TRUE,
 )]
 final class AddonsSection extends EventStudioSectionBase {}

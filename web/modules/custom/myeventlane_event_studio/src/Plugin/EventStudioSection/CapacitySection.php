@@ -14,10 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Capacity',
   group: 'Commerce',
   routeName: 'myeventlane_event_studio.workspace_capacity',
+  section_state: 'active',
   weight: 120,
   icon: 'capacity',
-  readinessParticipant: TRUE,
+  renderTarget: 'capacity_summary',
+  writable: FALSE,
+  readiness_participant: TRUE,
+  empty_state_type: 'none',
+  mobile_priority: 80,
   operationalArea: 'ticket',
-  deferred: TRUE,
 )]
 final class CapacitySection extends EventStudioSectionBase {}

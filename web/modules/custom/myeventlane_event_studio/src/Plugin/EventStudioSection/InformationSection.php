@@ -14,9 +14,14 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   title: 'Event Information',
   group: 'Manage Event',
   routeName: 'myeventlane_event_studio.workspace_information',
+  section_state: 'active',
   weight: 10,
   icon: 'information',
-  readinessParticipant: TRUE,
+  renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventInformationForm',
+  writable: TRUE,
+  readiness_participant: TRUE,
+  empty_state_type: 'none',
+  mobile_priority: 10,
   operationalArea: 'event',
 )]
 final class InformationSection extends EventStudioSectionBase {}

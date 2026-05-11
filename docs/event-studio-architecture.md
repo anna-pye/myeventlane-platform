@@ -7,7 +7,7 @@ Scope: canonical vendor event operations platform
 
 Event Studio is the canonical MEL surface for event operations. Future event operations systems must extend Studio instead of creating parallel Drupal admin, vendor console, or one-off controller surfaces.
 
-Studio owns the operational shell: routing into event workspaces, section navigation, autosave boundaries, publish readiness presentation, and domain delegation. It does not own every business rule. Tickets, Commerce products, fulfilment, access control, payments, and analytics remain with their domain services.
+Studio owns the operational shell: routing into event workspaces, section navigation, autosave boundaries, publish readiness presentation, and domain delegation. Each Studio section owns its own rendering lifecycle, operational state metadata, readonly/deferred behavior, save boundary metadata, readiness participation metadata, and mobile metadata. Studio does not own every business rule. Tickets, Commerce products, fulfilment, access control, payments, and analytics remain with their domain services.
 
 Event Commerce expansion follows the same rule. Event Studio remains the operational orchestration layer, while Drupal Commerce remains the transactional engine for carts, checkout, order items, payments, and product pricing.
 
@@ -22,6 +22,7 @@ Key code owners:
 | Studio shell controller | `web/modules/custom/myeventlane_event_studio/src/Controller/EventStudioController.php` |
 | Section registry | `web/modules/custom/myeventlane_event_studio/src/EventStudioSectionManager.php` |
 | Section plugins | `web/modules/custom/myeventlane_event_studio/src/Plugin/EventStudioSection` |
+| Section rendering | `web/modules/custom/myeventlane_event_studio/src/Service/EventStudioSectionRenderer.php` |
 | Event access | `web/modules/custom/myeventlane_event_studio/src/Access/EventStudioAccess.php` |
 | Autosave | `web/modules/custom/myeventlane_event_studio/src/Service/EventStudioAutosaveService.php` |
 | Save and publish orchestration | `web/modules/custom/myeventlane_event_studio/src/Service/EventStudioSaveService.php` |
@@ -38,17 +39,22 @@ Studio sections are governed by `EventStudioSection` plugins. A section plugin d
 - Stable section id.
 - Explicit route name.
 - Route fragment used by URLs and autosave keys.
+- Operational state: active, readonly, deferred, or coming soon.
+- Writable state.
 - Navigation group and weight.
+- Mobile priority.
 - Icon metadata.
 - Access policy metadata.
 - Rendering target.
 - Readiness participation.
 - Operational domain area.
-- Deferred-placeholder status.
+- Empty-state behavior.
 
-The plugin registry provides shell metadata. It does not authorize bypassing route access, entity access, or vendor parity checks.
+The plugin registry provides shell metadata and operational availability. It does not authorize bypassing route access, entity access, or vendor parity checks.
 
-The shell must evaluate section access before rendering a requested section. Sidebar visibility, direct URL access, and section rendering are expected to use the same plugin access result.
+The shell must evaluate route access and section operational availability before rendering a requested section. Sidebar visibility, direct URL access, and section rendering are expected to use the same governed section metadata.
+
+`EventStudioController` is orchestration only: it resolves the event workspace, evaluates readiness for the shell, builds navigation, and delegates section content to the plugin lifecycle. It must not regain a hardcoded section rendering map.
 
 ## Access
 
@@ -63,13 +69,15 @@ Every Studio route must use server-side access enforcement. Required standards:
 
 Section plugins can add section-level metadata and future section-level access checks, but route access remains explicit and deterministic.
 
-The default section plugin access policy is `event_update`. It must preserve vendor workspace parity, entity update access, and the admin override. New access policies require code and documentation review before use.
+`EventStudioAccess` is the canonical route/security gate. Section plugins expose operational availability only; they must not duplicate anonymous/customer/vendor/admin access rules. New access policies require code and documentation review before use.
 
 ## Autosave And Save
 
 Autosave is section-scoped and uses private tempstore. Autosave keys depend on stable section ids and route fragments, so new sections must keep identifiers stable after release.
 
 Canonical event persistence remains with `EventStudioSaveService`. Section UI must delegate to domain services instead of duplicating ticket, Commerce, fulfilment, or analytics business logic.
+
+Dirty-state tracking remains shell-assisted in this phase. The target architecture is section-owned dirty-state tracking so readonly reporting, filters, and async widgets cannot block publish by being counted as shell-global dirty forms.
 
 ## Boundaries
 
@@ -82,6 +90,8 @@ Studio owns:
 - Future readiness provider contracts.
 - Empty states and operational UX standards.
 - Delegation into domain services.
+- Section lifecycle contracts.
+- Mobile section metadata.
 
 Studio does not own:
 
@@ -93,12 +103,13 @@ Studio does not own:
 - Scanning device flows.
 - Large analytics queries.
 - Dynamic readiness provider orchestration before the owning domains exist.
+- Workspace behavior growth in `mel-event-studio.js`; shell behavior belongs in `mel-event-studio-shell.js` while wizard JavaScript is transitional compatibility.
 
 ## Commerce Expansion
 
 Studio may reserve and surface Commerce-oriented sections, including merchandise, add-ons, discounts, orders, and fulfilment. Deferred sections must remain placeholders until their owning domain services, access rules, persistence model, and verification paths exist.
 
-Commerce sections must not embed raw Commerce admin widgets or create parallel admin routes inside Studio. They must use governed Studio patterns for operational tables, inline validation, isolated saves, responsive overflow handling, and mobile-safe layouts.
+Commerce sections must not embed raw Commerce admin widgets or create parallel admin routes inside Studio. They must use governed Studio patterns for operational tables, inline validation, isolated saves, responsive overflow handling, mobile-safe layouts, and readonly reporting where mutation contracts do not exist.
 
 The current Commerce expansion foundation is read-only:
 
@@ -124,6 +135,7 @@ Future sections must:
 ## Related Docs
 
 - `docs/event-studio-section-contracts.md`
+- `docs/studio-section-states.md`
 - `docs/event-commerce-boundaries.md`
 - `docs/event-commerce-classifications.md`
 - `docs/mixed-cart-governance.md`

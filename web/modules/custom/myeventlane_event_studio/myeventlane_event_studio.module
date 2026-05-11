@@ -36,6 +36,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'sections' => [],
         'current_section' => 'overview',
         'current_section_label' => '',
+        'current_section_metadata' => [],
         'section_content' => NULL,
         'topbar' => [],
         'readiness' => [],
