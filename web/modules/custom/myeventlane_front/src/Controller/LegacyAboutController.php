@@ -19,4 +19,32 @@ final class LegacyAboutController extends ControllerBase {
     return new LocalRedirectResponse('/help', 301);
   }
 
+  /**
+   * Redirects retired blog entry points.
+   */
+  public function redirectToBlog(): LocalRedirectResponse {
+    return new LocalRedirectResponse('/blog', 301);
+  }
+
+  /**
+   * Redirects retired privacy entry points.
+   */
+  public function redirectToPrivacy(): LocalRedirectResponse {
+    return new LocalRedirectResponse('/privacy', 301);
+  }
+
+  /**
+   * Redirects retired terms entry points.
+   */
+  public function redirectToTerms(): LocalRedirectResponse {
+    return new LocalRedirectResponse('/terms', 301);
+  }
+
+  /**
+   * Redirects retired cookie policy entry points.
+   */
+  public function redirectToCookies(): LocalRedirectResponse {
+    return new LocalRedirectResponse('/cookies', 301);
+  }
+
 }
