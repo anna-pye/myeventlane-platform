@@ -77,6 +77,14 @@ services:
       - '@myeventlane_tickets.ticket_qr_payload'
       - '@?token'
 
+  myeventlane_tickets.universal_ticket_view_model_builder:
+    class: Drupal\myeventlane_tickets\Service\UniversalTicketViewModelBuilder
+    arguments:
+      - '@myeventlane_tickets.ticket_qr_payload'
+      - '@myeventlane_tickets.qr_code_generator'
+      - '@mel_ticket_capability.manager'
+      - '@router.route_provider'
+
   myeventlane_tickets.ticket_mailer:
     class: Drupal\myeventlane_tickets\Service\TicketMailer
     arguments:
