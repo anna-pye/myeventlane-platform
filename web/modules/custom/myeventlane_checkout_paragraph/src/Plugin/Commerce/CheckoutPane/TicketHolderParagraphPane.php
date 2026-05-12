@@ -390,9 +390,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       if ($label === '') {
         $label = (string) $this->t('Additional question');
       }
-      $type = $question->hasField('field_question_type')
-        ? (string) ($question->get('field_question_type')->value ?? 'text')
-        : 'text';
+      $type = $this->questionType($question);
       $required = $this->questionIsRequired($question);
       $field_name = "extra_{$itemIndex}_{$delta}_{$q_index}";
 

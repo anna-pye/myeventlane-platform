@@ -26,26 +26,11 @@ final class EventStudioQuestionTemplateManager {
   public const APPLIES_PER_TICKET_TYPE = 'per_ticket_type';
   public const APPLIES_PER_ORDER = 'per_order';
 
-  /**
-   * @var array<string, string>
-   */
-  private const TYPE_MAP = [
-    'text' => 'textfield',
-    'textfield' => 'textfield',
-    'textarea' => 'textarea',
-    'select' => 'select',
-    'checkbox' => 'checkboxes',
-    'checkboxes' => 'checkboxes',
-    'radio' => 'radios',
-    'radios' => 'radios',
-    'email' => 'email',
-    'number' => 'number',
-    'tel' => 'tel',
-  ];
-
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerInterface $logger,
+    private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
+    private readonly EventStudioQuestionAnswerExistenceRepository $answerExistenceRepository,
   ) {}
 
   /**
@@ -54,15 +39,7 @@ final class EventStudioQuestionTemplateManager {
    * @return array<string, string>
    */
   public function typeOptions(): array {
-    return [
-      'textfield' => (string) $this->t('Text'),
-      'textarea' => (string) $this->t('Long text'),
-      'select' => (string) $this->t('Select'),
-      'checkboxes' => (string) $this->t('Checkbox'),
-      'radios' => (string) $this->t('Radio'),
-      'email' => (string) $this->t('Email'),
-      'number' => (string) $this->t('Number'),
-    ];
+    return $this->fieldTypeRegistry->options(FALSE);
   }
 
   /**
@@ -125,7 +102,7 @@ final class EventStudioQuestionTemplateManager {
     }
 
     $type = $this->normalizeType((string) ($row['type'] ?? ''));
-    if ($type === 'tel' || !array_key_exists($type, $this->typeOptions())) {
+    if ($this->fieldTypeRegistry->isLegacy($type) || !array_key_exists($type, $this->typeOptions())) {
       return (string) $this->t('@question uses an unsupported type.', ['@question' => $context]);
     }
 
@@ -133,10 +110,10 @@ final class EventStudioQuestionTemplateManager {
     $applicability = $this->normalizeApplicability((string) ($row['applicability'] ?? self::APPLIES_PER_TICKET));
 
     $options = $this->normalizeOptions((string) ($row['options'] ?? ''));
-    if (in_array($type, ['select', 'checkboxes', 'radios'], TRUE) && $options === []) {
+    if ($this->fieldTypeRegistry->requiresOptions($type) && $options === []) {
       return (string) $this->t('@question needs at least one option.', ['@question' => $context]);
     }
-    if (!in_array($type, ['select', 'checkboxes', 'radios'], TRUE) && $options !== []) {
+    if (!$this->fieldTypeRegistry->requiresOptions($type) && $options !== []) {
       return (string) $this->t('@question has options, but options are only supported for select, checkbox, and radio questions.', ['@question' => $context]);
     }
 
@@ -175,6 +152,14 @@ final class EventStudioQuestionTemplateManager {
       if ($error !== NULL) {
         $errors[] = $error;
         continue;
+      }
+      $paragraph = $this->loadManagedParagraph($event, (int) ($row['id'] ?? 0));
+      if ($paragraph instanceof ParagraphInterface) {
+        $immutable_error = $this->validateImmutableQuestionMutation($event, $paragraph, $row, $context);
+        if ($immutable_error !== NULL) {
+          $errors[] = $immutable_error;
+          continue;
+        }
       }
       $status = $this->normalizeStatus((string) ($row['status'] ?? self::STATUS_ACTIVE));
       $label_key = mb_strtolower(trim((string) ($row['label'] ?? '')));
@@ -286,8 +271,7 @@ final class EventStudioQuestionTemplateManager {
   }
 
   public function normalizeType(string $type): string {
-    $type = trim($type);
-    return self::TYPE_MAP[$type] ?? 'textfield';
+    return $this->fieldTypeRegistry->normalize($type);
   }
 
   public function normalizeStatus(string $status): string {
@@ -333,6 +317,60 @@ final class EventStudioQuestionTemplateManager {
     return array_values(array_unique($ids));
   }
 
+  public function questionHasHistoricalAnswers(NodeInterface $event, ParagraphInterface $paragraph): bool {
+    return $this->answerExistenceRepository->questionHasHistoricalAnswers($event, $paragraph);
+  }
+
+  /**
+   * @param array<string, mixed> $newRow
+   */
+  public function validateImmutableQuestionMutation(NodeInterface $event, ParagraphInterface $paragraph, array $newRow, string $context = 'question'): ?string {
+    if (!$this->questionHasHistoricalAnswers($event, $paragraph)) {
+      return NULL;
+    }
+
+    $old_type = $paragraph->hasField('field_question_type') && !$paragraph->get('field_question_type')->isEmpty()
+      ? $this->normalizeType((string) $paragraph->get('field_question_type')->value)
+      : 'textfield';
+    $new_type = $this->normalizeType((string) ($newRow['type'] ?? 'textfield'));
+    if ($old_type !== $new_type) {
+      return (string) $this->t('@question already has attendee answers, so its field type cannot be changed. Archive it and add a new question instead.', ['@question' => $context]);
+    }
+
+    $old_applicability = $this->paragraphApplicability($paragraph);
+    $new_applicability = $this->normalizeApplicability((string) ($newRow['applicability'] ?? self::APPLIES_PER_TICKET));
+    if ($old_applicability !== $new_applicability) {
+      return (string) $this->t('@question already has attendee answers, so its ticket applicability cannot be changed. Archive it and add a new question instead.', ['@question' => $context]);
+    }
+
+    $old_required = $paragraph->hasField('field_question_required') && !empty($paragraph->get('field_question_required')->value);
+    $new_required = !empty($newRow['required']);
+    if ($old_required && !$new_required) {
+      return (string) $this->t('@question already has attendee answers, so required validation cannot be removed. Archive it and add a new optional question instead.', ['@question' => $context]);
+    }
+
+    $old_machine = $paragraph->hasField('field_question_machine_name')
+      ? trim((string) ($paragraph->get('field_question_machine_name')->value ?? ''))
+      : '';
+    $new_machine = trim((string) ($newRow['machine_name'] ?? ''));
+    if ($new_machine === '') {
+      $new_machine = $this->machineNameFromLabel(trim((string) ($newRow['label'] ?? '')));
+    }
+    if ($old_machine !== '' && $new_machine !== '' && $old_machine !== $new_machine) {
+      return (string) $this->t('@question already has attendee answers, so its stable machine name cannot be changed.', ['@question' => $context]);
+    }
+
+    if ($this->fieldTypeRegistry->requiresOptions($old_type)) {
+      $old_hash = $this->optionValueHash((string) ($paragraph->hasField('field_question_options') ? ($paragraph->get('field_question_options')->value ?? '') : ''));
+      $new_hash = $this->optionValueHash((string) ($newRow['options'] ?? ''));
+      if ($old_hash !== $new_hash) {
+        return (string) $this->t('@question already has attendee answers, so option values cannot be changed. Archive it and add a new question instead.', ['@question' => $context]);
+      }
+    }
+
+    return NULL;
+  }
+
   /**
    * @return list<string>
    */
@@ -346,6 +384,10 @@ final class EventStudioQuestionTemplateManager {
       }
     }
     return array_values(array_unique($options));
+  }
+
+  public function optionValueHash(string $raw): string {
+    return hash('sha256', json_encode($this->normalizeOptions($raw), JSON_THROW_ON_ERROR));
   }
 
   /**

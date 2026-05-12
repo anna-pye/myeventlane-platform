@@ -57,7 +57,7 @@ final class EventStudioSectionManager extends DefaultPluginManager {
   }
 
   /**
-   * Returns navigable sections keyed by section id.
+   * Returns accessible sections keyed by section id.
    *
    * @return array<string, \Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface>
    */
@@ -66,9 +66,6 @@ final class EventStudioSectionManager extends DefaultPluginManager {
     foreach (array_keys($this->getDefinitions()) as $section_id) {
       $section = $this->section((string) $section_id);
       if (!$section instanceof EventStudioSectionInterface) {
-        continue;
-      }
-      if (!$section->isVisibleInNavigation()) {
         continue;
       }
       if (!$this->sectionAccess((string) $section_id, $event, $account)->isAllowed()) {
@@ -110,6 +107,10 @@ final class EventStudioSectionManager extends DefaultPluginManager {
       'route_fragment' => $section->routeFragment(),
       'section_state' => $section->sectionState(),
       'writable' => $section->isWritable(),
+      'supports_autosave' => $section->supportsAutosave(),
+      'supports_publish' => $section->supportsPublish(),
+      'supports_readiness' => $section->supportsReadiness(),
+      'supports_mobile_priority' => $section->supportsMobilePriority(),
       'readiness_participant' => $section->participatesInReadiness(),
       'operational_area' => $section->operationalArea(),
       'empty_state_type' => $section->emptyStateType(),
@@ -128,6 +129,9 @@ final class EventStudioSectionManager extends DefaultPluginManager {
   public function buildNavigation(NodeInterface $event, AccountInterface $account, string $current_section): array {
     $groups = [];
     foreach ($this->activeSections($event, $account) as $section_id => $section) {
+      if (!$section->isVisibleInNavigation()) {
+        continue;
+      }
       $group = $section->group();
       $groups[$group] ??= [];
       $metadata = $this->sectionMetadata($section);

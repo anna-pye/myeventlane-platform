@@ -85,6 +85,26 @@ interface EventStudioSectionInterface extends PluginInspectionInterface {
   public function isWritable(): bool;
 
   /**
+   * Returns TRUE when autosave may store drafts for this section.
+   */
+  public function supportsAutosave(): bool;
+
+  /**
+   * Returns TRUE when this section may participate in publish workflows.
+   */
+  public function supportsPublish(): bool;
+
+  /**
+   * Returns TRUE when readiness checks apply to this section.
+   */
+  public function supportsReadiness(): bool;
+
+  /**
+   * Returns TRUE when mobile priority metadata applies to this section.
+   */
+  public function supportsMobilePriority(): bool;
+
+  /**
    * Returns TRUE when this section participates in readiness metadata.
    */
   public function participatesInReadiness(): bool;

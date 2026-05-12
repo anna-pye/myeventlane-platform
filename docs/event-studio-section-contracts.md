@@ -41,6 +41,10 @@ Each section plugin must define:
 | `accessPolicy` | Access contract identifier. |
 | `renderTarget` | Rendering contract resolved by the section renderer. |
 | `writable` | Whether the section can mutate operational state. |
+| `supports_autosave` | Whether the section may create autosave drafts. Defaults to active + writable. |
+| `supports_publish` | Whether the section participates in publish-state workflows. Defaults to active + writable. |
+| `supports_readiness` | Whether readiness metadata applies. Defaults to `readiness_participant`. |
+| `supports_mobile_priority` | Whether mobile-priority behavior applies. Defaults from `mobile_priority`. |
 | `readiness_participant` | Whether the section contributes readiness metadata. |
 | `empty_state_type` | Empty-state behavior, such as `none`, `deferred`, `readonly_empty`, or `coming_soon`. |
 | `mobile_priority` | Mobile ordering and responsiveness priority; lower values load earlier. |
@@ -110,6 +114,10 @@ Raw placeholder render arrays are not allowed for new sections. Use `EventStudio
 Deferred sections must remain operational placeholders. They may reserve navigation, route, and metadata contracts, but they must not add hidden product, fulfilment, scanning, POS, or analytics behavior before the owning domain exists.
 
 Readonly sections must not expose mutation forms. Filters, pagination, and export hooks must be implemented through event-scoped reporting services, not raw Commerce admin tables or unrestricted entity trees.
+
+Readonly sections must render DTO/projection data, not mutable entities. Projection services may use aggregate metrics, paginated read models, or sanitized arrays, but they must remain event-scoped and non-mutating.
+
+Autosave capability is enforced server-side. `mel-event-studio-shell.js` may use capability metadata to avoid unnecessary requests, but `EventStudioAutosaveController` must re-evaluate section metadata and reject readonly, deferred, coming-soon, unknown, and autosave-unsupported sections.
 
 Dirty-state tracking is currently shell-assisted. Future reporting and async sections must move dirty-state ownership to section-level contracts so readonly widgets cannot accidentally block publish.
 

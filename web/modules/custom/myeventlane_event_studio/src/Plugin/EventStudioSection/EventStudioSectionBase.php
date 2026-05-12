@@ -149,6 +149,46 @@ abstract class EventStudioSectionBase extends PluginBase implements EventStudioS
   /**
    * {@inheritdoc}
    */
+  public function supportsAutosave(): bool {
+    if (array_key_exists('supports_autosave', $this->pluginDefinition) && $this->pluginDefinition['supports_autosave'] !== NULL) {
+      return (bool) $this->pluginDefinition['supports_autosave'];
+    }
+    return $this->isWritable() && $this->sectionState() === EventStudioSectionInterface::STATE_ACTIVE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function supportsPublish(): bool {
+    if (array_key_exists('supports_publish', $this->pluginDefinition) && $this->pluginDefinition['supports_publish'] !== NULL) {
+      return (bool) $this->pluginDefinition['supports_publish'];
+    }
+    return $this->isWritable() && $this->sectionState() === EventStudioSectionInterface::STATE_ACTIVE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function supportsReadiness(): bool {
+    if (array_key_exists('supports_readiness', $this->pluginDefinition) && $this->pluginDefinition['supports_readiness'] !== NULL) {
+      return (bool) $this->pluginDefinition['supports_readiness'];
+    }
+    return $this->participatesInReadiness();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function supportsMobilePriority(): bool {
+    if (array_key_exists('supports_mobile_priority', $this->pluginDefinition) && $this->pluginDefinition['supports_mobile_priority'] !== NULL) {
+      return (bool) $this->pluginDefinition['supports_mobile_priority'];
+    }
+    return $this->mobilePriority() < 100;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function participatesInReadiness(): bool {
     return (bool) ($this->pluginDefinition['readiness_participant'] ?? FALSE);
   }

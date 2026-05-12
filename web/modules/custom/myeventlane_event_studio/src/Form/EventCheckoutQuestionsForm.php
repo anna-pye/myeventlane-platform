@@ -265,7 +265,9 @@ final class EventCheckoutQuestionsForm extends FormBase {
    * @return array<string, mixed>
    */
   private function buildQuestionEditor(array $row, array $ticketOptions, bool $isNew): array {
-    $prefix = $isNew ? 'new_question' : 'questions';
+    $applicabilitySelector = $isNew
+      ? ':input[name="questions_card[new_question][applicability]"]'
+      : ':input[name="questions_card[questions][' . (int) $row['id'] . '][applicability][applicability]"]';
     return [
       'label' => [
         '#type' => 'textfield',
@@ -307,7 +309,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
           : $this->t('Required when Applies to is Per ticket type.'),
         '#states' => [
           'visible' => [
-            ':input[name^="' . $prefix . '"][name$="[applicability]"]' => ['value' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE],
+            $applicabilitySelector => ['value' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE],
           ],
         ],
       ],

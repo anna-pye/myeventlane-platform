@@ -18,6 +18,7 @@ final class EventStudioMelPayloadService {
 
   public function __construct(
     private readonly EventHighlightHelper $eventHighlightHelper,
+    private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
   ) {}
 
   /**
@@ -292,16 +293,6 @@ final class EventStudioMelPayloadService {
     if (!is_array($decoded)) {
       return [];
     }
-    $allowed_types = [
-      'textfield',
-      'textarea',
-      'select',
-      'checkboxes',
-      'radios',
-      'email',
-      'number',
-      'tel',
-    ];
     $out = [];
     foreach ($decoded as $row) {
       if (!is_array($row)) {
@@ -313,11 +304,11 @@ final class EventStudioMelPayloadService {
         continue;
       }
       $label = trim((string) ($row['label'] ?? ''));
-      $type = trim((string) ($row['type'] ?? 'textfield'));
+      $type = $this->fieldTypeRegistry->normalize((string) ($row['type'] ?? 'textfield'));
       if ($label === '') {
         continue;
       }
-      if (!in_array($type, $allowed_types, TRUE)) {
+      if (!$this->fieldTypeRegistry->isSupported($type)) {
         $type = 'textfield';
       }
       $item = [

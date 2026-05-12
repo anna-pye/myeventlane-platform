@@ -41,6 +41,7 @@ final class EventStudioSaveService {
     private readonly PaidPublishStripeGate $paidPublishStripeGate,
     private readonly VendorPublishRequirementsGate $publishRequirementsGate,
     private readonly EventReadinessService $eventReadiness,
+    private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
   ) {}
 
@@ -1091,7 +1092,7 @@ final class EventStudioSaveService {
 
         $normalized_type = $this->normalizeAttendeeQuestionTypeValue($type);
         if ($paragraph->hasField('field_question_options')) {
-          $needs_opts = in_array($normalized_type, ['select', 'checkboxes', 'radios'], TRUE);
+          $needs_opts = $this->fieldTypeRegistry->requiresOptions($normalized_type);
           if ($needs_opts) {
             $lines = [];
             if (isset($question['options']) && is_array($question['options'])) {
@@ -1193,20 +1194,7 @@ final class EventStudioSaveService {
   }
 
   private function normalizeAttendeeQuestionTypeValue(string $type): string {
-    $type = trim($type);
-    return match ($type) {
-      'text', 'textfield' => 'textfield',
-      'textarea' => 'textarea',
-      'select' => 'select',
-      'checkbox' => 'checkboxes',
-      'checkboxes' => 'checkboxes',
-      'radio' => 'radios',
-      'radios' => 'radios',
-      'email' => 'email',
-      'number' => 'number',
-      'tel' => 'tel',
-      default => 'textfield',
-    };
+    return $this->fieldTypeRegistry->normalize($type);
   }
 
   private function normalizeAttendeeQuestionStatusValue(string $status): string {
