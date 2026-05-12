@@ -341,10 +341,10 @@ final class EventCheckoutQuestionsForm extends FormBase {
         ],
       ],
       'advanced' => [
-        '#type' => 'details',
-        '#title' => $this->t('Optional question settings'),
-        '#open' => FALSE,
-        '#attributes' => ['class' => ['mel-event-studio-questions__advanced']],
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__advanced-content']],
+        '#prefix' => '<details class="mel-event-studio-questions__advanced"><summary>' . $this->t('Optional question settings') . '</summary>',
+        '#suffix' => '</details>',
         'governance_note' => [
           '#type' => 'html_tag',
           '#tag' => 'p',

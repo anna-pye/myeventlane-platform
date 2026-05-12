@@ -518,10 +518,10 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         ],
       ],
       'advanced' => [
-        '#type' => 'details',
-        '#title' => $this->t('Optional ticket settings'),
-        '#open' => FALSE,
-        '#attributes' => ['class' => ['mel-event-studio-ticket-card__advanced']],
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-card__advanced-content']],
+        '#prefix' => '<details class="mel-event-studio-ticket-card__advanced"><summary>' . $this->t('Optional ticket settings') . '</summary>',
+        '#suffix' => '</details>',
         'ticket_kind' => [
           '#type' => 'hidden',
           '#value' => $kind,
