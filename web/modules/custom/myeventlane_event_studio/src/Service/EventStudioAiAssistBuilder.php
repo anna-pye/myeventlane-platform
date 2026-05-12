@@ -10,6 +10,8 @@ use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Adds the reusable Event Studio inline AI assist component to form fields.
@@ -65,6 +67,7 @@ final class EventStudioAiAssistBuilder {
   public function __construct(
     private readonly RendererInterface $renderer,
     private readonly UrlGeneratorInterface $urlGenerator,
+    private readonly LoggerInterface $logger,
     TranslationInterface $string_translation,
   ) {
     $this->setStringTranslation($string_translation);
@@ -96,9 +99,19 @@ final class EventStudioAiAssistBuilder {
     }
 
     $definition = self::TARGETS[$target];
-    $endpoint = $this->urlGenerator->generateFromRoute('myeventlane_event_studio.ai_assist', [
-      'node' => (int) $event->id(),
-    ]);
+    try {
+      $endpoint = $this->urlGenerator->generateFromRoute('myeventlane_event_studio.ai_assist', [
+        'node' => (int) $event->id(),
+      ]);
+    }
+    catch (RouteNotFoundException $e) {
+      $this->logger->error('Event Studio AI assist route is unavailable while attaching target @target to nid @nid: @message', [
+        '@target' => $target,
+        '@nid' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return;
+    }
 
     $build = [
       '#theme' => 'mel_event_studio_ai_assist',
