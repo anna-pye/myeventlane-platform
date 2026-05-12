@@ -3942,3 +3942,251 @@
     width: 100%;
   }
 }
+
+/* High-priority refinement: layered MEL surfaces and vertical creator flow. */
+.mel-event-studio {
+  --mel-surface-page: #fffaf6;
+  --mel-surface-section: linear-gradient(135deg, #fff7ed 0%, #fffaf6 48%, #f7f3ff 100%);
+  --mel-surface-card: linear-gradient(180deg, #fffefc 0%, #fffaf6 100%);
+  --mel-surface-inset: linear-gradient(135deg, #fff7ed 0%, #f8fbff 100%);
+  --mel-surface-advanced: linear-gradient(135deg, rgba(248, 250, 252, 0.62) 0%, rgba(250, 245, 255, 0.42) 100%);
+  --mel-text-quiet: #64748b;
+  --mel-text-soft: #6d5f7d;
+  --mel-space-1: 8px;
+  --mel-space-2: 16px;
+  --mel-space-3: 24px;
+  --mel-space-5: 40px;
+}
+
+.mel-event-studio--workspace,
+.mel-event-studio .mel-es-workspace__main,
+.mel-event-studio .mel-builder__main {
+  background:
+    radial-gradient(circle at top left, rgba(242, 109, 91, 0.08), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.1), transparent 34rem),
+    var(--mel-surface-page);
+}
+
+.mel-event-studio .mel-event-studio-section__body {
+  gap: var(--mel-space-3);
+}
+
+.mel-event-studio .mel-builder-step-stack {
+  gap: var(--mel-space-3);
+}
+
+.mel-event-studio .mel-task-card__banner,
+.mel-event-studio .mel-event-studio-ticket-intro.mel-es-card,
+.mel-event-studio .mel-event-studio-questions__intro.mel-es-card {
+  border: 0;
+  background: var(--mel-surface-section);
+  box-shadow: 0 18px 42px rgba(88, 63, 130, 0.07);
+}
+
+.mel-event-studio .mel-builder-card,
+.mel-event-studio .mel-es-field-group,
+.mel-event-studio .mel-event-studio-ticket-card,
+.mel-event-studio .mel-event-studio-questions__card,
+.mel-event-studio .mel-event-studio-ticket-add.mel-es-card,
+.mel-event-studio .mel-event-studio-questions__add {
+  border: 0;
+  background: var(--mel-surface-card);
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.06);
+}
+
+.mel-event-studio .mel-builder-card__subsection,
+.mel-event-studio .mel-event-studio-ticket-card__attendee-preview,
+.mel-event-studio .mel-event-studio-questions__preview-panel,
+.mel-event-studio .mel-location-display,
+.mel-event-studio .mel-cover-preview,
+.mel-event-studio .mel-ai-assist__preview {
+  border: 0;
+  background: var(--mel-surface-inset);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.mel-event-studio .mel-event-studio-ticket-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-2);
+  padding: var(--mel-space-3);
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mel-space-2);
+  padding-bottom: var(--mel-space-2);
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__pricing,
+.mel-event-studio .mel-event-studio-ticket-card__capacity {
+  max-width: none;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__body {
+  display: grid;
+  grid-template-areas:
+    'availability'
+    'sales'
+    'visibility';
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mel-space-2);
+  padding: var(--mel-space-2);
+  border-radius: 20px;
+  background: rgba(255, 250, 246, 0.66);
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__field-group,
+.mel-event-studio .mel-event-studio-questions__field-group {
+  padding: var(--mel-space-2);
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__attendee-preview {
+  display: grid;
+  gap: var(--mel-space-1);
+  padding: var(--mel-space-2);
+  border-radius: 18px;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__preview-label,
+.mel-event-studio .mel-event-studio-questions__preview-panel .mel-event-studio-questions__group-title {
+  margin: 0;
+  color: #7c3aed;
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__preview-name {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__preview-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mel-space-1);
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__preview-details span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #475569;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__preview-reassurance,
+.mel-event-studio .mel-event-studio-questions__preview-reassurance {
+  margin: 0;
+  color: #166534;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.mel-event-studio .mel-builder-more-options,
+.mel-event-studio .mel-event-studio-ticket-card__advanced,
+.mel-event-studio .mel-event-studio-questions__advanced {
+  margin-top: 0;
+  padding: 4px 0 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mel-event-studio .mel-builder-more-options > summary,
+.mel-event-studio .mel-event-studio-ticket-card__advanced > summary,
+.mel-event-studio .mel-event-studio-questions__advanced > summary {
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 1px solid rgba(203, 213, 225, 0.32);
+  background: var(--mel-surface-advanced);
+  color: #8a7c98;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mel-event-studio .mel-builder-more-options[open],
+.mel-event-studio .mel-event-studio-ticket-card__advanced[open],
+.mel-event-studio .mel-event-studio-questions__advanced[open] {
+  padding: var(--mel-space-2);
+  border-radius: 18px;
+  background: var(--mel-surface-advanced);
+}
+
+.mel-event-studio .mel-stage-transition__title,
+.mel-event-studio .mel-builder-card__momentum,
+.mel-event-studio .mel-card-publish__ready-celebrate {
+  color: #166534;
+}
+
+.mel-event-studio .mel-ai-assist__chip[data-mel-ai-chip='more_welcoming'],
+.mel-event-studio .mel-ai-assist__chip[data-mel-ai-chip='more_exciting'],
+.mel-event-studio .mel-ai-assist__chip[data-mel-ai-chip='social_short'],
+.mel-event-studio .mel-ai-assist__chip[data-mel-ai-chip='attendee_clarity'],
+.mel-event-studio .mel-ai-assist__chip[data-mel-ai-chip='community_friendly'] {
+  border-color: rgba(242, 109, 91, 0.24);
+  background: #fffaf6;
+  color: #67433e;
+}
+
+.mel-event-studio .mel-platform-support-card {
+  border: 0;
+  background:
+    radial-gradient(circle at top right, rgba(52, 211, 153, 0.14), transparent 28%),
+    linear-gradient(135deg, #f0fdf4 0%, #fff7ed 52%, #faf5ff 100%);
+  box-shadow: 0 16px 38px rgba(91, 33, 182, 0.07);
+}
+
+.mel-event-studio .mel-step-actions .mel-studio-jump-preview {
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .mel-event-studio .mel-step-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .mel-event-studio .mel-step-actions .mel-continue-button {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .mel-event-studio .mel-step-actions .mel-studio-jump-preview {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .mel-event-studio .mel-event-studio-ticket-card,
+  .mel-event-studio .mel-event-studio-questions__card,
+  .mel-event-studio .mel-builder-card,
+  .mel-event-studio .mel-es-field-group {
+    padding: var(--mel-space-2);
+  }
+
+  .mel-event-studio .mel-event-studio-ticket-card__header,
+  .mel-event-studio .mel-event-studio-ticket-card__body,
+  .mel-event-studio .mel-event-studio-questions__body {
+    gap: var(--mel-space-2);
+  }
+
+  .mel-event-studio .mel-event-studio-ticket-card__preview-details {
+    flex-direction: column;
+  }
+
+  .mel-event-studio .mel-event-studio-ticket-card__preview-details span {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}

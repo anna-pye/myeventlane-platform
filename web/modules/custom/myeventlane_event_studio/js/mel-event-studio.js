@@ -3669,7 +3669,7 @@
           return;
         }
 
-        var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card');
+        var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card, .mel-studio-jump-preview');
         if (jumpPrev && form.contains(jumpPrev)) {
           e.preventDefault();
           openLivePreviewDrawer();
@@ -5506,6 +5506,40 @@
     return val(form, 'mel[venue_create_name]') || val(form, 'mel[location_search]') || val(form, 'mel[venue_saved]');
   }
 
+  function melAiEventTypeContext(form) {
+    var tt = valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]');
+    var str = getSettings().strings || {};
+    return ticketTypeLabel(tt, str);
+  }
+
+  function melAiTicketModeContext(form) {
+    var tt = valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]');
+    var mode = melAiEventTypeContext(form);
+    var details = [];
+
+    if (tt === 'rsvp') {
+      var cap = val(form, 'mel[rsvp_capacity]');
+      details.push(cap !== '' ? Drupal.t('Capacity: @capacity', { '@capacity': cap }) : Drupal.t('Unlimited capacity'));
+    }
+    else if (tt === 'paid') {
+      details.push(
+        val(form, 'mel[field_product_target]') !== ''
+          ? Drupal.t('Ticket product linked')
+          : Drupal.t('Ticket product not linked'),
+      );
+      details.push(Drupal.t('Ticket tiers: @count', { '@count': String(paidTicketTierSignalCount(form)) }));
+    }
+    else if (tt === 'external') {
+      details.push(
+        val(form, 'mel[external_url]') !== ''
+          ? Drupal.t('Booking URL set')
+          : Drupal.t('Booking URL not set'),
+      );
+    }
+
+    return [mode].concat(details).filter(Boolean).join('; ');
+  }
+
   function melAiAssistContext(form, assist) {
     return {
       title: val(form, 'mel[title]'),
@@ -5514,8 +5548,8 @@
       what_to_expect: val(form, 'mel[field_event_intro]'),
       category: categoryForAiPayload(form),
       tags: tagsForAiPayload(form),
-      event_type: valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]'),
-      ticket_mode: valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]'),
+      event_type: melAiEventTypeContext(form),
+      ticket_mode: melAiTicketModeContext(form),
       location: melAiLocationContext(form),
       styles: melAiSelectedStyles(assist),
     };

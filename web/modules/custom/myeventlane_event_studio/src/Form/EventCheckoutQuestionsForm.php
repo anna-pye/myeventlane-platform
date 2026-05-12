@@ -308,10 +308,18 @@ final class EventCheckoutQuestionsForm extends FormBase {
           'heading' => [
             '#type' => 'html_tag',
             '#tag' => 'h4',
-            '#value' => $this->t('Guest answer preview'),
+            '#value' => $this->t('How attendees will see this'),
             '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
           ],
           'content' => $this->buildAnswerPreview($row, $type_label),
+          'reassurance' => [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $required
+              ? $this->t('Attendees will answer this before checkout can continue.')
+              : $this->t('Attendees can skip this if it does not apply.'),
+            '#attributes' => ['class' => ['mel-event-studio-questions__preview-reassurance']],
+          ],
         ],
         'summary' => [
           '#type' => 'container',

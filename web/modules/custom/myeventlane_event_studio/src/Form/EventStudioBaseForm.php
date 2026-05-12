@@ -16,6 +16,7 @@ use Drupal\myeventlane_event_studio\Service\EventStudioAiAssistBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioWizardMelBaseline;
+use Drupal\myeventlane_location\Service\LocationProviderManager;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -42,6 +43,7 @@ abstract class EventStudioBaseForm extends FormBase {
     protected EventStudioAiAssistBuilder $aiAssistBuilder,
     RequestStack $request_stack,
     protected LoggerInterface $logger,
+    protected ?LocationProviderManager $eventStudioLocationProvider = NULL,
   ) {
     $this->requestStack = $request_stack;
   }
@@ -63,6 +65,9 @@ abstract class EventStudioBaseForm extends FormBase {
       $container->get('myeventlane_event_studio.ai_assist_builder'),
       $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
+      $container->has('myeventlane_location.provider_manager')
+        ? $container->get('myeventlane_location.provider_manager')
+        : NULL,
     );
   }
 
@@ -196,6 +201,9 @@ abstract class EventStudioBaseForm extends FormBase {
     $form['#attributes']['data-mel-event-studio-form'] = '1';
     $form['#attributes']['data-mel-event-studio-section'] = $this->getCurrentStepId();
     $form['#tree'] = TRUE;
+    if ($this->eventStudioLocationProvider instanceof LocationProviderManager) {
+      $form['#attached']['drupalSettings']['myeventlaneLocation'] = $this->eventStudioLocationProvider->getFrontendSettings();
+    }
 
     $form['nid'] = [
       '#type' => 'hidden',
