@@ -5492,6 +5492,15 @@
     return assist.getAttribute('data-mel-ai-prompt-type') || '';
   }
 
+  function melAiPromptTypeFromSelectedStyles(assist) {
+    var selected = melAiSelectedStyles(assist);
+    var current = melAiPromptType(assist);
+    if (current && selected.indexOf(current) !== -1) {
+      return current;
+    }
+    return selected.length ? selected[0] : '';
+  }
+
   function melAiLocationContext(form) {
     var raw = val(form, 'mel[field_location]');
     if (raw) {
@@ -5711,11 +5720,10 @@
         }
         assist.querySelectorAll('[data-mel-ai-chip]').forEach(function (chip) {
           chip.addEventListener('click', function () {
-            assist.querySelectorAll('[data-mel-ai-chip]').forEach(function (other) {
-              other.setAttribute('aria-pressed', 'false');
-            });
-            chip.setAttribute('aria-pressed', 'true');
-            assist.setAttribute('data-mel-ai-prompt-type', chip.getAttribute('data-mel-ai-chip') || '');
+            var pressed = chip.getAttribute('aria-pressed') === 'true';
+            var value = chip.getAttribute('data-mel-ai-chip') || '';
+            chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+            assist.setAttribute('data-mel-ai-prompt-type', pressed ? melAiPromptTypeFromSelectedStyles(assist) : value);
             if (toggle && panel && panel.hidden) {
               toggle.setAttribute('aria-expanded', 'true');
               panel.hidden = false;
