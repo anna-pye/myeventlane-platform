@@ -93,6 +93,7 @@ services:
     class: Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService
     arguments:
       - '@myeventlane_event_studio.highlight_helper'
+      - '@myeventlane_event_studio.question_field_type_registry'
 
   myeventlane_event_studio.entity_autocomplete_mel_normalizer:
     class: Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer
@@ -117,6 +118,19 @@ services:
     class: Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager
     arguments:
       - '@entity_type.manager'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@myeventlane_event_studio.question_field_type_registry'
+      - '@myeventlane_event_studio.question_answer_existence_repository'
+
+  myeventlane_event_studio.question_field_type_registry:
+    class: Drupal\myeventlane_event_studio\Service\QuestionFieldTypeRegistry
+    calls:
+      - [setStringTranslation, ['@string_translation']]
+
+  myeventlane_event_studio.question_answer_existence_repository:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioQuestionAnswerExistenceRepository
+    arguments:
+      - '@database'
       - '@logger.channel.myeventlane_event_studio'
 
   myeventlane_event_studio.governance_builder:
@@ -159,6 +173,7 @@ services:
       - '@myeventlane_vendor.paid_publish_stripe_gate'
       - '@myeventlane_vendor.publish_requirements_gate'
       - '@myeventlane_event_studio.readiness'
+      - '@myeventlane_event_studio.question_field_type_registry'
       - '@?myeventlane_questions.template_cloner'
 
   myeventlane_event_studio.readiness:

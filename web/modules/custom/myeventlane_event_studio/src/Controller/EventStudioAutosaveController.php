@@ -246,7 +246,8 @@ final class EventStudioAutosaveController {
       ], 422);
     }
 
-    if (!$plugin->isWritable()
+    if (!$plugin->supportsAutosave()
+      || !$plugin->isWritable()
       || $plugin->sectionState() === EventStudioSectionInterface::STATE_READONLY
       || $plugin->sectionState() === EventStudioSectionInterface::STATE_DEFERRED
       || $plugin->sectionState() === EventStudioSectionInterface::STATE_COMING_SOON) {

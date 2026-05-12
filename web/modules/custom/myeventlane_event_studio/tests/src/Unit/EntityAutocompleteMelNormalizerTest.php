@@ -11,6 +11,8 @@ use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
+require_once dirname(__DIR__, 3) . '/src/Service/EntityAutocompleteMelNormalizer.php';
+
 /**
  * @coversDefaultClass \Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer
  *

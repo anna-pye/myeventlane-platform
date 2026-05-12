@@ -76,7 +76,15 @@ Section plugins own operational availability only. They must not duplicate vendo
 
 Autosave remains section-scoped and writable-section-only. Readonly, deferred, and coming-soon sections must not create autosave drafts.
 
+Autosave capability is now explicit metadata. Client settings expose `currentSectionCapabilities`, but client flags are advisory only. The autosave endpoint must reload the event, re-check vendor parity and update access, and reject unsupported section states server-side before storing tempstore data.
+
 Dirty-state tracking is still shell-assisted. The target architecture is section-owned dirty-state tracking so readonly filters, reporting widgets, and async components cannot accidentally block publish.
+
+## Readonly Projections
+
+Readonly sections render projection DTOs or sanitized projection arrays. They must not render mutable Drupal entities directly into Twig or workspace render arrays. Projection queries must be event-scoped, paginated when listing rows, and non-mutating.
+
+Archived attendee questions remain hidden from new checkout capture but must still be readable in historical reporting projections when answers already exist.
 
 ## Mobile
 

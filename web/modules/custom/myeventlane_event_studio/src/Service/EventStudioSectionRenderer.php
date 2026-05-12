@@ -10,6 +10,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
+use Drupal\myeventlane_event_studio\DTO\ReadonlySectionProjection;
 use Drupal\myeventlane_event_studio\Form\EventSettingsForm;
 use Drupal\myeventlane_event_studio\Form\EventStudioOperationalTicketsForm;
 use Drupal\myeventlane_event_studio\Form\EventStudioTicketsForm;
@@ -180,10 +181,7 @@ final class EventStudioSectionRenderer {
     return match ((string) $section->getPluginId()) {
       'attendees' => $this->buildAttendeeReadonlySection($section, $event),
       'analytics' => $this->buildAnalyticsReadonlySection($section, $event),
-      'orders' => $this->emptyStateBuilder->readonlyEmptySection(
-        $section->title(),
-        (string) $this->t('Order reporting will appear here after a paginated, event-scoped order read model is connected.'),
-      ),
+      'orders' => $this->buildReadonlyProjection(new ReadonlySectionProjection($section->title(), [], (string) $this->t('Order reporting will appear here after a paginated, event-scoped order read model is connected.'))),
       default => $this->emptyStateBuilder->readonlyEmptySection($section->title()),
     };
   }
@@ -209,11 +207,11 @@ final class EventStudioSectionRenderer {
       return $this->emptyStateBuilder->readonlyEmptySection($section->title());
     }
 
-    return $this->buildReadonlySummary($section, [
+    return $this->buildReadonlyProjection(new ReadonlySectionProjection($section->title(), [
       [$this->t('Total attendees'), (string) $attendeeCount],
       [$this->t('Checked in'), (string) $checkedInCount],
       [$this->t('Check-in rate'), $checkInRate === NULL ? $this->t('Not available yet') : $this->t('@rate%', ['@rate' => number_format($checkInRate, 1)])],
-    ]);
+    ]));
   }
 
   /**
@@ -244,19 +242,17 @@ final class EventStudioSectionRenderer {
         '@currency' => $revenue->getCurrencyCode(),
       ]);
 
-    return $this->buildReadonlySummary($section, [
+    return $this->buildReadonlyProjection(new ReadonlySectionProjection($section->title(), [
       [$this->t('Attendees'), (string) $attendeeCount],
       [$this->t('Ticket revenue'), $revenueText],
       [$this->t('Check-in rate'), $checkInRate === NULL ? $this->t('Not available yet') : $this->t('@rate%', ['@rate' => number_format($checkInRate, 1)])],
-    ]);
+    ]));
   }
 
   /**
-   * @param list<array{0: mixed, 1: mixed}> $rows
-   *
    * @return array<string, mixed>
    */
-  private function buildReadonlySummary(EventStudioSectionInterface $section, array $rows): array {
+  private function buildReadonlyProjection(ReadonlySectionProjection $projection): array {
     return [
       '#type' => 'container',
       '#attributes' => [
@@ -266,14 +262,14 @@ final class EventStudioSectionRenderer {
       'intro' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('@section is readonly in Studio. Reporting data is event-scoped and does not mutate operational state.', [
-          '@section' => $section->title(),
+        '#value' => $projection->intro ?? $this->t('@section is readonly in Studio. Reporting data is event-scoped and does not mutate operational state.', [
+          '@section' => $projection->title,
         ]),
       ],
       'summary' => [
         '#type' => 'table',
         '#header' => [$this->t('Metric'), $this->t('Value')],
-        '#rows' => $rows,
+        '#rows' => $projection->rows,
         '#empty' => $this->t('No reporting data is available yet.'),
       ],
     ];
