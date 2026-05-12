@@ -3669,7 +3669,7 @@
           return;
         }
 
-        var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card');
+        var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card, .mel-studio-jump-preview');
         if (jumpPrev && form.contains(jumpPrev)) {
           e.preventDefault();
           openLivePreviewDrawer();
