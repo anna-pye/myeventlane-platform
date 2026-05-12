@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -116,7 +117,7 @@ final class EventStudioAiAssistBuilder {
 
     $markup = (string) $this->renderer->renderPlain($build);
     $existing = isset($element['#field_suffix']) ? (string) $element['#field_suffix'] : '';
-    $element['#field_suffix'] = $existing . $markup;
+    $element['#field_suffix'] = Markup::create($existing . $markup);
     $element['#attributes']['data-mel-ai-field'] = $target;
   }
 

@@ -105,7 +105,7 @@ final class EventStudioAiPromptBuilder {
     $styles = $this->styleInstructions($input['styles'] ?? []);
     $prompt_type = strtolower(trim((string) ($input['prompt_type'] ?? '')));
     $prompt_instruction = self::PROMPT_TYPE_INSTRUCTIONS[$prompt_type] ?? '';
-    $current_value = $this->plainText($input['current_value'] ?? $context[$field_name] ?? '');
+    $current_value = $this->plainText($input['current_value'] ?? $context[$field_name] ?? '', 1800);
     $max_chars = (int) $field['max_chars'];
 
     $system = <<<SYS
