@@ -66,17 +66,18 @@ final class EventStudioPublishController {
     }
 
     $data = $this->requestPayload($request);
+    $action = (string) ($data['action'] ?? 'publish');
+    $publishing = $action !== 'unpublish';
     if (!empty($data['dirty'])) {
       return $this->blockedResponse(
         409,
         'unsaved_changes',
         [(string) $this->t('Save this section before changing publish state.')],
         $node,
+        NULL,
+        $this->blockedHeading($publishing),
       );
     }
-
-    $action = (string) ($data['action'] ?? 'publish');
-    $publishing = $action !== 'unpublish';
 
     $baseChanged = $this->parsePositiveInt($data['changed'] ?? $data['mel_studio_changed'] ?? NULL);
     $baseRevisionId = $this->parsePositiveInt($data['revision_id'] ?? $data['mel_studio_revision'] ?? NULL);
@@ -86,6 +87,8 @@ final class EventStudioPublishController {
         'stale_state',
         [(string) $this->t('This event changed after this section loaded. Refresh to continue safely.')],
         $node,
+        NULL,
+        $this->blockedHeading($publishing),
       );
     }
 
@@ -99,6 +102,7 @@ final class EventStudioPublishController {
         ])],
         $node,
         $draftSection,
+        $this->blockedHeading($publishing),
       );
     }
 
@@ -133,7 +137,8 @@ final class EventStudioPublishController {
       );
     }
     catch (\InvalidArgumentException $e) {
-      $this->logger->notice('Event Studio publish blocked for event @nid uid=@uid: @message', [
+      $this->logger->notice('Event Studio @action blocked for event @nid uid=@uid: @message', [
+        '@action' => $published ? 'publish' : 'unpublish',
         '@nid' => (string) $node->id(),
         '@uid' => (string) $account->id(),
         '@message' => $e->getMessage(),
@@ -144,22 +149,25 @@ final class EventStudioPublishController {
         422,
         $node,
         $afterBlockReadiness,
-        (string) $this->t('Cannot publish yet'),
-        'cannot_publish',
+        $this->blockedHeading($published),
+        $published ? 'cannot_publish' : 'cannot_unpublish',
         [$e->getMessage()],
       );
     }
     catch (\Throwable $e) {
-      $this->logger->error('Event Studio publish failed for event @nid uid=@uid: @message', [
+      $this->logger->error('Event Studio @action failed for event @nid uid=@uid: @message', [
+        '@action' => $published ? 'publish' : 'unpublish',
         '@nid' => (string) $node->id(),
         '@uid' => (string) $account->id(),
         '@message' => $e->getMessage(),
       ]);
       return $this->blockedResponse(
         500,
-        'publish_failed',
-        [(string) $this->t('Publish failed. Try again shortly.')],
+        $published ? 'publish_failed' : 'unpublish_failed',
+        [$published ? (string) $this->t('Publish failed. Try again shortly.') : (string) $this->t('Unpublish failed. Try again shortly.')],
         $node,
+        NULL,
+        $this->blockedHeading($published),
       );
     }
 
@@ -209,14 +217,14 @@ final class EventStudioPublishController {
   /**
    * @param list<string> $messages
    */
-  private function blockedResponse(int $status, string $code, array $messages, NodeInterface $node, ?string $restoreSection = NULL): JsonResponse {
+  private function blockedResponse(int $status, string $code, array $messages, NodeInterface $node, ?string $restoreSection = NULL, ?string $message = NULL): JsonResponse {
     $readiness = $this->eventReadiness->evaluate($node, $this->currentUser);
     return $this->readinessResponse(
       FALSE,
       $status,
       $node,
       $readiness,
-      (string) $this->t('Cannot publish yet'),
+      $message ?? (string) $this->t('Cannot publish yet'),
       $code,
       $messages,
       $restoreSection,
@@ -277,6 +285,10 @@ final class EventStudioPublishController {
       return (string) $this->t('Needs Attention');
     }
     return (string) $this->t('Ready');
+  }
+
+  private function blockedHeading(bool $publishing): string {
+    return $publishing ? (string) $this->t('Cannot publish yet') : (string) $this->t('Cannot unpublish yet');
   }
 
 }

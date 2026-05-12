@@ -89,10 +89,11 @@
   function publishMetadata(shell, button) {
     const forms = sectionForms(shell);
     const source = forms.find((form) => formValue(form, 'mel_studio_changed') || formValue(form, 'mel_studio_revision'));
+    const topbarButton = document.querySelector('[data-mel-publish-action]');
     return {
       section: studioSettings().currentSection || button.dataset.melCurrentSection || '',
-      changed: formValue(source, 'mel_studio_changed') || button.dataset.melNodeChanged || studioSettings().nodeChanged || 0,
-      revision_id: formValue(source, 'mel_studio_revision') || button.dataset.melNodeRevision || studioSettings().nodeRevisionId || 0,
+      changed: button.dataset.melNodeChanged || topbarButton?.dataset.melNodeChanged || formValue(source, 'mel_studio_changed') || studioSettings().nodeChanged || 0,
+      revision_id: button.dataset.melNodeRevision || topbarButton?.dataset.melNodeRevision || formValue(source, 'mel_studio_revision') || studioSettings().nodeRevisionId || 0,
       dirty: dirtyForms(shell).length > 0,
     };
   }
@@ -196,13 +197,22 @@
     setText(shell, '[data-mel-publish-status]', result.topbar.status || '');
     setText(shell, '[data-mel-publish-state]', result.topbar.state || '');
     setText(shell, '[data-mel-publish-last-saved]', result.topbar.lastSaved || '');
+    const buttons = shell.querySelectorAll('[data-mel-publish-action], [data-mel-card-publish-action], [data-mel-unpublish-action]');
+    if (result.changed !== undefined && result.changed !== null) {
+      const changed = String(result.changed);
+      buttons.forEach((actionButton) => {
+        actionButton.dataset.melNodeChanged = changed;
+      });
+      studioSettings().nodeChanged = changed;
+    }
+    if (result.revisionId !== undefined && result.revisionId !== null) {
+      const revisionId = String(result.revisionId);
+      buttons.forEach((actionButton) => {
+        actionButton.dataset.melNodeRevision = revisionId;
+      });
+      studioSettings().nodeRevisionId = revisionId;
+    }
     const button = shell.querySelector('[data-mel-publish-action]');
-    if (button && result.changed !== undefined && result.changed !== null) {
-      button.dataset.melNodeChanged = String(result.changed);
-    }
-    if (button && result.revisionId !== undefined && result.revisionId !== null) {
-      button.dataset.melNodeRevision = String(result.revisionId);
-    }
     if (button) {
       setPublishButtonState(button, result.published ? 'published' : 'idle');
     }
@@ -274,7 +284,6 @@
         if (!shell) {
           return;
         }
-        applyMobilePriorities(shell);
         button.addEventListener('click', () => {
           const isOpen = shell.classList.toggle('is-sidebar-open');
           button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
