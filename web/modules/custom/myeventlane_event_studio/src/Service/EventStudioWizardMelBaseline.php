@@ -48,7 +48,11 @@ final class EventStudioWizardMelBaseline {
       return [];
     }
 
-    $normalized = $this->normalizeBaselineMel($baseline);
+    $normalized = $this->entityAutocompleteMelNormalizer->normalizeValuesForForm($mel, $baseline, [
+      'section' => 'baseline',
+      'event_id' => (int) $node->id(),
+      'uid' => NULL,
+    ]);
     $this->baselineMelByNodeRevision[$cacheKey] = $normalized;
     return $normalized;
   }
@@ -75,38 +79,6 @@ final class EventStudioWizardMelBaseline {
       $out[$key] = $this->extractDefaultsRecursive($child);
     }
     return $out;
-  }
-
-  /**
-   * @param array<string, mixed> $mel
-   *
-   * @return array<string, mixed>
-   */
-  private function normalizeBaselineMel(array $mel): array {
-    $single = [
-      'venue_saved' => 'myeventlane_venue',
-      'field_product_target' => 'commerce_product',
-    ];
-    foreach ($single as $key => $entity_type_id) {
-      if (!array_key_exists($key, $mel)) {
-        continue;
-      }
-      $mel[$key] = $this->entityAutocompleteMelNormalizer->normalizeSingle($mel[$key], $entity_type_id, 'mel.' . $key);
-    }
-
-    $tags = [
-      'field_category' => 'taxonomy_term',
-      'field_tags' => 'taxonomy_term',
-      'field_accessibility' => 'taxonomy_term',
-    ];
-    foreach ($tags as $key => $entity_type_id) {
-      if (!array_key_exists($key, $mel)) {
-        continue;
-      }
-      $mel[$key] = $this->entityAutocompleteMelNormalizer->normalizeTags($mel[$key], $entity_type_id, 'mel.' . $key);
-    }
-
-    return $mel;
   }
 
 }

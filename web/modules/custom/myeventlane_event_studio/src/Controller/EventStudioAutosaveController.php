@@ -9,11 +9,15 @@ use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
+use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolver;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
@@ -37,6 +41,9 @@ final class EventStudioAutosaveController {
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
     private readonly CurrentVendorResolver $currentVendorResolver,
     private readonly EventStudioAutosaveService $autosaveService,
+    private readonly EventStudioSectionManager $sectionManager,
+    private readonly FormBuilderInterface $formBuilder,
+    private readonly EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer,
   ) {}
 
   public function handle(Request $request): JsonResponse {
@@ -79,6 +86,11 @@ final class EventStudioAutosaveController {
     }
 
     $section = $this->normalizeSection($params['mel_studio_section'] ?? 'section');
+    $section_error = $this->validateAutosaveSection($section, $node);
+    if ($section_error instanceof JsonResponse) {
+      return $section_error;
+    }
+
     $base_changed = $this->parsePositiveInt($params['mel_studio_changed'] ?? NULL);
     $base_revision_id = $this->parsePositiveInt($params['mel_studio_revision'] ?? NULL);
     if ($this->autosaveService->isStaleSubmission($node, $base_changed, $base_revision_id)) {
@@ -93,6 +105,7 @@ final class EventStudioAutosaveController {
     if (!is_array($mel)) {
       $mel = [];
     }
+    $mel = $this->normalizeMelForSection($section, $node, $mel);
 
     $decoded_event_highlights = NULL;
     $event_highlights_items_state = NULL;
@@ -217,6 +230,80 @@ final class EventStudioAutosaveController {
       return 'section';
     }
     return preg_replace('/[^a-z0-9_:-]+/i', '_', $section) ?: 'section';
+  }
+
+  private function validateAutosaveSection(string $section, NodeInterface $node): ?JsonResponse {
+    $plugin = $this->sectionManager->section($section);
+    if (!$plugin instanceof EventStudioSectionInterface) {
+      $this->logger->warning('Event Studio autosave rejected for unsupported section @section nid=@nid uid=@uid.', [
+        '@section' => $section,
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $this->currentUser->id(),
+      ]);
+      return new JsonResponse([
+        'ok' => FALSE,
+        'errors' => ['This Studio section does not support autosave.'],
+      ], 422);
+    }
+
+    if (!$plugin->isWritable()
+      || $plugin->sectionState() === EventStudioSectionInterface::STATE_READONLY
+      || $plugin->sectionState() === EventStudioSectionInterface::STATE_DEFERRED
+      || $plugin->sectionState() === EventStudioSectionInterface::STATE_COMING_SOON) {
+      $this->logger->warning('Event Studio autosave rejected for non-writable section @section nid=@nid uid=@uid state=@state.', [
+        '@section' => $section,
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $this->currentUser->id(),
+        '@state' => $plugin->sectionState(),
+      ]);
+      return new JsonResponse([
+        'ok' => FALSE,
+        'errors' => ['This Studio section is readonly and cannot be autosaved.'],
+      ], 403);
+    }
+
+    return NULL;
+  }
+
+  /**
+   * @param array<string, mixed> $mel
+   *
+   * @return array<string, mixed>
+   */
+  private function normalizeMelForSection(string $section, NodeInterface $node, array $mel): array {
+    $plugin = $this->sectionManager->section($section);
+    if (!$plugin instanceof EventStudioSectionInterface) {
+      return $mel;
+    }
+    $target = $plugin->renderTarget();
+    if (!str_starts_with($target, 'form:')) {
+      return $mel;
+    }
+    $form_class = substr($target, 5);
+    if ($form_class === '' || !class_exists($form_class)) {
+      return $mel;
+    }
+
+    try {
+      $form = $this->formBuilder->getForm($form_class, $node);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Event Studio autosave could not inspect section form @section for autocomplete normalization: @message', [
+        '@section' => $section,
+        '@message' => $e->getMessage(),
+      ]);
+      return $mel;
+    }
+
+    if (!isset($form['mel']) || !is_array($form['mel'])) {
+      return $mel;
+    }
+
+    return $this->entityAutocompleteMelNormalizer->normalizeValuesForForm($form['mel'], $mel, [
+      'section' => $section,
+      'event_id' => (int) $node->id(),
+      'uid' => (int) $this->currentUser->id(),
+    ]);
   }
 
   /**

@@ -9,6 +9,7 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_checkout_paragraph\CheckoutAttendeeSchemaInspectorInterface;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\node\NodeInterface;
@@ -110,6 +111,7 @@ final class CheckoutAttendeeSchemaService implements CheckoutAttendeeSchemaInspe
     }
 
     $tier_templates = [];
+    $tier = NULL;
     $variation = $order_item->getPurchasedEntity();
     if ($variation instanceof ProductVariationInterface && $event instanceof NodeInterface) {
       $tier = $this->ticketAvailability->resolveTierForVariation($event, $variation);
@@ -121,6 +123,9 @@ final class CheckoutAttendeeSchemaService implements CheckoutAttendeeSchemaInspe
         $tier_templates = $tier->get('field_attendee_questions')->referencedEntities();
       }
     }
+
+    $event_templates = $this->filterQuestionTemplatesForOrderItem($event_templates, $tier, FALSE);
+    $tier_templates = $this->filterQuestionTemplatesForOrderItem($tier_templates, $tier, TRUE);
 
     return $this->mergeQuestionTemplateParagraphs($event_templates, $tier_templates);
   }
@@ -169,6 +174,78 @@ final class CheckoutAttendeeSchemaService implements CheckoutAttendeeSchemaInspe
       return 'id:' . (string) $paragraph->id();
     }
     return 'tmp:' . spl_object_id($paragraph);
+  }
+
+  /**
+   * @param \Drupal\paragraphs\ParagraphInterface[] $templates
+   *
+   * @return \Drupal\paragraphs\ParagraphInterface[]
+   */
+  private function filterQuestionTemplatesForOrderItem(array $templates, ?TicketTypeInterface $tier, bool $tierScoped): array {
+    $out = [];
+    foreach ($templates as $template) {
+      if (!$template instanceof ParagraphInterface) {
+        continue;
+      }
+      if (!$this->questionTemplateIsActive($template)) {
+        continue;
+      }
+      $applicability = $this->questionTemplateApplicability($template);
+      if ($applicability === 'per_order') {
+        $this->logger->notice('Skipping per-order attendee question @id in checkout; per-order answer storage is not enabled.', [
+          '@id' => (string) $template->id(),
+        ]);
+        continue;
+      }
+      if ($applicability === 'per_ticket_type') {
+        if (!$tier instanceof TicketTypeInterface) {
+          continue;
+        }
+        $ticket_ids = $this->questionTemplateTicketTypeIds($template);
+        if ($ticket_ids !== [] && !in_array((int) $tier->id(), $ticket_ids, TRUE)) {
+          continue;
+        }
+        if ($ticket_ids === [] && !$tierScoped) {
+          continue;
+        }
+      }
+      $out[] = $template;
+    }
+    return $out;
+  }
+
+  private function questionTemplateIsActive(ParagraphInterface $paragraph): bool {
+    if ($paragraph->hasField('field_question_status') && !$paragraph->get('field_question_status')->isEmpty()) {
+      return (string) $paragraph->get('field_question_status')->value !== 'archived';
+    }
+    return TRUE;
+  }
+
+  private function questionTemplateApplicability(ParagraphInterface $paragraph): string {
+    if ($paragraph->hasField('field_question_applicability') && !$paragraph->get('field_question_applicability')->isEmpty()) {
+      $value = (string) $paragraph->get('field_question_applicability')->value;
+      if (in_array($value, ['per_ticket', 'per_ticket_type', 'per_order'], TRUE)) {
+        return $value;
+      }
+    }
+    return 'per_ticket';
+  }
+
+  /**
+   * @return list<int>
+   */
+  private function questionTemplateTicketTypeIds(ParagraphInterface $paragraph): array {
+    if (!$paragraph->hasField('field_question_ticket_types') || $paragraph->get('field_question_ticket_types')->isEmpty()) {
+      return [];
+    }
+    $ids = [];
+    foreach ($paragraph->get('field_question_ticket_types')->getValue() as $item) {
+      $target_id = isset($item['target_id']) ? (int) $item['target_id'] : 0;
+      if ($target_id > 0) {
+        $ids[] = $target_id;
+      }
+    }
+    return array_values(array_unique($ids));
   }
 
   /**

@@ -113,6 +113,12 @@ services:
       - '@database'
       - '@logger.channel.myeventlane_event_studio'
 
+  myeventlane_event_studio.question_template_manager:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_event_studio'
+
   myeventlane_event_studio.governance_builder:
     class: Drupal\myeventlane_event_studio\Service\EventStudioGovernanceBuilder
     arguments:
@@ -203,6 +209,9 @@ services:
       - '@myeventlane_vendor.event_access_checker'
       - '@myeventlane_vendor.current_vendor_resolver'
       - '@myeventlane_event_studio.autosave'
+      - '@plugin.manager.myeventlane_event_studio_section'
+      - '@form_builder'
+      - '@myeventlane_event_studio.entity_autocomplete_mel_normalizer'
     tags:
       - { name: controller.service_arguments }
 

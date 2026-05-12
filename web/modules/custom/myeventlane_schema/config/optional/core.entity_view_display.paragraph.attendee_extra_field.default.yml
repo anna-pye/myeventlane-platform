@@ -2,11 +2,14 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.paragraph.attendee_extra_field.field_question_applicability
     - field.field.paragraph.attendee_extra_field.field_question_help
     - field.field.paragraph.attendee_extra_field.field_question_label
     - field.field.paragraph.attendee_extra_field.field_question_machine_name
     - field.field.paragraph.attendee_extra_field.field_question_options
     - field.field.paragraph.attendee_extra_field.field_question_required
+    - field.field.paragraph.attendee_extra_field.field_question_status
+    - field.field.paragraph.attendee_extra_field.field_question_ticket_types
     - field.field.paragraph.attendee_extra_field.field_question_type
     - paragraphs.paragraphs_type.attendee_extra_field
 id: paragraph.attendee_extra_field.default
@@ -40,6 +43,9 @@ content:
       format_custom_true: ''
     third_party_settings: {  }
 hidden:
+  field_question_applicability: true
   field_question_help: true
   field_question_machine_name: true
   field_question_options: true
+  field_question_status: true
+  field_question_ticket_types: true

@@ -299,6 +299,7 @@ final class EventStudioMelPayloadService {
       'checkboxes',
       'radios',
       'email',
+      'number',
       'tel',
     ];
     $out = [];
@@ -325,6 +326,17 @@ final class EventStudioMelPayloadService {
         'required' => !empty($row['required']),
         'save_to_library' => !empty($row['save_to_library']),
       ];
+      $status = trim((string) ($row['status'] ?? ''));
+      if ($status !== '') {
+        $item['status'] = $status;
+      }
+      $applicability = trim((string) ($row['applicability'] ?? ''));
+      if ($applicability !== '') {
+        $item['applicability'] = $applicability;
+      }
+      if (isset($row['ticket_type_ids']) && is_array($row['ticket_type_ids'])) {
+        $item['ticket_type_ids'] = $row['ticket_type_ids'];
+      }
       $machine = trim((string) ($row['machine_name'] ?? ''));
       if ($machine !== '') {
         $item['machine_name'] = $machine;

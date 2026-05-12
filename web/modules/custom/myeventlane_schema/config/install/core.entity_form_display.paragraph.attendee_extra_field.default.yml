@@ -2,11 +2,14 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.paragraph.attendee_extra_field.field_question_applicability
     - field.field.paragraph.attendee_extra_field.field_question_help
     - field.field.paragraph.attendee_extra_field.field_question_label
     - field.field.paragraph.attendee_extra_field.field_question_machine_name
     - field.field.paragraph.attendee_extra_field.field_question_options
     - field.field.paragraph.attendee_extra_field.field_question_required
+    - field.field.paragraph.attendee_extra_field.field_question_status
+    - field.field.paragraph.attendee_extra_field.field_question_ticket_types
     - field.field.paragraph.attendee_extra_field.field_question_type
     - paragraphs.paragraphs_type.attendee_extra_field
   module:
@@ -62,4 +65,7 @@ content:
     region: content
     settings: {  }
     third_party_settings: {}
-hidden: {  }
+hidden:
+  field_question_applicability: true
+  field_question_status: true
+  field_question_ticket_types: true

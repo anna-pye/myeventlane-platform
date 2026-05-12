@@ -1,0 +1,23 @@
+uuid: 19d4a4bf-4921-4e10-9f4d-81601847f4c5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_question_applicability
+    - paragraphs.paragraphs_type.attendee_extra_field
+  module:
+    - options
+id: paragraph.attendee_extra_field.field_question_applicability
+field_name: field_question_applicability
+entity_type: paragraph
+bundle: attendee_extra_field
+label: 'Question applicability'
+description: 'Controls whether this question applies to every ticket holder, selected ticket types, or a future per-order flow.'
+required: false
+translatable: false
+default_value:
+  -
+    value: per_ticket
+default_value_callback: ''
+settings: {  }
+field_type: list_string
