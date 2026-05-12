@@ -27,17 +27,24 @@
   <div id="{{ panel_id }}" class="mel-ai-assist__panel" data-mel-ai-panel hidden>
     <p class="mel-ai-assist__helper">{{ helper }}</p>
 
-    <fieldset class="mel-ai-assist__chips">
-      <legend class="mel-ai-assist__chips-label">{{ 'Optional writing prompts'|t }}</legend>
-      {% for value, label in style_chips %}
-        <button
-          type="button"
-          class="mel-ai-assist__chip"
-          data-mel-ai-chip="{{ value }}"
-          aria-pressed="false"
-        >{{ label }}</button>
+    <details class="mel-ai-assist__prompts">
+      <summary class="mel-ai-assist__prompts-summary">{{ 'Choose a writing prompt'|t }}</summary>
+      {% for group, chips in chip_groups %}
+        <fieldset class="mel-ai-assist__chips" data-mel-ai-chip-group="{{ group|lower }}">
+          <legend class="mel-ai-assist__chips-label">{{ group|t }}</legend>
+          <div class="mel-ai-assist__chip-scroll">
+            {% for value, label in chips %}
+              <button
+                type="button"
+                class="mel-ai-assist__chip"
+                data-mel-ai-chip="{{ value }}"
+                aria-pressed="false"
+              >{{ label }}</button>
+            {% endfor %}
+          </div>
+        </fieldset>
       {% endfor %}
-    </fieldset>
+    </details>
 
     <div class="mel-ai-assist__actions">
       <button type="button" class="mel-btn mel-btn--secondary mel-ai-assist__generate" data-mel-ai-generate>
@@ -53,12 +60,14 @@
 
     <p id="{{ status_id }}" class="mel-ai-assist__status" data-mel-ai-status role="status" aria-live="polite"></p>
 
-    <div
-      id="{{ preview_id }}"
-      class="mel-ai-assist__preview"
-      data-mel-ai-preview
-      tabindex="-1"
-      hidden
-    ></div>
+    <div class="mel-ai-assist__suggestion" data-mel-ai-suggestion hidden>
+      <p class="mel-ai-assist__suggestion-label">{{ 'AI suggestion'|t }}</p>
+      <div
+        id="{{ preview_id }}"
+        class="mel-ai-assist__preview"
+        data-mel-ai-preview
+        tabindex="-1"
+      ></div>
+    </div>
   </div>
 </div>

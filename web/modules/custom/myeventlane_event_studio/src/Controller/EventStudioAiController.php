@@ -29,7 +29,7 @@ final class EventStudioAiController {
 
   public function assist(Request $request, NodeInterface $node): JsonResponse {
     if (!$request->isMethod('POST')) {
-      return new JsonResponse(['ok' => FALSE, 'error' => 'Method not allowed'], 405);
+      return new JsonResponse(['ok' => FALSE, 'success' => FALSE, 'error' => 'Method not allowed'], 405);
     }
 
     $this->assertCanAssist($node);
@@ -44,14 +44,11 @@ final class EventStudioAiController {
         '@field' => $field_name,
         '@nid' => (string) $node->id(),
       ]);
-      return new JsonResponse(['ok' => FALSE, 'error' => 'Unsupported field'], 400);
+      return new JsonResponse(['ok' => FALSE, 'success' => FALSE, 'error' => 'Unsupported field'], 400);
     }
 
     try {
-      $input = $data['context'] ?? $data;
-      if (!is_array($input)) {
-        $input = [];
-      }
+      $input = $this->normalizeInput($data, $field_name);
       $request_bundle = $this->promptBuilder->build($node, $field_name, $input);
       $result = $this->aiManager->analyze(
         $request_bundle['definition'],
@@ -62,7 +59,7 @@ final class EventStudioAiController {
       );
     }
     catch (\InvalidArgumentException $e) {
-      return new JsonResponse(['ok' => FALSE, 'error' => $e->getMessage()], 400);
+      return new JsonResponse(['ok' => FALSE, 'success' => FALSE, 'error' => $e->getMessage()], 400);
     }
     catch (\Throwable $e) {
       $this->logger->error('Event Studio AI assist failed before provider call nid=@nid field=@field: @message', [
@@ -70,7 +67,7 @@ final class EventStudioAiController {
         '@field' => $field_name,
         '@message' => $e->getMessage(),
       ]);
-      return new JsonResponse(['ok' => FALSE, 'error' => 'AI is unavailable right now.'], 200);
+      return new JsonResponse(['ok' => FALSE, 'success' => FALSE, 'error' => 'AI is unavailable right now.'], 200);
     }
 
     $this->logger->notice('Event Studio AI assist result ok=@ok nid=@nid field=@field', [
@@ -82,6 +79,7 @@ final class EventStudioAiController {
     if (!$result->ok) {
       return new JsonResponse([
         'ok' => FALSE,
+        'success' => FALSE,
         'error' => $result->error ?: 'AI is unavailable right now.',
         'text' => '',
       ], 200);
@@ -89,15 +87,39 @@ final class EventStudioAiController {
 
     $text = $this->promptBuilder->extractGeneratedText($result->json, $result->raw);
     if ($text === '') {
-      return new JsonResponse(['ok' => FALSE, 'error' => 'AI did not return usable text.', 'text' => ''], 200);
+      return new JsonResponse(['ok' => FALSE, 'success' => FALSE, 'error' => 'AI did not return usable text.', 'text' => ''], 200);
     }
 
     return new JsonResponse([
       'ok' => TRUE,
+      'success' => TRUE,
       'field' => $field_name,
       'text' => $text,
       'error' => '',
     ], 200);
+  }
+
+  /**
+   * @param array<string, mixed> $data
+   *
+   * @return array<string, mixed>
+   */
+  private function normalizeInput(array $data, string $field_name): array {
+    $context = $data['context'] ?? [];
+    if (!is_array($context)) {
+      $context = [];
+    }
+    $event_context = $data['event_context'] ?? ($context['event_context'] ?? []);
+    if (!is_array($event_context)) {
+      $event_context = [];
+    }
+
+    $context['prompt_type'] = (string) ($data['prompt_type'] ?? $context['prompt_type'] ?? '');
+    $context['current_value'] = (string) ($data['current_value'] ?? $context['current_value'] ?? '');
+    $context['event_context'] = $event_context;
+    $context['field'] = $field_name;
+
+    return $context;
   }
 
   private function assertCanAssist(NodeInterface $node): void {
@@ -139,7 +161,7 @@ final class EventStudioAiController {
       $this->logger->notice('Event Studio AI assist: invalid JSON body: @message', [
         '@message' => $e->getMessage(),
       ]);
-      return new JsonResponse(['ok' => FALSE, 'error' => 'Invalid JSON'], 400);
+      return new JsonResponse(['ok' => FALSE, 'success' => FALSE, 'error' => 'Invalid JSON'], 400);
     }
 
     return is_array($decoded) ? $decoded : [];
