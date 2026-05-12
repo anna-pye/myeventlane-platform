@@ -1051,6 +1051,22 @@
   gap: 8px;
 }
 
+.mel-event-studio .mel-ai-assist__actions [hidden],
+.mel-event-studio .mel-ai-assist__suggestion[hidden],
+.mel-event-studio .mel-ai-assist__panel[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-ai-assist__actions .mel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
 .mel-event-studio .mel-ai-assist__status {
   min-height: 1.2em;
   margin: 0;
