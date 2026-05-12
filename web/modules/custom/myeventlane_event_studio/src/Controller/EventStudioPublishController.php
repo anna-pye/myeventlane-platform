@@ -262,6 +262,7 @@ final class EventStudioPublishController {
         'errors' => $readiness->errors,
         'warnings' => $readiness->warnings,
         'completed' => $readiness->completed,
+        'recommendations' => $readiness->recommendations,
         'state' => $this->operationalState($readiness),
       ],
       'changed' => $node->getChangedTime(),

@@ -196,6 +196,7 @@
     setText(strip, '[data-mel-readiness-state]', readiness.state || '');
     setText(strip, '[data-mel-readiness-errors-count]', Drupal.formatPlural((readiness.errors || []).length, '1 blocker', '@count blocker(s)'));
     setText(strip, '[data-mel-readiness-warnings-count]', Drupal.formatPlural((readiness.warnings || []).length, '1 warning', '@count warning(s)'));
+    setText(strip, '[data-mel-readiness-recommendations-count]', Drupal.formatPlural((readiness.recommendations || []).length, '1 idea', '@count idea(s)'));
     setText(strip, '[data-mel-readiness-completed-count]', Drupal.t('@count complete', { '@count': (readiness.completed || []).length }));
   }
 
@@ -293,22 +294,47 @@
         if (!shell) {
           return;
         }
-        button.addEventListener('click', () => {
-          const isOpen = shell.classList.toggle('is-sidebar-open');
-          button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        });
-        shell.addEventListener('click', (event) => {
-          if (event.target !== shell || !shell.classList.contains('is-sidebar-open')) {
-            return;
-          }
+        const overlay = shell.querySelector('[data-mel-studio-sidebar-overlay]');
+        const sidebar = shell.querySelector('.mel-event-studio-sidebar');
+        const closeSidebar = () => {
           shell.classList.remove('is-sidebar-open');
           button.setAttribute('aria-expanded', 'false');
+          if (overlay) {
+            overlay.hidden = true;
+          }
+        };
+        const openSidebar = () => {
+          shell.classList.add('is-sidebar-open');
+          button.setAttribute('aria-expanded', 'true');
+          if (overlay) {
+            overlay.hidden = false;
+          }
+        };
+        button.addEventListener('click', () => {
+          if (shell.classList.contains('is-sidebar-open')) {
+            closeSidebar();
+            return;
+          }
+          openSidebar();
+        });
+        overlay?.addEventListener('click', closeSidebar);
+        document.addEventListener('click', (event) => {
+          if (!shell.classList.contains('is-sidebar-open')) {
+            return;
+          }
+          if (sidebar?.contains(event.target) || button.contains(event.target) || overlay?.contains(event.target)) {
+            return;
+          }
+          closeSidebar();
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && shell.classList.contains('is-sidebar-open')) {
+            closeSidebar();
+            button.focus();
+          }
         });
         shell.querySelectorAll('.mel-event-studio-sidebar__link').forEach((link) => {
-          link.addEventListener('click', () => {
-            shell.classList.remove('is-sidebar-open');
-            button.setAttribute('aria-expanded', 'false');
-          });
+          link.addEventListener('click', closeSidebar);
         });
       });
 

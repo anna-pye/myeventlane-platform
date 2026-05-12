@@ -4,19 +4,25 @@
  * Reusable Event Studio empty state.
  */
 #}
-<div class="mel-event-studio-empty-state">
-  <h3 class="mel-event-studio-empty-state__title">{{ title }}</h3>
-  <p class="mel-event-studio-empty-state__body">{{ body }}</p>
+<div class="mel-event-studio-empty-state mel-event-studio-empty-state--{{ state|default('default')|clean_class }}" data-mel-empty-state="{{ state|default('default') }}">
+  <div class="mel-event-studio-empty-state__visual" aria-hidden="true">
+    <span class="mel-event-studio-empty-state__icon mel-event-studio-empty-state__icon--{{ icon|default('spark')|clean_class }}"></span>
+  </div>
+  <div class="mel-event-studio-empty-state__content">
+    <p class="mel-event-studio-empty-state__kicker">{{ state|default('default') == 'readonly' ? 'Readonly reporting'|t : 'Governed roadmap'|t }}</p>
+    <h3 class="mel-event-studio-empty-state__title">{{ title }}</h3>
+    <p class="mel-event-studio-empty-state__body">{{ body }}</p>
 
-  {% if prompt %}
-    <p class="mel-event-studio-empty-state__prompt">{{ prompt }}</p>
-  {% endif %}
+    {% if prompt %}
+      <p class="mel-event-studio-empty-state__prompt">{{ prompt }}</p>
+    {% endif %}
 
-  {% if guidance %}
-    <ul class="mel-event-studio-empty-state__guidance">
-      {% for item in guidance %}
-        <li>{{ item }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+    {% if guidance %}
+      <ul class="mel-event-studio-empty-state__guidance">
+        {% for item in guidance %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
 </div>

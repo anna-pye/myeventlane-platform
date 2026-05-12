@@ -35,5 +35,11 @@
         </ul>
       </nav>
     {% endfor %}
+
+    {% if guidance %}
+      <div class="mel-event-studio-sidebar__guidance">
+        {{ guidance }}
+      </div>
+    {% endif %}
   </div>
 </aside>

@@ -73,25 +73,28 @@ final class EventStudioOperationalTicketsForm extends FormBase {
 
     $form['intro'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-studio-ticket-intro']],
+      '#attributes' => ['class' => ['mel-es-card', 'mel-event-studio-ticket-intro']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Ticket operations'),
+        '#attributes' => ['class' => ['mel-es-card__title']],
+      ],
       'copy' => [
-        '#markup' => '<p>' . $this->t('Manage ticket rows independently. Saves here update MEL ticket types and let the existing lifecycle service sync Commerce projections.') . '</p>',
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Manage ticket rows independently. Saves here update MEL ticket types and let the existing lifecycle service sync Commerce projections.'),
+        '#attributes' => ['class' => ['mel-es-card__hint']],
       ],
     ];
 
     $form['tickets'] = [
-      '#type' => 'table',
-      '#header' => [
-        $this->t('Ticket Name'),
-        $this->t('Price'),
-        $this->t('Capacity'),
-        $this->t('Sales Window'),
-        $this->t('Visibility'),
-        $this->t('Status'),
-        $this->t('Actions'),
+      '#type' => 'container',
+      '#tree' => TRUE,
+      '#attributes' => [
+        'class' => ['mel-event-studio-ticket-table', 'mel-event-studio-ticket-cards'],
+        'role' => 'list',
       ],
-      '#empty' => $this->t('No tickets yet. Add a row below and save tickets.'),
-      '#attributes' => ['class' => ['mel-event-studio-ticket-table']],
     ];
 
     foreach ($this->ticketTierLifecycle->loadOrderedTicketsForEvent($event) as $ticket) {
@@ -99,11 +102,23 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $form['tickets'][$ticket_id] = $this->buildExistingTicketRow($ticket);
     }
 
+    if (count($form['tickets']) === 3) {
+      $form['tickets']['empty'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-empty']],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('No tickets yet. Add a row below and save tickets.'),
+        ],
+      ];
+    }
+
     $form['new_ticket'] = [
       '#type' => 'details',
       '#title' => $this->t('Add ticket'),
       '#open' => TRUE,
-      '#attributes' => ['class' => ['mel-event-studio-ticket-add']],
+      '#attributes' => ['class' => ['mel-es-card', 'mel-event-studio-ticket-add']],
       'ticket_kind' => [
         '#type' => 'select',
         '#title' => $this->t('Type'),
@@ -272,31 +287,48 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     return [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => array_filter([
+          'mel-event-studio-ticket-card',
+          $ticket->isArchived() ? 'is-archived' : ($ticket->isPublished() ? 'is-active' : 'is-inactive'),
+          $ticket->isBestValueTicket() ? 'is-best-value' : NULL,
+        ]),
+        'role' => 'listitem',
+      ],
       'title' => [
         '#type' => 'textfield',
         '#title' => $this->t('Ticket Name'),
-        '#title_display' => 'invisible',
         '#default_value' => $ticket->getTitle(),
         '#maxlength' => 255,
+        '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__identity']],
       ],
       'price_amount' => [
         '#type' => 'number',
         '#title' => $this->t('Price'),
-        '#title_display' => 'invisible',
         '#min' => 0,
         '#step' => 0.01,
         '#default_value' => $price?->getNumber() ?? '',
         '#disabled' => $kind !== 'paid',
+        '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__pricing']],
       ],
       'capacity' => [
         '#type' => 'number',
         '#title' => $this->t('Capacity'),
-        '#title_display' => 'invisible',
         '#min' => 1,
         '#step' => 1,
         '#default_value' => $ticket->get('capacity')->isEmpty() ? '' : (string) $ticket->get('capacity')->value,
+        '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__capacity']],
       ],
       'sales_window' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-card__sales-window']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Sales window'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__group-title']],
+        ],
         'sale_start' => [
           '#type' => 'datetime',
           '#title' => $this->t('Sales start'),
@@ -311,28 +343,45 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       'visibility_mode' => [
         '#type' => 'select',
         '#title' => $this->t('Visibility'),
-        '#title_display' => 'invisible',
         '#options' => $this->visibilityOptions(),
         '#default_value' => $ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()
           ? (string) $ticket->get('visibility_mode')->value
           : 'public',
+        '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__visibility']],
       ],
       'status' => [
         '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-card__status']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Status'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__group-title']],
+        ],
         'published' => [
           '#type' => 'checkbox',
           '#title' => $status,
           '#default_value' => $ticket->isPublished(),
           '#disabled' => $ticket->isArchived(),
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox']],
         ],
         'best_value' => [
           '#type' => 'checkbox',
           '#title' => $this->t('Best value'),
           '#default_value' => $ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket(),
           '#disabled' => $ticket->isArchived() || !$ticket->hasField('field_is_best_value'),
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox']],
         ],
       ],
       'actions' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-card__actions']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Actions'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__group-title']],
+        ],
         'ticket_kind' => [
           '#type' => 'hidden',
           '#value' => $kind,
@@ -341,6 +390,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           '#type' => 'checkbox',
           '#title' => $this->t('Archive'),
           '#disabled' => $ticket->isArchived(),
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox']],
         ],
       ],
     ];

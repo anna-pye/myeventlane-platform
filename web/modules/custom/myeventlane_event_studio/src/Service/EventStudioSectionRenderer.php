@@ -15,6 +15,7 @@ use Drupal\myeventlane_event_studio\Form\EventSettingsForm;
 use Drupal\myeventlane_event_studio\Form\EventStudioOperationalTicketsForm;
 use Drupal\myeventlane_event_studio\Form\EventStudioTicketsForm;
 use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
+use Drupal\myeventlane_event_studio\Support\MelSupportResolverInterface;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -33,6 +34,7 @@ final class EventStudioSectionRenderer {
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
+    private readonly MelSupportResolverInterface $supportResolver,
     private readonly ?EventCapacityServiceInterface $capacityService = NULL,
     private readonly ?EventMetricsServiceInterface $metricsService = NULL,
   ) {
@@ -78,25 +80,100 @@ final class EventStudioSectionRenderer {
   }
 
   /**
+   * Builds sidebar guidance shown beside all Studio sections.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildSidebarGuidance(NodeInterface $event): array {
+    $readiness = $this->eventReadiness->evaluate($event, $this->currentUser);
+    $build = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-event-studio-sidebar-guidance']],
+      'next_steps' => $this->buildNextStepsCard(),
+      'readiness' => $this->buildReadinessCard($readiness, TRUE),
+    ];
+
+    $support = $this->supportResolver->buildCard($event, 'sidebar');
+    if ($support !== NULL) {
+      $build['support'] = $support;
+    }
+
+    return $build;
+  }
+
+  /**
    * @return array<string, mixed>
    */
   private function buildOverviewSection(NodeInterface $event): array {
-    $readiness = $this->eventReadiness->evaluate($event, $this->currentUser);
     return [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
-      'summary' => [
-        '#markup' => '<p>' . $this->t('Use the sidebar to manage one operational area at a time. Event information, content, tickets, and publishing now load as independent Studio sections.') . '</p>',
-      ],
-      'actions' => [
-        '#theme' => 'item_list',
-        '#items' => [
-          $this->t('Review event information before publishing.'),
-          $this->t('Manage tickets through the existing MEL ticket lifecycle path.'),
-          $this->t('Use Settings to review readiness and publish without leaving Studio.'),
+      '#attributes' => ['class' => ['mel-event-studio-overview']],
+      'hero' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-overview__hero']],
+        'kicker' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Your MEL command centre'),
+          '#attributes' => ['class' => ['mel-event-studio-overview__kicker']],
+        ],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Your event workspace is ready'),
+          '#attributes' => ['class' => ['mel-event-studio-overview__title']],
+        ],
+        'summary' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Work through one section at a time. MEL keeps publishing checks, ticket operations, attendee setup, and reporting clearly separated so you can move with confidence.'),
+          '#attributes' => ['class' => ['mel-event-studio-overview__summary']],
         ],
       ],
-      'readiness' => $this->buildReadinessCard($readiness),
+      'orientation' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-overview__orientation']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('What lives here'),
+          '#attributes' => ['class' => ['mel-event-studio-overview__subtitle']],
+        ],
+        'items' => [
+          '#theme' => 'item_list',
+          '#items' => [
+            $this->t('Use the Studio sidebar to move between governed sections.'),
+            $this->t('Each section owns one operational area and its save behavior.'),
+            $this->t('Readiness, suggestions, and support guidance stay beside the work instead of replacing it.'),
+          ],
+          '#attributes' => ['class' => ['mel-event-studio-overview__list']],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildNextStepsCard(): array {
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-event-studio-next-steps']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Suggested next steps'),
+        '#attributes' => ['class' => ['mel-event-studio-next-steps__title']],
+      ],
+      'items' => [
+        '#theme' => 'item_list',
+        '#items' => [
+          $this->t('Check event information and public copy first.'),
+          $this->t('Confirm RSVP or ticket setup before sharing the page.'),
+          $this->t('Use Settings to review readiness and publish from Studio.'),
+        ],
+        '#attributes' => ['class' => ['mel-event-studio-next-steps__list']],
+      ],
     ];
   }
 
@@ -117,12 +194,19 @@ final class EventStudioSectionRenderer {
    */
   private function buildSettingsSection(NodeInterface $event): array {
     $readiness = $this->eventReadiness->evaluate($event, $this->currentUser);
-    return [
+    $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-section__form-stack']],
       'readiness' => $this->buildReadinessCard($readiness),
       'settings' => $this->formBuilder->getForm(EventSettingsForm::class, $event),
     ];
+
+    $support = $this->supportResolver->buildCard($event, 'settings');
+    if ($support !== NULL) {
+      $build['support'] = $support;
+    }
+
+    return $build;
   }
 
   /**
@@ -160,6 +244,7 @@ final class EventStudioSectionRenderer {
         '#type' => 'html_tag',
         '#tag' => 'p',
         '#value' => $this->t('Capacity is enforced by the ticket and RSVP lifecycle. This panel shows the current operational capacity state without changing booking rules.'),
+        '#attributes' => ['class' => ['mel-event-studio-readonly__intro']],
       ],
       'summary' => [
         '#type' => 'table',
@@ -265,6 +350,7 @@ final class EventStudioSectionRenderer {
         '#value' => $projection->intro ?? $this->t('@section is readonly in Studio. Reporting data is event-scoped and does not mutate operational state.', [
           '@section' => $projection->title,
         ]),
+        '#attributes' => ['class' => ['mel-event-studio-readonly__intro']],
       ],
       'summary' => [
         '#type' => 'table',
@@ -289,10 +375,16 @@ final class EventStudioSectionRenderer {
   /**
    * @return array<string, mixed>
    */
-  private function buildReadinessCard(EventReadinessResult $result): array {
+  private function buildReadinessCard(EventReadinessResult $result, bool $compact = FALSE): array {
     $build = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-readiness-card', $result->ready ? 'is-ready' : 'needs-attention']],
+      '#attributes' => [
+        'class' => array_filter([
+          'mel-readiness-card',
+          $compact ? 'mel-readiness-card--compact' : NULL,
+          $result->ready ? 'is-ready' : 'needs-attention',
+        ]),
+      ],
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h3',
@@ -334,6 +426,20 @@ final class EventStudioSectionRenderer {
         '#theme' => 'item_list',
         '#items' => $result->warnings,
         '#attributes' => ['class' => ['mel-readiness-card__list', 'mel-readiness-card__list--warnings']],
+      ];
+    }
+
+    if ($result->recommendations !== []) {
+      $build['recommendations_title'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'h4',
+        '#value' => $this->t('Recommendations'),
+        '#attributes' => ['class' => ['mel-readiness-card__heading']],
+      ];
+      $build['recommendations'] = [
+        '#theme' => 'item_list',
+        '#items' => $result->recommendations,
+        '#attributes' => ['class' => ['mel-readiness-card__list', 'mel-readiness-card__list--recommendations']],
       ];
     }
 

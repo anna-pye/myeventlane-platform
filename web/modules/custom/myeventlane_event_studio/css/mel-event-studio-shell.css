@@ -4,6 +4,10 @@
  *
  * Uses BEM block .mel-es-workspace (NOT .mel-studio-layout) so vendor dist/workspace.css
  * grid rules for .mel-vendor-shell__content .mel-studio-layout never apply here.
+ *
+ * Ownership: module CSS owns Studio layout, shell structure, accessibility,
+ * and state classes. Theme SCSS may layer MEL colours, shadows, typography,
+ * and polish without redefining the operational grid or section contracts.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -1330,10 +1334,13 @@
 /* -------------------------------------------------------------------------- */
 
 .mel-event-studio--workspace {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 18px;
   width: 100%;
+  color: #0f172a;
+  font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .mel-event-studio-topbar {
@@ -1346,10 +1353,12 @@
   gap: 18px;
   min-height: 76px;
   padding: 14px 20px;
-  border: 1px solid #e8e8ef;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(236, 72, 153, 0.16);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 247, 237, 0.92) 0%, rgba(250, 245, 255, 0.88) 100%),
+    rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px rgba(91, 33, 182, 0.09);
   backdrop-filter: blur(12px);
 }
 
@@ -1363,12 +1372,24 @@
   text-transform: uppercase;
 }
 
+.mel-event-studio-sidebar__heading {
+  margin-bottom: 6px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.mel-event-studio-topbar__event {
+  min-width: 0;
+}
+
 .mel-event-studio-topbar__title {
   margin: 0;
   color: #0f172a;
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
 }
 
 .mel-event-studio-topbar__meta,
@@ -1423,8 +1444,12 @@
   color: inherit;
 }
 
+.mel-event-studio-topbar__actions .mel-btn {
+  min-height: 44px;
+}
+
 .mel-event-studio-sidebar-toggle {
-  display: none;
+  display: none !important;
   align-self: flex-start;
   min-height: 44px;
   padding: 0 14px;
@@ -1441,11 +1466,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border: 1px solid #e8e8ef;
-  border-radius: 14px;
+  border-radius: 18px;
   background: #fff;
   color: #475569;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .mel-event-studio-readiness-strip__summary,
@@ -1469,38 +1495,47 @@
 
 .mel-event-studio-readiness-strip.is-ready {
   border-color: #bbf7d0;
-  background: #f0fdf4;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
   color: #166534;
 }
 
 .mel-event-studio-readiness-strip.needs-attention {
-  border-color: #fecaca;
-  background: #fff7f7;
-  color: #991b1b;
+  border-color: rgba(244, 63, 94, 0.26);
+  background: linear-gradient(135deg, #fff7f7 0%, #fff7ed 100%);
+  color: #9f1239;
 }
 
 .mel-event-studio-workspace {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  display: grid !important;
+  grid-template-columns: minmax(260px, 288px) minmax(0, 1fr) !important;
   align-items: start;
   gap: 24px;
+  width: 100%;
+  min-width: 0;
 }
 
 .mel-event-studio-sidebar {
   position: sticky;
   top: 96px;
   align-self: start;
+  grid-column: 1;
+  width: 100%;
+  min-width: 0;
 }
 
 .mel-event-studio-sidebar__inner {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 18px;
-  border: 1px solid #e8e8ef;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf7 100%);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+}
+
+.mel-event-studio-sidebar__group + .mel-event-studio-sidebar__group {
+  padding-top: 4px;
 }
 
 .mel-event-studio-sidebar__list {
@@ -1518,49 +1553,65 @@
   justify-content: space-between;
   gap: 10px;
   min-height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 14px;
   color: #334155;
   font-weight: 650;
+  line-height: 1.25;
   text-decoration: none;
 }
 
 .mel-event-studio-sidebar__label {
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mel-event-studio-sidebar__state {
   flex: 0 0 auto;
-  padding: 3px 8px;
+  align-self: center;
+  padding: 3px 7px;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #64748b;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: #f8fafc;
+  color: #7c3aed;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 .mel-event-studio-sidebar__link:hover,
 .mel-event-studio-sidebar__link:focus,
 .mel-event-studio-sidebar__link.is-active {
-  background: #f8fafc;
+  background: linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%);
   color: #0f172a;
 }
 
 .mel-event-studio-sidebar__link.is-active {
-  box-shadow: inset 3px 0 0 #ec4899;
+  box-shadow: inset 4px 0 0 #f26d5b, 0 8px 18px rgba(242, 109, 91, 0.1);
+}
+
+.mel-event-studio-sidebar__guidance,
+.mel-event-studio-sidebar-guidance {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mel-event-studio-sidebar__guidance {
+  padding-top: 4px;
 }
 
 .mel-event-studio-workspace__main {
+  grid-column: 2;
   min-width: 0;
 }
 
 .mel-event-studio-section {
-  border: 1px solid #e8e8ef;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdfb 100%);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
 }
 
 .mel-event-studio-section__header {
@@ -1579,6 +1630,13 @@
   padding: 20px 24px 24px;
 }
 
+.mel-event-studio-overview,
+.mel-event-studio-section__form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .mel-event-studio-section__form-stack {
   display: flex;
   flex-direction: column;
@@ -1594,8 +1652,14 @@
 .mel-readiness-card {
   padding: 18px;
   border: 1px solid #e8e8ef;
-  border-radius: 16px;
+  border-radius: 18px;
   background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.mel-readiness-card--compact {
+  padding: 16px;
+  border-radius: 18px;
 }
 
 .mel-readiness-card.is-ready {
@@ -1613,22 +1677,30 @@
   font-size: 1rem;
 }
 
+.mel-readiness-card--compact .mel-readiness-card__title {
+  font-size: 0.98rem;
+}
+
 .mel-readiness-card__summary {
   margin: 0 0 14px;
   color: #475569;
+  font-size: 0.9rem;
   line-height: 1.5;
 }
 
 .mel-readiness-card__heading {
   margin: 16px 0 8px;
   color: #0f172a;
-  font-size: 0.86rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .mel-readiness-card__list {
   margin-bottom: 0;
+  padding-left: 1rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
 }
 
 .mel-readiness-card__list--errors {
@@ -1639,8 +1711,217 @@
   color: #92400e;
 }
 
+.mel-readiness-card__list--recommendations {
+  color: #6d28d9;
+}
+
 .mel-readiness-card__list--completed {
   color: #166534;
+}
+
+.mel-event-studio-overview__hero,
+.mel-event-studio-overview__orientation,
+.mel-event-studio-next-steps,
+.mel-platform-support-card,
+.mel-rsvp-donation-guidance,
+.mel-event-studio-readonly {
+  overflow-x: auto;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.mel-event-studio-readonly table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.mel-event-studio-readonly th,
+.mel-event-studio-readonly td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.mel-event-studio-readonly th {
+  color: #64748b;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mel-event-studio-readonly tr:last-child td {
+  border-bottom: 0;
+}
+
+.mel-event-studio-readonly__intro {
+  margin-bottom: 14px;
+}
+
+.mel-event-studio-readonly {
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.mel-event-studio-overview__hero {
+  background: linear-gradient(135deg, #fff7ed 0%, #faf5ff 100%);
+  border-color: rgba(244, 114, 182, 0.2);
+}
+
+.mel-event-studio-overview__kicker,
+.mel-event-studio-next-steps__title,
+.mel-platform-support-card__kicker,
+.mel-rsvp-donation-guidance__kicker,
+.mel-event-studio-empty-state__kicker {
+  margin: 0 0 8px;
+  color: #7c3aed;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mel-event-studio-overview__subtitle {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.mel-event-studio-overview__title,
+.mel-platform-support-card__title,
+.mel-rsvp-donation-guidance__title {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-family: 'Nunito', system-ui, sans-serif;
+  font-size: 1.22rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+}
+
+.mel-event-studio-overview__summary,
+.mel-platform-support-card__intro,
+.mel-platform-support-card__assurance,
+.mel-rsvp-donation-guidance__intro,
+.mel-rsvp-donation-guidance__assurance,
+.mel-event-studio-readonly__intro {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.mel-platform-support-card {
+  background: linear-gradient(135deg, #faf5ff 0%, #fff7ed 100%);
+  border-color: rgba(167, 139, 250, 0.42);
+}
+
+.mel-platform-support-card__assurance,
+.mel-rsvp-donation-guidance__assurance {
+  margin-top: 12px;
+  color: #6d28d9;
+  font-weight: 650;
+}
+
+.mel-platform-support-card__cta {
+  margin-top: 16px;
+}
+
+.mel-rsvp-donation-guidance {
+  background: linear-gradient(135deg, #f0fdf4 0%, #fff7ed 100%);
+  border-color: rgba(52, 211, 153, 0.36);
+}
+
+.mel-event-studio-next-steps__list,
+.mel-event-studio-overview__list,
+.mel-event-studio-empty-state__guidance {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.mel-event-studio-empty-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 48%, #faf5ff 100%);
+  box-shadow: 0 14px 34px rgba(91, 33, 182, 0.07);
+}
+
+.mel-event-studio-empty-state__visual {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.mel-event-studio-empty-state__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f26d5b 0%, #8b5cf6 100%);
+}
+
+.mel-event-studio-empty-state__icon::before {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.mel-event-studio-empty-state__title {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-family: 'Nunito', system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.mel-event-studio-empty-state__body,
+.mel-event-studio-empty-state__prompt {
+  margin: 0 0 12px;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.mel-event-studio-empty-state__prompt {
+  font-weight: 650;
+  color: #5b21b6;
+}
+
+.mel-event-studio-publish-feedback {
+  padding: 16px 18px;
+  border: 1px solid rgba(244, 63, 94, 0.28);
+  border-radius: 18px;
+  background: #fff7f7;
+  box-shadow: 0 10px 28px rgba(244, 63, 94, 0.08);
+}
+
+.mel-event-studio-publish-feedback__title {
+  margin: 0 0 8px;
+  color: #9f1239;
+  font-size: 1rem;
+}
+
+.mel-event-studio-publish-feedback__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #991b1b;
 }
 
 .mel-event-studio-operational-tickets {
@@ -1683,17 +1964,117 @@
   background: #f8fafc;
 }
 
-@media (max-width: 960px) {
+@container (max-width: 620px) {
+  .mel-event-studio--workspace {
+    gap: 14px;
+    overflow-x: clip;
+  }
+
   .mel-event-studio-topbar {
     grid-template-columns: minmax(0, 1fr);
-    position: sticky;
-    top: 0;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
   }
 
   .mel-event-studio-topbar__meta,
   .mel-event-studio-topbar__actions {
     flex-wrap: wrap;
     white-space: normal;
+  }
+
+  .mel-event-studio-topbar__actions .mel-btn {
+    flex: 1 1 8rem;
+    justify-content: center;
+  }
+
+  .mel-event-studio-readiness-strip {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mel-event-studio-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px;
+  }
+
+  .mel-event-studio-sidebar-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mel-event-studio-sidebar-overlay {
+    appearance: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: rgba(15, 23, 42, 0.42) !important;
+    box-shadow: none;
+    cursor: pointer;
+  }
+
+  .mel-event-studio-sidebar-overlay[hidden] {
+    display: none;
+  }
+
+  .mel-event-studio-sidebar {
+    position: fixed;
+    grid-column: auto;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1001;
+    width: min(86vw, 340px);
+    padding: 16px;
+    overflow-y: auto;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+  }
+
+  .mel-event-studio--workspace.is-sidebar-open .mel-event-studio-sidebar {
+    transform: translateX(0);
+  }
+
+  .mel-event-studio-workspace__main,
+  .mel-event-studio-section {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mel-event-studio-section__header,
+  .mel-event-studio-section__body {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+}
+
+@media (max-width: 1120px) and (min-width: 621px) {
+  .mel-event-studio--workspace {
+    gap: 14px;
+  }
+
+  .mel-event-studio-topbar {
+    grid-template-columns: minmax(0, 1fr);
+    position: sticky;
+    top: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mel-event-studio-topbar__meta,
+  .mel-event-studio-topbar__actions {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .mel-event-studio-topbar__actions .mel-btn {
+    flex: 1 1 8rem;
+    justify-content: center;
   }
 
   .mel-event-studio-readiness-strip {
@@ -1706,13 +2087,15 @@
     max-width: 100%;
   }
 
-  .mel-event-studio-workspace {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+  .mel-event-studio-sidebar__inner {
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
-  .mel-event-studio-sidebar {
-    position: static;
+  .mel-event-studio-workspace__main,
+  .mel-event-studio-section {
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .mel-event-studio-section__header {
@@ -1736,35 +2119,47 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 620px) {
+  .mel-event-studio--workspace {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
   .mel-event-studio-sidebar-toggle {
-    display: inline-flex;
+    display: inline-flex !important;
     align-items: center;
     justify-content: center;
   }
 
   .mel-event-studio--workspace::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 24;
-    background: rgba(15, 23, 42, 0.28);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 160ms ease;
+    content: none;
   }
 
-  .mel-event-studio--workspace.is-sidebar-open::before {
-    opacity: 1;
-    pointer-events: auto;
+  .mel-event-studio-sidebar-overlay {
+    appearance: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: rgba(15, 23, 42, 0.42) !important;
+    box-shadow: none;
+    cursor: pointer;
+  }
+
+  .mel-event-studio-sidebar-overlay[hidden] {
+    display: none;
   }
 
   .mel-event-studio-sidebar {
     position: fixed;
+    grid-column: auto;
     top: 0;
     bottom: 0;
     left: 0;
-    z-index: 25;
+    z-index: 1001;
     width: min(86vw, 340px);
     padding: 16px;
     overflow-y: auto;
@@ -1784,6 +2179,17 @@
     gap: 12px;
     padding: 12px 14px;
     border-radius: 14px;
+  }
+
+  .mel-event-studio-topbar__meta {
+    gap: 6px;
+  }
+
+  .mel-event-studio-topbar__badge,
+  .mel-event-studio-topbar__state,
+  .mel-event-studio-topbar__saved,
+  .mel-event-studio-topbar__autosave {
+    font-size: 0.78rem;
   }
 
   .mel-event-studio-topbar__actions .mel-btn {
@@ -1830,5 +2236,15 @@
   .mel-event-studio-ticket-table select,
   .mel-event-studio-ticket-table textarea {
     max-width: 100%;
+  }
+
+  .mel-event-studio-empty-state {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+  }
+
+  .mel-event-studio-empty-state__visual {
+    width: 52px;
+    height: 52px;
   }
 }

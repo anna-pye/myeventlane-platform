@@ -54,6 +54,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#title' => $this->t('About the event'),
       '#default_value' => $melDefaults['body'] ?? '',
       '#attributes' => ['class' => ['mel-input', 'mel-input--body']],
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--content" aria-labelledby="mel-es-content-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-content-title">' . $this->t('Content') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Shape the story guests see before they commit to attending.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_event_intro'] = [
@@ -61,6 +62,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#title' => $this->t('What to expect'),
       '#default_value' => $melDefaults['field_event_intro'] ?? '',
       '#attributes' => ['class' => ['mel-input']],
+      '#suffix' => '</div></section>',
     ];
 
     $form['mel']['event_highlights'] = [
@@ -87,6 +89,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_tags'] ?? [],
       '#attributes' => ['class' => ['mel-input']],
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--visibility" aria-labelledby="mel-es-content-visibility-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-content-visibility-title">' . $this->t('Visibility') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Tune discovery tags and ticket sales timing without changing checkout logic.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_sales_start'] = [
@@ -103,6 +106,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['field_sales_end'] ?? NULL,
       '#date_increment' => 15,
       '#attributes' => ['class' => ['mel-input']],
+      '#suffix' => '</div></section>',
     ];
 
     $form['mel']['field_contact_email'] = [
@@ -110,6 +114,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#title' => $this->t('Contact email'),
       '#default_value' => $melDefaults['field_contact_email'] ?? '',
       '#attributes' => ['class' => ['mel-input']],
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--contact" aria-labelledby="mel-es-contact-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-contact-title">' . $this->t('Contact') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Give attendees a clear path for questions before the event.') . '</p></header><div class="mel-es-field-group__body mel-es-field-group__body--two-column">',
     ];
 
     $form['mel']['field_contact_phone'] = [
@@ -117,6 +122,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#title' => $this->t('Contact phone'),
       '#default_value' => $melDefaults['field_contact_phone'] ?? '',
       '#attributes' => ['class' => ['mel-input']],
+      '#suffix' => '</div></section>',
     ];
 
     $form['mel']['field_age_policy'] = [
@@ -131,6 +137,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_age_policy'] ?? 'all_ages',
       '#attributes' => ['class' => ['mel-input']],
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--policies" aria-labelledby="mel-es-policies-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-policies-title">' . $this->t('Guest policies') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Set age, refund, and access expectations in one readable group.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_age_policy_note'] = [
@@ -199,6 +206,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#title' => $this->t('Accessible parking'),
       '#default_value' => $melDefaults['field_accessibility_parking'] ?? '',
       '#attributes' => ['class' => ['mel-input']],
+      '#suffix' => '</div></section>',
     ];
   }
 
