@@ -97,12 +97,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       ],
     ];
 
-    foreach ($this->ticketTierLifecycle->loadOrderedTicketsForEvent($event) as $ticket) {
+    $tickets = $this->ticketTierLifecycle->loadOrderedTicketsForEvent($event);
+    foreach ($tickets as $ticket) {
       $ticket_id = (int) $ticket->id();
       $form['tickets'][$ticket_id] = $this->buildExistingTicketRow($ticket);
     }
 
-    if (count($form['tickets']) === 3) {
+    if ($tickets === []) {
       $form['tickets']['empty'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-event-studio-ticket-empty']],

@@ -77,10 +77,6 @@ final class QuestionFieldTypeRegistry {
     return in_array($this->normalize($type), self::CANONICAL_TYPES, TRUE);
   }
 
-  public function isRenderable(string $type): bool {
-    return $this->isSupported($type);
-  }
-
   public function isLegacy(string $type): bool {
     return $this->normalize($type) === self::TYPE_TEL;
   }
@@ -126,13 +122,6 @@ final class QuestionFieldTypeRegistry {
       $options[$type] = $this->label($type);
     }
     return $options;
-  }
-
-  /**
-   * @return list<string>
-   */
-  public function optionTypes(): array {
-    return self::OPTION_TYPES;
   }
 
 }
