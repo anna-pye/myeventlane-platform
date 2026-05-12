@@ -5584,6 +5584,32 @@
     };
   }
 
+  function melAiFormRevisionSignal(form) {
+    return [
+      val(form, 'mel_studio_revision'),
+      val(form, 'mel_studio_changed'),
+    ].filter(Boolean).join(':');
+  }
+
+  function melAiCharacterMeta(original, suggestion) {
+    var originalLength = (original || '').trim().length;
+    var suggestionLength = (suggestion || '').trim().length;
+    if (!suggestionLength) {
+      return '';
+    }
+    var delta = suggestionLength - originalLength;
+    var deltaText = delta === 0
+      ? Drupal.t('same length')
+      : delta > 0
+        ? Drupal.t('@count characters longer', { '@count': String(delta) })
+        : Drupal.t('@count characters shorter', { '@count': String(Math.abs(delta)) });
+    return Drupal.t('Current text: @current characters. New idea: @suggestion characters, @delta.', {
+      '@current': String(originalLength),
+      '@suggestion': String(suggestionLength),
+      '@delta': deltaText,
+    });
+  }
+
   function melAiSetStatus(assist, message, state) {
     var status = assist.querySelector('[data-mel-ai-status]');
     if (!status) {
@@ -5598,6 +5624,8 @@
 
   function melAiSetBusy(assist, busy) {
     assist.dataset.melAiBusy = busy ? '1' : '0';
+    assist.classList.toggle('is-busy', !!busy);
+    assist.setAttribute('aria-busy', busy ? 'true' : 'false');
     assist.querySelectorAll('[data-mel-ai-generate], [data-mel-ai-regenerate], [data-mel-ai-insert], [data-mel-ai-chip]').forEach(function (button) {
       button.disabled = !!busy;
       if (busy) {
@@ -5612,14 +5640,16 @@
   function melAiRenderSuggestion(assist, text) {
     var preview = assist.querySelector('[data-mel-ai-preview]');
     var suggestion = assist.querySelector('[data-mel-ai-suggestion]');
+    var meta = assist.querySelector('[data-mel-ai-meta]');
     var regenerate = assist.querySelector('[data-mel-ai-regenerate]');
     var insert = assist.querySelector('[data-mel-ai-insert]');
     assist.melAiSuggestion = text || '';
     if (preview) {
+      preview.classList.remove('is-refreshing');
       preview.textContent = text || '';
-      if (text && typeof preview.focus === 'function') {
-        preview.focus({ preventScroll: true });
-      }
+    }
+    if (meta) {
+      meta.textContent = text ? melAiCharacterMeta(assist.melAiOriginalValue || '', text) : '';
     }
     if (suggestion) {
       suggestion.hidden = !text;
@@ -5642,11 +5672,17 @@
     var input = melAiAssistInput(form, assist);
     var currentValue = input ? input.value || '' : '';
     if (!endpoint || !target) {
-      melAiSetStatus(assist, Drupal.t('AI assist is unavailable for this field.'), 'is-error');
+      melAiSetStatus(assist, Drupal.t('Writing help is unavailable for this field.'), 'is-error');
       return;
     }
+    assist.melAiOriginalValue = currentValue;
+    assist.melAiRevisionSignal = melAiFormRevisionSignal(form);
+    var preview = assist.querySelector('[data-mel-ai-preview]');
+    if (preview && assist.melAiSuggestion) {
+      preview.classList.add('is-refreshing');
+    }
     melAiSetBusy(assist, true);
-    melAiSetStatus(assist, Drupal.t('Drafting a suggestion...'), 'is-loading');
+    melAiSetStatus(assist, Drupal.t('Shaping a writing idea...'), 'is-loading');
     melGetCsrfToken()
       .then(function (token) {
         if (!token) {
@@ -5681,15 +5717,15 @@
       .then(function (result) {
         if (!result.ok || !result.data || !(result.data.success || result.data.ok) || !result.data.text) {
           melAiRenderSuggestion(assist, '');
-          melAiSetStatus(assist, Drupal.t('Could not create a suggestion right now.'), 'is-error');
+          melAiSetStatus(assist, Drupal.t('Unable to shape text right now. Please try again.'), 'is-error');
           return;
         }
         melAiRenderSuggestion(assist, result.data.text);
-        melAiSetStatus(assist, Drupal.t('Suggestion ready. Review it, then insert if it feels right.'), 'is-ready');
+        melAiSetStatus(assist, Drupal.t('Writing idea ready. Review it, then use it if it feels right.'), 'is-ready');
       })
       .catch(function () {
         melAiRenderSuggestion(assist, '');
-        melAiSetStatus(assist, Drupal.t('AI request failed. Please try again.'), 'is-error');
+        melAiSetStatus(assist, Drupal.t('Writing help is temporarily unavailable. Please try again.'), 'is-error');
       })
       .finally(function () {
         melAiSetBusy(assist, false);
@@ -5730,6 +5766,33 @@
             }
             melAiRequestSuggestion(form, assist);
           });
+          chip.addEventListener('keydown', function (e) {
+            if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+              return;
+            }
+            var chips = Array.prototype.slice.call(assist.querySelectorAll('[data-mel-ai-chip]'));
+            var currentIndex = chips.indexOf(chip);
+            if (currentIndex === -1) {
+              return;
+            }
+            e.preventDefault();
+            var nextIndex = currentIndex;
+            if (e.key === 'Home') {
+              nextIndex = 0;
+            }
+            else if (e.key === 'End') {
+              nextIndex = chips.length - 1;
+            }
+            else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+              nextIndex = (currentIndex + 1) % chips.length;
+            }
+            else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+              nextIndex = (currentIndex - 1 + chips.length) % chips.length;
+            }
+            if (chips[nextIndex] && typeof chips[nextIndex].focus === 'function') {
+              chips[nextIndex].focus({ preventScroll: true });
+            }
+          });
         });
         assist.querySelectorAll('[data-mel-ai-generate], [data-mel-ai-regenerate]').forEach(function (button) {
           button.addEventListener('click', function () {
@@ -5742,14 +5805,21 @@
             var input = melAiAssistInput(form, assist);
             var suggestion = assist.melAiSuggestion || '';
             if (!input || !suggestion) {
-              melAiSetStatus(assist, Drupal.t('There is no suggestion to insert yet.'), 'is-error');
+              melAiSetStatus(assist, Drupal.t('There is no writing idea to use yet.'), 'is-error');
+              return;
+            }
+            if (assist.melAiRevisionSignal && melAiFormRevisionSignal(form) !== assist.melAiRevisionSignal) {
+              melAiSetStatus(assist, Drupal.t('This event changed after the idea was shaped. Review the field before using it.'), 'is-error');
               return;
             }
             input.value = suggestion;
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
+            if (typeof input.focus === 'function') {
+              input.focus({ preventScroll: true });
+            }
             refreshIntelligence(form, true);
-            setFormState(form, 'mel-studio--dirty', Drupal.t('AI suggestion inserted'));
+            setFormState(form, 'mel-studio--dirty', Drupal.t('Writing idea used'));
             melAiSetStatus(assist, Drupal.t('Used. You can keep editing before saving.'), 'is-inserted');
           });
         }
