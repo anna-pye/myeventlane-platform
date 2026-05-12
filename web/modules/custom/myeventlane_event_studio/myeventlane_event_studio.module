@@ -88,7 +88,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'insert_label' => '',
         'section' => '',
         'endpoint' => '',
-        'style_chips' => [],
+        'chip_groups' => [],
       ],
       'template' => 'mel-event-studio-ai-assist',
     ],

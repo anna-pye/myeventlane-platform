@@ -5488,6 +5488,19 @@
     return styles;
   }
 
+  function melAiPromptType(assist) {
+    return assist.getAttribute('data-mel-ai-prompt-type') || '';
+  }
+
+  function melAiPromptTypeFromSelectedStyles(assist) {
+    var selected = melAiSelectedStyles(assist);
+    var current = melAiPromptType(assist);
+    if (current && selected.indexOf(current) !== -1) {
+      return current;
+    }
+    return selected.length ? selected[0] : '';
+  }
+
   function melAiLocationContext(form) {
     var raw = val(form, 'mel[field_location]');
     if (raw) {
@@ -5506,14 +5519,18 @@
     return val(form, 'mel[venue_create_name]') || val(form, 'mel[location_search]') || val(form, 'mel[venue_saved]');
   }
 
+  function melAiEventTypeValue(form) {
+    return valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]') || 'rsvp';
+  }
+
   function melAiEventTypeContext(form) {
-    var tt = valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]');
+    var tt = melAiEventTypeValue(form);
     var str = getSettings().strings || {};
     return ticketTypeLabel(tt, str);
   }
 
   function melAiTicketModeContext(form) {
-    var tt = valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]');
+    var tt = melAiEventTypeValue(form);
     var mode = melAiEventTypeContext(form);
     var details = [];
 
@@ -5555,6 +5572,18 @@
     };
   }
 
+  function melAiEventContext(form) {
+    return {
+      title: val(form, 'mel[title]'),
+      summary: val(form, 'mel[summary]'),
+      category: categoryForAiPayload(form),
+      tags: tagsForAiPayload(form),
+      event_type: melAiEventTypeContext(form),
+      ticket_mode: melAiTicketModeContext(form),
+      location: melAiLocationContext(form),
+    };
+  }
+
   function melAiSetStatus(assist, message, state) {
     var status = assist.querySelector('[data-mel-ai-status]');
     if (!status) {
@@ -5582,15 +5611,18 @@
 
   function melAiRenderSuggestion(assist, text) {
     var preview = assist.querySelector('[data-mel-ai-preview]');
+    var suggestion = assist.querySelector('[data-mel-ai-suggestion]');
     var regenerate = assist.querySelector('[data-mel-ai-regenerate]');
     var insert = assist.querySelector('[data-mel-ai-insert]');
     assist.melAiSuggestion = text || '';
     if (preview) {
       preview.textContent = text || '';
-      preview.hidden = !text;
       if (text && typeof preview.focus === 'function') {
         preview.focus({ preventScroll: true });
       }
+    }
+    if (suggestion) {
+      suggestion.hidden = !text;
     }
     if (regenerate) {
       regenerate.hidden = !text;
@@ -5607,6 +5639,8 @@
     var endpoint = assist.getAttribute('data-mel-ai-endpoint') || '';
     var target = assist.getAttribute('data-mel-ai-target') || '';
     var section = assist.getAttribute('data-mel-ai-section') || '';
+    var input = melAiAssistInput(form, assist);
+    var currentValue = input ? input.value || '' : '';
     if (!endpoint || !target) {
       melAiSetStatus(assist, Drupal.t('AI assist is unavailable for this field.'), 'is-error');
       return;
@@ -5629,6 +5663,9 @@
           body: JSON.stringify({
             field: target,
             target: target,
+            prompt_type: melAiPromptType(assist),
+            current_value: currentValue,
+            event_context: melAiEventContext(form),
             section: section,
             context: melAiAssistContext(form, assist),
           }),
@@ -5642,7 +5679,7 @@
         });
       })
       .then(function (result) {
-        if (!result.ok || !result.data || !result.data.ok || !result.data.text) {
+        if (!result.ok || !result.data || !(result.data.success || result.data.ok) || !result.data.text) {
           melAiRenderSuggestion(assist, '');
           melAiSetStatus(assist, Drupal.t('Could not create a suggestion right now.'), 'is-error');
           return;
@@ -5684,7 +5721,14 @@
         assist.querySelectorAll('[data-mel-ai-chip]').forEach(function (chip) {
           chip.addEventListener('click', function () {
             var pressed = chip.getAttribute('aria-pressed') === 'true';
+            var value = chip.getAttribute('data-mel-ai-chip') || '';
             chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+            assist.setAttribute('data-mel-ai-prompt-type', pressed ? melAiPromptTypeFromSelectedStyles(assist) : value);
+            if (toggle && panel && panel.hidden) {
+              toggle.setAttribute('aria-expanded', 'true');
+              panel.hidden = false;
+            }
+            melAiRequestSuggestion(form, assist);
           });
         });
         assist.querySelectorAll('[data-mel-ai-generate], [data-mel-ai-regenerate]').forEach(function (button) {
@@ -5706,7 +5750,7 @@
             input.dispatchEvent(new Event('change', { bubbles: true }));
             refreshIntelligence(form, true);
             setFormState(form, 'mel-studio--dirty', Drupal.t('AI suggestion inserted'));
-            melAiSetStatus(assist, Drupal.t('Inserted. You can keep editing before saving.'), 'is-inserted');
+            melAiSetStatus(assist, Drupal.t('Used. You can keep editing before saving.'), 'is-inserted');
           });
         }
       });

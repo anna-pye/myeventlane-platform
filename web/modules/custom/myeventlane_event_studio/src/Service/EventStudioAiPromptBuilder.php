@@ -65,6 +65,17 @@ final class EventStudioAiPromptBuilder {
     'minimal' => 'brief, calm, and direct',
   ];
 
+  /**
+   * @var array<string, string>
+   */
+  private const PROMPT_TYPE_INSTRUCTIONS = [
+    'more_welcoming' => 'Make the copy feel warmer, more welcoming, and emotionally safe for attendees.',
+    'more_exciting' => 'Make the copy more vivid and exciting without hype, fake urgency, or clickbait.',
+    'social_short' => 'Shorten the copy for social sharing while preserving the most important attendee-facing detail.',
+    'attendee_clarity' => 'Improve clarity for attendees. Remove assumptions, jargon, and vague phrasing.',
+    'community_friendly' => 'Make the copy feel community-minded, inclusive, and grounded in belonging.',
+  ];
+
   public function __construct(
     private readonly LoggerInterface $logger,
   ) {}
@@ -92,6 +103,8 @@ final class EventStudioAiPromptBuilder {
     $field = self::FIELDS[$field_name];
     $context = $this->contextFromEventAndInput($event, $input);
     $styles = $this->styleInstructions($input['styles'] ?? []);
+    $prompt_type = strtolower(trim((string) ($input['prompt_type'] ?? '')));
+    $prompt_instruction = self::PROMPT_TYPE_INSTRUCTIONS[$prompt_type] ?? '';
     $current_value = $this->plainText($input['current_value'] ?? $context[$field_name] ?? '');
     $max_chars = (int) $field['max_chars'];
 
@@ -112,7 +125,8 @@ Rules:
 SYS;
 
     $context_text = $this->formatContext($context);
-    $style_text = $styles !== '' ? $styles : 'friendly, clear, and distinctly MEL';
+    $style_parts = array_filter([$prompt_instruction, $styles !== '' ? $styles : 'friendly, clear, and distinctly MEL']);
+    $style_text = implode("\n", $style_parts);
     $label = $field['label'];
     $instruction = $field['instruction'];
 
@@ -176,7 +190,7 @@ USR;
    * @return array<string, string>
    */
   private function contextFromEventAndInput(NodeInterface $event, array $input): array {
-    return [
+    $context = [
       'title' => $this->firstText($input['title'] ?? NULL, $event->label()),
       'summary' => $this->firstText($input['summary'] ?? NULL, $this->fieldText($event, 'field_event_summary')),
       'body' => $this->firstText($input['body'] ?? NULL, $this->fieldText($event, 'body')),
@@ -187,6 +201,15 @@ USR;
       'ticket_mode' => $this->plainText($input['ticket_mode'] ?? '', 120),
       'location' => $this->firstText($input['location'] ?? NULL, $this->locationLabel($event)),
     ];
+    $event_context = $input['event_context'] ?? [];
+    if (is_array($event_context)) {
+      foreach ($event_context as $key => $value) {
+        if (is_string($key) && array_key_exists($key, $context)) {
+          $context[$key] = $this->firstText($value, $context[$key]);
+        }
+      }
+    }
+    return $context;
   }
 
   private function firstText(mixed $preferred, mixed $fallback): string {

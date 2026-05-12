@@ -29,8 +29,8 @@ final class EventStudioAiAssistBuilder {
       'label' => 'Event title',
       'helper' => 'Need help naming it? Create a clear, guest-friendly title.',
       'button' => 'Write with AI',
-      'generate' => 'Generate a first draft',
-      'insert' => 'Insert title',
+      'generate' => 'Create draft',
+      'insert' => 'Use this text',
     ],
     'summary' => [
       'name' => 'mel[summary]',
@@ -38,8 +38,8 @@ final class EventStudioAiAssistBuilder {
       'label' => 'Summary',
       'helper' => 'Give your audience a clear overview in a few calm sentences.',
       'button' => 'Write with AI',
-      'generate' => 'Generate a first draft',
-      'insert' => 'Insert summary',
+      'generate' => 'Create draft',
+      'insert' => 'Use this text',
     ],
     'body' => [
       'name' => 'mel[body]',
@@ -47,8 +47,8 @@ final class EventStudioAiAssistBuilder {
       'label' => 'About the event',
       'helper' => 'Create a friendly event description guests can trust.',
       'button' => 'Write with AI',
-      'generate' => 'Generate a first draft',
-      'insert' => 'Insert description',
+      'generate' => 'Create draft',
+      'insert' => 'Use this text',
     ],
     'field_event_intro' => [
       'name' => 'mel[field_event_intro]',
@@ -56,8 +56,8 @@ final class EventStudioAiAssistBuilder {
       'label' => 'What to expect',
       'helper' => 'Help guests picture the experience before they RSVP or book.',
       'button' => 'Write with AI',
-      'generate' => 'Generate a first draft',
-      'insert' => 'Insert expectations',
+      'generate' => 'Create draft',
+      'insert' => 'Use this text',
     ],
   ];
 
@@ -107,11 +107,11 @@ final class EventStudioAiAssistBuilder {
       '#helper' => $this->t($definition['helper']),
       '#button_label' => $this->t($definition['button']),
       '#generate_label' => $this->t($definition['generate']),
-      '#regenerate_label' => $this->t('Regenerate'),
+      '#regenerate_label' => $this->t('Try another version'),
       '#insert_label' => $this->t($definition['insert']),
       '#section' => $section,
       '#endpoint' => $endpoint,
-      '#style_chips' => $this->styleChips(),
+      '#chip_groups' => $this->chipGroups(),
     ];
 
     $markup = (string) $this->renderer->renderPlain($build);
@@ -121,26 +121,33 @@ final class EventStudioAiAssistBuilder {
   }
 
   /**
-   * @return array<string, \Drupal\Core\StringTranslation\TranslatableMarkup>
-   *   Optional style chips available to every assist panel.
+   * @return array<string, array<string, \Drupal\Core\StringTranslation\TranslatableMarkup>>
+   *   Optional writing intent chips grouped for scanning.
    */
-  private function styleChips(): array {
+  private function chipGroups(): array {
     return [
-      'friendly' => $this->t('Friendly'),
-      'professional' => $this->t('Professional'),
-      'community' => $this->t('Community'),
-      'fun' => $this->t('Fun'),
-      'more_welcoming' => $this->t('Make this feel more welcoming'),
-      'more_exciting' => $this->t('Make this sound more exciting'),
-      'social_short' => $this->t('Shorten for social sharing'),
-      'attendee_clarity' => $this->t('Improve clarity for attendees'),
-      'community_friendly' => $this->t('Make it community-friendly'),
-      'lgbtqia' => $this->t('LGBTQIA+'),
-      'family' => $this->t('Family'),
-      'workshop' => $this->t('Workshop'),
-      'music' => $this->t('Music'),
-      'activist' => $this->t('Activist'),
-      'minimal' => $this->t('Minimal'),
+      'Tone' => [
+        'more_welcoming' => $this->t('Make this feel more welcoming'),
+        'more_exciting' => $this->t('Make this sound more exciting'),
+        'community_friendly' => $this->t('Make it community-friendly'),
+        'friendly' => $this->t('Friendly'),
+      ],
+      'Clarity' => [
+        'attendee_clarity' => $this->t('Improve clarity for attendees'),
+        'minimal' => $this->t('Keep it simple'),
+        'professional' => $this->t('Make it polished'),
+      ],
+      'Social' => [
+        'social_short' => $this->t('Shorten for social sharing'),
+        'fun' => $this->t('Make it lively'),
+        'music' => $this->t('Music-friendly'),
+      ],
+      'Access' => [
+        'lgbtqia' => $this->t('LGBTQIA+ affirming'),
+        'family' => $this->t('Family-friendly'),
+        'workshop' => $this->t('Workshop-friendly'),
+        'activist' => $this->t('Purpose-led'),
+      ],
     ];
   }
 
