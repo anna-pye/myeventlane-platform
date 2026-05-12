@@ -114,7 +114,7 @@ final class EventStudioSectionRenderer {
         'kicker' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Your MEL command centre'),
+          '#value' => $this->t('Your event workspace'),
           '#attributes' => ['class' => ['mel-event-studio-overview__kicker']],
         ],
         'title' => [
@@ -126,7 +126,7 @@ final class EventStudioSectionRenderer {
         'summary' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Work through one section at a time. MEL keeps publishing checks, ticket operations, attendee setup, and reporting clearly separated so you can move with confidence.'),
+          '#value' => $this->t('Work through one section at a time. MEL keeps the practical setup organised so you can focus on building an event people will want to attend.'),
           '#attributes' => ['class' => ['mel-event-studio-overview__summary']],
         ],
       ],
@@ -142,9 +142,9 @@ final class EventStudioSectionRenderer {
         'items' => [
           '#theme' => 'item_list',
           '#items' => [
-            $this->t('Use the Studio sidebar to move between governed sections.'),
-            $this->t('Each section owns one operational area and its save behavior.'),
-            $this->t('Readiness, suggestions, and support guidance stay beside the work instead of replacing it.'),
+            $this->t('Start with the public event details guests will see first.'),
+            $this->t('Add tickets, questions, and settings only when they help your event run smoothly.'),
+            $this->t('Readiness checks and suggestions stay beside the work so you always know the next step.'),
           ],
           '#attributes' => ['class' => ['mel-event-studio-overview__list']],
         ],
@@ -181,12 +181,24 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildTicketsStack(NodeInterface $event): array {
-    return [
+    $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-section__form-stack']],
       'mode' => $this->formBuilder->getForm(EventStudioTicketsForm::class, $event),
       'operational' => $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event),
     ];
+
+    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
+    if (in_array($event_type, ['paid', 'both'], TRUE)) {
+      $support = $this->supportResolver->buildCard($event, 'tickets');
+      if ($support !== NULL) {
+        $build['support'] = $support;
+      }
+    }
+
+    return $build;
   }
 
   /**

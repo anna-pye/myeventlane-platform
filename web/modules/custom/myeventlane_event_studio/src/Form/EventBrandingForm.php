@@ -48,13 +48,15 @@ final class EventBrandingForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_event_image'] ?? [],
       '#attributes' => ['class' => ['mel-input-file']],
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . $this->t('Branding') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Add a clear hero image and accessible alt text for the public event page.') . '</p></header><div class="mel-es-field-group__body">',
+      '#description' => $this->t('Optional, but recommended. A clear image helps attendees recognise your event.'),
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . $this->t('Branding') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Shape how your event appears across MyEventLane and social sharing.') . '</p><p class="mel-es-field-group__reassurance">' . $this->t('You can change visuals later. Accessibility text helps everyone understand the image.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_event_image_alt'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Image alt text'),
       '#default_value' => $melDefaults['field_event_image_alt'] ?? '',
+      '#description' => $this->t('Briefly describe the image for screen readers.'),
       '#attributes' => ['class' => ['mel-input']],
       '#suffix' => '</div></section>',
     ];
@@ -63,7 +65,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
       'copy' => [
-        '#markup' => '<p>' . $this->t('Additional branding controls will appear here when their event fields are configured. No parallel branding storage is created.') . '</p>',
+        '#markup' => '<p>' . $this->t('More brand controls will appear here only when they are ready for creators. For now, image and alt text are enough for most events.') . '</p>',
       ],
     ];
   }

@@ -126,6 +126,18 @@ services:
       - '@database'
       - '@logger.channel.myeventlane_event_studio'
 
+  myeventlane_event_studio.ai_assist_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioAiAssistBuilder
+    arguments:
+      - '@renderer'
+      - '@url_generator'
+      - '@string_translation'
+
+  myeventlane_event_studio.ai_prompt_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioAiPromptBuilder
+    arguments:
+      - '@logger.channel.myeventlane_event_studio'
+
   myeventlane_event_studio.question_template_manager:
     class: Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager
     arguments:
@@ -254,5 +266,16 @@ services:
       - '@date.formatter'
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_event_studio.ai_controller:
+    class: Drupal\myeventlane_event_studio\Controller\EventStudioAiController
+    arguments:
+      - '@myeventlane_ai.manager'
+      - '@myeventlane_event_studio.ai_prompt_builder'
+      - '@current_user'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@logger.channel.myeventlane_event_studio'
     tags:
       - { name: controller.service_arguments }

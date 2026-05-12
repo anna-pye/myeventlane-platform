@@ -11,7 +11,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
  */
 #[EventStudioSection(
   id: 'questions',
-  title: 'Checkout Questions',
+  title: 'Checkout questions',
   group: 'Commerce',
   routeName: 'myeventlane_event_studio.workspace_questions',
   section_state: 'active',

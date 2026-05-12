@@ -39,11 +39,11 @@ class EventStudioQuestionAnswerExistenceRepository {
 
       $or = $query->orConditionGroup();
       if ($machine !== '') {
-        $query->innerJoin('paragraph__field_question_machine_name', 'machine_name', 'machine_name.entity_id = answer.entity_id');
+        $query->leftJoin('paragraph__field_question_machine_name', 'machine_name', 'machine_name.entity_id = answer.entity_id');
         $or->condition('machine_name.field_question_machine_name_value', $machine);
       }
       if ($label !== '') {
-        $query->innerJoin('paragraph__field_question_label', 'question_label', 'question_label.entity_id = answer.entity_id');
+        $query->leftJoin('paragraph__field_question_label', 'question_label', 'question_label.entity_id = answer.entity_id');
         $or->condition('question_label.field_question_label_value', $label);
       }
       $query->condition($or);

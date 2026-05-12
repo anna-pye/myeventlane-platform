@@ -659,189 +659,6 @@
     return el && el.value ? el.value : 'general';
   }
 
-  /**
-   * Word-level highlight of tokens present in new but not in old (naive).
-   *
-   * @param {string} oldText
-   * @param {string} newText
-   * @return {string}
-   */
-  function melSimpleDiff(oldText, newText) {
-    var oldWords = oldText.split(/\s+/);
-    var newWords = newText.split(/\s+/);
-    var result = '';
-    newWords.forEach(function (word) {
-      var safe = Drupal.checkPlain(word);
-      if (oldWords.indexOf(word) === -1) {
-        result += '<span class="mel-diff-added">' + safe + '</span> ';
-      } else {
-        result += safe + ' ';
-      }
-    });
-    return result.trim();
-  }
-
-  /**
-   * Side-by-side preview before applying AI rewrite.
-   *
-   * @param {string} oldText
-   * @param {string} newText
-   * @param {function(): void} onApply
-   */
-  function melShowDiffModal(oldText, newText, onApply) {
-    var modal = document.getElementById('mel-ai-diff-modal');
-    var currentEl = document.getElementById('mel-ai-diff-current');
-    var newEl = document.getElementById('mel-ai-diff-new');
-
-    if (!modal || !currentEl || !newEl) {
-      return;
-    }
-
-    var previousActive = document.activeElement;
-
-    currentEl.textContent = oldText;
-    newEl.innerHTML = melSimpleDiff(oldText, newText);
-
-    modal.removeAttribute('hidden');
-
-    var applyBtn = document.getElementById('mel-ai-diff-apply');
-    var cancelBtn = document.getElementById('mel-ai-diff-cancel');
-    var overlay = modal.querySelector('.mel-ai-diff-modal__overlay');
-
-    if (!applyBtn || !cancelBtn) {
-      return;
-    }
-
-    function cleanup() {
-      modal.setAttribute('hidden', 'hidden');
-      applyBtn.removeEventListener('click', applyHandler);
-      cancelBtn.removeEventListener('click', cancelHandler);
-      document.removeEventListener('keydown', keyHandler);
-      if (overlay) {
-        overlay.removeEventListener('click', cancelHandler);
-      }
-      if (previousActive && typeof previousActive.focus === 'function') {
-        try {
-          previousActive.focus();
-        } catch (e) {}
-      }
-    }
-
-    function applyHandler() {
-      onApply();
-      cleanup();
-    }
-
-    function cancelHandler() {
-      cleanup();
-    }
-
-    function keyHandler(e) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        cancelHandler();
-      }
-    }
-
-    applyBtn.addEventListener('click', applyHandler);
-    cancelBtn.addEventListener('click', cancelHandler);
-    document.addEventListener('keydown', keyHandler);
-    if (overlay) {
-      overlay.addEventListener('click', cancelHandler);
-    }
-
-    window.setTimeout(function () {
-      applyBtn.focus();
-    }, 0);
-  }
-
-  /**
-   * AI rewrite for About (body) and What to expect (field_event_intro).
-   *
-   * @param {HTMLFormElement} form
-   * @param {'about'|'expect'} field
-   */
-  function melRewriteField(form, field) {
-    syncAiControlsToForm(form);
-    var aboutEl = form.querySelector('[name="mel[body]"]');
-    var expectEl = form.querySelector('[name="mel[field_event_intro]"]');
-    var about = aboutEl ? String(aboutEl.value || '') : '';
-    var expect = expectEl ? String(expectEl.value || '') : '';
-
-    setFormState(form, 'mel-studio--saving', Drupal.t('Improving your text…'));
-
-    var rewriteUrl = Drupal.url('vendor/events/ai/rewrite');
-
-    melGetCsrfToken()
-      .then(function (token) {
-        if (!token) {
-          return Promise.reject(new Error('empty_csrf_token'));
-        }
-        return fetch(rewriteUrl, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': token,
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({
-            about: about,
-            what_to_expect: expect,
-            category: categoryForAiPayload(form),
-            tone: aiToneFromPanel(form),
-            audience: aiAudienceFromPanel(form),
-          }),
-        });
-      })
-      .then(function (response) {
-        return response.text().then(function (text) {
-          var data = {};
-          if (text) {
-            try {
-              data = JSON.parse(text);
-            } catch (parseErr) {
-              data = { ok: false };
-            }
-          }
-          return { ok: response.ok, data: data };
-        });
-      })
-      .then(function (result) {
-        if (!result.ok || !result.data || !result.data.ok) {
-          setFormState(form, 'mel-studio--error', Drupal.t('Rewrite could not be applied.'));
-          return;
-        }
-
-        var original = field === 'about' ? about : expect;
-        var updated =
-          field === 'about' ? result.data.about : result.data.what_to_expect;
-        if (updated === undefined || updated === null) {
-          updated = '';
-        }
-
-        setFormState(form, '', '');
-
-        melShowDiffModal(original, updated, function () {
-          if (field === 'about' && aboutEl) {
-            aboutEl.value = updated;
-            aboutEl.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-
-          if (field === 'expect' && expectEl) {
-            expectEl.value = updated;
-            expectEl.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-
-          refreshIntelligence(form);
-          setFormState(form, 'mel-studio--dirty', Drupal.t('AI changes applied'));
-        });
-      })
-      .catch(function () {
-        setFormState(form, 'mel-studio--error', Drupal.t('Rewrite request failed.'));
-      });
-  }
-
   function valRadio(form, name) {
     var el = form.querySelector('[name="' + name + '"]:checked');
     return el ? el.value : '';
@@ -5376,95 +5193,6 @@
             }
             return;
           }
-          var rewriteAboutBtn = e.target.closest('#mel-ai-rewrite-about');
-          if (rewriteAboutBtn && form.contains(rewriteAboutBtn)) {
-            e.preventDefault();
-            melRewriteField(form, 'about');
-            return;
-          }
-          var rewriteExpectBtn = e.target.closest('#mel-ai-rewrite-expect');
-          if (rewriteExpectBtn && form.contains(rewriteExpectBtn)) {
-            e.preventDefault();
-            melRewriteField(form, 'expect');
-            return;
-          }
-          var genBtn = e.target.closest('#mel-ai-generate');
-          if (genBtn && form.contains(genBtn)) {
-            e.preventDefault();
-            syncAiControlsToForm(form);
-            var aiUrl = Drupal.url('vendor/events/ai/generate');
-
-            setFormState(form, 'mel-studio--saving', Drupal.t('AI is writing your event…'));
-
-            melGetCsrfToken()
-              .then(function (token) {
-                if (!token) {
-                  return Promise.reject(new Error('empty_csrf_token'));
-                }
-                return fetch(aiUrl, {
-                  method: 'POST',
-                  credentials: 'same-origin',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': token,
-                    Accept: 'application/json',
-                  },
-                  body: JSON.stringify({
-                    title: val(form, 'mel[title]'),
-                    summary: val(form, 'mel[summary]'),
-                    category: categoryForAiPayload(form),
-                    tags: tagsForAiPayload(form),
-                    tone: aiToneFromPanel(form),
-                    audience: aiAudienceFromPanel(form),
-                  }),
-                });
-              })
-              .then(function (response) {
-                return response.text().then(function (text) {
-                  var data = {};
-                  if (text) {
-                    try {
-                      data = JSON.parse(text);
-                    } catch (parseErr) {
-                      data = { ok: false, _parseError: true };
-                    }
-                  }
-                  return {
-                    ok: response.ok,
-                    status: response.status,
-                    data: data,
-                  };
-                });
-              })
-              .then(function (result) {
-                if (!result.ok || !result.data || !result.data.ok) {
-                  setFormState(form, 'mel-studio--error', Drupal.t('AI generation failed.'));
-                  return;
-                }
-
-                if (result.data.title) {
-                  var titleInput = form.querySelector('[name="mel[title]"]');
-                  if (titleInput) {
-                    titleInput.value = result.data.title;
-                  }
-                }
-
-                if (result.data.summary) {
-                  var summaryInput = form.querySelector('[name="mel[summary]"]');
-                  if (summaryInput) {
-                    summaryInput.value = result.data.summary;
-                  }
-                }
-
-                form.dispatchEvent(new Event('input', { bubbles: true }));
-                refreshIntelligence(form);
-                setFormState(form, 'mel-studio--dirty', Drupal.t('AI content applied'));
-              })
-              .catch(function () {
-                setFormState(form, 'mel-studio--error', Drupal.t('AI request failed.'));
-              });
-            return;
-          }
           var a = e.target.closest('.mel-ticket-product-panel__cta.is-disabled');
           if (a) {
             e.preventDefault();
@@ -5740,6 +5468,216 @@
     },
     true,
   );
+
+  function melAiAssistInput(form, assist) {
+    var fieldName = assist.getAttribute('data-mel-ai-field-name') || '';
+    if (!fieldName) {
+      return null;
+    }
+    return form.querySelector('[name="' + fieldName + '"]');
+  }
+
+  function melAiSelectedStyles(assist) {
+    var styles = [];
+    assist.querySelectorAll('[data-mel-ai-chip][aria-pressed="true"]').forEach(function (chip) {
+      var value = chip.getAttribute('data-mel-ai-chip') || '';
+      if (value) {
+        styles.push(value);
+      }
+    });
+    return styles;
+  }
+
+  function melAiLocationContext(form) {
+    var raw = val(form, 'mel[field_location]');
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return [
+            parsed.address_line1 || '',
+            parsed.locality || '',
+            parsed.administrative_area || '',
+            parsed.postal_code || '',
+          ].filter(Boolean).join(', ');
+        }
+      } catch (e) {}
+    }
+    return val(form, 'mel[venue_create_name]') || val(form, 'mel[location_search]') || val(form, 'mel[venue_saved]');
+  }
+
+  function melAiAssistContext(form, assist) {
+    return {
+      title: val(form, 'mel[title]'),
+      summary: val(form, 'mel[summary]'),
+      body: val(form, 'mel[body]'),
+      what_to_expect: val(form, 'mel[field_event_intro]'),
+      category: categoryForAiPayload(form),
+      tags: tagsForAiPayload(form),
+      event_type: valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]'),
+      ticket_mode: valRadio(form, 'mel[field_event_type]') || val(form, 'mel[field_event_type]'),
+      location: melAiLocationContext(form),
+      styles: melAiSelectedStyles(assist),
+    };
+  }
+
+  function melAiSetStatus(assist, message, state) {
+    var status = assist.querySelector('[data-mel-ai-status]');
+    if (!status) {
+      return;
+    }
+    status.classList.remove('is-loading', 'is-error', 'is-ready', 'is-inserted');
+    if (state) {
+      status.classList.add(state);
+    }
+    status.textContent = message || '';
+  }
+
+  function melAiSetBusy(assist, busy) {
+    assist.dataset.melAiBusy = busy ? '1' : '0';
+    assist.querySelectorAll('[data-mel-ai-generate], [data-mel-ai-regenerate], [data-mel-ai-insert], [data-mel-ai-chip]').forEach(function (button) {
+      button.disabled = !!busy;
+      if (busy) {
+        button.setAttribute('aria-disabled', 'true');
+      }
+      else {
+        button.removeAttribute('aria-disabled');
+      }
+    });
+  }
+
+  function melAiRenderSuggestion(assist, text) {
+    var preview = assist.querySelector('[data-mel-ai-preview]');
+    var regenerate = assist.querySelector('[data-mel-ai-regenerate]');
+    var insert = assist.querySelector('[data-mel-ai-insert]');
+    assist.melAiSuggestion = text || '';
+    if (preview) {
+      preview.textContent = text || '';
+      preview.hidden = !text;
+      if (text && typeof preview.focus === 'function') {
+        preview.focus({ preventScroll: true });
+      }
+    }
+    if (regenerate) {
+      regenerate.hidden = !text;
+    }
+    if (insert) {
+      insert.hidden = !text;
+    }
+  }
+
+  function melAiRequestSuggestion(form, assist) {
+    if (assist.dataset.melAiBusy === '1') {
+      return;
+    }
+    var endpoint = assist.getAttribute('data-mel-ai-endpoint') || '';
+    var target = assist.getAttribute('data-mel-ai-target') || '';
+    var section = assist.getAttribute('data-mel-ai-section') || '';
+    if (!endpoint || !target) {
+      melAiSetStatus(assist, Drupal.t('AI assist is unavailable for this field.'), 'is-error');
+      return;
+    }
+    melAiSetBusy(assist, true);
+    melAiSetStatus(assist, Drupal.t('Drafting a suggestion...'), 'is-loading');
+    melGetCsrfToken()
+      .then(function (token) {
+        if (!token) {
+          return Promise.reject(new Error('empty_csrf_token'));
+        }
+        return fetch(endpoint, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': token,
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            field: target,
+            target: target,
+            section: section,
+            context: melAiAssistContext(form, assist),
+          }),
+        });
+      })
+      .then(function (response) {
+        return response.json().catch(function () {
+          return {};
+        }).then(function (data) {
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.data || !result.data.ok || !result.data.text) {
+          melAiRenderSuggestion(assist, '');
+          melAiSetStatus(assist, Drupal.t('Could not create a suggestion right now.'), 'is-error');
+          return;
+        }
+        melAiRenderSuggestion(assist, result.data.text);
+        melAiSetStatus(assist, Drupal.t('Suggestion ready. Review it, then insert if it feels right.'), 'is-ready');
+      })
+      .catch(function () {
+        melAiRenderSuggestion(assist, '');
+        melAiSetStatus(assist, Drupal.t('AI request failed. Please try again.'), 'is-error');
+      })
+      .finally(function () {
+        melAiSetBusy(assist, false);
+      });
+  }
+
+  Drupal.behaviors.melEventStudioAiAssist = {
+    attach: function (context) {
+      once('mel-event-studio-ai-assist', '[data-mel-ai-assist]', context).forEach(function (assist) {
+        var form = assist.closest('[data-mel-event-studio-form]');
+        if (!form) {
+          return;
+        }
+        var toggle = assist.querySelector('[data-mel-ai-toggle]');
+        var panel = assist.querySelector('[data-mel-ai-panel]');
+        if (toggle && panel) {
+          toggle.addEventListener('click', function () {
+            var expanded = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            panel.hidden = expanded;
+            if (!expanded) {
+              var generate = assist.querySelector('[data-mel-ai-generate]');
+              if (generate && typeof generate.focus === 'function') {
+                generate.focus({ preventScroll: true });
+              }
+            }
+          });
+        }
+        assist.querySelectorAll('[data-mel-ai-chip]').forEach(function (chip) {
+          chip.addEventListener('click', function () {
+            var pressed = chip.getAttribute('aria-pressed') === 'true';
+            chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+          });
+        });
+        assist.querySelectorAll('[data-mel-ai-generate], [data-mel-ai-regenerate]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            melAiRequestSuggestion(form, assist);
+          });
+        });
+        var insert = assist.querySelector('[data-mel-ai-insert]');
+        if (insert) {
+          insert.addEventListener('click', function () {
+            var input = melAiAssistInput(form, assist);
+            var suggestion = assist.melAiSuggestion || '';
+            if (!input || !suggestion) {
+              melAiSetStatus(assist, Drupal.t('There is no suggestion to insert yet.'), 'is-error');
+              return;
+            }
+            input.value = suggestion;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            refreshIntelligence(form, true);
+            setFormState(form, 'mel-studio--dirty', Drupal.t('AI suggestion inserted'));
+            melAiSetStatus(assist, Drupal.t('Inserted. You can keep editing before saving.'), 'is-inserted');
+          });
+        }
+      });
+    },
+  };
 
   function melCelebrateFallbackCopy(url) {
     var ta = document.createElement('textarea');

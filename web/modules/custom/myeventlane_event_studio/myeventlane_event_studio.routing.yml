@@ -383,25 +383,21 @@ myeventlane_event_studio.governance_component:
 
 # Header CSRF: JS sends X-CSRF-Token from GET /session/token (same salt as
 # CsrfRequestHeaderAccessCheck). Do NOT use _csrf_token — that only validates ?token=.
-myeventlane_event_studio.ai_generate:
-  path: '/vendor/events/ai/generate'
+myeventlane_event_studio.ai_assist:
+  path: '/vendor/events/{node}/studio/ai/assist'
   defaults:
-    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioAiController::generate'
+    _controller: 'myeventlane_event_studio.ai_controller:assist'
   methods: [POST]
   requirements:
     _permission: 'access content'
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     _csrf_request_header_token: 'TRUE'
-
-myeventlane_event_studio.ai_rewrite:
-  path: '/vendor/events/ai/rewrite'
-  defaults:
-    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioAiController::rewrite'
-  methods: [POST]
-  requirements:
-    _permission: 'access content'
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    _csrf_request_header_token: 'TRUE'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
 
 myeventlane_event_studio.ticket_link_suggestions:
   path: '/vendor/events/studio/ticket-link-suggestions'
