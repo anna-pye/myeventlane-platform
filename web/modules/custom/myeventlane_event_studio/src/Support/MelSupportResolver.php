@@ -79,13 +79,13 @@ final class MelSupportResolver implements MelSupportResolverInterface {
       'kicker' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Optional MEL support'),
+        '#value' => $this->t('Support MyEventLane'),
         '#attributes' => ['class' => ['mel-platform-support-card__kicker']],
       ],
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Support community-powered event hosting'),
+        '#value' => $this->t('Support free community events'),
         '#attributes' => [
           'id' => 'mel-platform-support-card-' . $this->sanitizePlacement($placement),
           'class' => ['mel-platform-support-card__title'],

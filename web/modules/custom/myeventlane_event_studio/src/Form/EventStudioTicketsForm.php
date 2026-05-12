@@ -49,6 +49,7 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       '#tag' => 'p',
       '#value' => $this->t('How will people join?'),
       '#attributes' => ['class' => ['mel-tickets-intro']],
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--booking" aria-labelledby="mel-es-booking-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-booking-title">' . $this->t('Booking model') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Choose the safest path for RSVPs, paid tickets, or external registration.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_event_type'] = [
@@ -117,6 +118,7 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       '#description' => $this->t('Gather information per guest (beyond name and email).'),
       '#default_value' => !empty($melDefaults['collect_attendee_questions']),
       '#mel_option_card' => TRUE,
+      '#suffix' => '</div></section>',
     ];
 
     $form['mel']['rsvp_donation_guidance'] = [
@@ -134,13 +136,13 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       'kicker' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Optional supporter donations'),
+        '#value' => $this->t('Support free community events'),
         '#attributes' => ['class' => ['mel-rsvp-donation-guidance__kicker']],
       ],
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Let attendees contribute when they RSVP'),
+        '#value' => $this->t('Enable attendee donations'),
         '#attributes' => [
           'id' => 'mel-rsvp-donation-guidance-title',
           'class' => ['mel-rsvp-donation-guidance__title'],

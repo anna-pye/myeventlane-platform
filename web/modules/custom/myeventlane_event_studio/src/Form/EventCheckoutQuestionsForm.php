@@ -115,22 +115,29 @@ final class EventCheckoutQuestionsForm extends FormBase {
       '#attributes' => ['class' => ['mel-es-card', 'mel-event-studio-questions__manager']],
     ];
     $form['questions_card']['questions'] = [
-      '#type' => 'table',
-      '#header' => [
-        $this->t('Label'),
-        $this->t('Type'),
-        $this->t('Applies To'),
-        $this->t('Required'),
-        $this->t('Status'),
-        $this->t('Actions'),
+      '#type' => 'container',
+      '#tree' => TRUE,
+      '#attributes' => [
+        'class' => ['mel-event-studio-questions__table', 'mel-event-studio-questions__cards'],
+        'role' => 'list',
       ],
-      '#empty' => $this->t('No checkout questions yet. Add a question below.'),
-      '#attributes' => ['class' => ['mel-event-studio-questions__table']],
     ];
 
-    foreach ($this->studioQuestionTemplateManager->loadRows($event) as $row) {
+    $question_rows = $this->studioQuestionTemplateManager->loadRows($event);
+    foreach ($question_rows as $row) {
       $row_id = (int) $row['id'];
       $form['questions_card']['questions'][$row_id] = $this->buildQuestionRow($row, $ticket_options);
+    }
+    if ($question_rows === []) {
+      $form['questions_card']['questions']['empty'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__empty']],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('No checkout questions yet. Add a question below.'),
+        ],
+      ];
     }
 
     $form['questions_card']['new_question'] = [
@@ -217,9 +224,26 @@ final class EventCheckoutQuestionsForm extends FormBase {
   private function buildQuestionRow(array $row, array $ticketOptions): array {
     $editor = $this->buildQuestionEditor($row, $ticketOptions, FALSE);
     $preview = $this->buildPreviewText($row);
+    $status = (string) ($row['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE);
 
     return [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => [
+          'mel-event-studio-questions__card',
+          $status === EventStudioQuestionTemplateManager::STATUS_ARCHIVED ? 'is-archived' : 'is-active',
+        ],
+        'role' => 'listitem',
+      ],
       'label' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__definition']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Question definition'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
+        ],
         'id' => [
           '#type' => 'hidden',
           '#value' => (string) (int) $row['id'],
@@ -236,20 +260,54 @@ final class EventCheckoutQuestionsForm extends FormBase {
         'label' => $editor['label'],
       ],
       'type' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__type']],
         'type' => $editor['type'],
         'options' => $editor['options'],
       ],
       'applicability' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__applicability']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Applicability'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
+        ],
         'applicability' => $editor['applicability'],
         'ticket_type_ids' => $editor['ticket_type_ids'],
       ],
       'required' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__validation']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Validation'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
+        ],
         'required' => $editor['required'],
       ],
       'status' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__lifecycle']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Lifecycle'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
+        ],
         'status' => $editor['status'],
       ],
       'actions' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__metadata']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Governance metadata'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
+        ],
         'machine_name' => $editor['machine_name'],
         'preview' => [
           '#markup' => '<p class="mel-event-studio-questions__preview">' . $preview . '</p>',
@@ -272,7 +330,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
       'label' => [
         '#type' => 'textfield',
         '#title' => $this->t('Label'),
-        '#title_display' => $isNew ? 'before' : 'invisible',
+        '#title_display' => 'before',
         '#default_value' => (string) ($row['label'] ?? ''),
         '#maxlength' => 255,
         '#attributes' => ['class' => ['mel-event-studio-questions__label']],
@@ -280,7 +338,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
       'type' => [
         '#type' => 'select',
         '#title' => $this->t('Type'),
-        '#title_display' => $isNew ? 'before' : 'invisible',
+        '#title_display' => 'before',
         '#options' => $this->studioQuestionTemplateManager->typeOptions(),
         '#default_value' => (string) ($row['type'] ?? 'textfield'),
       ],
@@ -294,7 +352,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
       'applicability' => [
         '#type' => 'select',
         '#title' => $this->t('Applies to'),
-        '#title_display' => $isNew ? 'before' : 'invisible',
+        '#title_display' => 'before',
         '#options' => $this->studioQuestionTemplateManager->applicabilityOptions(),
         '#default_value' => (string) ($row['applicability'] ?? EventStudioQuestionTemplateManager::APPLIES_PER_TICKET),
         '#description' => $isNew ? $this->t('Per-order questions are planned and are not available for active checkout capture yet.') : NULL,
@@ -321,7 +379,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
       'status' => [
         '#type' => 'select',
         '#title' => $this->t('Status'),
-        '#title_display' => $isNew ? 'before' : 'invisible',
+        '#title_display' => 'before',
         '#options' => $this->studioQuestionTemplateManager->statusOptions(),
         '#default_value' => (string) ($row['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE),
       ],

@@ -48,6 +48,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_event_image'] ?? [],
       '#attributes' => ['class' => ['mel-input-file']],
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . $this->t('Branding') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Add a clear hero image and accessible alt text for the public event page.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_event_image_alt'] = [
@@ -55,6 +56,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#title' => $this->t('Image alt text'),
       '#default_value' => $melDefaults['field_event_image_alt'] ?? '',
       '#attributes' => ['class' => ['mel-input']],
+      '#suffix' => '</div></section>',
     ];
 
     $form['unavailable'] = [
