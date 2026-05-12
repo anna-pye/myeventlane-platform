@@ -5629,18 +5629,23 @@
     return words / sentences.length;
   }
 
-  function melAiChangeSummary(original, suggestion, promptType) {
+  function melAiChangeSummaryItems(original, suggestion, promptType) {
     var originalText = (original || '').trim();
     var suggestionText = (suggestion || '').trim();
     var originalLength = originalText.length;
     var suggestionLength = suggestionText.length;
     var changes = [];
-    var hasChange = function (label) {
-      return changes.indexOf(label) !== -1;
+    var hasChange = function (code) {
+      return changes.some(function (change) {
+        return change.code === code;
+      });
     };
-    var addChange = function (label) {
-      if (label && !hasChange(label) && changes.length < 4) {
-        changes.push(label);
+    var addChange = function (code, label) {
+      if (code && label && !hasChange(code) && changes.length < 4) {
+        changes.push({
+          code: code,
+          label: label,
+        });
       }
     };
 
@@ -5651,41 +5656,47 @@
     if (originalLength > 0 && suggestionLength < originalLength) {
       var percent = Math.round((1 - (suggestionLength / originalLength)) * 100);
       if (percent >= 5) {
-        addChange(Drupal.t('Shortened by @percent%', { '@percent': String(percent) }));
+        addChange('shortened', Drupal.t('Shortened by @percent%', { '@percent': String(percent) }));
       }
     }
     else if (originalLength > 0 && suggestionLength > originalLength) {
       var longerPercent = Math.round(((suggestionLength / originalLength) - 1) * 100);
       if (longerPercent >= 8) {
-        addChange(Drupal.t('Added @percent% more detail', { '@percent': String(longerPercent) }));
+        addChange('added_detail', Drupal.t('Added @percent% more detail', { '@percent': String(longerPercent) }));
       }
     }
 
     if (originalText && melAiAverageSentenceLength(suggestionText) < melAiAverageSentenceLength(originalText)) {
-      addChange(Drupal.t('Simplified sentence structure'));
+      addChange('simplified_sentence_structure', Drupal.t('Simplified sentence structure'));
     }
 
     if (promptType === 'more_welcoming' || promptType === 'community_friendly' || promptType === 'friendly' || promptType === 'lgbtqia' || promptType === 'family') {
-      addChange(Drupal.t('Made tone more welcoming'));
+      addChange('welcoming_tone', Drupal.t('Made tone more welcoming'));
     }
     if (promptType === 'attendee_clarity' || promptType === 'minimal' || promptType === 'shorter' || promptType === 'social_short') {
-      addChange(Drupal.t('Improved readability for mobile'));
+      addChange('mobile_readability', Drupal.t('Improved readability for mobile'));
     }
     if (promptType === 'workshop' || promptType === 'activist' || /\b(join|book|rsvp|reserve|discover|learn|experience|bring|come)\b/i.test(suggestionText)) {
-      addChange(Drupal.t('Clarified the attendee action'));
+      addChange('attendee_action', Drupal.t('Clarified the attendee action'));
     }
     if (/\b(accessible|accessibility|step-free|quiet|caption|interpreter|sensory|wheelchair|inclusive|welcoming)\b/i.test(suggestionText)
       && !/\b(accessible|accessibility|step-free|quiet|caption|interpreter|sensory|wheelchair|inclusive|welcoming)\b/i.test(originalText)) {
-      addChange(Drupal.t('Added accessibility-minded wording'));
+      addChange('accessibility_wording', Drupal.t('Added accessibility-minded wording'));
     }
     if (!changes.length && originalText && melAiSentenceCount(suggestionText) <= melAiSentenceCount(originalText)) {
-      addChange(Drupal.t('Made the copy easier to scan'));
+      addChange('easier_to_scan', Drupal.t('Made the copy easier to scan'));
     }
     if (!changes.length) {
-      addChange(Drupal.t('Shaped the copy for guests'));
+      addChange('guest_copy_shaping', Drupal.t('Shaped the copy for guests'));
     }
 
     return changes;
+  }
+
+  function melAiChangeSummary(original, suggestion, promptType) {
+    return melAiChangeSummaryItems(original, suggestion, promptType).map(function (change) {
+      return change.label;
+    });
   }
 
   function melAiRenderChanges(assist, text) {
@@ -5713,7 +5724,7 @@
   }
 
   function melAiGuestCueSummary(original, suggestion, promptType) {
-    var changes = melAiChangeSummary(original, suggestion, promptType);
+    var changes = melAiChangeSummaryItems(original, suggestion, promptType);
     var cues = [];
     var addCue = function (label) {
       if (label && cues.indexOf(label) === -1 && cues.length < 3) {
@@ -5721,17 +5732,17 @@
       }
     };
     changes.forEach(function (change) {
-      if (/short|scan|mobile/i.test(change)) {
+      if (change.code === 'shortened' || change.code === 'mobile_readability') {
         addCue(Drupal.t('Shorter for mobile'));
       }
-      else if (/welcoming|tone|community/i.test(change)) {
+      else if (change.code === 'welcoming_tone') {
         addCue(Drupal.t('More welcoming'));
       }
-      else if (/simplified|readability|clarity|easier/i.test(change)) {
+      else if (change.code === 'simplified_sentence_structure' || change.code === 'easier_to_scan') {
         addCue(Drupal.t('Easy to scan'));
       }
-      else if (/action|accessibility/i.test(change)) {
-        addCue(change);
+      else if (change.code === 'attendee_action' || change.code === 'accessibility_wording') {
+        addCue(change.label);
       }
     });
     if (!cues.length) {
