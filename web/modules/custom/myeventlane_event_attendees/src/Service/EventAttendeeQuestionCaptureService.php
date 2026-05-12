@@ -37,7 +37,8 @@ final class EventAttendeeQuestionCaptureService {
     foreach ($event->get('field_attendee_questions')->referencedEntities() as $paragraph) {
       if ($paragraph instanceof EntityInterface
         && $paragraph->getEntityTypeId() === 'paragraph'
-        && $paragraph->bundle() === 'attendee_extra_field') {
+        && $paragraph->bundle() === 'attendee_extra_field'
+        && $this->templateIsActiveForRsvp($paragraph)) {
         $out[] = $paragraph;
       }
     }
@@ -113,6 +114,12 @@ final class EventAttendeeQuestionCaptureService {
         ],
         'email' => [
           '#type' => 'email',
+          '#title' => $label,
+          '#required' => $required,
+          '#description' => $description,
+        ],
+        'number' => [
+          '#type' => 'number',
           '#title' => $label,
           '#required' => $required,
           '#description' => $description,
@@ -267,6 +274,19 @@ final class EventAttendeeQuestionCaptureService {
     }
     $usedKeys[$candidate] = TRUE;
     return $candidate;
+  }
+
+  private function templateIsActiveForRsvp(EntityInterface $paragraph): bool {
+    if ($paragraph->hasField('field_question_status')
+      && !$paragraph->get('field_question_status')->isEmpty()
+      && (string) $paragraph->get('field_question_status')->value === 'archived') {
+      return FALSE;
+    }
+    if ($paragraph->hasField('field_question_applicability') && !$paragraph->get('field_question_applicability')->isEmpty()) {
+      $applicability = (string) $paragraph->get('field_question_applicability')->value;
+      return $applicability === 'per_ticket';
+    }
+    return TRUE;
   }
 
 }

@@ -19,6 +19,16 @@ class ParagraphQuestionMapper {
     }
 
     foreach ($event->get('field_attendee_questions')->referencedEntities() as $para) {
+      if ($para->hasField('field_question_status')
+        && !$para->get('field_question_status')->isEmpty()
+        && (string) $para->get('field_question_status')->value === 'archived') {
+        continue;
+      }
+      if ($para->hasField('field_question_applicability')
+        && !$para->get('field_question_applicability')->isEmpty()
+        && (string) $para->get('field_question_applicability')->value !== 'per_ticket') {
+        continue;
+      }
       $machine = $para->get('field_question_machine_name')->value ?? strtolower(preg_replace('/\s+/', '_', $para->label()));
       $type = $para->get('field_question_type')->value ?? 'textfield';
       $required = (bool) ($para->get('field_question_required')->value ?? FALSE);
@@ -65,6 +75,16 @@ class ParagraphQuestionMapper {
         case 'textarea':
           $elements[$machine] = [
             '#type' => 'textarea',
+            '#title' => $title,
+            '#required' => $required,
+            '#default_value' => $defaults[$machine] ?? '',
+            '#description' => $help,
+          ];
+          break;
+
+        case 'number':
+          $elements[$machine] = [
+            '#type' => 'number',
             '#title' => $title,
             '#required' => $required,
             '#default_value' => $defaults[$machine] ?? '',

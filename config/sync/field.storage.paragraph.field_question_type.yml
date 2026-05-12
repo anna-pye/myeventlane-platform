@@ -30,6 +30,9 @@ settings:
       value: email
       label: Email
     -
+      value: number
+      label: Number
+    -
       value: tel
       label: 'Phone number'
   allowed_values_function: ''

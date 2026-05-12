@@ -4,11 +4,14 @@ status: true
 dependencies:
   config:
     - field.field.paragraph.attendee_extra_field.field_attendee_extra_field
+    - field.field.paragraph.attendee_extra_field.field_question_applicability
     - field.field.paragraph.attendee_extra_field.field_question_help
     - field.field.paragraph.attendee_extra_field.field_question_label
     - field.field.paragraph.attendee_extra_field.field_question_machine_name
     - field.field.paragraph.attendee_extra_field.field_question_options
     - field.field.paragraph.attendee_extra_field.field_question_required
+    - field.field.paragraph.attendee_extra_field.field_question_status
+    - field.field.paragraph.attendee_extra_field.field_question_ticket_types
     - field.field.paragraph.attendee_extra_field.field_question_type
     - paragraphs.paragraphs_type.attendee_extra_field
 id: paragraph.attendee_extra_field.default
@@ -64,4 +67,7 @@ content:
 hidden:
   created: true
   field_attendee_extra_field: true
+  field_question_applicability: true
+  field_question_status: true
+  field_question_ticket_types: true
   status: true

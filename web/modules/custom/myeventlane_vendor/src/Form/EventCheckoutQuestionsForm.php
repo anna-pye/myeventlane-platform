@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,6 +21,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountProxyInterface $currentUserProxy,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
   ) {}
 
   /**
@@ -29,6 +31,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('current_user'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -92,6 +95,9 @@ final class EventCheckoutQuestionsForm extends FormBase {
       $type = $paragraph->get('field_question_type')->value ?? 'text';
       $label = $paragraph->get('field_question_label')->value ?? 'Unnamed Question';
       $required = (bool) ($paragraph->get('field_question_required')->value ?? FALSE);
+      $status = $paragraph->hasField('field_question_status') && !$paragraph->get('field_question_status')->isEmpty()
+        ? (string) $paragraph->get('field_question_status')->value
+        : 'active';
       $apply_to = $this->t('All guests');
 
       $rows[$delta] = [
@@ -100,12 +106,13 @@ final class EventCheckoutQuestionsForm extends FormBase {
         'required' => ['#markup' => $required ? $this->t('Yes') : $this->t('No')],
         'apply_to' => ['#markup' => $apply_to],
         'operations' => [
-          'delete' => [
+          'archive' => [
             '#type' => 'submit',
-            '#value' => $this->t('Delete'),
+            '#value' => $status === 'archived' ? $this->t('Archived') : $this->t('Archive'),
             '#submit' => ['::deleteQuestion'],
-            '#name' => 'delete_question_' . $paragraph->id(),
+            '#name' => 'archive_question_' . $paragraph->id(),
             '#paragraph_id' => $paragraph->id(),
+            '#disabled' => $status === 'archived',
             '#attributes' => ['class' => ['button', 'button--small', 'button--danger']],
           ],
         ],
@@ -152,10 +159,16 @@ final class EventCheckoutQuestionsForm extends FormBase {
     $paragraph_storage = $this->entityTypeManager->getStorage('paragraph');
     $paragraph = $paragraph_storage->create([
       'type' => 'attendee_extra_field',
-      'field_question_type' => 'text',
+      'field_question_type' => 'textfield',
       'field_question_label' => 'New Question',
       'field_question_required' => FALSE,
     ]);
+    if ($paragraph->hasField('field_question_status')) {
+      $paragraph->set('field_question_status', 'active');
+    }
+    if ($paragraph->hasField('field_question_applicability')) {
+      $paragraph->set('field_question_applicability', 'per_ticket');
+    }
     $paragraph->save();
 
     $questions = $event->hasField('field_attendee_questions') ? $event->get('field_attendee_questions')->getValue() : [];
@@ -171,7 +184,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
   }
 
   /**
-   * Submit handler to delete a question.
+   * Submit handler to archive a question without deleting historical answers.
    */
   public function deleteQuestion(array &$form, FormStateInterface $form_state): void {
     $event = $form_state->get('event') ?? $form['#event'] ?? NULL;
@@ -192,17 +205,13 @@ final class EventCheckoutQuestionsForm extends FormBase {
       return;
     }
 
-    if ($event->hasField('field_attendee_questions') && !$event->get('field_attendee_questions')->isEmpty()) {
-      $questions = $event->get('field_attendee_questions')->getValue();
-      $questions = array_filter($questions, static function (array $item) use ($paragraph_id) {
-        return ($item['target_id'] ?? NULL) !== $paragraph_id;
-      });
-      $event->set('field_attendee_questions', array_values($questions));
+    if ($paragraph instanceof ParagraphInterface && $paragraph->hasField('field_question_status')) {
+      $paragraph->set('field_question_status', 'archived');
+      $paragraph->save();
       $event->save();
     }
 
-    $paragraph->delete();
-    $this->messenger()->addStatus($this->t('Question deleted.'));
+    $this->messenger()->addStatus($this->t('Question archived.'));
     $form_state->setRebuild();
   }
 
@@ -220,7 +229,8 @@ final class EventCheckoutQuestionsForm extends FormBase {
     if ($this->currentUserProxy->hasPermission('administer nodes')) {
       return TRUE;
     }
-    return $event->getOwnerId() === $this->currentUserProxy->id();
+    return $this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $this->currentUserProxy)
+      && $event->access('update', $this->currentUserProxy);
   }
 
 }

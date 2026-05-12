@@ -16,6 +16,7 @@ settings:
     - { value: 'checkboxes', label: 'Checkboxes' }
     - { value: 'radios', label: 'Radio buttons' }
     - { value: 'email', label: 'Email' }
+    - { value: 'number', label: 'Number' }
     - { value: 'tel', label: 'Phone number' }
   allowed_values_function: ''
 module: options

@@ -1,0 +1,30 @@
+uuid: ae7e8817-3839-48ac-b9d3-9a2205ccdcfe
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - paragraphs
+id: paragraph.field_question_applicability
+field_name: field_question_applicability
+entity_type: paragraph
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: per_ticket
+      label: 'Per ticket'
+    -
+      value: per_ticket_type
+      label: 'Per ticket type'
+    -
+      value: per_order
+      label: 'Per order'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

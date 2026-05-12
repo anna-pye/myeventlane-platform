@@ -79,6 +79,9 @@ final class AttendeeHolderMissingEvaluator {
       if (!$question instanceof ParagraphInterface) {
         continue;
       }
+      if (!static::questionIsRequired($question)) {
+        continue;
+      }
       $answered = TRUE;
       if ($question->hasField('field_attendee_extra_field')) {
         $answered = !$question->get('field_attendee_extra_field')->isEmpty()
@@ -103,7 +106,7 @@ final class AttendeeHolderMissingEvaluator {
   private static function questionLabels(array $questions): array {
     $out = [];
     foreach ($questions as $q) {
-      if ($q instanceof ParagraphInterface) {
+      if ($q instanceof ParagraphInterface && static::questionIsRequired($q)) {
         $out[] = static::questionFingerprint($q, 0, 0, 0);
       }
     }
@@ -133,6 +136,11 @@ final class AttendeeHolderMissingEvaluator {
       return TRUE;
     }
     return is_string($value) ? trim((string) $value) === '' : FALSE;
+  }
+
+  private static function questionIsRequired(ParagraphInterface $question): bool {
+    return $question->hasField('field_question_required')
+      && !empty($question->get('field_question_required')->value);
   }
 
 }

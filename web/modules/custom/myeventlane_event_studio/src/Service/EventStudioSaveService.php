@@ -1070,6 +1070,24 @@ final class EventStudioSaveService {
         $paragraph->set($field_map['label'], $label);
         $paragraph->set($field_map['type'], $this->normalizeAttendeeQuestionTypeValue($type));
         $paragraph->set($field_map['required'], $required ? 1 : 0);
+        if ($paragraph->hasField('field_question_status')) {
+          $paragraph->set('field_question_status', $this->normalizeAttendeeQuestionStatusValue((string) ($question['status'] ?? 'active')));
+        }
+        if ($paragraph->hasField('field_question_applicability')) {
+          $paragraph->set('field_question_applicability', $this->normalizeAttendeeQuestionApplicabilityValue((string) ($question['applicability'] ?? 'per_ticket')));
+        }
+        if ($paragraph->hasField('field_question_ticket_types')) {
+          $ticket_type_references = [];
+          if (isset($question['ticket_type_ids']) && is_array($question['ticket_type_ids'])) {
+            foreach ($question['ticket_type_ids'] as $ticket_type_id) {
+              $ticket_type_id = (int) $ticket_type_id;
+              if ($ticket_type_id > 0) {
+                $ticket_type_references[] = ['target_id' => $ticket_type_id];
+              }
+            }
+          }
+          $paragraph->set('field_question_ticket_types', $ticket_type_references);
+        }
 
         $normalized_type = $this->normalizeAttendeeQuestionTypeValue($type);
         if ($paragraph->hasField('field_question_options')) {
@@ -1185,8 +1203,21 @@ final class EventStudioSaveService {
       'radio' => 'radios',
       'radios' => 'radios',
       'email' => 'email',
+      'number' => 'number',
       'tel' => 'tel',
       default => 'textfield',
+    };
+  }
+
+  private function normalizeAttendeeQuestionStatusValue(string $status): string {
+    return trim($status) === 'archived' ? 'archived' : 'active';
+  }
+
+  private function normalizeAttendeeQuestionApplicabilityValue(string $applicability): string {
+    return match (trim($applicability)) {
+      'per_ticket_type' => 'per_ticket_type',
+      'per_order' => 'per_order',
+      default => 'per_ticket',
     };
   }
 

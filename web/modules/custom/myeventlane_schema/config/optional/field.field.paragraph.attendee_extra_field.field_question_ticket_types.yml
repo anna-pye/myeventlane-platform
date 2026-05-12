@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_question_ticket_types
+    - paragraphs.paragraphs_type.attendee_extra_field
+id: paragraph.attendee_extra_field.field_question_ticket_types
+field_name: field_question_ticket_types
+entity_type: paragraph
+bundle: attendee_extra_field
+label: 'Ticket types'
+description: 'For per-ticket-type questions, select the ticket types that should receive this question.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:mel_ticket_type'
+  handler_settings: {  }
+field_type: entity_reference

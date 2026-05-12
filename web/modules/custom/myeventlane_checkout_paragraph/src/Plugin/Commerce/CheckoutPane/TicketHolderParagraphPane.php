@@ -393,6 +393,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       $type = $question->hasField('field_question_type')
         ? (string) ($question->get('field_question_type')->value ?? 'text')
         : 'text';
+      $required = $this->questionIsRequired($question);
       $field_name = "extra_{$itemIndex}_{$delta}_{$q_index}";
 
       // Normalize: always read from field_attendee_extra_field.
@@ -424,11 +425,11 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#options' => ['' => $this->t('- Select -')] + ($options ?: ['_' => $this->t('No options')]),
             '#default_value' => $default,
-            '#required' => TRUE,
+            '#required' => $required,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
-            '#description' => (string) $this->t('Required.'),
+            '#description' => $this->questionRequirementDescription($required),
           ];
           break;
 
@@ -437,7 +438,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#type' => 'checkbox',
             '#title' => $label,
             '#default_value' => (bool) $default,
-            '#required' => TRUE,
+            '#required' => $required,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
@@ -457,11 +458,13 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#options' => $options ?: ['_' => $this->t('Option')],
             '#default_value' => $decoded,
-            '#required' => TRUE,
+            '#required' => $required,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
-            '#description' => (string) $this->t('Select all that apply. Required.'),
+            '#description' => $required
+              ? (string) $this->t('Select all that apply. Required.')
+              : (string) $this->t('Select all that apply. Optional.'),
           ];
           break;
 
@@ -472,11 +475,11 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#options' => $options ?: ['_' => $this->t('Option')],
             '#default_value' => $default,
-            '#required' => TRUE,
+            '#required' => $required,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
-            '#description' => (string) $this->t('Required.'),
+            '#description' => $this->questionRequirementDescription($required),
           ];
           break;
 
@@ -486,11 +489,25 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#title' => $label,
             '#rows' => 3,
             '#default_value' => $default,
-            '#required' => TRUE,
+            '#required' => $required,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
-            '#description' => (string) $this->t('Required.'),
+            '#description' => $this->questionRequirementDescription($required),
+          ];
+          break;
+
+        case 'number':
+          $fieldset[$field_name] = [
+            '#type' => 'number',
+            '#title' => $label,
+            '#default_value' => is_numeric($default) ? $default : '',
+            '#required' => $required,
+            '#attributes' => [
+              'class' => ['mel-attendee-question-field'],
+              'inputmode' => 'decimal',
+            ],
+            '#description' => $this->questionRequirementDescription($required),
           ];
           break;
 
@@ -499,11 +516,11 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             '#type' => 'textfield',
             '#title' => $label,
             '#default_value' => is_scalar($default) || $default === NULL ? (string) ($default ?? '') : '',
-            '#required' => TRUE,
+            '#required' => $required,
             '#attributes' => [
               'class' => ['mel-attendee-question-field'],
             ],
-            '#description' => (string) $this->t('Required.'),
+            '#description' => $this->questionRequirementDescription($required),
           ];
           break;
       }
@@ -753,9 +770,22 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       if (!$question instanceof ParagraphInterface) {
         continue;
       }
-
       $field_key = "extra_{$itemIndex}_{$delta}_{$q_index}";
-      if (array_key_exists($field_key, $entry) && !$this->isEmptySubmittedAnswer($entry[$field_key])) {
+      $submitted_value = $entry[$field_key] ?? NULL;
+      if ($this->questionType($question) === 'number'
+        && !$this->isEmptySubmittedAnswer($submitted_value)
+        && !is_numeric($submitted_value)) {
+        $form_state->setErrorByName(
+          "{$this->getPluginId()}][order_items][$itemIndex][$delta][$field_key",
+          $this->t('Enter a valid number.')
+        );
+        continue;
+      }
+      if (!$this->questionIsRequired($question)) {
+        continue;
+      }
+
+      if (array_key_exists($field_key, $entry) && !$this->isEmptySubmittedAnswer($submitted_value)) {
         continue;
       }
 
@@ -791,6 +821,21 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     }
 
     return is_string($value) ? trim($value) === '' : FALSE;
+  }
+
+  private function questionIsRequired(ParagraphInterface $question): bool {
+    return $question->hasField('field_question_required')
+      && !empty($question->get('field_question_required')->value);
+  }
+
+  private function questionType(ParagraphInterface $question): string {
+    return $question->hasField('field_question_type')
+      ? (string) ($question->get('field_question_type')->value ?? 'textfield')
+      : 'textfield';
+  }
+
+  private function questionRequirementDescription(bool $required): string {
+    return $required ? (string) $this->t('Required.') : (string) $this->t('Optional.');
   }
 
   /**

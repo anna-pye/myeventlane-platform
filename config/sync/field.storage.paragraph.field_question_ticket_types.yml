@@ -1,0 +1,22 @@
+uuid: 371480e2-4edd-425a-8bca-f22431b79574
+langcode: en
+status: true
+dependencies:
+  module:
+    - mel_ticket
+    - paragraphs
+id: paragraph.field_question_ticket_types
+field_name: field_question_ticket_types
+entity_type: paragraph
+type: entity_reference
+settings:
+  target_type: mel_ticket_type
+module: core
+locked: false
+cardinality: -1
+translatable: false
+indexes:
+  target_id:
+    - target_id
+persist_with_no_fields: false
+custom_storage: false
