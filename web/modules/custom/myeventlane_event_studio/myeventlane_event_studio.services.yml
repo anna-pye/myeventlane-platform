@@ -131,6 +131,7 @@ services:
     arguments:
       - '@renderer'
       - '@url_generator'
+      - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
 
   myeventlane_event_studio.ai_prompt_builder:
