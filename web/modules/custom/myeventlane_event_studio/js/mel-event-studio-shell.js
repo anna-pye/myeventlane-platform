@@ -310,6 +310,7 @@
             overlay.hidden = false;
           }
         };
+        closeSidebar();
         button.addEventListener('click', () => {
           if (shell.classList.contains('is-sidebar-open')) {
             closeSidebar();

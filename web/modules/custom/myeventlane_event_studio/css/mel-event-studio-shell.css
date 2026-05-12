@@ -1817,6 +1817,10 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
+.mel-event-studio-sidebar-overlay {
+  display: none;
+}
+
 .mel-event-studio-readiness-strip {
   display: flex;
   align-items: center;
@@ -2353,6 +2357,8 @@
   .mel-event-studio-workspace {
     grid-template-columns: minmax(0, 1fr) !important;
     gap: 16px;
+    position: relative;
+    overflow: visible;
   }
 
   .mel-event-studio-sidebar-toggle {
@@ -2363,6 +2369,7 @@
 
   .mel-event-studio-sidebar-overlay {
     appearance: none;
+    display: block;
     position: fixed;
     inset: 0;
     z-index: 1000;
@@ -2400,6 +2407,15 @@
   .mel-event-studio-section {
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  .mel-event-studio-workspace__main {
+    grid-column: 1;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+    transform: none;
   }
 
   .mel-event-studio-section__header,
@@ -2482,6 +2498,12 @@
     overflow-x: clip;
   }
 
+  .mel-event-studio-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+    position: relative;
+    overflow: visible;
+  }
+
   .mel-event-studio-sidebar-toggle {
     display: inline-flex !important;
     align-items: center;
@@ -2494,6 +2516,7 @@
 
   .mel-event-studio-sidebar-overlay {
     appearance: none;
+    display: block;
     position: fixed;
     inset: 0;
     z-index: 1000;
@@ -2529,6 +2552,16 @@
 
   .mel-event-studio-sidebar__inner {
     min-height: 100%;
+  }
+
+  .mel-event-studio-workspace__main {
+    grid-column: 1;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+    transform: none;
   }
 
   .mel-event-studio-topbar {
