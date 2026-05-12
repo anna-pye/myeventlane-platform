@@ -3918,6 +3918,11 @@
   gap: 14px;
 }
 
+.mel-event-studio details.mel-event-studio-ticket-card__advanced:not([open]) > :not(summary),
+.mel-event-studio details.mel-event-studio-questions__advanced:not([open]) > :not(summary) {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .mel-event-studio .mel-event-studio-ticket-card__header,
   .mel-event-studio .mel-event-studio-ticket-card__sales-window {

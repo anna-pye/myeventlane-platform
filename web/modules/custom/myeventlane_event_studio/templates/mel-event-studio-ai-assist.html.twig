@@ -1,3 +1,104 @@
+{#
+/**
+ * @file
+ * Inline MEL writing assist for Event Studio form fields.
+ */
+#}
+{% set panel_id = 'mel-ai-assist-panel-' ~ target|clean_id %}
+{% set preview_id = 'mel-ai-assist-preview-' ~ target|clean_id %}
+
+<div
+  class="mel-ai-assist"
+  data-mel-ai-assist
+  data-mel-ai-target="{{ target }}"
+  data-mel-ai-section="{{ section }}"
+  data-mel-ai-endpoint="{{ endpoint }}"
+  data-mel-ai-field-name="{{ field_name }}"
+>
+  <div class="mel-ai-assist__header">
+    <p class="mel-ai-assist__prompt">{{ helper }}</p>
+    <button
+      type="button"
+      class="mel-ai-assist__toggle"
+      data-mel-ai-toggle
+      aria-expanded="false"
+      aria-controls="{{ panel_id }}"
+    >
+      {{ button_label }}
+    </button>
+  </div>
+
+  <div class="mel-ai-assist__panel" id="{{ panel_id }}" data-mel-ai-panel hidden>
+    <p class="mel-ai-assist__helper">
+      {{ 'Preview the writing idea first. Nothing is inserted or saved until you choose to use it.'|t }}
+    </p>
+
+    {% if chip_groups %}
+      <details class="mel-ai-assist__prompts">
+        <summary class="mel-ai-assist__prompts-summary">{{ 'Shape the suggestion'|t }}</summary>
+        <div class="mel-ai-assist__chips">
+          {% for group_label, chips in chip_groups %}
+            <p class="mel-ai-assist__chips-label">{{ group_label|t }}</p>
+            <div class="mel-ai-assist__chip-scroll">
+              {% for value, label in chips %}
+                <button
+                  type="button"
+                  class="mel-ai-assist__chip"
+                  data-mel-ai-chip="{{ value }}"
+                  aria-pressed="false"
+                >
+                  {{ label }}
+                </button>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </details>
+    {% endif %}
+
+    <div class="mel-ai-assist__actions">
+      <button type="button" class="mel-btn mel-btn--secondary" data-mel-ai-generate>
+        <span class="mel-ai-assist__button-spinner" aria-hidden="true"></span>
+        {{ generate_label }}
+      </button>
+      <button type="button" class="mel-btn" data-mel-ai-regenerate hidden>
+        {{ regenerate_label }}
+      </button>
+      <button type="button" class="mel-btn mel-btn--primary mel-ai-assist__insert" data-mel-ai-insert hidden>
+        {{ insert_label }}
+      </button>
+    </div>
+
+    <p class="mel-ai-assist__status" data-mel-ai-status aria-live="polite"></p>
+
+    <div class="mel-ai-assist__suggestion" data-mel-ai-suggestion hidden>
+      <p class="mel-ai-assist__suggestion-label">{{ 'Writing idea'|t }}</p>
+      <div
+        class="mel-ai-assist__preview"
+        id="{{ preview_id }}"
+        data-mel-ai-preview
+        tabindex="-1"
+        hidden
+      ></div>
+      <p class="mel-ai-assist__meta" data-mel-ai-meta></p>
+      <div class="mel-ai-assist__changes" data-mel-ai-changes hidden>
+        <p class="mel-ai-assist__changes-title">{{ 'What changed'|t }}</p>
+        <ul class="mel-ai-assist__changes-list" data-mel-ai-changes-list></ul>
+      </div>
+      <div class="mel-ai-assist__guest-preview is-empty" data-mel-ai-guest-preview hidden>
+        <p class="mel-ai-assist__guest-preview-kicker">{{ 'Guest-facing preview'|t }}</p>
+        <div class="mel-ai-assist__guest-card">
+          <div class="mel-ai-assist__guest-copy" data-mel-ai-guest-copy></div>
+          <ul class="mel-ai-assist__guest-cues" data-mel-ai-guest-cues></ul>
+        </div>
+      </div>
+      <details class="mel-ai-assist__original" data-mel-ai-original hidden>
+        <summary>{{ 'Original copy'|t }}</summary>
+        <p data-mel-ai-original-copy></p>
+      </details>
+    </div>
+  </div>
+</div>
 {% set panel_id = 'mel-ai-assist-' ~ target ~ '-panel' %}
 {% set status_id = 'mel-ai-assist-' ~ target ~ '-status' %}
 {% set preview_id = 'mel-ai-assist-' ~ target ~ '-preview' %}

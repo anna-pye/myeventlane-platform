@@ -5815,6 +5815,7 @@
     if (preview) {
       preview.classList.remove('is-refreshing');
       preview.textContent = text || '';
+      preview.hidden = !text;
     }
     if (meta) {
       meta.textContent = text ? melAiCharacterMeta(assist.melAiOriginalValue || '', text) : '';
