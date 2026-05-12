@@ -409,9 +409,12 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       $options = [];
       if ($question->hasField('field_question_options')) {
         foreach ($question->get('field_question_options')->getValue() ?? [] as $item) {
-          $opt = trim($item['value'] ?? '');
-          if ($opt !== '') {
-            $options[$opt] = $opt;
+          $raw_options = preg_split('/\R/', (string) ($item['value'] ?? '')) ?: [];
+          foreach ($raw_options as $raw_option) {
+            $opt = trim($raw_option);
+            if ($opt !== '') {
+              $options[$opt] = $opt;
+            }
           }
         }
       }
