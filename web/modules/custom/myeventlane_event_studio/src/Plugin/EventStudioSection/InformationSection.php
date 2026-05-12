@@ -11,7 +11,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
  */
 #[EventStudioSection(
   id: 'information',
-  title: 'Event Information',
+  title: 'Event information',
   group: 'Manage Event',
   routeName: 'myeventlane_event_studio.workspace_information',
   section_state: 'active',

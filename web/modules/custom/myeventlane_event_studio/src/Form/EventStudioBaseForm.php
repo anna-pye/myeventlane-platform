@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
+use Drupal\myeventlane_event_studio\Service\EventStudioAiAssistBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioWizardMelBaseline;
@@ -38,6 +39,7 @@ abstract class EventStudioBaseForm extends FormBase {
     protected EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer,
     protected EventVendorAccessChecker $eventVendorAccessChecker,
     protected EventStudioAutosaveService $autosaveService,
+    protected EventStudioAiAssistBuilder $aiAssistBuilder,
     RequestStack $request_stack,
     protected LoggerInterface $logger,
   ) {
@@ -58,6 +60,7 @@ abstract class EventStudioBaseForm extends FormBase {
       $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer'),
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('myeventlane_event_studio.autosave'),
+      $container->get('myeventlane_event_studio.ai_assist_builder'),
       $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
@@ -235,6 +238,7 @@ abstract class EventStudioBaseForm extends FormBase {
     ];
 
     $this->buildWizardStepContent($form, $form_state, $node, $melDefaults);
+    $this->aiAssistBuilder->attachSupportedFields($form['mel'], $node, $this->getCurrentStepId());
     $this->entityAutocompleteMelNormalizer->normalizeDefaultValuesForForm($form['mel'], [
       'section' => $this->getCurrentStepId(),
       'event_id' => (int) $node->id(),

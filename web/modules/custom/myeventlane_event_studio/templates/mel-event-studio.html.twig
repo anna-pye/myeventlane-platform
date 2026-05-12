@@ -261,14 +261,15 @@
             {% endif %}
             <header class="mel-task-card__banner" id="mel-task-identity-heading">
               <h2 class="mel-task-card__title">{{ 'Basics'|t }}</h2>
-              <p class="mel-task-card__lede">{{ 'Lock in the essentials — guests see these first.'|t }}</p>
+              <p class="mel-task-card__lede">{{ 'Start with the details that help attendees recognise and trust your event.'|t }}</p>
+              <p class="mel-task-card__reassurance">{{ 'You can change these details later. Attendees only see updates after you save and publish.'|t }}</p>
             </header>
 
             <section id="mel-card-identity" class="mel-builder-card mel-builder-card--identity" data-mel-builder-card="identity" data-mel-track-complete="identity-title" aria-labelledby="mel-basic-heading">
               <span class="mel-builder-card__done-badge" data-mel-builder-done-badge hidden>{{ '✓ Done'|t }}</span>
               <header class="mel-builder-card__header">
                 <h3 class="mel-builder-card__title" id="mel-basic-heading">{{ 'Give your event a name'|t }}</h3>
-                <p class="mel-builder-card__hint">{{ 'This is how it will appear to guests — make it clear and exciting.'|t }}</p>
+                <p class="mel-builder-card__hint">{{ 'This is how it will appear to guests. Keep it clear, specific, and easy to say out loud.'|t }}</p>
               </header>
               <div class="mel-builder-card__summary" hidden>
                 <div class="mel-builder-card__summary-content"></div>
@@ -276,19 +277,7 @@
               </div>
               <div class="mel-builder-card__body">
                 <div class="mel-basic-section">
-                  <div class="mel-basic-title-with-ai">
-                    {{ element.mel.title }}
-                    <div class="mel-ai-autofill">
-                      <button
-                        type="button"
-                        id="mel-ai-generate"
-                        class="mel-btn mel-btn--secondary"
-                        data-mel-ai-default-label="{{ 'Generate with AI'|t }}"
-                      >
-                        {{ 'Generate with AI'|t }}
-                      </button>
-                    </div>
-                  </div>
+                  {{ element.mel.title }}
                 </div>
               </div>
               <footer class="mel-builder-card__footer">
@@ -300,7 +289,7 @@
               <span class="mel-builder-card__done-badge" data-mel-builder-done-badge hidden>{{ '✓ Done'|t }}</span>
               <header class="mel-builder-card__header">
                 <h3 class="mel-builder-card__title" id="mel-schedule-heading">{{ 'When and where is it happening?'|t }}</h3>
-                <p class="mel-builder-card__hint">{{ 'Used for discovery, reminders, and calendars.'|t }}</p>
+                <p class="mel-builder-card__hint">{{ 'Used for discovery, reminders, and calendars. You can update the location while the event is still a draft.'|t }}</p>
               </header>
               <div class="mel-builder-card__summary" hidden>
                 <div class="mel-builder-card__summary-content"></div>
@@ -348,7 +337,8 @@
           <div class="mel-builder-step-stack">
             <header class="mel-task-card__banner" id="mel-task-tickets-heading">
               <h2 class="mel-task-card__title">{{ 'Tickets'|t }}</h2>
-              <p class="mel-task-card__lede">{{ 'Set how people join and optionally add extras.'|t }}</p>
+              <p class="mel-task-card__lede">{{ 'Create the ticket options attendees can book.'|t }}</p>
+              <p class="mel-task-card__reassurance">{{ 'Start with one simple offer. You can add capacity, timing, and extras when you need them.'|t }}</p>
             </header>
 
             <div class="mel-stage-transition mel-stage-transition--tickets" role="region" aria-labelledby="mel-stage-transition-tickets-title">
@@ -357,7 +347,7 @@
               </div>
               <p class="mel-stage-transition__kicker">{{ 'Step 2 of 6 · How people join'|t }}</p>
               <p class="mel-stage-transition__title" id="mel-stage-transition-tickets-title">
-                {{ '🎟 You\'re ready — now let\'s set up how people book your event'|t }}
+                {{ 'You’re ready to set up how people book your event'|t }}
               </p>
               <p class="mel-stage-transition__subtitle">
                 {{ 'Start with one ticket — you can add more anytime'|t }}
@@ -368,7 +358,7 @@
               <span class="mel-builder-card__done-badge" data-mel-builder-done-badge hidden>{{ '✓ Done'|t }}</span>
               <header class="mel-builder-card__header">
                 <h3 class="mel-builder-card__title" id="mel-tickets-type-heading">{{ 'How will people join?'|t }}</h3>
-                <p class="mel-builder-card__hint">{{ 'Start with one ticket — you can add more later.'|t }}</p>
+                <p class="mel-builder-card__hint">{{ 'Think of each ticket as an attendee-facing offer, not a database record.'|t }}</p>
               </header>
               <div class="mel-builder-card__summary" hidden>
                 <div class="mel-builder-card__summary-content"></div>
@@ -399,7 +389,7 @@
               <div class="mel-builder-card__subsection" aria-labelledby="mel-rsvp-donations-heading">
                 <header class="mel-builder-card__header mel-builder-card__header--compact">
                   <h4 class="mel-builder-card__title" id="mel-rsvp-donations-heading">{{ 'Optional donations at RSVP'|t }}</h4>
-                  <p class="mel-builder-card__hint">{{ 'Tip jars and suggested amounts alongside free RSVP.'|t }}</p>
+                  <p class="mel-builder-card__hint">{{ 'Help keep community events affordable with gentle, optional support prompts.'|t }}</p>
                 </header>
                 <div class="mel-builder-fields mel-builder-fields--stack">
                   {{ element.mel.enable_donations }}
@@ -412,7 +402,7 @@
               <div class="mel-builder-card__subsection" aria-labelledby="mel-ticket-sale-windows-heading">
                 <header class="mel-builder-card__header mel-builder-card__header--compact">
                   <h4 class="mel-builder-card__title" id="mel-ticket-sale-windows-heading">{{ 'Sale windows'|t }}</h4>
-                  <p class="mel-builder-card__hint">{{ 'Optional listing-wide limits. Use per-ticket windows on each card for finer control.'|t }}</p>
+                  <p class="mel-builder-card__hint">{{ 'Optional. Most events can ignore these unless tickets need a fixed booking period.'|t }}</p>
                 </header>
                 <div class="mel-builder-fields mel-builder-fields--2col">
                   {{ element.mel.field_sales_start }}
@@ -438,7 +428,8 @@
           <div class="mel-builder-step-stack">
             <header class="mel-task-card__banner" id="mel-task-standout-heading">
               <h2 class="mel-task-card__title">{{ 'Stand out'|t }}</h2>
-              <p class="mel-task-card__lede">{{ 'Polish your listing so the right people notice.'|t }}</p>
+              <p class="mel-task-card__lede">{{ 'Help attendees understand what the experience will feel like.'|t }}</p>
+              <p class="mel-task-card__reassurance">{{ 'Drafts are safe here. Write enough to give people confidence, then refine as your plans settle.'|t }}</p>
             </header>
 
             <section id="mel-card-standout" class="mel-builder-card mel-builder-card--advanced" data-mel-builder-card="standout" data-mel-track-complete="standout" aria-labelledby="mel-advanced-card-heading">
@@ -456,7 +447,7 @@
                   <summary class="mel-builder-progressive__summary">
                     <span class="mel-builder-progressive__summary-text">
                       <span class="mel-builder-progressive__title" id="mel-description-heading">{{ 'Description'|t }}</span>
-                      <span class="mel-builder-progressive__hint">{{ 'This content appears on your public event page.'|t }}</span>
+                      <span class="mel-builder-progressive__hint">{{ 'Tell the story guests need before they decide to attend.'|t }}</span>
                     </span>
                     <span class="mel-builder-progressive__chev" aria-hidden="true"></span>
                   </summary>
@@ -464,9 +455,6 @@
                     <div class="mel-builder-card__subsection">
                       <h5 class="mel-builder-card__subtitle">{{ 'About the event'|t }}</h5>
                       {{ element.mel.body }}
-                      <div class="mel-ai-rewrite-actions">
-                        <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
-                      </div>
                     </div>
                     <div class="mel-builder-card__subsection">
                       <h5 class="mel-builder-card__subtitle">{{ 'Highlights'|t }}</h5>
@@ -475,9 +463,6 @@
                     <div class="mel-builder-card__subsection">
                       <h5 class="mel-builder-card__subtitle">{{ 'What to expect'|t }}</h5>
                       {{ element.mel.field_event_intro }}
-                      <div class="mel-ai-rewrite-actions">
-                        <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
-                      </div>
                     </div>
                   </div>
                 </details>
@@ -485,7 +470,7 @@
                 <div class="mel-builder-card__subsection" aria-labelledby="mel-listing-extras-heading">
                   <header class="mel-builder-card__header mel-builder-card__header--compact">
                     <h4 class="mel-builder-card__title" id="mel-listing-extras-heading">{{ 'Cover image & categories'|t }}</h4>
-                    <p class="mel-builder-card__hint">{{ 'Visuals and taxonomy help the right people discover your event.'|t }}</p>
+                    <p class="mel-builder-card__hint">{{ 'Shape how your event appears across MyEventLane and social sharing.'|t }}</p>
                   </header>
                   {{ element.mel.summary }}
                   <div class="mel-builder-fields mel-builder-fields--stack">
@@ -509,8 +494,9 @@
 
                 <div data-mel-reveal-section="mel-advanced">
                   <details id="mel-builder-more-options" class="mel-builder-more-options mel-builder-progressive mel-builder-progressive--advanced-slot" data-mel-progressive-slot="advanced">
-                    <summary class="mel-builder-more-options__summary">{{ 'More options'|t }}</summary>
+                    <summary class="mel-builder-more-options__summary">{{ 'More options, if you need them'|t }}</summary>
                     <div class="mel-builder-more-options__body mel-builder-fields mel-builder-fields--stack">
+                      <p class="mel-builder-more-options__helper">{{ 'Most events can ignore these settings. They are here for experienced organisers and more specific access needs.'|t }}</p>
                       <div class="mel-builder-card__subsection" aria-labelledby="mel-more-tags-heading">
                         <header class="mel-builder-card__header mel-builder-card__header--compact">
                           <h4 class="mel-builder-card__title" id="mel-more-tags-heading">{{ 'Tags'|t }}</h4>
@@ -576,7 +562,8 @@
           <div class="mel-builder-step-stack">
             <header class="mel-task-card__banner" id="mel-task-attendee-heading">
               <h2 class="mel-task-card__title">{{ 'Attendee questions'|t }}</h2>
-              <p class="mel-task-card__lede">{{ 'Optional — add only what you truly need at checkout.'|t }}</p>
+              <p class="mel-task-card__lede">{{ 'Ask attendees for the information you actually need.'|t }}</p>
+              <p class="mel-task-card__reassurance">{{ 'Optional. Fewer questions usually means easier checkout for guests.'|t }}</p>
             </header>
 
             <section id="mel-card-attendee" class="mel-builder-card mel-builder-card--attendees" data-mel-builder-card="attendee" data-mel-reveal-section="attendee" data-mel-track-complete="attendee" aria-labelledby="mel-attendee-panel-heading">
@@ -590,7 +577,7 @@
                   <summary class="mel-builder-progressive__summary">
                     <span class="mel-builder-progressive__summary-text">
                       <span class="mel-builder-progressive__title" id="mel-attendee-panel-heading">{{ 'What do you need from attendees?'|t }}</span>
-                      <span class="mel-builder-progressive__hint">{{ 'Collect useful info like dietary needs or contact details.'|t }}</span>
+                      <span class="mel-builder-progressive__hint">{{ 'Preview each question as an attendee experience, then keep only what helps you prepare.'|t }}</span>
                     </span>
                     <span class="mel-builder-progressive__chev" aria-hidden="true"></span>
                   </summary>
@@ -618,7 +605,7 @@
               <span class="mel-builder-card__done-badge" data-mel-builder-done-badge hidden>{{ '✓ Done'|t }}</span>
               <header class="mel-builder-card__header">
                 <h2 class="mel-builder-card__title" id="mel-preview-section-heading">{{ 'Preview'|t }}</h2>
-                <p class="mel-builder-card__hint">{{ 'Your live card below the builder updates as you work through each task.'|t }}</p>
+                <p class="mel-builder-card__hint">{{ 'Check how the event is coming together before you publish.'|t }}</p>
               </header>
               <div class="mel-builder-card__summary" hidden>
                 <div class="mel-builder-card__summary-content"></div>
@@ -643,8 +630,8 @@
             <section id="mel-card-support" class="mel-builder-card mel-builder-card--mel-support mel-builder-card--secondary" aria-labelledby="mel-mel-support-heading">
               <span class="mel-builder-card__done-badge" data-mel-builder-done-badge hidden>{{ '✓ Done'|t }}</span>
               <header class="mel-builder-card__header">
-                <h3 class="mel-builder-card__title" id="mel-mel-support-heading">{{ 'Support MyEventLane 💖 (optional)'|t }}</h3>
-                <p class="mel-builder-card__hint">{{ 'Keep events like yours free and accessible'|t }}</p>
+                <h3 class="mel-builder-card__title" id="mel-mel-support-heading">{{ 'Help keep community events affordable'|t }}</h3>
+                <p class="mel-builder-card__hint">{{ 'Optional support helps MEL stay accessible for small organisers and community events.'|t }}</p>
               </header>
               <div class="mel-builder-card__summary" hidden>
                 <div class="mel-builder-card__summary-content"></div>
@@ -661,7 +648,7 @@
               <span class="mel-builder-card__done-badge" data-mel-builder-done-badge hidden>{{ '✓ Done'|t }}</span>
               <header class="mel-builder-card__header">
                 <h2 class="mel-builder-card__title" id="mel-publish-heading">{{ 'Ready to go live?'|t }}</h2>
-                <p class="mel-builder-card__hint">{{ 'Your event is ready — publish now and start getting attendees.'|t }}</p>
+                <p class="mel-builder-card__hint">{{ 'Review the essentials, then publish when you feel confident.'|t }}</p>
               </header>
               <div class="mel-builder-card__summary" hidden>
                 <div class="mel-builder-card__summary-content"></div>
@@ -671,7 +658,7 @@
               {% if mel_publish_blocked %}
                 {% if mel_publish_stripe_gate %}
                   <div class="mel-publish-warning mel-publish-warning--stripe" role="region" aria-label="{{ 'Connect payments to publish'|t }}">
-                    <h3 class="mel-publish-warning__title">{{ 'Almost ready to go live 🚀'|t }}</h3>
+                    <h3 class="mel-publish-warning__title">{{ 'Almost ready to go live'|t }}</h3>
                     <p class="mel-publish-warning__lead">{{ 'To sell tickets, you’ll need to connect payments.'|t }}</p>
                     <a href="{{ path('myeventlane_vendor.onboard.stripe') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
                       {{ 'Connect payments'|t }}
@@ -694,8 +681,8 @@
               <div class="mel-publish-action-card" role="region" aria-labelledby="mel-publish-action-title" data-mel-publish-card="1">
                 <div class="mel-publish-action-card__panel mel-publish-action-card__draft" data-mel-publish-panel="draft"{% if mel_event_is_published %} hidden{% endif %}>
                   <h3 id="mel-publish-action-title" class="mel-publish-action-card__title">{{ 'Publish event'|t }}</h3>
-                  <p class="mel-publish-action-card__desc">{{ 'Your event is ready — publish now and start getting attendees.'|t }}</p>
-                  <p class="mel-card-publish__ready-celebrate" data-mel-publish-ready-celebrate hidden>{{ "You're ready to go live 🎉"|t }}</p>
+                  <p class="mel-publish-action-card__desc">{{ 'Your event is looking good. Publish when you are ready for attendees to see it.'|t }}</p>
+                  <p class="mel-card-publish__ready-celebrate" data-mel-publish-ready-celebrate hidden>{{ "You're ready to go live."|t }}</p>
                   <div class="mel-builder-publish-actions">
                     {% if not mel_publish_blocked %}
                       <button type="button" class="mel-btn mel-btn--primary" id="mel-publish-now">{{ 'Publish event'|t }}</button>
@@ -736,36 +723,6 @@
     </div>
 
       </main>
-    </div>
-  </div>
-
-  <div id="mel-ai-diff-modal" class="mel-ai-diff-modal" hidden>
-    <div class="mel-ai-diff-modal__overlay"></div>
-
-    <div
-      class="mel-ai-diff-modal__panel"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="mel-ai-diff-modal-title"
-    >
-      <h3 id="mel-ai-diff-modal-title">{{ 'Review AI changes'|t }}</h3>
-
-      <div class="mel-ai-diff">
-        <div class="mel-ai-diff__col">
-          <h4>{{ 'Current'|t }}</h4>
-          <div id="mel-ai-diff-current" class="mel-ai-diff__body"></div>
-        </div>
-
-        <div class="mel-ai-diff__col">
-          <h4>{{ 'AI suggestion'|t }}</h4>
-          <div id="mel-ai-diff-new" class="mel-ai-diff__body"></div>
-        </div>
-      </div>
-
-      <div class="mel-ai-diff-modal__actions">
-        <button type="button" id="mel-ai-diff-cancel" class="mel-btn">{{ 'Cancel'|t }}</button>
-        <button type="button" id="mel-ai-diff-apply" class="mel-btn mel-btn--primary">{{ 'Apply changes'|t }}</button>
-      </div>
     </div>
   </div>
 

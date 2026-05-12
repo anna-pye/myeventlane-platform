@@ -76,6 +76,22 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-empty-state',
     ],
+    'mel_event_studio_ai_assist' => [
+      'variables' => [
+        'target' => '',
+        'field_name' => '',
+        'field_label' => '',
+        'helper' => '',
+        'button_label' => '',
+        'generate_label' => '',
+        'regenerate_label' => '',
+        'insert_label' => '',
+        'section' => '',
+        'endpoint' => '',
+        'style_chips' => [],
+      ],
+      'template' => 'mel-event-studio-ai-assist',
+    ],
     'mel_event_studio_wizard_preview' => [
       'variables' => [
         'node' => NULL,

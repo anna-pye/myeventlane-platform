@@ -24,6 +24,7 @@ use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
+use Drupal\myeventlane_event_studio\Service\EventStudioAiAssistBuilder;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceComponentBuilder;
@@ -88,6 +89,8 @@ final class EventStudioForm extends FormBase {
 
   protected MelReadinessHelper $readinessHelper;
 
+  protected EventStudioAiAssistBuilder $aiAssistBuilder;
+
   /**
    * Lazily restored for cached form AJAX (see {@see getMelPlatformSupportWizardForm()}).
    *
@@ -122,6 +125,7 @@ final class EventStudioForm extends FormBase {
     $instance->eventStudioGovernanceBuilder = $container->get('myeventlane_event_studio.governance_builder');
     $instance->eventStudioGovernanceComponentBuilder = $container->get('myeventlane_event_studio.governance_component_builder');
     $instance->readinessHelper = $container->get('myeventlane_surface.state_readiness_helper');
+    $instance->aiAssistBuilder = $container->get('myeventlane_event_studio.ai_assist_builder');
     return $instance;
   }
 
@@ -141,7 +145,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder, $this->readinessHelper)
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder, $this->readinessHelper, $this->aiAssistBuilder)
       && isset($this->melPlatformSupportWizardForm)) {
       return;
     }
@@ -202,6 +206,9 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->readinessHelper)) {
       $this->readinessHelper = $container->get('myeventlane_surface.state_readiness_helper');
+    }
+    if (!isset($this->aiAssistBuilder)) {
+      $this->aiAssistBuilder = $container->get('myeventlane_event_studio.ai_assist_builder');
     }
   }
 
@@ -596,6 +603,11 @@ final class EventStudioForm extends FormBase {
       '#description' => $this->t('Shown on the event page (plain text).'),
       '#attributes' => ['class' => ['mel-input']],
     ];
+
+    $this->aiAssistBuilder->attachToElement($form['mel']['title'], $event, 'title', 'basic');
+    $this->aiAssistBuilder->attachToElement($form['mel']['summary'], $event, 'summary', 'basic');
+    $this->aiAssistBuilder->attachToElement($form['mel']['body'], $event, 'body', 'content');
+    $this->aiAssistBuilder->attachToElement($form['mel']['field_event_intro'], $event, 'field_event_intro', 'content');
 
     $highlights_json = $this->encodeEventHighlightsJsonForEvent($event);
     $form['mel']['event_highlights'] = [

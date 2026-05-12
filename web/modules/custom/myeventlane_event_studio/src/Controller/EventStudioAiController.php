@@ -4,142 +4,145 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Controller;
 
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_ai\Service\AiManager;
+use Drupal\myeventlane_event_studio\Service\EventStudioAiPromptBuilder;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * POST JSON: AI-generated title + summary for Event Studio Basic step.
+ * Event-scoped MEL Write with AI endpoint for Event Studio fields.
  */
-final class EventStudioAiController implements ContainerInjectionInterface {
-
-  public static function create(ContainerInterface $container): static {
-    return new static(
-      $container->get('myeventlane_ai.generator'),
-      $container->get('current_user'),
-      $container->get('logger.channel.myeventlane_event_studio'),
-    );
-  }
+final class EventStudioAiController {
 
   public function __construct(
-    private readonly AiManager $aiGenerator,
+    private readonly AiManager $aiManager,
+    private readonly EventStudioAiPromptBuilder $promptBuilder,
     private readonly AccountProxyInterface $currentUser,
+    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
     private readonly LoggerInterface $logger,
   ) {}
 
-  public function generate(Request $request): JsonResponse {
+  public function assist(Request $request, NodeInterface $node): JsonResponse {
     if (!$request->isMethod('POST')) {
       return new JsonResponse(['ok' => FALSE, 'error' => 'Method not allowed'], 405);
     }
 
-    $raw = $request->getContent();
-    $data = [];
-    if ($raw !== '') {
-      try {
-        $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-        $data = is_array($decoded) ? $decoded : [];
-      }
-      catch (\JsonException $e) {
-        $this->logger->notice('Event Studio AI: invalid JSON body: @msg', ['@msg' => $e->getMessage()]);
-        return new JsonResponse(['ok' => FALSE, 'error' => 'Invalid JSON'], 400);
-      }
+    $this->assertCanAssist($node);
+    $data = $this->decodeJsonBody($request);
+    if ($data instanceof JsonResponse) {
+      return $data;
     }
 
-    $title = (string) ($data['title'] ?? '');
-    $summary = (string) ($data['summary'] ?? '');
-    $category = (string) ($data['category'] ?? '');
-    $tags = (string) ($data['tags'] ?? '');
-    $tone = (string) ($data['tone'] ?? 'community');
-    $audience = (string) ($data['audience'] ?? 'general');
+    $field_name = (string) ($data['field'] ?? $data['target'] ?? '');
+    if (!$this->promptBuilder->isSupportedField($field_name)) {
+      $this->logger->notice('Event Studio AI assist rejected unsupported field @field for nid @nid', [
+        '@field' => $field_name,
+        '@nid' => (string) $node->id(),
+      ]);
+      return new JsonResponse(['ok' => FALSE, 'error' => 'Unsupported field'], 400);
+    }
 
-    $uid = $this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL;
+    try {
+      $input = $data['context'] ?? $data;
+      if (!is_array($input)) {
+        $input = [];
+      }
+      $request_bundle = $this->promptBuilder->build($node, $field_name, $input);
+      $result = $this->aiManager->analyze(
+        $request_bundle['definition'],
+        $request_bundle['options'],
+        $this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL,
+        $request_bundle['scope_id'],
+        $request_bundle['vendor_id'],
+      );
+    }
+    catch (\InvalidArgumentException $e) {
+      return new JsonResponse(['ok' => FALSE, 'error' => $e->getMessage()], 400);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio AI assist failed before provider call nid=@nid field=@field: @message', [
+        '@nid' => (string) $node->id(),
+        '@field' => $field_name,
+        '@message' => $e->getMessage(),
+      ]);
+      return new JsonResponse(['ok' => FALSE, 'error' => 'AI is unavailable right now.'], 200);
+    }
 
-    $response = $this->aiGenerator->generateEventCopyReliable([
-      'title' => $title,
-      'summary' => $summary,
-      'category' => $category,
-      'tags' => $tags,
-      'tone' => $tone,
-      'audience' => $audience,
-    ], $uid, NULL);
-
-    $this->logger->notice('Event Studio AI result ok=@ok', [
-      '@ok' => !empty($response['ok']) ? '1' : '0',
+    $this->logger->notice('Event Studio AI assist result ok=@ok nid=@nid field=@field', [
+      '@ok' => $result->ok ? '1' : '0',
+      '@nid' => (string) $node->id(),
+      '@field' => $field_name,
     ]);
 
-    if (empty($response['ok'])) {
+    if (!$result->ok) {
       return new JsonResponse([
         'ok' => FALSE,
-        'error' => $response['error'] ?? 'AI failed',
-        'title' => '',
-        'summary' => '',
+        'error' => $result->error ?: 'AI is unavailable right now.',
+        'text' => '',
       ], 200);
+    }
+
+    $text = $this->promptBuilder->extractGeneratedText($result->json, $result->raw);
+    if ($text === '') {
+      return new JsonResponse(['ok' => FALSE, 'error' => 'AI did not return usable text.', 'text' => ''], 200);
     }
 
     return new JsonResponse([
       'ok' => TRUE,
-      'title' => $response['title'] ?? '',
-      'summary' => $response['summary'] ?? '',
+      'field' => $field_name,
+      'text' => $text,
       'error' => '',
     ], 200);
   }
 
+  private function assertCanAssist(NodeInterface $node): void {
+    $account = $this->currentUser;
+    if ($account->isAnonymous() || $node->bundle() !== 'event') {
+      $this->logger->warning('Event Studio AI assist denied: invalid event or anonymous nid=@nid uid=@uid', [
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+      ]);
+      throw new AccessDeniedHttpException();
+    }
+
+    if ($account->hasPermission('administer nodes')) {
+      return;
+    }
+
+    if (!$node->access('update', $account) || !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      $this->logger->warning('Event Studio AI assist denied: edit access nid=@nid uid=@uid', [
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+      ]);
+      throw new AccessDeniedHttpException();
+    }
+  }
+
   /**
-   * POST JSON: AI rewrite for About (body) and What to expect (field_event_intro).
+   * @return array<string, mixed>|\Symfony\Component\HttpFoundation\JsonResponse
    */
-  public function rewrite(Request $request): JsonResponse {
-    if (!$request->isMethod('POST')) {
-      return new JsonResponse(['ok' => FALSE, 'error' => 'Method not allowed'], 405);
-    }
-
+  private function decodeJsonBody(Request $request): array|JsonResponse {
     $raw = $request->getContent();
-    $data = [];
-    if ($raw !== '') {
-      try {
-        $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-        $data = is_array($decoded) ? $decoded : [];
-      }
-      catch (\JsonException $e) {
-        $this->logger->notice('Event Studio AI rewrite: invalid JSON body: @msg', ['@msg' => $e->getMessage()]);
-        return new JsonResponse(['ok' => FALSE, 'error' => 'Invalid JSON'], 400);
-      }
+    if ($raw === '') {
+      return [];
     }
 
-    $payload = [
-      'about' => (string) ($data['about'] ?? ''),
-      'what_to_expect' => (string) ($data['what_to_expect'] ?? ''),
-      'category' => (string) ($data['category'] ?? ''),
-      'tone' => (string) ($data['tone'] ?? 'community'),
-      'audience' => (string) ($data['audience'] ?? 'general'),
-    ];
-
-    $uid = $this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL;
-
-    $response = $this->aiGenerator->rewriteEventContentReliable($payload, $uid, NULL);
-
-    $this->logger->notice('Event Studio AI rewrite ok=@ok', [
-      '@ok' => !empty($response['ok']) ? '1' : '0',
-    ]);
-
-    if (empty($response['ok'])) {
-      return new JsonResponse([
-        'ok' => FALSE,
-        'error' => $response['error'] ?? 'AI failed',
-        'about' => $response['about'] ?? '',
-        'what_to_expect' => $response['what_to_expect'] ?? '',
-      ], 200);
+    try {
+      $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException $e) {
+      $this->logger->notice('Event Studio AI assist: invalid JSON body: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return new JsonResponse(['ok' => FALSE, 'error' => 'Invalid JSON'], 400);
     }
 
-    return new JsonResponse([
-      'ok' => TRUE,
-      'about' => $response['about'] ?? '',
-      'what_to_expect' => $response['what_to_expect'] ?? '',
-      'error' => '',
-    ], 200);
+    return is_array($decoded) ? $decoded : [];
   }
 
 }
