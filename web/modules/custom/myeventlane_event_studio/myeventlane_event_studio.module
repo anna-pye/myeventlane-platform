@@ -34,6 +34,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       'variables' => [
         'node' => NULL,
         'sections' => [],
+        'sidebar_guidance' => NULL,
         'current_section' => 'overview',
         'current_section_label' => '',
         'current_section_metadata' => [],
@@ -46,6 +47,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
     'mel_event_studio_sidebar' => [
       'variables' => [
         'sections' => [],
+        'guidance' => NULL,
         'current_section' => 'overview',
       ],
       'template' => 'mel-event-studio-sidebar',
@@ -69,6 +71,8 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'body' => '',
         'prompt' => '',
         'guidance' => [],
+        'icon' => 'spark',
+        'state' => 'default',
       ],
       'template' => 'mel-event-studio-empty-state',
     ],

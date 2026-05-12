@@ -12,6 +12,7 @@ use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
+use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService;
 use Drupal\node\NodeInterface;
@@ -37,6 +38,7 @@ final class EventStudioController extends ControllerBase {
     private readonly EventReadinessService $eventReadiness,
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly EventStudioSectionManager $sectionManager,
+    private readonly EventStudioSectionRenderer $sectionRenderer,
   ) {
     // ControllerBase / EntityTypeManagerTrait already declare protected $entityTypeManager.
     $this->entityTypeManager = $entity_type_manager;
@@ -53,6 +55,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.readiness'),
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('plugin.manager.myeventlane_event_studio_section'),
+      $container->get('myeventlane_event_studio.section_renderer'),
     );
   }
 
@@ -155,10 +158,11 @@ final class EventStudioController extends ControllerBase {
       '#theme' => 'mel_event_studio_workspace',
       '#node' => $node,
       '#sections' => $this->sectionManager->buildNavigation($node, $account, $section),
+      '#sidebar_guidance' => $this->sectionRenderer->buildSidebarGuidance($node),
       '#current_section' => $section,
       '#current_section_label' => $this->sectionManager->sectionTitle($section),
       '#current_section_metadata' => $sectionMetadata,
-      '#section_content' => $sectionPlugin->build($node),
+      '#section_content' => $this->sectionRenderer->build($sectionPlugin, $node),
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
       '#readiness' => $this->buildReadinessSummary($readiness),
       '#attached' => [
@@ -240,7 +244,7 @@ final class EventStudioController extends ControllerBase {
   }
 
   /**
-   * @return array{ready: bool, errors: list<string>, warnings: list<string>, completed: list<string>, state: string}
+   * @return array{ready: bool, errors: list<string>, warnings: list<string>, completed: list<string>, recommendations: list<string>, state: string}
    */
   private function buildReadinessSummary(EventReadinessResult $result): array {
     return [
@@ -248,6 +252,7 @@ final class EventStudioController extends ControllerBase {
       'errors' => $result->errors,
       'warnings' => $result->warnings,
       'completed' => $result->completed,
+      'recommendations' => $result->recommendations,
       'state' => $this->operationalState($result),
     ];
   }

@@ -118,6 +118,95 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       '#default_value' => !empty($melDefaults['collect_attendee_questions']),
       '#mel_option_card' => TRUE,
     ];
+
+    $form['mel']['rsvp_donation_guidance'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-rsvp-donation-guidance'],
+        'role' => 'region',
+        'aria-labelledby' => 'mel-rsvp-donation-guidance-title',
+      ],
+      '#states' => [
+        'visible' => [
+          ':input[name="mel[field_event_type]"]' => ['value' => 'rsvp'],
+        ],
+      ],
+      'kicker' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Optional supporter donations'),
+        '#attributes' => ['class' => ['mel-rsvp-donation-guidance__kicker']],
+      ],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Let attendees contribute when they RSVP'),
+        '#attributes' => [
+          'id' => 'mel-rsvp-donation-guidance-title',
+          'class' => ['mel-rsvp-donation-guidance__title'],
+        ],
+      ],
+      'intro' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Supporter donations are optional for attendees and reuse MEL’s existing RSVP donation checkout. They never block publishing.'),
+        '#attributes' => ['class' => ['mel-rsvp-donation-guidance__intro']],
+      ],
+      'enable_donations' => [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Offer optional supporter donations on RSVP'),
+        '#description' => $this->t('Attendees can RSVP for free and choose whether to add a contribution.'),
+        '#default_value' => !empty($melDefaults['enable_donations']),
+        '#parents' => ['mel', 'enable_donations'],
+        '#mel_option_card' => TRUE,
+      ],
+      'donation_amount' => [
+        '#type' => 'number',
+        '#title' => $this->t('Suggested donation amount'),
+        '#min' => 0,
+        '#step' => 0.01,
+        '#field_prefix' => '$',
+        '#default_value' => $melDefaults['donation_amount'] ?? '',
+        '#parents' => ['mel', 'donation_amount'],
+        '#attributes' => ['class' => ['mel-input']],
+        '#states' => [
+          'visible' => [
+            ':input[name="mel[enable_donations]"]' => ['checked' => TRUE],
+          ],
+        ],
+      ],
+      'donation_options' => [
+        '#type' => 'textfield',
+        '#title' => $this->t('Donation options'),
+        '#description' => $this->t('Comma-separated amounts, for example 5,10,25,50.'),
+        '#default_value' => $melDefaults['donation_options'] ?? '5,10,25,50',
+        '#parents' => ['mel', 'donation_options'],
+        '#attributes' => ['class' => ['mel-input']],
+        '#states' => [
+          'visible' => [
+            ':input[name="mel[enable_donations]"]' => ['checked' => TRUE],
+          ],
+        ],
+      ],
+      'donation_label' => [
+        '#type' => 'textfield',
+        '#title' => $this->t('Donation label'),
+        '#default_value' => $melDefaults['donation_label'] ?? (string) $this->t('Support this event'),
+        '#parents' => ['mel', 'donation_label'],
+        '#attributes' => ['class' => ['mel-input']],
+        '#states' => [
+          'visible' => [
+            ':input[name="mel[enable_donations]"]' => ['checked' => TRUE],
+          ],
+        ],
+      ],
+      'assurance' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Recommendation only: RSVP donations are not required for publish readiness.'),
+        '#attributes' => ['class' => ['mel-rsvp-donation-guidance__assurance']],
+      ],
+    ];
   }
 
 }

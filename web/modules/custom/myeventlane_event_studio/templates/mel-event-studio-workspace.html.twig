@@ -25,6 +25,7 @@
     <div class="mel-event-studio-readiness-strip__counts">
       <span data-mel-readiness-errors-count>{{ readiness.errors|length }} {{ 'blocker(s)'|t }}</span>
       <span data-mel-readiness-warnings-count>{{ readiness.warnings|length }} {{ 'warning(s)'|t }}</span>
+      <span data-mel-readiness-recommendations-count>{{ readiness.recommendations|default([])|length }} {{ 'idea(s)'|t }}</span>
       <span data-mel-readiness-completed-count>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
     </div>
   </section>
@@ -44,8 +45,17 @@
   >{{ 'Sections'|t }}</button>
 
   <div class="mel-event-studio-workspace">
+    <button
+      class="mel-event-studio-sidebar-overlay"
+      type="button"
+      aria-label="{{ 'Close sections menu'|t }}"
+      data-mel-studio-sidebar-overlay
+      hidden
+    ></button>
+
     {{ include('@myeventlane_event_studio/mel-event-studio-sidebar.html.twig', {
       sections: sections,
+      guidance: sidebar_guidance,
       current_section: current_section
     }, with_context = false) }}
 

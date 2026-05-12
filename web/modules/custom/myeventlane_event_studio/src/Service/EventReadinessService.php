@@ -39,6 +39,7 @@ final class EventReadinessService {
     $errors = [];
     $warnings = [];
     $completed = [];
+    $recommendations = [];
 
     $title = trim($event->label());
     if ($title === '' || strcasecmp($title, 'Untitled event') === 0) {
@@ -91,7 +92,7 @@ final class EventReadinessService {
     }
 
     if (!$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
-      $errors[] = (string) $this->t('Add a banner image.');
+      $recommendations[] = (string) $this->t('Add a banner image for stronger event conversion.');
     }
     else {
       $completed[] = (string) $this->t('Branding image added.');
@@ -101,10 +102,13 @@ final class EventReadinessService {
       $completed[] = (string) $this->t('Capacity settings valid.');
     }
 
+    $this->addOptionalRecommendations($event, $recommendations);
+
     $errors = array_values(array_unique($errors));
     $warnings = array_values(array_unique($warnings));
     $completed = array_values(array_unique($completed));
-    return EventReadinessResult::create($errors, $warnings, $completed);
+    $recommendations = array_values(array_unique($recommendations));
+    return EventReadinessResult::create($errors, $warnings, $completed, $recommendations);
   }
 
   /**
@@ -193,6 +197,26 @@ final class EventReadinessService {
       return '';
     }
     return (string) $event->get('field_event_type')->value;
+  }
+
+  /**
+   * @param list<string> $recommendations
+   */
+  private function addOptionalRecommendations(NodeInterface $event, array &$recommendations): void {
+    $event_type = $this->eventType($event);
+    if (in_array($event_type, ['rsvp', 'both'], TRUE)
+      && $event->hasField('field_enable_donations')
+      && ($event->get('field_enable_donations')->isEmpty() || !(bool) $event->get('field_enable_donations')->value)) {
+      $recommendations[] = (string) $this->t('Consider enabling optional supporter donations for RSVP attendees.');
+    }
+
+    if ($event->hasField('field_event_summary') && $event->get('field_event_summary')->isEmpty()) {
+      $recommendations[] = (string) $this->t('Add a short event summary so attendees understand the experience quickly.');
+    }
+
+    if ($event->hasField('field_accessibility_contact') && $event->get('field_accessibility_contact')->isEmpty()) {
+      $recommendations[] = (string) $this->t('Add accessibility contact details to build attendee confidence.');
+    }
   }
 
 }
