@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
+use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioWizardMelBaseline;
@@ -34,6 +35,7 @@ abstract class EventStudioBaseForm extends FormBase {
     protected EventStudioSaveService $saveService,
     protected EventStudioMelPayloadService $melPayloadService,
     protected EventStudioWizardMelBaseline $wizardMelBaseline,
+    protected EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer,
     protected EventVendorAccessChecker $eventVendorAccessChecker,
     protected EventStudioAutosaveService $autosaveService,
     RequestStack $request_stack,
@@ -53,6 +55,7 @@ abstract class EventStudioBaseForm extends FormBase {
       $container->get('myeventlane_event_studio.save'),
       $container->get('myeventlane_event_studio.mel_payload'),
       $container->get('myeventlane_event_studio.wizard_mel_baseline'),
+      $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer'),
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('request_stack'),
@@ -232,6 +235,11 @@ abstract class EventStudioBaseForm extends FormBase {
     ];
 
     $this->buildWizardStepContent($form, $form_state, $node, $melDefaults);
+    $this->entityAutocompleteMelNormalizer->normalizeDefaultValuesForForm($form['mel'], [
+      'section' => $this->getCurrentStepId(),
+      'event_id' => (int) $node->id(),
+      'uid' => (int) $this->currentUser->id(),
+    ]);
 
     $form['actions'] = [
       '#type' => 'actions',
@@ -328,6 +336,15 @@ abstract class EventStudioBaseForm extends FormBase {
    * Saves merged mel via EventStudioSaveService and redirects to the next route.
    */
   public function submitContinue(array &$form, FormStateInterface $form_state): void {
+    $submitted = $form_state->getValue('mel') ?? [];
+    if (is_array($submitted) && isset($form['mel']) && is_array($form['mel'])) {
+      $form_state->setValue('mel', $this->entityAutocompleteMelNormalizer->normalizeValuesForForm($form['mel'], $submitted, [
+        'section' => $this->getCurrentStepId(),
+        'event_id' => (int) ($form_state->getValue('nid') ?? 0),
+        'uid' => (int) $this->currentUser->id(),
+      ]));
+    }
+
     $result = $this->persistWizardMel($form_state, $this->isDraftWizardSave());
     if ($result === NULL) {
       return;

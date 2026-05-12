@@ -81,6 +81,102 @@ final class EntityAutocompleteMelNormalizerTest extends TestCase {
     ], 'commerce_product', 'mel.field_product_target'));
   }
 
+  /**
+   * @covers ::normalizeValuesForForm
+   */
+  public function testNormalizeValuesForFormUsesAutocompleteElementMetadata(): void {
+    $venue = $this->entity('myeventlane_venue');
+    $category = $this->entity('taxonomy_term');
+
+    $venueStorage = $this->createMock(EntityStorageInterface::class);
+    $venueStorage->expects($this->once())
+      ->method('load')
+      ->with(100)
+      ->willReturn($venue);
+
+    $termStorage = $this->createMock(EntityStorageInterface::class);
+    $termStorage->expects($this->once())
+      ->method('load')
+      ->with(200)
+      ->willReturn($category);
+
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->method('getStorage')
+      ->willReturnMap([
+        ['myeventlane_venue', $venueStorage],
+        ['taxonomy_term', $termStorage],
+      ]);
+
+    $logger = $this->createMock(LoggerInterface::class);
+    $logger->expects($this->never())->method('warning');
+
+    $normalizer = new EntityAutocompleteMelNormalizer($entityTypeManager, $logger);
+    $form = [
+      'venue_saved' => [
+        '#type' => 'entity_autocomplete',
+        '#target_type' => 'myeventlane_venue',
+      ],
+      'field_category' => [
+        '#type' => 'entity_autocomplete',
+        '#target_type' => 'taxonomy_term',
+        '#tags' => TRUE,
+      ],
+    ];
+
+    $normalized = $normalizer->normalizeValuesForForm($form, [
+      'venue_saved' => 'Main Hall (100)',
+      'field_category' => 'Music (200)',
+    ]);
+
+    $this->assertSame($venue, $normalized['venue_saved']);
+    $this->assertSame([$category], $normalized['field_category']);
+  }
+
+  /**
+   * @covers ::normalizeDefaultValuesForForm
+   */
+  public function testNormalizeDefaultValuesForFormDropsMalformedAutocompleteDefaultsWithOperationalContext(): void {
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->expects($this->never())->method('getStorage');
+
+    $logger = $this->createMock(LoggerInterface::class);
+    $logger->expects($this->once())
+      ->method('warning')
+      ->with(
+        'Discarded invalid entity_autocomplete replay value for @key (expected entity type @type): @info section=@section event=@event uid=@uid field=@field payload_type=@payload_type',
+        [
+          '@key' => 'mel.venue_saved',
+          '@type' => 'myeventlane_venue',
+          '@info' => 'array',
+          '@section' => 'information',
+          '@event' => '123',
+          '@uid' => '456',
+          '@field' => 'venue_saved',
+          '@payload_type' => 'array',
+        ],
+      );
+
+    $normalizer = new EntityAutocompleteMelNormalizer($entityTypeManager, $logger);
+    $form = [
+      'venue_saved' => [
+        '#type' => 'entity_autocomplete',
+        '#target_type' => 'myeventlane_venue',
+        '#default_value' => [
+          ['target_id' => 100],
+          ['target_id' => 101],
+        ],
+      ],
+    ];
+
+    $normalizer->normalizeDefaultValuesForForm($form, [
+      'section' => 'information',
+      'event_id' => 123,
+      'uid' => 456,
+    ]);
+
+    $this->assertNull($form['venue_saved']['#default_value']);
+  }
+
   private function entity(string $entityTypeId): EntityInterface {
     $entity = $this->createMock(EntityInterface::class);
     $entity->method('getEntityTypeId')->willReturn($entityTypeId);
