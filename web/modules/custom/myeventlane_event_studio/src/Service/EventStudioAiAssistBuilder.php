@@ -31,7 +31,7 @@ final class EventStudioAiAssistBuilder {
       'helper' => 'Shape a first impression that helps guests feel excited to attend.',
       'button' => 'Help me shape this',
       'generate' => 'Shape a draft',
-      'insert' => 'Use this text',
+      'insert' => 'Use suggestion',
     ],
     'summary' => [
       'name' => 'mel[summary]',
@@ -40,7 +40,7 @@ final class EventStudioAiAssistBuilder {
       'helper' => 'Create a clear, easy-to-scan snapshot for guests browsing on any device.',
       'button' => 'Help me shape this',
       'generate' => 'Shape a draft',
-      'insert' => 'Use this text',
+      'insert' => 'Use suggestion',
     ],
     'body' => [
       'name' => 'mel[body]',
@@ -49,7 +49,7 @@ final class EventStudioAiAssistBuilder {
       'helper' => 'Turn your notes into a warm event story guests can trust.',
       'button' => 'Help me shape this',
       'generate' => 'Shape a draft',
-      'insert' => 'Use this text',
+      'insert' => 'Use suggestion',
     ],
     'field_event_intro' => [
       'name' => 'mel[field_event_intro]',
@@ -58,7 +58,7 @@ final class EventStudioAiAssistBuilder {
       'helper' => 'Help guests picture the experience before they RSVP or book.',
       'button' => 'Help me shape this',
       'generate' => 'Shape a draft',
-      'insert' => 'Use this text',
+      'insert' => 'Use suggestion',
     ],
   ];
 

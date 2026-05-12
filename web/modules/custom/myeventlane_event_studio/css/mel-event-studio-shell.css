@@ -1133,6 +1133,127 @@
   line-height: 1.4;
 }
 
+.mel-event-studio .mel-ai-assist__changes {
+  display: grid;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.mel-event-studio .mel-ai-assist__changes[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-ai-assist__changes-title {
+  margin: 0;
+  color: #6d5f7d;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.mel-event-studio .mel-ai-assist__changes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-event-studio .mel-ai-assist__changes-list li {
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(250, 245, 255, 0.78);
+  color: #5b4a6f;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.mel-event-studio .mel-ai-assist__guest-preview {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin-top: 4px;
+}
+
+.mel-event-studio .mel-ai-assist__guest-preview[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-ai-assist__guest-preview-kicker {
+  margin: 0;
+  color: #5b4a6f;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.mel-event-studio .mel-ai-assist__guest-card {
+  border: 1px solid rgba(186, 142, 216, 0.18);
+  border-radius: 18px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(242, 109, 91, 0.1), transparent 34%),
+    linear-gradient(135deg, #fffdf8 0%, #fff 64%, #faf5ff 100%);
+  box-shadow: 0 10px 24px rgba(88, 63, 130, 0.08);
+}
+
+.mel-event-studio .mel-ai-assist__guest-copy {
+  white-space: pre-wrap;
+  color: #1f2937;
+  font-size: 0.94rem;
+  line-height: 1.62;
+}
+
+.mel-event-studio .mel-ai-assist__guest-preview.is-empty .mel-ai-assist__guest-copy {
+  color: #7c7188;
+  font-style: italic;
+}
+
+.mel-event-studio .mel-ai-assist__guest-cues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-event-studio .mel-ai-assist__guest-cues li {
+  border: 1px solid rgba(22, 101, 52, 0.12);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(240, 253, 244, 0.86);
+  color: #166534;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mel-event-studio .mel-ai-assist__original {
+  border: 1px solid rgba(203, 213, 225, 0.5);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(248, 250, 252, 0.72);
+  color: #64748b;
+}
+
+.mel-event-studio .mel-ai-assist__original[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio .mel-ai-assist__original summary {
+  cursor: pointer;
+  color: #7c7188;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.mel-event-studio .mel-ai-assist__original p {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .mel-event-studio .mel-ai-assist__preview:focus-visible {
   outline: 2px solid rgba(186, 142, 216, 0.4);
   outline-offset: 2px;
