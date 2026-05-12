@@ -63,7 +63,7 @@ final class MelSupportResolver implements MelSupportResolverInterface {
     $configured_copy = trim((string) ($config->get('platform_copy') ?? ''));
     $intro = $configured_copy !== ''
       ? $configured_copy
-      : (string) $this->t('Help keep MEL affordable for grassroots events.');
+      : (string) $this->t('Help keep MyEventLane affordable for community organisers.');
 
     return [
       '#type' => 'container',
@@ -79,13 +79,13 @@ final class MelSupportResolver implements MelSupportResolverInterface {
       'kicker' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Support MyEventLane'),
+        '#value' => $this->t('Community contribution'),
         '#attributes' => ['class' => ['mel-platform-support-card__kicker']],
       ],
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Support free community events'),
+        '#value' => $this->t('Help keep community events affordable'),
         '#attributes' => [
           'id' => 'mel-platform-support-card-' . $this->sanitizePlacement($placement),
           'class' => ['mel-platform-support-card__title'],
@@ -100,12 +100,12 @@ final class MelSupportResolver implements MelSupportResolverInterface {
       'assurance' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Separate from attendee checkout. Never required to publish.'),
+        '#value' => $this->t('Optional, transparent, and separate from attendee checkout. Never required to publish.'),
         '#attributes' => ['class' => ['mel-platform-support-card__assurance']],
       ],
       'action' => [
         '#type' => 'link',
-        '#title' => $this->t('Support MEL'),
+        '#title' => $this->t('Contribute to MEL'),
         '#url' => $url,
         '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-platform-support-card__cta']],
       ],

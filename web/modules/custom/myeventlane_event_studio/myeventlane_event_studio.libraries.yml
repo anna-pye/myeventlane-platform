@@ -26,4 +26,3 @@ mel_event_studio_shell_only:
     - core/drupal
     - core/drupalSettings
     - core/once
-    - myeventlane_location/address_autocomplete

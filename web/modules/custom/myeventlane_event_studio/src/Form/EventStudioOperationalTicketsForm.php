@@ -304,6 +304,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $ticket->isPublished() => $this->t('Selling now'),
       default => $this->t('Draft'),
     };
+    $capacity_summary = $ticket->get('capacity')->isEmpty()
+      ? $this->t('No fixed capacity')
+      : $this->t('@count available', ['@count' => (string) $ticket->get('capacity')->value]);
 
     return [
       '#type' => 'container',
@@ -395,6 +398,49 @@ final class EventStudioOperationalTicketsForm extends FormBase {
               'class' => ['mel-event-studio-card-badge', 'mel-event-studio-card-badge--accent'],
             ],
           ],
+        ],
+      ],
+      'attendee_preview' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-card__attendee-preview']],
+        'label' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('How attendees will see this'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__preview-label']],
+        ],
+        'name' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $ticket->getTitle(),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__preview-name']],
+        ],
+        'details' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__preview-details']],
+          'price' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $price_summary,
+          ],
+          'availability' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $status_summary,
+          ],
+          'capacity' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $capacity_summary,
+          ],
+        ],
+        'reassurance' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $ticket->isPublished()
+            ? $this->t('Nice work — this ticket is ready for attendees.')
+            : $this->t('This ticket stays draft-safe until you make it available.'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__preview-reassurance']],
         ],
       ],
       'body' => [
