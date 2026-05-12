@@ -58,6 +58,7 @@
   }
 
   function isWritableForm(form) {
+    const capabilities = studioSettings().currentSectionCapabilities || {};
     const section = form.closest('[data-mel-section-writable]');
     if (section && section.dataset.melSectionWritable === '0') {
       return false;
@@ -68,7 +69,15 @@
     if (studioSettings().currentSectionWritable === false) {
       return false;
     }
+    if (capabilities.writable === false || capabilities.readonly === true || capabilities.deferred === true) {
+      return false;
+    }
     return true;
+  }
+
+  function supportsAutosaveForm(form) {
+    const capabilities = studioSettings().currentSectionCapabilities || {};
+    return isWritableForm(form) && capabilities.supports_autosave !== false;
   }
 
   function dirtyForms(shell) {
@@ -314,7 +323,7 @@
       });
 
       once('mel-event-studio-shell-autosave', 'form[data-mel-event-studio-form="1"]', context).forEach((form) => {
-        if (!isWritableForm(form)) {
+        if (!supportsAutosaveForm(form)) {
           return;
         }
         if (form.matches('.mel-event-studio-operational-tickets')) {
