@@ -5584,6 +5584,200 @@
     };
   }
 
+  function melAiFormRevisionSignal(form) {
+    return [
+      val(form, 'mel_studio_revision'),
+      val(form, 'mel_studio_changed'),
+    ].filter(Boolean).join(':');
+  }
+
+  function melAiCharacterMeta(original, suggestion) {
+    var originalLength = (original || '').trim().length;
+    var suggestionLength = (suggestion || '').trim().length;
+    if (!suggestionLength) {
+      return '';
+    }
+    var delta = suggestionLength - originalLength;
+    var deltaText = delta === 0
+      ? Drupal.t('same length')
+      : delta > 0
+        ? Drupal.t('@count characters longer', { '@count': String(delta) })
+        : Drupal.t('@count characters shorter', { '@count': String(Math.abs(delta)) });
+    return Drupal.t('Current text: @current characters. New idea: @suggestion characters, @delta.', {
+      '@current': String(originalLength),
+      '@suggestion': String(suggestionLength),
+      '@delta': deltaText,
+    });
+  }
+
+  function melAiSentenceCount(text) {
+    return (text || '').split(/[.!?]+/).map(function (part) {
+      return part.trim();
+    }).filter(Boolean).length;
+  }
+
+  function melAiAverageSentenceLength(text) {
+    var sentences = (text || '').split(/[.!?]+/).map(function (part) {
+      return part.trim();
+    }).filter(Boolean);
+    if (!sentences.length) {
+      return 0;
+    }
+    var words = sentences.reduce(function (total, sentence) {
+      return total + sentence.split(/\s+/).filter(Boolean).length;
+    }, 0);
+    return words / sentences.length;
+  }
+
+  function melAiChangeSummary(original, suggestion, promptType) {
+    var originalText = (original || '').trim();
+    var suggestionText = (suggestion || '').trim();
+    var originalLength = originalText.length;
+    var suggestionLength = suggestionText.length;
+    var changes = [];
+    var hasChange = function (label) {
+      return changes.indexOf(label) !== -1;
+    };
+    var addChange = function (label) {
+      if (label && !hasChange(label) && changes.length < 4) {
+        changes.push(label);
+      }
+    };
+
+    if (!suggestionLength) {
+      return changes;
+    }
+
+    if (originalLength > 0 && suggestionLength < originalLength) {
+      var percent = Math.round((1 - (suggestionLength / originalLength)) * 100);
+      if (percent >= 5) {
+        addChange(Drupal.t('Shortened by @percent%', { '@percent': String(percent) }));
+      }
+    }
+    else if (originalLength > 0 && suggestionLength > originalLength) {
+      var longerPercent = Math.round(((suggestionLength / originalLength) - 1) * 100);
+      if (longerPercent >= 8) {
+        addChange(Drupal.t('Added @percent% more detail', { '@percent': String(longerPercent) }));
+      }
+    }
+
+    if (originalText && melAiAverageSentenceLength(suggestionText) < melAiAverageSentenceLength(originalText)) {
+      addChange(Drupal.t('Simplified sentence structure'));
+    }
+
+    if (promptType === 'more_welcoming' || promptType === 'community_friendly' || promptType === 'friendly' || promptType === 'lgbtqia' || promptType === 'family') {
+      addChange(Drupal.t('Made tone more welcoming'));
+    }
+    if (promptType === 'attendee_clarity' || promptType === 'minimal' || promptType === 'shorter' || promptType === 'social_short') {
+      addChange(Drupal.t('Improved readability for mobile'));
+    }
+    if (promptType === 'workshop' || promptType === 'activist' || /\b(join|book|rsvp|reserve|discover|learn|experience|bring|come)\b/i.test(suggestionText)) {
+      addChange(Drupal.t('Clarified the attendee action'));
+    }
+    if (/\b(accessible|accessibility|step-free|quiet|caption|interpreter|sensory|wheelchair|inclusive|welcoming)\b/i.test(suggestionText)
+      && !/\b(accessible|accessibility|step-free|quiet|caption|interpreter|sensory|wheelchair|inclusive|welcoming)\b/i.test(originalText)) {
+      addChange(Drupal.t('Added accessibility-minded wording'));
+    }
+    if (!changes.length && originalText && melAiSentenceCount(suggestionText) <= melAiSentenceCount(originalText)) {
+      addChange(Drupal.t('Made the copy easier to scan'));
+    }
+    if (!changes.length) {
+      addChange(Drupal.t('Shaped the copy for guests'));
+    }
+
+    return changes;
+  }
+
+  function melAiRenderChanges(assist, text) {
+    var wrapper = assist.querySelector('[data-mel-ai-changes]');
+    var list = assist.querySelector('[data-mel-ai-changes-list]');
+    if (!wrapper || !list) {
+      return;
+    }
+    list.innerHTML = '';
+    var changes = text ? melAiChangeSummary(assist.melAiOriginalValue || '', text, melAiPromptType(assist)) : [];
+    changes.forEach(function (change) {
+      var item = document.createElement('li');
+      item.textContent = change;
+      list.appendChild(item);
+    });
+    wrapper.hidden = changes.length === 0;
+  }
+
+  function melAiExcerpt(text) {
+    var clean = (text || '').replace(/\s+/g, ' ').trim();
+    if (clean.length <= 160) {
+      return clean;
+    }
+    return clean.slice(0, 157).trim() + '...';
+  }
+
+  function melAiGuestCueSummary(original, suggestion, promptType) {
+    var changes = melAiChangeSummary(original, suggestion, promptType);
+    var cues = [];
+    var addCue = function (label) {
+      if (label && cues.indexOf(label) === -1 && cues.length < 3) {
+        cues.push(label);
+      }
+    };
+    changes.forEach(function (change) {
+      if (/short|scan|mobile/i.test(change)) {
+        addCue(Drupal.t('Shorter for mobile'));
+      }
+      else if (/welcoming|tone|community/i.test(change)) {
+        addCue(Drupal.t('More welcoming'));
+      }
+      else if (/simplified|readability|clarity|easier/i.test(change)) {
+        addCue(Drupal.t('Easy to scan'));
+      }
+      else if (/action|accessibility/i.test(change)) {
+        addCue(change);
+      }
+    });
+    if (!cues.length) {
+      addCue(Drupal.t('Easy to scan'));
+    }
+    return cues;
+  }
+
+  function melAiRenderGuestPreview(assist, text) {
+    var wrapper = assist.querySelector('[data-mel-ai-guest-preview]');
+    var copy = assist.querySelector('[data-mel-ai-guest-copy]');
+    var cuesList = assist.querySelector('[data-mel-ai-guest-cues]');
+    var original = assist.querySelector('[data-mel-ai-original]');
+    var originalExcerpt = assist.querySelector('[data-mel-ai-original-excerpt]');
+    if (!wrapper || !copy || !cuesList) {
+      return;
+    }
+
+    var originalText = assist.melAiOriginalValue || '';
+    var hasSuggestion = !!text;
+    var displayText = hasSuggestion ? text : originalText;
+    var hasPreviewText = !!displayText;
+    copy.textContent = hasPreviewText
+      ? displayText
+      : Drupal.t('A guest-facing preview will appear here once there is text to shape.');
+    cuesList.innerHTML = '';
+    var cues = hasSuggestion
+      ? melAiGuestCueSummary(originalText, text || '', melAiPromptType(assist))
+      : [originalText ? Drupal.t('Current guest-facing preview') : Drupal.t('Ready for your first draft')];
+    cues.forEach(function (cue) {
+      var item = document.createElement('li');
+      item.textContent = cue;
+      cuesList.appendChild(item);
+    });
+
+    if (original && originalExcerpt) {
+      var excerpt = melAiExcerpt(originalText);
+      originalExcerpt.textContent = excerpt;
+      original.hidden = !hasSuggestion || excerpt === '';
+      original.open = false;
+    }
+
+    wrapper.classList.toggle('is-empty', !hasPreviewText);
+    wrapper.hidden = false;
+  }
+
   function melAiSetStatus(assist, message, state) {
     var status = assist.querySelector('[data-mel-ai-status]');
     if (!status) {
@@ -5598,6 +5792,8 @@
 
   function melAiSetBusy(assist, busy) {
     assist.dataset.melAiBusy = busy ? '1' : '0';
+    assist.classList.toggle('is-busy', !!busy);
+    assist.setAttribute('aria-busy', busy ? 'true' : 'false');
     assist.querySelectorAll('[data-mel-ai-generate], [data-mel-ai-regenerate], [data-mel-ai-insert], [data-mel-ai-chip]').forEach(function (button) {
       button.disabled = !!busy;
       if (busy) {
@@ -5612,15 +5808,19 @@
   function melAiRenderSuggestion(assist, text) {
     var preview = assist.querySelector('[data-mel-ai-preview]');
     var suggestion = assist.querySelector('[data-mel-ai-suggestion]');
+    var meta = assist.querySelector('[data-mel-ai-meta]');
     var regenerate = assist.querySelector('[data-mel-ai-regenerate]');
     var insert = assist.querySelector('[data-mel-ai-insert]');
     assist.melAiSuggestion = text || '';
     if (preview) {
+      preview.classList.remove('is-refreshing');
       preview.textContent = text || '';
-      if (text && typeof preview.focus === 'function') {
-        preview.focus({ preventScroll: true });
-      }
     }
+    if (meta) {
+      meta.textContent = text ? melAiCharacterMeta(assist.melAiOriginalValue || '', text) : '';
+    }
+    melAiRenderChanges(assist, text);
+    melAiRenderGuestPreview(assist, text);
     if (suggestion) {
       suggestion.hidden = !text;
     }
@@ -5642,11 +5842,18 @@
     var input = melAiAssistInput(form, assist);
     var currentValue = input ? input.value || '' : '';
     if (!endpoint || !target) {
-      melAiSetStatus(assist, Drupal.t('AI assist is unavailable for this field.'), 'is-error');
+      melAiSetStatus(assist, Drupal.t('Writing help is unavailable for this field.'), 'is-error');
       return;
     }
+    assist.melAiOriginalValue = currentValue;
+    assist.melAiRevisionSignal = melAiFormRevisionSignal(form);
+    melAiRenderGuestPreview(assist, assist.melAiSuggestion || '');
+    var preview = assist.querySelector('[data-mel-ai-preview]');
+    if (preview && assist.melAiSuggestion) {
+      preview.classList.add('is-refreshing');
+    }
     melAiSetBusy(assist, true);
-    melAiSetStatus(assist, Drupal.t('Drafting a suggestion...'), 'is-loading');
+    melAiSetStatus(assist, Drupal.t('Shaping a writing idea...'), 'is-loading');
     melGetCsrfToken()
       .then(function (token) {
         if (!token) {
@@ -5681,15 +5888,15 @@
       .then(function (result) {
         if (!result.ok || !result.data || !(result.data.success || result.data.ok) || !result.data.text) {
           melAiRenderSuggestion(assist, '');
-          melAiSetStatus(assist, Drupal.t('Could not create a suggestion right now.'), 'is-error');
+          melAiSetStatus(assist, Drupal.t('Unable to shape text right now. Please try again.'), 'is-error');
           return;
         }
         melAiRenderSuggestion(assist, result.data.text);
-        melAiSetStatus(assist, Drupal.t('Suggestion ready. Review it, then insert if it feels right.'), 'is-ready');
+        melAiSetStatus(assist, Drupal.t('Writing idea ready. Review it, then use it if it feels right.'), 'is-ready');
       })
       .catch(function () {
         melAiRenderSuggestion(assist, '');
-        melAiSetStatus(assist, Drupal.t('AI request failed. Please try again.'), 'is-error');
+        melAiSetStatus(assist, Drupal.t('Writing help is temporarily unavailable. Please try again.'), 'is-error');
       })
       .finally(function () {
         melAiSetBusy(assist, false);
@@ -5711,6 +5918,9 @@
             toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
             panel.hidden = expanded;
             if (!expanded) {
+              var input = melAiAssistInput(form, assist);
+              assist.melAiOriginalValue = input ? input.value || '' : '';
+              melAiRenderGuestPreview(assist, assist.melAiSuggestion || '');
               var generate = assist.querySelector('[data-mel-ai-generate]');
               if (generate && typeof generate.focus === 'function') {
                 generate.focus({ preventScroll: true });
@@ -5730,6 +5940,33 @@
             }
             melAiRequestSuggestion(form, assist);
           });
+          chip.addEventListener('keydown', function (e) {
+            if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+              return;
+            }
+            var chips = Array.prototype.slice.call(assist.querySelectorAll('[data-mel-ai-chip]'));
+            var currentIndex = chips.indexOf(chip);
+            if (currentIndex === -1) {
+              return;
+            }
+            e.preventDefault();
+            var nextIndex = currentIndex;
+            if (e.key === 'Home') {
+              nextIndex = 0;
+            }
+            else if (e.key === 'End') {
+              nextIndex = chips.length - 1;
+            }
+            else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+              nextIndex = (currentIndex + 1) % chips.length;
+            }
+            else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+              nextIndex = (currentIndex - 1 + chips.length) % chips.length;
+            }
+            if (chips[nextIndex] && typeof chips[nextIndex].focus === 'function') {
+              chips[nextIndex].focus({ preventScroll: true });
+            }
+          });
         });
         assist.querySelectorAll('[data-mel-ai-generate], [data-mel-ai-regenerate]').forEach(function (button) {
           button.addEventListener('click', function () {
@@ -5742,14 +5979,21 @@
             var input = melAiAssistInput(form, assist);
             var suggestion = assist.melAiSuggestion || '';
             if (!input || !suggestion) {
-              melAiSetStatus(assist, Drupal.t('There is no suggestion to insert yet.'), 'is-error');
+              melAiSetStatus(assist, Drupal.t('There is no writing idea to use yet.'), 'is-error');
+              return;
+            }
+            if (assist.melAiRevisionSignal && melAiFormRevisionSignal(form) !== assist.melAiRevisionSignal) {
+              melAiSetStatus(assist, Drupal.t('This event changed after the idea was shaped. Review the field before using it.'), 'is-error');
               return;
             }
             input.value = suggestion;
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
+            if (typeof input.focus === 'function') {
+              input.focus({ preventScroll: true });
+            }
             refreshIntelligence(form, true);
-            setFormState(form, 'mel-studio--dirty', Drupal.t('AI suggestion inserted'));
+            setFormState(form, 'mel-studio--dirty', Drupal.t('Writing idea used'));
             melAiSetStatus(assist, Drupal.t('Used. You can keep editing before saving.'), 'is-inserted');
           });
         }

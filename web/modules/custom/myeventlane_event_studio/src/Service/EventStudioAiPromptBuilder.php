@@ -57,6 +57,8 @@ final class EventStudioAiPromptBuilder {
     'social_short' => 'short enough for social sharing while keeping the core event promise',
     'attendee_clarity' => 'clearer for attendees, with fewer assumptions and plain language',
     'community_friendly' => 'warm, inclusive, and centred on community belonging',
+    'shorter' => 'shorter, easier to scan, and suitable for mobile browsing',
+    'longer' => 'slightly more detailed while still concise and easy to scan',
     'lgbtqia' => 'affirming and inclusive for LGBTQIA+ communities',
     'family' => 'clear and reassuring for families and carers',
     'workshop' => 'practical, learning-focused, and outcome-oriented',
@@ -74,6 +76,8 @@ final class EventStudioAiPromptBuilder {
     'social_short' => 'Shorten the copy for social sharing while preserving the most important attendee-facing detail.',
     'attendee_clarity' => 'Improve clarity for attendees. Remove assumptions, jargon, and vague phrasing.',
     'community_friendly' => 'Make the copy feel community-minded, inclusive, and grounded in belonging.',
+    'shorter' => 'Make the copy shorter and easier to scan on mobile while preserving the core event promise.',
+    'longer' => 'Add a little more helpful detail without inventing facts or making the copy feel heavy.',
   ];
 
   public function __construct(
@@ -105,7 +109,7 @@ final class EventStudioAiPromptBuilder {
     $styles = $this->styleInstructions($input['styles'] ?? []);
     $prompt_type = strtolower(trim((string) ($input['prompt_type'] ?? '')));
     $prompt_instruction = self::PROMPT_TYPE_INSTRUCTIONS[$prompt_type] ?? '';
-    $current_value = $this->plainText($input['current_value'] ?? $context[$field_name] ?? '');
+    $current_value = $this->plainText($input['current_value'] ?? $context[$field_name] ?? '', 1800);
     $max_chars = (int) $field['max_chars'];
 
     $system = <<<SYS

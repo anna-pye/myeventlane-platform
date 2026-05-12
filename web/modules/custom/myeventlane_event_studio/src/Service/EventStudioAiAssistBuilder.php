@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -27,37 +28,37 @@ final class EventStudioAiAssistBuilder {
       'name' => 'mel[title]',
       'section' => 'information',
       'label' => 'Event title',
-      'helper' => 'Need help naming it? Create a clear, guest-friendly title.',
-      'button' => 'Write with AI',
-      'generate' => 'Create draft',
-      'insert' => 'Use this text',
+      'helper' => 'Shape a first impression that helps guests feel excited to attend.',
+      'button' => 'Help me shape this',
+      'generate' => 'Shape a draft',
+      'insert' => 'Use suggestion',
     ],
     'summary' => [
       'name' => 'mel[summary]',
       'section' => 'information',
       'label' => 'Summary',
-      'helper' => 'Give your audience a clear overview in a few calm sentences.',
-      'button' => 'Write with AI',
-      'generate' => 'Create draft',
-      'insert' => 'Use this text',
+      'helper' => 'Create a clear, easy-to-scan snapshot for guests browsing on any device.',
+      'button' => 'Help me shape this',
+      'generate' => 'Shape a draft',
+      'insert' => 'Use suggestion',
     ],
     'body' => [
       'name' => 'mel[body]',
       'section' => 'content',
       'label' => 'About the event',
-      'helper' => 'Create a friendly event description guests can trust.',
-      'button' => 'Write with AI',
-      'generate' => 'Create draft',
-      'insert' => 'Use this text',
+      'helper' => 'Turn your notes into a warm event story guests can trust.',
+      'button' => 'Help me shape this',
+      'generate' => 'Shape a draft',
+      'insert' => 'Use suggestion',
     ],
     'field_event_intro' => [
       'name' => 'mel[field_event_intro]',
       'section' => 'content',
       'label' => 'What to expect',
       'helper' => 'Help guests picture the experience before they RSVP or book.',
-      'button' => 'Write with AI',
-      'generate' => 'Create draft',
-      'insert' => 'Use this text',
+      'button' => 'Help me shape this',
+      'generate' => 'Shape a draft',
+      'insert' => 'Use suggestion',
     ],
   ];
 
@@ -107,7 +108,7 @@ final class EventStudioAiAssistBuilder {
       '#helper' => $this->t($definition['helper']),
       '#button_label' => $this->t($definition['button']),
       '#generate_label' => $this->t($definition['generate']),
-      '#regenerate_label' => $this->t('Try another version'),
+      '#regenerate_label' => $this->t('Try another shape'),
       '#insert_label' => $this->t($definition['insert']),
       '#section' => $section,
       '#endpoint' => $endpoint,
@@ -116,7 +117,7 @@ final class EventStudioAiAssistBuilder {
 
     $markup = (string) $this->renderer->renderPlain($build);
     $existing = isset($element['#field_suffix']) ? (string) $element['#field_suffix'] : '';
-    $element['#field_suffix'] = $existing . $markup;
+    $element['#field_suffix'] = Markup::create($existing . $markup);
     $element['#attributes']['data-mel-ai-field'] = $target;
   }
 
@@ -127,18 +128,22 @@ final class EventStudioAiAssistBuilder {
   private function chipGroups(): array {
     return [
       'Tone' => [
-        'more_welcoming' => $this->t('Make this feel more welcoming'),
-        'more_exciting' => $this->t('Make this sound more exciting'),
-        'community_friendly' => $this->t('Make it community-friendly'),
-        'friendly' => $this->t('Friendly'),
+        'more_welcoming' => $this->t('Create a warmer first impression'),
+        'more_exciting' => $this->t('Help guests feel excited to attend'),
+        'community_friendly' => $this->t('Make it feel community-minded'),
+        'friendly' => $this->t('Keep it friendly'),
       ],
       'Clarity' => [
-        'attendee_clarity' => $this->t('Improve clarity for attendees'),
+        'attendee_clarity' => $this->t('Make this easier to scan on mobile'),
         'minimal' => $this->t('Keep it simple'),
         'professional' => $this->t('Make it polished'),
       ],
+      'Length' => [
+        'shorter' => $this->t('Make it shorter'),
+        'longer' => $this->t('Add a little more detail'),
+      ],
       'Social' => [
-        'social_short' => $this->t('Shorten for social sharing'),
+        'social_short' => $this->t('Shape it for sharing'),
         'fun' => $this->t('Make it lively'),
         'music' => $this->t('Music-friendly'),
       ],

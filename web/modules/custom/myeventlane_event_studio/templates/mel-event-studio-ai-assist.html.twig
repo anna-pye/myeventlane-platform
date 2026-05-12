@@ -1,6 +1,8 @@
 {% set panel_id = 'mel-ai-assist-' ~ target ~ '-panel' %}
 {% set status_id = 'mel-ai-assist-' ~ target ~ '-status' %}
 {% set preview_id = 'mel-ai-assist-' ~ target ~ '-preview' %}
+{% set meta_id = 'mel-ai-assist-' ~ target ~ '-meta' %}
+{% set changes_id = 'mel-ai-assist-' ~ target ~ '-changes' %}
 
 <div
   class="mel-ai-assist"
@@ -28,7 +30,7 @@
     <p class="mel-ai-assist__helper">{{ helper }}</p>
 
     <details class="mel-ai-assist__prompts">
-      <summary class="mel-ai-assist__prompts-summary">{{ 'Choose a writing prompt'|t }}</summary>
+      <summary class="mel-ai-assist__prompts-summary">{{ 'Choose a writing direction'|t }}</summary>
       {% for group, chips in chip_groups %}
         <fieldset class="mel-ai-assist__chips" data-mel-ai-chip-group="{{ group|lower }}">
           <legend class="mel-ai-assist__chips-label">{{ group|t }}</legend>
@@ -48,6 +50,7 @@
 
     <div class="mel-ai-assist__actions">
       <button type="button" class="mel-btn mel-btn--secondary mel-ai-assist__generate" data-mel-ai-generate>
+        <span class="mel-ai-assist__button-spinner" aria-hidden="true"></span>
         {{ generate_label }}
       </button>
       <button type="button" class="mel-btn mel-btn--ghost mel-ai-assist__regenerate" data-mel-ai-regenerate hidden>
@@ -60,14 +63,31 @@
 
     <p id="{{ status_id }}" class="mel-ai-assist__status" data-mel-ai-status role="status" aria-live="polite"></p>
 
-    <div class="mel-ai-assist__suggestion" data-mel-ai-suggestion hidden>
-      <p class="mel-ai-assist__suggestion-label">{{ 'AI suggestion'|t }}</p>
+    <div class="mel-ai-assist__suggestion" data-mel-ai-suggestion hidden aria-live="polite" aria-describedby="{{ meta_id }} {{ changes_id }}">
+      <p class="mel-ai-assist__suggestion-label">{{ 'Writing idea'|t }}</p>
       <div
         id="{{ preview_id }}"
         class="mel-ai-assist__preview"
         data-mel-ai-preview
         tabindex="-1"
       ></div>
+      <p id="{{ meta_id }}" class="mel-ai-assist__meta" data-mel-ai-meta></p>
+      <div id="{{ changes_id }}" class="mel-ai-assist__changes" data-mel-ai-changes hidden>
+        <p class="mel-ai-assist__changes-title">{{ 'What changed'|t }}</p>
+        <ul class="mel-ai-assist__changes-list" data-mel-ai-changes-list></ul>
+      </div>
+    </div>
+
+    <div class="mel-ai-assist__guest-preview" data-mel-ai-guest-preview hidden>
+      <p class="mel-ai-assist__guest-preview-kicker">{{ 'Previewing how guests may read this'|t }}</p>
+      <article class="mel-ai-assist__guest-card">
+        <div class="mel-ai-assist__guest-copy" data-mel-ai-guest-copy></div>
+      </article>
+      <ul class="mel-ai-assist__guest-cues" data-mel-ai-guest-cues></ul>
+      <details class="mel-ai-assist__original" data-mel-ai-original hidden>
+        <summary>{{ 'Original text'|t }}</summary>
+        <p data-mel-ai-original-excerpt></p>
+      </details>
     </div>
   </div>
 </div>
