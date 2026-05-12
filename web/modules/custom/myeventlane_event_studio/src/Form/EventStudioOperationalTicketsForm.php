@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
@@ -412,7 +413,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         'name' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $ticket->getTitle(),
+          '#value' => Html::escape($ticket->getTitle()),
           '#attributes' => ['class' => ['mel-event-studio-ticket-card__preview-name']],
         ],
         'details' => [
