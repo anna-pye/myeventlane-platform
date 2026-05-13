@@ -7,6 +7,8 @@ namespace Drupal\myeventlane_checkout_flow\Service;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_tickets\Entity\Ticket;
@@ -18,6 +20,8 @@ use Drupal\paragraphs\ParagraphInterface;
  * Builds My Tickets order view models from canonical ticket models.
  */
 final class MyTicketsOrderViewModelBuilder {
+
+  use StringTranslationTrait;
 
   /**
    * Order workflow states that represent a finished purchase for My Tickets.
@@ -35,7 +39,10 @@ final class MyTicketsOrderViewModelBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly UniversalTicketViewModelBuilder $ticketViewModelBuilder,
     private readonly TicketLabelResolver $ticketLabelResolver,
-  ) {}
+    TranslationInterface $string_translation,
+  ) {
+    $this->stringTranslation = $string_translation;
+  }
 
   /**
    * Builds My Tickets order view models in input order.
@@ -138,7 +145,7 @@ final class MyTicketsOrderViewModelBuilder {
 
     $stateId = $order->getState()->getId();
     $stateCustomer = in_array($stateId, self::COMPLETED_ORDER_STATES, TRUE)
-      ? 'Confirmed'
+      ? (string) $this->t('Confirmed')
       : (string) $order->getState()->getLabel();
 
     return [

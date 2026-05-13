@@ -10,6 +10,10 @@ Builder-driven rendering matters because operational ticket state is broader tha
 
 This removes duplicated operational shaping from `MyTicketsController`, Twig preprocessing, and template-only arrays. The checkout flow controller now delegates My Tickets order presentation to `MyTicketsOrderViewModelBuilder`, which loads issued `myeventlane_ticket` rows for already customer-scoped orders and normalizes each ticket through `UniversalTicketViewModelBuilder`. Legacy order-item rendering remains only as a compatibility fallback for orders that do not yet have issued ticket entities.
 
+## Wallet (Phase 2C)
+
+Wallet download routes remain order-item keyed for historical URL stability. **`WalletTicketResolver`** maps each **`order_item_id`** route parameter inward to issued **`myeventlane_ticket`** rows before **`PkPassBuilder`** (and future Google Wallet JWT code) runs. QR strings and entitlement metadata continue to flow through **`UniversalTicketViewModelBuilder`** → **`TicketQrPayload`** so wallet artifacts stay in the same operational spine as PDFs and scanners. See [wallet-operational-convergence.md](./wallet-operational-convergence.md).
+
 ## Ticket PDFs
 
 PDF rendering for issued tickets now derives operational entitlement data from the canonical `myeventlane_tickets.universal_ticket_view_model_builder` service, eliminating duplicated normalization in the PDF pipeline.
@@ -52,3 +56,5 @@ Now the canonical path is: `UniversalTicketViewModelBuilder::build()` → normal
 Paid-order **ticket row issuance** is owned by **`TicketIssuer`** on **`ORDER_PAID`** (see **`OrderPaidSubscriber`** in `myeventlane_tickets`). **`event_attendee`** creation on order placement is a separate roster concern and is **not** duplicate issuance.
 
 Canonical order-confirmation PDF merging is documented in [issuance-pipeline.md](./issuance-pipeline.md).
+
+Wallet operational convergence (Phase 2C) is documented in [wallet-operational-convergence.md](./wallet-operational-convergence.md).

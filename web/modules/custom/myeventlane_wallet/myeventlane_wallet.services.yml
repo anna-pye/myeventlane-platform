@@ -1,7 +1,17 @@
 services:
+  myeventlane_wallet.download_access:
+    class: Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker
+    arguments: ['@config.factory']
+
+  myeventlane_wallet.ticket_resolver:
+    class: Drupal\myeventlane_wallet\Service\WalletTicketResolver
+    arguments: ['@entity_type.manager']
+
   myeventlane_wallet.pkpass_builder:
     class: Drupal\myeventlane_wallet\Service\PkPassBuilder
-    arguments: ['@file_system', '@config.factory', '@myeventlane_wallet.wallet_signer']
+    arguments:
+      - '@file_system'
+      - '@myeventlane_tickets.universal_ticket_view_model_builder'
 
   myeventlane_wallet.wallet_signer:
     class: Drupal\myeventlane_wallet\Service\WalletSigner
@@ -10,9 +20,3 @@ services:
   myeventlane_wallet.google_wallet_builder:
     class: Drupal\myeventlane_wallet\Service\GoogleWalletBuilder
     arguments: ['@config.factory', '@renderer']
-
-
-
-
-
-

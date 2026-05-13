@@ -280,6 +280,7 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
       $this->container->get('entity_type.manager'),
       $this->container->get('myeventlane_tickets.universal_ticket_view_model_builder'),
       $this->container->get('myeventlane_core.ticket_label_resolver'),
+      $this->container->get('string_translation'),
     );
   }
 

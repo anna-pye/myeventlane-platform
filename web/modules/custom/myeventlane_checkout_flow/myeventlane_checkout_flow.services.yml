@@ -81,6 +81,7 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_tickets.universal_ticket_view_model_builder'
       - '@myeventlane_core.ticket_label_resolver'
+      - '@string_translation'
 
   logger.channel.myeventlane_checkout_flow:
     parent: logger.channel_base
