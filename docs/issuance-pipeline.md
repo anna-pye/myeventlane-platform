@@ -73,7 +73,11 @@ A vestigial **`OrderPaidSubscriber`** under **`myeventlane_commerce`** (logging 
 
 ## Operational observability (Phase 2D)
 
-Read-only integrity diagnostics for paid orders are centralized in **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`). It inspects issuance alignment, artifact readiness, recovery markers, compatibility surfaces, and guest/purchaser continuity **without** generating PDFs, wallet artifacts, or QR output for persistence. See [operational-observability.md](./operational-observability.md).
+Read-only integrity diagnostics for paid orders are centralized in **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`). It inspects issuance alignment, artifact readiness, recovery markers, compatibility surfaces, guest/purchaser continuity, venue gate descriptors, and **timed entry diagnostics** (`artifacts.timed_entry_policy`) **without** generating PDFs, wallet artifacts, or QR output for persistence. See [operational-observability.md](./operational-observability.md) and [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md).
+
+## Timed entry and capacity windows (operational clock policy)
+
+Operational clock semantics (entry windows, grace, early/late states, session/capacity metadata) are centralized in **`TimedEntryPolicyManager`** (`myeventlane_tickets.timed_entry_policy_manager`). **`VenueOperationPolicyManager`** composes timed policy into descriptors and scan gates; **`ScannerOperationManager`** enforces the gate before mutations. QR payload contracts remain unchanged; structured QR `exp` continues to cap interpretation through the policy layer. Details: [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md).
 
 ## Entitlement capability convergence (Phase 2E)
 
@@ -85,7 +89,7 @@ Operational semantics for the seven ticket-backed entitlement types (admission, 
 
 ## Tests
 
-Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`), **`OperationalIntegrityInspectorTest`** (read-only diagnostics).
+Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`), **`OperationalIntegrityInspectorTest`** (read-only diagnostics), **`TimedEntryPolicyManagerTest`** (timing policy), and the existing **`VenueOperationPolicyManagerTest`**, **`TicketCheckinServiceTest`**, and **`UniversalTicketViewModelBuilderTest`** slices that cover scanner and view-model wiring.
 
 - Issuance creates one ticket entity per unit quantity.
 - **Regression:** calling **`issueForOrder()`** twice on the same order does **not** create additional ticket rows.

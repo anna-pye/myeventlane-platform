@@ -11,16 +11,18 @@ This phase introduces a **single venue operation policy layer** for ticket-backe
 | Entitlement type policy (immutable maps) | `myeventlane_tickets.entitlement_capability_registry` | `EntitlementCapabilityRegistry` |
 | Entity-aware scan / expiry / redemption composition | `mel_ticket_capability.manager` | `TicketCapabilityManager` |
 | Venue gate policy, offline scaffolding metadata, replay fingerprints | `myeventlane_tickets.venue_operation_policy_manager` | `VenueOperationPolicyManager` |
+| Operational timing (entry windows, grace, session/capacity semantics) | `myeventlane_tickets.timed_entry_policy_manager` | `TimedEntryPolicyManager` |
 | Scanner orchestration (QR parse, mutations, audit) | `mel_scanner.operation_manager` | `ScannerOperationManager` |
 | Staff/API entry point | `myeventlane_tickets.ticket_checkin_service` | `TicketCheckinService` |
 
-`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry` and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`).
+`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`**), and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`).
 
 ## Operational action authority
 
 - **Entitlement truth** lives on `myeventlane_ticket` entities (codes, limits, counts, status, fulfilment fields).
 - **Type-level policy** (scanner mode, multi-use semantics, fulfilment flags) comes from `EntitlementCapabilityRegistry`.
 - **Venue execution policy** (offline eligibility scaffold, conflict policy labels, deterministic operation envelopes) comes from `VenueOperationPolicyManager`.
+- **Operational timing policy** (entry windows, grace, late/early semantics, session/capacity window metadata, scanner timing state) comes from `TimedEntryPolicyManager`, composed by `VenueOperationPolicyManager` and enforced on the scan path before mutations.
 
 QR payload contracts, ticket codes, public scanner JSON shapes, and routes are **unchanged**.
 
@@ -54,11 +56,12 @@ This phase adds **non-authoritative scaffolding**:
 
 ## Observability
 
-`OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. The inspector remains **read-only**.
+`OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector remains **read-only**.
 
 ## Anti-patterns (forbidden)
 
 - Scanner-specific entitlement `switch` / parallel action maps outside `EntitlementCapabilityRegistry` and `VenueOperationPolicyManager`
+- Parallel timing / entry-window logic outside `TimedEntryPolicyManager` (scanners must not own clock policy)
 - Entitlement logic that bypasses `EntitlementCapabilityRegistry` for operational policy
 - A second replay-detection implementation that contradicts persisted ticket state checks
 - Offline-only entitlement rules that are not also enforced on the online scanner path
@@ -69,4 +72,5 @@ This phase adds **non-authoritative scaffolding**:
 
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md)
 - [operational-observability.md](./operational-observability.md)
+- [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
