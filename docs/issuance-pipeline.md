@@ -73,6 +73,10 @@ A vestigial **`OrderPaidSubscriber`** under **`myeventlane_commerce`** (logging 
 
 Read-only integrity diagnostics for paid orders are centralized in **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`). It inspects issuance alignment, artifact readiness, recovery markers, compatibility surfaces, and guest/purchaser continuity **without** generating PDFs, wallet artifacts, or QR output for persistence. See [operational-observability.md](./operational-observability.md).
 
+## Entitlement capability convergence (Phase 2E)
+
+Operational semantics for the seven ticket-backed entitlement types (admission, merch, parking, drink, food, VIP, add-on) are normalized in **`EntitlementCapabilityRegistry`** (`myeventlane_tickets.entitlement_capability_registry`). **`TicketCapabilityManager`** delegates type normalization, redeemability, and fulfilment-workflow flags into that registry; **`ScannerOperationManager`** routes redemption-log actions from registry `scanner_mode`; **`UniversalTicketViewModelBuilder`** surfaces **`capabilities`** and **`fulfilment.mode`** for PDFs, wallet scaffolds, and diagnostics. See [entitlement-capability-convergence.md](./entitlement-capability-convergence.md).
+
 ## Service locator cleanup (RSVP)
 
 **`RsvpMailer`** no longer uses `\Drupal::service('myeventlane_tickets.pdf_generator')` for RSVP PDF attachments; it receives **`@?myeventlane_tickets.ticket_pdf_generator`** via constructor injection.

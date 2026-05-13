@@ -36,6 +36,7 @@ final class OperationalIntegrityInspector {
     private readonly TicketPdfGenerator $ticketPdfGenerator,
     private readonly TicketQrPayload $ticketQrPayload,
     private readonly TicketCapabilityManager $ticketCapabilityManager,
+    private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
     private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
@@ -115,6 +116,7 @@ final class OperationalIntegrityInspector {
         'wallet_route_scaffold' => 'missing',
         'qr_payload_operational' => 'missing',
         'attachment_continuity' => 'missing',
+        'entitlement_capability_policy' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -190,6 +192,7 @@ final class OperationalIntegrityInspector {
         'wallet_route_scaffold' => 'missing',
         'qr_payload_operational' => 'missing',
         'attachment_continuity' => 'missing',
+        'entitlement_capability_policy' => [],
       ];
     }
 
@@ -201,8 +204,9 @@ final class OperationalIntegrityInspector {
     $qrInvalid = 0;
     $holderReady = 0;
 
+    $capability_policy = $this->buildEntitlementCapabilityPolicyDigest($tickets);
+
     foreach ($tickets as $ticket) {
-      $this->ticketCapabilityManager->getEntitlementType($ticket);
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
         $pdfReady++;
         $holderReady++;
@@ -233,7 +237,34 @@ final class OperationalIntegrityInspector {
       'wallet_route_scaffold' => $this->aggregateReadiness($walletReady, $walletPending, $total),
       'qr_payload_operational' => $this->aggregateReadiness($qrValid, $qrInvalid, $total),
       'attachment_continuity' => $this->attachmentContinuityStatus($holderReady, $total),
+      'entitlement_capability_policy' => $capability_policy,
     ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   *   Machine-only capability diagnostics keyed by normalized entitlement type.
+   */
+  private function buildEntitlementCapabilityPolicyDigest(array $tickets): array {
+    $digest = [];
+    foreach ($tickets as $ticket) {
+      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
+      if (isset($digest[$type])) {
+        continue;
+      }
+      $map = $this->entitlementCapabilityRegistry->getCapabilityMap($type);
+      $digest[$type] = [
+        'scanner_mode' => $map['scanner_mode'],
+        'fulfilment_mode' => $map['fulfilment_mode'],
+        'redeemable' => $map['redeemable'],
+        'requires_fulfilment' => $map['requires_fulfilment'],
+        'multi_use' => $map['multi_use'],
+        'scan_required' => $map['scan_required'],
+      ];
+    }
+    return $digest;
   }
 
   private function walletScaffoldPossible(Ticket $ticket): bool {

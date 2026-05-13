@@ -12,45 +12,9 @@ use Drupal\myeventlane_tickets\Entity\Ticket;
  */
 class TicketCapabilityManager {
 
-  /**
-   * Entitlement types supported by the ticket capability foundation.
-   *
-   * @var array<string, bool>
-   */
-  private const SUPPORTED_TYPES = [
-    Ticket::ENTITLEMENT_TICKET => TRUE,
-    Ticket::ENTITLEMENT_MERCH => TRUE,
-    Ticket::ENTITLEMENT_PARKING => TRUE,
-    Ticket::ENTITLEMENT_DRINK => TRUE,
-    Ticket::ENTITLEMENT_FOOD => TRUE,
-    Ticket::ENTITLEMENT_VIP => TRUE,
-    Ticket::ENTITLEMENT_ADDON => TRUE,
-  ];
-
-  /**
-   * Entitlements that represent a redeemable or collectible unit.
-   *
-   * @var array<string, bool>
-   */
-  private const REDEEMABLE_TYPES = [
-    Ticket::ENTITLEMENT_MERCH => TRUE,
-    Ticket::ENTITLEMENT_DRINK => TRUE,
-    Ticket::ENTITLEMENT_FOOD => TRUE,
-    Ticket::ENTITLEMENT_ADDON => TRUE,
-  ];
-
-  /**
-   * Entitlements that require fulfilment workflow state.
-   *
-   * @var array<string, bool>
-   */
-  private const FULFILMENT_TYPES = [
-    Ticket::ENTITLEMENT_MERCH => TRUE,
-    Ticket::ENTITLEMENT_ADDON => TRUE,
-  ];
-
   public function __construct(
     private readonly TimeInterface $time,
+    private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
   ) {}
 
   /**
@@ -58,7 +22,7 @@ class TicketCapabilityManager {
    */
   public function getEntitlementType(Ticket $ticket): string {
     $type = $this->readStringField($ticket, 'entitlement_type', Ticket::ENTITLEMENT_TICKET);
-    return isset(self::SUPPORTED_TYPES[$type]) ? $type : Ticket::ENTITLEMENT_TICKET;
+    return $this->entitlementCapabilityRegistry->normalizeEntitlementType($type);
   }
 
   /**
@@ -93,14 +57,14 @@ class TicketCapabilityManager {
    * TRUE when the entitlement can consume redemption count.
    */
   public function isRedeemable(Ticket $ticket): bool {
-    return isset(self::REDEEMABLE_TYPES[$this->getEntitlementType($ticket)]);
+    return $this->entitlementCapabilityRegistry->consumesRedemptionCount($this->getEntitlementType($ticket));
   }
 
   /**
    * TRUE when fulfilment state matters for the entitlement.
    */
   public function requiresFulfilment(Ticket $ticket): bool {
-    return isset(self::FULFILMENT_TYPES[$this->getEntitlementType($ticket)]);
+    return $this->entitlementCapabilityRegistry->requiresFulfilmentWorkflow($this->getEntitlementType($ticket));
   }
 
   /**

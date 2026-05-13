@@ -50,6 +50,7 @@ final class PkPassBuilder {
         'ticket_code' => (string) ($model['ticket']['code'] ?? ''),
         'qr_payload' => (string) ($model['qr']['payload'] ?? ''),
         'entitlement_type' => (string) ($model['ticket']['entitlement_type'] ?? ''),
+        'capabilities' => $model['capabilities'] ?? [],
         'event_label' => (string) ($model['event']['label'] ?? ''),
       ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
     }

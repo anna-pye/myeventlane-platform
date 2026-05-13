@@ -21,21 +21,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 final class ScannerOperationManager {
 
   /**
-   * Maps entitlement types to scanner operation actions.
-   *
-   * @var array<string, string>
-   */
-  private const ACTION_BY_TYPE = [
-    Ticket::ENTITLEMENT_TICKET => RedemptionLog::ACTION_ADMIT,
-    Ticket::ENTITLEMENT_MERCH => RedemptionLog::ACTION_COLLECT,
-    Ticket::ENTITLEMENT_PARKING => RedemptionLog::ACTION_VALIDATE,
-    Ticket::ENTITLEMENT_DRINK => RedemptionLog::ACTION_REDEEM,
-    Ticket::ENTITLEMENT_FOOD => RedemptionLog::ACTION_REDEEM,
-    Ticket::ENTITLEMENT_VIP => RedemptionLog::ACTION_VERIFY,
-    Ticket::ENTITLEMENT_ADDON => RedemptionLog::ACTION_REDEEM,
-  ];
-
-  /**
    * Successful result token by operation action.
    *
    * @var array<string, string>
@@ -68,6 +53,7 @@ final class ScannerOperationManager {
     private readonly TicketQrPayload $ticketQrPayload,
     private readonly TicketCheckinLogger $checkinLogger,
     private readonly TicketCapabilityManager $capabilityManager,
+    private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly Connection $database,
     private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
@@ -139,7 +125,7 @@ final class ScannerOperationManager {
       $this->logRedemptionAudit($ticket, $this->resolveAction($ticket), $device_id, FALSE, $result['result'], $result['message']);
       return $result;
     }
-    if ($this->capabilityManager->isTicket($ticket) && $status === Ticket::STATUS_CHECKED_IN) {
+    if ($this->entitlementCapabilityRegistry->isAdmissionEntitlementType($this->capabilityManager->getEntitlementType($ticket)) && $status === Ticket::STATUS_CHECKED_IN) {
       $checked_in_at = $ticket->hasField('checked_in_at') ? (int) $ticket->get('checked_in_at')->value : 0;
       $result = $this->result(FALSE, 'already_checked_in', 'Ticket is already checked in.', (string) $ticket->get('ticket_code')->value, $checked_in_at, (int) $ticket->id());
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
@@ -269,7 +255,8 @@ final class ScannerOperationManager {
    * Resolves the scanner action for a ticket-backed entitlement.
    */
   private function resolveAction(Ticket $ticket): string {
-    return self::ACTION_BY_TYPE[$ticket->getEntitlementType()] ?? RedemptionLog::ACTION_ADMIT;
+    $type = $this->capabilityManager->getEntitlementType($ticket);
+    return $this->entitlementCapabilityRegistry->getScannerOperationAction($type);
   }
 
   /**

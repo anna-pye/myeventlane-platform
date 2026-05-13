@@ -14,7 +14,7 @@ This service is the **single read-only diagnostics layer** for:
 
 It **observes** existing operational state only. It does not issue tickets, generate PDFs or wallet bytes, alter recovery state, enqueue work, or expose signing secrets.
 
-**Services consulted (read-only):** `TicketIssuer` (expected counts and line eligibility), `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()` (same rules as `getPdfContentForTicket()` without rendering bytes), `UniversalTicketViewModelBuilder::build()` (structural operability, no model payload emitted), `TicketQrPayload::buildForTicket()` (operability only; output not returned), `TicketCapabilityManager::getEntitlementType()`, optional `WalletTicketResolver`, optional message sink with `findSentOrderConfirmationsForOrder()` (same shape as `MessageStorage`). Attachment continuity follows **`OrderConfirmationAttachmentResolver`** merge preconditions (holder fields per ticket) without invoking merge.
+**Services consulted (read-only):** `TicketIssuer` (expected counts and line eligibility), `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()` (same rules as `getPdfContentForTicket()` without rendering bytes), `UniversalTicketViewModelBuilder::build()` (structural operability, no model payload emitted), `TicketQrPayload::buildForTicket()` (operability only; output not returned), `TicketCapabilityManager::getEntitlementType()`, **`EntitlementCapabilityRegistry`** (machine-safe capability summaries in `artifacts.entitlement_capability_policy`), optional `WalletTicketResolver`, optional message sink with `findSentOrderConfirmationsForOrder()` (same shape as `MessageStorage`). Attachment continuity follows **`OrderConfirmationAttachmentResolver`** merge preconditions (holder fields per ticket) without invoking merge.
 
 ## Read-only guarantees
 
@@ -30,7 +30,7 @@ Normalized `inspectOrder(OrderInterface $order)` returns:
 | Key | Role |
 | --- | --- |
 | `issuance` | Expected vs issued counts, alignment status, idempotent replay skip signal, partial-issuance guard anomaly, orphan ticket / orphan eligible order item counts |
-| `artifacts` | Canonical PDF readiness (holder preconditions via `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()`), wallet route scaffold (order item link present), QR operability (`TicketQrPayload`), attachment continuity (holder coverage for merge rules) |
+| `artifacts` | Canonical PDF readiness (holder preconditions via `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()`), wallet route scaffold (order item link present), QR operability (`TicketQrPayload`), attachment continuity (holder coverage for merge rules), **`entitlement_capability_policy`** (deduplicated registry summaries per normalized entitlement type) |
 | `recovery` | `OrderPaidConfirmationPdfRecoverySubscriber` state key via `recoveryStateKey()`, optional message sink for sent confirmation timestamps, mismatch when recovery appears required but completion state missing |
 | `compatibility` | Order-item PDF legacy surface availability, wallet resolution surface (`WalletTicketResolver`), ticket PDF path from `UniversalTicketViewModelBuilder` probe |
 | `guest_continuity` | Purchaser UID alignment with order customer, guest checkout pattern checks (no PII in output) |
@@ -63,7 +63,7 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 ## Anti-patterns (forbidden)
 
 - Using diagnostics to **issue tickets**, **generate PDFs**, **build wallet passes**, or **mutate recovery state**
-- Duplicating QR signing, payload shaping, or entitlement normalization outside **`TicketQrPayload`**, **`UniversalTicketViewModelBuilder`**, **`TicketCapabilityManager`**, and **`TicketIssuer`**
+- Duplicating QR signing, payload shaping, entitlement normalization, or **capability policy** outside **`TicketQrPayload`**, **`UniversalTicketViewModelBuilder`**, **`TicketCapabilityManager`**, **`TicketIssuer`**, and **`EntitlementCapabilityRegistry`** (use the registry for type policy; use the manager for entity-aware composition)
 - Treating compatibility adapters (`OrderItemPdfCompatibilityAdapter`, etc.) as operational authorities for entitlement truth
 - Embedding UI strings, translated labels, or marketing copy inside diagnostics payloads
 - Exposing purchaser email, entitlement secrets, raw HMAC material, or full QR payload strings through diagnostics APIs

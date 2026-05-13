@@ -6,7 +6,7 @@ My Tickets now derives issued ticket and entitlement rendering from the canonica
 
 The convergence keeps the existing customer routes, order cards, booking detail flow, payment receipt links, ticket PDF links, and legacy order-item fallback. The customer-facing UX is not redesigned; issued ticket rows simply use the same normalized operational model that future wallet, PDF, scanner-adjacent, and entitlement surfaces can share.
 
-Builder-driven rendering matters because operational ticket state is broader than a Commerce order item. The canonical model carries the entitlement type, ticket status, QR payload and data URI, redemption counts, fulfilment state, expiry, collection location/window, vehicle registration, and customer-safe actions from one source of truth.
+Builder-driven rendering matters because operational ticket state is broader than a Commerce order item. The canonical model carries the entitlement type, ticket status, QR payload and data URI, redemption counts, fulfilment state, expiry, collection location/window, vehicle registration, machine-safe **`capabilities`** (from **`EntitlementCapabilityRegistry`**), a normalized **`fulfilment.mode`** policy token, and customer-safe actions from one source of truth. See [entitlement-capability-convergence.md](./entitlement-capability-convergence.md).
 
 This removes duplicated operational shaping from `MyTicketsController`, Twig preprocessing, and template-only arrays. The checkout flow controller now delegates My Tickets order presentation to `MyTicketsOrderViewModelBuilder`, which loads issued `myeventlane_ticket` rows for already customer-scoped orders and normalizes each ticket through `UniversalTicketViewModelBuilder`. Legacy order-item rendering remains only as a compatibility fallback for orders that do not yet have issued ticket entities.
 
@@ -62,3 +62,7 @@ Wallet operational convergence (Phase 2C) is documented in [wallet-operational-c
 ## Operational observability (Phase 2D)
 
 **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`) provides deterministic, read-only diagnostics over the same operational spine (issued tickets, view model, PDF preconditions, wallet resolver, recovery state). It does not change customer routes, PDF routes, wallet URLs, or scanner contracts. Details and forbidden patterns: [operational-observability.md](./operational-observability.md).
+
+## Entitlement capability convergence (Phase 2E)
+
+**`EntitlementCapabilityRegistry`** (`myeventlane_tickets.entitlement_capability_registry`) is the single machine-safe policy source for scan, redemption, fulfilment, and related semantics by entitlement type; scanners, PDFs, wallets, and observability delegate inward without new routes or QR contracts. See [entitlement-capability-convergence.md](./entitlement-capability-convergence.md).

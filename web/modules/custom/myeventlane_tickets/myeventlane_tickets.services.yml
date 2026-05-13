@@ -77,10 +77,14 @@ services:
       - '@request_stack'
       - '@logger.channel.myeventlane_tickets'
 
+  myeventlane_tickets.entitlement_capability_registry:
+    class: Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry
+
   mel_ticket_capability.manager:
     class: Drupal\myeventlane_tickets\Service\TicketCapabilityManager
     arguments:
       - '@datetime.time'
+      - '@myeventlane_tickets.entitlement_capability_registry'
 
   mel_scanner.operation_manager:
     class: Drupal\myeventlane_tickets\Service\ScannerOperationManager
@@ -91,6 +95,7 @@ services:
       - '@myeventlane_tickets.ticket_qr_payload'
       - '@myeventlane_tickets.ticket_checkin_logger'
       - '@mel_ticket_capability.manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
       - '@database'
       - '@request_stack'
       - '@logger.channel.myeventlane_tickets'
@@ -115,6 +120,7 @@ services:
       - '@myeventlane_tickets.ticket_qr_payload'
       - '@myeventlane_tickets.qr_code_generator'
       - '@mel_ticket_capability.manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
       - '@router.route_provider'
 
   myeventlane_tickets.ticket_mailer:
@@ -163,6 +169,7 @@ services:
       - '@myeventlane_tickets.ticket_pdf_generator'
       - '@myeventlane_tickets.ticket_qr_payload'
       - '@mel_ticket_capability.manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
       - '@state'
       - '@logger.channel.myeventlane_tickets'
       - '@?myeventlane_wallet.ticket_resolver'
