@@ -72,7 +72,8 @@ final class WalletDownloadAccessChecker {
     }
 
     $purchaser_uid = (int) $ticket->get('purchaser_uid')->target_id;
-    if ($purchaser_uid === (int) $account->id()) {
+    // Anonymous accounts share uid 0 with guest-checkout purchasers; never match on id alone.
+    if ($purchaser_uid > 0 && $purchaser_uid === (int) $account->id()) {
       return TRUE;
     }
 
@@ -90,10 +91,13 @@ final class WalletDownloadAccessChecker {
    * Whether the commerce order is visible to the account (including guest).
    */
   public function orderBelongsToAccount(OrderInterface $order, AccountInterface $account): bool {
-    if ((int) $order->getCustomerId() === (int) $account->id()) {
+    $customer_id = (int) $order->getCustomerId();
+    $account_id = (int) $account->id();
+    // Guest orders use customer uid 0; anonymous users are also uid 0 — require a real uid match.
+    if ($customer_id > 0 && $customer_id === $account_id) {
       return TRUE;
     }
-    if ($account->isAuthenticated() && (int) $order->getCustomerId() === 0) {
+    if ($account->isAuthenticated() && $customer_id === 0) {
       $order_email = strtolower(trim((string) $order->getEmail()));
       $user_email = strtolower(trim((string) $account->getEmail()));
       if ($order_email !== '' && $user_email !== '' && $order_email === $user_email) {
