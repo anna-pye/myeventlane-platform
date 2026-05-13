@@ -81,6 +81,13 @@ final class TicketPdfGenerator {
   }
 
   /**
+   * Read-only: whether holder fields satisfy canonical PDF generation rules.
+   */
+  public function canonicalPdfPreconditionsSatisfied(Ticket $ticket): bool {
+    return !$ticket->get('holder_name')->isEmpty() && !$ticket->get('holder_email')->isEmpty();
+  }
+
+  /**
    * Gets PDF content as bytes for a ticket (for email attachments).
    *
    * When the canonical view model builder is available, all operational
@@ -93,10 +100,7 @@ final class TicketPdfGenerator {
    *   If ticket holder details are not assigned.
    */
   public function getPdfContentForTicket(Ticket $ticket): array {
-    if (
-      $ticket->get('holder_name')->isEmpty() ||
-      $ticket->get('holder_email')->isEmpty()
-    ) {
+    if (!$this->canonicalPdfPreconditionsSatisfied($ticket)) {
       throw new \LogicException('Ticket holder details must be assigned before PDF generation.');
     }
 

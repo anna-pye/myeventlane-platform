@@ -67,13 +67,19 @@ A vestigial **`OrderPaidSubscriber`** under **`myeventlane_commerce`** (logging 
 
 **`TicketIssuer::issueForOrder()`** performs an **order-scoped, deterministic** guard: if **any** `myeventlane_ticket` row already exists for the order ID, issuance **aborts** with an **info** log. It does **not** partially issue, reconcile, or mutate existing ticket rows.
 
+**`TicketIssuer::countExpectedIssuanceUnits()`** and **`TicketIssuer::isOrderItemEligibleForTicketIssuance()`** expose the same eligibility rules for **read-only** diagnostics (no issuance side effects).
+
+## Operational observability (Phase 2D)
+
+Read-only integrity diagnostics for paid orders are centralized in **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`). It inspects issuance alignment, artifact readiness, recovery markers, compatibility surfaces, and guest/purchaser continuity **without** generating PDFs, wallet artifacts, or QR output for persistence. See [operational-observability.md](./operational-observability.md).
+
 ## Service locator cleanup (RSVP)
 
 **`RsvpMailer`** no longer uses `\Drupal::service('myeventlane_tickets.pdf_generator')` for RSVP PDF attachments; it receives **`@?myeventlane_tickets.ticket_pdf_generator`** via constructor injection.
 
 ## Tests
 
-Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`).
+Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`), **`OperationalIntegrityInspectorTest`** (read-only diagnostics).
 
 - Issuance creates one ticket entity per unit quantity.
 - **Regression:** calling **`issueForOrder()`** twice on the same order does **not** create additional ticket rows.
@@ -97,5 +103,6 @@ Performed in a full environment (e.g. DDEV) with real mail and checkout:
 ## Related documentation
 
 - [operational-surface-convergence.md](./operational-surface-convergence.md) — My Tickets and PDF rendering convergence onto **`UniversalTicketViewModelBuilder`**.
+- [operational-observability.md](./operational-observability.md) — read-only operational diagnostics authority and anti-patterns.
 - [wallet-operational-convergence.md](./wallet-operational-convergence.md) — Wallet routes, inward ticket resolution, and QR authority alignment.
 - [legacy-pdf-compatibility.md](./legacy-pdf-compatibility.md) — **Governance:** operational authority vs legacy PDF adapters, inward-only delegation, frozen contracts, forbidden patterns (Commit 5+).
