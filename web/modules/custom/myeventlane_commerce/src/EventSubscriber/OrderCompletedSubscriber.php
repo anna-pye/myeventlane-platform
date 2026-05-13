@@ -18,8 +18,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Handles post-checkout processing for ticket orders.
  *
- * Creates attendee records, generates tickets and wallet passes,
- * and queues confirmation emails.
+ * Creates attendee records and syncs holder answers into roster rows.
+ * Operational PDFs and wallet passes are issued only from canonical ticket
+ * entities (see TicketIssuer on ORDER_PAID); this subscriber does not generate
+ * those artifacts.
  */
 final class OrderCompletedSubscriber implements EventSubscriberInterface {
 
@@ -817,12 +819,6 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
         'order_id' => $orderId,
         'order_item_id' => $orderItemId,
       ]);
-
-      // Generate ticket PDF.
-      $this->generateTicketPdf($orderItem, $holder, $ticketCode, $eventId);
-
-      // Generate wallet passes.
-      $this->generateWalletPasses($orderItem, $holder, $ticketCode, $eventId);
     }
     catch (\Exception $e) {
       $logger->error('Failed to create attendee record: @message', [
@@ -873,90 +869,6 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
     // Format: MEL-{EVENT_ID}-{ORDER_ID}-{ITEM_ID}-{RANDOM}.
     $random = strtoupper(substr(md5(uniqid((string) mt_rand(), TRUE)), 0, 6));
     return sprintf('MEL-%d-%d-%d-%s', $eventId, $orderId, $orderItemId, $random);
-  }
-
-  /**
-   * Generates ticket PDF for an attendee.
-   *
-   * @param object $orderItem
-   *   The order item.
-   * @param object $holder
-   *   The ticket holder paragraph.
-   * @param string $ticketCode
-   *   The ticket code.
-   * @param int $eventId
-   *   The event ID.
-   */
-  private function generateTicketPdf(object $orderItem, object $holder, string $ticketCode, int $eventId): void {
-    $logger = $this->loggerFactory->get('myeventlane_commerce');
-
-    // Check if myeventlane_tickets.pdf service exists.
-    if (!\Drupal::hasService('myeventlane_tickets.pdf')) {
-      return;
-    }
-
-    try {
-      $pdfService = \Drupal::service('myeventlane_tickets.pdf');
-      // Call service to generate PDF (actual implementation in myeventlane_tickets).
-      // For now, just log intent.
-      $logger->info('Ticket PDF generation called for code @code', [
-        '@code' => $ticketCode,
-        'event_id' => $eventId,
-      ]);
-    }
-    catch (\Exception $e) {
-      $logger->error('Ticket PDF generation failed: @message', [
-        '@message' => $e->getMessage(),
-        'event_id' => $eventId,
-      ]);
-    }
-  }
-
-  /**
-   * Generates wallet passes for an attendee.
-   *
-   * @param object $orderItem
-   *   The order item.
-   * @param object $holder
-   *   The ticket holder paragraph.
-   * @param string $ticketCode
-   *   The ticket code.
-   * @param int $eventId
-   *   The event ID.
-   */
-  private function generateWalletPasses(object $orderItem, object $holder, string $ticketCode, int $eventId): void {
-    $logger = $this->loggerFactory->get('myeventlane_commerce');
-
-    // Check if wallet services exist.
-    if (!\Drupal::hasService('myeventlane_wallet.pk_pass') && !\Drupal::hasService('myeventlane_wallet.google_wallet')) {
-      return;
-    }
-
-    try {
-      // Apple Wallet.
-      if (\Drupal::hasService('myeventlane_wallet.pk_pass')) {
-        $pkPassService = \Drupal::service('myeventlane_wallet.pk_pass');
-        $logger->info('Apple Wallet pass generation called for code @code', [
-          '@code' => $ticketCode,
-          'event_id' => $eventId,
-        ]);
-      }
-
-      // Google Wallet.
-      if (\Drupal::hasService('myeventlane_wallet.google_wallet')) {
-        $googleWalletService = \Drupal::service('myeventlane_wallet.google_wallet');
-        $logger->info('Google Wallet pass generation called for code @code', [
-          '@code' => $ticketCode,
-          'event_id' => $eventId,
-        ]);
-      }
-    }
-    catch (\Exception $e) {
-      $logger->error('Wallet pass generation failed: @message', [
-        '@message' => $e->getMessage(),
-        'event_id' => $eventId,
-      ]);
-    }
   }
 
 }

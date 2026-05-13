@@ -65,6 +65,28 @@
       color: #bbb;
       text-align: center;
     }
+    .ticket-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #fff;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+    .badge-entitlement { background: #6c63ff; }
+    .badge-status { background: #2196f3; }
+    .badge-fulfilment { background: #ff9800; }
+    .badge-expiry { background: #e53935; }
+    .ticket-meta {
+      margin: 12px 0;
+      font-size: 12px;
+      color: #888;
+    }
+    .ticket-meta strong {
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -81,6 +103,10 @@
     {% endif %}
     {% if location %}
       <p>{{ location }}</p>
+    {% endif %}
+
+    {% if is_canonical and entitlement_type and entitlement_type != 'ticket' %}
+      <p><strong>{{ entitlement_label }}</strong></p>
     {% endif %}
 
     {% if show_ticket_code %}
@@ -103,6 +129,44 @@
       {% if ticket.holder_email.value %}
         <p><strong>Email:</strong> {{ ticket.holder_email.value }}</p>
       {% endif %}
+    {% endif %}
+
+    {% if is_canonical and badges is not empty %}
+      <div style="margin: 12px 0;">
+        {% for badge in badges %}
+          <span class="ticket-badge badge-{{ badge.type }}">{{ badge.label }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if is_canonical and fulfilment %}
+      {% if fulfilment.status != 'pending' %}
+        <div class="ticket-meta">
+          <strong>Fulfilment:</strong> {{ fulfilment.status_label }}
+        </div>
+      {% endif %}
+      {% if fulfilment.collect_location %}
+        <div class="ticket-meta">
+          <strong>Collect at:</strong> {{ fulfilment.collect_location }}
+        </div>
+      {% endif %}
+      {% if fulfilment.vehicle_registration %}
+        <div class="ticket-meta">
+          <strong>Vehicle:</strong> {{ fulfilment.vehicle_registration }}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    {% if is_canonical and expiry and expiry.expired %}
+      <div class="ticket-meta" style="color: #e53935;">
+        <strong>This entitlement has expired.</strong>
+      </div>
+    {% endif %}
+
+    {% if is_canonical and redemption and redemption.multi_use %}
+      <div class="ticket-meta">
+        <strong>Redemptions:</strong> {{ redemption.count }}/{{ redemption.limit }}
+      </div>
     {% endif %}
 
     {% if brand_footer_text %}

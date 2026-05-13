@@ -14,6 +14,7 @@ dependencies:
   - myeventlane_checkout_paragraph
   - myeventlane_donations
   - myeventlane_event_attendees:myeventlane_event_attendees
+  - myeventlane_tickets:myeventlane_tickets
   - myeventlane_vendor:myeventlane_vendor
   - drupal:commerce_checkout
   - drupal:commerce_order

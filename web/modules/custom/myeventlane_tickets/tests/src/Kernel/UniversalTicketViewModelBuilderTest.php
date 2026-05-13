@@ -214,6 +214,36 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
   }
 
   /**
+   * Fulfilment states that block scanning are reflected without a "ready" token.
+   */
+  public function testBuildsScannerStatusWhenFulfilmentBlocksScanning(): void {
+    $cancelled = $this->createTicket([
+      'ticket_code' => 'MEL-FUL-CANCEL',
+      'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
+      'redemption_limit' => 2,
+      'redemption_count' => 0,
+      'fulfilment_status' => Ticket::FULFILMENT_CANCELLED,
+    ]);
+    $fulfilment_expired = $this->createTicket([
+      'ticket_code' => 'MEL-FUL-EXPIRED',
+      'entitlement_type' => Ticket::ENTITLEMENT_FOOD,
+      'expires_at' => gmdate('Y-m-d\TH:i:s', time() + 86400),
+      'fulfilment_status' => Ticket::FULFILMENT_EXPIRED,
+    ]);
+
+    $cancelled_model = $this->builder()->build($cancelled);
+    $expired_model = $this->builder()->build($fulfilment_expired);
+
+    $this->assertFalse($cancelled_model['scanner']['can_scan']);
+    $this->assertSame('fulfilment_cancelled', $cancelled_model['scanner']['status']);
+    $this->assertStringContainsString('cancelled', strtolower($cancelled_model['scanner']['message']));
+
+    $this->assertFalse($expired_model['scanner']['can_scan']);
+    $this->assertSame('fulfilment_expired', $expired_model['scanner']['status']);
+    $this->assertStringContainsString('fulfilment', strtolower($expired_model['scanner']['message']));
+  }
+
+  /**
    * Returns the view model builder service.
    */
   private function builder(): object {

@@ -13,6 +13,11 @@ use Drupal\myeventlane_tickets\Ticket\TicketQrPayload;
 
 /**
  * Adds computed variables to the ticket PDF template.
+ *
+ * When an issued ticket entity is present the builder populates template
+ * variables from a canonical view model built by
+ * UniversalTicketViewModelBuilder. Legacy (order-item, attendee, RSVP) paths
+ * still fall through to the original QR-only preprocessing.
  */
 final class TicketPdfTemplateBuilder {
 
@@ -20,6 +25,7 @@ final class TicketPdfTemplateBuilder {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly QrCodeGenerator $qrCodeGenerator,
     private readonly TicketQrPayload $ticketQrPayload,
+    private readonly ?UniversalTicketViewModelBuilder $viewModelBuilder = NULL,
     private readonly ?Token $token = NULL,
   ) {}
 
@@ -44,6 +50,46 @@ final class TicketPdfTemplateBuilder {
     $variables['is_pro_branded'] = $variables['brand_logo_url'] !== NULL
       || $variables['brand_footer_text'] !== ''
       || $variables['brand_vendor_name'] !== NULL;
+
+    $ticket = $variables['ticket'] ?? NULL;
+
+    if ($ticket instanceof Ticket && $this->viewModelBuilder !== NULL) {
+      $this->applyCanonicalModel($variables, $ticket);
+      return;
+    }
+
+    $this->applyLegacyQr($variables);
+  }
+
+  /**
+   * Populates PDF template variables from the canonical view model.
+   *
+   * All operational entitlement data (QR, status, entitlement type, fulfilment,
+   * expiry, badges) comes from the normalised model — no duplicated shaping.
+   */
+  private function applyCanonicalModel(array &$variables, Ticket $ticket): void {
+    $model = $this->viewModelBuilder->build($ticket);
+
+    $variables['qr_data_uri'] = $model['qr']['data_uri'] ?? NULL;
+    $variables['view_model'] = $model;
+
+    $variables['entitlement_type'] = $model['ticket']['entitlement_type'];
+    $variables['entitlement_label'] = $model['ticket']['entitlement_label'];
+    $variables['ticket_status'] = $model['ticket']['status'];
+    $variables['ticket_status_label'] = $model['ticket']['status_label'];
+    $variables['redemption'] = $model['redemption'];
+    $variables['expiry'] = $model['expiry'];
+    $variables['fulfilment'] = $model['fulfilment'];
+    $variables['badges'] = $model['badges'];
+    $variables['vendor_display'] = $model['vendor'];
+    $variables['is_canonical'] = TRUE;
+  }
+
+  /**
+   * Legacy QR preprocessing for non-ticket paths (order-item, attendee, RSVP).
+   */
+  private function applyLegacyQr(array &$variables): void {
+    $variables['is_canonical'] = FALSE;
 
     if (!$variables['include_qr_code']) {
       return;

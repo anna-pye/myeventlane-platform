@@ -87,7 +87,101 @@
     </div>
   {% endif %}
 
-  {% if order.ticket_items|length > 0 %}
+  {% if order.ticket_models|default([])|length > 0 %}
+    <div class="mel-section mel-mt-6">
+      <h2 class="mel-section-title">{{ 'Tickets and entitlements'|t }}</h2>
+      <div class="mel-card mel-mt-4">
+        <div class="mel-card-body">
+          {% for ticket in order.ticket_models %}
+            <div class="mel-ticket-item mel-mt-4{% if not loop.first %} mel-pt-4 mel-border-top{% endif %}">
+              <div class="mel-ticket-header">
+                <div class="mel-ticket-title">
+                  <strong>{{ ticket.ticket.entitlement_label }}</strong>
+                  {% if ticket.ticket.code %}
+                    <span class="mel-ticket-code">{{ ticket.ticket.code }}</span>
+                  {% endif %}
+                </div>
+                {% if ticket.actions.pdf.download.url and ticket.holder.name and ticket.holder.email %}
+                  <div class="mel-ticket-action">
+                    <a href="{{ ticket.actions.pdf.download.url }}" class="mel-button mel-button--secondary">
+                      {{ ticket.actions.pdf.download.label|default('Download PDF'|t) }}
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="mel-ticket-meta mel-mt-2">
+                <span class="mel-ticket-status">
+                  <strong>{{ 'Status'|t }}:</strong> {{ ticket.ticket.status_label }}
+                </span>
+                {% if ticket.fulfilment.status_label %}
+                  <span class="mel-ticket-fulfilment">
+                    <strong>{{ 'Fulfilment'|t }}:</strong> {{ ticket.fulfilment.status_label }}
+                  </span>
+                {% endif %}
+                {% if ticket.expiry.expired %}
+                  <span class="mel-ticket-expiry">
+                    <strong>{{ 'Expiry'|t }}:</strong> {{ 'Expired'|t }}
+                  </span>
+                {% elseif ticket.expiry.timestamp|default(0) > 0 %}
+                  <span class="mel-ticket-expiry">
+                    <strong>{{ 'Expires'|t }}:</strong> {{ ticket.expiry.timestamp|date('F j, Y g:i A') }}
+                  </span>
+                {% endif %}
+              </div>
+
+              {% if ticket.holder.name or ticket.holder.email %}
+                <div class="mel-ticket-holder mel-mt-2">
+                  <strong>{{ 'Holder'|t }}:</strong>
+                  {{ ticket.holder.name|default('') }}
+                  {% if ticket.holder.email %}
+                    <span class="mel-attendee-email">({{ ticket.holder.email }})</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              {% if ticket.ticket.entitlement_type|default('ticket') != 'ticket' or ticket.redemption.multi_use %}
+                <div class="mel-ticket-redemption mel-mt-2">
+                  <strong>{{ 'Redemptions'|t }}:</strong>
+                  {{ ticket.redemption.remaining }} {{ 'remaining of'|t }} {{ ticket.redemption.limit }}
+                </div>
+              {% endif %}
+
+              {% if ticket.fulfilment.collect_location or ticket.fulfilment.collect_window.start_timestamp|default(0) > 0 or ticket.fulfilment.vehicle_registration %}
+                <div class="mel-ticket-fulfilment-details mel-mt-2">
+                  {% if ticket.fulfilment.collect_location %}
+                    <div><strong>{{ 'Collect at'|t }}:</strong> {{ ticket.fulfilment.collect_location }}</div>
+                  {% endif %}
+                  {% if ticket.fulfilment.collect_window.start_timestamp|default(0) > 0 %}
+                    <div>
+                      <strong>{{ 'Collection window'|t }}:</strong>
+                      {{ ticket.fulfilment.collect_window.start_timestamp|date('F j, Y g:i A') }}
+                      {% if ticket.fulfilment.collect_window.end_timestamp|default(0) > 0 %}
+                        – {{ ticket.fulfilment.collect_window.end_timestamp|date('F j, Y g:i A') }}
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  {% if ticket.fulfilment.vehicle_registration %}
+                    <div><strong>{{ 'Vehicle'|t }}:</strong> {{ ticket.fulfilment.vehicle_registration }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              {% if ticket.qr.data_uri %}
+                <div class="mel-ticket-qr mel-mt-3">
+                  <img src="{{ ticket.qr.data_uri }}" alt="{{ 'Ticket QR code'|t }}">
+                </div>
+              {% endif %}
+
+              {% if ticket.scanner.message %}
+                <p class="mel-ticket-scan-status mel-text--muted mel-mt-2">{{ ticket.scanner.message }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% elseif order.ticket_items|length > 0 %}
     <div class="mel-section mel-mt-6">
       <h2 class="mel-section-title">{{ 'Tickets'|t }}</h2>
       <div class="mel-card mel-mt-4">

@@ -75,6 +75,13 @@ services:
     class: Drupal\myeventlane_checkout_flow\Access\MyTicketsOrderAccess
     arguments: ['@entity_type.manager']
 
+  myeventlane_checkout_flow.my_tickets_order_view_model_builder:
+    class: Drupal\myeventlane_checkout_flow\Service\MyTicketsOrderViewModelBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_tickets.universal_ticket_view_model_builder'
+      - '@myeventlane_core.ticket_label_resolver'
+
   logger.channel.myeventlane_checkout_flow:
     parent: logger.channel_base
     arguments: ['myeventlane_checkout_flow']
