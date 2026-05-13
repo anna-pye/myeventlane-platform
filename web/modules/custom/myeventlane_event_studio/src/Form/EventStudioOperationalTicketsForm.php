@@ -25,17 +25,36 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class EventStudioOperationalTicketsForm extends FormBase {
 
-  private EntityTypeManagerInterface $studioEntityTypeManager;
+  /**
+   * Injected services must be protected (not private readonly) so form cache
+   * serialization can restore them; see {@see ensureInjectedServices()}.
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  protected AccountProxyInterface $currentUser;
+
+  protected EventVendorAccessChecker $eventVendorAccessChecker;
+
+  protected TicketTierLifecycleService $ticketTierLifecycle;
+
+  protected EventStudioAutosaveService $autosaveService;
+
+  protected LoggerInterface $logger;
 
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
-    private readonly AccountProxyInterface $currentUser,
-    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
-    private readonly TicketTierLifecycleService $ticketTierLifecycle,
-    private readonly EventStudioAutosaveService $autosaveService,
-    private readonly LoggerInterface $logger,
+    AccountProxyInterface $current_user,
+    EventVendorAccessChecker $event_vendor_access_checker,
+    TicketTierLifecycleService $ticket_tier_lifecycle,
+    EventStudioAutosaveService $autosave_service,
+    LoggerInterface $logger,
   ) {
-    $this->studioEntityTypeManager = $entity_type_manager;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->currentUser = $current_user;
+    $this->eventVendorAccessChecker = $event_vendor_access_checker;
+    $this->ticketTierLifecycle = $ticket_tier_lifecycle;
+    $this->autosaveService = $autosave_service;
+    $this->logger = $logger;
   }
 
   public static function create(ContainerInterface $container): static {
@@ -47,6 +66,45 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __wakeup(): void {
+    parent::__wakeup();
+    $this->ensureInjectedServices();
+  }
+
+  /**
+   * Ensures services are present after form cache unserialization.
+   *
+   * Cached form state restores the form object in build_info. New typed
+   * properties or untracked services can otherwise stay uninitialized.
+   */
+  private function ensureInjectedServices(): void {
+    if (isset($this->entityTypeManager, $this->currentUser, $this->eventVendorAccessChecker, $this->ticketTierLifecycle, $this->autosaveService, $this->logger)) {
+      return;
+    }
+    $container = \Drupal::getContainer();
+    if (!isset($this->entityTypeManager)) {
+      $this->entityTypeManager = $container->get('entity_type.manager');
+    }
+    if (!isset($this->currentUser)) {
+      $this->currentUser = $container->get('current_user');
+    }
+    if (!isset($this->eventVendorAccessChecker)) {
+      $this->eventVendorAccessChecker = $container->get('myeventlane_vendor.event_access_checker');
+    }
+    if (!isset($this->ticketTierLifecycle)) {
+      $this->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
+    }
+    if (!isset($this->autosaveService)) {
+      $this->autosaveService = $container->get('myeventlane_event_studio.autosave');
+    }
+    if (!isset($this->logger)) {
+      $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
+    }
   }
 
   public function getFormId(): string {
@@ -219,13 +277,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       if (!empty($row['archive'])) {
         continue;
       }
-      $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser());
+      $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser);
       if (!$ticket instanceof TicketTypeInterface) {
         $form_state->setErrorByName('tickets][' . $ticket_id, $this->t('Ticket data could not be matched to this event. Reload and try again.'));
         continue;
       }
       try {
-        $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser(), $row);
+        $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
       }
       catch (\InvalidArgumentException $e) {
         $form_state->setErrorByName('tickets][' . $ticket_id, $e->getMessage());
@@ -235,7 +293,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $new = $form_state->getValue('new_ticket');
     if (is_array($new) && trim((string) ($new['title'] ?? '')) !== '') {
       try {
-        $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser(), $new);
+        $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser, $new);
       }
       catch (\InvalidArgumentException $e) {
         $form_state->setErrorByName('new_ticket', $e->getMessage());
@@ -253,7 +311,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
 
     try {
       foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
-        $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser());
+        $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser);
         if (!$ticket instanceof TicketTypeInterface) {
           continue;
         }
@@ -261,13 +319,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           $this->ticketTierLifecycle->archiveTicketOnEvent($event, $ticket);
           continue;
         }
-        $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser(), $row);
+        $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
         $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
       }
 
       $new = $form_state->getValue('new_ticket');
       if (is_array($new) && trim((string) ($new['title'] ?? '')) !== '') {
-        $values = $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser(), $new);
+        $values = $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser, $new);
         $this->ticketTierLifecycle->createAttachAndSync($event, $values);
       }
 
@@ -605,7 +663,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     if ($event_id < 1) {
       return NULL;
     }
-    $event = $this->studioEntityTypeManager->getStorage('node')->load($event_id);
+    $event = $this->entityTypeManager->getStorage('node')->load($event_id);
     return $event instanceof NodeInterface && $event->bundle() === 'event' ? $event : NULL;
   }
 
