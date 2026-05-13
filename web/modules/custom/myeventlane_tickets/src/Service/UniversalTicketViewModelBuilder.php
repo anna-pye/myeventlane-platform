@@ -23,6 +23,7 @@ final class UniversalTicketViewModelBuilder {
     private readonly TicketCapabilityManager $capabilityManager,
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly RouteProviderInterface $routeProvider,
+    private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
   ) {}
 
   /**
@@ -43,6 +44,7 @@ final class UniversalTicketViewModelBuilder {
     $remaining_redemptions = $this->capabilityManager->getRemainingRedemptions($ticket);
     $is_expired = $this->capabilityManager->isExpired($ticket);
     $can_scan = $this->capabilityManager->canBeScanned($ticket);
+    $timed_entry = $this->venueOperationPolicyManager->buildTimedEntryPolicy($ticket);
     $scanner_status = $this->scannerStatus($ticket, $entitlement_type, $can_scan, $is_expired, $fulfilment_status);
 
     return [
@@ -92,7 +94,10 @@ final class UniversalTicketViewModelBuilder {
         'can_scan' => $can_scan,
         'status' => $scanner_status,
         'message' => $this->scannerMessage($scanner_status),
+        'timing_state' => (string) ($timed_entry['scanner']['state'] ?? ''),
+        'timing_allowed_now' => (bool) ($timed_entry['scanner']['allowed_now'] ?? TRUE),
       ],
+      'timed_entry' => $timed_entry,
     ];
   }
 
