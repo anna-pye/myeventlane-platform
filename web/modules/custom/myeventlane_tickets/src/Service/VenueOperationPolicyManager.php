@@ -284,6 +284,11 @@ final class VenueOperationPolicyManager {
     if ($map['scanner_mode'] === RedemptionLog::ACTION_VALIDATE && !$map['redeemable']) {
       return 'allow_idempotent_rescan';
     }
+    // Verify-only entitlements (e.g. VIP): scanner does not mutate state; repeats
+    // are successful re-verifications, not duplicate-operation rejects.
+    if ($map['scanner_mode'] === RedemptionLog::ACTION_VERIFY && !$map['redeemable']) {
+      return 'allow_idempotent_rescan';
+    }
     if ((bool) $map['multi_use']) {
       return 'allow_multi_use_until_limit';
     }

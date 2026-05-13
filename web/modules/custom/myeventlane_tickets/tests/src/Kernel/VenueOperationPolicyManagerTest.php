@@ -162,6 +162,13 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertSame('admit', $descriptor['operation_type']);
   }
 
+  public function testVipVerifyConflictPolicyAllowsIdempotentRescan(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_VIP);
+    $descriptor = $this->policy()->buildOperationDescriptor($ticket, 'online');
+    $this->assertSame('allow_idempotent_rescan', $descriptor['conflict_policy']);
+    $this->assertSame('verify', $descriptor['operation_type']);
+  }
+
   public function testIntegrityEnvelopeDeterministicIds(): void {
     $ticket = $this->createTicket(Ticket::ENTITLEMENT_MERCH);
     $envelope = $this->policy()->buildIntegrityEnvelope(
