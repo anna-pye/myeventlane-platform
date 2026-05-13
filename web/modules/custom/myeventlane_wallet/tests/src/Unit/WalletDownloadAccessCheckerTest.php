@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 final class WalletDownloadAccessCheckerTest extends UnitTestCase {
 
-  public function testLegacyPathAllowsGuestOrderForAnonymousUser(): void {
+  public function testLegacyPathDeniesGuestOrderForAnonymousUser(): void {
     $order = $this->createMock(OrderInterface::class);
     $order->method('getCustomerId')->willReturn(0);
 
@@ -31,6 +31,7 @@ final class WalletDownloadAccessCheckerTest extends UnitTestCase {
     $account->method('id')->willReturn('0');
     $account->method('hasPermission')->willReturn(FALSE);
 
+    $this->expectException(AccessDeniedHttpException::class);
     $this->checker()->assertAuthorized($order_item, NULL, $account);
   }
 
