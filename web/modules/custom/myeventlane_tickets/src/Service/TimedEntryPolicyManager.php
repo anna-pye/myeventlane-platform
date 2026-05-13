@@ -4,371 +4,444 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Service;
 
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\node\NodeInterface;
 
 /**
- * Canonical operational timing policy for ticket-backed entitlements.
+ * Sole authority for machine-only operational timing on ticket entitlements.
  *
- * Machine-only output: no translated strings, no UI labels. Callers map
- * scanner states to existing API result tokens where appropriate.
- *
- * Timing may be derived from event bounds, ticket collect_window,
- * metadata_json (see docs/timed-entry-capacity-convergence.md), optional QR
- * payload expiry, and ticket expires_at. When no window sources exist,
- * behaviour matches legacy unrestricted admission timing.
+ * No translated strings, no UI labels. Callers compose results into venue and
+ * scanner gates; QR contracts are unchanged.
  */
 final class TimedEntryPolicyManager {
 
   /**
-   * Metadata keys (first match wins) for structured operational timing.
-   */
-  private const METADATA_TIMING_KEYS = [
-    'mel_operational_timing',
-    'operational_timing',
-  ];
-
-  public function __construct(
-    private readonly TimeInterface $time,
-    private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
-  ) {}
-
-  /**
-   * Evaluates timed entry, session/capacity window metadata, and scanner state.
+   * Evaluates operational timing for one ticket at a wall-clock instant.
    *
-   * @param int|null $now_unix
-   *   Evaluation instant; NULL uses request time.
-   * @param int|null $parsed_qr_expires_at
-   *   Optional structured QR payload exp (Unix); caps closing without changing
-   *   QR signing contracts.
-   *
-   * @return array{
-   *   entry_window: array{
-   *     opens_at: int|null,
-   *     closes_at: int|null,
-   *     grace_seconds: int,
-   *     late_entry_allowed: bool,
-   *     early_entry_allowed: bool
-   *   },
-   *   session: array{session_key: string|null, capacity_window: string|null},
-   *   scanner: array{allowed_now: bool, state: string, reason: string}
-   * }
+   * @return array<string, mixed>
+   *   Normalized policy per docs/timed-entry-capacity-convergence.md.
    */
-  public function evaluate(Ticket $ticket, ?int $now_unix = NULL, ?int $parsed_qr_expires_at = NULL): array {
-    $now = $now_unix ?? $this->time->getCurrentTime();
-    $timing = $this->readTimingMetadata($ticket);
-    $grace = max(0, (int) ($timing['grace_seconds'] ?? 0));
-    $late_allowed = (bool) ($timing['late_entry_allowed'] ?? TRUE);
-    $early_allowed = (bool) ($timing['early_entry_allowed'] ?? FALSE);
-    $session_key = isset($timing['session_key']) && is_string($timing['session_key']) && $timing['session_key'] !== ''
-      ? $timing['session_key']
-      : NULL;
-    $capacity_window = isset($timing['capacity_window']) && is_string($timing['capacity_window']) && $timing['capacity_window'] !== ''
-      ? $timing['capacity_window']
-      : NULL;
+  public function evaluate(Ticket $ticket, int $now, ?int $parsed_qr_expires_at): array {
+    $meta = $this->readTicketMetadataMap($ticket);
+    $timing = $this->extractTimingContainer($meta);
+    $event = $this->loadEvent($ticket);
 
-    [$opens, $closes] = $this->resolveEntryBounds($ticket, $timing);
-    $opens = $this->normalizeBound($opens);
-    $closes = $this->normalizeBound($closes);
+    $candidates_open = [];
+    $candidates_close = [];
 
-    $ticket_expires = $this->ticketExpiresAtUnix($ticket);
-    $closes = $this->applyUpperCap($closes, $ticket_expires);
-    $closes = $this->applyUpperCap($closes, $parsed_qr_expires_at);
-
-    if ($opens !== NULL && $closes !== NULL && $closes < $opens) {
-      $closes = $opens;
+    if (isset($timing['entry_opens_at']) && is_numeric($timing['entry_opens_at'])) {
+      $candidates_open[] = (int) $timing['entry_opens_at'];
+    }
+    if (isset($timing['entry_closes_at']) && is_numeric($timing['entry_closes_at'])) {
+      $candidates_close[] = (int) $timing['entry_closes_at'];
     }
 
-    $effective_close = $closes;
-    if ($closes !== NULL && $late_allowed && $grace > 0) {
-      $effective_close = $closes + $grace;
+    $event_start = $this->eventTimestamp($event, 'field_event_start');
+    $event_end = $this->eventTimestamp($event, 'field_event_end');
+    if ($event_end < 1) {
+      $event_end = $event_start;
     }
 
-    $scanner = $this->resolveScannerState($now, $opens, $closes, $effective_close, $early_allowed, $late_allowed);
+    if (isset($timing['entry_open_offset_seconds']) && is_numeric($timing['entry_open_offset_seconds']) && $event_start > 0) {
+      $candidates_open[] = $event_start + (int) $timing['entry_open_offset_seconds'];
+    }
+    if (isset($timing['entry_close_offset_seconds']) && is_numeric($timing['entry_close_offset_seconds'])) {
+      $base = $event_end > 0 ? $event_end : $event_start;
+      if ($base > 0) {
+        $candidates_close[] = $base + (int) $timing['entry_close_offset_seconds'];
+      }
+    }
 
-    return [
-      'entry_window' => [
-        'opens_at' => $opens,
-        'closes_at' => $closes,
-        'grace_seconds' => $grace,
-        'late_entry_allowed' => $late_allowed,
-        'early_entry_allowed' => $early_allowed,
-      ],
-      'session' => [
-        'session_key' => $session_key,
-        'capacity_window' => $capacity_window,
-      ],
-      'scanner' => $scanner,
-    ];
+    $collect = $this->collectWindowBounds($ticket);
+    if ($collect['start'] > 0) {
+      $candidates_open[] = $collect['start'];
+    }
+    if ($collect['end'] > 0) {
+      $candidates_close[] = $collect['end'];
+    }
+
+    $grace_seconds = isset($timing['grace_seconds']) && is_numeric($timing['grace_seconds'])
+      ? max(0, (int) $timing['grace_seconds'])
+      : 0;
+    $late_entry_allowed = array_key_exists('late_entry_allowed', $timing)
+      ? (bool) $timing['late_entry_allowed']
+      : TRUE;
+    $early_entry_allowed = array_key_exists('early_entry_allowed', $timing)
+      ? (bool) $timing['early_entry_allowed']
+      : FALSE;
+
+    foreach ($this->hardCloseCaps($ticket, $parsed_qr_expires_at) as $cap) {
+      if ($cap > 0) {
+        $candidates_close[] = $cap;
+      }
+    }
+
+    $opens_at = $this->latestDefined($candidates_open);
+    $closes_at = $this->earliestDefined($candidates_close);
+
+    $session_key = isset($timing['session_key']) && is_scalar($timing['session_key'])
+      ? (string) $timing['session_key']
+      : NULL;
+    if ($session_key === '') {
+      $session_key = NULL;
+    }
+    $capacity_window = isset($timing['capacity_window']) && is_scalar($timing['capacity_window'])
+      ? (string) $timing['capacity_window']
+      : NULL;
+    if ($capacity_window === '') {
+      $capacity_window = NULL;
+    }
+
+    if ($opens_at === NULL && $closes_at === NULL) {
+      return $this->legacyUnrestrictedPolicy($session_key, $capacity_window);
+    }
+
+    if ($opens_at !== NULL && $closes_at !== NULL && $opens_at > $closes_at) {
+      return $this->denyPolicy(
+        'expired',
+        'timing_bounds_inverted',
+        $opens_at,
+        $closes_at,
+        $grace_seconds,
+        $late_entry_allowed,
+        $early_entry_allowed,
+        $session_key,
+        $capacity_window,
+      );
+    }
+
+    $effective_close = $closes_at;
+    $grace_close = ($closes_at !== NULL && $late_entry_allowed) ? $closes_at + $grace_seconds : $closes_at;
+
+    if ($opens_at !== NULL && $now < $opens_at) {
+      if ($early_entry_allowed) {
+        return $this->allowPolicy(
+          'early',
+          'early_entry_window',
+          $opens_at,
+          $closes_at,
+          $grace_seconds,
+          $late_entry_allowed,
+          $early_entry_allowed,
+          $session_key,
+          $capacity_window,
+        );
+      }
+      return $this->denyPolicy(
+        'not_started',
+        'before_entry_open',
+        $opens_at,
+        $closes_at,
+        $grace_seconds,
+        $late_entry_allowed,
+        $early_entry_allowed,
+        $session_key,
+        $capacity_window,
+      );
+    }
+
+    if ($closes_at !== NULL && $now > (int) $grace_close) {
+      return $this->denyPolicy(
+        'expired',
+        'after_entry_close',
+        $opens_at,
+        $closes_at,
+        $grace_seconds,
+        $late_entry_allowed,
+        $early_entry_allowed,
+        $session_key,
+        $capacity_window,
+      );
+    }
+
+    if ($effective_close !== NULL && $now > $effective_close && $grace_close !== NULL && $now <= (int) $grace_close && $late_entry_allowed) {
+      return $this->allowPolicy(
+        'late',
+        'late_entry_grace',
+        $opens_at,
+        $closes_at,
+        $grace_seconds,
+        $late_entry_allowed,
+        $early_entry_allowed,
+        $session_key,
+        $capacity_window,
+      );
+    }
+
+    return $this->allowPolicy(
+      'allowed',
+      'within_entry_window',
+      $opens_at,
+      $closes_at,
+      $grace_seconds,
+      $late_entry_allowed,
+      $early_entry_allowed,
+      $session_key,
+      $capacity_window,
+    );
   }
 
   /**
-   * Detects machine-only timing conflict codes for staff diagnostics.
+   * Detects structural timing issues (machine codes only).
    *
    * @return list<string>
    */
-  public function detectTimingConflicts(Ticket $ticket): array {
+  public function detectTimingConflicts(Ticket $ticket, int $now, ?int $parsed_qr_expires_at): array {
     $conflicts = [];
-    $timing = $this->readTimingMetadata($ticket);
-    [$meta_open, $meta_close] = $this->boundsFromMetadataAbsolute($timing);
-    [$cw_open, $cw_close] = $this->boundsFromCollectWindow($ticket);
+    $meta = $this->readTicketMetadataMap($ticket);
+    $timing = $this->extractTimingContainer($meta);
+    $event = $this->loadEvent($ticket);
+    $event_start = $this->eventTimestamp($event, 'field_event_start');
+    $event_end = $this->eventTimestamp($event, 'field_event_end');
 
-    if ($meta_open !== NULL && $cw_open !== NULL && abs($meta_open - $cw_open) > 60) {
-      $conflicts[] = 'metadata_opens_vs_collect_window';
-    }
-    if ($meta_close !== NULL && $cw_close !== NULL && abs($meta_close - $cw_close) > 60) {
-      $conflicts[] = 'metadata_closes_vs_collect_window';
+    $has_offset_open = isset($timing['entry_open_offset_seconds']) && is_numeric($timing['entry_open_offset_seconds']);
+    $has_offset_close = isset($timing['entry_close_offset_seconds']) && is_numeric($timing['entry_close_offset_seconds']);
+    if (($has_offset_open || $has_offset_close) && $event_start < 1) {
+      $conflicts[] = 'offset_without_event_bounds';
     }
 
-    $event = $ticket->get('event_id')->entity;
-    $event_start = $this->entityDatetimeUnix($event, 'field_event_start');
-    $event_end = $this->entityDatetimeUnix($event, 'field_event_end');
-    if ($meta_open !== NULL && $event_start !== NULL && $meta_open < $event_start - 86400) {
-      $conflicts[] = 'metadata_opens_far_before_event_start';
+    $candidates_open = [];
+    $candidates_close = [];
+    if (isset($timing['entry_opens_at']) && is_numeric($timing['entry_opens_at'])) {
+      $candidates_open[] = (int) $timing['entry_opens_at'];
     }
-    if ($meta_close !== NULL && $event_end !== NULL && $meta_close > $event_end + 86400) {
-      $conflicts[] = 'metadata_closes_far_after_event_end';
+    if (isset($timing['entry_closes_at']) && is_numeric($timing['entry_closes_at'])) {
+      $candidates_close[] = (int) $timing['entry_closes_at'];
+    }
+    if ($has_offset_open && $event_start > 0) {
+      $candidates_open[] = $event_start + (int) $timing['entry_open_offset_seconds'];
+    }
+    if ($has_offset_close) {
+      $base = $event_end > 0 ? $event_end : $event_start;
+      if ($base > 0) {
+        $candidates_close[] = $base + (int) $timing['entry_close_offset_seconds'];
+      }
+    }
+    $collect = $this->collectWindowBounds($ticket);
+    if ($collect['start'] > 0) {
+      $candidates_open[] = $collect['start'];
+    }
+    if ($collect['end'] > 0) {
+      $candidates_close[] = $collect['end'];
+    }
+    $opens_at = $this->latestDefined($candidates_open);
+    $closes_at = $this->earliestDefined($candidates_close);
+    if ($opens_at !== NULL && $closes_at !== NULL && $opens_at > $closes_at) {
+      $conflicts[] = 'conflicting_entry_bounds';
+    }
+
+    // Evaluate is cheap; surface exhausted window as a diagnostic without
+    // implying the ticket row is structurally corrupt.
+    $snapshot = $this->evaluate($ticket, $now, $parsed_qr_expires_at);
+    if (($snapshot['scanner']['state'] ?? '') === 'expired' && ($snapshot['scanner']['reason'] ?? '') === 'timing_bounds_inverted') {
+      $conflicts[] = 'timing_bounds_inverted';
     }
 
     return $conflicts;
   }
 
   /**
-   * @param array<string, mixed> $timing
-   *
-   * @return array{0: int|null, 1: int|null}
+   * @return array<string, mixed>
    */
-  private function resolveEntryBounds(Ticket $ticket, array $timing): array {
-    [$m_open, $m_close] = $this->boundsFromMetadataAbsolute($timing);
-    [$cw_open, $cw_close] = $this->boundsFromCollectWindow($ticket);
-    [$off_open, $off_close] = $this->boundsFromMetadataOffsets($ticket, $timing);
-
-    $opens = $this->strictestOpen($m_open, $cw_open, $off_open);
-    $closes = $this->strictestClose($m_close, $cw_close, $off_close);
-
-    if ($opens === NULL && $closes === NULL) {
-      [$fallback_open, $fallback_close] = $this->boundsFromAdmissionEventDefaults($ticket);
-      $opens = $opens ?? $fallback_open;
-      $closes = $closes ?? $fallback_close;
-    }
-
-    return [$opens, $closes];
-  }
-
-  /**
-   * Admission tickets without explicit windows do not impose event-time gates
-   * (legacy). Non-admission entitlements may still use collect_window/metadata.
-   */
-  private function boundsFromAdmissionEventDefaults(Ticket $ticket): array {
-    $type = $this->entitlementCapabilityRegistry->normalizeEntitlementType($ticket->getEntitlementType());
-    if ($this->entitlementCapabilityRegistry->isAdmissionEntitlementType($type)) {
-      return [NULL, NULL];
-    }
-    return [NULL, NULL];
-  }
-
-  /**
-   * @return array{0: int|null, 1: int|null}
-   */
-  private function boundsFromCollectWindow(Ticket $ticket): array {
-    if (!$ticket->hasField('collect_window') || $ticket->get('collect_window')->isEmpty()) {
-      return [NULL, NULL];
-    }
-    $item = $ticket->get('collect_window')->first();
-    $start = trim((string) ($item?->get('value')->getValue() ?? ''));
-    $end = trim((string) ($item?->get('end_value')->getValue() ?? ''));
-    return [$this->parseUtcDatetime($start), $this->parseUtcDatetime($end)];
-  }
-
-  /**
-   * @param array<string, mixed> $timing
-   *
-   * @return array{0: int|null, 1: int|null}
-   */
-  private function boundsFromMetadataAbsolute(array $timing): array {
-    $open = isset($timing['entry_opens_at']) && is_numeric($timing['entry_opens_at'])
-      ? (int) $timing['entry_opens_at']
-      : NULL;
-    $close = isset($timing['entry_closes_at']) && is_numeric($timing['entry_closes_at'])
-      ? (int) $timing['entry_closes_at']
-      : NULL;
-    return [$open, $close];
-  }
-
-  /**
-   * @param array<string, mixed> $timing
-   *
-   * @return array{0: int|null, 1: int|null}
-   */
-  private function boundsFromMetadataOffsets(Ticket $ticket, array $timing): array {
-    $event = $ticket->get('event_id')->entity;
-    $event_start = $this->entityDatetimeUnix($event, 'field_event_start');
-    $event_end = $this->entityDatetimeUnix($event, 'field_event_end');
-    $anchor = $event_start ?? $event_end;
-    if ($anchor === NULL) {
-      return [NULL, NULL];
-    }
-    $open_off = isset($timing['entry_open_offset_seconds']) && is_numeric($timing['entry_open_offset_seconds'])
-      ? (int) $timing['entry_open_offset_seconds']
-      : NULL;
-    $close_off = isset($timing['entry_close_offset_seconds']) && is_numeric($timing['entry_close_offset_seconds'])
-      ? (int) $timing['entry_close_offset_seconds']
-      : NULL;
-    $open = $open_off !== NULL ? $anchor + $open_off : NULL;
-    $close_anchor = $event_end ?? $event_start;
-    $close = $close_off !== NULL && $close_anchor !== NULL ? $close_anchor + $close_off : NULL;
-    return [$open, $close];
+  private function legacyUnrestrictedPolicy(?string $session_key, ?string $capacity_window): array {
+    return [
+      'entry_window' => [
+        'opens_at' => NULL,
+        'closes_at' => NULL,
+        'grace_seconds' => 0,
+        'late_entry_allowed' => TRUE,
+        'early_entry_allowed' => FALSE,
+      ],
+      'session' => [
+        'session_key' => $session_key,
+        'capacity_window' => $capacity_window,
+      ],
+      'scanner' => [
+        'allowed_now' => TRUE,
+        'state' => 'allowed',
+        'reason' => 'legacy_unrestricted',
+      ],
+    ];
   }
 
   /**
    * @return array<string, mixed>
    */
-  private function readTimingMetadata(Ticket $ticket): array {
+  private function allowPolicy(
+    string $state,
+    string $reason,
+    ?int $opens_at,
+    ?int $closes_at,
+    int $grace_seconds,
+    bool $late_entry_allowed,
+    bool $early_entry_allowed,
+    ?string $session_key,
+    ?string $capacity_window,
+  ): array {
+    return [
+      'entry_window' => [
+        'opens_at' => $opens_at,
+        'closes_at' => $closes_at,
+        'grace_seconds' => $grace_seconds,
+        'late_entry_allowed' => $late_entry_allowed,
+        'early_entry_allowed' => $early_entry_allowed,
+      ],
+      'session' => [
+        'session_key' => $session_key,
+        'capacity_window' => $capacity_window,
+      ],
+      'scanner' => [
+        'allowed_now' => TRUE,
+        'state' => $state,
+        'reason' => $reason,
+      ],
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function denyPolicy(
+    string $state,
+    string $reason,
+    ?int $opens_at,
+    ?int $closes_at,
+    int $grace_seconds,
+    bool $late_entry_allowed,
+    bool $early_entry_allowed,
+    ?string $session_key,
+    ?string $capacity_window,
+  ): array {
+    return [
+      'entry_window' => [
+        'opens_at' => $opens_at,
+        'closes_at' => $closes_at,
+        'grace_seconds' => $grace_seconds,
+        'late_entry_allowed' => $late_entry_allowed,
+        'early_entry_allowed' => $early_entry_allowed,
+      ],
+      'session' => [
+        'session_key' => $session_key,
+        'capacity_window' => $capacity_window,
+      ],
+      'scanner' => [
+        'allowed_now' => FALSE,
+        'state' => $state,
+        'reason' => $reason,
+      ],
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function readTicketMetadataMap(Ticket $ticket): array {
     if (!$ticket->hasField('metadata_json') || $ticket->get('metadata_json')->isEmpty()) {
       return [];
     }
     $value = $ticket->get('metadata_json')->first()?->getValue() ?? [];
-    $map = [];
     if (isset($value['value']) && is_array($value['value'])) {
-      $map = $value['value'];
+      return $value['value'];
     }
-    elseif (is_array($value)) {
-      $map = $value;
-    }
-    foreach (self::METADATA_TIMING_KEYS as $key) {
-      if (isset($map[$key]) && is_array($map[$key])) {
-        return $map[$key];
+    return is_array($value) ? $value : [];
+  }
+
+  /**
+   * @param array<string, mixed> $metadata
+   *
+   * @return array<string, mixed>
+   */
+  private function extractTimingContainer(array $metadata): array {
+    foreach (['mel_operational_timing', 'operational_timing'] as $key) {
+      if (!empty($metadata[$key]) && is_array($metadata[$key])) {
+        return $metadata[$key];
       }
     }
     return [];
   }
 
-  private function ticketExpiresAtUnix(Ticket $ticket): ?int {
-    if (!$ticket->hasField('expires_at') || $ticket->get('expires_at')->isEmpty()) {
+  private function loadEvent(Ticket $ticket): ?EntityInterface {
+    if (!$ticket->hasField('event_id') || $ticket->get('event_id')->isEmpty()) {
       return NULL;
     }
-    return $this->parseUtcDatetime((string) $ticket->get('expires_at')->value);
+    $event = $ticket->get('event_id')->entity;
+    return $event instanceof EntityInterface ? $event : NULL;
   }
 
-  private function entityDatetimeUnix(?EntityInterface $entity, string $field): ?int {
-    if (!$entity instanceof EntityInterface || !$entity->hasField($field) || $entity->get($field)->isEmpty()) {
-      return NULL;
+  private function eventTimestamp(?EntityInterface $event, string $field): int {
+    if (!$event instanceof NodeInterface || !$event->hasField($field) || $event->get($field)->isEmpty()) {
+      return 0;
     }
-    return $this->parseUtcDatetime((string) $entity->get($field)->value);
-  }
-
-  private function parseUtcDatetime(string $raw): ?int {
-    $raw = trim($raw);
+    $raw = trim((string) $event->get($field)->value);
     if ($raw === '') {
-      return NULL;
+      return 0;
     }
     $ts = strtotime($raw . ' UTC');
-    return $ts === FALSE ? NULL : $ts;
-  }
-
-  private function normalizeBound(?int $bound): ?int {
-    return $bound === NULL || $bound < 1 ? NULL : $bound;
-  }
-
-  private function applyUpperCap(?int $closes, ?int $cap): ?int {
-    if ($cap === NULL || $cap < 1) {
-      return $closes;
-    }
-    if ($closes === NULL) {
-      return $cap;
-    }
-    return min($closes, $cap);
+    return $ts === FALSE ? 0 : $ts;
   }
 
   /**
-   * Latest opening instant among defined sources (strictest / intersection).
-   *
-   * @param int|null ...$candidates
+   * @return array{start:int,end:int}
    */
-  private function strictestOpen(?int ...$candidates): ?int {
-    $filtered = [];
-    foreach ($candidates as $c) {
-      if ($c !== NULL && $c > 0) {
-        $filtered[] = $c;
-      }
+  private function collectWindowBounds(Ticket $ticket): array {
+    if (!$ticket->hasField('collect_window') || $ticket->get('collect_window')->isEmpty()) {
+      return ['start' => 0, 'end' => 0];
     }
-    return $filtered === [] ? NULL : max($filtered);
-  }
-
-  /**
-   * Earliest closing instant among defined sources (strictest / intersection).
-   *
-   * @param int|null ...$candidates
-   */
-  private function strictestClose(?int ...$candidates): ?int {
-    $filtered = [];
-    foreach ($candidates as $c) {
-      if ($c !== NULL && $c > 0) {
-        $filtered[] = $c;
-      }
+    $item = $ticket->get('collect_window')->first();
+    if ($item === NULL) {
+      return ['start' => 0, 'end' => 0];
     }
-    return $filtered === [] ? NULL : min($filtered);
-  }
-
-  /**
-   * @return array{allowed_now: bool, state: string, reason: string}
-   */
-  private function resolveScannerState(
-    int $now,
-    ?int $opens,
-    ?int $closes,
-    ?int $effective_close,
-    bool $early_allowed,
-    bool $late_allowed,
-  ): array {
-    if ($opens === NULL && $closes === NULL) {
-      return [
-        'allowed_now' => TRUE,
-        'state' => 'allowed',
-        'reason' => 'legacy_unrestricted',
-      ];
-    }
-
-    if ($opens !== NULL && $now < $opens) {
-      if ($early_allowed) {
-        return [
-          'allowed_now' => TRUE,
-          'state' => 'early',
-          'reason' => 'before_nominal_open_early_allowed',
-        ];
-      }
-      return [
-        'allowed_now' => FALSE,
-        'state' => 'not_started',
-        'reason' => 'before_entry_opens',
-      ];
-    }
-
-    if ($closes !== NULL) {
-      $allow_late_grace = $late_allowed && $effective_close !== NULL && $effective_close > $closes;
-      if ($now > $closes && $allow_late_grace && $now <= $effective_close) {
-        return [
-          'allowed_now' => TRUE,
-          'state' => 'late',
-          'reason' => 'within_late_grace',
-        ];
-      }
-      $strict_deadline = $allow_late_grace ? $effective_close : $closes;
-      if ($now > $strict_deadline) {
-        return [
-          'allowed_now' => FALSE,
-          'state' => 'expired',
-          'reason' => $allow_late_grace ? 'after_effective_close' : 'after_entry_closes',
-        ];
-      }
-    }
-
+    $start = trim((string) ($item->value ?? ''));
+    $end = trim((string) ($item->end_value ?? ''));
+    $start_ts = $start !== '' ? strtotime($start . ' UTC') : FALSE;
+    $end_ts = $end !== '' ? strtotime($end . ' UTC') : FALSE;
     return [
-      'allowed_now' => TRUE,
-      'state' => 'allowed',
-      'reason' => 'within_entry_window',
+      'start' => $start_ts === FALSE ? 0 : (int) $start_ts,
+      'end' => $end_ts === FALSE ? 0 : (int) $end_ts,
     ];
+  }
+
+  /**
+   * @return list<int>
+   */
+  private function hardCloseCaps(Ticket $ticket, ?int $parsed_qr_expires_at): array {
+    $caps = [];
+    if ($ticket->hasField('expires_at') && !$ticket->get('expires_at')->isEmpty()) {
+      $raw = trim((string) $ticket->get('expires_at')->value);
+      if ($raw !== '') {
+        $ts = strtotime($raw . ' UTC');
+        if ($ts !== FALSE) {
+          $caps[] = (int) $ts;
+        }
+      }
+    }
+    if ($parsed_qr_expires_at !== NULL && $parsed_qr_expires_at > 0) {
+      $caps[] = $parsed_qr_expires_at;
+    }
+    return $caps;
+  }
+
+  /**
+   * @param list<int> $values
+   */
+  private function latestDefined(array $values): ?int {
+    $filtered = array_values(array_filter($values, static fn (int $v): bool => $v > 0));
+    if ($filtered === []) {
+      return NULL;
+    }
+    return max($filtered);
+  }
+
+  /**
+   * @param list<int> $values
+   */
+  private function earliestDefined(array $values): ?int {
+    $filtered = array_values(array_filter($values, static fn (int $v): bool => $v > 0));
+    if ($filtered === []) {
+      return NULL;
+    }
+    return min($filtered);
   }
 
 }

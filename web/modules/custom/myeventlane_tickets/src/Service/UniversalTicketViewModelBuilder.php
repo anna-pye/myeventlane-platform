@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Url;
@@ -23,7 +24,9 @@ final class UniversalTicketViewModelBuilder {
     private readonly TicketCapabilityManager $capabilityManager,
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly RouteProviderInterface $routeProvider,
-    private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
+    private readonly TimeInterface $time,
+    private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
+    private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
   ) {}
 
   /**
@@ -46,6 +49,10 @@ final class UniversalTicketViewModelBuilder {
     $can_scan = $this->capabilityManager->canBeScanned($ticket);
     $timed_entry = $this->venueOperationPolicyManager->buildTimedEntryPolicy($ticket);
     $scanner_status = $this->scannerStatus($ticket, $entitlement_type, $can_scan, $is_expired, $fulfilment_status);
+
+    $now = $this->time->getCurrentTime();
+    $timed_entry = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
+    $session_entitlement = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed_entry);
 
     return [
       'ticket' => [
@@ -94,10 +101,17 @@ final class UniversalTicketViewModelBuilder {
         'can_scan' => $can_scan,
         'status' => $scanner_status,
         'message' => $this->scannerMessage($scanner_status),
-        'timing_state' => (string) ($timed_entry['scanner']['state'] ?? ''),
+        'timing_state' => (string) ($timed_entry['scanner']['state'] ?? 'allowed'),
         'timing_allowed_now' => (bool) ($timed_entry['scanner']['allowed_now'] ?? TRUE),
+        'session_state' => (string) ($session_entitlement['progression']['current_state'] ?? 'legacy_neutral'),
+        'session_allowed_now' => (bool) ($session_entitlement['scanner']['allowed_now'] ?? TRUE),
+        'session_exhausted' => (bool) ($session_entitlement['progression']['is_exhausted'] ?? FALSE),
+        'reentry_allowed' => (bool) ($session_entitlement['redemption']['reentry_allowed'] ?? FALSE),
+        'bundle_key' => $session_entitlement['session']['bundle_key'] ?? NULL,
+        'session_key' => $session_entitlement['session']['session_key'] ?? NULL,
       ],
       'timed_entry' => $timed_entry,
+      'session_entitlement' => $session_entitlement,
     ];
   }
 

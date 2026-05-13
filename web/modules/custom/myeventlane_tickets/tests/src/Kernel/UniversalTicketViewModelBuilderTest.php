@@ -117,6 +117,18 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
   /**
    * Base admission tickets normalize into the canonical operational model.
    */
+  public function testIncludesTimedEntryAndSessionEntitlementPayloads(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-SESSION-VIEW',
+    ]);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayHasKey('timed_entry', $model);
+    $this->assertArrayHasKey('session_entitlement', $model);
+    $this->assertSame('legacy_neutral', $model['session_entitlement']['progression']['current_state']);
+    $this->assertArrayHasKey('timing_state', $model['scanner']);
+    $this->assertArrayHasKey('session_state', $model['scanner']);
+  }
+
   public function testBuildsAdmissionTicketModel(): void {
     $ticket = $this->createTicket([
       'ticket_code' => 'MEL-VIEW-0001',

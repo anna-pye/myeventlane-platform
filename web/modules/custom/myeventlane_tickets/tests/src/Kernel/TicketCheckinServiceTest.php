@@ -214,6 +214,25 @@ final class TicketCheckinServiceTest extends KernelTestBase {
   /**
    * Structured mel:v1 entitlement payloads redeem through the scanner service.
    */
+  public function testSessionSequencingBlocksVipStructuredPayload(): void {
+    $ticket = $this->createTicket('MEL-VIP-SEQ-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_VIP,
+      'metadata_json' => [
+        'mel_operational_session' => [
+          'sequence_required' => TRUE,
+          'required_prior_redemptions' => 1,
+        ],
+      ],
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-seq', 'online');
+
+    $this->assertFalse($result['ok']);
+    $this->assertSame('invalid', $result['result']);
+  }
+
   public function testStructuredPayloadRedeemsDrinkVoucherOnce(): void {
     $ticket = $this->createTicket('MEL-DRINK-0001', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
       'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
@@ -292,6 +311,7 @@ final class TicketCheckinServiceTest extends KernelTestBase {
     $meta = $item->getValue();
     $this->assertIsArray($meta);
     $this->assertArrayHasKey('venue_operation_integrity', $meta);
+    $this->assertArrayHasKey('operational_scan_policy', $meta);
     $integrity = $meta['venue_operation_integrity'];
     $this->assertIsArray($integrity);
     $this->assertStringStartsWith('op_', (string) ($integrity['operation_id'] ?? ''));
@@ -299,52 +319,48 @@ final class TicketCheckinServiceTest extends KernelTestBase {
   }
 
   /**
-   * Timed entry policy blocks scans before the configured entry opens.
+   * Timed entry metadata blocks scan before the nominal entry window opens.
    */
   public function testBlocksScanBeforeTimedEntryOpens(): void {
-    $opens = time() + 100000;
-    $closes = $opens + 7200;
-    $ticket = $this->createTicket('MEL-TIME-GATE-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+    $opens_at = time() + 7200;
+    $closes_at = $opens_at + 14400;
+    $ticket = $this->createTicket('MEL-TIMED-PREOPEN-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
       'metadata_json' => [
         'mel_operational_timing' => [
-          'entry_opens_at' => $opens,
-          'entry_closes_at' => $closes,
+          'entry_opens_at' => $opens_at,
+          'entry_closes_at' => $closes_at,
           'early_entry_allowed' => FALSE,
-          'late_entry_allowed' => TRUE,
-          'grace_seconds' => 0,
         ],
       ],
     ]);
     $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
 
     $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
-      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-timed-1', 'online');
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-timed', 'online');
 
     $this->assertFalse($result['ok']);
     $this->assertSame('invalid', $result['result']);
+    $this->assertStringContainsStringIgnoringCase('open', (string) $result['message']);
   }
 
   /**
-   * Early entry flag allows scans before nominal opens_at.
+   * Scan succeeds inside an active timed entry window.
    */
-  public function testAllowsScanWhenEarlyEntryPermitted(): void {
-    $opens = time() + 7200;
-    $closes = $opens + 7200;
-    $ticket = $this->createTicket('MEL-TIME-EARLY-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+  public function testAdmitsWithinTimedEntryWindow(): void {
+    $opens_at = time() - 3600;
+    $closes_at = time() + 7200;
+    $ticket = $this->createTicket('MEL-TIMED-INWINDOW-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
       'metadata_json' => [
         'mel_operational_timing' => [
-          'entry_opens_at' => $opens,
-          'entry_closes_at' => $closes,
-          'early_entry_allowed' => TRUE,
-          'late_entry_allowed' => TRUE,
-          'grace_seconds' => 0,
+          'entry_opens_at' => $opens_at,
+          'entry_closes_at' => $closes_at,
         ],
       ],
     ]);
     $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
 
     $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
-      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-timed-early', 'online');
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-timed-2', 'online');
 
     $this->assertTrue($result['ok']);
     $this->assertSame('admitted', $result['result']);

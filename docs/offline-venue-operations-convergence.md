@@ -12,10 +12,11 @@ This phase introduces a **single venue operation policy layer** for ticket-backe
 | Entity-aware scan / expiry / redemption composition | `mel_ticket_capability.manager` | `TicketCapabilityManager` |
 | Venue gate policy, offline scaffolding metadata, replay fingerprints | `myeventlane_tickets.venue_operation_policy_manager` | `VenueOperationPolicyManager` |
 | Operational timing (entry windows, grace, session/capacity semantics) | `myeventlane_tickets.timed_entry_policy_manager` | `TimedEntryPolicyManager` |
+| Session / multi-use / sequencing / bundle semantics | `myeventlane_tickets.session_entitlement_policy_manager` | `SessionEntitlementPolicyManager` |
 | Scanner orchestration (QR parse, mutations, audit) | `mel_scanner.operation_manager` | `ScannerOperationManager` |
 | Staff/API entry point | `myeventlane_tickets.ticket_checkin_service` | `TicketCheckinService` |
 
-`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`**), and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`).
+`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry** and **session entitlement** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`** and **`SessionEntitlementPolicyManager`**), and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`, optional `operational_scan_policy` snapshot when the composed gate produced policy metadata).
 
 ## Operational action authority
 
@@ -23,6 +24,7 @@ This phase introduces a **single venue operation policy layer** for ticket-backe
 - **Type-level policy** (scanner mode, multi-use semantics, fulfilment flags) comes from `EntitlementCapabilityRegistry`.
 - **Venue execution policy** (offline eligibility scaffold, conflict policy labels, deterministic operation envelopes) comes from `VenueOperationPolicyManager`.
 - **Operational timing policy** (entry windows, grace, late/early semantics, session/capacity window metadata, scanner timing state) comes from `TimedEntryPolicyManager`, composed by `VenueOperationPolicyManager` and enforced on the scan path before mutations.
+- **Session and multi-use progression policy** (sequencing, exhaustion, bundle/zone metadata, grouped redemption interpretation) comes from `SessionEntitlementPolicyManager`, composed by `VenueOperationPolicyManager` alongside timing; scanners must not duplicate these rules. See [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md).
 
 QR payload contracts, ticket codes, public scanner JSON shapes, and routes are **unchanged**.
 
@@ -62,6 +64,7 @@ This phase adds **non-authoritative scaffolding**:
 
 - Scanner-specific entitlement `switch` / parallel action maps outside `EntitlementCapabilityRegistry` and `VenueOperationPolicyManager`
 - Parallel timing / entry-window logic outside `TimedEntryPolicyManager` (scanners must not own clock policy)
+- Parallel session, sequencing, or multi-use exhaustion logic outside `SessionEntitlementPolicyManager` / `VenueOperationPolicyManager`
 - Entitlement logic that bypasses `EntitlementCapabilityRegistry` for operational policy
 - A second replay-detection implementation that contradicts persisted ticket state checks
 - Offline-only entitlement rules that are not also enforced on the online scanner path

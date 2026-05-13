@@ -144,7 +144,18 @@ final class ScannerOperationManager {
         (int) $ticket->id(),
       );
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
-      $this->logRedemptionAudit($ticket, $this->resolveAction($ticket), $device_id, FALSE, $result['result'], $result['message'], $payload_sha256);
+      $this->logRedemptionAudit(
+        $ticket,
+        $this->resolveAction($ticket),
+        $device_id,
+        FALSE,
+        $result['result'],
+        $result['message'],
+        $payload_sha256,
+        NULL,
+        NULL,
+        $timed_gate['policy'] ?? NULL,
+      );
       return $result;
     }
 
@@ -153,11 +164,30 @@ final class ScannerOperationManager {
       $message = $result_token === 'expired' ? 'Entitlement has expired.' : 'Redemption limit has already been reached.';
       $result = $this->result(FALSE, $result_token, $message, (string) $ticket->get('ticket_code')->value, 0, (int) $ticket->id());
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
-      $this->logRedemptionAudit($ticket, $this->resolveAction($ticket), $device_id, FALSE, $result['result'], $result['message'], $payload_sha256);
+      $this->logRedemptionAudit(
+        $ticket,
+        $this->resolveAction($ticket),
+        $device_id,
+        FALSE,
+        $result['result'],
+        $result['message'],
+        $payload_sha256,
+        NULL,
+        NULL,
+        $timed_gate['policy'] ?? NULL,
+      );
       return $result;
     }
 
-    return $this->executeOperation($route_event_id, $ticket, $device_id, $mode, $normalized_input, $payload_sha256);
+    return $this->executeOperation(
+      $route_event_id,
+      $ticket,
+      $device_id,
+      $mode,
+      $normalized_input,
+      $payload_sha256,
+      $timed_gate['policy'] ?? [],
+    );
   }
 
   /**
@@ -166,7 +196,7 @@ final class ScannerOperationManager {
    * @return array<string, mixed>
    *   Scanner response.
    */
-  private function executeOperation(int $route_event_id, Ticket $ticket, string $device_id, string $mode, string $normalized_input, string $payload_sha256): array {
+  private function executeOperation(int $route_event_id, Ticket $ticket, string $device_id, string $mode, string $normalized_input, string $payload_sha256, array $operational_scan_policy = []): array {
     $action = $this->resolveAction($ticket);
     $redemption_before = $ticket->getRedemptionCount();
 
@@ -192,7 +222,7 @@ final class ScannerOperationManager {
       $message = self::SUCCESS_MESSAGE_BY_ACTION[$action] ?? 'Scanned.';
       $result = $this->result(TRUE, $result_token, $message, (string) $ticket->get('ticket_code')->value, $now, (int) $ticket->id());
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
-      $this->logRedemptionAudit($ticket, $action, $device_id, TRUE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_after);
+      $this->logRedemptionAudit($ticket, $action, $device_id, TRUE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_after, $operational_scan_policy);
       return $result;
     }
     catch (\Throwable $e) {
@@ -204,7 +234,7 @@ final class ScannerOperationManager {
       ]);
       $result = $this->result(FALSE, 'error', "Scan couldn't be completed. Try again or use manual review.", (string) $ticket->get('ticket_code')->value);
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
-      $this->logRedemptionAudit($ticket, $action, $device_id, FALSE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_before);
+      $this->logRedemptionAudit($ticket, $action, $device_id, FALSE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_before, $operational_scan_policy);
       return $result;
     }
   }
@@ -240,6 +270,7 @@ final class ScannerOperationManager {
     string $payload_sha256,
     ?int $redemption_count_before = NULL,
     ?int $redemption_count_after = NULL,
+    ?array $operational_scan_policy = NULL,
   ): void {
     if (!$this->entityTypeManager->hasDefinition('mel_redemption_log')) {
       return;
@@ -265,6 +296,17 @@ final class ScannerOperationManager {
         $after,
         $payload_sha256,
       );
+      $metadata = [
+        'ok' => $ok,
+        'result' => $result,
+        'entitlement_type' => $ticket->getEntitlementType(),
+        'redemption_count' => $ticket->getRedemptionCount(),
+        'redemption_limit' => $ticket->getRedemptionLimit(),
+        'venue_operation_integrity' => $integrity,
+      ];
+      if ($operational_scan_policy !== NULL && $operational_scan_policy !== []) {
+        $metadata['operational_scan_policy'] = $operational_scan_policy;
+      }
       $values = [
         'ticket_id' => (int) $ticket->id(),
         'entitlement_type' => $ticket->getEntitlementType(),
@@ -275,14 +317,7 @@ final class ScannerOperationManager {
         'device_identifier' => $device_norm,
         'ip_address' => $this->requestStack->getCurrentRequest()?->getClientIp(),
         'notes' => $message,
-        'metadata_json' => [
-          'ok' => $ok,
-          'result' => $result,
-          'entitlement_type' => $ticket->getEntitlementType(),
-          'redemption_count' => $ticket->getRedemptionCount(),
-          'redemption_limit' => $ticket->getRedemptionLimit(),
-          'venue_operation_integrity' => $integrity,
-        ],
+        'metadata_json' => $metadata,
       ];
       $storage->create($values)->save();
     }
