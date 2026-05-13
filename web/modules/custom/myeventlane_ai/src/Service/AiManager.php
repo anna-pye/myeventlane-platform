@@ -33,7 +33,9 @@ final class AiManager {
    * @param \Drupal\myeventlane_ai\Value\PromptDefinition $definition
    *   The rendered prompt (system + user messages).
    * @param array $options
-   *   Provider-specific options.
+   *   Provider-specific options. May include enforce_vendor_ai_opt_in (bool,
+   *   default TRUE): when FALSE, vendor_id is still used for quotas/usage but
+   *   the vendor entity ai_enabled checkbox is not required.
    * @param int|null $requested_by_uid
    *   UID of the user who triggered the call, for rate limiting.
    * @param string|null $scope_id
@@ -59,8 +61,11 @@ final class AiManager {
 
     $provider_name = $this->provider->getName();
 
-    // Vendor opt-in: if vendor_id provided, vendor must have AI enabled.
-    if ($vendor_id !== NULL) {
+    // Vendor opt-in: gated features (e.g. vendor portal escalation AI) require
+    // the vendor checkbox. Platform surfaces may pass vendor_id only for quota
+    // / usage while setting enforce_vendor_ai_opt_in to FALSE.
+    $enforce_vendor_ai_opt_in = (bool) ($options['enforce_vendor_ai_opt_in'] ?? TRUE);
+    if ($vendor_id !== NULL && $enforce_vendor_ai_opt_in) {
       try {
         if ($this->entityTypeManager->hasDefinition('myeventlane_vendor')) {
           $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor_id);
