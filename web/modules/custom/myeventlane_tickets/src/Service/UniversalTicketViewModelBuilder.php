@@ -41,6 +41,7 @@ final class UniversalTicketViewModelBuilder {
     $remaining_redemptions = $this->capabilityManager->getRemainingRedemptions($ticket);
     $is_expired = $this->capabilityManager->isExpired($ticket);
     $can_scan = $this->capabilityManager->canBeScanned($ticket);
+    $scanner_status = $this->scannerStatus($ticket, $can_scan, $is_expired, $fulfilment_status);
 
     return [
       'ticket' => [
@@ -85,8 +86,8 @@ final class UniversalTicketViewModelBuilder {
       ],
       'scanner' => [
         'can_scan' => $can_scan,
-        'status' => $this->scannerStatus($ticket, $can_scan, $is_expired),
-        'message' => $this->scannerMessage($ticket, $can_scan, $is_expired),
+        'status' => $scanner_status,
+        'message' => $this->scannerMessage($scanner_status),
       ],
     ];
   }
@@ -307,7 +308,7 @@ final class UniversalTicketViewModelBuilder {
   /**
    * Determines the scanner status token.
    */
-  private function scannerStatus(Ticket $ticket, bool $can_scan, bool $is_expired): string {
+  private function scannerStatus(Ticket $ticket, bool $can_scan, bool $is_expired, string $fulfilment_status): string {
     $status = $this->readString($ticket, 'status', Ticket::STATUS_ISSUED_UNASSIGNED);
     if ($status === Ticket::STATUS_VOID) {
       return 'void';
@@ -324,6 +325,15 @@ final class UniversalTicketViewModelBuilder {
     if (!$can_scan && $this->capabilityManager->getRemainingRedemptions($ticket) === 0) {
       return 'redemption_limit_reached';
     }
+    if (!$can_scan && $fulfilment_status === Ticket::FULFILMENT_CANCELLED) {
+      return 'fulfilment_cancelled';
+    }
+    if (!$can_scan && $fulfilment_status === Ticket::FULFILMENT_EXPIRED) {
+      return 'fulfilment_expired';
+    }
+    if (!$can_scan) {
+      return 'not_scannable';
+    }
     if ($status === Ticket::STATUS_ISSUED_UNASSIGNED) {
       return 'unassigned';
     }
@@ -333,13 +343,16 @@ final class UniversalTicketViewModelBuilder {
   /**
    * Determines the scanner status message.
    */
-  private function scannerMessage(Ticket $ticket, bool $can_scan, bool $is_expired): string {
-    return match ($this->scannerStatus($ticket, $can_scan, $is_expired)) {
+  private function scannerMessage(string $scanner_status): string {
+    return match ($scanner_status) {
       'void' => 'Ticket is void and cannot be scanned.',
       'refunded' => 'Ticket was refunded and cannot be scanned.',
       'expired' => 'Entitlement has expired.',
       'checked_in' => 'Ticket is already checked in.',
       'redemption_limit_reached' => 'Redemption limit has already been reached.',
+      'fulfilment_cancelled' => 'Fulfilment was cancelled; this cannot be scanned.',
+      'fulfilment_expired' => 'Fulfilment has expired; this cannot be scanned.',
+      'not_scannable' => 'This entitlement cannot be scanned right now.',
       'unassigned' => 'Ticket is issued but holder details are not assigned.',
       default => 'Ready to scan.',
     };
