@@ -116,6 +116,11 @@ settings.local.*
 *.local.yml
 
 ############################################
+# PHPUnit (local execution cache; noisy, machine-specific)
+############################################
+/web/.phpunit.result.cache
+
+############################################
 # Logs
 ############################################
 *.log
