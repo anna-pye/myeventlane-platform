@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_rsvp\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
+use Drupal\myeventlane_tickets\Ticket\TicketPdfGenerator;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ class RsvpMailer {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly MessagingManager $messagingManager,
     private readonly ?LoggerInterface $logger = NULL,
+    private readonly ?TicketPdfGenerator $ticketPdfGenerator = NULL,
   ) {}
 
   /**
@@ -187,13 +189,12 @@ class RsvpMailer {
    *   Attachment array or NULL on failure.
    */
   protected function generateTicketAttachment($submission, NodeInterface $event): ?array {
-    if (!\Drupal::hasService('myeventlane_tickets.pdf_generator')) {
+    if ($this->ticketPdfGenerator === NULL) {
       return NULL;
     }
 
     try {
-      $pdfGenerator = \Drupal::service('myeventlane_tickets.pdf_generator');
-      return $pdfGenerator->getPdfContentForRsvp($submission, $event);
+      return $this->ticketPdfGenerator->getPdfContentForRsvp($submission, $event);
     }
     catch (\Exception $e) {
       $this->log('error', 'Failed to generate ticket PDF for RSVP: @message', [

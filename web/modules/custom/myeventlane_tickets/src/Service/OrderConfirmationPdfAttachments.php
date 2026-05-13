@@ -12,6 +12,13 @@ use Psr\Log\LoggerInterface;
 /**
  * Adds ticket PDF bytes to order_confirmation mail attachments at send time.
  *
+ * @deprecated in myeventlane_tickets:COMMIT_PHASE_2B_4 and is removed from the
+ *   service container. Use
+ *   \Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver
+ *   (wired from \Drupal\myeventlane_messaging\Service\MessagingManager) instead.
+ *   This class is retained temporarily so any undiscovered references fail with
+ *   a clear deprecation rather than a missing-class fatal.
+ *
  * Runs after ORDER_PAID has issued ticket rows; PDFs are generated on demand.
  */
 final class OrderConfirmationPdfAttachments {

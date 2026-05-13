@@ -30,6 +30,23 @@ final class TicketIssuer {
    */
   public function issueForOrder(OrderInterface $order): void {
     $ticket_storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+    $order_id = (int) $order->id();
+    if ($order_id < 1) {
+      return;
+    }
+
+    $existing = $ticket_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('order_id', $order_id)
+      ->range(0, 1)
+      ->execute();
+    if (!empty($existing)) {
+      $this->loggerFactory->get('myeventlane_tickets')->info(
+        'Skipping ticket issuance for order @order_id: myeventlane_ticket rows already exist (idempotent guard).',
+        ['@order_id' => (string) $order_id, 'order_id' => $order_id]
+      );
+      return;
+    }
 
     foreach ($order->getItems() as $order_item) {
       if (!$order_item instanceof OrderItemInterface) {
