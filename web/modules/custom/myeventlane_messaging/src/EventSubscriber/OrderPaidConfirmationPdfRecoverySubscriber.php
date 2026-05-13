@@ -22,7 +22,19 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 final class OrderPaidConfirmationPdfRecoverySubscriber implements EventSubscriberInterface {
 
+  /**
+   * State API key prefix; order id is appended without separator ambiguity.
+   *
+   * @see self::recoveryStateKey()
+   */
   private const STATE_PREFIX = 'myeventlane_messaging.oc_pdf_recovery_done.';
+
+  /**
+   * Stable state key for PDF recovery completion marker for one order.
+   */
+  public static function recoveryStateKey(int $orderId): string {
+    return self::STATE_PREFIX . $orderId;
+  }
 
   public function __construct(
     private readonly OrderConfirmationQueueBuilder $orderConfirmationQueue,
@@ -56,7 +68,7 @@ final class OrderPaidConfirmationPdfRecoverySubscriber implements EventSubscribe
       return;
     }
 
-    if ($this->state->get(self::STATE_PREFIX . $orderId, FALSE)) {
+    if ($this->state->get(self::recoveryStateKey($orderId), FALSE)) {
       return;
     }
 
@@ -102,7 +114,7 @@ final class OrderPaidConfirmationPdfRecoverySubscriber implements EventSubscribe
 
     $messageId = $this->orderConfirmationQueue->queue($order, trim($mail), TRUE);
     if ($messageId) {
-      $this->state->set(self::STATE_PREFIX . $orderId, (int) time());
+      $this->state->set(self::recoveryStateKey($orderId), (int) time());
       $this->logger->info('ORDER_PAID: queued ticket PDF recovery order_confirmation resend for order @order_id message_id=@mid', [
         '@order_id' => (string) $orderId,
         '@mid' => $messageId,

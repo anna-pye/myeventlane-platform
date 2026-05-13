@@ -58,3 +58,7 @@ Paid-order **ticket row issuance** is owned by **`TicketIssuer`** on **`ORDER_PA
 Canonical order-confirmation PDF merging is documented in [issuance-pipeline.md](./issuance-pipeline.md).
 
 Wallet operational convergence (Phase 2C) is documented in [wallet-operational-convergence.md](./wallet-operational-convergence.md).
+
+## Operational observability (Phase 2D)
+
+**`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`) provides deterministic, read-only diagnostics over the same operational spine (issued tickets, view model, PDF preconditions, wallet resolver, recovery state). It does not change customer routes, PDF routes, wallet URLs, or scanner contracts. Details and forbidden patterns: [operational-observability.md](./operational-observability.md).

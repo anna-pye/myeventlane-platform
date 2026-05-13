@@ -24,6 +24,51 @@ final class TicketIssuer {
   ) {}
 
   /**
+   * Read-only count of ticket rows that issuance would create for this order.
+   *
+   * Mirrors {@see self::issueForOrder()} line-item rules excluding the
+   * idempotent early return when tickets already exist.
+   */
+  public function countExpectedIssuanceUnits(OrderInterface $order): int {
+    $total = 0;
+    foreach ($order->getItems() as $order_item) {
+      if (!$order_item instanceof OrderItemInterface) {
+        continue;
+      }
+
+      $purchased_entity = $order_item->getPurchasedEntity();
+      if (!$purchased_entity || $purchased_entity->getEntityTypeId() !== 'commerce_product_variation') {
+        continue;
+      }
+
+      if (!$this->resolveEventFromOrderItem($order_item)) {
+        continue;
+      }
+
+      $qty = (int) $order_item->getQuantity();
+      if ($qty < 1) {
+        continue;
+      }
+
+      $total += $qty;
+    }
+
+    return $total;
+  }
+
+  /**
+   * True when this line item would contribute rows in {@see self::issueForOrder()}.
+   */
+  public function isOrderItemEligibleForTicketIssuance(OrderItemInterface $order_item): bool {
+    $purchased_entity = $order_item->getPurchasedEntity();
+    if (!$purchased_entity || $purchased_entity->getEntityTypeId() !== 'commerce_product_variation') {
+      return FALSE;
+    }
+
+    return $this->resolveEventFromOrderItem($order_item) !== NULL;
+  }
+
+  /**
    * Issues tickets for a paid order.
    *
    * One order item quantity = N ticket entities.
