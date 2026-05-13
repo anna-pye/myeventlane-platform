@@ -120,6 +120,16 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertFalse($p->isProbableDuplicateReplay('', 'abc'));
   }
 
+  public function testBuildOperationDescriptorIncludesTimedEntryPolicy(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $descriptor = $this->policy()->buildOperationDescriptor($ticket);
+    $this->assertArrayHasKey('timed_entry', $descriptor);
+    $this->assertArrayHasKey('entry_window', $descriptor['timed_entry']);
+    $this->assertArrayHasKey('scanner', $descriptor['timed_entry']);
+    $this->assertSame('allowed', $descriptor['timed_entry']['scanner']['state']);
+    $this->assertTrue($descriptor['timed_entry']['scanner']['allowed_now']);
+  }
+
   public function testOfflineEligibilityDescriptor(): void {
     $ticket = $this->createTicket(Ticket::ENTITLEMENT_DRINK);
     $descriptor = $this->policy()->buildOperationDescriptor($ticket, 'offline');
@@ -185,6 +195,8 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertStringStartsWith('op_', (string) $envelope['operation_id']);
     $this->assertSame(64, strlen((string) $envelope['replay_token']));
     $this->assertSame('collect', (string) $envelope['normalized_result']);
+    $this->assertArrayHasKey('timed_entry_scanner_state', $envelope);
+    $this->assertNotSame('', (string) $envelope['timed_entry_scanner_state']);
 
     $envelope2 = $this->policy()->buildIntegrityEnvelope(
       $ticket,
@@ -198,6 +210,50 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
       hash('sha256', 'payload'),
     );
     $this->assertSame($envelope['operation_id'], $envelope2['operation_id']);
+  }
+
+  public function testIntegrityEnvelopeForwardsScanModeToOfflineEligibility(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_MERCH);
+    $payload = hash('sha256', 'mode-probe');
+    $online = $this->policy()->buildIntegrityEnvelope(
+      $ticket,
+      'collect',
+      TRUE,
+      'collected',
+      'device-a',
+      1700000000,
+      0,
+      0,
+      $payload,
+      'online',
+    );
+    $offline = $this->policy()->buildIntegrityEnvelope(
+      $ticket,
+      'collect',
+      TRUE,
+      'collected',
+      'device-a',
+      1700000000,
+      0,
+      0,
+      $payload,
+      'offline',
+    );
+    $this->assertTrue($online['offline_eligible']);
+    $this->assertTrue($offline['offline_eligible']);
+    $invalid = $this->policy()->buildIntegrityEnvelope(
+      $ticket,
+      'collect',
+      TRUE,
+      'collected',
+      'device-a',
+      1700000000,
+      0,
+      0,
+      $payload,
+      'unknown-mode',
+    );
+    $this->assertFalse($invalid['offline_eligible']);
   }
 
   public function testInterpretDenialAdmissionReplay(): void {
