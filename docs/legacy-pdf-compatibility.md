@@ -34,10 +34,32 @@ These paths are **not** allowed to become authoritative for operational entitlem
 
 **Inward-only delegation**
 
-- **Allowed:** `Legacy source → compatibility adapter → canonical normalization / TicketPdfGenerator → artifact`
+- **Allowed:** `Legacy source → compatibility adapter → shared render preparation (Dompdf pipeline, event metadata helper) → artifact`
+- **Allowed:** `Issued ticket → UniversalTicketViewModelBuilder → TicketPdfGenerator (canonical methods) → same Dompdf pipeline → artifact`
 - **Forbidden:** `Canonical ticket PDF → compatibility adapter → artifact` (see below).
 
-Compatibility code may **call into** shared building blocks used by canonical paths (e.g. shared render helpers, `TicketPdfGenerator` internal pipeline where contract-safe), but must not **redefine** operational semantics or duplicate QR signing outside `TicketQrPayload` / canonical ticket flows.
+Compatibility code may **call into** shared building blocks used by canonical paths (e.g. `TicketPdfAttachmentRenderer`, `TicketPdfEventMetadataHelper`), but must not **redefine** operational semantics or duplicate QR signing outside `TicketQrPayload` / canonical ticket flows.
+
+---
+
+## 3a. Compatibility adapter services (Commit 5)
+
+Explicit adapters quarantine legacy entry points. They **normalize** non-ticket inputs and **delegate inward** to shared helpers; they do **not** own rendering rules, Dompdf, or scanner metadata.
+
+| Service ID | Class | Role |
+| --- | --- | --- |
+| `myeventlane_tickets.pdf_compatibility.order_item` | `OrderItemPdfCompatibilityAdapter` | Commerce order-item PDFs; resolves event (target event → variation `field_event` → **product** `field_event` when present, matching issuance-style resolution for catalog-backed items). |
+| `myeventlane_tickets.pdf_compatibility.rsvp` | `RsvpPdfCompatibilityAdapter` | RSVP virtual ticket PDFs from submission entity or array shapes. |
+| `myeventlane_tickets.pdf_compatibility.event_attendee` | `EventAttendeePdfCompatibilityAdapter` | `event_attendee` fallback PDFs when order lines are missing. |
+
+Shared inward-only helpers (not legacy adapters):
+
+| Service ID | Class | Role |
+| --- | --- | --- |
+| `myeventlane_tickets.ticket_pdf_attachment_renderer` | `TicketPdfAttachmentRenderer` | Single Dompdf + `RendererInterface::renderInIsolation()` pipeline for all ticket PDF bytes. |
+| `myeventlane_tickets.ticket_pdf_event_metadata_helper` | `TicketPdfEventMetadataHelper` | Legacy-frozen event title / start / **field_location-only** location line (no `field_venue_name` shortcut) for compatibility PDFs and for ticket fallback when the view model builder is absent. |
+
+**Prohibited dependency direction:** compatibility adapter classes must not be referenced from `UniversalTicketViewModelBuilder` or from canonical branches inside `TicketPdfTemplateBuilder` / `TicketPdfGenerator::buildPdfFromCanonicalModel()`. `TicketPdfGenerator` remains the customer-facing façade: it wires adapters for **legacy public methods only**; issued-ticket paths stay on the view model + shared renderer.
 
 ---
 
@@ -73,7 +95,7 @@ The following are **explicitly disallowed**. They must not appear in new code an
 
 ## Review checklist (Commit 5)
 
-- [ ] No canonical ticket PDF path imports or calls legacy-only adapters.
-- [ ] Legacy paths only narrow, adapt, or delegate inward; they do not assert entitlement ownership.
-- [ ] Tests or snapshots cover frozen contracts where automated (routes, MIME, filenames, representative QR strings as approved).
-- [ ] Documentation updated if any **allowed** internal convergence changes contributor expectations.
+- [x] No canonical ticket PDF path imports or calls legacy-only adapters.
+- [x] Legacy paths only narrow, adapt, or delegate inward; they do not assert entitlement ownership.
+- [x] Tests or snapshots cover frozen contracts where automated (routes, MIME, filenames, representative QR strings as approved).
+- [x] Documentation updated if any **allowed** internal convergence changes contributor expectations.

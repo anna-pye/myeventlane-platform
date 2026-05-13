@@ -22,12 +22,21 @@ PDF rendering for issued tickets now derives operational entitlement data from t
 
 - **`ticket-pdf.html.twig`** — the template conditionally renders canonical operational data when `is_canonical` is true: entitlement labels for non-admission types, operational badges, fulfilment metadata, expiry notices, and multi-use redemption counts. The existing PDF layout, styling, QR rendering, and branding are preserved.
 
+### Phase 2B Commit 5 — legacy PDF adapter isolation
+
+Legacy PDF entry points are **quarantined** in compatibility adapters (`OrderItemPdfCompatibilityAdapter`, `RsvpPdfCompatibilityAdapter`, `EventAttendeePdfCompatibilityAdapter`) registered in `myeventlane_tickets.services.yml`. They normalize legacy inputs and delegate **inward** to:
+
+- **`TicketPdfAttachmentRenderer`** — one Dompdf pipeline for every ticket PDF attachment (canonical and legacy).
+- **`TicketPdfEventMetadataHelper`** — shared legacy-frozen event title / start / postal line (field_location only) for non–view-model paths.
+
+**Canonical authority is unchanged:** `UniversalTicketViewModelBuilder` is not allowed to depend on compatibility adapters. Issued-ticket PDF methods on `TicketPdfGenerator` use the view model + shared renderer only; the façade delegates to adapters **only** for `getPdfContentForOrderItem()`, `getPdfContentForRsvp()`, and `getPdfContentForEventAttendee()` / their Response wrappers.
+
 ### What was not changed
 
 - PDF routes remain unchanged (`/ticket/pdf/{order_item_id}` and `/ticket/{ticket_code}/pdf`).
 - QR payload structure and generation are untouched — the view model's QR output is the same as the direct `TicketQrPayload` call.
-- Legacy order-item PDF path (`generatePdfForOrderItem`, `getPdfContentForOrderItem`) remains for backward compatibility.
-- Event attendee and RSVP PDF paths remain unchanged.
+- Legacy order-item PDF path (`generatePdfForOrderItem`, `getPdfContentForOrderItem`) remains for backward compatibility (implementation moved into `OrderItemPdfCompatibilityAdapter` without changing MIME, disposition, or filename patterns).
+- Event attendee and RSVP PDF paths remain unchanged at the API surface (logic moved into adapters).
 - **Order confirmation PDFs** use **`MessagingManager`** → **`OrderConfirmationAttachmentResolver`** → **`TicketPdfGenerator::getPdfContentForTicket()`** for issued tickets. The duplicate **`OrderConfirmationPdfAttachments`** helper was removed from the codebase and container.
 - PDF visual design is not redesigned; the template only adds conditional operational metadata blocks.
 - Ticket download controller, access checks, and expiry logic are unchanged.

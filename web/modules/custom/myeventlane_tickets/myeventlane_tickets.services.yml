@@ -3,9 +3,40 @@ services:
     class: Drupal\myeventlane_tickets\Ticket\TicketCodeGenerator
     arguments: ['@entity_type.manager', '@uuid']
 
+  myeventlane_tickets.ticket_pdf_event_metadata_helper:
+    class: Drupal\myeventlane_tickets\Service\TicketPdfEventMetadataHelper
+
+  myeventlane_tickets.ticket_pdf_attachment_renderer:
+    class: Drupal\myeventlane_tickets\Ticket\TicketPdfAttachmentRenderer
+    arguments: ['@renderer']
+
+  myeventlane_tickets.pdf_compatibility.order_item:
+    class: Drupal\myeventlane_tickets\Pdf\Compatibility\OrderItemPdfCompatibilityAdapter
+    arguments:
+      - '@myeventlane_tickets.ticket_pdf_event_metadata_helper'
+      - '@myeventlane_tickets.ticket_pdf_attachment_renderer'
+
+  myeventlane_tickets.pdf_compatibility.rsvp:
+    class: Drupal\myeventlane_tickets\Pdf\Compatibility\RsvpPdfCompatibilityAdapter
+    arguments:
+      - '@myeventlane_tickets.ticket_pdf_event_metadata_helper'
+      - '@myeventlane_tickets.ticket_pdf_attachment_renderer'
+
+  myeventlane_tickets.pdf_compatibility.event_attendee:
+    class: Drupal\myeventlane_tickets\Pdf\Compatibility\EventAttendeePdfCompatibilityAdapter
+    arguments:
+      - '@myeventlane_tickets.ticket_pdf_event_metadata_helper'
+      - '@myeventlane_tickets.ticket_pdf_attachment_renderer'
+
   myeventlane_tickets.ticket_pdf_generator:
     class: Drupal\myeventlane_tickets\Ticket\TicketPdfGenerator
-    arguments: ['@renderer', '@myeventlane_tickets.universal_ticket_view_model_builder']
+    arguments:
+      - '@myeventlane_tickets.ticket_pdf_attachment_renderer'
+      - '@myeventlane_tickets.ticket_pdf_event_metadata_helper'
+      - '@myeventlane_tickets.pdf_compatibility.order_item'
+      - '@myeventlane_tickets.pdf_compatibility.rsvp'
+      - '@myeventlane_tickets.pdf_compatibility.event_attendee'
+      - '@myeventlane_tickets.universal_ticket_view_model_builder'
 
   # Alias for shorter service name.
   myeventlane_tickets.pdf_generator:

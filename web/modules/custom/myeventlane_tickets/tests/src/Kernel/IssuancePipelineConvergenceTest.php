@@ -238,6 +238,23 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
   }
 
   /**
+   * Legacy Commerce order-item PDF path still produces attachment-shaped output.
+   */
+  public function testLegacyOrderItemPdfStillRenders(): void {
+    $order = $this->loadOrder();
+    $items = array_values($order->getItems());
+    $this->assertNotEmpty($items);
+    $item = $items[0];
+
+    $pdfGenerator = $this->container->get('myeventlane_tickets.ticket_pdf_generator');
+    $pdf = $pdfGenerator->getPdfContentForOrderItem($item);
+
+    $this->assertSame('application/pdf', $pdf['mime'] ?? '');
+    $this->assertSame('tickets-order-item-' . $item->id() . '.pdf', $pdf['filename'] ?? '');
+    $this->assertNotEmpty($pdf['content'] ?? '');
+  }
+
+  /**
    * PDF bytes for attachments derive from issued ticket entities (not order items).
    */
   public function testPdfContentDerivesFromIssuedTicketEntity(): void {
