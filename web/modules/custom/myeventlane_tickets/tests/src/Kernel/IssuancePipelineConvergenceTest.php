@@ -16,6 +16,7 @@ use Drupal\commerce_store\Entity\Store;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -23,6 +24,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
@@ -258,6 +260,54 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
       $this->assertNotEmpty($pdf['filename'] ?? '');
       $this->assertSame('application/pdf', $pdf['mime'] ?? '');
     }
+  }
+
+  /**
+   * Order confirmation merge path: resolver appends one PDF per ticket entity.
+   */
+  public function testOrderConfirmationAttachmentResolverMergesTicketPdfs(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $this->assertCount(2, $tickets);
+    foreach ($tickets as $ticket) {
+      $ticket->set('holder_name', 'Alex Resolver');
+      $ticket->set('holder_email', 'alex-resolver@example.test');
+      $ticket->set('status', Ticket::STATUS_ASSIGNED);
+      $ticket->save();
+    }
+
+    $resolver = new OrderConfirmationAttachmentResolver(
+      $this->container->get('entity_type.manager'),
+      new NullLogger(),
+      $this->container->get('myeventlane_tickets.ticket_pdf_generator'),
+    );
+
+    $queued = [
+      [
+        'filename' => 'fixture.ics',
+        'content' => 'BEGIN:VCALENDAR',
+        'mime' => 'text/calendar',
+      ],
+    ];
+
+    $merged = $resolver->mergeOrderConfirmationAttachments('order_confirmation', [
+      'order_id' => (int) $order->id(),
+    ], $queued);
+
+    $this->assertGreaterThanOrEqual(3, count($merged));
+    $this->assertSame('fixture.ics', $merged[0]['filename']);
+
+    $pdf_count = 0;
+    foreach ($merged as $attachment) {
+      if (($attachment['mime'] ?? '') === 'application/pdf') {
+        $pdf_count++;
+        $this->assertNotEmpty($attachment['content'] ?? '');
+        $this->assertNotEmpty($attachment['filename'] ?? '');
+      }
+    }
+    $this->assertSame(2, $pdf_count);
   }
 
   private function issuer(): TicketIssuer {

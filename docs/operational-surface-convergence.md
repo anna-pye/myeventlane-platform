@@ -28,7 +28,7 @@ PDF rendering for issued tickets now derives operational entitlement data from t
 - QR payload structure and generation are untouched — the view model's QR output is the same as the direct `TicketQrPayload` call.
 - Legacy order-item PDF path (`generatePdfForOrderItem`, `getPdfContentForOrderItem`) remains for backward compatibility.
 - Event attendee and RSVP PDF paths remain unchanged.
-- **Order confirmation PDFs** use **`MessagingManager`** → **`OrderConfirmationAttachmentResolver`** → **`TicketPdfGenerator::getPdfContentForTicket()`** for issued tickets. The legacy class **`OrderConfirmationPdfAttachments`** is deprecated and no longer registered as a service; do not add new references to it.
+- **Order confirmation PDFs** use **`MessagingManager`** → **`OrderConfirmationAttachmentResolver`** → **`TicketPdfGenerator::getPdfContentForTicket()`** for issued tickets. The duplicate **`OrderConfirmationPdfAttachments`** helper was removed from the codebase and container.
 - PDF visual design is not redesigned; the template only adds conditional operational metadata blocks.
 - Ticket download controller, access checks, and expiry logic are unchanged.
 

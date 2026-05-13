@@ -1,6 +1,6 @@
 # Operational issuance pipeline
 
-This document describes the **canonical operational issuance lifecycle** for paid Commerce ticket orders, how it differs from **attendee/roster** handling, and what was removed or deprecated during issuance pipeline convergence (Phase 2B, Commit 4).
+This document describes the **canonical operational issuance lifecycle** for paid Commerce ticket orders, how it differs from **attendee/roster** handling, and what was removed during issuance pipeline convergence (Phase 2B, Commit 4).
 
 ## Canonical lifecycle
 
@@ -61,7 +61,7 @@ A vestigial **`OrderPaidSubscriber`** under **`myeventlane_commerce`** (logging 
 
 **Canonical path:** **`MessagingManager`** → **`OrderConfirmationAttachmentResolver`** → **`TicketPdfGenerator`** → issued **`myeventlane_ticket`** entities.
 
-**`OrderConfirmationPdfAttachments`** (tickets module) was an alternate merge helper that was **never referenced** outside its service definition. For safety (decorations, unknown callers), the **class file is retained** but marked **`@deprecated`**, and its **service registration was removed** from `myeventlane_tickets.services.yml`. A later bounded commit may delete the class once references are confirmed absent.
+**`OrderConfirmationPdfAttachments`** (tickets module) was an alternate merge helper that was **never referenced** outside its service definition. The **class and service registration were removed** after confirming no contrib, decoration, or cross-module references to `myeventlane_tickets.order_confirmation_pdf_attachments`.
 
 ## Idempotency (ORDER_PAID replay)
 
@@ -78,6 +78,7 @@ Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`).
 - Issuance creates one ticket entity per unit quantity.
 - **Regression:** calling **`issueForOrder()`** twice on the same order does **not** create additional ticket rows.
 - **`getPdfContentForTicket()`** succeeds for issued tickets after holder fields are set (PDF continuity from ticket entities).
+- **`OrderConfirmationAttachmentResolver::mergeOrderConfirmationAttachments()`** appends one PDF per issued ticket for `order_confirmation` while preserving queued non-PDF attachments (same behavior as production **`MessagingManager`** wiring).
 
 ## Manual verification checklist
 
