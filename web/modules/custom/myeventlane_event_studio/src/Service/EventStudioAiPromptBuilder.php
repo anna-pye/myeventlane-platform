@@ -164,6 +164,9 @@ USR;
       'options' => [
         'temperature' => 0.35,
         'max_tokens' => (int) $field['max_tokens'],
+        // Write with AI is platform-governed listing help; vendor ai_enabled is
+        // for escalation / vendor-portal AI opt-in, not this surface.
+        'enforce_vendor_ai_opt_in' => FALSE,
       ],
       'scope_id' => 'event_studio:ai_assist:' . $event->id() . ':' . $field_name,
       'vendor_id' => $this->vendorId($event),

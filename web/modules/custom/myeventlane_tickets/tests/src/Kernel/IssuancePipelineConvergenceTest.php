@@ -362,6 +362,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $payload = json_decode((string) file_get_contents($path), TRUE);
     $this->assertIsArray($payload);
     $this->assertSame($expected, $payload['qr_payload']);
+    $this->assertArrayHasKey('capabilities', $payload);
+    $this->assertSame('admit', $payload['capabilities']['scanner_mode']);
   }
 
   /**
@@ -421,11 +423,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $payload = json_decode((string) file_get_contents($path), TRUE);
     $this->assertIsArray($payload);
     $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
+    $this->assertSame('collect', $payload['capabilities']['scanner_mode']);
   }
-
-  /**
-   * Parking entitlements keep structured mel:v1 JSON QR contracts in wallet scaffolds.
-   */
   public function testParkingEntitlementWalletScaffoldPreservesStructuredQr(): void {
     $order = $this->loadOrder();
     $this->issuer()->issueForOrder($order);
@@ -441,11 +440,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $payload = json_decode((string) file_get_contents($path), TRUE);
     $this->assertIsArray($payload);
     $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
+    $this->assertSame('validate', $payload['capabilities']['scanner_mode']);
   }
-
-  /**
-   * Multi-use entitlements surface structured QR metadata without duplicate shaping.
-   */
   public function testMultiUseEntitlementWalletScaffoldUsesStructuredQr(): void {
     $order = $this->loadOrder();
     $this->issuer()->issueForOrder($order);
@@ -462,6 +458,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $payload = json_decode((string) file_get_contents($path), TRUE);
     $this->assertIsArray($payload);
     $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
+    $this->assertSame('redeem', $payload['capabilities']['scanner_mode']);
   }
 
   /**

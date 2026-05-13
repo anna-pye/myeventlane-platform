@@ -8,13 +8,14 @@ This service is the **single read-only diagnostics layer** for:
 
 - issuance visibility (counts, alignment, orphan links, idempotent guard signals)
 - artifact readiness (canonical PDF preconditions, wallet route scaffolds, QR payload operability, attachment continuity)
+- **venue operation policy** (`artifacts.venue_operation_policy` — gate semantics, offline eligibility scaffold, replay/conflict summaries from `VenueOperationPolicyManager`, keyed by normalized entitlement type)
 - recovery visibility (state marker, late-tickets-after-confirmation heuristic, mismatch flags)
 - compatibility signals (canonical vs legacy surfaces, mixed paths)
 - guest and purchaser continuity checks on stored entities (no live session required)
 
 It **observes** existing operational state only. It does not issue tickets, generate PDFs or wallet bytes, alter recovery state, enqueue work, or expose signing secrets.
 
-**Services consulted (read-only):** `TicketIssuer` (expected counts and line eligibility), `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()` (same rules as `getPdfContentForTicket()` without rendering bytes), `UniversalTicketViewModelBuilder::build()` (structural operability, no model payload emitted), `TicketQrPayload::buildForTicket()` (operability only; output not returned), `TicketCapabilityManager::getEntitlementType()`, optional `WalletTicketResolver`, optional message sink with `findSentOrderConfirmationsForOrder()` (same shape as `MessageStorage`). Attachment continuity follows **`OrderConfirmationAttachmentResolver`** merge preconditions (holder fields per ticket) without invoking merge.
+**Services consulted (read-only):** `TicketIssuer` (expected counts and line eligibility), `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()` (same rules as `getPdfContentForTicket()` without rendering bytes), `UniversalTicketViewModelBuilder::build()` (structural operability, no model payload emitted), `TicketQrPayload::buildForTicket()` (operability only; output not returned), `TicketCapabilityManager::getEntitlementType()`, **`EntitlementCapabilityRegistry`** (machine-safe capability summaries in `artifacts.entitlement_capability_policy`), **`VenueOperationPolicyManager`** (machine-safe venue gate descriptors and replay/conflict scaffolding surfaced under `artifacts.venue_operation_policy`), optional `WalletTicketResolver`, optional message sink with `findSentOrderConfirmationsForOrder()` (same shape as `MessageStorage`). Attachment continuity follows **`OrderConfirmationAttachmentResolver`** merge preconditions (holder fields per ticket) without invoking merge.
 
 ## Read-only guarantees
 
@@ -30,7 +31,7 @@ Normalized `inspectOrder(OrderInterface $order)` returns:
 | Key | Role |
 | --- | --- |
 | `issuance` | Expected vs issued counts, alignment status, idempotent replay skip signal, partial-issuance guard anomaly, orphan ticket / orphan eligible order item counts |
-| `artifacts` | Canonical PDF readiness (holder preconditions via `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()`), wallet route scaffold (order item link present), QR operability (`TicketQrPayload`), attachment continuity (holder coverage for merge rules) |
+| `artifacts` | Canonical PDF readiness (holder preconditions via `TicketPdfGenerator::canonicalPdfPreconditionsSatisfied()`), wallet route scaffold (order item link present), QR operability (`TicketQrPayload`), attachment continuity (holder coverage for merge rules), **`entitlement_capability_policy`** (deduplicated registry summaries per normalized entitlement type), **`venue_operation_policy`** (deduplicated venue gate semantics + descriptors from `VenueOperationPolicyManager`) |
 | `recovery` | `OrderPaidConfirmationPdfRecoverySubscriber` state key via `recoveryStateKey()`, optional message sink for sent confirmation timestamps, mismatch when recovery appears required but completion state missing |
 | `compatibility` | Order-item PDF legacy surface availability, wallet resolution surface (`WalletTicketResolver`), ticket PDF path from `UniversalTicketViewModelBuilder` probe |
 | `guest_continuity` | Purchaser UID alignment with order customer, guest checkout pattern checks (no PII in output) |
@@ -63,7 +64,7 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 ## Anti-patterns (forbidden)
 
 - Using diagnostics to **issue tickets**, **generate PDFs**, **build wallet passes**, or **mutate recovery state**
-- Duplicating QR signing, payload shaping, or entitlement normalization outside **`TicketQrPayload`**, **`UniversalTicketViewModelBuilder`**, **`TicketCapabilityManager`**, and **`TicketIssuer`**
+- Duplicating QR signing, payload shaping, entitlement normalization, **capability policy**, or **venue gate / replay scaffolding** outside **`TicketQrPayload`**, **`UniversalTicketViewModelBuilder`**, **`TicketCapabilityManager`**, **`TicketIssuer`**, **`EntitlementCapabilityRegistry`**, and **`VenueOperationPolicyManager`** (use the registry for immutable type maps; use the venue policy manager for gate execution metadata and staff-side integrity envelopes)
 - Treating compatibility adapters (`OrderItemPdfCompatibilityAdapter`, etc.) as operational authorities for entitlement truth
 - Embedding UI strings, translated labels, or marketing copy inside diagnostics payloads
 - Exposing purchaser email, entitlement secrets, raw HMAC material, or full QR payload strings through diagnostics APIs
@@ -72,4 +73,6 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 ## Related documentation
 
 - [issuance-pipeline.md](./issuance-pipeline.md) — issuance order and attachment merge
+- [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md) — venue gate policy, offline scaffolding, replay metadata
+- [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — capability registry and scanner delegation
 - [operational-surface-convergence.md](./operational-surface-convergence.md) — wallet and PDF convergence context

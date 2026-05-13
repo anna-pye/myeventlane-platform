@@ -150,6 +150,8 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertSame('myeventlane_wallet.google', $model['actions']['wallet']['google']['route']);
     $this->assertTrue($model['scanner']['can_scan']);
     $this->assertSame('ready', $model['scanner']['status']);
+    $this->assertSame('admit', $model['capabilities']['scanner_mode']);
+    $this->assertSame('none', $model['fulfilment']['mode']);
   }
 
   /**
@@ -184,11 +186,9 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertSame('drink-pass', $model['fulfilment']['metadata']['sku']);
     $this->assertTrue($model['scanner']['can_scan']);
     $this->assertSame('ready', $model['scanner']['status']);
+    $this->assertSame('redeem', $model['capabilities']['scanner_mode']);
+    $this->assertSame('redeem', $model['fulfilment']['mode']);
   }
-
-  /**
-   * Expiry and redemption limits are reflected in scanner status.
-   */
   public function testBuildsUnavailableScannerStatus(): void {
     $expired = $this->createTicket([
       'ticket_code' => 'MEL-EXPIRED-VIEW',

@@ -81,6 +81,7 @@ final class TicketPdfTemplateBuilder {
     $variables['expiry'] = $model['expiry'];
     $variables['fulfilment'] = $model['fulfilment'];
     $variables['badges'] = $model['badges'];
+    $variables['capabilities'] = $model['capabilities'] ?? [];
     $variables['vendor_display'] = $model['vendor'];
     $variables['is_canonical'] = TRUE;
   }

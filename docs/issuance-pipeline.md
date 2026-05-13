@@ -16,6 +16,8 @@ Intended flow:
 6. **Wallet** — **`myeventlane_wallet`** routes remain **`/wallet/apple/{order_item_id}`** and **`/wallet/google/{order_item_id}`** for compatibility. Internally, wallet generation **resolves issued `myeventlane_ticket` rows** for that order item, enforces the same access semantics as ticket PDFs, and builds Apple scaffold bytes from **`UniversalTicketViewModelBuilder`** (which uses **`TicketQrPayload`**). When no issued ticket exists, **legacy placeholder** behaviour is preserved (no issuance from wallet). See [wallet-operational-convergence.md](./wallet-operational-convergence.md).
 7. **Notifications** — Order confirmation PDFs at send time are merged by **`MessagingManager`** → **`OrderConfirmationAttachmentResolver`** → **`TicketPdfGenerator::getPdfContentForTicket()`** per ticket row for the order. Ticket-ready email uses **`TicketMailer`**, which attaches PDFs from **`TicketPdfGenerator`** for assigned tickets.
 
+Venue gate execution for scans continues to flow through **`mel_scanner.operation_manager`** (`ScannerOperationManager`), composed with **`EntitlementCapabilityRegistry`** and **`VenueOperationPolicyManager`** for policy and staff-side integrity metadata (see [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)); issuance steps above are unchanged.
+
 ```mermaid
 flowchart LR
   OrderPaid[ORDER_PAID]
@@ -72,6 +74,10 @@ A vestigial **`OrderPaidSubscriber`** under **`myeventlane_commerce`** (logging 
 ## Operational observability (Phase 2D)
 
 Read-only integrity diagnostics for paid orders are centralized in **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`). It inspects issuance alignment, artifact readiness, recovery markers, compatibility surfaces, and guest/purchaser continuity **without** generating PDFs, wallet artifacts, or QR output for persistence. See [operational-observability.md](./operational-observability.md).
+
+## Entitlement capability convergence (Phase 2E)
+
+Operational semantics for the seven ticket-backed entitlement types (admission, merch, parking, drink, food, VIP, add-on) are normalized in **`EntitlementCapabilityRegistry`** (`myeventlane_tickets.entitlement_capability_registry`). **`TicketCapabilityManager`** delegates type normalization, redeemability, and fulfilment-workflow flags into that registry; **`ScannerOperationManager`** routes redemption-log actions from registry `scanner_mode`; **`UniversalTicketViewModelBuilder`** surfaces **`capabilities`** and **`fulfilment.mode`** for PDFs, wallet scaffolds, and diagnostics. See [entitlement-capability-convergence.md](./entitlement-capability-convergence.md).
 
 ## Service locator cleanup (RSVP)
 

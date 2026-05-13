@@ -128,6 +128,7 @@ final class TicketPdfViewModelConvergenceTest extends KernelTestBase {
     $this->assertNotEmpty($variables['qr_data_uri']);
     $this->assertFalse($variables['expiry']['expired']);
     $this->assertSame('pending', $variables['fulfilment']['status']);
+    $this->assertSame('admit', $variables['capabilities']['scanner_mode']);
     $this->assertNotEmpty($variables['badges']);
 
     $this->assertSame('MEL-PDF-ADM-001', $variables['code']);
@@ -159,6 +160,8 @@ final class TicketPdfViewModelConvergenceTest extends KernelTestBase {
     $this->assertSame('Ready', $variables['fulfilment']['status_label']);
     $this->assertSame('Merch tent, Gate B', $variables['fulfilment']['collect_location']);
     $this->assertSame('tshirt-xl', $variables['fulfilment']['metadata']['sku']);
+    $this->assertSame('collect', $variables['capabilities']['scanner_mode']);
+    $this->assertSame('collect', $variables['fulfilment']['mode']);
   }
 
   /**
@@ -179,6 +182,7 @@ final class TicketPdfViewModelConvergenceTest extends KernelTestBase {
     $this->assertSame('parking', $variables['entitlement_type']);
     $this->assertSame('Parking', $variables['entitlement_label']);
     $this->assertSame('ABC-123', $variables['fulfilment']['vehicle_registration']);
+    $this->assertSame('validate', $variables['capabilities']['scanner_mode']);
   }
 
   /**

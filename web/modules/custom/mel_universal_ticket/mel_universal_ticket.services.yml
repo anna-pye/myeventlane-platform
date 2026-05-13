@@ -3,6 +3,7 @@ services:
     class: Drupal\mel_universal_ticket\Service\UniversalTicketCapabilityManager
     arguments:
       - '@datetime.time'
+      - '@myeventlane_tickets.entitlement_capability_registry'
 
   logger.channel.mel_universal_ticket:
     class: Drupal\Core\Logger\LoggerChannel

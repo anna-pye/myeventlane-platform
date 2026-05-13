@@ -21,6 +21,7 @@ final class UniversalTicketViewModelBuilder {
     private readonly TicketQrPayload $ticketQrPayload,
     private readonly QrCodeGenerator $qrCodeGenerator,
     private readonly TicketCapabilityManager $capabilityManager,
+    private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly RouteProviderInterface $routeProvider,
   ) {}
 
@@ -33,6 +34,7 @@ final class UniversalTicketViewModelBuilder {
   public function build(Ticket $ticket): array {
     $ticket_code = $this->readString($ticket, 'ticket_code');
     $entitlement_type = $this->capabilityManager->getEntitlementType($ticket);
+    $capabilities = $this->entitlementCapabilityRegistry->getCapabilityMap($entitlement_type);
     $status = $this->readString($ticket, 'status', Ticket::STATUS_ISSUED_UNASSIGNED);
     $fulfilment_status = $ticket->getFulfilmentStatus();
     $qr_payload = $this->ticketQrPayload->buildForTicket($ticket);
@@ -41,7 +43,7 @@ final class UniversalTicketViewModelBuilder {
     $remaining_redemptions = $this->capabilityManager->getRemainingRedemptions($ticket);
     $is_expired = $this->capabilityManager->isExpired($ticket);
     $can_scan = $this->capabilityManager->canBeScanned($ticket);
-    $scanner_status = $this->scannerStatus($ticket, $can_scan, $is_expired, $fulfilment_status);
+    $scanner_status = $this->scannerStatus($ticket, $entitlement_type, $can_scan, $is_expired, $fulfilment_status);
 
     return [
       'ticket' => [
@@ -73,11 +75,13 @@ final class UniversalTicketViewModelBuilder {
       'fulfilment' => [
         'status' => $fulfilment_status,
         'status_label' => $this->fulfilmentLabel($fulfilment_status),
+        'mode' => (string) ($capabilities['fulfilment_mode'] ?? 'none'),
         'collect_location' => $this->readString($ticket, 'collect_location'),
         'collect_window' => $this->buildCollectWindow($ticket),
         'vehicle_registration' => $this->readString($ticket, 'vehicle_registration'),
         'metadata' => $this->readMap($ticket, 'metadata_json'),
       ],
+      'capabilities' => $capabilities,
       'vendor' => $this->buildVendor($ticket),
       'badges' => $this->buildBadges($entitlement_type, $status, $fulfilment_status, $is_expired),
       'actions' => [
@@ -308,7 +312,7 @@ final class UniversalTicketViewModelBuilder {
   /**
    * Determines the scanner status token.
    */
-  private function scannerStatus(Ticket $ticket, bool $can_scan, bool $is_expired, string $fulfilment_status): string {
+  private function scannerStatus(Ticket $ticket, string $entitlement_type, bool $can_scan, bool $is_expired, string $fulfilment_status): string {
     $status = $this->readString($ticket, 'status', Ticket::STATUS_ISSUED_UNASSIGNED);
     if ($status === Ticket::STATUS_VOID) {
       return 'void';
@@ -319,7 +323,7 @@ final class UniversalTicketViewModelBuilder {
     if ($is_expired) {
       return 'expired';
     }
-    if ($this->capabilityManager->isTicket($ticket) && $status === Ticket::STATUS_CHECKED_IN) {
+    if ($this->entitlementCapabilityRegistry->isAdmissionEntitlementType($entitlement_type) && $status === Ticket::STATUS_CHECKED_IN) {
       return 'checked_in';
     }
     if (!$can_scan && $this->capabilityManager->getRemainingRedemptions($ticket) === 0) {

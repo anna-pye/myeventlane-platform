@@ -36,6 +36,8 @@ final class OperationalIntegrityInspector {
     private readonly TicketPdfGenerator $ticketPdfGenerator,
     private readonly TicketQrPayload $ticketQrPayload,
     private readonly TicketCapabilityManager $ticketCapabilityManager,
+    private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
+    private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
     private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
@@ -52,6 +54,10 @@ final class OperationalIntegrityInspector {
    *   compatibility: array<string, mixed>,
    *   guest_continuity: array<string, mixed>
    * }
+   *
+   * Artifacts include `venue_operation_policy` (machine-only venue gate
+   * diagnostics derived from EntitlementCapabilityRegistry and
+   * VenueOperationPolicyManager).
    */
   public function inspectOrder(OrderInterface $order): array {
     $orderId = (int) $order->id();
@@ -115,6 +121,8 @@ final class OperationalIntegrityInspector {
         'wallet_route_scaffold' => 'missing',
         'qr_payload_operational' => 'missing',
         'attachment_continuity' => 'missing',
+        'entitlement_capability_policy' => [],
+        'venue_operation_policy' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -190,6 +198,8 @@ final class OperationalIntegrityInspector {
         'wallet_route_scaffold' => 'missing',
         'qr_payload_operational' => 'missing',
         'attachment_continuity' => 'missing',
+        'entitlement_capability_policy' => [],
+        'venue_operation_policy' => [],
       ];
     }
 
@@ -201,8 +211,10 @@ final class OperationalIntegrityInspector {
     $qrInvalid = 0;
     $holderReady = 0;
 
+    $capability_policy = $this->buildEntitlementCapabilityPolicyDigest($tickets);
+    $venue_policy = $this->buildVenueOperationPolicyDigest($tickets);
+
     foreach ($tickets as $ticket) {
-      $this->ticketCapabilityManager->getEntitlementType($ticket);
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
         $pdfReady++;
         $holderReady++;
@@ -233,7 +245,60 @@ final class OperationalIntegrityInspector {
       'wallet_route_scaffold' => $this->aggregateReadiness($walletReady, $walletPending, $total),
       'qr_payload_operational' => $this->aggregateReadiness($qrValid, $qrInvalid, $total),
       'attachment_continuity' => $this->attachmentContinuityStatus($holderReady, $total),
+      'entitlement_capability_policy' => $capability_policy,
+      'venue_operation_policy' => $venue_policy,
     ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildVenueOperationPolicyDigest(array $tickets): array {
+    $digest = [];
+    foreach ($tickets as $ticket) {
+      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
+      if (isset($digest[$type])) {
+        continue;
+      }
+      $descriptor = $this->venueOperationPolicyManager->buildOperationDescriptor($ticket, 'online');
+      $digest[$type] = [
+        'gate_semantics' => $this->venueOperationPolicyManager->describeEntitlementGateSemantics($type),
+        'descriptor' => $descriptor,
+        'offline_eligible' => (bool) ($descriptor['offline_eligible'] ?? FALSE),
+        'replay_state' => !empty($descriptor['replay_protected']) ? 'protected' : 'unknown',
+        'conflict_policy' => (string) ($descriptor['conflict_policy'] ?? ''),
+        'requires_online_validation' => (bool) ($descriptor['requires_online_validation'] ?? FALSE),
+      ];
+    }
+    return $digest;
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   *   Machine-only capability diagnostics keyed by normalized entitlement type.
+   */
+  private function buildEntitlementCapabilityPolicyDigest(array $tickets): array {
+    $digest = [];
+    foreach ($tickets as $ticket) {
+      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
+      if (isset($digest[$type])) {
+        continue;
+      }
+      $map = $this->entitlementCapabilityRegistry->getCapabilityMap($type);
+      $digest[$type] = [
+        'scanner_mode' => $map['scanner_mode'],
+        'fulfilment_mode' => $map['fulfilment_mode'],
+        'redeemable' => $map['redeemable'],
+        'requires_fulfilment' => $map['requires_fulfilment'],
+        'multi_use' => $map['multi_use'],
+        'scan_required' => $map['scan_required'],
+      ];
+    }
+    return $digest;
   }
 
   private function walletScaffoldPossible(Ticket $ticket): bool {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_tickets\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_tickets\Entity\RedemptionLog;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\Entity\Node;
@@ -257,6 +258,44 @@ final class TicketCheckinServiceTest extends KernelTestBase {
 
     $reloaded = Ticket::load($ticket->id());
     $this->assertSame(0, (int) $reloaded->get('redemption_count')->value);
+  }
+
+  /**
+   * mel_redemption_log rows must carry venue integrity metadata (staff-side).
+   */
+  public function testRedemptionAuditStoresVenueIntegrityMetadata(): void {
+    $this->installEntitySchema('mel_redemption_log');
+
+    $ticket = $this->createTicket('MEL-REDEMPTION-META-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
+      'redemption_limit' => 2,
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-meta', 'online');
+
+    $this->assertTrue($result['ok']);
+
+    $storage = $this->container->get('entity_type.manager')->getStorage('mel_redemption_log');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('ticket_id', (int) $ticket->id())
+      ->sort('id', 'DESC')
+      ->range(0, 1)
+      ->execute();
+    $this->assertNotEmpty($ids);
+    $log = $storage->load((int) reset($ids));
+    $this->assertInstanceOf(RedemptionLog::class, $log);
+    $item = $log->get('metadata_json')->first();
+    $this->assertNotNull($item);
+    $meta = $item->getValue();
+    $this->assertIsArray($meta);
+    $this->assertArrayHasKey('venue_operation_integrity', $meta);
+    $integrity = $meta['venue_operation_integrity'];
+    $this->assertIsArray($integrity);
+    $this->assertStringStartsWith('op_', (string) ($integrity['operation_id'] ?? ''));
+    $this->assertArrayHasKey('replay_token', $integrity);
   }
 
   /**
