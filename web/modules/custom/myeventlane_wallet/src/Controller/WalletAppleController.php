@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_wallet\Controller;
 
-use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\myeventlane_wallet\Service\PkPassBuilder;
+use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
+use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -20,12 +20,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class WalletAppleController extends ControllerBase {
 
-  /**
-   * Constructs WalletAppleController.
-   */
   public function __construct(
     private readonly PkPassBuilder $pkpassBuilder,
     private readonly FileSystemInterface $fileSystem,
+    private readonly WalletTicketResolver $walletTicketResolver,
+    private readonly WalletDownloadAccessChecker $walletDownloadAccessChecker,
   ) {}
 
   /**
@@ -35,38 +34,18 @@ final class WalletAppleController extends ControllerBase {
     $instance = new self(
       $container->get('myeventlane_wallet.pkpass_builder'),
       $container->get('file_system'),
+      $container->get('myeventlane_wallet.ticket_resolver'),
+      $container->get('myeventlane_wallet.download_access'),
     );
     $instance->entityTypeManager = $container->get('entity_type.manager');
     return $instance;
   }
 
   /**
-   * Ensures the current user can download for the given order item.
-   *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
-   */
-  private function assertOrderItemDownloadAccess(OrderItemInterface $order_item): void {
-    $account = $this->currentUser();
-
-    if (!$account->isAuthenticated()) {
-      throw new AccessDeniedHttpException();
-    }
-
-    if ($account->hasPermission('administer myeventlane wallet') || $account->hasPermission('administer commerce_order')) {
-      return;
-    }
-
-    $order = $order_item->getOrder();
-    if (!$order || (int) $order->getCustomerId() !== (int) $account->id()) {
-      throw new AccessDeniedHttpException();
-    }
-  }
-
-  /**
    * Downloads an Apple Wallet pass for an order item.
    *
    * @param string $order_item_id
-   *   The order item ID.
+   *   The order item ID (route compatibility key).
    *
    * @return \Symfony\Component\HttpFoundation\Response
    *   The pass file response.
@@ -84,9 +63,10 @@ final class WalletAppleController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
-    $this->assertOrderItemDownloadAccess($item);
+    $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $this->currentUser());
+    $this->walletDownloadAccessChecker->assertAuthorized($item, $ticket, $this->currentUser());
 
-    $passPath = $this->pkpassBuilder->generate($item);
+    $passPath = $this->pkpassBuilder->generate($item, $ticket);
     $realPath = $this->fileSystem->realpath($passPath) ?: $passPath;
 
     if (!is_file($realPath) || !is_readable($realPath)) {
@@ -96,7 +76,6 @@ final class WalletAppleController extends ControllerBase {
     $response = new BinaryFileResponse($realPath);
     $response->headers->set('Content-Type', 'application/vnd.apple.pkpass');
     $response->setContentDisposition('attachment', 'ticket.pkpass');
-    // Passes are typically generated in a temp directory.
     $response->deleteFileAfterSend(TRUE);
 
     return $response;

@@ -26,6 +26,7 @@ use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Canonical issuance, idempotency, and PDF-from-ticket continuity.
@@ -65,6 +66,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     'mel_ticket',
     'myeventlane_vendor',
     'myeventlane_tickets',
+    'myeventlane_wallet',
   ];
 
   private Node $event;
@@ -325,6 +327,175 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
       }
     }
     $this->assertSame(2, $pdf_count);
+  }
+
+  /**
+   * Wallet inward resolution maps the Commerce order item route key to issued tickets.
+   */
+  public function testWalletResolverLinksIssuedTicketToOrderItem(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $items = array_values($order->getItems());
+    $this->assertNotEmpty($items);
+    $item = $items[0];
+    /** @var \Drupal\myeventlane_wallet\Service\WalletTicketResolver $resolver */
+    $resolver = $this->container->get('myeventlane_wallet.ticket_resolver');
+    $resolved = $resolver->resolvePrimaryTicketForOrderItem($item, $this->customer);
+    $this->assertInstanceOf(Ticket::class, $resolved);
+    $this->assertSame((int) $item->id(), (int) $resolved->get('order_item_id')->target_id);
+  }
+
+  /**
+   * Apple Wallet scaffold bytes reuse the universal view model QR (TicketQrPayload).
+   */
+  public function testPkpassScaffoldUsesSingleQrSource(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $this->assertNotEmpty($tickets);
+    $ticket = $tickets[0];
+    $expected = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+    /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
+    $path = $builder->generate($item, $ticket);
+    $payload = json_decode((string) file_get_contents($path), TRUE);
+    $this->assertIsArray($payload);
+    $this->assertSame($expected, $payload['qr_payload']);
+  }
+
+  /**
+   * When no issued ticket exists, wallet builders keep the legacy empty placeholder.
+   */
+  public function testWalletOrderItemWithoutTicketUsesLegacyPkpassPlaceholder(): void {
+    $order = $this->loadOrder();
+    $item = array_values($order->getItems())[0];
+    /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
+    $path = $builder->generate($item, NULL);
+    $this->assertSame('', (string) file_get_contents($path));
+  }
+
+  /**
+   * Multiple tickets on one order item resolve by unique holder email when possible.
+   */
+  public function testWalletResolverPicksHolderWhenUniquelyMatches(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $this->assertCount(2, $tickets);
+    $tickets[0]->set('holder_email', 'alpha@example.test');
+    $tickets[0]->save();
+    $tickets[1]->set('holder_email', 'beta@example.test');
+    $tickets[1]->save();
+
+    $beta = User::create([
+      'name' => 'beta_viewer',
+      'mail' => 'beta@example.test',
+      'status' => 1,
+    ]);
+    $beta->save();
+
+    /** @var \Drupal\myeventlane_wallet\Service\WalletTicketResolver $resolver */
+    $resolver = $this->container->get('myeventlane_wallet.ticket_resolver');
+    $picked = $resolver->resolvePrimaryTicketForOrderItem($item, $beta);
+    $this->assertSame((int) $tickets[1]->id(), (int) $picked->id());
+  }
+
+  /**
+   * Merch entitlements keep structured mel:v1 JSON QR contracts in wallet scaffolds.
+   */
+  public function testMerchEntitlementWalletScaffoldPreservesStructuredQr(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $ticket = $tickets[0];
+    $ticket->set('entitlement_type', Ticket::ENTITLEMENT_MERCH);
+    $ticket->save();
+
+    /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
+    $path = $builder->generate($item, $ticket);
+    $payload = json_decode((string) file_get_contents($path), TRUE);
+    $this->assertIsArray($payload);
+    $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
+  }
+
+  /**
+   * Parking entitlements keep structured mel:v1 JSON QR contracts in wallet scaffolds.
+   */
+  public function testParkingEntitlementWalletScaffoldPreservesStructuredQr(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $ticket = $tickets[0];
+    $ticket->set('entitlement_type', Ticket::ENTITLEMENT_PARKING);
+    $ticket->save();
+
+    /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
+    $path = $builder->generate($item, $ticket);
+    $payload = json_decode((string) file_get_contents($path), TRUE);
+    $this->assertIsArray($payload);
+    $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
+  }
+
+  /**
+   * Multi-use entitlements surface structured QR metadata without duplicate shaping.
+   */
+  public function testMultiUseEntitlementWalletScaffoldUsesStructuredQr(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $ticket = $tickets[0];
+    $ticket->set('entitlement_type', Ticket::ENTITLEMENT_DRINK);
+    $ticket->set('redemption_limit', 3);
+    $ticket->save();
+
+    /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
+    $path = $builder->generate($item, $ticket);
+    $payload = json_decode((string) file_get_contents($path), TRUE);
+    $this->assertIsArray($payload);
+    $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
+  }
+
+  /**
+   * Wallet download access follows purchaser ownership for issued tickets.
+   */
+  public function testWalletAccessCheckerAllowsPurchaser(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    /** @var \Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker $access */
+    $access = $this->container->get('myeventlane_wallet.download_access');
+    $access->assertAuthorized($item, $ticket, $this->customer);
+    $this->addToAssertionCount(1);
+  }
+
+  /**
+   * Wallet download access denies cross-customer ticket use.
+   */
+  public function testWalletAccessCheckerDeniesOtherCustomer(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    $stranger = User::create([
+      'name' => 'stranger_wallet',
+      'mail' => 'stranger-wallet@example.test',
+      'status' => 1,
+    ]);
+    $stranger->save();
+    /** @var \Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker $access */
+    $access = $this->container->get('myeventlane_wallet.download_access');
+    $this->expectException(AccessDeniedHttpException::class);
+    $access->assertAuthorized($item, $ticket, $stranger);
   }
 
   private function issuer(): TicketIssuer {

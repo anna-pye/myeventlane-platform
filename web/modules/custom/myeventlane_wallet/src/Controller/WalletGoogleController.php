@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_wallet\Controller;
 
-use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_wallet\Service\GoogleWalletBuilder;
+use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
+use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -18,11 +18,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class WalletGoogleController extends ControllerBase {
 
-  /**
-   * Constructs WalletGoogleController.
-   */
   public function __construct(
     private readonly GoogleWalletBuilder $googleBuilder,
+    private readonly WalletTicketResolver $walletTicketResolver,
+    private readonly WalletDownloadAccessChecker $walletDownloadAccessChecker,
   ) {}
 
   /**
@@ -31,39 +30,18 @@ final class WalletGoogleController extends ControllerBase {
   public static function create(ContainerInterface $container): self {
     $instance = new self(
       $container->get('myeventlane_wallet.google_wallet_builder'),
+      $container->get('myeventlane_wallet.ticket_resolver'),
+      $container->get('myeventlane_wallet.download_access'),
     );
     $instance->entityTypeManager = $container->get('entity_type.manager');
     return $instance;
   }
 
   /**
-   * Ensures the current user can generate wallet links for an order item.
-   *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
-   */
-  private function assertOrderItemWalletAccess(OrderItemInterface $order_item): void {
-    $account = $this->currentUser();
-
-    if (!$account->isAuthenticated()) {
-      throw new AccessDeniedHttpException();
-    }
-
-    if ($account->hasPermission('administer myeventlane wallet')
-      || $account->hasPermission('administer commerce_order')) {
-      return;
-    }
-
-    $order = $order_item->getOrder();
-    if (!$order || (int) $order->getCustomerId() !== (int) $account->id()) {
-      throw new AccessDeniedHttpException();
-    }
-  }
-
-  /**
    * Returns a Google Wallet save link for an order item.
    *
    * @param string $order_item_id
-   *   The order item ID.
+   *   The order item ID (route compatibility key).
    *
    * @return array
    *   A render array with the wallet link.
@@ -81,9 +59,10 @@ final class WalletGoogleController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
-    $this->assertOrderItemWalletAccess($item);
+    $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $this->currentUser());
+    $this->walletDownloadAccessChecker->assertAuthorized($item, $ticket, $this->currentUser());
 
-    $url = $this->googleBuilder->generateSaveLink($item);
+    $url = $this->googleBuilder->generateSaveLink($item, $ticket);
 
     $parts = parse_url($url) ?: [];
     $scheme = $parts['scheme'] ?? '';

@@ -13,7 +13,7 @@ Intended flow:
 3. **`TicketIssuer`** — Creates one **`myeventlane_ticket`** row per unit quantity for eligible order items (variation-backed, event-resolvable).
 4. **QR payloads** — Built from ticket entities via **`TicketQrPayload`** and **`QrCodeGenerator`** (also surfaced through **`UniversalTicketViewModelBuilder`**).
 5. **PDFs** — Generated through **`TicketPdfGenerator`** (`myeventlane_tickets.ticket_pdf_generator`), using the canonical view model for issued tickets. Legacy paths (order item, attendee, RSVP) remain for compatibility and are **not** part of the paid-order issuance slice; they are isolated in compatibility adapters (see [legacy-pdf-compatibility.md](./legacy-pdf-compatibility.md)).
-6. **Wallet** — The **`myeventlane_wallet`** module is currently **scaffold/stub** (builders and routes exist; pass generation is not production-complete). **`UniversalTicketViewModelBuilder`** exposes wallet **action URLs** that reference existing routes; **no** full wallet convergence was done in this commit. Future wallet generation must **derive from issued ticket entities**, not raw order items.
+6. **Wallet** — **`myeventlane_wallet`** routes remain **`/wallet/apple/{order_item_id}`** and **`/wallet/google/{order_item_id}`** for compatibility. Internally, wallet generation **resolves issued `myeventlane_ticket` rows** for that order item, enforces the same access semantics as ticket PDFs, and builds Apple scaffold bytes from **`UniversalTicketViewModelBuilder`** (which uses **`TicketQrPayload`**). When no issued ticket exists, **legacy placeholder** behaviour is preserved (no issuance from wallet). See [wallet-operational-convergence.md](./wallet-operational-convergence.md).
 7. **Notifications** — Order confirmation PDFs at send time are merged by **`MessagingManager`** → **`OrderConfirmationAttachmentResolver`** → **`TicketPdfGenerator::getPdfContentForTicket()`** per ticket row for the order. Ticket-ready email uses **`TicketMailer`**, which attaches PDFs from **`TicketPdfGenerator`** for assigned tickets.
 
 ```mermaid
@@ -97,4 +97,5 @@ Performed in a full environment (e.g. DDEV) with real mail and checkout:
 ## Related documentation
 
 - [operational-surface-convergence.md](./operational-surface-convergence.md) — My Tickets and PDF rendering convergence onto **`UniversalTicketViewModelBuilder`**.
+- [wallet-operational-convergence.md](./wallet-operational-convergence.md) — Wallet routes, inward ticket resolution, and QR authority alignment.
 - [legacy-pdf-compatibility.md](./legacy-pdf-compatibility.md) — **Governance:** operational authority vs legacy PDF adapters, inward-only delegation, frozen contracts, forbidden patterns (Commit 5+).

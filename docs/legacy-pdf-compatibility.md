@@ -72,7 +72,7 @@ Treat the following as **regression-sensitive contracts**, not implementation de
 | **QR payload structure and signing** | Payload formats and HMAC behavior are scanner- and history-sensitive. |
 | **Route structure** | Ticket PDF download URLs and public entry points must remain stable. |
 | **Attachment filenames and MIME** | Order confirmation and mail attachments must preserve expected names and `application/pdf` semantics. |
-| **Guest access behavior** | Anonymous or guest flows must not lose access to entitled artifacts where they currently have it. |
+| **Guest access behavior** | Anonymous or guest flows must not lose access to entitled artifacts where they currently have it. Wallet inward resolution follows the same ownership semantics as ticket PDFs (see [wallet-operational-convergence.md](./wallet-operational-convergence.md)). |
 | **Customer-visible PDF layout** | No **material** visual or layout regressions in production PDFs without explicit design sign-off. |
 
 **Allowed to evolve** behind the same contracts: internal field extraction, normalization delegation, render array shaping, and duplication reduction **that does not change** the frozen outputs above.
