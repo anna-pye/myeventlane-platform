@@ -53,6 +53,7 @@ final class VenueOperationPolicyManager {
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly TicketCapabilityManager $ticketCapabilityManager,
     private readonly TimeInterface $time,
+    private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
   ) {}
 
   /**
@@ -126,6 +127,53 @@ final class VenueOperationPolicyManager {
       'replay_protected' => TRUE,
       'gate_family' => $this->gateFamily($type, $map),
       'idempotent_validate_family' => $this->idempotentValidateFamily($map),
+      'timed_entry' => $this->timedEntryPolicyManager->evaluate($ticket, $this->time->getCurrentTime(), NULL),
+    ];
+  }
+
+  /**
+   * Machine-only timed entry evaluation for scanner paths (no UI strings).
+   *
+   * @return array<string, mixed>
+   */
+  public function buildTimedEntryPolicy(Ticket $ticket, ?int $now_unix = NULL, ?int $parsed_qr_expires_at = NULL): array {
+    return $this->timedEntryPolicyManager->evaluate($ticket, $now_unix, $parsed_qr_expires_at);
+  }
+
+  /**
+   * Resolves whether a scan may proceed under timed entry policy.
+   *
+   * @return array{
+   *   allow: bool,
+   *   result_token: string,
+   *   message: string,
+   *   policy: array<string, mixed>
+   * }
+   */
+  public function evaluateTimedEntryForScan(Ticket $ticket, int $now_unix, ?int $parsed_qr_expires_at = NULL): array {
+    $policy = $this->timedEntryPolicyManager->evaluate($ticket, $now_unix, $parsed_qr_expires_at);
+    if ($policy['scanner']['allowed_now']) {
+      return [
+        'allow' => TRUE,
+        'result_token' => '',
+        'message' => '',
+        'policy' => $policy,
+      ];
+    }
+    $state = (string) $policy['scanner']['state'];
+    if ($state === 'expired') {
+      return [
+        'allow' => FALSE,
+        'result_token' => 'expired',
+        'message' => 'Entitlement has expired.',
+        'policy' => $policy,
+      ];
+    }
+    return [
+      'allow' => FALSE,
+      'result_token' => 'invalid',
+      'message' => 'Scan window is not open for this entitlement.',
+      'policy' => $policy,
     ];
   }
 
@@ -199,6 +247,9 @@ final class VenueOperationPolicyManager {
   /**
    * Builds staff-side integrity metadata for redemption audit rows.
    *
+   * @param string $mode
+   *   Scan transport context: 'online' or 'offline' (feeds offline eligibility).
+   *
    * @return array<string, mixed>
    */
   public function buildIntegrityEnvelope(
@@ -211,6 +262,7 @@ final class VenueOperationPolicyManager {
     int $redemption_count_before,
     int $redemption_count_after,
     string $payload_sha256,
+    string $mode = 'online',
   ): array {
     $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
     $map = $this->entitlementCapabilityRegistry->getCapabilityMap($type);
@@ -231,6 +283,7 @@ final class VenueOperationPolicyManager {
     );
 
     $replay_token = $this->buildReplayToken($operation_id, $gate_action, (string) $ticket->uuid());
+    $timed = $this->timedEntryPolicyManager->evaluate($ticket, $operation_unix, NULL);
 
     return [
       'operation_id' => $operation_id,
@@ -246,9 +299,11 @@ final class VenueOperationPolicyManager {
       'redemption_count_after' => $redemption_count_after,
       'multi_use' => (bool) $map['multi_use'],
       'conflict_policy' => $this->conflictPolicy($type, $map),
-      'offline_eligible' => $this->offlineEligible($map, 'online'),
+      'offline_eligible' => $this->offlineEligible($map, $mode),
       'requires_online_validation' => FALSE,
       'replay_protected' => TRUE,
+      'timed_entry_scanner_state' => (string) ($timed['scanner']['state'] ?? ''),
+      'timed_entry_reason' => (string) ($timed['scanner']['reason'] ?? ''),
     ];
   }
 
