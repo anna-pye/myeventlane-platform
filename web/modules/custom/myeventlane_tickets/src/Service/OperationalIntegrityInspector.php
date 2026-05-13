@@ -37,6 +37,7 @@ final class OperationalIntegrityInspector {
     private readonly TicketQrPayload $ticketQrPayload,
     private readonly TicketCapabilityManager $ticketCapabilityManager,
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
+    private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
     private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
@@ -53,6 +54,10 @@ final class OperationalIntegrityInspector {
    *   compatibility: array<string, mixed>,
    *   guest_continuity: array<string, mixed>
    * }
+   *
+   * Artifacts include `venue_operation_policy` (machine-only venue gate
+   * diagnostics derived from EntitlementCapabilityRegistry and
+   * VenueOperationPolicyManager).
    */
   public function inspectOrder(OrderInterface $order): array {
     $orderId = (int) $order->id();
@@ -117,6 +122,7 @@ final class OperationalIntegrityInspector {
         'qr_payload_operational' => 'missing',
         'attachment_continuity' => 'missing',
         'entitlement_capability_policy' => [],
+        'venue_operation_policy' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -193,6 +199,7 @@ final class OperationalIntegrityInspector {
         'qr_payload_operational' => 'missing',
         'attachment_continuity' => 'missing',
         'entitlement_capability_policy' => [],
+        'venue_operation_policy' => [],
       ];
     }
 
@@ -205,6 +212,7 @@ final class OperationalIntegrityInspector {
     $holderReady = 0;
 
     $capability_policy = $this->buildEntitlementCapabilityPolicyDigest($tickets);
+    $venue_policy = $this->buildVenueOperationPolicyDigest($tickets);
 
     foreach ($tickets as $ticket) {
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
@@ -238,7 +246,33 @@ final class OperationalIntegrityInspector {
       'qr_payload_operational' => $this->aggregateReadiness($qrValid, $qrInvalid, $total),
       'attachment_continuity' => $this->attachmentContinuityStatus($holderReady, $total),
       'entitlement_capability_policy' => $capability_policy,
+      'venue_operation_policy' => $venue_policy,
     ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildVenueOperationPolicyDigest(array $tickets): array {
+    $digest = [];
+    foreach ($tickets as $ticket) {
+      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
+      if (isset($digest[$type])) {
+        continue;
+      }
+      $descriptor = $this->venueOperationPolicyManager->buildOperationDescriptor($ticket, 'online');
+      $digest[$type] = [
+        'gate_semantics' => $this->venueOperationPolicyManager->describeEntitlementGateSemantics($type),
+        'descriptor' => $descriptor,
+        'offline_eligible' => (bool) ($descriptor['offline_eligible'] ?? FALSE),
+        'replay_state' => !empty($descriptor['replay_protected']) ? 'protected' : 'unknown',
+        'conflict_policy' => (string) ($descriptor['conflict_policy'] ?? ''),
+        'requires_online_validation' => (bool) ($descriptor['requires_online_validation'] ?? FALSE),
+      ];
+    }
+    return $digest;
   }
 
   /**
