@@ -107,13 +107,6 @@ final class ScannerOperationManager {
       return $result;
     }
 
-    if (isset($parsed['expires_at']) && (int) $parsed['expires_at'] <= $this->time->getCurrentTime()) {
-      $result = $this->result(FALSE, 'expired', 'Entitlement has expired.', (string) $ticket->get('ticket_code')->value);
-      $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
-      $this->logRedemptionAudit($ticket, $this->resolveAction($ticket), $device_id, FALSE, $result['result'], $result['message'], $payload_sha256);
-      return $result;
-    }
-
     $status = (string) $ticket->get('status')->value;
     if ($status === Ticket::STATUS_VOID) {
       $result = $this->result(FALSE, 'void', 'Ticket is void and cannot be scanned.', (string) $ticket->get('ticket_code')->value);
@@ -134,6 +127,27 @@ final class ScannerOperationManager {
       $this->logRedemptionAudit($ticket, $this->resolveAction($ticket), $device_id, FALSE, $result['result'], $result['message'], $payload_sha256);
       return $result;
     }
+
+    $parsed_qr_expires_at = isset($parsed['expires_at']) ? (int) $parsed['expires_at'] : NULL;
+    $timed_gate = $this->venueOperationPolicyManager->evaluateTimedEntryForScan(
+      $ticket,
+      $this->time->getCurrentTime(),
+      $parsed_qr_expires_at > 0 ? $parsed_qr_expires_at : NULL,
+    );
+    if (!$timed_gate['allow']) {
+      $result = $this->result(
+        FALSE,
+        (string) $timed_gate['result_token'],
+        (string) $timed_gate['message'],
+        (string) $ticket->get('ticket_code')->value,
+        0,
+        (int) $ticket->id(),
+      );
+      $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
+      $this->logRedemptionAudit($ticket, $this->resolveAction($ticket), $device_id, FALSE, $result['result'], $result['message'], $payload_sha256);
+      return $result;
+    }
+
     if (!$this->capabilityManager->canBeScanned($ticket)) {
       $result_token = $this->capabilityManager->isExpired($ticket) ? 'expired' : 'redemption_limit_reached';
       $message = $result_token === 'expired' ? 'Entitlement has expired.' : 'Redemption limit has already been reached.';
