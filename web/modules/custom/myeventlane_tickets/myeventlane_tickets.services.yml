@@ -80,12 +80,16 @@ services:
   myeventlane_tickets.entitlement_capability_registry:
     class: Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry
 
+  myeventlane_tickets.timed_entry_policy_manager:
+    class: Drupal\myeventlane_tickets\Service\TimedEntryPolicyManager
+
   myeventlane_tickets.venue_operation_policy_manager:
     class: Drupal\myeventlane_tickets\Service\VenueOperationPolicyManager
     arguments:
       - '@myeventlane_tickets.entitlement_capability_registry'
       - '@mel_ticket_capability.manager'
       - '@datetime.time'
+      - '@myeventlane_tickets.timed_entry_policy_manager'
 
   mel_ticket_capability.manager:
     class: Drupal\myeventlane_tickets\Service\TicketCapabilityManager

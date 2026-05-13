@@ -53,6 +53,7 @@ final class VenueOperationPolicyManager {
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly TicketCapabilityManager $ticketCapabilityManager,
     private readonly TimeInterface $time,
+    private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
   ) {}
 
   /**
@@ -144,6 +145,44 @@ final class VenueOperationPolicyManager {
       'duplicate', 'duplicate_operation' => self::OPERATION_DUPLICATE,
       default => self::OPERATION_DENY,
     };
+  }
+
+  /**
+   * Timed entry gate for the canonical scanner path (before mutations).
+   *
+   * @param int|null $parsed_qr_expires_at
+   *   Structured QR `exp` cap when present; null otherwise.
+   *
+   * @return array{allow: bool, result_token: string, message: string}
+   *   When allow is TRUE, result_token and message are empty strings.
+   */
+  public function evaluateTimedEntryForScan(Ticket $ticket, int $now, ?int $parsed_qr_expires_at): array {
+    $policy = $this->timedEntryPolicyManager->evaluate($ticket, $now, $parsed_qr_expires_at);
+    /** @var array<string, mixed> $scanner */
+    $scanner = is_array($policy['scanner'] ?? NULL) ? $policy['scanner'] : [];
+    $allowed = (bool) ($scanner['allowed_now'] ?? TRUE);
+    if ($allowed) {
+      return [
+        'allow' => TRUE,
+        'result_token' => '',
+        'message' => '',
+      ];
+    }
+
+    $state = (string) ($scanner['state'] ?? 'expired');
+    if ($state === 'not_started') {
+      return [
+        'allow' => FALSE,
+        'result_token' => 'invalid',
+        'message' => 'Entry is not open yet.',
+      ];
+    }
+
+    return [
+      'allow' => FALSE,
+      'result_token' => 'expired',
+      'message' => 'Entry window has closed or entitlement has expired.',
+    ];
   }
 
   /**

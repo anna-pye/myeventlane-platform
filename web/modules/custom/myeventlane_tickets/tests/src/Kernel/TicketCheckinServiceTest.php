@@ -299,6 +299,54 @@ final class TicketCheckinServiceTest extends KernelTestBase {
   }
 
   /**
+   * Timed entry metadata blocks scan before the nominal entry window opens.
+   */
+  public function testBlocksScanBeforeTimedEntryOpens(): void {
+    $opens_at = time() + 7200;
+    $closes_at = $opens_at + 14400;
+    $ticket = $this->createTicket('MEL-TIMED-PREOPEN-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'metadata_json' => [
+        'mel_operational_timing' => [
+          'entry_opens_at' => $opens_at,
+          'entry_closes_at' => $closes_at,
+          'early_entry_allowed' => FALSE,
+        ],
+      ],
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-timed', 'online');
+
+    $this->assertFalse($result['ok']);
+    $this->assertSame('invalid', $result['result']);
+    $this->assertStringContainsStringIgnoringCase('open', (string) $result['message']);
+  }
+
+  /**
+   * Scan succeeds inside an active timed entry window.
+   */
+  public function testAdmitsWithinTimedEntryWindow(): void {
+    $opens_at = time() - 3600;
+    $closes_at = time() + 7200;
+    $ticket = $this->createTicket('MEL-TIMED-INWINDOW-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'metadata_json' => [
+        'mel_operational_timing' => [
+          'entry_opens_at' => $opens_at,
+          'entry_closes_at' => $closes_at,
+        ],
+      ],
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-timed-2', 'online');
+
+    $this->assertTrue($result['ok']);
+    $this->assertSame('admitted', $result['result']);
+  }
+
+  /**
    * Creates one ticket fixture.
    */
   private function createTicket(string $ticket_code, int $event_id, string $status, array $overrides = []): Ticket {
