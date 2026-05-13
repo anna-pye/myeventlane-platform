@@ -283,6 +283,13 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
     $this->assertSame('valid', $diag['artifacts']['qr_payload_operational']);
     $this->assertArrayHasKey('entitlement_capability_policy', $diag['artifacts']);
     $this->assertArrayHasKey('venue_operation_policy', $diag['artifacts']);
+    $this->assertArrayHasKey('timed_entry_policy', $diag['artifacts']);
+    $this->assertArrayHasKey('session_entitlement_policy', $diag['artifacts']);
+    foreach ($this->loadTicketsForOrder((int) $order->id()) as $ticket) {
+      $id = (string) $ticket->id();
+      $this->assertArrayHasKey($id, $diag['artifacts']['timed_entry_policy']);
+      $this->assertArrayHasKey($id, $diag['artifacts']['session_entitlement_policy']);
+    }
     $this->assertSame('admit', $diag['artifacts']['entitlement_capability_policy']['ticket']['scanner_mode']);
     $this->assertSame('admission', $diag['artifacts']['venue_operation_policy']['ticket']['gate_semantics']['gate_family']);
   }
@@ -415,6 +422,9 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
       $this->container->get('mel_ticket_capability.manager'),
       $this->container->get('myeventlane_tickets.entitlement_capability_registry'),
       $this->container->get('myeventlane_tickets.venue_operation_policy_manager'),
+      $this->container->get('myeventlane_tickets.timed_entry_policy_manager'),
+      $this->container->get('myeventlane_tickets.session_entitlement_policy_manager'),
+      $this->container->get('datetime.time'),
       $this->container->get('state'),
       $this->container->get('logger.channel.myeventlane_tickets'),
       $this->container->get('myeventlane_wallet.ticket_resolver'),

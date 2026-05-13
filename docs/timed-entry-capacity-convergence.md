@@ -12,11 +12,12 @@ This phase adds **one canonical operational timing policy layer** for ticket-bac
 
 ## Policy flow (mandatory)
 
-Interpretation order for scanner timing:
+Interpretation order for scanner timing and session gating:
 
 1. **`TimedEntryPolicyManager::evaluate()`** — sole authority for machine timing policy (no translated strings, no UI labels).
-2. **`VenueOperationPolicyManager`** — composes venue descriptors, scan gate resolution (`evaluateTimedEntryForScan()`), and staff integrity envelopes; delegates timing to `TimedEntryPolicyManager`.
-3. **`ScannerOperationManager`** — applies gate decisions from `VenueOperationPolicyManager` before operational mutation paths; does not implement parallel window rules.
+2. **`SessionEntitlementPolicyManager::buildNormalizedPayload()`** — sole authority for session / sequencing / exhaustion semantics; receives the timed snapshot for shared `session_key` / capacity hints only.
+3. **`VenueOperationPolicyManager::evaluateTimedEntryForScan()`** — composes timing + session scanner slices into one `allow` decision, existing `result_token` values, and staff `message` strings; attaches `policy` metadata for audits.
+4. **`ScannerOperationManager`** — applies the venue gate before operational mutation paths; does not implement parallel window, session, or sequencing rules.
 
 ## Normalized policy shape
 
@@ -100,7 +101,8 @@ Read-only guarantees from [operational-observability.md](./operational-observabi
 `UniversalTicketViewModelBuilder::build()` adds:
 
 - top-level **`timed_entry`** — same normalized policy array
-- **`scanner.timing_state`** and **`scanner.timing_allowed_now`** — timing semantics without altering existing `qr.payload` or wallet/PDF action contracts
+- top-level **`session_entitlement`** — normalized session payload from `SessionEntitlementPolicyManager` (see [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md))
+- **`scanner.timing_state`** / **`scanner.timing_allowed_now`** plus compact **`scanner.session_*`** hints — without altering existing `qr.payload` or wallet/PDF action contracts
 
 ## Anti-patterns (forbidden)
 
@@ -115,4 +117,4 @@ Read-only guarantees from [operational-observability.md](./operational-observabi
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md) — venue gate layer and scanner orchestration
 - [operational-observability.md](./operational-observability.md) — diagnostics domains
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — registry delegation
-- [issuance-pipeline.md](./issuance-pipeline.md) — issuance and observability references
+- [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md) — session, sequencing, and multi-use orchestration

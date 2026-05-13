@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -38,6 +39,9 @@ final class OperationalIntegrityInspector {
     private readonly TicketCapabilityManager $ticketCapabilityManager,
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
+    private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
+    private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
+    private readonly TimeInterface $time,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
     private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
@@ -55,9 +59,11 @@ final class OperationalIntegrityInspector {
    *   guest_continuity: array<string, mixed>
    * }
    *
-   * Artifacts include `venue_operation_policy` (machine-only venue gate
-   * diagnostics derived from EntitlementCapabilityRegistry and
-   * VenueOperationPolicyManager).
+ * Artifacts include `venue_operation_policy` (machine-only venue gate
+ * diagnostics derived from EntitlementCapabilityRegistry and
+ * VenueOperationPolicyManager), `timed_entry_policy` (per-ticket timing from
+ * TimedEntryPolicyManager), and `session_entitlement_policy` (per-ticket
+ * session / progression snapshots from SessionEntitlementPolicyManager).
    */
   public function inspectOrder(OrderInterface $order): array {
     $orderId = (int) $order->id();
@@ -123,6 +129,8 @@ final class OperationalIntegrityInspector {
         'attachment_continuity' => 'missing',
         'entitlement_capability_policy' => [],
         'venue_operation_policy' => [],
+        'timed_entry_policy' => [],
+        'session_entitlement_policy' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -200,6 +208,8 @@ final class OperationalIntegrityInspector {
         'attachment_continuity' => 'missing',
         'entitlement_capability_policy' => [],
         'venue_operation_policy' => [],
+        'timed_entry_policy' => [],
+        'session_entitlement_policy' => [],
       ];
     }
 
@@ -213,6 +223,8 @@ final class OperationalIntegrityInspector {
 
     $capability_policy = $this->buildEntitlementCapabilityPolicyDigest($tickets);
     $venue_policy = $this->buildVenueOperationPolicyDigest($tickets);
+    $timed_entry_policy = $this->buildTimedEntryDiagnosticsByTicket($tickets);
+    $session_entitlement_policy = $this->buildSessionEntitlementDiagnosticsByTicket($tickets);
 
     foreach ($tickets as $ticket) {
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
@@ -247,7 +259,57 @@ final class OperationalIntegrityInspector {
       'attachment_continuity' => $this->attachmentContinuityStatus($holderReady, $total),
       'entitlement_capability_policy' => $capability_policy,
       'venue_operation_policy' => $venue_policy,
+      'timed_entry_policy' => $timed_entry_policy,
+      'session_entitlement_policy' => $session_entitlement_policy,
     ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildTimedEntryDiagnosticsByTicket(array $tickets): array {
+    $now = $this->time->getCurrentTime();
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $policy = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
+      $out[$id] = [
+        'policy' => $policy,
+        'conflicts' => $this->timedEntryPolicyManager->detectTimingConflicts($ticket, $now, NULL),
+      ];
+    }
+    return $out;
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildSessionEntitlementDiagnosticsByTicket(array $tickets): array {
+    $now = $this->time->getCurrentTime();
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $timed = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
+      $policy = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed);
+      $conflicts = [];
+      if (!empty($policy['progression']['requires_previous_redemption'])) {
+        $conflicts[] = 'sequence_previous_missing';
+      }
+      if (!empty($policy['progression']['is_exhausted'])) {
+        $conflicts[] = 'operational_exhaustion';
+      }
+      if (($policy['scanner']['state'] ?? '') === 'sequencing_blocked') {
+        $conflicts[] = 'sequencing_blocked';
+      }
+      $out[(string) $ticket->id()] = [
+        'policy' => $policy,
+        'conflicts' => array_values(array_unique($conflicts)),
+      ];
+    }
+    return $out;
   }
 
   /**

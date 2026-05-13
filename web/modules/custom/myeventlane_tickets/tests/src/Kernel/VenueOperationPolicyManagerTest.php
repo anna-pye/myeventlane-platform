@@ -212,6 +212,15 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertSame('validate', $this->policy()->resolveGateAction($ticket));
   }
 
+  public function testEvaluateTimedEntryForScanAllowsLegacyAdmission(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $gate = $this->policy()->evaluateTimedEntryForScan($ticket, time(), NULL);
+    $this->assertTrue($gate['allow']);
+    $this->assertArrayHasKey('policy', $gate);
+    $this->assertArrayHasKey('timed_entry', $gate['policy']);
+    $this->assertArrayHasKey('session_entitlement', $gate['policy']);
+  }
+
   private function policy(): VenueOperationPolicyManager {
     return $this->container->get('myeventlane_tickets.venue_operation_policy_manager');
   }

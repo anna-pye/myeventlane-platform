@@ -53,6 +53,8 @@ final class VenueOperationPolicyManager {
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly TicketCapabilityManager $ticketCapabilityManager,
     private readonly TimeInterface $time,
+    private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
+    private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
   ) {}
 
   /**
@@ -116,6 +118,10 @@ final class VenueOperationPolicyManager {
     $map = $this->entitlementCapabilityRegistry->getCapabilityMap($type);
     $gate_action = (string) $map['scanner_mode'];
 
+    $now = $this->time->getCurrentTime();
+    $timed = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
+    $session = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed);
+
     return [
       'operation_type' => $gate_action,
       'entitlement_type' => $type,
@@ -126,6 +132,8 @@ final class VenueOperationPolicyManager {
       'replay_protected' => TRUE,
       'gate_family' => $this->gateFamily($type, $map),
       'idempotent_validate_family' => $this->idempotentValidateFamily($map),
+      'timed_entry' => $timed,
+      'session_entitlement' => $session,
     ];
   }
 
@@ -144,6 +152,41 @@ final class VenueOperationPolicyManager {
       'duplicate', 'duplicate_operation' => self::OPERATION_DUPLICATE,
       default => self::OPERATION_DENY,
     };
+  }
+
+  /**
+   * Composes timed entry and session entitlement gates for the scanner path.
+   *
+   * @param int|null $parsed_qr_expires_at
+   *   Structured QR `exp` cap when present; null otherwise.
+   *
+   * @return array<string, mixed>
+   *   Keys: allow (bool), result_token (string), message (string), policy (array).
+   */
+  public function evaluateTimedEntryForScan(Ticket $ticket, int $now, ?int $parsed_qr_expires_at): array {
+    $timed = $this->timedEntryPolicyManager->evaluate($ticket, $now, $parsed_qr_expires_at);
+    $session = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, $parsed_qr_expires_at, $timed);
+    $policy = [
+      'timed_entry' => $timed,
+      'session_entitlement' => $session,
+    ];
+
+    $timing_ok = (bool) ($timed['scanner']['allowed_now'] ?? TRUE);
+    $session_ok = (bool) ($session['scanner']['allowed_now'] ?? TRUE);
+    if ($timing_ok && $session_ok) {
+      return [
+        'allow' => TRUE,
+        'result_token' => '',
+        'message' => '',
+        'policy' => $policy,
+      ];
+    }
+
+    if (!$timing_ok) {
+      return $this->mapTimingScannerDenial($timed) + ['policy' => $policy];
+    }
+
+    return $this->mapSessionScannerDenial($session) + ['policy' => $policy];
   }
 
   /**
@@ -344,6 +387,57 @@ final class VenueOperationPolicyManager {
   private function buildReplayToken(string $operation_id, string $gate_action, string $ticket_uuid): string {
     $salt = Settings::getHashSalt();
     return hash_hmac('sha256', $operation_id . '|' . $gate_action . '|' . $ticket_uuid, $salt);
+  }
+
+  /**
+   * @param array<string, mixed> $timed
+   *
+   * @return array{allow: bool, result_token: string, message: string}
+   */
+  private function mapTimingScannerDenial(array $timed): array {
+    $state = (string) ($timed['scanner']['state'] ?? 'expired');
+    if ($state === 'not_started') {
+      return [
+        'allow' => FALSE,
+        'result_token' => 'invalid',
+        'message' => 'Entry is not open yet.',
+      ];
+    }
+    if ($state === 'early') {
+      return [
+        'allow' => FALSE,
+        'result_token' => 'invalid',
+        'message' => 'Entry is not valid yet.',
+      ];
+    }
+
+    return [
+      'allow' => FALSE,
+      'result_token' => 'expired',
+      'message' => 'Entitlement has expired.',
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $session
+   *
+   * @return array{allow: bool, result_token: string, message: string}
+   */
+  private function mapSessionScannerDenial(array $session): array {
+    $reason = (string) ($session['scanner']['reason'] ?? '');
+    if ($reason === 'sequence_previous_missing') {
+      return [
+        'allow' => FALSE,
+        'result_token' => 'invalid',
+        'message' => 'Operational sequence not satisfied.',
+      ];
+    }
+
+    return [
+      'allow' => FALSE,
+      'result_token' => 'redemption_limit_reached',
+      'message' => 'Redemption limit has already been reached.',
+    ];
   }
 
 }
