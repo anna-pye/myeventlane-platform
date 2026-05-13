@@ -166,13 +166,22 @@ final class VenueOperationPolicyManager {
   public function evaluateTimedEntryForScan(Ticket $ticket, int $now, ?int $parsed_qr_expires_at): array {
     $timed = $this->timedEntryPolicyManager->evaluate($ticket, $now, $parsed_qr_expires_at);
     $session = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, $parsed_qr_expires_at, $timed);
+
+    if (!is_array($timed['scanner'] ?? NULL)) {
+      $timed['scanner'] = [];
+    }
+    if (!is_array($session['scanner'] ?? NULL)) {
+      $session['scanner'] = [];
+    }
+
     $policy = [
       'timed_entry' => $timed,
       'session_entitlement' => $session,
     ];
 
-    $timing_ok = (bool) ($timed['scanner']['allowed_now'] ?? TRUE);
-    $session_ok = (bool) ($session['scanner']['allowed_now'] ?? TRUE);
+    // Fail closed: missing or malformed scanner slices must not admit.
+    $timing_ok = (bool) ($timed['scanner']['allowed_now'] ?? FALSE);
+    $session_ok = (bool) ($session['scanner']['allowed_now'] ?? FALSE);
     if ($timing_ok && $session_ok) {
       return [
         'allow' => TRUE,
