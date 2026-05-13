@@ -6,6 +6,10 @@ namespace Drupal\myeventlane_tickets\Service;
 
 /**
  * Backwards-compatible entry point for ticket scanner callers.
+ *
+ * Scanner behaviour is implemented by mel_scanner.operation_manager
+ * (ScannerOperationManager), which composes EntitlementCapabilityRegistry and
+ * VenueOperationPolicyManager for gate policy and audit integrity metadata.
  */
 final class TicketCheckinService {
 

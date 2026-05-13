@@ -282,7 +282,9 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
     $this->assertSame('valid', $diag['artifacts']['attachment_continuity']);
     $this->assertSame('valid', $diag['artifacts']['qr_payload_operational']);
     $this->assertArrayHasKey('entitlement_capability_policy', $diag['artifacts']);
+    $this->assertArrayHasKey('venue_operation_policy', $diag['artifacts']);
     $this->assertSame('admit', $diag['artifacts']['entitlement_capability_policy']['ticket']['scanner_mode']);
+    $this->assertSame('admission', $diag['artifacts']['venue_operation_policy']['ticket']['gate_semantics']['gate_family']);
   }
 
   /**
@@ -412,6 +414,7 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
       $this->container->get('myeventlane_tickets.ticket_qr_payload'),
       $this->container->get('mel_ticket_capability.manager'),
       $this->container->get('myeventlane_tickets.entitlement_capability_registry'),
+      $this->container->get('myeventlane_tickets.venue_operation_policy_manager'),
       $this->container->get('state'),
       $this->container->get('logger.channel.myeventlane_tickets'),
       $this->container->get('myeventlane_wallet.ticket_resolver'),
