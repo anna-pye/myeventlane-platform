@@ -27,6 +27,7 @@ final class UniversalTicketViewModelBuilder {
     private readonly TimeInterface $time,
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
+    private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
   ) {}
 
   /**
@@ -52,6 +53,8 @@ final class UniversalTicketViewModelBuilder {
     $now = $this->time->getCurrentTime();
     $timed_entry = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
     $session_entitlement = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed_entry);
+    $zone_access = $this->zoneAccessPolicyManager->normalizeOperationalZonesMetadata($ticket);
+    $topology = $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed_entry, $session_entitlement);
 
     return [
       'ticket' => [
@@ -111,6 +114,18 @@ final class UniversalTicketViewModelBuilder {
       ],
       'timed_entry' => $timed_entry,
       'session_entitlement' => $session_entitlement,
+      'zone_access' => $zone_access,
+      'topology' => $topology,
+      'gate_groups' => $zone_access['gate_groups'] ?? [],
+      'reentry' => [
+        'zone_default' => $zone_access['reentry_allowed_default'] ?? NULL,
+        'zone_by_zone' => $zone_access['reentry_by_zone'] ?? [],
+        'session_reentry_allowed' => (bool) ($session_entitlement['redemption']['reentry_allowed'] ?? FALSE),
+      ],
+      'progression' => [
+        'zone_order' => $zone_access['progression_order'] ?? [],
+        'session' => $session_entitlement['progression'] ?? [],
+      ],
     ];
   }
 

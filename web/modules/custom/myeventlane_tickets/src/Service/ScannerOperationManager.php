@@ -129,10 +129,11 @@ final class ScannerOperationManager {
     }
 
     $parsed_qr_expires_at = isset($parsed['expires_at']) ? (int) $parsed['expires_at'] : NULL;
-    $timed_gate = $this->venueOperationPolicyManager->evaluateTimedEntryForScan(
+    $timed_gate = $this->venueOperationPolicyManager->evaluateZoneAccessForScan(
       $ticket,
       $this->time->getCurrentTime(),
       $parsed_qr_expires_at > 0 ? $parsed_qr_expires_at : NULL,
+      NULL,
     );
     if (!$timed_gate['allow']) {
       $result = $this->result(

@@ -41,6 +41,7 @@ final class OperationalIntegrityInspector {
     private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
+    private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
     private readonly TimeInterface $time,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
@@ -62,8 +63,10 @@ final class OperationalIntegrityInspector {
  * Artifacts include `venue_operation_policy` (machine-only venue gate
  * diagnostics derived from EntitlementCapabilityRegistry and
  * VenueOperationPolicyManager), `timed_entry_policy` (per-ticket timing from
- * TimedEntryPolicyManager), and `session_entitlement_policy` (per-ticket
- * session / progression snapshots from SessionEntitlementPolicyManager).
+ * TimedEntryPolicyManager), `session_entitlement_policy` (per-ticket
+ * session / progression snapshots from SessionEntitlementPolicyManager), and
+ * `zone_access_topology` (per-ticket zone topology summaries from
+ * ZoneAccessPolicyManager).
    */
   public function inspectOrder(OrderInterface $order): array {
     $orderId = (int) $order->id();
@@ -131,6 +134,7 @@ final class OperationalIntegrityInspector {
         'venue_operation_policy' => [],
         'timed_entry_policy' => [],
         'session_entitlement_policy' => [],
+        'zone_access_topology' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -210,6 +214,7 @@ final class OperationalIntegrityInspector {
         'venue_operation_policy' => [],
         'timed_entry_policy' => [],
         'session_entitlement_policy' => [],
+        'zone_access_topology' => [],
       ];
     }
 
@@ -225,6 +230,7 @@ final class OperationalIntegrityInspector {
     $venue_policy = $this->buildVenueOperationPolicyDigest($tickets);
     $timed_entry_policy = $this->buildTimedEntryDiagnosticsByTicket($tickets);
     $session_entitlement_policy = $this->buildSessionEntitlementDiagnosticsByTicket($tickets);
+    $zone_access_topology = $this->buildZoneAccessTopologyDiagnosticsByTicket($tickets);
 
     foreach ($tickets as $ticket) {
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
@@ -261,7 +267,21 @@ final class OperationalIntegrityInspector {
       'venue_operation_policy' => $venue_policy,
       'timed_entry_policy' => $timed_entry_policy,
       'session_entitlement_policy' => $session_entitlement_policy,
+      'zone_access_topology' => $zone_access_topology,
     ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildZoneAccessTopologyDiagnosticsByTicket(array $tickets): array {
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $out[(string) $ticket->id()] = $this->zoneAccessPolicyManager->summarizeZoneInspection($ticket);
+    }
+    return $out;
   }
 
   /**
@@ -331,6 +351,7 @@ final class OperationalIntegrityInspector {
         'offline_eligible' => (bool) ($descriptor['offline_eligible'] ?? FALSE),
         'replay_state' => !empty($descriptor['replay_protected']) ? 'protected' : 'unknown',
         'conflict_policy' => (string) ($descriptor['conflict_policy'] ?? ''),
+        'zone_conflict_policy' => (string) ($descriptor['zone_conflict_policy'] ?? ''),
         'requires_online_validation' => (bool) ($descriptor['requires_online_validation'] ?? FALSE),
       ];
     }

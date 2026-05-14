@@ -89,6 +89,15 @@ services:
       - '@myeventlane_tickets.entitlement_capability_registry'
       - '@mel_ticket_capability.manager'
 
+  myeventlane_tickets.zone_access_policy_manager:
+    class: Drupal\myeventlane_tickets\Service\ZoneAccessPolicyManager
+    arguments:
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@mel_ticket_capability.manager'
+      - '@myeventlane_tickets.timed_entry_policy_manager'
+      - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@datetime.time'
+
   myeventlane_tickets.venue_operation_policy_manager:
     class: Drupal\myeventlane_tickets\Service\VenueOperationPolicyManager
     arguments:
@@ -97,6 +106,7 @@ services:
       - '@datetime.time'
       - '@myeventlane_tickets.timed_entry_policy_manager'
       - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
 
   mel_ticket_capability.manager:
     class: Drupal\myeventlane_tickets\Service\TicketCapabilityManager
@@ -144,6 +154,7 @@ services:
       - '@datetime.time'
       - '@myeventlane_tickets.timed_entry_policy_manager'
       - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
 
   myeventlane_tickets.ticket_mailer:
     class: Drupal\myeventlane_tickets\Service\TicketMailer
@@ -195,6 +206,7 @@ services:
       - '@myeventlane_tickets.venue_operation_policy_manager'
       - '@myeventlane_tickets.timed_entry_policy_manager'
       - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
       - '@datetime.time'
       - '@state'
       - '@logger.channel.myeventlane_tickets'

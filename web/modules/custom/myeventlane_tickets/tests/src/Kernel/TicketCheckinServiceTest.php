@@ -316,6 +316,9 @@ final class TicketCheckinServiceTest extends KernelTestBase {
     $this->assertIsArray($integrity);
     $this->assertStringStartsWith('op_', (string) ($integrity['operation_id'] ?? ''));
     $this->assertArrayHasKey('replay_token', $integrity);
+    $policy = $meta['operational_scan_policy'];
+    $this->assertIsArray($policy);
+    $this->assertArrayHasKey('zone_access', $policy);
   }
 
   /**

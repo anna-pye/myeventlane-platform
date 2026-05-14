@@ -129,6 +129,29 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertArrayHasKey('session_state', $model['scanner']);
   }
 
+  public function testExposesZoneAccessTopologyReadOnly(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-ZONE-VIEW-1',
+      'metadata_json' => [
+        'mel_operational_zones' => [
+          'allowed_zones' => ['main_floor'],
+          'progression_order' => ['main_floor', 'balcony'],
+          'gate_groups' => ['entrance_a' => 'main_floor'],
+        ],
+      ],
+    ]);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayHasKey('zone_access', $model);
+    $this->assertArrayHasKey('topology', $model);
+    $this->assertArrayHasKey('gate_groups', $model);
+    $this->assertArrayHasKey('reentry', $model);
+    $this->assertArrayHasKey('progression', $model);
+    $this->assertSame(['main_floor', 'balcony'], $model['progression']['zone_order']);
+    $this->assertArrayHasKey('session', $model['progression']);
+    $encoded = json_encode($model['topology']) ?: '';
+    $this->assertStringNotContainsString('replay_token', $encoded);
+  }
+
   public function testBuildsAdmissionTicketModel(): void {
     $ticket = $this->createTicket([
       'ticket_code' => 'MEL-VIEW-0001',

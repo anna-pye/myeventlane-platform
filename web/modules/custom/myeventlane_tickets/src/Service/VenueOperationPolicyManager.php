@@ -55,6 +55,7 @@ final class VenueOperationPolicyManager {
     private readonly TimeInterface $time,
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
+    private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
   ) {}
 
   /**
@@ -134,6 +135,8 @@ final class VenueOperationPolicyManager {
       'idempotent_validate_family' => $this->idempotentValidateFamily($map),
       'timed_entry' => $timed,
       'session_entitlement' => $session,
+      'zone_topology' => $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed, $session),
+      'zone_conflict_policy' => $this->normalizeZoneConflictPolicy($ticket),
     ];
   }
 
@@ -196,6 +199,78 @@ final class VenueOperationPolicyManager {
     }
 
     return $this->mapSessionScannerDenial($session) + ['policy' => $policy];
+  }
+
+  /**
+   * Composes timed entry, session entitlement, and zone topology gates.
+   *
+   * @return array<string, mixed>
+   *   Keys: allow (bool), result_token (string), message (string), policy (array).
+   */
+  public function evaluateZoneAccessForScan(
+    Ticket $ticket,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    ?string $requested_zone_id = NULL,
+  ): array {
+    $composition = $this->evaluateTimedEntryForScan($ticket, $now, $parsed_qr_expires_at);
+    if (!$composition['allow']) {
+      return $composition;
+    }
+
+    $timed = $composition['policy']['timed_entry'] ?? [];
+    $session = $composition['policy']['session_entitlement'] ?? [];
+    $requested = $requested_zone_id !== NULL && trim($requested_zone_id) !== '' ? trim($requested_zone_id) : NULL;
+
+    $zone = $this->zoneAccessPolicyManager->evaluateZoneAccessForComposition(
+      $ticket,
+      $requested,
+      is_array($timed) ? $timed : [],
+      is_array($session) ? $session : [],
+    );
+
+    if (!$zone['allow']) {
+      return [
+        'allow' => FALSE,
+        'result_token' => $zone['result_token'],
+        'message' => $zone['message'],
+        'policy' => [
+          'timed_entry' => $composition['policy']['timed_entry'],
+          'session_entitlement' => $composition['policy']['session_entitlement'],
+          'zone_access' => $zone['policy'],
+        ],
+      ];
+    }
+
+    return [
+      'allow' => TRUE,
+      'result_token' => '',
+      'message' => '',
+      'policy' => [
+        'timed_entry' => $composition['policy']['timed_entry'],
+        'session_entitlement' => $composition['policy']['session_entitlement'],
+        'zone_access' => $zone['policy'],
+      ],
+    ];
+  }
+
+  /**
+   * Machine-only zone topology descriptor (inward composition).
+   *
+   * @return array<string, mixed>
+   */
+  public function buildZoneTopologyDescriptor(Ticket $ticket): array {
+    $now = $this->time->getCurrentTime();
+    $timed = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
+    $session = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed);
+    return $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed, $session);
+  }
+
+  /**
+   * Normalizes zone-layer conflict policy for integrity scaffolding.
+   */
+  public function normalizeZoneConflictPolicy(Ticket $ticket): string {
+    return $this->zoneAccessPolicyManager->describeConflictPolicyToken($ticket);
   }
 
   /**

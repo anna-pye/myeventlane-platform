@@ -16,8 +16,8 @@ Interpretation order for scanner timing and session gating:
 
 1. **`TimedEntryPolicyManager::evaluate()`** — sole authority for machine timing policy (no translated strings, no UI labels).
 2. **`SessionEntitlementPolicyManager::buildNormalizedPayload()`** — sole authority for session / sequencing / exhaustion semantics; receives the timed snapshot for shared `session_key` / capacity hints only.
-3. **`VenueOperationPolicyManager::evaluateTimedEntryForScan()`** — composes timing + session scanner slices into one `allow` decision, existing `result_token` values, and staff `message` strings; attaches `policy` metadata for audits.
-4. **`ScannerOperationManager`** — applies the venue gate before operational mutation paths; does not implement parallel window, session, or sequencing rules.
+3. **`VenueOperationPolicyManager::evaluateZoneAccessForScan()`** — composes timing + session + zone topology into one `allow` decision, existing `result_token` values, and staff `message` strings; attaches `policy` metadata for audits (see [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md), [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)). Narrow timed+session-only diagnostics may still call **`evaluateTimedEntryForScan()`**.
+4. **`ScannerOperationManager`** — applies the venue gate before operational mutation paths; does not implement parallel window, session, sequencing, or zone rules.
 
 ## Normalized policy shape
 
@@ -118,3 +118,4 @@ Read-only guarantees from [operational-observability.md](./operational-observabi
 - [operational-observability.md](./operational-observability.md) — diagnostics domains
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — registry delegation
 - [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md) — session, sequencing, and multi-use orchestration
+- [zone-access-topology-convergence.md](./zone-access-topology-convergence.md) — zone topology composition on the scan path

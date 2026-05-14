@@ -13,10 +13,15 @@ This phase introduces a **single venue operation policy layer** for ticket-backe
 | Venue gate policy, offline scaffolding metadata, replay fingerprints | `myeventlane_tickets.venue_operation_policy_manager` | `VenueOperationPolicyManager` |
 | Operational timing (entry windows, grace, session/capacity semantics) | `myeventlane_tickets.timed_entry_policy_manager` | `TimedEntryPolicyManager` |
 | Session / multi-use / sequencing / bundle semantics | `myeventlane_tickets.session_entitlement_policy_manager` | `SessionEntitlementPolicyManager` |
+| Zone / access topology (metadata-only gates, topology descriptors) | `myeventlane_tickets.zone_access_policy_manager` | `ZoneAccessPolicyManager` |
 | Scanner orchestration (QR parse, mutations, audit) | `mel_scanner.operation_manager` | `ScannerOperationManager` |
 | Staff/API entry point | `myeventlane_tickets.ticket_checkin_service` | `TicketCheckinService` |
 
-`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry** and **session entitlement** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`** and **`SessionEntitlementPolicyManager`**), and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`, optional `operational_scan_policy` snapshot when the composed gate produced policy metadata).
+`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry**, **session entitlement**, and **zone access topology** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`**, **`SessionEntitlementPolicyManager`**, and **`ZoneAccessPolicyManager`**), and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`, optional `operational_scan_policy` snapshot when the composed gate produced policy metadata).
+
+## Zone and access topology (Phase 2G)
+
+Operational zone lists, progression order, gate grouping hints, and topology descriptors are owned by **`ZoneAccessPolicyManager`**. **`VenueOperationPolicyManager::evaluateZoneAccessForScan()`** is the canonical scan-time composer for timing + session + zone; scanners call it (not parallel zone heuristics). Details: [zone-access-topology-convergence.md](./zone-access-topology-convergence.md).
 
 ## Operational action authority
 
@@ -58,13 +63,14 @@ This phase adds **non-authoritative scaffolding**:
 
 ## Observability
 
-`OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector remains **read-only**.
+`OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector adds **`artifacts.zone_access_topology`** (per ticket id: topology summaries, gate policy counts, progression/re-entry semantics, structural zone conflicts). The inspector remains **read-only**.
 
 ## Anti-patterns (forbidden)
 
 - Scanner-specific entitlement `switch` / parallel action maps outside `EntitlementCapabilityRegistry` and `VenueOperationPolicyManager`
 - Parallel timing / entry-window logic outside `TimedEntryPolicyManager` (scanners must not own clock policy)
 - Parallel session, sequencing, or multi-use exhaustion logic outside `SessionEntitlementPolicyManager` / `VenueOperationPolicyManager`
+- Parallel zone allow/deny/progression logic outside `ZoneAccessPolicyManager` / `VenueOperationPolicyManager`
 - Entitlement logic that bypasses `EntitlementCapabilityRegistry` for operational policy
 - A second replay-detection implementation that contradicts persisted ticket state checks
 - Offline-only entitlement rules that are not also enforced on the online scanner path
@@ -76,4 +82,4 @@ This phase adds **non-authoritative scaffolding**:
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)
-- [issuance-pipeline.md](./issuance-pipeline.md)
+- [zone-access-topology-convergence.md](./zone-access-topology-convergence.md) — metadata-only zone topology authority
