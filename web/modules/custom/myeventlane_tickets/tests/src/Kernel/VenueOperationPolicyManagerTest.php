@@ -322,6 +322,36 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertArrayHasKey('timed_scanner', $desc);
   }
 
+  public function testEvaluateOperationalContinuityIncludesMachineContinuity(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_continuity' => [
+          'continuity_epoch' => 2,
+          'reconciliation_strategy' => 'strict_first',
+        ],
+      ],
+    ]);
+    $raw = ['mel_operational_device' => ['device_id' => 'd1']];
+    $bundle = $this->policy()->evaluateOperationalContinuity($ticket, $raw, time(), NULL, NULL);
+    $this->assertArrayHasKey('operational_continuity', $bundle);
+    $this->assertSame(2, $bundle['operational_continuity']['reconciliation']['continuity_epoch'] ?? NULL);
+    $this->assertSame('strict_first', $bundle['operational_continuity']['reconciliation']['reconciliation_strategy'] ?? '');
+  }
+
+  public function testNormalizeReconciliationPolicyDelegates(): void {
+    $norm = $this->policy()->normalizeReconciliationPolicy([
+      'mel_operational_continuity' => ['sync_hint' => 'timeboxed'],
+    ]);
+    $this->assertSame('timeboxed_replay', $norm['sync_hint']);
+  }
+
+  public function testBuildContinuityDescriptorDelegates(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $desc = $this->policy()->buildContinuityDescriptor($ticket, 'online');
+    $this->assertArrayHasKey('reconciliation', $desc);
+    $this->assertArrayHasKey('replay_continuity', $desc);
+  }
+
   private function policy(): VenueOperationPolicyManager {
     return $this->container->get('myeventlane_tickets.venue_operation_policy_manager');
   }

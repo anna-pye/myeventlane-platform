@@ -29,6 +29,7 @@ final class UniversalTicketViewModelBuilder {
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
     private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
+    private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
   ) {}
 
   /**
@@ -132,6 +133,7 @@ final class UniversalTicketViewModelBuilder {
     if ($operational_identity !== []) {
       $model['operational_identity'] = $operational_identity;
     }
+    $model['continuity'] = $this->operationalContinuityPolicyManager->buildCustomerSafeContinuityProjection($ticket);
     return $model;
   }
 

@@ -57,6 +57,7 @@ final class VenueOperationPolicyManager {
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
     private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
+    private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
   ) {}
 
   /**
@@ -127,7 +128,7 @@ final class VenueOperationPolicyManager {
     return [
       'operation_type' => $gate_action,
       'entitlement_type' => $type,
-      'offline_eligible' => $this->offlineEligible($map, $mode),
+      'offline_eligible' => $this->operationalContinuityPolicyManager->evaluateOfflineEligibilityScaffold($map, $mode),
       'requires_online_validation' => FALSE,
       'conflict_policy' => $this->conflictPolicy($type, $map),
       'multi_use' => (bool) $map['multi_use'],
@@ -145,17 +146,7 @@ final class VenueOperationPolicyManager {
    * Maps an existing scanner/API result token to a normalized operation label.
    */
   public function normalizeScannerResultToken(string $scanner_result_token): string {
-    return match ($scanner_result_token) {
-      'admitted' => self::OPERATION_ADMIT,
-      'redeemed' => self::OPERATION_REDEEM,
-      'collected' => self::OPERATION_COLLECT,
-      'validated' => self::OPERATION_VALIDATE,
-      'verified' => self::OPERATION_VERIFY,
-      'expired' => self::OPERATION_EXPIRED,
-      'already_checked_in', 'redemption_limit_reached' => self::OPERATION_ALREADY_USED,
-      'duplicate', 'duplicate_operation' => self::OPERATION_DUPLICATE,
-      default => self::OPERATION_DENY,
-    };
+    return $this->operationalContinuityPolicyManager->normalizeScannerResultToken($scanner_result_token);
   }
 
   /**
@@ -303,6 +294,66 @@ final class VenueOperationPolicyManager {
   }
 
   /**
+   * Orchestrates operational identity with canonical continuity metadata.
+   *
+   * @param array<string, mixed> $raw_operational_context
+   *
+   * @return array<string, mixed>
+   *   Keys: scan_gate, checkpoint_descriptor, operational_identity, operational_continuity.
+   */
+  public function evaluateOperationalContinuity(
+    Ticket $ticket,
+    array $raw_operational_context,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    ?string $requested_zone_id = NULL,
+  ): array {
+    $bundle = $this->evaluateOperationalIdentity(
+      $ticket,
+      $raw_operational_context,
+      $now,
+      $parsed_qr_expires_at,
+      $requested_zone_id,
+    );
+    $normalized_identity = is_array($bundle['operational_identity']['normalized'] ?? NULL)
+      ? $bundle['operational_identity']['normalized']
+      : [];
+    $ledger_mode = !empty($normalized_identity['offline_mode']) ? 'offline' : 'online';
+    $continuity = $this->operationalContinuityPolicyManager->buildMachineSafeContinuityPayload(
+      $ticket,
+      $raw_operational_context,
+      $normalized_identity,
+      is_array($bundle['scan_gate']['policy'] ?? NULL) ? $bundle['scan_gate']['policy'] : [],
+      $ledger_mode,
+      $parsed_qr_expires_at !== NULL && $parsed_qr_expires_at > 0 ? $parsed_qr_expires_at : NULL,
+    );
+
+    return $bundle + [
+      'operational_continuity' => $continuity,
+    ];
+  }
+
+  /**
+   * Normalizes raw continuity / reconciliation material for callers.
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public function normalizeReconciliationPolicy(array $raw): array {
+    return $this->operationalContinuityPolicyManager->normalizeReconciliationMetadata($raw);
+  }
+
+  /**
+   * Builds a continuity descriptor (timed + session + zone + reconciliation).
+   *
+   * @return array<string, mixed>
+   */
+  public function buildContinuityDescriptor(Ticket $ticket, string $mode = 'online'): array {
+    return $this->operationalContinuityPolicyManager->buildContinuityDescriptor($ticket, $mode);
+  }
+
+  /**
    * Normalizes device trust labels for policy orchestration (metadata-only).
    *
    * @return array<string, mixed>
@@ -393,24 +444,7 @@ final class VenueOperationPolicyManager {
    * @return array<string, mixed>
    */
   public function interpretDenial(?Ticket $ticket, string $scanner_result_token): array {
-    $normalized = $this->normalizeScannerResultToken($scanner_result_token);
-    $gate_action = $ticket instanceof Ticket ? $this->resolveGateAction($ticket) : '';
-    $type = $ticket instanceof Ticket ? $this->ticketCapabilityManager->getEntitlementType($ticket) : '';
-
-    return [
-      'normalized_operation' => $normalized,
-      'scanner_result' => $scanner_result_token,
-      'gate_action' => $gate_action,
-      'entitlement_type' => $type,
-      'conflict' => match ($scanner_result_token) {
-        'already_checked_in' => 'admission_replay',
-        'redemption_limit_reached' => 'redemption_exhausted',
-        'expired' => 'entitlement_expired',
-        'wrong_event', 'invalid' => 'scope_or_integrity',
-        'void', 'refunded' => 'entitlement_revoked',
-        default => 'operational_deny',
-      },
-    ];
+    return $this->operationalContinuityPolicyManager->interpretScannerDenial($ticket, $scanner_result_token);
   }
 
   /**
@@ -487,7 +521,7 @@ final class VenueOperationPolicyManager {
       'redemption_count_after' => $redemption_count_after,
       'multi_use' => (bool) $map['multi_use'],
       'conflict_policy' => $this->conflictPolicy($type, $map),
-      'offline_eligible' => $this->offlineEligible($map, 'online'),
+      'offline_eligible' => $this->operationalContinuityPolicyManager->evaluateOfflineEligibilityScaffold($map, 'online'),
       'requires_online_validation' => FALSE,
       'replay_protected' => TRUE,
     ];
@@ -501,18 +535,6 @@ final class VenueOperationPolicyManager {
     string $fingerprint_b,
   ): bool {
     return $fingerprint_a !== '' && strcasecmp($fingerprint_a, $fingerprint_b) === 0;
-  }
-
-  /**
-   * @param array<string, mixed> $map
-   */
-  private function offlineEligible(array $map, string $mode): bool {
-    if (!in_array($mode, ['online', 'offline'], TRUE)) {
-      return FALSE;
-    }
-    // Current spine resolves state from persisted ticket rows and QR integrity
-    // only; no live Commerce calls on the scan path — safe offline scaffold.
-    return TRUE;
   }
 
   /**

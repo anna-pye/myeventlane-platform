@@ -130,16 +130,17 @@ final class ScannerOperationManager {
     }
 
     $parsed_qr_expires_at = isset($parsed['expires_at']) ? (int) $parsed['expires_at'] : NULL;
+    $parsed_qr_exp_arg = ($parsed_qr_expires_at !== NULL && $parsed_qr_expires_at > 0) ? $parsed_qr_expires_at : NULL;
     $raw_operational = $this->deviceOperationIdentityManager->mergeOperationalContextFromTicket(
       $ticket,
       is_array($operational_context) ? $operational_context : [],
       ['device_id' => $this->normalizeDeviceId($device_id)],
     );
-    $op_eval = $this->venueOperationPolicyManager->evaluateOperationalIdentity(
+    $op_eval = $this->venueOperationPolicyManager->evaluateOperationalContinuity(
       $ticket,
       $raw_operational,
       $this->time->getCurrentTime(),
-      $parsed_qr_expires_at > 0 ? $parsed_qr_expires_at : NULL,
+      $parsed_qr_exp_arg,
       NULL,
     );
     $timed_gate = $op_eval['scan_gate'];
@@ -147,6 +148,7 @@ final class ScannerOperationManager {
     if (isset($op_eval['checkpoint_descriptor']) && is_array($op_eval['checkpoint_descriptor'])) {
       $operational_identity_bundle['checkpoint_descriptor'] = $op_eval['checkpoint_descriptor'];
     }
+    $operational_continuity_audit = is_array($op_eval['operational_continuity'] ?? NULL) ? $op_eval['operational_continuity'] : [];
     if (!$timed_gate['allow']) {
       $result = $this->result(
         FALSE,
@@ -169,6 +171,7 @@ final class ScannerOperationManager {
         NULL,
         $timed_gate['policy'] ?? NULL,
         $operational_identity_bundle,
+        $operational_continuity_audit,
       );
       return $result;
     }
@@ -190,6 +193,7 @@ final class ScannerOperationManager {
         NULL,
         $timed_gate['policy'] ?? NULL,
         $operational_identity_bundle,
+        $operational_continuity_audit,
       );
       return $result;
     }
@@ -203,6 +207,7 @@ final class ScannerOperationManager {
       $payload_sha256,
       $timed_gate['policy'] ?? [],
       $operational_identity_bundle,
+      $operational_continuity_audit,
     );
   }
 
@@ -212,7 +217,7 @@ final class ScannerOperationManager {
    * @return array<string, mixed>
    *   Scanner response.
    */
-  private function executeOperation(int $route_event_id, Ticket $ticket, string $device_id, string $mode, string $normalized_input, string $payload_sha256, array $operational_scan_policy = [], ?array $operational_identity_bundle = NULL): array {
+  private function executeOperation(int $route_event_id, Ticket $ticket, string $device_id, string $mode, string $normalized_input, string $payload_sha256, array $operational_scan_policy = [], ?array $operational_identity_bundle = NULL, array $operational_continuity_audit = []): array {
     $action = $this->resolveAction($ticket);
     $redemption_before = $ticket->getRedemptionCount();
 
@@ -238,7 +243,7 @@ final class ScannerOperationManager {
       $message = self::SUCCESS_MESSAGE_BY_ACTION[$action] ?? 'Scanned.';
       $result = $this->result(TRUE, $result_token, $message, (string) $ticket->get('ticket_code')->value, $now, (int) $ticket->id());
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
-      $this->logRedemptionAudit($ticket, $action, $device_id, TRUE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_after, $operational_scan_policy, $operational_identity_bundle);
+      $this->logRedemptionAudit($ticket, $action, $device_id, TRUE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_after, $operational_scan_policy, $operational_identity_bundle, $operational_continuity_audit);
       return $result;
     }
     catch (\Throwable $e) {
@@ -250,7 +255,7 @@ final class ScannerOperationManager {
       ]);
       $result = $this->result(FALSE, 'error', "Scan couldn't be completed. Try again or use manual review.", (string) $ticket->get('ticket_code')->value);
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
-      $this->logRedemptionAudit($ticket, $action, $device_id, FALSE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_before, $operational_scan_policy, $operational_identity_bundle);
+      $this->logRedemptionAudit($ticket, $action, $device_id, FALSE, $result['result'], $result['message'], $payload_sha256, $redemption_before, $redemption_before, $operational_scan_policy, $operational_identity_bundle, $operational_continuity_audit);
       return $result;
     }
   }
@@ -288,6 +293,7 @@ final class ScannerOperationManager {
     ?int $redemption_count_after = NULL,
     ?array $operational_scan_policy = NULL,
     ?array $operational_identity_bundle = NULL,
+    array $operational_continuity_audit = [],
   ): void {
     if (!$this->entityTypeManager->hasDefinition('mel_redemption_log')) {
       return;
@@ -326,6 +332,13 @@ final class ScannerOperationManager {
       ];
       if ($operational_scan_policy !== NULL && $operational_scan_policy !== []) {
         $metadata['operational_scan_policy'] = $operational_scan_policy;
+      }
+      if ($operational_continuity_audit !== []) {
+        $continuity_payload = $operational_continuity_audit;
+        if (!$ok) {
+          $continuity_payload['denial_conflict_descriptor'] = $this->venueOperationPolicyManager->interpretDenial($ticket, $result);
+        }
+        $metadata['operational_continuity'] = $continuity_payload;
       }
       if (is_array($operational_identity_bundle) && $operational_identity_bundle !== []) {
         $metadata['operational_identity'] = [

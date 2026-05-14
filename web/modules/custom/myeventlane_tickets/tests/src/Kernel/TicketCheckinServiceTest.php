@@ -359,6 +359,41 @@ final class TicketCheckinServiceTest extends KernelTestBase {
   }
 
   /**
+   * Redemption audit includes operational continuity staff payload.
+   *
+   * @group continuity
+   */
+  public function testRedemptionAuditIncludesOperationalContinuity(): void {
+    $this->installEntitySchema('mel_redemption_log');
+    $ticket = $this->createTicket('MEL-OC-AUDIT-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
+      'redemption_limit' => 2,
+      'metadata_json' => [
+        'mel_operational_continuity' => [
+          'continuity_epoch' => 7,
+          'sync_hint' => 'batch_upload',
+        ],
+      ],
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-oc-audit', 'online', []);
+    $this->assertTrue($result['ok']);
+    $storage = $this->container->get('entity_type.manager')->getStorage('mel_redemption_log');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('ticket_id', (int) $ticket->id())
+      ->sort('id', 'DESC')
+      ->range(0, 1)
+      ->execute();
+    $log = $storage->load((int) reset($ids));
+    $meta = $log->get('metadata_json')->first()->getValue();
+    $this->assertArrayHasKey('operational_continuity', $meta);
+    $this->assertSame(7, $meta['operational_continuity']['reconciliation']['continuity_epoch'] ?? NULL);
+    $this->assertArrayHasKey('reconciliation_fingerprint', $meta['operational_continuity']);
+  }
+
+  /**
    * @covers \Drupal\myeventlane_tickets\Service\ScannerOperationManager::process
    */
   public function testScannerProcessResultShapeStableWithOperationalContext(): void {

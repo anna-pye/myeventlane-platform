@@ -9,10 +9,11 @@ This phase adds a **metadata-only operational identity layer** for scanner devic
 | Responsibility | Service ID | Class |
 | --- | --- | --- |
 | Normalize device / operator / checkpoint metadata; public vs staff descriptors; replay-safe device fingerprints | `myeventlane_tickets.device_operation_identity_manager` | `DeviceOperationIdentityManager` |
-| Orchestrate identity with timing, session, zone, and entitlement composition on the scan path | `myeventlane_tickets.venue_operation_policy_manager` | `VenueOperationPolicyManager` |
+| Operational continuity / reconciliation metadata normalization; deterministic continuity fingerprints; customer-safe continuity projection | `myeventlane_tickets.operational_continuity_policy_manager` | `OperationalContinuityPolicyManager` |
+| Orchestrate identity + continuity with timing, session, zone, and entitlement composition on the scan path | `myeventlane_tickets.venue_operation_policy_manager` | `VenueOperationPolicyManager` |
 | Scanner orchestration (unchanged public JSON result contract) | `mel_scanner.operation_manager` | `ScannerOperationManager` |
 
-**VenueOperationPolicyManager** is the **canonical operational identity orchestrator** for scan-time composition. It **must not** reimplement timing, session, zone topology, or entitlement maps; it delegates to `TimedEntryPolicyManager`, `SessionEntitlementPolicyManager`, `ZoneAccessPolicyManager`, `EntitlementCapabilityRegistry`, and `TicketCapabilityManager`, and uses `DeviceOperationIdentityManager` for descriptor material only.
+**VenueOperationPolicyManager** is the **canonical operational identity and continuity orchestrator** for scan-time composition. It **must not** reimplement timing, session, zone topology, entitlement maps, or continuity normalization; it delegates to `TimedEntryPolicyManager`, `SessionEntitlementPolicyManager`, `ZoneAccessPolicyManager`, `EntitlementCapabilityRegistry`, `TicketCapabilityManager`, `DeviceOperationIdentityManager`, and `OperationalContinuityPolicyManager`.
 
 ## Supported metadata
 
@@ -32,6 +33,7 @@ Supported scalar fields (normalized, machine-oriented):
 | Surface | May include | Must not include |
 | --- | --- | --- |
 | Customer / universal ticket view model `operational_identity` (when present) | Sanitized `checkpoint`, `trust_category`, `scan_mode`, `offline_capable`, `operational_identity_version` | Operator IDs, gate topology internals, replay fingerprints, reconciliation hashes, HMAC / replay tokens |
+| Customer / universal ticket view model `continuity` (always present) | `offline_capable`, `continuity_mode`, `reconciliation_hint` (coarse, non-secret hints) | Fingerprints, descriptor tokens, internal topology, operator identifiers |
 | `mel_redemption_log.metadata_json.operational_identity.public_summary` | Same customer-safe subset | Operator IDs, fingerprints |
 | `mel_redemption_log.metadata_json.operational_identity.staff_integrity_identity` | Operator attribution, `device_fingerprint`, gate/checkpoint IDs for audits | N/A (staff-side storage only; not returned on public scanner JSON) |
 | `OperationalIntegrityInspector` `artifacts.operational_identity` | Diagnostics, masked operator suffix, fingerprints | Not applicable to customer routes (inspector is staff/diagnostic only) |
@@ -47,8 +49,8 @@ Supported scalar fields (normalized, machine-oriented):
 ## Composition flow (scanner)
 
 1. `ScannerOperationManager` merges ticket `metadata_json` operational device blobs with optional request `mel_operational_device` / `operational_device` (see `TicketCheckinApiController`).
-2. `VenueOperationPolicyManager::evaluateOperationalIdentity()` normalizes identity, applies **effective zone** from `zone_id` when present, and calls existing `evaluateZoneAccessForScan()` once.
-3. Audit rows include `operational_identity` alongside existing `venue_operation_integrity` and optional `operational_scan_policy` snapshots.
+2. `VenueOperationPolicyManager::evaluateOperationalContinuity()` normalizes identity, applies **effective zone** from `zone_id` when present, calls existing `evaluateZoneAccessForScan()` once, and attaches **`OperationalContinuityPolicyManager`** machine payloads.
+3. Audit rows include `operational_identity` and `operational_continuity` alongside existing `venue_operation_integrity` and optional `operational_scan_policy` snapshots.
 
 ## Forbidden patterns
 
@@ -61,6 +63,7 @@ Supported scalar fields (normalized, machine-oriented):
 ## Related documentation
 
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)
+- [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)
 - [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)

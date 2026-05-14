@@ -213,6 +213,9 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertSame('ready', $model['scanner']['status']);
     $this->assertSame('admit', $model['capabilities']['scanner_mode']);
     $this->assertSame('none', $model['fulfilment']['mode']);
+    $this->assertArrayHasKey('continuity', $model);
+    $this->assertArrayHasKey('offline_capable', $model['continuity']);
+    $this->assertStringNotContainsString('reconciliation_fingerprint', json_encode($model['continuity']) ?: '');
   }
 
   /**
