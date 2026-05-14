@@ -12,7 +12,8 @@ event_wizard:
 
 checkin_scanner:
   js:
-    js/vendor/html5-qrcode.min.js: {}
+    js/vendor/jsQR.min.js: {}
+    js/mel-html5-qrcode.js: {}
     js/checkin-scanner.js: {}
   css:
     theme:
