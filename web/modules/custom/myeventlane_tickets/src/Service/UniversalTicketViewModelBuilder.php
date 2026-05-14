@@ -30,6 +30,7 @@ final class UniversalTicketViewModelBuilder {
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
     private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
     private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
+    private readonly OccupancyPolicyManager $occupancyPolicyManager,
   ) {}
 
   /**
@@ -134,6 +135,10 @@ final class UniversalTicketViewModelBuilder {
       $model['operational_identity'] = $operational_identity;
     }
     $model['continuity'] = $this->operationalContinuityPolicyManager->buildCustomerSafeContinuityProjection($ticket);
+    $occupancy_public = $this->occupancyPolicyManager->buildCustomerSafeOccupancySummary($ticket);
+    if ($occupancy_public !== []) {
+      $model['occupancy'] = $occupancy_public;
+    }
     return $model;
   }
 

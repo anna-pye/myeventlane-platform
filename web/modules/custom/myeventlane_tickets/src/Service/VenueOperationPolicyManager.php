@@ -58,6 +58,7 @@ final class VenueOperationPolicyManager {
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
     private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
     private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
+    private readonly OccupancyPolicyManager $occupancyPolicyManager,
   ) {}
 
   /**
@@ -139,6 +140,7 @@ final class VenueOperationPolicyManager {
       'session_entitlement' => $session,
       'zone_topology' => $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed, $session),
       'zone_conflict_policy' => $this->normalizeZoneConflictPolicy($ticket),
+      'occupancy' => $this->occupancyPolicyManager->buildOccupancyDescriptor($ticket, $mode),
     ];
   }
 
@@ -270,6 +272,29 @@ final class VenueOperationPolicyManager {
     $effective_zone = $requested_zone_id !== NULL && trim($requested_zone_id) !== '' ? trim($requested_zone_id) : NULL;
     $effective_zone ??= $zone_from_identity;
     $scan = $this->evaluateZoneAccessForScan($ticket, $now, $parsed_qr_expires_at, $effective_zone);
+    if (!empty($scan['allow'])) {
+      $occ = $this->occupancyPolicyManager->evaluateOccupancyForScan(
+        $ticket,
+        $now,
+        $parsed_qr_expires_at,
+        $raw_operational_context,
+        $effective_zone,
+        is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [],
+      );
+      $policy = is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [];
+      $policy['occupancy'] = $occ['policy'];
+      if (empty($occ['allow'])) {
+        $scan = [
+          'allow' => FALSE,
+          'result_token' => (string) $occ['result_token'],
+          'message' => (string) $occ['message'],
+          'policy' => $policy,
+        ];
+      }
+      else {
+        $scan['policy'] = $policy;
+      }
+    }
     $policy_snapshot = is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [];
     $checkpoint = $this->buildOperationalCheckpointDescriptor(
       $ticket,
@@ -342,6 +367,54 @@ final class VenueOperationPolicyManager {
    */
   public function normalizeReconciliationPolicy(array $raw): array {
     return $this->operationalContinuityPolicyManager->normalizeReconciliationMetadata($raw);
+  }
+
+  /**
+   * Normalizes occupancy metadata blobs (machine-stable tokens only).
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public function normalizeOccupancyPolicies(array $raw): array {
+    return $this->occupancyPolicyManager->normalizeOccupancyPolicies($raw);
+  }
+
+  /**
+   * Evaluates occupancy + directional composition after timing/session/zone gates.
+   *
+   * @param array<string, mixed> $raw_operational_context
+   * @param array<string, mixed> $scan_gate_policy
+   *
+   * @return array<string, mixed>
+   */
+  public function evaluateOccupancyPolicies(
+    Ticket $ticket,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    array $raw_operational_context,
+    ?string $effective_zone_id,
+    array $scan_gate_policy,
+  ): array {
+    return $this->occupancyPolicyManager->evaluateOccupancyForScan(
+      $ticket,
+      $now,
+      $parsed_qr_expires_at,
+      $raw_operational_context,
+      $effective_zone_id,
+      $scan_gate_policy,
+    );
+  }
+
+  /**
+   * Deterministic occupancy descriptor (metadata composition only).
+   *
+   * @param array<string, mixed>|null $scan_gate_policy
+   *
+   * @return array<string, mixed>
+   */
+  public function buildOccupancyDescriptor(Ticket $ticket, string $mode = 'online', ?array $scan_gate_policy = NULL): array {
+    return $this->occupancyPolicyManager->buildOccupancyDescriptor($ticket, $mode, $scan_gate_policy);
   }
 
   /**

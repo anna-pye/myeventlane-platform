@@ -67,6 +67,7 @@ When the composed gate succeeds or is denied before mutation, **`operational_sca
 - `gate_groups` — gate→zone map from metadata
 - `reentry` — zone defaults / per-zone map plus `session_reentry_allowed` (session slice is not duplicated as a full map)
 - `progression` — `zone_order` plus the existing `session_entitlement.progression` payload by reference under `progression.session`
+- `occupancy` — optional customer-safe occupancy hints when ticket metadata declares **`mel_operational_occupancy`** / **`operational_occupancy`** (see [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)); never exposes anti-passback internals, balancing material, or topology identifiers on public surfaces
 
 Templates that do not reference these keys remain visually unchanged.
 
@@ -78,6 +79,8 @@ Templates that do not reference these keys remain visually unchanged.
 - structural conflict codes (for example allow/deny overlap)
 - progression / re-entry semantics summaries
 - gate policy counts (no raw purchaser PII)
+
+**`artifacts.occupancy_policy`** (per ticket id) summarizes occupancy/directional/balancing composition alongside zone/timing/session refs (read-only; see [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)).
 
 ## Anti-patterns (forbidden)
 
@@ -95,3 +98,4 @@ Templates that do not reference these keys remain visually unchanged.
 - [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
+- [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)

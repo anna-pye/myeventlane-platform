@@ -152,6 +152,26 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertStringNotContainsString('replay_token', $encoded);
   }
 
+  public function testExposesCustomerSafeOccupancySummaryWithoutInternals(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-OCC-VIEW',
+      'metadata_json' => [
+        'mel_operational_occupancy' => [
+          'occupancy_mode' => 'live_estimate',
+          'reentry_policy' => 'session_governed',
+          'directional_mode' => 'none',
+          'anti_passback_mode' => 'strict',
+        ],
+      ],
+    ]);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayHasKey('occupancy', $model);
+    $enc = json_encode($model['occupancy']) ?: '';
+    $this->assertStringNotContainsString('anti_passback', $enc);
+    $this->assertStringNotContainsString('topology_id', $enc);
+    $this->assertSame('live_estimate', $model['occupancy']['occupancy_mode']);
+  }
+
   public function testExposesCustomerSafeOperationalIdentityFromMetadata(): void {
     $ticket = $this->createTicket([
       'ticket_code' => 'MEL-OP-PUB',

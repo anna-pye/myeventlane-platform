@@ -119,6 +119,18 @@ services:
       - '@mel_ticket_capability.manager'
       - '@datetime.time'
 
+  myeventlane_tickets.occupancy_policy_manager:
+    class: Drupal\myeventlane_tickets\Service\OccupancyPolicyManager
+    arguments:
+      - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.device_operation_identity_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
+      - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.timed_entry_policy_manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@mel_ticket_capability.manager'
+      - '@datetime.time'
+
   myeventlane_tickets.venue_operation_policy_manager:
     class: Drupal\myeventlane_tickets\Service\VenueOperationPolicyManager
     arguments:
@@ -130,6 +142,7 @@ services:
       - '@myeventlane_tickets.zone_access_policy_manager'
       - '@myeventlane_tickets.device_operation_identity_manager'
       - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.occupancy_policy_manager'
 
   mel_ticket_capability.manager:
     class: Drupal\myeventlane_tickets\Service\TicketCapabilityManager
@@ -181,6 +194,7 @@ services:
       - '@myeventlane_tickets.zone_access_policy_manager'
       - '@myeventlane_tickets.device_operation_identity_manager'
       - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.occupancy_policy_manager'
 
   myeventlane_tickets.ticket_mailer:
     class: Drupal\myeventlane_tickets\Service\TicketMailer
@@ -235,6 +249,7 @@ services:
       - '@myeventlane_tickets.zone_access_policy_manager'
       - '@myeventlane_tickets.device_operation_identity_manager'
       - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.occupancy_policy_manager'
       - '@datetime.time'
       - '@state'
       - '@logger.channel.myeventlane_tickets'

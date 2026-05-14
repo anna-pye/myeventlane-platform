@@ -338,6 +338,39 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertSame('strict_first', $bundle['operational_continuity']['reconciliation']['reconciliation_strategy'] ?? '');
   }
 
+  public function testEvaluateOperationalIdentityDirectionalOccupancyDenies(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_occupancy' => [
+          'directional_mode' => 'entry',
+          'entry_zone' => 'main_gate',
+        ],
+      ],
+    ]);
+    $raw = ['mel_operational_device' => ['zone_id' => 'lobby']];
+    $bundle = $this->policy()->evaluateOperationalIdentity($ticket, $raw, time(), NULL, NULL);
+    $this->assertFalse($bundle['scan_gate']['allow']);
+    $this->assertSame('invalid', $bundle['scan_gate']['result_token']);
+    $this->assertArrayHasKey('occupancy', $bundle['scan_gate']['policy']);
+  }
+
+  public function testBuildOccupancyDescriptorDelegates(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_occupancy' => ['occupancy_mode' => 'policy_only'],
+      ],
+    ]);
+    $desc = $this->policy()->buildOccupancyDescriptor($ticket, 'online');
+    $this->assertSame('policy_only', $desc['normalized']['occupancy_mode'] ?? '');
+  }
+
+  public function testNormalizeOccupancyPoliciesDelegates(): void {
+    $n = $this->policy()->normalizeOccupancyPolicies([
+      'mel_operational_occupancy' => ['anti_passback_mode' => 'strict'],
+    ]);
+    $this->assertSame('strict', $n['anti_passback_mode']);
+  }
+
   public function testNormalizeReconciliationPolicyDelegates(): void {
     $norm = $this->policy()->normalizeReconciliationPolicy([
       'mel_operational_continuity' => ['sync_hint' => 'timeboxed'],

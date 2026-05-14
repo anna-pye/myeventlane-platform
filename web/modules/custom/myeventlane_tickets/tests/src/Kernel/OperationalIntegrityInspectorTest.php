@@ -288,6 +288,7 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
     $this->assertArrayHasKey('zone_access_topology', $diag['artifacts']);
     $this->assertArrayHasKey('operational_identity', $diag['artifacts']);
     $this->assertArrayHasKey('operational_continuity', $diag['artifacts']);
+    $this->assertArrayHasKey('occupancy_policy', $diag['artifacts']);
     foreach ($this->loadTicketsForOrder((int) $order->id()) as $ticket) {
       $id = (string) $ticket->id();
       $this->assertArrayHasKey($id, $diag['artifacts']['timed_entry_policy']);
@@ -295,9 +296,13 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
       $this->assertArrayHasKey($id, $diag['artifacts']['zone_access_topology']);
       $this->assertArrayHasKey($id, $diag['artifacts']['operational_identity']);
       $this->assertArrayHasKey($id, $diag['artifacts']['operational_continuity']);
+      $this->assertArrayHasKey($id, $diag['artifacts']['occupancy_policy']);
       $oc = $diag['artifacts']['operational_continuity'][$id];
       $this->assertArrayHasKey('continuity_summary', $oc);
       $this->assertArrayHasKey('deterministic_continuity_descriptor', $oc);
+      $op_occ = $diag['artifacts']['occupancy_policy'][$id];
+      $this->assertArrayHasKey('occupancy_summary', $op_occ);
+      $this->assertArrayHasKey('deterministic_occupancy_descriptor', $op_occ);
     }
     $this->assertSame('admit', $diag['artifacts']['entitlement_capability_policy']['ticket']['scanner_mode']);
     $this->assertSame('admission', $diag['artifacts']['venue_operation_policy']['ticket']['gate_semantics']['gate_family']);
@@ -436,6 +441,7 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
       $this->container->get('myeventlane_tickets.zone_access_policy_manager'),
       $this->container->get('myeventlane_tickets.device_operation_identity_manager'),
       $this->container->get('myeventlane_tickets.operational_continuity_policy_manager'),
+      $this->container->get('myeventlane_tickets.occupancy_policy_manager'),
       $this->container->get('datetime.time'),
       $this->container->get('state'),
       $this->container->get('logger.channel.myeventlane_tickets'),

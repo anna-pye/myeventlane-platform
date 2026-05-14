@@ -44,7 +44,7 @@ Normalized scalar fields (machine-oriented):
 - normalized device identity (for **staff-side** device continuity fingerprint only),
 - the composed scan `policy` snapshot (timed + session + zone when present).
 
-`VenueOperationPolicyManager` **must not** reimplement timing, session, zone, registry, or scanner-token normalization; it delegates to existing managers and `OperationalContinuityPolicyManager`.
+`VenueOperationPolicyManager` **must not** reimplement timing, session, zone, registry, or scanner-token normalization; it delegates to existing managers and `OperationalContinuityPolicyManager`. **`OccupancyPolicyManager`** composes after those gates for directional occupancy metadata only (see [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)); continuity fingerprints remain owned by `OperationalContinuityPolicyManager`.
 
 ## Public vs staff-only continuity data
 
@@ -77,3 +77,4 @@ Normalized scalar fields (machine-oriented):
 - [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)
 - [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md)
 - [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)
+- [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)

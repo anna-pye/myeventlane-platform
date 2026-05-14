@@ -16,7 +16,9 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Routes scanner operations for ticket-backed entitlements.
+ * Routes scanner operations for ticket-backed entitlements. Operational
+ * occupancy, directional scan, and anti-passback policy are composed via
+ * VenueOperationPolicyManager without mutating scanner result tokens.
  */
 final class ScannerOperationManager {
 

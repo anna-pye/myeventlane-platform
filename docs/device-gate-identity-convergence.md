@@ -69,3 +69,4 @@ Supported scalar fields (normalized, machine-oriented):
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)
 - [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md)
+- [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)

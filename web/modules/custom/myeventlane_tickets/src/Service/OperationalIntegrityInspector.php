@@ -44,6 +44,7 @@ final class OperationalIntegrityInspector {
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
     private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
     private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
+    private readonly OccupancyPolicyManager $occupancyPolicyManager,
     private readonly TimeInterface $time,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
@@ -72,7 +73,9 @@ final class OperationalIntegrityInspector {
  * trust summaries composed via DeviceOperationIdentityManager and
  * VenueOperationPolicyManager, staff-safe diagnostics only), and
  * `operational_continuity` (reconciliation, replay alignment, recovery policy,
- * and deterministic continuity descriptors via OperationalContinuityPolicyManager).
+ * and deterministic continuity descriptors via OperationalContinuityPolicyManager),
+ * and `occupancy_policy` (read-only occupancy, directional scan, anti-passback,
+ * balancing, and continuity summaries via OccupancyPolicyManager).
    */
   public function inspectOrder(OrderInterface $order): array {
     $orderId = (int) $order->id();
@@ -143,6 +146,7 @@ final class OperationalIntegrityInspector {
         'zone_access_topology' => [],
         'operational_identity' => [],
         'operational_continuity' => [],
+        'occupancy_policy' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -225,6 +229,7 @@ final class OperationalIntegrityInspector {
         'zone_access_topology' => [],
         'operational_identity' => [],
         'operational_continuity' => [],
+        'occupancy_policy' => [],
       ];
     }
 
@@ -243,6 +248,7 @@ final class OperationalIntegrityInspector {
     $zone_access_topology = $this->buildZoneAccessTopologyDiagnosticsByTicket($tickets);
     $operational_identity = $this->buildOperationalIdentityDiagnosticsByTicket($tickets);
     $operational_continuity = $this->buildOperationalContinuityDiagnosticsByTicket($tickets);
+    $occupancy_policy = $this->buildOccupancyDiagnosticsByTicket($tickets);
 
     foreach ($tickets as $ticket) {
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
@@ -282,6 +288,7 @@ final class OperationalIntegrityInspector {
       'zone_access_topology' => $zone_access_topology,
       'operational_identity' => $operational_identity,
       'operational_continuity' => $operational_continuity,
+      'occupancy_policy' => $occupancy_policy,
     ];
   }
 
@@ -324,6 +331,41 @@ final class OperationalIntegrityInspector {
           'timed_scanner_state' => (string) (($desc['timed_entry']['scanner'] ?? [])['state'] ?? ''),
           'session_scanner_state' => (string) (($desc['session_entitlement']['scanner'] ?? [])['state'] ?? ''),
         ],
+      ];
+    }
+    return $out;
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildOccupancyDiagnosticsByTicket(array $tickets): array {
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $staff = $this->occupancyPolicyManager->buildStaffOccupancyDiagnostics($ticket, []);
+      $descriptor = $this->venueOperationPolicyManager->buildOccupancyDescriptor($ticket, 'online');
+      $raw = $this->occupancyPolicyManager->mergeOccupancyFromTicket($ticket);
+      $out[$id] = [
+        'occupancy_summary' => [
+          'occupancy_mode' => (string) (($staff['normalized_occupancy'] ?? [])['occupancy_mode'] ?? ''),
+          'anti_passback_mode' => (string) (($staff['normalized_occupancy'] ?? [])['anti_passback_mode'] ?? ''),
+          'reentry_policy' => (string) (($staff['normalized_occupancy'] ?? [])['reentry_policy'] ?? ''),
+          'directional_mode' => (string) (($staff['normalized_occupancy'] ?? [])['directional_mode'] ?? ''),
+        ],
+        'anti_passback_summary' => $staff['anti_passback_descriptor'] ?? [],
+        'directional_scan_descriptors' => $staff['directional_scan_descriptor'] ?? [],
+        'occupancy_balancing_descriptors' => $staff['balancing_descriptor'] ?? [],
+        'occupancy_continuity_summaries' => $staff['occupancy_continuity_summary'] ?? [],
+        'topology_timing_session_composition' => [
+          'topology_plus_occupancy' => $staff['topology_plus_occupancy_composition'] ?? [],
+          'timing_plus_occupancy' => $staff['timing_plus_occupancy_composition'] ?? [],
+          'session_plus_occupancy' => $staff['session_plus_occupancy_composition'] ?? [],
+        ],
+        'deterministic_occupancy_descriptor' => $descriptor,
+        'metadata_present' => $raw !== [],
       ];
     }
     return $out;
