@@ -12,7 +12,8 @@ event_wizard:
 
 checkin_scanner:
   js:
-    js/vendor/html5-qrcode.min.js: {}
+    js/vendor/jsQR.min.js: {}
+    js/mel-html5-qrcode.js: {}
     js/checkin-scanner.js: {}
   css:
     theme:
@@ -33,3 +34,8 @@ checkin_analytics:
     - core/drupalSettings
     - core/once
 
+venue_operations_workspace:
+  version: 1.x
+  css:
+    theme:
+      css/venue-operations-workspace.css: {}

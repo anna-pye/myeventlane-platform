@@ -27,6 +27,10 @@ final class UniversalTicketViewModelBuilder {
     private readonly TimeInterface $time,
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
+    private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
+    private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
+    private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
+    private readonly OccupancyPolicyManager $occupancyPolicyManager,
   ) {}
 
   /**
@@ -53,8 +57,11 @@ final class UniversalTicketViewModelBuilder {
     $now = $this->time->getCurrentTime();
     $timed_entry = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
     $session_entitlement = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed_entry);
+    $zone_access = $this->zoneAccessPolicyManager->normalizeOperationalZonesMetadata($ticket);
+    $topology = $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed_entry, $session_entitlement);
+    $operational_identity = $this->deviceOperationIdentityManager->buildCustomerVisibleOperationalIdentityFromTicket($ticket);
 
-    return [
+    $model = [
       'ticket' => [
         'id' => (int) $ticket->id(),
         'uuid' => (string) $ticket->uuid(),
@@ -112,7 +119,28 @@ final class UniversalTicketViewModelBuilder {
       ],
       'timed_entry' => $timed_entry,
       'session_entitlement' => $session_entitlement,
+      'zone_access' => $zone_access,
+      'topology' => $topology,
+      'gate_groups' => $zone_access['gate_groups'] ?? [],
+      'reentry' => [
+        'zone_default' => $zone_access['reentry_allowed_default'] ?? NULL,
+        'zone_by_zone' => $zone_access['reentry_by_zone'] ?? [],
+        'session_reentry_allowed' => (bool) ($session_entitlement['redemption']['reentry_allowed'] ?? FALSE),
+      ],
+      'progression' => [
+        'zone_order' => $zone_access['progression_order'] ?? [],
+        'session' => $session_entitlement['progression'] ?? [],
+      ],
     ];
+    if ($operational_identity !== []) {
+      $model['operational_identity'] = $operational_identity;
+    }
+    $model['continuity'] = $this->operationalContinuityPolicyManager->buildCustomerSafeContinuityProjection($ticket);
+    $occupancy_public = $this->occupancyPolicyManager->buildCustomerSafeOccupancySummary($ticket);
+    if ($occupancy_public !== []) {
+      $model['occupancy'] = $occupancy_public;
+    }
+    return $model;
   }
 
   /**

@@ -129,6 +129,75 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertArrayHasKey('session_state', $model['scanner']);
   }
 
+  public function testExposesZoneAccessTopologyReadOnly(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-ZONE-VIEW-1',
+      'metadata_json' => [
+        'mel_operational_zones' => [
+          'allowed_zones' => ['main_floor'],
+          'progression_order' => ['main_floor', 'balcony'],
+          'gate_groups' => ['entrance_a' => 'main_floor'],
+        ],
+      ],
+    ]);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayHasKey('zone_access', $model);
+    $this->assertArrayHasKey('topology', $model);
+    $this->assertArrayHasKey('gate_groups', $model);
+    $this->assertArrayHasKey('reentry', $model);
+    $this->assertArrayHasKey('progression', $model);
+    $this->assertSame(['main_floor', 'balcony'], $model['progression']['zone_order']);
+    $this->assertArrayHasKey('session', $model['progression']);
+    $encoded = json_encode($model['topology']) ?: '';
+    $this->assertStringNotContainsString('replay_token', $encoded);
+  }
+
+  public function testExposesCustomerSafeOccupancySummaryWithoutInternals(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-OCC-VIEW',
+      'metadata_json' => [
+        'mel_operational_occupancy' => [
+          'occupancy_mode' => 'live_estimate',
+          'reentry_policy' => 'session_governed',
+          'directional_mode' => 'none',
+          'anti_passback_mode' => 'strict',
+        ],
+      ],
+    ]);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayHasKey('occupancy', $model);
+    $enc = json_encode($model['occupancy']) ?: '';
+    $this->assertStringNotContainsString('anti_passback', $enc);
+    $this->assertStringNotContainsString('topology_id', $enc);
+    $this->assertSame('live_estimate', $model['occupancy']['occupancy_mode']);
+  }
+
+  public function testExposesCustomerSafeOperationalIdentityFromMetadata(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-OP-PUB',
+      'metadata_json' => [
+        'mel_operational_device' => [
+          'checkpoint_id' => 'entry-a',
+          'trust_level' => 'normal',
+          'scan_mode' => 'admit',
+          'operator_id' => 'hidden-staff',
+        ],
+      ],
+    ]);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayHasKey('operational_identity', $model);
+    $enc = json_encode($model['operational_identity']) ?: '';
+    $this->assertStringNotContainsString('hidden-staff', $enc);
+    $this->assertStringNotContainsString('replay', strtolower($enc));
+    $this->assertSame('entry-a', $model['operational_identity']['checkpoint']);
+  }
+
+  public function testOmitsOperationalIdentityWhenNoDeviceMetadata(): void {
+    $ticket = $this->createTicket(['ticket_code' => 'MEL-NO-OP']);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayNotHasKey('operational_identity', $model);
+  }
+
   public function testBuildsAdmissionTicketModel(): void {
     $ticket = $this->createTicket([
       'ticket_code' => 'MEL-VIEW-0001',
@@ -164,10 +233,9 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertSame('ready', $model['scanner']['status']);
     $this->assertSame('admit', $model['capabilities']['scanner_mode']);
     $this->assertSame('none', $model['fulfilment']['mode']);
-    $this->assertArrayHasKey('timed_entry', $model);
-    $this->assertSame('allowed', $model['timed_entry']['scanner']['state']);
-    $this->assertTrue($model['scanner']['timing_allowed_now']);
-    $this->assertSame('allowed', $model['scanner']['timing_state']);
+    $this->assertArrayHasKey('continuity', $model);
+    $this->assertArrayHasKey('offline_capable', $model['continuity']);
+    $this->assertStringNotContainsString('reconciliation_fingerprint', json_encode($model['continuity']) ?: '');
   }
 
   /**

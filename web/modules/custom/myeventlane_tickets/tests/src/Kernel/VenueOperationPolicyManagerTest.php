@@ -268,7 +268,54 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertSame('validate', $this->policy()->resolveGateAction($ticket));
   }
 
-  public function testEvaluateTimedEntryForScanAllowsLegacyAdmission(): void {
+  public function testEvaluateZoneAccessForScanAllowsLegacyAdmission(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $gate = $this->policy()->evaluateZoneAccessForScan($ticket, time(), NULL, NULL);
+    $this->assertTrue($gate['allow']);
+    $this->assertArrayHasKey('zone_access', $gate['policy']);
+    $this->assertArrayHasKey('timed_entry', $gate['policy']);
+    $this->assertArrayHasKey('session_entitlement', $gate['policy']);
+  }
+
+  public function testEvaluateZoneAccessForScanDeniedWhenGateNotAllowed(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_DRINK, [
+      'redemption_limit' => 4,
+      'metadata_json' => [
+        'mel_operational_zones' => [
+          'allowed_zones' => ['bar_one'],
+        ],
+      ],
+    ]);
+    $gate = $this->policy()->evaluateZoneAccessForScan($ticket, time(), NULL, 'other_gate');
+    $this->assertFalse($gate['allow']);
+    $this->assertSame('invalid', $gate['result_token']);
+  }
+
+  public function testBuildZoneTopologyDescriptor(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_zones' => [
+          'topology_hints' => ['north_stack'],
+        ],
+      ],
+    ]);
+    $desc = $this->policy()->buildZoneTopologyDescriptor($ticket);
+    $this->assertArrayHasKey('topology_id', $desc);
+    $this->assertContains('north_stack', $desc['topology_hints']);
+  }
+
+  public function testNormalizeZoneConflictPolicy(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_zones' => [
+          'denied_zones' => ['staff_only'],
+        ],
+      ],
+    ]);
+    $this->assertSame('zone_explicit_denials', $this->policy()->normalizeZoneConflictPolicy($ticket));
+  }
+
+  public function testEvaluateTimedEntryForScan(): void {
     $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
     $gate = $this->policy()->evaluateTimedEntryForScan($ticket, time(), NULL);
     $this->assertTrue($gate['allow']);
@@ -277,11 +324,128 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertArrayHasKey('session_entitlement', $gate['policy']);
   }
 
+  public function testNormalizeDeviceTrustPolicy(): void {
+    $p = $this->policy();
+    $t = $p->normalizeDeviceTrustPolicy('high');
+    $this->assertSame('elevated', $t['canonical_trust']);
+    $this->assertSame('trust_elevated', $t['policy_token']);
+    $this->assertSame('trust_unknown', $p->normalizeDeviceTrustPolicy('')['policy_token']);
+  }
+
+  public function testEvaluateOperationalIdentityMatchesZoneScanGate(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $raw = ['mel_operational_device' => ['device_id' => 'gate-scanner', 'zone_id' => '']];
+    $bundle = $this->policy()->evaluateOperationalIdentity($ticket, $raw, time(), NULL, NULL);
+    $this->assertArrayHasKey('scan_gate', $bundle);
+    $this->assertTrue($bundle['scan_gate']['allow']);
+    $this->assertArrayHasKey('operational_identity', $bundle);
+    $this->assertArrayHasKey('checkpoint_descriptor', $bundle);
+    $this->assertSame('gate-scanner', $bundle['operational_identity']['normalized']['device_id']);
+  }
+
+  public function testEvaluateOperationalIdentityUsesZoneFromDeviceMetadata(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_DRINK, [
+      'redemption_limit' => 4,
+      'metadata_json' => [
+        'mel_operational_zones' => [
+          'allowed_zones' => ['bar_one'],
+        ],
+      ],
+    ]);
+    $raw = ['mel_operational_device' => ['zone_id' => 'other_zone']];
+    $bundle = $this->policy()->evaluateOperationalIdentity($ticket, $raw, time(), NULL, NULL);
+    $this->assertFalse($bundle['scan_gate']['allow']);
+  }
+
+  public function testBuildOperationalCheckpointDescriptorUsesPolicySnapshot(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $scan = $this->policy()->evaluateZoneAccessForScan($ticket, time(), NULL, NULL);
+    $normalized = $this->container->get('myeventlane_tickets.device_operation_identity_manager')
+      ->normalizeOperationalIdentity(['mel_operational_device' => [
+        'checkpoint_id' => 'cp-main',
+        'gate_id' => 'g-a',
+      ]], 'dev');
+    $desc = $this->policy()->buildOperationalCheckpointDescriptor(
+      $ticket,
+      $normalized,
+      time(),
+      NULL,
+      NULL,
+      is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [],
+    );
+    $this->assertSame('cp-main', $desc['checkpoint_id']);
+    $this->assertSame('g-a', $desc['gate_id']);
+    $this->assertArrayHasKey('timed_scanner', $desc);
+  }
+
+  public function testEvaluateOperationalContinuityIncludesMachineContinuity(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_continuity' => [
+          'continuity_epoch' => 2,
+          'reconciliation_strategy' => 'strict_first',
+        ],
+      ],
+    ]);
+    $raw = ['mel_operational_device' => ['device_id' => 'd1']];
+    $bundle = $this->policy()->evaluateOperationalContinuity($ticket, $raw, time(), NULL, NULL);
+    $this->assertArrayHasKey('operational_continuity', $bundle);
+    $this->assertSame(2, $bundle['operational_continuity']['reconciliation']['continuity_epoch'] ?? NULL);
+    $this->assertSame('strict_first', $bundle['operational_continuity']['reconciliation']['reconciliation_strategy'] ?? '');
+  }
+
+  public function testEvaluateOperationalIdentityDirectionalOccupancyDenies(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_occupancy' => [
+          'directional_mode' => 'entry',
+          'entry_zone' => 'main_gate',
+        ],
+      ],
+    ]);
+    $raw = ['mel_operational_device' => ['zone_id' => 'lobby']];
+    $bundle = $this->policy()->evaluateOperationalIdentity($ticket, $raw, time(), NULL, NULL);
+    $this->assertFalse($bundle['scan_gate']['allow']);
+    $this->assertSame('invalid', $bundle['scan_gate']['result_token']);
+    $this->assertArrayHasKey('occupancy', $bundle['scan_gate']['policy']);
+  }
+
+  public function testBuildOccupancyDescriptorDelegates(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET, [
+      'metadata_json' => [
+        'mel_operational_occupancy' => ['occupancy_mode' => 'policy_only'],
+      ],
+    ]);
+    $desc = $this->policy()->buildOccupancyDescriptor($ticket, 'online');
+    $this->assertSame('policy_only', $desc['normalized']['occupancy_mode'] ?? '');
+  }
+
+  public function testNormalizeOccupancyPoliciesDelegates(): void {
+    $n = $this->policy()->normalizeOccupancyPolicies([
+      'mel_operational_occupancy' => ['anti_passback_mode' => 'strict'],
+    ]);
+    $this->assertSame('strict', $n['anti_passback_mode']);
+  }
+
+  public function testNormalizeReconciliationPolicyDelegates(): void {
+    $norm = $this->policy()->normalizeReconciliationPolicy([
+      'mel_operational_continuity' => ['sync_hint' => 'timeboxed'],
+    ]);
+    $this->assertSame('timeboxed_replay', $norm['sync_hint']);
+  }
+
+  public function testBuildContinuityDescriptorDelegates(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $desc = $this->policy()->buildContinuityDescriptor($ticket, 'online');
+    $this->assertArrayHasKey('reconciliation', $desc);
+    $this->assertArrayHasKey('replay_continuity', $desc);
+  }
+
   private function policy(): VenueOperationPolicyManager {
     return $this->container->get('myeventlane_tickets.venue_operation_policy_manager');
   }
 
-  private function createTicket(string $entitlement_type): Ticket {
+  private function createTicket(string $entitlement_type, array $overrides = []): Ticket {
     $user = User::create([
       'name' => 'venue_policy_' . uniqid('', TRUE),
       'mail' => uniqid('u_', TRUE) . '@example.test',
@@ -296,14 +460,16 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     ]);
     $event->save();
 
-    $ticket = Ticket::create([
-      'ticket_code' => 'MEL-VENUE-POLICY-1',
+    $values = array_replace([
+      'ticket_code' => 'MEL-VP-' . substr(hash('sha256', (string) microtime(TRUE)), 0, 10),
       'event_id' => (int) $event->id(),
       'purchaser_uid' => $user->id(),
       'status' => Ticket::STATUS_ASSIGNED,
       'entitlement_type' => $entitlement_type,
       'redemption_limit' => 5,
-    ]);
+    ], $overrides);
+
+    $ticket = Ticket::create($values);
     $ticket->save();
     return $ticket;
   }

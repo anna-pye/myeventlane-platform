@@ -89,6 +89,48 @@ services:
       - '@myeventlane_tickets.entitlement_capability_registry'
       - '@mel_ticket_capability.manager'
 
+  myeventlane_tickets.zone_access_policy_manager:
+    class: Drupal\myeventlane_tickets\Service\ZoneAccessPolicyManager
+    arguments:
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@mel_ticket_capability.manager'
+      - '@myeventlane_tickets.timed_entry_policy_manager'
+      - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@datetime.time'
+
+  myeventlane_tickets.device_operation_identity_manager:
+    class: Drupal\myeventlane_tickets\Service\DeviceOperationIdentityManager
+    arguments:
+      - '@myeventlane_tickets.timed_entry_policy_manager'
+      - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@mel_ticket_capability.manager'
+      - '@datetime.time'
+
+  myeventlane_tickets.operational_continuity_policy_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalContinuityPolicyManager
+    arguments:
+      - '@myeventlane_tickets.device_operation_identity_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
+      - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.timed_entry_policy_manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@mel_ticket_capability.manager'
+      - '@datetime.time'
+
+  myeventlane_tickets.occupancy_policy_manager:
+    class: Drupal\myeventlane_tickets\Service\OccupancyPolicyManager
+    arguments:
+      - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.device_operation_identity_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
+      - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.timed_entry_policy_manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@mel_ticket_capability.manager'
+      - '@datetime.time'
+
   myeventlane_tickets.venue_operation_policy_manager:
     class: Drupal\myeventlane_tickets\Service\VenueOperationPolicyManager
     arguments:
@@ -97,6 +139,10 @@ services:
       - '@datetime.time'
       - '@myeventlane_tickets.timed_entry_policy_manager'
       - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
+      - '@myeventlane_tickets.device_operation_identity_manager'
+      - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.occupancy_policy_manager'
 
   mel_ticket_capability.manager:
     class: Drupal\myeventlane_tickets\Service\TicketCapabilityManager
@@ -115,6 +161,7 @@ services:
       - '@mel_ticket_capability.manager'
       - '@myeventlane_tickets.entitlement_capability_registry'
       - '@myeventlane_tickets.venue_operation_policy_manager'
+      - '@myeventlane_tickets.device_operation_identity_manager'
       - '@database'
       - '@request_stack'
       - '@logger.channel.myeventlane_tickets'
@@ -144,6 +191,10 @@ services:
       - '@datetime.time'
       - '@myeventlane_tickets.timed_entry_policy_manager'
       - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
+      - '@myeventlane_tickets.device_operation_identity_manager'
+      - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.occupancy_policy_manager'
 
   myeventlane_tickets.ticket_mailer:
     class: Drupal\myeventlane_tickets\Service\TicketMailer
@@ -182,6 +233,20 @@ services:
       - '@myeventlane_tickets.ticket_mailer'
       - '@logger.channel.myeventlane_tickets'
 
+  myeventlane_tickets.operational_workspace_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@myeventlane_tickets.venue_operation_policy_manager'
+      - '@myeventlane_tickets.operational_integrity_inspector'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+
+  myeventlane_tickets.operational_workspace_access:
+    class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker
+    tags:
+      - { name: access_check }
+
   myeventlane_tickets.operational_integrity_inspector:
     class: Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector
     arguments:
@@ -195,6 +260,10 @@ services:
       - '@myeventlane_tickets.venue_operation_policy_manager'
       - '@myeventlane_tickets.timed_entry_policy_manager'
       - '@myeventlane_tickets.session_entitlement_policy_manager'
+      - '@myeventlane_tickets.zone_access_policy_manager'
+      - '@myeventlane_tickets.device_operation_identity_manager'
+      - '@myeventlane_tickets.operational_continuity_policy_manager'
+      - '@myeventlane_tickets.occupancy_policy_manager'
       - '@datetime.time'
       - '@state'
       - '@logger.channel.myeventlane_tickets'

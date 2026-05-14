@@ -16,8 +16,8 @@ Interpretation order on the scan path:
 
 1. **`TimedEntryPolicyManager::evaluate()`** — operational clock policy (see [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)).
 2. **`SessionEntitlementPolicyManager::buildNormalizedPayload()`** — session, progression, multi-use, sequencing, re-entry semantics derived from entitlement + operational metadata, registry maps, and the timed snapshot (for shared `session_key` / zone hints only).
-3. **`VenueOperationPolicyManager::evaluateTimedEntryForScan()`** — composes **both** layers; returns `allow`, existing scanner `result_token` values, staff-facing `message`, and a `policy` array (`timed_entry`, `session_entitlement`) for audit metadata.
-4. **`ScannerOperationManager`** — applies the venue gate before mutations; does not implement parallel session or exhaustion rules.
+3. **`VenueOperationPolicyManager::evaluateZoneAccessForScan()`** — composes timing + session + zone topology scanner slices into one `allow` decision, existing `result_token` values, and staff `message` strings; attaches `policy` metadata (`timed_entry`, `session_entitlement`, `zone_access`) for audits. (Timed+session-only composition remains available as **`evaluateTimedEntryForScan()`** for narrow diagnostics.)
+4. **`ScannerOperationManager`** — applies the venue gate before mutations; does not implement parallel window, session, sequencing, or zone rules.
 
 ## Normalized session payload (machine-only)
 
@@ -93,11 +93,13 @@ Metadata-driven combinations cover, without inventory or checkout redesign:
 
 - **`timed_entry`** — full timed policy array
 - **`session_entitlement`** — full session payload
+- **`zone_access`**, **`topology`**, **`gate_groups`**, **`reentry`**, **`progression`** — zone topology read-only fields (see [zone-access-topology-convergence.md](./zone-access-topology-convergence.md))
 - **`scanner.timing_*` / `scanner.session_*`** — compact timing and session hints without altering `qr.payload` or wallet/PDF route contracts
+- **`occupancy`** — optional customer-safe slice (`occupancy_mode`, `reentry_policy`, `directional_mode`) when non-baseline **`mel_operational_occupancy`** / **`operational_occupancy`** metadata is present (see [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md))
 
 ## Observability
 
-`OperationalIntegrityInspector::inspectOrder()` adds **`artifacts.session_entitlement_policy`** (per ticket id: policy snapshot + machine `conflicts` for sequencing / exhaustion). **`artifacts.timed_entry_policy`** remains per-ticket timing diagnostics. Both are read-only.
+`OperationalIntegrityInspector::inspectOrder()` adds **`artifacts.session_entitlement_policy`** (per ticket id: policy snapshot + machine `conflicts` for sequencing / exhaustion). **`artifacts.timed_entry_policy`** remains per-ticket timing diagnostics. **`artifacts.zone_access_topology`** summarizes zone policy, gate counts, progression/re-entry semantics, and structural conflicts. **`artifacts.occupancy_policy`** adds occupancy/directional/balancing read-only diagnostics. All are read-only.
 
 ## Scanner audit metadata
 
@@ -118,4 +120,4 @@ Successful and denied scans may attach **`operational_scan_policy`** inside `mel
 - [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md) — operational clock authority
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — immutable entitlement maps
 - [operational-observability.md](./operational-observability.md) — diagnostics domains
-- [issuance-pipeline.md](./issuance-pipeline.md) — issuance and observability references
+- [zone-access-topology-convergence.md](./zone-access-topology-convergence.md) — zone metadata authority and scan composition
