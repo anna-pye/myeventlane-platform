@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * Staff venue operations workspace shell (read-only).
+ */
+#}
+<div class="mel-ops-workspace">
+  <header class="mel-ops-workspace__header">
+    <h1 class="mel-ops-workspace__title">{{ 'Venue operations workspace'|t }}</h1>
+    {% if meta.scope == 'global' %}
+      <p class="mel-ops-workspace__hint">{{ 'Append the query parameter event with a numeric node ID to scope diagnostics to that event.'|t }}</p>
+    {% else %}
+      <p class="mel-ops-workspace__meta">{{ 'Event'|t }}: {{ meta.event_title }} <span class="mel-ops-workspace__id">({{ meta.event_id }})</span></p>
+    {% endif %}
+  </header>
+
+  {% for section in sections %}
+    <section class="mel-ops-workspace__section" data-ops-section="{{ section.id }}">
+      <h2 class="mel-ops-workspace__section-title">{{ section.title }}</h2>
+      <div class="mel-ops-workspace__cards">
+        {% for card in section.cards %}
+          <article class="mel-ops-card">
+            <div class="mel-ops-card__label">{{ card.label }}</div>
+            <div class="mel-ops-card__value">{{ card.value }}</div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>

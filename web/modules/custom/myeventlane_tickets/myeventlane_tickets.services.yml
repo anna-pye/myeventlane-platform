@@ -233,6 +233,20 @@ services:
       - '@myeventlane_tickets.ticket_mailer'
       - '@logger.channel.myeventlane_tickets'
 
+  myeventlane_tickets.operational_workspace_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@myeventlane_tickets.venue_operation_policy_manager'
+      - '@myeventlane_tickets.operational_integrity_inspector'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+
+  myeventlane_tickets.operational_workspace_access:
+    class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker
+    tags:
+      - { name: access_check }
+
   myeventlane_tickets.operational_integrity_inspector:
     class: Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector
     arguments:

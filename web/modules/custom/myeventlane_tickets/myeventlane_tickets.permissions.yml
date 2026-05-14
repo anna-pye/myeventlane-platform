@@ -25,6 +25,11 @@ resend ticket emails:
   title: 'Resend ticket emails'
   description: 'Resend assigned ticket emails for accessible events.'
 
+view mel venue operations workspace:
+  title: 'View MyEventLane venue operations workspace'
+  description: 'Access the read-only staff venue operations workspace at /admin/mel/operations.'
+  restrict access: true
+
 
 
 
