@@ -322,6 +322,66 @@ final class TicketCheckinServiceTest extends KernelTestBase {
   }
 
   /**
+   * Scanner path attaches operational identity metadata (staff integrity).
+   */
+  public function testRedemptionAuditIncludesOperationalIdentity(): void {
+    $this->installEntitySchema('mel_redemption_log');
+    $ticket = $this->createTicket('MEL-OP-ID-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
+      'redemption_limit' => 2,
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+    $ctx = [
+      'mel_operational_device' => [
+        'checkpoint_id' => 'bar-a',
+        'operator_id' => 'op-999',
+        'trust_level' => 'standard',
+        'reconciliation_group' => 'sync-1',
+      ],
+    ];
+    $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
+      ->checkIn((int) $this->eventA->id(), $payload, 'kernel-op-id', 'online', $ctx);
+    $this->assertTrue($result['ok']);
+    $storage = $this->container->get('entity_type.manager')->getStorage('mel_redemption_log');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('ticket_id', (int) $ticket->id())
+      ->sort('id', 'DESC')
+      ->range(0, 1)
+      ->execute();
+    $log = $storage->load((int) reset($ids));
+    $meta = $log->get('metadata_json')->first()->getValue();
+    $this->assertArrayHasKey('operational_identity', $meta);
+    $this->assertSame('bar-a', $meta['operational_identity']['normalized_device_context']['checkpoint_id']);
+    $this->assertArrayHasKey('staff_integrity_identity', $meta['operational_identity']);
+    $pub = json_encode($meta['operational_identity']['public_summary'] ?? []) ?: '';
+    $this->assertStringNotContainsString('op-999', $pub);
+  }
+
+  /**
+   * @covers \Drupal\myeventlane_tickets\Service\ScannerOperationManager::process
+   */
+  public function testScannerProcessResultShapeStableWithOperationalContext(): void {
+    $ticket = $this->createTicket('MEL-SCAN-SHAPE', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+    $mgr = $this->container->get('mel_scanner.operation_manager');
+    $first = $mgr->process((int) $this->eventA->id(), $payload, 'dev-shape', 'online', NULL);
+    $this->assertTrue($first['ok']);
+    $baseline = $mgr->process((int) $this->eventA->id(), $payload, 'dev-shape', 'online', NULL);
+    $with_ctx = $mgr->process((int) $this->eventA->id(), $payload, 'dev-shape', 'online', [
+      'mel_operational_device' => ['trust_level' => 'limited'],
+    ]);
+    foreach (['ok', 'result', 'message', 'ticket_label', 'checked_in_at', 'ticket_id'] as $k) {
+      $this->assertArrayHasKey($k, $baseline);
+      $this->assertArrayHasKey($k, $with_ctx);
+    }
+    $this->assertFalse($baseline['ok']);
+    $this->assertSame('already_checked_in', $baseline['result']);
+    $this->assertFalse($with_ctx['ok']);
+    $this->assertSame('already_checked_in', $with_ctx['result']);
+  }
+
+  /**
    * Timed entry metadata blocks scan before the nominal entry window opens.
    */
   public function testBlocksScanBeforeTimedEntryOpens(): void {

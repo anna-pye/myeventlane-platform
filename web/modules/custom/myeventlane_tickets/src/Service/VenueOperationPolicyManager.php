@@ -56,6 +56,7 @@ final class VenueOperationPolicyManager {
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
+    private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
   ) {}
 
   /**
@@ -251,6 +252,119 @@ final class VenueOperationPolicyManager {
         'session_entitlement' => $composition['policy']['session_entitlement'],
         'zone_access' => $zone['policy'],
       ],
+    ];
+  }
+
+  /**
+   * Orchestrates operational identity metadata with the composed scan gate.
+   *
+   * Delegates timing, session, and zone decisions to existing managers; does
+   * not implement parallel gate logic.
+   *
+   * @param array<string, mixed> $raw_operational_context
+   *   Merged operational device context (see DeviceOperationIdentityManager).
+   *
+   * @return array<string, mixed>
+   *   Keys: scan_gate, checkpoint_descriptor, operational_identity.
+   */
+  public function evaluateOperationalIdentity(
+    Ticket $ticket,
+    array $raw_operational_context,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    ?string $requested_zone_id = NULL,
+  ): array {
+    $normalized = $this->deviceOperationIdentityManager->normalizeOperationalIdentity($raw_operational_context, '');
+    $zone_from_identity = ($normalized['zone_id'] ?? '') !== '' ? (string) $normalized['zone_id'] : NULL;
+    $effective_zone = $requested_zone_id !== NULL && trim($requested_zone_id) !== '' ? trim($requested_zone_id) : NULL;
+    $effective_zone ??= $zone_from_identity;
+    $scan = $this->evaluateZoneAccessForScan($ticket, $now, $parsed_qr_expires_at, $effective_zone);
+    $policy_snapshot = is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [];
+    $checkpoint = $this->buildOperationalCheckpointDescriptor(
+      $ticket,
+      $normalized,
+      $now,
+      $parsed_qr_expires_at,
+      $effective_zone,
+      $policy_snapshot,
+    );
+    $descriptors = $this->deviceOperationIdentityManager->buildOperationalIdentityDescriptors(
+      $ticket,
+      $normalized,
+      $policy_snapshot,
+    );
+    $trust = $this->normalizeDeviceTrustPolicy((string) ($normalized['trust_level'] ?? ''));
+
+    return [
+      'scan_gate' => $scan,
+      'checkpoint_descriptor' => $checkpoint,
+      'operational_identity' => $descriptors + ['trust_policy' => $trust],
+    ];
+  }
+
+  /**
+   * Normalizes device trust labels for policy orchestration (metadata-only).
+   *
+   * @return array<string, mixed>
+   */
+  public function normalizeDeviceTrustPolicy(string $trust_level_raw): array {
+    $canonical = $this->deviceOperationIdentityManager->classifyTrustLevel($trust_level_raw);
+    return [
+      'canonical_trust' => $canonical,
+      'policy_token' => match ($canonical) {
+        'elevated' => 'trust_elevated',
+        'limited' => 'trust_limited',
+        'standard' => 'trust_standard',
+        default => 'trust_unknown',
+      },
+    ];
+  }
+
+  /**
+   * Machine-only checkpoint + gate composition for audits and observability.
+   *
+   * @param array<string, mixed> $normalized_identity
+   *   Output of DeviceOperationIdentityManager::normalizeOperationalIdentity().
+   * @param array<string, mixed> $scan_gate_policy_snapshot
+   *   The `policy` array from evaluateZoneAccessForScan().
+   *
+   * @return array<string, mixed>
+   */
+  public function buildOperationalCheckpointDescriptor(
+    Ticket $ticket,
+    array $normalized_identity,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    ?string $effective_zone_id,
+    array $scan_gate_policy_snapshot,
+  ): array {
+    $timed = is_array($scan_gate_policy_snapshot['timed_entry'] ?? NULL)
+      ? $scan_gate_policy_snapshot['timed_entry']
+      : $this->timedEntryPolicyManager->evaluate($ticket, $now, $parsed_qr_expires_at);
+    $session = is_array($scan_gate_policy_snapshot['session_entitlement'] ?? NULL)
+      ? $scan_gate_policy_snapshot['session_entitlement']
+      : $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, $parsed_qr_expires_at, $timed);
+    $zone_slice = is_array($scan_gate_policy_snapshot['zone_access'] ?? NULL)
+      ? $scan_gate_policy_snapshot['zone_access']
+      : [];
+    $topology_id = '';
+    if ($zone_slice !== []) {
+      $topology_id = (string) (($zone_slice['topology'] ?? [])['topology_id'] ?? $zone_slice['topology_id'] ?? '');
+    }
+
+    return [
+      'checkpoint_id' => (string) ($normalized_identity['checkpoint_id'] ?? ''),
+      'gate_id' => (string) ($normalized_identity['gate_id'] ?? ''),
+      'device_id' => (string) ($normalized_identity['device_id'] ?? ''),
+      'effective_zone_request' => $effective_zone_id !== NULL && $effective_zone_id !== '' ? $effective_zone_id : '',
+      'scan_mode' => (string) ($normalized_identity['scan_mode'] ?? ''),
+      'reconciliation_group' => (string) ($normalized_identity['reconciliation_group'] ?? ''),
+      'offline_mode' => (bool) ($normalized_identity['offline_mode'] ?? FALSE),
+      'timed_scanner' => is_array($timed['scanner'] ?? NULL) ? $timed['scanner'] : [],
+      'session_scanner' => is_array($session['scanner'] ?? NULL) ? $session['scanner'] : [],
+      'zone_scanner' => is_array($zone_slice['scanner'] ?? NULL) ? $zone_slice['scanner'] : [],
+      'topology_id' => $topology_id,
+      'operator_attribution_present' => (($normalized_identity['operator_id'] ?? '') !== '' || ($normalized_identity['operator_role'] ?? '') !== ''),
     ];
   }
 

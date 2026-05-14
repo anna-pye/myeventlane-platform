@@ -42,6 +42,7 @@ final class OperationalIntegrityInspector {
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
+    private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
     private readonly TimeInterface $time,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
@@ -66,7 +67,9 @@ final class OperationalIntegrityInspector {
  * TimedEntryPolicyManager), `session_entitlement_policy` (per-ticket
  * session / progression snapshots from SessionEntitlementPolicyManager), and
  * `zone_access_topology` (per-ticket zone topology summaries from
- * ZoneAccessPolicyManager).
+ * ZoneAccessPolicyManager), and `operational_identity` (device / checkpoint /
+ * trust summaries composed via DeviceOperationIdentityManager and
+ * VenueOperationPolicyManager, staff-safe diagnostics only).
    */
   public function inspectOrder(OrderInterface $order): array {
     $orderId = (int) $order->id();
@@ -135,6 +138,7 @@ final class OperationalIntegrityInspector {
         'timed_entry_policy' => [],
         'session_entitlement_policy' => [],
         'zone_access_topology' => [],
+        'operational_identity' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -215,6 +219,7 @@ final class OperationalIntegrityInspector {
         'timed_entry_policy' => [],
         'session_entitlement_policy' => [],
         'zone_access_topology' => [],
+        'operational_identity' => [],
       ];
     }
 
@@ -231,6 +236,7 @@ final class OperationalIntegrityInspector {
     $timed_entry_policy = $this->buildTimedEntryDiagnosticsByTicket($tickets);
     $session_entitlement_policy = $this->buildSessionEntitlementDiagnosticsByTicket($tickets);
     $zone_access_topology = $this->buildZoneAccessTopologyDiagnosticsByTicket($tickets);
+    $operational_identity = $this->buildOperationalIdentityDiagnosticsByTicket($tickets);
 
     foreach ($tickets as $ticket) {
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
@@ -268,6 +274,7 @@ final class OperationalIntegrityInspector {
       'timed_entry_policy' => $timed_entry_policy,
       'session_entitlement_policy' => $session_entitlement_policy,
       'zone_access_topology' => $zone_access_topology,
+      'operational_identity' => $operational_identity,
     ];
   }
 
@@ -282,6 +289,57 @@ final class OperationalIntegrityInspector {
       $out[(string) $ticket->id()] = $this->zoneAccessPolicyManager->summarizeZoneInspection($ticket);
     }
     return $out;
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildOperationalIdentityDiagnosticsByTicket(array $tickets): array {
+    $now = $this->time->getCurrentTime();
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $raw = $this->deviceOperationIdentityManager->mergeOperationalContextFromTicket($ticket, []);
+      $normalized = $this->deviceOperationIdentityManager->normalizeOperationalIdentity($raw, '');
+      $bundle = $this->venueOperationPolicyManager->evaluateOperationalIdentity($ticket, $raw, $now, NULL, NULL);
+      $descriptor = $bundle['checkpoint_descriptor'] ?? [];
+      $identity = $bundle['operational_identity'] ?? [];
+      $op_desc = $this->venueOperationPolicyManager->buildOperationDescriptor($ticket, 'online');
+      $out[$id] = [
+        'device_identity_summary' => $identity['public_summary'] ?? [],
+        'trust_policy_summary' => $identity['trust_policy'] ?? [],
+        'checkpoint_descriptor' => $descriptor,
+        'reconciliation_group' => (string) ($normalized['reconciliation_group'] ?? ''),
+        'offline_eligible' => (bool) ($op_desc['offline_eligible'] ?? FALSE),
+        'offline_mode_metadata' => (bool) ($normalized['offline_mode'] ?? FALSE),
+        'operator_attribution_summary' => [
+          'present' => (bool) ($descriptor['operator_attribution_present'] ?? FALSE),
+          'operator_id_suffix' => $this->maskOperatorIdSuffix((string) ($normalized['operator_id'] ?? '')),
+        ],
+        'device_fingerprint' => $this->deviceOperationIdentityManager->buildReplaySafeDeviceFingerprint($normalized),
+        'zone_id_normalized' => (string) ($normalized['zone_id'] ?? ''),
+        'timing_identity_composition' => [
+          'timed_scanner_state' => (string) (($descriptor['timed_scanner'] ?? [])['state'] ?? ''),
+        ],
+        'session_identity_composition' => [
+          'session_scanner_allowed' => (bool) (($descriptor['session_scanner'] ?? [])['allowed_now'] ?? FALSE),
+        ],
+      ];
+    }
+    return $out;
+  }
+
+  private function maskOperatorIdSuffix(string $operator_id): string {
+    $operator_id = trim($operator_id);
+    if ($operator_id === '') {
+      return '';
+    }
+    if (strlen($operator_id) <= 4) {
+      return '****';
+    }
+    return '…' . substr($operator_id, -4);
   }
 
   /**

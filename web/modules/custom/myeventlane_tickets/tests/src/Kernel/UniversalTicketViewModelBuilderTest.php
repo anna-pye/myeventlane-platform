@@ -152,6 +152,32 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertStringNotContainsString('replay_token', $encoded);
   }
 
+  public function testExposesCustomerSafeOperationalIdentityFromMetadata(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-OP-PUB',
+      'metadata_json' => [
+        'mel_operational_device' => [
+          'checkpoint_id' => 'entry-a',
+          'trust_level' => 'normal',
+          'scan_mode' => 'admit',
+          'operator_id' => 'hidden-staff',
+        ],
+      ],
+    ]);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayHasKey('operational_identity', $model);
+    $enc = json_encode($model['operational_identity']) ?: '';
+    $this->assertStringNotContainsString('hidden-staff', $enc);
+    $this->assertStringNotContainsString('replay', strtolower($enc));
+    $this->assertSame('entry-a', $model['operational_identity']['checkpoint']);
+  }
+
+  public function testOmitsOperationalIdentityWhenNoDeviceMetadata(): void {
+    $ticket = $this->createTicket(['ticket_code' => 'MEL-NO-OP']);
+    $model = $this->builder()->build($ticket);
+    $this->assertArrayNotHasKey('operational_identity', $model);
+  }
+
   public function testBuildsAdmissionTicketModel(): void {
     $ticket = $this->createTicket([
       'ticket_code' => 'MEL-VIEW-0001',

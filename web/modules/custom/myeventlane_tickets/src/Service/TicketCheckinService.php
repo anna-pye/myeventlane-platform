@@ -23,8 +23,8 @@ final class TicketCheckinService {
    * @return array<string, mixed>
    *   Structured outcome for form/API/scanner callers.
    */
-  public function checkIn(int $route_event_id, string $input, string $device_id = 'web-form', string $mode = 'online'): array {
-    return $this->operationManager->process($route_event_id, $input, $device_id, $mode);
+  public function checkIn(int $route_event_id, string $input, string $device_id = 'web-form', string $mode = 'online', ?array $operational_context = NULL): array {
+    return $this->operationManager->process($route_event_id, $input, $device_id, $mode, $operational_context);
   }
 
 }

@@ -268,6 +268,60 @@ final class VenueOperationPolicyManagerTest extends KernelTestBase {
     $this->assertArrayHasKey('session_entitlement', $gate['policy']);
   }
 
+  public function testNormalizeDeviceTrustPolicy(): void {
+    $p = $this->policy();
+    $t = $p->normalizeDeviceTrustPolicy('high');
+    $this->assertSame('elevated', $t['canonical_trust']);
+    $this->assertSame('trust_elevated', $t['policy_token']);
+    $this->assertSame('trust_unknown', $p->normalizeDeviceTrustPolicy('')['policy_token']);
+  }
+
+  public function testEvaluateOperationalIdentityMatchesZoneScanGate(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $raw = ['mel_operational_device' => ['device_id' => 'gate-scanner', 'zone_id' => '']];
+    $bundle = $this->policy()->evaluateOperationalIdentity($ticket, $raw, time(), NULL, NULL);
+    $this->assertArrayHasKey('scan_gate', $bundle);
+    $this->assertTrue($bundle['scan_gate']['allow']);
+    $this->assertArrayHasKey('operational_identity', $bundle);
+    $this->assertArrayHasKey('checkpoint_descriptor', $bundle);
+    $this->assertSame('gate-scanner', $bundle['operational_identity']['normalized']['device_id']);
+  }
+
+  public function testEvaluateOperationalIdentityUsesZoneFromDeviceMetadata(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_DRINK, [
+      'redemption_limit' => 4,
+      'metadata_json' => [
+        'mel_operational_zones' => [
+          'allowed_zones' => ['bar_one'],
+        ],
+      ],
+    ]);
+    $raw = ['mel_operational_device' => ['zone_id' => 'other_zone']];
+    $bundle = $this->policy()->evaluateOperationalIdentity($ticket, $raw, time(), NULL, NULL);
+    $this->assertFalse($bundle['scan_gate']['allow']);
+  }
+
+  public function testBuildOperationalCheckpointDescriptorUsesPolicySnapshot(): void {
+    $ticket = $this->createTicket(Ticket::ENTITLEMENT_TICKET);
+    $scan = $this->policy()->evaluateZoneAccessForScan($ticket, time(), NULL, NULL);
+    $normalized = $this->container->get('myeventlane_tickets.device_operation_identity_manager')
+      ->normalizeOperationalIdentity(['mel_operational_device' => [
+        'checkpoint_id' => 'cp-main',
+        'gate_id' => 'g-a',
+      ]], 'dev');
+    $desc = $this->policy()->buildOperationalCheckpointDescriptor(
+      $ticket,
+      $normalized,
+      time(),
+      NULL,
+      NULL,
+      is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [],
+    );
+    $this->assertSame('cp-main', $desc['checkpoint_id']);
+    $this->assertSame('g-a', $desc['gate_id']);
+    $this->assertArrayHasKey('timed_scanner', $desc);
+  }
+
   private function policy(): VenueOperationPolicyManager {
     return $this->container->get('myeventlane_tickets.venue_operation_policy_manager');
   }

@@ -28,6 +28,7 @@ final class UniversalTicketViewModelBuilder {
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
+    private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
   ) {}
 
   /**
@@ -55,8 +56,9 @@ final class UniversalTicketViewModelBuilder {
     $session_entitlement = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed_entry);
     $zone_access = $this->zoneAccessPolicyManager->normalizeOperationalZonesMetadata($ticket);
     $topology = $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed_entry, $session_entitlement);
+    $operational_identity = $this->deviceOperationIdentityManager->buildCustomerVisibleOperationalIdentityFromTicket($ticket);
 
-    return [
+    $model = [
       'ticket' => [
         'id' => (int) $ticket->id(),
         'uuid' => (string) $ticket->uuid(),
@@ -127,6 +129,10 @@ final class UniversalTicketViewModelBuilder {
         'session' => $session_entitlement['progression'] ?? [],
       ],
     ];
+    if ($operational_identity !== []) {
+      $model['operational_identity'] = $operational_identity;
+    }
+    return $model;
   }
 
   /**

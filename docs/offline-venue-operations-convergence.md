@@ -14,10 +14,11 @@ This phase introduces a **single venue operation policy layer** for ticket-backe
 | Operational timing (entry windows, grace, session/capacity semantics) | `myeventlane_tickets.timed_entry_policy_manager` | `TimedEntryPolicyManager` |
 | Session / multi-use / sequencing / bundle semantics | `myeventlane_tickets.session_entitlement_policy_manager` | `SessionEntitlementPolicyManager` |
 | Zone / access topology (metadata-only gates, topology descriptors) | `myeventlane_tickets.zone_access_policy_manager` | `ZoneAccessPolicyManager` |
+| Operational device / gate / checkpoint identity (metadata-only descriptors) | `myeventlane_tickets.device_operation_identity_manager` | `DeviceOperationIdentityManager` |
 | Scanner orchestration (QR parse, mutations, audit) | `mel_scanner.operation_manager` | `ScannerOperationManager` |
 | Staff/API entry point | `myeventlane_tickets.ticket_checkin_service` | `TicketCheckinService` |
 
-`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry**, **session entitlement**, and **zone access topology** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`**, **`SessionEntitlementPolicyManager`**, and **`ZoneAccessPolicyManager`**), and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`, optional `operational_scan_policy` snapshot when the composed gate produced policy metadata).
+`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry**, **session entitlement**, and **zone access topology** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`**, **`SessionEntitlementPolicyManager`**, and **`ZoneAccessPolicyManager`**), merge optional operational device metadata through **`DeviceOperationIdentityManager`**, and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`, optional `operational_scan_policy` snapshot when the composed gate produced policy metadata, optional `operational_identity` with public summaries and staff-only integrity payloads). See [device-gate-identity-convergence.md](./device-gate-identity-convergence.md).
 
 ## Zone and access topology (Phase 2G)
 
@@ -63,7 +64,7 @@ This phase adds **non-authoritative scaffolding**:
 
 ## Observability
 
-`OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector adds **`artifacts.zone_access_topology`** (per ticket id: topology summaries, gate policy counts, progression/re-entry semantics, structural zone conflicts). The inspector remains **read-only**.
+`OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector adds **`artifacts.zone_access_topology`** (per ticket id: topology summaries, gate policy counts, progression/re-entry semantics, structural zone conflicts) and **`artifacts.operational_identity`** (per ticket id: device/trust/checkpoint summaries, offline signals, and staff-safe operator attribution masks composed through `DeviceOperationIdentityManager` / `VenueOperationPolicyManager`). The inspector remains **read-only**.
 
 ## Anti-patterns (forbidden)
 
