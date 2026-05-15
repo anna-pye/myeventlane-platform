@@ -2160,22 +2160,36 @@
     }
 
     var mediaRoot = form.querySelector('.mel-identity-media');
-    var link =
-      (mediaRoot && melFindManagedFileImageLink(mediaRoot)) || melFindManagedFileImageLink(form);
-    if (link && link.href) {
-      img.src = link.href;
+    var url =
+      (mediaRoot && melFindManagedFileImageUrl(mediaRoot)) || melFindManagedFileImageUrl(form);
+    if (url) {
+      img.src = url;
       img.removeAttribute('hidden');
       empty.setAttribute('hidden', 'hidden');
       return;
     }
 
+    var existingSrc = (img.getAttribute('src') || '').trim();
+    var fidsPresent = melHeroImageFidsPresent(form);
+
     // Fids or SSR preview: do not show the empty-state placeholder while a file
     // is still attached, even if Gin/theme omitted a matching file link.
-    if (melHeroImageFidsPresent(form) || (img.getAttribute('src') || '').trim() !== '') {
-      if ((img.getAttribute('src') || '').trim() !== '') {
-        img.removeAttribute('hidden');
+    if (fidsPresent || existingSrc !== '') {
+      if (existingSrc === '' && fidsPresent) {
+        var fallback = melCoverPlaceholderSrc(wrap);
+        if (fallback) {
+          img.src = fallback;
+          existingSrc = fallback;
+        }
       }
-      empty.setAttribute('hidden', 'hidden');
+      if (existingSrc !== '') {
+        img.removeAttribute('hidden');
+        empty.setAttribute('hidden', 'hidden');
+      } else {
+        // Attached file but no preview URL yet — keep empty visible (never hide both).
+        img.setAttribute('hidden', 'hidden');
+        empty.removeAttribute('hidden');
+      }
       return;
     }
 
@@ -2191,56 +2205,82 @@
       return;
     }
     var mediaRoot = form.querySelector('.mel-identity-media');
-    var link =
-      (mediaRoot && melFindManagedFileImageLink(mediaRoot)) || melFindManagedFileImageLink(form);
-    if (link && link.href) {
-      img.src = link.href;
+    var url =
+      (mediaRoot && melFindManagedFileImageUrl(mediaRoot)) || melFindManagedFileImageUrl(form);
+    if (url) {
+      img.src = url;
       img.alt = melHeroAltValue(form) || '';
       img.removeAttribute('hidden');
       ph.setAttribute('hidden', 'hidden');
-    } else if (hasCoverFile(form)) {
-      if ((img.getAttribute('src') || '').trim() !== '') {
+      return;
+    }
+
+    var existingSrc = (img.getAttribute('src') || '').trim();
+    if (hasCoverFile(form)) {
+      if (existingSrc === '' && melHeroImageFidsPresent(form)) {
+        var coverWrap = document.getElementById('mel-cover-preview');
+        var fallback = melCoverPlaceholderSrc(coverWrap);
+        if (fallback) {
+          img.src = fallback;
+          existingSrc = fallback;
+        }
+      }
+      if (existingSrc !== '') {
         img.alt = melHeroAltValue(form) || '';
         img.removeAttribute('hidden');
+        ph.setAttribute('hidden', 'hidden');
+      } else {
+        img.setAttribute('hidden', 'hidden');
+        ph.removeAttribute('hidden');
       }
-      ph.setAttribute('hidden', 'hidden');
-    } else {
-      img.removeAttribute('src');
-      img.setAttribute('hidden', 'hidden');
-      ph.removeAttribute('hidden');
+      return;
     }
+
+    img.removeAttribute('src');
+    img.setAttribute('hidden', 'hidden');
+    ph.removeAttribute('hidden');
+  }
+
+  function applyCoverFileDataUrl(form, dataUrl) {
+    var img = document.getElementById('mel-cover-preview-img');
+    var empty = document.getElementById('mel-cover-preview-empty');
+    var prevImg = document.getElementById('mel-preview-card-img');
+    var ph = document.getElementById('mel-preview-card-placeholder');
+    if (img && empty) {
+      img.src = dataUrl;
+      img.removeAttribute('hidden');
+      empty.setAttribute('hidden', 'hidden');
+    }
+    if (prevImg && ph) {
+      prevImg.src = dataUrl;
+      prevImg.alt = melHeroAltValue(form) || '';
+      prevImg.removeAttribute('hidden');
+      ph.setAttribute('hidden', 'hidden');
+    }
+    scheduleApplyLivePreview(form, false);
   }
 
   function bindCoverFilePreview(form) {
-    // All hero file inputs under any .mel-identity-media (deduped by
-    // querySelectorAll). Single once() with one id avoids missing later blocks
-    // (previously only the first .mel-identity-media was used) and avoids
-    // relying on repeated once() per container.
-    var fileInputs = form.querySelectorAll('.mel-identity-media input[type="file"]');
-    once('mel-cover-file', fileInputs).forEach(function (input) {
-      input.addEventListener('change', function () {
+    // Delegate on the form so every .mel-identity-media file input is covered,
+    // including inputs added after AJAX managed_file refreshes.
+    once('mel-cover-file', form).forEach(function () {
+      form.addEventListener('change', function (e) {
+        var input = e.target;
+        if (
+          !input ||
+          input.type !== 'file' ||
+          !form.contains(input) ||
+          !input.closest('.mel-identity-media')
+        ) {
+          return;
+        }
         var f = input.files && input.files[0];
         if (!f || !f.type || f.type.indexOf('image/') !== 0) {
           return;
         }
         var r = new FileReader();
         r.onload = function () {
-          var img = document.getElementById('mel-cover-preview-img');
-          var empty = document.getElementById('mel-cover-preview-empty');
-          var prevImg = document.getElementById('mel-preview-card-img');
-          var ph = document.getElementById('mel-preview-card-placeholder');
-          if (img && empty) {
-            img.src = r.result;
-            img.removeAttribute('hidden');
-            empty.setAttribute('hidden', 'hidden');
-          }
-          if (prevImg && ph) {
-            prevImg.src = r.result;
-            prevImg.alt = melHeroAltValue(form) || '';
-            prevImg.removeAttribute('hidden');
-            ph.setAttribute('hidden', 'hidden');
-          }
-          scheduleApplyLivePreview(form, false);
+          applyCoverFileDataUrl(form, r.result);
         };
         r.readAsDataURL(f);
       });
