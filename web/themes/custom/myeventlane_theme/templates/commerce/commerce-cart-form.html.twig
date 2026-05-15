@@ -106,6 +106,12 @@
         </div>
       {% endif %}
 
+      {% if mel_operational_checkout %}
+        <div class="mel-cart-operational-checkout mel-mt-3" role="region" aria-label="{{ 'Operational checkout plan'|t }}">
+          {{ mel_operational_checkout }}
+        </div>
+      {% endif %}
+
       <div class="mel-cart-actions">
         {{ form.actions }}
       </div>

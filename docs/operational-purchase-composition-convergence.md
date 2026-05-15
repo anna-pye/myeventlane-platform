@@ -12,6 +12,8 @@ Phase 4C adds **`OperationalFulfillmentExecutionProjectionBuilder::buildCustomer
 
 **`OperationalPurchaseCompositionManager`** (with **`OperationalMerchandiseManager`** and **`OperationalMerchandiseGovernanceManager`**) produces **`mel_operational_purchase_composition`**: grouped operational Commerce lines (merch, hospitality, timed collection, bundles, parking) from **real order items** or **event authoring preview**, plus read-only governance severity. It remains **non-mutating** for carts, orders, checkout transitions, entitlements, inventory, warehouses, shipping, and scanners. See [operational-merchandise-architecture.md](./operational-merchandise-architecture.md).
 
+**`OperationalCheckoutOrchestrationManager`** reshapes the same composition document into **`mel_operational_checkout`** for cart/checkout/order/event surfaces (grouped cards, readiness rollup, pickup slice, continuity hints, deterministic guidance). It must not re-classify lines or mutate Commerce; see [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md).
+
 ## Forbidden
 
 - Re-mapping entitlement or reservation state in Twig or checkout JS.
@@ -20,6 +22,7 @@ Phase 4C adds **`OperationalFulfillmentExecutionProjectionBuilder::buildCustomer
 ## Related documentation
 
 - [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
+- [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)

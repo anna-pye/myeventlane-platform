@@ -74,6 +74,12 @@
       </div>
     {% endif %}
 
+    {% if mel_operational_checkout %}
+      <div class="mel-booking-operational-checkout mel-container mel-container--event">
+        {{ mel_operational_checkout }}
+      </div>
+    {% endif %}
+
     {% if mel_operational_purchase_composition %}
       <div class="mel-booking-operational-composition mel-container mel-container--event">
         {{ mel_operational_purchase_composition }}

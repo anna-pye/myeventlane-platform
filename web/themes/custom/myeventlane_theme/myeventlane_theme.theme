@@ -635,15 +635,20 @@ function myeventlane_theme_preprocess_commerce_checkout_order_summary(array &$va
   $order = $variables['order_entity'] ?? NULL;
   if (!$order instanceof OrderInterface) {
     $variables['mel_checkout_order_summary_build'] = [];
+    $variables['mel_operational_checkout'] = NULL;
     return;
   }
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_checkout_flow')) {
     $variables['mel_checkout_order_summary_build'] = [];
+    $variables['order_entity'] = $order;
+    _myeventlane_theme_attach_mel_operational_checkout($variables);
     return;
   }
   /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $presenter */
   $presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
   $variables['mel_checkout_order_summary_build'] = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'checkout']);
+  $variables['order_entity'] = $order;
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
 }
 
 /**
@@ -662,6 +667,7 @@ function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
   _myeventlane_theme_attach_mel_customer_operational_experience($variables);
   _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
   _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
 }
 
 /**
@@ -682,6 +688,7 @@ function myeventlane_theme_preprocess_myeventlane_my_tickets(array &$variables):
       }
       $variables[$orders_key][$idx]['mel_operational_fulfillment_execution_customer'] = _myeventlane_theme_mel_operational_fulfillment_execution_customer_for_order($order);
       $variables[$orders_key][$idx]['mel_operational_purchase_composition'] = _myeventlane_theme_mel_operational_purchase_composition_for_order($order);
+      $variables[$orders_key][$idx]['mel_operational_checkout'] = _myeventlane_theme_mel_operational_checkout_for_order($order);
     }
   }
 
@@ -755,6 +762,7 @@ function myeventlane_theme_preprocess_myeventlane_order_detail(array &$variables
   $variables['order_entity'] = $order;
   _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
   _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
 
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
     || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
@@ -1082,6 +1090,7 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
   _myeventlane_theme_attach_mel_customer_operational_experience($variables);
   _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
   _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
 }
 
 /**
@@ -1210,6 +1219,61 @@ function _myeventlane_theme_mel_operational_purchase_composition_for_order(Order
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_theme')->notice('MEL operational purchase composition (My Tickets) skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
+ * Attaches operational checkout orchestration (grouped customer-safe contract).
+ */
+function _myeventlane_theme_attach_mel_operational_checkout(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+    $variables['mel_operational_checkout'] = NULL;
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order'])) {
+    $candidate = $variables['form']['#order'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order_entity'])) {
+    $candidate = $variables['form']['#order_entity'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface) {
+    $variables['mel_operational_checkout'] = NULL;
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
+    $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
+    $variables['mel_operational_checkout'] = $oco->buildOrderRenderArray($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout orchestration skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['mel_operational_checkout'] = NULL;
+  }
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_checkout_for_order(OrderInterface $order): ?array {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+    return NULL;
+  }
+  try {
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
+    $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
+    return $oco->buildOrderRenderArray($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout (My Tickets) skipped for order @oid: @message', [
       '@oid' => (string) $order->id(),
       '@message' => $e->getMessage(),
     ]);
@@ -3943,6 +4007,7 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
     $variables['order_entity'] = $order;
     _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
     _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+    _myeventlane_theme_attach_mel_operational_checkout($variables);
   }
 }
 

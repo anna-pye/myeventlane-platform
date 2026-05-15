@@ -30,7 +30,7 @@ use Drupal\user\Entity\User;
  *
  * @group myeventlane_commerce
  */
-final class OperationalMerchandiseKernelTest extends KernelTestBase {
+class OperationalMerchandiseKernelTest extends KernelTestBase {
 
   protected static $modules = [
     'system',
@@ -54,9 +54,9 @@ final class OperationalMerchandiseKernelTest extends KernelTestBase {
     'state_machine',
   ];
 
-  private Store $store;
+  protected Store $store;
 
-  private Node $event;
+  protected Node $event;
 
   protected function setUp(): void {
     parent::setUp();
@@ -255,7 +255,7 @@ final class OperationalMerchandiseKernelTest extends KernelTestBase {
     $this->assertSame('elevated', $doc['governance']['severity']);
   }
 
-  private function merchandiseManager(): OperationalMerchandiseManager {
+  protected function merchandiseManager(): OperationalMerchandiseManager {
     return new OperationalMerchandiseManager(
       $this->container->get('entity_type.manager'),
       $this->container->get('string_translation'),
@@ -263,7 +263,7 @@ final class OperationalMerchandiseKernelTest extends KernelTestBase {
     );
   }
 
-  private function compositionManager(): OperationalPurchaseCompositionManager {
+  protected function compositionManager(): OperationalPurchaseCompositionManager {
     $merch = $this->merchandiseManager();
     $gov = new OperationalMerchandiseGovernanceManager(
       $merch,
@@ -350,7 +350,7 @@ final class OperationalMerchandiseKernelTest extends KernelTestBase {
     ])->save();
   }
 
-  private function createOperationalProduct(string $productType, string $variationType, string $sku): Product {
+  protected function createOperationalProduct(string $productType, string $variationType, string $sku): Product {
     $product = Product::create([
       'type' => $productType,
       'title' => $sku . ' product',

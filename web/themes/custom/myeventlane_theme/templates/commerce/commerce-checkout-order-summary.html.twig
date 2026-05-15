@@ -8,4 +8,9 @@
 #}
 <div{{ attributes.addClass('checkout-order-summary', 'mel-checkout-order-summary', 'mel-checkout-order-summary--presented') }}>
   {{ mel_checkout_order_summary_build }}
+  {% if mel_operational_checkout %}
+    <div class="mel-checkout-order-summary__operational-checkout mel-mt-3" role="region" aria-label="{{ 'Operational checkout plan'|t }}">
+      {{ mel_operational_checkout }}
+    </div>
+  {% endif %}
 </div>

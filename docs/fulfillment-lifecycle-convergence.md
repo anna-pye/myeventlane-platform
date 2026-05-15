@@ -24,6 +24,8 @@ This layer **must not** issue tickets, change entitlements, change scanner outco
 
 **Operational merchandise architecture** (Phase 4D) adds **Commerce catalog–backed** operational products (`field_mel_operational_product`) and **purchase composition** grouping for customer UI. It **does not** change lifecycle states, decrement stock, or issue entitlements; it consumes lifecycle/ops only as **upstream** customer messaging context where needed. See [operational-merchandise-architecture.md](./operational-merchandise-architecture.md).
 
+**Operational checkout orchestration** (Phase 4D) layers `mel_operational_checkout` on cart/checkout/order/event surfaces as a **read-only regrouping** of purchase composition output for mobile-friendly cards; it does not execute fulfillment, reservations, or scanners. See [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md).
+
 ## Canonical lifecycle states
 
 Normalized strings (single source in `FulfillmentLifecycleManager`): `pending`, `prepared`, `ready`, `partially_fulfilled`, `fulfilled`, `collected`, `consumed`, `expired`, `failed`, `cancelled`.
@@ -43,6 +45,7 @@ Do not add: inventory engines, warehouse orchestration, shipping execution, noti
 ## Related documentation
 
 - [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
+- [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)

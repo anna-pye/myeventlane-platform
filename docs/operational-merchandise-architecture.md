@@ -41,6 +41,8 @@ Persisted under `field_mel_op_capabilities` as part of the operational capabilit
 
 Theme and checkout-flow templates render the composition strip next to existing **customer operational experience** and **fulfillment execution** strips. Twig/CSS are presentation-only; optional JS is progressive enhancement only.
 
+**Operational checkout orchestration** (`mel_operational_checkout`, `OperationalCheckoutOrchestrationManager`) adds a grouped **checkout plan** card fed only from purchase composition output. It does not replace merchandise normalization or composition classification; see [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md).
+
 ## Anti-patterns
 
 - Duplicating `FulfillmentLifecycleManager`, `InventoryReservationGovernanceManager`, scanner authority, or entitlement issuance in merchandise services or Twig.
@@ -50,6 +52,7 @@ Theme and checkout-flow templates render the composition strip next to existing 
 ## Related documentation
 
 - [operational-purchase-composition-convergence.md](./operational-purchase-composition-convergence.md)
+- [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [vendor-operational-capability-studio.md](./vendor-operational-capability-studio.md)

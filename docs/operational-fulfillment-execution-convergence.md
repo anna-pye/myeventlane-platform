@@ -76,6 +76,8 @@ Theme preprocess attaches `mel_operational_fulfillment_execution_customer` on My
 - Emitting warehouse, shipping, stock decrement, or realtime allocation semantics from this layer.
 - Adding websocket push, notification send, or scanner bypass hooks from execution projections.
 
+**Operational checkout orchestration** (`mel_operational_checkout`) is a **separate** Commerce presentation strip built from purchase composition; it must not merge execution contracts or duplicate fulfillment timelines. See [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md).
+
 ## Related documentation
 
 - [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
@@ -84,5 +86,6 @@ Theme preprocess attaches `mel_operational_fulfillment_execution_customer` on My
 - [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [operational-purchase-composition-convergence.md](./operational-purchase-composition-convergence.md)
+- [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)
