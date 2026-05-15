@@ -87,3 +87,18 @@
   color: #1f2328;
   word-break: break-word;
 }
+
+.mel-ops-card--severity-critical {
+  border-color: #c94a4a;
+  background: #fff5f5;
+}
+
+.mel-ops-card--severity-warning {
+  border-color: #d9a23c;
+  background: #fffaf0;
+}
+
+.mel-ops-card--severity-info {
+  border-color: #c5d4e8;
+  background: #f7fbff;
+}

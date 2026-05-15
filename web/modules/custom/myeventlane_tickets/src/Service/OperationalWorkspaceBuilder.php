@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_tickets\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
-use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 
 /**
  * Canonical read-model builder for the staff venue operations workspace.
  *
- * Operational payloads are derived exclusively from policy managers and the
- * {@see OperationalIntegrityInspector}; this class normalizes and merges them
- * into display-safe sections without re-evaluating gate policy in Twig.
+ * Operational payloads are composed from policy managers and
+ * {@see OperationalIntegrityInspector} read models (sampled via
+ * {@see OperationalIncidentBuilder}), then normalized into display-safe sections
+ * without re-evaluating gate policy in Twig.
  */
 final class OperationalWorkspaceBuilder {
 
@@ -33,14 +32,16 @@ final class OperationalWorkspaceBuilder {
     'operation_fingerprint',
     'replay_continuity_metadata',
     'deterministic_continuity_descriptor',
+    'payload_sha256',
+    'venue_operation_integrity',
   ];
 
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
     private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
-    private readonly OperationalIntegrityInspector $operationalIntegrityInspector,
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
+    private readonly OperationalIncidentBuilder $operationalIncidentBuilder,
+    private readonly OperationalRecoverySummaryBuilder $operationalRecoverySummaryBuilder,
   ) {}
 
   /**
@@ -70,12 +71,39 @@ final class OperationalWorkspaceBuilder {
       $cache_tags[] = 'node:' . $event->id();
     }
 
-    $inspections = $event ? $this->collectInspectionsForEvent($event, $meta) : [];
+    $inspections = [];
+    $ticket_ids = [];
+    if ($event) {
+      $ctx = $this->operationalIncidentBuilder->sampleEventOperationalContext($event);
+      $inspections = $ctx['inspections'];
+      $ticket_ids = $ctx['ticket_ids'];
+      $meta['sampled_tickets'] = count($ticket_ids);
+    }
+
     $merged = $this->mergeInspections($inspections);
     $meta['sampled_orders'] = count($inspections);
 
+    $denied_scan_counts = [];
+    if ($event && $ticket_ids !== []) {
+      $denied_scan_counts = $this->operationalIncidentBuilder->aggregateDeniedScanResults(
+        $ticket_ids,
+        (int) $event->id(),
+      );
+    }
+
+    $incident_bundle = $this->operationalIncidentBuilder->buildSections(
+      $inspections,
+      $merged,
+      $denied_scan_counts,
+    );
+    $recovery_section = $this->operationalRecoverySummaryBuilder->buildSection($inspections, $merged);
+
     $entitlement_catalog = $this->buildEntitlementCatalogSection();
     $sections = [
+      $incident_bundle[0],
+      $recovery_section,
+      $incident_bundle[2],
+      $incident_bundle[1],
       $this->buildIntegritySection($merged),
       $this->buildVenueOperationsSection($merged),
       $this->buildScannerOperationsSection($merged),
@@ -93,45 +121,6 @@ final class OperationalWorkspaceBuilder {
   }
 
   /**
-   * @param array<string, mixed> $meta
-   *
-   * @return array<int|string, array<string, mixed>>
-   */
-  private function collectInspectionsForEvent(NodeInterface $event, array &$meta): array {
-    $ticket_storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
-    $ids = $ticket_storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('event_id', $event->id())
-      ->range(0, 40)
-      ->sort('id')
-      ->execute();
-    if (!$ids) {
-      return [];
-    }
-    /** @var array<int|string, \Drupal\myeventlane_tickets\Entity\Ticket> $tickets */
-    $tickets = $ticket_storage->loadMultiple($ids);
-    $meta['sampled_tickets'] = count($tickets);
-
-    $order_ids = [];
-    foreach ($tickets as $ticket) {
-      $oid = $ticket->get('order_id')->target_id;
-      if ($oid) {
-        $order_ids[(int) $oid] = (int) $oid;
-      }
-    }
-
-    $order_storage = $this->entityTypeManager->getStorage('commerce_order');
-    $out = [];
-    foreach ($order_ids as $oid) {
-      $order = $order_storage->load($oid);
-      if ($order instanceof OrderInterface) {
-        $out[$oid] = $this->operationalIntegrityInspector->inspectOrder($order);
-      }
-    }
-    return $out;
-  }
-
-  /**
    * @param array<int|string, array<string, mixed>> $inspections
    *
    * @return array<string, mixed>
@@ -143,6 +132,7 @@ final class OperationalWorkspaceBuilder {
         'artifacts' => [],
         'recovery' => [],
         'guest_continuity' => [],
+        'compatibility' => [],
       ];
     }
 
@@ -150,12 +140,14 @@ final class OperationalWorkspaceBuilder {
     $merged_recovery = $this->mergeRecoveryRollup($inspections);
     $merged_guest = $this->mergeGuestContinuityRollup($inspections);
     $merged_artifacts = $this->mergeArtifactDomains($inspections);
+    $merged_compatibility = $this->mergeCompatibilityRollup($inspections);
 
     return [
       'issuance' => $merged_issuance,
       'artifacts' => $merged_artifacts,
       'recovery' => $merged_recovery,
       'guest_continuity' => $merged_guest,
+      'compatibility' => $merged_compatibility,
     ];
   }
 
@@ -229,6 +221,44 @@ final class OperationalWorkspaceBuilder {
     return [
       'continuity_statuses_observed' => array_values(array_unique($statuses)),
     ];
+  }
+
+  /**
+   * @param array<int|string, array<string, mixed>> $inspections
+   *
+   * @return array<string, mixed>
+   */
+  private function mergeCompatibilityRollup(array $inspections): array {
+    $rank = [
+      'canonical' => 0,
+      'valid' => 0,
+      'unknown' => 1,
+      'pending' => 2,
+      'mixed' => 3,
+      'legacy' => 3,
+      'invalid' => 4,
+      'missing' => 4,
+    ];
+    $keys = [
+      'ticket_pdf_operational_path',
+      'order_item_pdf_surface',
+      'wallet_resolution_surface',
+    ];
+    $worst = [];
+    foreach ($keys as $key) {
+      $worst[$key] = 'unknown';
+      $worst_score = -1;
+      foreach ($inspections as $row) {
+        $c = $row['compatibility'] ?? [];
+        $val = (string) ($c[$key] ?? 'unknown');
+        $score = $rank[$val] ?? 2;
+        if ($score > $worst_score) {
+          $worst_score = $score;
+          $worst[$key] = $val;
+        }
+      }
+    }
+    return $worst;
   }
 
   /**

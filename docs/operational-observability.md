@@ -75,11 +75,11 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 - Embedding UI strings, translated labels, or marketing copy inside diagnostics payloads
 - Exposing purchaser email, entitlement secrets, raw HMAC material, or full QR payload strings through diagnostics APIs
 - Adding **vendor or customer** routes that surface `OperationalIntegrityInspector` payloads without the same staff-only gating used elsewhere
-- **Workspace exception:** the read-only staff shell documented in [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) (`/admin/mel/operations`) consumes inspector output exclusively through `OperationalWorkspaceBuilder`, which strips machine-only fields before theming. Callers must still treat direct inspector invocation as privileged.
+- **Workspace exception:** the read-only staff shell documented in [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) (`/admin/mel/operations`) consumes inspector output exclusively through `OperationalWorkspaceBuilder` and the Phase 3A incident / recovery builders, which strip machine-only fields before theming. Callers must still treat direct inspector invocation as privileged.
 
 ## Venue operations workspace (Phase 3A)
 
-Staff operational convergence now has a **canonical read-only shell** (`VenueOperationsController` + `OperationalWorkspaceBuilder`) that merges inspector diagnostics for sampled orders tied to an optional event query parameter. See [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) for route, access, and visibility boundaries.
+Staff operational convergence has a **canonical read-only shell** (`VenueOperationsController` + `OperationalWorkspaceBuilder`) that merges inspector diagnostics for sampled orders tied to an optional event query parameter. **Phase 3A Commit 2** adds incident triage, recovery visibility, severity rollup, and extended integrity cards via `OperationalIncidentBuilder`, `OperationalRecoverySummaryBuilder`, and `OperationalIncidentNormalizer` — still inspector-backed, still stripped before theming. See [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) and [operational-incident-recovery-convergence.md](./operational-incident-recovery-convergence.md) for route, access, and visibility boundaries.
 
 ## Related documentation
 

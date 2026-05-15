@@ -1,21 +1,26 @@
-# Venue operations workspace convergence (Phase 3A, Commit 1)
+# Venue operations workspace convergence (Phase 3A, Commit 1–2)
 
 ## Purpose
 
-Introduce a **single staff-only operational shell** at `/admin/mel/operations` that converges operational visibility (integrity, venue topology, scanner posture, entitlement catalog) **without** a second policy stack, **without** realtime infrastructure, and **without** exposing machine integrity material to guests or vendors.
+Introduce a **single staff-only operational shell** at `/admin/mel/operations` that converges operational visibility (integrity, venue topology, scanner posture, entitlement catalog, **incident triage, recovery visibility, severity rollup**) **without** a second policy stack, **without** realtime infrastructure, and **without** exposing machine integrity material to guests or vendors.
 
-This commit is **read-only**: no websocket sync, no polling loops, no maps, no alternate operational stores.
+This commit family is **read-only**: no websocket sync, no polling loops, no maps, no alternate operational stores.
+
+**Commit 2** (incident / recovery convergence) is documented in [operational-incident-recovery-convergence.md](./operational-incident-recovery-convergence.md).
 
 ## Architecture
 
 | Component | Responsibility |
 | --- | --- |
-| `OperationalWorkspaceAccessChecker` (`myeventlane_tickets.operational_workspace_access`) | Route access only: anonymous denied; requires `view mel venue operations workspace` (restricted permission). |
-| `OperationalWorkspaceBuilder` (`myeventlane_tickets.operational_workspace_builder`) | Samples Commerce orders for issued tickets on an optional event scope, calls `OperationalIntegrityInspector::inspectOrder()`, merges read-only diagnostics, and emits **Twig-safe section arrays** (cards with labels/values). |
-| `VenueOperationsController` | Resolves optional `?event={nid}` (event bundle only), invokes the builder, returns a themed render array with cache tags/contexts. |
-| `venue_operations_workspace` Twig template | Renders pre-shaped `sections` and `meta` only — **no policy branching, no calculations**. |
+| `OperationalIncidentAccessChecker` (`myeventlane_tickets.operational_incident_access`) | Route access for `/admin/mel/operations`: anonymous denied; requires `view mel venue operations workspace` (restricted permission). Same staff boundary as the legacy `OperationalWorkspaceAccessChecker`, which remains registered for compatibility. |
+| `OperationalWorkspaceBuilder` (`myeventlane_tickets.operational_workspace_builder`) | Delegates bounded event sampling to `OperationalIncidentBuilder`, merges inspector diagnostics (including compatibility worst-path rollup), composes Twig-safe section arrays, and strips sensitive keys. |
+| `OperationalIncidentBuilder` (`myeventlane_tickets.operational_incident_builder`) | Inspector-backed incident rows, severity rollup, redemption deny tallies (bounded), extended integrity catalog cards. |
+| `OperationalRecoverySummaryBuilder` (`myeventlane_tickets.operational_recovery_summary_builder`) | Recovery + readiness cards from merged inspector domains. |
+| `OperationalIncidentNormalizer` (`myeventlane_tickets.operational_incident_normalizer`) | Machine-safe incident type and severity tokens. |
+| `VenueOperationsController` | Resolves optional `?event={nid}` (event bundle only), invokes the workspace builder, returns a themed render array with cache tags/contexts. |
+| `venue_operations_workspace` Twig template | Renders pre-shaped `sections` and `meta` only — **no policy branching, no calculations** (optional `card.severity` for presentation class only). |
 
-**Composition note:** `OperationalIntegrityInspector` already orchestrates `TicketCapabilityManager`, `TimedEntryPolicyManager`, `SessionEntitlementPolicyManager`, `ZoneAccessPolicyManager`, `DeviceOperationIdentityManager`, `OperationalContinuityPolicyManager`, and `OccupancyPolicyManager` for `inspectOrder()` output. The workspace builder **reuses** that spine and adds only **type-catalog** rows via `EntitlementCapabilityRegistry` + `VenueOperationPolicyManager::describeEntitlementGateSemantics()` so policy is not evaluated twice for the same ticket rows.
+**Composition note:** `OperationalIntegrityInspector` already orchestrates `TicketCapabilityManager`, `TimedEntryPolicyManager`, `SessionEntitlementPolicyManager`, `ZoneAccessPolicyManager`, `DeviceOperationIdentityManager`, `OperationalContinuityPolicyManager`, and `OccupancyPolicyManager` for `inspectOrder()` output. The workspace builder **reuses** that spine; `OperationalIncidentBuilder` adds **bounded redemption audit aggregation** (deny counts by result token) without duplicating scanner gate logic. Type-catalog rows still use `EntitlementCapabilityRegistry` + `VenueOperationPolicyManager::describeEntitlementGateSemantics()` for **type-level** summaries.
 
 ## Read model boundaries
 
@@ -39,6 +44,7 @@ This commit is **read-only**: no websocket sync, no polling loops, no maps, no a
 
 ## Related documents
 
+- [operational-incident-recovery-convergence.md](./operational-incident-recovery-convergence.md) — Phase 3A Commit 2 incident and recovery workspace
 - [operational-observability.md](./operational-observability.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)

@@ -5,7 +5,7 @@ myeventlane_tickets.venue_operations_workspace:
     _controller: '\Drupal\myeventlane_tickets\Controller\VenueOperationsController::page'
     _title_callback: '\Drupal\myeventlane_tickets\Controller\VenueOperationsController::title'
   requirements:
-    _custom_access: 'myeventlane_tickets.operational_workspace_access:accessWorkspace'
+    _custom_access: 'myeventlane_tickets.operational_incident_access:accessOperationalIncidentWorkspace'
   options:
     _admin_route: TRUE
 

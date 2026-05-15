@@ -233,14 +233,34 @@ services:
       - '@myeventlane_tickets.ticket_mailer'
       - '@logger.channel.myeventlane_tickets'
 
+  myeventlane_tickets.operational_incident_normalizer:
+    class: Drupal\myeventlane_tickets\Service\OperationalIncidentNormalizer
+
+  myeventlane_tickets.operational_recovery_summary_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalRecoverySummaryBuilder
+
+  myeventlane_tickets.operational_incident_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalIncidentBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_tickets.operational_integrity_inspector'
+      - '@myeventlane_tickets.operational_incident_normalizer'
+      - '@myeventlane_tickets.venue_operation_policy_manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+
+  myeventlane_tickets.operational_incident_access:
+    class: Drupal\myeventlane_tickets\Access\OperationalIncidentAccessChecker
+    tags:
+      - { name: access_check }
+
   myeventlane_tickets.operational_workspace_builder:
     class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
     arguments:
-      - '@entity_type.manager'
       - '@datetime.time'
       - '@myeventlane_tickets.venue_operation_policy_manager'
-      - '@myeventlane_tickets.operational_integrity_inspector'
       - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@myeventlane_tickets.operational_incident_builder'
+      - '@myeventlane_tickets.operational_recovery_summary_builder'
 
   myeventlane_tickets.operational_workspace_access:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker

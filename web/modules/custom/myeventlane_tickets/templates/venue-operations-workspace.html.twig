@@ -19,7 +19,7 @@
       <h2 class="mel-ops-workspace__section-title">{{ section.title }}</h2>
       <div class="mel-ops-workspace__cards">
         {% for card in section.cards %}
-          <article class="mel-ops-card">
+          <article class="mel-ops-card{% if card.severity is defined %} mel-ops-card--severity-{{ card.severity }}{% endif %}">
             <div class="mel-ops-card__label">{{ card.label }}</div>
             <div class="mel-ops-card__value">{{ card.value }}</div>
           </article>
