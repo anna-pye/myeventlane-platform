@@ -35,6 +35,10 @@
       <file>modules/custom/myeventlane_event_attendees/tests/src/Unit/MelAttendeeExportBuilderTest.php</file>
       <file>modules/custom/myeventlane_tickets/tests/src/Kernel/OperationalCoordinationStateConvergenceKernelTest.php</file>
       <file>modules/custom/myeventlane_tickets/tests/src/Kernel/FulfillmentLifecycleConvergenceKernelTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Kernel/OperationalFulfillmentExecutionKernelTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionManagerTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionGovernanceManagerTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionProjectionBuilderTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

@@ -660,12 +660,29 @@ function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
     $variables['#cache']['tags'][] = 'commerce_store:' . $store->id();
   }
   _myeventlane_theme_attach_mel_customer_operational_experience($variables);
+  _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
 }
 
 /**
  * Implements hook_preprocess_HOOK() for myeventlane_my_tickets.
  */
 function myeventlane_theme_preprocess_myeventlane_my_tickets(array &$variables): void {
+  foreach (['upcoming_orders', 'past_orders'] as $orders_key) {
+    if (empty($variables[$orders_key]) || !is_array($variables[$orders_key])) {
+      continue;
+    }
+    foreach ($variables[$orders_key] as $idx => $order_data) {
+      if (!is_array($order_data)) {
+        continue;
+      }
+      $order = $order_data['order'] ?? NULL;
+      if (!$order instanceof OrderInterface) {
+        continue;
+      }
+      $variables[$orders_key][$idx]['mel_operational_fulfillment_execution_customer'] = _myeventlane_theme_mel_operational_fulfillment_execution_customer_for_order($order);
+    }
+  }
+
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
     || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
     return;
@@ -700,6 +717,28 @@ function myeventlane_theme_preprocess_myeventlane_my_tickets(array &$variables):
 }
 
 /**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_fulfillment_execution_customer_for_order(OrderInterface $order): ?array {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_tickets')
+    || !\Drupal::hasService('myeventlane_tickets.operational_fulfillment_execution_projection_builder')) {
+    return NULL;
+  }
+  try {
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionProjectionBuilder $builder */
+    $builder = \Drupal::service('myeventlane_tickets.operational_fulfillment_execution_projection_builder');
+    return $builder->buildCustomerRenderArray($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL fulfillment execution (My Tickets) skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
  * Implements hook_preprocess_HOOK() for myeventlane_order_detail.
  */
 function myeventlane_theme_preprocess_myeventlane_order_detail(array &$variables): void {
@@ -711,6 +750,9 @@ function myeventlane_theme_preprocess_myeventlane_order_detail(array &$variables
   if (!$order instanceof OrderInterface) {
     return;
   }
+  $variables['order_entity'] = $order;
+  _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
+
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
     || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
     return;
@@ -1035,6 +1077,7 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
   }
 
   _myeventlane_theme_attach_mel_customer_operational_experience($variables);
+  _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
 }
 
 /**
@@ -1084,6 +1127,35 @@ function _myeventlane_theme_set_mel_customer_operational_block(array &$variables
   }
   $render['#cache']['tags'] = array_values(array_unique(array_merge($cache_tags, $render['#cache']['tags'] ?? [])));
   $variables['mel_customer_operational_experience'] = $render;
+}
+
+/**
+ * Attaches customer-safe fulfillment execution hints (myeventlane_tickets).
+ */
+function _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_tickets')
+    || !\Drupal::hasService('myeventlane_tickets.operational_fulfillment_execution_projection_builder')) {
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order'])) {
+    $candidate = $variables['form']['#order'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface) {
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionProjectionBuilder $builder */
+    $builder = \Drupal::service('myeventlane_tickets.operational_fulfillment_execution_projection_builder');
+    $variables['mel_operational_fulfillment_execution_customer'] = $builder->buildCustomerRenderArray($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL fulfillment execution customer strip skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+  }
 }
 
 /**
@@ -3807,6 +3879,10 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
     /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $cart_presenter */
     $cart_presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
     $variables['mel_cart_order_summary_build'] = $cart_presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'cart']);
+  }
+  if ($order instanceof OrderInterface) {
+    $variables['order_entity'] = $order;
+    _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
   }
 }
 

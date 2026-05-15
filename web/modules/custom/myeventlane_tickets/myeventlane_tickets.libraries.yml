@@ -39,3 +39,14 @@ venue_operations_workspace:
   css:
     theme:
       css/venue-operations-workspace.css: {}
+
+mel_operational_fulfillment_execution_customer:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-fulfillment-execution-customer.css: {}
+  js:
+    js/mel-operational-fulfillment-execution-customer.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

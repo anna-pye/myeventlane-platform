@@ -316,6 +316,31 @@ services:
     arguments:
       - '@myeventlane_tickets.fulfillment_lifecycle_manager'
 
+  myeventlane_tickets.operational_fulfillment_execution_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionManager
+    arguments:
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+      - '@string_translation'
+
+  myeventlane_tickets.operational_fulfillment_execution_governance_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionGovernanceManager
+    arguments:
+      - '@string_translation'
+
+  myeventlane_tickets.operational_fulfillment_execution_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionProjectionBuilder
+    arguments:
+      - '@myeventlane_tickets.operational_integrity_inspector'
+      - '@myeventlane_tickets.operational_fulfillment_execution_manager'
+      - '@myeventlane_tickets.operational_fulfillment_execution_governance_manager'
+      - '@datetime.time'
+      - '@string_translation'
+
+  myeventlane_tickets.operational_fulfillment_execution_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionAuditProjector
+    arguments:
+      - '@myeventlane_tickets.operational_fulfillment_execution_manager'
+
   myeventlane_tickets.operational_workspace_builder:
     class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
     arguments:
@@ -334,6 +359,8 @@ services:
       - '@myeventlane_tickets.operational_coordination_audit_projector'
       - '@myeventlane_tickets.fulfillment_execution_projection_builder'
       - '@myeventlane_tickets.fulfillment_audit_projector'
+      - '@myeventlane_tickets.operational_fulfillment_execution_projection_builder'
+      - '@myeventlane_tickets.operational_fulfillment_execution_audit_projector'
 
   myeventlane_tickets.operational_workspace_access:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker

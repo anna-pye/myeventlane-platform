@@ -62,6 +62,12 @@
                 </div>
               {% endif %}
 
+              {% if order_data.mel_operational_fulfillment_execution_customer %}
+                <div class="mel-my-tickets-fulfillment-execution mel-mt-3" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
+                  {{ order_data.mel_operational_fulfillment_execution_customer }}
+                </div>
+              {% endif %}
+
               <div class="mel-order-actions mel-mt-4">
                 <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"
                    class="mel-button mel-button--primary">
@@ -121,6 +127,12 @@
                 {% if order_data.mel_customer_operational_experience %}
                   <div class="mel-my-tickets-operational mel-mt-3">
                     {{ order_data.mel_customer_operational_experience }}
+                  </div>
+                {% endif %}
+
+                {% if order_data.mel_operational_fulfillment_execution_customer %}
+                  <div class="mel-my-tickets-fulfillment-execution mel-mt-3" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
+                    {{ order_data.mel_operational_fulfillment_execution_customer }}
                   </div>
                 {% endif %}
 

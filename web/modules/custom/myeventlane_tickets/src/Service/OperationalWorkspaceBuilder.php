@@ -55,6 +55,8 @@ final class OperationalWorkspaceBuilder {
     private readonly OperationalCoordinationAuditProjector $operationalCoordinationAuditProjector,
     private readonly FulfillmentExecutionProjectionBuilder $fulfillmentExecutionProjectionBuilder,
     private readonly FulfillmentAuditProjector $fulfillmentAuditProjector,
+    private readonly OperationalFulfillmentExecutionProjectionBuilder $operationalFulfillmentExecutionProjectionBuilder,
+    private readonly OperationalFulfillmentExecutionAuditProjector $operationalFulfillmentExecutionAuditProjector,
   ) {}
 
   /**
@@ -76,6 +78,7 @@ final class OperationalWorkspaceBuilder {
     $capability_projection_enabled = $this->currentUser->hasPermission('govern mel operational capabilities');
     $coordination_projection_enabled = $this->currentUser->hasPermission('govern mel operational coordination');
     $fulfillment_projection_enabled = $this->currentUser->hasPermission('govern mel fulfillment lifecycle');
+    $fulfillment_execution_projection_enabled = $this->currentUser->hasPermission('govern mel fulfillment execution');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -89,6 +92,7 @@ final class OperationalWorkspaceBuilder {
       'capability_projection_enabled' => $capability_projection_enabled,
       'coordination_projection_enabled' => $coordination_projection_enabled,
       'fulfillment_projection_enabled' => $fulfillment_projection_enabled,
+      'fulfillment_execution_projection_enabled' => $fulfillment_execution_projection_enabled,
     ];
 
     if ($event) {
@@ -182,6 +186,23 @@ final class OperationalWorkspaceBuilder {
       );
       foreach ($fulfillment_audit as $fulfillment_audit_section) {
         $sections[] = $fulfillment_audit_section;
+      }
+    }
+
+    if ($fulfillment_execution_projection_enabled) {
+      $execution_sections = $this->operationalFulfillmentExecutionProjectionBuilder->buildWorkspaceExecutionGovernanceSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($execution_sections as $execution_section) {
+        $sections[] = $execution_section;
+      }
+      $execution_audit = $this->operationalFulfillmentExecutionAuditProjector->buildWorkspaceExecutionAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($execution_audit as $execution_audit_section) {
+        $sections[] = $execution_audit_section;
       }
     }
 

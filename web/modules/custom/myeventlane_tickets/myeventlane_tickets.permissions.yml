@@ -55,6 +55,11 @@ govern mel fulfillment lifecycle:
   description: 'View fulfillment lifecycle, pickup, redemption, partial fulfillment, execution, and fulfillment audit projections in the venue operations workspace.'
   restrict access: true
 
+govern mel fulfillment execution:
+  title: 'Govern MyEventLane fulfillment execution orchestration'
+  description: 'View fulfillment execution governance, collection visibility, readiness, and execution audit timelines in the venue operations workspace (read-only projections).'
+  restrict access: true
+
 
 
 

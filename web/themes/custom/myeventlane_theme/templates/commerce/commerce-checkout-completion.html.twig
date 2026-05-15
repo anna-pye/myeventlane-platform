@@ -66,6 +66,12 @@
     </div>
   {% endif %}
 
+  {% if mel_operational_fulfillment_execution_customer %}
+    <div class="mel-confirmation__fulfillment-execution mel-confirmation__main-pad" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
+      {{ mel_operational_fulfillment_execution_customer }}
+    </div>
+  {% endif %}
+
   <div class="mel-confirmation__main">
     {% if events|length > 0 %}
       {% for event in events %}

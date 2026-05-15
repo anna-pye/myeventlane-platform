@@ -20,6 +20,8 @@ This layer **must not** issue tickets, change entitlements, change scanner outco
 
 **Operational entitlement capability convergence** (Phase 4A Commit 3) composes reservation governance outputs and fulfillment operational signals into unified capability types/states for merch pickup, hospitality access, redemption, parking, VIP, cloakroom, timed collection, and digital redemption visibility. See [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md). **Vendor Event Studio** authors parallel event-level capability metadata for configuration and previews; it delegates vocabulary to the same policy managers and does not execute lifecycle transitions (see [vendor-operational-capability-studio.md](./vendor-operational-capability-studio.md)).
 
+**Operational fulfillment execution orchestration** (Phase 4C) layers **execution descriptors**, customer-safe summaries, and staff execution governance **on top of** this lifecycle read-model without duplicating lifecycle normalization, scanner authority, or reservation logic. See [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md).
+
 ## Canonical lifecycle states
 
 Normalized strings (single source in `FulfillmentLifecycleManager`): `pending`, `prepared`, `ready`, `partially_fulfilled`, `fulfilled`, `collected`, `consumed`, `expired`, `failed`, `cancelled`.
@@ -38,6 +40,7 @@ Do not add: inventory engines, warehouse orchestration, shipping execution, noti
 
 ## Related documentation
 
+- [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)

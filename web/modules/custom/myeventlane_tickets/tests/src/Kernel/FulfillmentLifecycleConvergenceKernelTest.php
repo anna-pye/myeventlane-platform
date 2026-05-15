@@ -409,6 +409,7 @@ final class FulfillmentLifecycleConvergenceKernelTest extends KernelTestBase {
     $switcher->switchTo($user);
     $workspace = $this->workspaceBuilder()->build($this->event);
     $this->assertTrue($workspace['meta']['fulfillment_projection_enabled']);
+    $this->assertFalse($workspace['meta']['fulfillment_execution_projection_enabled']);
     $ids = array_column($workspace['sections'], 'id');
     $this->assertContains('fulfillment_execution_summary', $ids);
     $this->assertContains('fulfillment_lifecycle_audit_timeline', $ids);
@@ -435,9 +436,54 @@ final class FulfillmentLifecycleConvergenceKernelTest extends KernelTestBase {
     $switcher->switchTo($user);
     $workspace = $this->workspaceBuilder()->build($this->event);
     $this->assertFalse($workspace['meta']['coordination_projection_enabled']);
+    $this->assertFalse($workspace['meta']['fulfillment_execution_projection_enabled']);
     $ids = array_column($workspace['sections'], 'id');
     $this->assertContains('fulfillment_lifecycle_cards', $ids);
     $this->assertNotContains('operational_coordination', $ids);
+    $switcher->switchBack();
+  }
+
+  public function testWorkspaceIncludesFulfillmentExecutionOrchestrationWithPermission(): void {
+    $this->prepareIssuedTicketOnEvent();
+    $user = User::create([
+      'name' => 'fulfillment_execution_only',
+      'mail' => 'fulfill-exec@example.test',
+      'status' => 1,
+    ]);
+    $user->addRole('mel_ws_fulfillment_execution_only');
+    $user->save();
+    $user = User::load($user->id());
+    $this->assertNotFalse($user);
+
+    $switcher = $this->container->get('account_switcher');
+    $switcher->switchTo($user);
+    $workspace = $this->workspaceBuilder()->build($this->event);
+    $this->assertTrue($workspace['meta']['fulfillment_execution_projection_enabled']);
+    $this->assertFalse($workspace['meta']['fulfillment_projection_enabled']);
+    $ids = array_column($workspace['sections'], 'id');
+    $this->assertContains('execution_governance_summary', $ids);
+    $this->assertContains('fulfillment_execution_cards', $ids);
+    $this->assertContains('operational_collection_visibility', $ids);
+    $this->assertContains('execution_readiness_visibility', $ids);
+    $this->assertContains('operational_execution_audit_timeline', $ids);
+    $this->assertNotContains('fulfillment_execution_summary', $ids);
+    $by_id = [];
+    foreach ($workspace['sections'] as $section) {
+      if (!empty($section['id'])) {
+        $by_id[(string) $section['id']] = $section;
+      }
+    }
+    $execution_projection = [
+      $by_id['execution_governance_summary'] ?? [],
+      $by_id['fulfillment_execution_cards'] ?? [],
+      $by_id['operational_collection_visibility'] ?? [],
+      $by_id['execution_readiness_visibility'] ?? [],
+      $by_id['operational_execution_audit_timeline'] ?? [],
+    ];
+    $encoded_execution = json_encode($execution_projection, JSON_THROW_ON_ERROR);
+    $this->assertStringNotContainsString('replay_token', $encoded_execution);
+    $this->assertStringNotContainsString('qr_payload', $encoded_execution);
+    $this->assertStringNotContainsString('scanner_action=', $encoded_execution);
     $switcher->switchBack();
   }
 
@@ -534,6 +580,14 @@ final class FulfillmentLifecycleConvergenceKernelTest extends KernelTestBase {
     ]);
     $fulfill_only->grantPermission('view mel venue operations workspace')
       ->grantPermission('govern mel fulfillment lifecycle')
+      ->save();
+
+    $fulfill_exec_only = Role::load('mel_ws_fulfillment_execution_only') ?? Role::create([
+      'id' => 'mel_ws_fulfillment_execution_only',
+      'label' => 'MEL workspace fulfillment execution orchestration only',
+    ]);
+    $fulfill_exec_only->grantPermission('view mel venue operations workspace')
+      ->grantPermission('govern mel fulfillment execution')
       ->save();
   }
 

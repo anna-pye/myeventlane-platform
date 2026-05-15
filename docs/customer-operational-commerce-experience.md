@@ -48,6 +48,7 @@ Theme preprocess attaches a themed render array (`mel_customer_operational_exper
 - Checkout completion include
 - Commerce order user view
 - My Tickets / order detail (via `myeventlane_theme` preprocess on checkout_flow themes)
+- **Fulfillment execution strip** — `OperationalFulfillmentExecutionProjectionBuilder` + `mel_operational_fulfillment_execution_customer` (Phase 4C; read-only execution orchestration over merged diagnostics; see [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md))
 
 Twig templates only **print** pre-built strings and lists; they perform no filtering or business rules.
 
@@ -59,6 +60,8 @@ Twig templates only **print** pre-built strings and lists; they perform no filte
 
 ## Related docs
 
+- `docs/operational-fulfillment-execution-convergence.md`
+- `docs/operational-purchase-composition-convergence.md`
 - `docs/operational-commerce-capability-linking.md`
 - `docs/vendor-operational-capability-studio.md`
 - `docs/fulfillment-lifecycle-convergence.md`

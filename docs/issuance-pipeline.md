@@ -98,6 +98,10 @@ Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`), 
 - **`getPdfContentForTicket()`** succeeds for issued tickets after holder fields are set (PDF continuity from ticket entities).
 - **`OrderConfirmationAttachmentResolver::mergeOrderConfirmationAttachments()`** appends one PDF per issued ticket for `order_confirmation` while preserving queued non-PDF attachments (same behavior as production **`MessagingManager`** wiring).
 
+## Post-issuance execution projections
+
+After tickets exist, **fulfillment execution orchestration** (Phase 4C) may surface **read-only** execution hints to customers and staff from merged operational diagnostics. This path **does not** change issuance, QR contracts, or scanner outcomes; it consumes lifecycle read-models only. See [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md).
+
 ## Manual verification checklist
 
 Performed in a full environment (e.g. DDEV) with real mail and checkout:
@@ -114,6 +118,7 @@ Performed in a full environment (e.g. DDEV) with real mail and checkout:
 
 ## Related documentation
 
+- [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md) — read-only fulfillment execution orchestration over lifecycle read-models (no issuance or QR mutation).
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md) — customer-safe operational expectation copy (no issuance or QR exposure).
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md) — Event Studio authoring links capabilities to Commerce products (no issuance/inventory execution).
 - [operational-surface-convergence.md](./operational-surface-convergence.md) — My Tickets and PDF rendering convergence onto **`UniversalTicketViewModelBuilder`**.
