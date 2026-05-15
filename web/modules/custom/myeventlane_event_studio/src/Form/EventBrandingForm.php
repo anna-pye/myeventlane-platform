@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\node\NodeInterface;
 
 /**
@@ -37,35 +41,180 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $form_state->setRedirect('myeventlane_event_studio.workspace_branding', ['node' => $saved->id()]);
   }
 
-  protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
-    $form['mel']['field_event_image'] = [
-      '#type' => 'managed_file',
-      '#title' => $this->t('Hero image'),
-      '#upload_location' => 'public://events',
-      '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'png gif jpg jpeg webp'],
-        'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
+  /**
+   * {@inheritdoc}
+   */
+  protected function persistWizardMel(FormStateInterface $form_state, bool $draft): ?array {
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    if ($nid < 1) {
+      return NULL;
+    }
+    $loaded = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$loaded instanceof NodeInterface) {
+      return NULL;
+    }
+    $this->assertVendorEvent($loaded);
+
+    $complete_form = $form_state->getCompleteForm();
+    $mel_subform = $complete_form['mel'] ?? $form_state->getValue('mel') ?? [];
+    if (!is_array($mel_subform)) {
+      $mel_subform = [];
+    }
+
+    return $this->saveService->saveBrandingHero($loaded, $mel_subform, $form_state, $draft);
+  }
+
+  /**
+   * Applies restored-draft hero defaults onto a clone for widget rendering only.
+   */
+  private function applyDraftHeroOverlay(NodeInterface $target, array $melDefaults): void {
+    if (!array_key_exists('field_event_image', $melDefaults)) {
+      return;
+    }
+    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($melDefaults);
+    if ($hero['fid'] < 1) {
+      $target->set('field_event_image', []);
+      return;
+    }
+    $target->set('field_event_image', [
+      [
+        'target_id' => $hero['fid'],
+        'alt' => $hero['alt'],
       ],
-      '#default_value' => $melDefaults['field_event_image'] ?? [],
-      '#attributes' => ['class' => ['mel-input-file']],
-      '#description' => $this->t('Optional, but recommended. A clear image helps attendees recognise your event.'),
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . $this->t('Branding') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Shape how your event appears across MyEventLane and social sharing.') . '</p><p class="mel-es-field-group__reassurance">' . $this->t('You can change visuals later. Accessibility text helps everyone understand the image.') . '</p></header><div class="mel-es-field-group__body">',
+    ]);
+  }
+
+  protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $request = $this->requestStack->getCurrentRequest();
+    $restoreDraft = $request !== NULL && $request->query->getBoolean('restore_draft');
+
+    $formNode = clone $node;
+    if ($restoreDraft) {
+      $this->applyDraftHeroOverlay($formNode, $melDefaults);
+    }
+    if ($this->saveService->isBrokenHeroImageReference($formNode)) {
+      $formNode->set('field_event_image', []);
+      $this->messenger()->addWarning($this->t('The previous cover image file is no longer available. Upload a new image, or use “Remove cover image” and save to clear the broken reference.'));
+    }
+
+    $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_hero_tools';
+
+    $form['mel']['branding_hero_shell'] = [
+      '#type' => 'markup',
+      '#markup' => Markup::create(
+        '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title">'
+        . '<header class="mel-es-field-group__header">'
+        . '<h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . Html::escape((string) $this->t('Branding')) . '</h3>'
+        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Shape how your event appears across MyEventLane and social sharing.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Click the image preview to set the focal point, or use the shortcuts below. Alt text in the image field is required when a cover image is present.')) . '</p>'
+        . '</header>'
+        . '<div class="mel-es-field-group__body">'
+        . '<div class="mel-identity-media mel-identity-media--compact">'
+        . '<div class="mel-identity-media__fields mel-builder-fields mel-builder-fields--stack">'
+      ),
+      '#weight' => -10,
     ];
 
-    $form['mel']['field_event_image_alt'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Image alt text'),
-      '#default_value' => $melDefaults['field_event_image_alt'] ?? '',
-      '#description' => $this->t('Briefly describe the image for screen readers.'),
-      '#attributes' => ['class' => ['mel-input']],
-      '#suffix' => '</div></section>',
+    $form['mel']['#parents'] = ['mel'];
+
+    $form_display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    if (!$form_display instanceof EntityFormDisplay) {
+      $this->logger->error('Missing entity form display node.event.studio_branding while building branding for node @nid.', ['@nid' => (string) $node->id()]);
+      $form['mel']['field_event_image'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => Html::escape((string) $this->t('Hero image editor is not available. Import configuration or contact support.')),
+        '#attributes' => ['class' => ['messages', 'messages--error']],
+        '#weight' => 0,
+      ];
+    }
+    else {
+      $widget = $form_display->getRenderer('field_event_image');
+      if ($widget === NULL) {
+        $this->logger->error('Missing field_event_image widget on studio_branding display for node @nid.', ['@nid' => (string) $node->id()]);
+        $form['mel']['field_event_image'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => Html::escape((string) $this->t('Hero image widget is not configured.')),
+          '#attributes' => ['class' => ['messages', 'messages--error']],
+          '#weight' => 0,
+        ];
+      }
+      else {
+        $form['mel']['field_event_image'] = $widget->form($formNode->get('field_event_image'), $form['mel'], $form_state);
+        $form['mel']['field_event_image']['#weight'] = 0;
+      }
+    }
+
+    $form['mel']['branding_hero_tools'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-es-branding-hero-tools']],
+      '#weight' => 2,
+      'size_hint' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-branding-hero-size-hint']],
+        '#value' => Html::escape((string) $this->t('For the clearest hero on event and book pages, use at least 1600×900 pixels (16:9). We warn after save if the file is under 1280×720; very small images may look soft when scaled up. Minimum upload size enforced by the field is 400×200.')),
+      ],
+      'presets' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets']],
+        'label' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets__label']],
+          '#value' => Html::escape((string) $this->t('Focal shortcuts')),
+        ],
+        'buttons' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets__buttons']],
+          'c' => $this->buildFocalPresetButton($this->t('Centre'), '50,50'),
+          't' => $this->buildFocalPresetButton($this->t('Top'), '50,18'),
+          'b' => $this->buildFocalPresetButton($this->t('Bottom'), '50,82'),
+          'l' => $this->buildFocalPresetButton($this->t('Left'), '18,50'),
+          'r' => $this->buildFocalPresetButton($this->t('Right'), '82,50'),
+        ],
+      ],
+      'remove' => [
+        '#type' => 'button',
+        '#value' => $this->t('Remove cover image'),
+        '#weight' => 10,
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['button', 'button--danger', 'js-mel-branding-hero-remove'],
+          'disabled' => 'disabled',
+          'aria-disabled' => 'true',
+        ],
+      ],
+    ];
+
+    $form['mel']['branding_hero_close'] = [
+      '#type' => 'markup',
+      '#markup' => Markup::create('</div></div></div></section>'),
+      '#weight' => 5,
     ];
 
     $form['unavailable'] = [
       '#type' => 'container',
+      '#weight' => 20,
       '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
       'copy' => [
-        '#markup' => '<p>' . $this->t('More brand controls will appear here only when they are ready for creators. For now, image and alt text are enough for most events.') . '</p>',
+        '#markup' => '<p>' . $this->t('More brand controls will appear here only when they are ready for creators. For now, the hero image and focal point are enough for most events.') . '</p>',
+      ],
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildFocalPresetButton($title, string $preset): array {
+    return [
+      '#type' => 'button',
+      '#value' => $title,
+      '#attributes' => [
+        'type' => 'button',
+        'class' => ['button', 'button--small', 'button--secondary', 'mel-es-branding-focal-preset'],
+        'data-focal-preset' => $preset,
       ],
     ];
   }
