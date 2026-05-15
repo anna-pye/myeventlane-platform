@@ -30,6 +30,11 @@ view mel venue operations workspace:
   description: 'Access the read-only staff venue operations workspace at /admin/mel/operations.'
   restrict access: true
 
+govern mel operational escalations:
+  title: 'Govern MyEventLane operational escalations'
+  description: 'View escalation, SLA, resolution, and suppression governance projections in the venue operations workspace.'
+  restrict access: true
+
 
 
 
