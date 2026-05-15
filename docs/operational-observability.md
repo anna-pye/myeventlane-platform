@@ -41,6 +41,7 @@ Normalized `inspectOrder(OrderInterface $order)` returns:
 | `recovery` | `OrderPaidConfirmationPdfRecoverySubscriber` state key via `recoveryStateKey()`, optional message sink for sent confirmation timestamps, mismatch when recovery appears required but completion state missing |
 | `compatibility` | Order-item PDF legacy surface availability, wallet resolution surface (`WalletTicketResolver`), ticket PDF path from `UniversalTicketViewModelBuilder` probe |
 | `guest_continuity` | Purchaser UID alignment with order customer, guest checkout pattern checks (no PII in output) |
+| `fulfillment_operational_signals` | Per issued ticket id: entitlement type, `fulfilment_status`, redemption count/limit, ticket status, admission checked-in flag (staff-safe; no QR or replay material) |
 
 Status values are **machine strings** (for example `valid`, `invalid`, `missing`, `canonical`, `legacy`, `mixed`, `recovered`, `pending`, `skipped`, `orphaned`, `unknown`) suitable for logs and automated checks—not UI copy.
 
@@ -74,11 +75,31 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 - Treating compatibility adapters (`OrderItemPdfCompatibilityAdapter`, etc.) as operational authorities for entitlement truth
 - Embedding UI strings, translated labels, or marketing copy inside diagnostics payloads
 - Exposing purchaser email, entitlement secrets, raw HMAC material, or full QR payload strings through diagnostics APIs
-- Adding public routes, controllers, or admin pages for this phase (callers must enforce access before invoking the service)
+- Adding **vendor or customer** routes that surface `OperationalIntegrityInspector` payloads without the same staff-only gating used elsewhere
+- **Workspace exception:** the read-only staff shell documented in [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) (`/admin/mel/operations`) consumes inspector output exclusively through `OperationalWorkspaceBuilder`, which strips machine-only fields before theming. Callers must still treat direct inspector invocation as privileged.
+
+## Venue operations workspace (Phase 3A)
+
+Staff operational convergence now has a **canonical read-only shell** (`VenueOperationsController` + `OperationalWorkspaceBuilder`) that merges inspector diagnostics for sampled orders tied to an optional event query parameter. See [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) for route, access, and visibility boundaries.
+
+## Escalation and resolution governance (Phase 3A, Commit 4)
+
+Staff may view **escalation governance**, **SLA acknowledgement projections**, **resolution lifecycle framing**, **suppression rule visibility**, and **audit-safe history summaries** in the same workspace when they hold **`govern mel operational escalations`**. Normalization and routing live in `OperationalEscalationPolicyManager` and `OperationalResolutionGovernanceManager`; card shapes are composed only through `OperationalEscalationAuditProjector`. This layer **does not** change inspector semantics, ticket entities, redemption logs, QR contracts, or continuity authority — see [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md).
+
+## Inventory reservation governance (Phase 4A, Commit 2)
+
+Staff may view **reservation governance**, **allocation continuity**, **degraded reservation visibility**, **readiness and partial allocation summaries**, and **reservation lifecycle audit timelines** when they hold **`govern mel inventory reservations`**. Normalization lives in `InventoryReservationGovernanceManager`; cards and audit sections are composed through `InventoryReservationProjectionBuilder` and `InventoryReservationAuditProjector`. This layer consumes `fulfillment_operational_signals` and continuity rollups as **inputs only** — it does not reserve stock, decrement inventory, or execute warehouse/shipping/dispatch. See [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md).
+
+## Operational entitlement capability convergence (Phase 4A, Commit 3)
+
+Staff may view **operational capability cards**, **capability readiness summaries**, **degradation visibility**, **fulfillment-capability visibility**, **reservation-capability visibility**, **capability continuity summaries**, and **capability lifecycle audit timelines** when they hold **`govern mel operational capabilities`**. Normalization lives in `OperationalEntitlementCapabilityManager`; cards and audit sections are composed through `OperationalCapabilityProjectionBuilder` and `OperationalCapabilityAuditProjector`. This layer composes reservation governance and fulfillment operational signals as **inputs only** — it does not execute fulfillment, mutate inventory, or bypass scanner authority. See [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md).
 
 ## Related documentation
 
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md) — continuity / reconciliation metadata authority
+- [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md) — escalation, resolution, suppression governance projections
+- [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md) — reservation lifecycle and allocation governance projections
+- [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md) — operational entitlement capability convergence projections
 - [issuance-pipeline.md](./issuance-pipeline.md) — issuance order and attachment merge
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md) — venue gate policy, offline scaffolding, replay metadata
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — capability registry delegation

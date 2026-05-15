@@ -1,0 +1,17 @@
+uuid: 8a1c4f2e-9b3d-4e1a-a6f5-2d8e7c9b0a1f
+langcode: en
+status: true
+dependencies:
+  config:
+    - crop.type.event_hero
+  module:
+    - crop
+name: mel_crop_event_hero
+label: 'MEL crop — event hero (widget)'
+effects:
+  1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e:
+    uuid: 1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
+    id: crop_crop
+    weight: 0
+    data:
+      crop_type: event_hero

@@ -67,6 +67,8 @@ This phase adds **non-authoritative scaffolding**:
 
 `OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector adds **`artifacts.zone_access_topology`** (per ticket id: topology summaries, gate policy counts, progression/re-entry semantics, structural zone conflicts) and **`artifacts.operational_identity`** (per ticket id: device/trust/checkpoint summaries, offline signals, and staff-safe operator attribution masks composed through `DeviceOperationIdentityManager` / `VenueOperationPolicyManager`). It adds **`artifacts.operational_continuity`** (per ticket id: reconciliation policy snapshots, replay alignment metadata, recovery policy labels, offline eligibility summaries, and deterministic continuity descriptors from `OperationalContinuityPolicyManager`, read-only). The inspector remains **read-only**.
 
+The Phase 3A staff workspace (`OperationalWorkspaceBuilder`, `/admin/mel/operations`) merges inspector diagnostics for display only; see [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md).
+
 ## Anti-patterns (forbidden)
 
 - Scanner-specific entitlement `switch` / parallel action maps outside `EntitlementCapabilityRegistry` and `VenueOperationPolicyManager`

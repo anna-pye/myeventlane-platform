@@ -34,3 +34,8 @@ checkin_analytics:
     - core/drupalSettings
     - core/once
 
+venue_operations_workspace:
+  version: 1.x
+  css:
+    theme:
+      css/venue-operations-workspace.css: {}

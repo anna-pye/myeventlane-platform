@@ -1,0 +1,11 @@
+uuid: e673e07e-cf13-4c8b-9d3e-865a5135b3c1
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.studio_branding
+label: 'Studio branding'
+description: 'Event Studio — hero image with crop (vendor branding step).'
+targetEntityType: node
+cache: true
