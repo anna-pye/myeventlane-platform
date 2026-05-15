@@ -944,20 +944,33 @@ final class EventStudioSaveService {
           $file->setPermanent();
           $file->save();
         }
-        if (!$items->isEmpty()) {
-          // FieldItemList::setValue() wraps non-arrays as [0 => value], which would
-          // pass the list object into EntityReferenceItem and throw.
-          $node->set('field_event_image', $items->getValue());
+        $values = $items->isEmpty() ? [] : $items->getValue();
+        $row = [];
+        if ($values !== [] && isset($values[0]) && is_array($values[0])) {
+          $row = $values[0];
         }
         else {
-          $node->set('field_event_image', [
-            [
-              'target_id' => $fid,
-              'alt' => $alt,
-              'title' => '',
-            ],
-          ]);
+          $row = [
+            'target_id' => $fid,
+            'alt' => $alt,
+            'title' => '',
+          ];
         }
+        $from_mel = EventStudioMelPayloadService::buildHeroFieldItemFromMelFragment($mel_values);
+        if ($from_mel !== NULL) {
+          foreach (['focal_point', 'width', 'height', 'title'] as $key) {
+            if (!array_key_exists($key, $from_mel)) {
+              continue;
+            }
+            $candidate = $from_mel[$key];
+            if ($candidate !== '' && $candidate !== NULL) {
+              $row[$key] = $candidate;
+            }
+          }
+        }
+        $node->set('field_event_image', [
+          $this->enrichBrandingHeroFieldItem($row, $file),
+        ]);
         $warnings = $this->buildBrandingHeroDimensionWarnings($file);
       }
     }
@@ -996,6 +1009,27 @@ final class EventStudioSaveService {
         '@h' => (string) self::BRANDING_HERO_WARN_HEIGHT_LT,
       ]),
     ];
+  }
+
+  /**
+   * Ensures focal point + dimensions are present for focal_point_entity_update().
+   *
+   * @param array<string, mixed> $field_item
+   *
+   * @return array<string, mixed>
+   */
+  private function enrichBrandingHeroFieldItem(array $field_item, FileInterface $file): array {
+    if (empty($field_item['focal_point'])) {
+      $field_item['focal_point'] = '50,50';
+    }
+    if (empty($field_item['width']) || empty($field_item['height'])) {
+      $image = $this->imageFactory->get($file->getFileUri());
+      if ($image->isValid()) {
+        $field_item['width'] = $image->getWidth();
+        $field_item['height'] = $image->getHeight();
+      }
+    }
+    return $field_item;
   }
 
   /**
