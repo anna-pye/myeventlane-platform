@@ -16,6 +16,13 @@ use Drupal\myeventlane_tickets\Entity\Ticket;
  */
 function myeventlane_tickets_theme(array $existing, $type, $theme, $path): array {
   return [
+    'venue_operations_workspace' => [
+      'variables' => [
+        'sections' => [],
+        'meta' => [],
+      ],
+      'template' => 'venue-operations-workspace',
+    ],
     'ticket_pdf' => [
       'variables' => [
         'order_item' => NULL,

@@ -209,7 +209,26 @@ final class VenueOperationPolicyManager {
   ): array {
     $composition = $this->evaluateTimedEntryForScan($ticket, $now, $parsed_qr_expires_at);
     if (!$composition['allow']) {
-      return $composition;
+      $policy = is_array($composition['policy'] ?? NULL) ? $composition['policy'] : [];
+      $timed = is_array($policy['timed_entry'] ?? NULL) ? $policy['timed_entry'] : [];
+      $session = is_array($policy['session_entitlement'] ?? NULL) ? $policy['session_entitlement'] : [];
+      $requested = $requested_zone_id !== NULL && trim($requested_zone_id) !== '' ? trim($requested_zone_id) : NULL;
+      $zone_skipped = $this->zoneAccessPolicyManager->evaluateZoneAccessForComposition(
+        $ticket,
+        $requested,
+        $timed,
+        $session,
+      );
+      return [
+        'allow' => FALSE,
+        'result_token' => (string) $composition['result_token'],
+        'message' => (string) $composition['message'],
+        'policy' => [
+          'timed_entry' => $timed,
+          'session_entitlement' => $session,
+          'zone_access' => $zone_skipped['policy'],
+        ],
+      ];
     }
 
     $timed = $composition['policy']['timed_entry'] ?? [];
@@ -547,6 +566,9 @@ final class VenueOperationPolicyManager {
   /**
    * Builds staff-side integrity metadata for redemption audit rows.
    *
+   * @param string $mode
+   *   Scan transport context: 'online' or 'offline' (feeds offline eligibility).
+   *
    * @return array<string, mixed>
    */
   public function buildIntegrityEnvelope(
@@ -559,6 +581,7 @@ final class VenueOperationPolicyManager {
     int $redemption_count_before,
     int $redemption_count_after,
     string $payload_sha256,
+    string $mode = 'online',
   ): array {
     $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
     $map = $this->entitlementCapabilityRegistry->getCapabilityMap($type);
@@ -579,6 +602,7 @@ final class VenueOperationPolicyManager {
     );
 
     $replay_token = $this->buildReplayToken($operation_id, $gate_action, (string) $ticket->uuid());
+    $timed = $this->timedEntryPolicyManager->evaluate($ticket, $operation_unix, NULL);
 
     return [
       'operation_id' => $operation_id,
@@ -597,6 +621,8 @@ final class VenueOperationPolicyManager {
       'offline_eligible' => $this->operationalContinuityPolicyManager->evaluateOfflineEligibilityScaffold($map, 'online'),
       'requires_online_validation' => FALSE,
       'replay_protected' => TRUE,
+      'timed_entry_scanner_state' => (string) ($timed['scanner']['state'] ?? ''),
+      'timed_entry_reason' => (string) ($timed['scanner']['reason'] ?? ''),
     ];
   }
 
