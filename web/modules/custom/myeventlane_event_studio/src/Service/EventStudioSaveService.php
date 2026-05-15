@@ -7,7 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldWidgetInterface;
+use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
@@ -843,6 +843,20 @@ final class EventStudioSaveService {
   }
 
   /**
+   * Whether the event hero references a file record that is missing on disk.
+   */
+  public function isBrokenHeroImageReference(NodeInterface $node): bool {
+    if (!$node->hasField('field_event_image') || $node->get('field_event_image')->isEmpty()) {
+      return FALSE;
+    }
+    $file = $node->get('field_event_image')->entity;
+    if (!$file instanceof FileInterface) {
+      return TRUE;
+    }
+    return !$this->heroFileIsRenderable($file);
+  }
+
+  /**
    * Persists branding hero image via the studio_branding field widget.
    *
    * Uses widget extraction so crop_wrapper / focal point values reach the entity
@@ -864,18 +878,23 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => ['Hero image editor is not available.']];
     }
 
+    $mel_values = $form_state->getValue('mel') ?? [];
+    if (!is_array($mel_values)) {
+      $mel_values = [];
+    }
+    $mel_structure = $form_state->getCompleteForm()['mel'] ?? $mel_subform;
+    if (!is_array($mel_structure) || !isset($mel_structure['field_event_image'])) {
+      return ['node' => NULL, 'errors' => ['Hero image field is missing from the form.']];
+    }
+
     $widget = $display->getRenderer('field_event_image');
-    if (!$widget instanceof FieldWidgetInterface) {
+    if (!$widget instanceof WidgetInterface) {
       $this->logger->error('Branding save: missing field_event_image widget for node @nid.', ['@nid' => (string) $node->id()]);
       return ['node' => NULL, 'errors' => ['Hero image widget is not configured.']];
     }
 
-    if (!isset($mel_subform['field_event_image'])) {
-      return ['node' => NULL, 'errors' => ['Hero image field is missing from the form.']];
-    }
-
     $items = $node->get('field_event_image');
-    $widget->extractFormValues($items, $mel_subform, $form_state);
+    $widget->extractFormValues($items, $mel_structure, $form_state);
 
     $fid = 0;
     $alt = '';
@@ -883,6 +902,17 @@ final class EventStudioSaveService {
       $value = $items->first()?->getValue() ?? [];
       $fid = (int) ($value['target_id'] ?? 0);
       $alt = trim((string) ($value['alt'] ?? ''));
+    }
+
+    // Fallback when widget extraction does not populate target_id (e.g. Remove).
+    if ($fid < 1) {
+      $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
+        'field_event_image' => $mel_values['field_event_image'] ?? [],
+      ]);
+      $fid = $hero['fid'];
+      if ($alt === '' && $hero['alt'] !== '') {
+        $alt = $hero['alt'];
+      }
     }
 
     if ($fid < 1) {
@@ -893,18 +923,20 @@ final class EventStudioSaveService {
         return ['node' => NULL, 'errors' => ['Alt text is required for the cover image.']];
       }
       $file = $this->entityTypeManager->getStorage('file')->load($fid);
-      if (!$file instanceof FileInterface) {
-        $this->logger->warning('Branding save: missing file @fid for event image on node @nid.', [
+      if (!$file instanceof FileInterface || !$this->heroFileIsRenderable($file)) {
+        $this->logger->warning('Branding save: clearing missing or unreadable hero file @fid on node @nid.', [
           '@fid' => (string) $fid,
           '@nid' => (string) $node->id(),
         ]);
-        return ['node' => NULL, 'errors' => ['The uploaded image could not be loaded. Try uploading again.']];
+        $node->set('field_event_image', []);
       }
-      if ($file->isTemporary()) {
-        $file->setPermanent();
-        $file->save();
+      else {
+        if ($file->isTemporary()) {
+          $file->setPermanent();
+          $file->save();
+        }
+        $node->set('field_event_image', $items);
       }
-      $node->set('field_event_image', $items);
     }
 
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
@@ -973,6 +1005,21 @@ final class EventStudioSaveService {
     if ($node->hasField('field_location_longitude') && $lng !== NULL && $lng !== '') {
       $node->set('field_location_longitude', (string) $lng);
     }
+  }
+
+  /**
+   * Whether a file entity URI exists and is a readable image for crop widgets.
+   */
+  private function heroFileIsRenderable(FileInterface $file): bool {
+    $uri = $file->getFileUri();
+    if ($uri === '' || !file_exists($uri)) {
+      return FALSE;
+    }
+    $mime = $file->getMimeType();
+    if ($mime !== '' && !str_starts_with($mime, 'image/')) {
+      return FALSE;
+    }
+    return TRUE;
   }
 
   /**

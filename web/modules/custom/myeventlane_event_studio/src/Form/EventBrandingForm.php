@@ -107,10 +107,13 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $request = $this->requestStack->getCurrentRequest();
     $restoreDraft = $request !== NULL && $request->query->getBoolean('restore_draft');
 
-    $formNode = $node;
+    $formNode = clone $node;
     if ($restoreDraft) {
-      $formNode = clone $node;
       $this->applyDraftHeroOverlay($formNode, $melDefaults);
+    }
+    if ($this->saveService->isBrokenHeroImageReference($formNode)) {
+      $formNode->set('field_event_image', []);
+      $this->messenger()->addWarning($this->t('The previous cover image file is no longer available. Upload a new image, or click Save branding to clear the broken reference.'));
     }
 
     $form['mel']['branding_hero_shell'] = [
