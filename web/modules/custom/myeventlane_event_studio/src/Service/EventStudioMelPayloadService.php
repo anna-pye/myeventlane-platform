@@ -71,19 +71,15 @@ final class EventStudioMelPayloadService {
     $has_attendee_questions = $attendee_questions !== [];
     $collect_per_ticket = !empty($mel['collect_attendee_questions']) || $has_attendee_questions;
 
-    $image_fids = $mel['field_event_image'] ?? [];
-    $image_fid = 0;
-    if (is_array($image_fids) && $image_fids !== []) {
-      $image_fid = (int) reset($image_fids);
-    }
+    $hero = self::normalizeHeroFromMelFragment($mel);
 
     $payload = [
       'title' => $mel['title'] ?? '',
       'summary' => $mel['summary'] ?? '',
       'body' => $mel['body'] ?? '',
       'field_event_intro' => trim((string) ($mel['field_event_intro'] ?? '')),
-      'field_event_image' => $image_fid,
-      'field_event_image_alt' => trim((string) ($mel['field_event_image_alt'] ?? '')),
+      'field_event_image' => $hero['fid'],
+      'field_event_image_alt' => $hero['alt'],
       'field_contact_email' => trim((string) ($mel['field_contact_email'] ?? '')),
       'field_contact_phone' => trim((string) ($mel['field_contact_phone'] ?? '')),
       'field_category' => $this->extractMultipleEntityIds($mel['field_category'] ?? ''),
@@ -141,6 +137,143 @@ final class EventStudioMelPayloadService {
     }
 
     return $payload;
+  }
+
+  /**
+   * Normalises hero file id and alt from a `mel` fragment.
+   *
+   * Supports legacy managed_file values (list of fids) and image field widgets
+   * that submit nested rows such as `[0 => ['target_id' => 42, 'alt' => '…']]`.
+   *
+   * @param array<string, mixed> $mel
+   *
+   * @return array{fid: int, alt: string}
+   *   Non-negative file id; alt text trimmed (explicit `field_event_image_alt`
+   *   wins over per-delta `alt` when both are present).
+   */
+  public static function normalizeHeroFromMelFragment(array $mel): array {
+    $explicit_alt = trim((string) ($mel['field_event_image_alt'] ?? ''));
+    $fid = 0;
+    $delta_alt = '';
+
+    $raw = $mel['field_event_image'] ?? NULL;
+    if (is_numeric($raw)) {
+      $fid = (int) $raw;
+    }
+    elseif (is_array($raw) && $raw !== []) {
+      $delta = self::imageWidgetDeltaFromRaw($raw);
+      $fid = self::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL);
+      if ($fid < 1 && isset($delta['target_id'])) {
+        $fid = max(0, (int) $delta['target_id']);
+      }
+      if (isset($delta['alt'])) {
+        $delta_alt = trim((string) $delta['alt']);
+      }
+
+      if ($fid < 1) {
+        foreach ($raw as $item) {
+          if (is_array($item)) {
+            if (isset($item['target_id']) && is_numeric($item['target_id'])) {
+              $tid = (int) $item['target_id'];
+              if ($tid > 0) {
+                $fid = $tid;
+                if ($delta_alt === '' && isset($item['alt'])) {
+                  $delta_alt = trim((string) $item['alt']);
+                }
+                break;
+              }
+            }
+            if (isset($item['fids']) && is_array($item['fids'])) {
+              foreach ($item['fids'] as $maybe_fid) {
+                if (is_numeric($maybe_fid)) {
+                  $tid = (int) $maybe_fid;
+                  if ($tid > 0) {
+                    $fid = $tid;
+                    if ($delta_alt === '' && isset($item['alt'])) {
+                      $delta_alt = trim((string) $item['alt']);
+                    }
+                    break 2;
+                  }
+                }
+              }
+            }
+          }
+          elseif (is_numeric($item)) {
+            $tid = (int) $item;
+            if ($tid > 0) {
+              $fid = $tid;
+              break;
+            }
+          }
+        }
+        if ($fid < 1) {
+          $first = reset($raw);
+          if (is_numeric($first)) {
+            $fid = (int) $first;
+          }
+        }
+      }
+    }
+
+    $alt = $explicit_alt !== '' ? $explicit_alt : $delta_alt;
+
+    return [
+      'fid' => max(0, $fid),
+      'alt' => $alt,
+    ];
+  }
+
+  /**
+   * Unwraps an image field widget value to its first delta array.
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public static function imageWidgetDeltaFromRaw(array $raw): array {
+    if (isset($raw['widget']) && is_array($raw['widget'])) {
+      $raw = $raw['widget'];
+    }
+    if (isset($raw[0]) && is_array($raw[0])) {
+      return $raw[0];
+    }
+
+    return $raw;
+  }
+
+  /**
+   * @return int
+   *   First positive file id from a managed_file / image widget fids value.
+   */
+  private static function firstPositiveIntFromFidsValue(mixed $fids): int {
+    if ($fids === NULL || $fids === '') {
+      return 0;
+    }
+    if (is_array($fids)) {
+      foreach ($fids as $value) {
+        $candidate = (int) $value;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+      return 0;
+    }
+    if (is_string($fids)) {
+      $parts = preg_split('/\s+/', trim($fids));
+      if (!is_array($parts)) {
+        return 0;
+      }
+      foreach ($parts as $part) {
+        if ($part === '') {
+          continue;
+        }
+        $candidate = (int) $part;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+    }
+    return 0;
   }
 
   /**

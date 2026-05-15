@@ -199,6 +199,9 @@ services:
       - '@myeventlane_vendor.publish_requirements_gate'
       - '@myeventlane_event_studio.readiness'
       - '@myeventlane_event_studio.question_field_type_registry'
+      - '@image.factory'
+      - '@string_translation'
+      - '@file_system'
       - '@?myeventlane_questions.template_cloner'
 
   myeventlane_event_studio.readiness:

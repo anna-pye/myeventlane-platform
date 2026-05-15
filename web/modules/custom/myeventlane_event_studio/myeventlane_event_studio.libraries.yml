@@ -1,5 +1,5 @@
 mel_event_studio:
-  version: 1.6
+  version: 1.7
   css:
     theme:
       css/mel-event-studio.css: {}
@@ -12,6 +12,16 @@ mel_event_studio:
     - core/drupal
     - core/once
     - myeventlane_location/address_autocomplete
+
+mel_branding_hero_tools:
+  version: 1.0
+  js:
+    js/mel-branding-hero-tools.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - focal_point/drupal.focal_point
 
 # Reuse Event Studio layout shell (sidebar + main) without wizard JS — onboarding, etc.
 mel_event_studio_shell_only:
