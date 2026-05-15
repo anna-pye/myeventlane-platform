@@ -2212,11 +2212,12 @@
   }
 
   function bindCoverFilePreview(form) {
-    var media = form.querySelector('.mel-identity-media');
-    if (!media) {
-      return;
-    }
-    once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
+    // All hero file inputs under any .mel-identity-media (deduped by
+    // querySelectorAll). Single once() with one id avoids missing later blocks
+    // (previously only the first .mel-identity-media was used) and avoids
+    // relying on repeated once() per container.
+    var fileInputs = form.querySelectorAll('.mel-identity-media input[type="file"]');
+    once('mel-cover-file', fileInputs).forEach(function (input) {
       input.addEventListener('change', function () {
         var f = input.files && input.files[0];
         if (!f || !f.type || f.type.indexOf('image/') !== 0) {
