@@ -26,12 +26,18 @@
         mel_donation_total_formatted: mel_donation_total_formatted|default(null),
         mel_order_pricing_breakdown: mel_order_pricing_breakdown|default(null),
         mel_checkout_completion: mel_checkout_completion|default(null),
+        mel_customer_operational_experience: mel_customer_operational_experience|default(null),
       } %}
     </div>
     <div class="layout-region layout-region-checkout-secondary mel-checkout-complete-layout__secondary">
       {% set mcc = mel_checkout_presentation|default({}) %}
       <h3 class="mel-checkout-summary-heading">{{ mcc.booking_summary_heading|default('') }}</h3>
       {{ form.sidebar }}
+      {% if mel_customer_operational_experience %}
+        <div class="mel-checkout__summary-region mel-checkout__summary-region--operational mel-checkout-complete-layout__operational" role="region" aria-label="{{ 'What to expect at the venue'|t }}">
+          {{ mel_customer_operational_experience }}
+        </div>
+      {% endif %}
       {% if mel_support_panel is defined and mel_support_panel %}
         <div class="mel-checkout__summary-region mel-checkout__summary-region--help" role="region" aria-label="{{ mcc.help_region_short|default('') }}">
           {{ mel_support_panel }}
@@ -224,6 +230,11 @@
               <div class="mel-checkout__summary-region mel-checkout__summary-region--order mel-checkout-summary__order">
                 {{ sidebar_content }}
               </div>
+              {% if mel_customer_operational_experience %}
+                <div class="mel-checkout__summary-region mel-checkout__summary-region--operational" role="region" aria-label="{{ 'What to expect at the venue'|t }}">
+                  {{ mel_customer_operational_experience }}
+                </div>
+              {% endif %}
               {# Trust lines: only in mel-checkout-order-summary-grouped (MelCheckoutSummaryPresenter). #}
               {% if mel_support_panel is defined and mel_support_panel %}
                 <div class="mel-checkout__summary-region mel-checkout__summary-region--help" role="region"{% if sidebar_help_label %} aria-label="{{ sidebar_help_label }}"{% endif %}>

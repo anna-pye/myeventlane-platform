@@ -57,6 +57,15 @@
     </div>
   </div>
 
+  {% if mel_customer_operational_experience %}
+    <div class="mel-order-detail__section mel-order-detail__operational mel-card mel-mb-4">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'What to expect at the venue'|t }}</h2>
+        {{ mel_customer_operational_experience }}
+      </div>
+    </div>
+  {% endif %}
+
   {# Order items table #}
   {% if order.order_items is defined and order.order_items|render|striptags|trim %}
     <div class="mel-order-detail__section mel-order-detail__items mel-card mel-mb-4">

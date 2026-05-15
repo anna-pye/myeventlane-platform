@@ -25,6 +25,16 @@ mel_operational_capability_studio:
     - core/drupal
     - core/once
 
+mel_customer_operational_experience:
+  version: 1.0
+  css:
+    theme:
+      css/mel-customer-operational-experience.css: {}
+  js:
+    js/mel-customer-operational-experience.js: {}
+  dependencies:
+    - core/drupal
+
 mel_branding_hero_tools:
   version: 1.0
   js:

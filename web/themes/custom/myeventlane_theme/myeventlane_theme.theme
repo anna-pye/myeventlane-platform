@@ -659,6 +659,108 @@ function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
   if ($store) {
     $variables['#cache']['tags'][] = 'commerce_store:' . $store->id();
   }
+  _myeventlane_theme_attach_mel_customer_operational_experience($variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_tickets.
+ */
+function myeventlane_theme_preprocess_myeventlane_my_tickets(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+  $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+  foreach (['upcoming_orders', 'past_orders'] as $orders_key) {
+    if (empty($variables[$orders_key]) || !is_array($variables[$orders_key])) {
+      continue;
+    }
+    foreach ($variables[$orders_key] as $idx => $order_data) {
+      if (!is_array($order_data)) {
+        continue;
+      }
+      $order = $order_data['order'] ?? NULL;
+      if (!$order instanceof OrderInterface) {
+        continue;
+      }
+      try {
+        $doc = $mce->buildCustomerOperationalExperienceForOrder($order);
+        $variables[$orders_key][$idx]['mel_customer_operational_experience'] = _myeventlane_theme_mel_customer_operational_render_from_doc($doc, $order);
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_theme')->notice('MEL My Tickets operational strip skipped for order @oid: @message', [
+          '@oid' => (string) $order->id(),
+          '@message' => $e->getMessage(),
+        ]);
+        $variables[$orders_key][$idx]['mel_customer_operational_experience'] = NULL;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_order_detail.
+ */
+function myeventlane_theme_preprocess_myeventlane_order_detail(array &$variables): void {
+  $order_data = $variables['order'] ?? NULL;
+  if (!is_array($order_data)) {
+    return;
+  }
+  $order = $order_data['order'] ?? NULL;
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+    $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+    $doc = $mce->buildCustomerOperationalExperienceForOrder($order);
+    $variables['mel_customer_operational_experience'] = _myeventlane_theme_mel_customer_operational_render_from_doc($doc, $order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL order detail operational strip skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    $variables['mel_customer_operational_experience'] = NULL;
+  }
+}
+
+/**
+ * Builds a render array for the customer operational experience theme hook.
+ *
+ * @param array<string, mixed> $doc
+ *   Sanitised experience document.
+ * @param \Drupal\commerce_order\Entity\OrderInterface|null $order
+ *   Order for cache tags when known.
+ *
+ * @return array<string, mixed>|null
+ *   Render array or NULL when empty.
+ */
+function _myeventlane_theme_mel_customer_operational_render_from_doc(array $doc, ?OrderInterface $order = NULL): ?array {
+  if (!empty($doc['empty'])) {
+    return NULL;
+  }
+  $tags = [];
+  if ($order instanceof OrderInterface) {
+    $tags[] = 'commerce_order:' . $order->id();
+    $event = _myeventlane_theme_get_first_event_from_order($order);
+    if ($event instanceof NodeInterface) {
+      $tags[] = 'node:' . $event->id();
+    }
+  }
+  return [
+    '#theme' => 'mel_customer_operational_experience',
+    '#experience' => $doc,
+    '#cache' => [
+      'tags' => $tags,
+      'contexts' => ['languages:language_interface'],
+    ],
+  ];
 }
 
 /**
@@ -931,6 +1033,57 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       }
     }
   }
+
+  _myeventlane_theme_attach_mel_customer_operational_experience($variables);
+}
+
+/**
+ * Attaches read-only operational expectation copy for checkout (Event Studio enabled).
+ */
+function _myeventlane_theme_attach_mel_customer_operational_experience(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface) {
+    $order = _myeventlane_theme_commerce_order_from_route();
+  }
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+    $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+    $doc = $mce->buildCustomerOperationalExperienceForOrder($order);
+    _myeventlane_theme_set_mel_customer_operational_block($variables, $doc, ['commerce_order:' . $order->id()], $order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL customer operational experience attach skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['mel_customer_operational_experience'] = NULL;
+  }
+}
+
+/**
+ * Sets a themed render array for customer-safe operational expectations.
+ *
+ * @param array<string, mixed> $variables
+ *   Preprocess variables (by reference).
+ * @param array<string, mixed> $doc
+ *   Builder document (already sanitised server-side).
+ * @param list<string> $cache_tags
+ *   Base cache tags for the block.
+ * @param \Drupal\commerce_order\Entity\OrderInterface|null $order
+ *   Optional order for additional node tag from line items.
+ */
+function _myeventlane_theme_set_mel_customer_operational_block(array &$variables, array $doc, array $cache_tags, ?OrderInterface $order): void {
+  $render = _myeventlane_theme_mel_customer_operational_render_from_doc($doc, $order);
+  if ($render === NULL) {
+    $variables['mel_customer_operational_experience'] = NULL;
+    return;
+  }
+  $render['#cache']['tags'] = array_values(array_unique(array_merge($cache_tags, $render['#cache']['tags'] ?? [])));
+  $variables['mel_customer_operational_experience'] = $render;
 }
 
 /**
@@ -3888,6 +4041,23 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
     $variables['mel_signal_is_community'] = str_contains($categoryText, 'community')
       || str_contains($categoryText, 'lgbtq')
       || str_contains($categoryText, 'grassroots');
+  }
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    && \Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    try {
+      /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+      $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+      $doc = $mce->buildCustomerOperationalExperienceForEvent($event);
+      _myeventlane_theme_set_mel_customer_operational_block($variables, $doc, ['node:' . $event->id()], NULL);
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->notice('MEL customer operational experience (event book) skipped for node @nid: @message', [
+        '@nid' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $variables['mel_customer_operational_experience'] = NULL;
+    }
   }
 
 }

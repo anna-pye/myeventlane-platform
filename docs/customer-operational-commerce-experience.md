@@ -1,0 +1,66 @@
+# Customer operational commerce experience (read-only)
+
+Customer-facing commerce and booking surfaces show **expectation copy** derived from Event Studio
+operational capability metadata. This layer is **presentation and projection only**.
+
+## Service
+
+- **`CustomerOperationalCommerceExperienceBuilder`** (`myeventlane_event_studio.customer_operational_commerce_experience_builder`)
+  lives in `myeventlane_event_studio` so it can depend on `OperationalCapabilityCommerceLinkManager` and
+  `OperationalCapabilityPreviewBuilder` without introducing a **module dependency cycle**
+  (`myeventlane_event_studio` already depends on `myeventlane_tickets`; the inverse would be invalid).
+
+## Canonical projection contract
+
+The builder returns a top-level document with `customer_operational_experience: true` and an `items`
+array. Each item is **whitelisted** to customer-safe fields only, then passed through
+`sanitizeCustomerOperationalExperience()` (recursive strip of forbidden keys).
+
+**Allowed (examples):** `capability_type`, `capability_label`, `fulfillment_summary`,
+`reservation_summary`, `pickup_summary`, `readiness_label`, `readiness_state`,
+`redemption_summary`, `customer_visibility`, `operational_notice`, `operational_chips`,
+`timing_summary`, `collection_summary`, `hospitality_summary`, `parking_summary`.
+
+**Forbidden:** replay tokens, QR payloads, device fingerprints, scanner actions/secrets,
+operational/topology fingerprints, occupancy/zone enforcement internals, audit traces,
+inventory quantities, warehouse identifiers, execution descriptors.
+
+Sanitisation is **centralised in PHP** (`CustomerOperationalCommerceExperienceBuilder`), not in Twig.
+
+## Delegation
+
+The builder delegates inward to:
+
+- `OperationalCapabilityStudioManager` (document shape, policy semantics vocabulary)
+- `OperationalCapabilityPreviewBuilder` / `OperationalCapabilityCommercePreviewBuilder` (customer previews)
+- `OperationalCapabilityCommerceLinkManager` (commerce linkage preview summaries for chips)
+- `EntitlementCapabilityRegistry`, `FulfillmentLifecycleManager`,
+  `InventoryReservationGovernanceManager` (read-only summaries; no execution paths)
+
+It does **not** re-map capabilities or duplicate registry logic beyond assembling labels and chips.
+
+## Surfaces
+
+Theme preprocess attaches a themed render array (`mel_customer_operational_experience`) on:
+
+- Event book (`myeventlane_event_book`)
+- Commerce checkout form (all steps when an order is available)
+- Checkout completion include
+- Commerce order user view
+- My Tickets / order detail (via `myeventlane_theme` preprocess on checkout_flow themes)
+
+Twig templates only **print** pre-built strings and lists; they perform no filtering or business rules.
+
+## Anti-patterns
+
+- Moving sanitisation or capability mapping into Twig, JavaScript, or controllers.
+- Exposing vendor-only governance metadata, scanner modes, or issuance material to customers.
+- Adding checkout mutations, inventory execution, fulfillment actions, or QR changes alongside this layer.
+
+## Related docs
+
+- `docs/operational-commerce-capability-linking.md`
+- `docs/vendor-operational-capability-studio.md`
+- `docs/fulfillment-lifecycle-convergence.md`
+- `docs/operational-entitlement-capability-convergence.md`
+- `docs/issuance-pipeline.md`

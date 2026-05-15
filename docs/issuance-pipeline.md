@@ -114,6 +114,7 @@ Performed in a full environment (e.g. DDEV) with real mail and checkout:
 
 ## Related documentation
 
+- [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md) — customer-safe operational expectation copy (no issuance or QR exposure).
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md) — Event Studio authoring links capabilities to Commerce products (no issuance/inventory execution).
 - [operational-surface-convergence.md](./operational-surface-convergence.md) — My Tickets and PDF rendering convergence onto **`UniversalTicketViewModelBuilder`**.
 - [operational-observability.md](./operational-observability.md) — read-only operational diagnostics authority and anti-patterns.

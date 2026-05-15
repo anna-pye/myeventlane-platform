@@ -68,6 +68,12 @@
       {% endif %}
     </div>
 
+    {% if mel_customer_operational_experience %}
+      <div class="mel-booking-operational-experience mel-container mel-container--event">
+        {{ mel_customer_operational_experience }}
+      </div>
+    {% endif %}
+
     <div class="mel-booking-container">
       <div class="mel-event-layout{% if event_mode != 'paid' %} mel-event-layout--booking-single{% endif %}">
         <div class="mel-event-layout__main">

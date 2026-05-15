@@ -26,6 +26,7 @@ entitlement issuance.
 
 ## Related docs
 
+- `docs/customer-operational-commerce-experience.md`
 - `docs/vendor-operational-capability-studio.md`
 - `docs/fulfillment-lifecycle-convergence.md`
 - `docs/inventory-reservation-governance-convergence.md`

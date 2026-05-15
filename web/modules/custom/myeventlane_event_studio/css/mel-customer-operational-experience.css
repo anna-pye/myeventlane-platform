@@ -1,0 +1,169 @@
+/**
+ * Customer operational commerce experience — pastel cards, mobile-first.
+ */
+.mel-coe {
+  --mel-coe-radius: 1rem;
+  --mel-coe-pad: 1rem 1.125rem;
+  border-radius: var(--mel-coe-radius);
+  padding: var(--mel-coe-pad);
+  margin-bottom: 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(14, 165, 233, 0.05));
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.mel-coe__header {
+  margin-bottom: 0.75rem;
+}
+
+.mel-coe__title {
+  font-size: 1.05rem;
+  font-weight: 650;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.01em;
+}
+
+.mel-coe__disclaimer {
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.mel-coe__grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .mel-coe__grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+.mel-coe-card {
+  border-radius: calc(var(--mel-coe-radius) - 0.25rem);
+  padding: 0.875rem 1rem;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.mel-coe-card[data-readiness="configured"] {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.mel-coe-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mel-coe-card__label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.mel-coe-chips {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mel-coe-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.mel-coe-chip--readiness {
+  background: rgba(148, 163, 184, 0.2);
+  color: #334155;
+}
+
+.mel-coe-chip--configured {
+  background: rgba(34, 197, 94, 0.18);
+  color: #14532d;
+}
+
+.mel-coe-chip--needs_review,
+.mel-coe-chip--needs-review {
+  background: rgba(251, 191, 36, 0.22);
+  color: #78350f;
+}
+
+.mel-coe-chip--draft {
+  background: rgba(147, 197, 253, 0.35);
+  color: #1e3a8a;
+}
+
+.mel-coe-chip--not_configured,
+.mel-coe-chip--not-configured {
+  background: rgba(226, 232, 240, 0.9);
+  color: #475569;
+}
+
+.mel-coe-chip--info {
+  background: rgba(186, 230, 253, 0.65);
+  color: #0c4a6e;
+}
+
+.mel-coe-chip--success {
+  background: rgba(187, 247, 208, 0.75);
+  color: #14532d;
+}
+
+.mel-coe-chip--warning {
+  background: rgba(254, 243, 199, 0.9);
+  color: #92400e;
+}
+
+.mel-coe-chip--muted {
+  background: rgba(241, 245, 249, 0.95);
+  color: #475569;
+}
+
+.mel-coe-summaries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.mel-coe-summary {
+  margin: 0 0 0.35rem;
+}
+
+.mel-coe-summary:last-child {
+  margin-bottom: 0;
+}
+
+.mel-coe-summary--notice {
+  font-style: italic;
+}
+
+/* Checkout / order context spacing */
+.mel-checkout .mel-coe,
+.mel-order-detail .mel-coe {
+  margin-bottom: 1rem;
+}
+
+.mel-confirmation .mel-coe {
+  margin-top: 0.5rem;
+}
+
+.mel-confirmation__main-pad {
+  padding: 0 0.25rem;
+  margin-bottom: 0.75rem;
+}

@@ -38,6 +38,7 @@ Do not add: inventory engines, warehouse orchestration, shipping execution, noti
 
 ## Related documentation
 
+- [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
 - [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)

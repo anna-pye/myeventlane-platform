@@ -60,6 +60,12 @@
     </div>
   </header>
 
+  {% if mel_customer_operational_experience %}
+    <div class="mel-confirmation__operational mel-confirmation__main-pad">
+      {{ mel_customer_operational_experience }}
+    </div>
+  {% endif %}
+
   <div class="mel-confirmation__main">
     {% if events|length > 0 %}
       {% for event in events %}

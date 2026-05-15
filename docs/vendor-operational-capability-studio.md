@@ -20,6 +20,9 @@ Canonical execution semantics remain in:
 
 Event Studio delegates **inward** to these services for vocabulary and projection only.
 
+Customer-facing read-only projections built from the same metadata are documented in
+`docs/customer-operational-commerce-experience.md` (`CustomerOperationalCommerceExperienceBuilder`).
+
 ## Storage contract
 
 Persisted on the event node as JSON in `field_mel_op_capabilities`:

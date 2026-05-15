@@ -231,6 +231,18 @@ services:
       - '@myeventlane_event_studio.operational_capability_commerce_preview_builder'
       - '@string_translation'
 
+  myeventlane_event_studio.customer_operational_commerce_experience_builder:
+    class: Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder
+    arguments:
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+      - '@myeventlane_event_studio.operational_capability_preview_builder'
+      - '@myeventlane_event_studio.operational_capability_studio_manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+      - '@myeventlane_tickets.inventory_reservation_governance_manager'
+      - '@entity_type.manager'
+      - '@string_translation'
+
   myeventlane_event_studio.save:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSaveService
     arguments:
