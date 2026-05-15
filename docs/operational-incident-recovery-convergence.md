@@ -51,6 +51,7 @@ Recovery cards summarize:
 ## Related documents
 
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)
+- [operational-incident-lifecycle-convergence.md](./operational-incident-lifecycle-convergence.md) — Phase 3A Commit 3 coordination entity and lifecycle services
 - [operational-observability.md](./operational-observability.md)
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)

@@ -9,6 +9,41 @@ myeventlane_tickets.venue_operations_workspace:
   options:
     _admin_route: TRUE
 
+entity.mel_operational_incident.collection:
+  path: '/admin/mel/operations/incidents'
+  defaults:
+    _entity_list: 'mel_operational_incident'
+  requirements:
+    _custom_access: 'myeventlane_tickets.operational_incident_access:accessOperationalIncidentWorkspace'
+    _permission: 'manage mel operational incidents'
+  options:
+    _admin_route: TRUE
+
+myeventlane_tickets.operational_incident_add:
+  path: '/admin/mel/operations/incidents/add'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\OperationalIncidentCreateForm'
+    _title: 'Register operational incident'
+  requirements:
+    _custom_access: 'myeventlane_tickets.operational_incident_access:accessOperationalIncidentWorkspace'
+    _permission: 'manage mel operational incidents'
+  options:
+    _admin_route: TRUE
+
+myeventlane_tickets.operational_incident_coordination:
+  path: '/admin/mel/operations/incidents/{mel_operational_incident}'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\OperationalIncidentCoordinationForm'
+    _title: 'Operational incident coordination'
+  requirements:
+    _custom_access: 'myeventlane_tickets.operational_incident_access:accessOperationalIncidentWorkspace'
+    _permission: 'manage mel operational incidents'
+  options:
+    _admin_route: TRUE
+    parameters:
+      mel_operational_incident:
+        type: entity:mel_operational_incident
+
 # Admin settings page.
 myeventlane_tickets.settings:
   path: '/admin/config/myeventlane/tickets'

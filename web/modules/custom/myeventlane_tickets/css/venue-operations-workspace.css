@@ -102,3 +102,180 @@
   border-color: #c5d4e8;
   background: #f7fbff;
 }
+
+.mel-ops-card--severity-low {
+  border-color: #c5d4e8;
+  background: #f7fbff;
+}
+
+.mel-ops-card--severity-moderate {
+  border-color: #d9a23c;
+  background: #fffaf0;
+}
+
+.mel-ops-card--severity-elevated {
+  border-color: #d98a3c;
+  background: #fff6ed;
+}
+
+.mel-ops-card--severity-severe {
+  border-color: #c96a4a;
+  background: #fff2f0;
+}
+
+.mel-ops-workspace__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.mel-ops-workspace__toolbar-link {
+  font-weight: 600;
+  color: #1f5fbf;
+  text-decoration: none;
+}
+
+.mel-ops-workspace__toolbar-link:hover,
+.mel-ops-workspace__toolbar-link:focus {
+  text-decoration: underline;
+}
+
+.mel-ops-workspace__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.mel-ops-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  border: 1px solid #d8dee6;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  background: #ffffff;
+}
+
+@media (min-width: 48rem) {
+  .mel-ops-row {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+.mel-ops-row--suppressed {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.mel-ops-row--severity-critical {
+  border-color: #c94a4a;
+}
+
+.mel-ops-row--severity-warning {
+  border-color: #d9a23c;
+}
+
+.mel-ops-row--severity-low {
+  border-color: #c5d4e8;
+}
+
+.mel-ops-row--severity-moderate {
+  border-color: #d9a23c;
+}
+
+.mel-ops-row--severity-elevated {
+  border-color: #d98a3c;
+}
+
+.mel-ops-row--severity-severe {
+  border-color: #c96a4a;
+}
+
+.mel-ops-row__suppression,
+.mel-ops-row__workflow-keys {
+  font-size: 0.85rem;
+  color: #3b3f45;
+  margin-top: 0.25rem;
+}
+
+.mel-ops-row__title {
+  font-weight: 700;
+  color: #1f2328;
+  word-break: break-word;
+}
+
+.mel-ops-row__meta,
+.mel-ops-row__descriptors {
+  font-size: 0.85rem;
+  color: #3b3f45;
+}
+
+.mel-ops-row__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mel-ops-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  border: 1px solid #c5cdd8;
+  background: #f2f5f9;
+  color: #2f3640;
+}
+
+.mel-ops-badge--escalation {
+  border-color: #d9a23c;
+  background: #fff7e6;
+}
+
+.mel-ops-badge--lifecycle {
+  border-color: #7aa7e6;
+  background: #eef5ff;
+}
+
+.mel-ops-badge--ack {
+  border-color: #8fc9a3;
+  background: #f1faf3;
+}
+
+.mel-ops-badge--owner {
+  border-color: #b0b7c3;
+  background: #f7f8fa;
+}
+
+.mel-ops-row__actions {
+  justify-self: start;
+}
+
+@media (min-width: 48rem) {
+  .mel-ops-row__actions {
+    justify-self: end;
+  }
+}
+
+.mel-ops-row__manage {
+  font-weight: 700;
+  color: #1f5fbf;
+  text-decoration: none;
+}
+
+.mel-ops-row__manage:hover,
+.mel-ops-row__manage:focus {
+  text-decoration: underline;
+}
+
+.mel-ops-coordination-notes {
+  white-space: pre-wrap;
+  margin: 0;
+  font-size: 0.9rem;
+}

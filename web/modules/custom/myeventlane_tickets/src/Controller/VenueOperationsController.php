@@ -34,7 +34,9 @@ final class VenueOperationsController extends ControllerBase {
    */
   public function page(Request $request): array {
     $event = $this->resolveOptionalEvent($request);
-    $workspace = $this->operationalWorkspaceBuilder->build($event);
+    $raw_lifecycle = $request->query->get('incident_lifecycle');
+    $lifecycle_filter = is_string($raw_lifecycle) ? trim($raw_lifecycle) : NULL;
+    $workspace = $this->operationalWorkspaceBuilder->build($event, $lifecycle_filter);
 
     return [
       '#theme' => 'venue_operations_workspace',
@@ -46,7 +48,10 @@ final class VenueOperationsController extends ControllerBase {
       '#cache' => [
         'keys' => ['venue_operations_workspace', $event?->id() ?? 0],
         'tags' => $workspace['cache_tags'],
-        'contexts' => array_merge($workspace['cache_contexts'], ['url.query_args:event']),
+        'contexts' => array_merge(
+          $workspace['cache_contexts'],
+          ['url.query_args:event', 'url.query_args:incident_lifecycle'],
+        ),
       ],
     ];
   }

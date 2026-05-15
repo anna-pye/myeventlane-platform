@@ -21,8 +21,10 @@ final class OperationalIncidentCoordinationForm extends FormBase {
   public function __construct(
     private readonly OperationalIncidentLifecycleManager $lifecycleManager,
     private readonly OperationalIncidentWorkflowNormalizer $workflowNormalizer,
-    private readonly RouteMatchInterface $routeMatch,
-  ) {}
+    RouteMatchInterface $route_match,
+  ) {
+    $this->routeMatch = $route_match;
+  }
 
   /**
    * {@inheritdoc}
@@ -46,7 +48,7 @@ final class OperationalIncidentCoordinationForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $entity = $this->routeMatch->getParameter('mel_operational_incident');
+    $entity = $this->getRouteMatch()->getParameter('mel_operational_incident');
     if (!$entity instanceof OperationalIncident) {
       throw new \InvalidArgumentException('Operational incident parameter missing.');
     }

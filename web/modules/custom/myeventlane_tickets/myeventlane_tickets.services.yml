@@ -261,6 +261,32 @@ services:
       - '@myeventlane_tickets.entitlement_capability_registry'
       - '@myeventlane_tickets.operational_incident_builder'
       - '@myeventlane_tickets.operational_recovery_summary_builder'
+      - '@myeventlane_tickets.operational_incident_projection_builder'
+      - '@current_user'
+
+  myeventlane_tickets.operational_incident_workflow_normalizer:
+    class: Drupal\myeventlane_tickets\Service\OperationalIncidentWorkflowNormalizer
+
+  myeventlane_tickets.operational_incident_audit_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalIncidentAuditBuilder
+
+  myeventlane_tickets.operational_incident_lifecycle_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_tickets.operational_incident_workflow_normalizer'
+      - '@myeventlane_tickets.operational_incident_normalizer'
+      - '@myeventlane_tickets.operational_incident_audit_builder'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_tickets'
+      - '@uuid'
+
+  myeventlane_tickets.operational_incident_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalIncidentProjectionBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_tickets.operational_incident_workflow_normalizer'
+      - '@myeventlane_tickets.operational_incident_normalizer'
 
   myeventlane_tickets.operational_workspace_access:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker

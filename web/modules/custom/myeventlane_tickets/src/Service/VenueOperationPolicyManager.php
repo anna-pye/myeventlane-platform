@@ -209,7 +209,26 @@ final class VenueOperationPolicyManager {
   ): array {
     $composition = $this->evaluateTimedEntryForScan($ticket, $now, $parsed_qr_expires_at);
     if (!$composition['allow']) {
-      return $composition;
+      $policy = is_array($composition['policy'] ?? NULL) ? $composition['policy'] : [];
+      $timed = is_array($policy['timed_entry'] ?? NULL) ? $policy['timed_entry'] : [];
+      $session = is_array($policy['session_entitlement'] ?? NULL) ? $policy['session_entitlement'] : [];
+      $requested = $requested_zone_id !== NULL && trim($requested_zone_id) !== '' ? trim($requested_zone_id) : NULL;
+      $zone_skipped = $this->zoneAccessPolicyManager->evaluateZoneAccessForComposition(
+        $ticket,
+        $requested,
+        $timed,
+        $session,
+      );
+      return [
+        'allow' => FALSE,
+        'result_token' => (string) $composition['result_token'],
+        'message' => (string) $composition['message'],
+        'policy' => [
+          'timed_entry' => $timed,
+          'session_entitlement' => $session,
+          'zone_access' => $zone_skipped['policy'],
+        ],
+      ];
     }
 
     $timed = $composition['policy']['timed_entry'] ?? [];

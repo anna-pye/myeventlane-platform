@@ -18,7 +18,10 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker;
-use Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector;
+use Drupal\myeventlane_tickets\Entity\OperationalIncident;
+use Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager;
+use Drupal\myeventlane_tickets\Service\OperationalIncidentProjectionBuilder;
+use Drupal\myeventlane_tickets\Service\OperationalIncidentWorkflowNormalizer;
 use Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -109,6 +112,7 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
     $this->installEntitySchema('commerce_order');
     $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('myeventlane_ticket');
+    $this->installEntitySchema('mel_operational_incident');
     $this->installConfig(['commerce_store', 'commerce_product', 'commerce_order', 'user']);
     $this->ensureWorkspaceRoles();
 
@@ -279,9 +283,10 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
         $types[] = $t->getName();
       }
     }
-    $this->assertContains(OperationalIntegrityInspector::class, $types);
+    $this->assertContains('Drupal\myeventlane_tickets\Service\OperationalIncidentBuilder', $types);
     $this->assertContains('Drupal\myeventlane_tickets\Service\VenueOperationPolicyManager', $types);
     $this->assertContains('Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry', $types);
+    $this->assertContains(OperationalIncidentProjectionBuilder::class, $types);
   }
 
   public function testGlobalCatalogSectionPresentWithoutEvent(): void {
@@ -291,6 +296,234 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
     $this->assertSame('global', $workspace['meta']['scope']);
   }
 
+  public function testWorkflowNormalizerLifecycleAndEscalationTokens(): void {
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentWorkflowNormalizer $n */
+    $n = $this->container->get('myeventlane_tickets.operational_incident_workflow_normalizer');
+    $this->assertContains('suppressed', $n->allowedLifecycleStates());
+    $this->assertContains('executive', $n->allowedEscalationStates());
+    $this->assertTrue($n->isAllowedLifecycleTransition('detected', 'investigating'));
+    $this->assertFalse($n->isAllowedLifecycleTransition('resolved', 'detected'));
+    $this->assertTrue($n->isSuppressedLifecycle('suppressed'));
+  }
+
+  public function testLifecycleManagerStripsReplayFromOperationalSnapshot(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_signal',
+      'event_id' => $this->event->id(),
+      'operational_snapshot' => [
+        'replay_token' => 'must_not_persist',
+        'status' => 'ok',
+      ],
+    ], $staff);
+    $raw = (string) $entity->get('operational_snapshot')->value;
+    $this->assertStringNotContainsString('replay_token', $raw);
+    $this->assertStringNotContainsString('must_not_persist', $raw);
+    $this->assertStringContainsString('status', $raw);
+  }
+
+  public function testLifecycleTransitionsSuppress(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_lifecycle',
+      'event_id' => $this->event->id(),
+    ], $staff);
+    $lm->transitionLifecycle($entity, 'acknowledged', $staff);
+    $reloaded = OperationalIncident::load($entity->id());
+    $this->assertInstanceOf(OperationalIncident::class, $reloaded);
+    $lm->transitionLifecycle($reloaded, 'suppressed', $staff, NULL, 'Kernel harness false positive');
+    $final = OperationalIncident::load($entity->id());
+    $this->assertInstanceOf(OperationalIncident::class, $final);
+    $this->assertSame('suppressed', $final->get('lifecycle_state')->value);
+    $this->assertNotEmpty(trim((string) $final->get('suppression_reason')->value));
+  }
+
+  public function testOperationalIncidentEntityAccessVendorDenied(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_access',
+      'event_id' => $this->event->id(),
+    ], $staff);
+
+    $vendor = User::create([
+      'name' => 'kernel_vendor_incident',
+      'mail' => 'kernel-vendor-incident@example.test',
+      'status' => 1,
+    ]);
+    $vendor->addRole('mel_ws_vendor_only');
+    $vendor->save();
+    $vendor = User::load($vendor->id());
+    $this->assertInstanceOf(User::class, $vendor);
+
+    $handler = $this->container->get('entity_type.manager')->getAccessControlHandler('mel_operational_incident');
+    $this->assertTrue($handler->access($entity, 'view', $staff, TRUE)->isAllowed());
+    $this->assertTrue($handler->access($entity, 'view', $vendor, TRUE)->isForbidden());
+    $this->assertTrue($handler->access($entity, 'update', $vendor, TRUE)->isForbidden());
+  }
+
+  public function testProjectionBuilderAndWorkspaceCoordinationSection(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_projection',
+      'severity' => 'warning',
+      'event_id' => $this->event->id(),
+      'operational_descriptors' => ['gate_a', 'gate_b'],
+    ], $staff);
+    $lm->assignOwner($entity, (int) $staff->id(), $staff);
+
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentProjectionBuilder $pb */
+    $pb = $this->container->get('myeventlane_tickets.operational_incident_projection_builder');
+    $section = $pb->buildWorkspaceSection($this->event, NULL, $staff);
+    $this->assertSame('operational_coordination_incidents', $section['id']);
+    $this->assertNotEmpty($section['rows']);
+    $row = $section['rows'][0];
+    $this->assertSame('moderate', $row['badges']['severity']);
+    $this->assertStringStartsWith('uid:', (string) $row['assigned_display']);
+
+    $workspace = $this->workspaceBuilder()->build($this->event, 'suppressed');
+    $ids = array_column($workspace['sections'], 'id');
+    $this->assertContains('operational_coordination_incidents', $ids);
+    $this->assertSame('suppressed', $workspace['meta']['incident_lifecycle_filter']);
+  }
+
+  public function testAssignOwnerSetsAcknowledgementAssigned(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_assign',
+      'event_id' => $this->event->id(),
+    ], $staff);
+    $lm->assignOwner($entity, (int) $staff->id(), $staff);
+    $reloaded = OperationalIncident::load($entity->id());
+    $this->assertInstanceOf(OperationalIncident::class, $reloaded);
+    $this->assertSame('assigned', $reloaded->get('acknowledgement_state')->value);
+  }
+
+  public function testEscalationNormalizationPersists(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_escalation',
+      'event_id' => $this->event->id(),
+    ], $staff);
+    $lm->setEscalationState($entity, 'URGENT', $staff);
+    $reloaded = OperationalIncident::load($entity->id());
+    $this->assertInstanceOf(OperationalIncident::class, $reloaded);
+    $this->assertSame('urgent', $reloaded->get('escalation_state')->value);
+  }
+
+  public function testLifecycleSuppressRequiresReason(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_suppress_gate',
+      'event_id' => $this->event->id(),
+    ], $staff);
+    $this->expectException(\InvalidArgumentException::class);
+    $lm->transitionLifecycle($entity, 'suppressed', $staff, NULL, NULL);
+  }
+
+  public function testInvalidLifecycleTransitionThrows(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_invalid_lifecycle',
+      'event_id' => $this->event->id(),
+    ], $staff);
+    $lm->transitionLifecycle($entity, 'resolved', $staff);
+    $reloaded = OperationalIncident::load($entity->id());
+    $this->assertInstanceOf(OperationalIncident::class, $reloaded);
+    $this->expectException(\InvalidArgumentException::class);
+    $lm->transitionLifecycle($reloaded, 'detected', $staff);
+  }
+
+  public function testInvalidAcknowledgementTransitionThrows(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_invalid_ack',
+      'event_id' => $this->event->id(),
+    ], $staff);
+    $this->expectException(\InvalidArgumentException::class);
+    $lm->setAcknowledgementState($entity, 'accepted', $staff);
+  }
+
+  public function testWorkflowNormalizerAcknowledgementMatrix(): void {
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentWorkflowNormalizer $n */
+    $n = $this->container->get('myeventlane_tickets.operational_incident_workflow_normalizer');
+    $this->assertTrue($n->isAllowedAcknowledgementTransition('unassigned', 'assigned'));
+    $this->assertFalse($n->isAllowedAcknowledgementTransition('unassigned', 'accepted'));
+    $this->assertTrue($n->isAllowedAcknowledgementTransition('assigned', 'accepted'));
+  }
+
+  public function testEscalationUnknownNormalizesToNone(): void {
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentWorkflowNormalizer $n */
+    $n = $this->container->get('myeventlane_tickets.operational_incident_workflow_normalizer');
+    $this->assertSame('none', $n->normalizeEscalationState('unknown_noise'));
+  }
+
+  public function testAuditBuilderCoordinationSummary(): void {
+    $staff = $this->staffAccount();
+    $this->setCurrentUser($staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentLifecycleManager $lm */
+    $lm = $this->container->get('myeventlane_tickets.operational_incident_lifecycle_manager');
+    $entity = $lm->register([
+      'incident_type' => 'kernel_audit',
+      'event_id' => $this->event->id(),
+      'workflow_metadata' => ['channel' => 'kernel', 'replay_token' => 'strip_me'],
+    ], $staff);
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalIncidentAuditBuilder $ab */
+    $ab = $this->container->get('myeventlane_tickets.operational_incident_audit_builder');
+    $summary = $ab->buildCoordinationAuditSummary($entity);
+    $this->assertArrayHasKey('workflow_metadata_keys', $summary);
+    $this->assertContains('channel', $summary['workflow_metadata_keys']);
+    $this->assertNotContains('replay_token', $summary['workflow_metadata_keys']);
+    $raw = (string) $entity->get('workflow_metadata')->value;
+    $this->assertStringNotContainsString('strip_me', $raw);
+  }
+
+  public function testNormalizerCoordinationSeverityMapsLegacyWorkspaceTokens(): void {
+    $n = $this->container->get('myeventlane_tickets.operational_incident_normalizer');
+    $this->assertSame('moderate', $n->normalizeCoordinationSeverity('warning'));
+    $this->assertSame('low', $n->normalizeCoordinationSeverity('info'));
+    $this->assertSame('critical', $n->normalizeCoordinationSeverity('critical'));
+  }
+
+  private function staffAccount(): User {
+    $staff = User::create([
+      'name' => 'kernel_staff_incident',
+      'mail' => 'kernel-staff-incident@example.test',
+      'status' => 1,
+    ]);
+    $staff->addRole('mel_ws_staff');
+    $staff->save();
+    $loaded = User::load($staff->id());
+    $this->assertInstanceOf(User::class, $loaded);
+    return $loaded;
+  }
+
   private function ensureWorkspaceRoles(): void {
     if (!Role::load('mel_ws_vendor_only')) {
       Role::create([
@@ -298,12 +531,16 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
         'label' => 'MEL workspace vendor-only',
       ])->grantPermission('manage own events tickets')->save();
     }
-    if (!Role::load('mel_ws_staff')) {
-      Role::create([
+    $staff_role = Role::load('mel_ws_staff');
+    if (!$staff_role) {
+      $staff_role = Role::create([
         'id' => 'mel_ws_staff',
         'label' => 'MEL workspace staff',
-      ])->grantPermission('view mel venue operations workspace')->save();
+      ]);
     }
+    $staff_role->grantPermission('view mel venue operations workspace');
+    $staff_role->grantPermission('manage mel operational incidents');
+    $staff_role->save();
   }
 
   private function issuer(): TicketIssuer {

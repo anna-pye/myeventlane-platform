@@ -12,11 +12,21 @@
     {% else %}
       <p class="mel-ops-workspace__meta">{{ 'Event'|t }}: {{ meta.event_title }} <span class="mel-ops-workspace__id">({{ meta.event_id }})</span></p>
     {% endif %}
+    {% if meta.incident_lifecycle_filter %}
+      <p class="mel-ops-workspace__meta">{{ 'Coordination lifecycle filter'|t }}: <span class="mel-ops-workspace__id">{{ meta.incident_lifecycle_filter }}</span></p>
+    {% endif %}
   </header>
 
   {% for section in sections %}
     <section class="mel-ops-workspace__section" data-ops-section="{{ section.id }}">
       <h2 class="mel-ops-workspace__section-title">{{ section.title }}</h2>
+      {% if section.links is defined and section.links|length %}
+        <nav class="mel-ops-workspace__toolbar" aria-label="{{ 'Operational coordination actions'|t }}">
+          {% for link in section.links %}
+            <a class="mel-ops-workspace__toolbar-link" href="{{ link.href }}">{{ link.title|t }}</a>
+          {% endfor %}
+        </nav>
+      {% endif %}
       <div class="mel-ops-workspace__cards">
         {% for card in section.cards %}
           <article class="mel-ops-card{% if card.severity is defined %} mel-ops-card--severity-{{ card.severity }}{% endif %}">
@@ -25,6 +35,43 @@
           </article>
         {% endfor %}
       </div>
+      {% if section.rows is defined and section.rows|length %}
+        <div class="mel-ops-workspace__rows" role="list">
+          {% for row in section.rows %}
+            <article class="mel-ops-row{% if row.badges.severity is defined %} mel-ops-row--severity-{{ row.badges.severity }}{% endif %}{% if row.suppressed %} mel-ops-row--suppressed{% endif %}" role="listitem">
+              <div class="mel-ops-row__primary">
+                <div class="mel-ops-row__title">{{ row.incident_correlation }} · {{ row.incident_type }}</div>
+                <div class="mel-ops-row__meta">
+                  {{ 'Refs'|t }}:
+                  {% if row.event_id %}{{ 'event'|t }} {{ row.event_id }}{% endif %}
+                  {% if row.order_id %} · {{ 'order'|t }} {{ row.order_id }}{% endif %}
+                  {% if row.ticket_id %} · {{ 'ticket'|t }} {{ row.ticket_id }}{% endif %}
+                </div>
+                {% if row.suppression_visible is defined and row.suppression_visible and row.suppression_reason_excerpt %}
+                  <div class="mel-ops-row__suppression">{{ 'Suppression'|t }}: {{ row.suppression_reason_excerpt }}</div>
+                {% endif %}
+                {% if row.workflow_metadata_keys is defined and row.workflow_metadata_keys|length %}
+                  <div class="mel-ops-row__workflow-keys">{{ 'Workflow keys'|t }}: {{ row.workflow_metadata_keys|join(', ') }}</div>
+                {% endif %}
+                {% if row.descriptor_tokens|length %}
+                  <div class="mel-ops-row__descriptors">{{ row.descriptor_tokens|join(', ') }}</div>
+                {% endif %}
+              </div>
+              <div class="mel-ops-row__badges" aria-label="{{ 'Workflow badges'|t }}">
+                <span class="mel-ops-badge mel-ops-badge--lifecycle">{{ row.badges.lifecycle }}</span>
+                <span class="mel-ops-badge mel-ops-badge--escalation">{{ row.badges.escalation }}</span>
+                <span class="mel-ops-badge mel-ops-badge--ack">{{ row.badges.acknowledgement }}</span>
+                <span class="mel-ops-badge mel-ops-badge--owner">{{ row.assigned_display }}</span>
+              </div>
+              {% if row.manage_url %}
+                <div class="mel-ops-row__actions">
+                  <a class="mel-ops-row__manage" href="{{ row.manage_url }}">{{ 'Coordinate'|t }}</a>
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      {% endif %}
     </section>
   {% endfor %}
 </div>

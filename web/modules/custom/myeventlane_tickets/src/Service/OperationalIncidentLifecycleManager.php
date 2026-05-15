@@ -38,6 +38,7 @@ final class OperationalIncidentLifecycleManager {
     'guest_email',
     'holder_email',
     'purchaser_email',
+    'wallet_payload',
   ];
 
   public function __construct(
@@ -55,7 +56,9 @@ final class OperationalIncidentLifecycleManager {
    *
    * @param array<string, mixed> $values
    *   Keys: incident_id?, incident_type, severity?, event_id?, order_id?, ticket_id?,
-   *   diagnostic_snapshot (array|string)?, operational_descriptors (list<string>|string)?,
+   *   operational_snapshot (array|string)?, diagnostic_snapshot (legacy alias),
+   *   operational_descriptors (list<string>|string)?,
+   *   workflow_metadata (array|string)?,
    *   resolution_notes? (unused on create).
    */
   public function register(array $values, AccountInterface $account): OperationalIncident {
@@ -66,10 +69,12 @@ final class OperationalIncidentLifecycleManager {
     }
 
     $type = $this->incidentNormalizer->normalizeIncidentType((string) ($values['incident_type'] ?? 'unknown'));
-    $severity = $this->incidentNormalizer->normalizeSeverity((string) ($values['severity'] ?? 'info'));
+    $severity = $this->incidentNormalizer->normalizeCoordinationSeverity((string) ($values['severity'] ?? 'low'));
 
-    $snapshot = $this->normalizeDiagnosticInput($values['diagnostic_snapshot'] ?? NULL);
+    $snapshot_raw = $values['operational_snapshot'] ?? $values['diagnostic_snapshot'] ?? NULL;
+    $snapshot = $this->normalizeSnapshotInput($snapshot_raw);
     $descriptors = $this->normalizeDescriptorsInput($values['operational_descriptors'] ?? NULL);
+    $workflow_meta = $this->normalizeWorkflowMetadataInput($values['workflow_metadata'] ?? NULL);
 
     /** @var \Drupal\myeventlane_tickets\Entity\OperationalIncident $entity */
     $entity = $storage->create([
@@ -82,8 +87,9 @@ final class OperationalIncidentLifecycleManager {
       'event_id' => $this->optionalInt($values['event_id'] ?? NULL),
       'order_id' => $this->optionalInt($values['order_id'] ?? NULL),
       'ticket_id' => $this->optionalInt($values['ticket_id'] ?? NULL),
-      'diagnostic_snapshot' => $snapshot,
+      'operational_snapshot' => $snapshot,
       'operational_descriptors' => $descriptors,
+      'workflow_metadata' => $workflow_meta,
     ]);
     $entity->save();
 
@@ -99,9 +105,13 @@ final class OperationalIncidentLifecycleManager {
     string $target_lifecycle,
     AccountInterface $account,
     ?string $resolution_notes = NULL,
+    ?string $suppression_reason = NULL,
   ): void {
     $from = (string) $entity->get('lifecycle_state')->value;
     $to = $this->workflowNormalizer->normalizeLifecycleState($target_lifecycle);
+    if ($from === $to) {
+      return;
+    }
     if (!$this->workflowNormalizer->isAllowedLifecycleTransition($from, $to)) {
       $this->logger->error('Blocked disallowed operational lifecycle transition @from -> @to for entity @id.', [
         '@from' => $from,
@@ -109,6 +119,19 @@ final class OperationalIncidentLifecycleManager {
         '@id' => (string) $entity->id(),
       ]);
       throw new \InvalidArgumentException('Disallowed lifecycle transition.');
+    }
+    if ($to === OperationalIncidentWorkflowNormalizer::LIFECYCLE_SUPPRESSED) {
+      $reason = trim((string) ($suppression_reason ?? ''));
+      if ($reason === '') {
+        $this->logger->error('Blocked suppression transition without reason for entity @id.', [
+          '@id' => (string) $entity->id(),
+        ]);
+        throw new \InvalidArgumentException('Suppression requires a coordination reason.');
+      }
+      $entity->set('suppression_reason', $reason);
+    }
+    elseif ($from === OperationalIncidentWorkflowNormalizer::LIFECYCLE_SUPPRESSED) {
+      $entity->set('suppression_reason', NULL);
     }
     $entity->set('lifecycle_state', $to);
     if ($to === OperationalIncidentWorkflowNormalizer::LIFECYCLE_RESOLVED) {
@@ -127,6 +150,9 @@ final class OperationalIncidentLifecycleManager {
     AccountInterface $account,
   ): void {
     $normalized = $this->workflowNormalizer->normalizeEscalationState($escalation);
+    if ((string) $entity->get('escalation_state')->value === $normalized) {
+      return;
+    }
     $entity->set('escalation_state', $normalized);
     $entity->save();
     $this->logTransition($entity, 'set_escalation', $account, ['escalation_state' => $normalized]);
@@ -137,7 +163,30 @@ final class OperationalIncidentLifecycleManager {
     string $ack,
     AccountInterface $account,
   ): void {
+    $from = (string) $entity->get('acknowledgement_state')->value;
     $normalized = $this->workflowNormalizer->normalizeAcknowledgementState($ack);
+    if ($from === $normalized) {
+      return;
+    }
+    if (!$this->workflowNormalizer->isAllowedAcknowledgementTransition($from, $normalized)) {
+      $this->logger->error('Blocked disallowed acknowledgement transition @from -> @to for entity @id.', [
+        '@from' => $from,
+        '@to' => $normalized,
+        '@id' => (string) $entity->id(),
+      ]);
+      throw new \InvalidArgumentException('Disallowed acknowledgement transition.');
+    }
+    if (in_array($normalized, [
+      OperationalIncidentWorkflowNormalizer::ACK_ASSIGNED,
+      OperationalIncidentWorkflowNormalizer::ACK_ACCEPTED,
+      OperationalIncidentWorkflowNormalizer::ACK_HANDED_OFF,
+    ], TRUE) && $entity->get('assigned_uid')->isEmpty()) {
+      $this->logger->error('Blocked acknowledgement @state without assigned_uid for entity @id.', [
+        '@state' => $normalized,
+        '@id' => (string) $entity->id(),
+      ]);
+      throw new \InvalidArgumentException('Acknowledgement state requires an assigned owner uid.');
+    }
     $entity->set('acknowledgement_state', $normalized);
     $entity->save();
     $this->logTransition($entity, 'set_acknowledgement', $account, ['acknowledgement_state' => $normalized]);
@@ -147,13 +196,33 @@ final class OperationalIncidentLifecycleManager {
     if ($uid !== NULL && $uid < 1) {
       throw new \InvalidArgumentException('Assigned uid must be positive or NULL.');
     }
+    $current_uid = $entity->get('assigned_uid')->isEmpty() ? NULL : (int) $entity->get('assigned_uid')->value;
+    if ($uid === $current_uid) {
+      return;
+    }
     if ($uid === NULL) {
       $entity->set('assigned_uid', NULL);
+      $ack = (string) $entity->get('acknowledgement_state')->value;
+      if ($ack !== OperationalIncidentWorkflowNormalizer::ACK_UNASSIGNED) {
+        if (!$this->workflowNormalizer->isAllowedAcknowledgementTransition($ack, OperationalIncidentWorkflowNormalizer::ACK_UNASSIGNED)) {
+          $this->logger->error('Blocked clearing assignment from acknowledgement @ack for entity @id.', [
+            '@ack' => $ack,
+            '@id' => (string) $entity->id(),
+          ]);
+          throw new \InvalidArgumentException('Cannot clear assignment for current acknowledgement state.');
+        }
+      }
       $entity->set('acknowledgement_state', OperationalIncidentWorkflowNormalizer::ACK_UNASSIGNED);
     }
     else {
       $entity->set('assigned_uid', $uid);
       if ((string) $entity->get('acknowledgement_state')->value === OperationalIncidentWorkflowNormalizer::ACK_UNASSIGNED) {
+        if (!$this->workflowNormalizer->isAllowedAcknowledgementTransition(
+          OperationalIncidentWorkflowNormalizer::ACK_UNASSIGNED,
+          OperationalIncidentWorkflowNormalizer::ACK_ASSIGNED,
+        )) {
+          throw new \InvalidArgumentException('Disallowed acknowledgement promotion.');
+        }
         $entity->set('acknowledgement_state', OperationalIncidentWorkflowNormalizer::ACK_ASSIGNED);
       }
     }
@@ -176,7 +245,7 @@ final class OperationalIncidentLifecycleManager {
   /**
    * @param array<string, mixed>|string|null $input
    */
-  private function normalizeDiagnosticInput(mixed $input): ?string {
+  private function normalizeSnapshotInput(mixed $input): ?string {
     if ($input === NULL || $input === '') {
       return NULL;
     }
@@ -196,6 +265,28 @@ final class OperationalIncidentLifecycleManager {
   }
 
   /**
+   * @param array<string, mixed>|string|null $input
+   */
+  private function normalizeWorkflowMetadataInput(mixed $input): ?string {
+    if ($input === NULL || $input === '') {
+      return NULL;
+    }
+    if (is_string($input)) {
+      $decoded = json_decode($input, TRUE);
+      if (!is_array($decoded)) {
+        return json_encode(new \stdClass(), JSON_THROW_ON_ERROR);
+      }
+      /** @var array<string, mixed> $decoded */
+      $input = $decoded;
+    }
+    if (!is_array($input)) {
+      return json_encode(new \stdClass(), JSON_THROW_ON_ERROR);
+    }
+    $clean = $this->stripSensitiveRecursive($input);
+    return json_encode($clean, JSON_THROW_ON_ERROR);
+  }
+
+  /**
    * @param list<string>|string|null $input
    */
   private function normalizeDescriptorsInput(mixed $input): ?string {
@@ -204,7 +295,13 @@ final class OperationalIncidentLifecycleManager {
     }
     if (is_string($input)) {
       $decoded = json_decode($input, TRUE);
-      $tokens = is_array($decoded) ? $decoded : preg_split('/\s*,\s*/', $input) ?: [];
+      if (is_array($decoded)) {
+        $tokens = $decoded;
+      }
+      else {
+        $split = preg_split('/\s*,\s*/', $input);
+        $tokens = is_array($split) ? $split : [];
+      }
     }
     else {
       $tokens = $input;

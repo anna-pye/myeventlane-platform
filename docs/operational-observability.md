@@ -75,7 +75,7 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 - Embedding UI strings, translated labels, or marketing copy inside diagnostics payloads
 - Exposing purchaser email, entitlement secrets, raw HMAC material, or full QR payload strings through diagnostics APIs
 - Adding **vendor or customer** routes that surface `OperationalIntegrityInspector` payloads without the same staff-only gating used elsewhere
-- **Workspace exception:** the read-only staff shell documented in [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) (`/admin/mel/operations`) consumes inspector output exclusively through `OperationalWorkspaceBuilder` and the Phase 3A incident / recovery builders, which strip machine-only fields before theming. Callers must still treat direct inspector invocation as privileged.
+- **Workspace exception:** the staff shell documented in [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) (`/admin/mel/operations`) consumes inspector output exclusively through `OperationalWorkspaceBuilder` and the Phase 3A incident / recovery builders, which strip machine-only fields before theming. **Commit 3** adds stored coordination rows (`mel_operational_incident`) via `OperationalIncidentProjectionBuilder` / `OperationalIncidentLifecycleManager` — still **not** a second diagnostics stack; coordination is orthogonal to inspector read models. See [operational-incident-lifecycle-convergence.md](./operational-incident-lifecycle-convergence.md). Callers must still treat direct inspector invocation as privileged.
 
 ## Venue operations workspace (Phase 3A)
 

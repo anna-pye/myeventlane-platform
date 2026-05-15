@@ -90,6 +90,35 @@ final class OperationalIncidentWorkflowNormalizer {
     return in_array($t, $this->allowedAcknowledgementStates(), TRUE) ? $t : self::ACK_UNASSIGNED;
   }
 
+  public function isAllowedAcknowledgementTransition(string $from, string $to): bool {
+    $from = $this->normalizeAcknowledgementState($from);
+    $to = $this->normalizeAcknowledgementState($to);
+    if ($from === $to) {
+      return TRUE;
+    }
+    $map = [
+      self::ACK_UNASSIGNED => [
+        self::ACK_ASSIGNED,
+      ],
+      self::ACK_ASSIGNED => [
+        self::ACK_ACCEPTED,
+        self::ACK_HANDED_OFF,
+        self::ACK_UNASSIGNED,
+      ],
+      self::ACK_ACCEPTED => [
+        self::ACK_HANDED_OFF,
+        self::ACK_ASSIGNED,
+        self::ACK_UNASSIGNED,
+      ],
+      self::ACK_HANDED_OFF => [
+        self::ACK_ASSIGNED,
+        self::ACK_UNASSIGNED,
+        self::ACK_ACCEPTED,
+      ],
+    ];
+    return in_array($to, $map[$from] ?? [], TRUE);
+  }
+
   public function isAllowedLifecycleTransition(string $from, string $to): bool {
     $from = $this->normalizeLifecycleState($from);
     $to = $this->normalizeLifecycleState($to);

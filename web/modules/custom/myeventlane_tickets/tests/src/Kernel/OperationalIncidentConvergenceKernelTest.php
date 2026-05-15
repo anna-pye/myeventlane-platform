@@ -114,6 +114,7 @@ final class OperationalIncidentConvergenceKernelTest extends KernelTestBase {
     $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('myeventlane_ticket');
     $this->installEntitySchema('mel_redemption_log');
+    $this->installEntitySchema('mel_operational_incident');
     $this->installConfig(['commerce_store', 'commerce_product', 'commerce_order', 'user']);
 
     NodeType::create([
@@ -226,6 +227,13 @@ final class OperationalIncidentConvergenceKernelTest extends KernelTestBase {
       $ticket->set('holder_email', 'sam@example.test');
       $ticket->save();
     }
+  }
+
+  public function testIncidentNormalizerCoordinationSeverityTokens(): void {
+    $n = new \Drupal\myeventlane_tickets\Service\OperationalIncidentNormalizer();
+    $this->assertSame('critical', $n->normalizeCoordinationSeverity('critical'));
+    $this->assertSame('moderate', $n->normalizeCoordinationSeverity('warn'));
+    $this->assertSame('low', $n->normalizeCoordinationSeverity('ok'));
   }
 
   public function testIncidentNormalizerSeverityTokens(): void {

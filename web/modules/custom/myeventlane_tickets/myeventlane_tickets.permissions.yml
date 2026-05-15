@@ -30,6 +30,11 @@ view mel venue operations workspace:
   description: 'Access the read-only staff venue operations workspace at /admin/mel/operations.'
   restrict access: true
 
+manage mel operational incidents:
+  title: 'Manage MyEventLane operational incidents'
+  description: 'Create and update operational coordination incidents (not ticket or scanner authority).'
+  restrict access: true
+
 
 
 

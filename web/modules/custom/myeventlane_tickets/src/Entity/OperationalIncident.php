@@ -68,10 +68,10 @@ final class OperationalIncident extends ContentEntityBase implements EntityChang
 
     $fields['severity'] = BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Severity'))
-      ->setDescription(new TranslatableMarkup('Normalized severity token (info, warning, critical).'))
+      ->setDescription(new TranslatableMarkup('Coordination severity token: low, moderate, elevated, severe, critical.'))
       ->setRequired(TRUE)
       ->setSetting('max_length', 32)
-      ->setDefaultValue('info');
+      ->setDefaultValue('low');
 
     $fields['lifecycle_state'] = BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Lifecycle state'))
@@ -108,9 +108,19 @@ final class OperationalIncident extends ContentEntityBase implements EntityChang
       ->setLabel(new TranslatableMarkup('Ticket entity id'))
       ->setRequired(FALSE);
 
-    $fields['diagnostic_snapshot'] = BaseFieldDefinition::create('string_long')
-      ->setLabel(new TranslatableMarkup('Diagnostic snapshot'))
-      ->setDescription(new TranslatableMarkup('JSON snapshot of machine-safe diagnostic tokens only.'))
+    $fields['operational_snapshot'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Operational snapshot'))
+      ->setDescription(new TranslatableMarkup('JSON snapshot of sanitized operational projections only (no QR, replay, or PII).'))
+      ->setRequired(FALSE);
+
+    $fields['suppression_reason'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Suppression reason'))
+      ->setDescription(new TranslatableMarkup('Required coordination rationale when lifecycle is suppressed; staff text without purchaser PII.'))
+      ->setRequired(FALSE);
+
+    $fields['workflow_metadata'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Workflow metadata'))
+      ->setDescription(new TranslatableMarkup('JSON object of machine-safe coordination metadata (scalar values preferred).'))
       ->setRequired(FALSE);
 
     $fields['operational_descriptors'] = BaseFieldDefinition::create('string_long')

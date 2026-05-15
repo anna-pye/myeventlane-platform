@@ -61,7 +61,7 @@ final class OperationalIncidentCreateForm extends FormBase {
     $form['severity'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Severity'),
-      '#default_value' => 'info',
+      '#default_value' => 'low',
       '#maxlength' => 32,
       '#required' => TRUE,
     ];
@@ -93,10 +93,16 @@ final class OperationalIncidentCreateForm extends FormBase {
       '#description' => $this->t('Comma or newline separated machine tokens.'),
     ];
 
-    $form['diagnostic_snapshot_json'] = [
+    $form['operational_snapshot_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Diagnostic snapshot JSON (optional)'),
+      '#title' => $this->t('Operational snapshot JSON (optional)'),
       '#description' => $this->t('Machine-safe JSON only; sensitive keys are stripped on save.'),
+    ];
+
+    $form['workflow_metadata_json'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Workflow metadata JSON (optional)'),
+      '#description' => $this->t('Flat JSON object of machine-safe coordination keys; sensitive keys are stripped on save.'),
     ];
 
     $form['actions'] = ['#type' => 'actions'];
@@ -121,10 +127,17 @@ final class OperationalIncidentCreateForm extends FormBase {
     $descriptors_raw = (string) $form_state->getValue('operational_descriptors');
     $tokens = preg_split('/[\s,]+/', trim($descriptors_raw)) ?: [];
 
-    $snapshot_raw = trim((string) $form_state->getValue('diagnostic_snapshot_json'));
+    $snapshot_raw = trim((string) $form_state->getValue('operational_snapshot_json'));
     $snapshot = $snapshot_raw === '' ? NULL : json_decode($snapshot_raw, TRUE);
     if (!is_array($snapshot) && $snapshot_raw !== '') {
-      $this->messenger()->addError($this->t('Diagnostic snapshot must be valid JSON when provided.'));
+      $this->messenger()->addError($this->t('Operational snapshot must be valid JSON when provided.'));
+      return;
+    }
+
+    $meta_raw = trim((string) $form_state->getValue('workflow_metadata_json'));
+    $metadata = $meta_raw === '' ? NULL : json_decode($meta_raw, TRUE);
+    if (!is_array($metadata) && $meta_raw !== '') {
+      $this->messenger()->addError($this->t('Workflow metadata must be valid JSON when provided.'));
       return;
     }
 
@@ -136,7 +149,8 @@ final class OperationalIncidentCreateForm extends FormBase {
       'order_id' => $form_state->getValue('order_id'),
       'ticket_id' => $form_state->getValue('ticket_id'),
       'operational_descriptors' => $tokens,
-      'diagnostic_snapshot' => is_array($snapshot) ? $snapshot : NULL,
+      'operational_snapshot' => is_array($snapshot) ? $snapshot : NULL,
+      'workflow_metadata' => is_array($metadata) ? $metadata : NULL,
     ], $this->currentUser());
 
     $this->messenger()->addStatus($this->t('Registered operational incident @id.', [

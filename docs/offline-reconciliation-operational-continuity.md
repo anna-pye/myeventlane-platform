@@ -68,9 +68,11 @@ Normalized scalar fields (machine-oriented):
 - Duplicating timing, session, zone, or scanner result-token semantics outside the canonical managers
 - Exposing `replay_token`, site HMAC material, or continuity fingerprints on customer surfaces
 
-## Staff incident workspace (read-only)
+## Staff incident workspace (read-only continuity)
 
 Phase 3A Commit 2 surfaces **continuity and replay-alignment diagnostics** to staff only through `OperationalIntegrityInspector` artifacts merged by `OperationalWorkspaceBuilder` / `OperationalIncidentBuilder`. Continuity **truth** remains on ticket metadata and scanner orchestration paths documented above; the workspace does not mint alternate continuity state, reconciliation mutations, or device-local repair actions. See [operational-incident-recovery-convergence.md](./operational-incident-recovery-convergence.md) and [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md).
+
+**Commit 3** adds `mel_operational_incident` coordination rows for acknowledgement, assignment, escalation, and suppression semantics only; they **do not** write continuity metadata or alter `OperationalContinuityPolicyManager` outputs. See [operational-incident-lifecycle-convergence.md](./operational-incident-lifecycle-convergence.md).
 
 ## Related documentation
 

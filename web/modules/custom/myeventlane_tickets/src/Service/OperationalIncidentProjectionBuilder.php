@@ -18,6 +18,7 @@ final class OperationalIncidentProjectionBuilder {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly OperationalIncidentWorkflowNormalizer $workflowNormalizer,
+    private readonly OperationalIncidentNormalizer $incidentNormalizer,
   ) {}
 
   /**
@@ -57,6 +58,7 @@ final class OperationalIncidentProjectionBuilder {
           ],
         ],
         'rows' => [],
+        'links' => $this->buildToolbarLinks($account),
       ];
     }
 
@@ -85,6 +87,26 @@ final class OperationalIncidentProjectionBuilder {
       'title' => 'Operational coordination incidents',
       'cards' => $cards,
       'rows' => $rows,
+      'links' => $this->buildToolbarLinks($account),
+    ];
+  }
+
+  /**
+   * @return list<array{title: string, href: string}>
+   */
+  private function buildToolbarLinks(AccountInterface $account): array {
+    if (!$account->hasPermission('manage mel operational incidents')) {
+      return [];
+    }
+    return [
+      [
+        'title' => 'Register coordination incident',
+        'href' => Url::fromRoute('myeventlane_tickets.operational_incident_add')->toString(),
+      ],
+      [
+        'title' => 'Coordination list',
+        'href' => Url::fromRoute('entity.mel_operational_incident.collection')->toString(),
+      ],
     ];
   }
 
@@ -95,6 +117,7 @@ final class OperationalIncidentProjectionBuilder {
     $lifecycle = $this->workflowNormalizer->normalizeLifecycleState((string) $entity->get('lifecycle_state')->value);
     $escalation = $this->workflowNormalizer->normalizeEscalationState((string) $entity->get('escalation_state')->value);
     $ack = $this->workflowNormalizer->normalizeAcknowledgementState((string) $entity->get('acknowledgement_state')->value);
+    $severity = $this->incidentNormalizer->normalizeCoordinationSeverity((string) $entity->get('severity')->value);
     $assigned = $entity->get('assigned_uid')->value;
     $assigned_uid = ($assigned === NULL || $assigned === '') ? NULL : (int) $assigned;
 
@@ -107,11 +130,15 @@ final class OperationalIncidentProjectionBuilder {
     }
 
     $descriptor_tokens = $this->decodeDescriptors((string) $entity->get('operational_descriptors')->value);
+    $suppressed = $this->workflowNormalizer->isSuppressedLifecycle($lifecycle);
+    $suppression_reason = trim((string) $entity->get('suppression_reason')->value);
+    $workflow_keys = $this->decodeWorkflowMetadataKeys((string) $entity->get('workflow_metadata')->value);
 
     return [
+      'entity_id' => (int) $entity->id(),
       'incident_correlation' => (string) $entity->get('incident_id')->value,
       'incident_type' => (string) $entity->get('incident_type')->value,
-      'severity' => (string) $entity->get('severity')->value,
+      'severity' => $severity,
       'lifecycle_state' => $lifecycle,
       'escalation_state' => $escalation,
       'acknowledgement_state' => $ack,
@@ -120,14 +147,17 @@ final class OperationalIncidentProjectionBuilder {
       'event_id' => $this->optionalIntField($entity, 'event_id'),
       'order_id' => $this->optionalIntField($entity, 'order_id'),
       'ticket_id' => $this->optionalIntField($entity, 'ticket_id'),
-      'suppressed' => $this->workflowNormalizer->isSuppressedLifecycle($lifecycle),
+      'suppressed' => $suppressed,
+      'suppression_visible' => $suppressed && $suppression_reason !== '',
+      'suppression_reason_excerpt' => $this->truncateTokenSafe($suppression_reason, 160),
+      'workflow_metadata_keys' => $workflow_keys,
       'resolved_at' => $entity->get('resolved_at')->value ? (int) $entity->get('resolved_at')->value : NULL,
       'changed' => (int) $entity->getChangedTime(),
       'badges' => [
         'lifecycle' => $lifecycle,
         'escalation' => $escalation,
         'acknowledgement' => $ack,
-        'severity' => (string) $entity->get('severity')->value,
+        'severity' => $severity,
       ],
       'descriptor_tokens' => $descriptor_tokens,
       'manage_url' => $manage_url,
@@ -161,6 +191,33 @@ final class OperationalIncidentProjectionBuilder {
       }
     }
     return $out;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function decodeWorkflowMetadataKeys(string $raw): array {
+    if ($raw === '') {
+      return [];
+    }
+    $decoded = json_decode($raw, TRUE);
+    if (!is_array($decoded)) {
+      return [];
+    }
+    $keys = array_keys($decoded);
+    sort($keys);
+    /** @var list<string> $keys */
+    return $keys;
+  }
+
+  private function truncateTokenSafe(string $value, int $max): string {
+    if ($value === '') {
+      return '';
+    }
+    if (strlen($value) <= $max) {
+      return $value;
+    }
+    return substr($value, 0, $max) . '…';
   }
 
 }

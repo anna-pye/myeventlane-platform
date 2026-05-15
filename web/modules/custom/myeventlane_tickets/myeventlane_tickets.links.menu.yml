@@ -12,3 +12,10 @@ myeventlane_tickets.venue_operations_workspace:
   route_name: myeventlane_tickets.venue_operations_workspace
   parent: myeventlane_core.config
   weight: 8
+
+myeventlane_tickets.operational_incidents:
+  title: 'Operational coordination incidents'
+  description: 'Staff coordination records for venue operations.'
+  route_name: entity.mel_operational_incident.collection
+  parent: myeventlane_tickets.venue_operations_workspace
+  weight: 0

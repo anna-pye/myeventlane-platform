@@ -444,3 +444,99 @@ function myeventlane_tickets_update_8008(): string {
 
   return 'Installed mel_redemption_log entity type.';
 }
+
+/**
+ * Converges mel_operational_incident coordination field storage.
+ */
+function myeventlane_tickets_update_8009(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $entity_type_manager->getDefinition('mel_operational_incident', FALSE);
+  if (!$entity_type) {
+    return 'mel_operational_incident is not defined; skipped.';
+  }
+
+  $definitions = \Drupal\myeventlane_tickets\Entity\OperationalIncident::baseFieldDefinitions($entity_type);
+  $messages = [];
+
+  if (!$update_manager->getFieldStorageDefinition('operational_snapshot', 'mel_operational_incident')) {
+    if (!isset($definitions['operational_snapshot'])) {
+      return 'operational_snapshot field definition missing from OperationalIncident.';
+    }
+    $update_manager->installFieldStorageDefinition(
+      'operational_snapshot',
+      'mel_operational_incident',
+      'myeventlane_tickets',
+      $definitions['operational_snapshot'],
+    );
+    $messages[] = 'Installed mel_operational_incident.operational_snapshot.';
+  }
+
+  if ($update_manager->getFieldStorageDefinition('diagnostic_snapshot', 'mel_operational_incident')) {
+    $storage = $entity_type_manager->getStorage('mel_operational_incident');
+    $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+    if ($ids) {
+      foreach ($ids as $id) {
+        $entity = $storage->load($id);
+        if ($entity instanceof \Drupal\myeventlane_tickets\Entity\OperationalIncident) {
+          if (!$entity->get('diagnostic_snapshot')->isEmpty()) {
+            $entity->set('operational_snapshot', $entity->get('diagnostic_snapshot')->value);
+            $entity->set('diagnostic_snapshot', NULL);
+            $entity->save();
+          }
+        }
+      }
+    }
+    $update_manager->uninstallFieldStorageDefinition('diagnostic_snapshot');
+    $messages[] = 'Migrated diagnostic_snapshot to operational_snapshot.';
+  }
+
+  foreach (['suppression_reason', 'workflow_metadata'] as $field_name) {
+    if ($update_manager->getFieldStorageDefinition($field_name, 'mel_operational_incident')) {
+      continue;
+    }
+    if (!isset($definitions[$field_name])) {
+      continue;
+    }
+    $update_manager->installFieldStorageDefinition(
+      $field_name,
+      'mel_operational_incident',
+      'myeventlane_tickets',
+      $definitions[$field_name],
+    );
+    $messages[] = sprintf('Installed mel_operational_incident.%s.', $field_name);
+  }
+
+  return $messages ? implode(' ', $messages) : 'mel_operational_incident coordination fields already present.';
+}
+
+/**
+ * Installs operational coordination incident entity storage.
+ */
+function myeventlane_tickets_update_8009(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager->clearCachedDefinitions();
+
+  $definition = $entity_type_manager->getDefinition('mel_operational_incident', FALSE);
+  if (!$definition) {
+    return 'mel_operational_incident entity type not found; rebuild caches and re-run updates.';
+  }
+
+  $base_table = $definition->getBaseTable();
+  if ($base_table && \Drupal::database()->schema()->tableExists($base_table)) {
+    return 'mel_operational_incident storage already exists.';
+  }
+
+  try {
+    $update_manager->installEntityType($definition);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_tickets')->error('Failed to install mel_operational_incident entity type: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    throw $e;
+  }
+
+  return 'Installed mel_operational_incident entity type.';
+}

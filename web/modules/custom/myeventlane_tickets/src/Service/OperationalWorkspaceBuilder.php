@@ -68,6 +68,7 @@ final class OperationalWorkspaceBuilder {
       'event_title' => $event?->getTitle(),
       'sampled_orders' => 0,
       'sampled_tickets' => 0,
+      'incident_lifecycle_filter' => $incident_lifecycle_filter,
     ];
 
     if ($event) {
@@ -118,6 +119,11 @@ final class OperationalWorkspaceBuilder {
       $incident_lifecycle_filter,
       $this->currentUser->getAccount(),
     );
+    foreach ($coordination['rows'] ?? [] as $row) {
+      if (!empty($row['entity_id'])) {
+        $cache_tags[] = 'mel_operational_incident:' . $row['entity_id'];
+      }
+    }
     array_splice($sections, 1, 0, [$coordination]);
 
     $sections = $this->stripSensitiveRecursive($sections);

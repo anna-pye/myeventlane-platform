@@ -7,8 +7,10 @@ namespace Drupal\myeventlane_tickets\Service;
 /**
  * Machine-stable incident typing and severity for staff operational workspace.
  *
- * Emits lowercase tokens only (info, warning, critical) suitable for Twig/CSS
- * hooks without embedding policy semantics in templates.
+ * Workspace sampled rows use {@see self::normalizeSeverity} (info, warning,
+ * critical). Stored coordination entities use
+ * {@see self::normalizeCoordinationSeverity} (low, moderate, elevated, severe,
+ * critical).
  */
 final class OperationalIncidentNormalizer {
 
@@ -23,6 +25,23 @@ final class OperationalIncidentNormalizer {
       return 'unknown';
     }
     return strlen($t) > 64 ? substr($t, 0, 64) : $t;
+  }
+
+  /**
+   * Coordination severity for `mel_operational_incident` rows only.
+   *
+   * @return 'low'|'moderate'|'elevated'|'severe'|'critical'
+   */
+  public function normalizeCoordinationSeverity(string $raw): string {
+    $s = strtolower(trim($raw));
+    return match ($s) {
+      'critical', 'crit', 'error', 'fatal' => 'critical',
+      'severe', 'sev' => 'severe',
+      'elevated', 'elevation', 'high' => 'elevated',
+      'moderate', 'mod', 'warning', 'warn', 'medium' => 'moderate',
+      'low', 'info', 'informational', 'notice', 'ok', 'success' => 'low',
+      default => 'low',
+    };
   }
 
   /**
