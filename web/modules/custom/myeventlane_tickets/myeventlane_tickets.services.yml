@@ -283,6 +283,39 @@ services:
     arguments:
       - '@myeventlane_tickets.operational_entitlement_capability_manager'
 
+  myeventlane_tickets.operational_coordination_state_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalCoordinationStateManager
+    arguments:
+      - '@myeventlane_tickets.operational_escalation_policy_manager'
+      - '@myeventlane_tickets.operational_resolution_governance_manager'
+      - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.operational_coordination_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalCoordinationProjectionBuilder
+    arguments:
+      - '@myeventlane_tickets.operational_coordination_state_manager'
+
+  myeventlane_tickets.operational_coordination_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\OperationalCoordinationAuditProjector
+    arguments:
+      - '@myeventlane_tickets.operational_coordination_state_manager'
+      - '@myeventlane_tickets.operational_resolution_governance_manager'
+
+  myeventlane_tickets.fulfillment_lifecycle_manager:
+    class: Drupal\myeventlane_tickets\Service\FulfillmentLifecycleManager
+    arguments:
+      - '@myeventlane_tickets.entitlement_capability_registry'
+
+  myeventlane_tickets.fulfillment_execution_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\FulfillmentExecutionProjectionBuilder
+    arguments:
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+
+  myeventlane_tickets.fulfillment_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\FulfillmentAuditProjector
+    arguments:
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+
   myeventlane_tickets.operational_workspace_builder:
     class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
     arguments:
@@ -297,6 +330,10 @@ services:
       - '@myeventlane_tickets.inventory_reservation_audit_projector'
       - '@myeventlane_tickets.operational_capability_projection_builder'
       - '@myeventlane_tickets.operational_capability_audit_projector'
+      - '@myeventlane_tickets.operational_coordination_projection_builder'
+      - '@myeventlane_tickets.operational_coordination_audit_projector'
+      - '@myeventlane_tickets.fulfillment_execution_projection_builder'
+      - '@myeventlane_tickets.fulfillment_audit_projector'
 
   myeventlane_tickets.operational_workspace_access:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker
