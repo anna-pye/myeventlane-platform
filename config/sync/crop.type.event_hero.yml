@@ -1,0 +1,12 @@
+uuid: 14cf33ec-dd08-4fec-a713-ef8586e2d88f
+langcode: en
+status: true
+dependencies: {  }
+id: event_hero
+label: 'Event hero (1200×630)'
+description: 'Fixed framing for event cover images in Event Studio branding (listings and social previews).'
+aspect_ratio: '1200:630'
+soft_limit_width: null
+soft_limit_height: null
+hard_limit_width: null
+hard_limit_height: null
