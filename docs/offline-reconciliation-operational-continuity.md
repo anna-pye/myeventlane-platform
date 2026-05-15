@@ -19,7 +19,7 @@ This phase adds a **single canonical operational continuity policy layer** for o
 
 ## Staff coordination visibility (downstream)
 
-Merged continuity and reconciliation **readiness machine strings** inside inspector rollups may feed **operational coordination projections** in the staff workspace for accounts with **`govern mel operational coordination`** — observability only; no continuity mutation and no reconciliation execution. See [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md).
+Merged continuity and reconciliation **readiness machine strings** inside inspector rollups may feed **operational coordination projections** in the staff workspace for accounts with **`govern mel operational coordination`** — observability only; no continuity mutation and no reconciliation execution. The same continuity timing/session composition refs may also be consumed by **fulfillment lifecycle visibility** (separate permission) as scanner-outcome summaries without duplicating scanner policy — see [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md). See [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md).
 
 ## Supported metadata
 

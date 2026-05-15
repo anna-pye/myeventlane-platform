@@ -18,6 +18,7 @@ This service is the **single read-only diagnostics layer** for:
 - recovery visibility (state marker, late-tickets-after-confirmation heuristic, mismatch flags)
 - compatibility signals (canonical vs legacy surfaces, mixed paths)
 - guest and purchaser continuity checks on stored entities (no live session required)
+- **fulfillment operational signals** (`fulfillment_operational_signals` — per-ticket staff-safe entitlement, fulfilment row, redemption counters, and admission check-in flags for fulfillment lifecycle read-models; no QR or replay material)
 
 It **observes** existing operational state only. It does not issue tickets, generate PDFs or wallet bytes, alter recovery state, enqueue work, or expose signing secrets.
 
@@ -41,6 +42,7 @@ Normalized `inspectOrder(OrderInterface $order)` returns:
 | `recovery` | `OrderPaidConfirmationPdfRecoverySubscriber` state key via `recoveryStateKey()`, optional message sink for sent confirmation timestamps, mismatch when recovery appears required but completion state missing |
 | `compatibility` | Order-item PDF legacy surface availability, wallet resolution surface (`WalletTicketResolver`), ticket PDF path from `UniversalTicketViewModelBuilder` probe |
 | `guest_continuity` | Purchaser UID alignment with order customer, guest checkout pattern checks (no PII in output) |
+| `fulfillment_operational_signals` | Per issued ticket id: normalized entitlement type, fulfilment row status, redemption count/limit, ticket status, admission checked-in flag (staff-safe fulfillment lifecycle inputs; no QR or replay payloads) |
 
 Status values are **machine strings** (for example `valid`, `invalid`, `missing`, `canonical`, `legacy`, `mixed`, `recovered`, `pending`, `skipped`, `orphaned`, `unknown`) suitable for logs and automated checks—not UI copy.
 

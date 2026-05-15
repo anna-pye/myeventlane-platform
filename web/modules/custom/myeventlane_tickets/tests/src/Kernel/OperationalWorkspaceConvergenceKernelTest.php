@@ -24,6 +24,8 @@ use Drupal\myeventlane_tickets\Service\OperationalEscalationAuditProjector;
 use Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector;
 use Drupal\myeventlane_tickets\Service\OperationalOwnershipProjectionBuilder;
 use Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder;
+use Drupal\myeventlane_tickets\Service\FulfillmentAuditProjector;
+use Drupal\myeventlane_tickets\Service\FulfillmentExecutionProjectionBuilder;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\Entity\Node;
@@ -302,6 +304,8 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
     $this->assertContains(OperationalOwnershipProjectionBuilder::class, $types);
     $this->assertContains(OperationalCoordinationProjectionBuilder::class, $types);
     $this->assertContains(OperationalCoordinationAuditProjector::class, $types);
+    $this->assertContains(FulfillmentExecutionProjectionBuilder::class, $types);
+    $this->assertContains(FulfillmentAuditProjector::class, $types);
   }
 
   public function testGovernanceSectionsIncludedForStaffWithEscalationPermission(): void {

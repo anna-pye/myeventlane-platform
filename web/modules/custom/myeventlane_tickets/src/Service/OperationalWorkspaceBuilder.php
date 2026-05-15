@@ -50,6 +50,8 @@ final class OperationalWorkspaceBuilder {
     private readonly OperationalOwnershipProjectionBuilder $operationalOwnershipProjectionBuilder,
     private readonly OperationalCoordinationProjectionBuilder $operationalCoordinationProjectionBuilder,
     private readonly OperationalCoordinationAuditProjector $operationalCoordinationAuditProjector,
+    private readonly FulfillmentExecutionProjectionBuilder $fulfillmentExecutionProjectionBuilder,
+    private readonly FulfillmentAuditProjector $fulfillmentAuditProjector,
   ) {}
 
   /**
@@ -69,6 +71,7 @@ final class OperationalWorkspaceBuilder {
     $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
     $ownership_projection_enabled = $this->currentUser->hasPermission('govern mel operational ownership');
     $coordination_projection_enabled = $this->currentUser->hasPermission('govern mel operational coordination');
+    $fulfillment_projection_enabled = $this->currentUser->hasPermission('govern mel fulfillment lifecycle');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -80,6 +83,7 @@ final class OperationalWorkspaceBuilder {
       'governance_projection_enabled' => $governance_enabled,
       'ownership_projection_enabled' => $ownership_projection_enabled,
       'coordination_projection_enabled' => $coordination_projection_enabled,
+      'fulfillment_projection_enabled' => $fulfillment_projection_enabled,
     ];
 
     if ($event) {
@@ -132,6 +136,23 @@ final class OperationalWorkspaceBuilder {
       );
       foreach ($coordination_audit as $audit_section) {
         $sections[] = $audit_section;
+      }
+    }
+
+    if ($fulfillment_projection_enabled) {
+      $fulfillment_sections = $this->fulfillmentExecutionProjectionBuilder->buildWorkspaceFulfillmentSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($fulfillment_sections as $fulfillment_section) {
+        $sections[] = $fulfillment_section;
+      }
+      $fulfillment_audit = $this->fulfillmentAuditProjector->buildWorkspaceFulfillmentAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($fulfillment_audit as $fulfillment_audit_section) {
+        $sections[] = $fulfillment_audit_section;
       }
     }
 
@@ -196,6 +217,9 @@ final class OperationalWorkspaceBuilder {
         'artifacts' => [],
         'recovery' => [],
         'guest_continuity' => [],
+        'fulfillment_signals' => [
+          'by_ticket_id' => [],
+        ],
       ];
     }
 
@@ -203,12 +227,35 @@ final class OperationalWorkspaceBuilder {
     $merged_recovery = $this->mergeRecoveryRollup($inspections);
     $merged_guest = $this->mergeGuestContinuityRollup($inspections);
     $merged_artifacts = $this->mergeArtifactDomains($inspections);
+    $merged_fulfillment = $this->mergeFulfillmentSignals($inspections);
 
     return [
       'issuance' => $merged_issuance,
       'artifacts' => $merged_artifacts,
       'recovery' => $merged_recovery,
       'guest_continuity' => $merged_guest,
+      'fulfillment_signals' => $merged_fulfillment,
+    ];
+  }
+
+  /**
+   * @param array<int|string, array<string, mixed>> $inspections
+   *
+   * @return array<string, mixed>
+   */
+  private function mergeFulfillmentSignals(array $inspections): array {
+    $by = [];
+    foreach ($inspections as $row) {
+      $sig = $row['fulfillment_operational_signals'] ?? [];
+      $chunk = is_array($sig['by_ticket_id'] ?? NULL) ? $sig['by_ticket_id'] : [];
+      foreach ($chunk as $tid => $slice) {
+        if (is_array($slice)) {
+          $by[(string) $tid] = $slice;
+        }
+      }
+    }
+    return [
+      'by_ticket_id' => $by,
     ];
   }
 

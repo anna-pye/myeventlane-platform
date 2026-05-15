@@ -22,6 +22,8 @@ This phase is **not** orchestration, automation, execution, dispatch, notificati
 | **Coordination audit** (`OperationalCoordinationAuditProjector`) | Append-only style timelines and history summaries without secrets. |
 | **Operational workspace authority** (`OperationalWorkspaceBuilder`) | Merges inspector rollups, strips sensitive keys, attaches coordination sections **only** when permitted. |
 
+**Fulfillment visibility (Phase 4A):** operational fulfillment lifecycle projections (`govern mel fulfillment lifecycle`) are a **separate permission** from coordination; they consume the same merged rollup plus fulfillment operational signals without mutating scanner or entitlement authority. See [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md).
+
 Coordination services **must not** be consulted by scanner, issuance, redemption, or continuity mutation paths.
 
 ## Canonical tokens
