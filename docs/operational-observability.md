@@ -18,6 +18,7 @@ This service is the **single read-only diagnostics layer** for:
 - recovery visibility (state marker, late-tickets-after-confirmation heuristic, mismatch flags)
 - compatibility signals (canonical vs legacy surfaces, mixed paths)
 - guest and purchaser continuity checks on stored entities (no live session required)
+- **fulfillment operational signals** (`fulfillment_operational_signals` — per-ticket staff-safe entitlement, fulfilment row, redemption counters, and admission check-in flags for fulfillment lifecycle read-models; no QR or replay material)
 
 It **observes** existing operational state only. It does not issue tickets, generate PDFs or wallet bytes, alter recovery state, enqueue work, or expose signing secrets.
 
@@ -41,6 +42,7 @@ Normalized `inspectOrder(OrderInterface $order)` returns:
 | `recovery` | `OrderPaidConfirmationPdfRecoverySubscriber` state key via `recoveryStateKey()`, optional message sink for sent confirmation timestamps, mismatch when recovery appears required but completion state missing |
 | `compatibility` | Order-item PDF legacy surface availability, wallet resolution surface (`WalletTicketResolver`), ticket PDF path from `UniversalTicketViewModelBuilder` probe |
 | `guest_continuity` | Purchaser UID alignment with order customer, guest checkout pattern checks (no PII in output) |
+| `fulfillment_operational_signals` | Per issued ticket id: normalized entitlement type, fulfilment row status, redemption count/limit, ticket status, admission checked-in flag (staff-safe fulfillment lifecycle inputs; no QR or replay payloads) |
 
 Status values are **machine strings** (for example `valid`, `invalid`, `missing`, `canonical`, `legacy`, `mixed`, `recovered`, `pending`, `skipped`, `orphaned`, `unknown`) suitable for logs and automated checks—not UI copy.
 
@@ -74,11 +76,27 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 - Treating compatibility adapters (`OrderItemPdfCompatibilityAdapter`, etc.) as operational authorities for entitlement truth
 - Embedding UI strings, translated labels, or marketing copy inside diagnostics payloads
 - Exposing purchaser email, entitlement secrets, raw HMAC material, or full QR payload strings through diagnostics APIs
-- Adding public routes, controllers, or admin pages for this phase (callers must enforce access before invoking the service)
+- Adding **vendor or customer** routes that surface `OperationalIntegrityInspector` payloads without the same staff-only gating used elsewhere
+- **Workspace exception:** the read-only staff shell documented in [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) (`/admin/mel/operations`) consumes inspector output exclusively through `OperationalWorkspaceBuilder`, which strips machine-only fields before theming. Callers must still treat direct inspector invocation as privileged.
+
+## Venue operations workspace (Phase 3A)
+
+Staff operational convergence now has a **canonical read-only shell** (`VenueOperationsController` + `OperationalWorkspaceBuilder`) that merges inspector diagnostics for sampled orders tied to an optional event query parameter. See [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) for route, access, and visibility boundaries.
+
+## Escalation and resolution governance (Phase 3A, Commit 4)
+
+Staff may view **escalation governance**, **SLA acknowledgement projections**, **resolution lifecycle framing**, **suppression rule visibility**, and **audit-safe history summaries** in the same workspace when they hold **`govern mel operational escalations`**. Normalization and routing live in `OperationalEscalationPolicyManager` and `OperationalResolutionGovernanceManager`; card shapes are composed only through `OperationalEscalationAuditProjector`. This layer **does not** change inspector semantics, ticket entities, redemption logs, QR contracts, or continuity authority — see [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md).
+
+**Assignment and ownership governance (Phase 3A, Commit 5):** staff with **`govern mel operational ownership`** receive additional read-only sections for assignment posture, acknowledgement ownership, escalation owner descriptors, handoff continuity, responsibility summaries, and sorted ownership audit timelines (`OperationalAssignmentGovernanceManager`, `OperationalOwnershipProjectionBuilder`, `OperationalAssignmentAuditProjector`). This permission is **separate** from escalation governance; details: [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md).
+
+**Operational coordination convergence (Phase 3B, Commit 1):** staff with **`govern mel operational coordination`** receive additional read-only sections for canonical coordination state, operational posture, readiness/degradation summaries, recovery and reconciliation coordination visibility, venue confidence, incident saturation, and coordination audit timelines (`OperationalCoordinationStateManager`, `OperationalCoordinationProjectionBuilder`, `OperationalCoordinationAuditProjector`). This permission is **separate** from escalation and ownership governance; details: [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md).
 
 ## Related documentation
 
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md) — continuity / reconciliation metadata authority
+- [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md) — escalation, resolution, suppression governance projections
+- [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md) — assignment and ownership governance projections
+- [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md) — operational coordination state and posture convergence
 - [issuance-pipeline.md](./issuance-pipeline.md) — issuance order and attachment merge
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md) — venue gate policy, offline scaffolding, replay metadata
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — capability registry delegation

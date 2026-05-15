@@ -16,6 +16,7 @@ use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
+use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolver;
@@ -350,10 +351,11 @@ final class EventStudioAutosaveController {
       }
     }
 
-    $image_fids = $mel['field_event_image'] ?? [];
-    $image_fid = 0;
-    if (is_array($image_fids) && $image_fids !== []) {
-      $image_fid = (int) reset($image_fids);
+    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel);
+    $image_fid = $hero['fid'];
+    $image_alt = $hero['alt'];
+    if ($image_alt === '') {
+      $image_alt = trim((string) ($params['field_event_image_alt'] ?? ''));
     }
 
     $payload = [
@@ -362,7 +364,7 @@ final class EventStudioAutosaveController {
       'body' => $mel['body'] ?? $params['basics']['body'] ?? $params['body'] ?? '',
       'field_event_intro' => trim((string) ($mel['field_event_intro'] ?? $params['field_event_intro'] ?? '')),
       'field_event_image' => $image_fid,
-      'field_event_image_alt' => trim((string) ($mel['field_event_image_alt'] ?? $params['field_event_image_alt'] ?? '')),
+      'field_event_image_alt' => $image_alt,
       'field_contact_email' => trim((string) ($mel['field_contact_email'] ?? $params['field_contact_email'] ?? '')),
       'field_contact_phone' => trim((string) ($mel['field_contact_phone'] ?? $params['field_contact_phone'] ?? '')),
       'field_category' => $this->extractMultipleEntityIds($mel['field_category'] ?? $params['field_category'] ?? ''),

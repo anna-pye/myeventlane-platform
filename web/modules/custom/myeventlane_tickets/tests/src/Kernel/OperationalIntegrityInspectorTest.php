@@ -227,6 +227,8 @@ final class OperationalIntegrityInspectorTest extends KernelTestBase {
     $this->assertSame('valid', $diag['issuance']['quantity_alignment_status']);
     $this->assertSame(2, $diag['issuance']['expected_quantity']);
     $this->assertSame(2, $diag['issuance']['issued_ticket_count']);
+    $this->assertArrayHasKey('fulfillment_operational_signals', $diag);
+    $this->assertArrayHasKey('by_ticket_id', $diag['fulfillment_operational_signals']);
   }
 
   /**

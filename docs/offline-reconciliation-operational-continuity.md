@@ -17,6 +17,10 @@ This phase adds a **single canonical operational continuity policy layer** for o
 
 **Commerce + `myeventlane_ticket` entities remain authoritative.** Continuity is **policy and metadata only**: it must not become device-local truth, a second issuance path, or a bypass of persisted redemption state.
 
+## Staff coordination visibility (downstream)
+
+Merged continuity and reconciliation **readiness machine strings** inside inspector rollups may feed **operational coordination projections** in the staff workspace for accounts with **`govern mel operational coordination`** — observability only; no continuity mutation and no reconciliation execution. The same continuity timing/session composition refs may also be consumed by **fulfillment lifecycle visibility** (separate permission) as scanner-outcome summaries without duplicating scanner policy — see [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md). See [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md).
+
 ## Supported metadata
 
 Continuity material may appear under ticket `metadata_json` and/or optional JSON request bodies merged into the scanner operational context using:
@@ -68,11 +72,19 @@ Normalized scalar fields (machine-oriented):
 - Duplicating timing, session, zone, or scanner result-token semantics outside the canonical managers
 - Exposing `replay_token`, site HMAC material, or continuity fingerprints on customer surfaces
 
+## Operational escalation and resolution governance (Phase 3A, Commit 4)
+
+Escalation, resolution, and suppression **governance projections** for staff (SLA acknowledgement windows, severity→escalation routing, suppression rule visibility) are documented in [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md). Those projections **must not** become alternate continuity authority, must not mutate persisted continuity blobs, and must not execute reconciliation.
+
+**Assignment and ownership governance (Phase 3A, Commit 5)** adds read-only workspace projections for operational ownership, assignment posture, and handoff audit continuity documented in [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md). That layer **must not** mutate continuity blobs, scanner state, or reconciliation execution.
+
 ## Related documentation
 
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)
 - [device-gate-identity-convergence.md](./device-gate-identity-convergence.md)
 - [operational-observability.md](./operational-observability.md)
+- [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md)
+- [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)
 - [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md)

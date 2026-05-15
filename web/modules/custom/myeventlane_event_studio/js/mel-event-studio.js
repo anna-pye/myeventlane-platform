@@ -553,6 +553,20 @@
     return (el.value || '').trim();
   }
 
+  function melHeroAltValue(form) {
+    return (
+      val(form, 'mel[field_event_image_alt]') ||
+      val(form, 'mel[field_event_image][0][alt]') ||
+      ''
+    );
+  }
+
+  function melHeroAltFieldName(form) {
+    return form.querySelector('[name="mel[field_event_image][0][alt]"]')
+      ? 'mel[field_event_image][0][alt]'
+      : 'mel[field_event_image_alt]';
+  }
+
   /** Category: multi-select uses mel[field_category][]; autocomplete uses mel[field_category]. */
   function categoryFieldHasValue(form) {
     var multi = form.querySelector('select[name="mel[field_category][]"]');
@@ -2053,6 +2067,53 @@
     host.innerHTML = chips.join('');
   }
 
+  /**
+   * Finds the anchor for an uploaded image inside Drupal managed_file markup.
+   *
+   * @param {Element|null} root
+   * @return {HTMLAnchorElement|null}
+   */
+  function melFindManagedFileImageLink(root) {
+    if (!root || !root.querySelectorAll) {
+      return null;
+    }
+    var candidates = root.querySelectorAll('.form-managed-file a[href]');
+    var i;
+    for (i = 0; i < candidates.length; i++) {
+      var a = candidates[i];
+      var href = a.getAttribute('href') || '';
+      if (!href || href.indexOf('javascript:') === 0) {
+        continue;
+      }
+      if (
+        href.indexOf('/files/') !== -1 ||
+        href.indexOf('/system/files') !== -1 ||
+        href.indexOf('files/') !== -1 ||
+        /\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(href)
+      ) {
+        return a;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * True when managed_file has non-empty fids for mel[field_event_image].
+   *
+   * @param {HTMLFormElement} form
+   * @return {boolean}
+   */
+  function melHeroImageFidsPresent(form) {
+    var inp =
+      form.querySelector('input[name="mel[field_event_image][fids]"]') ||
+      form.querySelector('input[name="mel[field_event_image][0][fids]"]') ||
+      form.querySelector('input[name*="field_event_image"][name*="fids"]');
+    if (!inp) {
+      return false;
+    }
+    return String(inp.value || '').trim() !== '';
+  }
+
   function syncCoverPreview(form) {
     var wrap = document.getElementById('mel-cover-preview');
     var img = document.getElementById('mel-cover-preview-img');
@@ -2063,11 +2124,20 @@
 
     var mediaRoot = form.querySelector('.mel-identity-media');
     var link =
-      (mediaRoot && mediaRoot.querySelector('.form-managed-file a[href*="files/"]')) ||
-      form.querySelector('.form-managed-file a[href*="files/"]');
+      (mediaRoot && melFindManagedFileImageLink(mediaRoot)) || melFindManagedFileImageLink(form);
     if (link && link.href) {
       img.src = link.href;
       img.removeAttribute('hidden');
+      empty.setAttribute('hidden', 'hidden');
+      return;
+    }
+
+    // Fids or SSR preview: do not show the empty-state placeholder while a file
+    // is still attached, even if Gin/theme omitted a matching file link.
+    if (melHeroImageFidsPresent(form) || (img.getAttribute('src') || '').trim() !== '') {
+      if ((img.getAttribute('src') || '').trim() !== '') {
+        img.removeAttribute('hidden');
+      }
       empty.setAttribute('hidden', 'hidden');
       return;
     }
@@ -2085,12 +2155,17 @@
     }
     var mediaRoot = form.querySelector('.mel-identity-media');
     var link =
-      (mediaRoot && mediaRoot.querySelector('.form-managed-file a[href*="files/"]')) ||
-      form.querySelector('.form-managed-file a[href*="files/"]');
+      (mediaRoot && melFindManagedFileImageLink(mediaRoot)) || melFindManagedFileImageLink(form);
     if (link && link.href) {
       img.src = link.href;
-      img.alt = val(form, 'mel[field_event_image_alt]') || '';
+      img.alt = melHeroAltValue(form) || '';
       img.removeAttribute('hidden');
+      ph.setAttribute('hidden', 'hidden');
+    } else if (hasCoverFile(form)) {
+      if ((img.getAttribute('src') || '').trim() !== '') {
+        img.alt = melHeroAltValue(form) || '';
+        img.removeAttribute('hidden');
+      }
       ph.setAttribute('hidden', 'hidden');
     } else {
       img.removeAttribute('src');
@@ -2100,36 +2175,34 @@
   }
 
   function bindCoverFilePreview(form) {
-    var media = form.querySelector('.mel-identity-media');
-    if (!media) {
-      return;
-    }
-    once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
-      input.addEventListener('change', function () {
-        var f = input.files && input.files[0];
-        if (!f || !f.type || f.type.indexOf('image/') !== 0) {
-          return;
-        }
-        var r = new FileReader();
-        r.onload = function () {
-          var img = document.getElementById('mel-cover-preview-img');
-          var empty = document.getElementById('mel-cover-preview-empty');
-          var prevImg = document.getElementById('mel-preview-card-img');
-          var ph = document.getElementById('mel-preview-card-placeholder');
-          if (img && empty) {
-            img.src = r.result;
-            img.removeAttribute('hidden');
-            empty.setAttribute('hidden', 'hidden');
+    form.querySelectorAll('.mel-identity-media').forEach(function (media) {
+      once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
+        input.addEventListener('change', function () {
+          var f = input.files && input.files[0];
+          if (!f || !f.type || f.type.indexOf('image/') !== 0) {
+            return;
           }
-          if (prevImg && ph) {
-            prevImg.src = r.result;
-            prevImg.alt = val(form, 'mel[field_event_image_alt]') || '';
-            prevImg.removeAttribute('hidden');
-            ph.setAttribute('hidden', 'hidden');
-          }
-          scheduleApplyLivePreview(form, false);
-        };
-        r.readAsDataURL(f);
+          var r = new FileReader();
+          r.onload = function () {
+            var img = document.getElementById('mel-cover-preview-img');
+            var empty = document.getElementById('mel-cover-preview-empty');
+            var prevImg = document.getElementById('mel-preview-card-img');
+            var ph = document.getElementById('mel-preview-card-placeholder');
+            if (img && empty) {
+              img.src = r.result;
+              img.removeAttribute('hidden');
+              empty.setAttribute('hidden', 'hidden');
+            }
+            if (prevImg && ph) {
+              prevImg.src = r.result;
+              prevImg.alt = melHeroAltValue(form) || '';
+              prevImg.removeAttribute('hidden');
+              ph.setAttribute('hidden', 'hidden');
+            }
+            scheduleApplyLivePreview(form, false);
+          };
+          r.readAsDataURL(f);
+        });
       });
     });
   }
@@ -2648,9 +2721,13 @@
   }
 
   function hasCoverFile(form) {
+    var media = form.querySelector('.mel-identity-media');
     return !!(
-      form.querySelector('.mel-identity-media .form-managed-file a[href*="files/"]') ||
-      form.querySelector('input[name="mel[field_event_image][]"]')?.value
+      (media && melFindManagedFileImageLink(media)) ||
+      melFindManagedFileImageLink(form) ||
+      form.querySelector('input[name="mel[field_event_image][]"]')?.value ||
+      form.querySelector('input[name="mel[field_event_image][0][fids]"]')?.value ||
+      melHeroImageFidsPresent(form)
     );
   }
 
@@ -2850,8 +2927,8 @@
       }
     }
 
-    if (!val(form, 'mel[field_event_image_alt]') && hasCoverFile(form)) {
-      add('medium', Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'), 'mel[field_event_image_alt]');
+    if (!melHeroAltValue(form) && hasCoverFile(form)) {
+      add('medium', Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'), melHeroAltFieldName(form));
     }
 
     if (rows.length === 0) {

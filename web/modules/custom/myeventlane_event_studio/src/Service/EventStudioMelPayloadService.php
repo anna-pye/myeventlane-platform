@@ -22,6 +22,90 @@ final class EventStudioMelPayloadService {
   ) {}
 
   /**
+   * Normalizes hero fid + alt from `mel` or baseline fragments.
+   *
+   * Supports legacy `managed_file` values (`mel[field_event_image]` fid list),
+   * optional `mel[field_event_image_alt]`, and image / image_widget_crop widgets
+   * (`mel[field_event_image][0][fids]`, `…[0][alt]`).
+   *
+   * @param array<string, mixed> $fragment
+   *   Partial or full mel array containing `field_event_image` / `field_event_image_alt`.
+   *
+   * @return array{fid: int, alt: string}
+   */
+  public static function normalizeHeroFromMelFragment(array $fragment): array {
+    $alt = trim((string) ($fragment['field_event_image_alt'] ?? ''));
+    $raw = $fragment['field_event_image'] ?? NULL;
+    if (!is_array($raw)) {
+      return ['fid' => 0, 'alt' => $alt];
+    }
+
+    if (isset($raw[0]) && is_array($raw[0])) {
+      $delta = $raw[0];
+      $fid = self::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL);
+      if ($fid < 1 && isset($delta['target_id'])) {
+        $fid = max(0, (int) $delta['target_id']);
+      }
+      $delta_alt = trim((string) ($delta['alt'] ?? ''));
+      if ($delta_alt !== '') {
+        $alt = $delta_alt;
+      }
+      return ['fid' => $fid, 'alt' => $alt];
+    }
+
+    if (array_key_exists('fids', $raw)) {
+      return ['fid' => self::firstPositiveIntFromFidsValue($raw['fids']), 'alt' => $alt];
+    }
+
+    $fid = 0;
+    foreach ($raw as $value) {
+      if (is_array($value)) {
+        continue;
+      }
+      if (is_numeric($value)) {
+        $candidate = (int) $value;
+        if ($candidate > 0) {
+          $fid = $candidate;
+          break;
+        }
+      }
+    }
+
+    return ['fid' => $fid, 'alt' => $alt];
+  }
+
+  private static function firstPositiveIntFromFidsValue(mixed $fids): int {
+    if ($fids === NULL || $fids === '') {
+      return 0;
+    }
+    if (is_array($fids)) {
+      foreach ($fids as $value) {
+        $candidate = (int) $value;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+      return 0;
+    }
+    if (is_string($fids)) {
+      $parts = preg_split('/\s+/', trim($fids));
+      if (!is_array($parts)) {
+        return 0;
+      }
+      foreach ($parts as $part) {
+        if ($part === '') {
+          continue;
+        }
+        $candidate = (int) $part;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
    * @return array<string, mixed>
    */
   public function buildFromFormState(FormStateInterface $form_state, EntityTypeManagerInterface $entityTypeManager): array {
@@ -71,19 +155,15 @@ final class EventStudioMelPayloadService {
     $has_attendee_questions = $attendee_questions !== [];
     $collect_per_ticket = !empty($mel['collect_attendee_questions']) || $has_attendee_questions;
 
-    $image_fids = $mel['field_event_image'] ?? [];
-    $image_fid = 0;
-    if (is_array($image_fids) && $image_fids !== []) {
-      $image_fid = (int) reset($image_fids);
-    }
+    $hero = self::normalizeHeroFromMelFragment($mel);
 
     $payload = [
       'title' => $mel['title'] ?? '',
       'summary' => $mel['summary'] ?? '',
       'body' => $mel['body'] ?? '',
       'field_event_intro' => trim((string) ($mel['field_event_intro'] ?? '')),
-      'field_event_image' => $image_fid,
-      'field_event_image_alt' => trim((string) ($mel['field_event_image_alt'] ?? '')),
+      'field_event_image' => $hero['fid'],
+      'field_event_image_alt' => $hero['alt'],
       'field_contact_email' => trim((string) ($mel['field_contact_email'] ?? '')),
       'field_contact_phone' => trim((string) ($mel['field_contact_phone'] ?? '')),
       'field_category' => $this->extractMultipleEntityIds($mel['field_category'] ?? ''),
