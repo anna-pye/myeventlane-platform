@@ -8,9 +8,11 @@ dependencies:
     - field.field.node.event.field_event_intro
     - field.field.node.event.field_location
     - field.field.node.event.field_venue_name
+    - image.style.mel_event_hero_featured
     - node.type.event
   module:
     - address
+    - focal_point
     - image
     - node
     - text
@@ -44,7 +46,7 @@ content:
     label: hidden
     settings:
       image_link: ''
-      image_style: large
+      image_style: mel_event_hero_featured
       image_loading:
         attribute: eager
     third_party_settings: {  }

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldWidgetInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
@@ -837,6 +840,86 @@ final class EventStudioSaveService {
       }
     }
     return $keys;
+  }
+
+  /**
+   * Persists branding hero image via the studio_branding field widget.
+   *
+   * Uses widget extraction so crop_wrapper / focal point values reach the entity
+   * before save (image_widget_crop + focal_point entity hooks).
+   *
+   * @param array<string, mixed> $mel_subform
+   *   The `mel` form fragment containing `field_event_image`.
+   *
+   * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>}
+   */
+  public function saveBrandingHero(NodeInterface $node, array $mel_subform, FormStateInterface $form_state, bool $draft = FALSE): array {
+    if (!$node->hasField('field_event_image')) {
+      return ['node' => $node, 'errors' => []];
+    }
+
+    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    if (!$display instanceof EntityFormDisplay) {
+      $this->logger->error('Branding save: missing form display node.event.studio_branding for node @nid.', ['@nid' => (string) $node->id()]);
+      return ['node' => NULL, 'errors' => ['Hero image editor is not available.']];
+    }
+
+    $widget = $display->getRenderer('field_event_image');
+    if (!$widget instanceof FieldWidgetInterface) {
+      $this->logger->error('Branding save: missing field_event_image widget for node @nid.', ['@nid' => (string) $node->id()]);
+      return ['node' => NULL, 'errors' => ['Hero image widget is not configured.']];
+    }
+
+    if (!isset($mel_subform['field_event_image'])) {
+      return ['node' => NULL, 'errors' => ['Hero image field is missing from the form.']];
+    }
+
+    $items = $node->get('field_event_image');
+    $widget->extractFormValues($items, $mel_subform, $form_state);
+
+    $fid = 0;
+    $alt = '';
+    if (!$items->isEmpty()) {
+      $value = $items->first()?->getValue() ?? [];
+      $fid = (int) ($value['target_id'] ?? 0);
+      $alt = trim((string) ($value['alt'] ?? ''));
+    }
+
+    if ($fid < 1) {
+      $node->set('field_event_image', []);
+    }
+    else {
+      if ($alt === '' && !$draft) {
+        return ['node' => NULL, 'errors' => ['Alt text is required for the cover image.']];
+      }
+      $file = $this->entityTypeManager->getStorage('file')->load($fid);
+      if (!$file instanceof FileInterface) {
+        $this->logger->warning('Branding save: missing file @fid for event image on node @nid.', [
+          '@fid' => (string) $fid,
+          '@nid' => (string) $node->id(),
+        ]);
+        return ['node' => NULL, 'errors' => ['The uploaded image could not be loaded. Try uploading again.']];
+      }
+      if ($file->isTemporary()) {
+        $file->setPermanent();
+        $file->save();
+      }
+      $node->set('field_event_image', $items);
+    }
+
+    EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
+    try {
+      $node->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding hero save failed for node @nid: @m', [
+        '@nid' => (string) $node->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return ['node' => NULL, 'errors' => ['Could not save branding.']];
+    }
+
+    return ['node' => $node, 'errors' => []];
   }
 
   /**
