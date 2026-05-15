@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_tickets\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -42,6 +43,8 @@ final class OperationalWorkspaceBuilder {
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly OperationalIncidentBuilder $operationalIncidentBuilder,
     private readonly OperationalRecoverySummaryBuilder $operationalRecoverySummaryBuilder,
+    private readonly OperationalIncidentProjectionBuilder $operationalIncidentProjectionBuilder,
+    private readonly AccountProxyInterface $currentUser,
   ) {}
 
   /**
@@ -54,9 +57,9 @@ final class OperationalWorkspaceBuilder {
    *   cache_contexts: list<string>
    * }
    */
-  public function build(?NodeInterface $event): array {
+  public function build(?NodeInterface $event, ?string $incident_lifecycle_filter = NULL): array {
     $cache_tags = ['config:myeventlane_tickets.settings'];
-    $cache_contexts = ['user.permissions'];
+    $cache_contexts = ['user.permissions', 'user'];
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -109,6 +112,13 @@ final class OperationalWorkspaceBuilder {
       $this->buildScannerOperationsSection($merged),
       $entitlement_catalog,
     ];
+
+    $coordination = $this->operationalIncidentProjectionBuilder->buildWorkspaceSection(
+      $event,
+      $incident_lifecycle_filter,
+      $this->currentUser->getAccount(),
+    );
+    array_splice($sections, 1, 0, [$coordination]);
 
     $sections = $this->stripSensitiveRecursive($sections);
 

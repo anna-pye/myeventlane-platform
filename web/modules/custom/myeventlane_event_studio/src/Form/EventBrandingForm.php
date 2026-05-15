@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 
@@ -38,6 +39,8 @@ final class EventBrandingForm extends EventStudioBaseForm {
   }
 
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $placeholder_src = Html::escape(myeventlane_event_studio_hero_placeholder_url());
+
     $form['mel']['field_event_image'] = [
       '#type' => 'managed_file',
       '#title' => $this->t('Hero image'),
@@ -49,7 +52,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['field_event_image'] ?? [],
       '#attributes' => ['class' => ['mel-input-file']],
       '#description' => $this->t('Optional, but recommended. A clear image helps attendees recognise your event.'),
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . $this->t('Branding') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Shape how your event appears across MyEventLane and social sharing.') . '</p><p class="mel-es-field-group__reassurance">' . $this->t('You can change visuals later. Accessibility text helps everyone understand the image.') . '</p></header><div class="mel-es-field-group__body">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . $this->t('Branding') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Shape how your event appears across MyEventLane and social sharing.') . '</p><p class="mel-es-field-group__reassurance">' . $this->t('You can change visuals later. Accessibility text helps everyone understand the image.') . '</p></header><div class="mel-es-field-group__body"><div class="mel-identity-media mel-identity-media--compact"><div class="mel-cover-preview" id="mel-cover-preview" data-mel-cover-preview><img class="mel-cover-preview__img" id="mel-cover-preview-img" src="" alt="" width="1200" height="630" loading="lazy" hidden /><div class="mel-cover-preview__empty" id="mel-cover-preview-empty"><img class="mel-cover-preview__placeholder" src="' . $placeholder_src . '" width="800" height="450" loading="lazy" decoding="async" alt="" /><span class="mel-cover-preview__empty-icon" aria-hidden="true"></span><span class="mel-cover-preview__empty-text">' . $this->t('No cover image yet — upload a hero image so attendees recognise your event.') . '</span></div></div><div class="mel-identity-media__fields mel-builder-fields mel-builder-fields--stack">',
     ];
 
     $form['mel']['field_event_image_alt'] = [
@@ -58,7 +61,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['field_event_image_alt'] ?? '',
       '#description' => $this->t('Briefly describe the image for screen readers.'),
       '#attributes' => ['class' => ['mel-input']],
-      '#suffix' => '</div></section>',
+      '#suffix' => '</div></div></div></section>',
     ];
 
     $form['unavailable'] = [
