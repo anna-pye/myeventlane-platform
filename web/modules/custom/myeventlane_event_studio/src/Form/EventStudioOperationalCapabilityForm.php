@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -11,6 +12,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager;
+use Drupal\myeventlane_event_studio\Service\OperationalCapabilityPreviewBuilder;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioBuilder;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -26,6 +28,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class EventStudioOperationalCapabilityForm extends FormBase {
 
   public function __construct(
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly OperationalCapabilityStudioManager $capabilityStudioManager,
     private readonly OperationalCapabilityStudioBuilder $capabilityStudioBuilder,
     private readonly OperationalCapabilityPreviewBuilder $capabilityPreviewBuilder,
@@ -38,6 +41,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
 
   public static function create(ContainerInterface $container): static {
     return new static(
+      $container->get('entity_type.manager'),
       $container->get('myeventlane_event_studio.operational_capability_studio_manager'),
       $container->get('myeventlane_event_studio.operational_capability_studio_builder'),
       $container->get('myeventlane_event_studio.operational_capability_preview_builder'),
@@ -231,7 +235,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
           '#title' => $this->t('Find Commerce product'),
           '#target_type' => 'commerce_product',
           '#max_length' => 512,
-          '#default_value' => $product_id > 0 ? $this->entityTypeManager()->getStorage('commerce_product')->load($product_id) : NULL,
+          '#default_value' => $product_id > 0 ? $this->entityTypeManager->getStorage('commerce_product')->load($product_id) : NULL,
           '#attributes' => ['class' => ['mel-cap-commerce-autocomplete']],
         ];
         $form['capability_editors'][$type]['commerce_product_id'] = [
@@ -277,71 +281,6 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
           '#attributes' => ['data-cap-field' => 'commerce_linkage.customer_visibility'],
         ];
       }
-
-      $form['capability_editors'][$type] = [
-        '#type' => 'container',
-        '#attributes' => [
-          'class' => ['mel-operational-capability-editor'],
-          'data-capability-type' => $type,
-        ],
-        'title' => [
-          '#type' => 'html_tag',
-          '#tag' => 'h4',
-          '#value' => $label,
-          '#attributes' => ['class' => ['mel-operational-capability-editor__title']],
-        ],
-        'enabled' => [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Enable @label', ['@label' => $label]),
-          '#default_value' => !empty($row['enabled']),
-          '#attributes' => ['data-cap-field' => 'enabled'],
-        ],
-        'fulfillment_mode' => [
-          '#type' => 'select',
-          '#title' => $this->t('Fulfillment style'),
-          '#options' => $this->fulfillmentModeOptions(),
-          '#default_value' => (string) ($row['fulfillment_mode'] ?? 'none'),
-          '#attributes' => ['data-cap-field' => 'fulfillment_mode'],
-        ],
-        'reservation_mode' => [
-          '#type' => 'select',
-          '#title' => $this->t('Reservation style'),
-          '#options' => $this->reservationModeOptions(),
-          '#default_value' => (string) ($row['reservation_mode'] ?? 'digital_redemption'),
-          '#attributes' => ['data-cap-field' => 'reservation_mode'],
-        ],
-        'timed_entry' => [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Timed entry required'),
-          '#default_value' => !empty($row['timed_entry']),
-          '#attributes' => ['data-cap-field' => 'timed_entry'],
-        ],
-        'customer_visibility' => [
-          '#type' => 'select',
-          '#title' => $this->t('Guest visibility'),
-          '#options' => [
-            'after_purchase' => $this->t('After purchase'),
-            'visible' => $this->t('Visible on event page'),
-            'hidden' => $this->t('Hidden from guests'),
-          ],
-          '#default_value' => (string) ($row['customer_visibility'] ?? 'after_purchase'),
-          '#attributes' => ['data-cap-field' => 'customer_visibility'],
-        ],
-        'pickup_mode' => [
-          '#type' => 'select',
-          '#title' => $this->t('Pickup mode'),
-          '#options' => $this->pickupModeOptions(),
-          '#default_value' => (string) ($row['pickup_mode'] ?? 'none'),
-          '#attributes' => ['data-cap-field' => 'pickup_mode'],
-        ],
-        'continuity_mode' => [
-          '#type' => 'select',
-          '#title' => $this->t('Continuity mode'),
-          '#options' => $this->continuityModeOptions(),
-          '#default_value' => (string) ($row['continuity_mode'] ?? 'online'),
-          '#attributes' => ['data-cap-field' => 'continuity_mode'],
-        ],
-      ] + ($form['capability_editors'][$type] ?? []);
     }
 
     $form['actions'] = [
@@ -497,7 +436,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     if ($product_id < 1) {
       return [];
     }
-    $storage = $this->entityTypeManager()->getStorage('commerce_product_variation');
+    $storage = $this->entityTypeManager->getStorage('commerce_product_variation');
     $ids = $storage->getQuery()
       ->accessCheck(TRUE)
       ->condition('product_id', $product_id)
@@ -529,7 +468,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     if ($event_id < 1) {
       return NULL;
     }
-    $event = $this->entityTypeManager()->getStorage('node')->load($event_id);
+    $event = $this->entityTypeManager->getStorage('node')->load($event_id);
     return $event instanceof NodeInterface && $event->bundle() === 'event' ? $event : NULL;
   }
 

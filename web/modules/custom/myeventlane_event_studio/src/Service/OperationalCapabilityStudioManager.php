@@ -227,6 +227,7 @@ final class OperationalCapabilityStudioManager {
    * @return array<string, mixed>
    */
   public function projectOperationalReadiness(array $document): array {
+    $capabilities = is_array($document['capabilities'] ?? NULL) ? $document['capabilities'] : [];
     $enabled = 0;
     $configured = 0;
     $needs_review = 0;

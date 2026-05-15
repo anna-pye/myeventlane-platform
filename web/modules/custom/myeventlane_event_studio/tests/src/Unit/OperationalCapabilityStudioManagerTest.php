@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event_studio\Unit;
 
+use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager;
 use Drupal\myeventlane_tickets\Service\OperationalEntitlementCapabilityManager;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\Tests\UnitTestCase;
@@ -67,6 +68,27 @@ final class OperationalCapabilityStudioManagerTest extends UnitTestCase {
     );
     $this->assertSame(Ticket::ENTITLEMENT_TICKET, $semantics['entitlement_type']);
     $this->assertSame('none', $semantics['fulfillment_mode']);
+  }
+
+  /**
+   * @covers ::projectOperationalReadiness
+   */
+  public function testProjectOperationalReadinessUsesDocumentCapabilities(): void {
+    $manager = OperationalCapabilityStudioTestFactory::buildManager();
+    $type = OperationalEntitlementCapabilityManager::TYPE_MERCH_PICKUP;
+    $projection = $manager->projectOperationalReadiness([
+      'schema_version' => 2,
+      'capabilities' => [
+        $type => [
+          'enabled' => TRUE,
+          'readiness_state' => OperationalCapabilityStudioManager::READINESS_CONFIGURED,
+        ],
+      ],
+    ]);
+    $this->assertSame(1, $projection['enabled_count']);
+    $this->assertSame(1, $projection['configured_count']);
+    $this->assertSame(0, $projection['needs_review_count']);
+    $this->assertSame('configured', $projection['descriptor']);
   }
 
 }
