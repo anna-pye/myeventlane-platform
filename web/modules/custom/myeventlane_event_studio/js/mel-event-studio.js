@@ -2080,7 +2080,7 @@
         return a;
       }
     }
-    return candidates.length ? candidates[0] : null;
+    return null;
   }
 
   /**
