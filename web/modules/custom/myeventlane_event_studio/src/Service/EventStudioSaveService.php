@@ -1452,8 +1452,8 @@ final class EventStudioSaveService {
       return ['Operational capabilities data was invalid.'];
     }
     try {
-      $document = $this->operationalCapabilityStudioManager->normalizeMelFragment(['mel_operational_capabilities' => $raw]);
-      $errors = $this->operationalCapabilityStudioManager->validateDocument($document);
+      $document = $this->operationalCapabilityStudioManager->normalizeMelFragment(['mel_operational_capabilities' => $raw], $node);
+      $errors = $this->operationalCapabilityStudioManager->validateDocument($node, $document);
       if ($errors !== []) {
         return $errors;
       }

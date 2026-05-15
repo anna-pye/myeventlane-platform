@@ -152,6 +152,30 @@
   padding: 1rem;
 }
 
-.mel-operational-capability-editor.is-active {
-  border-color: var(--mel-accent-border, #c9b8e8);
+.mel-operational-commerce-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+}
+
+.mel-operational-capability-card__binding {
+  color: #5c5470;
+  font-size: 0.8rem;
+  margin: 0.35rem 0 0;
+}
+
+.mel-operational-capability-card__commerce-preview {
+  color: #4a4458;
+  font-size: 0.82rem;
+  font-style: italic;
+  margin: 0.35rem 0 0;
+}
+
+.mel-operational-capability-editor__commerce-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
 }

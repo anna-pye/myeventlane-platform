@@ -26,7 +26,7 @@ Persisted on the event node as JSON in `field_mel_op_capabilities`:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "capabilities": {
     "merch_pickup": {
       "capability_type": "merch_pickup",
@@ -41,13 +41,32 @@ Persisted on the event node as JSON in `field_mel_op_capabilities`:
       "pickup_mode": "counter",
       "readiness_state": "configured",
       "customer_visibility": "after_purchase",
-      "preview_summary": "Merch pickup · collect on site"
+      "preview_summary": "Merch pickup · collect on site",
+      "commerce_linkage": {
+        "product_id": 0,
+        "variation_ids": [],
+        "store_id": 0,
+        "linkage_mode": "none",
+        "fulfillment_reference": "",
+        "reservation_reference": "",
+        "readiness_projection": {
+          "descriptor": "unbound",
+          "commerce_link_ready": false,
+          "authoring_only": true
+        },
+        "customer_visibility": "inherit",
+        "operational_preview": "",
+        "capability_binding_state": "unbound",
+        "validation_message": ""
+      }
     }
   }
 }
 ```
 
-No inventory quantities, execution state, replay tokens, or scanner secrets.
+No inventory quantities, execution state, replay tokens, or scanner secrets. See
+[operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md) for the
+commerce linkage authoring contract.
 
 ## Authoring services
 
@@ -55,7 +74,8 @@ No inventory quantities, execution state, replay tokens, or scanner secrets.
 | --- | --- |
 | `myeventlane_event_studio.operational_capability_studio_manager` | Normalize, validate, persist, policy projection |
 | `myeventlane_event_studio.operational_capability_studio_builder` | Card render data for Twig |
-| `myeventlane_event_studio.operational_capability_preview_builder` | Customer-safe preview payloads |
+| `myeventlane_event_studio.operational_capability_commerce_link_manager` | Commerce product/variation linkage validation + normalization |
+| `myeventlane_event_studio.operational_capability_commerce_preview_builder` | Customer-safe linkage presentation for cards |
 
 ## Capability types
 
@@ -74,6 +94,7 @@ Fulfilment section autosave stores draft `mel` in private tempstore only. It doe
 
 ## Related docs
 
+- [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)

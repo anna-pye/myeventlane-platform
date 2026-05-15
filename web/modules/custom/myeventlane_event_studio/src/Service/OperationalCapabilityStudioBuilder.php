@@ -15,6 +15,7 @@ final class OperationalCapabilityStudioBuilder {
 
   public function __construct(
     private readonly OperationalCapabilityStudioManager $studioManager,
+    private readonly OperationalCapabilityCommercePreviewBuilder $commercePreviewBuilder,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -56,6 +57,7 @@ final class OperationalCapabilityStudioBuilder {
         $group_key = 'fulfilment';
       }
 
+      $commerce = $this->commercePreviewBuilder->buildCardLinkagePresentation($row);
       $groups[$group_key]['cards'][] = [
         'capability_type' => $type,
         'label' => (string) ($meta['label'] ?? $type),
@@ -64,9 +66,11 @@ final class OperationalCapabilityStudioBuilder {
         'fulfillment_badge' => $this->buildFulfillmentBadge($semantics),
         'reservation_badge' => $this->buildReservationBadge($semantics),
         'readiness_chip' => $this->buildReadinessChip((string) ($row['readiness_state'] ?? '')),
+        'commerce_chip' => $this->buildCommerceBindingChip($commerce),
         'timed_required' => !empty($row['timed_entry']),
         'customer_visibility' => (string) ($row['customer_visibility'] ?? 'after_purchase'),
         'preview_summary' => (string) ($row['preview_summary'] ?? ''),
+        'commerce' => $commerce,
         'form_defaults' => $row,
       ];
     }
@@ -109,6 +113,31 @@ final class OperationalCapabilityStudioBuilder {
       'label' => (string) $this->t('Reservation: @mode', ['@mode' => $mode !== '' ? $mode : 'n/a']),
       'tone' => 'neutral',
     ];
+  }
+
+  /**
+   * @param array<string, mixed> $commerce
+   */
+  private function buildCommerceBindingChip(array $commerce): array {
+    $binding = (string) ($commerce['binding_state'] ?? OperationalCapabilityCommerceLinkManager::BINDING_UNBOUND);
+    return match ($binding) {
+      OperationalCapabilityCommerceLinkManager::BINDING_BOUND => [
+        'label' => (string) $this->t('Commerce linked'),
+        'tone' => 'success',
+      ],
+      OperationalCapabilityCommerceLinkManager::BINDING_PARTIAL => [
+        'label' => (string) $this->t('Commerce partial'),
+        'tone' => 'warning',
+      ],
+      OperationalCapabilityCommerceLinkManager::BINDING_INVALID => [
+        'label' => (string) $this->t('Commerce invalid'),
+        'tone' => 'warning',
+      ],
+      default => [
+        'label' => (string) $this->t('Commerce not linked'),
+        'tone' => 'muted',
+      ],
+    };
   }
 
   private function buildReadinessChip(string $readiness_state): array {

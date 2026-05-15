@@ -31,6 +31,7 @@ final class OperationalCapabilityStudioManagerTest extends UnitTestCase {
     ]);
     $row = $doc['capabilities'][OperationalEntitlementCapabilityManager::TYPE_MERCH_PICKUP];
     $this->assertTrue($row['enabled']);
+    $this->assertArrayHasKey('commerce_linkage', $row);
     $this->assertArrayNotHasKey('replay_token', $row);
     $this->assertSame('collect', $row['fulfillment_mode']);
   }

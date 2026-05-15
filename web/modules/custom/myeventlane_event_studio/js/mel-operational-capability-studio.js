@@ -7,13 +7,13 @@
 
   function parseState(input) {
     if (!input || !input.value) {
-      return { schema_version: 1, capabilities: {} };
+      return { schema_version: 2, capabilities: {} };
     }
     try {
       return JSON.parse(input.value);
     }
     catch (e) {
-      return { schema_version: 1, capabilities: {} };
+      return { schema_version: 2, capabilities: {} };
     }
   }
 
@@ -29,6 +29,19 @@
       doc.capabilities[type] = { capability_type: type, enabled: false };
     }
     return doc.capabilities[type];
+  }
+
+  function setDeep(obj, path, value) {
+    const parts = path.split('.');
+    let cur = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const p = parts[i];
+      if (!cur[p] || typeof cur[p] !== 'object') {
+        cur[p] = {};
+      }
+      cur = cur[p];
+    }
+    cur[parts[parts.length - 1]] = value;
   }
 
   function bindEditor(root, input) {
@@ -48,13 +61,33 @@
           if (!key || key === 'enabled') {
             return;
           }
+          let val;
           if (field.type === 'checkbox') {
-            row[key] = field.checked;
+            val = field.checked;
           }
           else {
-            row[key] = field.value;
+            val = field.value;
+          }
+          if (key.indexOf('.') !== -1) {
+            setDeep(row, key, val);
+          }
+          else {
+            row[key] = val;
           }
         });
+        const varWrap = editor.querySelector('.mel-cap-commerce-variations');
+        if (varWrap) {
+          row.commerce_linkage = row.commerce_linkage || {};
+          row.commerce_linkage.variation_ids = [];
+          varWrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            if (cb.checked && cb.value) {
+              const id = parseInt(cb.value, 10);
+              if (!Number.isNaN(id) && id > 0) {
+                row.commerce_linkage.variation_ids.push(id);
+              }
+            }
+          });
+        }
         if (enabled) {
           row.enabled = enabled.checked;
           row.capability_type = type;
@@ -65,13 +98,31 @@
         field.addEventListener('change', sync);
         field.addEventListener('input', sync);
       });
+      const varWrap = editor.querySelector('.mel-cap-commerce-variations');
+      if (varWrap) {
+        varWrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+          cb.addEventListener('change', sync);
+        });
+      }
+    });
+
+    root.querySelectorAll('.mel-cap-commerce-autocomplete').forEach((ac) => {
+      ac.addEventListener('change', () => {
+        const m = ac.value.match(/\((\d+)\)\s*$/);
+        const editor = ac.closest('.mel-operational-capability-editor');
+        const num = editor && editor.querySelector('[data-cap-field="commerce_linkage.product_id"]');
+        if (m && num) {
+          num.value = m[1];
+          num.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
     });
 
     root.querySelectorAll('.js-mel-capability-configure').forEach((button) => {
       button.addEventListener('click', () => {
-        const type = button.getAttribute('data-capability-type');
+        const capType = button.getAttribute('data-capability-type');
         const panel = root.querySelector('.mel-operational-capability-editors');
-        const editor = root.querySelector('.mel-operational-capability-editor[data-capability-type="' + type + '"]');
+        const editor = root.querySelector('.mel-operational-capability-editor[data-capability-type="' + capType + '"]');
         if (panel) {
           panel.classList.add('is-open');
         }

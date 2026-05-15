@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
-use Drupal\myeventlane_event_studio\Service\OperationalCapabilityPreviewBuilder;
+use Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioBuilder;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -28,6 +29,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     private readonly OperationalCapabilityStudioManager $capabilityStudioManager,
     private readonly OperationalCapabilityStudioBuilder $capabilityStudioBuilder,
     private readonly OperationalCapabilityPreviewBuilder $capabilityPreviewBuilder,
+    private readonly OperationalCapabilityCommerceLinkManager $operationalCapabilityCommerceLinkManager,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly AccountProxyInterface $currentUser,
@@ -39,6 +41,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
       $container->get('myeventlane_event_studio.operational_capability_studio_manager'),
       $container->get('myeventlane_event_studio.operational_capability_studio_builder'),
       $container->get('myeventlane_event_studio.operational_capability_preview_builder'),
+      $container->get('myeventlane_event_studio.operational_capability_commerce_link_manager'),
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('current_user'),
@@ -57,7 +60,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     $document = $this->capabilityStudioManager->extractFromEvent($event);
     $draft = $this->autosaveService->getDraft($event, 'fulfilment');
     if ($draft !== NULL && isset($draft['mel']['operational_capabilities']['items_state'])) {
-      $document = $this->capabilityStudioManager->normalizeMelFragment($draft['mel']);
+      $document = $this->capabilityStudioManager->normalizeMelFragment($draft['mel'], $event);
     }
 
     $cards = $this->capabilityStudioBuilder->buildWorkspaceCards($document);
@@ -200,6 +203,145 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
           '#attributes' => ['data-cap-field' => 'continuity_mode'],
         ],
       ];
+
+      if ($this->operationalCapabilityCommerceLinkManager->supportsCommerceLinkage($type)) {
+        $link = is_array($row['commerce_linkage'] ?? NULL) ? $row['commerce_linkage'] : [];
+        $product_id = (int) ($link['product_id'] ?? 0);
+        $variation_ids = [];
+        foreach ((array) ($link['variation_ids'] ?? []) as $vid) {
+          $vid = (int) $vid;
+          if ($vid > 0) {
+            $variation_ids[] = $vid;
+          }
+        }
+        $variation_ids = array_values(array_unique($variation_ids));
+        $link_mode = (string) ($link['linkage_mode'] ?? OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT);
+        $var_defaults = [];
+        foreach ($variation_ids as $vid) {
+          $var_defaults[(string) $vid] = (string) $vid;
+        }
+        $form['capability_editors'][$type]['commerce_heading'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Commerce linkage'),
+          '#attributes' => ['class' => ['mel-operational-capability-editor__commerce-title']],
+        ];
+        $form['capability_editors'][$type]['commerce_product'] = [
+          '#type' => 'entity_autocomplete',
+          '#title' => $this->t('Find Commerce product'),
+          '#target_type' => 'commerce_product',
+          '#max_length' => 512,
+          '#default_value' => $product_id > 0 ? $this->entityTypeManager()->getStorage('commerce_product')->load($product_id) : NULL,
+          '#attributes' => ['class' => ['mel-cap-commerce-autocomplete']],
+        ];
+        $form['capability_editors'][$type]['commerce_product_id'] = [
+          '#type' => 'number',
+          '#title' => $this->t('Commerce product ID'),
+          '#min' => 0,
+          '#default_value' => $product_id > 0 ? $product_id : NULL,
+          '#description' => $this->t('Required for autosave. The autocomplete fills this when you select a product.'),
+          '#attributes' => ['data-cap-field' => 'commerce_linkage.product_id'],
+        ];
+        $form['capability_editors'][$type]['commerce_linkage_mode'] = [
+          '#type' => 'select',
+          '#title' => $this->t('Variation linkage'),
+          '#options' => [
+            OperationalCapabilityCommerceLinkManager::LINKAGE_NONE => $this->t('None'),
+            OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT => $this->t('Whole product'),
+            OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS => $this->t('Specific variations'),
+          ],
+          '#default_value' => in_array($link_mode, [
+            OperationalCapabilityCommerceLinkManager::LINKAGE_NONE,
+            OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+            OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS,
+          ], TRUE) ? $link_mode : OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+          '#attributes' => ['data-cap-field' => 'commerce_linkage.linkage_mode'],
+        ];
+        $form['capability_editors'][$type]['commerce_variations'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Allowed variations'),
+          '#options' => $this->buildVariationOptionsForProduct($product_id),
+          '#default_value' => $var_defaults,
+          '#attributes' => ['class' => ['mel-cap-commerce-variations']],
+        ];
+        $form['capability_editors'][$type]['commerce_link_visibility'] = [
+          '#type' => 'select',
+          '#title' => $this->t('Linkage visibility'),
+          '#options' => [
+            'inherit' => $this->t('Inherit from capability'),
+            'hidden' => $this->t('Hidden'),
+            'visible' => $this->t('Visible'),
+            'after_purchase' => $this->t('After purchase'),
+          ],
+          '#default_value' => (string) ($link['customer_visibility'] ?? 'inherit'),
+          '#attributes' => ['data-cap-field' => 'commerce_linkage.customer_visibility'],
+        ];
+      }
+
+      $form['capability_editors'][$type] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-operational-capability-editor'],
+          'data-capability-type' => $type,
+        ],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $label,
+          '#attributes' => ['class' => ['mel-operational-capability-editor__title']],
+        ],
+        'enabled' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Enable @label', ['@label' => $label]),
+          '#default_value' => !empty($row['enabled']),
+          '#attributes' => ['data-cap-field' => 'enabled'],
+        ],
+        'fulfillment_mode' => [
+          '#type' => 'select',
+          '#title' => $this->t('Fulfillment style'),
+          '#options' => $this->fulfillmentModeOptions(),
+          '#default_value' => (string) ($row['fulfillment_mode'] ?? 'none'),
+          '#attributes' => ['data-cap-field' => 'fulfillment_mode'],
+        ],
+        'reservation_mode' => [
+          '#type' => 'select',
+          '#title' => $this->t('Reservation style'),
+          '#options' => $this->reservationModeOptions(),
+          '#default_value' => (string) ($row['reservation_mode'] ?? 'digital_redemption'),
+          '#attributes' => ['data-cap-field' => 'reservation_mode'],
+        ],
+        'timed_entry' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Timed entry required'),
+          '#default_value' => !empty($row['timed_entry']),
+          '#attributes' => ['data-cap-field' => 'timed_entry'],
+        ],
+        'customer_visibility' => [
+          '#type' => 'select',
+          '#title' => $this->t('Guest visibility'),
+          '#options' => [
+            'after_purchase' => $this->t('After purchase'),
+            'visible' => $this->t('Visible on event page'),
+            'hidden' => $this->t('Hidden from guests'),
+          ],
+          '#default_value' => (string) ($row['customer_visibility'] ?? 'after_purchase'),
+          '#attributes' => ['data-cap-field' => 'customer_visibility'],
+        ],
+        'pickup_mode' => [
+          '#type' => 'select',
+          '#title' => $this->t('Pickup mode'),
+          '#options' => $this->pickupModeOptions(),
+          '#default_value' => (string) ($row['pickup_mode'] ?? 'none'),
+          '#attributes' => ['data-cap-field' => 'pickup_mode'],
+        ],
+        'continuity_mode' => [
+          '#type' => 'select',
+          '#title' => $this->t('Continuity mode'),
+          '#options' => $this->continuityModeOptions(),
+          '#default_value' => (string) ($row['continuity_mode'] ?? 'online'),
+          '#attributes' => ['data-cap-field' => 'continuity_mode'],
+        ],
+      ] + ($form['capability_editors'][$type] ?? []);
     }
 
     $form['actions'] = [
@@ -228,8 +370,8 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
       return;
     }
 
-    $document = $this->decodeSubmittedDocument($form_state);
-    $errors = $this->capabilityStudioManager->validateDocument($document);
+    $document = $this->decodeSubmittedDocument($form_state, $event);
+    $errors = $this->capabilityStudioManager->validateDocument($event, $document);
     foreach ($errors as $error) {
       $form_state->setErrorByName('', $error);
     }
@@ -243,7 +385,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     }
 
     try {
-      $document = $this->decodeSubmittedDocument($form_state);
+      $document = $this->decodeSubmittedDocument($form_state, $event);
       $this->capabilityStudioManager->persistToEvent($event, $document);
       EventNodeRevisionSave::prepare($event, 'Event Studio operational capability authoring save.');
       $event->save();
@@ -264,7 +406,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
   /**
    * @return array<string, mixed>
    */
-  private function decodeSubmittedDocument(FormStateInterface $form_state): array {
+  private function decodeSubmittedDocument(FormStateInterface $form_state, NodeInterface $event): array {
     $mel = $form_state->getValue('mel') ?? [];
     if (!is_array($mel)) {
       $mel = [];
@@ -284,13 +426,91 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
           'pickup_mode' => (string) ($row['pickup_mode'] ?? ''),
           'continuity_mode' => (string) ($row['continuity_mode'] ?? ''),
         ];
+        $draft_linkage = $this->extractCommerceLinkageDraftFromEditorRow($type, $row);
+        if ($draft_linkage !== []) {
+          $capabilities[$type]['commerce_linkage'] = $draft_linkage;
+        }
       }
       $mel['mel_operational_capabilities'] = [
         'schema_version' => OperationalCapabilityStudioManager::SCHEMA_VERSION,
         'capabilities' => $capabilities,
       ];
     }
-    return $this->capabilityStudioManager->normalizeMelFragment($mel);
+    return $this->capabilityStudioManager->normalizeMelFragment($mel, $event);
+  }
+
+  /**
+   * @param array<string, mixed> $row
+   *
+   * @return array<string, mixed>
+   */
+  private function extractCommerceLinkageDraftFromEditorRow(string $type, array $row): array {
+    if (!$this->operationalCapabilityCommerceLinkManager->supportsCommerceLinkage($type)) {
+      return [];
+    }
+    $product_id = $this->extractCommerceProductIdFromFormRow($row);
+    $mode = (string) ($row['commerce_linkage_mode'] ?? OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT);
+    $variation_ids = [];
+    if (is_array($row['commerce_variations'] ?? NULL)) {
+      foreach ($row['commerce_variations'] as $vid => $on) {
+        if (!empty($on) && (int) $vid > 0) {
+          $variation_ids[] = (int) $vid;
+        }
+      }
+    }
+    $variation_ids = array_values(array_unique($variation_ids));
+    return [
+      'product_id' => $product_id,
+      'linkage_mode' => in_array($mode, [
+        OperationalCapabilityCommerceLinkManager::LINKAGE_NONE,
+        OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+        OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS,
+      ], TRUE) ? $mode : OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+      'variation_ids' => $variation_ids,
+      'customer_visibility' => (string) ($row['commerce_link_visibility'] ?? 'inherit'),
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $row
+   */
+  private function extractCommerceProductIdFromFormRow(array $row): int {
+    $n = (int) ($row['commerce_product_id'] ?? 0);
+    if ($n > 0) {
+      return $n;
+    }
+    $ac = $row['commerce_product'] ?? '';
+    if (is_array($ac) && isset($ac['target_id'])) {
+      return (int) $ac['target_id'];
+    }
+    if (is_string($ac) && $ac !== '') {
+      $eid = EntityAutocomplete::extractEntityIdFromAutocompleteInput($ac);
+      return $eid !== NULL ? (int) $eid : 0;
+    }
+    return 0;
+  }
+
+  /**
+   * @return array<string, string>
+   */
+  private function buildVariationOptionsForProduct(int $product_id): array {
+    if ($product_id < 1) {
+      return [];
+    }
+    $storage = $this->entityTypeManager()->getStorage('commerce_product_variation');
+    $ids = $storage->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('product_id', $product_id)
+      ->sort('id')
+      ->execute();
+    if ($ids === []) {
+      return [];
+    }
+    $options = [];
+    foreach ($storage->loadMultiple($ids) as $variation) {
+      $options[(string) $variation->id()] = $variation->label();
+    }
+    return $options;
   }
 
   private function getRouteEvent(?NodeInterface $node = NULL): NodeInterface {

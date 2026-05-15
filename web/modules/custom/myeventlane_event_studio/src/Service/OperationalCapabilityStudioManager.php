@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
-use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry;
 use Drupal\myeventlane_tickets\Service\FulfillmentLifecycleManager;
 use Drupal\myeventlane_tickets\Service\InventoryReservationGovernanceManager;
@@ -21,7 +20,7 @@ use Psr\Log\LoggerInterface;
  */
 final class OperationalCapabilityStudioManager {
 
-  public const SCHEMA_VERSION = 1;
+  public const SCHEMA_VERSION = 2;
 
   public const READINESS_NOT_CONFIGURED = 'not_configured';
 
@@ -50,21 +49,6 @@ final class OperationalCapabilityStudioManager {
     'warehouse_slot',
   ];
 
-  /**
-   * @var array<string, string>
-   */
-  private const CAPABILITY_ENTITLEMENT_MAP = [
-    OperationalEntitlementCapabilityManager::TYPE_ADMISSION => Ticket::ENTITLEMENT_TICKET,
-    OperationalEntitlementCapabilityManager::TYPE_MERCH_PICKUP => Ticket::ENTITLEMENT_MERCH,
-    OperationalEntitlementCapabilityManager::TYPE_HOSPITALITY_ACCESS => Ticket::ENTITLEMENT_ADDON,
-    OperationalEntitlementCapabilityManager::TYPE_FOOD_DRINK_REDEMPTION => Ticket::ENTITLEMENT_DRINK,
-    OperationalEntitlementCapabilityManager::TYPE_PARKING_ACCESS => Ticket::ENTITLEMENT_PARKING,
-    OperationalEntitlementCapabilityManager::TYPE_VIP_ACCESS => Ticket::ENTITLEMENT_VIP,
-    OperationalEntitlementCapabilityManager::TYPE_CLOAKROOM_RETRIEVAL => Ticket::ENTITLEMENT_ADDON,
-    OperationalEntitlementCapabilityManager::TYPE_TIMED_COLLECTION => Ticket::ENTITLEMENT_MERCH,
-    OperationalEntitlementCapabilityManager::TYPE_DIGITAL_REDEMPTION => Ticket::ENTITLEMENT_ADDON,
-  ];
-
   public function __construct(
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
@@ -72,6 +56,7 @@ final class OperationalCapabilityStudioManager {
     private readonly FulfillmentLifecycleManager $fulfillmentLifecycleManager,
     private readonly InventoryReservationGovernanceManager $inventoryReservationGovernanceManager,
     private readonly LoggerInterface $logger,
+    private readonly ?OperationalCapabilityCommerceLinkManager $operationalCapabilityCommerceLinkManager = NULL,
   ) {}
 
   /**
@@ -166,32 +151,30 @@ final class OperationalCapabilityStudioManager {
     if (!is_array($decoded)) {
       return $this->emptyDocument();
     }
-    return $this->normalizeDocument($decoded);
+    return $this->normalizeDocument($decoded, $event);
   }
 
   /**
    * Normalizes a `mel` fragment or raw document into mel_operational_capabilities.
    *
    * @param array<string, mixed> $raw
-   *
-   * @return array<string, mixed>
    */
-  public function normalizeMelFragment(array $raw): array {
+  public function normalizeMelFragment(array $raw, ?NodeInterface $event = NULL): array {
     if (isset($raw['mel_operational_capabilities']) && is_array($raw['mel_operational_capabilities'])) {
-      return $this->normalizeDocument($raw['mel_operational_capabilities']);
+      return $this->normalizeDocument($raw['mel_operational_capabilities'], $event);
     }
     if (isset($raw['operational_capabilities']) && is_array($raw['operational_capabilities'])) {
       $inner = $raw['operational_capabilities'];
       if (isset($inner['items_state']) && is_string($inner['items_state'])) {
-        return $this->normalizeItemsStateJson($inner['items_state']);
+        return $this->normalizeItemsStateJson($inner['items_state'], $event);
       }
-      return $this->normalizeDocument($inner);
+      return $this->normalizeDocument($inner, $event);
     }
     if (isset($raw['items_state']) && is_string($raw['items_state'])) {
-      return $this->normalizeItemsStateJson($raw['items_state']);
+      return $this->normalizeItemsStateJson($raw['items_state'], $event);
     }
     if (isset($raw['capabilities']) && is_array($raw['capabilities'])) {
-      return $this->normalizeDocument($raw);
+      return $this->normalizeDocument($raw, $event);
     }
     return $this->emptyDocument();
   }
@@ -199,7 +182,7 @@ final class OperationalCapabilityStudioManager {
   /**
    * @return list<string>
    */
-  public function validateDocument(array $document): array {
+  public function validateDocument(NodeInterface $event, array $document): array {
     $errors = [];
     $capabilities = $document['capabilities'] ?? [];
     if (!is_array($capabilities)) {
@@ -229,6 +212,12 @@ final class OperationalCapabilityStudioManager {
       }
     }
 
+    if ($this->operationalCapabilityCommerceLinkManager !== NULL) {
+      foreach ($this->operationalCapabilityCommerceLinkManager->validateAuthoringDocument($event, $document) as $e) {
+        $errors[] = $e;
+      }
+    }
+
     return $errors;
   }
 
@@ -238,7 +227,6 @@ final class OperationalCapabilityStudioManager {
    * @return array<string, mixed>
    */
   public function projectOperationalReadiness(array $document): array {
-    $capabilities = is_array($document['capabilities'] ?? NULL) ? $document['capabilities'] : [];
     $enabled = 0;
     $configured = 0;
     $needs_review = 0;
@@ -339,6 +327,11 @@ final class OperationalCapabilityStudioManager {
     if (!empty($row['timed_entry'])) {
       $parts[] = 'timed entry';
     }
+    $cl = is_array($row['commerce_linkage'] ?? NULL) ? $row['commerce_linkage'] : [];
+    $op = trim((string) ($cl['operational_preview'] ?? ''));
+    if ($op !== '') {
+      $parts[] = $op;
+    }
     return implode(' · ', array_filter($parts));
   }
 
@@ -352,8 +345,8 @@ final class OperationalCapabilityStudioManager {
       ]);
       return;
     }
-    $normalized = $this->normalizeDocument($document);
-    $errors = $this->validateDocument($normalized);
+    $normalized = $this->normalizeDocument($document, $event);
+    $errors = $this->validateDocument($event, $normalized);
     if ($errors !== []) {
       throw new \InvalidArgumentException(implode(' ', $errors));
     }
@@ -380,13 +373,13 @@ final class OperationalCapabilityStudioManager {
    *
    * @return array<string, mixed>
    */
-  public function normalizeDocument(array $document): array {
+  public function normalizeDocument(array $document, ?NodeInterface $event = NULL): array {
     $document = $this->stripUnsafeKeys($document);
     $capabilities_in = is_array($document['capabilities'] ?? NULL) ? $document['capabilities'] : [];
     $capabilities = [];
     foreach ($this->allAuthoringCapabilityTypes() as $type) {
       $incoming = is_array($capabilities_in[$type] ?? NULL) ? $capabilities_in[$type] : [];
-      $capabilities[$type] = $this->normalizeCapabilityRow($type, $incoming);
+      $capabilities[$type] = $this->normalizeCapabilityRow($type, $incoming, $event);
     }
     return [
       'schema_version' => self::SCHEMA_VERSION,
@@ -399,7 +392,7 @@ final class OperationalCapabilityStudioManager {
    *
    * @return array<string, mixed>
    */
-  private function normalizeCapabilityRow(string $capability_type, array $incoming): array {
+  private function normalizeCapabilityRow(string $capability_type, array $incoming, ?NodeInterface $event = NULL): array {
     $type = $this->operationalEntitlementCapabilityManager->normalizeCapabilityType($capability_type);
     $entitlement = $this->capabilityEntitlementType($type);
     $map = $this->entitlementCapabilityRegistry->getCapabilityMap($entitlement);
@@ -425,12 +418,6 @@ final class OperationalCapabilityStudioManager {
       $visibility = 'after_purchase';
     }
 
-    $preview = trim((string) ($incoming['preview_summary'] ?? ''));
-    if ($preview === '' && $enabled) {
-      $preview = $this->buildCustomerSafePreviewSummary($type, ['enabled' => TRUE] + $incoming);
-    }
-    $preview = $this->sanitizeCustomerText($preview);
-
     $row = [
       'capability_type' => $type,
       'enabled' => $enabled,
@@ -444,8 +431,16 @@ final class OperationalCapabilityStudioManager {
       'pickup_mode' => $this->normalizeRuleToken((string) ($incoming['pickup_mode'] ?? 'none'), $this->allowedPickupModes()),
       'readiness_state' => $readiness,
       'customer_visibility' => $visibility,
-      'preview_summary' => $preview,
+      'preview_summary' => '',
     ];
+
+    $row['commerce_linkage'] = $this->normalizeCommerceLinkageForRow($event, $type, $incoming, $enabled);
+
+    $preview = trim((string) ($incoming['preview_summary'] ?? ''));
+    if ($preview === '' && $enabled) {
+      $preview = $this->buildCustomerSafePreviewSummary($type, ['enabled' => TRUE] + $incoming + ['commerce_linkage' => $row['commerce_linkage']]);
+    }
+    $row['preview_summary'] = $this->sanitizeCustomerText($preview);
 
     if ($enabled && $readiness === self::READINESS_DRAFT) {
       $row['readiness_state'] = $this->inferReadinessFromRow($row);
@@ -461,6 +456,10 @@ final class OperationalCapabilityStudioManager {
     if (empty($row['enabled'])) {
       return self::READINESS_NOT_CONFIGURED;
     }
+    $link = is_array($row['commerce_linkage'] ?? NULL) ? $row['commerce_linkage'] : [];
+    if (($link['capability_binding_state'] ?? '') === OperationalCapabilityCommerceLinkManager::BINDING_INVALID) {
+      return self::READINESS_NEEDS_REVIEW;
+    }
     if ((string) ($row['customer_visibility'] ?? '') === 'hidden'
       && (string) ($row['fulfillment_mode'] ?? '') === 'none'
       && empty($row['timed_entry'])) {
@@ -473,10 +472,10 @@ final class OperationalCapabilityStudioManager {
    * @return array<string, mixed>
    */
   private function defaultCapabilityRow(string $capability_type, bool $enabled): array {
-    return $this->normalizeCapabilityRow($capability_type, ['enabled' => $enabled]);
+    return $this->normalizeCapabilityRow($capability_type, ['enabled' => $enabled], NULL);
   }
 
-  private function normalizeItemsStateJson(string $raw): array {
+  private function normalizeItemsStateJson(string $raw, ?NodeInterface $event = NULL): array {
     $trimmed = trim($raw);
     if ($trimmed === '') {
       return $this->emptyDocument();
@@ -490,12 +489,66 @@ final class OperationalCapabilityStudioManager {
     if (!is_array($decoded)) {
       return $this->emptyDocument();
     }
-    return $this->normalizeDocument($decoded);
+    return $this->normalizeDocument($decoded, $event);
+  }
+
+  private function normalizeCommerceLinkageForRow(?NodeInterface $event, string $type, array $incoming, bool $enabled): array {
+    if ($this->operationalCapabilityCommerceLinkManager !== NULL && $event !== NULL) {
+      return $this->operationalCapabilityCommerceLinkManager->normalizeCommerceLinkage(
+        $event,
+        $type,
+        is_array($incoming['commerce_linkage'] ?? NULL) ? $incoming['commerce_linkage'] : [],
+        $enabled,
+      );
+    }
+    return $this->mergeCommerceLinkageFallback(is_array($incoming['commerce_linkage'] ?? NULL) ? $incoming['commerce_linkage'] : []);
+  }
+
+  /**
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  private function mergeCommerceLinkageFallback(array $raw): array {
+    $t = OperationalCapabilityCommerceLinkManager::emptyLinkageTemplate();
+    foreach (self::FORBIDDEN_PAYLOAD_KEYS as $key) {
+      unset($raw[$key]);
+    }
+    $t['product_id'] = max(0, (int) ($raw['product_id'] ?? 0));
+    $t['variation_ids'] = [];
+    foreach ((array) ($raw['variation_ids'] ?? []) as $vid) {
+      $id = (int) $vid;
+      if ($id > 0) {
+        $t['variation_ids'][] = $id;
+      }
+    }
+    $t['variation_ids'] = array_values(array_unique($t['variation_ids']));
+    $t['store_id'] = max(0, (int) ($raw['store_id'] ?? 0));
+    $lm = strtolower(trim((string) ($raw['linkage_mode'] ?? '')));
+    $t['linkage_mode'] = in_array($lm, [OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT, OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS, OperationalCapabilityCommerceLinkManager::LINKAGE_NONE], TRUE)
+      ? $lm
+      : OperationalCapabilityCommerceLinkManager::LINKAGE_NONE;
+    $t['fulfillment_reference'] = trim((string) ($raw['fulfillment_reference'] ?? ''));
+    $t['reservation_reference'] = trim((string) ($raw['reservation_reference'] ?? ''));
+    $t['operational_preview'] = trim((string) ($raw['operational_preview'] ?? ''));
+    $cv = strtolower(trim((string) ($raw['customer_visibility'] ?? 'inherit')));
+    $t['customer_visibility'] = in_array($cv, ['inherit', 'hidden', 'visible', 'after_purchase'], TRUE) ? $cv : 'inherit';
+    $binding = strtolower(trim((string) ($raw['capability_binding_state'] ?? OperationalCapabilityCommerceLinkManager::BINDING_UNBOUND)));
+    $t['capability_binding_state'] = in_array($binding, [
+      OperationalCapabilityCommerceLinkManager::BINDING_UNBOUND,
+      OperationalCapabilityCommerceLinkManager::BINDING_PARTIAL,
+      OperationalCapabilityCommerceLinkManager::BINDING_BOUND,
+      OperationalCapabilityCommerceLinkManager::BINDING_INVALID,
+    ], TRUE) ? $binding : OperationalCapabilityCommerceLinkManager::BINDING_UNBOUND;
+    $t['readiness_projection'] = is_array($raw['readiness_projection'] ?? NULL)
+      ? $raw['readiness_projection']
+      : OperationalCapabilityCommerceLinkManager::emptyLinkageTemplate()['readiness_projection'];
+    $t['validation_message'] = trim((string) ($raw['validation_message'] ?? ''));
+    return $t;
   }
 
   private function capabilityEntitlementType(string $capability_type): string {
-    $type = $this->operationalEntitlementCapabilityManager->normalizeCapabilityType($capability_type);
-    return self::CAPABILITY_ENTITLEMENT_MAP[$type] ?? Ticket::ENTITLEMENT_TICKET;
+    return $this->operationalEntitlementCapabilityManager->mapCanonicalCapabilityTypeToEntitlement($capability_type);
   }
 
   /**
@@ -585,9 +638,15 @@ final class OperationalCapabilityStudioManager {
     }
     if (isset($data['capabilities']) && is_array($data['capabilities'])) {
       foreach ($data['capabilities'] as $i => $row) {
-        if (is_array($row)) {
+        if (!is_array($row)) {
+          continue;
+        }
+        foreach (self::FORBIDDEN_PAYLOAD_KEYS as $key) {
+          unset($data['capabilities'][$i][$key]);
+        }
+        if (isset($row['commerce_linkage']) && is_array($row['commerce_linkage'])) {
           foreach (self::FORBIDDEN_PAYLOAD_KEYS as $key) {
-            unset($data['capabilities'][$i][$key]);
+            unset($data['capabilities'][$i]['commerce_linkage'][$key]);
           }
         }
       }

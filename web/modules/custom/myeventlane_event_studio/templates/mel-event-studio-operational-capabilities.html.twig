@@ -37,6 +37,11 @@
               </span>
             </header>
             <div class="mel-operational-capability-card__badges">
+              {% if card.commerce_chip is defined %}
+                <span class="mel-operational-chip mel-operational-chip--{{ card.commerce_chip.tone|default('muted') }}">
+                  {{ card.commerce_chip.label }}
+                </span>
+              {% endif %}
               <span class="mel-operational-badge mel-operational-badge--{{ card.fulfillment_badge.tone|default('muted') }}">
                 {{ card.fulfillment_badge.label }}
               </span>
@@ -47,6 +52,19 @@
                 {{ card.readiness_chip.label }}
               </span>
             </div>
+            {% if card.commerce.commerce_chips|default([])|length %}
+              <ul class="mel-operational-commerce-chips" aria-label="{{ 'Linked Commerce products'|t }}">
+                {% for chip in card.commerce.commerce_chips %}
+                  <li class="mel-operational-chip mel-operational-chip--{{ chip.tone|default('neutral') }}">{{ chip.label }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% if card.commerce.binding_label|default('') %}
+              <p class="mel-operational-capability-card__binding">{{ card.commerce.binding_label }}</p>
+            {% endif %}
+            {% if card.commerce.operational_preview|default('') %}
+              <p class="mel-operational-capability-card__commerce-preview">{{ card.commerce.operational_preview }}</p>
+            {% endif %}
             {% if card.preview_summary %}
               <p class="mel-operational-capability-card__summary">{{ card.preview_summary }}</p>
             {% endif %}

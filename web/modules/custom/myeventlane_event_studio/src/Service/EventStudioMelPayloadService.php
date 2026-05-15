@@ -122,23 +122,28 @@ final class EventStudioMelPayloadService {
       'attendee_questions' => $attendee_questions,
     ];
 
-    if ($this->operationalCapabilityStudioManager !== NULL
-      && (isset($mel['operational_capabilities']) || isset($mel['mel_operational_capabilities']))) {
-      $payload['mel_operational_capabilities'] = $this->operationalCapabilityStudioManager->normalizeMelFragment($mel);
-    }
-
+    $eventNode = NULL;
     $nid = (int) ($form_state->getValue('nid') ?? 0);
     if ($nid > 0) {
       $loaded = $entityTypeManager->getStorage('node')->load($nid);
       if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
-        // Ticket product autocomplete may be omitted from POST when hidden or unchanged; do not
-        // clear field_product_target on save when the node already has a linked product.
-        $pid = $payload['field_product_target'] ?? NULL;
-        if (($pid === NULL || $pid < 1)
-            && $loaded->hasField('field_product_target')
-            && !$loaded->get('field_product_target')->isEmpty()) {
-          $payload['field_product_target'] = (int) $loaded->get('field_product_target')->target_id;
-        }
+        $eventNode = $loaded;
+      }
+    }
+
+    if ($this->operationalCapabilityStudioManager !== NULL
+      && (isset($mel['operational_capabilities']) || isset($mel['mel_operational_capabilities']))) {
+      $payload['mel_operational_capabilities'] = $this->operationalCapabilityStudioManager->normalizeMelFragment($mel, $eventNode);
+    }
+
+    if ($eventNode instanceof NodeInterface) {
+      // Ticket product autocomplete may be omitted from POST when hidden or unchanged; do not
+      // clear field_product_target on save when the node already has a linked product.
+      $pid = $payload['field_product_target'] ?? NULL;
+      if (($pid === NULL || $pid < 1)
+          && $eventNode->hasField('field_product_target')
+          && !$eventNode->get('field_product_target')->isEmpty()) {
+        $payload['field_product_target'] = (int) $eventNode->get('field_product_target')->target_id;
       }
     }
 

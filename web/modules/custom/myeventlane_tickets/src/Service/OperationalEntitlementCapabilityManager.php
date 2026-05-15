@@ -267,6 +267,27 @@ final class OperationalEntitlementCapabilityManager {
   }
 
   /**
+   * Maps a canonical authoring capability type to a ticket entitlement key.
+   *
+   * Used by authoring layers (e.g. Event Studio) for policy projections only.
+   */
+  public function mapCanonicalCapabilityTypeToEntitlement(string $capability_type): string {
+    $type = $this->normalizeCapabilityType($capability_type);
+    return match ($type) {
+      self::TYPE_ADMISSION => Ticket::ENTITLEMENT_TICKET,
+      self::TYPE_MERCH_PICKUP => Ticket::ENTITLEMENT_MERCH,
+      self::TYPE_HOSPITALITY_ACCESS => Ticket::ENTITLEMENT_ADDON,
+      self::TYPE_FOOD_DRINK_REDEMPTION => Ticket::ENTITLEMENT_DRINK,
+      self::TYPE_PARKING_ACCESS => Ticket::ENTITLEMENT_PARKING,
+      self::TYPE_VIP_ACCESS => Ticket::ENTITLEMENT_VIP,
+      self::TYPE_CLOAKROOM_RETRIEVAL => Ticket::ENTITLEMENT_ADDON,
+      self::TYPE_TIMED_COLLECTION => Ticket::ENTITLEMENT_MERCH,
+      self::TYPE_DIGITAL_REDEMPTION => Ticket::ENTITLEMENT_ADDON,
+      default => Ticket::ENTITLEMENT_TICKET,
+    };
+  }
+
+  /**
    * Builds a read-only audit timeline from normalized capability events.
    *
    * @param list<array<string, mixed>> $events

@@ -74,6 +74,7 @@ Do not expose: `replay_token`, `qr_payload`, device fingerprints, raw scanner pa
 
 ## Related documentation
 
+- [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
 - [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)

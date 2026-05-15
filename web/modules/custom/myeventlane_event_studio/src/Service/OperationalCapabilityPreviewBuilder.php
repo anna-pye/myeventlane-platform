@@ -16,6 +16,7 @@ final class OperationalCapabilityPreviewBuilder {
 
   public function __construct(
     private readonly OperationalCapabilityStudioManager $studioManager,
+    private readonly OperationalCapabilityCommercePreviewBuilder $commercePreviewBuilder,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -39,6 +40,12 @@ final class OperationalCapabilityPreviewBuilder {
       $summary = trim((string) ($row['preview_summary'] ?? ''));
       if ($summary === '') {
         $summary = $this->studioManager->buildCustomerSafePreviewSummary($type, $row);
+      }
+      $cl = is_array($row['commerce_linkage'] ?? NULL) ? $row['commerce_linkage'] : [];
+      foreach ($this->commercePreviewBuilder->buildCustomerSafeLinkageLines($type, $cl) as $line) {
+        if ($line !== '' && !str_contains($summary, $line)) {
+          $summary = trim($summary . ' · ' . $line);
+        }
       }
       if ($summary === '') {
         continue;

@@ -114,6 +114,7 @@ Performed in a full environment (e.g. DDEV) with real mail and checkout:
 
 ## Related documentation
 
+- [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md) — Event Studio authoring links capabilities to Commerce products (no issuance/inventory execution).
 - [operational-surface-convergence.md](./operational-surface-convergence.md) — My Tickets and PDF rendering convergence onto **`UniversalTicketViewModelBuilder`**.
 - [operational-observability.md](./operational-observability.md) — read-only operational diagnostics authority and anti-patterns.
 - [wallet-operational-convergence.md](./wallet-operational-convergence.md) — Wallet routes, inward ticket resolution, and QR authority alignment.

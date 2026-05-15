@@ -100,6 +100,7 @@ Vendor Event Studio persists **authoring-only** capability metadata on events (`
 ## Related documentation
 
 - [vendor-operational-capability-studio.md](./vendor-operational-capability-studio.md)
+- [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)
