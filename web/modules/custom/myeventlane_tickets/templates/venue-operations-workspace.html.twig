@@ -18,6 +18,9 @@
     {% if meta.ownership_projection_enabled is defined and meta.ownership_projection_enabled %}
       <p class="mel-ops-workspace__meta mel-ops-workspace__meta--ownership">{{ 'Operational assignment and ownership governance projections are enabled for your account (read-only).'|t }}</p>
     {% endif %}
+    {% if meta.coordination_projection_enabled is defined and meta.coordination_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--coordination">{{ 'Operational coordination projections are enabled for your account (read-only visibility).'|t }}</p>
+    {% endif %}
   </header>
 
   {% for section in sections %}
@@ -32,10 +35,10 @@
         {% endfor %}
       </div>
       {% if section.timeline is defined and section.timeline is not empty %}
-        <ol class="mel-ops-workspace__timeline" aria-label="{{ 'Ownership audit timeline'|t }}">
+        <ol class="mel-ops-workspace__timeline" aria-label="{{ 'Operational audit timeline'|t }}">
           {% for row in section.timeline %}
             <li class="mel-ops-workspace__timeline-item">
-              <span class="mel-ops-workspace__timeline-state">{{ row.ownership_state }}</span>
+              <span class="mel-ops-workspace__timeline-state">{{ row.lane_state|default(row.ownership_state) }}</span>
               <span class="mel-ops-workspace__timeline-at">{{ row.recorded_at_unix }}</span>
               <span class="mel-ops-workspace__timeline-note">{{ row.audit_note }}</span>
             </li>

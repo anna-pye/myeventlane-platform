@@ -87,11 +87,14 @@ Staff may view **escalation governance**, **SLA acknowledgement projections**, *
 
 **Assignment and ownership governance (Phase 3A, Commit 5):** staff with **`govern mel operational ownership`** receive additional read-only sections for assignment posture, acknowledgement ownership, escalation owner descriptors, handoff continuity, responsibility summaries, and sorted ownership audit timelines (`OperationalAssignmentGovernanceManager`, `OperationalOwnershipProjectionBuilder`, `OperationalAssignmentAuditProjector`). This permission is **separate** from escalation governance; details: [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md).
 
+**Operational coordination convergence (Phase 3B, Commit 1):** staff with **`govern mel operational coordination`** receive additional read-only sections for canonical coordination state, operational posture, readiness/degradation summaries, recovery and reconciliation coordination visibility, venue confidence, incident saturation, and coordination audit timelines (`OperationalCoordinationStateManager`, `OperationalCoordinationProjectionBuilder`, `OperationalCoordinationAuditProjector`). This permission is **separate** from escalation and ownership governance; details: [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md).
+
 ## Related documentation
 
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md) — continuity / reconciliation metadata authority
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md) — escalation, resolution, suppression governance projections
 - [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md) — assignment and ownership governance projections
+- [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md) — operational coordination state and posture convergence
 - [issuance-pipeline.md](./issuance-pipeline.md) — issuance order and attachment merge
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md) — venue gate policy, offline scaffolding, replay metadata
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — capability registry delegation

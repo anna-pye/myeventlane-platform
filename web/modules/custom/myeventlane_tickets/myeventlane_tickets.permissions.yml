@@ -40,6 +40,11 @@ govern mel operational ownership:
   description: 'View assignment, acknowledgement, escalation owner, handoff, and ownership audit projections in the venue operations workspace.'
   restrict access: true
 
+govern mel operational coordination:
+  title: 'Govern MyEventLane operational coordination'
+  description: 'View operational coordination, posture, readiness, recovery, reconciliation, confidence, and coordination audit projections in the venue operations workspace.'
+  restrict access: true
+
 
 
 

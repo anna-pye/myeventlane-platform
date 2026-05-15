@@ -48,6 +48,8 @@ final class OperationalWorkspaceBuilder {
     private readonly AccountProxyInterface $currentUser,
     private readonly OperationalEscalationAuditProjector $operationalEscalationAuditProjector,
     private readonly OperationalOwnershipProjectionBuilder $operationalOwnershipProjectionBuilder,
+    private readonly OperationalCoordinationProjectionBuilder $operationalCoordinationProjectionBuilder,
+    private readonly OperationalCoordinationAuditProjector $operationalCoordinationAuditProjector,
   ) {}
 
   /**
@@ -66,6 +68,7 @@ final class OperationalWorkspaceBuilder {
 
     $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
     $ownership_projection_enabled = $this->currentUser->hasPermission('govern mel operational ownership');
+    $coordination_projection_enabled = $this->currentUser->hasPermission('govern mel operational coordination');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -76,6 +79,7 @@ final class OperationalWorkspaceBuilder {
       'sampled_tickets' => 0,
       'governance_projection_enabled' => $governance_enabled,
       'ownership_projection_enabled' => $ownership_projection_enabled,
+      'coordination_projection_enabled' => $coordination_projection_enabled,
     ];
 
     if ($event) {
@@ -111,6 +115,23 @@ final class OperationalWorkspaceBuilder {
       );
       foreach ($ownership_sections as $own_section) {
         $sections[] = $own_section;
+      }
+    }
+
+    if ($coordination_projection_enabled) {
+      $coordination_sections = $this->operationalCoordinationProjectionBuilder->buildWorkspaceCoordinationSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($coordination_sections as $coord_section) {
+        $sections[] = $coord_section;
+      }
+      $coordination_audit = $this->operationalCoordinationAuditProjector->buildWorkspaceCoordinationAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($coordination_audit as $audit_section) {
+        $sections[] = $audit_section;
       }
     }
 

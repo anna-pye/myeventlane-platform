@@ -17,6 +17,10 @@ This phase adds a **single canonical operational continuity policy layer** for o
 
 **Commerce + `myeventlane_ticket` entities remain authoritative.** Continuity is **policy and metadata only**: it must not become device-local truth, a second issuance path, or a bypass of persisted redemption state.
 
+## Staff coordination visibility (downstream)
+
+Merged continuity and reconciliation **readiness machine strings** inside inspector rollups may feed **operational coordination projections** in the staff workspace for accounts with **`govern mel operational coordination`** — observability only; no continuity mutation and no reconciliation execution. See [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md).
+
 ## Supported metadata
 
 Continuity material may appear under ticket `metadata_json` and/or optional JSON request bodies merged into the scanner operational context using:

@@ -54,6 +54,7 @@ Dominant handoff **lanes** are observational projections from rollup shape (for 
 
 - Route: `/admin/mel/operations` (unchanged); route access remains `view mel venue operations workspace`.
 - **Ownership and assignment governance sections** render only when the account holds **`govern mel operational ownership`** (restricted), separate from **`govern mel operational escalations`**.
+- **Operational coordination sections** (coordination state, posture, readiness, recovery/reconciliation visibility, confidence, saturation, coordination audit) render only when the account holds **`govern mel operational coordination`** (restricted), separate from escalation and ownership permissions; see [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md).
 - Twig renders **pre-shaped** `sections` / `meta` / optional `timeline` arrays only.
 
 ## Forbidden patterns
@@ -66,6 +67,7 @@ Dominant handoff **lanes** are observational projections from rollup shape (for 
 ## Related documents
 
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md)
+- [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md)
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)
