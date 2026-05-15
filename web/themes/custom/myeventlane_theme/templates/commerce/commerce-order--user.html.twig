@@ -75,6 +75,15 @@
     </div>
   {% endif %}
 
+  {% if mel_operational_purchase_composition %}
+    <div class="mel-order-detail__section mel-order-detail__operational-composition mel-card mel-mb-4" role="region" aria-label="{{ 'Operational packages'|t }}">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'Operational packages'|t }}</h2>
+        {{ mel_operational_purchase_composition }}
+      </div>
+    </div>
+  {% endif %}
+
   {# Order items table #}
   {% if order.order_items is defined and order.order_items|render|striptags|trim %}
     <div class="mel-order-detail__section mel-order-detail__items mel-card mel-mb-4">

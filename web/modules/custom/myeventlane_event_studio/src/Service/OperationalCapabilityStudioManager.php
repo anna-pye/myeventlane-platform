@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry;
 use Drupal\myeventlane_tickets\Service\FulfillmentLifecycleManager;
 use Drupal\myeventlane_tickets\Service\InventoryReservationGovernanceManager;
@@ -47,6 +48,7 @@ final class OperationalCapabilityStudioManager {
     'inventory_quantity',
     'stock_level',
     'warehouse_slot',
+    'scanner_tokens',
   ];
 
   public function __construct(
@@ -57,6 +59,7 @@ final class OperationalCapabilityStudioManager {
     private readonly InventoryReservationGovernanceManager $inventoryReservationGovernanceManager,
     private readonly LoggerInterface $logger,
     private readonly ?OperationalCapabilityCommerceLinkManager $operationalCapabilityCommerceLinkManager = NULL,
+    private readonly ?OperationalMerchandiseManager $operationalMerchandiseManager = NULL,
   ) {}
 
   /**
@@ -218,6 +221,14 @@ final class OperationalCapabilityStudioManager {
       }
     }
 
+    $merch = $document['operational_merchandise'] ?? [];
+    if (is_array($merch)) {
+      $links = is_array($merch['linked_products'] ?? NULL) ? $merch['linked_products'] : [];
+      if (count($links) > 40) {
+        $errors[] = 'Too many operational merchandise links for one event.';
+      }
+    }
+
     return $errors;
   }
 
@@ -366,6 +377,12 @@ final class OperationalCapabilityStudioManager {
     return [
       'schema_version' => self::SCHEMA_VERSION,
       'capabilities' => $capabilities,
+      'operational_merchandise' => $this->operationalMerchandiseManager !== NULL
+        ? $this->operationalMerchandiseManager->emptyEventMerchandiseAuthoring()
+        : [
+          'schema_version' => 1,
+          'linked_products' => [],
+        ],
     ];
   }
 
@@ -382,10 +399,18 @@ final class OperationalCapabilityStudioManager {
       $incoming = is_array($capabilities_in[$type] ?? NULL) ? $capabilities_in[$type] : [];
       $capabilities[$type] = $this->normalizeCapabilityRow($type, $incoming, $event);
     }
-    return [
+    $out = [
       'schema_version' => self::SCHEMA_VERSION,
       'capabilities' => $capabilities,
     ];
+    $merch_in = is_array($document['operational_merchandise'] ?? NULL) ? $document['operational_merchandise'] : [];
+    if ($this->operationalMerchandiseManager !== NULL && $event instanceof NodeInterface) {
+      $out['operational_merchandise'] = $this->operationalMerchandiseManager->normalizeEventMerchandiseAuthoring($merch_in, $event);
+    }
+    elseif ($merch_in !== []) {
+      $out['operational_merchandise'] = $this->stripOperationalMerchandiseAuthoring($merch_in);
+    }
+    return $out;
   }
 
   /**
@@ -653,6 +678,30 @@ final class OperationalCapabilityStudioManager {
       }
     }
     return $data;
+  }
+
+  /**
+   * @param array<string, mixed> $merch
+   *
+   * @return array<string, mixed>
+   */
+  private function stripOperationalMerchandiseAuthoring(array $merch): array {
+    if ($this->operationalMerchandiseManager !== NULL) {
+      return $this->operationalMerchandiseManager->stripForbiddenRecursive($merch);
+    }
+    $out = [];
+    foreach ($merch as $key => $value) {
+      if (!is_string($key) || in_array($key, self::FORBIDDEN_PAYLOAD_KEYS, TRUE)) {
+        continue;
+      }
+      if (is_array($value)) {
+        $out[$key] = $this->stripOperationalMerchandiseAuthoring($value);
+      }
+      elseif (is_scalar($value) || $value === NULL) {
+        $out[$key] = $value;
+      }
+    }
+    return $out;
   }
 
   private function sanitizeCustomerText(string $text): string {

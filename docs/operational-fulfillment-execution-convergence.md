@@ -66,6 +66,10 @@ Permission: **`govern mel fulfillment execution`** (`restrict_access: true`), co
 
 Theme preprocess attaches `mel_operational_fulfillment_execution_customer` on My Tickets, order detail, checkout completion, cart, commerce order user view, and checkout flow templates where an order is available. Twig/CSS/JS are **presentation-only**; orchestration stays in PHP services.
 
+## Phase 4D sibling — operational merchandise
+
+**`mel_operational_purchase_composition`** (operational Commerce product grouping) is a **separate** read-only strip from execution. It uses `OperationalMerchandiseManager` / `OperationalPurchaseCompositionManager` and must **not** be merged into execution JSON or used to re-derive lifecycle or scanner semantics. See [operational-merchandise-architecture.md](./operational-merchandise-architecture.md) and [operational-purchase-composition-convergence.md](./operational-purchase-composition-convergence.md).
+
 ## Anti-patterns
 
 - Duplicating capability mapping, reservation logic, continuity evaluation, fulfillment readiness, or scanner policy in execution services or Twig.
@@ -74,6 +78,7 @@ Theme preprocess attaches `mel_operational_fulfillment_execution_customer` on My
 
 ## Related documentation
 
+- [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
 - [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)

@@ -374,6 +374,10 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
         'schema_version' => OperationalCapabilityStudioManager::SCHEMA_VERSION,
         'capabilities' => $capabilities,
       ];
+      $base = $this->capabilityStudioManager->extractFromEvent($event);
+      if (isset($base['operational_merchandise'])) {
+        $mel['mel_operational_capabilities']['operational_merchandise'] = $base['operational_merchandise'];
+      }
     }
     return $this->capabilityStudioManager->normalizeMelFragment($mel, $event);
   }

@@ -63,3 +63,119 @@ function myeventlane_commerce_update_10003(): void {
     ])->save();
   }
 }
+
+/**
+ * Operational merchandise Commerce bundles + field_mel_operational_product.
+ */
+function myeventlane_commerce_update_10004(): string {
+  $mh = \Drupal::moduleHandler();
+  if (!$mh->moduleExists('commerce_product') || !$mh->moduleExists('field')) {
+    return 'Skipped operational merchandise architecture: commerce_product or field not enabled.';
+  }
+
+  $etm = \Drupal::entityTypeManager();
+  $cvt_storage = $etm->getStorage('commerce_product_variation_type');
+  $variation_pairs = [
+    'operational_merchandise_var' => 'Operational merchandise variation',
+    'operational_bundle_var' => 'Operational bundle variation',
+    'hospitality_package_var' => 'Hospitality package variation',
+    'timed_collection_var' => 'Timed collection variation',
+  ];
+  foreach ($variation_pairs as $vid => $label) {
+    if (!$cvt_storage->load($vid)) {
+      $cvt_storage->create([
+        'id' => $vid,
+        'label' => $label,
+        'orderItemType' => 'default',
+        'generateTitle' => TRUE,
+        'locked' => FALSE,
+        'traits' => [],
+      ])->save();
+    }
+  }
+
+  $pt_storage = $etm->getStorage('commerce_product_type');
+  $product_types = [
+    [
+      'id' => 'operational_merchandise',
+      'label' => 'Operational merchandise',
+      'description' => 'MEL operational merchandise products (pickup semantics; Commerce remains authoritative for catalog and pricing).',
+      'variation' => 'operational_merchandise_var',
+    ],
+    [
+      'id' => 'operational_bundle',
+      'label' => 'Operational bundle',
+      'description' => 'Grouped operational commerce packages (VIP + drink, ticket + merch, etc.).',
+      'variation' => 'operational_bundle_var',
+    ],
+    [
+      'id' => 'hospitality_package',
+      'label' => 'Hospitality package',
+      'description' => 'Hospitality access products with operational messaging only.',
+      'variation' => 'hospitality_package_var',
+    ],
+    [
+      'id' => 'timed_collection_product',
+      'label' => 'Timed collection product',
+      'description' => 'Timed collection window products (operational guidance only).',
+      'variation' => 'timed_collection_var',
+    ],
+  ];
+  foreach ($product_types as $def) {
+    if (!$pt_storage->load($def['id'])) {
+      $pt_storage->create([
+        'id' => $def['id'],
+        'label' => $def['label'],
+        'description' => $def['description'],
+        'variationTypes' => [$def['variation']],
+        'multipleVariations' => TRUE,
+        'injectVariationFields' => TRUE,
+        'locked' => FALSE,
+        'traits' => [],
+      ])->save();
+    }
+  }
+
+  if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('commerce_product', 'field_mel_operational_product')) {
+    \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name' => 'field_mel_operational_product',
+      'entity_type' => 'commerce_product',
+      'type' => 'string_long',
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  foreach (array_column($product_types, 'id') as $bundle) {
+    if (!\Drupal\field\Entity\FieldConfig::loadByName('commerce_product', $bundle, 'field_mel_operational_product')) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name' => 'field_mel_operational_product',
+        'entity_type' => 'commerce_product',
+        'bundle' => $bundle,
+        'label' => 'MEL operational product',
+        'description' => 'JSON document keyed mel_operational_product (authoring + projections).',
+        'required' => FALSE,
+        'translatable' => FALSE,
+      ])->save();
+    }
+  }
+
+  $event_storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('commerce_product', 'field_event');
+  if ($event_storage instanceof \Drupal\field\Entity\FieldStorageConfig) {
+    foreach (array_column($product_types, 'id') as $bundle) {
+      if (\Drupal\field\Entity\FieldConfig::loadByName('commerce_product', $bundle, 'field_event')) {
+        continue;
+      }
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_storage' => $event_storage,
+        'bundle' => $bundle,
+        'label' => 'Event',
+        'description' => 'Link this operational product to an event for vendor authoring and customer projections.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+      ])->save();
+    }
+  }
+
+  return 'Installed MEL operational merchandise product types, variation types, and field_mel_operational_product.';
+}

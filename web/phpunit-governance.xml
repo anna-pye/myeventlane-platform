@@ -39,6 +39,9 @@
       <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionManagerTest.php</file>
       <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionGovernanceManagerTest.php</file>
       <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionProjectionBuilderTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalMerchandiseManagerTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalMerchandiseGovernanceManagerTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalMerchandiseKernelTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

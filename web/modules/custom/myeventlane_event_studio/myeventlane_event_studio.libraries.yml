@@ -25,6 +25,14 @@ mel_operational_capability_studio:
     - core/drupal
     - core/once
 
+mel_operational_merchandise_studio:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-merchandise-studio.css: {}
+  dependencies:
+    - core/drupal
+
 mel_customer_operational_experience:
   version: 1.0
   css:

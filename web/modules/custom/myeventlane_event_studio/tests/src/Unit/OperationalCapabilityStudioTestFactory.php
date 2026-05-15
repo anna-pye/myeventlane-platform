@@ -83,6 +83,7 @@ final class OperationalCapabilityStudioTestFactory {
       $reservation,
       $logger,
       NULL,
+      NULL,
     );
   }
 

@@ -1,0 +1,37 @@
+{#
+/**
+ * @file
+ * Customer-safe operational purchase composition (merch / bundles / hospitality).
+ */
+#}
+{% if document.groups is defined %}
+  <section class="mel-op-composition mel-card mel-card--pastel" aria-label="{{ 'Operational packages'|t }}">
+    {% if document.continuity_hint %}
+      <p class="mel-op-composition__hint mel-text--muted">{{ document.continuity_hint }}</p>
+    {% endif %}
+    {% for group_key, lines in document.groups %}
+      {% if lines is not empty %}
+        <div class="mel-op-composition__group">
+          <h3 class="mel-op-composition__group-title">{{ group_key|replace({'_': ' '})|title }}</h3>
+          <ul class="mel-op-composition__list">
+            {% for line in lines %}
+              <li class="mel-op-composition__item">
+                {% set pres = line.presentation ?? {} %}
+                {% if pres.operational_summary %}
+                  <p class="mel-op-composition__summary">{{ pres.operational_summary }}</p>
+                {% endif %}
+                {% if pres.operational_chips %}
+                  <div class="mel-op-composition__chips">
+                    {% for chip in pres.operational_chips %}
+                      <span class="mel-pill mel-pill--operational mel-pill--tone-{{ chip.tone|default('muted') }}">{{ chip.label }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </section>
+{% endif %}

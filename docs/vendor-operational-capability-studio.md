@@ -71,6 +71,10 @@ No inventory quantities, execution state, replay tokens, or scanner secrets. See
 [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md) for the
 commerce linkage authoring contract.
 
+## Operational merchandise authoring (Phase 4D)
+
+The same JSON document may include an **`operational_merchandise`** fragment (`linked_products`, roles, bundle groups) for **operational Commerce** products (`operational_merchandise`, `operational_bundle`, `hospitality_package`, `timed_collection_product`). The **Merchandise** Event Studio section merges this fragment on save. Normalization and customer-safe payloads are delegated to **`OperationalMerchandiseManager`** in `myeventlane_commerce` (no fulfillment lifecycle, reservation, or scanner duplication). See [operational-merchandise-architecture.md](./operational-merchandise-architecture.md).
+
 ## Authoring services
 
 | Service ID | Role |
@@ -79,6 +83,7 @@ commerce linkage authoring contract.
 | `myeventlane_event_studio.operational_capability_studio_builder` | Card render data for Twig |
 | `myeventlane_event_studio.operational_capability_commerce_link_manager` | Commerce product/variation linkage validation + normalization |
 | `myeventlane_event_studio.operational_capability_commerce_preview_builder` | Customer-safe linkage presentation for cards |
+| `myeventlane_commerce.operational_merchandise_manager` | Operational product JSON contract + Event Studio merchandise authoring normalization |
 
 ## Capability types
 
@@ -97,6 +102,7 @@ Fulfilment section autosave stores draft `mel` in private tempstore only. It doe
 
 ## Related docs
 
+- [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)

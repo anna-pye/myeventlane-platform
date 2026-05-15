@@ -22,6 +22,8 @@ This layer **must not** issue tickets, change entitlements, change scanner outco
 
 **Operational fulfillment execution orchestration** (Phase 4C) layers **execution descriptors**, customer-safe summaries, and staff execution governance **on top of** this lifecycle read-model without duplicating lifecycle normalization, scanner authority, or reservation logic. See [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md).
 
+**Operational merchandise architecture** (Phase 4D) adds **Commerce catalog–backed** operational products (`field_mel_operational_product`) and **purchase composition** grouping for customer UI. It **does not** change lifecycle states, decrement stock, or issue entitlements; it consumes lifecycle/ops only as **upstream** customer messaging context where needed. See [operational-merchandise-architecture.md](./operational-merchandise-architecture.md).
+
 ## Canonical lifecycle states
 
 Normalized strings (single source in `FulfillmentLifecycleManager`): `pending`, `prepared`, `ready`, `partially_fulfilled`, `fulfilled`, `collected`, `consumed`, `expired`, `failed`, `cancelled`.
@@ -40,6 +42,7 @@ Do not add: inventory engines, warehouse orchestration, shipping execution, noti
 
 ## Related documentation
 
+- [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
 - [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)

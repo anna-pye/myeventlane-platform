@@ -189,3 +189,23 @@ services:
       - '@request_stack'
     tags:
       - { name: event_subscriber }
+
+  myeventlane_commerce.operational_merchandise_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager
+    arguments:
+      - '@entity_type.manager'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_commerce'
+
+  myeventlane_commerce.operational_merchandise_governance_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalMerchandiseGovernanceManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_purchase_composition_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_merchandise_governance_manager'
+      - '@string_translation'

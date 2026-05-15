@@ -72,6 +72,12 @@
     </div>
   {% endif %}
 
+  {% if mel_operational_purchase_composition %}
+    <div class="mel-confirmation__operational-composition mel-confirmation__main-pad" role="region" aria-label="{{ 'Operational packages'|t }}">
+      {{ mel_operational_purchase_composition }}
+    </div>
+  {% endif %}
+
   <div class="mel-confirmation__main">
     {% if events|length > 0 %}
       {% for event in events %}

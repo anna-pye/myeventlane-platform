@@ -28,6 +28,7 @@
         mel_checkout_completion: mel_checkout_completion|default(null),
         mel_customer_operational_experience: mel_customer_operational_experience|default(null),
         mel_operational_fulfillment_execution_customer: mel_operational_fulfillment_execution_customer|default(null),
+        mel_operational_purchase_composition: mel_operational_purchase_composition|default(null),
       } %}
     </div>
     <div class="layout-region layout-region-checkout-secondary mel-checkout-complete-layout__secondary">
@@ -42,6 +43,11 @@
       {% if mel_operational_fulfillment_execution_customer %}
         <div class="mel-checkout__summary-region mel-checkout__summary-region--fulfillment-execution mel-checkout-complete-layout__fulfillment-execution" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
           {{ mel_operational_fulfillment_execution_customer }}
+        </div>
+      {% endif %}
+      {% if mel_operational_purchase_composition %}
+        <div class="mel-checkout__summary-region mel-checkout__summary-region--operational-composition mel-checkout-complete-layout__operational-composition" role="region" aria-label="{{ 'Operational packages'|t }}">
+          {{ mel_operational_purchase_composition }}
         </div>
       {% endif %}
       {% if mel_support_panel is defined and mel_support_panel %}
@@ -239,6 +245,11 @@
               {% if mel_customer_operational_experience %}
                 <div class="mel-checkout__summary-region mel-checkout__summary-region--operational" role="region" aria-label="{{ 'What to expect at the venue'|t }}">
                   {{ mel_customer_operational_experience }}
+                </div>
+              {% endif %}
+              {% if mel_operational_purchase_composition %}
+                <div class="mel-checkout__summary-region mel-checkout__summary-region--operational-composition" role="region" aria-label="{{ 'Operational packages'|t }}">
+                  {{ mel_operational_purchase_composition }}
                 </div>
               {% endif %}
               {# Trust lines: only in mel-checkout-order-summary-grouped (MelCheckoutSummaryPresenter). #}

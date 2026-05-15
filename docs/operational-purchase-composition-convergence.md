@@ -8,6 +8,10 @@
 
 Phase 4C adds **`OperationalFulfillmentExecutionProjectionBuilder::buildCustomerRenderArray()`** as a **separate** themed strip (`mel_operational_fulfillment_execution_customer`) built from `OperationalIntegrityInspector` merged diagnostics and `OperationalFulfillmentExecutionManager`. Composition templates must **not** merge execution JSON inside Event Studio blocks or duplicate lifecycle/reservation/scanner logic.
 
+## Phase 4D — Operational merchandise composition
+
+**`OperationalPurchaseCompositionManager`** (with **`OperationalMerchandiseManager`** and **`OperationalMerchandiseGovernanceManager`**) produces **`mel_operational_purchase_composition`**: grouped operational Commerce lines (merch, hospitality, timed collection, bundles, parking) from **real order items** or **event authoring preview**, plus read-only governance severity. It remains **non-mutating** for carts, orders, checkout transitions, entitlements, inventory, warehouses, shipping, and scanners. See [operational-merchandise-architecture.md](./operational-merchandise-architecture.md).
+
 ## Forbidden
 
 - Re-mapping entitlement or reservation state in Twig or checkout JS.
@@ -15,6 +19,7 @@ Phase 4C adds **`OperationalFulfillmentExecutionProjectionBuilder::buildCustomer
 
 ## Related documentation
 
+- [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
 - [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)

@@ -216,6 +216,7 @@ services:
       - '@myeventlane_tickets.inventory_reservation_governance_manager'
       - '@logger.channel.myeventlane_event_studio'
       - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
 
   myeventlane_event_studio.operational_capability_studio_builder:
     class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioBuilder

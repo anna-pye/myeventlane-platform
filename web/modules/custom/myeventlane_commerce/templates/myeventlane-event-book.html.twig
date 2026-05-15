@@ -74,6 +74,12 @@
       </div>
     {% endif %}
 
+    {% if mel_operational_purchase_composition %}
+      <div class="mel-booking-operational-composition mel-container mel-container--event">
+        {{ mel_operational_purchase_composition }}
+      </div>
+    {% endif %}
+
     <div class="mel-booking-container">
       <div class="mel-event-layout{% if event_mode != 'paid' %} mel-event-layout--booking-single{% endif %}">
         <div class="mel-event-layout__main">

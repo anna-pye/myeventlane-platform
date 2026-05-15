@@ -39,6 +39,8 @@ The builder delegates inward to:
 
 It does **not** re-map capabilities or duplicate registry logic beyond assembling labels and chips.
 
+Phase 4D adds **`OperationalPurchaseCompositionManager`** output (`mel_operational_purchase_composition`) as a **sibling** themed strip for operational **Commerce product** grouping (merch, hospitality, timed collection, bundles). It stays Commerce-backed and read-only; see [operational-merchandise-architecture.md](./operational-merchandise-architecture.md).
+
 ## Surfaces
 
 Theme preprocess attaches a themed render array (`mel_customer_operational_experience`) on:
@@ -49,6 +51,7 @@ Theme preprocess attaches a themed render array (`mel_customer_operational_exper
 - Commerce order user view
 - My Tickets / order detail (via `myeventlane_theme` preprocess on checkout_flow themes)
 - **Fulfillment execution strip** — `OperationalFulfillmentExecutionProjectionBuilder` + `mel_operational_fulfillment_execution_customer` (Phase 4C; read-only execution orchestration over merged diagnostics; see [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md))
+- **Operational purchase composition** — `mel_operational_purchase_composition` (Phase 4D; operational Commerce product grouping; cart, checkout, order user, My Tickets, order detail; see [operational-purchase-composition-convergence.md](./operational-purchase-composition-convergence.md))
 
 Twig templates only **print** pre-built strings and lists; they perform no filtering or business rules.
 
@@ -60,6 +63,7 @@ Twig templates only **print** pre-built strings and lists; they perform no filte
 
 ## Related docs
 
+- `docs/operational-merchandise-architecture.md`
 - `docs/operational-fulfillment-execution-convergence.md`
 - `docs/operational-purchase-composition-convergence.md`
 - `docs/operational-commerce-capability-linking.md`
