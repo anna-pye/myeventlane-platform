@@ -81,9 +81,14 @@ Callers must avoid invoking diagnostics on hot per-request paths to prevent nois
 
 Staff operational convergence now has a **canonical read-only shell** (`VenueOperationsController` + `OperationalWorkspaceBuilder`) that merges inspector diagnostics for sampled orders tied to an optional event query parameter. See [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md) for route, access, and visibility boundaries.
 
+## Escalation and resolution governance (Phase 3A, Commit 4)
+
+Staff may view **escalation governance**, **SLA acknowledgement projections**, **resolution lifecycle framing**, **suppression rule visibility**, and **audit-safe history summaries** in the same workspace when they hold **`govern mel operational escalations`**. Normalization and routing live in `OperationalEscalationPolicyManager` and `OperationalResolutionGovernanceManager`; card shapes are composed only through `OperationalEscalationAuditProjector`. This layer **does not** change inspector semantics, ticket entities, redemption logs, QR contracts, or continuity authority — see [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md).
+
 ## Related documentation
 
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md) — continuity / reconciliation metadata authority
+- [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md) — escalation, resolution, suppression governance projections
 - [issuance-pipeline.md](./issuance-pipeline.md) — issuance order and attachment merge
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md) — venue gate policy, offline scaffolding, replay metadata
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — capability registry delegation

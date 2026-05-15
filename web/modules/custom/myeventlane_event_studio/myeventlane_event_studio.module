@@ -11,6 +11,16 @@ use Drupal\Core\Template\Attribute;
 use Drupal\myeventlane_event_studio\EventStudioMelOptionCards;
 
 /**
+ * Returns a root-relative URL for the default MEL hero placeholder graphic.
+ */
+function myeventlane_event_studio_hero_placeholder_url(): string {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  $request = \Drupal::request();
+  $base = $request ? $request->getBasePath() : '';
+  return $base . '/' . $theme_path . '/images/mel/placeholders/mel-placeholder-default.svg';
+}
+
+/**
  * Implements hook_theme().
  *
  * Render-element theme on the form root so the template outputs a real <form>
@@ -374,4 +384,5 @@ function myeventlane_event_studio_preprocess_mel_event_studio(&$variables): void
 
   $variables['mel_advanced_ticket_manager_url'] = $element['#mel_advanced_ticket_manager_url'] ?? NULL;
   $variables['mel_studio_governance'] = $element['#mel_studio_governance'] ?? ['enabled' => FALSE];
+  $variables['mel_hero_placeholder_url'] = myeventlane_event_studio_hero_placeholder_url();
 }

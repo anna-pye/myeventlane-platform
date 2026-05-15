@@ -87,3 +87,41 @@
   color: #1f2328;
   word-break: break-word;
 }
+
+.mel-ops-workspace__meta--governance {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  color: #4a5563;
+}
+
+/* Soft severity / governance tones (governance sections only). */
+.mel-ops-workspace__section--tone-low .mel-ops-workspace__section-title {
+  border-bottom-color: #c5ccd6;
+}
+
+.mel-ops-workspace__section--tone-warning .mel-ops-workspace__section-title {
+  border-bottom-color: #d9b26b;
+}
+
+.mel-ops-workspace__section--tone-moderate .mel-ops-workspace__section-title,
+.mel-ops-workspace__section--tone-elevated .mel-ops-workspace__section-title {
+  border-bottom-color: #c49a6c;
+}
+
+.mel-ops-workspace__section--tone-severe .mel-ops-workspace__section-title,
+.mel-ops-workspace__section--tone-critical .mel-ops-workspace__section-title {
+  border-bottom-color: #c96b6b;
+}
+
+.mel-ops-workspace__section--tone-warning .mel-ops-card,
+.mel-ops-workspace__section--tone-moderate .mel-ops-card,
+.mel-ops-workspace__section--tone-elevated .mel-ops-card,
+.mel-ops-workspace__section--tone-severe .mel-ops-card,
+.mel-ops-workspace__section--tone-critical .mel-ops-card {
+  border-left: 3px solid #d9b26b;
+}
+
+.mel-ops-workspace__section--tone-severe .mel-ops-card,
+.mel-ops-workspace__section--tone-critical .mel-ops-card {
+  border-left-color: #c96b6b;
+}

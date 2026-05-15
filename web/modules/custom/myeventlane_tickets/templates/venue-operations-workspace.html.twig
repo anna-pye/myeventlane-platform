@@ -12,10 +12,13 @@
     {% else %}
       <p class="mel-ops-workspace__meta">{{ 'Event'|t }}: {{ meta.event_title }} <span class="mel-ops-workspace__id">({{ meta.event_id }})</span></p>
     {% endif %}
+    {% if meta.governance_projection_enabled is defined and meta.governance_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Escalation and resolution governance projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
   </header>
 
   {% for section in sections %}
-    <section class="mel-ops-workspace__section" data-ops-section="{{ section.id }}">
+    <section class="mel-ops-workspace__section{% if section.section_tone is defined %} mel-ops-workspace__section--tone-{{ section.section_tone }}{% endif %}" data-ops-section="{{ section.id }}">
       <h2 class="mel-ops-workspace__section-title">{{ section.title }}</h2>
       <div class="mel-ops-workspace__cards">
         {% for card in section.cards %}
