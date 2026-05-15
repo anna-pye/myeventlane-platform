@@ -88,7 +88,11 @@ final class EventStudioMelPayloadService {
       return 0;
     }
     if (is_string($fids)) {
-      foreach (preg_split('/\s+/', trim($fids)) ?: [] as $part) {
+      $parts = preg_split('/\s+/', trim($fids));
+      if (!is_array($parts)) {
+        return 0;
+      }
+      foreach ($parts as $part) {
         if ($part === '') {
           continue;
         }

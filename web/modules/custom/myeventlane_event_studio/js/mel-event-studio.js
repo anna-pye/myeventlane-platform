@@ -553,6 +553,20 @@
     return (el.value || '').trim();
   }
 
+  function melHeroAltValue(form) {
+    return (
+      val(form, 'mel[field_event_image_alt]') ||
+      val(form, 'mel[field_event_image][0][alt]') ||
+      ''
+    );
+  }
+
+  function melHeroAltFieldName(form) {
+    return form.querySelector('[name="mel[field_event_image][0][alt]"]')
+      ? 'mel[field_event_image][0][alt]'
+      : 'mel[field_event_image_alt]';
+  }
+
   /** Category: multi-select uses mel[field_category][]; autocomplete uses mel[field_category]. */
   function categoryFieldHasValue(form) {
     var multi = form.querySelector('select[name="mel[field_category][]"]');
@@ -2092,6 +2106,7 @@
   function melHeroImageFidsPresent(form) {
     var inp =
       form.querySelector('input[name="mel[field_event_image][fids]"]') ||
+      form.querySelector('input[name="mel[field_event_image][0][fids]"]') ||
       form.querySelector('input[name*="field_event_image"][name*="fids"]');
     if (!inp) {
       return false;
