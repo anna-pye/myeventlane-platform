@@ -935,7 +935,18 @@ final class EventStudioSaveService {
           $file->setPermanent();
           $file->save();
         }
-        $node->set('field_event_image', $items);
+        if (!$items->isEmpty()) {
+          $node->set('field_event_image', $items);
+        }
+        else {
+          $node->set('field_event_image', [
+            [
+              'target_id' => $fid,
+              'alt' => $alt,
+              'title' => '',
+            ],
+          ]);
+        }
       }
     }
 
