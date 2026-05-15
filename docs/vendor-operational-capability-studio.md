@@ -1,0 +1,80 @@
+# Vendor operational capability studio (Event Studio)
+
+## Boundary
+
+Event Studio **authors** operational capability metadata for an event. It does **not**:
+
+- execute scans or mutate redemption truth
+- reserve stock or decrement inventory
+- run warehouse, shipping, or hospitality orchestration
+- issue entitlements or change ticket/QR payloads
+- enqueue background operational jobs
+
+Canonical execution semantics remain in:
+
+- `EntitlementCapabilityRegistry`
+- `VenueOperationPolicyManager` (+ timed entry, session, zone, occupancy, continuity delegates)
+- `OperationalEntitlementCapabilityManager`
+- `FulfillmentLifecycleManager`
+- `InventoryReservationGovernanceManager`
+
+Event Studio delegates **inward** to these services for vocabulary and projection only.
+
+## Storage contract
+
+Persisted on the event node as JSON in `field_mel_op_capabilities`:
+
+```json
+{
+  "schema_version": 1,
+  "capabilities": {
+    "merch_pickup": {
+      "capability_type": "merch_pickup",
+      "enabled": true,
+      "fulfillment_mode": "collect",
+      "reservation_mode": "merch",
+      "timed_entry": false,
+      "session_rules": "none",
+      "zone_rules": "none",
+      "occupancy_rules": "none",
+      "continuity_mode": "online",
+      "pickup_mode": "counter",
+      "readiness_state": "configured",
+      "customer_visibility": "after_purchase",
+      "preview_summary": "Merch pickup · collect on site"
+    }
+  }
+}
+```
+
+No inventory quantities, execution state, replay tokens, or scanner secrets.
+
+## Authoring services
+
+| Service ID | Role |
+| --- | --- |
+| `myeventlane_event_studio.operational_capability_studio_manager` | Normalize, validate, persist, policy projection |
+| `myeventlane_event_studio.operational_capability_studio_builder` | Card render data for Twig |
+| `myeventlane_event_studio.operational_capability_preview_builder` | Customer-safe preview payloads |
+
+## Capability types
+
+`admission`, `merch_pickup`, `hospitality_access`, `food_drink_redemption`, `parking_access`, `vip_access`, `cloakroom_retrieval`, `timed_collection`, `digital_redemption`.
+
+## Autosave
+
+Fulfilment section autosave stores draft `mel` in private tempstore only. It does **not** write `field_mel_op_capabilities` until an explicit save.
+
+## Anti-patterns
+
+- Duplicating entitlement maps in forms, controllers, or Twig
+- Calling `ScannerOperationManager` from Event Studio
+- Persisting `replay_token`, QR payloads, or device fingerprints in event fields
+- Treating authoring `readiness_state` as live operational capability state
+
+## Related docs
+
+- [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
+- [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
+- [issuance-pipeline.md](./issuance-pipeline.md)
+- [operational-observability.md](./operational-observability.md)

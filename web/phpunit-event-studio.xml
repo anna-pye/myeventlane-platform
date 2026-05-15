@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Run from web/: cd web && ../vendor/bin/phpunit -c phpunit-event-studio.xml -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="core/tests/bootstrap.php"
+         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd">
+  <php>
+    <env name="SIMPLETEST_DB" value="sqlite://localhost/:memory:"/>
+    <env name="SIMPLETEST_BASE_URL" value="http://localhost"/>
+    <env name="SIMPLETEST_HASH_SALT" value="test-salt"/>
+  </php>
+  <testsuites>
+    <testsuite name="event_studio">
+      <directory>modules/custom/myeventlane_event_studio/tests/src</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>

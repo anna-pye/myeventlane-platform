@@ -1,0 +1,19 @@
+uuid: 7b3e1d0c-8a2f-4e5b-9c1d-6f0a8b2e4d3c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_op_capabilities
+    - node.type.event
+id: node.event.field_mel_op_capabilities
+field_name: field_mel_op_capabilities
+entity_type: node
+bundle: event
+label: 'Operational capability authoring (MEL)'
+description: 'Vendor Event Studio metadata for operational capability configuration. Authoring-only; not executed at save time.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

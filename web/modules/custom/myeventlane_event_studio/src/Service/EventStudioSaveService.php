@@ -59,6 +59,7 @@ final class EventStudioSaveService {
     private readonly TranslationInterface $stringTranslation,
     private readonly FileSystemInterface $fileSystem,
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
+    private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
   ) {}
 
   /**
@@ -309,6 +310,11 @@ final class EventStudioSaveService {
     $attendee_errors = $this->syncAttendeeQuestions($node, $payload, $account);
     if ($attendee_errors !== []) {
       return ['node' => NULL, 'errors' => $attendee_errors];
+    }
+
+    $capability_errors = $this->applyOperationalCapabilitiesPayload($node, $payload);
+    if ($capability_errors !== []) {
+      return ['node' => NULL, 'errors' => $capability_errors];
     }
 
     if (!$draft && $willPublish) {
@@ -1425,6 +1431,42 @@ final class EventStudioSaveService {
     $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '_', $label));
     $slug = trim((string) preg_replace('/_+/', '_', $slug), '_');
     return $slug !== '' ? $slug : 'question_' . substr(hash('sha256', $label), 0, 10);
+  }
+
+  /**
+   * Persists mel_operational_capabilities authoring metadata when present in payload.
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function applyOperationalCapabilitiesPayload(NodeInterface $node, array $payload): array {
+    if ($this->operationalCapabilityStudioManager === NULL) {
+      return [];
+    }
+    if (!array_key_exists('mel_operational_capabilities', $payload)) {
+      return [];
+    }
+    $raw = $payload['mel_operational_capabilities'];
+    if (!is_array($raw)) {
+      return ['Operational capabilities data was invalid.'];
+    }
+    try {
+      $document = $this->operationalCapabilityStudioManager->normalizeMelFragment(['mel_operational_capabilities' => $raw]);
+      $errors = $this->operationalCapabilityStudioManager->validateDocument($document);
+      if ($errors !== []) {
+        return $errors;
+      }
+      $this->operationalCapabilityStudioManager->persistToEvent($node, $document);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Studio operational capability save failed for node @nid: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return ['Could not save operational capabilities.'];
+    }
+    return [];
   }
 
   private function vendorQuestionAccessible(VendorQuestionInterface $question, AccountInterface $account): bool {

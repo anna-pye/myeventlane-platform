@@ -93,8 +93,13 @@ Do not add: warehouse systems, stock orchestration, shipping execution, dispatch
 
 Do not expose: `replay_token`, `qr_payload`, device fingerprints, raw scanner payloads, or customer-sensitive identifiers in capability audit projections.
 
+## Event Studio authoring
+
+Vendor Event Studio persists **authoring-only** capability metadata on events (`field_mel_op_capabilities`). Normalization and preview projection use the managers above for vocabulary alignment; live capability state for issued tickets remains in operational read-models (`OperationalEntitlementCapabilityManager::composeCapabilityReadModel()`). See [vendor-operational-capability-studio.md](./vendor-operational-capability-studio.md).
+
 ## Related documentation
 
+- [vendor-operational-capability-studio.md](./vendor-operational-capability-studio.md)
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)

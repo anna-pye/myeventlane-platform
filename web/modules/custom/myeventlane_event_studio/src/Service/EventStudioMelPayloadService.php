@@ -19,6 +19,7 @@ final class EventStudioMelPayloadService {
   public function __construct(
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
+    private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
   ) {}
 
   /**
@@ -120,6 +121,11 @@ final class EventStudioMelPayloadService {
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
       'attendee_questions' => $attendee_questions,
     ];
+
+    if ($this->operationalCapabilityStudioManager !== NULL
+      && (isset($mel['operational_capabilities']) || isset($mel['mel_operational_capabilities']))) {
+      $payload['mel_operational_capabilities'] = $this->operationalCapabilityStudioManager->normalizeMelFragment($mel);
+    }
 
     $nid = (int) ($form_state->getValue('nid') ?? 0);
     if ($nid > 0) {

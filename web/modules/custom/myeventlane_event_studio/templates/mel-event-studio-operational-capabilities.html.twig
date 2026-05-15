@@ -1,0 +1,82 @@
+{#
+/**
+ * @file
+ * Operational capability cards — presentation only; logic in PHP services.
+ *
+ * @var array cards
+ * @var array customer_preview
+ * @var array readiness_preview
+ */
+#}
+<div class="mel-operational-capability-studio" data-mel-capability-studio-preview>
+  {% if readiness_preview.chips is defined and readiness_preview.chips|length %}
+    <div class="mel-operational-capability-readiness" role="status" aria-live="polite">
+      <p class="mel-operational-capability-readiness__label">{{ 'Operational readiness'|t }}</p>
+      <ul class="mel-operational-capability-readiness__chips">
+        {% for chip in readiness_preview.chips %}
+          <li class="mel-operational-chip mel-operational-chip--{{ chip.tone|default('muted') }}">{{ chip.label }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% for group in cards.groups|default([]) %}
+    <section class="mel-operational-capability-group" aria-labelledby="mel-cap-group-{{ group.id }}">
+      <h4 class="mel-operational-capability-group__title" id="mel-cap-group-{{ group.id }}">{{ group.title }}</h4>
+      <div class="mel-operational-capability-grid" role="list">
+        {% for card in group.cards %}
+          <article
+            class="mel-operational-capability-card{% if card.enabled %} is-enabled{% endif %}"
+            role="listitem"
+            data-capability-type="{{ card.capability_type }}"
+          >
+            <header class="mel-operational-capability-card__header">
+              <h5 class="mel-operational-capability-card__title">{{ card.label }}</h5>
+              <span class="mel-operational-chip mel-operational-chip--{{ card.status_chip.tone|default('muted') }}">
+                {{ card.status_chip.label }}
+              </span>
+            </header>
+            <div class="mel-operational-capability-card__badges">
+              <span class="mel-operational-badge mel-operational-badge--{{ card.fulfillment_badge.tone|default('muted') }}">
+                {{ card.fulfillment_badge.label }}
+              </span>
+              <span class="mel-operational-badge mel-operational-badge--{{ card.reservation_badge.tone|default('neutral') }}">
+                {{ card.reservation_badge.label }}
+              </span>
+              <span class="mel-operational-chip mel-operational-chip--{{ card.readiness_chip.tone|default('muted') }}">
+                {{ card.readiness_chip.label }}
+              </span>
+            </div>
+            {% if card.preview_summary %}
+              <p class="mel-operational-capability-card__summary">{{ card.preview_summary }}</p>
+            {% endif %}
+            <p class="mel-operational-capability-card__cta">
+              <button type="button" class="button button--small js-mel-capability-configure" data-capability-type="{{ card.capability_type }}">
+                {{ card.enabled ? 'Edit'|t : 'Configure'|t }}
+              </button>
+            </p>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+
+  <section class="mel-operational-capability-preview mel-es-card" aria-labelledby="mel-cap-customer-preview">
+    <h4 class="mel-es-card__title" id="mel-cap-customer-preview">{{ 'Guest preview'|t }}</h4>
+    <p class="mel-es-card__hint">{{ customer_preview.disclaimer|default('') }}</p>
+    {% if customer_preview.empty %}
+      <p class="mel-operational-capability-preview__empty">{{ 'Enable a capability to see how guests might understand redemption expectations.'|t }}</p>
+    {% else %}
+      <ul class="mel-operational-capability-preview__list">
+        {% for item in customer_preview.items|default([]) %}
+          <li class="mel-operational-capability-preview__item">
+            <span class="mel-operational-capability-preview__summary">{{ item.summary }}</span>
+            {% if item.timed_required %}
+              <span class="mel-operational-chip mel-operational-chip--info">{{ 'Timed'|t }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+</div>

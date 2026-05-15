@@ -1,0 +1,157 @@
+.mel-operational-capability-studio {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.mel-operational-capability-readiness__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.mel-operational-capability-readiness__chips,
+.mel-operational-capability-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mel-operational-capability-group__title {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.mel-operational-capability-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .mel-operational-capability-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .mel-operational-capability-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.mel-operational-capability-card {
+  background: var(--mel-surface-soft, #faf8fc);
+  border: 1px solid var(--mel-border-subtle, #e8e4ef);
+  border-radius: 1rem;
+  padding: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mel-operational-capability-card.is-enabled {
+  border-color: var(--mel-accent-border, #c9b8e8);
+  box-shadow: 0 4px 14px rgba(88, 56, 140, 0.08);
+}
+
+.mel-operational-capability-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mel-operational-capability-card__title {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.mel-operational-chip {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.2rem 0.55rem;
+}
+
+.mel-operational-chip--active,
+.mel-operational-chip--success {
+  background: #e6f6ec;
+  color: #1f6b3f;
+}
+
+.mel-operational-chip--info {
+  background: #e8f0ff;
+  color: #1f4f8c;
+}
+
+.mel-operational-chip--warning {
+  background: #fff4e5;
+  color: #8a5a12;
+}
+
+.mel-operational-chip--muted {
+  background: #f1eef5;
+  color: #5c5470;
+}
+
+.mel-operational-badge {
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+}
+
+.mel-operational-badge--info {
+  background: #efe9fb;
+  color: #4a2f7a;
+}
+
+.mel-operational-badge--muted {
+  background: #f3f1f6;
+  color: #6b6578;
+}
+
+.mel-operational-capability-card__summary {
+  color: #4a4458;
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.mel-operational-capability-preview__list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.mel-operational-capability-preview__item {
+  align-items: center;
+  border-top: 1px solid var(--mel-border-subtle, #e8e4ef);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+}
+
+.mel-operational-capability-editors {
+  display: none;
+}
+
+.mel-operational-capability-editors.is-open {
+  display: block;
+}
+
+.mel-operational-capability-editor {
+  background: #fff;
+  border: 1px solid var(--mel-border-subtle, #e8e4ef);
+  border-radius: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 1rem;
+}
+
+.mel-operational-capability-editor.is-active {
+  border-color: var(--mel-accent-border, #c9b8e8);
+}
