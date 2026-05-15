@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_event_studio\Form;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Markup;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\node\NodeInterface;
@@ -56,8 +55,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     }
     $this->assertVendorEvent($loaded);
 
-    $complete_form = $form_state->getCompleteForm();
-    $mel_subform = $complete_form['mel'] ?? $form_state->getValue('mel') ?? [];
+    $mel_subform = $form_state->getValue('mel') ?? [];
     if (!is_array($mel_subform)) {
       $mel_subform = [];
     }
@@ -85,24 +83,6 @@ final class EventBrandingForm extends EventStudioBaseForm {
     ]);
   }
 
-  /**
-   * Disables image_widget_crop required-crop validation on Remove/AJAX rebuilds.
-   *
-   * Contrib assumes crop_wrapper is always present in form values; it is absent
-   * when the managed file is removed, which breaks the Remove button.
-   */
-  private function relaxImageCropValidation(array &$element): void {
-    if (($element['#type'] ?? '') === 'image_crop') {
-      unset($element['#element_validate']);
-      $element['#crop_types_required'] = [];
-    }
-    foreach (Element::children($element) as $child_key) {
-      if (isset($element[$child_key]) && is_array($element[$child_key])) {
-        $this->relaxImageCropValidation($element[$child_key]);
-      }
-    }
-  }
-
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
     $request = $this->requestStack->getCurrentRequest();
     $restoreDraft = $request !== NULL && $request->query->getBoolean('restore_draft');
@@ -116,6 +96,8 @@ final class EventBrandingForm extends EventStudioBaseForm {
       $this->messenger()->addWarning($this->t('The previous cover image file is no longer available. Upload a new image, or click Save branding to clear the broken reference.'));
     }
 
+    $form['mel']['#attached']['library'][] = 'focal_point/drupal.focal_point';
+
     $form['mel']['branding_hero_shell'] = [
       '#type' => 'markup',
       '#markup' => Markup::create(
@@ -123,7 +105,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . Html::escape((string) $this->t('Branding')) . '</h3>'
         . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Shape how your event appears across MyEventLane and social sharing.')) . '</p>'
-        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Set the 1200×630 crop frame and tap the focal point so the hero stays centred on the event and book pages.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('After uploading, click the image preview to set the focal point (the part that stays centred on event and book pages).')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body">'
         . '<div class="mel-identity-media mel-identity-media--compact">'
@@ -158,11 +140,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         ];
       }
       else {
-        // Field widgets return their subtree; core assigns it (see
-        // EntityFormDisplay::buildForm). Calling ::form() without assignment drops
-        // the entire image/crop UI from the render array.
         $form['mel']['field_event_image'] = $widget->form($formNode->get('field_event_image'), $form['mel'], $form_state);
-        $this->relaxImageCropValidation($form['mel']['field_event_image']);
         $form['mel']['field_event_image']['#weight'] = 0;
       }
     }
@@ -178,7 +156,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#weight' => 20,
       '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
       'copy' => [
-        '#markup' => '<p>' . $this->t('More brand controls will appear here only when they are ready for creators. For now, the hero image and crop are enough for most events.') . '</p>',
+        '#markup' => '<p>' . $this->t('More brand controls will appear here only when they are ready for creators. For now, the hero image and focal point are enough for most events.') . '</p>',
       ],
     ];
   }

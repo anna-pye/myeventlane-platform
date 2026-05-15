@@ -4,7 +4,6 @@ status: true
 dependencies:
   config:
     - core.entity_form_mode.node.studio_branding
-    - crop.type.event_hero
     - crop.type.focal_point
     - field.field.node.event.body
     - field.field.node.event.field_accessibility
@@ -55,36 +54,25 @@ dependencies:
     - field.field.node.event.field_venue_address
     - field.field.node.event.field_venue_name
     - field.field.node.event.field_waitlist_capacity
-    - image.style.crop_thumbnail
-    - image.style.mel_crop_event_hero
-    - image.style.mel_crop_focal_point
     - image.style.thumbnail
     - node.type.event
   module:
-    - crop
     - focal_point
     - image
-    - image_widget_crop
 id: node.event.studio_branding
 targetEntityType: node
 bundle: event
 mode: studio_branding
 content:
   field_event_image:
-    type: image_widget_crop
+    type: image_focal_point
     weight: 0
     region: content
     settings:
-      show_crop_area: true
-      show_default_crop: true
-      warn_multiple_usages: false
-      crop_types_required: {  }
-      preview_image_style: thumbnail
-      crop_preview_image_style: mel_crop_event_hero
-      crop_list:
-        - event_hero
-        - focal_point
       progress_indicator: throbber
+      preview_image_style: thumbnail
+      preview_link: true
+      offsets: '50,50'
     third_party_settings: {  }
 hidden:
   body: true

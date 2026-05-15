@@ -3,24 +3,16 @@ langcode: en
 status: true
 dependencies:
   config:
-    - crop.type.event_hero
     - crop.type.focal_point
   module:
-    - crop
     - focal_point
 name: mel_event_card_standard
 label: 'MEL event card (standard)'
 effects:
-  6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d:
-    uuid: 6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d
-    id: crop_crop
-    weight: 0
-    data:
-      crop_type: event_hero
   f8f903d0-7d66-40b8-a8b9-88845029b0b7:
     uuid: f8f903d0-7d66-40b8-a8b9-88845029b0b7
     id: focal_point_scale_and_crop
-    weight: 1
+    weight: 0
     data:
       width: 400
       height: 500

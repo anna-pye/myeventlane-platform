@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
-use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
@@ -45,6 +44,7 @@ final class EventStudioSaveService {
     private readonly VendorPublishRequirementsGate $publishRequirementsGate,
     private readonly EventReadinessService $eventReadiness,
     private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
+    private readonly ImageFactory $imageFactory,
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
   ) {}
 
@@ -872,53 +872,18 @@ final class EventStudioSaveService {
       return ['node' => $node, 'errors' => []];
     }
 
-    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
-    if (!$display instanceof EntityFormDisplay) {
-      $this->logger->error('Branding save: missing form display node.event.studio_branding for node @nid.', ['@nid' => (string) $node->id()]);
-      return ['node' => NULL, 'errors' => ['Hero image editor is not available.']];
-    }
-
     $mel_values = $form_state->getValue('mel') ?? [];
     if (!is_array($mel_values)) {
       $mel_values = [];
     }
-    $mel_structure = $form_state->getCompleteForm()['mel'] ?? $mel_subform;
-    if (!is_array($mel_structure) || !isset($mel_structure['field_event_image'])) {
-      return ['node' => NULL, 'errors' => ['Hero image field is missing from the form.']];
-    }
 
-    $widget = $display->getRenderer('field_event_image');
-    if (!$widget instanceof WidgetInterface) {
-      $this->logger->error('Branding save: missing field_event_image widget for node @nid.', ['@nid' => (string) $node->id()]);
-      return ['node' => NULL, 'errors' => ['Hero image widget is not configured.']];
-    }
-
-    $items = $node->get('field_event_image');
-    $widget->extractFormValues($items, $mel_structure, $form_state);
-
-    $fid = 0;
-    $alt = '';
-    if (!$items->isEmpty()) {
-      $value = $items->first()?->getValue() ?? [];
-      $fid = (int) ($value['target_id'] ?? 0);
-      $alt = trim((string) ($value['alt'] ?? ''));
-    }
-
-    // Fallback when widget extraction does not populate target_id (e.g. Remove).
-    if ($fid < 1) {
-      $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
-        'field_event_image' => $mel_values['field_event_image'] ?? [],
-      ]);
-      $fid = $hero['fid'];
-      if ($alt === '' && $hero['alt'] !== '') {
-        $alt = $hero['alt'];
-      }
-    }
-
-    if ($fid < 1) {
+    $field_item = EventStudioMelPayloadService::buildHeroFieldItemFromMelFragment($mel_values);
+    if ($field_item === NULL) {
       $node->set('field_event_image', []);
     }
     else {
+      $fid = (int) $field_item['target_id'];
+      $alt = trim((string) ($field_item['alt'] ?? ''));
       if ($alt === '' && !$draft) {
         return ['node' => NULL, 'errors' => ['Alt text is required for the cover image.']];
       }
@@ -935,18 +900,7 @@ final class EventStudioSaveService {
           $file->setPermanent();
           $file->save();
         }
-        if (!$items->isEmpty()) {
-          $node->set('field_event_image', $items);
-        }
-        else {
-          $node->set('field_event_image', [
-            [
-              'target_id' => $fid,
-              'alt' => $alt,
-              'title' => '',
-            ],
-          ]);
-        }
+        $node->set('field_event_image', [$this->enrichBrandingHeroFieldItem($field_item, $file)]);
       }
     }
 
@@ -1016,6 +970,27 @@ final class EventStudioSaveService {
     if ($node->hasField('field_location_longitude') && $lng !== NULL && $lng !== '') {
       $node->set('field_location_longitude', (string) $lng);
     }
+  }
+
+  /**
+   * Ensures focal point + dimensions are present for focal_point_entity_update().
+   *
+   * @param array<string, mixed> $field_item
+   *
+   * @return array<string, mixed>
+   */
+  private function enrichBrandingHeroFieldItem(array $field_item, FileInterface $file): array {
+    if (empty($field_item['focal_point'])) {
+      $field_item['focal_point'] = '50,50';
+    }
+    if (empty($field_item['width']) || empty($field_item['height'])) {
+      $image = $this->imageFactory->get($file->getFileUri());
+      if ($image->isValid()) {
+        $field_item['width'] = $image->getWidth();
+        $field_item['height'] = $image->getHeight();
+      }
+    }
+    return $field_item;
   }
 
   /**

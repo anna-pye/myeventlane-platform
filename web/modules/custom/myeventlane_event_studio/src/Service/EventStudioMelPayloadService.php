@@ -40,16 +40,16 @@ final class EventStudioMelPayloadService {
       return ['fid' => 0, 'alt' => $alt];
     }
 
-    if (isset($raw[0]) && is_array($raw[0])) {
-      $delta = $raw[0];
-      $fid = self::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL);
-      if ($fid < 1 && isset($delta['target_id'])) {
-        $fid = max(0, (int) $delta['target_id']);
-      }
-      $delta_alt = trim((string) ($delta['alt'] ?? ''));
-      if ($delta_alt !== '') {
-        $alt = $delta_alt;
-      }
+    $delta = self::imageWidgetDeltaFromRaw($raw);
+    $fid = self::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL);
+    if ($fid < 1 && isset($delta['target_id'])) {
+      $fid = max(0, (int) $delta['target_id']);
+    }
+    $delta_alt = trim((string) ($delta['alt'] ?? ''));
+    if ($delta_alt !== '') {
+      $alt = $delta_alt;
+    }
+    if ($fid > 0) {
       return ['fid' => $fid, 'alt' => $alt];
     }
 
@@ -72,6 +72,63 @@ final class EventStudioMelPayloadService {
     }
 
     return ['fid' => $fid, 'alt' => $alt];
+  }
+
+  /**
+   * Unwraps an image field widget value to its first delta array.
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public static function imageWidgetDeltaFromRaw(array $raw): array {
+    if (isset($raw['widget']) && is_array($raw['widget'])) {
+      $raw = $raw['widget'];
+    }
+    if (isset($raw[0]) && is_array($raw[0])) {
+      return $raw[0];
+    }
+
+    return $raw;
+  }
+
+  /**
+   * Builds a `field_event_image` item from a mel fragment (branding widget save).
+   *
+   * @param array<string, mixed> $fragment
+   *
+   * @return array<string, mixed>|null
+   *   NULL when no file is selected.
+   */
+  public static function buildHeroFieldItemFromMelFragment(array $fragment): ?array {
+    $hero = self::normalizeHeroFromMelFragment($fragment);
+    if ($hero['fid'] < 1) {
+      return NULL;
+    }
+
+    $raw = $fragment['field_event_image'] ?? [];
+    if (!is_array($raw)) {
+      $raw = [];
+    }
+    $delta = self::imageWidgetDeltaFromRaw($raw);
+
+    $item = [
+      'target_id' => $hero['fid'],
+      'alt' => $hero['alt'],
+      'title' => trim((string) ($delta['title'] ?? '')),
+    ];
+
+    if (isset($delta['focal_point']) && trim((string) $delta['focal_point']) !== '') {
+      $item['focal_point'] = trim((string) $delta['focal_point']);
+    }
+
+    foreach (['width', 'height'] as $key) {
+      if (isset($delta[$key]) && $delta[$key] !== '' && $delta[$key] !== NULL) {
+        $item[$key] = $delta[$key];
+      }
+    }
+
+    return $item;
   }
 
   /**
