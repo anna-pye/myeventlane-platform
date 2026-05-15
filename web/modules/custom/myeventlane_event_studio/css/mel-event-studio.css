@@ -1176,3 +1176,41 @@ textarea.mel-input--body {
   }
 }
 
+/* Branding hero: size hint, focal presets, remove (EventBrandingForm). */
+.mel-es-branding-hero-tools {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mel-es-branding-hero-size-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mel-studio-muted);
+  line-height: 1.45;
+}
+
+.mel-es-branding-hero-focal-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.mel-es-branding-hero-focal-presets__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mel-studio-text);
+}
+
+.mel-es-branding-hero-focal-presets__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mel-es-field-group--branding .js-mel-branding-hero-remove:not(:disabled) {
+  align-self: flex-start;
+}
+

@@ -12,7 +12,7 @@ field_name: field_event_image
 entity_type: node
 bundle: event
 label: 'Event Image'
-description: 'Hero image for the event. Recommended size: 1200x630 pixels.'
+description: 'Hero image for the event. For best results on event and book pages, use about 1600×900 pixels (16:9). The field enforces a minimum of 400×200 pixels.'
 required: false
 translatable: false
 default_value: {  }

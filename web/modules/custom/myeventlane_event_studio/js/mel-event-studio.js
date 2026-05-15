@@ -512,6 +512,12 @@
     if (!el && fieldName === 'mel[field_event_image][]') {
       el = form.querySelector('input[name="mel[field_event_image][]"]');
     }
+    if (!el && fieldName === 'mel[field_event_image][0][fids]') {
+      el = form.querySelector('input[name="mel[field_event_image][0][fids]"]');
+    }
+    if (!el && fieldName === 'mel[field_event_image][0][upload]') {
+      el = form.querySelector('input[name="mel[field_event_image][0][upload]"]');
+    }
     if (!el && fieldName === 'mel[studio_ticket_focus]') {
       el = form.querySelector('#mel-add-ticket-tier') || form.querySelector('.mel-tier-title');
     }
@@ -553,18 +559,49 @@
     return (el.value || '').trim();
   }
 
+  /**
+   * Alt text for hero: image widget delta first when that control exists, else legacy field.
+   *
+   * @param {HTMLFormElement} form
+   * @returns {string}
+   */
   function melHeroAltValue(form) {
-    return (
-      val(form, 'mel[field_event_image_alt]') ||
-      val(form, 'mel[field_event_image][0][alt]') ||
-      ''
-    );
+    if (form.querySelector('[name="mel[field_event_image][0][alt]"]')) {
+      return val(form, 'mel[field_event_image][0][alt]') || val(form, 'mel[field_event_image_alt]');
+    }
+    return val(form, 'mel[field_event_image_alt]');
   }
 
+  /**
+   * Name= attribute for the active hero alt control (must align with {@link melHeroAltValue}).
+   *
+   * @param {HTMLFormElement} form
+   * @returns {string}
+   */
   function melHeroAltFieldName(form) {
-    return form.querySelector('[name="mel[field_event_image][0][alt]"]')
-      ? 'mel[field_event_image][0][alt]'
-      : 'mel[field_event_image_alt]';
+    if (form.querySelector('[name="mel[field_event_image][0][alt]"]')) {
+      return 'mel[field_event_image][0][alt]';
+    }
+    return 'mel[field_event_image_alt]';
+  }
+
+  /**
+   * Jump target for "add cover" — legacy managed_file vs image widget controls.
+   *
+   * @param {HTMLFormElement} form
+   * @returns {string}
+   */
+  function melCoverImageJumpTarget(form) {
+    if (form.querySelector('input[name="mel[field_event_image][]"]')) {
+      return 'mel[field_event_image][]';
+    }
+    if (form.querySelector('input[name="mel[field_event_image][0][fids]"]')) {
+      return 'mel[field_event_image][0][fids]';
+    }
+    if (form.querySelector('input[name="mel[field_event_image][0][upload]"]')) {
+      return 'mel[field_event_image][0][upload]';
+    }
+    return 'mel[field_event_image][]';
   }
 
   /** Category: multi-select uses mel[field_category][]; autocomplete uses mel[field_category]. */
@@ -2175,12 +2212,32 @@
   }
 
   function bindCoverFilePreview(form) {
-    form.querySelectorAll('.mel-identity-media').forEach(function (media) {
-      once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
-        input.addEventListener('change', function () {
-          var f = input.files && input.files[0];
-          if (!f || !f.type || f.type.indexOf('image/') !== 0) {
-            return;
+    var media = form.querySelector('.mel-identity-media');
+    if (!media) {
+      return;
+    }
+    once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
+      input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f || !f.type || f.type.indexOf('image/') !== 0) {
+          return;
+        }
+        var r = new FileReader();
+        r.onload = function () {
+          var img = document.getElementById('mel-cover-preview-img');
+          var empty = document.getElementById('mel-cover-preview-empty');
+          var prevImg = document.getElementById('mel-preview-card-img');
+          var ph = document.getElementById('mel-preview-card-placeholder');
+          if (img && empty) {
+            img.src = r.result;
+            img.removeAttribute('hidden');
+            empty.setAttribute('hidden', 'hidden');
+          }
+          if (prevImg && ph) {
+            prevImg.src = r.result;
+            prevImg.alt = melHeroAltValue(form) || '';
+            prevImg.removeAttribute('hidden');
+            ph.setAttribute('hidden', 'hidden');
           }
           var r = new FileReader();
           r.onload = function () {
@@ -2721,14 +2778,25 @@
   }
 
   function hasCoverFile(form) {
-    var media = form.querySelector('.mel-identity-media');
-    return !!(
-      (media && melFindManagedFileImageLink(media)) ||
-      melFindManagedFileImageLink(form) ||
-      form.querySelector('input[name="mel[field_event_image][]"]')?.value ||
-      form.querySelector('input[name="mel[field_event_image][0][fids]"]')?.value ||
-      melHeroImageFidsPresent(form)
-    );
+    if (
+      form.querySelector('.mel-identity-media .form-managed-file a[href*="files/"]') ||
+      form.querySelector('.mel-es-field-group--branding .form-managed-file a[href*="files/"]')
+    ) {
+      return true;
+    }
+    var managed = form.querySelector('input[name="mel[field_event_image][]"]');
+    if (managed && managed.value) {
+      return true;
+    }
+    var tgt = form.querySelector('input[name="mel[field_event_image][0][target_id]"]');
+    if (tgt && String(tgt.value || '').trim() !== '') {
+      return true;
+    }
+    var fids = form.querySelector('input[name="mel[field_event_image][0][fids]"]');
+    if (fids && String(fids.value || '').trim() !== '') {
+      return true;
+    }
+    return false;
   }
 
   function getWizardStepIndex(form) {
@@ -2854,7 +2922,7 @@
       add(
         'high',
         Drupal.t('Events with images get more visibility — add a cover now so your card pops in discovery and shares.'),
-        'mel[field_event_image][]',
+        melCoverImageJumpTarget(form),
       );
     }
 
@@ -2928,7 +2996,11 @@
     }
 
     if (!melHeroAltValue(form) && hasCoverFile(form)) {
-      add('medium', Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'), melHeroAltFieldName(form));
+      add(
+        'medium',
+        Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'),
+        melHeroAltFieldName(form),
+      );
     }
 
     if (rows.length === 0) {

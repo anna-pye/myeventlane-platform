@@ -42,6 +42,30 @@ final class EventBrandingForm extends EventStudioBaseForm {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  protected function persistWizardMel(FormStateInterface $form_state, bool $draft): ?array {
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    if ($nid < 1) {
+      return NULL;
+    }
+    $loaded = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$loaded instanceof NodeInterface) {
+      return NULL;
+    }
+    $this->assertVendorEvent($loaded);
+
+    $baseline = $this->wizardMelBaseline->getBaselineMel($loaded);
+    $submitted = $form_state->getValue('mel') ?? [];
+    if (!is_array($submitted)) {
+      $submitted = [];
+    }
+    $merged = $this->mergeMel($baseline, $submitted);
+
+    return $this->saveService->saveBrandingHero($loaded, $merged, $form_state, $draft);
+  }
+
+  /**
    * Applies restored-draft hero defaults onto a clone for widget rendering only.
    */
   private function applyDraftHeroOverlay(NodeInterface $target, array $melDefaults): void {

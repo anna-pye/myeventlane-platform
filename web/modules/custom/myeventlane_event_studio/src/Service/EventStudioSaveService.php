@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\WidgetInterface;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Image\ImageFactory;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
@@ -33,6 +39,13 @@ final class EventStudioSaveService {
 
   private const ATTENDEE_QUESTION_LIMIT = 5;
 
+  /**
+   * Warn when the saved hero is meaningfully smaller than MEL hero derivatives.
+   */
+  private const BRANDING_HERO_WARN_WIDTH_LT = 1280;
+
+  private const BRANDING_HERO_WARN_HEIGHT_LT = 720;
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly VenueManager $venueManager,
@@ -42,6 +55,9 @@ final class EventStudioSaveService {
     private readonly VendorPublishRequirementsGate $publishRequirementsGate,
     private readonly EventReadinessService $eventReadiness,
     private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
+    private readonly ImageFactory $imageFactory,
+    private readonly TranslationInterface $stringTranslation,
+    private readonly FileSystemInterface $fileSystem,
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
   ) {}
 
@@ -837,6 +853,168 @@ final class EventStudioSaveService {
       }
     }
     return $keys;
+  }
+
+  /**
+   * Whether the event hero references a file record that is missing on disk.
+   */
+  public function isBrokenHeroImageReference(NodeInterface $node): bool {
+    if (!$node->hasField('field_event_image') || $node->get('field_event_image')->isEmpty()) {
+      return FALSE;
+    }
+    $file = $node->get('field_event_image')->entity;
+    if (!$file instanceof FileInterface) {
+      return TRUE;
+    }
+    return !$this->heroFileIsRenderable($file);
+  }
+
+  /**
+   * Persists branding hero image via the studio_branding field widget.
+   *
+   * @param array<string, mixed> $mel_subform
+   *   The `mel` form fragment containing `field_event_image`.
+   *
+   * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>, warnings: list<string>}
+   */
+  public function saveBrandingHero(NodeInterface $node, array $mel_subform, FormStateInterface $form_state, bool $draft = FALSE): array {
+    if (!$node->hasField('field_event_image')) {
+      return ['node' => $node, 'errors' => [], 'warnings' => []];
+    }
+
+    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    if (!$display instanceof EntityFormDisplay) {
+      $this->logger->error('Branding save: missing form display node.event.studio_branding for node @nid.', ['@nid' => (string) $node->id()]);
+      return ['node' => NULL, 'errors' => ['Hero image editor is not available.'], 'warnings' => []];
+    }
+
+    $mel_values = $form_state->getValue('mel') ?? [];
+    if (!is_array($mel_values)) {
+      $mel_values = [];
+    }
+    $mel_structure = $form_state->getCompleteForm()['mel'] ?? $mel_subform;
+    if (!is_array($mel_structure) || !isset($mel_structure['field_event_image'])) {
+      return ['node' => NULL, 'errors' => ['Hero image field is missing from the form.'], 'warnings' => []];
+    }
+
+    $widget = $display->getRenderer('field_event_image');
+    if (!$widget instanceof WidgetInterface) {
+      $this->logger->error('Branding save: missing field_event_image widget for node @nid.', ['@nid' => (string) $node->id()]);
+      return ['node' => NULL, 'errors' => ['Hero image widget is not configured.'], 'warnings' => []];
+    }
+
+    $items = $node->get('field_event_image');
+    $widget->extractFormValues($items, $mel_structure, $form_state);
+
+    $fid = 0;
+    $alt = '';
+    if (!$items->isEmpty()) {
+      $value = $items->first()?->getValue() ?? [];
+      $fid = (int) ($value['target_id'] ?? 0);
+      $alt = trim((string) ($value['alt'] ?? ''));
+    }
+
+    if ($fid < 1) {
+      $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values);
+      $fid = $hero['fid'];
+      if ($alt === '' && $hero['alt'] !== '') {
+        $alt = $hero['alt'];
+      }
+    }
+
+    $warnings = [];
+
+    if ($fid < 1) {
+      $node->set('field_event_image', []);
+    }
+    else {
+      if ($alt === '' && !$draft) {
+        return ['node' => NULL, 'errors' => ['Alt text is required for the cover image.'], 'warnings' => []];
+      }
+      $file = $this->entityTypeManager->getStorage('file')->load($fid);
+      if (!$file instanceof FileInterface || !$this->heroFileIsRenderable($file)) {
+        $this->logger->warning('Branding save: clearing missing or unreadable hero file @fid on node @nid.', [
+          '@fid' => (string) $fid,
+          '@nid' => (string) $node->id(),
+        ]);
+        $node->set('field_event_image', []);
+      }
+      else {
+        if ($file->isTemporary()) {
+          $file->setPermanent();
+          $file->save();
+        }
+        if (!$items->isEmpty()) {
+          // FieldItemList::setValue() wraps non-arrays as [0 => value], which would
+          // pass the list object into EntityReferenceItem and throw.
+          $node->set('field_event_image', $items->getValue());
+        }
+        else {
+          $node->set('field_event_image', [
+            [
+              'target_id' => $fid,
+              'alt' => $alt,
+              'title' => '',
+            ],
+          ]);
+        }
+        $warnings = $this->buildBrandingHeroDimensionWarnings($file);
+      }
+    }
+
+    EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
+    try {
+      $node->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding hero save failed for node @nid: @m', [
+        '@nid' => (string) $node->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return ['node' => NULL, 'errors' => ['Could not save branding.'], 'warnings' => []];
+    }
+
+    return ['node' => $node, 'errors' => [], 'warnings' => $warnings];
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function buildBrandingHeroDimensionWarnings(FileInterface $file): array {
+    $image = $this->imageFactory->get($file->getFileUri());
+    if (!$image->isValid()) {
+      return [];
+    }
+    $w = $image->getWidth();
+    $h = $image->getHeight();
+    if ($w >= self::BRANDING_HERO_WARN_WIDTH_LT && $h >= self::BRANDING_HERO_WARN_HEIGHT_LT) {
+      return [];
+    }
+    return [
+      (string) $this->stringTranslation->translate('Your cover image is smaller than we recommend (at least @w×@h pixels; ideally about 1600×900). It may look softer when scaled on large screens.', [
+        '@w' => (string) self::BRANDING_HERO_WARN_WIDTH_LT,
+        '@h' => (string) self::BRANDING_HERO_WARN_HEIGHT_LT,
+      ]),
+    ];
+  }
+
+  /**
+   * Whether a file entity URI exists and is a readable image for crop widgets.
+   */
+  private function heroFileIsRenderable(FileInterface $file): bool {
+    $uri = $file->getFileUri();
+    if ($uri === '') {
+      return FALSE;
+    }
+    $real = $this->fileSystem->realpath($uri);
+    if ($real === FALSE || !is_readable($real)) {
+      return FALSE;
+    }
+    $mime = $file->getMimeType();
+    if ($mime !== '' && !str_starts_with($mime, 'image/')) {
+      return FALSE;
+    }
+    return TRUE;
   }
 
   /**

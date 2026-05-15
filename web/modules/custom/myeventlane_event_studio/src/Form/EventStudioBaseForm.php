@@ -162,7 +162,7 @@ abstract class EventStudioBaseForm extends FormBase {
   /**
    * Loads the event, merges mel with baseline, persists via save service.
    *
-   * @return array{errors: list<string>, node: ?\Drupal\node\NodeInterface}|null
+   * @return array{errors: list<string>, node: ?\Drupal\node\NodeInterface, warnings?: list<string>}|null
    *   Null when preconditions fail (invalid nid or missing node).
    */
   protected function persistWizardMel(FormStateInterface $form_state, bool $draft): ?array {
@@ -366,6 +366,10 @@ abstract class EventStudioBaseForm extends FormBase {
         $this->messenger()->addError($msg);
       }
       return;
+    }
+
+    foreach ($result['warnings'] ?? [] as $warning) {
+      $this->messenger()->addWarning($warning);
     }
 
     $saved = $result['node'];
