@@ -79,6 +79,13 @@ final class OperationalIncidentCoordinationForm extends FormBase {
       '#required' => TRUE,
     ];
 
+    $form['suppression_reason'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Suppression reason'),
+      '#default_value' => (string) $entity->get('suppression_reason')->value,
+      '#description' => $this->t('Required when lifecycle moves to suppressed. Staff coordination text only (no purchaser PII).'),
+    ];
+
     $escalation_options = array_combine(
       $this->workflowNormalizer->allowedEscalationStates(),
       $this->workflowNormalizer->allowedEscalationStates(),
@@ -148,6 +155,45 @@ final class OperationalIncidentCoordinationForm extends FormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $storage = $this->entityTypeManager()->getStorage('mel_operational_incident');
+    $entity = $storage->load($form_state->getValue('entity_id'));
+    if (!$entity instanceof OperationalIncident) {
+      return;
+    }
+
+    $target = $this->workflowNormalizer->normalizeLifecycleState((string) $form_state->getValue('lifecycle_state'));
+    if ($target === OperationalIncidentWorkflowNormalizer::LIFECYCLE_SUPPRESSED) {
+      $reason = trim((string) $form_state->getValue('suppression_reason'));
+      if ($reason === '') {
+        $form_state->setErrorByName('suppression_reason', $this->t('Suppression reason is required when lifecycle is suppressed.'));
+      }
+    }
+
+    $ack = $this->workflowNormalizer->normalizeAcknowledgementState((string) $form_state->getValue('acknowledgement_state'));
+    $raw_assign = $form_state->getValue('assigned_uid');
+    $uid = ($raw_assign === NULL || $raw_assign === '') ? NULL : (int) $raw_assign;
+    if (in_array($ack, [
+      OperationalIncidentWorkflowNormalizer::ACK_ASSIGNED,
+      OperationalIncidentWorkflowNormalizer::ACK_ACCEPTED,
+      OperationalIncidentWorkflowNormalizer::ACK_HANDED_OFF,
+    ], TRUE) && $uid === NULL) {
+      $form_state->setErrorByName('assigned_uid', $this->t('Assigned user id is required for the selected acknowledgement state.'));
+    }
+
+    $current_ack = (string) $entity->get('acknowledgement_state')->value;
+    $simulated_ack = $current_ack;
+    if ($uid !== NULL && $current_ack === OperationalIncidentWorkflowNormalizer::ACK_UNASSIGNED) {
+      $simulated_ack = OperationalIncidentWorkflowNormalizer::ACK_ASSIGNED;
+    }
+    if ($ack !== $simulated_ack && !$this->workflowNormalizer->isAllowedAcknowledgementTransition($simulated_ack, $ack)) {
+      $form_state->setErrorByName('acknowledgement_state', $this->t('That acknowledgement transition is not allowed for the current assignment context.'));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $storage = $this->entityTypeManager()->getStorage('mel_operational_incident');
     $entity = $storage->load($form_state->getValue('entity_id'));
@@ -165,7 +211,11 @@ final class OperationalIncidentCoordinationForm extends FormBase {
         $resolve_notes = trim((string) $form_state->getValue('resolve_notes'));
         $resolve_notes = $resolve_notes === '' ? NULL : $resolve_notes;
       }
-      $this->lifecycleManager->transitionLifecycle($entity, $target_lifecycle, $account, $resolve_notes);
+      $suppression = NULL;
+      if ($this->workflowNormalizer->normalizeLifecycleState($target_lifecycle) === OperationalIncidentWorkflowNormalizer::LIFECYCLE_SUPPRESSED) {
+        $suppression = trim((string) $form_state->getValue('suppression_reason'));
+      }
+      $this->lifecycleManager->transitionLifecycle($entity, $target_lifecycle, $account, $resolve_notes, $suppression);
     }
 
     $entity = $storage->load($entity->id());
@@ -184,20 +234,20 @@ final class OperationalIncidentCoordinationForm extends FormBase {
       return;
     }
 
-    $this->lifecycleManager->setAcknowledgementState(
-      $entity,
-      (string) $form_state->getValue('acknowledgement_state'),
-      $account,
-    );
+    $raw_assign = $form_state->getValue('assigned_uid');
+    $uid = ($raw_assign === NULL || $raw_assign === '') ? NULL : (int) $raw_assign;
+    $this->lifecycleManager->assignOwner($entity, $uid, $account);
 
     $entity = $storage->load($entity->id());
     if (!$entity instanceof OperationalIncident) {
       return;
     }
 
-    $raw_assign = $form_state->getValue('assigned_uid');
-    $uid = ($raw_assign === NULL || $raw_assign === '') ? NULL : (int) $raw_assign;
-    $this->lifecycleManager->assignOwner($entity, $uid, $account);
+    $this->lifecycleManager->setAcknowledgementState(
+      $entity,
+      (string) $form_state->getValue('acknowledgement_state'),
+      $account,
+    );
 
     $entity = $storage->load($entity->id());
     if (!$entity instanceof OperationalIncident) {
