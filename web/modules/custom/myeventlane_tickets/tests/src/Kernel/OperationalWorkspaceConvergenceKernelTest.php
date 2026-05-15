@@ -18,6 +18,8 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker;
+use Drupal\Core\Session\AccountSwitcherInterface;
+use Drupal\myeventlane_tickets\Service\OperationalEscalationAuditProjector;
 use Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector;
 use Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
@@ -284,6 +286,85 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
     $this->assertContains('Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry', $types);
   }
 
+  public function testBuilderUsesGovernanceProjector(): void {
+    $ref = new ReflectionClass(OperationalWorkspaceBuilder::class);
+    $params = $ref->getConstructor()?->getParameters() ?? [];
+    $types = [];
+    foreach ($params as $p) {
+      $t = $p->getType();
+      if ($t instanceof \ReflectionNamedType) {
+        $types[] = $t->getName();
+      }
+    }
+    $this->assertContains(OperationalEscalationAuditProjector::class, $types);
+  }
+
+  public function testGovernanceSectionsIncludedForStaffWithEscalationPermission(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $this->assertNotEmpty($tickets);
+    foreach ($tickets as $ticket) {
+      $ticket->set('event_id', $this->event->id());
+      $ticket->save();
+    }
+
+    $staff = User::create([
+      'name' => 'workspace_staff_gov',
+      'mail' => 'staff-gov-ws@example.test',
+      'status' => 1,
+    ]);
+    $staff->addRole('mel_ws_staff');
+    $staff->save();
+    $staff = User::load($staff->id());
+    $this->assertNotFalse($staff);
+
+    /** @var \Drupal\Core\Session\AccountSwitcherInterface $switcher */
+    $switcher = $this->container->get('account_switcher');
+    $switcher->switchTo($staff);
+
+    $workspace = $this->workspaceBuilder()->build($this->event);
+    $this->assertTrue($workspace['meta']['governance_projection_enabled']);
+    $ids = array_column($workspace['sections'], 'id');
+    $this->assertContains('escalation_governance', $ids);
+    $this->assertContains('resolution_governance', $ids);
+    $this->assertContains('suppression_governance', $ids);
+    $this->assertContains('escalation_audit', $ids);
+
+    $switcher->switchBack();
+  }
+
+  public function testGovernanceSectionsOmittedWithoutEscalationPermission(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    foreach ($tickets as $ticket) {
+      $ticket->set('event_id', $this->event->id());
+      $ticket->save();
+    }
+
+    $viewer = User::create([
+      'name' => 'workspace_ops_view',
+      'mail' => 'ops-view-ws@example.test',
+      'status' => 1,
+    ]);
+    $viewer->addRole('mel_ws_ops_view');
+    $viewer->save();
+    $viewer = User::load($viewer->id());
+    $this->assertNotFalse($viewer);
+
+    /** @var \Drupal\Core\Session\AccountSwitcherInterface $switcher */
+    $switcher = $this->container->get('account_switcher');
+    $switcher->switchTo($viewer);
+
+    $workspace = $this->workspaceBuilder()->build($this->event);
+    $this->assertFalse($workspace['meta']['governance_projection_enabled']);
+    $ids = array_column($workspace['sections'], 'id');
+    $this->assertNotContains('escalation_governance', $ids);
+
+    $switcher->switchBack();
+  }
+
   public function testGlobalCatalogSectionPresentWithoutEvent(): void {
     $workspace = $this->workspaceBuilder()->build(NULL);
     $ids = array_column($workspace['sections'], 'id');
@@ -302,7 +383,18 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
       Role::create([
         'id' => 'mel_ws_staff',
         'label' => 'MEL workspace staff',
-      ])->grantPermission('view mel venue operations workspace')->save();
+      ])
+        ->grantPermission('view mel venue operations workspace')
+        ->grantPermission('govern mel operational escalations')
+        ->save();
+    }
+    if (!Role::load('mel_ws_ops_view')) {
+      Role::create([
+        'id' => 'mel_ws_ops_view',
+        'label' => 'MEL workspace view only',
+      ])
+        ->grantPermission('view mel venue operations workspace')
+        ->save();
     }
   }
 

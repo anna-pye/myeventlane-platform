@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_tickets\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -41,6 +42,8 @@ final class OperationalWorkspaceBuilder {
     private readonly VenueOperationPolicyManager $venueOperationPolicyManager,
     private readonly OperationalIntegrityInspector $operationalIntegrityInspector,
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
+    private readonly AccountProxyInterface $currentUser,
+    private readonly OperationalEscalationAuditProjector $operationalEscalationAuditProjector,
   ) {}
 
   /**
@@ -55,7 +58,9 @@ final class OperationalWorkspaceBuilder {
    */
   public function build(?NodeInterface $event): array {
     $cache_tags = ['config:myeventlane_tickets.settings'];
-    $cache_contexts = ['user.permissions'];
+    $cache_contexts = ['user.permissions', 'user'];
+
+    $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -64,6 +69,7 @@ final class OperationalWorkspaceBuilder {
       'event_title' => $event?->getTitle(),
       'sampled_orders' => 0,
       'sampled_tickets' => 0,
+      'governance_projection_enabled' => $governance_enabled,
     ];
 
     if ($event) {
@@ -81,6 +87,16 @@ final class OperationalWorkspaceBuilder {
       $this->buildScannerOperationsSection($merged),
       $entitlement_catalog,
     ];
+
+    if ($governance_enabled) {
+      $governance = $this->operationalEscalationAuditProjector->buildWorkspaceGovernanceSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($governance as $gov_section) {
+        $sections[] = $gov_section;
+      }
+    }
 
     $sections = $this->stripSensitiveRecursive($sections);
 
