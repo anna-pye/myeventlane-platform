@@ -2158,12 +2158,12 @@
       (mediaRoot && melFindManagedFileImageLink(mediaRoot)) || melFindManagedFileImageLink(form);
     if (link && link.href) {
       img.src = link.href;
-      img.alt = val(form, 'mel[field_event_image_alt]') || '';
+      img.alt = melHeroAltValue(form) || '';
       img.removeAttribute('hidden');
       ph.setAttribute('hidden', 'hidden');
     } else if (hasCoverFile(form)) {
       if ((img.getAttribute('src') || '').trim() !== '') {
-        img.alt = val(form, 'mel[field_event_image_alt]') || '';
+        img.alt = melHeroAltValue(form) || '';
         img.removeAttribute('hidden');
       }
       ph.setAttribute('hidden', 'hidden');
@@ -2195,7 +2195,7 @@
             }
             if (prevImg && ph) {
               prevImg.src = r.result;
-              prevImg.alt = val(form, 'mel[field_event_image_alt]') || '';
+              prevImg.alt = melHeroAltValue(form) || '';
               prevImg.removeAttribute('hidden');
               ph.setAttribute('hidden', 'hidden');
             }
@@ -2726,6 +2726,7 @@
       (media && melFindManagedFileImageLink(media)) ||
       melFindManagedFileImageLink(form) ||
       form.querySelector('input[name="mel[field_event_image][]"]')?.value ||
+      form.querySelector('input[name="mel[field_event_image][0][fids]"]')?.value ||
       melHeroImageFidsPresent(form)
     );
   }
@@ -2926,8 +2927,8 @@
       }
     }
 
-    if (!val(form, 'mel[field_event_image_alt]') && hasCoverFile(form)) {
-      add('medium', Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'), 'mel[field_event_image_alt]');
+    if (!melHeroAltValue(form) && hasCoverFile(form)) {
+      add('medium', Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'), melHeroAltFieldName(form));
     }
 
     if (rows.length === 0) {

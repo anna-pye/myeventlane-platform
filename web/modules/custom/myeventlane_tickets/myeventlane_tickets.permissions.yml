@@ -45,6 +45,11 @@ govern mel operational coordination:
   description: 'View operational coordination, posture, readiness, recovery, reconciliation, confidence, and coordination audit projections in the venue operations workspace.'
   restrict access: true
 
+govern mel fulfillment lifecycle:
+  title: 'Govern MyEventLane fulfillment lifecycle'
+  description: 'View fulfillment lifecycle, pickup, redemption, partial fulfillment, execution, and fulfillment audit projections in the venue operations workspace.'
+  restrict access: true
+
 
 
 

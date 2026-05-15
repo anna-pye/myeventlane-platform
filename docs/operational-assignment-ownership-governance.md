@@ -18,6 +18,8 @@ Converge **canonical operational ownership**, **assignment semantics**, **acknow
 | **Assignment audit projection** (`OperationalAssignmentAuditProjector`) | Assignment history summaries, handoff audit lines, ownership timelines, responsibility continuity summaries. |
 | **Operational workspace authority** (`OperationalWorkspaceBuilder`) | Merges inspector rollups, strips sensitive keys, attaches governance sections per permission. |
 
+**Fulfillment lifecycle visibility (Phase 4A)** is governed by **`govern mel fulfillment lifecycle`** and is intentionally **separate** from assignment/ownership projections; see [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md).
+
 Assignment and ownership governance **must not** be consulted by scanner, issuance, or redemption paths.
 
 ## Canonical ownership states
