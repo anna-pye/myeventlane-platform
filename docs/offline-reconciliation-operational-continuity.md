@@ -76,6 +76,10 @@ Escalation, resolution, and suppression **governance projections** for staff (SL
 
 Reservation governance projections compose **continuity mode strings** and fulfillment operational signals from inspector rollups into reservation lifecycle visibility. They **must not** mutate continuity blobs, execute reconciliation, reserve stock, or decrement inventory. See [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md).
 
+## Operational entitlement capability convergence (Phase 4A, Commit 3)
+
+Capability convergence projections compose reservation governance outputs, fulfillment operational signals, and continuity mode strings into unified capability readiness/degradation visibility. They **must not** mutate continuity blobs, execute reconciliation, execute fulfillment, decrement inventory, or bypass scanner authority. See [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md).
+
 ## Related documentation
 
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)
@@ -83,6 +87,7 @@ Reservation governance projections compose **continuity mode strings** and fulfi
 - [operational-observability.md](./operational-observability.md)
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md)
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
+- [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)
 - [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md)

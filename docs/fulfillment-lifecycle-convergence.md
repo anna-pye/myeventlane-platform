@@ -18,6 +18,8 @@ This layer **must not** issue tickets, change entitlements, change scanner outco
 
 **Inventory reservation governance** (Phase 4A Commit 2) consumes fulfillment operational signals and continuity semantics as **inputs** for reservation state normalization. Reservation governance does **not** duplicate fulfillment lifecycle logic; it projects reservation-specific vocabulary (`reserved`, `allocated`, `ready_for_collection`, etc.) for staff visibility. See [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md).
 
+**Operational entitlement capability convergence** (Phase 4A Commit 3) composes reservation governance outputs and fulfillment operational signals into unified capability types/states for merch pickup, hospitality access, redemption, parking, VIP, cloakroom, timed collection, and digital redemption visibility. See [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md).
+
 ## Canonical lifecycle states
 
 Normalized strings (single source in `FulfillmentLifecycleManager`): `pending`, `prepared`, `ready`, `partially_fulfilled`, `fulfilled`, `collected`, `consumed`, `expired`, `failed`, `cancelled`.
@@ -37,6 +39,7 @@ Do not add: inventory engines, warehouse orchestration, shipping execution, noti
 ## Related documentation
 
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
+- [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)
 - [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md)
 - [operational-observability.md](./operational-observability.md)

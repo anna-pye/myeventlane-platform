@@ -18,6 +18,9 @@
     {% if meta.reservation_projection_enabled is defined and meta.reservation_projection_enabled %}
       <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Inventory reservation governance projections are enabled for your account (read-only).'|t }}</p>
     {% endif %}
+    {% if meta.capability_projection_enabled is defined and meta.capability_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Operational entitlement capability projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
   </header>
 
   {% for section in sections %}

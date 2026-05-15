@@ -40,6 +40,11 @@ govern mel inventory reservations:
   description: 'View reservation governance, allocation continuity, degradation, and lifecycle audit projections in the venue operations workspace.'
   restrict access: true
 
+govern mel operational capabilities:
+  title: 'Govern MyEventLane operational capabilities'
+  description: 'View operational entitlement capability convergence, readiness, degradation, fulfillment/reservation capability visibility, and lifecycle audit projections in the venue operations workspace.'
+  restrict access: true
+
 
 
 

@@ -266,6 +266,23 @@ services:
     arguments:
       - '@myeventlane_tickets.inventory_reservation_governance_manager'
 
+  myeventlane_tickets.operational_entitlement_capability_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalEntitlementCapabilityManager
+    arguments:
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@myeventlane_tickets.inventory_reservation_governance_manager'
+      - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.operational_capability_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalCapabilityProjectionBuilder
+    arguments:
+      - '@myeventlane_tickets.operational_entitlement_capability_manager'
+
+  myeventlane_tickets.operational_capability_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\OperationalCapabilityAuditProjector
+    arguments:
+      - '@myeventlane_tickets.operational_entitlement_capability_manager'
+
   myeventlane_tickets.operational_workspace_builder:
     class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
     arguments:
@@ -278,6 +295,8 @@ services:
       - '@myeventlane_tickets.operational_escalation_audit_projector'
       - '@myeventlane_tickets.inventory_reservation_projection_builder'
       - '@myeventlane_tickets.inventory_reservation_audit_projector'
+      - '@myeventlane_tickets.operational_capability_projection_builder'
+      - '@myeventlane_tickets.operational_capability_audit_projector'
 
   myeventlane_tickets.operational_workspace_access:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker

@@ -46,6 +46,8 @@ final class OperationalWorkspaceBuilder {
     private readonly OperationalEscalationAuditProjector $operationalEscalationAuditProjector,
     private readonly InventoryReservationProjectionBuilder $inventoryReservationProjectionBuilder,
     private readonly InventoryReservationAuditProjector $inventoryReservationAuditProjector,
+    private readonly OperationalCapabilityProjectionBuilder $operationalCapabilityProjectionBuilder,
+    private readonly OperationalCapabilityAuditProjector $operationalCapabilityAuditProjector,
   ) {}
 
   /**
@@ -64,6 +66,7 @@ final class OperationalWorkspaceBuilder {
 
     $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
     $reservation_projection_enabled = $this->currentUser->hasPermission('govern mel inventory reservations');
+    $capability_projection_enabled = $this->currentUser->hasPermission('govern mel operational capabilities');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -74,6 +77,7 @@ final class OperationalWorkspaceBuilder {
       'sampled_tickets' => 0,
       'governance_projection_enabled' => $governance_enabled,
       'reservation_projection_enabled' => $reservation_projection_enabled,
+      'capability_projection_enabled' => $capability_projection_enabled,
     ];
 
     if ($event) {
@@ -116,6 +120,23 @@ final class OperationalWorkspaceBuilder {
       );
       foreach ($reservation_audit as $reservation_audit_section) {
         $sections[] = $reservation_audit_section;
+      }
+    }
+
+    if ($capability_projection_enabled) {
+      $capability_sections = $this->operationalCapabilityProjectionBuilder->buildWorkspaceCapabilitySections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($capability_sections as $capability_section) {
+        $sections[] = $capability_section;
+      }
+      $capability_audit = $this->operationalCapabilityAuditProjector->buildWorkspaceCapabilityAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($capability_audit as $capability_audit_section) {
+        $sections[] = $capability_audit_section;
       }
     }
 

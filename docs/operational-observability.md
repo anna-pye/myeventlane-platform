@@ -90,11 +90,16 @@ Staff may view **escalation governance**, **SLA acknowledgement projections**, *
 
 Staff may view **reservation governance**, **allocation continuity**, **degraded reservation visibility**, **readiness and partial allocation summaries**, and **reservation lifecycle audit timelines** when they hold **`govern mel inventory reservations`**. Normalization lives in `InventoryReservationGovernanceManager`; cards and audit sections are composed through `InventoryReservationProjectionBuilder` and `InventoryReservationAuditProjector`. This layer consumes `fulfillment_operational_signals` and continuity rollups as **inputs only** — it does not reserve stock, decrement inventory, or execute warehouse/shipping/dispatch. See [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md).
 
+## Operational entitlement capability convergence (Phase 4A, Commit 3)
+
+Staff may view **operational capability cards**, **capability readiness summaries**, **degradation visibility**, **fulfillment-capability visibility**, **reservation-capability visibility**, **capability continuity summaries**, and **capability lifecycle audit timelines** when they hold **`govern mel operational capabilities`**. Normalization lives in `OperationalEntitlementCapabilityManager`; cards and audit sections are composed through `OperationalCapabilityProjectionBuilder` and `OperationalCapabilityAuditProjector`. This layer composes reservation governance and fulfillment operational signals as **inputs only** — it does not execute fulfillment, mutate inventory, or bypass scanner authority. See [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md).
+
 ## Related documentation
 
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md) — continuity / reconciliation metadata authority
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md) — escalation, resolution, suppression governance projections
 - [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md) — reservation lifecycle and allocation governance projections
+- [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md) — operational entitlement capability convergence projections
 - [issuance-pipeline.md](./issuance-pipeline.md) — issuance order and attachment merge
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md) — venue gate policy, offline scaffolding, replay metadata
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md) — capability registry delegation
