@@ -72,12 +72,15 @@ Normalized scalar fields (machine-oriented):
 
 Escalation, resolution, and suppression **governance projections** for staff (SLA acknowledgement windows, severity→escalation routing, suppression rule visibility) are documented in [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md). Those projections **must not** become alternate continuity authority, must not mutate persisted continuity blobs, and must not execute reconciliation.
 
+**Assignment and ownership governance (Phase 3A, Commit 5)** adds read-only workspace projections for operational ownership, assignment posture, and handoff audit continuity documented in [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md). That layer **must not** mutate continuity blobs, scanner state, or reconciliation execution.
+
 ## Related documentation
 
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)
 - [device-gate-identity-convergence.md](./device-gate-identity-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md)
+- [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)
 - [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md)

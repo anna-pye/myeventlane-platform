@@ -34,6 +34,9 @@ final class OperationalWorkspaceBuilder {
     'operation_fingerprint',
     'replay_continuity_metadata',
     'deterministic_continuity_descriptor',
+    'qr_payload',
+    'qr_material',
+    'payload_signature',
   ];
 
   public function __construct(
@@ -44,6 +47,7 @@ final class OperationalWorkspaceBuilder {
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly AccountProxyInterface $currentUser,
     private readonly OperationalEscalationAuditProjector $operationalEscalationAuditProjector,
+    private readonly OperationalOwnershipProjectionBuilder $operationalOwnershipProjectionBuilder,
   ) {}
 
   /**
@@ -61,6 +65,7 @@ final class OperationalWorkspaceBuilder {
     $cache_contexts = ['user.permissions', 'user'];
 
     $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
+    $ownership_projection_enabled = $this->currentUser->hasPermission('govern mel operational ownership');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -70,6 +75,7 @@ final class OperationalWorkspaceBuilder {
       'sampled_orders' => 0,
       'sampled_tickets' => 0,
       'governance_projection_enabled' => $governance_enabled,
+      'ownership_projection_enabled' => $ownership_projection_enabled,
     ];
 
     if ($event) {
@@ -95,6 +101,16 @@ final class OperationalWorkspaceBuilder {
       );
       foreach ($governance as $gov_section) {
         $sections[] = $gov_section;
+      }
+    }
+
+    if ($ownership_projection_enabled) {
+      $ownership_sections = $this->operationalOwnershipProjectionBuilder->buildWorkspaceOwnershipSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($ownership_sections as $own_section) {
+        $sections[] = $own_section;
       }
     }
 

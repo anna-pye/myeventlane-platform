@@ -21,6 +21,7 @@ use Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\myeventlane_tickets\Service\OperationalEscalationAuditProjector;
 use Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector;
+use Drupal\myeventlane_tickets\Service\OperationalOwnershipProjectionBuilder;
 use Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -297,6 +298,7 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
       }
     }
     $this->assertContains(OperationalEscalationAuditProjector::class, $types);
+    $this->assertContains(OperationalOwnershipProjectionBuilder::class, $types);
   }
 
   public function testGovernanceSectionsIncludedForStaffWithEscalationPermission(): void {
@@ -325,11 +327,14 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
 
     $workspace = $this->workspaceBuilder()->build($this->event);
     $this->assertTrue($workspace['meta']['governance_projection_enabled']);
+    $this->assertTrue($workspace['meta']['ownership_projection_enabled']);
     $ids = array_column($workspace['sections'], 'id');
     $this->assertContains('escalation_governance', $ids);
     $this->assertContains('resolution_governance', $ids);
     $this->assertContains('suppression_governance', $ids);
     $this->assertContains('escalation_audit', $ids);
+    $this->assertContains('assignment_ownership', $ids);
+    $this->assertContains('ownership_audit_timeline', $ids);
 
     $switcher->switchBack();
   }
@@ -359,8 +364,76 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
 
     $workspace = $this->workspaceBuilder()->build($this->event);
     $this->assertFalse($workspace['meta']['governance_projection_enabled']);
+    $this->assertFalse($workspace['meta']['ownership_projection_enabled']);
     $ids = array_column($workspace['sections'], 'id');
     $this->assertNotContains('escalation_governance', $ids);
+    $this->assertNotContains('assignment_ownership', $ids);
+
+    $switcher->switchBack();
+  }
+
+  public function testOwnershipSectionsWithoutEscalationPermission(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    foreach ($tickets as $ticket) {
+      $ticket->set('event_id', $this->event->id());
+      $ticket->save();
+    }
+
+    $user = User::create([
+      'name' => 'workspace_own_only',
+      'mail' => 'own-only-ws@example.test',
+      'status' => 1,
+    ]);
+    $user->addRole('mel_ws_ownership_only');
+    $user->save();
+    $user = User::load($user->id());
+    $this->assertNotFalse($user);
+
+    /** @var \Drupal\Core\Session\AccountSwitcherInterface $switcher */
+    $switcher = $this->container->get('account_switcher');
+    $switcher->switchTo($user);
+
+    $workspace = $this->workspaceBuilder()->build($this->event);
+    $this->assertFalse($workspace['meta']['governance_projection_enabled']);
+    $this->assertTrue($workspace['meta']['ownership_projection_enabled']);
+    $ids = array_column($workspace['sections'], 'id');
+    $this->assertNotContains('escalation_governance', $ids);
+    $this->assertContains('assignment_ownership', $ids);
+
+    $switcher->switchBack();
+  }
+
+  public function testEscalationSectionsWithoutOwnershipPermission(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    foreach ($tickets as $ticket) {
+      $ticket->set('event_id', $this->event->id());
+      $ticket->save();
+    }
+
+    $user = User::create([
+      'name' => 'workspace_esc_only',
+      'mail' => 'esc-only-ws@example.test',
+      'status' => 1,
+    ]);
+    $user->addRole('mel_ws_escalation_only');
+    $user->save();
+    $user = User::load($user->id());
+    $this->assertNotFalse($user);
+
+    /** @var \Drupal\Core\Session\AccountSwitcherInterface $switcher */
+    $switcher = $this->container->get('account_switcher');
+    $switcher->switchTo($user);
+
+    $workspace = $this->workspaceBuilder()->build($this->event);
+    $this->assertTrue($workspace['meta']['governance_projection_enabled']);
+    $this->assertFalse($workspace['meta']['ownership_projection_enabled']);
+    $ids = array_column($workspace['sections'], 'id');
+    $this->assertContains('escalation_governance', $ids);
+    $this->assertNotContains('assignment_ownership', $ids);
 
     $switcher->switchBack();
   }
@@ -379,23 +452,36 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
         'label' => 'MEL workspace vendor-only',
       ])->grantPermission('manage own events tickets')->save();
     }
-    if (!Role::load('mel_ws_staff')) {
-      Role::create([
-        'id' => 'mel_ws_staff',
-        'label' => 'MEL workspace staff',
-      ])
-        ->grantPermission('view mel venue operations workspace')
-        ->grantPermission('govern mel operational escalations')
-        ->save();
-    }
-    if (!Role::load('mel_ws_ops_view')) {
-      Role::create([
-        'id' => 'mel_ws_ops_view',
-        'label' => 'MEL workspace view only',
-      ])
-        ->grantPermission('view mel venue operations workspace')
-        ->save();
-    }
+    $staff = Role::load('mel_ws_staff') ?? Role::create([
+      'id' => 'mel_ws_staff',
+      'label' => 'MEL workspace staff',
+    ]);
+    $staff->grantPermission('view mel venue operations workspace')
+      ->grantPermission('govern mel operational escalations')
+      ->grantPermission('govern mel operational ownership')
+      ->save();
+
+    $ops_view = Role::load('mel_ws_ops_view') ?? Role::create([
+      'id' => 'mel_ws_ops_view',
+      'label' => 'MEL workspace view only',
+    ]);
+    $ops_view->grantPermission('view mel venue operations workspace')->save();
+
+    $esc_only = Role::load('mel_ws_escalation_only') ?? Role::create([
+      'id' => 'mel_ws_escalation_only',
+      'label' => 'MEL workspace escalation governance only',
+    ]);
+    $esc_only->grantPermission('view mel venue operations workspace')
+      ->grantPermission('govern mel operational escalations')
+      ->save();
+
+    $own_only = Role::load('mel_ws_ownership_only') ?? Role::create([
+      'id' => 'mel_ws_ownership_only',
+      'label' => 'MEL workspace ownership governance only',
+    ]);
+    $own_only->grantPermission('view mel venue operations workspace')
+      ->grantPermission('govern mel operational ownership')
+      ->save();
   }
 
   private function issuer(): TicketIssuer {

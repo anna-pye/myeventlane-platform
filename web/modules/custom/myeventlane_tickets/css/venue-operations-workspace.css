@@ -94,6 +94,40 @@
   color: #4a5563;
 }
 
+.mel-ops-workspace__meta--ownership {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  color: #4a5563;
+}
+
+.mel-ops-workspace__timeline {
+  margin: 0.75rem 0 0;
+  padding-left: 1.15rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #3b3f45;
+}
+
+.mel-ops-workspace__timeline-item {
+  margin-bottom: 0.35rem;
+}
+
+.mel-ops-workspace__timeline-state {
+  font-weight: 600;
+  color: #1f2328;
+}
+
+.mel-ops-workspace__timeline-at {
+  margin-left: 0.35rem;
+  font-variant-numeric: tabular-nums;
+  color: #5c6470;
+}
+
+.mel-ops-workspace__timeline-note {
+  margin-left: 0.35rem;
+  color: #5c6470;
+}
+
 /* Soft severity / governance tones (governance sections only). */
 .mel-ops-workspace__section--tone-low .mel-ops-workspace__section-title {
   border-bottom-color: #c5ccd6;

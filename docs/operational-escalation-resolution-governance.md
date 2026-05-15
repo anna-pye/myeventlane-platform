@@ -50,6 +50,7 @@ SLA material is expressed as **acknowledgement seconds** per escalation tier (fo
 - Route: `/admin/mel/operations` (unchanged).
 - Route access remains `view mel venue operations workspace` via `OperationalWorkspaceAccessChecker`.
 - **Escalation governance cards**, **SLA indicators**, **resolution governance cards**, **suppression visibility**, **ownership indicators**, and **escalation audit visibility** render only when the account holds **`govern mel operational escalations`** (restricted). The builder attaches governance **sections**; Twig renders normalized card rows only.
+- **Assignment ownership**, **acknowledgement ownership**, **escalation owner visibility**, **handoff continuity**, **operational responsibility**, and **ownership audit timelines** render only when the account holds **`govern mel operational ownership`** (restricted). Shapes are composed exclusively by `OperationalOwnershipProjectionBuilder` and `OperationalAssignmentAuditProjector`; see [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md).
 
 Forbidden in the workspace: mutation buttons, “repair now”, “retry issuance”, reconciliation execution, entitlement editing, websocket clients.
 
@@ -68,6 +69,7 @@ Forbidden in the workspace: mutation buttons, “repair now”, “retry issuanc
 ## Related documents
 
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)
+- [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md)
 - [operational-observability.md](./operational-observability.md)
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
