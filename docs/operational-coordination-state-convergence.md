@@ -22,8 +22,6 @@ This phase is **not** orchestration, automation, execution, dispatch, notificati
 | **Coordination audit** (`OperationalCoordinationAuditProjector`) | Append-only style timelines and history summaries without secrets. |
 | **Operational workspace authority** (`OperationalWorkspaceBuilder`) | Merges inspector rollups, strips sensitive keys, attaches coordination sections **only** when permitted. |
 
-**Fulfillment visibility (Phase 4A):** operational fulfillment lifecycle projections (`govern mel fulfillment lifecycle`) are a **separate permission** from coordination; they consume the same merged rollup plus fulfillment operational signals without mutating scanner or entitlement authority. See [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md).
-
 Coordination services **must not** be consulted by scanner, issuance, redemption, or continuity mutation paths.
 
 ## Canonical tokens
@@ -92,3 +90,7 @@ Coordination state remains **downstream of** entitlement, scanner, continuity, a
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md)
 - [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md)
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)
+
+## Inventory reservation governance (Phase 4A, Commit 2)
+
+**Reservation governance** (`govern mel inventory reservations`) is a **separate permission slice** from coordination projections. Reservation sections normalize allocation lifecycle and inventory-boundary semantics from `fulfillment_operational_signals` and continuity rollups; they do **not** duplicate coordination state logic. See [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md).

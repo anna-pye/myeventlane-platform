@@ -179,6 +179,31 @@ final class OperationalIntegrityInspector {
    * @param list<Ticket> $tickets
    *
    * @return array<string, mixed>
+   *   Staff-safe operational signals for reservation governance read-models.
+   */
+  private function buildFulfillmentOperationalSignalsDomain(array $tickets): array {
+    $by = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
+      $by[$id] = [
+        'entitlement_type' => $type,
+        'fulfilment_status' => $ticket->getFulfilmentStatus(),
+        'redemption_count' => $ticket->getRedemptionCount(),
+        'redemption_limit' => $ticket->getRedemptionLimit(),
+        'ticket_status' => (string) ($ticket->get('status')->value ?? ''),
+        'admission_checked_in' => ((string) ($ticket->get('status')->value ?? '')) === Ticket::STATUS_CHECKED_IN,
+      ];
+    }
+    return [
+      'by_ticket_id' => $by,
+    ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, mixed>
    */
   private function buildIssuanceDomain(
     int $orderId,
@@ -513,31 +538,6 @@ final class OperationalIntegrityInspector {
       ];
     }
     return $digest;
-  }
-
-  /**
-   * @param list<Ticket> $tickets
-   *
-   * @return array<string, mixed>
-   *   Staff-safe operational signals for fulfillment lifecycle read-models.
-   */
-  private function buildFulfillmentOperationalSignalsDomain(array $tickets): array {
-    $by = [];
-    foreach ($tickets as $ticket) {
-      $id = (string) $ticket->id();
-      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
-      $by[$id] = [
-        'entitlement_type' => $type,
-        'fulfilment_status' => $ticket->getFulfilmentStatus(),
-        'redemption_count' => $ticket->getRedemptionCount(),
-        'redemption_limit' => $ticket->getRedemptionLimit(),
-        'ticket_status' => (string) ($ticket->get('status')->value ?? ''),
-        'admission_checked_in' => ((string) ($ticket->get('status')->value ?? '')) === Ticket::STATUS_CHECKED_IN,
-      ];
-    }
-    return [
-      'by_ticket_id' => $by,
-    ];
   }
 
   /**

@@ -14,6 +14,12 @@ Fulfillment lifecycle visibility is a **read-only operational projection layer**
 
 This layer **must not** issue tickets, change entitlements, change scanner outcomes, enqueue orchestration, send notifications, reserve inventory, or execute shipping.
 
+## Relationship to reservation governance
+
+**Inventory reservation governance** (Phase 4A Commit 2) consumes fulfillment operational signals and continuity semantics as **inputs** for reservation state normalization. Reservation governance does **not** duplicate fulfillment lifecycle logic; it projects reservation-specific vocabulary (`reserved`, `allocated`, `ready_for_collection`, etc.) for staff visibility. See [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md).
+
+**Operational entitlement capability convergence** (Phase 4A Commit 3) composes reservation governance outputs and fulfillment operational signals into unified capability types/states for merch pickup, hospitality access, redemption, parking, VIP, cloakroom, timed collection, and digital redemption visibility. See [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md).
+
 ## Canonical lifecycle states
 
 Normalized strings (single source in `FulfillmentLifecycleManager`): `pending`, `prepared`, `ready`, `partially_fulfilled`, `fulfilled`, `collected`, `consumed`, `expired`, `failed`, `cancelled`.
@@ -26,40 +32,15 @@ Entity `fulfilment_status` maps into this vocabulary; admission **checked-in** r
 
 Types are derived from normalized entitlement types plus redemption limits (e.g. add-ons with `redemption_limit > 1` → `multi_redeem`).
 
-## Redemption normalization
-
-Redemption **execution summaries** are composed from:
-
-- entitlement scanner action token (from the capability registry),
-- timed/session scanner state strings already materialized on continuity rows (`timing_session_composition_refs`),
-- redemption count / limit integers from ticket rows.
-
-No replay tokens, QR payloads, device fingerprints, or raw scanner payloads are emitted.
-
-## Pickup normalization
-
-Pickup summaries use `requires_fulfilment` from capabilities plus normalized lifecycle state and the raw fulfilment row status label for staff continuity. There are **no** “complete pickup” or fulfilment mutation controls in the workspace shell.
-
-## Partial fulfillment
-
-When capabilities mark `redeemable` + `multi_use` and `0 < redemption_count < redemption_limit`, rows are labeled `partially_fulfilled` for lifecycle visibility. Consumed (`fulfilment_status = redeemed`) takes precedence over partial semantics.
-
-## Consumption semantics
-
-Consumption descriptors distinguish: not redeemable, partial consumption visibility, complete consumption visibility, pending consumption.
-
-## Workspace (`/admin/mel/operations`)
-
-Sections are gated by **`govern mel fulfillment lifecycle`** (separate from escalation, ownership, and coordination permissions). Twig renders **pre-built cards and timelines only**; all arithmetic and ordering happen in PHP services.
-
 ## Forbidden patterns
 
 Do not add: inventory engines, warehouse orchestration, shipping execution, notifications, realtime/WebSocket coordination, or duplicate scanner/entitlement/continuity policy stacks in Twig or ad-hoc controllers.
 
 ## Related documentation
 
+- [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
+- [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)
 - [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md)
 - [operational-coordination-state-convergence.md](./operational-coordination-state-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)
-- [operational-assignment-ownership-governance.md](./operational-assignment-ownership-governance.md)

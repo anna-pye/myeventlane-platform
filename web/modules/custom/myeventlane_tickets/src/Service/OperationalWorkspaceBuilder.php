@@ -34,9 +34,6 @@ final class OperationalWorkspaceBuilder {
     'operation_fingerprint',
     'replay_continuity_metadata',
     'deterministic_continuity_descriptor',
-    'qr_payload',
-    'qr_material',
-    'payload_signature',
   ];
 
   public function __construct(
@@ -47,11 +44,10 @@ final class OperationalWorkspaceBuilder {
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly AccountProxyInterface $currentUser,
     private readonly OperationalEscalationAuditProjector $operationalEscalationAuditProjector,
-    private readonly OperationalOwnershipProjectionBuilder $operationalOwnershipProjectionBuilder,
-    private readonly OperationalCoordinationProjectionBuilder $operationalCoordinationProjectionBuilder,
-    private readonly OperationalCoordinationAuditProjector $operationalCoordinationAuditProjector,
-    private readonly FulfillmentExecutionProjectionBuilder $fulfillmentExecutionProjectionBuilder,
-    private readonly FulfillmentAuditProjector $fulfillmentAuditProjector,
+    private readonly InventoryReservationProjectionBuilder $inventoryReservationProjectionBuilder,
+    private readonly InventoryReservationAuditProjector $inventoryReservationAuditProjector,
+    private readonly OperationalCapabilityProjectionBuilder $operationalCapabilityProjectionBuilder,
+    private readonly OperationalCapabilityAuditProjector $operationalCapabilityAuditProjector,
   ) {}
 
   /**
@@ -69,9 +65,8 @@ final class OperationalWorkspaceBuilder {
     $cache_contexts = ['user.permissions', 'user'];
 
     $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
-    $ownership_projection_enabled = $this->currentUser->hasPermission('govern mel operational ownership');
-    $coordination_projection_enabled = $this->currentUser->hasPermission('govern mel operational coordination');
-    $fulfillment_projection_enabled = $this->currentUser->hasPermission('govern mel fulfillment lifecycle');
+    $reservation_projection_enabled = $this->currentUser->hasPermission('govern mel inventory reservations');
+    $capability_projection_enabled = $this->currentUser->hasPermission('govern mel operational capabilities');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -81,9 +76,8 @@ final class OperationalWorkspaceBuilder {
       'sampled_orders' => 0,
       'sampled_tickets' => 0,
       'governance_projection_enabled' => $governance_enabled,
-      'ownership_projection_enabled' => $ownership_projection_enabled,
-      'coordination_projection_enabled' => $coordination_projection_enabled,
-      'fulfillment_projection_enabled' => $fulfillment_projection_enabled,
+      'reservation_projection_enabled' => $reservation_projection_enabled,
+      'capability_projection_enabled' => $capability_projection_enabled,
     ];
 
     if ($event) {
@@ -112,47 +106,37 @@ final class OperationalWorkspaceBuilder {
       }
     }
 
-    if ($ownership_projection_enabled) {
-      $ownership_sections = $this->operationalOwnershipProjectionBuilder->buildWorkspaceOwnershipSections(
+    if ($reservation_projection_enabled) {
+      $reservation_sections = $this->inventoryReservationProjectionBuilder->buildWorkspaceReservationSections(
         $merged,
         (int) $meta['built_at']
       );
-      foreach ($ownership_sections as $own_section) {
-        $sections[] = $own_section;
+      foreach ($reservation_sections as $reservation_section) {
+        $sections[] = $reservation_section;
+      }
+      $reservation_audit = $this->inventoryReservationAuditProjector->buildWorkspaceReservationAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($reservation_audit as $reservation_audit_section) {
+        $sections[] = $reservation_audit_section;
       }
     }
 
-    if ($coordination_projection_enabled) {
-      $coordination_sections = $this->operationalCoordinationProjectionBuilder->buildWorkspaceCoordinationSections(
+    if ($capability_projection_enabled) {
+      $capability_sections = $this->operationalCapabilityProjectionBuilder->buildWorkspaceCapabilitySections(
         $merged,
         (int) $meta['built_at']
       );
-      foreach ($coordination_sections as $coord_section) {
-        $sections[] = $coord_section;
+      foreach ($capability_sections as $capability_section) {
+        $sections[] = $capability_section;
       }
-      $coordination_audit = $this->operationalCoordinationAuditProjector->buildWorkspaceCoordinationAuditSections(
+      $capability_audit = $this->operationalCapabilityAuditProjector->buildWorkspaceCapabilityAuditSections(
         $merged,
         (int) $meta['built_at']
       );
-      foreach ($coordination_audit as $audit_section) {
-        $sections[] = $audit_section;
-      }
-    }
-
-    if ($fulfillment_projection_enabled) {
-      $fulfillment_sections = $this->fulfillmentExecutionProjectionBuilder->buildWorkspaceFulfillmentSections(
-        $merged,
-        (int) $meta['built_at']
-      );
-      foreach ($fulfillment_sections as $fulfillment_section) {
-        $sections[] = $fulfillment_section;
-      }
-      $fulfillment_audit = $this->fulfillmentAuditProjector->buildWorkspaceFulfillmentAuditSections(
-        $merged,
-        (int) $meta['built_at']
-      );
-      foreach ($fulfillment_audit as $fulfillment_audit_section) {
-        $sections[] = $fulfillment_audit_section;
+      foreach ($capability_audit as $capability_audit_section) {
+        $sections[] = $capability_audit_section;
       }
     }
 

@@ -1,15 +1,19 @@
 uuid: cb3fea28-5909-4bc8-b00f-f4dbcfc49c6e
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  config:
+    - crop.type.focal_point
+  module:
+    - focal_point
 name: mel_event_card_standard
 label: 'MEL event card (standard)'
 effects:
   f8f903d0-7d66-40b8-a8b9-88845029b0b7:
     uuid: f8f903d0-7d66-40b8-a8b9-88845029b0b7
-    id: image_scale_and_crop
+    id: focal_point_scale_and_crop
     weight: 0
     data:
       width: 400
       height: 500
-      anchor: center-center
+      crop_type: focal_point
