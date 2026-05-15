@@ -55,13 +55,14 @@ final class EventBrandingForm extends EventStudioBaseForm {
     }
     $this->assertVendorEvent($loaded);
 
-    $complete_form = $form_state->getCompleteForm();
-    $mel_subform = $complete_form['mel'] ?? $form_state->getValue('mel') ?? [];
-    if (!is_array($mel_subform)) {
-      $mel_subform = [];
+    $baseline = $this->wizardMelBaseline->getBaselineMel($loaded);
+    $submitted = $form_state->getValue('mel') ?? [];
+    if (!is_array($submitted)) {
+      $submitted = [];
     }
+    $merged = $this->mergeMel($baseline, $submitted);
 
-    return $this->saveService->saveBrandingHero($loaded, $mel_subform, $form_state, $draft);
+    return $this->saveService->saveBrandingHero($loaded, $merged, $form_state, $draft);
   }
 
   /**
