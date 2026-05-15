@@ -72,12 +72,17 @@ Normalized scalar fields (machine-oriented):
 
 Escalation, resolution, and suppression **governance projections** for staff (SLA acknowledgement windows, severity→escalation routing, suppression rule visibility) are documented in [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md). Those projections **must not** become alternate continuity authority, must not mutate persisted continuity blobs, and must not execute reconciliation.
 
+## Inventory reservation governance (Phase 4A, Commit 2)
+
+Reservation governance projections compose **continuity mode strings** and fulfillment operational signals from inspector rollups into reservation lifecycle visibility. They **must not** mutate continuity blobs, execute reconciliation, reserve stock, or decrement inventory. See [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md).
+
 ## Related documentation
 
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)
 - [device-gate-identity-convergence.md](./device-gate-identity-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md)
+- [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)
 - [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md)

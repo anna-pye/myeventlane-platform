@@ -35,6 +35,11 @@ govern mel operational escalations:
   description: 'View escalation, SLA, resolution, and suppression governance projections in the venue operations workspace.'
   restrict access: true
 
+govern mel inventory reservations:
+  title: 'Govern MyEventLane inventory reservations'
+  description: 'View reservation governance, allocation continuity, degradation, and lifecycle audit projections in the venue operations workspace.'
+  restrict access: true
+
 
 
 

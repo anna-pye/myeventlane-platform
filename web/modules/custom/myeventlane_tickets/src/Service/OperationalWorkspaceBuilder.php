@@ -44,6 +44,8 @@ final class OperationalWorkspaceBuilder {
     private readonly EntitlementCapabilityRegistry $entitlementCapabilityRegistry,
     private readonly AccountProxyInterface $currentUser,
     private readonly OperationalEscalationAuditProjector $operationalEscalationAuditProjector,
+    private readonly InventoryReservationProjectionBuilder $inventoryReservationProjectionBuilder,
+    private readonly InventoryReservationAuditProjector $inventoryReservationAuditProjector,
   ) {}
 
   /**
@@ -61,6 +63,7 @@ final class OperationalWorkspaceBuilder {
     $cache_contexts = ['user.permissions', 'user'];
 
     $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
+    $reservation_projection_enabled = $this->currentUser->hasPermission('govern mel inventory reservations');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -70,6 +73,7 @@ final class OperationalWorkspaceBuilder {
       'sampled_orders' => 0,
       'sampled_tickets' => 0,
       'governance_projection_enabled' => $governance_enabled,
+      'reservation_projection_enabled' => $reservation_projection_enabled,
     ];
 
     if ($event) {
@@ -95,6 +99,23 @@ final class OperationalWorkspaceBuilder {
       );
       foreach ($governance as $gov_section) {
         $sections[] = $gov_section;
+      }
+    }
+
+    if ($reservation_projection_enabled) {
+      $reservation_sections = $this->inventoryReservationProjectionBuilder->buildWorkspaceReservationSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($reservation_sections as $reservation_section) {
+        $sections[] = $reservation_section;
+      }
+      $reservation_audit = $this->inventoryReservationAuditProjector->buildWorkspaceReservationAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($reservation_audit as $reservation_audit_section) {
+        $sections[] = $reservation_audit_section;
       }
     }
 
@@ -159,6 +180,9 @@ final class OperationalWorkspaceBuilder {
         'artifacts' => [],
         'recovery' => [],
         'guest_continuity' => [],
+        'fulfillment_signals' => [
+          'by_ticket_id' => [],
+        ],
       ];
     }
 
@@ -166,12 +190,35 @@ final class OperationalWorkspaceBuilder {
     $merged_recovery = $this->mergeRecoveryRollup($inspections);
     $merged_guest = $this->mergeGuestContinuityRollup($inspections);
     $merged_artifacts = $this->mergeArtifactDomains($inspections);
+    $merged_fulfillment = $this->mergeFulfillmentSignals($inspections);
 
     return [
       'issuance' => $merged_issuance,
       'artifacts' => $merged_artifacts,
       'recovery' => $merged_recovery,
       'guest_continuity' => $merged_guest,
+      'fulfillment_signals' => $merged_fulfillment,
+    ];
+  }
+
+  /**
+   * @param array<int|string, array<string, mixed>> $inspections
+   *
+   * @return array<string, mixed>
+   */
+  private function mergeFulfillmentSignals(array $inspections): array {
+    $by = [];
+    foreach ($inspections as $row) {
+      $sig = $row['fulfillment_operational_signals'] ?? [];
+      $chunk = is_array($sig['by_ticket_id'] ?? NULL) ? $sig['by_ticket_id'] : [];
+      foreach ($chunk as $tid => $slice) {
+        if (is_array($slice)) {
+          $by[(string) $tid] = $slice;
+        }
+      }
+    }
+    return [
+      'by_ticket_id' => $by,
     ];
   }
 

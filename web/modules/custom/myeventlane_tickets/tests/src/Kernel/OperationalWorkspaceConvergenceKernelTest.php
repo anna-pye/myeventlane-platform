@@ -19,6 +19,8 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker;
 use Drupal\Core\Session\AccountSwitcherInterface;
+use Drupal\myeventlane_tickets\Service\InventoryReservationAuditProjector;
+use Drupal\myeventlane_tickets\Service\InventoryReservationProjectionBuilder;
 use Drupal\myeventlane_tickets\Service\OperationalEscalationAuditProjector;
 use Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector;
 use Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder;
@@ -297,6 +299,20 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
       }
     }
     $this->assertContains(OperationalEscalationAuditProjector::class, $types);
+  }
+
+  public function testBuilderUsesReservationProjectors(): void {
+    $ref = new ReflectionClass(OperationalWorkspaceBuilder::class);
+    $params = $ref->getConstructor()?->getParameters() ?? [];
+    $types = [];
+    foreach ($params as $p) {
+      $t = $p->getType();
+      if ($t instanceof \ReflectionNamedType) {
+        $types[] = $t->getName();
+      }
+    }
+    $this->assertContains(InventoryReservationProjectionBuilder::class, $types);
+    $this->assertContains(InventoryReservationAuditProjector::class, $types);
   }
 
   public function testGovernanceSectionsIncludedForStaffWithEscalationPermission(): void {

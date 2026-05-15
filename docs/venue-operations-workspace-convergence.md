@@ -11,10 +11,13 @@ This commit is **read-only**: no websocket sync, no polling loops, no maps, no a
 | Component | Responsibility |
 | --- | --- |
 | `OperationalWorkspaceAccessChecker` (`myeventlane_tickets.operational_workspace_access`) | Route access only: anonymous denied; requires `view mel venue operations workspace` (restricted permission). |
-| `OperationalWorkspaceBuilder` (`myeventlane_tickets.operational_workspace_builder`) | Samples Commerce orders for issued tickets on an optional event scope, calls `OperationalIntegrityInspector::inspectOrder()`, merges read-only diagnostics, and emits **Twig-safe section arrays** (cards with labels/values). When the account has `govern mel operational escalations`, appends **governance sections** produced exclusively by `OperationalEscalationAuditProjector` (escalation, SLA, resolution, suppression, audit visibility). |
+| `OperationalWorkspaceBuilder` (`myeventlane_tickets.operational_workspace_builder`) | Samples Commerce orders for issued tickets on an optional event scope, calls `OperationalIntegrityInspector::inspectOrder()`, merges read-only diagnostics, and emits **Twig-safe section arrays** (cards with labels/values). When the account has `govern mel operational escalations`, appends **governance sections** produced exclusively by `OperationalEscalationAuditProjector` (escalation, SLA, resolution, suppression, audit visibility). When the account has `govern mel inventory reservations`, appends **reservation governance sections** from `InventoryReservationProjectionBuilder` and `InventoryReservationAuditProjector`. |
 | `OperationalEscalationPolicyManager` (`myeventlane_tickets.operational_escalation_policy_manager`) | Normalizes escalation and severity tokens, maps severity to escalation tiers, and defines SLA acknowledgement semantics for projections (not scanner authority). |
 | `OperationalResolutionGovernanceManager` (`myeventlane_tickets.operational_resolution_governance_manager`) | Resolution state normalization, suppression validation (explicit reason required), lifecycle transition matrix, acknowledgement timing projection. |
 | `OperationalEscalationAuditProjector` (`myeventlane_tickets.operational_escalation_audit_projector`) | Audit-safe escalation/resolution/suppression summaries for the workspace; no secrets or QR material. |
+| `InventoryReservationGovernanceManager` (`myeventlane_tickets.inventory_reservation_governance_manager`) | Reservation state/type normalization, allocation readiness/degradation/continuity descriptors (read-only; no stock execution). |
+| `InventoryReservationProjectionBuilder` (`myeventlane_tickets.inventory_reservation_projection_builder`) | Twig-safe reservation governance cards for the workspace. |
+| `InventoryReservationAuditProjector` (`myeventlane_tickets.inventory_reservation_audit_projector`) | Reservation lifecycle audit timelines and allocation continuity summaries; no secrets. |
 | `VenueOperationsController` | Resolves optional `?event={nid}` (event bundle only), invokes the builder, returns a themed render array with cache tags/contexts. |
 | `venue_operations_workspace` Twig template | Renders pre-shaped `sections` and `meta` only — **no policy branching, no calculations**. |
 
@@ -45,5 +48,6 @@ This commit is **read-only**: no websocket sync, no polling loops, no maps, no a
 
 - [operational-observability.md](./operational-observability.md)
 - [operational-escalation-resolution-governance.md](./operational-escalation-resolution-governance.md)
+- [inventory-reservation-governance-convergence.md](./inventory-reservation-governance-convergence.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
 - [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)

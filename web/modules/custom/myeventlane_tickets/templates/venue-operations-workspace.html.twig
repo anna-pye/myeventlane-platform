@@ -15,6 +15,9 @@
     {% if meta.governance_projection_enabled is defined and meta.governance_projection_enabled %}
       <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Escalation and resolution governance projections are enabled for your account (read-only).'|t }}</p>
     {% endif %}
+    {% if meta.reservation_projection_enabled is defined and meta.reservation_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Inventory reservation governance projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
   </header>
 
   {% for section in sections %}
@@ -28,6 +31,17 @@
           </article>
         {% endfor %}
       </div>
+      {% if section.timeline is defined and section.timeline %}
+        <ol class="mel-ops-workspace__timeline">
+          {% for entry in section.timeline %}
+            <li class="mel-ops-workspace__timeline-entry">
+              <span class="mel-ops-workspace__timeline-state">{{ entry.lane_state }}</span>
+              <span class="mel-ops-workspace__timeline-at">{{ entry.recorded_at_unix }}</span>
+              <span class="mel-ops-workspace__timeline-note">{{ entry.audit_note }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
     </section>
   {% endfor %}
 </div>
