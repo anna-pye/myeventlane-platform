@@ -233,6 +233,23 @@ services:
       - '@myeventlane_tickets.ticket_mailer'
       - '@logger.channel.myeventlane_tickets'
 
+  myeventlane_tickets.operational_escalation_policy_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalEscalationPolicyManager
+    arguments:
+      - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.operational_resolution_governance_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalResolutionGovernanceManager
+    arguments:
+      - '@myeventlane_tickets.operational_escalation_policy_manager'
+      - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.operational_escalation_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\OperationalEscalationAuditProjector
+    arguments:
+      - '@myeventlane_tickets.operational_escalation_policy_manager'
+      - '@myeventlane_tickets.operational_resolution_governance_manager'
+
   myeventlane_tickets.operational_workspace_builder:
     class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
     arguments:
@@ -241,6 +258,8 @@ services:
       - '@myeventlane_tickets.venue_operation_policy_manager'
       - '@myeventlane_tickets.operational_integrity_inspector'
       - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@current_user'
+      - '@myeventlane_tickets.operational_escalation_audit_projector'
 
   myeventlane_tickets.operational_workspace_access:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker

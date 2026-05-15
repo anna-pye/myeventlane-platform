@@ -208,31 +208,6 @@ final class ZoneAccessPolicyManager {
   }
 
   /**
-   * Machine-only conflict codes for observability (read-only callers).
-   *
-   * When $requested_zone_id is set, evaluates that gate against policy.
-   * Structural issues (for example overlapping allow/deny lists) are always
-   * included when present.
-   *
-   * @return list<string>
-   */
-  public function detectZoneTopologyConflicts(Ticket $ticket, ?string $requested_zone_id): array {
-    $conflicts = $this->detectStructuralZoneConflicts($ticket);
-    $requested = $this->normalizeZoneId($requested_zone_id);
-    if ($requested === NULL) {
-      return array_values(array_unique($conflicts));
-    }
-    $now = $this->time->getCurrentTime();
-    $timed = $this->timedEntryPolicyManager->evaluate($ticket, $now, NULL);
-    $session = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed);
-    $eval = $this->evaluateZoneAccessForComposition($ticket, $requested, $timed, $session);
-    if (!$eval['allow']) {
-      $conflicts[] = (string) ($eval['policy']['scanner']['reason'] ?? 'zone_operational_deny');
-    }
-    return array_values(array_unique($conflicts));
-  }
-
-  /**
    * Detects metadata inconsistencies without requiring a gate identifier.
    *
    * @return list<string>
