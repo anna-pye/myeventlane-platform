@@ -1,0 +1,19 @@
+uuid: a3c4d5e6-7f8a-9b0c-1d2e-3f4a5b6c7d8e
+langcode: en
+status: true
+dependencies:
+  config:
+    - crop.type.focal_point
+  module:
+    - focal_point
+name: mel_event_hero_featured
+label: 'MEL event hero (featured — event + book pages)'
+effects:
+  4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b:
+    uuid: 4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b
+    id: focal_point_scale_and_crop
+    weight: 0
+    data:
+      width: 1600
+      height: 900
+      crop_type: focal_point

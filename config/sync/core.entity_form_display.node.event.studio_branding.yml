@@ -1,0 +1,145 @@
+uuid: 2d61998e-a347-4eed-9918-682e921ab6b1
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_form_mode.node.studio_branding
+    - crop.type.focal_point
+    - field.field.node.event.body
+    - field.field.node.event.field_accessibility
+    - field.field.node.event.field_accessibility_contact
+    - field.field.node.event.field_accessibility_directions
+    - field.field.node.event.field_accessibility_entry
+    - field.field.node.event.field_accessibility_parking
+    - field.field.node.event.field_age_restriction
+    - field.field.node.event.field_attendee_questions
+    - field.field.node.event.field_cancel_reason
+    - field.field.node.event.field_cancelled_at
+    - field.field.node.event.field_capacity
+    - field.field.node.event.field_category
+    - field.field.node.event.field_collect_per_ticket
+    - field.field.node.event.field_contact_email
+    - field.field.node.event.field_contact_phone
+    - field.field.node.event.field_event_capacity_total
+    - field.field.node.event.field_event_end
+    - field.field.node.event.field_event_highlights
+    - field.field.node.event.field_event_image
+    - field.field.node.event.field_event_intro
+    - field.field.node.event.field_event_start
+    - field.field.node.event.field_event_state
+    - field.field.node.event.field_event_state_override
+    - field.field.node.event.field_event_store
+    - field.field.node.event.field_event_type
+    - field.field.node.event.field_event_vendor
+    - field.field.node.event.field_external_url
+    - field.field.node.event.field_featured
+    - field.field.node.event.field_is_series_template
+    - field.field.node.event.field_location
+    - field.field.node.event.field_location_latitude
+    - field.field.node.event.field_location_longitude
+    - field.field.node.event.field_location_place_id
+    - field.field.node.event.field_product_target
+    - field.field.node.event.field_promo_expires
+    - field.field.node.event.field_promoted
+    - field.field.node.event.field_refund_policy
+    - field.field.node.event.field_reviews_enabled
+    - field.field.node.event.field_sales_end
+    - field.field.node.event.field_sales_start
+    - field.field.node.event.field_series_instance_id
+    - field.field.node.event.field_series_parent
+    - field.field.node.event.field_series_rrule
+    - field.field.node.event.field_series_timezone
+    - field.field.node.event.field_tags
+    - field.field.node.event.field_ticket_types
+    - field.field.node.event.field_venue_address
+    - field.field.node.event.field_venue_name
+    - field.field.node.event.field_waitlist_capacity
+    - image.style.thumbnail
+    - node.type.event
+  module:
+    - focal_point
+    - image
+id: node.event.studio_branding
+targetEntityType: node
+bundle: event
+mode: studio_branding
+content:
+  field_event_image:
+    type: image_focal_point
+    weight: 0
+    region: content
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+      preview_link: true
+      offsets: '50,50'
+    third_party_settings: {  }
+hidden:
+  body: true
+  created: true
+  field_accessibility: true
+  field_accessibility_contact: true
+  field_accessibility_directions: true
+  field_accessibility_entry: true
+  field_accessibility_parking: true
+  field_age_policy: true
+  field_age_policy_note: true
+  field_age_restriction: true
+  field_attendee_questions: true
+  field_cancel_reason: true
+  field_cancelled_at: true
+  field_capacity: true
+  field_category: true
+  field_collect_per_ticket: true
+  field_contact_email: true
+  field_contact_phone: true
+  field_event_capacity_total: true
+  field_event_end: true
+  field_event_geo: true
+  field_event_highlights: true
+  field_event_intro: true
+  field_event_setup_complete: true
+  field_event_start: true
+  field_event_state: true
+  field_event_state_override: true
+  field_event_store: true
+  field_event_summary: true
+  field_event_type: true
+  field_event_vendor: true
+  field_external_url: true
+  field_featured: true
+  field_is_series_template: true
+  field_location: true
+  field_location_latitude: true
+  field_location_longitude: true
+  field_location_place_id: true
+  field_mel_sup_amt: true
+  field_mel_sup_chk: true
+  field_mel_sup_mode: true
+  field_mel_sup_oid: true
+  field_mel_sup_pct: true
+  field_product_target: true
+  field_promo_expires: true
+  field_promoted: true
+  field_refund_policy: true
+  field_reviews_enabled: true
+  field_sales_end: true
+  field_sales_start: true
+  field_series_instance_id: true
+  field_series_parent: true
+  field_series_rrule: true
+  field_series_timezone: true
+  field_tags: true
+  field_ticket_types: true
+  field_venue: true
+  field_venue_address: true
+  field_venue_name: true
+  field_waitlist_capacity: true
+  langcode: true
+  moderation_state: true
+  path: true
+  promote: true
+  status: true
+  sticky: true
+  title: true
+  uid: true

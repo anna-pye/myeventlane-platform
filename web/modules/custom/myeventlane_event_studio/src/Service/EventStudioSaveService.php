@@ -872,6 +872,9 @@ final class EventStudioSaveService {
   /**
    * Persists branding hero image via the studio_branding field widget.
    *
+   * Uses widget extraction so crop / focal point values from the image widget
+   * reach the entity before save.
+   *
    * @param array<string, mixed> $mel_subform
    *   The `mel` form fragment containing `field_event_image`.
    *
@@ -945,17 +948,21 @@ final class EventStudioSaveService {
           $file->save();
         }
         if (!$items->isEmpty()) {
-          // FieldItemList::setValue() wraps non-arrays as [0 => value], which would
-          // pass the list object into EntityReferenceItem and throw.
-          $node->set('field_event_image', $items->getValue());
+          $values = $items->getValue();
+          $first = $values[0] ?? NULL;
+          if (is_array($first)) {
+            $values[0] = $this->enrichBrandingHeroFieldItem($first, $file);
+          }
+          $node->set('field_event_image', $values);
         }
         else {
+          $item = [
+            'target_id' => $fid,
+            'alt' => $alt,
+            'title' => '',
+          ];
           $node->set('field_event_image', [
-            [
-              'target_id' => $fid,
-              'alt' => $alt,
-              'title' => '',
-            ],
+            $this->enrichBrandingHeroFieldItem($item, $file),
           ]);
         }
         $warnings = $this->buildBrandingHeroDimensionWarnings($file);
@@ -996,6 +1003,27 @@ final class EventStudioSaveService {
         '@h' => (string) self::BRANDING_HERO_WARN_HEIGHT_LT,
       ]),
     ];
+  }
+
+  /**
+   * Ensures focal point + dimensions are present for focal_point_entity_update().
+   *
+   * @param array<string, mixed> $field_item
+   *
+   * @return array<string, mixed>
+   */
+  private function enrichBrandingHeroFieldItem(array $field_item, FileInterface $file): array {
+    if (empty($field_item['focal_point'])) {
+      $field_item['focal_point'] = '50,50';
+    }
+    if (empty($field_item['width']) || empty($field_item['height'])) {
+      $image = $this->imageFactory->get($file->getFileUri());
+      if ($image->isValid()) {
+        $field_item['width'] = $image->getWidth();
+        $field_item['height'] = $image->getHeight();
+      }
+    }
+    return $field_item;
   }
 
   /**

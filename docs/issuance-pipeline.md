@@ -75,13 +75,11 @@ A vestigial **`OrderPaidSubscriber`** under **`myeventlane_commerce`** (logging 
 
 Read-only integrity diagnostics for paid orders are centralized in **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`). It inspects issuance alignment, artifact readiness, recovery markers, compatibility surfaces, guest/purchaser continuity, venue gate descriptors, **timed entry diagnostics** (`artifacts.timed_entry_policy`), **session entitlement diagnostics** (`artifacts.session_entitlement_policy`), and **zone access topology diagnostics** (`artifacts.zone_access_topology`) **without** generating PDFs, wallet artifacts, or QR output for persistence. See [operational-observability.md](./operational-observability.md), [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md), [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md), and [zone-access-topology-convergence.md](./zone-access-topology-convergence.md).
 
+**Staff workspace shell:** Phase 3A adds `OperationalWorkspaceBuilder` + `/admin/mel/operations` to surface **normalized** inspector-derived summaries for venue operations staff (optional `?event={nid}` scope). Details: [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md).
+
 ## Timed entry and capacity windows (operational clock policy)
 
-Operational clock semantics (entry windows, grace, early/late states, session/capacity metadata) are centralized in **`TimedEntryPolicyManager`** (`myeventlane_tickets.timed_entry_policy_manager`). **`VenueOperationPolicyManager`** composes timed policy into descriptors and scan gates together with **`SessionEntitlementPolicyManager`**; **`ScannerOperationManager`** enforces the composed gate before mutations. QR payload contracts remain unchanged; structured QR `exp` continues to cap interpretation through the policy layer. Details: [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md) and [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md).
-
-## Session and multi-use orchestration (Phase 2F)
-
-Operational session semantics (multi-use exhaustion, sequencing, bundles, re-entry hints) are centralized in **`SessionEntitlementPolicyManager`** (`myeventlane_tickets.session_entitlement_policy_manager`). It consumes entitlement metadata, registry capability maps, `TicketCapabilityManager` redemption snapshots, and timed-entry snapshots for shared keys only. Details: [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md).
+Operational clock semantics (entry windows, grace, early/late states, session/capacity metadata) are centralized in **`TimedEntryPolicyManager`** (`myeventlane_tickets.timed_entry_policy_manager`). **`VenueOperationPolicyManager`** composes timed policy into descriptors and scan gates; **`ScannerOperationManager`** enforces the gate before mutations. QR payload contracts remain unchanged; structured QR `exp` continues to cap interpretation through the policy layer. Details: [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md).
 
 ## Entitlement capability convergence (Phase 2E)
 

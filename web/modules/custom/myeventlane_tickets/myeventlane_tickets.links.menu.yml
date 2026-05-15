@@ -5,3 +5,10 @@ myeventlane_tickets.settings:
   route_name: myeventlane_tickets.settings
   parent: myeventlane_core.config
   weight: 5
+
+myeventlane_tickets.venue_operations_workspace:
+  title: 'Venue operations workspace'
+  description: 'Read-only staff operational diagnostics and summaries.'
+  route_name: myeventlane_tickets.venue_operations_workspace
+  parent: myeventlane_core.config
+  weight: 8

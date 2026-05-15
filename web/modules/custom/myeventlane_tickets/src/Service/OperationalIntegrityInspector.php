@@ -60,7 +60,8 @@ final class OperationalIntegrityInspector {
    *   artifacts: array<string, mixed>,
    *   recovery: array<string, mixed>,
    *   compatibility: array<string, mixed>,
-   *   guest_continuity: array<string, mixed>
+   *   guest_continuity: array<string, mixed>,
+   *   fulfillment_operational_signals: array<string, mixed>
    * }
    *
    * Artifacts include `venue_operation_policy` (machine-only venue gate
@@ -103,6 +104,7 @@ final class OperationalIntegrityInspector {
     $recovery = $this->buildRecoveryDomain($order, $tickets);
     $compatibility = $this->buildCompatibilityDomain($order, $tickets, $artifacts);
     $guest_continuity = $this->buildGuestContinuityDomain($order, $tickets);
+    $fulfillment_operational_signals = $this->buildFulfillmentOperationalSignalsDomain($tickets);
 
     $this->maybeLogAnomalies(
       $orderId,
@@ -116,6 +118,7 @@ final class OperationalIntegrityInspector {
       'recovery' => $recovery,
       'compatibility' => $compatibility,
       'guest_continuity' => $guest_continuity,
+      'fulfillment_operational_signals' => $fulfillment_operational_signals,
     ];
   }
 
@@ -166,6 +169,34 @@ final class OperationalIntegrityInspector {
         'purchaser_identity_continuity_valid' => FALSE,
         'continuity_status' => 'invalid',
       ],
+      'fulfillment_operational_signals' => [
+        'by_ticket_id' => [],
+      ],
+    ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, mixed>
+   *   Staff-safe operational signals for reservation governance read-models.
+   */
+  private function buildFulfillmentOperationalSignalsDomain(array $tickets): array {
+    $by = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
+      $by[$id] = [
+        'entitlement_type' => $type,
+        'fulfilment_status' => $ticket->getFulfilmentStatus(),
+        'redemption_count' => $ticket->getRedemptionCount(),
+        'redemption_limit' => $ticket->getRedemptionLimit(),
+        'ticket_status' => (string) ($ticket->get('status')->value ?? ''),
+        'admission_checked_in' => ((string) ($ticket->get('status')->value ?? '')) === Ticket::STATUS_CHECKED_IN,
+      ];
+    }
+    return [
+      'by_ticket_id' => $by,
     ];
   }
 
