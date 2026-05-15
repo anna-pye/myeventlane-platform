@@ -33,6 +33,8 @@
       <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelAttendeeCheckinManagerTest.php</file>
       <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelVendorOperationsRoutesYamlTest.php</file>
       <file>modules/custom/myeventlane_event_attendees/tests/src/Unit/MelAttendeeExportBuilderTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Kernel/OperationalCoordinationStateConvergenceKernelTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Kernel/FulfillmentLifecycleConvergenceKernelTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

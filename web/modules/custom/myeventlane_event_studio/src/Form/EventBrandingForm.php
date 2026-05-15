@@ -69,9 +69,6 @@ final class EventBrandingForm extends EventStudioBaseForm {
    * Applies restored-draft hero defaults onto a clone for widget rendering only.
    */
   private function applyDraftHeroOverlay(NodeInterface $target, array $melDefaults): void {
-    if (!array_key_exists('field_event_image', $melDefaults)) {
-      return;
-    }
     $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($melDefaults);
     if ($hero['fid'] < 1) {
       $target->set('field_event_image', []);
@@ -89,16 +86,11 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $request = $this->requestStack->getCurrentRequest();
     $restoreDraft = $request !== NULL && $request->query->getBoolean('restore_draft');
 
-    $formNode = clone $node;
+    $formNode = $node;
     if ($restoreDraft) {
+      $formNode = clone $node;
       $this->applyDraftHeroOverlay($formNode, $melDefaults);
     }
-    if ($this->saveService->isBrokenHeroImageReference($formNode)) {
-      $formNode->set('field_event_image', []);
-      $this->messenger()->addWarning($this->t('The previous cover image file is no longer available. Upload a new image, or use “Remove cover image” and save to clear the broken reference.'));
-    }
-
-    $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_hero_tools';
 
     $form['mel']['branding_hero_shell'] = [
       '#type' => 'markup',
@@ -107,7 +99,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . Html::escape((string) $this->t('Branding')) . '</h3>'
         . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Shape how your event appears across MyEventLane and social sharing.')) . '</p>'
-        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Click the image preview to set the focal point, or use the shortcuts below. Alt text in the image field is required when a cover image is present.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Use the crop frame for a 1200×630 hero. Alt text in the image field is required for accessibility.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body">'
         . '<div class="mel-identity-media mel-identity-media--compact">'
@@ -142,52 +134,12 @@ final class EventBrandingForm extends EventStudioBaseForm {
         ];
       }
       else {
-        $form['mel']['field_event_image'] = $widget->form($formNode->get('field_event_image'), $form['mel'], $form_state);
-        $form['mel']['field_event_image']['#weight'] = 0;
+        $widget->form($formNode->get('field_event_image'), $form['mel'], $form_state);
+        if (isset($form['mel']['field_event_image'])) {
+          $form['mel']['field_event_image']['#weight'] = 0;
+        }
       }
     }
-
-    $form['mel']['branding_hero_tools'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-es-branding-hero-tools']],
-      '#weight' => 2,
-      'size_hint' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#attributes' => ['class' => ['mel-es-branding-hero-size-hint']],
-        '#value' => Html::escape((string) $this->t('For the clearest hero on event and book pages, use at least 1600×900 pixels (16:9). We warn after save if the file is under 1280×720; very small images may look soft when scaled up. Minimum upload size enforced by the field is 400×200.')),
-      ],
-      'presets' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets']],
-        'label' => [
-          '#type' => 'html_tag',
-          '#tag' => 'span',
-          '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets__label']],
-          '#value' => Html::escape((string) $this->t('Focal shortcuts')),
-        ],
-        'buttons' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets__buttons']],
-          'c' => $this->buildFocalPresetButton($this->t('Centre'), '50,50'),
-          't' => $this->buildFocalPresetButton($this->t('Top'), '50,18'),
-          'b' => $this->buildFocalPresetButton($this->t('Bottom'), '50,82'),
-          'l' => $this->buildFocalPresetButton($this->t('Left'), '18,50'),
-          'r' => $this->buildFocalPresetButton($this->t('Right'), '82,50'),
-        ],
-      ],
-      'remove' => [
-        '#type' => 'button',
-        '#value' => $this->t('Remove cover image'),
-        '#weight' => 10,
-        '#attributes' => [
-          'type' => 'button',
-          'class' => ['button', 'button--danger', 'js-mel-branding-hero-remove'],
-          'disabled' => 'disabled',
-          'aria-disabled' => 'true',
-        ],
-      ],
-    ];
 
     $form['mel']['branding_hero_close'] = [
       '#type' => 'markup',
@@ -200,22 +152,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#weight' => 20,
       '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
       'copy' => [
-        '#markup' => '<p>' . $this->t('More brand controls will appear here only when they are ready for creators. For now, the hero image and focal point are enough for most events.') . '</p>',
-      ],
-    ];
-  }
-
-  /**
-   * @return array<string, mixed>
-   */
-  private function buildFocalPresetButton($title, string $preset): array {
-    return [
-      '#type' => 'button',
-      '#value' => $title,
-      '#attributes' => [
-        'type' => 'button',
-        'class' => ['button', 'button--small', 'button--secondary', 'mel-es-branding-focal-preset'],
-        'data-focal-preset' => $preset,
+        '#markup' => '<p>' . $this->t('More brand controls will appear here only when they are ready for creators. For now, the hero image and crop are enough for most events.') . '</p>',
       ],
     ];
   }

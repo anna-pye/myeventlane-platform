@@ -2131,7 +2131,7 @@
         return a;
       }
     }
-    return candidates.length ? candidates[0] : null;
+    return null;
   }
 
   /**
@@ -2143,6 +2143,7 @@
   function melHeroImageFidsPresent(form) {
     var inp =
       form.querySelector('input[name="mel[field_event_image][fids]"]') ||
+      form.querySelector('input[name="mel[field_event_image][0][fids]"]') ||
       form.querySelector('input[name*="field_event_image"][name*="fids"]');
     if (!inp) {
       return false;
@@ -2199,7 +2200,7 @@
       ph.setAttribute('hidden', 'hidden');
     } else if (hasCoverFile(form)) {
       if ((img.getAttribute('src') || '').trim() !== '') {
-        img.alt = val(form, 'mel[field_event_image_alt]') || '';
+        img.alt = melHeroAltValue(form) || '';
         img.removeAttribute('hidden');
       }
       ph.setAttribute('hidden', 'hidden');
@@ -2211,34 +2212,36 @@
   }
 
   function bindCoverFilePreview(form) {
-    form.querySelectorAll('.mel-identity-media').forEach(function (media) {
-      once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
-        input.addEventListener('change', function () {
-          var f = input.files && input.files[0];
-          if (!f || !f.type || f.type.indexOf('image/') !== 0) {
-            return;
+    var media = form.querySelector('.mel-identity-media');
+    if (!media) {
+      return;
+    }
+    once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
+      input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f || !f.type || f.type.indexOf('image/') !== 0) {
+          return;
+        }
+        var r = new FileReader();
+        r.onload = function () {
+          var img = document.getElementById('mel-cover-preview-img');
+          var empty = document.getElementById('mel-cover-preview-empty');
+          var prevImg = document.getElementById('mel-preview-card-img');
+          var ph = document.getElementById('mel-preview-card-placeholder');
+          if (img && empty) {
+            img.src = r.result;
+            img.removeAttribute('hidden');
+            empty.setAttribute('hidden', 'hidden');
           }
-          var r = new FileReader();
-          r.onload = function () {
-            var img = document.getElementById('mel-cover-preview-img');
-            var empty = document.getElementById('mel-cover-preview-empty');
-            var prevImg = document.getElementById('mel-preview-card-img');
-            var ph = document.getElementById('mel-preview-card-placeholder');
-            if (img && empty) {
-              img.src = r.result;
-              img.removeAttribute('hidden');
-              empty.setAttribute('hidden', 'hidden');
-            }
-            if (prevImg && ph) {
-              prevImg.src = r.result;
-              prevImg.alt = melHeroAltValue(form) || '';
-              prevImg.removeAttribute('hidden');
-              ph.setAttribute('hidden', 'hidden');
-            }
-            scheduleApplyLivePreview(form, false);
-          };
-          r.readAsDataURL(f);
-        });
+          if (prevImg && ph) {
+            prevImg.src = r.result;
+            prevImg.alt = melHeroAltValue(form) || '';
+            prevImg.removeAttribute('hidden');
+            ph.setAttribute('hidden', 'hidden');
+          }
+          scheduleApplyLivePreview(form, false);
+        };
+        r.readAsDataURL(f);
       });
     });
   }
