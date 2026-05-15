@@ -945,7 +945,9 @@ final class EventStudioSaveService {
           $file->save();
         }
         if (!$items->isEmpty()) {
-          $node->set('field_event_image', $items);
+          // FieldItemList::setValue() wraps non-arrays as [0 => value], which would
+          // pass the list object into EntityReferenceItem and throw.
+          $node->set('field_event_image', $items->getValue());
         }
         else {
           $node->set('field_event_image', [
