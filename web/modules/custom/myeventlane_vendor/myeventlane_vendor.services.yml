@@ -285,6 +285,7 @@ services:
       - '@access_manager'
       - '@current_user'
       - '@myeventlane_commerce.vendor_operational_addon_order_builder'
+      - '@myeventlane_core.event_state_resolver'
 
   myeventlane_vendor.event_workspace_view_model_builder:
     class: Drupal\myeventlane_vendor\Service\VendorEventWorkspaceViewModelBuilder
