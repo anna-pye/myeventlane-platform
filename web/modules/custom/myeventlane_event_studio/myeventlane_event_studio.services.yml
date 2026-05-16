@@ -212,6 +212,16 @@ services:
       - '@myeventlane_commerce.operational_merchandise_manager'
       - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
 
+  myeventlane_event_studio.vendor_operational_product_creation_manager:
+    class: Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_event_studio'
+
   myeventlane_event_studio.vendor_productisation_studio_builder:
     class: Drupal\myeventlane_event_studio\Service\VendorProductisationStudioBuilder
     arguments:

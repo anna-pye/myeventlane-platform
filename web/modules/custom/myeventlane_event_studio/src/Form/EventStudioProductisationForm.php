@@ -13,6 +13,7 @@ use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager;
+use Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager;
 use Drupal\myeventlane_event_studio\Service\VendorProductisationStudioBuilder;
 use Drupal\myeventlane_event_studio\Service\VendorProductisationStudioManager;
 use Drupal\myeventlane_tickets\Service\OperationalEntitlementCapabilityManager;
@@ -24,7 +25,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Vendor productisation authoring for operational Commerce (link + copy only).
+ * Vendor productisation authoring for operational Commerce (link + optional wizard create on explicit save).
  */
 final class EventStudioProductisationForm extends FormBase {
 
@@ -37,6 +38,8 @@ final class EventStudioProductisationForm extends FormBase {
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
+    private readonly VendorOperationalProductCreationManager $vendorOperationalProductCreationManager,
+    private readonly OperationalCapabilityCommerceLinkManager $operationalCapabilityCommerceLinkManager,
   ) {}
 
   public static function create(ContainerInterface $container): static {
@@ -49,6 +52,8 @@ final class EventStudioProductisationForm extends FormBase {
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('current_user'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
+      $container->get('myeventlane_event_studio.vendor_operational_product_creation_manager'),
+      $container->get('myeventlane_event_studio.operational_capability_commerce_link_manager'),
     );
   }
 
@@ -106,7 +111,7 @@ final class EventStudioProductisationForm extends FormBase {
       'hint' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Attach existing operational Commerce products and customer-facing copy. Commerce owns catalog, carts, and checkout — this screen stores event-scoped authoring metadata only.'),
+        '#value' => $this->t('Link existing operational Commerce products or create new ones using the wizard (created only when you press Save). Commerce owns catalog, carts, and checkout — this screen stores event-scoped authoring metadata; stock, shipping, and fulfilment execution are configured later.'),
         '#attributes' => ['class' => ['mel-es-card__hint']],
       ],
     ];
@@ -132,7 +137,7 @@ final class EventStudioProductisationForm extends FormBase {
 
     foreach (VendorProductisationStudioManager::PRODUCTISATION_TYPES as $type) {
       $row = $byType[$type] ?? $this->vendorProductisationManager->emptyItem($type);
-      $form['mel']['productisation']['types'][$type] = $this->buildEditorForType($type, $row);
+      $form['mel']['productisation']['types'][$type] = $this->buildEditorForType($type, $row, $event);
     }
 
     $form['actions'] = [
@@ -169,6 +174,22 @@ final class EventStudioProductisationForm extends FormBase {
     foreach ($errors as $error) {
       $form_state->setErrorByName('', $error);
     }
+
+    $rawTypes = (array) ($form_state->getValue(['mel', 'productisation', 'types']) ?? []);
+    foreach (VendorProductisationStudioManager::PRODUCTISATION_TYPES as $type) {
+      $row = is_array($rawTypes[$type] ?? NULL) ? $rawTypes[$type] : [];
+      $row = $this->flattenProductisationWizardRow($row);
+      if ((string) ($row['commerce_mode'] ?? 'link') !== 'create') {
+        continue;
+      }
+      if ($this->extractCommerceProductIdFromFormRow($row) > 0) {
+        continue;
+      }
+      $payload = $this->vendorOperationalProductCreationManager->buildWizardCreationPayload($type, $row, $event);
+      foreach ($this->vendorOperationalProductCreationManager->validateCreationPayload($this->currentUser(), $event, $payload) as $error) {
+        $form_state->setErrorByName('', (string) $error);
+      }
+    }
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state): void {
@@ -179,7 +200,19 @@ final class EventStudioProductisationForm extends FormBase {
     }
     try {
       $base = $this->capabilityStudioManager->extractFromEvent($event);
+      $rawTypes = (array) ($form_state->getValue(['mel', 'productisation', 'types']) ?? []);
       $items = $this->collectItemsFromFormState($form_state);
+      $flatTypes = [];
+      foreach (VendorProductisationStudioManager::PRODUCTISATION_TYPES as $ptype) {
+        $r = is_array($rawTypes[$ptype] ?? NULL) ? $rawTypes[$ptype] : [];
+        $flatTypes[$ptype] = $this->flattenProductisationWizardRow($r);
+      }
+      $items = $this->vendorOperationalProductCreationManager->applyProductisationWizardCreates(
+        $this->currentUser(),
+        $event,
+        $items,
+        $flatTypes,
+      );
       $base['operational_merchandise'] = is_array($base['operational_merchandise'] ?? NULL)
         ? $base['operational_merchandise']
         : $this->capabilityStudioManager->emptyDocument()['operational_merchandise'];
@@ -189,6 +222,9 @@ final class EventStudioProductisationForm extends FormBase {
       $event->save();
       $this->autosaveService->clearDraft($event, 'merchandise');
       $this->messenger()->addStatus($this->t('Productisation saved.'));
+    }
+    catch (\InvalidArgumentException $e) {
+      $this->messenger()->addError($e->getMessage());
     }
     catch (\Throwable $e) {
       $this->logger->error('Vendor productisation save failed for event @nid: @message', [
@@ -205,7 +241,7 @@ final class EventStudioProductisationForm extends FormBase {
    *
    * @return array<string, mixed>
    */
-  private function buildEditorForType(string $type, array $row): array {
+  private function buildEditorForType(string $type, array $row, NodeInterface $event): array {
     $commerce = is_array($row['commerce'] ?? NULL) ? $row['commerce'] : [];
     $product_id = (int) ($commerce['product_id'] ?? 0);
     $link_mode = (string) ($commerce['linkage_mode'] ?? OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT);
@@ -213,6 +249,9 @@ final class EventStudioProductisationForm extends FormBase {
     foreach ($this->normalizeVariationIds($commerce['variation_ids'] ?? []) as $vid) {
       $var_defaults[(string) $vid] = (string) $vid;
     }
+
+    $default_currency = $this->defaultCommerceCurrencyForEvent($event);
+    $mode_input = 'mel[productisation][types][' . $type . '][commerce_mode]';
 
     $fieldset = [
       '#type' => 'fieldset',
@@ -371,48 +410,168 @@ final class EventStudioProductisationForm extends FormBase {
       default => [],
     };
 
-    $fieldset['commerce_heading'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => $this->t('Commerce link (existing product)'),
-      '#attributes' => ['class' => ['mel-productisation-editor__commerce-title']],
-    ];
-    $fieldset['commerce_product'] = [
-      '#type' => 'entity_autocomplete',
-      '#title' => $this->t('Commerce product'),
-      '#target_type' => 'commerce_product',
-      '#max_length' => 512,
-      '#default_value' => $product_id > 0 ? $this->entityTypeManager->getStorage('commerce_product')->load($product_id) : NULL,
-    ];
-    $fieldset['commerce_product_id'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Commerce product ID'),
-      '#min' => 0,
-      '#default_value' => $product_id > 0 ? $product_id : NULL,
-      '#description' => $this->t('Autocomplete fills this ID for autosave compatibility.'),
-    ];
-    $fieldset['commerce_linkage_mode'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Variation linkage'),
+    $fieldset['commerce_mode'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Catalog path'),
       '#options' => [
-        OperationalCapabilityCommerceLinkManager::LINKAGE_NONE => $this->t('None'),
-        OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT => $this->t('Whole product'),
-        OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS => $this->t('Specific variations'),
+        'link' => $this->t('Link existing product'),
+        'create' => $this->t('Create new operational product'),
       ],
-      '#default_value' => in_array($link_mode, [
-        OperationalCapabilityCommerceLinkManager::LINKAGE_NONE,
-        OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
-        OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS,
-      ], TRUE) ? $link_mode : OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+      '#default_value' => $product_id > 0 ? 'link' : 'link',
+      '#attributes' => ['class' => ['mel-productisation-wizard-mode']],
     ];
-    $fieldset['commerce_variations'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Allowed variations'),
-      '#options' => $this->buildVariationOptionsForProduct($product_id),
-      '#default_value' => $var_defaults,
+
+    $fieldset['wizard_create'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-es-card', 'mel-productisation-wizard-create']],
+      '#states' => [
+        'visible' => [
+          ':input[name="' . $mode_input . '"]' => ['value' => 'create'],
+        ],
+      ],
+      'notice' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Stock counts, warehouse routing, shipping labels, scanners, QR payloads, and entitlement issuance are <strong>not</strong> configured here — they are handled later in Commerce and operations tooling.'),
+        '#attributes' => ['class' => ['mel-productisation-wizard-warning']],
+      ],
+      'readiness_chips' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Operational readiness: authoring · pricing · customer copy'),
+        '#attributes' => ['class' => ['mel-productisation-wizard-chips']],
+      ],
+      'customer_preview_label' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Customer sees this (from your summary fields and the product title below).'),
+        '#attributes' => ['class' => ['mel-productisation-wizard-preview-hint']],
+      ],
+      'commerce_create_title' => [
+        '#type' => 'textfield',
+        '#title' => $this->t('Catalog title'),
+        '#default_value' => '',
+        '#maxlength' => 255,
+        '#description' => $this->t('Plain text only. Defaults from the fields above when left blank.'),
+      ],
+      'commerce_create_customer_summary' => [
+        '#type' => 'textarea',
+        '#title' => $this->t('Short customer summary'),
+        '#rows' => 3,
+        '#default_value' => '',
+      ],
+      'commerce_create_price' => [
+        '#type' => 'number',
+        '#title' => $this->t('Price'),
+        '#min' => 0,
+        '#step' => 0.01,
+        '#default_value' => NULL,
+      ],
+      'commerce_create_currency' => [
+        '#type' => 'hidden',
+        '#default_value' => $default_currency,
+      ],
+      'commerce_create_currency_display' => [
+        '#type' => 'item',
+        '#title' => $this->t('Currency'),
+        '#markup' => '<p class="mel-text--muted">' . $this->t('Charges use your event store currency: @code', ['@code' => $default_currency]) . '</p>',
+      ],
+      'commerce_create_sku' => [
+        '#type' => 'textfield',
+        '#title' => $this->t('SKU (optional)'),
+        '#maxlength' => 128,
+        '#default_value' => '',
+      ],
+      'commerce_create_fulfillment_mode' => [
+        '#type' => 'textfield',
+        '#title' => $this->t('Fulfilment mode token (optional)'),
+        '#default_value' => '',
+        '#maxlength' => 64,
+        '#access' => $type !== VendorProductisationStudioManager::TYPE_MERCHANDISE
+          && $type !== VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE,
+      ],
+      'commerce_create_reservation_mode' => [
+        '#type' => 'value',
+        '#value' => 'operational_projection',
+      ],
+    ];
+
+    $fieldset['wizard_link'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-productisation-wizard-link']],
+      '#states' => [
+        'visible' => [
+          ':input[name="' . $mode_input . '"]' => ['value' => 'link'],
+        ],
+      ],
+      'commerce_heading' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Commerce link (existing product)'),
+        '#attributes' => ['class' => ['mel-productisation-editor__commerce-title']],
+      ],
+      'commerce_product' => [
+        '#type' => 'entity_autocomplete',
+        '#title' => $this->t('Commerce product'),
+        '#target_type' => 'commerce_product',
+        '#max_length' => 512,
+        '#default_value' => $product_id > 0 ? $this->entityTypeManager->getStorage('commerce_product')->load($product_id) : NULL,
+      ],
+      'commerce_product_id' => [
+        '#type' => 'number',
+        '#title' => $this->t('Commerce product ID'),
+        '#min' => 0,
+        '#default_value' => $product_id > 0 ? $product_id : NULL,
+        '#description' => $this->t('Autocomplete fills this ID for autosave compatibility.'),
+      ],
+      'commerce_linkage_mode' => [
+        '#type' => 'select',
+        '#title' => $this->t('Variation linkage'),
+        '#options' => [
+          OperationalCapabilityCommerceLinkManager::LINKAGE_NONE => $this->t('None'),
+          OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT => $this->t('Whole product'),
+          OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS => $this->t('Specific variations'),
+        ],
+        '#default_value' => in_array($link_mode, [
+          OperationalCapabilityCommerceLinkManager::LINKAGE_NONE,
+          OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+          OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS,
+        ], TRUE) ? $link_mode : OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+      ],
+      'commerce_variations' => [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Allowed variations'),
+        '#options' => $this->buildVariationOptionsForProduct($product_id),
+        '#default_value' => $var_defaults,
+      ],
     ];
 
     return $fieldset;
+  }
+
+  private function defaultCommerceCurrencyForEvent(NodeInterface $event): string {
+    $sid = $this->operationalCapabilityCommerceLinkManager->resolveStoreIdForOperationalProductCreation($event);
+    if ($sid === NULL || $sid < 1) {
+      return 'AUD';
+    }
+    $store = $this->entityTypeManager->getStorage('commerce_store')->load($sid);
+    if (!is_object($store) || !method_exists($store, 'getDefaultCurrencyCode')) {
+      return 'AUD';
+    }
+    return (string) $store->getDefaultCurrencyCode();
+  }
+
+  /**
+   * Merges nested wizard containers into a flat row for mapping and validation.
+   *
+   * @param array<string, mixed> $row
+   *
+   * @return array<string, mixed>
+   */
+  private function flattenProductisationWizardRow(array $row): array {
+    $link = is_array($row['wizard_link'] ?? NULL) ? $row['wizard_link'] : [];
+    $create = is_array($row['wizard_create'] ?? NULL) ? $row['wizard_create'] : [];
+    return array_merge($row, $link, $create);
   }
 
   /**
@@ -477,6 +636,7 @@ final class EventStudioProductisationForm extends FormBase {
    * @return array<string, mixed>
    */
   private function mapRowToItem(string $type, array $row): array {
+    $row = $this->flattenProductisationWizardRow($row);
     $base = $this->vendorProductisationManager->emptyItem($type);
     $product_id = $this->extractCommerceProductIdFromFormRow($row);
     $mode = (string) ($row['commerce_linkage_mode'] ?? OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT);
@@ -543,6 +703,7 @@ final class EventStudioProductisationForm extends FormBase {
    * @param array<string, mixed> $row
    */
   private function extractCommerceProductIdFromFormRow(array $row): int {
+    $row = $this->flattenProductisationWizardRow($row);
     $n = (int) ($row['commerce_product_id'] ?? 0);
     if ($n > 0) {
       return $n;

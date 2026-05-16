@@ -1,0 +1,10 @@
+uuid: 7a3671d8-e367-4c54-8ebb-6ae750505d67
+langcode: en
+status: true
+dependencies: {  }
+id: operational_bundle_var
+label: 'Operational bundle variation'
+traits: {  }
+locked: false
+orderItemType: default
+generateTitle: true

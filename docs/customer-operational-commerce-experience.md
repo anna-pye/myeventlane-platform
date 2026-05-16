@@ -39,7 +39,7 @@ The builder delegates inward to:
 
 It does **not** re-map capabilities or duplicate registry logic beyond assembling labels and chips.
 
-Phase 4D adds **`OperationalPurchaseCompositionManager`** output (`mel_operational_purchase_composition`) as a **sibling** themed strip for operational **Commerce product** grouping (merch, hospitality, timed collection, bundles). It stays Commerce-backed and read-only; see [operational-merchandise-architecture.md](./operational-merchandise-architecture.md).
+Phase 4D adds **`OperationalPurchaseCompositionManager`** output (`mel_operational_purchase_composition`) as a **sibling** themed strip for operational **Commerce product** grouping (merch, hospitality, timed collection, bundles). It stays Commerce-backed and read-only; see [operational-merchandise-architecture.md](./operational-merchandise-architecture.md). Vendor-authored products created through the [Vendor Product Creation Wizard](vendor-product-creation-wizard.md) flow into the same customer-safe projections once linked on the event.
 
 The same phase adds **`OperationalCheckoutOrchestrationManager`** (`mel_operational_checkout`) as another **sibling** strip that only **re-groups** composition output for cart/checkout/order/event UX; see [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md).
 

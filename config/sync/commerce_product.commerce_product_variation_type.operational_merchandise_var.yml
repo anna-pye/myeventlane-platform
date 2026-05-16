@@ -1,0 +1,10 @@
+uuid: 123c6c09-078e-40cc-ba5f-44588cb00ab3
+langcode: en
+status: true
+dependencies: {  }
+id: operational_merchandise_var
+label: 'Operational merchandise variation'
+traits: {  }
+locked: false
+orderItemType: default
+generateTitle: true

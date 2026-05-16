@@ -135,7 +135,7 @@ final class VendorProductisationStudioBuilder {
       return [
         'headline' => $this->customerFacingHeadline($item),
         'presentation' => [],
-        'note' => (string) $this->t('Link a Commerce product to show the same customer-safe operational summary used on the event page.'),
+        'note' => (string) $this->t('Link a product or use the create path — after save, the customer-safe operational summary appears here.'),
       ];
     }
     $product = $this->entityTypeManager->getStorage('commerce_product')->load($pid);
@@ -167,9 +167,9 @@ final class VendorProductisationStudioBuilder {
     }
     $commerce = is_array($item['commerce'] ?? NULL) ? $item['commerce'] : [];
     if ((int) ($commerce['product_id'] ?? 0) < 1) {
-      return ['label' => (string) $this->t('Draft'), 'tone' => 'muted'];
+      return ['label' => (string) $this->t('Draft only'), 'tone' => 'muted'];
     }
-    return ['label' => (string) $this->t('Linked'), 'tone' => 'success'];
+    return ['label' => (string) $this->t('Linked to Commerce product'), 'tone' => 'success'];
   }
 
   private function typeLabel(string $type): string {

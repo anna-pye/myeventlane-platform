@@ -6,7 +6,7 @@ This document describes the **presentation-only** layer that groups operational 
 
 - **Commerce checkout / order / cart** own all mutation and state transitions.
 - **Operational purchase composition** (`OperationalPurchaseCompositionManager`) remains the single source for how order lines are classified into operational product groups.
-- **Operational checkout orchestration** (`OperationalCheckoutOrchestrationManager`) only **reshapes** composition output into the `mel_operational_checkout` customer contract: grouped sections, readiness rollup, pickup slices, continuity rows, governance labels, deterministic guidance, and a mobile projection slice. It never writes to orders, line items, checkout panes, inventory, shipments, entitlements, scanners, or QR payloads.
+- **Operational checkout orchestration** (`OperationalCheckoutOrchestrationManager`) only **reshapes** composition output into the `mel_operational_checkout` customer contract: grouped sections, readiness rollup, pickup slices, continuity rows, governance labels, deterministic guidance, and a mobile projection slice. It never writes to orders, line items, checkout panes, inventory, shipments, entitlements, scanners, or QR payloads. Event Studio’s [Vendor Product Creation Wizard](vendor-product-creation-wizard.md) does not touch carts or checkout; it only creates catalog rows on explicit vendor save.
 
 ## Customer contract (`mel_operational_checkout`)
 

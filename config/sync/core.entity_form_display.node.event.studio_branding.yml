@@ -71,16 +71,16 @@ content:
     weight: 0
     region: content
     settings:
-      show_crop_area: true
-      show_default_crop: true
-      warn_multiple_usages: false
-      crop_types_required:
-        - event_hero
+      progress_indicator: throbber
       preview_image_style: thumbnail
       crop_preview_image_style: crop_thumbnail
       crop_list:
         - event_hero
-      progress_indicator: throbber
+      crop_types_required:
+        - event_hero
+      warn_multiple_usages: false
+      show_crop_area: true
+      show_default_crop: true
     third_party_settings: {  }
 hidden:
   body: true
@@ -121,6 +121,7 @@ hidden:
   field_location_latitude: true
   field_location_longitude: true
   field_location_place_id: true
+  field_mel_op_capabilities: true
   field_mel_sup_amt: true
   field_mel_sup_chk: true
   field_mel_sup_mode: true

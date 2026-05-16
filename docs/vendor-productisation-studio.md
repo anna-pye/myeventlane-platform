@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Vendor Productisation Studio is the Event Studio surface where vendors **author** operational Commerce offers for an event: merchandise, hospitality packages, timed collection, parking add-ons, and operational bundles. It is **authoring and linkage only**.
+The Vendor Productisation Studio is the Event Studio surface where vendors **author** operational Commerce offers for an event: merchandise, hospitality packages, timed collection, parking add-ons, and operational bundles. It is **authoring and linkage** (plus **validated catalog create** on explicit save via the wizard).
 
 ## Authority
 
@@ -25,16 +25,17 @@ The Vendor Productisation Studio is the Event Studio surface where vendors **aut
 
 - `myeventlane_event_studio.vendor_productisation_studio_manager` — payload normalization, forbidden-key stripping, linkage validation delegation, merge of derived `linked_products` before `OperationalMerchandiseManager::normalizeEventMerchandiseAuthoring()`.
 - `myeventlane_event_studio.vendor_productisation_studio_builder` — render arrays, cards, CTAs, validation summary, customer preview strip (includes the same customer-safe capability projection as storefront via `CustomerOperationalCommerceExperienceBuilder`).
+- `myeventlane_event_studio.vendor_operational_product_creation_manager` — validated operational Commerce product + variation creation on **explicit productisation save** (see [Vendor Product Creation Wizard](vendor-product-creation-wizard.md)).
 
 ## Commerce linkage boundary
 
-- Vendors may only **select existing** Commerce products that belong to the event (`field_event`) and use **operational** product bundles (`OperationalMerchandiseManager::OPERATIONAL_PRODUCT_BUNDLES`).
-- `OperationalCapabilityCommerceLinkManager` validates product/store/variation relationships **read-only** (loads entities to verify, does not mutate catalog).
+- Vendors may **select existing** Commerce products that belong to the event (`field_event`) and use **operational** product bundles (`OperationalMerchandiseManager::OPERATIONAL_PRODUCT_BUNDLES`), or **create** new operational products via the wizard on explicit save (see [Vendor Product Creation Wizard](vendor-product-creation-wizard.md)).
+- `OperationalCapabilityCommerceLinkManager` validates product/store/variation relationships **read-only** for linkage checks (creation uses the same resolver for store context; catalog writes happen only in `VendorOperationalProductCreationManager`).
 
 ## Save boundary
 
 - Saves flow through `OperationalCapabilityStudioManager::persistToEvent()` → event field JSON only.
-- **No** Commerce `->save()` on products or variations from productisation services.
+- **No** ad-hoc Commerce `->save()` on products or variations from productisation **services**; the dedicated creation manager performs **only** the validated create path on explicit form submit.
 - **No** checkout, cart, order, entitlement, or scanner mutation.
 
 ## Autosave boundary
@@ -53,7 +54,6 @@ Authoring payloads must never carry execution tokens or inventory/shipment seman
 
 ## Future phases (out of scope here)
 
-- Product creation wizard inside Event Studio.
 - Inventory execution and stock decrement.
 - Shipping orchestration and warehouse planning.
 - Staff fulfilment tooling and scanner policy editing (remains in operational tooling, not vendor authoring).

@@ -62,6 +62,8 @@ final class VendorProductisationStudioManager {
     'device_fingerprint',
     'entitlement_token',
     'ticket_code',
+    'entitlement_id',
+    'ticket_id',
   ];
 
   public function __construct(
