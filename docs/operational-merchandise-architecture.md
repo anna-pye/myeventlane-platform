@@ -51,6 +51,7 @@ Theme and checkout-flow templates render the composition strip next to existing 
 
 ## Related documentation
 
+- [vendor-productisation-studio.md](./vendor-productisation-studio.md) — Event Studio vendor authoring for operational productisation (Phase 4E).
 - [operational-purchase-composition-convergence.md](./operational-purchase-composition-convergence.md)
 - [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)

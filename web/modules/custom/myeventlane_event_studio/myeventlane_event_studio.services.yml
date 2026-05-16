@@ -206,6 +206,22 @@ services:
       - '@entity_type.manager'
       - '@string_translation'
 
+  myeventlane_event_studio.vendor_productisation_studio_manager:
+    class: Drupal\myeventlane_event_studio\Service\VendorProductisationStudioManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+
+  myeventlane_event_studio.vendor_productisation_studio_builder:
+    class: Drupal\myeventlane_event_studio\Service\VendorProductisationStudioBuilder
+    arguments:
+      - '@myeventlane_event_studio.vendor_productisation_studio_manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_preview_builder'
+      - '@myeventlane_event_studio.customer_operational_commerce_experience_builder'
+      - '@entity_type.manager'
+      - '@string_translation'
+
   myeventlane_event_studio.operational_capability_studio_manager:
     class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager
     arguments:
@@ -217,6 +233,7 @@ services:
       - '@logger.channel.myeventlane_event_studio'
       - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
       - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.vendor_productisation_studio_manager'
 
   myeventlane_event_studio.operational_capability_studio_builder:
     class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioBuilder

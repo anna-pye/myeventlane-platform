@@ -26,6 +26,7 @@ entitlement issuance.
 
 ## Related docs
 
+- [vendor-productisation-studio.md](./vendor-productisation-studio.md)
 - `docs/customer-operational-commerce-experience.md`
 - `docs/vendor-operational-capability-studio.md`
 - `docs/fulfillment-lifecycle-convergence.md`

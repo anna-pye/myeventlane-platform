@@ -93,6 +93,10 @@ The same JSON document may include an **`operational_merchandise`** fragment (`l
 
 Fulfilment section autosave stores draft `mel` in private tempstore only. It does **not** write `field_mel_op_capabilities` until an explicit save.
 
+## Vendor productisation studio (Phase 4E)
+
+The **Merchandise** Event Studio section now hosts the `EventStudioProductisationForm`, which authors `operational_merchandise.productisation_items` plus derived `linked_products` under the same `field_mel_op_capabilities` JSON. See [vendor-productisation-studio.md](./vendor-productisation-studio.md) for service IDs, forbidden keys, and autosave boundaries. Capability rows and productisation rows both delegate Commerce validation to `OperationalCapabilityCommerceLinkManager` — do not duplicate linkage rules in forms.
+
 ## Anti-patterns
 
 - Duplicating entitlement maps in forms, controllers, or Twig
@@ -102,6 +106,7 @@ Fulfilment section autosave stores draft `mel` in private tempstore only. It doe
 
 ## Related docs
 
+- [vendor-productisation-studio.md](./vendor-productisation-studio.md)
 - [operational-merchandise-architecture.md](./operational-merchandise-architecture.md)
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [operational-entitlement-capability-convergence.md](./operational-entitlement-capability-convergence.md)

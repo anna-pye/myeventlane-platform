@@ -25,6 +25,15 @@ mel_operational_capability_studio:
     - core/drupal
     - core/once
 
+mel_vendor_productisation_studio:
+  version: 1.0
+  css:
+    theme:
+      css/mel-vendor-productisation-studio.css: {}
+  dependencies:
+    - core/drupal
+    - myeventlane_event_studio/mel_customer_operational_experience
+
 mel_operational_merchandise_studio:
   version: 1.0
   css:

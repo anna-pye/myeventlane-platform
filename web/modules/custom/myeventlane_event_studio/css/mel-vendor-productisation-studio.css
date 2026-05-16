@@ -1,0 +1,150 @@
+/**
+ * Vendor productisation studio — pastel cards, mobile-first, 44px touch targets.
+ */
+.mel-event-studio-productisation {
+  max-width: 72rem;
+}
+
+.mel-productisation-intro {
+  margin-bottom: 1.25rem;
+}
+
+.mel-productisation-workspace {
+  margin-bottom: 2rem;
+}
+
+.mel-productisation-validation {
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.mel-productisation-validation--error {
+  background: #fff5f5;
+  border: 1px solid #f8c9c9;
+  color: #5c1f1f;
+}
+
+.mel-productisation-validation__list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.mel-productisation-cta {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #f6f7fb;
+  border: 1px solid #e3e6ef;
+}
+
+.mel-productisation-cta__row {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+.mel-productisation-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 48rem) {
+  .mel-productisation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-productisation-card {
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: #fdfdff;
+  border: 1px solid #e8e9f2;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.mel-productisation-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mel-productisation-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.mel-productisation-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mel-productisation-chip--success {
+  background: #e6f7ef;
+  color: #14532d;
+}
+
+.mel-productisation-chip--warning {
+  background: #fff7e6;
+  color: #7a4b00;
+}
+
+.mel-productisation-chip--muted {
+  background: #eef0f6;
+  color: #334155;
+}
+
+.mel-productisation-customer-preview {
+  margin-top: 1.5rem;
+}
+
+.mel-productisation-preview-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.mel-productisation-editors {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.mel-productisation-editor {
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e5e7f0;
+}
+
+.mel-productisation-editor .form-item label {
+  font-weight: 600;
+}
+
+.mel-productisation-editor input[type="text"],
+.mel-productisation-editor input[type="number"],
+.mel-productisation-editor textarea,
+.mel-productisation-editor select {
+  min-height: 2.75rem;
+  border-radius: 0.65rem;
+}
+
+.mel-productisation-editor .form-actions .button,
+.mel-productisation-save {
+  min-height: 2.75rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  border-radius: 0.65rem;
+}
+
+.mel-productisation-editor__commerce-title {
+  margin: 1rem 0 0.25rem;
+  font-weight: 600;
+}

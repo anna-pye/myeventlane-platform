@@ -38,3 +38,7 @@ Forbidden keys are stripped recursively (`OperationalCheckoutOrchestrationManage
 ## Audit notes (Phase 4D — Step 2)
 
 Prior to orchestration, customer surfaces mixed three parallel strips: Event Studio operational experience, tickets fulfillment execution projection, and purchase composition. Each used different templates and spacing, which caused **duplicate operational storytelling** on checkout sidebars and carts, **fragmented pickup vs hospitality vs timed collection** messaging, and **long mobile stacks** without a single grouped contract. The orchestration contract does **not** remove the other strips (they remain authoritative in their domains); it adds a **single grouped card hierarchy** derived only from composition so mobile readers see one predictable “checkout plan” region.
+
+## Cross-reference (Phase 4E)
+
+Vendor-facing **productisation authoring** (link + copy for operational products) lives in Event Studio and feeds the same `operational_merchandise.linked_products` data that composition reads. See [vendor-productisation-studio.md](./vendor-productisation-studio.md). Productisation does **not** change orchestration services or checkout mutation rules.

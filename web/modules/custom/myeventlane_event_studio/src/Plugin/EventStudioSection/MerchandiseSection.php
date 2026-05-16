@@ -17,7 +17,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   section_state: 'active',
   weight: 130,
   icon: 'merchandise',
-  renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventStudioOperationalMerchandiseForm',
+  renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventStudioProductisationForm',
   writable: TRUE,
   supports_autosave: TRUE,
   readiness_participant: FALSE,

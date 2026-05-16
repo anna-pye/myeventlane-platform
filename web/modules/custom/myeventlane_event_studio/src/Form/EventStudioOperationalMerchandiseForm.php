@@ -185,7 +185,8 @@ final class EventStudioOperationalMerchandiseForm extends FormBase {
     if ($event->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
-    if (!$this->eventVendorAccessChecker->access($this->currentUser, $event)) {
+    if (!$this->currentUser->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $this->currentUser)) {
       throw new AccessDeniedHttpException();
     }
   }

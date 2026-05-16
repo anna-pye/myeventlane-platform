@@ -44,6 +44,80 @@
     cur[parts[parts.length - 1]] = value;
   }
 
+  function markCapabilitiesStateDirty(root) {
+    const dirty = root.querySelector('.js-mel-capabilities-state-dirty');
+    if (dirty) {
+      dirty.value = '1';
+    }
+  }
+
+  /**
+   * Merges one capability editor DOM into the shared document (mutates doc).
+   *
+   * @param {object} doc
+   * @param {Element} editor
+   */
+  function applyEditorToDoc(doc, editor) {
+    const type = editor.getAttribute('data-capability-type');
+    if (!type) {
+      return;
+    }
+    const enabled = editor.querySelector('[data-cap-field="enabled"]');
+    const fields = editor.querySelectorAll('[data-cap-field]');
+    const row = getCapability(doc, type);
+    fields.forEach((field) => {
+      const key = field.getAttribute('data-cap-field');
+      if (!key || key === 'enabled') {
+        return;
+      }
+      let val;
+      if (field.type === 'checkbox') {
+        val = field.checked;
+      }
+      else {
+        val = field.value;
+      }
+      if (key.indexOf('.') !== -1) {
+        setDeep(row, key, val);
+      }
+      else {
+        row[key] = val;
+      }
+    });
+    const varWrap = editor.querySelector('.mel-cap-commerce-variations');
+    if (varWrap) {
+      row.commerce_linkage = row.commerce_linkage || {};
+      row.commerce_linkage.variation_ids = [];
+      varWrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        if (cb.checked && cb.value) {
+          const id = parseInt(cb.value, 10);
+          if (!Number.isNaN(id) && id > 0) {
+            row.commerce_linkage.variation_ids.push(id);
+          }
+        }
+      });
+    }
+    if (enabled) {
+      row.enabled = enabled.checked;
+      row.capability_type = type;
+    }
+  }
+
+  /**
+   * Writes all editor panels into the hidden JSON input (PHP prefers this when dirty).
+   *
+   * @param {Element} root
+   * @param {HTMLInputElement} input
+   */
+  function syncAllEditors(root, input) {
+    const doc = parseState(input);
+    root.querySelectorAll('.mel-operational-capability-editor').forEach((editor) => {
+      applyEditorToDoc(doc, editor);
+    });
+    writeState(input, doc);
+    markCapabilitiesStateDirty(root);
+  }
+
   function bindEditor(root, input) {
     const editors = root.querySelectorAll('.mel-operational-capability-editor');
     editors.forEach((editor) => {
@@ -55,44 +129,9 @@
       const fields = editor.querySelectorAll('[data-cap-field]');
       const sync = () => {
         const doc = parseState(input);
-        const row = getCapability(doc, type);
-        fields.forEach((field) => {
-          const key = field.getAttribute('data-cap-field');
-          if (!key || key === 'enabled') {
-            return;
-          }
-          let val;
-          if (field.type === 'checkbox') {
-            val = field.checked;
-          }
-          else {
-            val = field.value;
-          }
-          if (key.indexOf('.') !== -1) {
-            setDeep(row, key, val);
-          }
-          else {
-            row[key] = val;
-          }
-        });
-        const varWrap = editor.querySelector('.mel-cap-commerce-variations');
-        if (varWrap) {
-          row.commerce_linkage = row.commerce_linkage || {};
-          row.commerce_linkage.variation_ids = [];
-          varWrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-            if (cb.checked && cb.value) {
-              const id = parseInt(cb.value, 10);
-              if (!Number.isNaN(id) && id > 0) {
-                row.commerce_linkage.variation_ids.push(id);
-              }
-            }
-          });
-        }
-        if (enabled) {
-          row.enabled = enabled.checked;
-          row.capability_type = type;
-        }
+        applyEditorToDoc(doc, editor);
         writeState(input, doc);
+        markCapabilitiesStateDirty(root);
       };
       fields.forEach((field) => {
         field.addEventListener('change', sync);
@@ -134,6 +173,15 @@
         }
       });
     });
+
+    const form = root.closest('form');
+    if (form) {
+      once('mel-operational-capability-studio-submit', form).forEach((el) => {
+        el.addEventListener('submit', () => {
+          syncAllEditors(root, input);
+        });
+      });
+    }
   }
 
   Drupal.behaviors.melOperationalCapabilityStudio = {

@@ -122,6 +122,11 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
         '#default_value' => json_encode($document, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
         '#attributes' => ['class' => ['js-mel-operational-capabilities-state']],
       ],
+      'capabilities_state_dirty' => [
+        '#type' => 'hidden',
+        '#value' => '0',
+        '#attributes' => ['class' => ['js-mel-capabilities-state-dirty']],
+      ],
     ];
 
     $form['capability_workspace'] = [
@@ -343,6 +348,14 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
   }
 
   /**
+   * Builds the normalized operational capabilities document for validate/save.
+   *
+   * When JavaScript is enabled it syncs editors into `items_state` and sets
+   * `capabilities_state_dirty`; we then decode from that JSON so the saved
+   * document matches the hidden state (including nested `commerce_linkage`).
+   * Without JS the dirty flag stays 0 and we rebuild from posted
+   * `capability_editors` so native controls remain authoritative.
+   *
    * @return array<string, mixed>
    */
   private function decodeSubmittedDocument(FormStateInterface $form_state, NodeInterface $event): array {
@@ -350,6 +363,27 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     if (!is_array($mel)) {
       $mel = [];
     }
+
+    $op = $mel['operational_capabilities'] ?? [];
+    $op = is_array($op) ? $op : [];
+    $raw_state = $op['items_state'] ?? '';
+    $items_state = is_string($raw_state) ? trim($raw_state) : '';
+    $dirty_raw = $op['capabilities_state_dirty'] ?? '0';
+    $capabilities_state_dirty = is_scalar($dirty_raw) && (string) $dirty_raw === '1';
+
+    if ($capabilities_state_dirty && $items_state !== '') {
+      $document = $this->capabilityStudioManager->normalizeMelFragment([
+        'operational_capabilities' => [
+          'items_state' => $items_state,
+        ],
+      ], $event);
+      $persisted = $this->capabilityStudioManager->extractFromEvent($event);
+      if (isset($persisted['operational_merchandise'])) {
+        $document['operational_merchandise'] = $persisted['operational_merchandise'];
+      }
+      return $this->capabilityStudioManager->normalizeDocument($document, $event);
+    }
+
     $editors = $form_state->getValue('capability_editors') ?? [];
     if (is_array($editors) && $editors !== []) {
       $capabilities = [];
@@ -374,9 +408,9 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
         'schema_version' => OperationalCapabilityStudioManager::SCHEMA_VERSION,
         'capabilities' => $capabilities,
       ];
-      $base = $this->capabilityStudioManager->extractFromEvent($event);
-      if (isset($base['operational_merchandise'])) {
-        $mel['mel_operational_capabilities']['operational_merchandise'] = $base['operational_merchandise'];
+      $persisted = $this->capabilityStudioManager->extractFromEvent($event);
+      if (isset($persisted['operational_merchandise'])) {
+        $mel['mel_operational_capabilities']['operational_merchandise'] = $persisted['operational_merchandise'];
       }
     }
     return $this->capabilityStudioManager->normalizeMelFragment($mel, $event);

@@ -84,6 +84,7 @@ final class OperationalCapabilityStudioTestFactory {
       $logger,
       NULL,
       NULL,
+      NULL,
     );
   }
 

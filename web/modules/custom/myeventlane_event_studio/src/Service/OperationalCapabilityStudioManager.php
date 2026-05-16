@@ -60,6 +60,7 @@ final class OperationalCapabilityStudioManager {
     private readonly LoggerInterface $logger,
     private readonly ?OperationalCapabilityCommerceLinkManager $operationalCapabilityCommerceLinkManager = NULL,
     private readonly ?OperationalMerchandiseManager $operationalMerchandiseManager = NULL,
+    private readonly ?VendorProductisationStudioManager $vendorProductisationStudioManager = NULL,
   ) {}
 
   /**
@@ -226,6 +227,15 @@ final class OperationalCapabilityStudioManager {
       $links = is_array($merch['linked_products'] ?? NULL) ? $merch['linked_products'] : [];
       if (count($links) > 40) {
         $errors[] = 'Too many operational merchandise links for one event.';
+      }
+    }
+
+    if ($this->vendorProductisationStudioManager !== NULL) {
+      $merch = is_array($document['operational_merchandise'] ?? NULL) ? $document['operational_merchandise'] : [];
+      if (array_key_exists('productisation_items', $merch)) {
+        foreach ($this->vendorProductisationStudioManager->validateMerchandiseFragment($event, $merch) as $e) {
+          $errors[] = $e;
+        }
       }
     }
 
@@ -404,8 +414,15 @@ final class OperationalCapabilityStudioManager {
       'capabilities' => $capabilities,
     ];
     $merch_in = is_array($document['operational_merchandise'] ?? NULL) ? $document['operational_merchandise'] : [];
+    if ($this->vendorProductisationStudioManager !== NULL && $event instanceof NodeInterface
+      && array_key_exists('productisation_items', $merch_in)) {
+      $merch_in = $this->vendorProductisationStudioManager->prepareMerchandiseInputForCommerceNormalization($merch_in, $event);
+    }
     if ($this->operationalMerchandiseManager !== NULL && $event instanceof NodeInterface) {
       $out['operational_merchandise'] = $this->operationalMerchandiseManager->normalizeEventMerchandiseAuthoring($merch_in, $event);
+      if ($this->vendorProductisationStudioManager !== NULL && array_key_exists('productisation_items', $merch_in)) {
+        $out['operational_merchandise']['productisation_items'] = $merch_in['productisation_items'];
+      }
     }
     elseif ($merch_in !== []) {
       $out['operational_merchandise'] = $this->stripOperationalMerchandiseAuthoring($merch_in);
