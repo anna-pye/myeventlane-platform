@@ -1,0 +1,116 @@
+/**
+ * @file
+ * Compact add-on confirmation strip (checkout completion, tickets, orders).
+ */
+
+.mel-addon-guidance {
+  box-sizing: border-box;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1rem 1.125rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  overflow-x: hidden;
+}
+
+.mel-addon-guidance__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.mel-addon-guidance__intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.78);
+}
+
+.mel-addon-guidance__sections {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-addon-guidance__section {
+  margin: 0 0 0.85rem;
+  padding: 0 0 0.85rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.mel-addon-guidance__section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.mel-addon-guidance__section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.mel-addon-guidance__summaries,
+.mel-addon-guidance__chips {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.mel-addon-guidance__chips {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mel-addon-guidance__chip {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.mel-addon-guidance__chip--info {
+  border-color: rgba(14, 165, 233, 0.35);
+  background: rgba(224, 242, 254, 0.55);
+}
+
+.mel-addon-guidance__chip--warning {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(254, 243, 199, 0.45);
+}
+
+.mel-addon-guidance__next,
+.mel-addon-guidance__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.mel-addon-guidance__footer {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.mel-addon-guidance__support {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 48rem) {
+  .mel-addon-guidance {
+    padding: 1.125rem 1.25rem;
+  }
+}

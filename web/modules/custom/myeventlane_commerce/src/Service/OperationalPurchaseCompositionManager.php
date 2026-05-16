@@ -99,9 +99,19 @@ final class OperationalPurchaseCompositionManager {
    * @return array<string, mixed>|null
    */
   public function buildOrderRenderArray(OrderInterface $order): ?array {
-    $document = $this->composeForOrder($order);
+    return $this->buildOrderRenderArrayFromDocument($order, $this->composeForOrder($order));
+  }
+
+  /**
+   * @param array<string, mixed> $document
+   *   Output of {@see self::composeForOrder()}.
+   *
+   * @return array<string, mixed>|null
+   */
+  public function buildOrderRenderArrayFromDocument(OrderInterface $order, array $document): ?array {
+    $groups = is_array($document['groups'] ?? NULL) ? $document['groups'] : [];
     $empty = TRUE;
-    foreach ($document['groups'] as $items) {
+    foreach ($groups as $items) {
       if (is_array($items) && $items !== []) {
         $empty = FALSE;
         break;

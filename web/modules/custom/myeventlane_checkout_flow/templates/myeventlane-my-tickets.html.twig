@@ -80,6 +80,12 @@
                 </div>
               {% endif %}
 
+              {% if order_data.operational_addon_guidance %}
+                <div class="mel-my-tickets-addon-guidance mel-mt-3" role="region" aria-label="{{ 'Your add-ons'|t }}">
+                  {{ order_data.operational_addon_guidance }}
+                </div>
+              {% endif %}
+
               <div class="mel-order-actions mel-mt-4">
                 <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"
                    class="mel-button mel-button--primary">
@@ -157,6 +163,12 @@
                 {% if order_data.mel_operational_checkout %}
                   <div class="mel-my-tickets-operational-checkout mel-mt-3" role="region" aria-label="{{ 'Operational checkout plan'|t }}">
                     {{ order_data.mel_operational_checkout }}
+                  </div>
+                {% endif %}
+
+                {% if order_data.operational_addon_guidance %}
+                  <div class="mel-my-tickets-addon-guidance mel-mt-3" role="region" aria-label="{{ 'Your add-ons'|t }}">
+                    {{ order_data.operational_addon_guidance }}
                   </div>
                 {% endif %}
 

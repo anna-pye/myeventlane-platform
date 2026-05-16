@@ -52,6 +52,12 @@
     </div>
   {% endif %}
 
+  {% if operational_addon_guidance %}
+    <div class="mel-order-detail-addon-guidance mel-section mel-mt-4" role="region" aria-label="{{ 'Your add-ons'|t }}">
+      {{ operational_addon_guidance }}
+    </div>
+  {% endif %}
+
   {% if order.events|length > 0 %}
     <div class="mel-section mel-mt-6">
       <h2 class="mel-section-title">{{ 'Your events'|t }}</h2>

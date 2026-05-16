@@ -28,7 +28,9 @@ Forbidden keys are stripped recursively (`OperationalCheckoutOrchestrationManage
 
 - Theme hook `mel_operational_checkout` ships in `myeventlane_commerce` with library `myeventlane_commerce/mel_operational_checkout`.
 - `myeventlane_theme` preprocessors attach `mel_operational_checkout` render arrays wherever `mel_operational_purchase_composition` already appears (cart summary, checkout sidebar + completion, checkout order summary pane, commerce order user view, My Tickets cards, order detail). The event book adds the strip via `myeventlane_commerce_preprocess_myeventlane_event_book()`.
-- **Phase 4F:** the same booking page can embed `EventOperationalAddonCartForm` (operational add-ons to cart) when `EventOperationalAddonBuilder` finds eligible products; see [customer-operational-addons-booking.md](./customer-operational-addons-booking.md).
+- **Phase 4F:** the same booking page can embed `EventOperationalAddonCartForm` (operational add-ons to cart) when eligible products exist; see [customer-operational-addons-booking.md](./customer-operational-addons-booking.md).
+- **Phase 4F (Commit 2):** post-purchase **add-on confirmation** strip (`mel_operational_addon_guidance`) reuses composition + checkout contracts; see [customer-operational-addon-confirmation-guidance.md](./customer-operational-addon-confirmation-guidance.md).
+- **Phase 4F (Commit 3):** vendor **read-only** add-on order list per event (no fulfilment execution, no order mutation); see [vendor-operational-addon-order-visibility.md](./vendor-operational-addon-order-visibility.md).
 
 ## Anti-patterns
 

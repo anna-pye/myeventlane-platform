@@ -317,6 +317,18 @@ function myeventlane_commerce_theme(): array {
       ],
       'template' => 'mel-operational-checkout',
     ],
+    'mel_operational_addon_guidance' => [
+      'variables' => [
+        'guidance' => [],
+      ],
+      'template' => 'mel-operational-addon-guidance',
+    ],
+    'mel_vendor_operational_addon_orders' => [
+      'variables' => [
+        'document' => [],
+      ],
+      'template' => 'mel-vendor-operational-addon-orders',
+    ],
     'mel_waitlist_offer_countdown' => [
       'variables' => [
         'expires_timestamp' => 0,
@@ -397,7 +409,7 @@ function myeventlane_commerce_theme_registry_alter(array &$registry): void {
   $theme = \Drupal::theme()->getActiveTheme()->getName();
   $theme_path = \Drupal::service('extension.list.theme')->getPath($theme);
   $commerce_tpl_dir = $theme_path . '/templates/commerce';
-  foreach (['mel_operational_purchase_composition', 'mel_operational_checkout'] as $hook) {
+  foreach (['mel_operational_purchase_composition', 'mel_operational_checkout', 'mel_operational_addon_guidance', 'mel_vendor_operational_addon_orders'] as $hook) {
     if (!isset($registry[$hook])) {
       continue;
     }

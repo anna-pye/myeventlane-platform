@@ -6,9 +6,9 @@ namespace Drupal\myeventlane_commerce\Form;
 
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
+use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
-use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -80,12 +80,12 @@ final class EventOperationalAddonCartForm extends FormBase {
       $cache_tags[] = 'commerce_product:' . $pid;
     }
     $form['#cache']['tags'] = array_values(array_unique($cache_tags));
-    $form['#cache']['contexts'] = ['user', 'session'];
+    $form['#cache']['contexts'] = ['user', 'session', 'languages:language_interface'];
 
     $form['intro'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#value' => $this->t('Merch, hospitality and collection add-ons linked to this event.'),
+      '#value' => $this->t('Optional extras for this event — add to your booking, then collect on site after checkout. Quantities are not stock guarantees.'),
       '#attributes' => ['class' => ['mel-operational-addons-form__intro']],
     ];
 

@@ -570,6 +570,21 @@ myeventlane_vendor.console.event_orders:
         bundle:
           - event
 
+myeventlane_vendor.console.event_operational_addon_orders:
+  path: '/vendor/events/{event}/addons'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_operational_addon_orders:addons'
+    _title: 'Add-on orders'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 myeventlane_vendor.console.event_order_view:
   path: '/vendor/events/{event}/orders/{order}'
   defaults:

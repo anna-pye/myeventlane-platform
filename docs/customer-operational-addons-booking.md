@@ -43,13 +43,13 @@ Form dependencies (constructor / `create()`): `entity_type.manager`, `commerce_c
 
 ```bash
 ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Unit/EventOperationalAddonBuilderTest.php --do-not-cache-result
-./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Kernel/EventOperationalAddonBuilderKernelTest.php --do-not-cache-result
+./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalMerchandiseKernelTest.php --filter EventOperationalAddonBuilder --do-not-cache-result
 ```
 
-Kernel tests reuse `OperationalMerchandiseKernelTest` fixtures (Commerce catalog + `field_event`). If `SIMPLETEST_DB` is required in your environment, follow the project pattern:
+Kernel tests live in `OperationalMerchandiseKernelTest` (shared Commerce fixtures). If `SIMPLETEST_DB` is required in your environment:
 
 ```bash
-ddev exec bash -lc 'export SIMPLETEST_DB=sqlite://localhost/tmp/test.sqlite && ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Kernel/EventOperationalAddonBuilderKernelTest.php --do-not-cache-result'
+ddev exec bash -lc 'export SIMPLETEST_DB=sqlite://localhost/tmp/test.sqlite && ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalMerchandiseKernelTest.php --filter EventOperationalAddonBuilder --do-not-cache-result'
 ```
 
 **Cart form automated tests:** Full Commerce cart kernel coverage is not included here (heavy fixture surface). Manual QA covers add-to-cart, invalid variation rejection, and multi-store behaviour.
@@ -70,3 +70,6 @@ ddev exec bash -lc 'export SIMPLETEST_DB=sqlite://localhost/tmp/test.sqlite && .
 - [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [vendor-product-creation-wizard.md](./vendor-product-creation-wizard.md)
 - [operational-purchase-composition-convergence.md](./operational-purchase-composition-convergence.md)
+- [customer-operational-addon-confirmation-guidance.md](./customer-operational-addon-confirmation-guidance.md)
+- [vendor-operational-addon-order-visibility.md](./vendor-operational-addon-order-visibility.md)
+- [operational-addons-mvp-qa.md](./operational-addons-mvp-qa.md)

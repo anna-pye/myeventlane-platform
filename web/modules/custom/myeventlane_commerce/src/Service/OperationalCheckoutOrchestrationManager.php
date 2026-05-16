@@ -51,8 +51,22 @@ final class OperationalCheckoutOrchestrationManager {
    *   Full checkout contract, or NULL when no operational composition exists.
    */
   public function buildCheckoutContractForOrder(OrderInterface $order): ?array {
-    $composition = $this->purchaseCompositionManager->composeForOrder($order);
-    return $this->finalizeContractFromComposition($composition, (int) $order->id(), NULL);
+    return $this->buildCheckoutContractFromComposition(
+      $this->purchaseCompositionManager->composeForOrder($order),
+      (int) $order->id(),
+      NULL,
+    );
+  }
+
+  /**
+   * @param array<string, mixed> $composition
+   *   Output of {@see OperationalPurchaseCompositionManager::composeForOrder()}
+   *   or {@see OperationalPurchaseCompositionManager::composePreviewFromEvent()}.
+   *
+   * @return array<string, mixed>|null
+   */
+  public function buildCheckoutContractFromComposition(array $composition, ?int $order_id, ?int $event_id): ?array {
+    return $this->finalizeContractFromComposition($composition, $order_id, $event_id);
   }
 
   /**
@@ -67,7 +81,20 @@ final class OperationalCheckoutOrchestrationManager {
    * @return array<string, mixed>|null
    */
   public function buildOrderRenderArray(OrderInterface $order): ?array {
-    $contract = $this->buildCheckoutContractForOrder($order);
+    return $this->buildOrderRenderArrayFromComposition(
+      $order,
+      $this->purchaseCompositionManager->composeForOrder($order),
+    );
+  }
+
+  /**
+   * @param array<string, mixed> $composition
+   *   Output of {@see OperationalPurchaseCompositionManager::composeForOrder()}.
+   *
+   * @return array<string, mixed>|null
+   */
+  public function buildOrderRenderArrayFromComposition(OrderInterface $order, array $composition): ?array {
+    $contract = $this->finalizeContractFromComposition($composition, (int) $order->id(), NULL);
     if ($contract === NULL) {
       return NULL;
     }

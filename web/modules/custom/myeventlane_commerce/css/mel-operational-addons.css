@@ -7,12 +7,20 @@
   margin-top: 1.75rem;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(15, 23, 42, 0.08);
+  overflow-x: hidden;
 }
 
 .mel-operational-addons-section__title {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.35rem;
   font-size: 1.125rem;
   font-weight: 700;
+}
+
+.mel-operational-addons-section__lede {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.72);
 }
 
 .mel-operational-addons-form__intro {

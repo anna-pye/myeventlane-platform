@@ -668,6 +668,7 @@ function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
   _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
   _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
   _myeventlane_theme_attach_mel_operational_checkout($variables);
+  _myeventlane_theme_attach_operational_addon_guidance($variables);
 }
 
 /**
@@ -689,6 +690,7 @@ function myeventlane_theme_preprocess_myeventlane_my_tickets(array &$variables):
       $variables[$orders_key][$idx]['mel_operational_fulfillment_execution_customer'] = _myeventlane_theme_mel_operational_fulfillment_execution_customer_for_order($order);
       $variables[$orders_key][$idx]['mel_operational_purchase_composition'] = _myeventlane_theme_mel_operational_purchase_composition_for_order($order);
       $variables[$orders_key][$idx]['mel_operational_checkout'] = _myeventlane_theme_mel_operational_checkout_for_order($order);
+      $variables[$orders_key][$idx]['operational_addon_guidance'] = _myeventlane_theme_mel_operational_addon_guidance_for_order($order);
     }
   }
 
@@ -763,6 +765,7 @@ function myeventlane_theme_preprocess_myeventlane_order_detail(array &$variables
   _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
   _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
   _myeventlane_theme_attach_mel_operational_checkout($variables);
+  _myeventlane_theme_attach_operational_addon_guidance($variables);
 
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
     || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
@@ -1091,6 +1094,7 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
   _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
   _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
   _myeventlane_theme_attach_mel_operational_checkout($variables);
+  _myeventlane_theme_attach_operational_addon_guidance($variables);
 }
 
 /**
@@ -1140,6 +1144,84 @@ function _myeventlane_theme_set_mel_customer_operational_block(array &$variables
   }
   $render['#cache']['tags'] = array_values(array_unique(array_merge($cache_tags, $render['#cache']['tags'] ?? [])));
   $variables['mel_customer_operational_experience'] = $render;
+}
+
+/**
+ * Composition document per order, static-cached for the current request.
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_theme_mel_operational_composition_document(OrderInterface $order): array {
+  static $by_order = [];
+  $oid = (int) $order->id();
+  if (array_key_exists($oid, $by_order)) {
+    return $by_order[$oid];
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_purchase_composition_manager')) {
+    $by_order[$oid] = _myeventlane_theme_mel_operational_composition_empty_groups();
+    return $by_order[$oid];
+  }
+  try {
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
+    $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
+    $by_order[$oid] = $pcm->composeForOrder($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational composition document skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    $by_order[$oid] = _myeventlane_theme_mel_operational_composition_empty_groups();
+  }
+  return $by_order[$oid];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function _myeventlane_theme_mel_operational_composition_empty_groups(): array {
+  return [
+    'groups' => [
+      'merchandise' => [],
+      'hospitality' => [],
+      'timed_collection' => [],
+      'bundles' => [],
+      'parking' => [],
+    ],
+  ];
+}
+
+/**
+ * Cached checkout render array for an order (single orchestration finalize per request).
+ *
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_checkout_render_for_order(OrderInterface $order): ?array {
+  static $cache = [];
+  $oid = (int) $order->id();
+  if (array_key_exists($oid, $cache)) {
+    return $cache[$oid];
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+    $cache[$oid] = NULL;
+    return NULL;
+  }
+  try {
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
+    $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
+    $cache[$oid] = $oco->buildOrderRenderArrayFromComposition($order, $composition);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout orchestration skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    $cache[$oid] = NULL;
+  }
+  return $cache[$oid];
 }
 
 /**
@@ -1196,7 +1278,8 @@ function _myeventlane_theme_attach_mel_operational_purchase_composition(array &$
   try {
     /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
     $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
-    $variables['mel_operational_purchase_composition'] = $pcm->buildOrderRenderArray($order);
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    $variables['mel_operational_purchase_composition'] = $pcm->buildOrderRenderArrayFromDocument($order, $composition);
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_theme')->notice('MEL operational purchase composition skipped: @message', ['@message' => $e->getMessage()]);
@@ -1215,7 +1298,8 @@ function _myeventlane_theme_mel_operational_purchase_composition_for_order(Order
   try {
     /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
     $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
-    return $pcm->buildOrderRenderArray($order);
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    return $pcm->buildOrderRenderArrayFromDocument($order, $composition);
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_theme')->notice('MEL operational purchase composition (My Tickets) skipped for order @oid: @message', [
@@ -1249,13 +1333,50 @@ function _myeventlane_theme_attach_mel_operational_checkout(array &$variables): 
     return;
   }
   try {
-    /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
-    $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
-    $variables['mel_operational_checkout'] = $oco->buildOrderRenderArray($order);
+    $variables['mel_operational_checkout'] = _myeventlane_theme_mel_operational_checkout_render_for_order($order);
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout orchestration skipped: @message', ['@message' => $e->getMessage()]);
     $variables['mel_operational_checkout'] = NULL;
+  }
+}
+
+/**
+ * Compact post-purchase add-on guidance (read-only).
+ */
+function _myeventlane_theme_attach_operational_addon_guidance(array &$variables): void {
+  $variables['operational_addon_guidance'] = NULL;
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_addon_guidance_builder')) {
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order'])) {
+    $candidate = $variables['form']['#order'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order_entity'])) {
+    $candidate = $variables['form']['#order_entity'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  try {
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    $checkout_render = _myeventlane_theme_mel_operational_checkout_render_for_order($order);
+    $contract = is_array($checkout_render) ? ($checkout_render['#checkout'] ?? NULL) : NULL;
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalAddonGuidanceBuilder $builder */
+    $builder = \Drupal::service('myeventlane_commerce.operational_addon_guidance_builder');
+    $variables['operational_addon_guidance'] = $builder->buildRenderArray(
+      $order,
+      $composition,
+      is_array($contract) ? $contract : NULL,
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational add-on guidance skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['operational_addon_guidance'] = NULL;
   }
 }
 
@@ -1268,12 +1389,39 @@ function _myeventlane_theme_mel_operational_checkout_for_order(OrderInterface $o
     return NULL;
   }
   try {
-    /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
-    $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
-    return $oco->buildOrderRenderArray($order);
+    return _myeventlane_theme_mel_operational_checkout_render_for_order($order);
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout (My Tickets) skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_addon_guidance_for_order(OrderInterface $order): ?array {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_addon_guidance_builder')) {
+    return NULL;
+  }
+  try {
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    $checkout_render = _myeventlane_theme_mel_operational_checkout_render_for_order($order);
+    $contract = is_array($checkout_render) ? ($checkout_render['#checkout'] ?? NULL) : NULL;
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalAddonGuidanceBuilder $builder */
+    $builder = \Drupal::service('myeventlane_commerce.operational_addon_guidance_builder');
+    return $builder->buildRenderArray(
+      $order,
+      $composition,
+      is_array($contract) ? $contract : NULL,
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational add-on guidance (My Tickets) skipped for order @oid: @message', [
       '@oid' => (string) $order->id(),
       '@message' => $e->getMessage(),
     ]);

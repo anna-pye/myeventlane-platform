@@ -18,6 +18,7 @@ use Drupal\commerce_store\Entity\Store;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseGovernanceManager;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager;
@@ -343,7 +344,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     ], JSON_THROW_ON_ERROR));
     $product->save();
 
-    $builder = new \Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder(
+    $builder = new EventOperationalAddonBuilder(
       $this->container->get('entity_type.manager'),
       $this->merchandiseManager(),
       $this->container->get('string_translation'),
@@ -364,7 +365,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     $product->set('status', 0);
     $product->save();
 
-    $builder = new \Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder(
+    $builder = new EventOperationalAddonBuilder(
       $this->container->get('entity_type.manager'),
       $this->merchandiseManager(),
       $this->container->get('string_translation'),
@@ -381,7 +382,21 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     }
     $product->save();
 
-    $builder = new \Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder(
+    $builder = new EventOperationalAddonBuilder(
+      $this->container->get('entity_type.manager'),
+      $this->merchandiseManager(),
+      $this->container->get('string_translation'),
+    );
+    $built = $builder->buildForEvent($this->event);
+    $this->assertSame([], $built['addons']);
+  }
+
+  public function testEventOperationalAddonBuilderExcludesProductWithoutStore(): void {
+    $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'ADDON-NOSTORE');
+    $product->set('stores', []);
+    $product->save();
+
+    $builder = new EventOperationalAddonBuilder(
       $this->container->get('entity_type.manager'),
       $this->merchandiseManager(),
       $this->container->get('string_translation'),
@@ -403,7 +418,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     $product->set('status', 1);
     $product->save();
 
-    $builder = new \Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder(
+    $builder = new EventOperationalAddonBuilder(
       $this->container->get('entity_type.manager'),
       $this->merchandiseManager(),
       $this->container->get('string_translation'),
@@ -420,7 +435,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
       'status' => 1,
     ]);
     $empty_event->save();
-    $builder = new \Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder(
+    $builder = new EventOperationalAddonBuilder(
       $this->container->get('entity_type.manager'),
       $this->merchandiseManager(),
       $this->container->get('string_translation'),

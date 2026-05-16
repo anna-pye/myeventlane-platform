@@ -93,6 +93,9 @@ final class EventOperationalAddonBuilder {
       if (!$product->isPublished()) {
         continue;
       }
+      if ($product->getStores() === []) {
+        continue;
+      }
       if (!$product->hasField('field_event') || $product->get('field_event')->isEmpty()) {
         continue;
       }

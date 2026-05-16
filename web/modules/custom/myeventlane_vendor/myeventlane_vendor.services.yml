@@ -284,6 +284,7 @@ services:
       - '@router.route_provider'
       - '@access_manager'
       - '@current_user'
+      - '@myeventlane_commerce.vendor_operational_addon_order_builder'
 
   myeventlane_vendor.event_workspace_view_model_builder:
     class: Drupal\myeventlane_vendor\Service\VendorEventWorkspaceViewModelBuilder
@@ -301,6 +302,7 @@ services:
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_commerce.vendor_operational_addon_order_builder'
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
@@ -385,6 +387,17 @@ services:
       - '@entity_type.manager'
       - '@config.factory'
       - '@datetime.time'
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_vendor.controller.vendor_operational_addon_orders:
+    class: Drupal\myeventlane_vendor\Controller\VendorOperationalAddonOrdersController
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_commerce.vendor_operational_addon_order_builder'
+      - '@myeventlane_vendor.service.event_tabs'
     tags:
       - { name: controller.service_arguments }
 
