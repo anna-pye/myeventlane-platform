@@ -78,6 +78,7 @@ ddev exec bash -lc 'export SIMPLETEST_DB=sqlite://localhost/tmp/test.sqlite && .
 
 ## Related documentation
 
+- [operational-addons-staging-qa.md](./operational-addons-staging-qa.md) — staging deploy and browser QA checklist
 - [customer-operational-addons-booking.md](./customer-operational-addons-booking.md)
 - [customer-operational-addon-confirmation-guidance.md](./customer-operational-addon-confirmation-guidance.md)
 - [vendor-operational-addon-order-visibility.md](./vendor-operational-addon-order-visibility.md)
