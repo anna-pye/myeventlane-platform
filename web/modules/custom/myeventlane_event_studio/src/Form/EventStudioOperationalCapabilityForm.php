@@ -478,7 +478,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     $ids = $storage->getQuery()
       ->accessCheck(TRUE)
       ->condition('product_id', $product_id)
-      ->sort('id')
+      ->sort('variation_id')
       ->execute();
     if ($ids === []) {
       return [];
