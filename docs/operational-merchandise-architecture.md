@@ -62,3 +62,4 @@ Theme and checkout-flow templates render the composition strip next to existing 
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
 - [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md)
 - [customer-operational-addons-booking.md](./customer-operational-addons-booking.md)
+- [customer-operational-addon-confirmation-guidance.md](./customer-operational-addon-confirmation-guidance.md)

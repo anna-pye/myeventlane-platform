@@ -70,3 +70,4 @@ ddev exec bash -lc 'export SIMPLETEST_DB=sqlite://localhost/tmp/test.sqlite && .
 - [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [vendor-product-creation-wizard.md](./vendor-product-creation-wizard.md)
 - [operational-purchase-composition-convergence.md](./operational-purchase-composition-convergence.md)
+- [customer-operational-addon-confirmation-guidance.md](./customer-operational-addon-confirmation-guidance.md)

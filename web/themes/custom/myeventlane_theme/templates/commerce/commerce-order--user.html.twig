@@ -93,6 +93,15 @@
     </div>
   {% endif %}
 
+  {% if operational_addon_guidance %}
+    <div class="mel-order-detail__section mel-order-detail__addon-guidance mel-card mel-mb-4" role="region" aria-label="{{ 'Your add-ons'|t }}">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'Your add-ons'|t }}</h2>
+        {{ operational_addon_guidance }}
+      </div>
+    </div>
+  {% endif %}
+
   {# Order items table #}
   {% if order.order_items is defined and order.order_items|render|striptags|trim %}
     <div class="mel-order-detail__section mel-order-detail__items mel-card mel-mb-4">
