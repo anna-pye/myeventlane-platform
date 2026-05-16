@@ -11,6 +11,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -32,6 +33,7 @@ final class VendorEventTabsService {
     private readonly RouteProviderInterface $routeProvider,
     private readonly AccessManagerInterface $accessManager,
     private readonly AccountInterface $currentUser,
+    private readonly VendorOperationalAddonOrderBuilder $vendorOperationalAddonOrderBuilder,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -156,6 +158,18 @@ final class VendorEventTabsService {
         'disabled_reason' => (string) $t->translate('Turn on paid tickets for this event to use this section.'),
       ],
     ];
+
+    if ($this->routeExists('myeventlane_vendor.console.event_operational_addon_orders')) {
+      $showAddons = $isTickets && $this->vendorOperationalAddonOrderBuilder->shouldSurfaceVendorAddonsTab($event);
+      $rows[] = [
+        'key' => 'addon_orders',
+        'label' => (string) $t->translate('Add-on orders'),
+        'route' => 'myeventlane_vendor.console.event_operational_addon_orders',
+        'params' => ['event' => $id],
+        'disabled' => !$showAddons,
+        'disabled_reason' => (string) $t->translate('Add-on orders appear when this event has operational extras configured or purchased.'),
+      ];
+    }
 
     if ($this->moduleHandler->moduleExists('myeventlane_refunds')) {
       $rows[] = [

@@ -27,4 +27,5 @@ Phase 4C adds **`OperationalFulfillmentExecutionProjectionBuilder::buildCustomer
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
 - [customer-operational-addons-booking.md](./customer-operational-addons-booking.md)
 - [customer-operational-addon-confirmation-guidance.md](./customer-operational-addon-confirmation-guidance.md)
+- [vendor-operational-addon-order-visibility.md](./vendor-operational-addon-order-visibility.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)

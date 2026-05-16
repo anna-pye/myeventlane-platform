@@ -245,3 +245,12 @@ services:
     class: Drupal\myeventlane_commerce\Service\OperationalAddonGuidanceBuilder
     arguments:
       - '@string_translation'
+
+  myeventlane_commerce.vendor_operational_addon_order_builder:
+    class: Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_purchase_composition_manager'
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@date.formatter'
+      - '@string_translation'

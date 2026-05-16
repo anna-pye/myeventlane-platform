@@ -277,6 +277,9 @@
           {% if model.actions.orders is not null %}
             <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.orders }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View orders'|t }}</span></a>
           {% endif %}
+          {% if model.actions.addon_orders is not null %}
+            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.addon_orders }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View add-on orders'|t }}</span></a>
+          {% endif %}
           {% if model.actions.attendees is not null %}
             <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.attendees }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View attendees'|t }}</span></a>
           {% endif %}

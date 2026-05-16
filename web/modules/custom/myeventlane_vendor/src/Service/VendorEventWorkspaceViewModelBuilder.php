@@ -14,6 +14,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
@@ -40,6 +41,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MelReadinessHelper $readinessHelper,
+    private readonly VendorOperationalAddonOrderBuilder $vendorOperationalAddonOrderBuilder,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -177,11 +179,19 @@ final class VendorEventWorkspaceViewModelBuilder {
 
     $previewUrl = $this->routeUrlIfAccessible('entity.node.canonical', ['node' => $nid], $account);
 
+    $addonOrdersUrl = NULL;
+    if (($eventType === 'paid' || $eventType === 'both')
+      && $this->routeExists('myeventlane_vendor.console.event_operational_addon_orders')
+      && $this->vendorOperationalAddonOrderBuilder->shouldSurfaceVendorAddonsTab($event)) {
+      $addonOrdersUrl = $this->routeUrlIfAccessible('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $nid], $account);
+    }
+
     $actions = [
       'edit' => $editUrl,
       'advanced_tickets' => $advancedTicketsUrl,
       'rsvps' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_rsvps', ['event' => $nid], $account),
       'orders' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_orders', ['event' => $nid], $account),
+      'addon_orders' => $addonOrdersUrl,
       'attendees' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account),
       'checkin' => $this->routeUrlIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account),
       'analytics' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_analytics', ['event' => $nid], $account),
@@ -288,6 +298,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'advanced_tickets' => NULL,
         'rsvps' => NULL,
         'orders' => NULL,
+        'addon_orders' => NULL,
         'attendees' => NULL,
         'checkin' => NULL,
         'analytics' => NULL,
