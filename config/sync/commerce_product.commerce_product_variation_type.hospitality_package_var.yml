@@ -1,0 +1,10 @@
+uuid: a01610a6-b721-4591-93eb-3decba86c90c
+langcode: en
+status: true
+dependencies: {  }
+id: hospitality_package_var
+label: 'Hospitality package variation'
+traits: {  }
+locked: false
+orderItemType: default
+generateTitle: true

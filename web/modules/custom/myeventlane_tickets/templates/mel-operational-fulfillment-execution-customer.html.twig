@@ -1,0 +1,39 @@
+{#
+/**
+ * @file
+ * Customer fulfillment execution hints (read-only; no scanner/QR/stock).
+ *
+ * Variables:
+ * - document: execution bundle from OperationalFulfillmentExecutionManager.
+ * - presentation: chips, what_next, summaries.
+ */
+#}
+{% set pres = presentation|default({}) %}
+{% set doc = document|default({}) %}
+{% if doc.empty|default(false) %}
+{% else %}
+  <section class="mel-ofe mel-card-surface" data-mel-ofe-root role="region" aria-labelledby="mel-ofe-heading">
+    <header class="mel-ofe__header">
+      <h2 id="mel-ofe-heading" class="mel-ofe__title">{{ 'On-site fulfillment'|t }}</h2>
+      {% if pres.what_next|default('') %}
+        <p class="mel-ofe__what-next">{{ pres.what_next }}</p>
+      {% endif %}
+    </header>
+    {% if pres.continuity_chips|default([])|length > 0 %}
+      <ul class="mel-ofe-chips" aria-label="{{ 'What happens next'|t }}">
+        {% for chip in pres.continuity_chips %}
+          <li class="mel-ofe-chip mel-ofe-chip--{{ chip.tone|default('muted')|clean_class }}">{{ chip.label|default('') }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if pres.summaries|default([])|length > 0 %}
+      <ul class="mel-ofe-summaries mel-text--muted">
+        {% for line in pres.summaries %}
+          {% if line %}
+            <li>{{ line }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+{% endif %}

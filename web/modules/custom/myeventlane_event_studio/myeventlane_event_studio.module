@@ -108,6 +108,30 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-wizard-preview',
     ],
+    'mel_event_studio_operational_capabilities' => [
+      'variables' => [
+        'cards' => [],
+        'customer_preview' => [],
+        'readiness_preview' => [],
+        'ui_metadata' => [],
+      ],
+      'template' => 'mel-event-studio-operational-capabilities',
+    ],
+    'mel_event_studio_productisation' => [
+      'variables' => [
+        'cards' => [],
+        'customer_experience_data' => [],
+        'validation' => [],
+        'cta_rows' => [],
+      ],
+      'template' => 'mel-event-studio-productisation',
+    ],
+    'mel_customer_operational_experience' => [
+      'variables' => [
+        'experience' => [],
+      ],
+      'template' => 'mel-customer-operational-experience',
+    ],
     'form_element__mel_option_card' => [
       'base hook' => 'form_element',
       'template' => 'form-element--mel-option-card',
@@ -117,6 +141,13 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       'template' => 'form-element-label--mel-option-card',
     ],
   ];
+}
+
+/**
+ * Prepares variables for mel-customer-operational-experience.html.twig.
+ */
+function template_preprocess_mel_customer_operational_experience(array &$variables): void {
+  $variables['#attached']['library'][] = 'myeventlane_event_studio/mel_customer_operational_experience';
 }
 
 /**

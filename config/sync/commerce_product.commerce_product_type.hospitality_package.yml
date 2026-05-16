@@ -1,0 +1,13 @@
+uuid: d6af694b-bc3f-47a6-aa55-9e51aac52492
+langcode: en
+status: true
+dependencies: {  }
+id: hospitality_package
+label: 'Hospitality package'
+traits: {  }
+locked: false
+description: 'Hospitality access products with operational messaging only.'
+variationTypes:
+  - hospitality_package_var
+multipleVariations: true
+injectVariationFields: true

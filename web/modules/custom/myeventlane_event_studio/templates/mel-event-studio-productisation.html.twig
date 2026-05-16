@@ -1,0 +1,57 @@
+{#
+/**
+ * @file
+ * Vendor productisation workspace (authoring + read-only customer preview).
+ *
+ * Variables:
+ * - cards: list of card arrays from VendorProductisationStudioBuilder.
+ * - customer_experience_data: sanitised array from CustomerOperationalCommerceExperienceBuilder.
+ * - validation: array with has_errors and messages.
+ * - cta_rows: CTA metadata rows.
+ */
+#}
+<div class="mel-productisation-workspace">
+  {% if validation.has_errors|default(false) %}
+    <div class="mel-productisation-validation mel-productisation-validation--error" role="alert">
+      <p class="mel-productisation-validation__title">{{ 'Before you save'|t }}</p>
+      <ul class="mel-productisation-validation__list">
+        {% for row in validation.messages|default([]) %}
+          <li>{{ row.text|default('') }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="mel-productisation-cta" aria-label="{{ 'Quick add'|t }}">
+    {% for cta in cta_rows|default([]) %}
+      <p class="mel-productisation-cta__row"><span class="mel-productisation-cta__label">{{ cta.label }}</span></p>
+    {% endfor %}
+  </div>
+
+  <div class="mel-productisation-grid">
+    {% for card in cards|default([]) %}
+      <article class="mel-productisation-card mel-es-card" data-productisation-type="{{ card.type|default('')|e('html_attr') }}">
+        <header class="mel-productisation-card__head">
+          <h3 class="mel-productisation-card__title">{{ card.label|default('') }}</h3>
+          {% if card.readiness.label|default('') %}
+            <span class="mel-productisation-chip mel-productisation-chip--{{ card.readiness.tone|default('muted')|clean_class }}">{{ card.readiness.label }}</span>
+          {% endif %}
+        </header>
+        {% if card.commerce.binding_label|default('') %}
+          <p class="mel-productisation-card__commerce mel-text--muted">{{ card.commerce.binding_label }}</p>
+        {% endif %}
+        {% if card.customer_preview.headline|default('') %}
+          <p class="mel-productisation-card__headline">{{ 'Customer sees'|t }}: {{ card.customer_preview.headline }}</p>
+        {% endif %}
+        {% if card.customer_preview.presentation.operational_summary|default('') %}
+          <p class="mel-productisation-card__summary mel-text--muted">{{ card.customer_preview.presentation.operational_summary }}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+
+  <div class="mel-productisation-customer-preview">
+    <h3 class="mel-productisation-preview-heading">{{ 'Operational preview (capabilities)'|t }}</h3>
+    {% include '@myeventlane_event_studio/mel-customer-operational-experience.html.twig' with { experience: customer_experience_data|default({}) } only %}
+  </div>
+</div>

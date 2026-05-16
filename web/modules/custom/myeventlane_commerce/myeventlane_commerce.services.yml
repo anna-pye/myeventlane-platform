@@ -189,3 +189,47 @@ services:
       - '@request_stack'
     tags:
       - { name: event_subscriber }
+
+  myeventlane_commerce.operational_merchandise_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager
+    arguments:
+      - '@entity_type.manager'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_commerce'
+
+  myeventlane_commerce.operational_merchandise_governance_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalMerchandiseGovernanceManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_purchase_composition_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_merchandise_governance_manager'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_checkout_governance_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalCheckoutGovernanceManager
+    arguments:
+      - '@string_translation'
+
+  myeventlane_commerce.operational_customer_guidance_builder:
+    class: Drupal\myeventlane_commerce\Service\OperationalCustomerGuidanceBuilder
+    arguments:
+      - '@string_translation'
+
+  myeventlane_commerce.operational_cart_projection_builder:
+    class: Drupal\myeventlane_commerce\Service\OperationalCartProjectionBuilder
+    arguments:
+      - '@string_translation'
+
+  myeventlane_commerce.operational_checkout_orchestration_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager
+    arguments:
+      - '@myeventlane_commerce.operational_purchase_composition_manager'
+      - '@myeventlane_commerce.operational_checkout_governance_manager'
+      - '@myeventlane_commerce.operational_customer_guidance_builder'
+      - '@myeventlane_commerce.operational_cart_projection_builder'
+      - '@string_translation'

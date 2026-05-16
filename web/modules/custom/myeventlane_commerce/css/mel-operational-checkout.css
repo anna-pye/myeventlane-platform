@@ -1,0 +1,158 @@
+/**
+ * Operational checkout orchestration — pastel hierarchy, mobile-first cards.
+ */
+.mel-op-checkout {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #fdf8ff 0%, #f2fbff 55%, #f6fff5 100%);
+  border: 1px solid rgba(14, 165, 233, 0.12);
+}
+
+.mel-op-checkout__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.mel-op-checkout__governance {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.mel-op-checkout__governance--elevated {
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  color: #7c2d12;
+}
+
+.mel-op-checkout__governance--attention {
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #312e81;
+}
+
+.mel-op-checkout__governance--nominal {
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #14532d;
+}
+
+.mel-op-checkout__banners {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.mel-op-checkout__banner {
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  font-size: 0.88rem;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.mel-op-checkout__banner--warning {
+  border-left: 4px solid #fb923c;
+}
+
+.mel-op-checkout__banner--info {
+  border-left: 4px solid #38bdf8;
+}
+
+.mel-op-checkout__banner-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.mel-op-checkout__guidance {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-op-checkout__guidance li {
+  margin-bottom: 0.45rem;
+  padding-left: 0.9rem;
+  position: relative;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.mel-op-checkout__guidance li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #94a3b8;
+}
+
+.mel-op-checkout__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mel-op-checkout__group {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.mel-op-checkout__group-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.mel-op-checkout__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mel-op-checkout__card {
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  background: rgba(248, 250, 252, 0.95);
+}
+
+.mel-op-checkout__card-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.mel-op-checkout__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.mel-op-checkout__readiness {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.65rem;
+  font-size: 0.82rem;
+  background: rgba(254, 252, 232, 0.85);
+  border: 1px dashed rgba(234, 179, 8, 0.35);
+}
+
+.mel-op-checkout__continuity {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.65rem;
+  font-size: 0.82rem;
+  background: rgba(239, 246, 255, 0.9);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.mel-op-checkout__continuity ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+}
+
+@media (min-width: 48rem) {
+  .mel-op-checkout__groups {
+    gap: 1rem;
+  }
+}

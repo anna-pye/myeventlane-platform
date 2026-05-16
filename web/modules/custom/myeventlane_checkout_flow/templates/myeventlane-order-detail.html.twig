@@ -28,6 +28,30 @@
     {% endif %}
   </div>
 
+  {% if mel_customer_operational_experience %}
+    <div class="mel-order-detail-operational mel-section mel-mt-4">
+      {{ mel_customer_operational_experience }}
+    </div>
+  {% endif %}
+
+  {% if mel_operational_fulfillment_execution_customer %}
+    <div class="mel-order-detail-fulfillment-execution mel-section mel-mt-4" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
+      {{ mel_operational_fulfillment_execution_customer }}
+    </div>
+  {% endif %}
+
+  {% if mel_operational_purchase_composition %}
+    <div class="mel-order-detail-operational-composition mel-section mel-mt-4" role="region" aria-label="{{ 'Operational packages'|t }}">
+      {{ mel_operational_purchase_composition }}
+    </div>
+  {% endif %}
+
+  {% if mel_operational_checkout %}
+    <div class="mel-order-detail-operational-checkout mel-section mel-mt-4" role="region" aria-label="{{ 'Operational checkout plan'|t }}">
+      {{ mel_operational_checkout }}
+    </div>
+  {% endif %}
+
   {% if order.events|length > 0 %}
     <div class="mel-section mel-mt-6">
       <h2 class="mel-section-title">{{ 'Your events'|t }}</h2>

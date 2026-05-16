@@ -1,0 +1,73 @@
+/**
+ * Customer fulfillment execution — pastel cards, mobile-first.
+ */
+.mel-ofe {
+  --mel-ofe-radius: 1rem;
+  border-radius: var(--mel-ofe-radius);
+  padding: 1rem 1.125rem;
+  margin-bottom: 1.25rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.07), rgba(59, 130, 246, 0.06));
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.mel-ofe__title {
+  font-size: 1.05rem;
+  font-weight: 650;
+  margin: 0 0 0.35rem;
+}
+
+.mel-ofe__what-next {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.78);
+}
+
+.mel-ofe-chips {
+  list-style: none;
+  margin: 0 0 0.65rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mel-ofe-chip {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.mel-ofe-chip--success {
+  border-color: rgba(34, 197, 94, 0.3);
+  color: rgba(22, 101, 52, 0.95);
+}
+
+.mel-ofe-chip--info {
+  border-color: rgba(59, 130, 246, 0.28);
+  color: rgba(30, 64, 175, 0.95);
+}
+
+.mel-ofe-chip--warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  color: rgba(146, 64, 14, 0.95);
+}
+
+.mel-ofe-chip--muted {
+  color: rgba(15, 23, 42, 0.62);
+}
+
+.mel-ofe-summaries {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.mel-ofe--js .mel-ofe-chips {
+  transition: opacity 0.15s ease;
+}

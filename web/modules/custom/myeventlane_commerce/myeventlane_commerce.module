@@ -298,8 +298,22 @@ function myeventlane_commerce_theme(): array {
         'event' => NULL,
         // Optional view render array for booking-page recommendations.
         'recommended_events' => [],
+        'mel_operational_purchase_composition' => NULL,
+        'mel_operational_checkout' => NULL,
       ],
       'template' => 'myeventlane-event-book',
+    ],
+    'mel_operational_purchase_composition' => [
+      'variables' => [
+        'document' => [],
+      ],
+      'template' => 'mel-operational-purchase-composition',
+    ],
+    'mel_operational_checkout' => [
+      'variables' => [
+        'checkout' => [],
+      ],
+      'template' => 'mel-operational-checkout',
     ],
     'mel_waitlist_offer_countdown' => [
       'variables' => [
@@ -328,6 +342,29 @@ function myeventlane_commerce_theme(): array {
 function myeventlane_commerce_preprocess_myeventlane_event_book(array &$variables): void {
   // Booking UX: keep the page focused on the active event (no "More events" upsell).
   $variables['recommended_events'] = [];
+  $variables['mel_operational_purchase_composition'] = NULL;
+  $variables['mel_operational_checkout'] = NULL;
+  $event = $variables['event'] ?? NULL;
+  if ($event instanceof NodeInterface && \Drupal::hasService('myeventlane_commerce.operational_purchase_composition_manager')) {
+    try {
+      /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
+      $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
+      $variables['mel_operational_purchase_composition'] = $pcm->buildEventRenderArray($event);
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_commerce')->notice('Event book operational purchase composition skipped: @message', ['@message' => $e->getMessage()]);
+    }
+  }
+  if ($event instanceof NodeInterface && \Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+    try {
+      /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
+      $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
+      $variables['mel_operational_checkout'] = $oco->buildEventRenderArray($event);
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_commerce')->notice('Event book operational checkout orchestration skipped: @message', ['@message' => $e->getMessage()]);
+    }
+  }
 }
 
 /**
@@ -354,6 +391,18 @@ function myeventlane_commerce_theme_registry_alter(array &$registry): void {
     $theme = \Drupal::theme()->getActiveTheme()->getName();
     $theme_path = \Drupal::service('extension.list.theme')->getPath($theme);
     $registry['commerce_product']['path'] = $theme_path . '/templates/commerce';
+  }
+  $theme = \Drupal::theme()->getActiveTheme()->getName();
+  $theme_path = \Drupal::service('extension.list.theme')->getPath($theme);
+  $commerce_tpl_dir = $theme_path . '/templates/commerce';
+  foreach (['mel_operational_purchase_composition', 'mel_operational_checkout'] as $hook) {
+    if (!isset($registry[$hook])) {
+      continue;
+    }
+    $tpl = \Drupal::root() . '/' . $commerce_tpl_dir . '/' . str_replace('_', '-', $hook) . '.html.twig';
+    if (is_file($tpl)) {
+      $registry[$hook]['path'] = $commerce_tpl_dir;
+    }
   }
 }
 

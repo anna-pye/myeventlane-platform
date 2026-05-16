@@ -1,0 +1,13 @@
+uuid: 3de11c2c-4c40-4124-aaf2-ab4ca6112826
+langcode: en
+status: true
+dependencies: {  }
+id: operational_bundle
+label: 'Operational bundle'
+traits: {  }
+locked: false
+description: 'Grouped operational commerce packages (VIP + drink, ticket + merch, etc.).'
+variationTypes:
+  - operational_bundle_var
+multipleVariations: true
+injectVariationFields: true

@@ -48,13 +48,13 @@ final class EventStudioSectionContractTest extends TestCase {
 
     $merchandise = $builder->deferredSection('Merchandise', 'merchandise');
     $this->assertSame('Merchandise', $merchandise['#title']);
-    $this->assertSame('Sell event merchandise and products.', $merchandise['#body']);
-    $this->assertSame('This capability is planned for a future MEL release.', $merchandise['#prompt']);
+    $this->assertSame('Merchandise will help organisers sell event products without leaving MEL.', $merchandise['#body']);
+    $this->assertSame('Planned capability. It will appear here once product ownership, payments, fulfilment, and access rules are ready.', $merchandise['#prompt']);
 
     $addons = $builder->deferredSection('Add-ons', 'addons');
     $this->assertSame('Add-ons', $addons['#title']);
-    $this->assertSame('Offer optional event upgrades like parking or meal packages.', $addons['#body']);
-    $this->assertSame('Coming soon.', $addons['#prompt']);
+    $this->assertSame('Add-ons will support optional upgrades such as parking, meals, or experience extras.', $addons['#body']);
+    $this->assertSame('Reserved until add-on pricing, checkout, refunds, and attendee reporting are governed end-to-end.', $addons['#prompt']);
   }
 
   private function translator(): TranslationInterface {

@@ -1,0 +1,11 @@
+/**
+ * Event Studio — operational merchandise authoring shell.
+ */
+.mel-operational-merch-intro {
+  margin-bottom: 1rem;
+}
+
+.mel-event-studio-operational-merchandise textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+}
