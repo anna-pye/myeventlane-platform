@@ -1,0 +1,21 @@
+uuid: f1f04c2a-d14a-4962-8cd7-e28d0044fc1a
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_type.timed_collection_product
+    - field.storage.commerce_product.field_event
+id: commerce_product.timed_collection_product.field_event
+field_name: field_event
+entity_type: commerce_product
+bundle: timed_collection_product
+label: Event
+description: 'Link this operational product to an event for vendor authoring and customer projections.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings: {  }
+field_type: entity_reference

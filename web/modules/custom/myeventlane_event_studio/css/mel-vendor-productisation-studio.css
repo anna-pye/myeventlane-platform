@@ -148,3 +148,39 @@
   margin: 1rem 0 0.25rem;
   font-weight: 600;
 }
+
+.mel-productisation-wizard-mode .form-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 40rem) {
+  .mel-productisation-wizard-mode .form-radios {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+}
+
+.mel-productisation-wizard-create {
+  margin-top: 0.75rem;
+  padding: 1rem 1.1rem;
+}
+
+.mel-productisation-wizard-warning {
+  margin: 0 0 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.mel-productisation-wizard-chips,
+.mel-productisation-wizard-preview-hint {
+  margin: 0.35rem 0;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.mel-productisation-wizard-link {
+  margin-top: 0.5rem;
+}
