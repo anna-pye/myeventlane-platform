@@ -376,8 +376,8 @@ final class OperationalMerchandiseManager {
 
   private function sanitizeLabel(string $label, int $max = 128): string {
     $label = trim($label);
-    if (strlen($label) > $max) {
-      return substr($label, 0, $max - 1) . '…';
+    if (mb_strlen($label, 'UTF-8') > $max) {
+      return mb_substr($label, 0, $max - 1, 'UTF-8') . '…';
     }
     return $label;
   }
