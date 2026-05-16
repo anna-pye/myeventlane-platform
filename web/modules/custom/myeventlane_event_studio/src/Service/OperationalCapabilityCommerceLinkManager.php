@@ -135,7 +135,7 @@ final class OperationalCapabilityCommerceLinkManager {
       return $this->invalidateLinkage('A Commerce product must be selected for this capability.');
     }
 
-    $vendor_store_id = $this->resolveEventVendorStoreId($event);
+    $vendor_store_id = $this->resolveVendorStoreIdForEvent($event);
     if ($vendor_store_id === NULL) {
       return $this->invalidateLinkage('Vendor store could not be resolved for this event.');
     }
@@ -342,6 +342,27 @@ final class OperationalCapabilityCommerceLinkManager {
     return in_array($t, ['inherit', 'hidden', 'visible', 'after_purchase'], TRUE) ? $t : 'inherit';
   }
 
+  /**
+   * Resolves the vendor Commerce store ID for an event (vendor entity store).
+   */
+  public function resolveVendorStoreIdForEvent(NodeInterface $event): ?int {
+    return $this->resolveEventVendorStoreId($event);
+  }
+
+  /**
+   * Resolves a store for operational product authoring (vendor store, then event store field).
+   */
+  public function resolveStoreIdForOperationalProductCreation(NodeInterface $event): ?int {
+    $id = $this->resolveEventVendorStoreId($event);
+    if ($id !== NULL) {
+      return $id;
+    }
+    if ($event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
+      return (int) $event->get('field_event_store')->target_id;
+    }
+    return NULL;
+  }
+
   private function resolveEventVendorStoreId(NodeInterface $event): ?int {
     if (!$event->hasField('field_event_vendor') || $event->get('field_event_vendor')->isEmpty()) {
       return $this->resolveActingVendorStoreId();
@@ -359,6 +380,9 @@ final class OperationalCapabilityCommerceLinkManager {
   private function resolveActingVendorStoreId(): ?int {
     $uid = (int) $this->currentUser->id();
     if ($uid < 1) {
+      return NULL;
+    }
+    if (!$this->entityTypeManager->hasDefinition('myeventlane_vendor')) {
       return NULL;
     }
     $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');

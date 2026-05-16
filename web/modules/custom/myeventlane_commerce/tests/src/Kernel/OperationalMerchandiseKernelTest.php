@@ -21,6 +21,14 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseGovernanceManager;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager;
+use Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager;
+use Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager;
+use Drupal\myeventlane_event_studio\Service\VendorProductisationStudioManager;
+use Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry;
+use Drupal\myeventlane_tickets\Service\FulfillmentLifecycleManager;
+use Drupal\myeventlane_tickets\Service\InventoryReservationGovernanceManager;
+use Drupal\myeventlane_tickets\Service\OperationalEntitlementCapabilityManager;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\User;
@@ -138,6 +146,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
       'status' => 1,
     ]);
     $this->event->save();
+    $this->ensureKernelEventStoreReferenceForWizard();
   }
 
   public function testNormalizeEventMerchandiseAuthoringLinksOperationalProduct(): void {
@@ -375,6 +384,266 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     $reloaded = Product::load($product->id());
     $this->assertInstanceOf(Product::class, $reloaded);
     return $reloaded;
+  }
+
+  /**
+   * Lets Event Studio store resolution fall back to field_event_store in kernel tests.
+   */
+  protected function ensureKernelEventStoreReferenceForWizard(): void {
+    if (!FieldStorageConfig::loadByName('node', 'field_event_store')) {
+      FieldStorageConfig::create([
+        'field_name' => 'field_event_store',
+        'entity_type' => 'node',
+        'type' => 'entity_reference',
+        'settings' => ['target_type' => 'commerce_store'],
+        'cardinality' => 1,
+      ])->save();
+    }
+    if (!FieldConfig::loadByName('node', 'event', 'field_event_store')) {
+      FieldConfig::create([
+        'field_name' => 'field_event_store',
+        'entity_type' => 'node',
+        'bundle' => 'event',
+        'label' => 'Event store',
+      ])->save();
+    }
+    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    $reloaded = Node::load($this->event->id());
+    $this->assertInstanceOf(Node::class, $reloaded);
+    $this->event = $reloaded;
+    $this->event->set('field_event_store', ['target_id' => $this->store->id()]);
+    $this->event->save();
+  }
+
+  public function testVendorProductCreationWizardStripForbiddenFromPayloadRecursively(): void {
+    $manager = $this->commerceWizardCreationManager();
+    $out = $manager->stripForbiddenFromPayload([
+      'title' => 'OK',
+      'nested' => [
+        'inventory_quantity' => 99,
+        'child' => ['qr_payload' => 'x'],
+      ],
+    ]);
+    $this->assertSame('OK', $out['title']);
+    $this->assertArrayNotHasKey('inventory_quantity', $out['nested']);
+    $this->assertArrayNotHasKey('qr_payload', $out['nested']['child']);
+  }
+
+  public function testVendorProductCreationWizardCreatesMerchandiseWithStoreAndPrice(): void {
+    $owner = User::load($this->event->getOwnerId());
+    $this->assertNotNull($owner);
+    $this->container->get('current_user')->setAccount($owner);
+
+    $manager = $this->commerceWizardCreationManager();
+    $payload = [
+      'productisation_type' => VendorProductisationStudioManager::TYPE_MERCHANDISE,
+      'event_id' => (int) $this->event->id(),
+      'title' => 'Kernel wizard tee',
+      'customer_summary' => 'Pick up at desk',
+      'price_amount' => '12.50',
+      'currency_code' => 'AUD',
+      'customer_visibility' => 'visible',
+      'fulfillment_mode' => 'counter',
+      'reservation_mode' => 'operational_projection',
+      'pickup_mode' => 'counter',
+    ];
+    $created = $manager->createOperationalProductForEvent($owner, $this->event, $payload);
+    $this->assertGreaterThan(0, $created['product_id']);
+    $this->assertSame((int) $this->store->id(), $created['store_id']);
+    $this->assertNotEmpty($created['variation_ids']);
+
+    $product = Product::load($created['product_id']);
+    $this->assertNotNull($product);
+    $this->assertTrue($this->wizardProductHasStore($product, (int) $this->store->id()));
+    $vars = $product->getVariations();
+    $this->assertNotEmpty($vars);
+    $this->assertSame('12.50', number_format((float) $vars[0]->getPrice()->getNumber(), 2, '.', ''));
+  }
+
+  public function testVendorProductCreationWizardCreatesHospitalityPackage(): void {
+    $owner = User::load($this->event->getOwnerId());
+    $this->assertNotNull($owner);
+    $this->container->get('current_user')->setAccount($owner);
+
+    $manager = $this->commerceWizardCreationManager();
+    $payload = [
+      'productisation_type' => VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE,
+      'event_id' => (int) $this->event->id(),
+      'title' => 'VIP lounge',
+      'customer_summary' => 'Includes drinks',
+      'price_amount' => '200.00',
+      'currency_code' => 'AUD',
+      'customer_visibility' => 'visible',
+      'fulfillment_mode' => 'redeem',
+      'reservation_mode' => 'operational_projection',
+      'hospitality_benefits_summary' => 'Premium seating',
+    ];
+    $created = $manager->createOperationalProductForEvent($owner, $this->event, $payload);
+    $product = Product::load($created['product_id']);
+    $this->assertNotNull($product);
+    $this->assertSame('hospitality_package', $product->bundle());
+  }
+
+  public function testVendorProductCreationWizardIdempotentExistingProductId(): void {
+    $owner = User::load($this->event->getOwnerId());
+    $this->assertNotNull($owner);
+    $this->container->get('current_user')->setAccount($owner);
+
+    $manager = $this->commerceWizardCreationManager();
+    $payload = [
+      'productisation_type' => VendorProductisationStudioManager::TYPE_MERCHANDISE,
+      'event_id' => (int) $this->event->id(),
+      'title' => 'Idempotent cap',
+      'customer_summary' => 'One run',
+      'price_amount' => '5.00',
+      'currency_code' => 'AUD',
+      'customer_visibility' => 'visible',
+      'fulfillment_mode' => 'counter',
+      'reservation_mode' => 'operational_projection',
+    ];
+    $first = $manager->createOperationalProductForEvent($owner, $this->event, $payload);
+    $before = $this->commerceProductCountForWizard();
+
+    $second = $manager->createOperationalProductForEvent($owner, $this->event, $payload + [
+      'existing_product_id' => $first['product_id'],
+    ]);
+    $this->assertSame($first['product_id'], $second['product_id']);
+    $this->assertSame($before, $this->commerceProductCountForWizard());
+  }
+
+  public function testVendorProductCreationWizardAnonymousDenied(): void {
+    $this->container->get('current_user')->setAccount(User::getAnonymousUser());
+    $manager = $this->commerceWizardCreationManager();
+    $errors = $manager->validateCreationPayload(User::getAnonymousUser(), $this->event, [
+      'productisation_type' => VendorProductisationStudioManager::TYPE_MERCHANDISE,
+      'event_id' => (int) $this->event->id(),
+      'title' => 'X',
+      'customer_summary' => 'Y',
+      'price_amount' => '1.00',
+      'currency_code' => 'AUD',
+    ]);
+    $this->assertNotSame([], $errors);
+  }
+
+  public function testVendorProductCreationWizardFailsClosedWithoutResolvableStore(): void {
+    $owner = User::load($this->event->getOwnerId());
+    $this->assertNotNull($owner);
+    $this->container->get('current_user')->setAccount($owner);
+
+    $bare = Node::create([
+      'type' => 'event',
+      'title' => 'Kernel event without store linkage',
+      'uid' => $owner->id(),
+      'status' => 1,
+    ]);
+    $bare->save();
+
+    $manager = $this->commerceWizardCreationManager();
+    $payload = [
+      'productisation_type' => VendorProductisationStudioManager::TYPE_MERCHANDISE,
+      'event_id' => (int) $bare->id(),
+      'title' => 'Should not create',
+      'customer_summary' => 'No resolvable Commerce store',
+      'price_amount' => '1.00',
+      'currency_code' => 'AUD',
+      'customer_visibility' => 'visible',
+      'fulfillment_mode' => 'counter',
+      'reservation_mode' => 'operational_projection',
+    ];
+    $this->expectException(\InvalidArgumentException::class);
+    $manager->createOperationalProductForEvent($owner, $bare, $payload);
+  }
+
+  public function testVendorProductCreationWizardApplyMergesCommerceIntoItems(): void {
+    $owner = User::load($this->event->getOwnerId());
+    $this->assertNotNull($owner);
+    $this->container->get('current_user')->setAccount($owner);
+
+    $manager = $this->commerceWizardCreationManager();
+    $studio = new VendorProductisationStudioManager(
+      new OperationalMerchandiseManager(
+        $this->container->get('entity_type.manager'),
+        $this->container->get('string_translation'),
+        $this->container->get('logger.factory')->get('test'),
+      ),
+      $this->commerceWizardLinkManager(),
+    );
+    $items = [];
+    foreach (VendorProductisationStudioManager::PRODUCTISATION_TYPES as $t) {
+      $items[] = $studio->emptyItem($t);
+    }
+    $rows = [];
+    foreach (VendorProductisationStudioManager::PRODUCTISATION_TYPES as $t) {
+      $rows[$t] = ['commerce_mode' => 'link'];
+    }
+    $rows[VendorProductisationStudioManager::TYPE_MERCHANDISE] = [
+      'commerce_mode' => 'create',
+      'wizard_create' => [],
+      'title' => 'Walk-up hat',
+      'customer_summary' => 'Branded',
+      'customer_visibility' => 'visible',
+      'pickup_mode' => 'counter',
+      'commerce_create_price' => '9.99',
+      'commerce_create_currency' => 'AUD',
+    ];
+    $out = $manager->applyProductisationWizardCreates($owner, $this->event, $items, $rows);
+    $idx = array_search(VendorProductisationStudioManager::TYPE_MERCHANDISE, VendorProductisationStudioManager::PRODUCTISATION_TYPES, TRUE);
+    $this->assertIsInt($idx);
+    $this->assertGreaterThan(0, $out[$idx]['commerce']['product_id']);
+  }
+
+  private function commerceWizardCreationManager(): VendorOperationalProductCreationManager {
+    $etm = $this->container->get('entity_type.manager');
+    $merch = new OperationalMerchandiseManager(
+      $etm,
+      $this->container->get('string_translation'),
+      $this->container->get('logger.factory')->get('test'),
+    );
+    return new VendorOperationalProductCreationManager(
+      $etm,
+      $merch,
+      $this->commerceWizardLinkManager(),
+      new EventVendorAccessChecker(),
+      $this->container->get('string_translation'),
+      $this->container->get('logger.factory')->get('test'),
+    );
+  }
+
+  private function commerceWizardLinkManager(): OperationalCapabilityCommerceLinkManager {
+    $registry = new EntitlementCapabilityRegistry();
+    $logger = $this->container->get('logger.factory')->get('commerce_wizard_kernel');
+    $reservation = new InventoryReservationGovernanceManager($registry, $logger);
+    $oecm = new OperationalEntitlementCapabilityManager($registry, $reservation, $logger);
+    $fulfillment = new FulfillmentLifecycleManager($registry);
+    return new OperationalCapabilityCommerceLinkManager(
+      $this->container->get('entity_type.manager'),
+      $this->container->get('current_user'),
+      $registry,
+      $oecm,
+      $fulfillment,
+      $reservation,
+    );
+  }
+
+  private function commerceProductCountForWizard(): int {
+    $ids = $this->container->get('entity_type.manager')
+      ->getStorage('commerce_product')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->execute();
+    return count($ids ?: []);
+  }
+
+  private function wizardProductHasStore(object $product, int $store_id): bool {
+    if (!$product->hasField('stores') || $product->get('stores')->isEmpty()) {
+      return FALSE;
+    }
+    foreach ($product->get('stores')->getValue() as $item) {
+      if ((int) ($item['target_id'] ?? 0) === $store_id) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }
