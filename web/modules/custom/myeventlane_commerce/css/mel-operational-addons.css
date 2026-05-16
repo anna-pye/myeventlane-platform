@@ -1,0 +1,121 @@
+/**
+ * Customer operational add-ons on the event booking page.
+ *
+ * Mobile-first cards; coral primary CTA uses theme `.mel-btn--primary`.
+ */
+.mel-operational-addons-section {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mel-operational-addons-section__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.mel-operational-addons-form__intro {
+  margin: 0 0 1rem;
+  color: rgba(15, 23, 42, 0.72);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.mel-operational-addons-form__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mel-operational-addon-card {
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.mel-operational-addon-card__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.mel-operational-addon-card__summary-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.78);
+}
+
+.mel-operational-addon-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.mel-operational-addon-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed rgba(15, 23, 42, 0.08);
+}
+
+.mel-operational-addon-card__row:first-of-type {
+  margin-top: 0.35rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.mel-operational-addon-card__row-meta {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.mel-operational-addon-card__variation-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.mel-operational-addon-card__price {
+  margin-top: 0.2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.88);
+}
+
+.mel-operational-addon-card__qty {
+  flex: 0 0 auto;
+  min-width: 4.5rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.65rem;
+  font-size: 1rem;
+}
+
+.mel-operational-addons-form__actions {
+  margin-top: 1.25rem;
+}
+
+.mel-operational-addons-form__actions .mel-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.mel-operational-addons-form__actions .mel-btn--primary {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .mel-operational-addons-form__actions .mel-btn--primary {
+    width: auto;
+  }
+}

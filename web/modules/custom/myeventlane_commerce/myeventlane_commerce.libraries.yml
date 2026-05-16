@@ -35,3 +35,11 @@ mel_operational_checkout:
   dependencies:
     - core/drupal
     - core/once
+
+operational_addons:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-addons.css: {}
+  dependencies:
+    - core/drupal

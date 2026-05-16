@@ -34,6 +34,8 @@ Wizard rows map to existing operational Commerce bundles (see `OperationalMercha
 - Customer title and summary are **plain text** (HTML stripped, length capped).
 - Price is validated as a non-negative decimal and stored on the **variation** via Commerce `Price`.
 
+Customer booking after catalog exists: see [customer-operational-addons-booking.md](./customer-operational-addons-booking.md).
+
 ## Payload contract (creation)
 
 Required keys (after forbidden-key stripping): `productisation_type`, `event_id` (must match the event being edited), `title`, `customer_summary`, `price_amount`, `currency_code`, `customer_visibility`, `fulfillment_mode`, `reservation_mode`.
@@ -67,3 +69,4 @@ Forbidden keys are stripped recursively (see `VendorOperationalProductCreationMa
 - [Operational merchandise architecture](operational-merchandise-architecture.md)
 - [Operational cart & checkout orchestration](operational-cart-checkout-orchestration.md)
 - [Customer operational Commerce experience](customer-operational-commerce-experience.md)
+- [Customer operational add-ons on booking](customer-operational-addons-booking.md)

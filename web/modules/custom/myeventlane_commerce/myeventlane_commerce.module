@@ -300,6 +300,8 @@ function myeventlane_commerce_theme(): array {
         'recommended_events' => [],
         'mel_operational_purchase_composition' => NULL,
         'mel_operational_checkout' => NULL,
+        'addons_available' => FALSE,
+        'operational_addon_form' => [],
       ],
       'template' => 'myeventlane-event-book',
     ],

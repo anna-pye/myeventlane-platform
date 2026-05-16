@@ -18,6 +18,7 @@ use Drupal\commerce_store\Entity\Store;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseGovernanceManager;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager;
@@ -328,6 +329,104 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     $doc = $this->compositionManager()->composePreviewFromEvent(Node::load($this->event->id()));
     $this->assertCount(1, $doc['groups']['timed_collection']);
     $this->assertSame('elevated', $doc['governance']['severity']);
+  }
+
+  public function testEventOperationalAddonBuilderReturnsLinkedOperationalProducts(): void {
+    $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'ADDON-K1');
+    $product->set('field_mel_operational_product', json_encode([
+      'operational_product_type' => 'merch_pickup',
+      'operational_summary' => 'Pick up at desk',
+      'inventory_quantity' => 50,
+      'qr_payload' => 'nope',
+      'operational_chips' => [
+        ['label' => 'After entry', 'tone' => 'info'],
+      ],
+    ], JSON_THROW_ON_ERROR));
+    $product->save();
+
+    $builder = new EventOperationalAddonBuilder(
+      $this->container->get('entity_type.manager'),
+      $this->merchandiseManager(),
+      $this->container->get('string_translation'),
+    );
+    $built = $builder->buildForEvent($this->event);
+    $this->assertNotSame([], $built['addons']);
+    $first = $built['addons'][0];
+    $this->assertSame((int) $product->id(), (int) ($first['product_id'] ?? 0));
+    $this->assertArrayHasKey('operational', $first);
+    $this->assertArrayNotHasKey('inventory_quantity', $first['operational']);
+    $this->assertArrayNotHasKey('qr_payload', $first['operational']);
+    $this->assertSame('Pick up at desk', $first['operational']['operational_summary']);
+    $this->assertNotEmpty($first['variations']);
+  }
+
+  public function testEventOperationalAddonBuilderExcludesUnpublishedProduct(): void {
+    $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'ADDON-OFF');
+    $product->set('status', 0);
+    $product->save();
+
+    $builder = new EventOperationalAddonBuilder(
+      $this->container->get('entity_type.manager'),
+      $this->merchandiseManager(),
+      $this->container->get('string_translation'),
+    );
+    $built = $builder->buildForEvent($this->event);
+    $this->assertSame([], $built['addons']);
+  }
+
+  public function testEventOperationalAddonBuilderExcludesUnpublishedVariation(): void {
+    $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'ADDON-VAROFF');
+    foreach ($product->getVariations() as $variation) {
+      $variation->set('status', 0);
+      $variation->save();
+    }
+    $product->save();
+
+    $builder = new EventOperationalAddonBuilder(
+      $this->container->get('entity_type.manager'),
+      $this->merchandiseManager(),
+      $this->container->get('string_translation'),
+    );
+    $built = $builder->buildForEvent($this->event);
+    $this->assertSame([], $built['addons']);
+  }
+
+  public function testEventOperationalAddonBuilderEmptyWhenWrongEvent(): void {
+    $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'ADDON-OTHER');
+    $other = Node::create([
+      'type' => 'event',
+      'title' => 'Other event',
+      'uid' => $this->event->getOwnerId(),
+      'status' => 1,
+    ]);
+    $other->save();
+    $product->set('field_event', ['target_id' => $other->id()]);
+    $product->set('status', 1);
+    $product->save();
+
+    $builder = new EventOperationalAddonBuilder(
+      $this->container->get('entity_type.manager'),
+      $this->merchandiseManager(),
+      $this->container->get('string_translation'),
+    );
+    $built = $builder->buildForEvent($this->event);
+    $this->assertSame([], $built['addons']);
+  }
+
+  public function testEventOperationalAddonBuilderHasAddonsFalseWhenNoProducts(): void {
+    $empty_event = Node::create([
+      'type' => 'event',
+      'title' => 'No merch',
+      'uid' => $this->event->getOwnerId(),
+      'status' => 1,
+    ]);
+    $empty_event->save();
+    $builder = new EventOperationalAddonBuilder(
+      $this->container->get('entity_type.manager'),
+      $this->merchandiseManager(),
+      $this->container->get('string_translation'),
+    );
+    $this->assertFalse($builder->hasAddons($empty_event));
   }
 
   protected function merchandiseManager(): OperationalMerchandiseManager {
