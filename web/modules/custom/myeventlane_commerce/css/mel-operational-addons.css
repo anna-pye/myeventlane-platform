@@ -12,6 +12,10 @@
 
 .mel-operational-addons-section__title {
   margin: 0 0 0.35rem;
+}
+
+.mel-operational-addons-section__title {
+  margin: 0 0 0.75rem;
   font-size: 1.125rem;
   font-weight: 700;
 }

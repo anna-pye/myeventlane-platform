@@ -50,6 +50,13 @@ Kernel tests live in `OperationalMerchandiseKernelTest` (shared Commerce fixture
 
 ```bash
 ddev exec bash -lc 'export SIMPLETEST_DB=sqlite://localhost/tmp/test.sqlite && ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalMerchandiseKernelTest.php --filter EventOperationalAddonBuilder --do-not-cache-result'
+./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Kernel/EventOperationalAddonBuilderKernelTest.php --do-not-cache-result
+```
+
+Kernel tests reuse `OperationalMerchandiseKernelTest` fixtures (Commerce catalog + `field_event`). If `SIMPLETEST_DB` is required in your environment, follow the project pattern:
+
+```bash
+ddev exec bash -lc 'export SIMPLETEST_DB=sqlite://localhost/tmp/test.sqlite && ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/myeventlane_commerce/tests/src/Kernel/EventOperationalAddonBuilderKernelTest.php --do-not-cache-result'
 ```
 
 **Cart form automated tests:** Full Commerce cart kernel coverage is not included here (heavy fixture surface). Manual QA covers add-to-cart, invalid variation rejection, and multi-store behaviour.

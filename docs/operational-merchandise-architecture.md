@@ -44,6 +44,7 @@ Theme and checkout-flow templates render the composition strip next to existing 
 **Operational checkout orchestration** (`mel_operational_checkout`, `OperationalCheckoutOrchestrationManager`) adds a grouped **checkout plan** card fed only from purchase composition output. It does not replace merchandise normalization or composition classification; see [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md).
 
 **Phase 4F — Customer booking add-ons:** the paid event book page can embed `EventOperationalAddonCartForm` when `EventOperationalAddonBuilder` finds eligible operational products linked via `field_event`; see [customer-operational-addons-booking.md](./customer-operational-addons-booking.md).
+**Phase 4F — Customer booking add-ons:** event book embeds operational Commerce add-ons (cart via `EventOperationalAddonCartForm`) when products are linked through `field_event`; see [customer-operational-addons-booking.md](./customer-operational-addons-booking.md).
 
 ## Anti-patterns
 

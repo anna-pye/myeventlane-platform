@@ -31,6 +31,7 @@ Forbidden keys are stripped recursively (`OperationalCheckoutOrchestrationManage
 - **Phase 4F:** the same booking page can embed `EventOperationalAddonCartForm` (operational add-ons to cart) when eligible products exist; see [customer-operational-addons-booking.md](./customer-operational-addons-booking.md).
 - **Phase 4F (Commit 2):** post-purchase **add-on confirmation** strip (`mel_operational_addon_guidance`) reuses composition + checkout contracts; see [customer-operational-addon-confirmation-guidance.md](./customer-operational-addon-confirmation-guidance.md).
 - **Phase 4F (Commit 3):** vendor **read-only** add-on order list per event (no fulfilment execution, no order mutation); see [vendor-operational-addon-order-visibility.md](./vendor-operational-addon-order-visibility.md).
+- **Phase 4F:** the same booking page can embed `EventOperationalAddonCartForm` (operational add-ons to cart) when `EventOperationalAddonBuilder` finds eligible products; see [customer-operational-addons-booking.md](./customer-operational-addons-booking.md).
 
 ## Anti-patterns
 
