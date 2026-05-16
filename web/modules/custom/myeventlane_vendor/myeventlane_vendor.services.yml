@@ -302,7 +302,6 @@ services:
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_surface.state_readiness_helper'
-      - '@myeventlane_commerce.vendor_operational_addon_order_builder'
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
