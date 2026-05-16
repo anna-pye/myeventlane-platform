@@ -225,7 +225,7 @@ final class VendorOperationalProductCreationManager {
       if (!isset($items[$idx]) || !is_array($items[$idx])) {
         continue;
       }
-      $row = $this->flattenWizardFormRow(is_array($wizardRowsByType[$type] ?? NULL) ? $wizardRowsByType[$type] : []);
+      $row = $this->flattenProductisationWizardFormRow(is_array($wizardRowsByType[$type] ?? NULL) ? $wizardRowsByType[$type] : []);
       if ((string) ($row['commerce_mode'] ?? 'link') !== 'create') {
         continue;
       }
@@ -247,7 +247,7 @@ final class VendorOperationalProductCreationManager {
    * @return array<string, mixed>
    */
   public function buildWizardCreationPayload(string $productisation_type, array $row, NodeInterface $event): array {
-    $row = $this->flattenWizardFormRow($row);
+    $row = $this->flattenProductisationWizardFormRow($row);
     $type = $this->normalizeProductisationType($productisation_type);
     if ($type === '') {
       $type = VendorProductisationStudioManager::TYPE_MERCHANDISE;
@@ -330,7 +330,7 @@ final class VendorOperationalProductCreationManager {
    * @param array<string, mixed> $row
    */
   private function extractWizardCommerceProductId(array $row): int {
-    $row = $this->flattenWizardFormRow($row);
+    $row = $this->flattenProductisationWizardFormRow($row);
     $n = (int) ($row['commerce_product_id'] ?? 0);
     if ($n > 0) {
       return $n;
@@ -343,11 +343,13 @@ final class VendorOperationalProductCreationManager {
   }
 
   /**
+   * Merges nested wizard_link / wizard_create containers into one row for validation and create.
+   *
    * @param array<string, mixed> $row
    *
    * @return array<string, mixed>
    */
-  private function flattenWizardFormRow(array $row): array {
+  public function flattenProductisationWizardFormRow(array $row): array {
     $link = is_array($row['wizard_link'] ?? NULL) ? $row['wizard_link'] : [];
     $create = is_array($row['wizard_create'] ?? NULL) ? $row['wizard_create'] : [];
     return array_merge($row, $link, $create);

@@ -8,7 +8,9 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\myeventlane_commerce\Form\EventOperationalAddonCartForm;
 use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
+use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_rsvp\Form\RsvpPublicForm;
 use Drupal\node\NodeInterface;
@@ -33,11 +35,14 @@ final class BookController extends ControllerBase {
    *   The canonical booking flow resolver.
    * @param \Drupal\Core\Form\FormBuilderInterface $formBuilderService
    *   The form builder.
+   * @param \Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder $eventOperationalAddonBuilder
+   *   Customer operational add-on read model for paid booking pages.
    */
   public function __construct(
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly FormBuilderInterface $formBuilderService,
+    private readonly EventOperationalAddonBuilder $eventOperationalAddonBuilder,
   ) {}
 
   /**
@@ -48,6 +53,7 @@ final class BookController extends ControllerBase {
       $container->get('file_url_generator'),
       $container->get('myeventlane_event.booking_flow_resolver'),
       $container->get('form_builder'),
+      $container->get('myeventlane_commerce.event_operational_addon_builder'),
     );
   }
 
@@ -127,6 +133,8 @@ final class BookController extends ControllerBase {
       '#event_cta' => $primaryCta,
       '#event_mode' => $bookingMode,
       '#event' => $node,
+      '#addons_available' => FALSE,
+      '#operational_addon_form' => [],
       '#cache' => [
         'contexts' => ['route', 'user.roles', 'url.query_args', 'session'],
         'tags' => $node->getCacheTags(),
@@ -154,6 +162,22 @@ final class BookController extends ControllerBase {
         $build['#matrix_form'] = $this->buildUnavailable($availability);
         break;
     }
+
+    if ($isPaid) {
+      $addon_catalog = $this->eventOperationalAddonBuilder->buildForEvent($node);
+      if ($addon_catalog['addons'] !== []) {
+        $build['#addons_available'] = TRUE;
+        foreach ($addon_catalog['product_ids'] as $pid) {
+          $build['#cache']['tags'][] = 'commerce_product:' . $pid;
+        }
+        $build['#operational_addon_form'] = $this->formBuilderService->getForm(
+          EventOperationalAddonCartForm::class,
+          $node,
+        );
+      }
+    }
+
+    $build['#cache']['tags'] = array_values(array_unique($build['#cache']['tags']));
 
     return $build;
   }
