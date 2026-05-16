@@ -235,6 +235,72 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     $this->assertSame('Collect at north counter', $pres['operational_summary']);
   }
 
+  public function testComposeForOrderGroupsParkingAddonByCapabilityReference(): void {
+    $customer = User::create([
+      'name' => 'merch_kernel_parking_buyer',
+      'mail' => 'merch-kernel-parking@example.test',
+      'status' => 1,
+    ]);
+    $customer->save();
+
+    $parkingProduct = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'PARK-ORDER');
+    $parkingProduct->set('field_mel_operational_product', json_encode([
+      'operational_product_type' => 'merch_pickup',
+      'capability_reference' => 'parking_addon',
+      'operational_summary' => 'Lot B after 5pm',
+      'operational_chips' => [],
+    ], JSON_THROW_ON_ERROR));
+    $parkingProduct->save();
+
+    $plainMerch = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'MERCH-WITH-PARK');
+    $plainMerch->set('field_mel_operational_product', json_encode([
+      'operational_product_type' => 'merch_pickup',
+      'capability_reference' => 'merchandise',
+      'operational_summary' => 'Counter pickup',
+      'operational_chips' => [],
+    ], JSON_THROW_ON_ERROR));
+    $plainMerch->save();
+
+    $parkingVariation = $parkingProduct->getVariations()[0];
+    $merchVariation = $plainMerch->getVariations()[0];
+
+    $order = Order::create([
+      'type' => 'default',
+      'store_id' => $this->store->id(),
+      'state' => 'draft',
+      'uid' => $customer->id(),
+      'mail' => 'merch-kernel-parking@example.test',
+    ]);
+    $order->save();
+
+    $itemParking = OrderItem::create([
+      'type' => 'default',
+      'order_id' => $order->id(),
+      'purchased_entity' => $parkingVariation,
+      'quantity' => 1,
+      'unit_price' => new Price('5.00', 'AUD'),
+    ]);
+    $itemParking->save();
+
+    $itemMerch = OrderItem::create([
+      'type' => 'default',
+      'order_id' => $order->id(),
+      'purchased_entity' => $merchVariation,
+      'quantity' => 2,
+      'unit_price' => new Price('10.00', 'AUD'),
+    ]);
+    $itemMerch->save();
+
+    $order->addItem($itemParking);
+    $order->addItem($itemMerch);
+    $order->save();
+
+    $doc = $this->compositionManager()->composeForOrder($order);
+    $this->assertCount(1, $doc['groups']['parking']);
+    $this->assertCount(1, $doc['groups']['merchandise']);
+    $this->assertSame('Lot B after 5pm', $doc['groups']['parking'][0]['presentation']['operational_summary']);
+  }
+
   public function testComposePreviewFromEventReadsOperationalMerchandiseJson(): void {
     $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'MERCH-PREVIEW');
     $product->save();

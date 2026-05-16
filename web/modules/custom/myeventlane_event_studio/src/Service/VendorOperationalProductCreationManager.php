@@ -510,8 +510,8 @@ final class VendorOperationalProductCreationManager {
 
   private function sanitizePlainText(string $text, int $max): string {
     $text = trim(strip_tags($text));
-    if (strlen($text) > $max) {
-      return substr($text, 0, $max - 1) . '…';
+    if (mb_strlen($text, 'UTF-8') > $max) {
+      return mb_substr($text, 0, $max - 1, 'UTF-8') . '…';
     }
     return $text;
   }

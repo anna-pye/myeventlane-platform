@@ -61,6 +61,27 @@ final class OperationalMerchandiseManagerTest extends UnitTestCase {
     $this->assertSame('After check-in', $safe['operational_chips'][0]['label']);
   }
 
+  public function testBuildCustomerSafeProductPresentationTruncatesUnicodeWithoutInvalidUtf8(): void {
+    // U+0100 (Ā) is two UTF-8 bytes; byte-oriented truncation used to split code units.
+    $long_label = str_repeat("\u{0100}", 150);
+    $raw = [
+      'operational_product_type' => 'merch_pickup',
+      'operational_summary' => 'Short',
+      'operational_chips' => [
+        ['label' => $long_label, 'tone' => 'info'],
+      ],
+      'customer_visibility' => 'visible',
+      'pickup_mode' => 'counter',
+      'readiness_mode' => 'authoring',
+    ];
+    $safe = $this->manager()->buildCustomerSafeProductPresentation($raw);
+    $this->assertCount(1, $safe['operational_chips']);
+    $truncated = $safe['operational_chips'][0]['label'];
+    $this->assertLessThanOrEqual(128, mb_strlen($truncated, 'UTF-8'));
+    $this->assertTrue(mb_check_encoding($truncated, 'UTF-8'));
+    $this->assertStringEndsWith('…', $truncated);
+  }
+
   public function testStripForbiddenRecursiveRemovesNestedForbidden(): void {
     $data = [
       'outer' => [
