@@ -11,6 +11,9 @@
   {% if doc.page_intro %}
     <p class="mel-vendor-addon-orders__intro">{{ doc.page_intro }}</p>
   {% endif %}
+  {% if doc.vendor_prepare_hint %}
+    <p class="mel-vendor-addon-orders__prepare-hint">{{ doc.vendor_prepare_hint }}</p>
+  {% endif %}
 
   {% if doc.empty %}
     <div class="mel-vendor-addon-orders__empty mel-card">

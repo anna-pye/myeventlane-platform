@@ -19,6 +19,22 @@ final class OperationalAddonGuidanceBuilderTest extends UnitTestCase {
     return new OperationalAddonGuidanceBuilder($this->getStringTranslationStub());
   }
 
+  public function testOmitsGuidanceForTicketOnlyComposition(): void {
+    $composition = [
+      'groups' => [
+        'merchandise' => [],
+        'hospitality' => [],
+        'timed_collection' => [],
+        'bundles' => [],
+        'parking' => [],
+      ],
+    ];
+    $this->assertSame([], $this->builder()->buildFromComposition($composition));
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getCacheTags')->willReturn(['commerce_order:99']);
+    $this->assertNull($this->builder()->buildRenderArray($order, $composition));
+  }
+
   public function testReturnsEmptyWhenNoOperationalGroups(): void {
     $composition = [
       'groups' => [

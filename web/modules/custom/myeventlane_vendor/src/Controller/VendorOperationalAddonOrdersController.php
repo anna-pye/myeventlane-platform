@@ -36,6 +36,7 @@ final class VendorOperationalAddonOrdersController extends VendorConsoleBaseCont
     $this->assertEventOwnership($event);
     $tabs = $this->eventTabsService->getTabs($event, 'addon_orders');
     $document = $this->vendorOperationalAddonOrderBuilder->buildForEvent($event, $this->currentUser);
+    $cache_tags = $this->vendorOperationalAddonOrderBuilder->collectCacheTagsForEvent($event);
 
     $content = [
       '#theme' => 'mel_vendor_operational_addon_orders',
@@ -45,8 +46,9 @@ final class VendorOperationalAddonOrdersController extends VendorConsoleBaseCont
       ],
       '#cache' => [
         'keys' => ['mel_vendor_operational_addon_orders', 'event', (string) $event->id()],
-        'tags' => $event->getCacheTags(),
-        'contexts' => ['user', 'languages:language_interface'],
+        'tags' => $cache_tags,
+        'contexts' => ['user', 'user.permissions', 'languages:language_interface'],
+        'max-age' => VendorOperationalAddonOrderBuilder::VENDOR_ADDON_ORDERS_MAX_AGE,
       ],
     ];
 

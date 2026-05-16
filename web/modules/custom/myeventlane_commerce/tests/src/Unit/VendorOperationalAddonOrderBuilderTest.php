@@ -26,6 +26,21 @@ final class VendorOperationalAddonOrderBuilderTest extends UnitTestCase {
     $this->assertContains('attendee_answers', $keys);
     $this->assertContains('qr_payload', $keys);
     $this->assertContains('warehouse_ids', $keys);
+    $this->assertContains('email', $keys);
+    $this->assertContains('customer_email', $keys);
+  }
+
+  public function testStripRemovesEmailKeys(): void {
+    $data = [
+      'customer_display_label' => 'Alex',
+      'email' => 'secret@example.com',
+      'nested' => ['mail' => 'also-secret@example.com', 'ok' => 1],
+    ];
+    $out = $this->stripHelper()->stripForbiddenRecursive($data);
+    $this->assertSame('Alex', $out['customer_display_label']);
+    $this->assertArrayNotHasKey('email', $out);
+    $this->assertArrayNotHasKey('mail', $out['nested']);
+    $this->assertSame(1, $out['nested']['ok']);
   }
 
   public function testStripForbiddenRemovesNestedKeys(): void {

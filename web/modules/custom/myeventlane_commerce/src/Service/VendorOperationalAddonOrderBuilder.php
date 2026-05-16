@@ -49,7 +49,16 @@ final class VendorOperationalAddonOrderBuilder {
     'private_notes',
     'attendee_answers',
     'raw_email',
+    'email',
+    'mail',
+    'billing_profile',
+    'customer_email',
   ];
+
+  /**
+   * Conservative max-age when order entity tags are impractical to enumerate.
+   */
+  public const VENDOR_ADDON_ORDERS_MAX_AGE = 300;
 
   /**
    * Order states included in vendor order surfaces.
@@ -96,6 +105,37 @@ final class VendorOperationalAddonOrderBuilder {
   public function eventHasConfiguredOperationalCatalog(NodeInterface $event): bool {
     $built = $this->eventOperationalAddonBuilder->buildForEvent($event);
     return ($built['addons'] ?? []) !== [];
+  }
+
+  /**
+   * Cache tags for vendor add-on order surfaces (event, catalog products, orders).
+   *
+   * Order tags are collected only for qualifying orders with operational lines.
+   * When many orders exist, callers should also set
+   * {@see self::VENDOR_ADDON_ORDERS_MAX_AGE} as a conservative bound.
+   *
+   * @return list<string>
+   */
+  public function collectCacheTagsForEvent(NodeInterface $event): array {
+    $eventId = (int) $event->id();
+    if ($event->bundle() !== 'event' || $eventId < 1) {
+      return [];
+    }
+
+    $tags = $event->getCacheTags();
+    $built = $this->eventOperationalAddonBuilder->buildForEvent($event);
+    foreach ($built['product_ids'] ?? [] as $pid) {
+      $tags[] = 'commerce_product:' . (int) $pid;
+    }
+
+    foreach ($this->loadOrdersForEvent($event) as $order) {
+      if (!$this->orderHasOperationalAddons($order, $eventId)) {
+        continue;
+      }
+      $tags = array_merge($tags, $order->getCacheTags());
+    }
+
+    return array_values(array_unique($tags));
   }
 
   /**
@@ -173,6 +213,7 @@ final class VendorOperationalAddonOrderBuilder {
       'empty' => $rows === [],
       'page_title' => (string) $this->t('Add-on orders'),
       'page_intro' => (string) $this->t('Merch, hospitality, timed collection and other add-ons purchased for this event.'),
+      'vendor_prepare_hint' => (string) $this->t('Prepare these add-ons before check-in. This list is read-only — collection and scanning tools are not available here yet.'),
       'empty_message' => (string) $this->t('No add-ons have been purchased for this event yet.'),
       'orders' => $rows,
       'totals' => [
@@ -204,6 +245,7 @@ final class VendorOperationalAddonOrderBuilder {
       'empty' => FALSE,
       'page_title' => (string) $this->t('Add-on orders'),
       'page_intro' => (string) $this->t('Operational add-ons on this order for your event.'),
+      'vendor_prepare_hint' => (string) $this->t('Prepare these add-ons before check-in. This list is read-only — collection and scanning tools are not available here yet.'),
       'empty_message' => (string) $this->t('No add-ons on this order for this event.'),
       'orders' => [$row],
       'totals' => [
@@ -226,6 +268,7 @@ final class VendorOperationalAddonOrderBuilder {
       'empty' => $empty,
       'page_title' => (string) $this->t('Add-on orders'),
       'page_intro' => (string) $this->t('Merch, hospitality, timed collection and other add-ons purchased for this event.'),
+      'vendor_prepare_hint' => (string) $this->t('Prepare these add-ons before check-in. This list is read-only — collection and scanning tools are not available here yet.'),
       'empty_message' => (string) $this->t('No add-ons have been purchased for this event yet.'),
       'orders' => [],
       'totals' => [
@@ -390,16 +433,7 @@ final class VendorOperationalAddonOrderBuilder {
     $placedTs = $placed ? (int) $placed : 0;
     $placedDisplay = $placedTs > 0 ? $this->dateFormatter->format($placedTs, 'medium') : '';
 
-    $cid = $order->getCustomerId();
-    if ($cid) {
-      $customerLabel = (string) $this->t('Customer #@id', ['@id' => (string) $cid]);
-    }
-    elseif ($order->getEmail()) {
-      $customerLabel = (string) $order->getEmail();
-    }
-    else {
-      $customerLabel = (string) $this->t('Guest customer');
-    }
+    $customerLabel = $this->buildCustomerDisplayLabel($order);
 
     return [
       'order_id' => (int) $order->id(),
@@ -473,6 +507,24 @@ final class VendorOperationalAddonOrderBuilder {
       'customer_visibility' => trim((string) ($pres['customer_visibility'] ?? '')),
       'chips' => $chips,
     ];
+  }
+
+  /**
+   * Privacy-safe purchaser label (no raw email; aligns with vendor orders name).
+   */
+  private function buildCustomerDisplayLabel(OrderInterface $order): string {
+    $customer = $order->getCustomer();
+    if ($customer && !$customer->isAnonymous()) {
+      $name = trim($customer->getDisplayName());
+      if ($name !== '') {
+        return $name;
+      }
+      $uid = (int) $customer->id();
+      if ($uid > 0) {
+        return (string) $this->t('Customer #@id', ['@id' => (string) $uid]);
+      }
+    }
+    return (string) $this->t('Guest customer');
   }
 
   private function groupLabel(string $groupKey): string {

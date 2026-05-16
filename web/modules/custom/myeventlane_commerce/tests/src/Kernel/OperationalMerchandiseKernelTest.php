@@ -391,6 +391,20 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     $this->assertSame([], $built['addons']);
   }
 
+  public function testEventOperationalAddonBuilderExcludesProductWithoutStore(): void {
+    $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'ADDON-NOSTORE');
+    $product->set('stores', []);
+    $product->save();
+
+    $builder = new EventOperationalAddonBuilder(
+      $this->container->get('entity_type.manager'),
+      $this->merchandiseManager(),
+      $this->container->get('string_translation'),
+    );
+    $built = $builder->buildForEvent($this->event);
+    $this->assertSame([], $built['addons']);
+  }
+
   public function testEventOperationalAddonBuilderEmptyWhenWrongEvent(): void {
     $product = $this->createOperationalProduct('operational_merchandise', 'operational_merchandise_var', 'ADDON-OTHER');
     $other = Node::create([

@@ -119,7 +119,7 @@ final class OperationalAddonGuidanceBuilder {
       ],
       '#cache' => [
         'tags' => $order->getCacheTags(),
-        'contexts' => ['languages:language_interface'],
+        'contexts' => ['languages:language_interface', 'user'],
       ],
     ];
   }

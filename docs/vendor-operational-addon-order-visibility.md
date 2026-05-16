@@ -40,7 +40,7 @@ Order discovery and state filtering follow the same approach as `VendorEventOrde
 
 ## Privacy model
 
-- Customer label: prefer `Customer #<uid>` when the order has a customer id; otherwise the order email if present (consistent with the existing vendor **Orders** list); otherwise a neutral guest label.
+- Customer label: purchaser **display name** when available; otherwise `Customer #<uid>`; otherwise **Guest customer**. Raw order email is **not** exposed on the add-on orders page (vendor **Orders** may still show email separately).
 - No attendee Q&A payloads, no internal cost/margin, no scanner/warehouse/shipment material. Keys stripped match `VendorOperationalAddonOrderBuilder::FORBIDDEN_VENDOR_ORDER_KEYS`.
 
 ## What vendors see
@@ -57,6 +57,16 @@ Order discovery and state filtering follow the same approach as `VendorEventOrde
 - **Tabs:** `VendorEventTabsService` adds an **Add-on orders** tab when the route exists and the surface gate passes (`paid tickets` + `shouldSurfaceVendorAddonsTab()`).
 - **Workspace shortcuts:** `VendorEventWorkspaceViewModelBuilder` exposes `actions.addon_orders` when paid/both mode, the route is allowed for the account, and the surface gate passes; `mel-event-workspace.html.twig` renders **View add-on orders**.
 - **Local tasks:** `myeventlane_vendor.links.task.yml` secondary tab for the same route.
+
+## Cache metadata (MVP hardening)
+
+| Surface | Tags / contexts / max-age |
+| --- | --- |
+| Vendor add-on orders page | `collectCacheTagsForEvent()`: event + linked `commerce_product` + qualifying `commerce_order` tags; contexts `user`, `user.permissions`, `languages:language_interface`; **max-age 300** (`VendorOperationalAddonOrderBuilder::VENDOR_ADDON_ORDERS_MAX_AGE`) |
+| Event book add-on form | Event tags + `commerce_product:{id}`; contexts `user`, `session`, `languages:language_interface` |
+| Customer guidance strip | `commerce_order` tags; contexts `user`, `languages:language_interface` |
+
+Full scripted QA: [operational-addons-mvp-qa.md](./operational-addons-mvp-qa.md).
 
 ## Manual QA checklist
 

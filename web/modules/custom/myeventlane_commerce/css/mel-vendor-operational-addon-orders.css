@@ -5,6 +5,7 @@
 
 .mel-vendor-addon-orders {
   max-width: 52rem;
+  overflow-x: hidden;
 }
 
 .mel-vendor-addon-orders__intro {
@@ -12,6 +13,17 @@
   font-size: 0.95rem;
   line-height: 1.45;
   color: rgba(15, 23, 42, 0.78);
+}
+
+.mel-vendor-addon-orders__prepare-hint {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  background: rgba(254, 243, 232, 0.65);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  color: rgba(15, 23, 42, 0.82);
 }
 
 .mel-vendor-addon-orders__empty-text {

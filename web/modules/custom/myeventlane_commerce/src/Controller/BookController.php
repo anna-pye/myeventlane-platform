@@ -136,7 +136,7 @@ final class BookController extends ControllerBase {
       '#addons_available' => FALSE,
       '#operational_addon_form' => [],
       '#cache' => [
-        'contexts' => ['route', 'user.roles', 'url.query_args', 'session'],
+        'contexts' => ['route', 'user.roles', 'url.query_args', 'session', 'languages:language_interface'],
         'tags' => $node->getCacheTags(),
       ],
     ];
