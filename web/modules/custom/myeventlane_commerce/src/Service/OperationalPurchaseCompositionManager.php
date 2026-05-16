@@ -21,6 +21,14 @@ final class OperationalPurchaseCompositionManager {
 
   public const CONTRACT_FLAG = 'mel_operational_purchase_composition';
 
+  /**
+   * Capability reference written for Event Studio parking add-ons on Commerce products.
+   *
+   * Must match {@see \Drupal\myeventlane_event_studio\Service\VendorProductisationStudioManager::TYPE_PARKING_ADDON}
+   * and {@see \Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager::buildOperationalMetadata()}.
+   */
+  private const PARKING_ADDON_CAPABILITY_REFERENCE = 'parking_addon';
+
   public function __construct(
     private readonly OperationalMerchandiseManager $operationalMerchandiseManager,
     private readonly OperationalMerchandiseGovernanceManager $operationalMerchandiseGovernanceManager,
@@ -63,10 +71,14 @@ final class OperationalPurchaseCompositionManager {
         'bundle_group' => $bundle,
         'presentation' => $presentation,
       ];
-      match ($bundle) {
-        'hospitality_package' => $groups['hospitality'][] = $line,
-        'timed_collection_product' => $groups['timed_collection'][] = $line,
-        'operational_bundle' => $groups['bundles'][] = $line,
+      $capability_reference = (string) ($payload['capability_reference'] ?? '');
+      $is_parking_addon_merch_bundle = $bundle === 'operational_merchandise'
+        && $capability_reference === self::PARKING_ADDON_CAPABILITY_REFERENCE;
+      match (TRUE) {
+        $bundle === 'hospitality_package' => $groups['hospitality'][] = $line,
+        $bundle === 'timed_collection_product' => $groups['timed_collection'][] = $line,
+        $bundle === 'operational_bundle' => $groups['bundles'][] = $line,
+        $is_parking_addon_merch_bundle => $groups['parking'][] = $line,
         default => $groups['merchandise'][] = $line,
       };
     }
