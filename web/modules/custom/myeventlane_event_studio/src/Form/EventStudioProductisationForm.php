@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Form\FormBase;
@@ -40,6 +41,7 @@ final class EventStudioProductisationForm extends FormBase {
     private readonly LoggerInterface $logger,
     private readonly VendorOperationalProductCreationManager $vendorOperationalProductCreationManager,
     private readonly OperationalCapabilityCommerceLinkManager $operationalCapabilityCommerceLinkManager,
+    private readonly Connection $database,
   ) {}
 
   public static function create(ContainerInterface $container): static {
@@ -54,6 +56,7 @@ final class EventStudioProductisationForm extends FormBase {
       $container->get('logger.factory')->get('myeventlane_event_studio'),
       $container->get('myeventlane_event_studio.vendor_operational_product_creation_manager'),
       $container->get('myeventlane_event_studio.operational_capability_commerce_link_manager'),
+      $container->get('database'),
     );
   }
 
@@ -178,7 +181,7 @@ final class EventStudioProductisationForm extends FormBase {
     $rawTypes = (array) ($form_state->getValue(['mel', 'productisation', 'types']) ?? []);
     foreach (VendorProductisationStudioManager::PRODUCTISATION_TYPES as $type) {
       $row = is_array($rawTypes[$type] ?? NULL) ? $rawTypes[$type] : [];
-      $row = $this->flattenProductisationWizardRow($row);
+      $row = $this->vendorOperationalProductCreationManager->flattenProductisationWizardFormRow($row);
       if ((string) ($row['commerce_mode'] ?? 'link') !== 'create') {
         continue;
       }
@@ -198,6 +201,7 @@ final class EventStudioProductisationForm extends FormBase {
       $this->messenger()->addError($this->t('The event could not be loaded.'));
       return;
     }
+    $transaction = $this->database->startTransaction();
     try {
       $base = $this->capabilityStudioManager->extractFromEvent($event);
       $rawTypes = (array) ($form_state->getValue(['mel', 'productisation', 'types']) ?? []);
@@ -205,7 +209,7 @@ final class EventStudioProductisationForm extends FormBase {
       $flatTypes = [];
       foreach (VendorProductisationStudioManager::PRODUCTISATION_TYPES as $ptype) {
         $r = is_array($rawTypes[$ptype] ?? NULL) ? $rawTypes[$ptype] : [];
-        $flatTypes[$ptype] = $this->flattenProductisationWizardRow($r);
+        $flatTypes[$ptype] = $this->vendorOperationalProductCreationManager->flattenProductisationWizardFormRow($r);
       }
       $items = $this->vendorOperationalProductCreationManager->applyProductisationWizardCreates(
         $this->currentUser(),
@@ -224,9 +228,11 @@ final class EventStudioProductisationForm extends FormBase {
       $this->messenger()->addStatus($this->t('Productisation saved.'));
     }
     catch (\InvalidArgumentException $e) {
+      $transaction->rollBack();
       $this->messenger()->addError($e->getMessage());
     }
     catch (\Throwable $e) {
+      $transaction->rollBack();
       $this->logger->error('Vendor productisation save failed for event @nid: @message', [
         '@nid' => (string) $event->id(),
         '@message' => $e->getMessage(),
@@ -417,7 +423,7 @@ final class EventStudioProductisationForm extends FormBase {
         'link' => $this->t('Link existing product'),
         'create' => $this->t('Create new operational product'),
       ],
-      '#default_value' => $product_id > 0 ? 'link' : 'link',
+      '#default_value' => $product_id > 0 ? 'link' : 'create',
       '#attributes' => ['class' => ['mel-productisation-wizard-mode']],
     ];
 
@@ -562,19 +568,6 @@ final class EventStudioProductisationForm extends FormBase {
   }
 
   /**
-   * Merges nested wizard containers into a flat row for mapping and validation.
-   *
-   * @param array<string, mixed> $row
-   *
-   * @return array<string, mixed>
-   */
-  private function flattenProductisationWizardRow(array $row): array {
-    $link = is_array($row['wizard_link'] ?? NULL) ? $row['wizard_link'] : [];
-    $create = is_array($row['wizard_create'] ?? NULL) ? $row['wizard_create'] : [];
-    return array_merge($row, $link, $create);
-  }
-
-  /**
    * @param list<string>|mixed $keys
    *
    * @return array<string, string>
@@ -636,7 +629,7 @@ final class EventStudioProductisationForm extends FormBase {
    * @return array<string, mixed>
    */
   private function mapRowToItem(string $type, array $row): array {
-    $row = $this->flattenProductisationWizardRow($row);
+    $row = $this->vendorOperationalProductCreationManager->flattenProductisationWizardFormRow($row);
     $base = $this->vendorProductisationManager->emptyItem($type);
     $product_id = $this->extractCommerceProductIdFromFormRow($row);
     $mode = (string) ($row['commerce_linkage_mode'] ?? OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT);
@@ -703,7 +696,7 @@ final class EventStudioProductisationForm extends FormBase {
    * @param array<string, mixed> $row
    */
   private function extractCommerceProductIdFromFormRow(array $row): int {
-    $row = $this->flattenProductisationWizardRow($row);
+    $row = $this->vendorOperationalProductCreationManager->flattenProductisationWizardFormRow($row);
     $n = (int) ($row['commerce_product_id'] ?? 0);
     if ($n > 0) {
       return $n;
