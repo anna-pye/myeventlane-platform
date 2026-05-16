@@ -118,6 +118,13 @@
               {% endif %}
             </div>
           </div>
+
+          {% if addons_available and operational_addon_form %}
+            <section class="mel-operational-addons-section" aria-labelledby="mel-operational-addons-title">
+              <h2 class="mel-operational-addons-section__title" id="mel-operational-addons-title">{{ 'Add something extra'|t }}</h2>
+              {{ operational_addon_form }}
+            </section>
+          {% endif %}
         </div>
 
         {% if event_mode == 'paid' %}

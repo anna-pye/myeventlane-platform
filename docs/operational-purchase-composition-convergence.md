@@ -25,4 +25,5 @@ Phase 4C adds **`OperationalFulfillmentExecutionProjectionBuilder::buildCustomer
 - [operational-cart-checkout-orchestration.md](./operational-cart-checkout-orchestration.md)
 - [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md)
 - [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md)
+- [customer-operational-addons-booking.md](./customer-operational-addons-booking.md)
 - [fulfillment-lifecycle-convergence.md](./fulfillment-lifecycle-convergence.md)
