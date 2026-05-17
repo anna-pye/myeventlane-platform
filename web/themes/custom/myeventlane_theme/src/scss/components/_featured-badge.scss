@@ -16,12 +16,23 @@
 .mel-card--promoted,
 .mel-event-card--promoted,
 .mel-event-card--boosted {
-  // HOT: Boosted/Featured momentum (accent ring + slightly stronger lift).
-  // Keep normal layout identical; only elevate + add a soft premium halo.
   box-shadow:
     var(--mel-shadow-rest),
-    0 0 0 2px color-mix(in srgb, var(--mel-accent) 22%, transparent),
     0 18px 44px color-mix(in srgb, var(--mel-ink) 14%, transparent);
+}
+
+// Full-card inset ring (avoids clipped outer glow on overflow:hidden cards).
+.mel-event-card--promoted,
+.mel-event-card--boosted {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--mel-accent, #e8a85c) 48%, #fff 52%);
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -30,8 +41,12 @@
   .mel-event-card--boosted:hover {
     box-shadow:
       var(--mel-shadow-hover),
-      0 0 0 2px color-mix(in srgb, var(--mel-accent) 26%, transparent),
       0 22px 60px color-mix(in srgb, var(--mel-ink) 18%, transparent);
+  }
+
+  .mel-event-card--promoted:hover::after,
+  .mel-event-card--boosted:hover::after {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--mel-accent, #e8a85c) 58%, #fff 42%);
   }
 }
 

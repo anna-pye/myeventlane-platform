@@ -42,6 +42,15 @@
   Drupal.behaviors.melCardBrightness = {
     attach: function (context) {
       once('melCardBrightness', '.mel-event-card', context).forEach(function (card) {
+        // Image-led listing cards use fixed overlay + CTA tokens (not adaptive chips).
+        if (
+          card.classList.contains('mel-event-card--standard')
+          || card.classList.contains('mel-event-card--hero')
+          || card.classList.contains('mel-event-card--featured')
+        ) {
+          return;
+        }
+
         var img = card.querySelector('.mel-event-card__image-element');
         if (!img) {
           return;

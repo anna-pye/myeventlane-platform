@@ -29,6 +29,16 @@
   min-width: 0;
 }
 
+// Image-led cards must not stretch with the row (surface shows under media).
+.mel-discovery .mel-event-grid .mel-event-card--standard,
+.mel-discovery .mel-event-grid .mel-event-card--hero,
+.mel-discovery .mel-event-grid .mel-event-card--featured,
+.mel-home-discover .mel-event-grid .mel-event-card--standard,
+.mel-home-discover .mel-event-grid .mel-event-card--hero,
+.mel-home-discover .mel-event-grid .mel-event-card--featured {
+  align-self: start;
+}
+
 @include breakpoints.mel-break(md) {
   .mel-discovery .mel-event-grid.mel-grid--events,
   .mel-home-discover .mel-event-grid.mel-grid--events {

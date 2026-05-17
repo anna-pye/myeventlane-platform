@@ -75,7 +75,7 @@
   flex-wrap: nowrap;
   gap: 0;
   margin: 0;
-  padding: 6px 0 18px;
+  padding: 0 0 18px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-padding-inline: 0;
@@ -98,11 +98,14 @@
   flex: 0 0 100%;
   min-width: 0;
   scroll-snap-align: start;
+  overflow: hidden;
+  border-radius: clamp(24px, 3vw, 34px);
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card {
+.mel-page--home .mel-featured-home-carousel .mel-event-card--hero,
+.mel-page--home .mel-featured-home-carousel .mel-event-card--featured {
   display: block;
-  height: 100%;
+  width: 100%;
 }
 
 .mel-page--home .mel-featured-carousel__controls {
@@ -244,12 +247,24 @@
   letter-spacing: 0.02em;
 }
 
-.mel-page--home .mel-section--discover .mel-event-card,
-.mel-page--home .mel-section--latest .mel-event-card,
-.mel-page--home .mel-section--nearby .mel-event-card,
-.mel-page--home .mel-section--online .mel-event-card,
-.mel-page--home .mel-section--tonight .mel-event-card {
-  height: 100%;
+// Image-led cards: do not stretch in grid rows (exposes surface gap under media).
+.mel-page--home .mel-section--discover .mel-event-card--standard,
+.mel-page--home .mel-section--discover .mel-event-card--hero,
+.mel-page--home .mel-section--discover .mel-event-card--featured,
+.mel-page--home .mel-section--latest .mel-event-card--standard,
+.mel-page--home .mel-section--latest .mel-event-card--hero,
+.mel-page--home .mel-section--latest .mel-event-card--featured,
+.mel-page--home .mel-section--nearby .mel-event-card--standard,
+.mel-page--home .mel-section--nearby .mel-event-card--hero,
+.mel-page--home .mel-section--nearby .mel-event-card--featured,
+.mel-page--home .mel-section--online .mel-event-card--standard,
+.mel-page--home .mel-section--online .mel-event-card--hero,
+.mel-page--home .mel-section--online .mel-event-card--featured,
+.mel-page--home .mel-section--tonight .mel-event-card--standard,
+.mel-page--home .mel-section--tonight .mel-event-card--hero,
+.mel-page--home .mel-section--tonight .mel-event-card--featured {
+  height: auto;
+  align-self: start;
 }
 
 // ---------------------------------------------------------------------------

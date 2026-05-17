@@ -38,7 +38,7 @@
 .mel-card-media {
   isolation: isolate;
 
-  // Keep children above shimmer by default.
+  // Keep children above shimmer by default (stacked / compact cards).
   > * {
     position: relative;
     z-index: 1;
@@ -47,6 +47,35 @@
   &::before {
     @include mel-skeleton-surface;
     z-index: 0;
+  }
+}
+
+// Image-led listing cards: media must fill the frame (see components/_event-card.scss).
+.mel-event-card--standard,
+.mel-event-card--hero,
+.mel-event-card--featured {
+  .mel-event-card__image::before,
+  .mel-event-card__media::before {
+    display: none;
+  }
+
+  .mel-event-card__image > img,
+  .mel-event-card__image > .mel-event-card__image-element,
+  .mel-event-card__media > img,
+  .mel-event-card__media > .mel-event-card__image-element {
+    position: absolute;
+    inset: -1px;
+    z-index: 1;
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+    min-height: calc(100% + 2px);
+    object-fit: cover;
+    display: block;
+  }
+
+  .mel-event-card__image > .mel-event-card__overlay,
+  .mel-event-card__media > .mel-event-card__overlay {
+    z-index: 2;
   }
 }
 
