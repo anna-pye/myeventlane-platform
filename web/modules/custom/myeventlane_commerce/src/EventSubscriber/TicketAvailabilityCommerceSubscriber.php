@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_commerce\EventSubscriber;
 
+use Drupal\commerce\PurchasableEntityInterface;
 use Drupal\commerce_cart\Event\CartEntityAddEvent;
 use Drupal\commerce_cart\Event\CartEvents;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
@@ -14,6 +16,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
+use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\node\NodeInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
@@ -75,12 +78,10 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
     $order_item = $event->getOrderItem();
     $cart = $event->getCart();
 
-    if ($this->orderInspector->isNonTicketItem($order_item)) {
+    if (!$this->shouldValidateAsTicket($order_item)) {
       return;
     }
-    if (!$order_item->hasField('field_target_event') || $order_item->get('field_target_event')->isEmpty()) {
-      return;
-    }
+
     $purchased = $order_item->get('purchased_entity')->entity;
     if (!$purchased instanceof ProductVariationInterface) {
       return;
@@ -159,6 +160,37 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
       $request->attributes->set(self::PLACEMENT_LOCK_ATTR, $lock_name);
     }
     // Per-event capacity validation runs in TicketCapacityOrderSubscriber (priority 50).
+  }
+
+  /**
+   * Whether ticket availability rules apply to this cart line.
+   */
+  private function shouldValidateAsTicket(OrderItemInterface $order_item): bool {
+    if ($this->orderInspector->isNonTicketItem($order_item)) {
+      return FALSE;
+    }
+    if (!$order_item->hasField('field_target_event') || $order_item->get('field_target_event')->isEmpty()) {
+      return FALSE;
+    }
+    $purchased = $order_item->get('purchased_entity')->entity;
+    if (!$purchased instanceof PurchasableEntityInterface) {
+      return FALSE;
+    }
+    return !$this->isOperationalAddonVariation($purchased);
+  }
+
+  /**
+   * Operational add-ons are event-scoped but not ticket matrix variations.
+   */
+  private function isOperationalAddonVariation(PurchasableEntityInterface $entity): bool {
+    if (!$entity instanceof ProductVariationInterface) {
+      return FALSE;
+    }
+    $product = $entity->getProduct();
+    if ($product === NULL) {
+      return FALSE;
+    }
+    return OperationalMerchandiseManager::isOperationalProductBundle($product->bundle());
   }
 
 }

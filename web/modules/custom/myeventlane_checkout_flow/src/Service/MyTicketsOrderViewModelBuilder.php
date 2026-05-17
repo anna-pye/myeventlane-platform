@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Service\UniversalTicketViewModelBuilder;
@@ -40,6 +41,7 @@ final class MyTicketsOrderViewModelBuilder {
     private readonly UniversalTicketViewModelBuilder $ticketViewModelBuilder,
     private readonly TicketLabelResolver $ticketLabelResolver,
     TranslationInterface $string_translation,
+    private readonly ?OperationalOrderItemDisplayBuilder $operationalOrderItemDisplayBuilder = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -281,11 +283,15 @@ final class MyTicketsOrderViewModelBuilder {
    *   Legacy ticket line display data.
    */
   private function legacyTicketItem(OrderItemInterface $item, bool $includeDetails): array {
+    $operational_display = $this->operationalOrderItemDisplayBuilder?->buildForOrderItem($item);
     $ticketItem = [
-      'title' => $this->ticketLabelResolver->getTicketLabel($item),
+      'title' => is_array($operational_display)
+        ? (string) ($operational_display['title'] ?? '')
+        : $this->ticketLabelResolver->getTicketLabel($item),
       'quantity' => (int) $item->getQuantity(),
       'price' => $item->getTotalPrice() ? $item->getTotalPrice()->getNumber() : 0.0,
       'attendees' => [],
+      'operational_addon_display' => $operational_display,
     ];
 
     if ($includeDetails && $item->hasField('field_ticket_holder') && !$item->get('field_ticket_holder')->isEmpty()) {

@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
@@ -15,8 +16,10 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\node\NodeInterface;
-use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views\ResultRow;
+use Drupal\views\ViewExecutable;
 
 /**
  * Helper: find the quantity number element in ATC form (various widget shapes).
@@ -302,6 +305,8 @@ function myeventlane_commerce_theme(): array {
         'mel_operational_checkout' => NULL,
         'addons_available' => FALSE,
         'operational_addon_form' => [],
+        'ticket_form' => [],
+        'ticket_form_actions' => [],
       ],
       'template' => 'myeventlane-event-book',
     ],
@@ -328,6 +333,12 @@ function myeventlane_commerce_theme(): array {
         'document' => [],
       ],
       'template' => 'mel-vendor-operational-addon-orders',
+    ],
+    'mel_operational_order_item_line' => [
+      'variables' => [
+        'display' => [],
+      ],
+      'template' => 'mel-operational-order-item-line',
     ],
     'mel_waitlist_offer_countdown' => [
       'variables' => [
@@ -409,7 +420,7 @@ function myeventlane_commerce_theme_registry_alter(array &$registry): void {
   $theme = \Drupal::theme()->getActiveTheme()->getName();
   $theme_path = \Drupal::service('extension.list.theme')->getPath($theme);
   $commerce_tpl_dir = $theme_path . '/templates/commerce';
-  foreach (['mel_operational_purchase_composition', 'mel_operational_checkout', 'mel_operational_addon_guidance', 'mel_vendor_operational_addon_orders'] as $hook) {
+  foreach (['mel_operational_purchase_composition', 'mel_operational_checkout', 'mel_operational_addon_guidance', 'mel_vendor_operational_addon_orders', 'mel_operational_order_item_line'] as $hook) {
     if (!isset($registry[$hook])) {
       continue;
     }
@@ -659,6 +670,133 @@ function myeventlane_commerce_checkout_form_submit_safety_check(array &$form, Fo
       }
     }
   }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for commerce_cart_form.
+ *
+ * Maps operational add-on display metadata by order item ID for Twig/Views.
+ */
+function myeventlane_commerce_preprocess_commerce_cart_form(array &$variables): void {
+  $variables['operational_order_item_display'] = _myeventlane_commerce_operational_order_item_display_map(
+    _myeventlane_commerce_order_items_from_cart_form($variables['form'] ?? []),
+  );
+}
+
+/**
+ * Implements hook_preprocess_views_view_field().
+ *
+ * Replaces purchased-entity cell output for operational add-ons on the cart form.
+ */
+function myeventlane_commerce_preprocess_views_view_field(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof ViewExecutable) {
+    return;
+  }
+  $view_id = $view->id();
+  $field = $variables['field'] ?? NULL;
+  if (!$field instanceof FieldPluginBase) {
+    return;
+  }
+  $field_id = (string) ($field->options['id'] ?? '');
+  if ($view_id === 'commerce_cart_form' && $field_id !== 'purchased_entity') {
+    return;
+  }
+  if ($view_id === 'commerce_order_item_table' && $field_id !== 'title') {
+    return;
+  }
+  if (!in_array($view_id, ['commerce_cart_form', 'commerce_order_item_table'], TRUE)) {
+    return;
+  }
+  $order_item = _myeventlane_commerce_order_item_from_views_row($variables['row'] ?? NULL);
+  if ($order_item === NULL) {
+    return;
+  }
+  $render = _myeventlane_commerce_operational_order_item_line_render($order_item);
+  if ($render !== NULL) {
+    $variables['output'] = $render;
+  }
+}
+
+/**
+ * @param array<string, mixed> $form
+ *
+ * @return list<\Drupal\commerce_order\Entity\OrderItemInterface>
+ */
+function _myeventlane_commerce_order_items_from_cart_form(array $form): array {
+  $items = $form['#order_items'] ?? NULL;
+  if (!is_array($items)) {
+    return [];
+  }
+  $out = [];
+  foreach ($items as $item) {
+    if ($item instanceof OrderItemInterface) {
+      $out[] = $item;
+    }
+  }
+  return $out;
+}
+
+/**
+ * @param \Drupal\views\ResultRow|null $row
+ */
+function _myeventlane_commerce_order_item_from_views_row($row): ?OrderItemInterface {
+  if (!$row instanceof ResultRow) {
+    return NULL;
+  }
+  if (isset($row->_relationship_entities['order_items'])
+    && $row->_relationship_entities['order_items'] instanceof OrderItemInterface) {
+    return $row->_relationship_entities['order_items'];
+  }
+  if (isset($row->_entity) && $row->_entity instanceof OrderItemInterface) {
+    return $row->_entity;
+  }
+  return NULL;
+}
+
+/**
+ * @param list<\Drupal\commerce_order\Entity\OrderItemInterface> $order_items
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function _myeventlane_commerce_operational_order_item_display_map(array $order_items): array {
+  if (!\Drupal::hasService('myeventlane_commerce.operational_order_item_display_builder')) {
+    return [];
+  }
+  $builder = \Drupal::service('myeventlane_commerce.operational_order_item_display_builder');
+  $map = [];
+  foreach ($order_items as $order_item) {
+    $display = $builder->buildForOrderItem($order_item);
+    if ($display !== NULL) {
+      $map[(int) $order_item->id()] = $display;
+    }
+  }
+  return $map;
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_commerce_operational_order_item_line_render(OrderItemInterface $order_item): ?array {
+  if (!\Drupal::hasService('myeventlane_commerce.operational_order_item_display_builder')) {
+    return NULL;
+  }
+  $display = \Drupal::service('myeventlane_commerce.operational_order_item_display_builder')
+    ->buildForOrderItem($order_item);
+  if ($display === NULL) {
+    return NULL;
+  }
+  return [
+    '#theme' => 'mel_operational_order_item_line',
+    '#display' => $display,
+    '#attached' => [
+      'library' => ['myeventlane_commerce/operational_addons'],
+    ],
+    '#cache' => [
+      'tags' => array_merge($order_item->getCacheTags(), ['commerce_product_variation:' . (int) ($order_item->getPurchasedEntityId() ?? 0)]),
+      'contexts' => ['languages:language_interface'],
+    ],
+  ];
 }
 
 /**

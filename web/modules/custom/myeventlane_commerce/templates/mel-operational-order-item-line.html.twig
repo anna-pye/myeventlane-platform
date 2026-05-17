@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Customer line label for an operational add-on order item (cart / summaries).
+ *
+ * Variables:
+ * - display: sanitized array from OperationalOrderItemDisplayBuilder.
+ */
+#}
+{% set d = display|default({}) %}
+<div class="mel-operational-order-item-line">
+  {% if d.title|default('') %}
+    <div class="mel-operational-order-item-line__title">{{ d.title }}</div>
+  {% endif %}
+  {% if d.subtitle|default('') %}
+    <p class="mel-operational-order-item-line__subtitle">{{ d.subtitle }}</p>
+  {% endif %}
+  {% if d.variation_label|default('') %}
+    <p class="mel-operational-order-item-line__variation">{{ d.variation_label }}</p>
+  {% endif %}
+  {% if d.description|default('') %}
+    <p class="mel-operational-order-item-line__description">{{ d.description }}</p>
+  {% endif %}
+  {% if d.chips|default([])|length > 0 %}
+    <ul class="mel-operational-order-item-line__chips" aria-label="{{ 'Add-on details'|t }}">
+      {% for chip in d.chips %}
+        <li class="mel-operational-order-item-line__chip mel-operational-order-item-line__chip--{{ chip.tone|default('muted')|clean_class }}">{{ chip.label|default('') }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

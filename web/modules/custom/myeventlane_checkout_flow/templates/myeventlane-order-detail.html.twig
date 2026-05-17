@@ -217,10 +217,14 @@
       <div class="mel-card mel-mt-4">
         <div class="mel-card-body">
           {% for ticket in order.ticket_items %}
-            <div class="mel-ticket-item mel-mt-4{% if not loop.first %} mel-pt-4 mel-border-top{% endif %}">
+            <div class="mel-ticket-item mel-mt-4{% if not loop.first %} mel-pt-4 mel-border-top{% endif %}{% if ticket.operational_addon_display|default(null) %} mel-ticket-item--operational-addon{% endif %}">
               <div class="mel-ticket-header">
                 <div class="mel-ticket-title">
-                  <strong>{{ ticket.title }}</strong>
+                  {% if ticket.operational_addon_display|default(null) %}
+                    {% include '@myeventlane_commerce/mel-operational-order-item-line.html.twig' with { display: ticket.operational_addon_display } only %}
+                  {% else %}
+                    <strong>{{ ticket.title }}</strong>
+                  {% endif %}
                 </div>
                 <div class="mel-ticket-price">
                   ${{ ticket.price|number_format(2) }}

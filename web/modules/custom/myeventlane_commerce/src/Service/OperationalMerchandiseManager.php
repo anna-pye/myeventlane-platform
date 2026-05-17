@@ -38,6 +38,13 @@ final class OperationalMerchandiseManager {
   ];
 
   /**
+   * Whether a Commerce product bundle is operational merchandise architecture.
+   */
+  public static function isOperationalProductBundle(string $bundle): bool {
+    return in_array($bundle, self::OPERATIONAL_PRODUCT_BUNDLES, TRUE);
+  }
+
+  /**
    * @var list<string>
    */
   public const FORBIDDEN_PRODUCT_KEYS = [
