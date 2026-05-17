@@ -22,7 +22,7 @@
   max-width: 100%;
   min-width: 0;
   font-family: mel.$mel-ds-font-main;
-  background: mel.$mel-ds-color-surface;
+  background: transparent;
   border-radius: clamp(20px, 2.5vw, 32px);
   overflow: hidden;
   box-shadow: mel.$mel-ds-shadow-soft;
@@ -83,8 +83,10 @@
   border-radius: mel.$mel-ds-radius-md;
 }
 
-.mel-event-card--featured .mel-event-card__link:focus-visible {
-  border-radius: mel.$mel-ds-radius-lg;
+.mel-event-card--featured .mel-event-card__link:focus-visible,
+.mel-event-card--standard .mel-event-card__link:focus-visible,
+.mel-event-card--hero .mel-event-card__link:focus-visible {
+  border-radius: inherit;
 }
 
 .mel-event-card__image,
@@ -516,8 +518,15 @@
 // Shared: media edge-to-edge inside rounded card shell (no stacked-image radius).
 @mixin mel-event-card-overlay-media {
   padding: 0;
+  background: transparent;
+  border: 0;
 
   .mel-event-card__link {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
     overflow: hidden;
     border-radius: inherit;
     isolation: isolate;
@@ -525,7 +534,9 @@
 
   .mel-event-card__image,
   .mel-event-card__media {
-    border-radius: 0;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
     background: transparent;
   }
 
@@ -533,15 +544,25 @@
   .mel-event-card__image > .mel-event-card__image-element,
   .mel-event-card__media > img,
   .mel-event-card__media > .mel-event-card__image-element {
-    // Bleed 1px past clip so rounded corners never show the card shell.
-    inset: -1px;
-    width: calc(100% + 2px);
-    height: calc(100% + 2px);
-    min-width: calc(100% + 2px);
-    min-height: calc(100% + 2px);
+    // Bleed past clip so rounded corners never show a surface rim.
+    position: absolute;
+    inset: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    min-width: calc(100% + 4px);
+    min-height: calc(100% + 4px);
     object-fit: cover;
     object-position: center;
-    transform: scale(1.02);
+    transform: none;
+  }
+
+  .mel-event-card__placeholder {
+    position: absolute;
+    inset: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    min-height: calc(100% + 4px);
+    border-radius: inherit;
   }
 }
 
@@ -688,7 +709,6 @@
 // --- Standard (default discovery grid — image-led overlay) ---
 .mel-event-card--standard {
   align-self: start;
-  background: transparent;
   box-shadow: 0 14px 36px rgba(36, 48, 58, 0.1);
 
   @include mel-event-card-overlay-media;
@@ -696,9 +716,6 @@
 
   // Aspect ratio on the in-flow link — absolute media/body do not size the card.
   .mel-event-card__link {
-    position: relative;
-    display: block;
-    width: 100%;
     aspect-ratio: 4 / 5;
     height: auto;
     min-height: 0;
@@ -710,35 +727,9 @@
     color: mel.$mel-ds-color-text;
   }
 
-  .mel-event-card__image,
-  .mel-event-card__media {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    aspect-ratio: auto;
-    border-radius: inherit;
-  }
-
-  // Override utilities/_skeletons.scss (`> * { position: relative }`) so media fills the frame.
-  .mel-event-card__image > img,
-  .mel-event-card__image > .mel-event-card__image-element,
-  .mel-event-card__media > img,
-  .mel-event-card__media > .mel-event-card__image-element {
-    position: absolute;
-    z-index: 1;
-    display: block;
-  }
-
   .mel-event-card__image > .mel-event-card__overlay,
   .mel-event-card__media > .mel-event-card__overlay {
     z-index: 2;
-  }
-
-  .mel-event-card__placeholder {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    min-height: 100%;
   }
 
   .mel-event-card__body,
@@ -784,6 +775,93 @@
     color: mel.$mel-ds-color-text;
     box-shadow: none;
   }
+
+  // mel-cards.js: bottom-band luminance → navy or inverted white copy.
+  &.mel-event-card--light-bg {
+    .mel-event-hero__glass {
+      color: mel.$mel-ds-color-text;
+    }
+
+    .mel-event-card__title,
+    .mel-event-card__status,
+    .mel-event-card__status.mel-event-card__status--paid {
+      color: mel.$mel-ds-color-text;
+    }
+
+    .mel-event-card__when,
+    .mel-event-card__date,
+    .mel-event-card__location,
+    .mel-event-card__status-secondary,
+    .mel-event-card__social,
+    .mel-event-card__urgency,
+    .mel-event-card__capacity-hint {
+      color: mel.$mel-ds-color-muted;
+    }
+
+    .mel-event-card__status.mel-event-card__status--free {
+      color: color-mix(in srgb, #1e9d55 85%, mel.$mel-ds-color-text);
+    }
+
+    .mel-event-card__tertiary {
+      border-top-color: color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+    }
+  }
+
+  &.mel-event-card--dark-bg {
+    .mel-event-card__link,
+    .mel-event-card__link:hover,
+    .mel-event-card__link:active {
+      color: #fff;
+    }
+
+    .mel-event-hero__glass {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .mel-event-card__title,
+    .mel-event-card__status,
+    .mel-event-card__status.mel-event-card__status--paid {
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+
+    .mel-event-card__when,
+    .mel-event-card__date,
+    .mel-event-card__location,
+    .mel-event-card__status-secondary,
+    .mel-event-card__social,
+    .mel-event-card__urgency,
+    .mel-event-card__capacity-hint {
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    }
+
+    .mel-event-card__status.mel-event-card__status--free {
+      color: #c8f5d4;
+    }
+
+    .mel-event-card__tertiary {
+      border-top-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .mel-card-reason {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .mel-card-reason--trending {
+      color: #ffe0da;
+      background: rgba(242, 109, 91, 0.32);
+    }
+
+    .mel-card-reason--category {
+      color: #e8ecff;
+      background: rgba(110, 126, 242, 0.32);
+    }
+  }
 }
 
 // Featured / carousel — glass dock hugs copy width (not full card width).
@@ -805,7 +883,6 @@
 // --- Featured (image-led overlay; same anatomy as hero/standard) ---
 .mel-event-card--featured:not(.mel-event-card--hero) {
   align-self: start;
-  background: transparent;
   --mel-event-card-glass-inset: 14px;
   --mel-event-card-glass-panel-radius: 20px;
   --mel-event-card-glass-pad-x: 18px;
@@ -815,9 +892,6 @@
   @include mel-event-card-content-glass;
 
   .mel-event-card__link {
-    position: relative;
-    display: block;
-    width: 100%;
     aspect-ratio: 4 / 5;
     height: auto;
     min-height: 0;
@@ -829,22 +903,10 @@
     color: mel.$mel-ds-color-text;
   }
 
-  .mel-event-card__image,
-  .mel-event-card__media {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    aspect-ratio: auto;
-    border-radius: inherit;
-  }
-
   .mel-event-card__image > img,
   .mel-event-card__image > .mel-event-card__image-element,
   .mel-event-card__media > img,
   .mel-event-card__media > .mel-event-card__image-element {
-    position: absolute;
-    z-index: 1;
-    display: block;
     transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -876,6 +938,8 @@
 
 // --- Compact (horizontal) ---
 .mel-event-card--compact {
+  background: mel.$mel-ds-color-surface;
+
   .mel-event-card__link {
     flex-direction: row;
     align-items: stretch;
@@ -1037,7 +1101,6 @@
 
 .mel-event-card--hero {
   align-self: start;
-  background: transparent;
   border-radius: clamp(20px, 2.5vw, 32px);
   overflow: hidden;
   box-shadow: 0 14px 36px rgba(36, 48, 58, 0.1);
@@ -1054,11 +1117,6 @@
   @include mel-event-card-content-glass;
 
   .mel-event-card__link {
-    position: relative;
-    display: block;
-    width: 100%;
-    min-height: 100%;
-    height: 100%;
     color: mel.$mel-ds-color-text;
     text-decoration: none;
   }
@@ -1076,22 +1134,10 @@
       mel.$mel-ds-shadow-hover;
   }
 
-  .mel-event-card__image,
-  .mel-event-card__media {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    aspect-ratio: auto;
-    border-radius: 0;
-  }
-
   .mel-event-card__image > img,
   .mel-event-card__image > .mel-event-card__image-element,
   .mel-event-card__media > img,
   .mel-event-card__media > .mel-event-card__image-element {
-    position: absolute;
-    z-index: 1;
-    display: block;
     transition: transform 0.4s ease;
   }
 
@@ -1101,12 +1147,7 @@
   }
 
   .mel-event-card__placeholder {
-    position: absolute;
-    inset: -1px;
     z-index: 1;
-    width: calc(100% + 2px);
-    height: calc(100% + 2px);
-    min-height: calc(100% + 2px);
     background:
       radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
       linear-gradient(145deg, color-mix(in srgb, mel.$mel-ds-color-primary 28%, #fff) 0%, color-mix(in srgb, mel.$mel-ds-color-accent 22%, #fff) 100%);
