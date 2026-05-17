@@ -237,6 +237,7 @@
 .mel-home-hero__feature-rotator .mel-featured-home-carousel,
 .mel-home-hero__feature-rotator .mel-featured-carousel__track,
 .mel-home-hero__feature-rotator .mel-featured-home-carousel__track {
+  display: block;
   height: 100%;
   min-height: inherit;
 }
@@ -258,8 +259,13 @@
   scroll-snap-type: none;
 }
 
-.mel-home-hero__feature-rotator .mel-featured-carousel__item {
+.mel-home-hero__feature-rotator .mel-featured-carousel__item,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
   grid-area: 1 / 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
   min-width: 0;
   opacity: 0;
   pointer-events: none;
@@ -270,43 +276,85 @@
 }
 
 .mel-home-hero__feature-rotator .mel-featured-carousel__item:first-child,
-.mel-home-hero__feature-rotator .mel-featured-carousel__item.is-active {
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__item:first-child,
+.mel-home-hero__feature-rotator .mel-featured-carousel__item.is-active,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__item.is-active {
   opacity: 1;
   pointer-events: auto;
   transform: translate3d(0, 0, 0) scale(1);
 }
 
-.mel-home-hero__feature-rotator.is-enhanced .mel-featured-carousel__item:first-child:not(.is-active) {
+.mel-home-hero__feature-rotator.is-enhanced .mel-featured-carousel__item:first-child:not(.is-active),
+.mel-home-hero__feature-rotator.is-enhanced .mel-featured-home-carousel__item:first-child:not(.is-active) {
   opacity: 0;
   pointer-events: none;
   transform: translate3d(-18px, 0, 0) scale(0.985);
 }
 
+.mel-home-hero__feature-rotator .mel-featured-carousel,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel,
+.mel-home-hero__feature-rotator .mel-featured-carousel__track,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__track,
+.mel-home-hero__feature-rotator .mel-featured-carousel__item,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
+  height: 100%;
+  min-height: inherit;
+}
+
+.mel-home-hero__feature-rotator .views-element-container,
+.mel-home-hero__feature-rotator .views-element-container > div {
+  display: block;
+  height: 100%;
+  min-height: inherit;
+}
+
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
+  overflow: hidden;
+  border-radius: clamp(24px, 4vw, 38px);
+}
+
 .mel-home-hero__feature-rotator .mel-event-card--featured,
 .mel-home-hero__feature-rotator .mel-event-card--hero {
+  --mel-event-card-glass-inset: 14px;
+  --mel-event-card-glass-panel-radius: clamp(20px, 3vw, 28px);
+  --mel-event-card-glass-pad-x: clamp(16px, 3vw, 22px);
+  --mel-event-card-glass-pad-y: clamp(14px, 2.5vw, 18px);
+  width: 100%;
+  height: clamp(260px, 34vw, 430px);
   min-height: clamp(260px, 34vw, 430px);
-  border-radius: clamp(24px, 4vw, 38px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow:
-    0 18px 48px rgba(31, 38, 51, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  background: transparent;
+  border-radius: inherit;
+  border: 0;
+  box-shadow: 0 18px 48px rgba(36, 48, 58, 0.14);
+
+  .mel-event-card__link {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+
+  .mel-event-card__image,
+  .mel-event-card__media {
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .mel-event-hero__glass {
+    max-width: min(100%, 390px);
+  }
 }
 
 .mel-home-hero__feature-rotator .mel-featured-carousel__controls {
   display: none;
 }
 
-.mel-home-hero__feature-rotator .mel-event-card--hero .mel-event-card__content,
-.mel-home-hero__feature-rotator .mel-event-card__body {
-  width: min(100%, 390px);
-  padding: clamp(20px, 3vw, 30px);
-}
-
 .mel-home-hero__feature-rotator .mel-event-card--hero .mel-event-card__title,
 .mel-home-hero__feature-rotator .mel-event-card__title {
   font-size: clamp(1.45rem, 3vw, 2.35rem);
-  line-height: 1;
-  letter-spacing: -0.045em;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
 }
 
 .mel-home-hero__feature-rotator .mel-event-card--hero .mel-event-card__when,

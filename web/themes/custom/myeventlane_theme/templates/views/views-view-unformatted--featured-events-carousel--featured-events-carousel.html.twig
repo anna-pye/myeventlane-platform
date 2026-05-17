@@ -120,8 +120,16 @@
         }
       }
 
-      // Process all featured carousel cards
+      // Process featured carousel cards (compact/legacy only — overlay cards use fixed glass tokens).
       document.querySelectorAll('.mel-featured-carousel__slide .mel-event-card').forEach(function(card) {
+        if (
+          card.classList.contains('mel-event-card--standard')
+          || card.classList.contains('mel-event-card--hero')
+          || card.classList.contains('mel-event-card--featured')
+        ) {
+          return;
+        }
+
         const img = card.querySelector('.mel-event-card__image img, .mel-event-card__image-element');
         if (!img) return;
 
