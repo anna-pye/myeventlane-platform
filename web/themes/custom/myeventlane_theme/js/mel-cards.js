@@ -6,7 +6,8 @@
   'use strict';
 
   // Perceived luminance (0–255). Single source of truth for all event cards.
-  var MEL_CARD_BRIGHTNESS_THRESHOLD = 128;
+  // Matches the former featured-carousel inline threshold (140).
+  var MEL_CARD_BRIGHTNESS_THRESHOLD = 140;
 
   function applyBrightness(img, card) {
     var canvas = document.createElement('canvas');
