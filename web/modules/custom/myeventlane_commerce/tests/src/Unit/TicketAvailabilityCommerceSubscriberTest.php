@@ -7,15 +7,11 @@ namespace Drupal\Tests\myeventlane_commerce\Unit;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
-use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
 use Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
-use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * @coversDefaultClass \Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber
@@ -42,30 +38,8 @@ final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
    */
   public function testShouldValidateAsTicketSkipsOperationalMerchandise(string $bundle, bool $skip_ticket_rules): void {
     $subscriber = $this->subscriber();
-    $order_item = $this->createMock(OrderItemInterface::class);
-    $order_item->method('bundle')->willReturn('default');
-    $order_item->method('hasField')->with('field_target_event')->willReturn(TRUE);
-    $order_item->method('get')->willReturnCallback(function (string $field) {
-      if ($field === 'field_target_event') {
-        $field_item = new class {
-
-          public bool $isEmpty = FALSE;
-
-          public int $target_id = 1584;
-
-        };
-        return $field_item;
-      }
-      if ($field === 'purchased_entity') {
-        $field_item = new class($this->variation($bundle)) {
-
-          public function __construct(public object $entity) {}
-
-        };
-        return $field_item;
-      }
-      return NULL;
-    });
+    $variation = $this->variation($bundle);
+    $order_item = $this->orderItemWithTargetEventAndVariation($variation);
 
     $should_validate = $this->invokeShouldValidateAsTicket($subscriber, $order_item);
     $this->assertSame(!$skip_ticket_rules, $should_validate);
@@ -73,44 +47,63 @@ final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
 
   public function testShouldValidateAsTicketStillAppliesToTicketLines(): void {
     $subscriber = $this->subscriber();
-    $order_item = $this->createMock(OrderItemInterface::class);
-    $order_item->method('bundle')->willReturn('default');
-    $order_item->method('hasField')->with('field_target_event')->willReturn(TRUE);
-    $order_item->method('get')->willReturnCallback(function (string $field) {
-      if ($field === 'field_target_event') {
-        $field_item = new class {
-
-          public bool $isEmpty = FALSE;
-
-          public int $target_id = 1584;
-
-        };
-        return $field_item;
-      }
-      if ($field === 'purchased_entity') {
-        $field_item = new class($this->variation('default')) {
-
-          public function __construct(public object $entity) {}
-
-        };
-        return $field_item;
-      }
-      return NULL;
-    });
+    $order_item = $this->orderItemWithTargetEventAndVariation($this->variation('default'));
 
     $this->assertTrue($this->invokeShouldValidateAsTicket($subscriber, $order_item));
   }
 
+  private function orderItemWithTargetEventAndVariation(
+    ProductVariationInterface $variation,
+  ): OrderItemInterface&MockObject {
+    $order_item = $this->createMock(OrderItemInterface::class);
+    $order_item->method('bundle')->willReturn('default');
+    $order_item->method('hasField')->with('field_target_event')->willReturn(TRUE);
+    $order_item->method('getPurchasedEntity')->willReturn($variation);
+    $order_item->method('get')->willReturnCallback(function (string $field) use ($variation) {
+      if ($field === 'field_target_event') {
+        return $this->fieldTargetEventStub();
+      }
+      if ($field === 'purchased_entity') {
+        return $this->purchasedEntityFieldStub($variation);
+      }
+      return NULL;
+    });
+    return $order_item;
+  }
+
+  private function fieldTargetEventStub(): object {
+    return new class {
+
+      public function isEmpty(): bool {
+        return FALSE;
+      }
+
+      public int $target_id = 1584;
+
+    };
+  }
+
+  private function purchasedEntityFieldStub(ProductVariationInterface $variation): object {
+    return new class($variation) {
+
+      public function __construct(public ProductVariationInterface $entity) {}
+
+      public function isEmpty(): bool {
+        return FALSE;
+      }
+
+    };
+  }
+
   private function subscriber(): TicketAvailabilityCommerceSubscriber {
-    return new TicketAvailabilityCommerceSubscriber(
-      $this->createMock(TicketAvailabilityService::class),
-      new CapacityOrderInspector(),
-      $this->createMock(\Drupal\Core\Entity\EntityTypeManagerInterface::class),
-      $this->createMock(LockBackendInterface::class),
-      $this->createMock(RequestStack::class),
-      $this->getStringTranslationStub(),
-      $this->createMock(LoggerInterface::class),
-    );
+    $ref = new \ReflectionClass(TicketAvailabilityCommerceSubscriber::class);
+    /** @var \Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber $subscriber */
+    $subscriber = $ref->newInstanceWithoutConstructor();
+    $order_inspector = new CapacityOrderInspector();
+    $prop = $ref->getProperty('orderInspector');
+    $prop->setAccessible(TRUE);
+    $prop->setValue($subscriber, $order_inspector);
+    return $subscriber;
   }
 
   private function variation(string $product_bundle): ProductVariationInterface&MockObject {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\commerce_product\Entity\ProductInterface;
+use Drupal\myeventlane_core\Commerce\OperationalProductBundles;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -30,18 +31,13 @@ final class OperationalMerchandiseManager {
    *
    * @var list<string>
    */
-  public const OPERATIONAL_PRODUCT_BUNDLES = [
-    'operational_merchandise',
-    'operational_bundle',
-    'hospitality_package',
-    'timed_collection_product',
-  ];
+  public const OPERATIONAL_PRODUCT_BUNDLES = OperationalProductBundles::BUNDLES;
 
   /**
    * Whether a Commerce product bundle is operational merchandise architecture.
    */
   public static function isOperationalProductBundle(string $bundle): bool {
-    return in_array($bundle, self::OPERATIONAL_PRODUCT_BUNDLES, TRUE);
+    return OperationalProductBundles::isOperationalProductBundle($bundle);
   }
 
   /**

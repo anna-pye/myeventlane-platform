@@ -3,13 +3,19 @@
  * @file
  * Canonical MEL public event card — variants: standard, featured, compact, featured_hero.
  *
+ * All variants share one `.mel-event-card` DOM. `featured_hero` normalizes to
+ * `--featured` + `--hero` (legacy variant name retained for Views/templates).
+ *
  * Node listings: preprocess supplies card_* (myeventlane_theme_preprocess_node).
  * Views field rows: pass title, url, image, date_full, location, category, ticket_type, etc.
  * Image pill badges use `event_ui` (see myeventlane_event_finalize_event_ui in myeventlane_event).
  * @see myeventlane_event.module — myeventlane_event_preprocess_node() (event_ui for all view modes).
  */
 #}
-{% set variant = variant|default('standard') %}
+{% set _variant_raw = variant|default('standard') %}
+{% set _is_hero = _variant_raw == 'featured_hero' %}
+{% set _variant = _is_hero ? 'featured' : _variant_raw %}
+
 {% set _title = card_title|default(title|default('')) %}
 {% set _url = card_url|default(url|default('#')) %}
 {% set _img = card_image_url|default(image|default('')) %}
@@ -73,62 +79,14 @@
   {% set _state_badge_type = 'category' %}
 {% endif %}
 
-{% if variant == 'featured_hero' %}
-  {% if attributes is defined and attributes %}
-  <article{{ attributes.addClass('mel-event-hero-card-article') }}>
-  {% else %}
-  <article class="mel-event-hero-card-article">
-  {% endif %}
-    <a href="{{ _url }}" class="mel-event-hero-card" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% endif %}>
-      <div class="mel-event-hero-card__image">
-        {% if _img_render %}
-          {{ _img_render }}
-        {% elseif _img %}
-          <img src="{{ _img }}" alt="{{ _img_alt }}" loading="eager" decoding="async" />
-        {% else %}
-          <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
-        {% endif %}
-        <div class="mel-event-hero-card__overlay" aria-hidden="true"></div>
-        {% if _image_badge_label %}
-          <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-hero-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
-            <span class="mel-pill__label">{{ _image_badge_label }}</span>
-          </span>
-        {% endif %}
-      </div>
-
-      <div class="mel-event-hero-card__content">
-        {% if recommendation_context is defined and recommendation_context.label|default('')|trim|length > 0 %}
-          <p class="mel-card-reason mel-card-reason--{{ recommendation_context.type|default('')|e('html_attr') }}">{{ recommendation_context.label }}</p>
-        {% endif %}
-        <h2 class="mel-event-hero-card__title">{{ _title }}</h2>
-
-        {% if _time %}
-          <p class="mel-event-hero-card__when">{{ _time }}</p>
-        {% endif %}
-        {% if _loc %}
-          <p class="mel-event-hero-card__where">{{ _loc }}</p>
-        {% endif %}
-
-        {% if _status_primary %}
-          <p class="mel-event-hero-card__status mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _status_primary }}</p>
-        {% endif %}
-        {% if _status_secondary %}
-          <p class="mel-event-hero-card__status-note">{{ _status_secondary }}</p>
-        {% endif %}
-
-        {% if _mel_cta_semantic|default('primary') != 'hidden' and _cta|trim|length > 0 %}
-        <span class="mel-btn mel-btn--cta mel-event-hero-card__cta-chip{% if _mel_cta_semantic == 'primary' %} mel-event-hero-card__cta-chip--coral{% elseif _mel_cta_semantic == 'disabled' %} mel-event-hero-card__cta-chip--disabled{% else %} mel-event-hero-card__cta-chip--lavender{% endif %}" aria-hidden="true">{{ _cta }}</span>
-        {% endif %}
-      </div>
-    </a>
-  </article>
-{% else %}
-
-{% set card_classes = ['mel-event-card', 'mel-event-card--' ~ variant] %}
-{% if is_promoted %}
-  {% set card_classes = card_classes|merge(['mel-event-card--promoted']) %}
+{% set card_classes = ['mel-event-card', 'mel-event-card--' ~ _variant] %}
+{% if _is_hero %}
+  {% set card_classes = card_classes|merge(['mel-event-card--hero']) %}
 {% endif %}
-{% if is_past and variant == 'compact' %}
+{% if is_promoted %}
+  {% set card_classes = card_classes|merge(['mel-event-card--promoted', 'mel-event-card--boosted']) %}
+{% endif %}
+{% if is_past and _variant == 'compact' %}
   {% set card_classes = card_classes|merge(['mel-event-card--past']) %}
 {% endif %}
 
@@ -143,14 +101,14 @@
     </div>
   {% endif %}
   <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% endif %}>
-    <div class="mel-event-card__image">
+    <div class="mel-event-card__image mel-event-card__media">
       {% if _img_render %}
         {{ _img_render }}
       {% elseif _img %}
         <img
           src="{{ _img }}"
           alt="{{ _img_alt }}"
-          loading="lazy"
+          loading="{{ _is_hero ? 'eager' : 'lazy' }}"
           decoding="async"
           class="mel-event-card__image-element"
         />
@@ -158,12 +116,12 @@
         <div class="mel-event-card__placeholder" aria-hidden="true"></div>
       {% endif %}
 
-      {% if variant == 'featured' %}
-        <div class="mel-event-card__overlay mel-event-card__overlay--featured" aria-hidden="true"></div>
+      {% if _variant != 'compact' %}
+        <div class="mel-event-card__overlay{% if _is_hero %} mel-event-card__overlay--hero{% elseif _variant == 'featured' %} mel-event-card__overlay--featured{% else %} mel-event-card__overlay--standard{% endif %}" aria-hidden="true"></div>
       {% endif %}
 
       {% if _image_badge_label %}
-        <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-card__image-badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
+        <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-card__image-badge mel-event-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
           <span class="mel-pill__label">{{ _image_badge_label }}</span>
         </span>
       {% endif %}
@@ -181,10 +139,14 @@
       {% if mel_tonight_urgency_label|default('')|trim|length > 0 %}
         <p class="mel-card-reason mel-card-reason--tonight" role="status">{{ mel_tonight_urgency_label }}</p>
       {% endif %}
-      <h3 class="mel-event-card__title">{{ _title }}</h3>
+      {% if _is_hero %}
+        <h2 class="mel-event-card__title">{{ _title }}</h2>
+      {% else %}
+        <h3 class="mel-event-card__title">{{ _title }}</h3>
+      {% endif %}
 
       {% if _time %}
-        <p class="mel-event-card__when">{{ _time }}</p>
+        <p class="mel-event-card__when mel-event-card__date">{{ _time }}</p>
       {% endif %}
 
       <div class="mel-event-card__location-slot"{% if not _loc %} aria-hidden="true"{% endif %}>
@@ -196,7 +158,7 @@
       </div>
 
       {% if _status_primary or _status_secondary %}
-        <div class="mel-event-card__status-row">
+        <div class="mel-event-card__status-row mel-event-card__meta">
           {% if _status_primary %}
             <p class="mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _status_primary }}</p>
           {% endif %}
@@ -207,7 +169,7 @@
       {% endif %}
 
       {% if _mel_cta_semantic|default('primary') != 'hidden' %}
-        <div class="mel-event-card__cta-row">
+        <div class="mel-event-card__cta-row mel-event-card__actions">
           <span class="mel-event-card__cta-chip{% if _mel_cta_semantic == 'primary' %} mel-event-card__cta-chip--coral{% elseif _mel_cta_semantic == 'disabled' %} mel-event-card__cta-chip--disabled{% else %} mel-event-card__cta-chip--lavender{% endif %}" aria-hidden="true">{{ _cta }}</span>
         </div>
       {% endif %}
@@ -228,4 +190,3 @@
     </div>
   </a>
 </article>
-{% endif %}
