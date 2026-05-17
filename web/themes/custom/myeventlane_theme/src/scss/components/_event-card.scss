@@ -892,6 +892,8 @@
   @include mel-event-card-content-glass;
 
   .mel-event-card__link {
+    position: relative;
+    display: block;
     aspect-ratio: 4 / 5;
     height: auto;
     min-height: 0;
@@ -1070,6 +1072,8 @@
   min-height: 300px;
 
   .mel-event-card__link {
+    position: relative;
+    display: block;
     aspect-ratio: auto;
     height: 100%;
     min-height: 100%;
