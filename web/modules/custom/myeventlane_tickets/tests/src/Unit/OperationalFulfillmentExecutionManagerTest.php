@@ -64,7 +64,7 @@ final class OperationalFulfillmentExecutionManagerTest extends UnitTestCase {
     $this->assertSame('z', $clean['nested']['ok']);
   }
 
-  public function testExecutionBundleOmitsScannerActionTokens(): void {
+  public function testExecutionBundleUsesCustomerFriendlyOperationalSummaries(): void {
     $merged = [
       'issuance' => ['worst_quantity_alignment_status' => 'valid'],
       'recovery' => ['recovery_mismatch_observed' => FALSE],
@@ -85,8 +85,14 @@ final class OperationalFulfillmentExecutionManagerTest extends UnitTestCase {
     ];
     $out = $this->manager()->composeExecutionBundleFromMerged($merged, 500);
     $first = $out['executions'][0];
-    $this->assertStringNotContainsString('scanner_action', (string) ($first['operational_summary'] ?? ''));
-    $this->assertStringNotContainsString('scanner_action', (string) ($first['redemption_state'] ?? ''));
+    $summary = (string) ($first['operational_summary'] ?? '');
+    $redemption_state = (string) ($first['redemption_state'] ?? '');
+    foreach (['pickup_lane=', 'redemption_lane=', 'scanner_action=', 'timed=', 'session=', 'redemptions='] as $forbidden) {
+      $this->assertStringNotContainsString($forbidden, $summary);
+      $this->assertStringNotContainsString($forbidden, $redemption_state);
+    }
+    $this->assertStringContainsString('pickup', strtolower($summary));
+    $this->assertStringContainsString(' — ', $summary, 'Pickup and redemption summaries should be separated by an em dash.');
   }
 
 }

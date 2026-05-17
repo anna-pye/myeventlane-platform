@@ -96,7 +96,7 @@ final class OperationalFulfillmentExecutionManager {
       $normalized = (string) ($row['normalized_lifecycle_state'] ?? '');
       $execution_type = $this->mapToExecutionType($fulfillment_type, $row);
       $redemption_state = $this->truncateSummary(
-        $this->stripScannerExecutionProjectionMaterial((string) ($row['redemption_execution_summary'] ?? '')),
+        $this->customerRedemptionStateLabel((string) ($row['redemption_execution_summary'] ?? '')),
       );
       $exec = [
         'execution_id' => $this->stableExecutionId((int) ($row['ticket_ordinal'] ?? 0), $execution_type, $normalized),
@@ -222,33 +222,124 @@ final class OperationalFulfillmentExecutionManager {
   }
 
   /**
-   * Removes scanner-policy tokens from execution projection strings.
-   *
-   * Lifecycle read-models may include `scanner_action=` diagnostics for staff
-   * fulfillment cards; execution orchestration strips those for all execution
-   * bundle consumers (customer strips and execution governance projections).
-   */
-  private function stripScannerExecutionProjectionMaterial(string $text): string {
-    if ($text === '') {
-      return '';
-    }
-    $out = preg_replace('/\bscanner_action=[^;]*\s*(;\s*|\s*|$)/', '', $text) ?? $text;
-    $out = trim((string) $out);
-    $out = preg_replace('/;\s*;/', '; ', $out) ?? $out;
-    return trim((string) $out, " \t\n\r\0\x0B;");
-  }
-
-  /**
    * @param array<string, mixed> $row
    */
   private function composeRowSummary(array $row, string $execution_type): string {
-    $pickup = $this->stripScannerExecutionProjectionMaterial(trim((string) ($row['pickup_lifecycle_summary'] ?? '')));
-    $redeem = $this->stripScannerExecutionProjectionMaterial(trim((string) ($row['redemption_execution_summary'] ?? '')));
-    $parts = array_filter([$pickup, $redeem]);
+    $pickup = $this->customerPickupSummary(trim((string) ($row['pickup_lifecycle_summary'] ?? '')));
+    $redeem = $this->customerRedemptionSummary(trim((string) ($row['redemption_execution_summary'] ?? '')));
+    $parts = array_values(array_filter([$pickup, $redeem]));
     if ($parts !== []) {
       return implode(' — ', $parts);
     }
-    return (string) $this->t('Operational execution projection for @type.', ['@type' => $execution_type]);
+    return $this->defaultCustomerExecutionSummary($execution_type);
+  }
+
+  private function customerPickupSummary(string $raw): string {
+    if ($raw === '') {
+      return '';
+    }
+    if (str_contains($raw, 'pickup_lane=not_required')) {
+      return (string) $this->t('No pickup is required for this item. Follow organiser instructions at the venue.');
+    }
+    if (str_contains($raw, 'pickup_lane=required')) {
+      return (string) $this->t('Collect this item at the venue when advised by the organiser.');
+    }
+    $stripped = $this->stripInternalExecutionDiagnostics($raw);
+    if ($stripped !== '' && !$this->containsInternalDiagnosticTokens($stripped)) {
+      return $stripped;
+    }
+    return (string) $this->t('This item will be handled at the venue. Check your confirmation and organiser instructions before arrival.');
+  }
+
+  private function customerRedemptionSummary(string $raw): string {
+    if ($raw === '') {
+      return '';
+    }
+    if (str_contains($raw, 'redemption_lane=validation_only')) {
+      return (string) $this->t('Entry validation applies at the venue. Follow organiser signage and staff instructions.');
+    }
+    if (str_contains($raw, 'redemption_lane=redeemable')) {
+      return (string) $this->t('Redemption may be available at the venue per organiser rules.');
+    }
+    $stripped = $this->stripInternalExecutionDiagnostics($raw);
+    if ($stripped !== '' && !$this->containsInternalDiagnosticTokens($stripped)) {
+      return $stripped;
+    }
+    return (string) $this->t('Your ticket will be handled at the venue. Check your confirmation before arrival.');
+  }
+
+  private function customerRedemptionStateLabel(string $raw): string {
+    if ($raw === '') {
+      return '';
+    }
+    if (str_contains($raw, 'redemption_lane=validation_only')) {
+      return (string) $this->t('Validation at venue');
+    }
+    if (str_contains($raw, 'redemption_lane=redeemable')) {
+      return (string) $this->t('Redemption at venue');
+    }
+    $stripped = $this->stripInternalExecutionDiagnostics($raw);
+    return $stripped !== '' && !$this->containsInternalDiagnosticTokens($stripped)
+      ? $stripped
+      : (string) $this->t('At venue');
+  }
+
+  private function defaultCustomerExecutionSummary(string $execution_type): string {
+    return match ($execution_type) {
+      'merch_pickup', 'timed_collection' => (string) $this->t('This item will be handled at the venue. Check your confirmation and organiser instructions before arrival.'),
+      'hospitality_redemption' => (string) $this->t('Hospitality access is coordinated at the venue. Follow organiser instructions on arrival.'),
+      'parking_access' => (string) $this->t('Parking access follows the organiser rules shown in your confirmation.'),
+      'admission_access' => (string) $this->t('Admission is validated at the venue. Have your ticket ready when you arrive.'),
+      default => (string) $this->t('On-site steps for this item are handled at the venue. Check your confirmation before arrival.'),
+    };
+  }
+
+  /**
+   * Strips internal lifecycle diagnostics from customer execution projections.
+   *
+   * Staff lifecycle read-models retain key=value diagnostics; execution bundles
+   * for customer surfaces must not echo those tokens.
+   */
+  private function stripInternalExecutionDiagnostics(string $text): string {
+    if ($text === '') {
+      return '';
+    }
+    $patterns = [
+      '/\bscanner_action=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bpickup_lane=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bredemption_lane=[^;]*\s*(;\s*|\s*|$)/',
+      '/\btimed=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bsession=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bredemptions=\d+\/\d+\s*(;\s*|\s*|$)/',
+      '/\blifecycle=[^;]*\s*(;\s*|\s*|$)/',
+      '/\brequires_fulfilment=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bpdf=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bstate=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bfulfilment_row=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bqr_payload=[^;]*\s*(;\s*|\s*|$)/',
+      '/\breplay_token=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bfingerprint=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bdevice_fingerprint=[^;]*\s*(;\s*|\s*|$)/',
+      '/\binventory_quantity=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bstock_count=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bwarehouse_ids=[^;]*\s*(;\s*|\s*|$)/',
+      '/\bshipment_provider=[^;]*\s*(;\s*|\s*|$)/',
+    ];
+    $out = $text;
+    foreach ($patterns as $pattern) {
+      $out = preg_replace($pattern, '', $out) ?? $out;
+    }
+    $out = trim((string) $out);
+    $out = preg_replace('/;\s*;/', '; ', $out) ?? $out;
+    $out = preg_replace('/\s+—\s+—/', ' — ', $out) ?? $out;
+    return trim((string) $out, " \t\n\r\0\x0B;—");
+  }
+
+  private function containsInternalDiagnosticTokens(string $text): bool {
+    return (bool) preg_match(
+      '/\b(pickup_lane|redemption_lane|scanner_action|qr_payload|replay_token|fingerprint|device_fingerprint|inventory_quantity|stock_count|warehouse_ids|shipment_provider)=/',
+      $text,
+    );
   }
 
   /**

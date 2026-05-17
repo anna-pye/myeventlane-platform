@@ -12,7 +12,6 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
@@ -26,13 +25,18 @@ final class EventOperationalAddonCartForm extends FormBase {
 
   private const UI_QTY_MAX = 10;
 
+  /**
+   * Promoted protected properties (not private readonly).
+   *
+   * FormBase serializes forms via DependencySerializationTrait; private readonly
+   * properties are not reliably rehydrated on cache rebuild.
+   */
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly CartProviderInterface $cartProvider,
-    private readonly CartManagerInterface $cartManager,
-    private readonly EventOperationalAddonBuilder $addonBuilder,
-    private readonly CurrencyFormatter $currencyFormatter,
-    private readonly LoggerChannelFactoryInterface $loggerFactory,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected CartProviderInterface $cartProvider,
+    protected CartManagerInterface $cartManager,
+    protected EventOperationalAddonBuilder $addonBuilder,
+    protected CurrencyFormatter $currencyFormatter,
   ) {}
 
   /**
@@ -45,7 +49,6 @@ final class EventOperationalAddonCartForm extends FormBase {
       $container->get('commerce_cart.cart_manager'),
       $container->get('myeventlane_commerce.event_operational_addon_builder'),
       $container->get('commerce_price.currency_formatter'),
-      $container->get('logger.factory'),
     );
   }
 
@@ -308,12 +311,12 @@ final class EventOperationalAddonCartForm extends FormBase {
       foreach ($variations as $vid_key => $row) {
         $vid = (int) $vid_key;
         if ($vid < 1) {
-          $this->loggerFactory->get('myeventlane_commerce')->warning('Operational add-on submit ignored malformed variation key @key.', ['@key' => (string) $vid_key]);
+          $this->getLogger('myeventlane_commerce')->warning('Operational add-on submit ignored malformed variation key @key.', ['@key' => (string) $vid_key]);
           $form_state->setErrorByName('lines', $this->t('Something went wrong with your selection. Please refresh and try again.'));
           return;
         }
         if (!isset($allowlist[$vid])) {
-          $this->loggerFactory->get('myeventlane_commerce')->notice('Operational add-on validation rejected variation @vid for event @eid (not allowlisted).', [
+          $this->getLogger('myeventlane_commerce')->notice('Operational add-on validation rejected variation @vid for event @eid (not allowlisted).', [
             '@vid' => (string) $vid,
             '@eid' => (string) $event->id(),
           ]);
@@ -375,7 +378,7 @@ final class EventOperationalAddonCartForm extends FormBase {
         }
         if (!isset($allowlist[$vid])) {
           $this->messenger()->addError($this->t('Add-ons could not be updated. Please refresh the page.'));
-          $this->loggerFactory->get('myeventlane_commerce')->error('Operational add-on submit aborted: variation @vid not allowlisted post-validate.', ['@vid' => (string) $vid]);
+          $this->getLogger('myeventlane_commerce')->error('Operational add-on submit aborted: variation @vid not allowlisted post-validate.', ['@vid' => (string) $vid]);
           return;
         }
         $to_add[$vid] = $qty;
@@ -392,7 +395,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $variation = $variation_storage->load($variation_id);
       if (!$variation instanceof ProductVariationInterface || !$variation->isPublished()) {
         $this->messenger()->addError($this->t('An add-on is no longer available.'));
-        $this->loggerFactory->get('myeventlane_commerce')->notice('Operational add-on submit rejected missing or unpublished variation @vid.', ['@vid' => (string) $variation_id]);
+        $this->getLogger('myeventlane_commerce')->notice('Operational add-on submit rejected missing or unpublished variation @vid.', ['@vid' => (string) $variation_id]);
         return;
       }
 
@@ -409,7 +412,7 @@ final class EventOperationalAddonCartForm extends FormBase {
 
       if (!in_array($product->bundle(), OperationalMerchandiseManager::OPERATIONAL_PRODUCT_BUNDLES, TRUE)) {
         $this->messenger()->addError($this->t('An add-on is not valid for this event.'));
-        $this->loggerFactory->get('myeventlane_commerce')->notice('Operational add-on submit rejected bundle @bundle for variation @vid.', [
+        $this->getLogger('myeventlane_commerce')->notice('Operational add-on submit rejected bundle @bundle for variation @vid.', [
           '@bundle' => $product->bundle(),
           '@vid' => (string) $variation_id,
         ]);
@@ -419,7 +422,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       if (!$product->hasField('field_event') || $product->get('field_event')->isEmpty()
         || (int) $product->get('field_event')->target_id !== (int) $event->id()) {
         $this->messenger()->addError($this->t('An add-on is not linked to this event.'));
-        $this->loggerFactory->get('myeventlane_commerce')->notice('Operational add-on submit rejected event mismatch for product @pid.', ['@pid' => (string) $product->id()]);
+        $this->getLogger('myeventlane_commerce')->notice('Operational add-on submit rejected event mismatch for product @pid.', ['@pid' => (string) $product->id()]);
         return;
       }
 
@@ -432,7 +435,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $stores = $product->getStores();
       if ($stores === []) {
         $this->messenger()->addError($this->t('No store is configured for an add-on. Please contact the organiser.'));
-        $this->loggerFactory->get('myeventlane_commerce')->error('Operational add-on submit failed: product @pid has no stores.', ['@pid' => (string) $product->id()]);
+        $this->getLogger('myeventlane_commerce')->error('Operational add-on submit failed: product @pid has no stores.', ['@pid' => (string) $product->id()]);
         return;
       }
       $store = reset($stores);
