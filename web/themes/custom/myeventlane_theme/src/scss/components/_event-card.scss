@@ -1284,10 +1284,10 @@
     transform: none;
   }
 
-  .mel-event-card--featured:hover .mel-event-card__image > img,
-  .mel-event-card--featured:hover .mel-event-card__image > .mel-event-card__image-element,
-  .mel-event-card--featured .mel-event-card__image > img,
-  .mel-event-card--featured .mel-event-card__image > .mel-event-card__image-element {
+  .mel-event-card--featured:not(.mel-event-card--hero):hover .mel-event-card__image > img,
+  .mel-event-card--featured:not(.mel-event-card--hero):hover .mel-event-card__image > .mel-event-card__image-element,
+  .mel-event-card--featured:not(.mel-event-card--hero) .mel-event-card__image > img,
+  .mel-event-card--featured:not(.mel-event-card--hero) .mel-event-card__image > .mel-event-card__image-element {
     transition: none;
     transform: none;
   }
