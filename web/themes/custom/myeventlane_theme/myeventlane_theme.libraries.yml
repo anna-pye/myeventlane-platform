@@ -30,6 +30,14 @@ home-hero-rotator:
     - core/drupal
     - core/once
 
+# Event card image brightness (light/dark text contrast classes on .mel-event-card).
+mel-card-behaviors:
+  js:
+    js/mel-cards.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Branded 403/404 (standalone CSS; source SCSS in mel_maintenance/scss/errors.scss).
 mel-error-pages:
   version: VERSION
@@ -64,11 +72,8 @@ front:
   css:
     theme:
       dist/css/front.css: {}
-  js:
-    js/mel-cards.js: {}
   dependencies:
-    - core/drupal
-    - core/once
+    - myeventlane_theme/mel-card-behaviors
     - myeventlane_theme/home-hero-rotator
 
 # Help Centre search (/help/search) — compiled into dist/main.scss via Vite.
@@ -84,11 +89,13 @@ mel-listing-header:
       dist/css/front.css: {}
   dependencies:
     - core/drupal
+    - myeventlane_theme/mel-card-behaviors
 
 # /events listing: date pills + exposed filter bar (bundled in main.css via Vite).
 mel-events-discovery:
   dependencies:
     - myeventlane_theme/global-styling
+    - myeventlane_theme/mel-card-behaviors
     - core/drupal
 
 # Category discovery chip bar (AJAX, no full page reload).
