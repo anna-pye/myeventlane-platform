@@ -8,7 +8,6 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
-use Drupal\myeventlane_commerce\Form\EventOperationalAddonCartForm;
 use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
@@ -170,10 +169,6 @@ final class BookController extends ControllerBase {
         foreach ($addon_catalog['product_ids'] as $pid) {
           $build['#cache']['tags'][] = 'commerce_product:' . $pid;
         }
-        $build['#operational_addon_form'] = $this->formBuilderService->getForm(
-          EventOperationalAddonCartForm::class,
-          $node,
-        );
       }
     }
 

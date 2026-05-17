@@ -27,8 +27,11 @@ use Drupal\mel_ticket\Entity\TicketType;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_commerce\Form\EventOperationalAddonCartForm;
+use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -62,6 +65,8 @@ final class TicketSelectionForm extends FormBase {
     protected TimeInterface $time,
     protected CapacityOrderInspector $orderInspector,
     protected TicketTypeManager $ticketTypeManager,
+    protected EventOperationalAddonBuilder $eventOperationalAddonBuilder,
+    protected FormBuilderInterface $formBuilder,
     protected ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
@@ -82,6 +87,8 @@ final class TicketSelectionForm extends FormBase {
       $container->get('datetime.time'),
       $container->get('myeventlane_capacity.order_inspector'),
       $container->get('myeventlane_event.ticket_type_manager'),
+      $container->get('myeventlane_commerce.event_operational_addon_builder'),
+      $container->get('form_builder'),
       $container->has('myeventlane_capacity.service')
         ? $container->get('myeventlane_capacity.service')
         : NULL,
@@ -347,6 +354,35 @@ final class TicketSelectionForm extends FormBase {
       }
 
       $this->appendMelDonationField($form, $node, $estimated_total);
+
+      if ($this->eventOperationalAddonBuilder->hasAddons($node)) {
+        $form['operational_addons'] = [
+          '#type' => 'container',
+          '#weight' => 18,
+          '#attributes' => [
+            'class' => [
+              'mel-operational-addons-section',
+              'mel-operational-addons-section--embedded',
+            ],
+          ],
+        ];
+        $form['operational_addons']['title'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Add something extra'),
+          '#attributes' => ['class' => ['mel-operational-addons-section__title']],
+        ];
+        $form['operational_addons']['lede'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Optional extras stay on this booking — collect at the event after purchase.'),
+          '#attributes' => ['class' => ['mel-operational-addons-section__lede']],
+        ];
+        $form['operational_addons']['form'] = $this->formBuilder->getForm(
+          EventOperationalAddonCartForm::class,
+          $node,
+        );
+      }
 
       $form['actions'] = [
         '#type' => 'actions',

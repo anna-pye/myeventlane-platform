@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_capacity\Service;
 
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 
@@ -119,8 +120,30 @@ final class CapacityOrderInspector {
       return TRUE;
     }
 
+    // Operational merchandise add-ons (event-scoped, not ticket matrix lines).
+    // @see \Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager::OPERATIONAL_PRODUCT_BUNDLES
+    $purchased = $item->getPurchasedEntity();
+    if ($purchased instanceof ProductVariationInterface) {
+      $product = $purchased->getProduct();
+      if ($product !== NULL && $this->isOperationalMerchandiseProductBundle($product->bundle())) {
+        return TRUE;
+      }
+    }
+
     // All other items are considered tickets and subject to capacity checks.
     return FALSE;
+  }
+
+  /**
+   * Mirrors operational product bundles in myeventlane_commerce (cross-module).
+   */
+  private function isOperationalMerchandiseProductBundle(string $bundle): bool {
+    return in_array($bundle, [
+      'operational_merchandise',
+      'operational_bundle',
+      'hospitality_package',
+      'timed_collection_product',
+    ], TRUE);
   }
 
   /**

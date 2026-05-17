@@ -10,6 +10,10 @@
   overflow-x: hidden;
 }
 
+.mel-operational-addons-section--embedded {
+  margin-top: 1.25rem;
+}
+
 .mel-operational-addons-section__title {
   margin: 0 0 0.35rem;
   font-size: 1.125rem;
