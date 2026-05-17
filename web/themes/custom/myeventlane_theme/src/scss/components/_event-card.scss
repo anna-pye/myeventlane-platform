@@ -1120,7 +1120,14 @@
   @include mel-event-card-overlay-media;
   @include mel-event-card-content-glass;
 
+  // In-flow aspect ratio — absolute media/body do not size the card (same as standard/featured).
+  // Carousel / hero rotator wrappers override height below.
   .mel-event-card__link {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 5;
+    height: auto;
+    min-height: 0;
     color: mel.$mel-ds-color-text;
     text-decoration: none;
   }
@@ -1221,6 +1228,22 @@
 
   .mel-event-card__cta-chip {
     pointer-events: none;
+  }
+}
+
+// Discovery / homepage grids — hero cards are normal premium tiles, not carousel slides.
+.mel-event-grid .mel-event-card--hero,
+.mel-grid--events .mel-event-card--hero,
+.mel-grid.mel-grid--events .mel-event-card--hero {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  align-self: start;
+
+  .mel-event-card__link {
+    aspect-ratio: 4 / 5;
+    height: auto;
+    min-height: 0;
   }
 }
 
