@@ -12,6 +12,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder;
+use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -34,6 +35,7 @@ final class VendorEventTabsService {
     private readonly AccessManagerInterface $accessManager,
     private readonly AccountInterface $currentUser,
     private readonly VendorOperationalAddonOrderBuilder $vendorOperationalAddonOrderBuilder,
+    private readonly EventStateResolver $eventStateResolver,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -160,7 +162,10 @@ final class VendorEventTabsService {
     ];
 
     if ($this->routeExists('myeventlane_vendor.console.event_operational_addon_orders')) {
-      $showAddons = $isTickets && $this->vendorOperationalAddonOrderBuilder->shouldSurfaceVendorAddonsTab($event);
+      // Match workspace paid/both gate: linked ticket product, not MODE_PAID alone
+      // (RSVP events with a non-hybrid product still surface operational add-ons).
+      $showAddons = $this->eventStateResolver->hasProductTarget($event)
+        && $this->vendorOperationalAddonOrderBuilder->shouldSurfaceVendorAddonsTab($event);
       $rows[] = [
         'key' => 'addon_orders',
         'label' => (string) $t->translate('Add-on orders'),

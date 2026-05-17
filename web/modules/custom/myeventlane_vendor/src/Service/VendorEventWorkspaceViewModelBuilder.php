@@ -14,7 +14,6 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
-use Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
@@ -41,7 +40,6 @@ final class VendorEventWorkspaceViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MelReadinessHelper $readinessHelper,
-    private readonly VendorOperationalAddonOrderBuilder $vendorOperationalAddonOrderBuilder,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -179,12 +177,8 @@ final class VendorEventWorkspaceViewModelBuilder {
 
     $previewUrl = $this->routeUrlIfAccessible('entity.node.canonical', ['node' => $nid], $account);
 
-    $addonOrdersUrl = NULL;
-    if (($eventType === 'paid' || $eventType === 'both')
-      && $this->routeExists('myeventlane_vendor.console.event_operational_addon_orders')
-      && $this->vendorOperationalAddonOrderBuilder->shouldSurfaceVendorAddonsTab($event)) {
-      $addonOrdersUrl = $this->routeUrlIfAccessible('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $nid], $account);
-    }
+    // Reuse tab availability so add-on order gating runs once per request.
+    $addonOrdersUrl = $this->addonOrdersUrlFromWorkspaceTabs($tabs);
 
     $actions = [
       'edit' => $editUrl,
@@ -595,6 +589,25 @@ final class VendorEventWorkspaceViewModelBuilder {
     }
 
     return $metrics;
+  }
+
+  /**
+   * Resolves the add-on orders shortcut from workspace tabs.
+   *
+   * @param list<array<string, mixed>> $tabs
+   */
+  private function addonOrdersUrlFromWorkspaceTabs(array $tabs): ?Url {
+    foreach ($tabs as $tab) {
+      if (($tab['key'] ?? '') !== 'addon_orders') {
+        continue;
+      }
+      if (empty($tab['available'])) {
+        return NULL;
+      }
+      $url = $tab['url'] ?? NULL;
+      return $url instanceof Url ? $url : NULL;
+    }
+    return NULL;
   }
 
   private function routeExists(string $name): bool {
