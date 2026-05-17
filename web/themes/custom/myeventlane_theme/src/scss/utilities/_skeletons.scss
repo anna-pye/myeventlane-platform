@@ -64,11 +64,11 @@
   .mel-event-card__media > img,
   .mel-event-card__media > .mel-event-card__image-element {
     position: absolute;
-    inset: -1px;
+    inset: -2px;
     z-index: 1;
-    width: calc(100% + 2px);
-    height: calc(100% + 2px);
-    min-height: calc(100% + 2px);
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    min-height: calc(100% + 4px);
     object-fit: cover;
     display: block;
   }

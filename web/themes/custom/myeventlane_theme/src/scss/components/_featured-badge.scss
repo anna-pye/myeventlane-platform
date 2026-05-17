@@ -21,9 +21,9 @@
     0 18px 44px color-mix(in srgb, var(--mel-ink) 14%, transparent);
 }
 
-// Full-card inset ring (avoids clipped outer glow on overflow:hidden cards).
-.mel-event-card--promoted,
-.mel-event-card--boosted {
+// Full-card inset ring (compact/stacked cards only — overlay cards are full-bleed).
+.mel-event-card--compact.mel-event-card--promoted,
+.mel-event-card--compact.mel-event-card--boosted {
   &::after {
     content: '';
     position: absolute;
@@ -44,10 +44,23 @@
       0 22px 60px color-mix(in srgb, var(--mel-ink) 18%, transparent);
   }
 
-  .mel-event-card--promoted:hover::after,
-  .mel-event-card--boosted:hover::after {
+  .mel-event-card--compact.mel-event-card--promoted:hover::after,
+  .mel-event-card--compact.mel-event-card--boosted:hover::after {
     box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--mel-accent, #e8a85c) 58%, #fff 42%);
   }
+}
+
+// Overlay listing cards: promoted halo only (no inset frame over full-bleed media).
+.mel-event-card--standard.mel-event-card--promoted,
+.mel-event-card--standard.mel-event-card--boosted,
+.mel-event-card--featured.mel-event-card--promoted,
+.mel-event-card--featured.mel-event-card--boosted,
+.mel-event-card--hero.mel-event-card--promoted,
+.mel-event-card--hero.mel-event-card--boosted {
+  box-shadow:
+    var(--mel-shadow-rest),
+    0 0 0 2px color-mix(in srgb, var(--mel-accent, #e8a85c) 55%, #fff 45%),
+    0 18px 44px color-mix(in srgb, var(--mel-ink) 14%, transparent);
 }
 
 // Ensure focus remains obvious (don’t rely on color alone).

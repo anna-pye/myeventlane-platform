@@ -31,10 +31,13 @@
       }
 
       var avg = total / (data.length / 4);
+      var isLight = avg > 128;
 
-      card.classList.add(avg > 140 ? 'mel-event-card--light-bg' : 'mel-event-card--dark-bg');
+      card.classList.remove('mel-event-card--light-bg', 'mel-event-card--dark-bg');
+      card.classList.add(isLight ? 'mel-event-card--light-bg' : 'mel-event-card--dark-bg');
     }
     catch (e) {
+      card.classList.remove('mel-event-card--light-bg');
       card.classList.add('mel-event-card--dark-bg');
     }
   }
@@ -42,16 +45,9 @@
   Drupal.behaviors.melCardBrightness = {
     attach: function (context) {
       once('melCardBrightness', '.mel-event-card', context).forEach(function (card) {
-        // Image-led listing cards use fixed overlay + CTA tokens (not adaptive chips).
-        if (
-          card.classList.contains('mel-event-card--standard')
-          || card.classList.contains('mel-event-card--hero')
-          || card.classList.contains('mel-event-card--featured')
-        ) {
-          return;
-        }
-
-        var img = card.querySelector('.mel-event-card__image-element');
+        var img = card.querySelector(
+          '.mel-event-card__image > img, .mel-event-card__image > .mel-event-card__image-element, .mel-event-card__media > img'
+        );
         if (!img) {
           return;
         }
