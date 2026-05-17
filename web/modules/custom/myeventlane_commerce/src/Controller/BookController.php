@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\myeventlane_commerce\Form\EventOperationalAddonCartForm;
 use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
@@ -134,6 +135,8 @@ final class BookController extends ControllerBase {
       '#event' => $node,
       '#addons_available' => FALSE,
       '#operational_addon_form' => [],
+      '#ticket_form' => [],
+      '#ticket_form_actions' => [],
       '#cache' => [
         'contexts' => ['route', 'user.roles', 'url.query_args', 'session', 'languages:language_interface'],
         'tags' => $node->getCacheTags(),
@@ -150,7 +153,7 @@ final class BookController extends ControllerBase {
     $formClass = $this->bookingFlowResolver->resolveBookingForm($node);
     switch ($formClass) {
       case TicketSelectionForm::class:
-        $build['#matrix_form'] = $this->buildPaidForm($node);
+        $this->attachPaidTicketBookingForms($build, $node);
         break;
 
       case RsvpPublicForm::class:
@@ -162,19 +165,49 @@ final class BookController extends ControllerBase {
         break;
     }
 
-    if ($isPaid) {
-      $addon_catalog = $this->eventOperationalAddonBuilder->buildForEvent($node);
-      if ($addon_catalog['addons'] !== []) {
-        $build['#addons_available'] = TRUE;
-        foreach ($addon_catalog['product_ids'] as $pid) {
-          $build['#cache']['tags'][] = 'commerce_product:' . $pid;
-        }
-      }
-    }
-
     $build['#cache']['tags'] = array_values(array_unique($build['#cache']['tags']));
 
     return $build;
+  }
+
+  /**
+   * Paid book page: ticket form, optional add-ons, then checkout CTA (sibling forms).
+   *
+   * @param array<string, mixed> $build
+   *   Page render array (altered in place).
+   */
+  private function attachPaidTicketBookingForms(array &$build, NodeInterface $node): void {
+    $form = $this->buildPaidForm($node);
+    if (isset($form['#type']) && $form['#type'] === 'container' && !isset($form['#form_id'])) {
+      $build['#matrix_form'] = $form;
+      return;
+    }
+
+    $form['#attributes']['id'] = 'mel-ticket-selection-form';
+    $actions = $form['actions'] ?? NULL;
+    unset($form['actions']);
+    if (is_array($actions) && isset($actions['submit']) && is_array($actions['submit'])) {
+      $actions['submit']['#attributes']['form'] = 'mel-ticket-selection-form';
+    }
+
+    $build['#ticket_form'] = $form;
+    $build['#matrix_form'] = $form;
+    if ($actions !== NULL) {
+      $build['#ticket_form_actions'] = $actions;
+    }
+
+    $addon_catalog = $this->eventOperationalAddonBuilder->buildForEvent($node);
+    if ($addon_catalog['addons'] === []) {
+      return;
+    }
+    $build['#addons_available'] = TRUE;
+    foreach ($addon_catalog['product_ids'] as $pid) {
+      $build['#cache']['tags'][] = 'commerce_product:' . $pid;
+    }
+    $build['#operational_addon_form'] = $this->formBuilderService->getForm(
+      EventOperationalAddonCartForm::class,
+      $node,
+    );
   }
 
   /**

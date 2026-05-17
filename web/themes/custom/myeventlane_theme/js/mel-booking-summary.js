@@ -145,20 +145,22 @@
    * @returns {{ container: Document|HTMLElement, empty: HTMLElement|null, items: HTMLElement|null, subtotalWrap: HTMLElement|null, subtotalValue: HTMLElement|null, mobileBar: HTMLElement|null, countEl: HTMLElement|null, totalEl: HTMLElement|null, submit: HTMLElement|null }}
    */
   function getTargets(form) {
+    const flow = form.closest('[data-mel-booking-flow]');
     const root =
       form.closest('.mel-booking-v2') ||
       document.querySelector('.mel-booking-v2') ||
       document;
+    const scope = flow || form;
     return {
       container: root,
       empty: root.querySelector('[data-mel-summary-empty]'),
       items: root.querySelector('[data-mel-summary-items]'),
       subtotalWrap: root.querySelector('[data-mel-summary-subtotal]'),
       subtotalValue: root.querySelector('[data-mel-summary-subtotal-value]'),
-      mobileBar: form.querySelector('[data-mel-mobile-booking-bar]'),
-      countEl: form.querySelector('[data-mel-booking-count]'),
-      totalEl: form.querySelector('[data-mel-booking-total]'),
-      submit: form.querySelector('.mel-add-to-cart-button, input[type="submit"].button--primary, button[type="submit"].button--primary'),
+      mobileBar: scope.querySelector('[data-mel-mobile-booking-bar]'),
+      countEl: scope.querySelector('[data-mel-booking-count]'),
+      totalEl: scope.querySelector('[data-mel-booking-total]'),
+      submit: scope.querySelector('.mel-add-to-cart-button, input[type="submit"].button--primary, button[type="submit"].button--primary'),
     };
   }
 

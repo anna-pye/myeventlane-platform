@@ -302,6 +302,8 @@ function myeventlane_commerce_theme(): array {
         'mel_operational_checkout' => NULL,
         'addons_available' => FALSE,
         'operational_addon_form' => [],
+        'ticket_form' => [],
+        'ticket_form_actions' => [],
       ],
       'template' => 'myeventlane-event-book',
     ],

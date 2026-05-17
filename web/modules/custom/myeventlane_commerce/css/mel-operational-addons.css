@@ -10,7 +10,11 @@
   overflow-x: hidden;
 }
 
-.mel-operational-addons-section--embedded {
+.mel-booking-flow__addons {
+  margin-top: 1.25rem;
+}
+
+.mel-booking-flow__checkout {
   margin-top: 1.25rem;
 }
 

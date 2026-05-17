@@ -102,8 +102,10 @@
               {% endif %}
             </h2>
 
-            <div class="mel-ticket-panel__body mel-event-book__form-body">
-              {% if matrix_form is not empty %}
+            <div class="mel-ticket-panel__body mel-event-book__form-body mel-booking-flow" data-mel-booking-flow>
+              {% if ticket_form is not empty %}
+                {{ ticket_form }}
+              {% elseif matrix_form is not empty %}
                 {{ matrix_form }}
               {% elseif rsvp_form is not empty %}
                 {{ rsvp_form }}
@@ -116,10 +118,29 @@
                   {% endif %}
                 </div>
               {% endif %}
+
+              {% if addons_available and operational_addon_form %}
+                <section class="mel-operational-addons-section mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title">
+                  <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title">{{ 'Add something extra'|t }}</h3>
+                  <p class="mel-operational-addons-section__lede">{{ 'Optional extras stay on this booking — collect at the event after purchase.'|t }}</p>
+                  {{ operational_addon_form }}
+                </section>
+              {% endif %}
+
+              {% if ticket_form_actions is not empty %}
+                <div class="mel-booking__cta mel-booking-flow__checkout" role="region" aria-label="{{ 'Reserve tickets'|t }}">
+                  <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
+                    <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
+                    <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
+                  </div>
+                  <p class="mel-booking__cta-note">
+                    {{ "Tickets will be added to your cart — checkout when you're ready."|t }}
+                  </p>
+                  {{ ticket_form_actions }}
+                </div>
+              {% endif %}
             </div>
           </div>
-
-          {# Operational add-ons render inside TicketSelectionForm (matrix_form) before checkout. #}
         </div>
 
         {% if event_mode == 'paid' %}
