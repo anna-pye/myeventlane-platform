@@ -51,7 +51,6 @@ final class UniversalTicketViewModelBuilder {
     $remaining_redemptions = $this->capabilityManager->getRemainingRedemptions($ticket);
     $is_expired = $this->capabilityManager->isExpired($ticket);
     $can_scan = $this->capabilityManager->canBeScanned($ticket);
-    $timed_entry = $this->venueOperationPolicyManager->buildTimedEntryPolicy($ticket);
     $scanner_status = $this->scannerStatus($ticket, $entitlement_type, $can_scan, $is_expired, $fulfilment_status);
 
     $now = $this->time->getCurrentTime();
