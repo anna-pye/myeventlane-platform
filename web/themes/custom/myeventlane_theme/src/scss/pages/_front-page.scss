@@ -248,6 +248,14 @@
 }
 
 // Image-led cards: do not stretch in grid rows (exposes surface gap under media).
+.mel-page--home .mel-section--discover .mel-event-grid,
+.mel-page--home .mel-section--latest .mel-event-grid,
+.mel-page--home .mel-section--nearby .mel-event-grid,
+.mel-page--home .mel-section--online .mel-event-grid,
+.mel-page--home .mel-section--tonight .mel-event-grid {
+  overflow-x: clip;
+}
+
 .mel-page--home .mel-section--discover .mel-event-card--standard,
 .mel-page--home .mel-section--discover .mel-event-card--hero,
 .mel-page--home .mel-section--discover .mel-event-card--featured,

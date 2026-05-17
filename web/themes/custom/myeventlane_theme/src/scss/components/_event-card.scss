@@ -5,6 +5,7 @@
 // Promoted/boosted state: .mel-event-card--promoted (.mel-event-card--boosted alias)
 // Markup: templates/components/event-card/mel-event-card.html.twig
 
+@use '../abstracts/mixins' as melmix;
 @use '../base/mel-ds-tokens' as mel;
 @use '../tokens/colors' as melc;
 @use '../tokens/breakpoints';
@@ -18,6 +19,7 @@
   position: relative;
   display: block;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   font-family: mel.$mel-ds-font-main;
   background: mel.$mel-ds-color-surface;
@@ -543,7 +545,7 @@
   }
 }
 
-// Floating glass dock — inset panel sized to content (not a full image wash).
+// Floating glass dock — uses canonical `.mel-event-hero__glass` (see _event-hero.scss).
 @mixin mel-event-card-content-glass {
   --mel-event-card-glass-inset: 12px;
   --mel-event-card-glass-panel-radius: 18px;
@@ -552,69 +554,18 @@
 
   .mel-event-card__body,
   .mel-event-card__content {
-    isolation: isolate;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
     width: auto;
     max-width: none;
     margin: 0;
-    padding: var(--mel-event-card-glass-pad-y) var(--mel-event-card-glass-pad-x);
-    color: mel.$mel-ds-color-text;
+    padding: 0;
+    background: none;
     overflow: visible;
 
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
+    .mel-event-hero__glass {
       border-radius: var(--mel-event-card-glass-panel-radius);
-      border: 1px solid rgba(255, 255, 255, 0.88);
-      background: linear-gradient(
-        145deg,
-        rgba(255, 255, 255, 0.36) 0%,
-        rgba(255, 255, 255, 0.48) 42%,
-        rgba(255, 255, 255, 0.58) 100%
-      );
-      box-shadow:
-        0 12px 36px rgba(36, 48, 58, 0.14),
-        0 1px 0 rgba(255, 255, 255, 1) inset,
-        inset 0 -1px 0 rgba(255, 255, 255, 0.35);
-
-      @supports (backdrop-filter: blur(1px)) {
-        backdrop-filter: blur(40px) saturate(200%) brightness(1.08);
-        -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.08);
-      }
-
-      @supports not (backdrop-filter: blur(1px)) {
-        background: rgba(255, 255, 255, 0.9);
-        border-color: var(--mel-glass-border, rgba(255, 255, 255, 0.45));
-      }
-    }
-
-    // Specular catch-light (top-left sheen).
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      border-radius: var(--mel-event-card-glass-panel-radius);
-      background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.65) 0%,
-        rgba(255, 255, 255, 0.18) 24%,
-        transparent 50%
-      );
-    }
-
-    > * {
-      position: relative;
-      z-index: 1;
-      flex-shrink: 0;
-      min-height: 0;
+      padding: var(--mel-event-card-glass-pad-y) var(--mel-event-card-glass-pad-x);
+      width: 100%;
+      color: mel.$mel-ds-color-text;
     }
   }
 
@@ -732,19 +683,6 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
 
-  @media (prefers-reduced-transparency: reduce) {
-    .mel-event-card__body::before,
-    .mel-event-card__content::before {
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      background: #fff;
-    }
-
-    .mel-event-card__body::after,
-    .mel-event-card__content::after {
-      display: none;
-    }
-  }
 }
 
 // --- Standard (default discovery grid — image-led overlay) ---
@@ -848,6 +786,22 @@
   }
 }
 
+// Featured / carousel — glass dock hugs copy width (not full card width).
+.mel-featured-carousel:not(.mel-featured-home-carousel) .mel-event-card--featured:not(.mel-event-card--hero),
+.mel-featured-home-carousel .mel-event-card--hero {
+  .mel-event-card__body,
+  .mel-event-card__content {
+    right: auto;
+    width: auto;
+    max-width: calc(100% - 2 * var(--mel-event-card-glass-inset, 14px));
+  }
+
+  .mel-event-hero__glass {
+    width: fit-content;
+    max-width: 100%;
+  }
+}
+
 // --- Featured (image-led overlay; same anatomy as hero/standard) ---
 .mel-event-card--featured:not(.mel-event-card--hero) {
   align-self: start;
@@ -864,8 +818,9 @@
     position: relative;
     display: block;
     width: 100%;
-    height: 100%;
-    min-height: 100%;
+    aspect-ratio: 4 / 5;
+    height: auto;
+    min-height: 0;
     color: mel.$mel-ds-color-text;
   }
 
@@ -906,8 +861,9 @@
   }
 
   .mel-event-card__title {
-    font-size: 22px;
+    font-size: clamp(1.05rem, 2.8vw, 1.375rem);
     min-height: 0;
+    -webkit-line-clamp: 2;
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -1049,9 +1005,21 @@
 .mel-featured-carousel:not(.mel-featured-home-carousel) .mel-event-card--featured:not(.mel-event-card--hero) {
   min-height: 300px;
 
+  .mel-event-card__link {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 100%;
+  }
+
   @include breakpoints.mel-break(md) {
     min-height: 340px;
   }
+}
+
+.mel-featured-home-carousel .mel-event-card--hero .mel-event-card__link {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 100%;
 }
 
 // ---------------------------------------------------------------------------
@@ -1476,15 +1444,17 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 3;
+  z-index: 6;
   pointer-events: auto;
 }
 
 .mel-event-card__save .flag a {
   position: relative;
   box-sizing: border-box;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 999px;
   display: flex;
   align-items: center;

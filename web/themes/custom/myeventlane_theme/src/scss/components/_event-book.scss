@@ -39,11 +39,21 @@
 .mel-booking-v2 .mel-event-hero__glass {
   max-width: 32rem;
   padding: spacing.mel-space(4);
-  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: radii.$mel-radius-md;
-  background: rgba(36, 48, 58, 0.16);
-  box-shadow: shadows.$mel-shadow-1;
-  backdrop-filter: blur(12px);
+  // Booking hero: default liquid-glass recipe from _event-hero.scss (20px / 0.15).
+}
+
+.mel-booking-v2 .mel-event-hero__glass .mel-event-hero__title,
+.mel-booking-v2 .mel-event-hero__glass .mel-event-hero__datetime,
+.mel-booking-v2 .mel-event-hero__glass .mel-event-hero__venue,
+.mel-booking-v2 .mel-event-hero__glass .mel-event-hero__status {
+  color: colors.$mel-color-text;
+  text-shadow: none;
+}
+
+.mel-booking-v2 .mel-event-hero__glass .mel-event-hero__datetime,
+.mel-booking-v2 .mel-event-hero__glass .mel-event-hero__venue {
+  color: colors.$mel-color-text-muted;
 }
 
 .mel-booking-v2 .mel-event-info-strip {

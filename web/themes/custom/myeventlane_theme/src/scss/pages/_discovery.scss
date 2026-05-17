@@ -19,9 +19,10 @@
 .mel-home-discover .mel-event-grid.mel-grid--events {
   display: grid;
   gap: mel.$mel-ds-space-md;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
   min-width: 0;
+  overflow-x: clip;
 }
 
 .mel-discovery .mel-event-grid.mel-grid--events > *,

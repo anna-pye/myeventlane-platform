@@ -131,6 +131,7 @@
     </div>
 
     <div class="mel-event-card__body mel-event-card__content">
+      {% if _variant != 'compact' %}<div class="mel-event-hero__glass">{% endif %}
       {% if recommendation_context is defined and recommendation_context.label|default('')|trim|length > 0 %}
         <div class="mel-card-reason mel-card-reason--{{ recommendation_context.type|default('')|e('html_attr') }}">
           {{ recommendation_context.label }}
@@ -187,6 +188,7 @@
           {% endif %}
         </div>
       {% endif %}
+      {% if _variant != 'compact' %}</div>{% endif %}
     </div>
   </a>
 </article>
