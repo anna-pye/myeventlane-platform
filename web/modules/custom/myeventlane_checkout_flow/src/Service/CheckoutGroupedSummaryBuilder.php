@@ -12,6 +12,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_core\MelReadinessHelper;
@@ -31,6 +32,7 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
     private readonly OrderItemClassifier $orderItemClassifier,
     private readonly MelReadinessHelper $readinessHelper,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly ?OperationalOrderItemDisplayBuilder $operationalOrderItemDisplayBuilder = NULL,
   ) {}
 
   /**
@@ -61,7 +63,10 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
       $line_key = $purchased ? 'p:' . $purchased->id() : 'i:' . $item->id();
       $bucket_key = ($event_id ?? 'other') . ':' . $line_key;
 
-      $ticket_type = $purchased ? $purchased->label() : $item->label();
+      $operational_display = $this->operationalOrderItemDisplayBuilder?->buildForOrderItem($item);
+      $ticket_type = is_array($operational_display)
+        ? (string) ($operational_display['title'] ?? '')
+        : ($purchased ? $purchased->label() : $item->label());
 
       if (!isset($line_buckets[$bucket_key])) {
         $line_buckets[$bucket_key] = [
@@ -69,6 +74,7 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
           'ticket_type' => $ticket_type,
           'quantity' => 0,
           'total' => NULL,
+          'operational_addon_display' => $operational_display,
         ];
       }
 
@@ -158,6 +164,7 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
         'quantity' => $bucket['quantity'],
         'ticket_type' => $bucket['ticket_type'],
         'total_price' => $total_price,
+        'operational_addon_display' => $bucket['operational_addon_display'] ?? NULL,
       ];
     }
 

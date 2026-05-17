@@ -31,10 +31,15 @@
         {% endif %}
 
         {% for item in event.items %}
-          <div class="mel-summary-item">
+          <div class="mel-summary-item{% if item.operational_addon_display|default(null) %} mel-summary-item--operational-addon{% endif %}">
             <span class="mel-summary-item__label">
-              <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
-              <span class="mel-summary-item__ticket-type">{{ item.ticket_type }}</span>
+              {% if item.operational_addon_display|default(null) %}
+                <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
+                {% include '@myeventlane_commerce/mel-operational-order-item-line.html.twig' with { display: item.operational_addon_display } only %}
+              {% else %}
+                <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
+                <span class="mel-summary-item__ticket-type">{{ item.ticket_type }}</span>
+              {% endif %}
             </span>
             <span class="mel-summary-item__price">{{ item.total_price }}</span>
           </div>
