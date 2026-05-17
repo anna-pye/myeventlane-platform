@@ -5,6 +5,9 @@
 (function (Drupal, once) {
   'use strict';
 
+  // Perceived luminance (0–255). Single source of truth for all event cards.
+  var MEL_CARD_BRIGHTNESS_THRESHOLD = 128;
+
   function applyBrightness(img, card) {
     var canvas = document.createElement('canvas');
     var ctx = canvas.getContext('2d');
@@ -31,7 +34,7 @@
       }
 
       var avg = total / (data.length / 4);
-      var isLight = avg > 128;
+      var isLight = avg > MEL_CARD_BRIGHTNESS_THRESHOLD;
 
       card.classList.remove('mel-event-card--light-bg', 'mel-event-card--dark-bg');
       card.classList.add(isLight ? 'mel-event-card--light-bg' : 'mel-event-card--dark-bg');
