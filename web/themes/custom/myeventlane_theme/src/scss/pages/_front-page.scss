@@ -70,7 +70,7 @@
   display: none;
 }
 
-.mel-page--home .mel-featured-home-carousel__track {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel__track {
   display: flex;
   flex-wrap: nowrap;
   gap: 0;
@@ -177,7 +177,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mel-page--home .mel-featured-home-carousel__track {
+  .mel-page--home .mel-section--featured .mel-featured-home-carousel__track {
     scroll-behavior: auto;
   }
 

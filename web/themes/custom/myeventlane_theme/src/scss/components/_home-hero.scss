@@ -251,7 +251,8 @@
   display: none;
 }
 
-.mel-home-hero__feature-rotator .mel-featured-carousel__track {
+.mel-home-hero__feature-rotator .mel-featured-carousel__track,
+.mel-home-hero__feature-rotator .mel-featured-home-carousel__track {
   display: grid;
   margin: 0;
   padding: 0;
@@ -366,7 +367,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mel-home-hero__feature-rotator .mel-featured-carousel__item {
+  .mel-home-hero__feature-rotator .mel-featured-carousel__item,
+  .mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
     transition: none;
     transform: none;
   }
