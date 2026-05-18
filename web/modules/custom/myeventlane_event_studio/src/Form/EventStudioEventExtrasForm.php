@@ -18,7 +18,6 @@ use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -34,7 +33,6 @@ final class EventStudioEventExtrasForm extends FormBase {
     private readonly EventStudioEventExtrasBuilder $extrasBuilder,
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
-    private readonly RequestStack $requestStack,
   ) {}
 
   public static function create(ContainerInterface $container): static {
@@ -45,7 +43,6 @@ final class EventStudioEventExtrasForm extends FormBase {
       $container->get('myeventlane_event_studio.event_extras_builder'),
       $container->get('current_user'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
-      $container->get('request_stack'),
     );
   }
 
@@ -57,7 +54,7 @@ final class EventStudioEventExtrasForm extends FormBase {
     $event = $this->getRouteEvent($node);
     $this->assertCanManageEvent($event);
 
-    $request = $this->requestStack->getCurrentRequest();
+    $request = $this->getRequest();
     $edit_id = (int) ($request?->query->get('extra') ?? 0);
     $add_type = (string) ($request?->query->get('add') ?? '');
     $action = (string) ($form_state->get('mel_extras_mode') ?? '');
