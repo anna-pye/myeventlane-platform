@@ -46,18 +46,26 @@
 // Classic — warm MEL default (Mockup 1): light page, white cards, coral/accent CTAs.
 .mel-event-page--classic.mel-event--v2 {
   --mel-event-page-bg: #fff8f4;
-  --mel-event-card-bg: #ffffff;
-  --mel-event-card-border: rgba(242, 109, 91, 0.16);
-  --mel-event-card-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
+  --mel-event-surface: #ffffff;
+  --mel-event-surface-soft: #fff1ec;
+  --mel-event-border: rgba(242, 109, 91, 0.18);
+  --mel-event-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
+  --mel-event-accent: #f26d5b;
+  --mel-event-accent-strong: #ef4f3f;
+  --mel-event-accent-soft: rgba(242, 109, 91, 0.12);
   --mel-event-text: #1f2933;
   --mel-event-muted: #6b7280;
-  --mel-event-surface: var(--mel-event-card-bg);
-  --mel-event-surface-raised: var(--mel-event-card-bg);
+  // Aliases used elsewhere in this file.
+  --mel-event-card-bg: var(--mel-event-surface);
+  --mel-event-card-border: var(--mel-event-border);
+  --mel-event-card-shadow: var(--mel-event-shadow);
+  --mel-event-surface-raised: var(--mel-event-surface);
   --mel-event-text-muted: var(--mel-event-muted);
 
-  background-color: var(--mel-event-page-bg);
+  background: var(--mel-event-page-bg);
   color: var(--mel-event-text);
-  min-height: 100%;
+  min-height: 100vh;
+  overflow-x: clip;
 
   .mel-container {
     color: var(--mel-event-text);
@@ -78,6 +86,13 @@
       rgba(31, 41, 51, 0.45) 55%,
       rgba(31, 41, 51, 0.82) 100%
     );
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__title,
+  .mel-event-hero--featured-style #mel-event-title,
+  .mel-event-hero--featured-style .mel-event-hero__datetime,
+  .mel-event-hero--featured-style .mel-event-hero__venue {
+    color: #fff;
   }
 
   .mel-event-hero--featured-style .mel-event__category,
@@ -150,11 +165,22 @@
   .mel-card--sticky,
   .mel-event-layout__main .mel-card,
   .mel-card--surface {
-    background: var(--mel-event-card-bg);
+    background: var(--mel-event-surface);
     border-radius: radii.$mel-radius-xl;
-    box-shadow: var(--mel-event-card-shadow);
-    border: 1px solid var(--mel-event-card-border);
+    box-shadow: var(--mel-event-shadow);
+    border: 1px solid var(--mel-event-border);
     color: var(--mel-event-text);
+  }
+
+  .mel-card--surface .mel-card__header,
+  .mel-card--surface .mel-card__body,
+  .mel-card--sticky .mel-card__header,
+  .mel-card--sticky .mel-card__body {
+    padding: space-tokens.mel-space(4);
+
+    @include breakpoints.mel-break(lg) {
+      padding: space-tokens.mel-space(5);
+    }
   }
 
   .mel-card__title,
@@ -184,10 +210,35 @@
     color: var(--mel-event-muted);
   }
 
+  // Ticket sidebar — coral chips, save tint, trust accents.
+  .mel-card--sticky .mel-chip--filled,
+  .mel-card--sticky .mel-chip {
+    background: var(--mel-event-accent-soft);
+    border: 1px solid var(--mel-event-accent);
+    color: var(--mel-event-accent-strong);
+  }
+
+  .mel-card--sticky .mel-booking-panel__save,
+  .mel-card--sticky .mel-booking-panel__save--fav {
+    background: var(--mel-event-surface-soft);
+    border-color: var(--mel-event-border);
+  }
+
+  .mel-card--sticky .mel-booking-panel__item-icon,
+  .mel-card--sticky .mel-booking-panel__item--highlight .mel-icon,
+  .mel-card--sticky .mel-trust-item__text {
+    color: var(--mel-event-accent);
+  }
+
+  .mel-card--sticky .mel-booking-panel__item--highlight {
+    background: var(--mel-event-accent-soft);
+    border-radius: radii.$mel-radius-md;
+  }
+
   // Warm “Grab the extras” panel.
   .mel-event-section--extras {
-    background: var(--mel-event-accent-soft, color.mix(colors.$mel-color-primary, #fff, 18%));
-    border-color: var(--mel-event-card-border);
+    background: var(--mel-event-surface-soft);
+    border-color: var(--mel-event-border);
 
     .mel-card__header,
     .mel-card__body {
@@ -195,9 +246,75 @@
     }
   }
 
+  .mel-event-section--extras .mel-card__title,
+  .mel-event-section--extras .mel-event-section__title {
+    color: var(--mel-event-accent);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__list {
+    display: flex;
+    flex-direction: column;
+    gap: space-tokens.mel-space(2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
   .mel-event-section--extras .mel-addon-teaser__item {
-    background: var(--mel-event-card-bg);
-    border: 1px solid var(--mel-event-card-border);
+    display: flex;
+    align-items: center;
+    gap: space-tokens.mel-space(3);
+    padding: space-tokens.mel-space(3);
+    background: var(--mel-event-surface);
+    border: 1px solid var(--mel-event-border);
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: none;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__thumb {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: radii.$mel-radius-md;
+    object-fit: cover;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__cta,
+  .mel-event-section--extras .mel-addon-teaser__scroll {
+    background: transparent;
+    border: 2px solid var(--mel-event-accent);
+    color: var(--mel-event-accent-strong);
+    min-height: 44px;
+    font-weight: 600;
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: var(--mel-event-accent-soft);
+      }
+    }
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__more {
+    color: var(--mel-event-accent-strong);
+    font-weight: 600;
+  }
+
+  // Map + share on warm page.
+  .mel-event-map-embed {
+    border-radius: radii.$mel-radius-lg;
+    border-color: var(--mel-event-border);
+    overflow: hidden;
+  }
+
+  .mel-event-share--panel .mel-event-share__chip-icon {
+    background: var(--mel-event-accent-soft);
+    border-color: var(--mel-event-border);
+    color: var(--mel-event-accent-strong);
   }
 
   .mel-event-layout__main a:not(.mel-btn):not(.mel-social) {
@@ -236,6 +353,22 @@
   .mel-organiser-card,
   .mel-return-block {
     color: var(--mel-event-text);
+  }
+
+  .mel-event-support-zone {
+    border-top: 1px solid var(--mel-event-border);
+    padding-top: space-tokens.mel-space(4);
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    .mel-event-meta-bar__items {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .mel-event-meta-bar__cluster {
+      width: 100%;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

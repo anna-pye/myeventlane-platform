@@ -280,7 +280,6 @@ final class EventBrandingForm extends EventStudioBaseForm {
    */
   private function buildPageStyleFields(array &$form, NodeInterface $node, array $melDefaults): void {
     $can_customize = $this->eventStyleAccess->canCustomizeEventPage($this->currentUser);
-    $style_labels = $this->eventPageStyleResolver->styleOptions();
     $colour_labels = $this->eventPageStyleResolver->colourOptions();
 
     if ($can_customize) {
@@ -306,26 +305,26 @@ final class EventBrandingForm extends EventStudioBaseForm {
         '<section class="mel-es-field-group mel-es-field-group--page-style" aria-labelledby="mel-es-page-style-title">'
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-page-style-title">' . Html::escape((string) $this->t('Choose your event page style')) . '</h3>'
-        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Warm & Energetic is the standard MyEventLane event page — bright, readable, and community-first. Pro organisers can unlock Bold & Immersive and curated colour moods that stay accessible and on-brand.')) . '</p>'
+        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Every event uses the Classic MyEventLane page by default. Pro organisers can unlock Immersive styling and approved colour palettes.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body mel-es-field-group__body--page-style">'
       ),
       '#weight' => 15,
     ];
 
-    $style_options = [];
-    foreach ($style_labels as $key => $label) {
-      $style_options[$key] = $this->t($label);
-    }
+    $style_options = [
+      EventPageStyleResolver::STYLE_CLASSIC => $this->t('Classic MyEventLane page'),
+      EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Immersive page'),
+    ];
 
     $form['mel']['field_mel_page_style'] = [
       '#type' => 'radios',
-      '#title' => $this->t('Page style (Warm & Energetic is included for everyone)'),
+      '#title' => $this->t('Page style'),
       '#mel_option_cards' => TRUE,
       '#mel_option_cards_tickets_layout' => TRUE,
       '#mel_option_descriptions' => [
-        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Friendly, bright and community-first. Best for local events, workshops, gigs and gatherings.'),
-        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('A high-impact dark event page for music, nightlife, launches and premium experiences.'),
+        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Warm, clear and conversion-focused. Included for every event.'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Bold visual page style for Pro organisers.'),
       ],
       '#options' => $style_options,
       '#default_value' => $style_default,
@@ -365,10 +364,10 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#attributes' => ['class' => ['mel-page-style-colours']],
       '#prefix' => '<div class="mel-page-style-colour-block" aria-labelledby="mel-es-theme-colour-title">'
         . '<h4 class="mel-es-field-group__title mel-page-style-colour-block__title" id="mel-es-theme-colour-title">'
-        . Html::escape((string) $this->t('Colour mood (curated presets — no custom hex colours)'))
+        . Html::escape((string) $this->t('Choose an approved colour palette'))
         . '</h4>'
         . '<p class="mel-es-field-group__hint mel-page-style-colour-block__hint">'
-        . Html::escape((string) $this->t('Coral Pop is the default. Pro presets are designed for contrast and readability on your public event page.'))
+        . Html::escape((string) $this->t('Curated palettes keep your event page accessible and on-brand. Coral Pop is included for every event.'))
         . '</p>',
       '#suffix' => '</div>',
     ];
