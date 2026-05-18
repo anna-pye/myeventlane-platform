@@ -41,6 +41,19 @@ final class EventStudioSectionContractTest extends TestCase {
   }
 
   /**
+   * Extras must reference a loadable form class or the workspace shows the governed fallback.
+   */
+  public function testExtrasSectionFormClassIsLoadable(): void {
+    $formClass = 'Drupal\myeventlane_event_studio\Form\EventStudioEventExtrasForm';
+    $this->assertTrue(class_exists($formClass), 'EventStudioEventExtrasForm must autoload for the extras section contract.');
+    $contents = file_get_contents(dirname(__DIR__, 3) . '/src/Plugin/EventStudioSection/ExtrasSection.php');
+    $this->assertIsString($contents);
+    $this->assertStringContainsString('form:' . $formClass, $contents);
+    $this->assertStringContainsString("routeName: 'myeventlane_event_studio.workspace_extras'", $contents);
+    $this->assertStringContainsString("id: 'extras'", $contents);
+  }
+
+  /**
    * @covers \Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder::deferredSection
    */
   public function testDeferredSectionsUseGovernedCopy(): void {

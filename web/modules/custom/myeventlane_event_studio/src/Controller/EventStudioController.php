@@ -120,6 +120,26 @@ final class EventStudioController extends ControllerBase {
   }
 
   /**
+   * Preserves bookmarked merchandise / add-ons URLs while routing to unified Extras.
+   */
+  public function redirectToExtrasWorkspace(NodeInterface $node): RedirectResponse {
+    if ($node->bundle() !== 'event') {
+      throw new NotFoundHttpException();
+    }
+    $account = $this->currentUser();
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      throw new AccessDeniedHttpException();
+    }
+    $request = $this->requestStack->getCurrentRequest();
+    $options = [];
+    if ($request !== NULL && $request->query->count() > 0) {
+      $options['query'] = $request->query->all();
+    }
+    return new RedirectResponse(Url::fromRoute('myeventlane_event_studio.workspace_extras', ['node' => $node->id()], $options)->toString());
+  }
+
+  /**
    * Builds the canonical operational Event Studio shell.
    *
    * @return array<string, mixed>

@@ -11,7 +11,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
  */
 #[EventStudioSection(
   id: 'fulfilment',
-  title: 'Fulfilment',
+  title: 'Collection',
   group: 'Operations',
   routeName: 'myeventlane_event_studio.workspace_fulfilment',
   section_state: 'active',

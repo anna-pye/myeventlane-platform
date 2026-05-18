@@ -126,6 +126,25 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-productisation',
     ],
+    'mel_event_studio_extras_list' => [
+      'variables' => [
+        'cards' => [],
+        'empty' => FALSE,
+      ],
+      'template' => 'mel-event-studio-extras-list',
+    ],
+    'mel_event_studio_extra_card' => [
+      'variables' => [
+        'card' => [],
+      ],
+      'template' => 'mel-event-studio-extra-card',
+    ],
+    'mel_event_studio_extra_preview' => [
+      'variables' => [
+        'preview' => [],
+      ],
+      'template' => 'mel-event-studio-extra-preview',
+    ],
     'mel_customer_operational_experience' => [
       'variables' => [
         'experience' => [],
@@ -230,6 +249,7 @@ function _myeventlane_event_studio_is_event_studio_route(?string $route_name = N
     'myeventlane_event_studio.workspace_tickets',
     'myeventlane_event_studio.workspace_questions',
     'myeventlane_event_studio.workspace_capacity',
+    'myeventlane_event_studio.workspace_extras',
     'myeventlane_event_studio.workspace_merchandise',
     'myeventlane_event_studio.workspace_addons',
     'myeventlane_event_studio.workspace_promotions',
