@@ -224,7 +224,10 @@ final class BookController extends ControllerBase {
       return;
     }
     $build['#addons_available'] = TRUE;
-    $build['#extras_book_placement'] = $this->extrasBookPlacementResolver->getPlacement($node);
+    $placement = $this->extrasBookPlacementResolver->resolve($node);
+    $build['#extras_book_placement'] = $placement;
+    $build['#extras_inline_before_access_code'] = $this->extrasBookPlacementResolver->isInline($node);
+    $build['#extras_sidebar_selection'] = $this->extrasBookPlacementResolver->isSidebar($node);
     foreach ($addon_catalog['product_ids'] as $pid) {
       $build['#cache']['tags'][] = 'commerce_product:' . $pid;
     }

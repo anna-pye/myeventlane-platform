@@ -3,11 +3,36 @@
  *
  * Mobile-first cards; coral primary CTA uses theme `.mel-btn--primary`.
  */
+.mel-booking-extras {
+  overflow-x: hidden;
+}
+
+.mel-booking-extras--inline {
+  margin-top: 1.25rem;
+}
+
+.mel-booking-extras--sidebar {
+  margin-top: 1rem;
+}
+
 .mel-operational-addons-section {
   margin-top: 1.75rem;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(15, 23, 42, 0.08);
   overflow-x: hidden;
+}
+
+.mel-booking-extras--inline.mel-operational-addons-section {
+  margin-top: 1.25rem;
+}
+
+.mel-booking-extras--sidebar.mel-operational-addons-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.mel-booking-extras--sidebar .mel-operational-addons-form__lines {
+  gap: 0.75rem;
 }
 
 .mel-booking-flow__addons {

@@ -236,6 +236,21 @@ final class EventStudioEventExtrasForm extends FormBase {
    * @return array<string, mixed>
    */
   private function buildBookingPlacement(NodeInterface $event): array {
+    if (!$event->hasField(EventExtrasBookPlacementResolver::FIELD_NAME)) {
+      if ($this->currentUser()->hasPermission('administer nodes')) {
+        return [
+          'booking_placement_wrapper' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['messages', 'messages--warning']],
+            'message' => [
+              '#markup' => '<p>' . $this->t('Extras booking placement is not configured on this site. Import the <code>field_mel_extras_book_placement</code> field configuration, then reload this page.') . '</p>',
+            ],
+          ],
+        ];
+      }
+      return ['booking_placement_wrapper' => ['#access' => FALSE]];
+    }
+
     $cards = $this->extrasBuilder->loadExtrasForEvent($event);
     $published = array_filter($cards, static fn (array $card): bool => !empty($card['show_on_booking']));
     if ($published === []) {
@@ -263,8 +278,9 @@ final class EventStudioEventExtrasForm extends FormBase {
           '#title' => $this->t('Placement'),
           '#title_display' => 'invisible',
           '#options' => $this->extrasBookPlacementResolver->getOptions(),
-          '#default_value' => $this->extrasBookPlacementResolver->getPlacement($event),
+          '#default_value' => $this->extrasBookPlacementResolver->resolve($event),
           '#required' => TRUE,
+          '#parents' => ['extras_book_placement'],
         ],
         'save_extras_placement' => [
           '#type' => 'submit',
@@ -590,14 +606,15 @@ final class EventStudioEventExtrasForm extends FormBase {
       $this->messenger()->addError($this->t('The event could not be loaded.'));
       return;
     }
+    $this->assertCanManageEvent($event);
     $placement = $this->getSubmittedExtrasBookPlacement($form_state);
     if (!$this->extrasBookPlacementResolver->isValid($placement)) {
-      $this->messenger()->addError($this->t('Choose a valid placement option.'));
+      $form_state->setErrorByName('extras_book_placement', $this->t('Choose a valid placement option.'));
       return;
     }
     try {
       $this->extrasBookPlacementResolver->savePlacement($event, $placement);
-      $this->messenger()->addStatus($this->t('Booking page placement saved.'));
+      $this->messenger()->addStatus($this->t('Extras placement saved.'));
     }
     catch (\Throwable $e) {
       $this->logger->error('Extras book placement save failed for event @nid: @message', [

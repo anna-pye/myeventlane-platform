@@ -22,6 +22,11 @@ final class EventExtrasBookPlacementResolver {
 
   public const PLACEMENT_SIDEBAR = 'sidebar';
 
+  /**
+   * Default placement when the field is empty or invalid.
+   */
+  public const DEFAULT_PLACEMENT = self::PLACEMENT_MAIN_BEFORE_ACCESS;
+
   public const FIELD_NAME = 'field_mel_extras_book_placement';
 
   /**
@@ -36,16 +41,42 @@ final class EventExtrasBookPlacementResolver {
   }
 
   /**
+   * @return list<string>
+   */
+  public function allowedPlacements(): array {
+    return [
+      self::PLACEMENT_MAIN_BEFORE_ACCESS,
+      self::PLACEMENT_SIDEBAR,
+    ];
+  }
+
+  /**
+   * Human labels for vendor placement radios.
+   *
+   * @return array<string, string>
+   */
+  public function labels(): array {
+    return [
+      self::PLACEMENT_MAIN_BEFORE_ACCESS => (string) $this->t('Under ticket choices, before the access code'),
+      self::PLACEMENT_SIDEBAR => (string) $this->t('In the sidebar next to “Your selection”'),
+    ];
+  }
+
+  /**
    * Options for vendor placement radios.
    *
    * @return array<string, string>
    *   Machine value => label for vendor forms.
    */
   public function getOptions(): array {
-    return [
-      self::PLACEMENT_MAIN_BEFORE_ACCESS => (string) t('Under ticket choices, before the access code'),
-      self::PLACEMENT_SIDEBAR => (string) t('In the sidebar next to “Your selection”'),
-    ];
+    return $this->labels();
+  }
+
+  /**
+   * Returns the placement for an event (defaults to main column).
+   */
+  public function resolve(NodeInterface $event): string {
+    return $this->getPlacement($event);
   }
 
   /**
@@ -53,13 +84,20 @@ final class EventExtrasBookPlacementResolver {
    */
   public function getPlacement(NodeInterface $event): string {
     if ($event->bundle() !== 'event' || !$event->hasField(self::FIELD_NAME)) {
-      return self::PLACEMENT_MAIN_BEFORE_ACCESS;
+      return self::DEFAULT_PLACEMENT;
     }
     if ($event->get(self::FIELD_NAME)->isEmpty()) {
-      return self::PLACEMENT_MAIN_BEFORE_ACCESS;
+      return self::DEFAULT_PLACEMENT;
     }
     $value = (string) $event->get(self::FIELD_NAME)->value;
-    return $this->isValid($value) ? $value : self::PLACEMENT_MAIN_BEFORE_ACCESS;
+    return $this->isValid($value) ? $value : self::DEFAULT_PLACEMENT;
+  }
+
+  /**
+   * Whether extras render inline in the main ticket column.
+   */
+  public function isInline(NodeInterface $event): bool {
+    return $this->resolve($event) === self::PLACEMENT_MAIN_BEFORE_ACCESS;
   }
 
   /**
@@ -73,7 +111,7 @@ final class EventExtrasBookPlacementResolver {
    * Whether extras render in the main column before the access code.
    */
   public function isMainBeforeAccess(NodeInterface $event): bool {
-    return $this->getPlacement($event) === self::PLACEMENT_MAIN_BEFORE_ACCESS;
+    return $this->isInline($event);
   }
 
   /**
@@ -84,7 +122,7 @@ final class EventExtrasBookPlacementResolver {
       throw new \RuntimeException('Extras book placement field is not available on this event.');
     }
     if (!$this->isValid($placement)) {
-      $placement = self::PLACEMENT_MAIN_BEFORE_ACCESS;
+      $placement = self::DEFAULT_PLACEMENT;
     }
     $storage = $this->entityTypeManager->getStorage('node');
     $fresh = $storage->load($event->id());
@@ -114,10 +152,7 @@ final class EventExtrasBookPlacementResolver {
    * Whether a placement machine name is allowed.
    */
   public function isValid(string $placement): bool {
-    return in_array($placement, [
-      self::PLACEMENT_MAIN_BEFORE_ACCESS,
-      self::PLACEMENT_SIDEBAR,
-    ], TRUE);
+    return in_array($placement, $this->allowedPlacements(), TRUE);
   }
 
 }
