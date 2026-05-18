@@ -633,6 +633,12 @@
     }
   }
 
+  .mel-booking-summary__item--extra {
+    .mel-booking-summary__item-label {
+      font-weight: typography.$mel-font-semibold;
+    }
+  }
+
   .mel-ticket-row {
     position: relative;
     display: grid;

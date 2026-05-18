@@ -112,17 +112,6 @@ final class EventOperationalAddonCartForm extends FormBase {
       $form['lines'][$index] = $this->buildAddonCard($addon, (int) $index);
     }
 
-    $form['actions'] = [
-      '#type' => 'actions',
-      '#attributes' => ['class' => ['mel-event-extras-form__actions']],
-    ];
-    $form['actions']['submit'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Add extras to cart'),
-      '#button_type' => 'primary',
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl', 'mel-event-extras-form__submit']],
-    ];
-
     return $form;
   }
 
@@ -143,15 +132,16 @@ final class EventOperationalAddonCartForm extends FormBase {
     $default_vid = (int) ($addon['default_variation_id'] ?? 0);
 
     $price_display = $this->resolveDisplayPrice($addon, $size_options);
+    $summary_attrs = $this->buildExtraSummaryDataAttributes($addon, $size_options);
 
     $card = [
       '#type' => 'container',
-      '#attributes' => [
+      '#attributes' => array_merge([
         'class' => ['mel-event-extra-card'],
         'data-product-id' => (string) $pid,
         'data-requires-size' => $requires_size ? '1' : '0',
         'data-default-variation' => $default_vid > 0 ? (string) $default_vid : '',
-      ],
+      ], $summary_attrs),
     ];
 
     $card['product_id'] = [
@@ -227,23 +217,45 @@ final class EventOperationalAddonCartForm extends FormBase {
     }
 
     if ($requires_size && $size_options !== []) {
-      $card['size_fieldset'] = [
+      $size_id = 'mel-extra-size-' . $index;
+      $card['body']['sizes'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-event-extra-card__sizes']],
         'label' => [
           '#type' => 'html_tag',
           '#tag' => 'span',
           '#value' => $this->t('Size'),
-          '#attributes' => ['class' => ['mel-event-extra-card__sizes-label']],
+          '#attributes' => [
+            'class' => ['mel-event-extra-card__sizes-label'],
+            'id' => $size_id,
+          ],
         ],
-      ];
-      $card['selected_size'] = [
-        '#type' => 'radios',
-        '#title' => $this->t('Size'),
-        '#title_display' => 'invisible',
-        '#options' => $this->sizeRadioOptions($size_options),
-        '#default_value' => '',
-        '#attributes' => ['class' => ['mel-event-extra-card__size-radios']],
+        'options' => [
+          '#type' => 'container',
+          '#attributes' => [
+            'class' => ['mel-event-extra-card__size-radios'],
+            'role' => 'radiogroup',
+            'aria-labelledby' => $size_id,
+          ],
+          'selected_size' => [
+            '#type' => 'radios',
+            '#options' => $this->sizeRadioOptions($size_options),
+            '#default_value' => '',
+            '#parents' => ['lines', (string) $index, 'selected_size'],
+          ],
+        ],
+        'selected' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => '',
+          '#attributes' => [
+            'class' => ['mel-event-extra-card__size-selected'],
+            'data-mel-extra-size-selected' => 'true',
+            'aria-live' => 'polite',
+            'aria-atomic' => 'true',
+            'hidden' => 'hidden',
+          ],
+        ],
       ];
     }
     else {
@@ -296,6 +308,29 @@ final class EventOperationalAddonCartForm extends FormBase {
       ],
     ];
 
+    $card['footer'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-event-extra-card__footer']],
+      'submit' => [
+        '#type' => 'submit',
+        '#value' => $this->t('Add to Cart'),
+        '#button_type' => 'primary',
+        '#name' => 'add_extra_' . $index,
+        '#line_index' => $index,
+        '#attributes' => [
+          'class' => [
+            'mel-btn',
+            'mel-btn--primary',
+            'mel-event-extra-card__add-to-cart',
+          ],
+          'data-line-index' => (string) $index,
+        ],
+        '#limit_validation_errors' => [
+          ['lines', $index],
+        ],
+      ],
+    ];
+
     return $card;
   }
 
@@ -305,32 +340,67 @@ final class EventOperationalAddonCartForm extends FormBase {
    */
   private function buildGalleryRenderArray(array $gallery, array $primary, string $alt): array {
     $images = $gallery !== [] ? $gallery : [$primary];
-    $main_url = (string) ($images[0]['url'] ?? '');
-    $main_alt = (string) ($images[0]['alt'] ?? $alt);
+    $gallery_payload = [];
+    foreach ($images as $image) {
+      if (!is_array($image)) {
+        continue;
+      }
+      $url = (string) ($image['url'] ?? '');
+      if ($url === '') {
+        continue;
+      }
+      $gallery_payload[] = [
+        'url' => $url,
+        'full_url' => (string) ($image['full_url'] ?? $url),
+        'alt' => (string) ($image['alt'] ?? $alt),
+      ];
+    }
+    if ($gallery_payload === []) {
+      $gallery_payload[] = [
+        'url' => '',
+        'full_url' => '',
+        'alt' => $alt,
+      ];
+    }
 
+    $main = $gallery_payload[0];
+    $main_url = (string) ($main['url'] ?? '');
+    $main_alt = (string) ($main['alt'] ?? $alt);
     $safe_url = htmlspecialchars($main_url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $safe_alt = htmlspecialchars($main_alt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $open_label = htmlspecialchars(
+      (string) $this->t('View larger product image'),
+      ENT_QUOTES | ENT_SUBSTITUTE,
+      'UTF-8',
+    );
+
     $media = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-extra-card__media']],
+      '#attributes' => [
+        'class' => ['mel-event-extra-card__media'],
+        'data-extra-gallery' => (string) json_encode($gallery_payload, JSON_THROW_ON_ERROR),
+      ],
       'primary' => [
-        '#markup' => '<img class="mel-event-extra-card__image" src="' . $safe_url . '" alt="' . $safe_alt . '" loading="lazy" width="400" height="400" decoding="async" />',
+        '#markup' => Markup::create(
+          '<button type="button" class="mel-event-extra-card__image-open" aria-label="' . $open_label . '">'
+          . '<img class="mel-event-extra-card__image" src="' . $safe_url . '" alt="' . $safe_alt . '" loading="lazy" width="400" height="400" decoding="async" />'
+          . '<span class="mel-event-extra-card__image-zoom" aria-hidden="true"></span>'
+          . '</button>'
+        ),
       ],
     ];
 
-    if (count($images) > 1) {
+    if (count($gallery_payload) > 1) {
       $media['thumbs'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-event-extra-card__thumbs']],
       ];
-      foreach ($images as $idx => $image) {
-        if (!is_array($image)) {
-          continue;
-        }
+      foreach ($gallery_payload as $idx => $image) {
         $url = (string) ($image['url'] ?? '');
         if ($url === '') {
           continue;
         }
+        $full_url = (string) ($image['full_url'] ?? $url);
         $thumb_alt = (string) ($image['alt'] ?? $alt);
         $media['thumbs'][] = [
           '#type' => 'html_tag',
@@ -340,7 +410,9 @@ final class EventOperationalAddonCartForm extends FormBase {
             'type' => 'button',
             'class' => ['mel-event-extra-card__thumb', $idx === 0 ? 'is-active' : ''],
             'data-image-url' => $url,
+            'data-image-full-url' => $full_url,
             'data-image-alt' => $thumb_alt,
+            'data-gallery-index' => (string) $idx,
             'aria-label' => (string) $this->t('Show image @num', ['@num' => (string) ($idx + 1)]),
           ],
         ];
@@ -348,6 +420,63 @@ final class EventOperationalAddonCartForm extends FormBase {
     }
 
     return $media;
+  }
+
+  /**
+   * Data attributes for the live booking sidebar summary (JS reads these).
+   *
+   * @param array<string, mixed> $addon
+   * @param list<array<string, mixed>> $size_options
+   *
+   * @return array<string, string>
+   */
+  private function buildExtraSummaryDataAttributes(array $addon, array $size_options): array {
+    $title = trim((string) ($addon['title'] ?? ''));
+    $attrs = [
+      'data-extra-title' => $title !== '' ? $title : (string) $this->t('Event extra'),
+    ];
+
+    $prices_by_size = [];
+    foreach ($size_options as $opt) {
+      if (!is_array($opt)) {
+        continue;
+      }
+      $key = (string) ($opt['size_key'] ?? '');
+      $number = (string) ($opt['price_number'] ?? '');
+      if ($key === '' || $number === '') {
+        continue;
+      }
+      $prices_by_size[$key] = [
+        'number' => $number,
+        'currency' => (string) ($opt['price_currency_code'] ?? ''),
+        'label' => (string) ($opt['size_label'] ?? $key),
+      ];
+    }
+
+    if ($prices_by_size !== []) {
+      $attrs['data-extra-prices'] = (string) json_encode($prices_by_size, JSON_THROW_ON_ERROR);
+      $first = reset($prices_by_size);
+      if (is_array($first)) {
+        $attrs['data-extra-price-number'] = (string) ($first['number'] ?? '');
+        $attrs['data-extra-price-currency'] = (string) ($first['currency'] ?? '');
+      }
+      return $attrs;
+    }
+
+    $variations = is_array($addon['variations'] ?? NULL) ? $addon['variations'] : [];
+    $first_var = $variations[0] ?? NULL;
+    if (is_array($first_var)) {
+      $number = (string) ($first_var['price_number'] ?? '');
+      $currency = (string) ($first_var['price_currency_code'] ?? '');
+      if ($number !== '') {
+        $attrs['data-extra-price-number'] = $number;
+        if ($currency !== '') {
+          $attrs['data-extra-price-currency'] = $currency;
+        }
+      }
+    }
+
+    return $attrs;
   }
 
   /**
@@ -472,13 +601,20 @@ final class EventOperationalAddonCartForm extends FormBase {
       return;
     }
 
-    foreach ($lines as $line) {
+    $line_index = $this->triggeredLineIndex($form_state);
+    foreach ($lines as $index => $line) {
+      if ($line_index !== NULL && $index !== $line_index) {
+        continue;
+      }
       if (!is_array($line)) {
         continue;
       }
       $pid = (int) ($line['product_id'] ?? 0);
       $qty = (int) ($line['quantity'] ?? 0);
       if ($qty < 1) {
+        if ($line_index !== NULL) {
+          $form_state->setErrorByName('lines][' . $index . '][quantity', $this->t('Choose a quantity of at least 1.'));
+        }
         continue;
       }
       if ($pid < 1 || !isset($catalog[$pid])) {
@@ -494,7 +630,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $vid = $this->resolveVariationIdForLine($line, $entry);
       if ($vid < 1) {
         if (!empty($entry['requires_size_selection'])) {
-          $form_state->setErrorByName('lines', $this->t('Please choose a size for each extra you add.'));
+          $form_state->setErrorByName('lines][' . $index . '][selected_size', $this->t('Please choose a size before adding to cart.'));
         }
         else {
           $form_state->setErrorByName('lines', $this->t('Something went wrong with your selection. Please refresh and try again.'));
@@ -549,8 +685,13 @@ final class EventOperationalAddonCartForm extends FormBase {
       return;
     }
 
+    $line_index = $this->triggeredLineIndex($form_state);
+
     $to_add = [];
-    foreach ($lines as $line) {
+    foreach ($lines as $index => $line) {
+      if ($line_index !== NULL && $index !== $line_index) {
+        continue;
+      }
       if (!is_array($line)) {
         continue;
       }
@@ -567,7 +708,7 @@ final class EventOperationalAddonCartForm extends FormBase {
     }
 
     if ($to_add === []) {
-      $this->messenger()->addStatus($this->t('Choose a quantity greater than zero to add extras.'));
+      $this->messenger()->addWarning($this->t('Choose a size and quantity, then tap Add to Cart.'));
       return;
     }
 
@@ -628,8 +769,26 @@ final class EventOperationalAddonCartForm extends FormBase {
       }
     }
 
-    $this->messenger()->addStatus($this->t('Event extras added to your booking.'));
+    $added_count = count($to_add);
+    if ($added_count === 1) {
+      $this->messenger()->addStatus($this->t('Added to your cart.'));
+    }
+    else {
+      $this->messenger()->addStatus($this->t('@count extras added to your cart.', ['@count' => $added_count]));
+    }
     $form_state->setRedirectUrl(Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()]));
+  }
+
+  /**
+   * Line index when submit came from a per-card Add to Cart button.
+   */
+  private function triggeredLineIndex(FormStateInterface $form_state): ?int {
+    $trigger = $form_state->getTriggeringElement();
+    if (!is_array($trigger) || !array_key_exists('#line_index', $trigger)) {
+      return NULL;
+    }
+    $index = (int) $trigger['#line_index'];
+    return $index >= 0 ? $index : NULL;
   }
 
 }

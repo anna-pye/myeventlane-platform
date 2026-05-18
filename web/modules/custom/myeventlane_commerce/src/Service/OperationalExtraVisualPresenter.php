@@ -203,8 +203,10 @@ class OperationalExtraVisualPresenter {
    * @return array<string, mixed>
    */
   public function buildPlaceholderImage(): array {
+    $placeholder = $this->placeholderUrl();
     return [
-      'url' => $this->placeholderUrl(),
+      'url' => $placeholder,
+      'full_url' => $placeholder,
       'alt' => (string) $this->t('Event extra'),
       'is_placeholder' => TRUE,
       'media_id' => 0,
@@ -250,12 +252,14 @@ class OperationalExtraVisualPresenter {
     }
     $style = $this->loadImageStyle();
     $uri = $file->getFileUri();
+    $full_url = $this->fileUrlGenerator->generateAbsoluteString($uri);
     $url = $style instanceof ImageStyleInterface
       ? $style->buildUrl($uri)
-      : $this->fileUrlGenerator->generateAbsoluteString($uri);
+      : $full_url;
 
     return [
       'url' => $url,
+      'full_url' => $full_url,
       'alt' => $this->sanitizePlainText($alt, 255),
       'is_placeholder' => FALSE,
       'media_id' => (int) $media->id(),

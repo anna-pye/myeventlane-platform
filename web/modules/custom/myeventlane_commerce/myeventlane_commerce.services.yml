@@ -224,6 +224,15 @@ services:
       - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@string_translation'
 
+  myeventlane_commerce.event_booking_summary_cart_extras_builder:
+    class: Drupal\myeventlane_commerce\Service\EventBookingSummaryCartExtrasBuilder
+    arguments:
+      - '@commerce_cart.cart_provider'
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_commerce.operational_order_item_display_builder'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
+      - '@entity_type.manager'
+
   myeventlane_commerce.operational_order_item_display_builder:
     class: Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder
     arguments:
