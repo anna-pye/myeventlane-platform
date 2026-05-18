@@ -49,6 +49,11 @@ main.mel-main:has(.mel-event-page--classic.mel-event--v2) {
   background-color: #fff8f4;
 }
 
+body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
+  background-color: #fff8f4;
+  color: #1f2933;
+}
+
 // Classic — warm MEL default (Mockup 1): light page, white cards, preset accent CTAs.
 // Accent colours come from mel-event-page--colour-* on <article> (coral default).
 .mel-event-page--classic.mel-event--v2 {
@@ -60,7 +65,7 @@ main.mel-main:has(.mel-event-page--classic.mel-event--v2) {
   --mel-event-text: #1f2933;
   --mel-event-muted: #6b7280;
   --mel-event-accent-strong: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 88%, #1f2933 12%);
-  --mel-event-accent-soft: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 12%, #fff 88%);
+  // --mel-event-accent-soft comes from mel-event-page--colour-* (coral default).
   // Aliases used elsewhere in this file.
   --mel-event-card-bg: var(--mel-event-surface);
   --mel-event-card-border: var(--mel-event-border);
@@ -212,6 +217,19 @@ main.mel-main:has(.mel-event-page--classic.mel-event--v2) {
     @include breakpoints.mel-break(lg) {
       padding: space-tokens.mel-space(5);
     }
+  }
+
+  // Beat _event-full.scss tinted highlights / expect cards on Mockup 1.
+  .mel-card--highlights,
+  .mel-card--expect {
+    background: var(--mel-event-surface);
+    border: 1px solid var(--mel-event-border);
+    box-shadow: var(--mel-event-shadow);
+  }
+
+  .mel-event-highlights__icon {
+    background: var(--mel-event-accent-soft);
+    color: var(--mel-event-accent);
   }
 
   .mel-card__title,

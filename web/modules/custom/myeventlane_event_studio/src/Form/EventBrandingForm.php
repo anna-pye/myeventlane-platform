@@ -367,7 +367,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         . Html::escape((string) $this->t('Choose an approved colour palette'))
         . '</h4>'
         . '<p class="mel-es-field-group__hint mel-page-style-colour-block__hint">'
-        . Html::escape((string) $this->t('Curated palettes keep your event page accessible and on-brand. Coral Pop is included for every event.'))
+        . Html::escape((string) $this->t('Curated palettes keep your event page accessible and on-brand.'))
         . '</p>',
       '#suffix' => '</div>',
     ];
