@@ -7,7 +7,7 @@
  */
 #}
 {% set doc = document|default({}) %}
-{% if not doc.empty|default(true) and doc.items|default([])|length > 0 %}
+{% if doc.items|default([])|length > 0 %}
   <section class="mel-addon-teaser mel-card mel-card--surface" aria-labelledby="mel-addon-teaser-title-{{ doc.event_id|default('0') }}">
     <header class="mel-addon-teaser__header">
       <h3 class="mel-addon-teaser__title" id="mel-addon-teaser-title-{{ doc.event_id|default('0') }}">{{ doc.title|default('Extras'|t) }}</h3>

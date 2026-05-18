@@ -138,7 +138,7 @@ final class EventStudioEventExtrasForm extends FormBase {
 
     $form['event_id'] = [
       '#type' => 'hidden',
-      '#value' => (string) $event->id(),
+      '#default_value' => (string) $event->id(),
     ];
 
     $form['intro'] = [
@@ -244,9 +244,20 @@ final class EventStudioEventExtrasForm extends FormBase {
 
     return [
       'booking_placement_wrapper' => [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Where guests see extras on the booking page'),
+        '#type' => 'container',
         '#attributes' => ['class' => ['mel-event-extras-studio__placement', 'mel-es-card']],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Where guests see extras on the booking page'),
+          '#attributes' => ['class' => ['mel-es-card__title']],
+        ],
+        'hint' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Applies to published extras that are shown on the booking page.'),
+          '#attributes' => ['class' => ['mel-text--muted', 'mel-event-extras-studio__placement-hint']],
+        ],
         'extras_book_placement' => [
           '#type' => 'radios',
           '#title' => $this->t('Placement'),
@@ -254,21 +265,15 @@ final class EventStudioEventExtrasForm extends FormBase {
           '#options' => $this->extrasBookPlacementResolver->getOptions(),
           '#default_value' => $this->extrasBookPlacementResolver->getPlacement($event),
           '#required' => TRUE,
-          '#parents' => ['extras_book_placement'],
-        ],
-        'booking_placement_hint' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Applies to published extras that are shown on the booking page.'),
-          '#attributes' => ['class' => ['mel-text--muted', 'mel-event-extras-studio__placement-hint']],
         ],
         'save_extras_placement' => [
           '#type' => 'submit',
           '#value' => $this->t('Save placement'),
           '#name' => 'save_extras_placement',
+          '#button_type' => 'primary',
           '#submit' => ['::submitSaveBookingPlacement'],
           '#limit_validation_errors' => [['extras_book_placement']],
-          '#attributes' => ['class' => ['button', 'mel-event-extras-studio__placement-save']],
+          '#executes_submit_callback' => TRUE,
         ],
       ],
     ];
@@ -558,7 +563,7 @@ final class EventStudioEventExtrasForm extends FormBase {
     if (str_starts_with((string) ($trigger['#name'] ?? ''), 'toggle_')) {
       return;
     }
-    if ($this->isPlacementSaveTrigger($trigger)) {
+    if (($trigger['#name'] ?? '') === 'save_extras_placement') {
       return;
     }
     if (($trigger['#type'] ?? '') !== 'submit') {
@@ -571,10 +576,6 @@ final class EventStudioEventExtrasForm extends FormBase {
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $trigger = $form_state->getTriggeringElement();
-    if (is_array($trigger) && $this->isPlacementSaveTrigger($trigger)) {
-      return;
-    }
     $this->saveExtra($form_state, FALSE);
   }
 
@@ -591,19 +592,11 @@ final class EventStudioEventExtrasForm extends FormBase {
     }
     $placement = $this->getSubmittedExtrasBookPlacement($form_state);
     if (!$this->extrasBookPlacementResolver->isValid($placement)) {
-      $this->logger->warning('Extras book placement submit had invalid value @value for event @nid', [
-        '@value' => $placement === '' ? '(empty)' : $placement,
-        '@nid' => (string) $event->id(),
-      ]);
       $this->messenger()->addError($this->t('Choose a valid placement option.'));
       return;
     }
     try {
       $this->extrasBookPlacementResolver->savePlacement($event, $placement);
-      $this->logger->notice('Extras book placement saved for event @nid: @placement', [
-        '@nid' => (string) $event->id(),
-        '@placement' => $placement,
-      ]);
       $this->messenger()->addStatus($this->t('Booking page placement saved.'));
     }
     catch (\Throwable $e) {
@@ -614,36 +607,6 @@ final class EventStudioEventExtrasForm extends FormBase {
       $this->messenger()->addError($this->t('Could not save placement.'));
     }
     $form_state->setRedirect('myeventlane_event_studio.workspace_extras', ['node' => $event->id()]);
-  }
-
-  /**
-   * Reads placement from form state / user input (flat radios element).
-   */
-  private function getSubmittedExtrasBookPlacement(FormStateInterface $form_state): string {
-    $value = $form_state->getValue('extras_book_placement');
-    if (is_string($value) && $value !== '') {
-      return $value;
-    }
-    $input = $form_state->getUserInput();
-    if (isset($input['extras_book_placement']) && is_string($input['extras_book_placement'])) {
-      return $input['extras_book_placement'];
-    }
-    return '';
-  }
-
-  /**
-   * @param array<string, mixed> $trigger
-   */
-  private function isPlacementSaveTrigger(array $trigger): bool {
-    if (($trigger['#name'] ?? '') === 'save_extras_placement') {
-      return TRUE;
-    }
-    foreach ((array) ($trigger['#submit'] ?? []) as $handler) {
-      if ($handler === '::submitSaveBookingPlacement') {
-        return TRUE;
-      }
-    }
-    return FALSE;
   }
 
   public function submitToggleVisibility(array &$form, FormStateInterface $form_state): void {
@@ -813,10 +776,49 @@ final class EventStudioEventExtrasForm extends FormBase {
   private function loadSubmittedEvent(FormStateInterface $form_state): ?NodeInterface {
     $event_id = (int) ($form_state->getValue('event_id') ?? 0);
     if ($event_id < 1) {
-      return NULL;
+      $input = $form_state->getUserInput();
+      if (isset($input['event_id'])) {
+        $event_id = (int) $input['event_id'];
+      }
+    }
+    if ($event_id < 1) {
+      $args = $form_state->getBuildInfo()['args'] ?? [];
+      $route_event = $args[0] ?? NULL;
+      if ($route_event instanceof NodeInterface && $route_event->bundle() === 'event') {
+        return $route_event;
+      }
+      try {
+        return $this->getRouteEvent();
+      }
+      catch (\Throwable) {
+        return NULL;
+      }
     }
     $event = $this->entityTypeManager->getStorage('node')->load($event_id);
     return $event instanceof NodeInterface && $event->bundle() === 'event' ? $event : NULL;
+  }
+
+  /**
+   * Reads extras book placement from form state (flat or nested under wrapper).
+   */
+  private function getSubmittedExtrasBookPlacement(FormStateInterface $form_state): string {
+    $value = $form_state->getValue('extras_book_placement');
+    if (is_string($value) && $value !== '') {
+      return $value;
+    }
+    $wrapper = $form_state->getValue('booking_placement_wrapper');
+    if (is_array($wrapper) && isset($wrapper['extras_book_placement']) && is_string($wrapper['extras_book_placement'])) {
+      return $wrapper['extras_book_placement'];
+    }
+    $input = $form_state->getUserInput();
+    if (isset($input['extras_book_placement']) && is_string($input['extras_book_placement'])) {
+      return $input['extras_book_placement'];
+    }
+    if (isset($input['booking_placement_wrapper']['extras_book_placement'])
+      && is_string($input['booking_placement_wrapper']['extras_book_placement'])) {
+      return $input['booking_placement_wrapper']['extras_book_placement'];
+    }
+    return '';
   }
 
 }

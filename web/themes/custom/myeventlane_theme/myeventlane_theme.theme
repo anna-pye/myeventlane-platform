@@ -4128,18 +4128,23 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     $variables['google_calendar_url'] = $cal_links['google'] ?? '';
   }
 
-  $variables['operational_addon_teaser'] = NULL;
-  if (($variables['view_mode'] ?? '') === 'full'
+  if (empty($variables['operational_addon_teaser'])
+    && ($variables['view_mode'] ?? '') === 'full'
     && \Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
-    && function_exists('myeventlane_commerce_operational_addon_teaser_render_array')
+    && \Drupal::hasService('myeventlane_commerce.event_operational_addon_teaser_builder')
   ) {
     $show_teaser = FALSE;
     if (\Drupal::hasService('myeventlane_event.booking_flow_resolver')) {
       $show_teaser = \Drupal::service('myeventlane_event.booking_flow_resolver')->getBookingMode($node) === BookingFlowResolver::MODE_PAID;
     }
     if ($show_teaser) {
-      $variables['operational_addon_teaser'] = myeventlane_commerce_operational_addon_teaser_render_array($node, 'event');
+      /** @var \Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder $teaser_builder */
+      $teaser_builder = \Drupal::service('myeventlane_commerce.event_operational_addon_teaser_builder');
+      $variables['operational_addon_teaser'] = $teaser_builder->buildRenderArray($node, 'event');
     }
+  }
+  if (!isset($variables['operational_addon_teaser'])) {
+    $variables['operational_addon_teaser'] = NULL;
   }
 }
 

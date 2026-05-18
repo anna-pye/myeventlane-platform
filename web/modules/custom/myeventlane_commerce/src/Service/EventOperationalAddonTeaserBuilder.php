@@ -85,15 +85,15 @@ final class EventOperationalAddonTeaserBuilder {
     return [
       self::CONTRACT_FLAG => TRUE,
       'schema_version' => 1,
-      'empty' => FALSE,
+      'is_empty' => FALSE,
       'event_id' => $event_id,
       'item_count' => $total,
       'more_count' => $more,
       'title' => $on_book_page
-        ? (string) $this->t('Available extras')
+        ? (string) $this->t('Grab the extras')
         : (string) $this->t('Extras at this event'),
       'intro' => $on_book_page
-        ? (string) $this->t('Add these on this page — collect at the event after purchase.')
+        ? (string) $this->t('Merch, perks, and add-ons — add here, collect at the event.')
         : (string) $this->t('Merch and add-ons you can include when you book.'),
       'show_book_cta' => !$on_book_page,
       'show_scroll_cta' => $on_book_page,
@@ -110,6 +110,31 @@ final class EventOperationalAddonTeaserBuilder {
   }
 
   /**
+   * Builds a render array for the mel_operational_addon_teaser theme hook.
+   *
+   * @return array<string, mixed>|null
+   *   Render array, or NULL when the catalog is empty.
+   */
+  public function buildRenderArray(NodeInterface $event, string $surface = 'event'): ?array {
+    $document = $this->buildForEvent($event, $surface);
+    if (!empty($document['is_empty'])) {
+      return NULL;
+    }
+    $tags = is_array($document['cache_tags'] ?? NULL) ? $document['cache_tags'] : $event->getCacheTags();
+    return [
+      '#theme' => 'mel_operational_addon_teaser',
+      '#document' => $document,
+      '#attached' => [
+        'library' => ['myeventlane_commerce/mel_operational_addon_teaser'],
+      ],
+      '#cache' => [
+        'tags' => $tags,
+        'contexts' => ['languages:language_interface'],
+      ],
+    ];
+  }
+
+  /**
    * Empty teaser document when no add-ons are available.
    *
    * @return array<string, mixed>
@@ -119,7 +144,7 @@ final class EventOperationalAddonTeaserBuilder {
     return [
       self::CONTRACT_FLAG => TRUE,
       'schema_version' => 1,
-      'empty' => TRUE,
+      'is_empty' => TRUE,
       'items' => [],
       'cache_tags' => [],
     ];

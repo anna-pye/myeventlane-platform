@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Form\EventOperationalAddonCartForm;
 use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
 use Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver;
@@ -144,6 +145,10 @@ final class BookController extends ControllerBase {
       '#ticket_form_actions' => [],
       '#ticket_booking_access' => [],
       '#extras_book_placement' => EventExtrasBookPlacementResolver::PLACEMENT_MAIN_BEFORE_ACCESS,
+      '#event_back_url' => Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
+      '#event_back_label' => (string) $this->t('Back to @title', ['@title' => $node->label()]),
+      '#operational_addons_section_title' => (string) $this->t('Grab the extras'),
+      '#operational_addons_section_lede' => (string) $this->t('Merch, perks, and add-ons for this booking — collect at the event after checkout.'),
       '#cache' => [
         'contexts' => ['route', 'user.roles', 'url.query_args', 'session', 'languages:language_interface'],
         'tags' => $node->getCacheTags(),
