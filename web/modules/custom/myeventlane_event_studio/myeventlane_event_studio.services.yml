@@ -287,6 +287,9 @@ services:
 
   myeventlane_event_studio.event_page_style_resolver:
     class: Drupal\myeventlane_event_studio\Service\EventPageStyleResolver
+    arguments:
+      - '@myeventlane_event_studio.event_style_access'
+      - '@entity_type.manager'
 
   myeventlane_event_studio.save:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSaveService

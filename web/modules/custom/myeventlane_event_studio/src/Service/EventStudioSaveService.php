@@ -1014,16 +1014,27 @@ final class EventStudioSaveService {
       return [];
     }
 
-    if ($node->hasField('field_mel_page_style') && array_key_exists('field_mel_page_style', $mel_values)) {
-      $node->set('field_mel_page_style', $this->eventPageStyleResolver->sanitizeStyle(
-        is_scalar($mel_values['field_mel_page_style']) ? (string) $mel_values['field_mel_page_style'] : NULL
-      ));
+    $submitted_style = array_key_exists('field_mel_page_style', $mel_values) && is_scalar($mel_values['field_mel_page_style'])
+      ? (string) $mel_values['field_mel_page_style']
+      : NULL;
+    $submitted_colour = array_key_exists('field_mel_theme_colour', $mel_values) && is_scalar($mel_values['field_mel_theme_colour'])
+      ? (string) $mel_values['field_mel_theme_colour']
+      : NULL;
+
+    $account = \Drupal::currentUser();
+    $resolved = $this->eventPageStyleResolver->resolveForPersistence(
+      $node,
+      $submitted_style,
+      $submitted_colour,
+      $account,
+    );
+
+    if ($node->hasField('field_mel_page_style') && $submitted_style !== NULL) {
+      $node->set('field_mel_page_style', $resolved['style']);
     }
 
-    if ($node->hasField('field_mel_theme_colour') && array_key_exists('field_mel_theme_colour', $mel_values)) {
-      $node->set('field_mel_theme_colour', $this->eventPageStyleResolver->sanitizeColour(
-        is_scalar($mel_values['field_mel_theme_colour']) ? (string) $mel_values['field_mel_theme_colour'] : NULL
-      ));
+    if ($node->hasField('field_mel_theme_colour') && $submitted_colour !== NULL) {
+      $node->set('field_mel_theme_colour', $resolved['colour']);
     }
 
     return [];

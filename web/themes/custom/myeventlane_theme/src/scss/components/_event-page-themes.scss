@@ -42,9 +42,23 @@
   --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
 }
 
-// Classic — warm MEL default with visible accent from colour preset.
+// Classic — warm MEL default (Mockup 1): light page, white cards, coral/accent CTAs.
 .mel-event-page--classic.mel-event--v2 {
-  background-color: colors.$mel-color-bg;
+  --mel-event-surface: #{colors.$mel-color-surface};
+  --mel-event-surface-raised: #{colors.$mel-color-surface};
+  --mel-event-text: #{colors.$mel-color-text};
+  --mel-event-text-muted: #{colors.$mel-color-text-muted};
+
+  background-color: color.mix(colors.$mel-color-bg, #fff8f4, 72%);
+  color: var(--mel-event-text);
+
+  .mel-event-layout__main,
+  .mel-event-layout__sidebar,
+  .mel-event-meta-bar,
+  .mel-event-info__body,
+  .mel-event-section__body {
+    color: var(--mel-event-text);
+  }
 
   .mel-event__signal {
     background: var(--mel-event-accent-soft, colors.$mel-color-surface-alt);
@@ -58,22 +72,30 @@
 
   .mel-event-meta-bar,
   .mel-event__card,
-  .mel-card--sticky {
-    background: colors.$mel-color-surface;
+  .mel-card--sticky,
+  .mel-event-layout__main .mel-card {
+    background: var(--mel-event-surface);
     border-radius: radii.$mel-radius-xl;
     box-shadow: shadows.$mel-shadow-md;
     border: 1px solid colors.$mel-color-border;
+    color: var(--mel-event-text);
   }
 
   .mel-event-info__title,
   .mel-event-section__title,
   .mel-card__title {
-    color: colors.$mel-color-text;
+    color: var(--mel-event-text);
   }
 
   .mel-event-info__title::after,
   .mel-event-section__title::after {
     background: var(--mel-event-accent, colors.$mel-color-primary);
+  }
+
+  .mel-card--sticky .mel-booking-panel__chip,
+  .mel-event__meta,
+  .mel-event-info__label {
+    color: var(--mel-event-text-muted);
   }
 
   .mel-btn--primary,
@@ -84,6 +106,21 @@
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     min-height: 44px;
     font-weight: 600;
+    box-shadow: shadows.$mel-shadow-sm;
+  }
+
+  .mel-btn--secondary,
+  .button--secondary {
+    background: colors.$mel-color-surface;
+    border-color: colors.$mel-color-border;
+    color: colors.$mel-color-text;
+    min-height: 44px;
+  }
+
+  .mel-mobile-cta {
+    background: colors.$mel-color-surface;
+    border-top: 1px solid colors.$mel-color-border;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   }
 }
 
