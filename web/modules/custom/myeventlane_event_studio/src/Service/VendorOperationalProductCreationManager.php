@@ -168,8 +168,8 @@ final class VendorOperationalProductCreationManager {
       'field_event' => ['target_id' => (int) $event->id()],
       'field_mel_operational_product' => $encoded,
     ]);
-    if ($product->hasField('field_mel_extra_short_description')) {
-      $product->set('field_mel_extra_short_description', $summary);
+    if ($product->hasField('field_mel_extra_short_desc')) {
+      $product->set('field_mel_extra_short_desc', $summary);
     }
     if ($product->hasField('field_mel_extra_pickup_note') && $pickup_note !== '') {
       $product->set('field_mel_extra_pickup_note', $pickup_note);

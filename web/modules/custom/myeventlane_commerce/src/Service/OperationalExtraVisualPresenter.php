@@ -82,8 +82,8 @@ class OperationalExtraVisualPresenter {
    * @param array<string, mixed> $presentation
    */
   public function resolveShortDescription(ProductInterface $product, array $presentation): string {
-    if ($product->hasField('field_mel_extra_short_description') && !$product->get('field_mel_extra_short_description')->isEmpty()) {
-      $text = trim((string) $product->get('field_mel_extra_short_description')->value);
+    if ($product->hasField('field_mel_extra_short_desc') && !$product->get('field_mel_extra_short_desc')->isEmpty()) {
+      $text = trim((string) $product->get('field_mel_extra_short_desc')->value);
       if ($text !== '') {
         return $this->sanitizePlainText($text, 600);
       }
