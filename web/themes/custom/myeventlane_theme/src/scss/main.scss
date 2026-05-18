@@ -149,7 +149,6 @@
 @use 'components/live-operations';
 @use 'components/event-page';
 @use 'components/event-full' as event_full_component;
-@use 'components/event-page-themes';
 @use 'components/mel-calendar';
 @use 'components/event-node';
 @use 'components/event' as event-component;
@@ -226,6 +225,9 @@
 @use 'pages/contact';
 @use 'pages/discovery';
 @use 'pages/vendor';
+
+// Event page Classic/Immersive themes — load after pages/event so Mockup 1 rules win cascade.
+@use 'components/event-page-themes';
 
 // ---------------------------------------------------------------------------
 // 7. Utilities

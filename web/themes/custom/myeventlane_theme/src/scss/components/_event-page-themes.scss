@@ -117,11 +117,11 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     box-shadow: 0 4px 14px rgba(41, 50, 65, 0.18);
   }
 
-  // Intelligence / popularity chip in hero content (Twig uses mel_event_signal, not hero__chip).
-  .mel-event-hero--featured-style .mel-event-hero__content .mel-event__signal {
+  // Popularity / intelligence pill in hero chip (Mockup 1 top-left).
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__signal--hero-chip,
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__signal {
     display: inline-flex;
     align-items: center;
-    align-self: flex-start;
     margin: 0;
     padding: 6px 14px;
     border-radius: 999px;

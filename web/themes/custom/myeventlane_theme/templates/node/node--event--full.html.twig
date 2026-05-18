@@ -95,12 +95,13 @@
             {{ content.field_category }}
           </div>
         </div>
+      {% elseif mel_signal %}
+        <div class="mel-event-hero__chip" aria-hidden="true">
+          <div class="mel-event__signal mel-event__signal--hero-chip">{{ mel_signal }}</div>
+        </div>
       {% endif %}
       <div class="mel-event-hero__content">
         <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
-        {% if mel_signal %}
-          <div class="mel-event__signal">{{ mel_signal }}</div>
-        {% endif %}
         {% if hero_datetime %}
           <p class="mel-event-hero__datetime">{{ hero_datetime }}</p>
         {% endif %}
