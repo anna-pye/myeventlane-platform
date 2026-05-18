@@ -306,7 +306,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         '<section class="mel-es-field-group mel-es-field-group--page-style" aria-labelledby="mel-es-page-style-title">'
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-page-style-title">' . Html::escape((string) $this->t('Choose your event page style')) . '</h3>'
-        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Your event page uses the MyEventLane Warm & Energetic style by default. Pro organisers can unlock extra styles and colour moods.')) . '</p>'
+        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Warm & Energetic is the standard MyEventLane event page — bright, readable, and community-first. Pro organisers can unlock Bold & Immersive and curated colour moods that stay accessible and on-brand.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body mel-es-field-group__body--page-style">'
       ),
@@ -320,7 +320,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
 
     $form['mel']['field_mel_page_style'] = [
       '#type' => 'radios',
-      '#title' => $this->t('Page style'),
+      '#title' => $this->t('Page style (Warm & Energetic is included for everyone)'),
       '#mel_option_cards' => TRUE,
       '#mel_option_cards_tickets_layout' => TRUE,
       '#mel_option_descriptions' => [
@@ -365,8 +365,11 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#attributes' => ['class' => ['mel-page-style-colours']],
       '#prefix' => '<div class="mel-page-style-colour-block" aria-labelledby="mel-es-theme-colour-title">'
         . '<h4 class="mel-es-field-group__title mel-page-style-colour-block__title" id="mel-es-theme-colour-title">'
-        . Html::escape((string) $this->t('Colour mood'))
-        . '</h4>',
+        . Html::escape((string) $this->t('Colour mood (curated presets — no custom hex colours)'))
+        . '</h4>'
+        . '<p class="mel-es-field-group__hint mel-page-style-colour-block__hint">'
+        . Html::escape((string) $this->t('Coral Pop is the default. Pro presets are designed for contrast and readability on your public event page.'))
+        . '</p>',
       '#suffix' => '</div>',
     ];
 
