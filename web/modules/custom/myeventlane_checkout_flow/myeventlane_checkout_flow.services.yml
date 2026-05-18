@@ -46,6 +46,8 @@ services:
       - '@myeventlane_surface.state_readiness_helper'
       - '@file_url_generator'
       - '@?myeventlane_commerce.operational_order_item_display_builder'
+      - '@?myeventlane_commerce.ticket_backed_order_item_classifier'
+      - '@?myeventlane_core.ticket_label_resolver'
 
   myeventlane_checkout_flow.tax_invoice_presentation:
     class: Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder

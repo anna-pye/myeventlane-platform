@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Enforces mel_ticket_type rules, event capacity, and Commerce alignment at purchase.
  */
-final class TicketAvailabilityService {
+final class TicketAvailabilityService implements TicketTierForVariationResolverInterface {
 
   private const PURCHASABLE_CACHE_MAX_AGE = 90;
 

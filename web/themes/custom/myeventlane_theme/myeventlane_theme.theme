@@ -1095,6 +1095,65 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
   _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
   _myeventlane_theme_attach_mel_operational_checkout($variables);
   _myeventlane_theme_attach_operational_addon_guidance($variables);
+
+  if (($variables['form']['#step_id'] ?? '') === 'complete') {
+    $variables['mel_operational_checkout'] = NULL;
+    $variables['mel_operational_purchase_composition'] = NULL;
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+    $variables['mel_customer_operational_experience'] = NULL;
+    if (isset($variables['order_entity']) && $variables['order_entity'] instanceof OrderInterface) {
+      $variables['mel_confirmation_line_labels'] = _myeventlane_theme_build_confirmation_order_line_labels($variables['order_entity']);
+    }
+  }
+}
+
+/**
+ * Builds customer-safe order line labels for checkout completion cards.
+ *
+ * @return array<int, string>
+ *   Labels keyed by order item ID.
+ */
+function _myeventlane_theme_build_confirmation_order_line_labels(OrderInterface $order): array {
+  $labels = [];
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')) {
+    return $labels;
+  }
+
+  /** @var \Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder|null $display_builder */
+  $display_builder = \Drupal::hasService('myeventlane_commerce.operational_order_item_display_builder')
+    ? \Drupal::service('myeventlane_commerce.operational_order_item_display_builder')
+    : NULL;
+  /** @var \Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier|null $classifier */
+  $classifier = \Drupal::hasService('myeventlane_commerce.ticket_backed_order_item_classifier')
+    ? \Drupal::service('myeventlane_commerce.ticket_backed_order_item_classifier')
+    : NULL;
+  /** @var \Drupal\myeventlane_core\Service\TicketLabelResolver|null $ticket_labels */
+  $ticket_labels = \Drupal::hasService('myeventlane_core.ticket_label_resolver')
+    ? \Drupal::service('myeventlane_core.ticket_label_resolver')
+    : NULL;
+
+  foreach ($order->getItems() as $item) {
+    if (!$item instanceof \Drupal\commerce_order\Entity\OrderItemInterface) {
+      continue;
+    }
+    if (in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation', 'boost'], TRUE)) {
+      continue;
+    }
+    $item_id = (int) $item->id();
+    $display = $display_builder?->buildForOrderItem($item);
+    if (is_array($display) && ($display['title'] ?? '') !== '') {
+      $labels[$item_id] = (string) $display['title'];
+      continue;
+    }
+    $tier_label = $classifier?->resolveTicketTierLabel($item);
+    if (is_string($tier_label) && $tier_label !== '') {
+      $labels[$item_id] = $tier_label;
+      continue;
+    }
+    $labels[$item_id] = $ticket_labels ? $ticket_labels->getTicketLabel($item) : (string) $item->label();
+  }
+
+  return $labels;
 }
 
 /**

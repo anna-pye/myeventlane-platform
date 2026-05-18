@@ -50,6 +50,40 @@
   }
 }
 
+// Image-led listing cards: media must fill the frame (see components/_event-card.scss).
+.mel-event-card--standard,
+.mel-event-card--hero,
+.mel-event-card--featured {
+  .mel-event-card__image::before,
+  .mel-event-card__media::before {
+    display: none;
+  }
+
+  .mel-event-card__image > img,
+  .mel-event-card__image > .mel-event-card__image-element,
+  .mel-event-card__image img,
+  .mel-event-card__image .mel-event-card__image-element,
+  .mel-event-card__media > img,
+  .mel-event-card__media > .mel-event-card__image-element,
+  .mel-event-card__media img,
+  .mel-event-card__media .mel-event-card__image-element {
+    position: absolute;
+    inset: -2px;
+    z-index: 1;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    min-height: calc(100% + 4px);
+    max-width: none;
+    object-fit: cover;
+    display: block;
+  }
+
+  .mel-event-card__image > .mel-event-card__overlay,
+  .mel-event-card__media > .mel-event-card__overlay {
+    z-index: 2;
+  }
+}
+
 // Respect reduced motion: no shimmer animation.
 @media (prefers-reduced-motion: reduce) {
   .mel-card__media::before,

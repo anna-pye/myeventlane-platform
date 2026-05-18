@@ -1,0 +1,16 @@
+{#
+/**
+ * @file
+ * Default MEL empty state for event listing views.
+ *
+ * Variables: title, text, cta_primary_url, cta_primary_label, cta_secondary_url, cta_secondary_label
+ */
+#}
+{% include '@myeventlane_theme/components/empty-state.html.twig' with {
+  title: title|default('Nothing here yet'|t),
+  text: text|default('Check back soon or explore more events across MyEventLane.'|t),
+  cta_primary_url: cta_primary_url|default('/events'),
+  cta_primary_label: cta_primary_label|default('Explore events'|t),
+  cta_secondary_url: cta_secondary_url|default(''),
+  cta_secondary_label: cta_secondary_label|default(''),
+} %}

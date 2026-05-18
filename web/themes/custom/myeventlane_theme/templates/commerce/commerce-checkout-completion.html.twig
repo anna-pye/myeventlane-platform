@@ -60,30 +60,6 @@
     </div>
   </header>
 
-  {% if mel_customer_operational_experience %}
-    <div class="mel-confirmation__operational mel-confirmation__main-pad">
-      {{ mel_customer_operational_experience }}
-    </div>
-  {% endif %}
-
-  {% if mel_operational_fulfillment_execution_customer %}
-    <div class="mel-confirmation__fulfillment-execution mel-confirmation__main-pad" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
-      {{ mel_operational_fulfillment_execution_customer }}
-    </div>
-  {% endif %}
-
-  {% if mel_operational_purchase_composition %}
-    <div class="mel-confirmation__operational-composition mel-confirmation__main-pad" role="region" aria-label="{{ 'Operational packages'|t }}">
-      {{ mel_operational_purchase_composition }}
-    </div>
-  {% endif %}
-
-  {% if mel_operational_checkout %}
-    <div class="mel-confirmation__operational-checkout mel-confirmation__main-pad" role="region" aria-label="{{ 'Operational checkout plan'|t }}">
-      {{ mel_operational_checkout }}
-    </div>
-  {% endif %}
-
   <div class="mel-confirmation__main">
     {% if events|length > 0 %}
       {% for event in events %}
@@ -141,8 +117,7 @@
                 {% if item_event and item_event.id() == event.id() %}
                   <div class="mel-confirmation-card__ticket-row">
                     <span class="mel-confirmation-card__ticket-name">
-                      {% set pe = item.getPurchasedEntity() %}
-                      {{ pe ? pe.label() : item.getTitle() }}
+                      {{ mel_confirmation_line_labels[item.id()]|default(item.getTitle()) }}
                     </span>
                     <span class="mel-confirmation-card__ticket-qty">x {{ item.getQuantity()|number_format(0) }}</span>
                     <span class="mel-confirmation-card__ticket-price">{{ item.getTotalPrice()|commerce_price_format }}</span>
@@ -162,8 +137,7 @@
             {% for item in ticket_items %}
               <div class="mel-confirmation-card__ticket-row">
                 <span class="mel-confirmation-card__ticket-name">
-                  {% set pe = item.getPurchasedEntity() %}
-                  {{ pe ? pe.label() : item.getTitle() }}
+                  {{ mel_confirmation_line_labels[item.id()]|default(item.getTitle()) }}
                 </span>
                 <span class="mel-confirmation-card__ticket-qty">x {{ item.getQuantity()|number_format(0) }}</span>
                 <span class="mel-confirmation-card__ticket-price">{{ item.getTotalPrice()|commerce_price_format }}</span>

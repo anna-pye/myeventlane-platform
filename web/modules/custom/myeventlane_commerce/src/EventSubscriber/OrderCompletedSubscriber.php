@@ -9,6 +9,7 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
@@ -33,6 +34,7 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly TicketBackedOrderItemClassifier $ticketBackedOrderItemClassifier,
   ) {}
 
   /**
@@ -95,6 +97,24 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
     $logger = $this->loggerFactory->get('myeventlane_commerce');
     $orderId = method_exists($order, 'id') ? (int) $order->id() : NULL;
     $orderItemId = method_exists($orderItem, 'id') ? (int) $orderItem->id() : NULL;
+
+    if ($this->ticketBackedOrderItemClassifier->isOperationalOrderItem($orderItem)) {
+      $logger->info('Skipping attendee processing for operational add-on order item @id.', [
+        '@id' => $orderItem->id(),
+        'order_id' => $orderId,
+        'order_item_id' => $orderItemId,
+      ]);
+      return;
+    }
+
+    if (!$this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($orderItem)) {
+      $logger->info('Skipping attendee processing for non-ticket order item @id.', [
+        '@id' => $orderItem->id(),
+        'order_id' => $orderId,
+        'order_item_id' => $orderItemId,
+      ]);
+      return;
+    }
 
     // Exclude Boost: it is an admin product, not a vendor event attendee.
     if (method_exists($orderItem, 'bundle') && $orderItem->bundle() === 'boost') {

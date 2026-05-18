@@ -1,9 +1,20 @@
 {#
 /**
  * @file
- * Free & RSVP rail — suppress empty state on homepage.
+ * Free & RSVP rail — MEL empty state when no rows.
  */
 #}
 {% if rows %}
   {{ rows }}
+{% elseif empty %}
+  <div class="view-empty mel-empty-state mel-empty-state--governed" role="status">
+    {{ empty }}
+  </div>
+{% else %}
+  {% include '@myeventlane_theme/includes/mel-view-empty-events.html.twig' with {
+    title: 'No free or RSVP events right now'|t,
+    text: 'Browse paid events or check back soon for new free listings.'|t,
+    cta_primary_url: '/events',
+    cta_primary_label: 'Explore events'|t,
+  } %}
 {% endif %}
