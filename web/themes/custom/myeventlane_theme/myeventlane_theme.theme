@@ -4116,6 +4116,32 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     }
   }
 
+  // Event page style themes (Classic / Immersive + colour preset).
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    && \Drupal::hasService('myeventlane_event_studio.event_page_style_resolver')) {
+    /** @var \Drupal\myeventlane_event_studio\Service\EventPageStyleResolver $page_style_resolver */
+    $page_style_resolver = \Drupal::service('myeventlane_event_studio.event_page_style_resolver');
+    $resolved = $page_style_resolver->resolveForPublicRender($node);
+    $variables['event_page_style'] = $resolved['style'];
+    $variables['event_theme_colour'] = $resolved['colour'];
+    $variables['event_page_classes'] = $resolved['classes'];
+    if (!isset($variables['attributes']) || !is_array($variables['attributes'])) {
+      $variables['attributes'] = [];
+    }
+    $variables['attributes']['class'] ??= [];
+    if (!is_array($variables['attributes']['class'])) {
+      $variables['attributes']['class'] = [];
+    }
+    foreach ($resolved['classes'] as $class) {
+      $variables['attributes']['class'][] = $class;
+    }
+  }
+  else {
+    $variables['event_page_style'] = 'classic';
+    $variables['event_theme_colour'] = 'coral';
+    $variables['event_page_classes'] = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
+  }
+
   // Calendar URLs for event full template (same builder as checkout confirmation).
   $variables['apple_ics_url'] = '';
   $variables['outlook_ics_url'] = '';

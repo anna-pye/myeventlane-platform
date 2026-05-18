@@ -60,6 +60,7 @@ final class EventStudioSaveService {
     private readonly FileSystemInterface $fileSystem,
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
     private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
+    private readonly ?EventPageStyleResolver $eventPageStyleResolver = NULL,
   ) {}
 
   /**
@@ -981,6 +982,11 @@ final class EventStudioSaveService {
       }
     }
 
+    $style_errors = $this->applyBrandingPageStyleFields($node, $mel_values);
+    if ($style_errors !== []) {
+      return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
+    }
+
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
     try {
       $node->save();
@@ -994,6 +1000,33 @@ final class EventStudioSaveService {
     }
 
     return ['node' => $node, 'errors' => [], 'warnings' => $warnings];
+  }
+
+  /**
+   * Persists page style and theme colour from the branding mel fragment.
+   *
+   * @param array<string, mixed> $mel_values
+   *
+   * @return list<string>
+   */
+  private function applyBrandingPageStyleFields(NodeInterface $node, array $mel_values): array {
+    if (!$this->eventPageStyleResolver instanceof EventPageStyleResolver) {
+      return [];
+    }
+
+    if ($node->hasField('field_mel_page_style') && array_key_exists('field_mel_page_style', $mel_values)) {
+      $node->set('field_mel_page_style', $this->eventPageStyleResolver->sanitizeStyle(
+        is_scalar($mel_values['field_mel_page_style']) ? (string) $mel_values['field_mel_page_style'] : NULL
+      ));
+    }
+
+    if ($node->hasField('field_mel_theme_colour') && array_key_exists('field_mel_theme_colour', $mel_values)) {
+      $node->set('field_mel_theme_colour', $this->eventPageStyleResolver->sanitizeColour(
+        is_scalar($mel_values['field_mel_theme_colour']) ? (string) $mel_values['field_mel_theme_colour'] : NULL
+      ));
+    }
+
+    return [];
   }
 
   /**

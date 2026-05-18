@@ -28,6 +28,7 @@ final class ProAccessService {
     'advanced_analytics',
     'audience_messaging',
     'boost_priority',
+    'event_immersive_style',
   ];
 
   /**

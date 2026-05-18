@@ -1,0 +1,160 @@
+// ==========================================================================
+// Event page style themes — Classic (default) + Immersive (Pro-capable)
+// Scoped to public full event pages via modifier classes on <article>.
+// ==========================================================================
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/spacing' as space-tokens;
+@use '../tokens/breakpoints';
+@use '../tokens/motion' as melmotion;
+
+// Colour presets — CSS custom properties consumed by Classic and Immersive.
+.mel-event-page--colour-coral {
+  --mel-event-accent: #{colors.$mel-color-primary};
+  --mel-event-accent-soft: #{color.mix(colors.$mel-color-primary, #fff, 18%)};
+  --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+}
+
+.mel-event-page--colour-purple {
+  --mel-event-accent: #{colors.$mel-color-accent};
+  --mel-event-accent-soft: #{colors.$mel-color-pastel-lavender};
+  --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+}
+
+.mel-event-page--colour-mint {
+  --mel-event-accent: #{color.adjust(colors.$mel-color-success, $lightness: -8%)};
+  --mel-event-accent-soft: #{colors.$mel-color-pastel-mint};
+  --mel-event-accent-contrast: #{colors.$mel-color-text};
+}
+
+.mel-event-page--colour-gold {
+  --mel-event-accent: #{colors.$mel-color-orange};
+  --mel-event-accent-soft: #{color.mix(colors.$mel-color-orange, #fff, 22%)};
+  --mel-event-accent-contrast: #{colors.$mel-color-text};
+}
+
+.mel-event-page--colour-blue {
+  --mel-event-accent: #{colors.$mel-color-info};
+  --mel-event-accent-soft: #{colors.$mel-color-info-bg};
+  --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+}
+
+// Classic — warm default (inherits existing .mel-event--v2 look; accent-driven CTAs).
+.mel-event-page--classic.mel-event--v2 {
+  background-color: colors.$mel-color-bg;
+
+  .mel-event__card,
+  .mel-event-meta-bar,
+  .mel-card--sticky {
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-xl;
+    box-shadow: shadows.$mel-shadow-md;
+  }
+
+  .mel-event--v2 .mel-btn--primary,
+  .mel-event--v2 .button--primary {
+    background-color: var(--mel-event-accent, colors.$mel-color-primary);
+    border-color: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    min-height: 44px;
+  }
+}
+
+// Immersive — dark cinematic treatment; readable cards and CTAs.
+.mel-event-page--immersive.mel-event--v2 {
+  --mel-event-surface: #{color.mix(colors.$mel-color-navy, #0d1117, 88%)};
+  --mel-event-surface-raised: #{color.mix(colors.$mel-color-navy, #1a2330, 72%)};
+  --mel-event-text: #{colors.$mel-color-text-inverse};
+  --mel-event-text-muted: #{color.mix(#fff, colors.$mel-color-navy, 62%)};
+
+  background: linear-gradient(
+    180deg,
+    color.mix(colors.$mel-color-navy, #000, 92%) 0%,
+    color.mix(colors.$mel-color-navy, #1a2330, 72%) 100%
+  );
+  color: var(--mel-event-text);
+
+  .mel-event-hero--featured-style .mel-event-hero__overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.15) 0%,
+      rgba(13, 17, 23, 0.72) 55%,
+      rgba(13, 17, 23, 0.92) 100%
+    );
+  }
+
+  .mel-event-hero__content,
+  .mel-event-hero-card__title,
+  #mel-event-title {
+    color: var(--mel-event-text);
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+  }
+
+  .mel-event-meta-bar,
+  .mel-event__card,
+  .mel-card--sticky,
+  .mel-event-layout__main .mel-card {
+    background: var(--mel-event-surface-raised);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-meta-bar,
+  .mel-event-layout__main,
+  .mel-event-layout__sidebar {
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-meta-bar a,
+  .mel-event-layout__main a:not(.mel-btn) {
+    color: color.mix(#fff, colors.$mel-color-accent, 70%);
+  }
+
+  .mel-card--sticky .mel-booking-panel__price,
+  .mel-event__signal {
+    color: var(--mel-event-text);
+  }
+
+  .mel-card--sticky .mel-booking-panel__chip,
+  .mel-event__meta,
+  .mel-event-info__label {
+    color: var(--mel-event-text-muted);
+  }
+
+  .mel-btn--primary,
+  .button--primary,
+  .mel-event--v2 .mel-btn--primary {
+    background-color: var(--mel-event-accent, colors.$mel-color-primary);
+    border-color: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    min-height: 44px;
+  }
+
+  .mel-btn--secondary,
+  .button--secondary {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.35);
+    color: var(--mel-event-text);
+    min-height: 44px;
+  }
+
+  .mel-event__signal--strong {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+  }
+
+  .mel-mobile-cta {
+    background: var(--mel-event-surface-raised);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mel-event-hero--featured-style .mel-event-hero__overlay {
+      transition: none;
+    }
+  }
+}

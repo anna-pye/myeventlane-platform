@@ -67,7 +67,7 @@
   and mel_show_booking_cta
   and (mel_cta_text|striptags|trim|length > 0) %}
 
-<article{{ attributes.addClass('mel-event', 'mel-event--v2') }}>
+<article{{ attributes.addClass('mel-event', 'mel-event--v2', event_page_classes|default([])) }}>
   <div class="mel-container">
     {# Hero: node--event--full — same stack as homepage featured_hero (mel-event-card variant). #}
     <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
