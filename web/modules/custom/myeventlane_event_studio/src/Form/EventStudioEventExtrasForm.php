@@ -9,7 +9,6 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_event_studio\Service\EventStudioEventExtrasBuilder;
@@ -26,14 +25,34 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class EventStudioEventExtrasForm extends FormBase {
 
+  /**
+   * Protected (not private readonly) so form cache unserialization can restore services.
+   *
+   * @see EventStudioOperationalTicketsForm::ensureInjectedServices()
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  protected EventVendorAccessChecker $eventVendorAccessChecker;
+
+  protected VendorOperationalProductCreationManager $productCreationManager;
+
+  protected EventStudioEventExtrasBuilder $extrasBuilder;
+
+  protected LoggerInterface $logger;
+
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
-    private readonly VendorOperationalProductCreationManager $productCreationManager,
-    private readonly EventStudioEventExtrasBuilder $extrasBuilder,
-    private readonly AccountProxyInterface $currentUser,
-    private readonly LoggerInterface $logger,
-  ) {}
+    EntityTypeManagerInterface $entity_type_manager,
+    EventVendorAccessChecker $event_vendor_access_checker,
+    VendorOperationalProductCreationManager $product_creation_manager,
+    EventStudioEventExtrasBuilder $extras_builder,
+    LoggerInterface $logger,
+  ) {
+    $this->entityTypeManager = $entity_type_manager;
+    $this->eventVendorAccessChecker = $event_vendor_access_checker;
+    $this->productCreationManager = $product_creation_manager;
+    $this->extrasBuilder = $extras_builder;
+    $this->logger = $logger;
+  }
 
   public static function create(ContainerInterface $container): static {
     return new static(
@@ -41,9 +60,41 @@ final class EventStudioEventExtrasForm extends FormBase {
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('myeventlane_event_studio.vendor_operational_product_creation_manager'),
       $container->get('myeventlane_event_studio.event_extras_builder'),
-      $container->get('current_user'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __wakeup(): void {
+    parent::__wakeup();
+    $this->ensureInjectedServices();
+  }
+
+  /**
+   * Ensures services are present after form cache unserialization.
+   */
+  private function ensureInjectedServices(): void {
+    if (isset($this->entityTypeManager, $this->eventVendorAccessChecker, $this->productCreationManager, $this->extrasBuilder, $this->logger)) {
+      return;
+    }
+    $container = \Drupal::getContainer();
+    if (!isset($this->entityTypeManager)) {
+      $this->entityTypeManager = $container->get('entity_type.manager');
+    }
+    if (!isset($this->eventVendorAccessChecker)) {
+      $this->eventVendorAccessChecker = $container->get('myeventlane_vendor.event_access_checker');
+    }
+    if (!isset($this->productCreationManager)) {
+      $this->productCreationManager = $container->get('myeventlane_event_studio.vendor_operational_product_creation_manager');
+    }
+    if (!isset($this->extrasBuilder)) {
+      $this->extrasBuilder = $container->get('myeventlane_event_studio.event_extras_builder');
+    }
+    if (!isset($this->logger)) {
+      $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
+    }
   }
 
   public function getFormId(): string {
@@ -51,6 +102,7 @@ final class EventStudioEventExtrasForm extends FormBase {
   }
 
   public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
+    $this->ensureInjectedServices();
     $event = $this->getRouteEvent($node);
     $this->assertCanManageEvent($event);
 
@@ -439,6 +491,7 @@ final class EventStudioEventExtrasForm extends FormBase {
   }
 
   public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $this->ensureInjectedServices();
     $event = $this->loadSubmittedEvent($form_state);
     if (!$event instanceof NodeInterface) {
       $form_state->setErrorByName('', $this->t('The event could not be loaded.'));
@@ -469,6 +522,7 @@ final class EventStudioEventExtrasForm extends FormBase {
   }
 
   public function submitToggleVisibility(array &$form, FormStateInterface $form_state): void {
+    $this->ensureInjectedServices();
     $event = $this->loadSubmittedEvent($form_state);
     if (!$event instanceof NodeInterface) {
       return;
@@ -494,6 +548,7 @@ final class EventStudioEventExtrasForm extends FormBase {
   }
 
   private function saveExtra(FormStateInterface $form_state, bool $add_another): void {
+    $this->ensureInjectedServices();
     $event = $this->loadSubmittedEvent($form_state);
     if (!$event instanceof NodeInterface) {
       $this->messenger()->addError($this->t('The event could not be loaded.'));
@@ -581,8 +636,9 @@ final class EventStudioEventExtrasForm extends FormBase {
     if ($event->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
-    if (!$this->currentUser->hasPermission('administer nodes')
-      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $this->currentUser())) {
+    $account = $this->currentUser();
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
       throw new AccessDeniedHttpException();
     }
   }
@@ -601,9 +657,6 @@ final class EventStudioEventExtrasForm extends FormBase {
     $product->save();
   }
 
-  /**
-   * @return list<int>
-   */
   /**
    * @param string|list<string> $key
    *
