@@ -216,9 +216,11 @@ mel_confirmation:
 
 # Live order summary + mobile totals on /event/{nid}/book (paid ticket matrix only).
 mel_booking_summary:
+  version: 1.3
   js:
     js/mel-booking-summary.js: {}
   dependencies:
     - core/drupal
     - core/drupalSettings
     - core/once
+    - myeventlane_commerce/event_extras_booking
