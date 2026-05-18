@@ -196,7 +196,7 @@ final class OperationalFulfillmentExecutionProjectionBuilder {
         continue;
       }
       $line = trim((string) ($row['operational_summary'] ?? ''));
-      if ($line === '' || $this->lineContainsInternalDiagnosticTokens($line)) {
+      if ($line === '' || OperationalFulfillmentExecutionCustomerDiagnostics::containsInternalDiagnosticTokens($line)) {
         continue;
       }
       $lines[] = $line;
@@ -215,13 +215,6 @@ final class OperationalFulfillmentExecutionProjectionBuilder {
    *
    * @return list<array{label: string, tone: string}>
    */
-  private function lineContainsInternalDiagnosticTokens(string $line): bool {
-    return (bool) preg_match(
-      '/\b(pickup_lane|redemption_lane|scanner_action|qr_payload|replay_token|fingerprint|device_fingerprint|inventory_quantity|stock_count|warehouse_ids|shipment_provider)=/',
-      $line,
-    );
-  }
-
   private function dedupeChips(array $chips): array {
     $seen = [];
     $out = [];

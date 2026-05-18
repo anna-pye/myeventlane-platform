@@ -244,8 +244,8 @@ final class OperationalFulfillmentExecutionManager {
     if (str_contains($raw, 'pickup_lane=required')) {
       return (string) $this->t('Collect this item at the venue when advised by the organiser.');
     }
-    $stripped = $this->stripInternalExecutionDiagnostics($raw);
-    if ($stripped !== '' && !$this->containsInternalDiagnosticTokens($stripped)) {
+    $stripped = OperationalFulfillmentExecutionCustomerDiagnostics::stripInternalExecutionDiagnostics($raw);
+    if ($stripped !== '' && !OperationalFulfillmentExecutionCustomerDiagnostics::containsInternalDiagnosticTokens($stripped)) {
       return $stripped;
     }
     return (string) $this->t('This item will be handled at the venue. Check your confirmation and organiser instructions before arrival.');
@@ -261,8 +261,8 @@ final class OperationalFulfillmentExecutionManager {
     if (str_contains($raw, 'redemption_lane=redeemable')) {
       return (string) $this->t('Redemption may be available at the venue per organiser rules.');
     }
-    $stripped = $this->stripInternalExecutionDiagnostics($raw);
-    if ($stripped !== '' && !$this->containsInternalDiagnosticTokens($stripped)) {
+    $stripped = OperationalFulfillmentExecutionCustomerDiagnostics::stripInternalExecutionDiagnostics($raw);
+    if ($stripped !== '' && !OperationalFulfillmentExecutionCustomerDiagnostics::containsInternalDiagnosticTokens($stripped)) {
       return $stripped;
     }
     return (string) $this->t('Your ticket will be handled at the venue. Check your confirmation before arrival.');
@@ -278,8 +278,8 @@ final class OperationalFulfillmentExecutionManager {
     if (str_contains($raw, 'redemption_lane=redeemable')) {
       return (string) $this->t('Redemption at venue');
     }
-    $stripped = $this->stripInternalExecutionDiagnostics($raw);
-    return $stripped !== '' && !$this->containsInternalDiagnosticTokens($stripped)
+    $stripped = OperationalFulfillmentExecutionCustomerDiagnostics::stripInternalExecutionDiagnostics($raw);
+    return $stripped !== '' && !OperationalFulfillmentExecutionCustomerDiagnostics::containsInternalDiagnosticTokens($stripped)
       ? $stripped
       : (string) $this->t('At venue');
   }
@@ -292,54 +292,6 @@ final class OperationalFulfillmentExecutionManager {
       'admission_access' => (string) $this->t('Admission is validated at the venue. Have your ticket ready when you arrive.'),
       default => (string) $this->t('On-site steps for this item are handled at the venue. Check your confirmation before arrival.'),
     };
-  }
-
-  /**
-   * Strips internal lifecycle diagnostics from customer execution projections.
-   *
-   * Staff lifecycle read-models retain key=value diagnostics; execution bundles
-   * for customer surfaces must not echo those tokens.
-   */
-  private function stripInternalExecutionDiagnostics(string $text): string {
-    if ($text === '') {
-      return '';
-    }
-    $patterns = [
-      '/\bscanner_action=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bpickup_lane=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bredemption_lane=[^;]*\s*(;\s*|\s*|$)/',
-      '/\btimed=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bsession=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bredemptions=\d+\/\d+\s*(;\s*|\s*|$)/',
-      '/\blifecycle=[^;]*\s*(;\s*|\s*|$)/',
-      '/\brequires_fulfilment=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bpdf=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bstate=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bfulfilment_row=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bqr_payload=[^;]*\s*(;\s*|\s*|$)/',
-      '/\breplay_token=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bfingerprint=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bdevice_fingerprint=[^;]*\s*(;\s*|\s*|$)/',
-      '/\binventory_quantity=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bstock_count=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bwarehouse_ids=[^;]*\s*(;\s*|\s*|$)/',
-      '/\bshipment_provider=[^;]*\s*(;\s*|\s*|$)/',
-    ];
-    $out = $text;
-    foreach ($patterns as $pattern) {
-      $out = preg_replace($pattern, '', $out) ?? $out;
-    }
-    $out = trim((string) $out);
-    $out = preg_replace('/;\s*;/', '; ', $out) ?? $out;
-    $out = preg_replace('/\s+—\s+—/', ' — ', $out) ?? $out;
-    return trim((string) $out, " \t\n\r\0\x0B;—");
-  }
-
-  private function containsInternalDiagnosticTokens(string $text): bool {
-    return (bool) preg_match(
-      '/\b(pickup_lane|redemption_lane|scanner_action|qr_payload|replay_token|fingerprint|device_fingerprint|inventory_quantity|stock_count|warehouse_ids|shipment_provider)=/',
-      $text,
-    );
   }
 
   /**

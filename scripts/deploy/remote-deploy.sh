@@ -28,6 +28,48 @@ MEL_CURRENT_SWITCHED=0
 MEL_MM_ENABLED_ATTEMPTED=0
 MEL_PREVIOUS_CURRENT=""
 
+mel_drush_maintenance_mode() {
+  # state:set (alias sset) requires a bootstrapped site; use integer for 0/1.
+  local mode="$1"
+  vendor/bin/drush state:set system.maintenance_mode "$mode" \
+    --input-format=integer \
+    --uri="$SITE_URI"
+}
+
+mel_db_connection_hint() {
+  cat >&2 <<'EOF'
+Database connection failed before deploy could continue.
+
+On the staging host, check:
+  1. MariaDB/MySQL is running:
+       sudo systemctl status mariadb || sudo systemctl status mysql
+       sudo systemctl start mariadb
+  2. Credentials in ~/staging/shared/settings.php match the live database.
+  3. Host vs socket: if host is 127.0.0.1 but MySQL only listens on a Unix socket,
+     set 'host' => 'localhost' in $databases['default']['default'] (or enable TCP bind).
+  4. Manual test from the release directory:
+       cd ~/staging/current && vendor/bin/drush sql:query "SELECT 1" --uri="$SITE_URI"
+EOF
+}
+
+mel_verify_drush_bootstrap() {
+  local label="${1:-Preflight}"
+  echo "${label}: verifying Drupal bootstrap (Drush)..."
+  local out
+  set +e
+  out="$(vendor/bin/drush status --uri="$SITE_URI" 2>&1)"
+  local rc=$?
+  set -e
+  if [ "$rc" -ne 0 ] || ! echo "$out" | grep -qE 'Drupal bootstrap\s*:\s*Successful'; then
+    echo "ERROR: Drupal did not bootstrap (${label})." >&2
+    printf '%s\n' "$out" >&2
+    mel_db_connection_hint
+    return 1
+  fi
+  echo "${label}: Drupal bootstrap OK"
+  return 0
+}
+
 mel_deploy_cleanup() {
   if [ "${DEPLOY_SUCCEEDED:-0}" = "1" ]; then
     return 0
@@ -42,7 +84,7 @@ mel_deploy_cleanup() {
   drush_cwd="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
   if [ -n "$drush_cwd" ] && [ -x "$drush_cwd/vendor/bin/drush" ]; then
     if [ "${MEL_MM_ENABLED_ATTEMPTED:-0}" = "1" ]; then
-      ( cd "$drush_cwd" && vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI" 2>/dev/null || true )
+      ( cd "$drush_cwd" && mel_drush_maintenance_mode 0 2>/dev/null || true )
     fi
     ( cd "$drush_cwd" && vendor/bin/drush cr --uri="$SITE_URI" 2>/dev/null || true )
   fi
@@ -191,15 +233,19 @@ if [ ! -x "vendor/bin/drush" ]; then
   exit 1
 fi
 
-# ---- MAINTENANCE MODE ----
-MEL_MM_ENABLED_ATTEMPTED=1
-vendor/bin/drush sset system.maintenance_mode 1 --uri="$SITE_URI" || true
-vendor/bin/drush cr --uri="$SITE_URI" || true
+# Fail fast before switching current/: new code + shared settings must bootstrap and reach MySQL.
+mel_verify_drush_bootstrap "Preflight (new release, before symlink switch)"
 
 # Capture previous live release before switching (for rollback).
 if [ -e "$CURRENT_PATH" ]; then
   MEL_PREVIOUS_CURRENT="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
 fi
+
+# ---- MAINTENANCE MODE ----
+MEL_MM_ENABLED_ATTEMPTED=1
+echo "Enabling maintenance mode..."
+mel_drush_maintenance_mode 1
+vendor/bin/drush cr --uri="$SITE_URI"
 
 # ---- SWITCH RELEASE (ATOMIC) ----
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
@@ -207,14 +253,7 @@ MEL_CURRENT_SWITCHED=1
 
 cd "$CURRENT_PATH"
 
-# Fail fast after switching current: use full status output (not only --field) so stderr is visible if Drush warns.
-echo "Verifying Drupal bootstrap (Drush against new release)..."
-DRUSH_STATUS_OUT="$(vendor/bin/drush status --uri="$SITE_URI" 2>&1)" || true
-if ! echo "$DRUSH_STATUS_OUT" | grep -qE 'Drupal bootstrap\s*:\s*Successful'; then
-  echo "ERROR: Drupal did not bootstrap after release switch." >&2
-  echo "$DRUSH_STATUS_OUT" >&2
-  exit 1
-fi
+mel_verify_drush_bootstrap "Post-switch (current release)"
 
 # ---- CONFIG SYNC: mirror artifact → shared sync directory (single source of truth per release) ----
 # Staging uses a shared path (e.g. /home/mel/staging/config/sync) referenced by settings.php.
@@ -320,14 +359,14 @@ if [ "$_mel_drush_cr_rc" -ne 0 ]; then
   exit "$_mel_drush_cr_rc"
 fi
 
-echo "Finalize: drush sset system.maintenance_mode 0..."
+echo "Finalize: drush state:set system.maintenance_mode 0..."
 set +e
-_mel_drush_mm_out="$(vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI" 2>&1)"
+_mel_drush_mm_out="$(mel_drush_maintenance_mode 0 2>&1)"
 _mel_drush_mm_rc=$?
 set -e
 printf '%s\n' "$_mel_drush_mm_out"
 if [ "$_mel_drush_mm_rc" -ne 0 ]; then
-  echo "ERROR: drush sset system.maintenance_mode 0 failed during finalize (exit $_mel_drush_mm_rc)." >&2
+  echo "ERROR: drush state:set system.maintenance_mode 0 failed during finalize (exit $_mel_drush_mm_rc)." >&2
   exit "$_mel_drush_mm_rc"
 fi
 
