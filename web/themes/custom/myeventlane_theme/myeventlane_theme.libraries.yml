@@ -224,3 +224,4 @@ mel_booking_summary:
     - core/drupalSettings
     - core/once
     - myeventlane_commerce/event_extras_booking
+    - myeventlane_theme/mel_toasts
