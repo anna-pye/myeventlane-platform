@@ -42,47 +42,79 @@
   --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
 }
 
-// Classic — warm default (inherits existing .mel-event--v2 look; accent-driven CTAs).
+// Classic — warm MEL default with visible accent from colour preset.
 .mel-event-page--classic.mel-event--v2 {
   background-color: colors.$mel-color-bg;
 
-  .mel-event__card,
+  .mel-event__signal {
+    background: var(--mel-event-accent-soft, colors.$mel-color-surface-alt);
+    color: colors.$mel-color-text;
+  }
+
+  .mel-event__signal--strong {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+  }
+
   .mel-event-meta-bar,
+  .mel-event__card,
   .mel-card--sticky {
     background: colors.$mel-color-surface;
     border-radius: radii.$mel-radius-xl;
     box-shadow: shadows.$mel-shadow-md;
+    border: 1px solid colors.$mel-color-border;
   }
 
-  .mel-event--v2 .mel-btn--primary,
-  .mel-event--v2 .button--primary {
+  .mel-event-info__title,
+  .mel-event-section__title,
+  .mel-card__title {
+    color: colors.$mel-color-text;
+  }
+
+  .mel-event-info__title::after,
+  .mel-event-section__title::after {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+  }
+
+  .mel-btn--primary,
+  .button--primary,
+  .mel-event--v2 .mel-btn--primary {
     background-color: var(--mel-event-accent, colors.$mel-color-primary);
     border-color: var(--mel-event-accent, colors.$mel-color-primary);
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     min-height: 44px;
+    font-weight: 600;
   }
 }
 
-// Immersive — dark cinematic treatment; readable cards and CTAs.
+// Immersive — cinematic full-page treatment (obvious vs Classic).
 .mel-event-page--immersive.mel-event--v2 {
   --mel-event-surface: #{color.mix(colors.$mel-color-navy, #0d1117, 88%)};
   --mel-event-surface-raised: #{color.mix(colors.$mel-color-navy, #1a2330, 72%)};
   --mel-event-text: #{colors.$mel-color-text-inverse};
   --mel-event-text-muted: #{color.mix(#fff, colors.$mel-color-navy, 62%)};
 
-  background: linear-gradient(
-    180deg,
-    color.mix(colors.$mel-color-navy, #000, 92%) 0%,
-    color.mix(colors.$mel-color-navy, #1a2330, 72%) 100%
-  );
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.08) 0%, transparent 55%),
+    linear-gradient(
+      180deg,
+      color.mix(colors.$mel-color-navy, #000, 92%) 0%,
+      color.mix(colors.$mel-color-navy, #1a2330, 72%) 100%
+    );
   color: var(--mel-event-text);
+
+  .mel-event-hero--featured-style {
+    border-radius: radii.$mel-radius-xl;
+    overflow: hidden;
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.45);
+  }
 
   .mel-event-hero--featured-style .mel-event-hero__overlay {
     background: linear-gradient(
       180deg,
-      rgba(0, 0, 0, 0.15) 0%,
-      rgba(13, 17, 23, 0.72) 55%,
-      rgba(13, 17, 23, 0.92) 100%
+      rgba(0, 0, 0, 0.05) 0%,
+      rgba(13, 17, 23, 0.55) 42%,
+      rgba(13, 17, 23, 0.94) 100%
     );
   }
 
@@ -90,7 +122,8 @@
   .mel-event-hero-card__title,
   #mel-event-title {
     color: var(--mel-event-text);
-    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+    letter-spacing: -0.02em;
   }
 
   .mel-event-meta-bar,
@@ -98,14 +131,17 @@
   .mel-card--sticky,
   .mel-event-layout__main .mel-card {
     background: var(--mel-event-surface-raised);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
     color: var(--mel-event-text);
+    backdrop-filter: blur(6px);
   }
 
   .mel-event-meta-bar,
   .mel-event-layout__main,
-  .mel-event-layout__sidebar {
+  .mel-event-layout__sidebar,
+  .mel-event-info__body,
+  .mel-event-section__body {
     color: var(--mel-event-text);
   }
 
@@ -125,6 +161,22 @@
     color: var(--mel-event-text-muted);
   }
 
+  .mel-event__signal--strong {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .mel-event-info__title,
+  .mel-event-section__title {
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-info__title::after,
+  .mel-event-section__title::after {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+  }
+
   .mel-btn--primary,
   .button--primary,
   .mel-event--v2 .mel-btn--primary {
@@ -132,29 +184,33 @@
     border-color: var(--mel-event-accent, colors.$mel-color-primary);
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     min-height: 44px;
+    font-weight: 700;
+    box-shadow: 0 10px 28px color.mix(#000, colors.$mel-color-primary, 35%);
   }
 
   .mel-btn--secondary,
   .button--secondary {
     background: transparent;
-    border-color: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.38);
     color: var(--mel-event-text);
     min-height: 44px;
   }
 
-  .mel-event__signal--strong {
-    background: var(--mel-event-accent, colors.$mel-color-primary);
-    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
-  }
-
   .mel-mobile-cta {
     background: var(--mel-event-surface-raised);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .mel-event-hero--featured-style .mel-event-hero__overlay {
       transition: none;
+    }
+
+    .mel-event-meta-bar,
+    .mel-event__card,
+    .mel-card--sticky {
+      backdrop-filter: none;
     }
   }
 }

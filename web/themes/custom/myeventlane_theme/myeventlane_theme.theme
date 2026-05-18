@@ -2815,6 +2815,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     }
 
     if ($view_mode === 'full' && $node?->bundle() === 'event') {
+      _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
       $variables['mel_event_selling_fast'] = FALSE;
       if (\Drupal::hasService('myeventlane_capacity.service')) {
         $capacity = \Drupal::service('myeventlane_capacity.service');
@@ -3796,8 +3797,38 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
 }
 
 /**
- * Preprocess variables for event nodes only.
+ * Applies Classic/Immersive page style classes to event node template variables.
  */
+function _myeventlane_theme_apply_event_page_style_theme_variables(array &$variables, NodeInterface $node): void {
+  if (($variables['view_mode'] ?? '') !== 'full') {
+    return;
+  }
+
+  $classes = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
+  $style = 'classic';
+  $colour = 'coral';
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    && \Drupal::hasService('myeventlane_event_studio.event_page_style_resolver')) {
+    /** @var \Drupal\myeventlane_event_studio\Service\EventPageStyleResolver $resolver */
+    $resolver = \Drupal::service('myeventlane_event_studio.event_page_style_resolver');
+    $resolved = $resolver->resolveForPublicRender($node);
+    $style = $resolved['style'];
+    $colour = $resolved['colour'];
+    $classes = $resolved['classes'];
+  }
+
+  $variables['event_page_style'] = $style;
+  $variables['event_theme_colour'] = $colour;
+  $variables['event_page_classes'] = $classes;
+
+  if (!isset($variables['attributes']) || !$variables['attributes'] instanceof Attribute) {
+    $existing = $variables['attributes'] ?? [];
+    $variables['attributes'] = new Attribute(is_array($existing) ? $existing : []);
+  }
+  $variables['attributes']->addClass($classes);
+}
+
 /**
  * Preprocess event nodes to resolve hero image safely.
  */
@@ -4114,32 +4145,6 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
         $variables['mel_booking_action_label'] = new TranslatableMarkup('Get your tickets');
       }
     }
-  }
-
-  // Event page style themes (Classic / Immersive + colour preset).
-  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
-    && \Drupal::hasService('myeventlane_event_studio.event_page_style_resolver')) {
-    /** @var \Drupal\myeventlane_event_studio\Service\EventPageStyleResolver $page_style_resolver */
-    $page_style_resolver = \Drupal::service('myeventlane_event_studio.event_page_style_resolver');
-    $resolved = $page_style_resolver->resolveForPublicRender($node);
-    $variables['event_page_style'] = $resolved['style'];
-    $variables['event_theme_colour'] = $resolved['colour'];
-    $variables['event_page_classes'] = $resolved['classes'];
-    if (!isset($variables['attributes']) || !is_array($variables['attributes'])) {
-      $variables['attributes'] = [];
-    }
-    $variables['attributes']['class'] ??= [];
-    if (!is_array($variables['attributes']['class'])) {
-      $variables['attributes']['class'] = [];
-    }
-    foreach ($resolved['classes'] as $class) {
-      $variables['attributes']['class'][] = $class;
-    }
-  }
-  else {
-    $variables['event_page_style'] = 'classic';
-    $variables['event_theme_colour'] = 'coral';
-    $variables['event_page_classes'] = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
   }
 
   // Calendar URLs for event full template (same builder as checkout confirmation).
