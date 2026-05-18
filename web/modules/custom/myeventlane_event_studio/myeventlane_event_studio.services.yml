@@ -284,6 +284,7 @@ services:
     class: Drupal\myeventlane_event_studio\Service\EventStyleAccessManager
     arguments:
       - '@?myeventlane_pro.pro_access'
+      - '@entity_type.manager'
 
   myeventlane_event_studio.event_page_style_resolver:
     class: Drupal\myeventlane_event_studio\Service\EventPageStyleResolver

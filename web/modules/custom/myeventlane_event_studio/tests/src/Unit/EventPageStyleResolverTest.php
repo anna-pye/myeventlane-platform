@@ -47,12 +47,13 @@ final class EventPageStyleResolverTest extends UnitTestCase {
       $resolved['classes']
     );
     $this->assertFalse($resolved['is_pro_style']);
+    $this->assertFalse($resolved['is_customized']);
   }
 
   /**
    * @covers ::resolveForPublicRender
    */
-  public function testImmersiveDeniedFallsBackToClassicOnPublicRender(): void {
+  public function testNonProOwnerStoredImmersivePurpleResolvesClassicCoral(): void {
     $owner = $this->createVendorAccount(FALSE);
     $node = $this->createEventNodeWithStyle('immersive', 'purple', 42);
 
@@ -63,16 +64,17 @@ final class EventPageStyleResolverTest extends UnitTestCase {
     $resolved = $resolver->resolveForPublicRender($node);
 
     $this->assertSame(EventPageStyleResolver::STYLE_CLASSIC, $resolved['style']);
-    $this->assertSame(EventPageStyleResolver::COLOUR_PURPLE, $resolved['colour']);
+    $this->assertSame(EventPageStyleResolver::COLOUR_CORAL, $resolved['colour']);
     $this->assertContains('mel-event-page--classic', $resolved['classes']);
+    $this->assertContains('mel-event-page--colour-coral', $resolved['classes']);
     $this->assertNotContains('mel-event-page--immersive', $resolved['classes']);
-    $this->assertFalse($resolved['is_pro_style']);
+    $this->assertNotContains('mel-event-page--colour-purple', $resolved['classes']);
   }
 
   /**
    * @covers ::resolveForPublicRender
    */
-  public function testImmersiveAllowedForProOwnerOnPublicRender(): void {
+  public function testProOwnerStoredImmersivePurpleResolvesImmersivePurple(): void {
     $owner = $this->createVendorAccount(TRUE);
     $node = $this->createEventNodeWithStyle('immersive', 'purple', 99);
 
@@ -91,57 +93,56 @@ final class EventPageStyleResolverTest extends UnitTestCase {
   /**
    * @covers ::resolveForPersistence
    */
-  public function testPersistenceDowngradesImmersiveWhenAccessDenied(): void {
+  public function testPersistenceDowngradesProChoicesForNonPro(): void {
     $node = $this->createMock(NodeInterface::class);
     $account = $this->createVendorAccount(FALSE);
 
     $resolver = new EventPageStyleResolver(new EventStyleAccessManager(NULL));
-    $resolved = $resolver->resolveForPersistence(
-      $node,
-      EventPageStyleResolver::STYLE_IMMERSIVE,
-      EventPageStyleResolver::COLOUR_PURPLE,
-      $account,
-    );
+    $resolved = $resolver->resolveForPersistence($node, [
+      'field_mel_page_style' => EventPageStyleResolver::STYLE_IMMERSIVE,
+      'field_mel_theme_colour' => EventPageStyleResolver::COLOUR_PURPLE,
+    ], $account);
 
     $this->assertSame(EventPageStyleResolver::STYLE_CLASSIC, $resolved['style']);
-    $this->assertSame(EventPageStyleResolver::COLOUR_PURPLE, $resolved['colour']);
+    $this->assertSame(EventPageStyleResolver::COLOUR_CORAL, $resolved['colour']);
   }
 
   /**
    * @covers ::resolveForPersistence
    */
-  public function testPersistenceAllowsImmersiveWhenAccessGranted(): void {
+  public function testPersistenceAllowsProChoicesForAdmin(): void {
     $node = $this->createMock(NodeInterface::class);
     $account = $this->createVendorAccount(TRUE);
 
     $resolver = new EventPageStyleResolver(new EventStyleAccessManager());
-    $resolved = $resolver->resolveForPersistence(
-      $node,
-      EventPageStyleResolver::STYLE_IMMERSIVE,
-      EventPageStyleResolver::COLOUR_MINT,
-      $account,
-    );
+    $resolved = $resolver->resolveForPersistence($node, [
+      'field_mel_page_style' => EventPageStyleResolver::STYLE_IMMERSIVE,
+      'field_mel_theme_colour' => EventPageStyleResolver::COLOUR_MINT,
+    ], $account);
 
     $this->assertSame(EventPageStyleResolver::STYLE_IMMERSIVE, $resolved['style']);
     $this->assertSame(EventPageStyleResolver::COLOUR_MINT, $resolved['colour']);
   }
 
   /**
-   * @covers ::resolveForPublicRender
+   * @covers ::colourOptions
    */
-  public function testNonProVendorKeepsColourPresetOnClassicFallback(): void {
-    $owner = $this->createVendorAccount(FALSE);
-    $node = $this->createEventNodeWithStyle('immersive', 'gold', 7);
+  public function testColourLabelsIncludeFriendlyNames(): void {
+    $labels = (new EventPageStyleResolver())->colourOptions();
 
-    $resolver = new EventPageStyleResolver(
-      new EventStyleAccessManager(NULL),
-      $this->createOwnerEntityTypeManager($owner, 7),
-    );
-    $resolved = $resolver->resolveForPublicRender($node);
+    $this->assertSame('Coral Pop', $labels[EventPageStyleResolver::COLOUR_CORAL]);
+    $this->assertSame('Violet Pulse', $labels[EventPageStyleResolver::COLOUR_PURPLE]);
+    $this->assertArrayHasKey(EventPageStyleResolver::COLOUR_MINT, $labels);
+  }
 
-    $this->assertSame(EventPageStyleResolver::STYLE_CLASSIC, $resolved['style']);
-    $this->assertSame(EventPageStyleResolver::COLOUR_GOLD, $resolved['colour']);
-    $this->assertContains('mel-event-page--colour-gold', $resolved['classes']);
+  /**
+   * @covers ::styleOptions
+   */
+  public function testStyleLabelsIncludeFriendlyNames(): void {
+    $labels = (new EventPageStyleResolver())->styleOptions();
+
+    $this->assertSame('Warm & Energetic', $labels[EventPageStyleResolver::STYLE_CLASSIC]);
+    $this->assertSame('Bold & Immersive', $labels[EventPageStyleResolver::STYLE_IMMERSIVE]);
   }
 
   private function createEventNodeWithStyle(string $style, string $colour, int $uid): NodeInterface {

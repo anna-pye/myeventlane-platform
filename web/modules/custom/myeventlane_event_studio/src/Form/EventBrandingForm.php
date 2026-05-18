@@ -126,11 +126,17 @@ final class EventBrandingForm extends EventStudioBaseForm {
       );
     }
 
-    if ($sanitized_style === EventPageStyleResolver::STYLE_IMMERSIVE
-      && !$this->eventStyleAccess->canUseImmersiveStyle($loaded, $this->currentUser)) {
+    if ($style !== '' && !$this->eventStyleAccess->canUseStyle($sanitized_style, $this->currentUser)) {
       $form_state->setErrorByName(
         'mel][field_mel_page_style',
-        $this->t('MEL Immersive requires MyEventLane Pro. Choose MEL Classic or upgrade to unlock Immersive styling.')
+        $this->t('Custom page styles are a Pro feature.')
+      );
+    }
+
+    if ($colour !== '' && !$this->eventStyleAccess->canUseColour($sanitized_colour, $this->currentUser)) {
+      $form_state->setErrorByName(
+        'mel][field_mel_theme_colour',
+        $this->t('Custom colour palettes are a Pro feature.')
       );
     }
   }
@@ -273,18 +279,25 @@ final class EventBrandingForm extends EventStudioBaseForm {
    * @param array<string, mixed> $melDefaults
    */
   private function buildPageStyleFields(array &$form, NodeInterface $node, array $melDefaults): void {
-    $can_immersive = $this->eventStyleAccess->canUseImmersiveStyle($node, $this->currentUser);
+    $can_customize = $this->eventStyleAccess->canCustomizeEventPage($this->currentUser);
+    $style_labels = $this->eventPageStyleResolver->styleOptions();
+    $colour_labels = $this->eventPageStyleResolver->colourOptions();
 
-    $style_default = $melDefaults['field_mel_page_style'] ?? EventPageStyleResolver::STYLE_CLASSIC;
-    if ($node->hasField('field_mel_page_style') && !$node->get('field_mel_page_style')->isEmpty()) {
-      $style_default = (string) $node->get('field_mel_page_style')->value;
+    if ($can_customize) {
+      $style_default = $melDefaults['field_mel_page_style'] ?? EventPageStyleResolver::STYLE_CLASSIC;
+      if ($node->hasField('field_mel_page_style') && !$node->get('field_mel_page_style')->isEmpty()) {
+        $style_default = (string) $node->get('field_mel_page_style')->value;
+      }
+      $colour_default = $melDefaults['field_mel_theme_colour'] ?? EventPageStyleResolver::COLOUR_CORAL;
+      if ($node->hasField('field_mel_theme_colour') && !$node->get('field_mel_theme_colour')->isEmpty()) {
+        $colour_default = (string) $node->get('field_mel_theme_colour')->value;
+      }
+    }
+    else {
+      $style_default = EventPageStyleResolver::STYLE_CLASSIC;
+      $colour_default = EventPageStyleResolver::COLOUR_CORAL;
     }
     $style_default = $this->eventPageStyleResolver->sanitizeStyle((string) $style_default);
-
-    $colour_default = $melDefaults['field_mel_theme_colour'] ?? EventPageStyleResolver::COLOUR_CORAL;
-    if ($node->hasField('field_mel_theme_colour') && !$node->get('field_mel_theme_colour')->isEmpty()) {
-      $colour_default = (string) $node->get('field_mel_theme_colour')->value;
-    }
     $colour_default = $this->eventPageStyleResolver->sanitizeColour((string) $colour_default);
 
     $form['mel']['page_style_shell'] = [
@@ -292,18 +305,18 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#markup' => Markup::create(
         '<section class="mel-es-field-group mel-es-field-group--page-style" aria-labelledby="mel-es-page-style-title">'
         . '<header class="mel-es-field-group__header">'
-        . '<h3 class="mel-es-field-group__title" id="mel-es-page-style-title">' . Html::escape((string) $this->t('Event page style')) . '</h3>'
-        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('What feeling should this event page have?')) . '</p>'
+        . '<h3 class="mel-es-field-group__title" id="mel-es-page-style-title">' . Html::escape((string) $this->t('Choose your event page style')) . '</h3>'
+        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Your event page uses the MyEventLane Warm & Energetic style by default. Pro organisers can unlock extra styles and colour moods.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body mel-es-field-group__body--page-style">'
       ),
       '#weight' => 15,
     ];
 
-    $classic_desc = $this->t('Included — friendly, bright, community-first. Best for workshops, markets, and community events.');
-    $immersive_desc = $can_immersive
-      ? $this->t('Pro — bold, image-led, high-impact. Best for music, nightlife, launches, and premium events.')
-      : $this->t('Pro — bold, image-led, high-impact. Best for music, nightlife, launches, and premium events. Unlock Immersive styling with MyEventLane Pro.');
+    $style_options = [];
+    foreach ($style_labels as $key => $label) {
+      $style_options[$key] = $this->t($label);
+    }
 
     $form['mel']['field_mel_page_style'] = [
       '#type' => 'radios',
@@ -311,27 +324,24 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#mel_option_cards' => TRUE,
       '#mel_option_cards_tickets_layout' => TRUE,
       '#mel_option_descriptions' => [
-        EventPageStyleResolver::STYLE_CLASSIC => $classic_desc,
-        EventPageStyleResolver::STYLE_IMMERSIVE => $immersive_desc,
+        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Friendly, bright and community-first. Best for local events, workshops, gigs and gatherings.'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('A high-impact dark event page for music, nightlife, launches and premium experiences.'),
       ],
-      '#options' => [
-        EventPageStyleResolver::STYLE_CLASSIC => $this->t('MEL Classic'),
-        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('MEL Immersive'),
-      ],
+      '#options' => $style_options,
       '#default_value' => $style_default,
       '#attributes' => ['class' => ['mel-page-style-radios']],
     ];
 
-    if (!$can_immersive) {
+    if (!$can_customize) {
       $form['mel']['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#disabled'] = TRUE;
       $form['mel']['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#attributes']['class'][] = 'mel-option-card--locked';
     }
 
-    if (!$can_immersive) {
-      $form['mel']['immersive_upgrade'] = [
+    if (!$can_customize) {
+      $form['mel']['page_style_upgrade'] = [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => Html::escape((string) $this->t('Unlock Immersive styling with MyEventLane Pro.')),
+        '#value' => Html::escape((string) $this->t('Upgrade to Pro to customise your event page.')),
         '#attributes' => [
           'class' => ['mel-page-style-upgrade', 'mel-es-field-group__reassurance'],
           'role' => 'note',
@@ -340,17 +350,14 @@ final class EventBrandingForm extends EventStudioBaseForm {
       ];
     }
 
-    $colour_options = [
-      EventPageStyleResolver::COLOUR_CORAL => $this->t('Coral'),
-      EventPageStyleResolver::COLOUR_PURPLE => $this->t('Purple'),
-      EventPageStyleResolver::COLOUR_MINT => $this->t('Mint'),
-      EventPageStyleResolver::COLOUR_GOLD => $this->t('Gold'),
-      EventPageStyleResolver::COLOUR_BLUE => $this->t('Deep Blue'),
-    ];
+    $colour_options = [];
+    foreach ($colour_labels as $key => $label) {
+      $colour_options[$key] = $this->t($label);
+    }
 
     $form['mel']['field_mel_theme_colour'] = [
       '#type' => 'radios',
-      '#title' => $this->t('Theme colour'),
+      '#title' => $this->t('Colour mood'),
       '#title_display' => 'invisible',
       '#mel_option_cards' => TRUE,
       '#options' => $colour_options,
@@ -358,12 +365,16 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#attributes' => ['class' => ['mel-page-style-colours']],
       '#prefix' => '<div class="mel-page-style-colour-block" aria-labelledby="mel-es-theme-colour-title">'
         . '<h4 class="mel-es-field-group__title mel-page-style-colour-block__title" id="mel-es-theme-colour-title">'
-        . Html::escape((string) $this->t('Theme colour'))
+        . Html::escape((string) $this->t('Colour mood'))
         . '</h4>',
       '#suffix' => '</div>',
     ];
 
     foreach (array_keys($colour_options) as $colour_key) {
+      if ($colour_key !== EventPageStyleResolver::COLOUR_CORAL && !$can_customize) {
+        $form['mel']['field_mel_theme_colour'][$colour_key]['#disabled'] = TRUE;
+        $form['mel']['field_mel_theme_colour'][$colour_key]['#attributes']['class'][] = 'mel-option-card--locked';
+      }
       $form['mel']['field_mel_theme_colour'][$colour_key]['#wrapper_attributes']['class'][] = 'mel-page-style-colour-card';
       $form['mel']['field_mel_theme_colour'][$colour_key]['#wrapper_attributes']['class'][] = 'mel-page-style-colour-card--' . $colour_key;
     }

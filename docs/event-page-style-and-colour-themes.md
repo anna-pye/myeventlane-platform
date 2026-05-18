@@ -2,16 +2,30 @@
 
 ## Product decision
 
-- **MEL Classic** is the default public event page style for all vendors.
-- **MEL Immersive** is a premium layout for organisers with Pro capability (or admin).
-- Vendors choose a **safe colour preset** (no custom hex in this slice).
-- Billing, checkout, and subscription purchase are **out of scope** here; capability is gated via a dedicated service seam.
+- **Mockup 1 — Warm & Energetic** (`classic` + `coral`) is the default public event page for everyone.
+- **Non-Pro vendors** always publish and render `classic` / `coral` (stored Pro-only values do not leak to the public page).
+- **Pro organisers** (or admin) may choose **Bold & Immersive** (`immersive`) and any curated colour mood preset.
+- Vendors choose from **MEL-designed presets only** (no custom hex picker).
+- **Clean & Modern** (Mockup 2) is deferred to a future slice.
+- Billing, checkout, and subscription purchase are **out of scope**; capability is gated via `EventStyleAccessManager` + `ProAccessService`.
+
+## Vendor-facing labels
+
+| Machine | Label |
+|---------|--------|
+| `classic` | Warm & Energetic |
+| `immersive` | Bold & Immersive |
+| `coral` | Coral Pop |
+| `purple` | Violet Pulse |
+| `mint` | Mint Night |
+| `gold` | Golden Hour |
+| `blue` | Ocean Blue |
 
 ## Classic vs Immersive
 
-| | MEL Classic | MEL Immersive |
+| | Warm & Energetic (`classic`) | Bold & Immersive (`immersive`) |
 |---|-------------|----------------|
-| Access | All vendors | Pro (`event_immersive_style`) or `administer nodes` |
+| Public render | All vendors (default) | Pro (`event_immersive_style`) or `administer nodes` |
 | Feel | Warm, community-first, bright cards | Dark cinematic hero, bold contrast |
 | Best for | Workshops, markets, community | Music, nightlife, launches |
 
@@ -29,9 +43,10 @@ Allowed colours: `coral`, `purple`, `mint`, `gold`, `blue`.
 
 - **Service ID:** `myeventlane_event_studio.event_style_access`
 - **Class:** `Drupal\myeventlane_event_studio\Service\EventStyleAccessManager`
-- **Method:** `canUseImmersiveStyle(NodeInterface $event, AccountInterface $account): bool`
+- **Methods:** `canCustomizeEventPage()`, `canUseStyle()`, `canUseColour()`, `canUseImmersiveStyle()`
 - **Pro feature key:** `event_immersive_style` (listed in `ProAccessService` gated features)
 - **Admin bypass:** `administer nodes`
+- Non-Pro: `classic` + `coral` only.
 - Future: subscription state, boost purchase, or admin override can extend this service without changing Event Studio save paths.
 
 ## Public render resolver
@@ -39,13 +54,14 @@ Allowed colours: `coral`, `purple`, `mint`, `gold`, `blue`.
 - **Service ID:** `myeventlane_event_studio.event_page_style_resolver`
 - **Class:** `Drupal\myeventlane_event_studio\Service\EventPageStyleResolver`
 - Sanitizes stored values; builds modifier classes for Twig.
-- **This slice:** public pages trust stored style when valid; Studio blocks unauthorized Immersive saves. When Pro expires, a future job should downgrade stored `field_mel_page_style` using entitlement state.
+- **Public render:** uses event owner capability; non-Pro owners always resolve to `classic` / `coral` regardless of stored values.
+- **Studio save:** validation errors for Pro-only style/colour; `resolveForPersistence()` downgrades defense-in-depth.
 
 ## Event Studio UX
 
 - **Form:** `EventBrandingForm` (Branding workspace)
-- **Probe:** “What feeling should this event page have?”
-- **Present:** Classic and Immersive option cards (`#mel_option_cards`)
+- **Section:** “Choose your event page style”
+- **Present:** Warm & Energetic and Bold & Immersive option cards (`#mel_option_cards`)
 - **Listen:** Selected style + colour radios reflect current node values
 - **Ask:** Save writes `field_mel_page_style` and `field_mel_theme_colour` via `EventStudioSaveService::saveBrandingHero()`
 - **Invite:** Non-Pro vendors see Immersive disabled with upgrade copy (no billing link in this slice)
@@ -74,7 +90,7 @@ SCSS: `web/themes/custom/myeventlane_theme/src/scss/components/_event-page-theme
 
 ## QA checklist
 
-- [ ] Vendor without Pro: Classic + colours save; Immersive locked; tampered POST rejected
+- [ ] Vendor without Pro: public page classic/coral; Immersive and non-coral moods locked; tampered POST rejected
 - [ ] Pro vendor: Immersive saves and public page shows Immersive classes
 - [ ] Admin: Immersive available
 - [ ] Invalid style/colour values sanitize to classic/coral on public render

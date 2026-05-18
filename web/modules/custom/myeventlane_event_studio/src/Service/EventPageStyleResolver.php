@@ -13,7 +13,8 @@ use Drupal\user\UserInterface;
  * Resolves and sanitizes public event page style/colour for theme render.
  *
  * Stored field values may reflect Pro-only choices; public render and save
- * paths must enforce capability so non-Pro events never show Immersive.
+ * paths must enforce capability so non-Pro events always show Mockup 1
+ * (classic + coral).
  */
 final class EventPageStyleResolver {
 
@@ -56,6 +57,33 @@ final class EventPageStyleResolver {
   ) {}
 
   /**
+   * Vendor-facing style labels (machine value => label).
+   *
+   * @return array<string, string>
+   */
+  public function styleOptions(): array {
+    return [
+      self::STYLE_CLASSIC => 'Warm & Energetic',
+      self::STYLE_IMMERSIVE => 'Bold & Immersive',
+    ];
+  }
+
+  /**
+   * Vendor-facing colour mood labels (machine value => label).
+   *
+   * @return array<string, string>
+   */
+  public function colourOptions(): array {
+    return [
+      self::COLOUR_CORAL => 'Coral Pop',
+      self::COLOUR_PURPLE => 'Violet Pulse',
+      self::COLOUR_MINT => 'Mint Night',
+      self::COLOUR_GOLD => 'Golden Hour',
+      self::COLOUR_BLUE => 'Ocean Blue',
+    ];
+  }
+
+  /**
    * Resolves style/colour for anonymous/public full-page render.
    *
    * Uses the event owner's Pro capability (not the current viewer). Does not
@@ -66,6 +94,7 @@ final class EventPageStyleResolver {
    *   colour: string,
    *   classes: list<string>,
    *   is_pro_style: bool,
+   *   is_customized: bool,
    *   stored_style: string,
    *   stored_colour: string,
    * }
@@ -77,21 +106,30 @@ final class EventPageStyleResolver {
     return $this->buildResolved(
       $stored_style,
       $stored_colour,
-      $this->canEventUseImmersive($event),
+      $this->canEventCustomize($event),
     );
   }
 
   /**
    * Resolves style/colour for Event Studio persistence.
    *
+   * @param array{field_mel_page_style?: string|null, field_mel_theme_colour?: string|null} $submitted
+   *   Mel fragment keys from the branding form.
+   *
    * @return array{style: string, colour: string}
    */
   public function resolveForPersistence(
     NodeInterface $event,
-    ?string $submitted_style,
-    ?string $submitted_colour,
+    array $submitted,
     AccountInterface $account,
   ): array {
+    $submitted_style = isset($submitted['field_mel_page_style']) && is_scalar($submitted['field_mel_page_style'])
+      ? (string) $submitted['field_mel_page_style']
+      : NULL;
+    $submitted_colour = isset($submitted['field_mel_theme_colour']) && is_scalar($submitted['field_mel_theme_colour'])
+      ? (string) $submitted['field_mel_theme_colour']
+      : NULL;
+
     $stored_style = $submitted_style !== NULL && $submitted_style !== ''
       ? $this->sanitizeStyle($submitted_style)
       : $this->readStoredStyle($event);
@@ -99,10 +137,10 @@ final class EventPageStyleResolver {
       ? $this->sanitizeColour($submitted_colour)
       : $this->readStoredColour($event);
 
-    $can_immersive = $this->styleAccess instanceof EventStyleAccessManager
-      && $this->styleAccess->canUseImmersiveStyle($event, $account);
+    $can_customize = $this->styleAccess instanceof EventStyleAccessManager
+      && $this->styleAccess->canCustomizeEventPage($account);
 
-    $resolved = $this->buildResolved($stored_style, $stored_colour, $can_immersive);
+    $resolved = $this->buildResolved($stored_style, $stored_colour, $can_customize);
 
     return [
       'style' => $resolved['style'],
@@ -158,9 +196,9 @@ final class EventPageStyleResolver {
   }
 
   /**
-   * Whether the event owner may use Immersive on the public page.
+   * Whether the event owner may customise page style and colour on the public page.
    */
-  public function canEventUseImmersive(NodeInterface $event): bool {
+  public function canEventCustomize(NodeInterface $event): bool {
     if (!$this->styleAccess instanceof EventStyleAccessManager) {
       return FALSE;
     }
@@ -170,7 +208,14 @@ final class EventPageStyleResolver {
       return FALSE;
     }
 
-    return $this->styleAccess->canUseImmersiveStyle($event, $owner);
+    return $this->styleAccess->canCustomizeEventPage($owner);
+  }
+
+  /**
+   * @deprecated Use canEventCustomize(). Kept for existing call sites.
+   */
+  public function canEventUseImmersive(NodeInterface $event): bool {
+    return $this->canEventCustomize($event);
   }
 
   /**
@@ -179,23 +224,33 @@ final class EventPageStyleResolver {
    *   colour: string,
    *   classes: list<string>,
    *   is_pro_style: bool,
+   *   is_customized: bool,
    *   stored_style: string,
    *   stored_colour: string,
    * }
    */
-  private function buildResolved(string $stored_style, string $stored_colour, bool $can_immersive): array {
+  private function buildResolved(string $stored_style, string $stored_colour, bool $can_customize): array {
+    if (!$can_customize) {
+      return [
+        'style' => self::STYLE_CLASSIC,
+        'colour' => self::COLOUR_CORAL,
+        'classes' => $this->buildPageClasses(self::STYLE_CLASSIC, self::COLOUR_CORAL),
+        'is_pro_style' => FALSE,
+        'is_customized' => FALSE,
+        'stored_style' => $stored_style,
+        'stored_colour' => $stored_colour,
+      ];
+    }
+
     $style = $this->sanitizeStyle($stored_style);
     $colour = $this->sanitizeColour($stored_colour);
-
-    if ($style === self::STYLE_IMMERSIVE && !$can_immersive) {
-      $style = self::STYLE_CLASSIC;
-    }
 
     return [
       'style' => $style,
       'colour' => $colour,
       'classes' => $this->buildPageClasses($style, $colour),
-      'is_pro_style' => $style === self::STYLE_IMMERSIVE,
+      'is_pro_style' => $style !== self::STYLE_CLASSIC || $colour !== self::COLOUR_CORAL,
+      'is_customized' => $style !== self::STYLE_CLASSIC || $colour !== self::COLOUR_CORAL,
       'stored_style' => $stored_style,
       'stored_colour' => $stored_colour,
     ];

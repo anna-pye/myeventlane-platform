@@ -13,19 +13,19 @@ settings:
   allowed_values:
     -
       value: coral
-      label: Coral
+      label: 'Coral Pop'
     -
       value: purple
-      label: Purple
+      label: 'Violet Pulse'
     -
       value: mint
-      label: Mint
+      label: 'Mint Night'
     -
       value: gold
-      label: Gold
+      label: 'Golden Hour'
     -
       value: blue
-      label: 'Deep Blue'
+      label: 'Ocean Blue'
   allowed_values_function: ''
 module: options
 locked: false

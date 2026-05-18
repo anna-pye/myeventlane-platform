@@ -13,10 +13,10 @@ settings:
   allowed_values:
     -
       value: classic
-      label: 'MEL Classic'
+      label: 'Warm & Energetic'
     -
       value: immersive
-      label: 'MEL Immersive'
+      label: 'Bold & Immersive'
   allowed_values_function: ''
 module: options
 locked: false
