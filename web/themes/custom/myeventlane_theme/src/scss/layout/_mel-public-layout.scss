@@ -156,7 +156,8 @@
     color: mel.$mel-ds-color-primary;
 
     &:hover {
-      text-decoration: underline;
+      text-decoration: none;
+      color: color-mix(in srgb, mel.$mel-ds-color-primary 85%, mel.$mel-ds-color-text);
     }
   }
 

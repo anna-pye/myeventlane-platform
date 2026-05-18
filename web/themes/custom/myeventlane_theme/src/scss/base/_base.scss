@@ -127,6 +127,12 @@ a {
   color: inherit;
   transition: color 0.15s ease;
 
+  &:hover,
+  &:active,
+  &:focus {
+    text-decoration: none;
+  }
+
   &:focus-visible {
     @include colors.mel-focus-ring;
     border-radius: 2px;
@@ -139,7 +145,8 @@ a {
 }
 
 .mel-content a:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  color: color-mix(in srgb, var(--mel-primary) 88%, #000);
 }
 
 .mel-content .mel-card a:hover,

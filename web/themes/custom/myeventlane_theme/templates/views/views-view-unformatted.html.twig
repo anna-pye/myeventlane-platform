@@ -18,6 +18,8 @@
         {{- row.content -}}
       {% endfor %}
     </div>
+  {% else %}
+    {% include '@myeventlane_theme/includes/mel-view-empty-events.html.twig' %}
   {% endif %}
 {% else %}
   {% if title %}

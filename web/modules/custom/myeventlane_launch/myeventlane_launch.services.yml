@@ -86,6 +86,7 @@ services:
       - '@entity_type.manager'
       - '@request_stack'
       - '@logger.channel.myeventlane_launch'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
     tags:
       - { name: event_subscriber }
 

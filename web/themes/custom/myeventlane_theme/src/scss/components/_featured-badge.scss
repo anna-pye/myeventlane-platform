@@ -37,8 +37,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .mel-card--promoted:hover,
-  .mel-event-card--promoted:hover,
-  .mel-event-card--boosted:hover {
+  .mel-event-card--promoted:hover {
     box-shadow:
       var(--mel-shadow-hover),
       0 22px 60px color-mix(in srgb, var(--mel-ink) 18%, transparent);
@@ -65,8 +64,7 @@
 
 // Ensure focus remains obvious (don’t rely on color alone).
 .mel-card--promoted:focus-visible,
-.mel-event-card--promoted:focus-visible,
-.mel-event-card--boosted:focus-visible {
+.mel-event-card--promoted:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 2px var(--mel-surface),
@@ -77,10 +75,13 @@
 // Featured Badge (✨ Featured)
 // ---------------------------------------------------------------------------
 
-// Anchor badges inside media blocks reliably.
+// Anchor badges inside stacked/compact media blocks (overlay cards use absolute media).
 .mel-card__media,
-.mel-event-card__image,
 .mel-card-media {
+  position: relative;
+}
+
+.mel-event-card--compact .mel-event-card__image {
   position: relative;
 }
 

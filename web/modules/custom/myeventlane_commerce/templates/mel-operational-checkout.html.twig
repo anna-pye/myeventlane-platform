@@ -7,8 +7,8 @@
 #}
 {% set c = checkout|default({}) %}
 {% if c.checkout_groups is defined and c.checkout_groups is not empty %}
-<section class="mel-op-checkout mel-card mel-card--pastel" aria-label="{{ 'Operational checkout plan'|t }}">
-  <h2 class="mel-op-checkout__title">{{ 'Operational checkout plan'|t }}</h2>
+<section class="mel-op-checkout mel-card mel-card--pastel" aria-label="{{ 'Pickup and add-on reminders'|t }}">
+  <h2 class="mel-op-checkout__title">{{ 'Pickup and add-on reminders'|t }}</h2>
 
   {% if c.governance is defined and c.governance.severity_label %}
     {% set sev = c.governance.severity|default('nominal') %}
@@ -56,17 +56,6 @@
       </div>
     {% endfor %}
   </div>
-
-  {% if c.readiness_rollup is defined %}
-    {% set rr = c.readiness_rollup %}
-    <div class="mel-op-checkout__readiness" role="note">
-      {{ 'Readiness snapshot: blocked @b · degraded @d · nominal @n'|t({
-        '@b': rr.blocked|default(0),
-        '@d': rr.degraded|default(0),
-        '@n': rr.nominal|default(0)
-      }) }}
-    </div>
-  {% endif %}
 
   {% if c.continuity_groups is defined and c.continuity_groups is not empty %}
     <div class="mel-op-checkout__continuity" role="region" aria-label="{{ 'Continuity reminders'|t }}">

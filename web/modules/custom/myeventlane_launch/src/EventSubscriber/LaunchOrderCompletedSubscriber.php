@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_launch\EventSubscriber;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier;
 use Drupal\myeventlane_launch\Service\CheckoutIdempotencyGuard;
 use Drupal\myeventlane_launch\Service\LaunchPlatformEventBridge;
 use Drupal\myeventlane_launch\Service\MELMonitoringService;
@@ -29,6 +30,7 @@ final class LaunchOrderCompletedSubscriber implements EventSubscriberInterface {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
+    private readonly TicketBackedOrderItemClassifier $ticketBackedOrderItemClassifier,
   ) {}
 
   /**
@@ -86,13 +88,10 @@ final class LaunchOrderCompletedSubscriber implements EventSubscriberInterface {
   private function checkTicketIssuance(OrderInterface $order): void {
     $orderItemIds = [];
     foreach ($order->getItems() as $orderItem) {
-      if ($orderItem->bundle() === 'boost') {
+      if (!$this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($orderItem)) {
         continue;
       }
-      $price = $orderItem->getTotalPrice();
-      if ($price && (float) $price->getNumber() > 0) {
-        $orderItemIds[] = (int) $orderItem->id();
-      }
+      $orderItemIds[] = (int) $orderItem->id();
     }
 
     if ($orderItemIds === []) {

@@ -9,29 +9,6 @@
 #}
 
 {% if rows %}
-  {# SVG filter for Liquid Glass refraction — hidden, referenced by CSS #}
-  <svg class="mel-liquid-glass-svg" aria-hidden="true">
-    <defs>
-      <filter id="mel-liquid-glass" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-        {# Generate organic displacement pattern #}
-        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="2" result="noise"/>
-
-        {# Distort the backdrop through the noise pattern — light refraction #}
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
-
-        {# Subtle blur on top of displacement for frosted glass feel #}
-        <feGaussianBlur in="displaced" stdDeviation="3" result="blurred"/>
-
-        {# Brighten + saturate the result #}
-        <feColorMatrix in="blurred" type="matrix"
-          values="1.1 0 0 0 0.02
-                  0 1.1 0 0 0.02
-                  0 0 1.1 0 0.02
-                  0 0 0 1 0" result="brightened"/>
-      </filter>
-    </defs>
-  </svg>
-
   <div class="mel-featured-carousel" aria-label="{{ 'Featured events'|t }}" role="region">
     <div class="mel-featured-carousel__track" id="featured-carousel-track">
       {% for row in rows %}

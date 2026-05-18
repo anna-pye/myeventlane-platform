@@ -14,6 +14,15 @@ services:
   myeventlane_commerce.order_item_classifier:
     class: Drupal\myeventlane_commerce\Service\OrderItemClassifier
 
+  myeventlane_commerce.ticket_backed_order_item_classifier:
+    class: Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_commerce.order_item_classifier'
+      - '@logger.channel.myeventlane_commerce'
+
   myeventlane_commerce.paragraph_question_mapper:
     class: Drupal\myeventlane_commerce\Service\ParagraphQuestionMapper
 
@@ -34,6 +43,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@logger.factory'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
     tags:
       - { name: event_subscriber }
 
@@ -148,6 +158,7 @@ services:
       - '@myeventlane_commerce.ticket_availability'
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@logger.channel.myeventlane_commerce'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
     tags:
       - { name: event_subscriber }
 
