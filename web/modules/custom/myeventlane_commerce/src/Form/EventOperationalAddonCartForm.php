@@ -12,6 +12,7 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
@@ -613,7 +614,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $qty = (int) ($line['quantity'] ?? 0);
       if ($qty < 1) {
         if ($line_index !== NULL) {
-          $form_state->setErrorByName('lines][' . $index . '][quantity', $this->t('Choose a quantity of at least 1.'));
+          $form_state->setErrorByName('lines][' . $index . '][quantity]', $this->t('Choose a quantity of at least 1.'));
         }
         continue;
       }
@@ -630,7 +631,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $vid = $this->resolveVariationIdForLine($line, $entry);
       if ($vid < 1) {
         if (!empty($entry['requires_size_selection'])) {
-          $form_state->setErrorByName('lines][' . $index . '][selected_size', $this->t('Please choose a size before adding to cart.'));
+          $form_state->setErrorByName('lines][' . $index . '][selected_size]', $this->t('Please choose a size before adding to cart.'));
         }
         else {
           $form_state->setErrorByName('lines', $this->t('Something went wrong with your selection. Please refresh and try again.'));
@@ -712,6 +713,8 @@ final class EventOperationalAddonCartForm extends FormBase {
       return;
     }
 
+    $added_labels = [];
+
     foreach ($to_add as $variation_id => $quantity) {
       /** @var \Drupal\commerce_product\Entity\ProductVariationInterface|null $variation */
       $variation = $variation_storage->load($variation_id);
@@ -763,20 +766,52 @@ final class EventOperationalAddonCartForm extends FormBase {
         ?: $this->cartProvider->createCart('default', $store);
 
       $order_item = $this->cartManager->addEntity($cart, $variation, $quantity, TRUE);
-      if ($order_item && $order_item->hasField('field_target_event')) {
+      if (!$order_item) {
+        $this->getLogger('myeventlane_commerce')->warning(
+          'Event extra cart add failed: variation @vid, event @eid.',
+          ['@vid' => (string) $variation_id, '@eid' => (string) $event->id()]
+        );
+        continue;
+      }
+
+      if ($order_item->hasField('field_target_event')) {
         $order_item->set('field_target_event', ['target_id' => $event->id()]);
         $order_item->save();
       }
+
+      $added_labels[] = $this->cleanCustomerProductTitle($product->label());
     }
 
-    $added_count = count($to_add);
+    // Commerce CartEventSubscriber adds one status per line; replace with one MEL toast.
+    $this->messenger()->deleteByType(MessengerInterface::TYPE_STATUS);
+
+    $added_count = count($added_labels);
     if ($added_count === 1) {
-      $this->messenger()->addStatus($this->t('Added to your cart.'));
+      $this->messenger()->addStatus($this->t('@name added to your cart.', [
+        '@name' => $added_labels[0],
+      ]));
+    }
+    elseif ($added_count > 1) {
+      $this->messenger()->addStatus($this->t('@count extras added to your cart.', [
+        '@count' => $added_count,
+      ]));
     }
     else {
-      $this->messenger()->addStatus($this->t('@count extras added to your cart.', ['@count' => $added_count]));
+      $this->messenger()->addError($this->t('Could not add extras to your cart. Please try again.'));
     }
     $form_state->setRedirectUrl(Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()]));
+  }
+
+  /**
+   * Strip dev-style " - Node {id}" suffixes from product labels for buyers.
+   */
+  private function cleanCustomerProductTitle(string $raw): string {
+    $raw = trim($raw);
+    if ($raw === '') {
+      return (string) $this->t('Event extra');
+    }
+    $stripped = preg_replace('/\s*-\s*Node\s+\d+$/i', '', $raw);
+    return is_string($stripped) && trim($stripped) !== '' ? trim($stripped) : $raw;
   }
 
   /**
