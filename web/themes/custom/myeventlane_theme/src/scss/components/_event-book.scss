@@ -20,6 +20,35 @@
   padding: spacing.mel-space(4) 0 spacing.mel-space(7);
 }
 
+.mel-booking-v2 .mel-booking-nav__back {
+  display: inline-flex;
+  align-items: center;
+  gap: spacing.mel-space(1);
+  text-decoration: none;
+}
+
+.mel-booking-v2 .mel-booking-nav__back-icon {
+  font-size: typography.mel-font-size(lg);
+  line-height: 1;
+}
+
+.mel-booking-v2 .mel-booking__cta .mel-booking-nav--after-cta {
+  margin: spacing.mel-space(3) 0 0;
+  text-align: center;
+}
+
+.mel-booking-v2 .mel-booking__cta .mel-booking-nav--after-cta .mel-booking-nav__back {
+  justify-content: center;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
+  height: auto;
+  min-height: 2.25rem;
+  padding-top: spacing.mel-space(1);
+  padding-bottom: spacing.mel-space(1);
+}
+
 // ---------------------------------------------------------------------------
 // Shared hero (mel-event-hero--featured-style) + trust strip + layout rhythm
 // ---------------------------------------------------------------------------

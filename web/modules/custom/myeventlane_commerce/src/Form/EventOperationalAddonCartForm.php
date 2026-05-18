@@ -87,20 +87,6 @@ final class EventOperationalAddonCartForm extends FormBase {
     $form['#cache']['tags'] = array_values(array_unique($cache_tags));
     $form['#cache']['contexts'] = ['user', 'session', 'languages:language_interface'];
 
-    $form['heading'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'h2',
-      '#value' => $this->t('Add something extra'),
-      '#attributes' => ['class' => ['mel-event-extras-form__heading']],
-    ];
-
-    $form['intro'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => $this->t('Optional Event extras for this booking — collect on site after checkout.'),
-      '#attributes' => ['class' => ['mel-event-extras-form__intro']],
-    ];
-
     $form['lines'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-extras-form__cards']],
