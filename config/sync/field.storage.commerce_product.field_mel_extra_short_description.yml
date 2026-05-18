@@ -1,0 +1,19 @@
+uuid: cbb21a86-8b85-4326-8dcc-db03e9e84ac7
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+id: commerce_product.field_mel_extra_short_description
+field_name: field_mel_extra_short_description
+entity_type: commerce_product
+type: string_long
+settings:
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -91,8 +91,8 @@ final class OperationalAddonGuidanceBuilder {
     $out = [
       self::CONTRACT_FLAG => TRUE,
       'schema_version' => 1,
-      'page_title' => (string) $this->t('Your add-ons'),
-      'page_intro' => (string) $this->t('Merch, hospitality, and collection items linked to this booking are shown below. Collect at the event when the organiser is ready.'),
+      'page_title' => (string) $this->t('Your extras'),
+      'page_intro' => (string) $this->t('Extras linked to this booking are shown below. Collect at the event when the organiser is ready.'),
       'sections' => $sections,
       'footer_note' => (string) $this->t('Show your order confirmation if staff ask. Hospitality access stays linked to this booking — follow organiser instructions on the day.'),
       'support_hint' => (string) $this->t('Shipping and QR wallet collection are not shown here yet; use your confirmation email and organiser updates for the latest details.'),

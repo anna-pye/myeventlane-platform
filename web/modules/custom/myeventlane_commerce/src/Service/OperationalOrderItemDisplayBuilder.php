@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -13,7 +14,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\node\NodeInterface;
 
 /**
- * Customer-safe labels for operational add-on Commerce order line items.
+ * Customer-safe labels for Event Extra Commerce order line items.
  *
  * Read-only projection for cart, checkout, orders, and My Tickets surfaces.
  */
@@ -39,24 +40,16 @@ final class OperationalOrderItemDisplayBuilder {
     'shipment_state',
     'fingerprint',
     'operational_fingerprint',
-  ];
-
-  /**
-   * Variation titles that must not be used as the primary customer label.
-   *
-   * @var list<string>
-   */
-  private const GENERIC_VARIATION_LABELS = [
-    'price',
-    'unit price',
-    'default',
-    'variation',
-    'product',
+    'pickup_mode',
+    'readiness_mode',
+    'operational_product_type',
   ];
 
   public function __construct(
     private readonly OperationalMerchandiseManager $operationalMerchandiseManager,
+    private readonly OperationalExtraVisualPresenter $visualPresenter,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly CurrencyFormatter $currencyFormatter,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -81,20 +74,43 @@ final class OperationalOrderItemDisplayBuilder {
 
     $payload = $this->operationalMerchandiseManager->normalizeProductFieldFromEntity($product);
     $presentation = $this->operationalMerchandiseManager->buildCustomerSafeProductPresentation($payload);
+    $visual = $this->visualPresenter->buildProductVisualDocument($product, $presentation);
 
     $event = $this->resolveEvent($product, $order_item);
     $event_id = $event instanceof NodeInterface ? (int) $event->id() : 0;
     $event_title = $event instanceof NodeInterface ? (string) $event->label() : '';
 
     $product_title = $this->customerProductTitle((string) $product->label());
-    $variation_label = $this->meaningfulVariationLabel((string) $purchased->label(), $product_title);
+    $size = $this->visualPresenter->resolveVariationSize($purchased);
+    $size_label = $size['size_label'] !== ''
+      ? $size['size_label']
+      : $this->visualPresenter->meaningfulVariationLabel((string) $purchased->label(), $product_title);
 
-    $description = trim((string) ($presentation['operational_summary'] ?? ''));
+    $short_description = trim((string) ($visual['short_description'] ?? ''));
+    $pickup_note = trim((string) ($visual['pickup_note'] ?? ''));
+    $description = $short_description !== '' ? $short_description : $pickup_note;
+    if ($description === '') {
+      $description = trim((string) ($presentation['operational_summary'] ?? ''));
+    }
     if ($description === '') {
       $description = $this->descriptionFromPickupMode((string) ($presentation['pickup_mode'] ?? ''));
     }
 
+    $thumbnail = $this->visualPresenter->buildPrimaryThumbnailForProduct($product);
+    $thumb_url = is_array($thumbnail) ? (string) ($thumbnail['url'] ?? '') : '';
+    $thumb_alt = is_array($thumbnail) ? (string) ($thumbnail['alt'] ?? $product_title) : $product_title;
+
+    $price = $order_item->getTotalPrice() ?? $purchased->getPrice();
+    $price_display = '';
+    if ($price !== NULL) {
+      $price_display = $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
+    }
+
     $chips = $this->normalizeChips(is_array($presentation['operational_chips'] ?? NULL) ? $presentation['operational_chips'] : []);
+    if ($pickup_note !== '') {
+      array_unshift($chips, ['label' => $pickup_note, 'tone' => 'pickup']);
+      $chips = $this->dedupeChips($chips);
+    }
 
     $doc = [
       self::CONTRACT_FLAG => TRUE,
@@ -103,9 +119,14 @@ final class OperationalOrderItemDisplayBuilder {
         ? (string) $this->t('For: @event', ['@event' => $event_title])
         : '',
       'description' => $description,
-      'variation_label' => $variation_label,
+      'short_description' => $short_description,
+      'pickup_note' => $pickup_note,
+      'variation_label' => $size_label,
+      'size_label' => $size_label,
+      'thumbnail_url' => $thumb_url,
+      'thumbnail_alt' => $thumb_alt,
+      'price_display' => $price_display,
       'chips' => $chips,
-      'pickup_mode' => (string) ($presentation['pickup_mode'] ?? ''),
       'event_id' => $event_id,
       'event_title' => $event_title,
     ];
@@ -172,28 +193,10 @@ final class OperationalOrderItemDisplayBuilder {
   private function customerProductTitle(string $raw): string {
     $raw = trim($raw);
     if ($raw === '') {
-      return (string) $this->t('Add-on');
+      return (string) $this->t('Event extra');
     }
     $stripped = preg_replace('/\s*-\s*Node\s+\d+$/i', '', $raw);
     return is_string($stripped) && trim($stripped) !== '' ? trim($stripped) : $raw;
-  }
-
-  private function meaningfulVariationLabel(string $variation_label, string $product_title): string {
-    $variation_label = trim($variation_label);
-    if ($variation_label === '') {
-      return '';
-    }
-    $lower = strtolower($variation_label);
-    if (in_array($lower, self::GENERIC_VARIATION_LABELS, TRUE)) {
-      return '';
-    }
-    if (strcasecmp($variation_label, $product_title) === 0) {
-      return '';
-    }
-    if (str_starts_with(strtolower($product_title), strtolower($variation_label))) {
-      return '';
-    }
-    return $variation_label;
   }
 
   /**
@@ -224,9 +227,28 @@ final class OperationalOrderItemDisplayBuilder {
     }
     if ($out === []) {
       $out[] = [
-        'label' => (string) $this->t('Add-on'),
+        'label' => (string) $this->t('Event extra'),
         'tone' => 'muted',
       ];
+    }
+    return $out;
+  }
+
+  /**
+   * @param list<array{label: string, tone: string}> $chips
+   *
+   * @return list<array{label: string, tone: string}>
+   */
+  private function dedupeChips(array $chips): array {
+    $out = [];
+    $seen = [];
+    foreach ($chips as $chip) {
+      $label = $chip['label'] ?? '';
+      if ($label === '' || isset($seen[$label])) {
+        continue;
+      }
+      $seen[$label] = TRUE;
+      $out[] = $chip;
     }
     return $out;
   }
@@ -234,7 +256,7 @@ final class OperationalOrderItemDisplayBuilder {
   private function descriptionFromPickupMode(string $pickup_mode): string {
     return match ($pickup_mode) {
       'venue_pickup', 'counter', 'timed_window' => (string) $this->t('Collect at the venue after purchase.'),
-      'none' => (string) $this->t('Follow organiser instructions for this add-on.'),
+      'none' => (string) $this->t('Follow organiser instructions for this extra.'),
       default => (string) $this->t('Collect at the venue after purchase.'),
     };
   }

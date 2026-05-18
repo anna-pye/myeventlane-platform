@@ -12,6 +12,7 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
@@ -156,6 +157,8 @@ final class VendorOperationalProductCreationManager {
     $metadata = $this->buildOperationalMetadata($type, $payload, $summary);
     $encoded = json_encode($this->operationalMerchandiseManager->normalizeProductFieldValue($metadata), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
+    $pickup_note = $this->sanitizePlainText((string) ($payload['pickup_note'] ?? ''), 400);
+
     $product = CommerceProduct::create([
       'type' => $bundles['product_type'],
       'title' => $title,
@@ -165,20 +168,22 @@ final class VendorOperationalProductCreationManager {
       'field_event' => ['target_id' => (int) $event->id()],
       'field_mel_operational_product' => $encoded,
     ]);
+    if ($product->hasField('field_mel_extra_short_description')) {
+      $product->set('field_mel_extra_short_description', $summary);
+    }
+    if ($product->hasField('field_mel_extra_pickup_note') && $pickup_note !== '') {
+      $product->set('field_mel_extra_pickup_note', $pickup_note);
+    }
     $product->save();
 
     $price = new Price($amount, strtoupper($currency));
-
-    $variation = ProductVariation::create([
-      'type' => $bundles['variation_type'],
-      'sku' => $sku,
-      'title' => $title,
-      'status' => 1,
-      'price' => $price,
-    ]);
-    $variation->save();
-
-    $product->addVariation($variation);
+    $variation_ids = $this->createVariationsForProduct($product, $bundles, $payload, $title, $sku, $price);
+    foreach ($variation_ids as $vid) {
+      $loaded = $this->entityTypeManager->getStorage('commerce_product_variation')->load($vid);
+      if ($loaded instanceof ProductVariation) {
+        $product->addVariation($loaded);
+      }
+    }
     $product->save();
 
     $reloaded = $this->entityTypeManager->getStorage('commerce_product')->load($product->id());
@@ -290,8 +295,79 @@ final class VendorOperationalProductCreationManager {
       'hospitality_benefits_summary' => (string) ($row['benefits_summary'] ?? ''),
       'parking_guidance' => (string) ($row['parking_guidance'] ?? ''),
       'bundle_capability_types' => $bundle_caps,
+      'pickup_note' => (string) ($row['commerce_create_pickup_note'] ?? $row['pickup_note'] ?? ''),
+      'sizes' => $this->normalizeSizeKeys($row['commerce_create_sizes'] ?? $row['sizes'] ?? []),
     ];
     return $this->stripForbiddenFromPayload($payload);
+  }
+
+  /**
+   * @return list<int>
+   */
+  private function createVariationsForProduct(
+    ProductInterface $product,
+    array $bundles,
+    array $payload,
+    string $title,
+    string $sku_base,
+    Price $price,
+  ): array {
+    $size_keys = $this->normalizeSizeKeys($payload['sizes'] ?? []);
+    $variation_type = $bundles['variation_type'];
+    $ids = [];
+
+    if ($size_keys !== [] && $variation_type === 'operational_merchandise_var') {
+      foreach ($size_keys as $size_key) {
+        $label = OperationalExtraVisualPresenter::SIZE_LABELS[$size_key] ?? strtoupper($size_key);
+        $variation = ProductVariation::create([
+          'type' => $variation_type,
+          'sku' => $this->sanitizePlainText($sku_base . '-' . $size_key, 128),
+          'title' => $title . ' — ' . $label,
+          'status' => 1,
+          'price' => $price,
+        ]);
+        if ($variation->hasField('field_mel_size')) {
+          $variation->set('field_mel_size', $size_key);
+        }
+        $variation->save();
+        $ids[] = (int) $variation->id();
+      }
+      return $ids;
+    }
+
+    $variation = ProductVariation::create([
+      'type' => $variation_type,
+      'sku' => $sku_base,
+      'title' => $title,
+      'status' => 1,
+      'price' => $price,
+    ]);
+    $variation->save();
+    return [(int) $variation->id()];
+  }
+
+  /**
+   * @param mixed $raw
+   *
+   * @return list<string>
+   */
+  private function normalizeSizeKeys(mixed $raw): array {
+    if (!is_array($raw)) {
+      return [];
+    }
+    $out = [];
+    foreach ($raw as $key => $value) {
+      $candidate = is_string($key) && !is_numeric($key) ? $key : $value;
+      if (!is_string($candidate) && !is_int($candidate)) {
+        continue;
+      }
+      $size = strtolower(trim((string) $candidate));
+      if ($size === '' || !isset(OperationalExtraVisualPresenter::SIZE_LABELS[$size])) {
+        continue;
+      }
+      $out[$size] = $size;
+    }
+    return array_values($out);
   }
 
   /**

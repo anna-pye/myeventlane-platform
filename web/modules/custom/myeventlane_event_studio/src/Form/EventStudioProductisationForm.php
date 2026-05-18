@@ -14,6 +14,7 @@ use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager;
+use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager;
 use Drupal\myeventlane_event_studio\Service\VendorProductisationStudioBuilder;
 use Drupal\myeventlane_event_studio\Service\VendorProductisationStudioManager;
@@ -272,15 +273,22 @@ final class EventStudioProductisationForm extends FormBase {
       VendorProductisationStudioManager::TYPE_MERCHANDISE => [
         'title' => [
           '#type' => 'textfield',
-          '#title' => $this->t('Title'),
+          '#title' => $this->t('Extra title'),
           '#default_value' => (string) ($row['title'] ?? ''),
           '#maxlength' => 180,
         ],
         'customer_summary' => [
           '#type' => 'textarea',
-          '#title' => $this->t('Short customer summary'),
+          '#title' => $this->t('Short customer description'),
           '#default_value' => (string) ($row['customer_summary'] ?? ''),
           '#rows' => 3,
+        ],
+        'pickup_note' => [
+          '#type' => 'textarea',
+          '#title' => $this->t('Pickup note'),
+          '#default_value' => (string) ($row['pickup_note'] ?? ''),
+          '#rows' => 2,
+          '#description' => $this->t('Shown to customers, e.g. “Collect at the merch table after check-in.”'),
         ],
         'customer_visibility' => [
           '#type' => 'select',
@@ -293,11 +301,8 @@ final class EventStudioProductisationForm extends FormBase {
           '#default_value' => (string) ($row['customer_visibility'] ?? 'visible'),
         ],
         'pickup_mode' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Pickup mode token'),
-          '#default_value' => (string) ($row['pickup_mode'] ?? 'counter'),
-          '#maxlength' => 64,
-          '#description' => $this->t('Authoring hint only — venue pickup is enforced by your operational capability settings.'),
+          '#type' => 'hidden',
+          '#value' => 'venue_pickup',
         ],
       ],
       VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE => [
@@ -438,33 +443,42 @@ final class EventStudioProductisationForm extends FormBase {
       'notice' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Stock counts, warehouse routing, shipping labels, scanners, QR payloads, and entitlement issuance are <strong>not</strong> configured here — they are handled later in Commerce and operations tooling.'),
+        '#value' => $this->t('Extras are saved when you press Save. Add product photos from the linked catalog product after creation if needed.'),
         '#attributes' => ['class' => ['mel-productisation-wizard-warning']],
-      ],
-      'readiness_chips' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Operational readiness: authoring · pricing · customer copy'),
-        '#attributes' => ['class' => ['mel-productisation-wizard-chips']],
       ],
       'customer_preview_label' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Customer sees this (from your summary fields and the product title below).'),
+        '#value' => $this->t('Customers see a card with image, title, price, description, and pickup note.'),
         '#attributes' => ['class' => ['mel-productisation-wizard-preview-hint']],
       ],
       'commerce_create_title' => [
         '#type' => 'textfield',
-        '#title' => $this->t('Catalog title'),
+        '#title' => $this->t('Extra title'),
         '#default_value' => '',
         '#maxlength' => 255,
         '#description' => $this->t('Plain text only. Defaults from the fields above when left blank.'),
       ],
       'commerce_create_customer_summary' => [
         '#type' => 'textarea',
-        '#title' => $this->t('Short customer summary'),
+        '#title' => $this->t('Short customer description'),
         '#rows' => 3,
         '#default_value' => '',
+      ],
+      'commerce_create_pickup_note' => [
+        '#type' => 'textarea',
+        '#title' => $this->t('Pickup note'),
+        '#rows' => 2,
+        '#default_value' => '',
+        '#access' => $type === VendorProductisationStudioManager::TYPE_MERCHANDISE,
+      ],
+      'commerce_create_sizes' => [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Sizes offered'),
+        '#options' => OperationalExtraVisualPresenter::SIZE_LABELS,
+        '#default_value' => [],
+        '#access' => $type === VendorProductisationStudioManager::TYPE_MERCHANDISE,
+        '#description' => $this->t('Creates one purchasable option per size. Leave empty for a single one-size option.'),
       ],
       'commerce_create_price' => [
         '#type' => 'number',

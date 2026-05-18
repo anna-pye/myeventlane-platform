@@ -214,3 +214,274 @@
 .mel-ticket-item--operational-addon .mel-ticket-title .mel-operational-order-item-line__title {
   font-size: 1rem;
 }
+
+/* Event Extras — booking cards */
+.mel-event-extras-form__heading {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.mel-event-extras-form__intro {
+  margin: 0 0 1rem;
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.mel-event-extras-form__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.mel-event-extra-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgba(255, 247, 250, 0.95), rgba(245, 240, 255, 0.92));
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+@media (min-width: 640px) {
+  .mel-event-extra-card {
+    grid-template-columns: 140px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.mel-event-extra-card__media {
+  min-width: 0;
+}
+
+.mel-event-extra-card__image {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.mel-event-extra-card__thumbs {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+}
+
+.mel-event-extra-card__thumb {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.mel-event-extra-card__thumb.is-active {
+  border-color: #e57373;
+}
+
+.mel-event-extra-card__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0.35rem;
+  display: block;
+}
+
+.mel-event-extra-card__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.mel-event-extra-card__description,
+.mel-event-extra-card__pickup {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.78);
+}
+
+.mel-event-extra-card__price {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.9);
+}
+
+.mel-event-extra-card__sizes-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.mel-event-extra-card__size-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mel-event-extra-card__size-radios .form-item {
+  margin: 0;
+}
+
+.mel-event-extra-card__size-radios input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mel-event-extra-card__size-radios label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mel-event-extra-card__size-radios input:focus-visible + label {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.mel-event-extra-card__size-radios input:checked + label {
+  background: rgba(229, 115, 115, 0.15);
+  border-color: #e57373;
+  color: rgba(15, 23, 42, 0.92);
+}
+
+.mel-event-extra-card__qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.mel-event-extra-card__qty-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mel-event-extra-card__qty-btn:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.mel-event-extra-card__qty-value {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.mel-event-extra-card__qty-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Compact line with thumbnail (cart / checkout / orders) */
+.mel-event-extra-line {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.mel-event-extra-line__thumb {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.mel-event-extra-line__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mel-event-extra-line__title {
+  font-weight: 700;
+  font-size: 0.98rem;
+}
+
+.mel-event-extra-line__size,
+.mel-event-extra-line__pickup,
+.mel-event-extra-line__description {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.mel-event-extra-line__price {
+  margin: 0.15rem 0 0;
+  font-weight: 700;
+}
+
+.mel-summary-item--operational-addon .mel-event-extra-line,
+.mel-ticket-item--operational-addon .mel-event-extra-line {
+  width: 100%;
+}
+
+/* Vendor add-on order rows */
+.mel-vendor-addon-orders__line {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.mel-vendor-addon-orders__thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.mel-vendor-addon-orders__line-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mel-vendor-addon-orders__line-size,
+.mel-vendor-addon-orders__line-paid {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mel-vendor-addon-orders__line-pickup {
+  margin: 0.25rem 0 0;
+  font-size: 0.88rem;
+  color: rgba(15, 23, 42, 0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-extra-card__thumb,
+  .mel-event-extra-card__qty-btn {
+    transition: none;
+  }
+}
