@@ -73,22 +73,29 @@
                 <ul class="mel-vendor-addon-orders__lines">
                   {% for line in group.lines %}
                     <li class="mel-vendor-addon-orders__line">
-                      <div class="mel-vendor-addon-orders__line-main">
-                        <span class="mel-vendor-addon-orders__line-product">{{ line.product_label|default('') }}</span>
-                        {% if line.variation_label %}
-                          <span class="mel-vendor-addon-orders__line-variation">{{ line.variation_label }}</span>
+                      {% if line.thumbnail_url|default('') %}
+                        <img class="mel-vendor-addon-orders__thumb" src="{{ line.thumbnail_url }}" alt="{{ line.thumbnail_alt|default(line.product_label|default('')) }}" loading="lazy" width="56" height="56" />
+                      {% endif %}
+                      <div class="mel-vendor-addon-orders__line-body">
+                        <div class="mel-vendor-addon-orders__line-main">
+                          <span class="mel-vendor-addon-orders__line-product">{{ line.product_label|default('') }}</span>
+                          {% if line.size_label|default('') %}
+                            <span class="mel-vendor-addon-orders__line-size">{{ 'Size @size'|t({'@size': line.size_label}) }}</span>
+                          {% elseif line.variation_label %}
+                            <span class="mel-vendor-addon-orders__line-variation">{{ line.variation_label }}</span>
+                          {% endif %}
+                          <span class="mel-vendor-addon-orders__line-qty">× {{ line.quantity|default(0) }}</span>
+                          {% if line.payment_status_label|default('') %}
+                            <span class="mel-vendor-addon-orders__line-paid">{{ line.payment_status_label }}</span>
+                          {% endif %}
+                        </div>
+                        {% if line.pickup_note|default('') %}
+                          <p class="mel-vendor-addon-orders__line-pickup">{{ line.pickup_note }}</p>
+                        {% elseif line.short_description|default('') %}
+                          <p class="mel-vendor-addon-orders__line-summary">{{ line.short_description }}</p>
+                        {% elseif line.operational_summary %}
+                          <p class="mel-vendor-addon-orders__line-summary">{{ line.operational_summary }}</p>
                         {% endif %}
-                        <span class="mel-vendor-addon-orders__line-qty">× {{ line.quantity|default(0) }}</span>
-                      </div>
-                      {% if line.operational_summary %}
-                        <p class="mel-vendor-addon-orders__line-summary">{{ line.operational_summary }}</p>
-                      {% endif %}
-                      {% if line.readiness_mode or line.pickup_mode %}
-                        <p class="mel-vendor-addon-orders__line-modes">
-                          {% if line.readiness_mode %}<span class="mel-vendor-addon-orders__pill">{{ line.readiness_mode }}</span>{% endif %}
-                          {% if line.pickup_mode %}<span class="mel-vendor-addon-orders__pill">{{ line.pickup_mode }}</span>{% endif %}
-                        </p>
-                      {% endif %}
                       {% if line.chips is defined and line.chips|length > 0 %}
                         <ul class="mel-vendor-addon-orders__chips">
                           {% for chip in line.chips %}
@@ -96,6 +103,7 @@
                           {% endfor %}
                         </ul>
                       {% endif %}
+                      </div>
                     </li>
                   {% endfor %}
                 </ul>

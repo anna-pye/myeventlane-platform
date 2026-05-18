@@ -208,18 +208,29 @@ services:
       - '@string_translation'
       - '@logger.channel.myeventlane_commerce'
 
+  myeventlane_commerce.operational_extra_visual_presenter:
+    class: Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter
+    arguments:
+      - '@entity_type.manager'
+      - '@file_url_generator'
+      - '@extension.path.resolver'
+      - '@string_translation'
+
   myeventlane_commerce.event_operational_addon_builder:
     class: Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@string_translation'
 
   myeventlane_commerce.operational_order_item_display_builder:
     class: Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder
     arguments:
       - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@entity_type.manager'
+      - '@commerce_price.currency_formatter'
       - '@string_translation'
 
   myeventlane_commerce.operational_merchandise_governance_manager:
@@ -270,5 +281,6 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_commerce.operational_purchase_composition_manager'
       - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@date.formatter'
       - '@string_translation'

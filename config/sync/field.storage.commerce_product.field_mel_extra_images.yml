@@ -1,0 +1,20 @@
+uuid: e80c261d-ef01-4d36-a814-6a63a96a934d
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+    - media
+id: commerce_product.field_mel_extra_images
+field_name: field_mel_extra_images
+entity_type: commerce_product
+type: entity_reference
+settings:
+  target_type: media
+module: core
+locked: false
+cardinality: 6
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

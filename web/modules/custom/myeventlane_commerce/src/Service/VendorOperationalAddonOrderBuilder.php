@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -80,6 +81,7 @@ final class VendorOperationalAddonOrderBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly OperationalPurchaseCompositionManager $purchaseCompositionManager,
     private readonly EventOperationalAddonBuilder $eventOperationalAddonBuilder,
+    private readonly OperationalExtraVisualPresenter $visualPresenter,
     private readonly DateFormatterInterface $dateFormatter,
     TranslationInterface $string_translation,
   ) {
@@ -475,9 +477,28 @@ final class VendorOperationalAddonOrderBuilder {
     $pe = $item->getPurchasedEntity();
     $variationLabel = $pe instanceof ProductVariationInterface ? $pe->label() : '';
     $productLabel = '';
+    $product = NULL;
+    $thumbnail_url = '';
+    $thumbnail_alt = '';
+    $pickup_note = '';
+    $short_description = '';
+    $size_label = '';
     if ($pe instanceof ProductVariationInterface) {
       $product = $pe->getProduct();
       $productLabel = $product ? $product->label() : '';
+      $size = $this->visualPresenter->resolveVariationSize($pe);
+      $size_label = $size['size_label'] !== ''
+        ? $size['size_label']
+        : $this->visualPresenter->meaningfulVariationLabel($variationLabel, $productLabel);
+      if ($product instanceof ProductInterface) {
+        $payload = is_array($line['presentation'] ?? NULL) ? $line['presentation'] : [];
+        $visual = $this->visualPresenter->buildProductVisualDocument($product, $payload);
+        $thumb = $this->visualPresenter->buildPrimaryThumbnailForProduct($product);
+        $thumbnail_url = (string) ($thumb['url'] ?? '');
+        $thumbnail_alt = (string) ($thumb['alt'] ?? $productLabel);
+        $pickup_note = (string) ($visual['pickup_note'] ?? '');
+        $short_description = (string) ($visual['short_description'] ?? '');
+      }
     }
 
     $chips = [];
@@ -501,9 +522,13 @@ final class VendorOperationalAddonOrderBuilder {
       'quantity' => (int) $item->getQuantity(),
       'product_label' => $productLabel,
       'variation_label' => $variationLabel,
+      'size_label' => $size_label,
+      'thumbnail_url' => $thumbnail_url,
+      'thumbnail_alt' => $thumbnail_alt,
+      'pickup_note' => $pickup_note,
+      'short_description' => $short_description !== '' ? $short_description : trim((string) ($pres['operational_summary'] ?? '')),
       'operational_summary' => trim((string) ($pres['operational_summary'] ?? '')),
-      'readiness_mode' => trim((string) ($pres['readiness_mode'] ?? '')),
-      'pickup_mode' => trim((string) ($pres['pickup_mode'] ?? '')),
+      'payment_status_label' => $this->paymentStatusLabel($order),
       'customer_visibility' => trim((string) ($pres['customer_visibility'] ?? '')),
       'chips' => $chips,
     ];
@@ -525,6 +550,17 @@ final class VendorOperationalAddonOrderBuilder {
       }
     }
     return (string) $this->t('Guest customer');
+  }
+
+  private function paymentStatusLabel(OrderInterface $order): string {
+    $state = $order->getState()->getId();
+    return match ($state) {
+      'completed', 'fulfilled', 'fulfillment' => (string) $this->t('Paid'),
+      'placed' => (string) $this->t('Payment received'),
+      'refunded' => (string) $this->t('Refunded'),
+      'partially_refunded' => (string) $this->t('Partially refunded'),
+      default => (string) $this->t('In progress'),
+    };
   }
 
   private function groupLabel(string $groupKey): string {

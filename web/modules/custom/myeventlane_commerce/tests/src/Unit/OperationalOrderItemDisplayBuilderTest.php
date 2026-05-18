@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder;
 use Drupal\node\NodeInterface;
@@ -122,6 +123,63 @@ final class OperationalOrderItemDisplayBuilderTest extends UnitTestCase {
   /**
    * @covers ::buildForOrderItem
    */
+  public function testDisplayIncludesThumbnailSizeAndPickupNote(): void {
+    $visual = $this->createMock(OperationalExtraVisualPresenter::class);
+    $visual->method('buildProductVisualDocument')->willReturn([
+      'short_description' => 'Soft tee',
+      'pickup_note' => 'Collect at the merch table',
+      'primary_image' => ['url' => 'https://example.test/tee.jpg', 'alt' => 'Tee'],
+      'gallery_images' => [],
+      'has_images' => TRUE,
+      'image_alt' => 'Tee',
+      'placeholder_url' => '',
+    ]);
+    $visual->method('buildPrimaryThumbnailForProduct')->willReturn([
+      'url' => 'https://example.test/tee.jpg',
+      'alt' => 'Tee',
+    ]);
+    $visual->method('resolveVariationSize')->willReturn(['size_key' => 'l', 'size_label' => 'L']);
+    $visual->method('meaningfulVariationLabel')->willReturn('');
+
+    $builder = $this->builder($visual);
+    $order_item = $this->orderItemFixture(
+      'operational_merchandise',
+      'Price',
+      'Event T-shirt',
+    );
+    $display = $builder->buildForOrderItem($order_item);
+    $this->assertIsArray($display);
+    $this->assertSame('L', $display['size_label']);
+    $this->assertSame('Collect at the merch table', $display['pickup_note']);
+    $this->assertStringContainsString('tee.jpg', (string) $display['thumbnail_url']);
+  }
+
+  public function testPlaceholderWhenNoImages(): void {
+    $visual = $this->createMock(OperationalExtraVisualPresenter::class);
+    $visual->method('buildProductVisualDocument')->willReturn([
+      'short_description' => '',
+      'pickup_note' => '',
+      'primary_image' => ['url' => '/themes/custom/myeventlane_theme/images/mel/placeholders/mel-placeholder-default.svg', 'is_placeholder' => TRUE],
+      'gallery_images' => [],
+      'has_images' => FALSE,
+      'image_alt' => 'Event extra',
+      'placeholder_url' => '/themes/custom/myeventlane_theme/images/mel/placeholders/mel-placeholder-default.svg',
+    ]);
+    $visual->method('buildPrimaryThumbnailForProduct')->willReturn([
+      'url' => '/themes/custom/myeventlane_theme/images/mel/placeholders/mel-placeholder-default.svg',
+      'alt' => 'Event extra',
+      'is_placeholder' => TRUE,
+    ]);
+    $visual->method('resolveVariationSize')->willReturn(['size_key' => '', 'size_label' => '']);
+    $visual->method('meaningfulVariationLabel')->willReturn('');
+
+    $display = $this->builder($visual)->buildForOrderItem(
+      $this->orderItemFixture('operational_merchandise', 'Price', 'Hat'),
+    );
+    $this->assertIsArray($display);
+    $this->assertStringContainsString('placeholder', (string) $display['thumbnail_url']);
+  }
+
   public function testChipsRemainListShaped(): void {
     $builder = $this->builder();
     $order_item = $this->orderItemFixture(
@@ -143,19 +201,30 @@ final class OperationalOrderItemDisplayBuilderTest extends UnitTestCase {
     $this->assertIsArray($display);
     $this->assertIsList($display['chips']);
     $this->assertGreaterThanOrEqual(2, count($display['chips']));
-    $this->assertSame('Add-on', $display['chips'][0]['label']);
+    $labels = array_column($display['chips'], 'label');
+    $this->assertContains('Add-on', $labels);
   }
 
-  private function builder(): OperationalOrderItemDisplayBuilder {
+  private function builder(?OperationalExtraVisualPresenter $visual = NULL): OperationalOrderItemDisplayBuilder {
     $etm = $this->createMock(EntityTypeManagerInterface::class);
     $manager = new OperationalMerchandiseManager(
       $etm,
       $this->getStringTranslationStub(),
       $this->createMock(LoggerInterface::class),
     );
+    $visual ??= new OperationalExtraVisualPresenter(
+      $etm,
+      $this->createMock(\Drupal\Core\File\FileUrlGeneratorInterface::class),
+      $this->createMock(\Drupal\Core\Extension\ExtensionPathResolver::class),
+      $this->getStringTranslationStub(),
+    );
+    $currency = $this->createMock(\Drupal\commerce_price\CurrencyFormatter::class);
+    $currency->method('format')->willReturn('$35.00');
     return new OperationalOrderItemDisplayBuilder(
       $manager,
+      $visual,
       $etm,
+      $currency,
       $this->getStringTranslationStub(),
     );
   }
