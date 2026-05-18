@@ -224,6 +224,20 @@ services:
       - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@string_translation'
 
+  myeventlane_commerce.event_operational_addon_teaser_builder:
+    class: Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder
+    arguments:
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@commerce_price.currency_formatter'
+      - '@string_translation'
+
+  myeventlane_commerce.event_extras_book_placement_resolver:
+    class: Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@string_translation'
+
   myeventlane_commerce.event_booking_summary_cart_extras_builder:
     class: Drupal\myeventlane_commerce\Service\EventBookingSummaryCartExtrasBuilder
     arguments:

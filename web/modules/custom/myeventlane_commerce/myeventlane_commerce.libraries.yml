@@ -60,6 +60,14 @@ operational_addons:
   dependencies:
     - core/drupal
 
+mel_operational_addon_teaser:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-addon-teaser.css: {}
+  dependencies:
+    - core/drupal
+
 event_extras_booking:
   version: 1.7
   css:

@@ -312,8 +312,17 @@ function myeventlane_commerce_theme(): array {
         'operational_addon_form' => [],
         'ticket_form' => [],
         'ticket_form_actions' => [],
+        'operational_addon_teaser' => NULL,
+        'extras_book_placement' => 'main_before_access',
+        'ticket_booking_access' => [],
       ],
       'template' => 'myeventlane-event-book',
+    ],
+    'mel_operational_addon_teaser' => [
+      'variables' => [
+        'document' => [],
+      ],
+      'template' => 'mel-operational-addon-teaser',
     ],
     'mel_operational_purchase_composition' => [
       'variables' => [
@@ -374,8 +383,24 @@ function myeventlane_commerce_preprocess_myeventlane_event_book(array &$variable
   $variables['recommended_events'] = [];
   $variables['mel_operational_purchase_composition'] = NULL;
   $variables['mel_operational_checkout'] = NULL;
+  $variables['operational_addon_teaser'] = NULL;
+  $variables['extras_book_placement'] = $variables['extras_book_placement'] ?? 'main_before_access';
   $event = $variables['event'] ?? NULL;
-  if ($event instanceof NodeInterface && \Drupal::hasService('myeventlane_commerce.operational_purchase_composition_manager')) {
+  if ($event instanceof NodeInterface && !empty($variables['addons_available'])) {
+    $placement = (string) $variables['extras_book_placement'];
+    if (\Drupal::hasService('myeventlane_commerce.event_extras_book_placement_resolver')) {
+      $placement = \Drupal::service('myeventlane_commerce.event_extras_book_placement_resolver')->getPlacement($event);
+      $variables['extras_book_placement'] = $placement;
+    }
+    if ($placement === 'sidebar') {
+      $variables['operational_addon_teaser'] = NULL;
+    }
+    else {
+      $variables['operational_addon_teaser'] = myeventlane_commerce_operational_addon_teaser_render_array($event, 'book');
+    }
+  }
+  $has_addons = !empty($variables['addons_available']);
+  if ($event instanceof NodeInterface && !$has_addons && \Drupal::hasService('myeventlane_commerce.operational_purchase_composition_manager')) {
     try {
       /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
       $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
@@ -385,7 +410,7 @@ function myeventlane_commerce_preprocess_myeventlane_event_book(array &$variable
       \Drupal::logger('myeventlane_commerce')->notice('Event book operational purchase composition skipped: @message', ['@message' => $e->getMessage()]);
     }
   }
-  if ($event instanceof NodeInterface && \Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+  if ($event instanceof NodeInterface && !$has_addons && \Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
     try {
       /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
       $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
@@ -394,6 +419,47 @@ function myeventlane_commerce_preprocess_myeventlane_event_book(array &$variable
     catch (\Throwable $e) {
       \Drupal::logger('myeventlane_commerce')->notice('Event book operational checkout orchestration skipped: @message', ['@message' => $e->getMessage()]);
     }
+  }
+}
+
+/**
+ * Builds the operational add-on teaser render array, or NULL when empty.
+ *
+ * @param string $surface
+ *   `event` or `book` — see {@see EventOperationalAddonTeaserBuilder::buildForEvent()}.
+ *
+ * @return array<string, mixed>|null
+ */
+function myeventlane_commerce_operational_addon_teaser_render_array(NodeInterface $event, string $surface = 'event'): ?array {
+  if ($event->bundle() !== 'event' || !\Drupal::hasService('myeventlane_commerce.event_operational_addon_teaser_builder')) {
+    return NULL;
+  }
+  try {
+    /** @var \Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder $builder */
+    $builder = \Drupal::service('myeventlane_commerce.event_operational_addon_teaser_builder');
+    $document = $builder->buildForEvent($event, $surface);
+    if (!empty($document['empty'])) {
+      return NULL;
+    }
+    $tags = is_array($document['cache_tags'] ?? NULL) ? $document['cache_tags'] : $event->getCacheTags();
+    return [
+      '#theme' => 'mel_operational_addon_teaser',
+      '#document' => $document,
+      '#attached' => [
+        'library' => ['myeventlane_commerce/mel_operational_addon_teaser'],
+      ],
+      '#cache' => [
+        'tags' => $tags,
+        'contexts' => ['languages:language_interface'],
+      ],
+    ];
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_commerce')->notice('Operational add-on teaser skipped for event @nid: @message', [
+      '@nid' => (string) $event->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
   }
 }
 

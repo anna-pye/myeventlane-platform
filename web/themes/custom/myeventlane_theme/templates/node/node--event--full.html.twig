@@ -521,6 +521,10 @@
                   <hr class="mel-booking-panel__rule" role="separator" />
                 {% endif %}
 
+                {% if operational_addon_teaser %}
+                  {{ operational_addon_teaser }}
+                {% endif %}
+
                 {# Share: secondary to booking CTA; same targets as former main-column row. #}
                 {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
                 {% if canonical_url %}

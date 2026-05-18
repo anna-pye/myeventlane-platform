@@ -1075,6 +1075,27 @@
   }
 }
 
+// Mobile: order summary + extras teaser before ticket form (matches event full sidebar).
+@media (width <= 768px) {
+  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(5);
+  }
+
+  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__main {
+    display: contents;
+  }
+
+  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__side {
+    order: 1;
+  }
+
+  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__main > * {
+    order: 2;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mel-booking-v2 .mel-event-book__form-body .mel-ticket-row {
     transition: none;

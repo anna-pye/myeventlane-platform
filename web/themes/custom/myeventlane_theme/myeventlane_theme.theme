@@ -4127,6 +4127,20 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     $variables['outlook_ics_url'] = $cal_links['ics'] ?? '';
     $variables['google_calendar_url'] = $cal_links['google'] ?? '';
   }
+
+  $variables['operational_addon_teaser'] = NULL;
+  if (($variables['view_mode'] ?? '') === 'full'
+    && \Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    && function_exists('myeventlane_commerce_operational_addon_teaser_render_array')
+  ) {
+    $show_teaser = FALSE;
+    if (\Drupal::hasService('myeventlane_event.booking_flow_resolver')) {
+      $show_teaser = \Drupal::service('myeventlane_event.booking_flow_resolver')->getBookingMode($node) === BookingFlowResolver::MODE_PAID;
+    }
+    if ($show_teaser) {
+      $variables['operational_addon_teaser'] = myeventlane_commerce_operational_addon_teaser_render_array($node, 'event');
+    }
+  }
 }
 
 /**
@@ -4452,7 +4466,8 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
       || str_contains($categoryText, 'grassroots');
   }
 
-  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+  if (empty($variables['addons_available'])
+    && \Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
     && \Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
     try {
       /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
