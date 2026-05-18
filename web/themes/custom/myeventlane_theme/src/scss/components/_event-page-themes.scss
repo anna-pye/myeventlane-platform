@@ -43,18 +43,24 @@
   --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
 }
 
-// Classic — warm MEL default (Mockup 1): light page, white cards, coral/accent CTAs.
+// Page shell warmth when Classic event is present (article bg alone leaves white gutters).
+body:has(.mel-event-page--classic.mel-event--v2),
+main.mel-main:has(.mel-event-page--classic.mel-event--v2) {
+  background-color: #fff8f4;
+}
+
+// Classic — warm MEL default (Mockup 1): light page, white cards, preset accent CTAs.
+// Accent colours come from mel-event-page--colour-* on <article> (coral default).
 .mel-event-page--classic.mel-event--v2 {
   --mel-event-page-bg: #fff8f4;
   --mel-event-surface: #ffffff;
   --mel-event-surface-soft: #fff1ec;
   --mel-event-border: rgba(242, 109, 91, 0.18);
   --mel-event-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
-  --mel-event-accent: #f26d5b;
-  --mel-event-accent-strong: #ef4f3f;
-  --mel-event-accent-soft: rgba(242, 109, 91, 0.12);
   --mel-event-text: #1f2933;
   --mel-event-muted: #6b7280;
+  --mel-event-accent-strong: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 88%, #1f2933 12%);
+  --mel-event-accent-soft: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 12%, #fff 88%);
   // Aliases used elsewhere in this file.
   --mel-event-card-bg: var(--mel-event-surface);
   --mel-event-card-border: var(--mel-event-border);
@@ -62,6 +68,8 @@
   --mel-event-surface-raised: var(--mel-event-surface);
   --mel-event-text-muted: var(--mel-event-muted);
 
+  display: block;
+  width: 100%;
   background: var(--mel-event-page-bg);
   color: var(--mel-event-text);
   min-height: 100vh;
@@ -95,11 +103,28 @@
     color: #fff;
   }
 
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__category,
   .mel-event-hero--featured-style .mel-event__category,
   .mel-event-hero--featured-style .mel-pill--on-image {
     background: var(--mel-event-accent, colors.$mel-color-primary);
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     border: none;
+    box-shadow: 0 4px 14px rgba(41, 50, 65, 0.18);
+  }
+
+  // Intelligence / popularity chip in hero content (Twig uses mel_event_signal, not hero__chip).
+  .mel-event-hero--featured-style .mel-event-hero__content .mel-event__signal {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    margin: 0;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
     box-shadow: 0 4px 14px rgba(41, 50, 65, 0.18);
   }
 
@@ -150,14 +175,20 @@
     color: var(--mel-event-text);
   }
 
-  .mel-event__signal {
-    background: var(--mel-event-accent-soft, colors.$mel-color-surface-alt);
+  .mel-event-layout__main .mel-event__signal,
+  .mel-event-layout__sidebar .mel-event__signal {
+    background: var(--mel-event-accent-soft);
     color: var(--mel-event-text);
   }
 
-  .mel-event__signal--strong {
+  .mel-card--sticky .mel-event__signal--strong,
+  .mel-event-layout__sidebar .mel-event__signal--strong {
     background: var(--mel-event-accent, colors.$mel-color-primary);
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .mel-event-meta-bar,
@@ -235,13 +266,13 @@
     border-radius: radii.$mel-radius-md;
   }
 
-  // Warm “Grab the extras” panel.
-  .mel-event-section--extras {
+  // Warm “Grab the extras” panel (outer section card).
+  .mel-event-section--extras.mel-card--surface {
     background: var(--mel-event-surface-soft);
     border-color: var(--mel-event-border);
 
-    .mel-card__header,
-    .mel-card__body {
+    > .mel-card__header,
+    > .mel-card__body {
       background: transparent;
     }
   }
@@ -249,6 +280,16 @@
   .mel-event-section--extras .mel-card__title,
   .mel-event-section--extras .mel-event-section__title {
     color: var(--mel-event-accent);
+  }
+
+  // Nested operational teaser — do not double as a white inner card (_event-full + module CSS).
+  .mel-event-section--extras .mel-addon-teaser.mel-card--surface {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    border-radius: 0;
   }
 
   .mel-event-section--extras .mel-addon-teaser__list {
@@ -271,6 +312,12 @@
     box-shadow: none;
   }
 
+  // Beat _event-full.scss lavender tint on extras rows.
+  .mel-event--v2.mel-event-page--classic .mel-event-section--extras .mel-addon-teaser__item {
+    background: var(--mel-event-surface);
+    border-color: var(--mel-event-border);
+  }
+
   .mel-event-section--extras .mel-addon-teaser__thumb {
     flex: 0 0 auto;
     width: 56px;
@@ -285,16 +332,20 @@
   }
 
   .mel-event-section--extras .mel-addon-teaser__cta,
-  .mel-event-section--extras .mel-addon-teaser__scroll {
+  .mel-event-section--extras .mel-addon-teaser__scroll,
+  .mel-event-section--extras .mel-addon-teaser__cta.mel-btn--secondary,
+  .mel-event-section--extras .mel-addon-teaser__scroll.mel-btn--secondary {
     background: transparent;
     border: 2px solid var(--mel-event-accent);
     color: var(--mel-event-accent-strong);
     min-height: 44px;
     font-weight: 600;
+    border-radius: radii.$mel-radius-lg;
 
     @media (hover: hover) and (pointer: fine) {
       &:hover {
         background: var(--mel-event-accent-soft);
+        color: var(--mel-event-accent-strong);
       }
     }
   }
@@ -323,7 +374,8 @@
 
   .mel-btn--primary,
   .button--primary,
-  .mel-event--v2 .mel-btn--primary {
+  .mel-event--v2 .mel-btn--primary,
+  .mel-event--v2 .mel-btn--coral-cta {
     background-color: var(--mel-event-accent, colors.$mel-color-primary);
     border-color: var(--mel-event-accent, colors.$mel-color-primary);
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
@@ -338,6 +390,14 @@
     border-color: var(--mel-event-card-border);
     color: var(--mel-event-text);
     min-height: 44px;
+  }
+
+  // Preserve coral pill CTA from _event-full (do not let generic primary rule flatten radius).
+  .mel-card--sticky .mel-btn--coral-cta,
+  .mel-mobile-cta .mel-btn--coral-cta {
+    border-radius: 16px;
+    background: var(--mel-coral, var(--mel-event-accent, #{colors.$mel-color-primary}));
+    color: colors.$mel-color-on-primary;
   }
 
   .mel-mobile-cta {
