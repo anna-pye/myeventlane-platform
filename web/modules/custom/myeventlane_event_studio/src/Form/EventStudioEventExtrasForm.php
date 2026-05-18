@@ -99,7 +99,7 @@ final class EventStudioEventExtrasForm extends FormBase {
 
     $mode = (string) $form_state->get('mel_extras_mode');
     if ($mode === 'edit' || $mode === 'add') {
-      $form['editor'] = $this->buildEditor($form_state, $event, $mode, $edit_id);
+      $form['editor'] = $this->buildEditor($form, $form_state, $event, $mode, $edit_id);
     }
     else {
       $form['list'] = $this->buildList($event);
@@ -212,7 +212,7 @@ final class EventStudioEventExtrasForm extends FormBase {
   /**
    * @return array<string, mixed>
    */
-  private function buildEditor(FormStateInterface $form_state, NodeInterface $event, string $mode, int $edit_id): array {
+  private function buildEditor(array &$form, FormStateInterface $form_state, NodeInterface $event, string $mode, int $edit_id): array {
     $product = NULL;
     $defaults = [
       'extra_type' => (string) ($form_state->get('mel_extras_extra_type') ?? ''),
@@ -230,6 +230,8 @@ final class EventStudioEventExtrasForm extends FormBase {
 
     $editor = [
       '#type' => 'container',
+      '#tree' => TRUE,
+      '#parents' => ['editor'],
       '#attributes' => ['class' => ['mel-event-extra-editor', 'mel-es-card']],
       'back' => [
         '#type' => 'link',
@@ -297,7 +299,6 @@ final class EventStudioEventExtrasForm extends FormBase {
     ];
 
     if ($product instanceof ProductInterface) {
-      $editor += $this->buildImagesWidget($product, $form_state);
       $editor['preview'] = [
         '#theme' => 'mel_event_studio_extra_preview',
         '#preview' => $this->extrasBuilder->buildPreviewRow($product, $event),
@@ -342,26 +343,42 @@ final class EventStudioEventExtrasForm extends FormBase {
       ],
     ];
 
+    if ($product instanceof ProductInterface) {
+      $this->attachImagesWidget($product, $form, $editor, $form_state);
+    }
+
     return $editor;
   }
 
   /**
-   * @return array<string, mixed>
+   * Attaches the Commerce media_library widget (EntityFormDisplay pattern).
    */
-  private function buildImagesWidget(ProductInterface $product, FormStateInterface $form_state): array {
+  private function attachImagesWidget(ProductInterface $product, array &$form, array &$editor, FormStateInterface $form_state): void {
     $display_id = 'commerce_product.' . $product->bundle() . '.default';
     $form_display = EntityFormDisplay::load($display_id);
     if ($form_display === NULL || !$product->hasField('field_mel_extra_images')) {
-      return [];
+      return;
     }
     $widget = $form_display->getRenderer('field_mel_extra_images');
     if ($widget === NULL) {
-      return [];
+      return;
     }
-    $element = $widget->form($product->get('field_mel_extra_images'), [], $form_state);
-    $element['#title'] = $this->t('Images');
-    $element['#attributes']['class'][] = 'mel-event-extra-gallery';
-    return ['images' => $element];
+    if (!isset($form['#parents'])) {
+      $form['#parents'] = [];
+    }
+    if (!isset($editor['#parents'])) {
+      $editor['#parents'] = ['editor'];
+    }
+    if (!isset($editor['#tree'])) {
+      $editor['#tree'] = TRUE;
+    }
+    $editor['field_mel_extra_images'] = $widget->form(
+      $product->get('field_mel_extra_images'),
+      $editor,
+      $form_state,
+    );
+    $editor['field_mel_extra_images']['#title'] = $this->t('Images');
+    $editor['field_mel_extra_images']['#attributes']['class'][] = 'mel-event-extra-gallery';
   }
 
   /**
@@ -485,6 +502,7 @@ final class EventStudioEventExtrasForm extends FormBase {
     try {
       $input = $this->collectInput($form_state);
       $product = $this->productCreationManager->saveEventExtraForVendor($this->currentUser(), $event, $input);
+      $this->extractImagesOntoProduct($form_state, $product);
       $this->messenger()->addStatus($this->t('Your extra “@title” is saved. Guests can add it when booking.', [
         '@title' => $product->label(),
       ]));
@@ -515,23 +533,37 @@ final class EventStudioEventExtrasForm extends FormBase {
    */
   private function collectInput(FormStateInterface $form_state): array {
     $sizes = [];
-    foreach ((array) ($form_state->getValue('sizes') ?? []) as $key => $on) {
+    foreach ((array) ($this->editorValue($form_state, 'sizes') ?? []) as $key => $on) {
       if (!empty($on)) {
         $sizes[] = (string) $key;
       }
     }
-    $image_media_ids = $this->extractImageMediaIds($form_state);
+    $image_media_ids = $this->extractImageMediaIds($form_state, ['editor', 'field_mel_extra_images']);
+    if ($image_media_ids === []) {
+      $image_media_ids = $this->extractImageMediaIds($form_state, 'field_mel_extra_images');
+    }
     return [
-      'product_id' => (int) ($form_state->getValue('product_id') ?? 0),
-      'extra_type' => (string) ($form_state->getValue('extra_type') ?? ''),
-      'title' => (string) ($form_state->getValue('title') ?? ''),
-      'customer_summary' => (string) ($form_state->getValue('customer_summary') ?? ''),
-      'pickup_note' => (string) ($form_state->getValue('pickup_note') ?? ''),
-      'price_amount' => $form_state->getValue('price_amount'),
+      'product_id' => (int) ($this->editorValue($form_state, 'product_id') ?? 0),
+      'extra_type' => (string) ($this->editorValue($form_state, 'extra_type') ?? ''),
+      'title' => (string) ($this->editorValue($form_state, 'title') ?? ''),
+      'customer_summary' => (string) ($this->editorValue($form_state, 'customer_summary') ?? ''),
+      'pickup_note' => (string) ($this->editorValue($form_state, 'pickup_note') ?? ''),
+      'price_amount' => $this->editorValue($form_state, 'price_amount'),
       'sizes' => $sizes,
-      'show_on_booking' => !empty($form_state->getValue('show_on_booking')),
+      'show_on_booking' => !empty($this->editorValue($form_state, 'show_on_booking')),
       'image_media_ids' => $image_media_ids,
     ];
+  }
+
+  /**
+   * Reads a value from the editor subtree (#tree + #parents).
+   */
+  private function editorValue(FormStateInterface $form_state, string $key): mixed {
+    $editor = $form_state->getValue('editor');
+    if (is_array($editor) && array_key_exists($key, $editor)) {
+      return $editor[$key];
+    }
+    return $form_state->getValue($key);
   }
 
   private function getRouteEvent(?NodeInterface $node = NULL): NodeInterface {
@@ -555,11 +587,30 @@ final class EventStudioEventExtrasForm extends FormBase {
     }
   }
 
+  private function extractImagesOntoProduct(FormStateInterface $form_state, ProductInterface $product): void {
+    $display_id = 'commerce_product.' . $product->bundle() . '.default';
+    $form_display = EntityFormDisplay::load($display_id);
+    if ($form_display === NULL || !$product->hasField('field_mel_extra_images')) {
+      return;
+    }
+    $complete = $form_state->getCompleteForm();
+    if (!is_array($complete) || !isset($complete['editor']['field_mel_extra_images'])) {
+      return;
+    }
+    $form_display->extractFormValues($product, $complete['editor'], $form_state);
+    $product->save();
+  }
+
   /**
    * @return list<int>
    */
-  private function extractImageMediaIds(FormStateInterface $form_state): array {
-    $images_value = $form_state->getValue('images');
+  /**
+   * @param string|list<string> $key
+   *
+   * @return list<int>
+   */
+  private function extractImageMediaIds(FormStateInterface $form_state, string|array $key = 'field_mel_extra_images'): array {
+    $images_value = $form_state->getValue($key);
     $ids = [];
     if (!is_array($images_value)) {
       return $ids;
