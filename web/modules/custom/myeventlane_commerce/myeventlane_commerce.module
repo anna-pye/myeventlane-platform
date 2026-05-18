@@ -86,16 +86,21 @@ function myeventlane_commerce_page_attachments(array &$attachments): void {
     $locale = 'en-AU';
   }
 
+  $cart_extras = \Drupal::service('myeventlane_commerce.event_booking_summary_cart_extras_builder')
+    ->buildForEvent($node);
+
   $attachments['#attached']['library'][] = 'myeventlane_theme/mel_booking_summary';
   $attachments['#attached']['drupalSettings']['melBookingSummary'] = [
     'enabled' => TRUE,
     'currencyCode' => $currency,
     'locale' => $locale,
+    'cartExtras' => $cart_extras,
     'strings' => [
       'subtotal' => (string) t('Subtotal'),
       'ticketCount' => (string) t('@count tickets'),
       'noTicketsYet' => (string) t('No tickets selected'),
       'ticketFallback' => (string) t('Ticket'),
+      'extraFallback' => (string) t('Event extra'),
       'donationLine' => (string) t('Optional support (estimate)'),
     ],
   ];

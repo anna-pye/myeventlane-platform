@@ -141,47 +141,259 @@
   }
 
   /**
-   * @param {HTMLFormElement} form
+   * @param {HTMLElement} flow
    * @returns {{ container: Document|HTMLElement, empty: HTMLElement|null, items: HTMLElement|null, subtotalWrap: HTMLElement|null, subtotalValue: HTMLElement|null, mobileBar: HTMLElement|null, countEl: HTMLElement|null, totalEl: HTMLElement|null, submit: HTMLElement|null }}
    */
-  function getTargets(form) {
-    const flow = form.closest('[data-mel-booking-flow]');
+  function getTargets(flow) {
     const root =
-      form.closest('.mel-booking-v2') ||
+      flow.closest('.mel-booking-v2') ||
       document.querySelector('.mel-booking-v2') ||
       document;
-    const scope = flow || form;
     return {
       container: root,
       empty: root.querySelector('[data-mel-summary-empty]'),
       items: root.querySelector('[data-mel-summary-items]'),
       subtotalWrap: root.querySelector('[data-mel-summary-subtotal]'),
       subtotalValue: root.querySelector('[data-mel-summary-subtotal-value]'),
-      mobileBar: scope.querySelector('[data-mel-mobile-booking-bar]'),
-      countEl: scope.querySelector('[data-mel-booking-count]'),
-      totalEl: scope.querySelector('[data-mel-booking-total]'),
-      submit: scope.querySelector('.mel-add-to-cart-button, input[type="submit"].button--primary, button[type="submit"].button--primary'),
+      mobileBar: flow.querySelector('[data-mel-mobile-booking-bar]'),
+      countEl: flow.querySelector('[data-mel-booking-count]'),
+      totalEl: flow.querySelector('[data-mel-booking-total]'),
+      submit: flow.querySelector('.mel-add-to-cart-button, input[type="submit"].button--primary, button[type="submit"].button--primary'),
     };
   }
 
   /**
-   * @param {HTMLFormElement} form
+   * @param {HTMLElement} card
+   * @returns {Record<string, {number?: string, currency?: string, label?: string}>}
+   */
+  function getExtraPricesBySize(card) {
+    const raw = card.getAttribute('data-extra-prices');
+    if (!raw) {
+      return {};
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /**
+   * @param {HTMLElement} card
+   * @returns {string}
+   */
+  function getSelectedExtraSizeKey(card) {
+    const checked = card.querySelector('input[type="radio"][name*="selected_size"]:checked');
+    if (checked instanceof HTMLInputElement) {
+      return checked.value;
+    }
+    const selectedChip = card.querySelector(
+      '.mel-event-extra-card__sizes .form-type-radio.is-selected input[type="radio"]',
+    );
+    if (selectedChip instanceof HTMLInputElement) {
+      return selectedChip.value;
+    }
+    return '';
+  }
+
+  /**
+   * @param {HTMLElement} card
+   * @returns {number}
+   */
+  function getExtraQuantity(card) {
+    const input = card.querySelector('.mel-event-extra-card__qty-input');
+    if (input && !input.disabled) {
+      const raw = parseInt(String(input.value), 10);
+      if (Number.isFinite(raw) && raw > 0) {
+        return raw;
+      }
+    }
+    const display = card.querySelector('.mel-event-extra-card__qty-value');
+    if (display) {
+      const raw = parseInt(String(display.textContent || '').trim(), 10);
+      if (Number.isFinite(raw) && raw > 0) {
+        return raw;
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * @param {HTMLElement} card
+   * @param {string} sizeKey
+   * @returns {string}
+   */
+  function getExtraMergeKey(card, sizeKey) {
+    const productId = card.getAttribute('data-product-id') || '';
+    return `${productId}:${sizeKey || 'default'}`;
+  }
+
+  /**
+   * @param {HTMLElement} card
+   * @returns {number}
+   */
+  function getExtraUnitPrice(card) {
+    const sizeKey = getSelectedExtraSizeKey(card);
+    const prices = getExtraPricesBySize(card);
+    if (sizeKey && prices[sizeKey] && prices[sizeKey].number) {
+      const n = parseFloat(String(prices[sizeKey].number).replace(/,/g, ''), 10);
+      if (Number.isFinite(n)) {
+        return n;
+      }
+    }
+    const attr = card.getAttribute('data-extra-price-number');
+    if (attr) {
+      const n = parseFloat(String(attr).replace(/,/g, ''), 10);
+      if (Number.isFinite(n)) {
+        return n;
+      }
+    }
+    const priceEl = card.querySelector('.mel-event-extra-card__price');
+    if (priceEl) {
+      return parsePriceFromText(priceEl.textContent || '');
+    }
+    return 0;
+  }
+
+  /**
+   * @param {HTMLElement} flow
+   * @param {object} strings
+   * @returns {{ title: string, qty: number, line: number }[]}
+   */
+  function getExtraSummaryLines(flow, strings) {
+    /** @type {{ title: string, qty: number, line: number, mergeKey: string }[]} */
+    const lines = [];
+    flow.querySelectorAll('.mel-event-extra-card').forEach((card) => {
+      const qty = getExtraQuantity(card);
+      if (qty <= 0) {
+        return;
+      }
+      const requiresSize = card.getAttribute('data-requires-size') === '1';
+      const sizeKey = getSelectedExtraSizeKey(card);
+      if (requiresSize && !sizeKey) {
+        return;
+      }
+      const title =
+        card.getAttribute('data-extra-title') ||
+        card.querySelector('.mel-event-extra-card__title')?.textContent?.trim() ||
+        strings.extraFallback ||
+        'Event extra';
+      let label = title;
+      if (sizeKey) {
+        const prices = getExtraPricesBySize(card);
+        const sizeLabel = prices[sizeKey]?.label || sizeKey.toUpperCase();
+        label = `${title} (${sizeLabel})`;
+      }
+      const unit = getExtraUnitPrice(card);
+      lines.push({
+        title: label,
+        qty,
+        line: qty * unit,
+        mergeKey: getExtraMergeKey(card, sizeKey),
+      });
+    });
+    return lines;
+  }
+
+  /**
+   * @param {object} settings
+   * @returns {{ title: string, qty: number, line: number, mergeKey: string }[]}
+   */
+  function getCartExtraSummaryLines(settings) {
+    const raw = settings.cartExtras;
+    if (!Array.isArray(raw) || raw.length === 0) {
+      return [];
+    }
+    /** @type {{ title: string, qty: number, line: number, mergeKey: string }[]} */
+    const lines = [];
+    raw.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return;
+      }
+      const qty = parseInt(String(entry.qty ?? ''), 10);
+      if (!Number.isFinite(qty) || qty < 1) {
+        return;
+      }
+      const unit = parseFloat(String(entry.unit_number ?? '').replace(/,/g, ''), 10);
+      if (!Number.isFinite(unit)) {
+        return;
+      }
+      const title = String(entry.title ?? '').trim();
+      if (title === '') {
+        return;
+      }
+      const mergeKey = String(entry.merge_key ?? '').trim();
+      lines.push({
+        title,
+        qty,
+        line: qty * unit,
+        mergeKey: mergeKey !== '' ? mergeKey : `cart:${title}`,
+      });
+    });
+    return lines;
+  }
+
+  /**
+   * @param {{ title: string, qty: number, line: number, mergeKey: string }[]} cartLines
+   * @param {{ title: string, qty: number, line: number, mergeKey: string }[]} formLines
+   * @returns {{ title: string, qty: number, line: number }[]}
+   */
+  function mergeExtraSummaryLines(cartLines, formLines) {
+    /** @type {Map<string, { title: string, qty: number, line: number }>} */
+    const merged = new Map();
+    cartLines.forEach((line) => {
+      merged.set(line.mergeKey, {
+        title: line.title,
+        qty: line.qty,
+        line: line.line,
+      });
+    });
+    formLines.forEach((line) => {
+      merged.set(line.mergeKey, {
+        title: line.title,
+        qty: line.qty,
+        line: line.line,
+      });
+    });
+    return Array.from(merged.values());
+  }
+
+  /**
+   * @param {HTMLElement} flow
+   * @param {HTMLFormElement} ticketForm
    * @param {object} settings
    */
-  function bindForm(form, settings) {
+  function bindBookingFlow(flow, ticketForm, settings) {
     const fmt = getMoneyFormatter(settings.currencyCode, settings.locale);
-    const targets = getTargets(form);
+    const targets = getTargets(flow);
     let announceTimer = null;
     let lastAnnounce = '';
 
     const strings = settings.strings || {};
 
+    const appendSummaryLine = (ul, line, extraClass) => {
+      const li = document.createElement('li');
+      li.className = extraClass
+        ? `mel-booking-summary__item ${extraClass}`
+        : 'mel-booking-summary__item';
+      const label = document.createElement('span');
+      label.className = 'mel-booking-summary__item-label';
+      label.textContent = `${line.qty} × ${line.title}`;
+      const amt = document.createElement('span');
+      amt.className = 'mel-booking-summary__item-amount';
+      amt.textContent = fmt.format(line.line);
+      li.appendChild(label);
+      li.appendChild(amt);
+      ul.appendChild(li);
+    };
+
     const sync = () => {
-      const rows = getTicketRows(form);
-      let totalQty = 0;
+      const rows = getTicketRows(ticketForm);
+      let ticketQty = 0;
       let subtotal = 0;
       /** @type {{ title: string, qty: number, line: number }[]} */
-      const lines = [];
+      const ticketLines = [];
 
       rows.forEach((row) => {
         const qty = getQuantity(row);
@@ -194,14 +406,25 @@
           row.querySelector('.mel-ticket-label')?.textContent?.trim() ||
           strings.ticketFallback ||
           'Ticket';
-        totalQty += qty;
+        ticketQty += qty;
         const line = qty * unit;
         subtotal += line;
-        lines.push({ title, qty, line });
+        ticketLines.push({ title, qty, line });
       });
 
-      const hasSelection = totalQty > 0;
-      const donationLine = hasSelection ? getOptionalDonation(form) : 0;
+      const formExtraLines = getExtraSummaryLines(flow, strings);
+      const cartExtraLines = getCartExtraSummaryLines(settings);
+      const extraLines = mergeExtraSummaryLines(cartExtraLines, formExtraLines);
+      let extraQty = 0;
+      extraLines.forEach((l) => {
+        extraQty += l.qty;
+        subtotal += l.line;
+      });
+
+      const hasTickets = ticketQty > 0;
+      const hasExtras = extraLines.length > 0;
+      const hasSelection = hasTickets || hasExtras;
+      const donationLine = hasTickets ? getOptionalDonation(ticketForm) : 0;
       const displayTotal = subtotal + donationLine;
 
       if (targets.empty) {
@@ -213,31 +436,14 @@
         } else {
           const ul = document.createElement('ul');
           ul.className = 'mel-booking-summary__list';
-          lines.forEach((l) => {
-            const li = document.createElement('li');
-            li.className = 'mel-booking-summary__item';
-            const label = document.createElement('span');
-            label.className = 'mel-booking-summary__item-label';
-            label.textContent = `${l.qty} × ${l.title}`;
-            const amt = document.createElement('span');
-            amt.className = 'mel-booking-summary__item-amount';
-            amt.textContent = fmt.format(l.line);
-            li.appendChild(label);
-            li.appendChild(amt);
-            ul.appendChild(li);
-          });
+          ticketLines.forEach((l) => appendSummaryLine(ul, l, ''));
+          extraLines.forEach((l) => appendSummaryLine(ul, l, 'mel-booking-summary__item--extra'));
           if (donationLine > 0) {
-            const dli = document.createElement('li');
-            dli.className = 'mel-booking-summary__item mel-booking-summary__item--donation';
-            const dlabel = document.createElement('span');
-            dlabel.className = 'mel-booking-summary__item-label';
-            dlabel.textContent = strings.donationLine || 'Contribution';
-            const damt = document.createElement('span');
-            damt.className = 'mel-booking-summary__item-amount';
-            damt.textContent = fmt.format(donationLine);
-            dli.appendChild(dlabel);
-            dli.appendChild(damt);
-            ul.appendChild(dli);
+            appendSummaryLine(
+              ul,
+              { title: strings.donationLine || 'Contribution', qty: 1, line: donationLine },
+              'mel-booking-summary__item--donation',
+            );
           }
           targets.items.innerHTML = '';
           targets.items.appendChild(ul);
@@ -249,12 +455,13 @@
         targets.subtotalValue.textContent = hasSelection ? fmt.format(displayTotal) : '';
       }
 
+      const totalItemQty = ticketQty + extraQty;
       if (targets.countEl) {
-        if (totalQty === 0) {
+        if (totalItemQty === 0) {
           targets.countEl.textContent = strings.noTicketsYet || '';
         } else {
           const tpl = strings.ticketCount || '@count tickets';
-          targets.countEl.textContent = tpl.replace('@count', String(totalQty));
+          targets.countEl.textContent = tpl.replace('@count', String(totalItemQty));
         }
       }
       if (targets.totalEl) {
@@ -262,7 +469,7 @@
       }
 
       if (targets.submit) {
-        targets.submit.classList.toggle('mel-booking-submit--soft-idle', !hasSelection);
+        targets.submit.classList.toggle('mel-booking-submit--soft-idle', !hasTickets);
       }
 
       rows.forEach((row) => {
@@ -285,7 +492,8 @@
         if (!targets.items || !hasSelection) {
           return;
         }
-        let summary = lines.map((l) => `${l.qty} ${l.title}`).join(', ');
+        const allLines = ticketLines.concat(extraLines);
+        let summary = allLines.map((l) => `${l.qty} ${l.title}`).join(', ');
         if (donationLine > 0) {
           summary += `. ${strings.donationLine || 'Contribution'} ${fmt.format(donationLine)}`;
         }
@@ -303,7 +511,7 @@
     });
 
     const onChange = () => sync();
-    getTicketRows(form).forEach((row) => {
+    getTicketRows(ticketForm).forEach((row) => {
       const input = getQtyInput(row);
       if (input) {
         input.addEventListener('input', onChange);
@@ -311,13 +519,13 @@
       }
     });
 
-    const donationInput = form.querySelector('[name="mel_donation"]');
+    const donationInput = ticketForm.querySelector('[name="mel_donation"]');
     if (donationInput) {
       donationInput.addEventListener('input', onChange);
       donationInput.addEventListener('change', onChange);
     }
 
-    form.querySelectorAll('.mel-donation-chip[data-amount]').forEach((chip) => {
+    ticketForm.querySelectorAll('.mel-donation-chip[data-amount]').forEach((chip) => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         const amount = parseFloat(chip.getAttribute('data-amount') || '', 10);
@@ -331,7 +539,7 @@
       });
     });
 
-    form.addEventListener(
+    ticketForm.addEventListener(
       'input',
       (e) => {
         if (isQuantityControl(e.target) || isDonationControl(e.target)) {
@@ -340,7 +548,7 @@
       },
       false,
     );
-    form.addEventListener(
+    ticketForm.addEventListener(
       'change',
       (e) => {
         if (isQuantityControl(e.target) || isDonationControl(e.target)) {
@@ -350,9 +558,29 @@
       false,
     );
 
-    form.addEventListener('submit', () => {
+    ticketForm.addEventListener('submit', () => {
       window.setTimeout(sync, 0);
     });
+
+    flow.addEventListener('mel-booking-selection-change', onChange, false);
+    flow.addEventListener(
+      'change',
+      (e) => {
+        if (e.target instanceof HTMLElement && e.target.closest('.mel-event-extra-card')) {
+          onChange();
+        }
+      },
+      false,
+    );
+    flow.addEventListener(
+      'input',
+      (e) => {
+        if (e.target instanceof HTMLElement && e.target.closest('.mel-event-extra-card')) {
+          onChange();
+        }
+      },
+      false,
+    );
   }
 
   Drupal.behaviors.melBookingSummary = {
@@ -368,8 +596,12 @@
         ...raw,
         enabled: true,
       };
-      once('mel-booking-summary', '.mel-booking-form[data-mel-booking-form]', context).forEach((el) => {
-        bindForm(el, settings);
+      once('mel-booking-summary', '[data-mel-booking-flow]', context).forEach((flow) => {
+        const ticketForm = flow.querySelector('.mel-booking-form[data-mel-booking-form]');
+        if (!(ticketForm instanceof HTMLFormElement)) {
+          return;
+        }
+        bindBookingFlow(flow, ticketForm, settings);
       });
     },
   };

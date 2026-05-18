@@ -255,6 +255,29 @@
   min-width: 0;
 }
 
+.mel-event-extra-card__image-open {
+  display: block;
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  border-radius: 0.85rem;
+}
+
+.mel-event-extra-card__image-open:hover .mel-event-extra-card__image,
+.mel-event-extra-card__image-open:focus-visible .mel-event-extra-card__image {
+  opacity: 0.92;
+}
+
+.mel-event-extra-card__image-open:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 3px;
+}
+
 .mel-event-extra-card__image {
   display: block;
   width: 100%;
@@ -263,6 +286,17 @@
   object-fit: cover;
   border-radius: 0.85rem;
   background: rgba(15, 23, 42, 0.04);
+}
+
+.mel-event-extra-card__image-zoom {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.62) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 3h6v6M14 10l7-7M9 21H3v-6M10 14l-7 7'/%3E%3C/svg%3E") center / 1rem no-repeat;
+  pointer-events: none;
 }
 
 .mel-event-extra-card__thumbs {
@@ -317,6 +351,10 @@
   color: rgba(15, 23, 42, 0.9);
 }
 
+.mel-event-extra-card__sizes {
+  margin-top: 0.35rem;
+}
+
 .mel-event-extra-card__sizes-label {
   display: block;
   font-size: 0.85rem;
@@ -324,52 +362,122 @@
   margin-bottom: 0.35rem;
 }
 
-.mel-event-extra-card__size-radios {
+/* Radios without #title avoid a fieldset; legacy fieldset markup is still supported. */
+.mel-event-extras-form fieldset.mel-event-extra-card__size-radios {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.mel-event-extras-form fieldset.mel-event-extra-card__size-radios legend {
+  display: none;
+}
+
+.mel-event-extras-form fieldset.mel-event-extra-card__size-radios .fieldset-wrapper {
+  margin: 0;
+  padding: 0;
+}
+
+.mel-event-extras-form .mel-event-extra-card__size-radios,
+.mel-event-extras-form .mel-event-extra-card__size-radios > div[id$='-selected-size'],
+.mel-event-extras-form fieldset.mel-event-extra-card__size-radios .fieldset-wrapper > div {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
 
-.mel-event-extra-card__size-radios .form-item {
+.mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio {
   margin: 0;
+  position: relative;
 }
 
-.mel-event-extra-card__size-radios input {
+.mel-event-extras-form .mel-event-extra-card__sizes input[type='radio'] {
   position: absolute;
-  opacity: 0;
-  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.mel-event-extra-card__size-radios label {
+/* Booking page sets labels to display:block — override for size chips only. */
+.mel-booking-v2 .mel-event-extras-form .mel-event-extra-card__sizes label.option,
+.mel-booking-v2 .mel-event-extras-form .mel-event-extra-card__sizes .mel-event-extra-card__size-chip-label,
+.mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
+  margin: 0;
   padding: 0 0.65rem;
   border-radius: 999px;
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  border: 2px solid rgba(99, 102, 241, 0.4);
   background: #fff;
+  color: rgba(15, 23, 42, 0.88);
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.mel-event-extra-card__size-radios input:focus-visible + label {
+.mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio.is-selected label,
+.mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio:has(input:checked) label,
+.mel-event-extras-form .mel-event-extra-card__sizes .mel-event-extra-card__size-chip-label.is-selected {
+  background: #f26d5b;
+  border-color: #e55c49;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(242, 109, 91, 0.35);
+}
+
+.mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio:has(input:focus-visible) label {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
 
-.mel-event-extra-card__size-radios input:checked + label {
-  background: rgba(229, 115, 115, 0.15);
-  border-color: #e57373;
-  color: rgba(15, 23, 42, 0.92);
+.mel-event-extras-form .mel-event-extra-card__size-selected {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.mel-event-extras-form .mel-event-extra-card__size-selected[hidden] {
+  display: none;
 }
 
 .mel-event-extra-card__qty {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  margin-top: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.mel-event-extra-card__footer {
+  grid-column: 1 / -1;
+  margin-top: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.mel-event-extra-card__add-to-cart {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 0.65rem 1.25rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 14px rgba(242, 109, 91, 0.28);
+}
+
+.mel-event-extra-card__add-to-cart:hover,
+.mel-event-extra-card__add-to-cart:focus-visible {
+  box-shadow: 0 6px 18px rgba(242, 109, 91, 0.36);
 }
 
 .mel-event-extra-card__qty-btn {
@@ -477,6 +585,166 @@
   margin: 0.25rem 0 0;
   font-size: 0.88rem;
   color: rgba(15, 23, 42, 0.72);
+}
+
+/* Full-size gallery lightbox (booking extras). */
+.mel-event-extra-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  padding: 1rem;
+  align-items: center;
+  justify-items: center;
+}
+
+.mel-event-extra-lightbox.is-open {
+  display: grid;
+}
+
+.mel-event-extra-lightbox[hidden] {
+  display: none !important;
+}
+
+.mel-event-extra-lightbox__overlay {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.72);
+  cursor: pointer;
+}
+
+.mel-event-extra-lightbox__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 52rem);
+  max-height: min(92vh, 48rem);
+  padding: 1rem 1.25rem 1.25rem;
+  overflow: auto;
+}
+
+.mel-event-extra-lightbox__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.mel-event-extra-lightbox__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.mel-event-extra-lightbox__close {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.88);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.mel-event-extra-lightbox__close:hover,
+.mel-event-extra-lightbox__close:focus-visible {
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.mel-event-extra-lightbox__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+}
+
+.mel-event-extra-lightbox__image {
+  display: block;
+  max-width: 100%;
+  max-height: min(70vh, 36rem);
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 0.5rem;
+}
+
+.mel-event-extra-lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
+  color: rgba(15, 23, 42, 0.9);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mel-event-extra-lightbox__nav--prev {
+  left: 0.35rem;
+}
+
+.mel-event-extra-lightbox__nav--next {
+  right: 0.35rem;
+}
+
+.mel-event-extra-lightbox__nav:hover,
+.mel-event-extra-lightbox__nav:focus-visible {
+  background: #fff;
+}
+
+.mel-event-extra-lightbox__counter {
+  margin: 0.65rem 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.mel-event-extra-lightbox__thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+  margin-top: 0.85rem;
+}
+
+.mel-event-extra-lightbox__thumb {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.mel-event-extra-lightbox__thumb.is-active {
+  border-color: #f26d5b;
+}
+
+.mel-event-extra-lightbox__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 @media (prefers-reduced-motion: reduce) {
