@@ -8,6 +8,7 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product as CommerceProduct;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -29,6 +30,30 @@ final class VendorOperationalProductCreationManager {
   /**
    * @var list<string>
    */
+  /**
+   * Vendor-facing extra type keys (UI) mapped internally to productisation types.
+   *
+   * @var array<string, string>
+   */
+  public const VENDOR_EXTRA_TYPE_MAP = [
+    'merchandise' => VendorProductisationStudioManager::TYPE_MERCHANDISE,
+    'food_drink' => VendorProductisationStudioManager::TYPE_TIMED_COLLECTION,
+    'vip_hospitality' => VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE,
+    'pickup_item' => VendorProductisationStudioManager::TYPE_TIMED_COLLECTION,
+    'bundle' => VendorProductisationStudioManager::TYPE_OPERATIONAL_BUNDLE,
+  ];
+
+  /**
+   * @var list<string>
+   */
+  public const VENDOR_EXTRA_TYPE_KEYS = [
+    'merchandise',
+    'food_drink',
+    'vip_hospitality',
+    'pickup_item',
+    'bundle',
+  ];
+
   public const FORBIDDEN_CREATION_KEYS = [
     'inventory_quantity',
     'stock_count',
@@ -115,6 +140,181 @@ final class VendorOperationalProductCreationManager {
    *
    * @throws \InvalidArgumentException
    */
+  /**
+   * Creates or updates an event extra Commerce product for a vendor (explicit save only).
+   *
+   * @param array<string, mixed> $input
+   *   Keys: extra_type, title, customer_summary, pickup_note, price_amount, currency_code,
+   *   sizes (list), show_on_booking (bool), product_id (optional), image_media_ids (list<int>).
+   *
+   * @throws \InvalidArgumentException
+   */
+  public function saveEventExtraForVendor(AccountInterface $account, NodeInterface $event, array $input): ProductInterface {
+    $input = $this->stripForbiddenFromPayload($input);
+    $product_id = (int) ($input['product_id'] ?? 0);
+    if ($product_id > 0) {
+      return $this->updateEventExtraForVendor($account, $event, $product_id, $input);
+    }
+    $payload = $this->buildEventExtraCreationPayload($event, $input);
+    $created = $this->createOperationalProductForEvent($account, $event, $payload);
+    $product = $this->entityTypeManager->getStorage('commerce_product')->load((int) $created['product_id']);
+    if (!$product instanceof ProductInterface) {
+      throw new \RuntimeException('Event extra product could not be loaded after create.');
+    }
+    $this->applyEventExtraFieldUpdates($product, $input);
+    $product->save();
+    return $product;
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   *
+   * @return array<string, mixed>
+   */
+  public function buildEventExtraCreationPayload(NodeInterface $event, array $input): array {
+    $extra_type = $this->normalizeVendorExtraType((string) ($input['extra_type'] ?? ''));
+    if ($extra_type === '') {
+      throw new \InvalidArgumentException('A valid extra type is required.');
+    }
+    $productisation_type = self::VENDOR_EXTRA_TYPE_MAP[$extra_type];
+    $store_id = $this->commerceLinkManager->resolveStoreIdForOperationalProductCreation($event);
+    $currency = 'AUD';
+    if ($store_id !== NULL && $store_id > 0) {
+      $store = $this->entityTypeManager->getStorage('commerce_store')->load($store_id);
+      if (is_object($store) && method_exists($store, 'getDefaultCurrencyCode')) {
+        $currency = (string) $store->getDefaultCurrencyCode();
+      }
+    }
+    $currency_in = $this->normalizeCurrencyCode((string) ($input['currency_code'] ?? $currency));
+    if ($currency_in === '') {
+      $currency_in = $currency;
+    }
+    $show = !array_key_exists('show_on_booking', $input) || !empty($input['show_on_booking']);
+    $pickup_mode = match ($extra_type) {
+      'pickup_item' => 'collect',
+      'food_drink' => 'counter',
+      default => 'counter',
+    };
+    $fulfillment = match ($productisation_type) {
+      VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE => 'redeem',
+      VendorProductisationStudioManager::TYPE_TIMED_COLLECTION => 'collect',
+      default => 'collect',
+    };
+    return $this->stripForbiddenFromPayload([
+      'productisation_type' => $productisation_type,
+      'event_id' => (int) $event->id(),
+      'title' => (string) ($input['title'] ?? ''),
+      'customer_summary' => (string) ($input['customer_summary'] ?? ''),
+      'price_amount' => $input['price_amount'] ?? NULL,
+      'currency_code' => $currency_in,
+      'customer_visibility' => $show ? 'visible' : 'hidden',
+      'fulfillment_mode' => $fulfillment,
+      'reservation_mode' => 'operational_projection',
+      'pickup_mode' => $pickup_mode,
+      'pickup_note' => (string) ($input['pickup_note'] ?? ''),
+      'sizes' => $this->normalizeSizeKeys($input['sizes'] ?? []),
+      'timed_collection_window_copy' => $extra_type === 'pickup_item' ? (string) ($input['pickup_note'] ?? '') : '',
+      'hospitality_benefits_summary' => $productisation_type === VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE
+        ? (string) ($input['customer_summary'] ?? '') : '',
+    ]);
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   *
+   * @return list<string>
+   */
+  public function validateEventExtraInput(AccountInterface $account, NodeInterface $event, array $input): array {
+    $input = $this->stripForbiddenFromPayload($input);
+    $errors = [];
+    if ($account->isAnonymous()) {
+      return ['Authentication is required.'];
+    }
+    if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)
+      && !$account->hasPermission('administer nodes')) {
+      return ['You do not have permission to manage extras for this event.'];
+    }
+    $product_id = (int) ($input['product_id'] ?? 0);
+    if ($product_id > 0) {
+      try {
+        $this->assertVendorCanManageProduct($account, $event, $product_id);
+      }
+      catch (\InvalidArgumentException $e) {
+        return [$e->getMessage()];
+      }
+    }
+    else {
+      $extra_type = $this->normalizeVendorExtraType((string) ($input['extra_type'] ?? ''));
+      if ($extra_type === '') {
+        $errors[] = 'Choose what kind of extra you are offering.';
+      }
+    }
+    $title = trim((string) ($input['title'] ?? ''));
+    if ($title === '') {
+      $errors[] = 'Extra name is required.';
+    }
+    $summary = trim((string) ($input['customer_summary'] ?? ''));
+    if ($summary === '') {
+      $errors[] = 'Short customer description is required.';
+    }
+    $amount = $this->normalizePriceAmount($input['price_amount'] ?? NULL);
+    if ($amount === NULL) {
+      $errors[] = 'A valid price is required.';
+    }
+    return $errors;
+  }
+
+  /**
+   * @throws \InvalidArgumentException
+   */
+  public function assertVendorCanManageProduct(AccountInterface $account, NodeInterface $event, int $product_id): ProductInterface {
+    if ($product_id < 1) {
+      throw new \InvalidArgumentException('Invalid extra reference.');
+    }
+    if ($account->isAnonymous()) {
+      throw new \InvalidArgumentException('Authentication is required.');
+    }
+    if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)
+      && !$account->hasPermission('administer nodes')) {
+      throw new \InvalidArgumentException('You do not have permission to manage extras for this event.');
+    }
+    $product = $this->entityTypeManager->getStorage('commerce_product')->load($product_id);
+    if (!$product instanceof ProductInterface) {
+      throw new \InvalidArgumentException('Extra was not found.');
+    }
+    if (!in_array($product->bundle(), OperationalMerchandiseManager::OPERATIONAL_PRODUCT_BUNDLES, TRUE)) {
+      throw new \InvalidArgumentException('This item is not an event extra.');
+    }
+    if ($product->bundle() === 'ticket') {
+      throw new \InvalidArgumentException('Ticket products cannot be edited here.');
+    }
+    if (!$product->hasField('field_event') || $product->get('field_event')->isEmpty()) {
+      throw new \InvalidArgumentException('Extra is not linked to an event.');
+    }
+    if ((int) $product->get('field_event')->target_id !== (int) $event->id()) {
+      throw new \InvalidArgumentException('Extra does not belong to this event.');
+    }
+    $store_id = $this->commerceLinkManager->resolveStoreIdForOperationalProductCreation($event);
+    if ($store_id === NULL || !$this->productInStore($product, $store_id)) {
+      throw new \InvalidArgumentException('Extra is not available in the store for this event.');
+    }
+    if (!$account->hasPermission('administer nodes')) {
+      $vendor_store = $this->commerceLinkManager->resolveVendorStoreIdForEvent($event);
+      if ($vendor_store !== NULL && $vendor_store !== $store_id) {
+        throw new \InvalidArgumentException('Extra store does not match your vendor store.');
+      }
+    }
+    return $product;
+  }
+
+  public function normalizeVendorExtraType(string $raw): string {
+    $key = strtolower(trim($raw));
+    return in_array($key, self::VENDOR_EXTRA_TYPE_KEYS, TRUE) ? $key : '';
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   */
   public function createOperationalProductForEvent(AccountInterface $account, NodeInterface $event, array $payload): array {
     $payload = $this->stripForbiddenFromPayload($payload);
     $errors = $this->validateCreationPayload($account, $event, $payload);
@@ -158,11 +358,12 @@ final class VendorOperationalProductCreationManager {
     $encoded = json_encode($this->operationalMerchandiseManager->normalizeProductFieldValue($metadata), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
     $pickup_note = $this->sanitizePlainText((string) ($payload['pickup_note'] ?? ''), 400);
+    $visibility = $this->normalizeVisibility((string) ($payload['customer_visibility'] ?? 'visible'));
 
     $product = CommerceProduct::create([
       'type' => $bundles['product_type'],
       'title' => $title,
-      'status' => 1,
+      'status' => $visibility === 'visible' ? 1 : 0,
       'stores' => [$store_id],
       'uid' => (int) $account->id(),
       'field_event' => ['target_id' => (int) $event->id()],
@@ -633,6 +834,184 @@ final class VendorOperationalProductCreationManager {
       'customer_summary' => (string) ($presentation['operational_summary'] ?? ''),
       'product_bundle' => $product->bundle(),
     ];
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   */
+  private function updateEventExtraForVendor(AccountInterface $account, NodeInterface $event, int $product_id, array $input): ProductInterface {
+    $product = $this->assertVendorCanManageProduct($account, $event, $product_id);
+    $errors = $this->validateEventExtraInput($account, $event, $input);
+    if ($errors !== []) {
+      throw new \InvalidArgumentException(implode(' ', $errors));
+    }
+
+    $title = $this->sanitizePlainText((string) ($input['title'] ?? ''), 255);
+    $summary = $this->sanitizePlainText((string) ($input['customer_summary'] ?? ''), 600);
+    $pickup_note = $this->sanitizePlainText((string) ($input['pickup_note'] ?? ''), 400);
+    $show = !array_key_exists('show_on_booking', $input) || !empty($input['show_on_booking']);
+    $currency = $this->normalizeCurrencyCode((string) ($input['currency_code'] ?? ''));
+    if ($currency === '') {
+      $store_id = $this->commerceLinkManager->resolveStoreIdForOperationalProductCreation($event);
+      if ($store_id !== NULL && $store_id > 0) {
+        $store = $this->entityTypeManager->getStorage('commerce_store')->load($store_id);
+        if (is_object($store) && method_exists($store, 'getDefaultCurrencyCode')) {
+          $currency = (string) $store->getDefaultCurrencyCode();
+        }
+      }
+      if ($currency === '') {
+        $currency = 'AUD';
+      }
+    }
+    $amount = (string) $this->normalizePriceAmount($input['price_amount'] ?? NULL);
+    $price = new Price($amount, $currency);
+
+    $product->setTitle($title);
+    $product->setPublished($show);
+    if ($product->hasField('field_mel_extra_short_desc')) {
+      $product->set('field_mel_extra_short_desc', $summary);
+    }
+    if ($product->hasField('field_mel_extra_pickup_note')) {
+      $product->set('field_mel_extra_pickup_note', $pickup_note);
+    }
+
+    $metadata = $this->operationalMerchandiseManager->normalizeProductFieldFromEntity($product);
+    $metadata['operational_summary'] = $summary;
+    $metadata['customer_visibility'] = $show ? 'visible' : 'hidden';
+    $encoded = json_encode($this->operationalMerchandiseManager->normalizeProductFieldValue($metadata), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    if ($product->hasField('field_mel_operational_product')) {
+      $product->set('field_mel_operational_product', $encoded);
+    }
+
+    $this->applyEventExtraFieldUpdates($product, $input);
+    $this->syncVariationsForEventExtra($product, $input, $title, $price);
+    $product->save();
+
+    $this->logger->notice('Vendor event extra @pid updated for event @eid.', [
+      '@pid' => (string) $product->id(),
+      '@eid' => (string) $event->id(),
+    ]);
+
+    return $product;
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   */
+  private function applyEventExtraFieldUpdates(ProductInterface $product, array $input): void {
+    if (!$product->hasField('field_mel_extra_images')) {
+      return;
+    }
+    $media_ids = $input['image_media_ids'] ?? $input['images'] ?? [];
+    if (!is_array($media_ids)) {
+      return;
+    }
+    $values = [];
+    foreach ($media_ids as $mid) {
+      $id = (int) $mid;
+      if ($id > 0) {
+        $values[] = ['target_id' => $id];
+      }
+    }
+    $product->set('field_mel_extra_images', $values);
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   */
+  private function syncVariationsForEventExtra(ProductInterface $product, array $input, string $title, Price $price): void {
+    $bundles = $this->mapProductBundleToVariationType($product->bundle());
+    $variation_type = $bundles['variation_type'];
+    $size_keys = $variation_type === 'operational_merchandise_var'
+      ? $this->normalizeSizeKeys($input['sizes'] ?? [])
+      : [];
+
+    $storage = $this->entityTypeManager->getStorage('commerce_product_variation');
+    $existing = [];
+    foreach ($product->getVariations() as $variation) {
+      if (!$variation instanceof ProductVariationInterface) {
+        continue;
+      }
+      $size = '';
+      if ($variation->hasField('field_mel_size') && !$variation->get('field_mel_size')->isEmpty()) {
+        $size = strtolower((string) $variation->get('field_mel_size')->value);
+      }
+      $key = $size !== '' ? $size : '_default';
+      $existing[$key] = $variation;
+    }
+
+    $desired_keys = $size_keys !== [] ? $size_keys : ['_default'];
+    $sku_base = 'mel-extra-' . (int) $product->id();
+
+    foreach ($desired_keys as $size_key) {
+      $lookup = $size_key === '_default' ? '_default' : $size_key;
+      $label = $size_key === '_default'
+        ? $title
+        : $title . ' — ' . (OperationalExtraVisualPresenter::SIZE_LABELS[$size_key] ?? strtoupper($size_key));
+      $sku = $size_key === '_default'
+        ? $this->sanitizePlainText($sku_base, 128)
+        : $this->sanitizePlainText($sku_base . '-' . $size_key, 128);
+
+      if (isset($existing[$lookup])) {
+        $variation = $existing[$lookup];
+        $variation->setTitle($label);
+        $variation->setPrice($price);
+        $variation->setPublished(TRUE);
+        if ($size_key !== '_default' && $variation->hasField('field_mel_size')) {
+          $variation->set('field_mel_size', $size_key);
+        }
+        $variation->save();
+        unset($existing[$lookup]);
+        continue;
+      }
+
+      $variation = ProductVariation::create([
+        'type' => $variation_type,
+        'sku' => $sku,
+        'title' => $label,
+        'status' => 1,
+        'price' => $price,
+      ]);
+      if ($size_key !== '_default' && $variation->hasField('field_mel_size')) {
+        $variation->set('field_mel_size', $size_key);
+      }
+      $variation->save();
+      $product->addVariation($variation);
+    }
+
+    foreach ($existing as $orphan) {
+      if ($orphan instanceof ProductVariationInterface && $orphan->isPublished()) {
+        $orphan->setPublished(FALSE);
+        $orphan->save();
+        $this->logger->notice('Unpublished event extra variation @vid (size removed or consolidated).', [
+          '@vid' => (string) $orphan->id(),
+        ]);
+      }
+    }
+  }
+
+  /**
+   * @return array{product_type: string, variation_type: string}
+   */
+  private function mapProductBundleToVariationType(string $bundle): array {
+    return match ($bundle) {
+      'hospitality_package' => [
+        'product_type' => 'hospitality_package',
+        'variation_type' => 'hospitality_package_var',
+      ],
+      'timed_collection_product' => [
+        'product_type' => 'timed_collection_product',
+        'variation_type' => 'timed_collection_var',
+      ],
+      'operational_bundle' => [
+        'product_type' => 'operational_bundle',
+        'variation_type' => 'operational_bundle_var',
+      ],
+      default => [
+        'product_type' => 'operational_merchandise',
+        'variation_type' => 'operational_merchandise_var',
+      ],
+    };
   }
 
   private function productInStore(ProductInterface $product, int $store_id): bool {

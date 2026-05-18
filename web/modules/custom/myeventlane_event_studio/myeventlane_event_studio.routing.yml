@@ -119,12 +119,24 @@ myeventlane_event_studio.workspace_capacity:
       node:
         type: entity:node
 
-myeventlane_event_studio.workspace_merchandise:
-  path: '/vendor/events/{node}/studio/merchandise'
+myeventlane_event_studio.workspace_extras:
+  path: '/vendor/events/{node}/studio/extras'
   defaults:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
     _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
-    section: 'merchandise'
+    section: 'extras'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_event_studio.workspace_merchandise:
+  path: '/vendor/events/{node}/studio/merchandise'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectToExtrasWorkspace'
   requirements:
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     node: \d+
@@ -136,9 +148,7 @@ myeventlane_event_studio.workspace_merchandise:
 myeventlane_event_studio.workspace_addons:
   path: '/vendor/events/{node}/studio/addons'
   defaults:
-    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
-    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
-    section: 'addons'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectToExtrasWorkspace'
   requirements:
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     node: \d+
@@ -150,9 +160,7 @@ myeventlane_event_studio.workspace_addons:
 myeventlane_event_studio.workspace_add_ons:
   path: '/vendor/events/{node}/studio/add-ons'
   defaults:
-    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
-    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
-    section: 'addons'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectToExtrasWorkspace'
   requirements:
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     node: \d+

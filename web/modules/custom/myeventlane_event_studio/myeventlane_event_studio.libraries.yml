@@ -25,6 +25,14 @@ mel_operational_capability_studio:
     - core/drupal
     - core/once
 
+mel_event_extras_studio:
+  version: 1.0
+  css:
+    theme:
+      css/mel-event-extras-studio.css: {}
+  dependencies:
+    - core/drupal
+
 mel_vendor_productisation_studio:
   version: 1.0
   css:

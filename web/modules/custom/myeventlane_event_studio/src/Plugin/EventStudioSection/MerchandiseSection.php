@@ -24,5 +24,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'none',
   mobile_priority: 160,
   operationalArea: 'commerce_product',
+  navigationVisible: FALSE,
 )]
 final class MerchandiseSection extends EventStudioSectionBase {}
