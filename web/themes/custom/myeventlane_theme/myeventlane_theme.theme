@@ -4127,6 +4127,25 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     $variables['outlook_ics_url'] = $cal_links['ics'] ?? '';
     $variables['google_calendar_url'] = $cal_links['google'] ?? '';
   }
+
+  if (empty($variables['operational_addon_teaser'])
+    && ($variables['view_mode'] ?? '') === 'full'
+    && \Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    && \Drupal::hasService('myeventlane_commerce.event_operational_addon_teaser_builder')
+  ) {
+    $show_teaser = FALSE;
+    if (\Drupal::hasService('myeventlane_event.booking_flow_resolver')) {
+      $show_teaser = \Drupal::service('myeventlane_event.booking_flow_resolver')->getBookingMode($node) === BookingFlowResolver::MODE_PAID;
+    }
+    if ($show_teaser) {
+      /** @var \Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder $teaser_builder */
+      $teaser_builder = \Drupal::service('myeventlane_commerce.event_operational_addon_teaser_builder');
+      $variables['operational_addon_teaser'] = $teaser_builder->buildRenderArray($node, 'event');
+    }
+  }
+  if (!isset($variables['operational_addon_teaser'])) {
+    $variables['operational_addon_teaser'] = NULL;
+  }
 }
 
 /**
@@ -4227,6 +4246,7 @@ function myeventlane_theme_preprocess_commerce_cart_empty_page(array &$variables
   $extension_list = \Drupal::service('extension.list.theme');
   $theme_path = $extension_list->getPath('myeventlane_theme');
   $variables['directory'] = $theme_path;
+  $variables['mel_cart_illustration_url'] = _myeventlane_theme_mel_cart_illustration_url();
   if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
     /** @var \Drupal\myeventlane_core\MelReadinessHelper $readiness */
     $readiness = \Drupal::service('myeventlane_surface.state_readiness_helper');
@@ -4451,7 +4471,8 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
       || str_contains($categoryText, 'grassroots');
   }
 
-  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+  if (empty($variables['addons_available'])
+    && \Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
     && \Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
     try {
       /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
@@ -4781,16 +4802,115 @@ function myeventlane_theme_best_value_ticket_badge_label(?TicketTypeInterface $t
 }
 
 /**
+ * URL for the soft 3D Mel illustration (empty cart, cart toast, etc.).
+ */
+function _myeventlane_theme_mel_cart_illustration_url(): string {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  return base_path() . $theme_path . '/images/mel-empty-cart.png';
+}
+
+/**
+ * Whether status/info messages should render as MEL toasts (not inline banners).
+ *
+ * Aligns with checkout classification in MelFormClassificationResolver and
+ * mel-form-system.md (cart, checkout, event book).
+ */
+function _myeventlane_theme_status_messages_use_toasts(): bool {
+  $route = \Drupal::routeMatch()->getRouteName() ?? '';
+  $path = \Drupal::request()->getPathInfo() ?? '';
+
+  if (str_starts_with((string) $route, 'commerce_')) {
+    return TRUE;
+  }
+  if ($route === 'myeventlane_commerce.event_book') {
+    return TRUE;
+  }
+  if (preg_match('#^/cart(?:/|$)#', $path) === 1 || preg_match('#^/checkout(?:/|$)#', $path) === 1) {
+    return TRUE;
+  }
+  if (preg_match('#^/event/\d+/book/?$#', $path) === 1) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function myeventlane_theme_page_attachments(array &$attachments): void {
+  if (!_myeventlane_theme_status_messages_use_toasts()) {
+    return;
+  }
+  $attachments['#attached']['library'][] = 'myeventlane_theme/mel_toasts';
+}
+
+/**
+ * Consolidates duplicate cart success toasts into a single message.
+ *
+ * @param array<string, list<mixed>> $message_list
+ *
+ * @return array<string, list<mixed>>
+ */
+function _myeventlane_theme_consolidate_cart_toast_messages(array $message_list): array {
+  if (empty($message_list['status']) || count($message_list['status']) <= 1) {
+    return $message_list;
+  }
+
+  $cart_related = [];
+  $other = [];
+  foreach ($message_list['status'] as $message) {
+    $text = trim(strip_tags((string) $message));
+    if ($text !== '' && stripos($text, 'cart') !== FALSE) {
+      $cart_related[] = $message;
+      continue;
+    }
+    $other[] = $message;
+  }
+
+  if (count($cart_related) > 1) {
+    usort($cart_related, static function ($a, $b): int {
+      return strlen(strip_tags((string) $b)) <=> strlen(strip_tags((string) $a));
+    });
+    $cart_related = [reset($cart_related)];
+  }
+
+  $message_list['status'] = array_merge($other, $cart_related);
+  return $message_list;
+}
+
+/**
+ * Plain-text cart toast line (Commerce may embed a cart link in the message).
+ */
+function _myeventlane_theme_cart_toast_plain_text(mixed $message): string {
+  $text = trim(strip_tags((string) $message));
+  $text = preg_replace('/\s*-\s*Node\s+\d+$/i', '', $text) ?? $text;
+  $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+  return trim($text);
+}
+
+/**
  * Implements hook_preprocess_HOOK() for status_messages.
  *
  * Adds is_commerce_route for toast vs banner display.
  */
 function myeventlane_theme_preprocess_status_messages(array &$variables): void {
-  $route = \Drupal::routeMatch()->getRouteName() ?? '';
-  $path = \Drupal::request()->getPathInfo() ?? '';
+  $variables['is_commerce_route'] = _myeventlane_theme_status_messages_use_toasts();
+  if (!$variables['is_commerce_route']) {
+    return;
+  }
 
-  $variables['is_commerce_route'] =
-    str_starts_with((string) $route, 'commerce_') ||
-    str_starts_with($path, '/cart') ||
-    str_starts_with($path, '/checkout');
+  $variables['mel_toast_mascot_url'] = _myeventlane_theme_mel_cart_illustration_url();
+
+  if (!empty($variables['message_list']) && is_array($variables['message_list'])) {
+    $variables['message_list'] = _myeventlane_theme_consolidate_cart_toast_messages($variables['message_list']);
+    foreach (['status', 'info'] as $type) {
+      if (empty($variables['message_list'][$type])) {
+        continue;
+      }
+      foreach ($variables['message_list'][$type] as $key => $message) {
+        $variables['message_list'][$type][$key] = _myeventlane_theme_cart_toast_plain_text($message);
+      }
+    }
+  }
 }

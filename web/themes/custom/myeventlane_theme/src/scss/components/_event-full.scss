@@ -211,6 +211,185 @@
   flex-shrink: 0;
 }
 
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__trust-line {
+  margin: space-tokens.mel-space(2) 0 0;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.45;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save--compact {
+  margin-top: space-tokens.mel-space(3);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save--fav {
+  margin-top: space-tokens.mel-space(3);
+  padding: space-tokens.mel-space(3);
+  border: 1px solid color-mix(in srgb, colors.$mel-color-secondary 22%, transparent);
+  background: color-mix(in srgb, colors.$mel-color-secondary 10%, #fff);
+  box-shadow: shadows.$mel-shadow-sm;
+  transition:
+    border-color var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: color-mix(in srgb, colors.$mel-color-secondary 35%, transparent);
+      box-shadow: shadows.$mel-shadow-md;
+    }
+  }
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-inner {
+  display: flex;
+  align-items: center;
+  gap: space-tokens.mel-space(3);
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-label {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  line-height: 1.35;
+  color: colors.$mel-color-text;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-hint {
+  margin: 0;
+  font-size: typography.mel-font-size(xs);
+  line-height: 1.4;
+}
+
+.mel-event--v2 .mel-event-section__header {
+  margin-bottom: 0;
+}
+
+.mel-event--v2 .mel-event-section__lede {
+  margin: space-tokens.mel-space(1) 0 0;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.45;
+}
+
+.mel-event--v2 .mel-event-section__body--extras {
+  padding-top: space-tokens.mel-space(2);
+}
+
+.mel-event--v2 .mel-event-section--extras .mel-addon-teaser {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.mel-event--v2 .mel-event-section--extras .mel-addon-teaser__header {
+  display: none;
+}
+
+.mel-event--v2 .mel-event-section--extras .mel-addon-teaser__list {
+  gap: space-tokens.mel-space(2);
+}
+
+.mel-event--v2 .mel-event-section--extras .mel-addon-teaser__item {
+  padding: space-tokens.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  border: 1px solid colors.$mel-color-border;
+  background: color-mix(in srgb, colors.$mel-color-surface 92%, colors.$mel-color-secondary 8%);
+}
+
+.mel-event--v2 .mel-event-section--extras .mel-addon-teaser__thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: radii.$mel-radius-md;
+}
+
+.mel-event--v2 .mel-event-section--extras .mel-addon-teaser__actions {
+  margin-top: space-tokens.mel-space(3);
+  padding-top: space-tokens.mel-space(2);
+  border-top: 1px solid colors.$mel-color-border;
+}
+
+.mel-event--v2 .mel-event-section--extras .mel-addon-teaser__cta {
+  width: 100%;
+  justify-content: center;
+}
+
+.mel-event-share--panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space-tokens.mel-space(2);
+  margin-top: 0;
+  align-items: center;
+}
+
+.mel-event-share--panel .mel-event-share__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: radii.$mel-radius-full;
+  text-decoration: none;
+  color: colors.$mel-color-navy;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+    background-color var(--mel-motion-fast) var(--mel-ease-out);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover .mel-event-share__chip-icon {
+      transform: translateY(-1px);
+      box-shadow: shadows.$mel-shadow-md;
+      background: color-mix(in srgb, colors.$mel-color-secondary 18%, #fff);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+
+    .mel-event-share__chip-icon {
+      box-shadow: colors.$mel-focus-ring;
+    }
+  }
+
+  &:active .mel-event-share__chip-icon {
+    transform: translateY(0);
+  }
+}
+
+.mel-event-share--panel .mel-event-share__chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: radii.$mel-radius-full;
+  background: color-mix(in srgb, colors.$mel-color-secondary 12%, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: shadows.$mel-shadow-sm;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+    background-color var(--mel-motion-fast) var(--mel-ease-out);
+}
+
+.mel-event-share--panel .mel-event-share__chip-label {
+  display: none;
+}
+
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__trust {
   display: flex;
   flex-direction: column;

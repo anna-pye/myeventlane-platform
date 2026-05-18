@@ -1,0 +1,27 @@
+uuid: 4a8b2c1d-6e3f-4a9b-8c7d-1e2f3a4b5c6d
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_mel_extras_book_placement
+field_name: field_mel_extras_book_placement
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: main_before_access
+      label: 'Under ticket choices, before access code'
+    -
+      value: sidebar
+      label: 'Sidebar next to order summary'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

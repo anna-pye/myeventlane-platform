@@ -8,9 +8,27 @@
 #}
 {% set L = mel_cart_shell_labels|default({}) %}
 
-<div class="mel-cart-empty mel-cart-empty--page mel-cart-empty--governed">
+<div class="mel-cart-empty mel-cart-empty--page mel-cart-empty--governed mel-panel mel-panel--lavender">
+  {% if mel_cart_illustration_url|default('') %}
+    <div class="mel-cart-empty__hero" aria-hidden="true">
+      <span class="mel-cart-empty__glow"></span>
+      <span class="mel-cart-empty__spark mel-cart-empty__spark--a"></span>
+      <span class="mel-cart-empty__spark mel-cart-empty__spark--b"></span>
+      <img
+        class="mel-cart-empty__image"
+        src="{{ mel_cart_illustration_url }}"
+        alt=""
+        width="520"
+        height="347"
+        loading="lazy"
+        decoding="async"
+      >
+    </div>
+  {% endif %}
   {% if mel_cart_empty_state is defined %}
-    {{ mel_cart_empty_state }}
+    <div class="mel-cart-empty__state">
+      {{ mel_cart_empty_state }}
+    </div>
   {% endif %}
   <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-empty__support" aria-label="{{ L.help_region_short|default('') }}">
     <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ L.help_centre|default('') }}</a>

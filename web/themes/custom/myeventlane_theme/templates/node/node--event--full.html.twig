@@ -11,6 +11,7 @@
  */
 #}
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
+{% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
 {# Google Maps in Event Information card uses iframe embed (no API key). JS map library only if needed elsewhere. #}
 {% set mel_cta_text = (event_ui is defined and (event_ui.cta_label|default(''))|striptags|length > 0) ? event_ui.cta_label : (event_cta and event_cta.label ? event_cta.label : '') %}
 {% if mel_booking_action_label is defined and mel_booking_action_label %}
@@ -280,6 +281,154 @@
           </div>
         {% endif %}
 
+        {% if operational_addon_teaser or (content.mel_operational_addon_teaser is defined and content.mel_operational_addon_teaser) %}
+          <section class="mel-event-section mel-event-section--extras mel-card mel-card--surface mel-mt-5" aria-labelledby="mel-event-extras-section-title">
+            <div class="mel-card__header mel-event-section__header">
+              <h2 class="mel-card__title mel-event-section__title" id="mel-event-extras-section-title">{{ 'Grab the extras'|t }}</h2>
+              <p class="mel-event-section__lede mel-text--muted">{{ 'Merch and add-ons you can include when you book.'|t }}</p>
+            </div>
+            <div class="mel-card__body mel-event-section__body mel-event-section__body--extras">
+              {% if operational_addon_teaser %}
+                {{ operational_addon_teaser }}
+              {% else %}
+                {{ content.mel_operational_addon_teaser }}
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
+
+        {# Event Information: Location first (with map under address), then Category, Age Suitability. #}
+        <div class="mel-card mel-card--surface mel-mt-5">
+          <div class="mel-card__header">
+            <h2 class="mel-card__title">{{ 'Event Information'|t }}</h2>
+          </div>
+          <div class="mel-card__body">
+            {# Location first: venue name, address (field render), map under address. #}
+            {% set info_address = mel_address|default('')|trim %}
+            {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
+            {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
+            {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
+            {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
+            {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
+            {% if info_venue_line is not empty or info_address is not empty or has_field_location %}
+              {% set map_query = '' %}
+              {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
+                {% set map_query = mel_lat ~ ',' ~ mel_lng %}
+              {% elseif info_venue_line is not empty and info_address is not empty %}
+                {% set map_query = info_venue_line ~ ', ' ~ info_address %}
+              {% elseif info_venue_line is not empty %}
+                {% set map_query = info_venue_line %}
+              {% elseif info_address is not empty %}
+                {% set map_query = info_address %}
+              {% elseif has_field_location and content.field_location is defined %}
+                {% set map_query = content.field_location|render|striptags|trim %}
+              {% endif %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Location'|t }}</div>
+                <div class="mel-info-row__value mel-event-location">
+                  {% if info_venue_line is not empty %}
+                    <div class="mel-event-location__venue">{{ info_venue_line }}</div>
+                  {% endif %}
+                  {% if info_address is not empty or has_field_location %}
+                    <div class="mel-event-location__address">
+                      {% if location_has_markup %}
+                        {{ content.field_location }}
+                      {% elseif info_address is not empty %}
+                        {{ info_address }}
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  {% if map_query is not empty %}
+                    <div class="mel-event-map-embed mel-mt-3">
+                      <iframe
+                        src="https://www.google.com/maps?output=embed&amp;q={{ map_query|url_encode }}"
+                        width="100%"
+                        height="200"
+                        allowfullscreen
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        title="{{ 'Map of event location'|t }}">
+                      </iframe>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+
+            {% if mel_category_label is defined and mel_category_label %}
+              <div class="mel-info-row mel-info-row--category-follow">
+                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
+                <div class="mel-info-row__value mel-info-row__value--split">
+                  <span class="mel-info-row__category-label">{{ mel_category_label }}</span>
+                  {% if mel_category_follow_flag|default(null) or mel_category_follow_login_url|default(null) %}
+                    {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
+                      mel_category_follow_flag: mel_category_follow_flag|default(null),
+                      mel_category_follow_login_url: mel_category_follow_login_url|default(null),
+                      category_display_name: mel_category_label,
+                      mel_category_follow_modifier: 'event-info'
+                    } %}
+                  {% endif %}
+                </div>
+              </div>
+            {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
+                <div class="mel-info-row__value">{{ content.field_category }}</div>
+              </div>
+            {% endif %}
+
+            {% if mel_age_policy_label is defined and mel_age_policy_label %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Age Suitability'|t }}</div>
+                <div class="mel-info-row__value">
+                  {{ mel_age_policy_label }}
+                  {% if mel_age_policy_note is defined and mel_age_policy_note %}
+                    <div class="mel-muted">{{ mel_age_policy_note }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if canonical_url %}
+          <section class="mel-event-section mel-event-section--share mel-card mel-card--surface mel-mt-5" role="region" aria-labelledby="mel-event-full-share-label">
+            <div class="mel-card__header mel-event-section__header">
+              <h2 class="mel-card__title mel-event-section__title" id="mel-event-full-share-label">{{ 'Share this event'|t }}</h2>
+              <p class="mel-event-section__lede mel-text--muted">{{ 'Send the link to friends who might want to come along.'|t }}</p>
+            </div>
+            <div class="mel-card__body mel-event-section__body">
+              <div class="mel-event-share mel-event-share--panel" role="group" aria-label="{{ 'Share this event'|t }}">
+                <a class="mel-event-share__chip mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                      <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Email'|t }}</span>
+                </a>
+                <a class="mel-event-share__chip mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on Facebook (opens in a new tab)'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Facebook'|t }}</span>
+                </a>
+                <a class="mel-event-share__chip mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'X'|t }}</span>
+                </a>
+              </div>
+            </div>
+          </section>
+        {% endif %}
+
         {% if (node.hasField('field_accessibility') and not node.field_accessibility.isEmpty)
           or (content.field_accessibility_contact is defined and content.field_accessibility_contact)
           or (content.field_accessibility_directions is defined and content.field_accessibility_directions)
@@ -521,32 +670,7 @@
                   <hr class="mel-booking-panel__rule" role="separator" />
                 {% endif %}
 
-                {# Share: secondary to booking CTA; same targets as former main-column row. #}
-                {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
-                {% if canonical_url %}
-                  <div class="mel-booking-panel__share">
-                    <p class="mel-booking-panel__share-label" id="mel-event-full-share-label">{{ 'Share'|t }}</p>
-                    <div class="mel-event-share mel-event-share--sidebar" role="group" aria-labelledby="mel-event-full-share-label">
-                      <a class="mel-event-share__link mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
-                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                          <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
-                          <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      </a>
-                      <a class="mel-event-share__link mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on Facebook (opens in a new tab)'|t }}">
-                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                          <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
-                        </svg>
-                      </a>
-                      <a class="mel-event-share__link mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
-                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                          <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
-                        </svg>
-                      </a>
-                    </div>
-                  </div>
-                  <hr class="mel-booking-panel__rule mel-booking-panel__rule--share" role="separator" />
-                {% endif %}
+
 
                 {% if mel_show_booking_trust_copy %}
                 <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
@@ -678,118 +802,20 @@
                   </div>
                 {% endif %}
                 {% if event_flag_event_save %}
-                  <hr class="mel-booking-panel__rule" role="separator" />
-                  <div class="mel-booking-panel__save" role="group" aria-label="{{ 'Save for later'|t }}">
-                    <div id="mel-event-full-save" class="mel-event-save mel-booking-panel__save-flag" role="group" aria-label="{{ 'Save for later'|t }}">
-                      {{ event_flag_event_save }}
-                    </div>
-                    {% if event_save_count_total|default(0) > 5 %}
-                      <div class="mel-save-reinforcement">
-                        <small>{{ '💖 @count people saved this'|t({ '@count': event_save_count_total|default(0) }) }}</small>
+                  <div class="mel-booking-panel__save mel-booking-panel__save--fav" role="group" aria-label="{{ 'Save for later'|t }}">
+                    <div class="mel-booking-panel__save-inner">
+                      <div id="mel-event-full-save" class="mel-event-save mel-booking-panel__save-flag">
+                        {{ event_flag_event_save }}
                       </div>
-                    {% endif %}
-                    <div class="mel-booking-panel__save-text">
-                      <strong>{{ 'Don’t miss this'|t }}</strong>
-                      <p>{{ 'Save this event to come back later'|t }}</p>
+                      <div class="mel-booking-panel__save-copy">
+                        <span class="mel-booking-panel__save-label">{{ 'Save for later'|t }}</span>
+                        <span class="mel-booking-panel__save-hint mel-text--muted">{{ 'Tap the heart to remember this event'|t }}</span>
+                      </div>
                     </div>
                   </div>
                 {% endif %}
               {% endif %}
             </div>
-          </div>
-        </div>
-
-        {# Event Information: Location first (with map under address), then Category, Age Suitability. #}
-        <div class="mel-card mel-card--surface mel-mt-5">
-          <div class="mel-card__header">
-            <h2 class="mel-card__title">{{ 'Event Information'|t }}</h2>
-          </div>
-          <div class="mel-card__body">
-            {# Location first: venue name, address (field render), map under address. #}
-            {% set info_address = mel_address|default('')|trim %}
-            {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
-            {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
-            {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
-            {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
-            {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
-            {% if info_venue_line is not empty or info_address is not empty or has_field_location %}
-              {% set map_query = '' %}
-              {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
-                {% set map_query = mel_lat ~ ',' ~ mel_lng %}
-              {% elseif info_venue_line is not empty and info_address is not empty %}
-                {% set map_query = info_venue_line ~ ', ' ~ info_address %}
-              {% elseif info_venue_line is not empty %}
-                {% set map_query = info_venue_line %}
-              {% elseif info_address is not empty %}
-                {% set map_query = info_address %}
-              {% elseif has_field_location and content.field_location is defined %}
-                {% set map_query = content.field_location|render|striptags|trim %}
-              {% endif %}
-              <div class="mel-info-row">
-                <div class="mel-info-row__label">{{ 'Location'|t }}</div>
-                <div class="mel-info-row__value mel-event-location">
-                  {% if info_venue_line is not empty %}
-                    <div class="mel-event-location__venue">{{ info_venue_line }}</div>
-                  {% endif %}
-                  {% if info_address is not empty or has_field_location %}
-                    <div class="mel-event-location__address">
-                      {% if location_has_markup %}
-                        {{ content.field_location }}
-                      {% elseif info_address is not empty %}
-                        {{ info_address }}
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                  {% if map_query is not empty %}
-                    <div class="mel-event-map-embed mel-mt-3">
-                      <iframe
-                        src="https://www.google.com/maps?output=embed&amp;q={{ map_query|url_encode }}"
-                        width="100%"
-                        height="200"
-                        allowfullscreen
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade"
-                        title="{{ 'Map of event location'|t }}">
-                      </iframe>
-                    </div>
-                  {% endif %}
-                </div>
-              </div>
-            {% endif %}
-
-            {% if mel_category_label is defined and mel_category_label %}
-              <div class="mel-info-row mel-info-row--category-follow">
-                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
-                <div class="mel-info-row__value mel-info-row__value--split">
-                  <span class="mel-info-row__category-label">{{ mel_category_label }}</span>
-                  {% if mel_category_follow_flag|default(null) or mel_category_follow_login_url|default(null) %}
-                    {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
-                      mel_category_follow_flag: mel_category_follow_flag|default(null),
-                      mel_category_follow_login_url: mel_category_follow_login_url|default(null),
-                      category_display_name: mel_category_label,
-                      mel_category_follow_modifier: 'event-info'
-                    } %}
-                  {% endif %}
-                </div>
-              </div>
-            {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
-              <div class="mel-info-row">
-                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
-                <div class="mel-info-row__value">{{ content.field_category }}</div>
-              </div>
-            {% endif %}
-
-            {% if mel_age_policy_label is defined and mel_age_policy_label %}
-              <div class="mel-info-row">
-                <div class="mel-info-row__label">{{ 'Age Suitability'|t }}</div>
-                <div class="mel-info-row__value">
-                  {{ mel_age_policy_label }}
-                  {% if mel_age_policy_note is defined and mel_age_policy_note %}
-                    <div class="mel-muted">{{ mel_age_policy_note }}</div>
-                  {% endif %}
-                </div>
-              </div>
-            {% endif %}
           </div>
         </div>
 

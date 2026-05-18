@@ -16,12 +16,37 @@
       var close = toast.querySelector('[data-mel-toast-close]');
 
       var remove = function () {
+        if (toast.classList.contains('is-leaving')) {
+          return;
+        }
         toast.classList.add('is-leaving');
-        window.setTimeout(function () {
-          if (toast && toast.parentNode) {
-            toast.parentNode.removeChild(toast);
+
+        var removed = false;
+        var detach = function () {
+          if (removed || !toast || !toast.parentNode) {
+            return;
           }
-        }, 180);
+          removed = true;
+          toast.parentNode.removeChild(toast);
+        };
+
+        var onTransitionEnd = function (event) {
+          if (event.target !== toast) {
+            return;
+          }
+          if (event.propertyName !== 'opacity' && event.propertyName !== 'transform') {
+            return;
+          }
+          toast.removeEventListener('transitionend', onTransitionEnd);
+          detach();
+        };
+
+        toast.addEventListener('transitionend', onTransitionEnd);
+        // Match .mel-toast.is-leaving transition (200ms); fallback if transitionend does not fire.
+        window.setTimeout(function () {
+          toast.removeEventListener('transitionend', onTransitionEnd);
+          detach();
+        }, 220);
       };
 
       if (close) {
@@ -32,7 +57,7 @@
       var isInfo = toast.classList.contains('mel-toast--info');
 
       if (isStatus || isInfo) {
-        window.setTimeout(remove, 4000);
+        window.setTimeout(remove, 5500);
       }
     });
   }
