@@ -89,6 +89,30 @@ SCSS: `web/themes/custom/myeventlane_theme/src/scss/components/_event-page-theme
 - No billing or checkout for Pro upgrade
 - No stock, warehouse, shipping, scanner, QR, entitlement, cart, or order changes
 
+## Config notes (pre-PR audit)
+
+### `field_mel_extras_book_placement`
+
+**Classification: B — local-only drift (not required on `main` or this branch).**
+
+| Check | Result |
+|-------|--------|
+| `config/sync` YAML | Not present on `main` or `feature/event-page-style-themes` |
+| Custom module / theme code references | None on current branch |
+| Active Drupal config | Does not exist (removed when `drush cim` aligned DB with sync during style-themes verification) |
+
+The field appeared only on unmerged work (`85125b64` on `feature/event-studio-extras-editor`, not an ancestor of `main`) with `EventExtrasBookPlacementResolver` and booking-placement UI. That commit is **not** in `main` or PR #403’s merged tree. A copy existed in the local database only (“Only in DB” before `cim`).
+
+**Action for this PR:** Do not recreate the field. Restoring it belongs in a separate PR if/when extras book-placement code and config are merged to `main`.
+
+### `core.entity_form_display.node.event.studio_branding` drift
+
+**Classification: benign ordering only.** Active vs sync differ only in YAML key order under `hidden:` (`field_mel_theme_colour` position). Both hide the same fields including `field_mel_page_style` and `field_mel_theme_colour`. No missing or extra fields.
+
+### `crop.type.event_hero` drift
+
+**Classification: pre-existing, unrelated.** Active vs sync differ only in key order (`id` / `label`). Not introduced by Event Page Style Themes.
+
 ## Future work
 
 - Persist event-level entitlement when subscription/boost ends and downgrade stored style
