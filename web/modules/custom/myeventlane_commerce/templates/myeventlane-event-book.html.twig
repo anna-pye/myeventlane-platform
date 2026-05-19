@@ -17,7 +17,7 @@
 #}
 {% set extras_in_sidebar = addons_available and (extras_sidebar_selection|default(false) or extras_book_placement|default('main_before_access') == 'sidebar') %}
 {% set extras_in_main = addons_available and (extras_inline_before_access_code|default(false) or not extras_in_sidebar) %}
-<article class="mel-booking-v2 mel-booking mel-event-book mel-event--v2" data-event-mode="{{ event_mode }}">
+<article class="mel-booking-v2 mel-booking mel-event-book mel-event--v2{% if event_page_classes is defined and event_page_classes %} {{ event_page_classes|join(' ') }}{% else %} mel-event-page--classic mel-event-page--colour-coral{% endif %}" data-event-mode="{{ event_mode }}">
   <div class="mel-container mel-container--event">
     <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-booking-event-title">
       <div class="mel-event-hero__media">

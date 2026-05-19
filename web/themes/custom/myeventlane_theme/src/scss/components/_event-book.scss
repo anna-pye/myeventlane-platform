@@ -426,7 +426,7 @@
   min-width: 0;
 }
 
-.mel-booking-v2 .mel-access-code {
+.mel-booking-v2.mel-event-page--classic .mel-access-code {
   min-width: 0;
   padding: spacing.mel-space(3);
   border-radius: radii.$mel-radius-lg;
@@ -1128,5 +1128,614 @@
 @media (prefers-reduced-motion: reduce) {
   .mel-booking-v2 .mel-event-book__form-body .mel-ticket-row {
     transition: none;
+  }
+}
+
+// ==========================================================================
+// Book page ↔ event page visual convergence (Classic + Immersive)
+// Reuses mel-event-page--* classes + tokens from _event-page-themes.scss.
+// ==========================================================================
+
+.mel-booking-v2.mel-event-page--classic {
+  background: #fff8f4;
+  color: var(--mel-event-text, #{colors.$mel-color-text});
+
+  .mel-container {
+    max-width: min(100%, 76rem);
+  }
+
+  .mel-event-info-strip {
+    background: var(--mel-event-surface, #fff);
+    border: 1px solid var(--mel-event-border, rgba(242, 109, 91, 0.18));
+    border-radius: radii.$mel-radius-xl;
+    box-shadow: var(--mel-event-shadow, 0 18px 45px rgba(41, 50, 65, 0.08));
+    color: var(--mel-event-muted, #{colors.$mel-color-text-muted});
+  }
+
+  .mel-ticket-panel,
+  .mel-booking-summary,
+  .mel-event-description-card {
+    background: var(--mel-event-surface, #fff);
+    border: 1px solid var(--mel-event-border, rgba(242, 109, 91, 0.18));
+    border-radius: radii.$mel-radius-xl;
+    box-shadow: var(--mel-event-shadow, 0 18px 45px rgba(41, 50, 65, 0.08));
+  }
+
+  .mel-booking-summary {
+    background: linear-gradient(
+      165deg,
+      color.adjust(colors.$mel-color-surface, $lightness: 0.5%) 0%,
+      color.adjust(colors.$mel-color-bg, $lightness: 3%) 55%,
+      color.adjust(colors.$mel-color-surface, $lightness: 1%) 100%
+    );
+  }
+
+  .mel-ticket-panel__title,
+  .mel-booking-summary__title,
+  .mel-operational-addons-section__title {
+    color: var(--mel-event-text, #{colors.$mel-color-text});
+  }
+
+  .mel-ticket-panel__lead,
+  .mel-booking-summary__kicker,
+  .mel-booking-summary__cta-note,
+  .mel-booking-summary__empty-line--soft,
+  .mel-operational-addons-section__lede {
+    color: var(--mel-event-muted, #{colors.$mel-color-text-muted});
+  }
+
+  .mel-event-book__form-body .mel-btn--primary,
+  .mel-event-book__form-body .mel-add-to-cart-button {
+    background-color: var(--mel-event-accent, #{colors.$mel-color-primary});
+    border-color: var(--mel-event-accent, #{colors.$mel-color-primary});
+    box-shadow: 0 8px 22px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.12));
+  }
+}
+
+.mel-booking-v2.mel-event-page--immersive.mel-event--v2 {
+  padding-top: spacing.mel-space(6);
+  padding-bottom: spacing.mel-space(8);
+  background: transparent;
+  color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+
+  .mel-container {
+    max-width: min(100%, 76rem);
+  }
+
+  .mel-event-layout {
+    gap: var(--mel-immersive-section-gap, #{spacing.mel-space(6)});
+
+    @include breakpoints.mel-break(lg) {
+      column-gap: var(--mel-immersive-section-gap, #{spacing.mel-space(6)});
+    }
+  }
+
+  // Hero — continuous with public immersive event page (no frosted box).
+  .mel-event-hero--featured-style {
+    min-height: clamp(18rem, 36vw, 28rem);
+    margin-bottom: var(--mel-immersive-block-gap, #{spacing.mel-space(4)});
+    border: none;
+    border-radius: var(--mel-immersive-radius, #{radii.$mel-radius-xl});
+    box-shadow: var(--mel-immersive-shadow-featured, 0 26px 60px rgba(0, 0, 0, 0.34));
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__overlay {
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 100%, rgba(0, 0, 0, 0.5) 0%, transparent 68%),
+      radial-gradient(ellipse 60% 40% at 12% 18%, color-mix(in srgb, var(--mel-event-accent) 14%, transparent) 0%, transparent 55%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(8, 11, 18, 0.5) 48%, rgba(6, 9, 15, 0.88) 100%);
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__content {
+    right: spacing.mel-space(6);
+    bottom: spacing.mel-space(6);
+    left: spacing.mel-space(6);
+    max-width: 44rem;
+  }
+
+  .mel-event-hero__glass {
+    max-width: none;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .mel-event-hero__glass .mel-event-hero__title,
+  .mel-event-hero__glass .mel-event-hero__datetime,
+  .mel-event-hero__glass .mel-event-hero__venue,
+  .mel-event-hero__glass .mel-event-hero__status {
+    color: var(--mel-immersive-text, #fff);
+    text-shadow: 0 2px 32px rgba(0, 0, 0, 0.7);
+  }
+
+  .mel-event-hero__glass .mel-event-hero__datetime,
+  .mel-event-hero__glass .mel-event-hero__venue {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  // Trust strip — meta-bar sibling.
+  .mel-event-info-strip {
+    margin-bottom: var(--mel-immersive-section-gap, #{spacing.mel-space(6)});
+    padding: var(--mel-immersive-pad-secondary, #{spacing.mel-space(5)}) var(--mel-immersive-pad-primary, #{spacing.mel-space(6)});
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 12%, rgba(12, 17, 26, 0.78) 88%);
+    border: none;
+    border-radius: var(--mel-immersive-radius, #{radii.$mel-radius-xl});
+    box-shadow: var(--mel-immersive-shadow-quiet, 0 14px 36px rgba(0, 0, 0, 0.22));
+    color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+    font-size: var(--mel-immersive-meta-size, 0.9375rem);
+    font-weight: typography.$mel-font-semibold;
+    backdrop-filter: blur(12px);
+  }
+
+  .mel-event-info-strip__item {
+    opacity: 1;
+  }
+
+  // Primary panels — ticket matrix + order summary.
+  .mel-ticket-panel,
+  .mel-booking-summary {
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 16%, var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78)) 84%);
+    border: none;
+    border-radius: var(--mel-immersive-radius, #{radii.$mel-radius-xl});
+    box-shadow: var(--mel-immersive-shadow-panel, 0 22px 52px rgba(0, 0, 0, 0.3));
+    backdrop-filter: blur(8px);
+    color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+  }
+
+  .mel-booking-summary {
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 14%, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 86%);
+    box-shadow: var(--mel-immersive-shadow-sidebar, 0 18px 44px rgba(0, 0, 0, 0.32));
+    backdrop-filter: blur(10px);
+  }
+
+  .mel-booking-summary__header,
+  .mel-booking-summary__footer {
+    border-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
+    background: transparent;
+  }
+
+  .mel-ticket-panel__title,
+  .mel-booking-summary__title,
+  .mel-operational-addons-section__title,
+  .mel-booking__intro h2 {
+    color: var(--mel-immersive-text, #fff);
+    font-size: var(--mel-immersive-heading-size, clamp(1.375rem, 2.1vw, 1.6rem));
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .mel-ticket-panel__lead,
+  .mel-booking-summary__kicker,
+  .mel-booking-summary__empty-line,
+  .mel-booking-summary__item,
+  .mel-booking-summary__cta-note,
+  .mel-booking__intro p,
+  .mel-booking__reassurance,
+  .mel-booking__cta-note,
+  .mel-operational-addons-section__lede {
+    color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+    opacity: 1;
+  }
+
+  .mel-booking-summary__empty-line--soft,
+  .mel-booking-summary__cta-note,
+  .mel-booking__cta-note {
+    color: var(--mel-immersive-text-helper, rgba(255, 255, 255, 0.64));
+  }
+
+  .mel-booking-summary__title,
+  .mel-booking-summary__subtotal,
+  .mel-booking-summary__item-amount,
+  .mel-booking-summary__subtotal-value,
+  .mel-mobile-booking-bar__total {
+    color: var(--mel-immersive-text, #fff);
+  }
+
+  .mel-booking-summary__subtotal {
+    border-color: color-mix(in srgb, var(--mel-event-accent) 28%, transparent);
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 35%, transparent);
+  }
+
+  .mel-booking-summary__item-amount,
+  .mel-booking-summary__subtotal-value,
+  .mel-mobile-booking-bar__total {
+    color: var(--mel-event-accent-strong, var(--mel-event-accent));
+  }
+
+  .mel-booking-confidence,
+  .mel-text--muted,
+  .mel-muted {
+    color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+    opacity: 1;
+  }
+
+  // Extras — integrated immersive product cards (beats mel-operational-addons.css pale surfaces).
+  .mel-booking-extras,
+  .mel-operational-addons-section,
+  .mel-operational-addons-section--sidebar {
+    margin-top: var(--mel-immersive-block-gap, #{spacing.mel-space(4)});
+    padding: var(--mel-immersive-pad-secondary, #{spacing.mel-space(5)}) 0 0;
+    border-top: 1px solid var(--mel-event-divider, rgba(255, 255, 255, 0.1));
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+  }
+
+  .mel-event-extras-form__intro {
+    color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+    opacity: 1;
+  }
+
+  .mel-event-extra-card,
+  .mel-operational-addon-card {
+    padding: var(--mel-immersive-pad-secondary, #{spacing.mel-space(5)});
+    border-radius: var(--mel-immersive-radius-inner, #{radii.$mel-radius-lg});
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 14%, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 86%);
+    border: 1px solid color-mix(in srgb, var(--mel-event-accent) 22%, transparent);
+    box-shadow: var(--mel-immersive-shadow-panel, 0 22px 52px rgba(0, 0, 0, 0.3));
+    color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+  }
+
+  .mel-event-extra-card__title,
+  .mel-operational-addon-card__title {
+    color: var(--mel-immersive-text, #fff);
+  }
+
+  .mel-event-extra-card__description,
+  .mel-event-extra-card__pickup,
+  .mel-event-extra-card__size-selected,
+  .mel-operational-addon-card__summary-text {
+    color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+    opacity: 1;
+  }
+
+  .mel-event-extra-card__price,
+  .mel-operational-addon-card__price {
+    color: var(--mel-immersive-text, #fff);
+  }
+
+  .mel-event-extra-card__sizes-label {
+    color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+  }
+
+  .mel-event-extra-card__media {
+    border-radius: var(--mel-immersive-radius-inner, #{radii.$mel-radius-lg});
+    overflow: hidden;
+  }
+
+  .mel-event-extra-card__image,
+  .mel-event-extra-card__image-open {
+    background: rgba(8, 12, 20, 0.55);
+    border: 1px solid var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+  }
+
+  .mel-event-extra-card__thumb {
+    background: color-mix(in srgb, var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78)) 90%, transparent);
+    border-color: var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+
+    &.is-active {
+      border-color: var(--mel-event-accent, #{colors.$mel-color-primary});
+    }
+  }
+
+  .mel-event-extra-card__chips,
+  .mel-operational-addon-card__chips {
+    .mel-pill,
+    .mel-pill--extra {
+      background: color-mix(in srgb, var(--mel-event-accent-soft) 75%, transparent);
+      border: 1px solid color-mix(in srgb, var(--mel-event-accent) 32%, transparent);
+      color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+    }
+  }
+
+  .mel-event-extras-form .mel-event-extra-card__sizes label.option,
+  .mel-event-extras-form .mel-event-extra-card__sizes .mel-event-extra-card__size-chip-label,
+  .mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio label {
+    background: color-mix(in srgb, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 88%, transparent);
+    border: 1px solid var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+    color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+  }
+
+  .mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio.is-selected label,
+  .mel-event-extras-form .mel-event-extra-card__sizes .form-type-radio:has(input:checked) label,
+  .mel-event-extras-form .mel-event-extra-card__sizes .mel-event-extra-card__size-chip-label.is-selected {
+    background: var(--mel-event-accent, #{colors.$mel-color-primary});
+    border-color: color-mix(in srgb, var(--mel-event-accent) 88%, #fff 12%);
+    color: var(--mel-event-accent-contrast, #{colors.$mel-color-on-primary});
+    box-shadow: 0 6px 18px var(--mel-event-accent-glow, rgba(0, 0, 0, 0.28));
+  }
+
+  .mel-event-extra-card__qty-btn {
+    background: color-mix(in srgb, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 90%, transparent);
+    border: 1px solid var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+    color: var(--mel-immersive-text, #fff);
+  }
+
+  .mel-event-extra-card__qty-value {
+    color: var(--mel-immersive-text, #fff);
+  }
+
+  .mel-event-extra-card__footer,
+  .mel-operational-addon-card__row {
+    border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
+  }
+
+  .mel-operational-addon-card__qty {
+    background: color-mix(in srgb, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 88%, transparent);
+    border: 1px solid var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+    color: var(--mel-immersive-text, #fff);
+  }
+
+  .mel-event-extras-form .mel-event-extra-card__add-to-cart,
+  .mel-event-extras-form .mel-btn--primary.mel-event-extra-card__add-to-cart,
+  .mel-operational-addons-form__actions .mel-btn--primary {
+    background-color: var(--mel-event-accent, #{colors.$mel-color-primary});
+    border-color: transparent;
+    color: var(--mel-event-accent-contrast, #{colors.$mel-color-on-primary});
+    box-shadow:
+      0 12px 28px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.32)),
+      0 2px 8px rgba(0, 0, 0, 0.2);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        filter: brightness(1.06) saturate(1.04);
+        box-shadow:
+          0 16px 34px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.36)),
+          0 4px 12px rgba(0, 0, 0, 0.22);
+      }
+    }
+  }
+
+  // Access code — dark panel (beats default light .mel-access-code on classic).
+  .mel-access-code,
+  .mel-ticket-booking-access-wrap {
+    margin-top: var(--mel-immersive-block-gap, #{spacing.mel-space(4)});
+  }
+
+  .mel-access-code {
+    padding: var(--mel-immersive-pad-secondary, #{spacing.mel-space(5)});
+    border-radius: var(--mel-immersive-radius-inner, #{radii.$mel-radius-lg});
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 12%, rgba(12, 17, 26, 0.82) 88%);
+    border: 1px solid var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+    box-shadow: var(--mel-immersive-shadow-quiet, 0 14px 36px rgba(0, 0, 0, 0.22));
+    backdrop-filter: blur(10px);
+  }
+
+  .mel-access-code .mel-ticket-booking-access,
+  .mel-ticket-booking-access-wrap .mel-ticket-booking-access {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .mel-access-code .mel-ticket-booking-access legend,
+  .mel-ticket-booking-access-wrap .mel-ticket-booking-access legend {
+    float: none;
+    position: static;
+    display: block;
+    width: 100%;
+    margin: 0 0 spacing.mel-space(3);
+    padding: 0;
+    font-size: var(--mel-immersive-heading-secondary, 1.125rem);
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--mel-immersive-text, #fff);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .mel-access-code .mel-ticket-booking-access .fieldset-description,
+  .mel-ticket-booking-access-wrap .mel-ticket-booking-access .fieldset-description {
+    margin: 0 0 spacing.mel-space(3);
+    font-size: var(--mel-immersive-meta-size, 0.9375rem);
+    line-height: 1.5;
+    color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+    opacity: 1;
+  }
+
+  .mel-access-code .form-item,
+  .mel-ticket-booking-access-wrap .form-item {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  .mel-access-code label,
+  .mel-ticket-booking-access-wrap label {
+    color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+  }
+
+  .mel-access-code input[type='text'],
+  .mel-ticket-booking-access-wrap input[type='text'] {
+    min-height: 44px;
+    background: color-mix(in srgb, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 88%, transparent);
+    border: 1px solid var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+    color: var(--mel-immersive-text, #fff);
+
+    &::placeholder {
+      color: var(--mel-immersive-text-helper, rgba(255, 255, 255, 0.64));
+    }
+
+    &:focus-visible {
+      border-color: var(--mel-event-accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--mel-event-accent) 28%, transparent);
+    }
+  }
+
+  .mel-access-code .mel-btn,
+  .mel-access-code .button,
+  .mel-ticket-booking-access-wrap .mel-btn,
+  .mel-ticket-booking-access-wrap .button {
+    min-height: 44px;
+    background-color: var(--mel-event-accent, #{colors.$mel-color-primary});
+    border-color: transparent;
+    color: var(--mel-event-accent-contrast, #{colors.$mel-color-on-primary});
+    box-shadow: 0 10px 24px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.28));
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        filter: brightness(1.06);
+      }
+    }
+  }
+
+  // Ticket matrix rows.
+  .mel-event-book__form-body {
+    label,
+    legend {
+      color: var(--mel-immersive-text, #fff);
+    }
+
+    .fieldset-description,
+    .mel-ticket-description,
+    .mel-ticket-row__helper,
+    .mel-ticket-availability,
+    .mel-ticket-card__availability {
+      color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+      opacity: 1;
+    }
+
+    input[type='text'],
+    input[type='email'],
+    input[type='tel'],
+    input[type='number'],
+    select,
+    textarea,
+    .mel-ticket-quantity {
+      background: color-mix(in srgb, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 88%, transparent);
+      border: 1px solid var(--mel-event-border-strong, rgba(255, 255, 255, 0.1));
+      color: var(--mel-immersive-text, #fff);
+
+      &:focus-visible {
+        border-color: var(--mel-event-accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--mel-event-accent) 28%, transparent);
+      }
+    }
+
+    .mel-ticket-row {
+      background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 10%, var(--mel-event-surface, rgba(28, 36, 50, 0.72)) 90%);
+      border: none;
+      box-shadow: var(--mel-immersive-shadow-quiet, 0 14px 36px rgba(0, 0, 0, 0.22));
+      color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+
+      &:hover {
+        border-color: transparent;
+        box-shadow: var(--mel-immersive-shadow-panel, 0 22px 52px rgba(0, 0, 0, 0.3));
+      }
+    }
+
+    .mel-ticket-row.mel-ticket-row--selected,
+    .mel-ticket-row.selected,
+    .mel-ticket-row.has-quantity,
+    .mel-ticket-row[data-selected='true'],
+    .mel-ticket-row--recommended {
+      background: color-mix(in srgb, var(--mel-event-accent-soft) 32%, var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78)) 68%);
+      border: 1px solid color-mix(in srgb, var(--mel-event-accent) 45%, transparent);
+      box-shadow: var(--mel-immersive-shadow-panel, 0 22px 52px rgba(0, 0, 0, 0.3));
+    }
+
+    .mel-ticket-label,
+    .mel-ticket-price,
+    .mel-ticket-row__top-price {
+      color: var(--mel-immersive-text, #fff);
+    }
+
+    .mel-ticket-price,
+    .mel-ticket-row__top-price {
+      color: var(--mel-event-accent-strong, var(--mel-event-accent));
+    }
+
+    .mel-ticket-row__meta {
+      border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
+    }
+
+    .form-actions {
+      border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
+    }
+  }
+
+  // Sticky checkout CTA — event sidebar CTA language.
+  .mel-event-book__form-body .mel-booking__cta {
+    background: color-mix(in srgb, var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78)) 94%, transparent);
+    border-top: none;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(10px);
+  }
+
+  .mel-event-book__form-body .mel-booking__cta .mel-mobile-booking-bar {
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 45%, transparent);
+    border: none;
+    color: var(--mel-immersive-text-secondary, rgba(255, 255, 255, 0.82));
+  }
+
+  .mel-event-book__form-body .mel-booking__cta .mel-mobile-booking-bar__count {
+    color: var(--mel-immersive-text, #fff);
+  }
+
+  .mel-event-book__form-body .mel-btn--primary,
+  .mel-event-book__form-body .mel-add-to-cart-button {
+    background-color: var(--mel-event-accent, #{colors.$mel-color-primary});
+    border-color: transparent;
+    color: var(--mel-event-accent-contrast, #{colors.$mel-color-on-primary});
+    box-shadow:
+      0 12px 28px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.32)),
+      0 2px 8px rgba(0, 0, 0, 0.2);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        transform: none;
+        filter: brightness(1.06) saturate(1.04);
+        box-shadow:
+          0 16px 34px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.36)),
+          0 4px 12px rgba(0, 0, 0, 0.22);
+      }
+    }
+  }
+
+  .mel-booking-nav__back {
+    color: var(--mel-immersive-text-muted, rgba(255, 255, 255, 0.72));
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    padding-top: spacing.mel-space(5);
+    padding-bottom: spacing.mel-space(7);
+
+    .mel-event-hero--featured-style {
+      min-height: 18rem;
+    }
+
+    .mel-event-hero--featured-style .mel-event-hero__content {
+      right: spacing.mel-space(4);
+      bottom: spacing.mel-space(4);
+      left: spacing.mel-space(4);
+    }
+
+    .mel-ticket-panel,
+    .mel-booking-summary,
+    .mel-event-extra-card {
+      padding: spacing.mel-space(4);
+    }
+
+    .mel-event-extra-card {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mel-event-extra-card__image {
+      max-width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mel-event-info-strip,
+    .mel-ticket-panel,
+    .mel-booking-summary,
+    .mel-access-code,
+    .mel-event-book__form-body .mel-booking__cta {
+      backdrop-filter: none;
+    }
   }
 }

@@ -8,6 +8,7 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\myeventlane_event_studio\Service\BrandingHeroFocalAugmenter;
 use Drupal\myeventlane_event_studio\Service\EventPageStyleResolver;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStyleAccessManager;
@@ -23,14 +24,45 @@ final class EventBrandingForm extends EventStudioBaseForm {
 
   private EventPageStyleResolver $eventPageStyleResolver;
 
+  private BrandingHeroFocalAugmenter $brandingHeroFocalAugmenter;
+
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
     $instance = parent::create($container);
-    $instance->eventStyleAccess = $container->get('myeventlane_event_studio.event_style_access');
-    $instance->eventPageStyleResolver = $container->get('myeventlane_event_studio.event_page_style_resolver');
+    $instance->ensureInjectedServices($container);
     return $instance;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __wakeup(): void {
+    parent::__wakeup();
+    $this->ensureInjectedServices();
+  }
+
+  /**
+   * Ensures services are present after form cache unserialization.
+   *
+   * Cached form state restores the form object in build_info. Properties assigned
+   * after parent::create() are not re-initialized unless restored here.
+   */
+  private function ensureInjectedServices(?ContainerInterface $container = NULL): void {
+    if (isset($this->eventStyleAccess, $this->eventPageStyleResolver, $this->brandingHeroFocalAugmenter)) {
+      return;
+    }
+    $container ??= \Drupal::getContainer();
+    if (!isset($this->eventStyleAccess)) {
+      $this->eventStyleAccess = $container->get('myeventlane_event_studio.event_style_access');
+    }
+    if (!isset($this->eventPageStyleResolver)) {
+      $this->eventPageStyleResolver = $container->get('myeventlane_event_studio.event_page_style_resolver');
+    }
+    if (!isset($this->brandingHeroFocalAugmenter)) {
+      $this->brandingHeroFocalAugmenter = $container->get('myeventlane_event_studio.branding_hero_focal_augmenter');
+    }
   }
 
   public function getFormId(): string {
@@ -86,6 +118,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $this->ensureInjectedServices();
     parent::validateForm($form, $form_state);
 
     $nid = (int) ($form_state->getValue('nid') ?? 0);
@@ -162,6 +195,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
   }
 
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $this->ensureInjectedServices();
     $request = $this->requestStack->getCurrentRequest();
     $restoreDraft = $request !== NULL && $request->query->getBoolean('restore_draft');
 
@@ -183,7 +217,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . Html::escape((string) $this->t('Branding')) . '</h3>'
         . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Shape how your event appears across MyEventLane and social sharing.')) . '</p>'
-        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Click the image preview to set the focal point, or use the shortcuts below. Alt text in the image field is required when a cover image is present.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Set where the hero should focus for your public event and book pages. Click the image or use the shortcuts, then save branding. Alt text is required when a cover image is present.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body">'
         . '<div class="mel-identity-media mel-identity-media--compact">'
@@ -220,18 +254,41 @@ final class EventBrandingForm extends EventStudioBaseForm {
       else {
         $form['mel']['field_event_image'] = $widget->form($formNode->get('field_event_image'), $form['mel'], $form_state);
         $form['mel']['field_event_image']['#weight'] = 0;
+        $focal_override = NULL;
+        if ($restoreDraft && is_array($melDefaults['field_event_image'] ?? NULL)) {
+          $draft_delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($melDefaults['field_event_image']);
+          if (isset($draft_delta['focal_point']) && trim((string) $draft_delta['focal_point']) !== '') {
+            $focal_override = trim((string) $draft_delta['focal_point']);
+          }
+        }
+        $this->brandingHeroFocalAugmenter->attachAfterBuild($form['mel']['field_event_image'], $formNode, $focal_override);
       }
     }
 
     $form['mel']['branding_hero_tools'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-es-branding-hero-tools']],
-      '#weight' => 2,
-      'size_hint' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#attributes' => ['class' => ['mel-es-branding-hero-size-hint']],
-        '#value' => Html::escape((string) $this->t('For the clearest hero on event and book pages, use at least 1600×900 pixels (16:9). We warn after save if the file is under 1280×720; very small images may look soft when scaled up. Minimum upload size enforced by the field is 400×200.')),
+      '#weight' => 10,
+      'framing' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-es-branding-hero-framing']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => ['class' => ['mel-es-branding-hero-framing__title']],
+          '#value' => Html::escape((string) $this->t('Public hero framing (16:9)')),
+        ],
+        'frame' => [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#attributes' => ['class' => ['mel-es-branding-hero-framing__frame', 'js-mel-branding-hero-framing-frame']],
+        ],
+        'hint' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => ['class' => ['mel-es-branding-hero-framing__hint', 'mel-text--muted']],
+          '#value' => Html::escape((string) $this->t('Matches how your cover appears on the event and book pages.')),
+        ],
       ],
       'presets' => [
         '#type' => 'container',
@@ -244,13 +301,34 @@ final class EventBrandingForm extends EventStudioBaseForm {
         ],
         'buttons' => [
           '#type' => 'container',
-          '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets__buttons']],
+          '#attributes' => [
+            'class' => ['mel-es-branding-hero-focal-presets__buttons'],
+            'role' => 'group',
+            'aria-label' => (string) $this->t('Focal shortcuts'),
+          ],
           'c' => $this->buildFocalPresetButton($this->t('Centre'), '50,50'),
           't' => $this->buildFocalPresetButton($this->t('Top'), '50,18'),
           'b' => $this->buildFocalPresetButton($this->t('Bottom'), '50,82'),
           'l' => $this->buildFocalPresetButton($this->t('Left'), '18,50'),
           'r' => $this->buildFocalPresetButton($this->t('Right'), '82,50'),
         ],
+        'status' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => [
+            'class' => ['mel-es-branding-hero-focal-status'],
+            'id' => 'mel-es-branding-focal-status',
+            'aria-live' => 'polite',
+          ],
+          '#value' => '',
+        ],
+      ],
+      'size_hint' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-branding-hero-size-hint']],
+        '#value' => Html::escape((string) $this->t('For the clearest hero on event and book pages, use at least 1600×900 pixels (16:9). We warn after save if the file is under 1280×720; very small images may look soft when scaled up. Minimum upload size enforced by the field is 400×200.')),
+        '#weight' => 5,
       ],
       'remove' => [
         '#type' => 'button',
@@ -268,7 +346,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $form['mel']['branding_hero_close'] = [
       '#type' => 'markup',
       '#markup' => Markup::create('</div></div></div></section>'),
-      '#weight' => 5,
+      '#weight' => 12,
     ];
 
     $this->buildPageStyleFields($form, $node, $melDefaults);
@@ -313,23 +391,36 @@ final class EventBrandingForm extends EventStudioBaseForm {
     ];
 
     $style_options = [
-      EventPageStyleResolver::STYLE_CLASSIC => $this->t('Classic MyEventLane page'),
-      EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Immersive page'),
+      EventPageStyleResolver::STYLE_CLASSIC => $this->t('Classic MyEventLane'),
+      EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Immersive'),
     ];
 
     $form['mel']['field_mel_page_style'] = [
       '#type' => 'radios',
       '#title' => $this->t('Page style'),
+      '#weight' => 20,
       '#mel_option_cards' => TRUE,
-      '#mel_option_cards_tickets_layout' => TRUE,
       '#mel_option_descriptions' => [
-        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Warm, clear and conversion-focused. Included for every event.'),
-        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Bold visual page style for Pro organisers.'),
+        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Warm, clear and conversion-focused. Included with every event.'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Premium cinematic layout with rich colour palettes. Built for Pro organisers.'),
+      ],
+      '#mel_option_badges' => [
+        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Included'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Pro Experience'),
       ],
       '#options' => $style_options,
       '#default_value' => $style_default,
       '#attributes' => ['class' => ['mel-page-style-radios']],
     ];
+
+    foreach (array_keys($style_options) as $style_key) {
+      $form['mel']['field_mel_page_style'][$style_key]['#wrapper_attributes'] = [
+        'class' => [
+          'mel-page-style-card',
+          'mel-page-style-card--' . $style_key,
+        ],
+      ];
+    }
 
     if (!$can_customize) {
       $form['mel']['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#disabled'] = TRUE;
@@ -358,6 +449,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#type' => 'radios',
       '#title' => $this->t('Colour mood'),
       '#title_display' => 'invisible',
+      '#weight' => 22,
       '#mel_option_cards' => TRUE,
       '#options' => $colour_options,
       '#default_value' => $colour_default,
@@ -399,6 +491,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         'type' => 'button',
         'class' => ['button', 'button--small', 'button--secondary', 'mel-es-branding-focal-preset'],
         'data-focal-preset' => $preset,
+        'aria-pressed' => 'false',
       ],
     ];
   }

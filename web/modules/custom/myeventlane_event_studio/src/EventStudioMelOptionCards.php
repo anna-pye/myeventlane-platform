@@ -29,6 +29,8 @@ final class EventStudioMelOptionCards {
 
     /** @var array<string, mixed> $descriptions */
     $descriptions = $element['#mel_option_descriptions'] ?? [];
+    /** @var array<string, mixed> $badges */
+    $badges = $element['#mel_option_badges'] ?? [];
 
     foreach (Element::children($element) as $key) {
       if (($element[$key]['#type'] ?? '') !== 'radio') {
@@ -43,6 +45,10 @@ final class EventStudioMelOptionCards {
       if (array_key_exists($key, $descriptions) && $descriptions[$key] !== NULL && $descriptions[$key] !== '') {
         $element[$key]['#description'] = $descriptions[$key];
         $element[$key]['#description_display'] = 'after';
+      }
+
+      if (array_key_exists($key, $badges) && $badges[$key] !== NULL && $badges[$key] !== '') {
+        $element[$key]['#mel_option_badge'] = $badges[$key];
       }
     }
 

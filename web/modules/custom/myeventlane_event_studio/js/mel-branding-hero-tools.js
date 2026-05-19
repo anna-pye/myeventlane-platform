@@ -1,9 +1,17 @@
 /**
  * @file
- * Branding hero: focal presets and remove cover (delegates to core Remove).
+ * Branding hero: focal presets, public framing preview, remove cover.
  */
 
 (function ($, Drupal, once) {
+  const PRESETS = [
+    { value: "50,50" },
+    { value: "50,18" },
+    { value: "50,82" },
+    { value: "18,50" },
+    { value: "82,50" },
+  ];
+
   /**
    * @param {HTMLElement} root
    * @returns {HTMLInputElement|null}
@@ -23,20 +31,175 @@
   }
 
   /**
+   * @param {string} value
+   * @returns {{ x: number, y: number }}
+   */
+  function parseFocal(value) {
+    const parts = String(value || "50,50").split(",");
+    const x = parseInt(parts[0], 10);
+    const y = parseInt(parts[1], 10);
+    return {
+      x: Number.isFinite(x) ? x : 50,
+      y: Number.isFinite(y) ? y : 50,
+    };
+  }
+
+  /**
+   * @param {string} a
+   * @param {string} b
+   * @returns {boolean}
+   */
+  function focalMatches(a, b) {
+    const left = parseFocal(a);
+    const right = parseFocal(b);
+    return left.x === right.x && left.y === right.y;
+  }
+
+  /**
+   * @param {string} value
+   * @returns {string|null}
+   */
+  function matchingPresetValue(value) {
+    for (let i = 0; i < PRESETS.length; i += 1) {
+      if (focalMatches(PRESETS[i].value, value)) {
+        return PRESETS[i].value;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @param {HTMLInputElement|null} field
+   */
+  function syncPresetButtons(root, field) {
+    const value = field ? String(field.value || "").trim() : "";
+    const match = matchingPresetValue(value);
+    root.querySelectorAll(".mel-es-branding-focal-preset").forEach((btn) => {
+      const preset = btn.getAttribute("data-focal-preset") || "";
+      const active = match !== null && preset === match;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @param {string} message
+   */
+  function setFocalStatus(root, message) {
+    const status = root.querySelector("#mel-es-branding-focal-status");
+    if (status) {
+      status.textContent = message;
+    }
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {HTMLImageElement|null}
+   */
+  function findWidgetPreviewImage(root) {
+    const thumb = root.querySelector(
+      ".image-widget .preview img, .image-widget .preview .thumbnail img, .focal-point-wrapper + img, .image-widget img",
+    );
+    return thumb instanceof HTMLImageElement ? thumb : null;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @param {string} focalValue
+   */
+  function syncFramingPreview(root, focalValue) {
+    const frame = root.querySelector(".js-mel-branding-hero-framing-frame");
+    if (!frame) {
+      return;
+    }
+    const source = findWidgetPreviewImage(root);
+    const { x, y } = parseFocal(focalValue);
+    let img = frame.querySelector("img.mel-es-branding-hero-framing__img");
+    if (!source || !source.getAttribute("src")) {
+      frame.hidden = true;
+      if (img) {
+        img.removeAttribute("src");
+      }
+      return;
+    }
+    frame.hidden = false;
+    if (!img) {
+      img = document.createElement("img");
+      img.className = "mel-es-branding-hero-framing__img";
+      img.alt = "";
+      img.decoding = "async";
+      img.loading = "lazy";
+      frame.appendChild(img);
+    }
+    if (img.getAttribute("src") !== source.src) {
+      img.src = source.src;
+    }
+    img.style.objectPosition = `${x}% ${y}%`;
+  }
+
+  /**
    * @param {HTMLElement} root
    */
   function syncHeroToolStrip(root) {
     const focal = findFocalField(root);
     const presets = root.querySelector(".mel-es-branding-hero-focal-presets");
+    const framing = root.querySelector(".mel-es-branding-hero-framing");
+    const hasImage = !!findWidgetPreviewImage(root);
+
     if (presets) {
       presets.hidden = !focal;
     }
+    if (framing) {
+      framing.hidden = !hasImage;
+    }
+
+    if (focal) {
+      syncPresetButtons(root, focal);
+      syncFramingPreview(root, focal.value);
+      if (!focal.dataset.melFocalInitial) {
+        focal.dataset.melFocalInitial = focal.value || "50,50";
+        setFocalStatus(
+          root,
+          Drupal.t("Focal point loaded. Save branding to publish changes on your event page."),
+        );
+      }
+    }
+
     const custom = root.querySelector(".js-mel-branding-hero-remove");
     const native = findNativeRemove(root);
     if (custom) {
       const enable = !!native;
       custom.disabled = !enable;
       custom.setAttribute("aria-disabled", enable ? "false" : "true");
+    }
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @param {HTMLInputElement} field
+   * @param {boolean} fromPreset
+   */
+  function onFocalChanged(root, field, fromPreset) {
+    syncPresetButtons(root, field);
+    syncFramingPreview(root, field.value);
+    const initial = field.dataset.melFocalInitial || "50,50";
+    if (focalMatches(field.value, initial)) {
+      setFocalStatus(
+        root,
+        Drupal.t("Focal point matches your saved cover. Save branding after any change."),
+      );
+    } else if (fromPreset) {
+      setFocalStatus(
+        root,
+        Drupal.t("Shortcut applied — save branding to update your public hero."),
+      );
+    } else {
+      setFocalStatus(
+        root,
+        Drupal.t("Focal point updated — save branding to update your public hero."),
+      );
     }
   }
 
@@ -49,6 +212,16 @@
           syncHeroToolStrip(root);
         });
     });
+    $(document).on("drupalFocalPointSet.melBrandingHeroTools", () => {
+      document
+        .querySelectorAll(".mel-es-field-group--branding")
+        .forEach((root) => {
+          const field = findFocalField(root);
+          if (field) {
+            onFocalChanged(root, field, false);
+          }
+        });
+    });
   }
 
   Drupal.behaviors.melBrandingHeroTools = {
@@ -56,6 +229,13 @@
       once("mel-branding-hero-tools", ".mel-es-field-group--branding", context).forEach(
         (root) => {
           syncHeroToolStrip(root);
+
+          const focal = findFocalField(root);
+          if (focal) {
+            focal.addEventListener("change", () => {
+              onFocalChanged(root, focal, false);
+            });
+          }
 
           root.addEventListener("click", (event) => {
             const presetBtn = event.target.closest(".mel-es-branding-focal-preset");
@@ -71,6 +251,7 @@
               }
               field.value = value;
               $(field).trigger("change");
+              onFocalChanged(root, field, true);
               return;
             }
 

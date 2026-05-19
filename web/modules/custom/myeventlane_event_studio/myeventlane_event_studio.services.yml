@@ -280,6 +280,15 @@ services:
       - '@entity_type.manager'
       - '@string_translation'
 
+  myeventlane_event_studio.branding_hero_focal_augmenter:
+    class: Drupal\myeventlane_event_studio\Service\BrandingHeroFocalAugmenter
+    arguments:
+      - '@focal_point.manager'
+      - '@config.factory'
+      - '@image.factory'
+      - '@entity_type.manager'
+      - '@string_translation'
+
   myeventlane_event_studio.event_style_access:
     class: Drupal\myeventlane_event_studio\Service\EventStyleAccessManager
     arguments:

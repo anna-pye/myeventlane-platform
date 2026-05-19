@@ -206,6 +206,10 @@ function myeventlane_event_studio_preprocess_form_element__mel_option_card(array
   if (isset($variables['label']) && is_array($variables['label'])) {
     $variables['label']['#mel_option_card_label'] = TRUE;
   }
+  $element = $variables['element'] ?? [];
+  if (is_array($element) && !empty($element['#mel_option_badge'])) {
+    $variables['mel_option_badge'] = $element['#mel_option_badge'];
+  }
 }
 
 /**
