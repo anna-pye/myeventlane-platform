@@ -122,8 +122,8 @@
               {% endif %}
 
               {% if extras_in_main and operational_addon_form %}
-                <section id="mel-operational-addons" class="mel-booking-extras mel-booking-extras--inline mel-operational-addons-section mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title" tabindex="-1">
-                  <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
+                <section id="mel-operational-addons--inline" class="mel-booking-extras mel-booking-extras--inline mel-operational-addons-section mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title--inline" tabindex="-1">
+                  <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title--inline">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
                   <p class="mel-operational-addons-section__lede">{{ operational_addons_section_lede|default('Merch, perks, and add-ons for this booking — collect at the event after checkout.'|t) }}</p>
                   {{ operational_addon_form }}
                 </section>
@@ -187,8 +187,8 @@
             {% endif %}
 
             {% if extras_in_sidebar and operational_addon_form %}
-              <section id="mel-operational-addons" class="mel-booking-extras mel-booking-extras--sidebar mel-operational-addons-section mel-operational-addons-section--sidebar mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title" tabindex="-1">
-                <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
+              <section id="mel-operational-addons--sidebar" class="mel-booking-extras mel-booking-extras--sidebar mel-operational-addons-section mel-operational-addons-section--sidebar mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title--sidebar" tabindex="-1">
+                <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title--sidebar">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
                 <p class="mel-operational-addons-section__lede">{{ operational_addons_section_lede|default('Merch, perks, and add-ons for this booking — collect at the event after checkout.'|t) }}</p>
                 {{ operational_addon_form }}
               </section>

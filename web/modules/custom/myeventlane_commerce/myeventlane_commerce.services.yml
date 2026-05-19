@@ -228,6 +228,7 @@ services:
     class: Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder
     arguments:
       - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_commerce.event_extras_book_placement_resolver'
       - '@commerce_price.currency_formatter'
       - '@string_translation'
 

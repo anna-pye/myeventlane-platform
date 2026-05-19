@@ -21,10 +21,15 @@ final class EventOperationalAddonTeaserBuilder {
 
   public const CONTRACT_FLAG = 'mel_operational_addon_teaser';
 
+  public const FRAGMENT_INLINE = 'mel-operational-addons--inline';
+
+  public const FRAGMENT_SIDEBAR = 'mel-operational-addons--sidebar';
+
   private const MAX_ITEMS = 3;
 
   public function __construct(
     private readonly EventOperationalAddonBuilder $addonBuilder,
+    private readonly EventExtrasBookPlacementResolver $extrasBookPlacementResolver,
     private readonly CurrencyFormatter $currencyFormatter,
     TranslationInterface $string_translation,
   ) {
@@ -77,8 +82,11 @@ final class EventOperationalAddonTeaserBuilder {
 
     $total = count($addons);
     $more = max(0, $total - count($items));
+    $addons_fragment = $this->extrasBookPlacementResolver->isSidebar($event)
+      ? self::FRAGMENT_SIDEBAR
+      : self::FRAGMENT_INLINE;
     $book_url = Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event_id], [
-      'fragment' => 'mel-operational-addons',
+      'fragment' => $addons_fragment,
     ])->toString();
     $on_book_page = $surface === 'book';
 
@@ -98,7 +106,7 @@ final class EventOperationalAddonTeaserBuilder {
       'show_book_cta' => !$on_book_page,
       'show_scroll_cta' => $on_book_page,
       'book_url' => $on_book_page ? '' : $book_url,
-      'book_anchor' => '#mel-operational-addons',
+      'book_anchor' => '#' . $addons_fragment,
       'choose_label' => (string) $this->t('Choose extras ↓'),
       'book_cta_label' => (string) $this->t('View & add when booking'),
       'more_label' => $more > 0

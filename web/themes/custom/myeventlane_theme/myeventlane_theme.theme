@@ -3840,7 +3840,7 @@ function _myeventlane_theme_apply_event_page_style_theme_variables(array &$varia
     $existing = $variables['attributes'] ?? [];
     $variables['attributes'] = new Attribute(is_array($existing) ? $existing : []);
   }
-  $variables['attributes']->addClass($classes);
+  $variables['attributes']->addClass($resolved['classes']);
 }
 
 /**
