@@ -93,6 +93,9 @@ final class BrandingHeroFocalAugmenter {
     if (isset($delta['focal_point']) && is_array($delta['focal_point'])) {
       // Cached or prior builds may still reference the core focal widget validator.
       $delta['focal_point']['#element_validate'] = [[$this, 'validateFocalPointElement']];
+      if (!empty($delta['focal_point']['#description']) && !isset($delta['focal_point']['#description_display'])) {
+        $delta['focal_point']['#description_display'] = 'after';
+      }
       return;
     }
 
@@ -105,6 +108,7 @@ final class BrandingHeroFocalAugmenter {
       '#type' => 'textfield',
       '#title' => $this->t('Focal point'),
       '#description' => $this->t('Focus area for the public event and book page hero (16:9). Saved when you save branding.'),
+      '#description_display' => 'after',
       '#default_value' => $focal_value,
       '#element_validate' => [[$this, 'validateFocalPointElement']],
       '#attributes' => [
