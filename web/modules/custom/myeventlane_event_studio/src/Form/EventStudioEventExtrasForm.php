@@ -138,7 +138,7 @@ final class EventStudioEventExtrasForm extends FormBase {
 
     $form['event_id'] = [
       '#type' => 'hidden',
-      '#default_value' => (string) $event->id(),
+      '#value' => (string) $event->id(),
     ];
 
     $form['intro'] = [
@@ -572,6 +572,7 @@ final class EventStudioEventExtrasForm extends FormBase {
       $form_state->setErrorByName('', $this->t('The event could not be loaded.'));
       return;
     }
+    $this->assertCanManageEvent($event);
     $trigger = $form_state->getTriggeringElement();
     if (!is_array($trigger)) {
       return;
@@ -632,6 +633,7 @@ final class EventStudioEventExtrasForm extends FormBase {
     if (!$event instanceof NodeInterface) {
       return;
     }
+    $this->assertCanManageEvent($event);
     $trigger = $form_state->getTriggeringElement();
     $pid = (int) ($trigger['#product_id'] ?? 0);
     if ($pid < 1) {
@@ -659,6 +661,7 @@ final class EventStudioEventExtrasForm extends FormBase {
       $this->messenger()->addError($this->t('The event could not be loaded.'));
       return;
     }
+    $this->assertCanManageEvent($event);
     try {
       $input = $this->collectInput($form_state);
       $product = $this->productCreationManager->saveEventExtraForVendor($this->currentUser(), $event, $input);
@@ -793,23 +796,7 @@ final class EventStudioEventExtrasForm extends FormBase {
   private function loadSubmittedEvent(FormStateInterface $form_state): ?NodeInterface {
     $event_id = (int) ($form_state->getValue('event_id') ?? 0);
     if ($event_id < 1) {
-      $input = $form_state->getUserInput();
-      if (isset($input['event_id'])) {
-        $event_id = (int) $input['event_id'];
-      }
-    }
-    if ($event_id < 1) {
-      $args = $form_state->getBuildInfo()['args'] ?? [];
-      $route_event = $args[0] ?? NULL;
-      if ($route_event instanceof NodeInterface && $route_event->bundle() === 'event') {
-        return $route_event;
-      }
-      try {
-        return $this->getRouteEvent();
-      }
-      catch (\Throwable) {
-        return NULL;
-      }
+      return NULL;
     }
     $event = $this->entityTypeManager->getStorage('node')->load($event_id);
     return $event instanceof NodeInterface && $event->bundle() === 'event' ? $event : NULL;
