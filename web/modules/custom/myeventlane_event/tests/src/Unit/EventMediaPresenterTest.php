@@ -31,6 +31,28 @@ final class EventMediaPresenterTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::resolveComposition
+   * @dataProvider compositionCountProvider
+   */
+  public function testResolveComposition(int $count, string $expected): void {
+    $presenter = new EventMediaPresenter($this->createMock(LoggerInterface::class));
+    $this->assertSame($expected, $presenter->resolveComposition($count));
+  }
+
+  /**
+   * @return array<string, array{int, string}>
+   */
+  public static function compositionCountProvider(): array {
+    return [
+      'empty' => [0, EventMediaPresenter::COMPOSITION_SINGLE],
+      'single' => [1, EventMediaPresenter::COMPOSITION_SINGLE],
+      'duo' => [2, EventMediaPresenter::COMPOSITION_DUO],
+      'trio' => [3, EventMediaPresenter::COMPOSITION_TRIO],
+      'editorial' => [6, EventMediaPresenter::COMPOSITION_EDITORIAL],
+    ];
+  }
+
+  /**
    * @covers ::buildEventMediaViewModel
    */
   public function testBuildEventMediaViewModelNonFullSkipsGalleryItems(): void {

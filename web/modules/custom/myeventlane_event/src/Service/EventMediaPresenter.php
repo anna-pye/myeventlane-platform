@@ -23,6 +23,14 @@ final class EventMediaPresenter {
 
   public const ROLE_GALLERY = 'gallery';
 
+  public const COMPOSITION_SINGLE = 'single';
+
+  public const COMPOSITION_DUO = 'duo';
+
+  public const COMPOSITION_TRIO = 'trio';
+
+  public const COMPOSITION_EDITORIAL = 'editorial';
+
   private const STYLE_GALLERY_CARD = 'mel_event_gallery_card';
 
   private const STYLE_GALLERY_LIGHTBOX = 'mel_event_gallery_lightbox';
@@ -37,10 +45,14 @@ final class EventMediaPresenter {
    * @return array{
    *   role: string,
    *   count: int,
+   *   composition: string,
    *   items: list<array{
    *     index: int,
    *     mid: int,
    *     alt: string,
+   *     role: string,
+   *     emphasis: string,
+   *     layout_class: string,
    *     urls: array{card: string, lightbox: string},
    *     width: int,
    *     height: int,
@@ -53,6 +65,7 @@ final class EventMediaPresenter {
     $empty = [
       'role' => self::ROLE_GALLERY,
       'count' => 0,
+      'composition' => self::COMPOSITION_SINGLE,
       'items' => [],
     ];
 
@@ -109,10 +122,14 @@ final class EventMediaPresenter {
         continue;
       }
 
+      $editorial = $this->editorialMetadataForIndex($index);
       $items[] = [
         'index' => $index,
         'mid' => (int) $media->id(),
         'alt' => $alt,
+        'role' => $editorial['role'],
+        'emphasis' => $editorial['emphasis'],
+        'layout_class' => $editorial['layout_class'],
         'urls' => [
           'card' => $card_url,
           'lightbox' => $lightbox_url,
@@ -120,14 +137,17 @@ final class EventMediaPresenter {
         'width' => $width,
         'height' => $height,
         'srcset' => $card_url . ' 960w, ' . $lightbox_url . ' 1600w',
-        'sizes' => '(min-width: 900px) 32vw, (min-width: 560px) 48vw, 100vw',
+        'sizes' => $editorial['sizes'],
       ];
       $index++;
     }
 
+    $count = count($items);
+
     return [
       'role' => self::ROLE_GALLERY,
-      'count' => count($items),
+      'count' => $count,
+      'composition' => $this->resolveComposition($count),
       'items' => $items,
     ];
   }
@@ -143,12 +163,56 @@ final class EventMediaPresenter {
       : [
         'role' => self::ROLE_GALLERY,
         'count' => 0,
+        'composition' => self::COMPOSITION_SINGLE,
         'items' => [],
       ];
 
     return [
       'gallery' => $gallery,
       'has_gallery' => $gallery['count'] > 0,
+    ];
+  }
+
+  /**
+   * Deterministic composition id from image count (automatic, no vendor config).
+   */
+  public function resolveComposition(int $count): string {
+    return match (TRUE) {
+      $count <= 0 => self::COMPOSITION_SINGLE,
+      $count === 1 => self::COMPOSITION_SINGLE,
+      $count === 2 => self::COMPOSITION_DUO,
+      $count === 3 => self::COMPOSITION_TRIO,
+      default => self::COMPOSITION_EDITORIAL,
+    };
+  }
+
+  /**
+   * Editorial role, emphasis, layout class, and responsive sizes per index.
+   *
+   * @return array{role: string, emphasis: string, layout_class: string, sizes: string}
+   */
+  private function editorialMetadataForIndex(int $index): array {
+    if ($index === 0) {
+      return [
+        'role' => 'lead',
+        'emphasis' => 'primary',
+        'layout_class' => 'mel-event-gallery__item--lead',
+        'sizes' => '(min-width: 900px) 58vw, 92vw',
+      ];
+    }
+    if ($index <= 2) {
+      return [
+        'role' => 'support',
+        'emphasis' => 'secondary',
+        'layout_class' => 'mel-event-gallery__item--support',
+        'sizes' => '(min-width: 900px) 28vw, 78vw',
+      ];
+    }
+    return [
+      'role' => 'detail',
+      'emphasis' => 'tertiary',
+      'layout_class' => 'mel-event-gallery__item--detail',
+      'sizes' => '(min-width: 900px) 22vw, 72vw',
     ];
   }
 

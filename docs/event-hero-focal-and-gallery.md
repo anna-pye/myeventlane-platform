@@ -44,7 +44,53 @@ Hero path unchanged: templates still use `field_event_image` / `mel_event_hero_f
 
 Avoid a parallel hero system or custom image entity.
 
-### Mobile
+## Editorial gallery composition (Phase 3)
 
-- Hero uses full-width `object-fit: cover` in `.mel-event-hero--featured-style`; immersive may adjust min-height and content placement in `_event-page-themes.scss` but not a separate image pipeline.
-- Gallery (future) should use responsive image styles per card context; lightbox/carousel is a presentation layer on top of a multi-value field, not a new storage model.
+Automatic hierarchy — **no vendor layout fields**. `EventMediaPresenter` assigns per-image metadata:
+
+| Index | Role | Emphasis | Layout class |
+|-------|------|----------|--------------|
+| 1 | `lead` | `primary` | `mel-event-gallery__item--lead` |
+| 2–3 | `support` | `secondary` | `mel-event-gallery__item--support` |
+| 4+ | `detail` | `tertiary` | `mel-event-gallery__item--detail` |
+
+**Composition** (grid modifier on `mel-event-gallery__grid--*`):
+
+| Count | Composition | Desktop rhythm |
+|-------|-------------|----------------|
+| 1 | `single` | Full-width lead (16:9) |
+| 2 | `duo` | Lead + support (≈5:3) |
+| 3 | `trio` | Lead row, supporting pair below |
+| 4+ | `editorial` | Lead block + support stack + detail grid |
+
+**Classic:** warm canvas, soft card borders, magazine spacing.
+**Immersive:** subtle bleed, atmospheric gradient (no neon/glow), quieter support surfaces.
+
+### Mobile storytelling
+
+- Horizontal scroll with **sequenced widths**: lead 92%, support 78%, detail 72%.
+- `scroll-snap` for native editorial pacing.
+- Same lightbox and alt text; role-specific `sizes` for responsive delivery.
+
+### Accessibility guarantees
+
+- Alt text from media field (fallback: media label).
+- Keyboard: lightbox open/close, arrows, focus return to trigger.
+- `prefers-reduced-motion`: hover lift disabled on gallery triggers.
+- Lazy-loaded card images; lightbox loads full derivative on demand.
+
+### Cache and performance
+
+- Presenter uses Drupal image styles only (no raw file URLs in storage).
+- Preprocess merges media entity cache tags.
+- JSON lightbox payload is URL metadata only (built at render time).
+
+### Future extension (do not bypass presenter)
+
+- Optional caption field on media → add to presenter item payload, not Twig field render.
+- Venue/performer galleries → separate fields, same presenter patterns.
+- Carousel: extend lightbox JS only; do not add parallel gallery markup.
+
+### Mobile (hero)
+
+- Hero uses full-width `object-fit: cover` in `.mel-event-hero--featured-style`; immersive layout in `_event-page-themes.scss` only.

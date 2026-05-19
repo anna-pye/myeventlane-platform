@@ -1003,6 +1003,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     $variables['mel_event_gallery'] = $variables['mel_event_media']['gallery'] ?? [
       'role' => 'gallery',
       'count' => 0,
+      'composition' => 'single',
       'items' => [],
     ];
     if ($node->hasField('field_mel_event_gallery') && !$node->get('field_mel_event_gallery')->isEmpty()) {
@@ -1021,7 +1022,12 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   }
   else {
     $variables['mel_event_media'] = [
-      'gallery' => ['role' => 'gallery', 'count' => 0, 'items' => []],
+      'gallery' => [
+        'role' => 'gallery',
+        'count' => 0,
+        'composition' => 'single',
+        'items' => [],
+      ],
       'has_gallery' => FALSE,
     ];
     $variables['mel_event_gallery'] = $variables['mel_event_media']['gallery'];
