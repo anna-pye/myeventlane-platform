@@ -1229,3 +1229,82 @@ textarea.mel-input--body {
   z-index: 2;
 }
 
+/* Event page style (Classic / Immersive) + colour presets */
+.mel-event-studio .mel-es-field-group--page-style {
+  margin-top: 1.5rem;
+}
+
+.mel-event-studio .mel-option-card--locked {
+  opacity: 0.72;
+}
+
+.mel-event-studio .mel-option-card--locked .mel-option-card__label::after {
+  content: ' · Pro';
+  font-weight: 600;
+  color: #7c83fd;
+}
+
+.mel-event-studio .mel-page-style-upgrade {
+  margin: 0.5rem 0 0;
+}
+
+.mel-event-studio .mel-page-style-colour-block {
+  margin-top: 1.25rem;
+}
+
+.mel-event-studio .mel-page-style-colour-block__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.mel-event-studio .mel-page-style-colours.mel-option-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.mel-event-studio .mel-page-style-colour-card .form-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mel-event-studio .mel-page-style-colour-card .mel-option-card__content {
+  padding-top: 2rem;
+}
+
+.mel-event-studio .mel-page-style-colour-card .mel-option-card__content::before {
+  content: '';
+  position: absolute;
+  top: 0.85rem;
+  left: 1rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 2px solid rgba(36, 48, 58, 0.12);
+}
+
+.mel-event-studio .mel-page-style-colour-card--coral .mel-option-card__content::before {
+  background: #f26d5b;
+}
+
+.mel-event-studio .mel-page-style-colour-card--purple .mel-option-card__content::before {
+  background: #7c83fd;
+}
+
+.mel-event-studio .mel-page-style-colour-card--mint .mel-option-card__content::before {
+  background: #5eead4;
+}
+
+.mel-event-studio .mel-page-style-colour-card--gold .mel-option-card__content::before {
+  background: #f5a04c;
+}
+
+.mel-event-studio .mel-page-style-colour-card--blue .mel-option-card__content::before {
+  background: #3b82f6;
+}
+
+.mel-event-studio .mel-page-style-colour-card.form-item--error {
+  border-color: #ef4444;
+}
+

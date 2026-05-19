@@ -2815,6 +2815,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     }
 
     if ($view_mode === 'full' && $node?->bundle() === 'event') {
+      _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
       $variables['mel_event_selling_fast'] = FALSE;
       if (\Drupal::hasService('myeventlane_capacity.service')) {
         $capacity = \Drupal::service('myeventlane_capacity.service');
@@ -3796,8 +3797,38 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
 }
 
 /**
- * Preprocess variables for event nodes only.
+ * Applies Classic/Immersive page style classes to event node template variables.
  */
+function _myeventlane_theme_apply_event_page_style_theme_variables(array &$variables, NodeInterface $node): void {
+  if (($variables['view_mode'] ?? '') !== 'full') {
+    return;
+  }
+
+  $classes = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
+  $style = 'classic';
+  $colour = 'coral';
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    && \Drupal::hasService('myeventlane_event_studio.event_page_style_resolver')) {
+    /** @var \Drupal\myeventlane_event_studio\Service\EventPageStyleResolver $resolver */
+    $resolver = \Drupal::service('myeventlane_event_studio.event_page_style_resolver');
+    $resolved = $resolver->resolveForPublicRender($node);
+    $style = $resolved['style'];
+    $colour = $resolved['colour'];
+    $classes = $resolved['classes'];
+  }
+
+  $variables['event_page_style'] = $style;
+  $variables['event_theme_colour'] = $colour;
+  $variables['event_page_classes'] = $classes;
+
+  if (!isset($variables['attributes']) || !$variables['attributes'] instanceof Attribute) {
+    $existing = $variables['attributes'] ?? [];
+    $variables['attributes'] = new Attribute(is_array($existing) ? $existing : []);
+  }
+  $variables['attributes']->addClass($classes);
+}
+
 /**
  * Preprocess event nodes to resolve hero image safely.
  */

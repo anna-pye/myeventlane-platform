@@ -280,6 +280,18 @@ services:
       - '@entity_type.manager'
       - '@string_translation'
 
+  myeventlane_event_studio.event_style_access:
+    class: Drupal\myeventlane_event_studio\Service\EventStyleAccessManager
+    arguments:
+      - '@?myeventlane_pro.pro_access'
+      - '@entity_type.manager'
+
+  myeventlane_event_studio.event_page_style_resolver:
+    class: Drupal\myeventlane_event_studio\Service\EventPageStyleResolver
+    arguments:
+      - '@myeventlane_event_studio.event_style_access'
+      - '@entity_type.manager'
+
   myeventlane_event_studio.save:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSaveService
     arguments:
@@ -296,6 +308,7 @@ services:
       - '@file_system'
       - '@?myeventlane_questions.template_cloner'
       - '@myeventlane_event_studio.operational_capability_studio_manager'
+      - '@myeventlane_event_studio.event_page_style_resolver'
 
   myeventlane_event_studio.readiness:
     class: Drupal\myeventlane_event_studio\Service\EventReadinessService

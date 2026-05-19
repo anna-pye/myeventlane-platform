@@ -69,7 +69,7 @@ mel_operational_addon_teaser:
     - core/drupal
 
 event_extras_booking:
-  version: 1.7
+  version: 1.8
   css:
     theme:
       css/mel-operational-addons.css: {}

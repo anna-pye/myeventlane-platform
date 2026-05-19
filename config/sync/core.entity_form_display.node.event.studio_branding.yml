@@ -38,6 +38,8 @@ dependencies:
     - field.field.node.event.field_location_latitude
     - field.field.node.event.field_location_longitude
     - field.field.node.event.field_location_place_id
+    - field.field.node.event.field_mel_page_style
+    - field.field.node.event.field_mel_theme_colour
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
@@ -122,6 +124,8 @@ hidden:
   field_location_longitude: true
   field_location_place_id: true
   field_mel_op_capabilities: true
+  field_mel_page_style: true
+  field_mel_theme_colour: true
   field_mel_sup_amt: true
   field_mel_sup_chk: true
   field_mel_sup_mode: true
