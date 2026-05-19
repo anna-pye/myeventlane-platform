@@ -140,3 +140,8 @@ services:
 
   myeventlane_event.icalendar_builder:
     class: Drupal\myeventlane_event\Service\EventIcalendarBuilder
+
+  myeventlane_event.media_presenter:
+    class: Drupal\myeventlane_event\Service\EventMediaPresenter
+    arguments:
+      - '@logger.channel.myeventlane_event'

@@ -1,0 +1,31 @@
+uuid: 5d9f3b2c-0a4e-5f7b-c3d2-9e8f6a5b4c3d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_event_gallery
+    - media.type.image
+    - node.type.event
+  module:
+    - media
+id: node.event.field_mel_event_gallery
+field_name: field_mel_event_gallery
+entity_type: node
+bundle: event
+label: 'Event gallery'
+description: 'Optional photos for your public event page. Separate from the cover image — order matters.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      image: image
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

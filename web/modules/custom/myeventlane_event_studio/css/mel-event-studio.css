@@ -1368,6 +1368,20 @@ textarea.mel-input--body {
   z-index: 2;
 }
 
+/* Event gallery (media library) — separate from hero branding block */
+.mel-event-studio .mel-es-field-group--gallery {
+  margin-top: 1.25rem;
+}
+
+.mel-event-studio .mel-es-field-group__body--gallery .media-library-widget {
+  margin-top: 0.35rem;
+}
+
+.mel-event-studio .mel-es-field-group--gallery .description {
+  font-size: 0.8125rem;
+  color: var(--mel-studio-muted);
+}
+
 /* Event page style (Classic / Immersive) + colour presets */
 .mel-event-studio .mel-es-field-group--page-style {
   margin-top: 1.5rem;

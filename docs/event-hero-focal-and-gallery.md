@@ -28,18 +28,19 @@ Focal shortcuts in Branding (`mel-branding-hero-tools.js`) set the `focal_point`
 
 Do not add a second `object-position` layer on public heroes — focal is applied at image generation time.
 
-## Future gallery (recommendation only — not built here)
+## Event gallery (Phase 2 — media layer)
 
-**Keep** `field_event_image` as the single required hero (cardinality 1).
+| Piece | Role |
+|-------|------|
+| `field_mel_event_gallery` | Multi-value `entity_reference` → `media` (`image` bundle only), event nodes only |
+| `EventMediaPresenter` | Builds role-based gallery view models (`mel_event_gallery` theme); does **not** render hero |
+| Image styles | `mel_event_gallery_card` (960×640, focal_point), `mel_event_gallery_lightbox` (scale 1600w) |
+| Public render | `mel-event-gallery.html.twig` + `mel-media-lightbox.js` (native `<dialog>`) |
+| Vendor UX | Event Studio → Branding tab, below hero tools (media library widget) |
 
-**Add later** a separate optional field, e.g. `field_mel_event_gallery` — multi-value `image` or `entity_reference` to `media` — for venue, artists, sponsors, immersive carousels. Do not overload the hero field.
+**Keep** `field_event_image` as the hero. Gallery is optional storytelling media.
 
-Benefits:
-
-- No migration of existing hero data
-- Clear product semantics (cover vs gallery)
-- Event full / immersive templates can render hero + gallery independently
-- Crop/focal rules stay on hero; gallery can use lighter card crops
+Hero path unchanged: templates still use `field_event_image` / `mel_event_hero_featured` for the hero region.
 
 Avoid a parallel hero system or custom image entity.
 

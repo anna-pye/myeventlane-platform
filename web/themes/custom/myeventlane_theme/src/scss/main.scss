@@ -228,6 +228,7 @@
 
 // Event page Classic/Immersive themes — load after pages/event so Mockup 1 rules win cascade.
 @use 'components/event-page-themes';
+@use 'components/event-gallery';
 
 // ---------------------------------------------------------------------------
 // 7. Utilities

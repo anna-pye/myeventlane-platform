@@ -188,6 +188,16 @@
 
     </section>
 
+    {% if mel_event_gallery is defined and mel_event_gallery.count > 0 %}
+      {{
+        {
+          '#theme': 'mel_event_gallery',
+          '#gallery': mel_event_gallery,
+          '#event_page_style': event_page_style|default('classic'),
+        }
+      }}
+    {% endif %}
+
     {# Cancelled banner #}
     {% if mel_event_state is defined and mel_event_state == 'cancelled' %}
       <div class="mel-alert mel-alert--warning" role="status">

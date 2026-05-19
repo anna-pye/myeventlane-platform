@@ -362,7 +362,59 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#weight' => 12,
     ];
 
+    if ($form_display instanceof EntityFormDisplay) {
+      $this->buildBrandingGalleryField($form, $formNode, $form_state, $form_display);
+    }
+
     $this->buildPageStyleFields($form, $node, $melDefaults);
+  }
+
+  /**
+   * Gallery media field — separate from hero cover image.
+   *
+   * @param array<string, mixed> $form
+   */
+  private function buildBrandingGalleryField(
+    array &$form,
+    NodeInterface $formNode,
+    FormStateInterface $form_state,
+    EntityFormDisplay $form_display,
+  ): void {
+    if (!$formNode->hasField('field_mel_event_gallery')) {
+      return;
+    }
+
+    $widget = $form_display->getRenderer('field_mel_event_gallery');
+    if ($widget === NULL) {
+      return;
+    }
+
+    $form['mel']['branding_gallery_shell'] = [
+      '#type' => 'markup',
+      '#markup' => Markup::create(
+        '<section class="mel-es-field-group mel-es-field-group--gallery" aria-labelledby="mel-es-gallery-title">'
+        . '<header class="mel-es-field-group__header">'
+        . '<h3 class="mel-es-field-group__title" id="mel-es-gallery-title">' . Html::escape((string) $this->t('Event gallery')) . '</h3>'
+        . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Optional storytelling photos for your public event page — separate from your cover image.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Drag to reorder. Landscape photos work best. Save branding when you are done.')) . '</p>'
+        . '</header>'
+        . '<div class="mel-es-field-group__body mel-es-field-group__body--gallery">'
+      ),
+      '#weight' => 13,
+    ];
+
+    $form['mel']['field_mel_event_gallery'] = $widget->form(
+      $formNode->get('field_mel_event_gallery'),
+      $form['mel'],
+      $form_state,
+    );
+    $form['mel']['field_mel_event_gallery']['#weight'] = 14;
+
+    $form['mel']['branding_gallery_close'] = [
+      '#type' => 'markup',
+      '#markup' => Markup::create('</div></section>'),
+      '#weight' => 15,
+    ];
   }
 
   /**
