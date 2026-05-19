@@ -51,13 +51,35 @@ final class BrandingHeroFocalAugmenter {
     if ($focal_override !== NULL && trim($focal_override) !== '') {
       $field_element['#mel_branding_focal_override'] = trim($focal_override);
     }
-    $field_element['#after_build'][] = function (array $element, $form_state) use ($node): array {
-      return $this->afterBuildField($element, $node);
-    };
+    // Callable must be serializable — closures break media_library AJAX (form cache).
+    $field_element['#mel_branding_node_id'] = (int) $node->id();
+    $field_element['#after_build'][] = [$this, 'afterBuildFieldFromElement'];
   }
 
   /**
-   * Form API #after_build callback.
+   * Form API #after_build callback (serializable; loads node from #mel_branding_node_id).
+   *
+   * @param array<string, mixed> $element
+   *   The field_event_image element.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array<string, mixed>
+   */
+  public function afterBuildFieldFromElement(array $element, FormStateInterface $form_state): array {
+    $nid = (int) ($element['#mel_branding_node_id'] ?? 0);
+    if ($nid < 1) {
+      return $element;
+    }
+    $node = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$node instanceof NodeInterface) {
+      return $element;
+    }
+    return $this->afterBuildField($element, $node);
+  }
+
+  /**
+   * Injects focal_point field + preview indicator into the hero widget tree.
    *
    * @param array<string, mixed> $element
    *   The field_event_image element.
