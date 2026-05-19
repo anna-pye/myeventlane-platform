@@ -483,18 +483,19 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
 
 // Immersive — cinematic Pro experience (single authored visual system).
 .mel-event-page--immersive.mel-event--v2 {
-  // Typography scale.
+  // Typography scale — authoritative immersive contrast (explicit rgba, no opacity fade).
   --mel-immersive-text: #fff;
-  --mel-immersive-text-body: rgba(255, 255, 255, 0.86);
-  --mel-immersive-text-secondary: rgba(255, 255, 255, 0.76);
-  --mel-immersive-text-muted: rgba(255, 255, 255, 0.64);
-  --mel-immersive-text-meta: rgba(255, 255, 255, 0.74);
-  --mel-immersive-text-label: rgba(255, 255, 255, 0.7);
+  --mel-immersive-text-secondary: rgba(255, 255, 255, 0.82);
+  --mel-immersive-text-muted: rgba(255, 255, 255, 0.72);
+  --mel-immersive-text-helper: rgba(255, 255, 255, 0.64);
+  --mel-immersive-text-body: var(--mel-immersive-text-secondary);
+  --mel-immersive-text-meta: var(--mel-immersive-text-helper);
+  --mel-immersive-text-label: var(--mel-immersive-text-muted);
   --mel-event-heading: var(--mel-immersive-text);
-  --mel-event-text: var(--mel-immersive-text-body);
+  --mel-event-text: var(--mel-immersive-text-secondary);
   --mel-event-text-secondary: var(--mel-immersive-text-secondary);
   --mel-event-text-muted: var(--mel-immersive-text-muted);
-  --mel-event-divider: rgba(255, 255, 255, 0.14);
+  --mel-event-divider: rgba(255, 255, 255, 0.1);
   --mel-immersive-heading-size: clamp(1.375rem, 2.1vw, 1.6rem);
   --mel-immersive-heading-secondary: clamp(1.125rem, 1.6vw, 1.25rem);
   --mel-immersive-body-size: 1.0625rem;
@@ -821,7 +822,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   }
 
   .mel-event-info__label {
-    color: var(--mel-immersive-text-secondary);
+    color: var(--mel-immersive-text-muted);
   }
 
   .mel-card--sticky .mel-chip--filled,
@@ -924,22 +925,40 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     margin-bottom: space-tokens.mel-space(3);
   }
 
-  // Typography — beat _event-full.scss dim hardcoded greys on dark surfaces.
+  // ---------------------------------------------------------------------------
+  // Immersive typography authority — beats _event-full.scss grey/dark inheritance.
+  // ---------------------------------------------------------------------------
+
+  .mel-event-meta-bar,
+  .mel-event-meta,
+  .mel-event-layout__main,
+  .mel-event-layout__sidebar,
+  .mel-card--surface,
+  .mel-card--highlights,
+  .mel-card--expect,
+  .mel-card--sticky,
+  .mel-event-section--extras,
+  .mel-event-share--panel,
+  .mel-organiser-card,
+  .mel-return-block,
+  .mel-event-support-zone,
+  .mel-mobile-cta {
+    opacity: 1;
+  }
+
   .mel-event-info__body,
   .mel-event-info__body .field__item,
   .mel-event-info__body .text-formatted,
   .mel-event-section__body,
   .mel-event-section__body .text-formatted,
-  .mel-card--highlights,
-  .mel-card--expect {
-    color: var(--mel-immersive-text-body);
-  }
-
   .mel-event-info__body p,
   .mel-event-section__body p,
   .mel-event-info__body li,
-  .mel-event-section__body li {
-    color: var(--mel-immersive-text-body);
+  .mel-event-section__body li,
+  .mel-event-info__body dd,
+  .mel-event-info__body dt {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
   }
 
   .mel-event-info__body p + p,
@@ -947,34 +966,136 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     margin-top: 1em;
   }
 
+  .mel-card--expect .mel-card__body,
+  .mel-card--expect .mel-card__body p,
+  .mel-card--expect .mel-card__body li,
+  .mel-card--expect .mel-card__body .field__item,
+  .mel-card--expect .mel-card__body .text-formatted {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-event-highlights,
+  .mel-event-highlights__item,
+  .mel-event-highlights__text {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
   .mel-text--muted,
   .mel-muted {
     color: var(--mel-immersive-text-muted);
+    opacity: 1;
   }
 
-  .mel-event-section__lede,
+  .mel-event-section__lede {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-meta__secondary,
+  .mel-event-location__address,
+  .mel-event-meta--venue .mel-event-location__address,
+  .mel-event-meta--venue a {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-info-row__label {
+    color: var(--mel-immersive-text);
+    opacity: 1;
+  }
+
+  .mel-info-row__value,
+  .mel-info-row__value .field__item,
+  .mel-info-row__value .text-formatted,
+  .mel-info-row__value p,
+  .mel-info-row__value a:not(.mel-btn) {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-info-row__category-label {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-organiser-card__title {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
+  }
+
+  .mel-organiser-card__name,
+  .mel-organiser-card__tagline {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-organiser-card__tagline--muted {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-layout__main .mel-return-header h3 {
+    color: var(--mel-immersive-text);
+    opacity: 1;
+  }
+
+  .mel-event-layout__main .mel-return-header p {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
   .mel-event-section--extras .mel-addon-teaser__intro,
   .mel-event-section--extras .mel-addon-teaser__hint,
   .mel-event-section--extras .mel-addon-teaser__more {
-    color: var(--mel-immersive-text-secondary);
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__name {
+    color: var(--mel-immersive-text);
+    opacity: 1;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__price {
+    color: var(--mel-immersive-text);
+    font-weight: 600;
+    opacity: 1;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__actions {
+    border-top-color: var(--mel-event-divider);
+  }
+
+  .mel-card--sticky .mel-booking-panel__chip {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
   }
 
   .mel-card--sticky .mel-booking-panel__product,
+  .mel-card--sticky .mel-booking-panel__subline,
+  .mel-card--sticky .mel-booking-panel__item p,
   .mel-card--sticky .mel-booking-panel__trust-line,
   .mel-card--sticky .mel-booking-panel__trust-micro,
   .mel-card--sticky .mel-booking-panel__trust-micro p,
   .mel-card--sticky .mel-trust-rotator,
   .mel-card--sticky .mel-trust-rotator .mel-trust-item,
   .mel-card--sticky .mel-trust-rotator .mel-trust-item__text,
+  .mel-card--sticky .mel-trust-item__text,
   .mel-card--sticky .mel-booking-panel__save-hint,
-  .mel-card--sticky .mel-booking-panel__save-text p {
-    color: var(--mel-immersive-text-muted);
+  .mel-card--sticky .mel-booking-panel__save-text p,
+  .mel-decision-prompts .mel-decision-item__text {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
   }
 
   .mel-card--sticky .mel-booking-panel__trust-micro-primary,
   .mel-card--sticky .mel-booking-panel__save-label,
-  .mel-card--sticky .mel-booking-panel__save-text strong {
+  .mel-card--sticky .mel-booking-panel__save-text strong,
+  .mel-card--sticky .mel-booking-panel__item strong {
     color: var(--mel-immersive-text-secondary);
+    opacity: 1;
   }
 
   .mel-card--sticky .mel-booking-panel__rule,
@@ -983,17 +1104,36 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     border-top-color: var(--mel-event-divider);
   }
 
-  .mel-event-section--extras .mel-addon-teaser__name {
-    color: var(--mel-immersive-text-secondary);
+  .mel-event-share--panel .mel-event-share__chip-label {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
   }
 
-  .mel-event-section--extras .mel-addon-teaser__price {
+  .mel-event-support-zone,
+  .mel-event-support-zone p {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-mobile-cta__eyebrow {
     color: var(--mel-immersive-text);
-    font-weight: 600;
+    opacity: 1;
   }
 
-  .mel-event-section--extras .mel-addon-teaser__actions {
-    border-top-color: var(--mel-event-divider);
+  .mel-mobile-cta__urgency,
+  .mel-mobile-cta__helper,
+  .mel-mobile-cta__soldout-head {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-mobile-cta__waitlist-sub,
+  .mel-mobile-cta__waitlist-sub--muted,
+  .mel-mobile-cta__trust,
+  .mel-mobile-cta__trust-t,
+  .mel-mobile-cta__trust-d {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
   }
 
   .mel-event-highlights__icon {
