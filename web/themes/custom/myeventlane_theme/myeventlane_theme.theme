@@ -3797,13 +3797,11 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
 }
 
 /**
- * Applies Classic/Immersive page style classes to event node template variables.
+ * Resolves public event page style + colour classes for a node.
+ *
+ * @return array{style: string, colour: string, classes: list<string>}
  */
-function _myeventlane_theme_apply_event_page_style_theme_variables(array &$variables, NodeInterface $node): void {
-  if (($variables['view_mode'] ?? '') !== 'full') {
-    return;
-  }
-
+function _myeventlane_theme_resolve_event_page_style_for_node(NodeInterface $node): array {
   $classes = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
   $style = 'classic';
   $colour = 'coral';
@@ -3818,9 +3816,25 @@ function _myeventlane_theme_apply_event_page_style_theme_variables(array &$varia
     $classes = $resolved['classes'];
   }
 
-  $variables['event_page_style'] = $style;
-  $variables['event_theme_colour'] = $colour;
-  $variables['event_page_classes'] = $classes;
+  return [
+    'style' => $style,
+    'colour' => $colour,
+    'classes' => $classes,
+  ];
+}
+
+/**
+ * Applies Classic/Immersive page style classes to event node template variables.
+ */
+function _myeventlane_theme_apply_event_page_style_theme_variables(array &$variables, NodeInterface $node): void {
+  if (($variables['view_mode'] ?? '') !== 'full') {
+    return;
+  }
+
+  $resolved = _myeventlane_theme_resolve_event_page_style_for_node($node);
+  $variables['event_page_style'] = $resolved['style'];
+  $variables['event_theme_colour'] = $resolved['colour'];
+  $variables['event_page_classes'] = $resolved['classes'];
 
   if (!isset($variables['attributes']) || !$variables['attributes'] instanceof Attribute) {
     $existing = $variables['attributes'] ?? [];
@@ -4344,6 +4358,9 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
   $variables['mel_signal_is_community'] = FALSE;
   $variables['mel_signal_trust_label'] = NULL;
   $variables['mel_signal_urgency_label'] = NULL;
+  $variables['event_page_style'] = 'classic';
+  $variables['event_theme_colour'] = 'coral';
+  $variables['event_page_classes'] = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
 
   $variables['label'] = $variables['title'] ?? '';
   $variables['hero_image'] = NULL;
@@ -4519,6 +4536,11 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
       $variables['mel_customer_operational_experience'] = NULL;
     }
   }
+
+  $pageStyle = _myeventlane_theme_resolve_event_page_style_for_node($event);
+  $variables['event_page_style'] = $pageStyle['style'];
+  $variables['event_theme_colour'] = $pageStyle['colour'];
+  $variables['event_page_classes'] = $pageStyle['classes'];
 
 }
 
