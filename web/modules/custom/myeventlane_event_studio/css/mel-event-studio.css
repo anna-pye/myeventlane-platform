@@ -1234,77 +1234,252 @@ textarea.mel-input--body {
   margin-top: 1.5rem;
 }
 
+.mel-event-studio .mel-page-style-radios.mel-option-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+@media (min-width: 640px) {
+  .mel-event-studio .mel-page-style-radios.mel-option-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-event-studio .mel-page-style-card.mel-option-card {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.mel-event-studio .mel-page-style-card .form-radio {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.mel-event-studio .mel-page-style-card .mel-option-card__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 11.5rem;
+  padding: 0.85rem 1rem 1rem;
+  padding-top: 5.75rem;
+  border-inline-start: none;
+  box-sizing: border-box;
+}
+
+.mel-event-studio .mel-page-style-card .mel-option-card__content::before {
+  content: '';
+  position: absolute;
+  top: 0.85rem;
+  left: 1rem;
+  right: 1rem;
+  height: 4.25rem;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 48, 58, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.mel-event-studio .mel-page-style-card--classic .mel-option-card__content::before {
+  background:
+    linear-gradient(180deg, rgba(31, 41, 51, 0.15) 0%, rgba(31, 41, 51, 0.55) 100%),
+    linear-gradient(135deg, #ffd4c8 0%, #f26d5b 55%, #fff8f4 100%);
+}
+
+.mel-event-studio .mel-page-style-card--immersive .mel-option-card__content::before {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(13, 17, 23, 0.92) 100%),
+    linear-gradient(145deg, #1a2330 0%, #0d1117 48%, #7c83fd 100%);
+}
+
+.mel-event-studio .mel-page-style-card .mel-option-card__badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.mel-event-studio .mel-page-style-card--classic .mel-option-card__badge {
+  background: rgba(242, 109, 91, 0.14);
+  color: #c94f3f;
+}
+
+.mel-event-studio .mel-page-style-card--immersive .mel-option-card__badge {
+  background: rgba(124, 131, 253, 0.18);
+  color: #5b63e8;
+}
+
+.mel-event-studio .mel-page-style-card input:checked + .mel-option-card__content {
+  border: 2px solid #5b63e8;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(91, 99, 232, 0.14);
+}
+
+.mel-event-studio .mel-page-style-card input:focus-visible + .mel-option-card__content {
+  outline: 2px solid #5b63e8;
+  outline-offset: 2px;
+}
+
 .mel-event-studio .mel-option-card--locked {
-  opacity: 0.72;
+  opacity: 0.82;
 }
 
 .mel-event-studio .mel-option-card--locked .mel-option-card__label::after {
-  content: ' · Pro';
-  font-weight: 600;
-  color: #7c83fd;
+  content: none;
+}
+
+.mel-event-studio .mel-option-card--locked .mel-option-card__content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.42);
+  pointer-events: none;
 }
 
 .mel-event-studio .mel-page-style-upgrade {
-  margin: 0.5rem 0 0;
+  margin: 0.65rem 0 0;
+  font-size: 0.875rem;
 }
 
 .mel-event-studio .mel-page-style-colour-block {
-  margin-top: 1.25rem;
+  margin-top: 1.35rem;
 }
 
 .mel-event-studio .mel-page-style-colour-block__title {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.35rem;
   font-size: 1rem;
+}
+
+.mel-event-studio .mel-page-style-colour-block__hint {
+  margin: 0 0 0.85rem;
 }
 
 .mel-event-studio .mel-page-style-colours.mel-option-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .mel-event-studio .mel-page-style-colours.mel-option-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .mel-event-studio .mel-page-style-colours.mel-option-cards {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.mel-event-studio .mel-page-style-colour-card.mel-option-card {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .mel-event-studio .mel-page-style-colour-card .form-radio {
   position: absolute;
   opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
   pointer-events: none;
 }
 
 .mel-event-studio .mel-page-style-colour-card .mel-option-card__content {
-  padding-top: 2rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 7.25rem;
+  padding: 0.65rem 0.65rem 0.75rem;
+  padding-top: 3.35rem;
+  border-inline-start: none;
+  text-align: left;
 }
 
 .mel-event-studio .mel-page-style-colour-card .mel-option-card__content::before {
   content: '';
   position: absolute;
-  top: 0.85rem;
-  left: 1rem;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  border: 2px solid rgba(36, 48, 58, 0.12);
+  top: 0.65rem;
+  left: 0.65rem;
+  right: 0.65rem;
+  height: 2.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 48, 58, 0.12);
+  box-shadow: 0 6px 16px rgba(41, 50, 65, 0.12);
 }
 
 .mel-event-studio .mel-page-style-colour-card--coral .mel-option-card__content::before {
-  background: #f26d5b;
+  background: linear-gradient(135deg, #fff1ec 0%, #f26d5b 52%, #ffd4c8 100%);
 }
 
 .mel-event-studio .mel-page-style-colour-card--purple .mel-option-card__content::before {
-  background: #7c83fd;
+  background: linear-gradient(135deg, #f3f0ff 0%, #7c83fd 55%, #c4b5fd 100%);
 }
 
 .mel-event-studio .mel-page-style-colour-card--mint .mel-option-card__content::before {
-  background: #5eead4;
+  background: linear-gradient(135deg, #ecfeff 0%, #2dd4bf 50%, #5eead4 100%);
 }
 
 .mel-event-studio .mel-page-style-colour-card--gold .mel-option-card__content::before {
-  background: #f5a04c;
+  background: linear-gradient(135deg, #fff7ed 0%, #f5a04c 52%, #fde68a 100%);
 }
 
 .mel-event-studio .mel-page-style-colour-card--blue .mel-option-card__content::before {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #3b82f6 55%, #93c5fd 100%);
+}
+
+.mel-event-studio .mel-page-style-colour-card input:checked + .mel-option-card__content {
+  border: 2px solid #5b63e8;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 3px rgba(91, 99, 232, 0.14),
+    0 10px 22px rgba(41, 50, 65, 0.1);
+}
+
+.mel-event-studio .mel-page-style-colour-card input:checked + .mel-option-card__content::before {
+  box-shadow:
+    0 8px 20px rgba(41, 50, 65, 0.16),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.45);
+}
+
+.mel-event-studio .mel-page-style-colour-card .mel-option-card__label strong {
+  font-size: 0.8125rem;
 }
 
 .mel-event-studio .mel-page-style-colour-card.form-item--error {
   border-color: #ef4444;
+}
+
+@media (max-width: 767px) {
+  .mel-es-branding-hero-focal-presets__buttons .button {
+    min-height: 44px;
+    padding-inline: 0.85rem;
+  }
+
+  .mel-event-studio .mel-page-style-card .mel-option-card__content,
+  .mel-event-studio .mel-page-style-colour-card .mel-option-card__content {
+    min-height: auto;
+  }
 }
 

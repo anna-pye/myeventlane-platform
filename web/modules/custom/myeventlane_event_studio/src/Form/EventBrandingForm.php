@@ -226,13 +226,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $form['mel']['branding_hero_tools'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-es-branding-hero-tools']],
-      '#weight' => 2,
-      'size_hint' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#attributes' => ['class' => ['mel-es-branding-hero-size-hint']],
-        '#value' => Html::escape((string) $this->t('For the clearest hero on event and book pages, use at least 1600×900 pixels (16:9). We warn after save if the file is under 1280×720; very small images may look soft when scaled up. Minimum upload size enforced by the field is 400×200.')),
-      ],
+      '#weight' => 10,
       'presets' => [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets']],
@@ -252,6 +246,13 @@ final class EventBrandingForm extends EventStudioBaseForm {
           'r' => $this->buildFocalPresetButton($this->t('Right'), '82,50'),
         ],
       ],
+      'size_hint' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-branding-hero-size-hint']],
+        '#value' => Html::escape((string) $this->t('For the clearest hero on event and book pages, use at least 1600×900 pixels (16:9). We warn after save if the file is under 1280×720; very small images may look soft when scaled up. Minimum upload size enforced by the field is 400×200.')),
+        '#weight' => 5,
+      ],
       'remove' => [
         '#type' => 'button',
         '#value' => $this->t('Remove cover image'),
@@ -268,7 +269,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $form['mel']['branding_hero_close'] = [
       '#type' => 'markup',
       '#markup' => Markup::create('</div></div></div></section>'),
-      '#weight' => 5,
+      '#weight' => 12,
     ];
 
     $this->buildPageStyleFields($form, $node, $melDefaults);
@@ -313,23 +314,36 @@ final class EventBrandingForm extends EventStudioBaseForm {
     ];
 
     $style_options = [
-      EventPageStyleResolver::STYLE_CLASSIC => $this->t('Classic MyEventLane page'),
-      EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Immersive page'),
+      EventPageStyleResolver::STYLE_CLASSIC => $this->t('Classic MyEventLane'),
+      EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Immersive'),
     ];
 
     $form['mel']['field_mel_page_style'] = [
       '#type' => 'radios',
       '#title' => $this->t('Page style'),
+      '#weight' => 20,
       '#mel_option_cards' => TRUE,
-      '#mel_option_cards_tickets_layout' => TRUE,
       '#mel_option_descriptions' => [
-        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Warm, clear and conversion-focused. Included for every event.'),
-        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Bold visual page style for Pro organisers.'),
+        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Warm, clear and conversion-focused. Included with every event.'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Bold cinematic layout for Pro organisers.'),
+      ],
+      '#mel_option_badges' => [
+        EventPageStyleResolver::STYLE_CLASSIC => $this->t('Included'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Pro'),
       ],
       '#options' => $style_options,
       '#default_value' => $style_default,
       '#attributes' => ['class' => ['mel-page-style-radios']],
     ];
+
+    foreach (array_keys($style_options) as $style_key) {
+      $form['mel']['field_mel_page_style'][$style_key]['#wrapper_attributes'] = [
+        'class' => [
+          'mel-page-style-card',
+          'mel-page-style-card--' . $style_key,
+        ],
+      ];
+    }
 
     if (!$can_customize) {
       $form['mel']['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#disabled'] = TRUE;
@@ -358,6 +372,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#type' => 'radios',
       '#title' => $this->t('Colour mood'),
       '#title_display' => 'invisible',
+      '#weight' => 22,
       '#mel_option_cards' => TRUE,
       '#options' => $colour_options,
       '#default_value' => $colour_default,

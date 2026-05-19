@@ -17,30 +17,40 @@
   --mel-event-accent: #{colors.$mel-color-primary};
   --mel-event-accent-soft: #{color.mix(colors.$mel-color-primary, #fff, 18%)};
   --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-primary, $alpha: 0.32)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-primary, #fff, 35%)};
 }
 
 .mel-event-page--colour-purple {
   --mel-event-accent: #{colors.$mel-color-accent};
   --mel-event-accent-soft: #{colors.$mel-color-pastel-lavender};
   --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-accent, $alpha: 0.34)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-accent, #fff, 40%)};
 }
 
 .mel-event-page--colour-mint {
   --mel-event-accent: #{color.adjust(colors.$mel-color-success, $lightness: -8%)};
   --mel-event-accent-soft: #{colors.$mel-color-pastel-mint};
   --mel-event-accent-contrast: #{colors.$mel-color-text};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-success, $alpha: 0.28)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-success, #fff, 42%)};
 }
 
 .mel-event-page--colour-gold {
   --mel-event-accent: #{colors.$mel-color-orange};
   --mel-event-accent-soft: #{color.mix(colors.$mel-color-orange, #fff, 22%)};
   --mel-event-accent-contrast: #{colors.$mel-color-text};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-orange, $alpha: 0.3)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-orange, #fff, 38%)};
 }
 
 .mel-event-page--colour-blue {
   --mel-event-accent: #{colors.$mel-color-info};
   --mel-event-accent-soft: #{colors.$mel-color-info-bg};
   --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-info, $alpha: 0.3)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-info, #fff, 40%)};
 }
 
 // Page shell warmth when Classic event is present (article bg alone leaves white gutters).
@@ -114,7 +124,7 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     background: var(--mel-event-accent, colors.$mel-color-primary);
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     border: none;
-    box-shadow: 0 4px 14px rgba(41, 50, 65, 0.18);
+    box-shadow: 0 4px 14px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.18));
   }
 
   // Popularity / intelligence pill in hero chip (Mockup 1 top-left).
@@ -130,7 +140,7 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
-    box-shadow: 0 4px 14px rgba(41, 50, 65, 0.18);
+    box-shadow: 0 4px 14px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.18));
   }
 
   // Floating meta strip — white card overlapping hero foot.
@@ -263,8 +273,9 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
   .mel-card--sticky .mel-chip--filled,
   .mel-card--sticky .mel-chip {
     background: var(--mel-event-accent-soft);
-    border: 1px solid var(--mel-event-accent);
+    border: 1px solid var(--mel-event-chip-border, var(--mel-event-accent));
     color: var(--mel-event-accent-strong);
+    box-shadow: 0 2px 8px var(--mel-event-accent-glow, transparent);
   }
 
   .mel-card--sticky .mel-booking-panel__save,
@@ -286,8 +297,9 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
 
   // Warm “Grab the extras” panel (outer section card).
   .mel-event-section--extras.mel-card--surface {
-    background: var(--mel-event-surface-soft);
-    border-color: var(--mel-event-border);
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 55%, var(--mel-event-surface-soft) 45%);
+    border-color: var(--mel-event-chip-border, var(--mel-event-border));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 
     > .mel-card__header,
     > .mel-card__body {
@@ -382,12 +394,13 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
 
   .mel-event-share--panel .mel-event-share__chip-icon {
     background: var(--mel-event-accent-soft);
-    border-color: var(--mel-event-border);
+    border-color: var(--mel-event-chip-border, var(--mel-event-border));
     color: var(--mel-event-accent-strong);
+    box-shadow: 0 4px 12px var(--mel-event-accent-glow, transparent);
   }
 
   .mel-event-layout__main a:not(.mel-btn):not(.mel-social) {
-    color: color.mix(colors.$mel-color-primary, colors.$mel-color-navy, 35%);
+    color: var(--mel-event-accent-strong);
   }
 
   .mel-btn--primary,
@@ -399,7 +412,7 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     min-height: 44px;
     font-weight: 600;
-    box-shadow: 0 8px 22px color.mix(#000, colors.$mel-color-primary, 12%);
+    box-shadow: 0 8px 22px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.12));
   }
 
   .mel-btn--secondary,
@@ -415,7 +428,8 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
   .mel-mobile-cta .mel-btn--coral-cta {
     border-radius: 16px;
     background: var(--mel-coral, var(--mel-event-accent, #{colors.$mel-color-primary}));
-    color: colors.$mel-color-on-primary;
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    box-shadow: 0 10px 26px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.14));
   }
 
   .mel-mobile-cta {
@@ -568,7 +582,7 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     min-height: 44px;
     font-weight: 700;
-    box-shadow: 0 10px 28px color.mix(#000, colors.$mel-color-primary, 35%);
+    box-shadow: 0 10px 28px var(--mel-event-accent-glow, rgba(0, 0, 0, 0.35));
   }
 
   .mel-btn--secondary,

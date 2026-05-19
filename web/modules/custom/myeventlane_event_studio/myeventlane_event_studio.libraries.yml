@@ -1,5 +1,5 @@
 mel_event_studio:
-  version: 1.15
+  version: 1.16
   css:
     theme:
       css/mel-event-studio.css: {}
