@@ -484,8 +484,10 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   --mel-event-border: rgba(255, 255, 255, 0.16);
   --mel-event-border-strong: rgba(255, 255, 255, 0.24);
   --mel-event-heading: #ffffff;
-  --mel-event-text: #eef2f8;
-  --mel-event-text-muted: #b7c2d2;
+  --mel-event-text: #ebe6e1;
+  --mel-event-text-secondary: #d4dce6;
+  --mel-event-text-muted: #c2ccd9;
+  --mel-event-divider: rgba(237, 230, 222, 0.28);
   --mel-event-shadow-elevated:
     0 22px 54px rgba(0, 0, 0, 0.48),
     0 0 0 1px rgba(255, 255, 255, 0.07),
@@ -590,7 +592,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   }
 
   .mel-event-meta__secondary {
-    color: var(--mel-event-text);
+    color: var(--mel-event-text-secondary);
   }
 
   .mel-event-meta__icon {
@@ -653,9 +655,12 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   }
 
   .mel-card--sticky .mel-booking-panel__chip,
-  .mel-event__meta,
-  .mel-event-info__label {
+  .mel-event__meta {
     color: var(--mel-event-text-muted);
+  }
+
+  .mel-event-info__label {
+    color: var(--mel-event-text-secondary);
   }
 
   .mel-card--sticky .mel-chip--filled,
@@ -708,16 +713,76 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
 
   .mel-event-info__title::after,
   .mel-event-section__title::after {
-    background: var(--mel-event-accent, colors.$mel-color-primary);
+    background: linear-gradient(
+      90deg,
+      var(--mel-event-accent, colors.$mel-color-primary) 0%,
+      var(--mel-event-divider) 72%
+    );
     opacity: 1;
   }
 
-  .mel-text--muted,
-  .mel-event-section__lede,
-  .mel-muted,
-  .mel-event-info__body p,
-  .mel-event-section__body p {
+  // Typography readability — beat _event-full.scss dim hardcoded greys on dark surfaces.
+  .mel-event-info__body,
+  .mel-event-info__body .field__item,
+  .mel-event-info__body .text-formatted,
+  .mel-event-section__body,
+  .mel-event-section__body .text-formatted {
     color: var(--mel-event-text);
+  }
+
+  .mel-text--muted,
+  .mel-muted,
+  .mel-event-section__lede,
+  .mel-event-info__body p,
+  .mel-event-section__body p,
+  .mel-event-info__body li,
+  .mel-event-section__body li {
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-section__lede,
+  .mel-event-section--extras .mel-addon-teaser__intro,
+  .mel-event-section--extras .mel-addon-teaser__hint,
+  .mel-event-section--extras .mel-addon-teaser__more {
+    color: var(--mel-event-text-secondary);
+  }
+
+  .mel-card--sticky .mel-booking-panel__chip,
+  .mel-card--sticky .mel-booking-panel__product,
+  .mel-card--sticky .mel-booking-panel__trust-line,
+  .mel-card--sticky .mel-booking-panel__trust-micro,
+  .mel-card--sticky .mel-booking-panel__trust-micro p,
+  .mel-card--sticky .mel-trust-rotator,
+  .mel-card--sticky .mel-trust-rotator .mel-trust-item,
+  .mel-card--sticky .mel-trust-rotator .mel-trust-item__text,
+  .mel-card--sticky .mel-booking-panel__save-hint,
+  .mel-card--sticky .mel-booking-panel__save-text p {
+    color: var(--mel-event-text-muted);
+  }
+
+  .mel-card--sticky .mel-booking-panel__trust-micro-primary,
+  .mel-card--sticky .mel-booking-panel__save-label,
+  .mel-card--sticky .mel-booking-panel__save-text strong {
+    color: var(--mel-event-text-secondary);
+  }
+
+  .mel-card--sticky .mel-booking-panel__rule,
+  .mel-card--sticky .mel-booking-panel__trust-micro,
+  .mel-card--sticky .mel-decision-prompts {
+    border-top-color: var(--mel-event-divider);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__name {
+    color: var(--mel-event-text-secondary);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__price {
+    color: var(--mel-event-text);
+    font-weight: 600;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__actions {
+    border-top-color: var(--mel-event-divider);
   }
 
   .mel-event-highlights__icon {
