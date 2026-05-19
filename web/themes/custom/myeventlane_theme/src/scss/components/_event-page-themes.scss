@@ -470,49 +470,70 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
   }
 }
 
-// Immersive shell — extend page gutters to match cinematic backdrop.
+// Immersive shell — atmospheric canvas (article carries local accents).
 body:has(.mel-event-page--immersive.mel-event--v2),
 main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
-  background-color: #0a0f18;
+  background-color: #080c14;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
 }
 
-// Immersive — cinematic Pro experience (readability, depth, editorial spacing).
+// Immersive — cinematic Pro experience (single authored visual system).
 .mel-event-page--immersive.mel-event--v2 {
-  // Typography scale (immersive-only).
+  // Typography scale.
   --mel-immersive-text: #fff;
-  --mel-immersive-text-body: rgba(255, 255, 255, 0.84);
-  --mel-immersive-text-secondary: rgba(255, 255, 255, 0.74);
-  --mel-immersive-text-muted: rgba(255, 255, 255, 0.62);
-  --mel-immersive-text-meta: rgba(255, 255, 255, 0.72);
+  --mel-immersive-text-body: rgba(255, 255, 255, 0.86);
+  --mel-immersive-text-secondary: rgba(255, 255, 255, 0.76);
+  --mel-immersive-text-muted: rgba(255, 255, 255, 0.64);
+  --mel-immersive-text-meta: rgba(255, 255, 255, 0.74);
+  --mel-immersive-text-label: rgba(255, 255, 255, 0.7);
   --mel-event-heading: var(--mel-immersive-text);
   --mel-event-text: var(--mel-immersive-text-body);
   --mel-event-text-secondary: var(--mel-immersive-text-secondary);
   --mel-event-text-muted: var(--mel-immersive-text-muted);
-  --mel-event-divider: rgba(255, 255, 255, 0.2);
-  // Depth — tonal layers (avoid identical navy panels + loud outlines).
-  --mel-event-surface-quiet: rgba(24, 31, 44, 0.72);
-  --mel-event-surface: rgba(30, 38, 52, 0.82);
-  --mel-event-surface-raised: rgba(38, 48, 64, 0.88);
-  --mel-event-surface-spotlight: rgba(44, 56, 74, 0.92);
-  --mel-event-border: rgba(255, 255, 255, 0.08);
-  --mel-event-border-strong: rgba(255, 255, 255, 0.12);
-  --mel-event-shadow-elevated:
-    0 24px 56px rgba(0, 0, 0, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --mel-event-shadow-sidebar:
-    0 28px 56px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  --mel-event-accent-strong: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 78%, #fff 22%);
-  --mel-event-surface-tint: transparent;
-  --mel-immersive-section-gap: #{space-tokens.mel-space(7)};
-  --mel-immersive-heading-size: clamp(1.375rem, 2.2vw, 1.625rem);
+  --mel-event-divider: rgba(255, 255, 255, 0.14);
+  --mel-immersive-heading-size: clamp(1.375rem, 2.1vw, 1.6rem);
+  --mel-immersive-heading-secondary: clamp(1.125rem, 1.6vw, 1.25rem);
   --mel-immersive-body-size: 1.0625rem;
+  --mel-immersive-lede-size: 1rem;
+  --mel-immersive-meta-size: 0.9375rem;
+  --mel-immersive-label-size: 0.8125rem;
+  // Spacing rhythm.
+  --mel-immersive-section-gap: #{space-tokens.mel-space(6)};
+  --mel-immersive-block-gap: #{space-tokens.mel-space(4)};
+  --mel-immersive-pad-primary: #{space-tokens.mel-space(6)};
+  --mel-immersive-pad-secondary: #{space-tokens.mel-space(5)};
+  --mel-immersive-pad-tertiary: #{space-tokens.mel-space(4)};
+  // Surfaces — tonal layers, minimal outlines.
+  --mel-event-surface-quiet: rgba(22, 28, 40, 0.55);
+  --mel-event-surface: rgba(28, 36, 50, 0.72);
+  --mel-event-surface-raised: rgba(34, 44, 60, 0.78);
+  --mel-event-surface-spotlight: rgba(40, 52, 70, 0.85);
+  --mel-event-border: rgba(255, 255, 255, 0.06);
+  --mel-event-border-strong: rgba(255, 255, 255, 0.1);
+  --mel-immersive-radius: #{radii.$mel-radius-xl};
+  --mel-immersive-radius-inner: #{radii.$mel-radius-lg};
+  --mel-immersive-shadow-quiet: 0 14px 36px rgba(0, 0, 0, 0.22);
+  --mel-immersive-shadow-panel: 0 22px 52px rgba(0, 0, 0, 0.3);
+  --mel-immersive-shadow-featured: 0 26px 60px rgba(0, 0, 0, 0.34);
+  --mel-immersive-shadow-sidebar: 0 18px 44px rgba(0, 0, 0, 0.32);
+  --mel-immersive-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --mel-event-shadow-elevated: var(--mel-immersive-shadow-panel);
+  --mel-event-shadow-sidebar: var(--mel-immersive-shadow-sidebar);
+  --mel-event-accent-strong: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 78%, #fff 22%);
+  --mel-event-accent-glow-cta: color-mix(in srgb, var(--mel-event-accent-glow, rgba(0, 0, 0, 0.35)) 55%, transparent);
+  --mel-event-surface-tint: transparent;
 
   background:
-    radial-gradient(ellipse 100% 70% at 50% -12%, color-mix(in srgb, var(--mel-event-accent) 18%, transparent) 0%, transparent 62%),
-    radial-gradient(ellipse 50% 42% at 100% 8%, color-mix(in srgb, var(--mel-event-accent) 10%, transparent) 0%, transparent 55%),
-    radial-gradient(ellipse 40% 38% at 0% 92%, rgba(255, 255, 255, 0.03) 0%, transparent 58%),
-    linear-gradient(180deg, #0a0f18 0%, #101825 45%, #161f2e 100%);
+    radial-gradient(ellipse 95% 65% at 50% -10%, color-mix(in srgb, var(--mel-event-accent) 14%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 48% 40% at 100% 6%, color-mix(in srgb, var(--mel-event-accent) 8%, transparent) 0%, transparent 52%),
+    radial-gradient(ellipse 42% 36% at 0% 88%, rgba(255, 255, 255, 0.025) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(0, 0, 0, 0.25) 0%, transparent 62%),
+    linear-gradient(180deg, transparent 0%, rgba(12, 18, 28, 0.4) 100%);
+  background-color: transparent;
   color: var(--mel-event-text);
   min-height: 100vh;
 
@@ -556,25 +577,25 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     --mel-event-surface-tint: #{color.mix(colors.$mel-color-info, #121820, 10%)};
   }
 
-  padding-top: space-tokens.mel-space(5);
-  padding-bottom: space-tokens.mel-space(8);
+  padding-top: space-tokens.mel-space(6);
+  padding-bottom: space-tokens.mel-space(9);
 
   .mel-container {
     max-width: min(100%, 76rem);
   }
 
   .mel-event__hero {
-    margin-bottom: space-tokens.mel-space(5);
+    margin-bottom: var(--mel-immersive-block-gap);
   }
 
-  // Hero — cinematic scale, soft edge (no outlined rectangle).
+  // Hero — primary focal (soft edge, no outline box).
   .mel-event-hero--featured-style {
     min-height: clamp(22rem, 42vw, 34rem);
-    margin-bottom: space-tokens.mel-space(5);
+    margin-bottom: var(--mel-immersive-block-gap);
     border: none;
-    border-radius: radii.$mel-radius-xl;
+    border-radius: var(--mel-immersive-radius);
     overflow: hidden;
-    box-shadow: 0 36px 80px rgba(0, 0, 0, 0.48);
+    box-shadow: var(--mel-immersive-shadow-featured);
   }
 
   .mel-event-hero--featured-style .mel-event-hero__overlay {
@@ -623,37 +644,37 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   }
 
-  // Meta strip — premium floating bar.
+  // Meta strip — integrated bar (tonal, not a separate widget).
   .mel-event-meta-bar {
     margin-top: 0;
-    margin-bottom: space-tokens.mel-space(6);
-    padding: space-tokens.mel-space(4) space-tokens.mel-space(5);
-    background: rgba(14, 20, 30, 0.82);
-    border: 1px solid var(--mel-event-border);
-    border-radius: radii.$mel-radius-xl;
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+    margin-bottom: var(--mel-immersive-section-gap);
+    padding: var(--mel-immersive-pad-secondary) var(--mel-immersive-pad-primary);
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 12%, rgba(12, 17, 26, 0.78) 88%);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
     color: var(--mel-immersive-text-body);
-    backdrop-filter: blur(14px);
-    gap: space-tokens.mel-space(4);
+    backdrop-filter: blur(12px);
+    gap: var(--mel-immersive-block-gap);
   }
 
   .mel-event-meta__primary {
     color: var(--mel-immersive-text);
-    font-size: 1.0625rem;
+    font-size: var(--mel-immersive-body-size);
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.35;
   }
 
   .mel-event-meta__secondary {
     color: var(--mel-immersive-text-meta);
-    font-size: 0.9375rem;
-    line-height: 1.45;
+    font-size: var(--mel-immersive-meta-size);
+    line-height: 1.5;
   }
 
   .mel-event-meta__icon {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 12px;
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: var(--mel-immersive-radius-inner);
     opacity: 1;
   }
 
@@ -673,14 +694,14 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     }
   }
 
-  // Layout rhythm — editorial column spacing.
+  // Layout rhythm — connected columns on one canvas.
   .mel-event-layout {
     margin-top: 0;
-    gap: space-tokens.mel-space(6);
+    gap: var(--mel-immersive-section-gap);
 
     @include breakpoints.mel-break(lg) {
-      grid-template-columns: minmax(0, 1fr) min(400px, 34vw);
-      column-gap: space-tokens.mel-space(6);
+      grid-template-columns: minmax(0, 1fr) min(392px, 33vw);
+      column-gap: var(--mel-immersive-section-gap);
     }
   }
 
@@ -691,65 +712,81 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     gap: var(--mel-immersive-section-gap);
   }
 
-  // Card system — shadow separation, neutral edges (accent on CTAs/chips only).
+  // Card hierarchy — primary / secondary / tertiary weight.
   .mel-event-layout__main .mel-card--surface {
-    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 22%, var(--mel-event-surface-raised) 78%);
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 16%, var(--mel-event-surface-raised) 84%);
     border: none;
-    box-shadow: var(--mel-event-shadow-elevated);
-    backdrop-filter: blur(10px);
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-panel);
+    backdrop-filter: blur(8px);
   }
 
   .mel-card--highlights {
     background: var(--mel-event-surface-quiet);
     border: none;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    backdrop-filter: none;
   }
 
   .mel-card--expect {
-    background: var(--mel-event-surface);
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 8%, var(--mel-event-surface) 92%);
     border: none;
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.32);
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-panel);
+    backdrop-filter: blur(6px);
   }
 
   .mel-event-section--share.mel-card--surface {
     background: var(--mel-event-surface-quiet);
     border: none;
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.26);
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    backdrop-filter: none;
   }
 
   .mel-card--sticky {
-    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 18%, var(--mel-event-surface-spotlight) 82%);
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 14%, var(--mel-event-surface-spotlight) 86%);
     border: none;
-    box-shadow: var(--mel-event-shadow-sidebar);
-    backdrop-filter: blur(12px);
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-sidebar);
+    backdrop-filter: blur(10px);
   }
 
   .mel-card--surface .mel-card__header,
   .mel-card--surface .mel-card__body {
-    padding: space-tokens.mel-space(5) space-tokens.mel-space(6);
+    padding: var(--mel-immersive-pad-secondary) var(--mel-immersive-pad-primary);
 
     @include breakpoints.mel-break(lg) {
-      padding: space-tokens.mel-space(6) space-tokens.mel-space(7);
+      padding: var(--mel-immersive-pad-primary) calc(var(--mel-immersive-pad-primary) + #{space-tokens.mel-space(1)});
     }
   }
 
   .mel-card--highlights .mel-card__header,
   .mel-card--highlights .mel-card__body {
-    padding: space-tokens.mel-space(4) space-tokens.mel-space(5);
+    padding: var(--mel-immersive-pad-tertiary) var(--mel-immersive-pad-secondary);
   }
 
   .mel-card--expect .mel-card__header,
   .mel-card--expect .mel-card__body {
-    padding: space-tokens.mel-space(5) space-tokens.mel-space(6);
+    padding: var(--mel-immersive-pad-secondary) var(--mel-immersive-pad-primary);
   }
 
   .mel-card--sticky .mel-card__header,
   .mel-card--sticky .mel-card__body {
-    padding: space-tokens.mel-space(5) space-tokens.mel-space(5);
+    padding: var(--mel-immersive-pad-secondary);
 
     @include breakpoints.mel-break(lg) {
-      padding: space-tokens.mel-space(6);
+      padding: var(--mel-immersive-pad-primary) var(--mel-immersive-pad-secondary);
     }
+  }
+
+  .mel-card__header {
+    margin-bottom: 0;
+  }
+
+  .mel-card__title {
+    margin-bottom: var(--mel-immersive-block-gap);
   }
 
   .mel-event-layout__main,
@@ -789,10 +826,13 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
 
   .mel-card--sticky .mel-chip--filled,
   .mel-card--sticky .mel-chip {
-    background: var(--mel-event-accent-soft);
-    border: 1px solid var(--mel-event-chip-border, var(--mel-event-accent));
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 85%, transparent);
+    border: none;
     color: var(--mel-event-accent-strong);
     box-shadow: none;
+    font-size: var(--mel-immersive-label-size);
+    font-weight: 600;
+    letter-spacing: 0.01em;
   }
 
   .mel-card--sticky .mel-booking-panel__item-icon,
@@ -802,15 +842,15 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   }
 
   .mel-card--sticky .mel-booking-panel__item--highlight {
-    background: color-mix(in srgb, var(--mel-event-accent-soft) 70%, var(--mel-event-surface-spotlight) 30%);
-    border: 1px solid var(--mel-event-chip-border, var(--mel-event-border));
-    border-radius: radii.$mel-radius-md;
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 55%, var(--mel-event-surface-spotlight) 45%);
+    border: none;
+    border-radius: var(--mel-immersive-radius-inner);
   }
 
   .mel-card--sticky .mel-booking-panel__save,
   .mel-card--sticky .mel-booking-panel__save--fav {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--mel-event-border);
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
     box-shadow: none;
     color: var(--mel-immersive-text-body);
   }
@@ -819,14 +859,17 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   .mel-event-layout__main .mel-event__signal,
   .mel-event-layout__sidebar .mel-event__signal {
     color: var(--mel-immersive-text-body);
-    background: var(--mel-event-accent-soft);
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 80%, transparent);
+    border: none;
+    box-shadow: none;
+    font-size: var(--mel-immersive-label-size);
   }
 
   .mel-event__signal--strong,
   .mel-card--sticky .mel-event__signal--strong {
     background: var(--mel-event-accent, colors.$mel-color-primary);
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
-    box-shadow: 0 8px 24px var(--mel-event-accent-glow, rgba(0, 0, 0, 0.35));
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
   }
 
   .mel-event-info__title,
@@ -835,25 +878,50 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     color: var(--mel-immersive-text);
     font-size: var(--mel-immersive-heading-size);
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.22;
     letter-spacing: -0.02em;
+  }
+
+  .mel-card--highlights .mel-card__title,
+  .mel-event-section--share .mel-event-section__title {
+    font-size: var(--mel-immersive-heading-secondary);
+    font-weight: 600;
   }
 
   .mel-event-info__title::after,
   .mel-event-section__title::after {
-    height: 3px;
+    height: 2px;
+    margin-top: space-tokens.mel-space(2);
     background: linear-gradient(
       90deg,
-      var(--mel-event-accent, colors.$mel-color-primary) 0%,
-      var(--mel-event-divider) 80%
+      color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 70%, transparent) 0%,
+      var(--mel-event-divider) 72%
     );
-    opacity: 1;
+    opacity: 0.9;
   }
 
   .mel-event-info__body,
   .mel-event-section__body {
     font-size: var(--mel-immersive-body-size);
-    line-height: 1.65;
+    line-height: 1.68;
+  }
+
+  .mel-event-section__lede {
+    font-size: var(--mel-immersive-lede-size);
+    line-height: 1.6;
+    margin-bottom: var(--mel-immersive-block-gap);
+  }
+
+  .mel-event-info__label {
+    font-size: var(--mel-immersive-label-size);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .mel-card--sticky .mel-card__title {
+    font-size: var(--mel-immersive-heading-secondary);
+    margin-bottom: space-tokens.mel-space(3);
   }
 
   // Typography — beat _event-full.scss dim hardcoded greys on dark surfaces.
@@ -872,6 +940,11 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   .mel-event-info__body li,
   .mel-event-section__body li {
     color: var(--mel-immersive-text-body);
+  }
+
+  .mel-event-info__body p + p,
+  .mel-event-section__body p + p {
+    margin-top: 1em;
   }
 
   .mel-text--muted,
@@ -924,17 +997,21 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   }
 
   .mel-event-highlights__icon {
-    background: var(--mel-event-accent-soft);
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 75%, transparent);
     color: var(--mel-event-accent-strong);
-    border: 1px solid var(--mel-event-chip-border, var(--mel-event-border));
+    border: none;
   }
 
+  .mel-card--highlights .mel-event-highlights__item {
+    gap: space-tokens.mel-space(3);
+  }
+
+  // Extras — featured primary block, integrated rows (not nested commerce widgets).
   .mel-event-section--extras.mel-card--surface {
-    background: color-mix(in srgb, var(--mel-event-accent-soft) 38%, var(--mel-event-surface-spotlight) 62%);
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 32%, var(--mel-event-surface-spotlight) 68%);
     border: none;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.07),
-      0 24px 52px rgba(0, 0, 0, 0.38);
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-featured);
 
     > .mel-card__header,
     > .mel-card__body {
@@ -945,47 +1022,95 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   .mel-event-section--extras .mel-card__title,
   .mel-event-section--extras .mel-event-section__title {
     color: var(--mel-immersive-text);
+    font-size: var(--mel-immersive-heading-size);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser.mel-card--surface {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    border-radius: 0;
   }
 
   .mel-event-section--extras .mel-addon-teaser__list {
-    gap: space-tokens.mel-space(3);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
 
   .mel-event-section--extras .mel-addon-teaser__item {
-    padding: space-tokens.mel-space(4);
-    background: rgba(22, 30, 42, 0.75);
+    display: flex;
+    align-items: center;
+    gap: var(--mel-immersive-block-gap);
+    padding: var(--mel-immersive-pad-secondary) 0;
+    background: transparent;
     border: none;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--mel-event-divider);
+    border-radius: 0;
+    box-shadow: none;
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    &:first-child {
+      padding-top: space-tokens.mel-space(2);
+    }
   }
 
   .mel-event-section--extras .mel-addon-teaser__thumb {
-    width: 64px;
-    height: 64px;
-    border-radius: radii.$mel-radius-lg;
+    width: 72px;
+    height: 72px;
+    border-radius: var(--mel-immersive-radius-inner);
+    object-fit: cover;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__name {
+    font-size: var(--mel-immersive-body-size);
+    font-weight: 600;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__price {
+    font-size: var(--mel-immersive-meta-size);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__actions {
+    margin-top: var(--mel-immersive-block-gap);
+    padding-top: var(--mel-immersive-block-gap);
+    border-top: 1px solid var(--mel-event-divider);
   }
 
   .mel-event-section--extras .mel-addon-teaser__cta,
   .mel-event-section--extras .mel-addon-teaser__scroll,
   .mel-event-section--extras .mel-addon-teaser__cta.mel-btn--secondary,
   .mel-event-section--extras .mel-addon-teaser__scroll.mel-btn--secondary {
-    border-color: var(--mel-event-accent);
+    border: none;
     color: var(--mel-immersive-text);
-    background: color-mix(in srgb, var(--mel-event-accent-soft) 45%, transparent);
+    background: var(--mel-event-accent, colors.$mel-color-primary);
     min-height: 44px;
     font-weight: 600;
+    border-radius: var(--mel-immersive-radius-inner);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 
     @media (hover: hover) and (pointer: fine) {
       &:hover {
-        background: var(--mel-event-accent-soft);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
       }
     }
   }
 
   .mel-event-map-embed {
     border: none;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-    border-radius: radii.$mel-radius-lg;
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    border-radius: var(--mel-immersive-radius-inner);
   }
 
   .mel-event-share--panel .mel-event-share__chip-icon {
@@ -999,39 +1124,35 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     color: var(--mel-immersive-text-secondary);
   }
 
-  .mel-event-support-zone {
-    border-top: 1px solid var(--mel-event-border-strong);
-    color: var(--mel-immersive-text-body);
-  }
-
-  // Primary CTA glow — sidebar + mobile bar only (not every panel).
+  // Conversion CTA — sidebar + mobile only; calm panel, bright button.
   .mel-card--sticky .mel-btn--primary,
   .mel-card--sticky .mel-btn--coral-cta,
   .mel-card--sticky .button--primary,
   .mel-mobile-cta .mel-btn--primary,
   .mel-mobile-cta .mel-btn--coral-cta {
     background-color: var(--mel-event-accent, colors.$mel-color-primary);
-    border-color: color-mix(in srgb, var(--mel-event-accent) 88%, #fff 12%);
+    border-color: transparent;
     color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
     min-height: 48px;
     font-weight: 700;
+    letter-spacing: 0.01em;
     box-shadow:
-      0 14px 36px var(--mel-event-accent-glow, rgba(0, 0, 0, 0.38)),
-      0 0 0 1px color-mix(in srgb, var(--mel-event-accent) 55%, #fff 45%);
+      0 12px 28px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.32)),
+      0 2px 8px rgba(0, 0, 0, 0.2);
 
     @media (hover: hover) and (pointer: fine) {
       &:hover {
-        filter: brightness(1.08) saturate(1.06);
+        filter: brightness(1.06) saturate(1.04);
         box-shadow:
-          0 18px 42px var(--mel-event-accent-glow, rgba(0, 0, 0, 0.45)),
-          0 0 20px var(--mel-event-accent-glow, rgba(0, 0, 0, 0.28));
+          0 16px 34px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.36)),
+          0 4px 12px rgba(0, 0, 0, 0.22);
       }
     }
   }
 
   .mel-card--sticky .mel-btn--coral-cta,
   .mel-mobile-cta .mel-btn--coral-cta {
-    border-radius: 16px;
+    border-radius: var(--mel-immersive-radius-inner);
   }
 
   .mel-btn--primary,
@@ -1047,32 +1168,59 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
 
   .mel-btn--secondary,
   .button--secondary {
-    background: var(--mel-event-surface-spotlight);
-    border-color: var(--mel-event-border-strong);
+    background: color-mix(in srgb, var(--mel-event-surface-spotlight) 90%, transparent);
+    border: none;
     color: var(--mel-event-heading);
     min-height: 44px;
+    box-shadow: var(--mel-immersive-inset-highlight);
 
     @media (hover: hover) and (pointer: fine) {
       &:hover {
-        border-color: var(--mel-event-accent);
+        background: color-mix(in srgb, var(--mel-event-accent-soft) 40%, var(--mel-event-surface-spotlight) 60%);
         color: var(--mel-event-accent-strong);
       }
     }
   }
 
-  .mel-mobile-cta {
-    background: var(--mel-event-surface-raised);
-    border-top: 1px solid var(--mel-event-border-strong);
-    box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.42);
+  .mel-organiser-card,
+  .mel-return-block {
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    border: none;
+  }
+
+  .mel-event-support-zone {
+    border-top: 1px solid var(--mel-event-divider);
+    padding-top: var(--mel-immersive-pad-primary);
+    margin-top: var(--mel-immersive-block-gap);
     color: var(--mel-immersive-text-body);
+  }
+
+  @include breakpoints.mel-break(lg) {
+    .mel-event-layout__sidebar > .mel-card--sticky {
+      position: sticky;
+      top: space-tokens.mel-space(4);
+    }
+  }
+
+  .mel-mobile-cta {
+    background: color-mix(in srgb, var(--mel-event-surface-raised) 92%, transparent);
+    border-top: none;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.36);
+    color: var(--mel-immersive-text-body);
+    backdrop-filter: blur(10px);
   }
 
   @include breakpoints.mel-break(md, max) {
     --mel-immersive-section-gap: #{space-tokens.mel-space(5)};
+    --mel-immersive-block-gap: #{space-tokens.mel-space(3)};
     --mel-immersive-heading-size: 1.3125rem;
+    --mel-immersive-pad-primary: #{space-tokens.mel-space(5)};
+    --mel-immersive-pad-secondary: #{space-tokens.mel-space(4)};
+    --mel-immersive-pad-tertiary: #{space-tokens.mel-space(4)};
 
-    padding-top: space-tokens.mel-space(4);
-    padding-bottom: space-tokens.mel-space(6);
+    padding-top: space-tokens.mel-space(5);
+    padding-bottom: space-tokens.mel-space(7);
 
     .mel-event-hero--featured-style {
       min-height: 20rem;
@@ -1129,6 +1277,18 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     .mel-btn--secondary,
     .button--secondary {
       min-height: 44px;
+    }
+
+    .mel-event-section--extras .mel-addon-teaser__thumb {
+      width: 64px;
+      height: 64px;
+    }
+
+    .mel-card--highlights .mel-card__header,
+    .mel-card--highlights .mel-card__body,
+    .mel-card--expect .mel-card__header,
+    .mel-card--expect .mel-card__body {
+      padding: var(--mel-immersive-pad-tertiary) var(--mel-immersive-pad-secondary);
     }
   }
 
