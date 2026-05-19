@@ -325,11 +325,11 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#mel_option_cards' => TRUE,
       '#mel_option_descriptions' => [
         EventPageStyleResolver::STYLE_CLASSIC => $this->t('Warm, clear and conversion-focused. Included with every event.'),
-        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Bold cinematic layout for Pro organisers.'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Premium cinematic layout with rich colour palettes. Built for Pro organisers.'),
       ],
       '#mel_option_badges' => [
         EventPageStyleResolver::STYLE_CLASSIC => $this->t('Included'),
-        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Pro'),
+        EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Pro Experience'),
       ],
       '#options' => $style_options,
       '#default_value' => $style_default,
