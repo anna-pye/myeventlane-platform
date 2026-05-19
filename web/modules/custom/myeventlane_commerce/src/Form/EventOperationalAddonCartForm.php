@@ -600,7 +600,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $qty = (int) ($line['quantity'] ?? 0);
       if ($qty < 1) {
         if ($line_index !== NULL) {
-          $form_state->setErrorByName('lines][' . $index . '][quantity]', $this->t('Choose a quantity of at least 1.'));
+          $form_state->setErrorByName('lines][' . $index . '][quantity', $this->t('Choose a quantity of at least 1.'));
         }
         continue;
       }
@@ -617,7 +617,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $vid = $this->resolveVariationIdForLine($line, $entry);
       if ($vid < 1) {
         if (!empty($entry['requires_size_selection'])) {
-          $form_state->setErrorByName('lines][' . $index . '][selected_size]', $this->t('Please choose a size before adding to cart.'));
+          $form_state->setErrorByName('lines][' . $index . '][selected_size', $this->t('Please choose a size before adding to cart.'));
         }
         else {
           $form_state->setErrorByName('lines', $this->t('Something went wrong with your selection. Please refresh and try again.'));
