@@ -993,6 +993,13 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     opacity: 1;
   }
 
+  .mel-event-location__venue,
+  .mel-event-meta--venue .mel-event-location__venue {
+    color: var(--mel-immersive-text);
+    font-weight: 700;
+    opacity: 1;
+  }
+
   .mel-event-meta__secondary,
   .mel-event-location__address,
   .mel-event-meta--venue .mel-event-location__address,
