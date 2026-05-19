@@ -10,7 +10,8 @@
 
 .mel-event-gallery {
   position: relative;
-  margin-block: spacing.mel-space(7);
+  // Vertical rhythm owned by _event-cinematic-convergence.scss per page style.
+  margin-block: spacing.mel-space(5);
 }
 
 .mel-event-gallery__header {
@@ -182,9 +183,17 @@
 // ---------------------------------------------------------------------------
 
 .mel-event-page--classic .mel-event-gallery--classic {
-  padding: spacing.mel-space(5);
-  border-radius: radii.$mel-radius-lg;
-  background: color-mix(in srgb, var(--mel-peach, #{colors.$mel-color-primary}) 6%, #fff 94%);
+  padding: spacing.mel-space(5) spacing.mel-space(5) spacing.mel-space(6);
+  border-radius: radii.$mel-radius-xl;
+  border: 1px solid color-mix(in srgb, var(--mel-event-border, rgba(36, 48, 58, 0.08)) 80%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--mel-event-accent-soft, #{colors.$mel-color-primary}) 22%, #fff 78%) 0%,
+      color-mix(in srgb, var(--mel-peach, #{colors.$mel-color-primary}) 6%, #fff 94%) 38%,
+      #fff 100%
+    );
+  box-shadow: var(--mel-event-shadow, 0 12px 32px rgba(41, 50, 65, 0.06));
 
   .mel-event-gallery__title {
     color: colors.$mel-color-text;
@@ -215,8 +224,16 @@
 
 .mel-event-page--immersive .mel-event-gallery--immersive {
   margin-inline: calc(-1 * #{spacing.mel-space(4)});
-  padding: spacing.mel-space(6) spacing.mel-space(4);
-  border-radius: radii.$mel-radius-lg;
+  padding: spacing.mel-space(6) spacing.mel-space(4) spacing.mel-space(7);
+  border-radius: radii.$mel-radius-xl;
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% 0%,
+      color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 16%, transparent) 0%,
+      transparent 62%
+    ),
+    color-mix(in srgb, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 88%, transparent);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.28);
 
   @media (min-width: 900px) {
     margin-inline: calc(-1 * #{spacing.mel-space(5)});
@@ -229,12 +246,18 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(
-      165deg,
-      rgba(12, 16, 24, 0.35) 0%,
-      rgba(12, 16, 24, 0.12) 45%,
-      transparent 72%
-    );
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        transparent 18%
+      ),
+      linear-gradient(
+        165deg,
+        rgba(12, 16, 24, 0.28) 0%,
+        rgba(12, 16, 24, 0.08) 48%,
+        transparent 78%
+      );
   }
 
   .mel-event-gallery__header,
