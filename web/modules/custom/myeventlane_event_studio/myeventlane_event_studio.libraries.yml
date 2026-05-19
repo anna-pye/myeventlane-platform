@@ -1,5 +1,5 @@
 mel_event_studio:
-  version: 1.18
+  version: 1.19
   css:
     theme:
       css/mel-event-studio.css: {}
@@ -61,7 +61,7 @@ mel_customer_operational_experience:
     - core/drupal
 
 mel_branding_hero_tools:
-  version: 1.1
+  version: 1.2
   js:
     js/mel-branding-hero-tools.js: {}
   dependencies:

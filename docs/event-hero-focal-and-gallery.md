@@ -15,6 +15,18 @@ Focal shortcuts in Branding (`mel-branding-hero-tools.js`) set the `focal_point`
 
 - `BrandingHeroFocalAugmenter` injects `focal_point` + indicator into the crop widget delta so focal_point JS and shortcuts work together.
 - Active shortcut state, `aria-pressed`, status copy, and 16:9 framing preview reflect the same focal values used on the public page.
+- Framing preview uses the **original file URL** (`drupalSettings.myeventlane_event_studio.brandingHero.sourceUrl`) with CSS `object-fit: cover` + `object-position` — closer to `mel_event_hero_featured` than the crop-widget thumbnail.
+- The crop widget still edits **event_hero** (1200×630) for listings/social; public heroes use **focal_point** at 16:9 — vendors should trust the framing preview and focal shortcuts for event/book pages, not the crop box aspect ratio alone.
+
+## Public rendering (parity)
+
+| Surface | Image style | Focal |
+|---------|-------------|-------|
+| Event full (`node.event.full`) | `mel_event_hero_featured` | Baked via `focal_point_scale_and_crop` |
+| Book page (`myeventlane-event-book`) | Same field + style via render array | Same |
+| Classic / Immersive | Same hero markup (`mel-event-hero--featured-style`); theme SCSS differs overlay/layout only | Same |
+
+Do not add a second `object-position` layer on public heroes — focal is applied at image generation time.
 
 ## Future gallery (recommendation only — not built here)
 
@@ -30,3 +42,8 @@ Benefits:
 - Crop/focal rules stay on hero; gallery can use lighter card crops
 
 Avoid a parallel hero system or custom image entity.
+
+### Mobile
+
+- Hero uses full-width `object-fit: cover` in `.mel-event-hero--featured-style`; immersive may adjust min-height and content placement in `_event-page-themes.scss` but not a separate image pipeline.
+- Gallery (future) should use responsive image styles per card context; lightbox/carousel is a presentation layer on top of a multi-value field, not a new storage model.

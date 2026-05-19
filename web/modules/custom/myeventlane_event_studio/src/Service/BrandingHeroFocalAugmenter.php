@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -34,6 +35,7 @@ final class BrandingHeroFocalAugmenter {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly ImageFactory $imageFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -93,6 +95,10 @@ final class BrandingHeroFocalAugmenter {
     if (isset($delta['focal_point']) && is_array($delta['focal_point'])) {
       // Cached or prior builds may still reference the core focal widget validator.
       $delta['focal_point']['#element_validate'] = [[$this, 'validateFocalPointElement']];
+      if (!empty($delta['focal_point']['#description']) && !isset($delta['focal_point']['#description_display'])) {
+        $delta['focal_point']['#description_display'] = 'after';
+      }
+      $this->attachBrandingHeroPreviewSettings($delta, $node, $delta);
       return;
     }
 
@@ -105,6 +111,7 @@ final class BrandingHeroFocalAugmenter {
       '#type' => 'textfield',
       '#title' => $this->t('Focal point'),
       '#description' => $this->t('Focus area for the public event and book page hero (16:9). Saved when you save branding.'),
+      '#description_display' => 'after',
       '#default_value' => $focal_value,
       '#element_validate' => [[$this, 'validateFocalPointElement']],
       '#attributes' => [
@@ -139,6 +146,27 @@ final class BrandingHeroFocalAugmenter {
         '#weight' => $preview_weight,
       ];
     }
+
+    $this->attachBrandingHeroPreviewSettings($delta, $node, $delta);
+  }
+
+  /**
+   * Exposes the original hero file URL for the 16:9 framing preview (public parity).
+   *
+   * @param array<string, mixed> $delta
+   */
+  private function attachBrandingHeroPreviewSettings(array &$delta, NodeInterface $node, array $widget_delta): void {
+    $file = $this->resolveHeroFile($node, $widget_delta);
+    if (!$file instanceof FileInterface) {
+      return;
+    }
+    $uri = $file->getFileUri();
+    if ($uri === '') {
+      return;
+    }
+    $delta['#attached']['drupalSettings']['myeventlane_event_studio']['brandingHero'] = [
+      'sourceUrl' => $this->fileUrlGenerator->generateString($uri),
+    ];
   }
 
   /**

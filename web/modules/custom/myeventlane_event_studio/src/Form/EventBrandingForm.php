@@ -217,7 +217,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . Html::escape((string) $this->t('Branding')) . '</h3>'
         . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Shape how your event appears across MyEventLane and social sharing.')) . '</p>'
-        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Set where the hero should focus for your public event and book pages. Click the image or use the shortcuts, then save branding. Alt text is required when a cover image is present.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Set the focus for your public event and book page heroes (16:9). Click the image or use shortcuts, then save branding. Alt text is required when a cover image is present.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body">'
         . '<div class="mel-identity-media mel-identity-media--compact">'
@@ -287,7 +287,27 @@ final class EventBrandingForm extends EventStudioBaseForm {
           '#type' => 'html_tag',
           '#tag' => 'p',
           '#attributes' => ['class' => ['mel-es-branding-hero-framing__hint', 'mel-text--muted']],
-          '#value' => Html::escape((string) $this->t('Matches how your cover appears on the event and book pages.')),
+          '#value' => Html::escape((string) $this->t('Matches your public event and book page heroes — Classic and Immersive both use this framing.')),
+        ],
+      ],
+      'quality' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-es-branding-hero-quality']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => ['class' => ['mel-es-branding-hero-quality__title']],
+          '#value' => Html::escape((string) $this->t('Cover image tips')),
+        ],
+        'list' => [
+          '#type' => 'html_tag',
+          '#tag' => 'ul',
+          '#attributes' => ['class' => ['mel-es-branding-hero-quality__list']],
+          '#value' => Markup::create(
+            '<li>' . Html::escape((string) $this->t('Best with cinematic landscape photos (16:9).')) . '</li>'
+            . '<li>' . Html::escape((string) $this->t('Text-heavy posters may crop poorly — keep key detail near the centre.')) . '</li>'
+            . '<li>' . Html::escape((string) $this->t('Use at least 1600×900 px; we warn below 1280×720 after save.')) . '</li>'
+          ),
         ],
       ],
       'presets' => [
@@ -322,13 +342,6 @@ final class EventBrandingForm extends EventStudioBaseForm {
           ],
           '#value' => '',
         ],
-      ],
-      'size_hint' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#attributes' => ['class' => ['mel-es-branding-hero-size-hint']],
-        '#value' => Html::escape((string) $this->t('For the clearest hero on event and book pages, use at least 1600×900 pixels (16:9). We warn after save if the file is under 1280×720; very small images may look soft when scaled up. Minimum upload size enforced by the field is 400×200.')),
-        '#weight' => 5,
       ],
       'remove' => [
         '#type' => 'button',
