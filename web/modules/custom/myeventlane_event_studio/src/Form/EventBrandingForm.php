@@ -186,18 +186,12 @@ final class EventBrandingForm extends EventStudioBaseForm {
       $target->set('field_event_image', []);
       return;
     }
-    $row = [
-      'target_id' => $hero['fid'],
-      'alt' => $hero['alt'],
-    ];
-    $raw = $melDefaults['field_event_image'] ?? [];
-    if (is_array($raw)) {
-      $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($raw);
-      if (isset($delta['focal_point']) && trim((string) $delta['focal_point']) !== '') {
-        $row['focal_point'] = trim((string) $delta['focal_point']);
-      }
-    }
-    $target->set('field_event_image', [$row]);
+    $target->set('field_event_image', [
+      [
+        'target_id' => $hero['fid'],
+        'alt' => $hero['alt'],
+      ],
+    ]);
   }
 
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
@@ -260,7 +254,14 @@ final class EventBrandingForm extends EventStudioBaseForm {
       else {
         $form['mel']['field_event_image'] = $widget->form($formNode->get('field_event_image'), $form['mel'], $form_state);
         $form['mel']['field_event_image']['#weight'] = 0;
-        $this->brandingHeroFocalAugmenter->attachAfterBuild($form['mel']['field_event_image'], $formNode);
+        $focal_override = NULL;
+        if ($restoreDraft && is_array($melDefaults['field_event_image'] ?? NULL)) {
+          $draft_delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($melDefaults['field_event_image']);
+          if (isset($draft_delta['focal_point']) && trim((string) $draft_delta['focal_point']) !== '') {
+            $focal_override = trim((string) $draft_delta['focal_point']);
+          }
+        }
+        $this->brandingHeroFocalAugmenter->attachAfterBuild($form['mel']['field_event_image'], $formNode, $focal_override);
       }
     }
 
