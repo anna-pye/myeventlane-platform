@@ -145,3 +145,9 @@ services:
     class: Drupal\myeventlane_event\Service\EventMediaPresenter
     arguments:
       - '@logger.channel.myeventlane_event'
+
+  myeventlane_event.sidebar_carousel_builder:
+    class: Drupal\myeventlane_event\Service\EventSidebarCarouselBuilder
+    arguments:
+      - '@string_translation'
+      - '@?myeventlane_commerce.event_operational_addon_teaser_builder'

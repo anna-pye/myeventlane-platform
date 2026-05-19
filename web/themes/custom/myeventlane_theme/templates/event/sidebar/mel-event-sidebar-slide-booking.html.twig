@@ -1,0 +1,71 @@
+{#
+  Booking slide — primary conversion surface.
+#}
+<div class="mel-card__header mel-sidebar-carousel__slide-header">
+  <h2 class="mel-card__title">
+    {% if mel_cta_text|striptags|length > 0 %}
+      {{ mel_cta_text }}
+    {% elseif cta_type is defined and cta_type == 'rsvp' %}
+      {{ 'Book free RSVP'|t }}
+    {% elseif cta_type is defined and cta_type == 'paid' %}
+      {{ 'Get your tickets'|t }}
+    {% else %}
+      {{ 'View details'|t }}
+    {% endif %}
+  </h2>
+</div>
+<div class="mel-card__body mel-sidebar-carousel__slide-body">
+  <div class="mel-booking-panel" role="region" aria-label="{{ 'Book this event'|t }}">
+    {% if mel_mode_chip %}
+      <div class="mel-booking-panel__chip" aria-label="{{ 'Registration type'|t }}">
+        <span class="mel-chip mel-chip--sm mel-chip--filled">{{ mel_mode_chip }}</span>
+      </div>
+    {% endif %}
+    {% if mel_show_sidebar_scarcity_badge %}
+      <div class="mel-event__badge">{{ 'Limited availability'|t }}</div>
+    {% endif %}
+    {% if mel_signal %}
+      <div class="mel-event__signal mel-event__signal--strong">{{ mel_signal }}</div>
+    {% endif %}
+    {% if mel_sidebar_pricing|default('')|striptags|trim is not empty %}
+      <div class="mel-booking-panel__price mel-price" aria-label="{{ 'Price'|t }}">
+        {{ mel_sidebar_pricing }}
+        {% if cta_type is defined and cta_type == 'paid' and mel_show_price_includes_gst_note|default(false) %}
+          <span class="mel-price__tax-note">{{ 'Includes GST'|t }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+    {% if cta_type is defined and cta_type == 'paid'
+      and mel_event_selling_fast|default(false)
+      and (event_ui is not defined or not (event_ui.is_sold_out|default(false) == true)) %}
+      <div class="mel-event__urgency">{{ 'Tickets selling fast'|t }}</div>
+    {% endif %}
+    {% if content.field_product_target is defined %}
+      <div class="mel-booking-panel__product">{{ content.field_product_target }}</div>
+    {% endif %}
+
+    {% if mel_event_state is not defined or mel_event_state != 'cancelled' %}
+      {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
+        <div class="mel-booking-panel__cta mel-event__cta">
+          <div class="mel-event-sticky-cta mel-event-sticky-cta--sidebar" role="group" aria-label="{{ 'Register or buy tickets'|t }}">
+            {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'sidebar' } %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if event_flag_event_save %}
+        <div class="mel-booking-panel__save mel-booking-panel__save--fav" role="group" aria-label="{{ 'Save for later'|t }}">
+          <div class="mel-booking-panel__save-inner">
+            <div id="mel-event-full-save" class="mel-event-save mel-booking-panel__save-flag">
+              {{ event_flag_event_save }}
+            </div>
+            <div class="mel-booking-panel__save-copy">
+              <span class="mel-booking-panel__save-label">{{ 'Save for later'|t }}</span>
+              <span class="mel-booking-panel__save-hint mel-text--muted">{{ 'Tap the heart to remember this event'|t }}</span>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>

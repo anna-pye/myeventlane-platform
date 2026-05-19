@@ -1,0 +1,103 @@
+{#
+/**
+ * @file
+ * Unified event full-page sidebar carousel.
+ *
+ * Variables:
+ * - carousel: { slides, count, lightbox_root_id }
+ * - event_page_style: classic|immersive
+ */
+#}
+{% set style_mod = event_page_style == 'immersive' ? 'immersive' : 'classic' %}
+{% set slide_count = carousel.count|default(0) %}
+{% if slide_count > 0 %}
+  <div
+    class="mel-sidebar-carousel mel-sidebar-carousel--{{ style_mod }}{% if slide_count < 2 %} mel-sidebar-carousel--single{% endif %}"
+    data-mel-sidebar-carousel
+    data-mel-sidebar-slide-count="{{ slide_count }}"
+    role="region"
+    aria-roledescription="{{ 'Carousel'|t }}"
+    aria-label="{{ 'Event highlights and booking'|t }}"
+  >
+    <div class="mel-card mel-card--surface mel-card--sticky mel-event__card mel-sidebar-carousel__shell">
+      <div class="mel-sidebar-carousel__viewport" data-mel-sidebar-viewport tabindex="0">
+        <div class="mel-sidebar-carousel__track" data-mel-sidebar-track>
+          {% for slide in carousel.slides %}
+            <section
+              class="mel-sidebar-carousel__slide{% if loop.first %} is-active{% endif %}"
+              data-mel-sidebar-slide
+              data-slide-id="{{ slide.id }}"
+              data-slide-type="{{ slide.type }}"
+              id="mel-sidebar-slide-{{ slide.id }}"
+              role="tabpanel"
+              aria-roledescription="{{ 'Slide'|t }}"
+              aria-label="{{ slide.nav_label }}"
+              {% if not loop.first %}hidden{% endif %}
+            >
+              {% if slide.type == 'booking' %}
+                {% include '@myeventlane_theme/event/sidebar/mel-event-sidebar-slide-booking.html.twig' %}
+              {% elseif slide.type == 'gallery' %}
+                {% include '@myeventlane_theme/event/sidebar/mel-event-sidebar-slide-gallery.html.twig' with {
+                  slide: slide,
+                  lightbox_root_id: carousel.lightbox_root_id,
+                } only %}
+              {% elseif slide.type == 'extras' %}
+                {% include '@myeventlane_theme/event/sidebar/mel-event-sidebar-slide-extras.html.twig' with {
+                  document: slide.document,
+                } only %}
+              {% elseif slide.type == 'social' %}
+                {% include '@myeventlane_theme/event/sidebar/mel-event-sidebar-slide-social.html.twig' %}
+              {% elseif slide.type == 'trust' %}
+                {% include '@myeventlane_theme/event/sidebar/mel-event-sidebar-slide-trust.html.twig' %}
+              {% elseif slide.type == 'organiser' %}
+                {% include '@myeventlane_theme/event/sidebar/mel-event-sidebar-slide-organiser.html.twig' with {
+                  organiser: slide.organiser,
+                } only %}
+              {% endif %}
+            </section>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if slide_count > 1 %}
+        <div class="mel-sidebar-carousel__footer">
+          <div class="mel-sidebar-carousel__nav" role="group" aria-label="{{ 'Carousel navigation'|t }}">
+            <button
+              type="button"
+              class="mel-sidebar-carousel__arrow mel-sidebar-carousel__arrow--prev"
+              data-mel-sidebar-prev
+              aria-label="{{ 'Previous slide'|t }}"
+              disabled
+            >
+              <span aria-hidden="true">←</span>
+            </button>
+            <div class="mel-sidebar-carousel__dots" role="tablist" aria-label="{{ 'Choose slide'|t }}">
+              {% for slide in carousel.slides %}
+                <button
+                  type="button"
+                  class="mel-sidebar-carousel__dot{% if loop.first %} is-active{% endif %}"
+                  data-mel-sidebar-dot
+                  data-slide-index="{{ loop.index0 }}"
+                  role="tab"
+                  aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                  aria-controls="mel-sidebar-slide-{{ slide.id }}"
+                  id="mel-sidebar-tab-{{ slide.id }}"
+                >
+                  <span class="visually-hidden">{{ slide.nav_label }}</span>
+                </button>
+              {% endfor %}
+            </div>
+            <button
+              type="button"
+              class="mel-sidebar-carousel__arrow mel-sidebar-carousel__arrow--next"
+              data-mel-sidebar-next
+              aria-label="{{ 'Next slide'|t }}"
+            >
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

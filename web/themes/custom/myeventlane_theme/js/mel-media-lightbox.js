@@ -4,6 +4,9 @@
  */
 
 (function (Drupal, once) {
+  /** @type {Map<string, { openAt: (index: number) => void }>} */
+  const lightboxRegistry = new Map();
+
   /**
    * @param {HTMLElement} root
    * @returns {Array<Record<string, unknown>>}
@@ -145,6 +148,11 @@
         showIndex(activeIndex + 1);
       }
     });
+
+    const rootId = root.getAttribute("data-mel-lightbox-root-id") || "";
+    if (rootId !== "") {
+      lightboxRegistry.set(rootId, { openAt });
+    }
   }
 
   Drupal.behaviors.melMediaLightbox = {
@@ -159,6 +167,28 @@
           return;
         }
         bindLightbox(root, dialog, items);
+      });
+
+      once("mel-media-lightbox-external", "body", context).forEach(() => {
+        document.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) {
+            return;
+          }
+          const trigger = target.closest("[data-mel-lightbox-open][data-mel-lightbox-root-ref]");
+          if (!(trigger instanceof HTMLElement)) {
+            return;
+          }
+          const ref = trigger.getAttribute("data-mel-lightbox-root-ref") || "";
+          const entry = lightboxRegistry.get(ref);
+          if (!entry) {
+            return;
+          }
+          event.preventDefault();
+          const raw = trigger.getAttribute("data-mel-lightbox-index");
+          const index = raw !== null ? parseInt(raw, 10) : 0;
+          entry.openAt(Number.isFinite(index) ? index : 0);
+        });
       });
     },
   };

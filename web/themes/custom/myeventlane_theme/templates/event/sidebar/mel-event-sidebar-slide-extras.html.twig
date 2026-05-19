@@ -1,0 +1,36 @@
+{#
+  Extras preview slide — compact operational add-ons.
+#}
+<div class="mel-sidebar-carousel__slide-header">
+  <h2 class="mel-card__title">{{ document.title|default('Extras'|t) }}</h2>
+  <p class="mel-sidebar-carousel__lede">{{ document.intro|default('') }}</p>
+</div>
+<div class="mel-sidebar-carousel__slide-body mel-sidebar-extras">
+  <ul class="mel-sidebar-extras__list" role="list">
+    {% for item in document.items %}
+      <li class="mel-sidebar-extras__item" role="listitem">
+        {% if item.thumbnail_url|default('') %}
+          <img class="mel-sidebar-extras__thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy" width="48" height="48" />
+        {% else %}
+          <span class="mel-sidebar-extras__thumb mel-sidebar-extras__thumb--placeholder" aria-hidden="true"></span>
+        {% endif %}
+        <div class="mel-sidebar-extras__body">
+          <span class="mel-sidebar-extras__name">{{ item.title|default('') }}</span>
+          {% if item.price_label|default('') %}
+            <span class="mel-sidebar-extras__price">{{ item.price_label }}</span>
+          {% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if document.more_label|default('') %}
+    <p class="mel-sidebar-extras__more mel-text--muted">{{ document.more_label }}</p>
+  {% endif %}
+  <div class="mel-sidebar-extras__actions">
+    {% if document.show_book_cta|default(false) and document.book_url|default('') %}
+      <a class="mel-btn mel-btn--secondary mel-btn--sm mel-sidebar-extras__cta" href="{{ document.book_url }}">
+        {{ document.book_cta_label|default('View extras'|t) }}
+      </a>
+    {% endif %}
+  </div>
+</div>

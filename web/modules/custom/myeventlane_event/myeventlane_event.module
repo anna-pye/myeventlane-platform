@@ -81,6 +81,17 @@ function myeventlane_event_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-gallery',
     ],
+    'mel_event_sidebar_carousel' => [
+      'variables' => [
+        'carousel' => [
+          'slides' => [],
+          'count' => 0,
+          'lightbox_root_id' => 'mel-event-gallery-main',
+        ],
+        'event_page_style' => 'classic',
+      ],
+      'template' => 'mel-event-sidebar-carousel',
+    ],
     'myeventlane_event_wizard_step' => [
       'variables' => [
         'title' => NULL,

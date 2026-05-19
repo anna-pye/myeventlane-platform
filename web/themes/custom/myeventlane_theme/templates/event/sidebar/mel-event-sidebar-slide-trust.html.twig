@@ -1,0 +1,126 @@
+{#
+  Trust slide — checkout reassurance, calendar, decision prompts.
+#}
+<div class="mel-sidebar-carousel__slide-header">
+  <h2 class="mel-card__title">{{ 'Book with confidence'|t }}</h2>
+</div>
+<div class="mel-sidebar-carousel__slide-body">
+  {% if mel_event_state is not defined or mel_event_state != 'cancelled' %}
+    {% if mel_show_booking_trust_copy %}
+      <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
+        <div class="mel-booking-panel__trust-micro">
+          {% if mel_trust_checkout and cta_type is defined and cta_type == 'paid' %}
+            <p class="mel-booking-panel__trust-micro-primary">{{ 'Secure checkout'|t }}</p>
+          {% endif %}
+          <p>{{ 'No hidden fees'|t }}</p>
+        </div>
+        {% set _mel_trust_capacity_highlight = event_ui is defined
+          and (mel_cta_urgency|default('')|striptags|length == 0)
+          and (not mel_event_selling_fast|default(false))
+          and (not (event_ui.is_sold_out|default(false) is same as(true)))
+          and (
+            (event_ui.is_limited|default(false))
+            or (event_ui.capacity_hint|default('')|striptags|length > 0)
+          ) %}
+        <div class="mel-trust-rotator" data-rotate aria-live="polite" aria-atomic="true">
+          <div class="mel-trust-item is-active" data-trust-item>
+            {% if event_viewer_count is not empty %}
+              <span class="mel-trust-item__text">{{ event_viewer_count }}</span>
+            {% else %}
+              <span class="mel-trust-item__text">🔥 {{ 'Popular on MyEventLane'|t }}</span>
+            {% endif %}
+          </div>
+          <div class="mel-trust-item" data-trust-item>
+            <span class="mel-trust-item__text">✉️ {{ 'Instant confirmation'|t }} — {% if mel_trust_checkout %}{{ 'You’ll receive confirmation by email'|t }}{% else %}{{ 'You’ll get a confirmation email'|t }}{% endif %}</span>
+          </div>
+        </div>
+        {% set _show_mel_decision_prompts = (not logged_in)
+          or (event_ui is defined and (event_ui.is_free|default(false) == true))
+          or (event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) and (not _mel_trust_capacity_highlight)) %}
+        {% if _show_mel_decision_prompts %}
+          {% set _decision_count = 0 %}
+          <div class="mel-decision-prompts">
+            {% if _decision_count < 2 and (not logged_in) %}
+              {% set _decision_count = _decision_count + 1 %}
+              <div class="mel-decision-item">
+                <span class="mel-icon">👤</span>
+                <div>
+                  <strong>{{ 'First time here?'|t }}</strong>
+                  <p>{{ 'Book in seconds — no account needed'|t }}</p>
+                </div>
+              </div>
+            {% endif %}
+            {% if _decision_count < 2 and event_ui is defined and (event_ui.is_free|default(false) == true) %}
+              {% set _decision_count = _decision_count + 1 %}
+              <div class="mel-decision-item">
+                <span class="mel-icon">🎟</span>
+                <div>
+                  <strong>{{ 'Free event'|t }}</strong>
+                  <p>{{ 'No payment required'|t }}</p>
+                </div>
+              </div>
+            {% endif %}
+            {% if _decision_count < 2
+              and event_ui is defined
+              and (event_ui.capacity_hint|default('')|striptags|length > 0)
+              and (not _mel_trust_capacity_highlight) %}
+              {% set _decision_count = _decision_count + 1 %}
+              <div class="mel-decision-item mel-decision-item--urgent">
+                <span class="mel-icon">⚡</span>
+                <div>
+                  <strong>{{ event_ui.capacity_hint }}</strong>
+                  <p>{{ "Don't miss out"|t }}</p>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if _mel_trust_capacity_highlight %}
+          <div class="mel-booking-panel__item mel-booking-panel__item--highlight">
+            <span class="mel-icon" aria-hidden="true">⚡</span>
+            <div>
+              <p class="mel-booking-panel__capacity" role="status">
+                <strong>{{ event_ui.capacity_hint|default('Limited spots remaining'|t) }}</strong>
+              </p>
+              <p>{{ 'Secure your spot today'|t }}</p>
+            </div>
+          </div>
+        {% endif %}
+        {% if mel_cta_urgency|default('')|striptags|length > 0 %}
+          <div class="mel-booking-panel__item">
+            <span class="mel-booking-panel__item-icon" aria-hidden="true">⚡</span>
+            <div>
+              <strong>{{ mel_cta_urgency }}</strong>
+              <p>{{ 'Secure your spot today'|t }}</p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+    {% if google_calendar_url|default('')|length > 0 %}
+      <div class="mel-booking-panel__item mel-sidebar-trust__calendar">
+        <span class="mel-booking-panel__item-icon" aria-hidden="true">📅</span>
+        <div>
+          <div class="mel-calendar">
+            <div class="mel-calendar__tabs" role="tablist" aria-label="{{ 'Add to calendar'|t }}">
+              <button type="button" class="mel-calendar__tab is-active" data-tab="apple" role="tab" aria-selected="true">{{ 'Apple'|t }}</button>
+              <button type="button" class="mel-calendar__tab" data-tab="outlook" role="tab" aria-selected="false">{{ 'Outlook'|t }}</button>
+              <button type="button" class="mel-calendar__tab" data-tab="google" role="tab" aria-selected="false">{{ 'Google'|t }}</button>
+            </div>
+            <div class="mel-calendar__content">
+              <div class="mel-calendar__pane is-active" data-pane="apple">
+                <a href="{{ apple_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Apple Calendar'|t }}</a>
+              </div>
+              <div class="mel-calendar__pane" data-pane="outlook">
+                <a href="{{ outlook_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Outlook'|t }}</a>
+              </div>
+              <div class="mel-calendar__pane" data-pane="google">
+                <a href="{{ google_calendar_url }}" class="mel-button mel-button--ghost" target="_blank" rel="noopener noreferrer">{{ 'Add to Google Calendar'|t }}</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
