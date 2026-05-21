@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -34,6 +35,7 @@ final class BrandingHeroFocalAugmenter {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly ImageFactory $imageFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -49,13 +51,35 @@ final class BrandingHeroFocalAugmenter {
     if ($focal_override !== NULL && trim($focal_override) !== '') {
       $field_element['#mel_branding_focal_override'] = trim($focal_override);
     }
-    $field_element['#after_build'][] = function (array $element, $form_state) use ($node): array {
-      return $this->afterBuildField($element, $node);
-    };
+    // Callable must be serializable — closures break media_library AJAX (form cache).
+    $field_element['#mel_branding_node_id'] = (int) $node->id();
+    $field_element['#after_build'][] = [$this, 'afterBuildFieldFromElement'];
   }
 
   /**
-   * Form API #after_build callback.
+   * Form API #after_build callback (serializable; loads node from #mel_branding_node_id).
+   *
+   * @param array<string, mixed> $element
+   *   The field_event_image element.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array<string, mixed>
+   */
+  public function afterBuildFieldFromElement(array $element, FormStateInterface $form_state): array {
+    $nid = (int) ($element['#mel_branding_node_id'] ?? 0);
+    if ($nid < 1) {
+      return $element;
+    }
+    $node = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$node instanceof NodeInterface) {
+      return $element;
+    }
+    return $this->afterBuildField($element, $node);
+  }
+
+  /**
+   * Injects focal_point field + preview indicator into the hero widget tree.
    *
    * @param array<string, mixed> $element
    *   The field_event_image element.
@@ -96,6 +120,7 @@ final class BrandingHeroFocalAugmenter {
       if (!empty($delta['focal_point']['#description']) && !isset($delta['focal_point']['#description_display'])) {
         $delta['focal_point']['#description_display'] = 'after';
       }
+      $this->attachBrandingHeroPreviewSettings($delta, $node, $delta);
       return;
     }
 
@@ -143,6 +168,27 @@ final class BrandingHeroFocalAugmenter {
         '#weight' => $preview_weight,
       ];
     }
+
+    $this->attachBrandingHeroPreviewSettings($delta, $node, $delta);
+  }
+
+  /**
+   * Exposes the original hero file URL for the 16:9 framing preview (public parity).
+   *
+   * @param array<string, mixed> $delta
+   */
+  private function attachBrandingHeroPreviewSettings(array &$delta, NodeInterface $node, array $widget_delta): void {
+    $file = $this->resolveHeroFile($node, $widget_delta);
+    if (!$file instanceof FileInterface) {
+      return;
+    }
+    $uri = $file->getFileUri();
+    if ($uri === '') {
+      return;
+    }
+    $delta['#attached']['drupalSettings']['myeventlane_event_studio']['brandingHero'] = [
+      'sourceUrl' => $this->fileUrlGenerator->generateString($uri),
+    ];
   }
 
   /**

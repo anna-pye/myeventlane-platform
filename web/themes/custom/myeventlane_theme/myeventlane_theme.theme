@@ -4202,6 +4202,21 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
   if (!isset($variables['operational_addon_teaser'])) {
     $variables['operational_addon_teaser'] = NULL;
   }
+
+  $view_mode = (string) ($variables['view_mode'] ?? '');
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_event.sidebar_carousel_builder')) {
+    /** @var \Drupal\myeventlane_event\Service\EventSidebarCarouselBuilder $carousel_builder */
+    $carousel_builder = \Drupal::service('myeventlane_event.sidebar_carousel_builder');
+    $carousel = $carousel_builder->buildFromEventPageVariables($variables);
+    $variables['mel_sidebar_carousel'] = [
+      '#theme' => 'mel_event_sidebar_carousel',
+      '#carousel' => $carousel,
+      '#event_page_style' => $variables['event_page_style'] ?? 'classic',
+      '#attached' => [
+        'library' => ['myeventlane_theme/mel_event_sidebar_carousel'],
+      ],
+    ];
+  }
 }
 
 /**

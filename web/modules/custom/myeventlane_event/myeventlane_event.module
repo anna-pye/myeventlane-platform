@@ -70,6 +70,28 @@ function myeventlane_event_paragraph_access(ParagraphInterface $entity, string $
  */
 function myeventlane_event_theme($existing, $type, $theme, $path) {
   return [
+    'mel_event_gallery' => [
+      'variables' => [
+        'gallery' => [
+          'role' => 'gallery',
+          'count' => 0,
+          'items' => [],
+        ],
+        'event_page_style' => 'classic',
+      ],
+      'template' => 'mel-event-gallery',
+    ],
+    'mel_event_sidebar_carousel' => [
+      'variables' => [
+        'carousel' => [
+          'slides' => [],
+          'count' => 0,
+          'lightbox_root_id' => 'mel-event-gallery-main',
+        ],
+        'event_page_style' => 'classic',
+      ],
+      'template' => 'mel-event-sidebar-carousel',
+    ],
     'myeventlane_event_wizard_step' => [
       'variables' => [
         'title' => NULL,
@@ -985,6 +1007,43 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   }
 
   $view_mode = (string) ($variables['view_mode'] ?? 'default');
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_event.media_presenter')) {
+    /** @var \Drupal\myeventlane_event\Service\EventMediaPresenter $media_presenter */
+    $media_presenter = \Drupal::service('myeventlane_event.media_presenter');
+    $variables['mel_event_media'] = $media_presenter->buildEventMediaViewModel($node, $view_mode);
+    $variables['mel_event_gallery'] = $variables['mel_event_media']['gallery'] ?? [
+      'role' => 'gallery',
+      'count' => 0,
+      'composition' => 'single',
+      'items' => [],
+    ];
+    if ($node->hasField('field_mel_event_gallery') && !$node->get('field_mel_event_gallery')->isEmpty()) {
+      if (!isset($variables['#cache']['tags'])) {
+        $variables['#cache']['tags'] = [];
+      }
+      foreach ($node->get('field_mel_event_gallery')->referencedEntities() as $media) {
+        if ($media instanceof EntityInterface) {
+          $variables['#cache']['tags'] = Cache::mergeTags(
+            $variables['#cache']['tags'],
+            $media->getCacheTags()
+          );
+        }
+      }
+    }
+  }
+  else {
+    $variables['mel_event_media'] = [
+      'gallery' => [
+        'role' => 'gallery',
+        'count' => 0,
+        'composition' => 'single',
+        'items' => [],
+      ],
+      'has_gallery' => FALSE,
+    ];
+    $variables['mel_event_gallery'] = $variables['mel_event_media']['gallery'];
+  }
+
   if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_save_count')) {
     /** @var \Drupal\myeventlane_core\Service\EventSaveCountService $save_count_service */
     $save_count_service = \Drupal::service('myeventlane_core.event_save_count');

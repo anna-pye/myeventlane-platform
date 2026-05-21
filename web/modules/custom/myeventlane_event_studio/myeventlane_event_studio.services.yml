@@ -287,6 +287,7 @@ services:
       - '@config.factory'
       - '@image.factory'
       - '@entity_type.manager'
+      - '@file_url_generator'
       - '@string_translation'
 
   myeventlane_event_studio.event_style_access:

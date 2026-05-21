@@ -188,6 +188,16 @@
 
     </section>
 
+    {% if mel_event_gallery is defined and mel_event_gallery.count > 0 %}
+      {{
+        {
+          '#theme': 'mel_event_gallery',
+          '#gallery': mel_event_gallery,
+          '#event_page_style': event_page_style|default('classic'),
+        }
+      }}
+    {% endif %}
+
     {# Cancelled banner #}
     {% if mel_event_state is defined and mel_event_state == 'cancelled' %}
       <div class="mel-alert mel-alert--warning" role="status">
@@ -621,10 +631,10 @@
       </div>
 
       <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
+        {% if mel_sidebar_carousel %}
+          {{ mel_sidebar_carousel }}
+        {% else %}
         <div class="mel-card mel-card--surface mel-card--sticky mel-event__card">
-          <div class="mel-card__header">
-            <h2 class="mel-card__title">{% if mel_cta_text|striptags|length > 0 %}{{ mel_cta_text }}{% else %}{% if cta_type is defined and cta_type == 'rsvp' %}{{ 'Book free RSVP'|t }}{% elseif cta_type is defined and cta_type == 'paid' %}{{ 'Get your tickets'|t }}{% else %}{{ 'View details'|t }}{% endif %}{% endif %}</h2>
-          </div>
           <div class="mel-card__body">
             <div class="mel-booking-panel" role="region" aria-label="{{ 'Book this event'|t }}">
               {% if mel_mode_chip %}
@@ -823,6 +833,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
 
         {# Registration metadata intentionally hidden on Event Full (capacity, sales windows, etc.)
            to keep the sidebar calm and attendee-focused. #}

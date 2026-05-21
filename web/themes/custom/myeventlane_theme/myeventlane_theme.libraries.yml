@@ -152,6 +152,24 @@ myeventlane_event_full:
   js:
     js/event-full-trust-rotator.js: { attributes: { defer: true } }
 
+mel_event_gallery:
+  version: 1.1
+  js:
+    js/mel-media-lightbox.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+mel_event_sidebar_carousel:
+  version: 1.0
+  js:
+    js/mel-event-sidebar-carousel.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
+    - myeventlane_theme/myeventlane_event_full
+    - myeventlane_theme/mel_event_gallery
+
 # Commerce pages: toast-style add-to-cart messages (attached via page_attachments).
 mel_toasts:
   js:

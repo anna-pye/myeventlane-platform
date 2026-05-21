@@ -1,0 +1,20 @@
+uuid: 4c8e2a1b-9f3d-4e6a-b2c1-8d7e5f4a3b2c
+langcode: en
+status: true
+dependencies:
+  module:
+    - media
+    - node
+id: node.field_mel_event_gallery
+field_name: field_mel_event_gallery
+entity_type: node
+type: entity_reference
+settings:
+  target_type: media
+module: core
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

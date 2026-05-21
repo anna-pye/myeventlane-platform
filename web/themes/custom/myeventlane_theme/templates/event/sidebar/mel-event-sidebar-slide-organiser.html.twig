@@ -1,0 +1,31 @@
+{#
+  Organiser promo slide.
+#}
+<div class="mel-sidebar-carousel__slide-header">
+  <h2 class="mel-card__title">{{ 'Presented by'|t }}</h2>
+</div>
+<div class="mel-sidebar-carousel__slide-body mel-sidebar-organiser">
+  <div class="mel-sidebar-organiser__inner">
+    {% if organiser.logo_url %}
+      <div class="mel-sidebar-organiser__avatar">
+        <img src="{{ organiser.logo_url }}" alt="" width="56" height="56" loading="lazy" class="mel-sidebar-organiser__img" />
+      </div>
+    {% else %}
+      <div class="mel-sidebar-organiser__avatar mel-sidebar-organiser__avatar--fallback" aria-hidden="true">
+        <span class="mel-sidebar-organiser__initial">{{ organiser.name|slice(0, 1)|upper }}</span>
+      </div>
+    {% endif %}
+    <div class="mel-sidebar-organiser__body">
+      {% if organiser.url %}
+        <a class="mel-sidebar-organiser__name" href="{{ organiser.url }}">{{ organiser.name }}</a>
+      {% else %}
+        <span class="mel-sidebar-organiser__name">{{ organiser.name }}</span>
+      {% endif %}
+      {% if organiser.tagline %}
+        <p class="mel-sidebar-organiser__tagline">{{ organiser.tagline }}</p>
+      {% else %}
+        <p class="mel-sidebar-organiser__tagline mel-sidebar-organiser__tagline--muted">{{ 'Events on MyEventLane'|t }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
