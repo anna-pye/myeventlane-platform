@@ -28,21 +28,31 @@ MEL_CURRENT_SWITCHED=0
 MEL_MM_ENABLED_ATTEMPTED=0
 MEL_PREVIOUS_CURRENT=""
 
-# Avoid CLI opcache/stale-class issues and OOM during container rebuild on constrained hosts.
-export DRUSH_PHP_OPTIONS="${DRUSH_PHP_OPTIONS:--d memory_limit=512M -d opcache.enable_cli=0}"
+# Drush 12's vendor/bin/drush launcher does NOT honor DRUSH_PHP_OPTIONS — invoke drush.php via php.
+MEL_DRUSH_PHP_MEMORY="${MEL_DRUSH_PHP_MEMORY:-1024M}"
 
+mel_drush() {
+  php \
+    -d "memory_limit=${MEL_DRUSH_PHP_MEMORY}" \
+    -d opcache.enable_cli=0 \
+    vendor/bin/drush.php "$@"
+}
+
+mel_drush_log_cli_limits() {
+  echo "Drush CLI PHP limits (before deploy Drush steps):"
+  php -r 'printf("  memory_limit=%s\n  max_execution_time=%s\n", ini_get("memory_limit"), ini_get("max_execution_time"));'
+  echo "  mel_drush uses memory_limit=${MEL_DRUSH_PHP_MEMORY}"
+}
+
+# Run a command with streamed stdout/stderr so PHP fatals appear in CI logs (not swallowed).
 mel_drush_run() {
   local label="$1"
   shift
   echo "${label}..."
-  local out rc
   set +e
-  out="$("$@" 2>&1)"
-  rc=$?
+  "$@"
+  local rc=$?
   set -e
-  if [ -n "$out" ]; then
-    printf '%s\n' "$out"
-  fi
   if [ "$rc" -ne 0 ]; then
     echo "ERROR: ${label} failed (exit ${rc})." >&2
     return "$rc"
@@ -54,7 +64,7 @@ mel_drush_maintenance_mode() {
   # state:set (alias sset) requires a bootstrapped site; use integer for 0/1.
   local mode="$1"
   mel_drush_run "Set system.maintenance_mode=${mode}" \
-    vendor/bin/drush state:set system.maintenance_mode "$mode" \
+    mel_drush state:set system.maintenance_mode "$mode" \
       --input-format=integer \
       --uri="$SITE_URI"
 }
@@ -71,7 +81,7 @@ On the staging host, check:
   3. Host vs socket: if host is 127.0.0.1 but MySQL only listens on a Unix socket,
      set 'host' => 'localhost' in $databases['default']['default'] (or enable TCP bind).
   4. Manual test from the release directory:
-       cd ~/staging/current && vendor/bin/drush sql:query "SELECT 1" --uri="$SITE_URI"
+       cd ~/staging/current && php -d memory_limit=1024M vendor/bin/drush.php sql:query "SELECT 1" --uri="$SITE_URI"
 EOF
 }
 
@@ -80,7 +90,7 @@ mel_verify_drush_bootstrap() {
   echo "${label}: verifying Drupal bootstrap (Drush)..."
   local out
   set +e
-  out="$(vendor/bin/drush status --uri="$SITE_URI" 2>&1)"
+  out="$(mel_drush status --uri="$SITE_URI" 2>&1)"
   local rc=$?
   set -e
   if [ "$rc" -ne 0 ] || ! echo "$out" | grep -qE 'Drupal bootstrap\s*:\s*Successful'; then
@@ -105,11 +115,11 @@ mel_deploy_cleanup() {
   fi
   local drush_cwd=""
   drush_cwd="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
-  if [ -n "$drush_cwd" ] && [ -x "$drush_cwd/vendor/bin/drush" ]; then
+  if [ -n "$drush_cwd" ] && [ -f "$drush_cwd/vendor/bin/drush.php" ]; then
     if [ "${MEL_MM_ENABLED_ATTEMPTED:-0}" = "1" ]; then
       ( cd "$drush_cwd" && mel_drush_maintenance_mode 0 2>/dev/null || true )
     fi
-    ( cd "$drush_cwd" && vendor/bin/drush cr --uri="$SITE_URI" 2>/dev/null || true )
+    ( cd "$drush_cwd" && mel_drush cr --uri="$SITE_URI" 2>/dev/null || true )
   fi
 }
 trap mel_deploy_cleanup EXIT
@@ -251,10 +261,12 @@ fi
 cd "$RELEASE_PATH"
 
 # ---- DRUSH CHECK ----
-if [ ! -x "vendor/bin/drush" ]; then
-  echo "Drush not found in artifact"
+if [ ! -f "vendor/bin/drush.php" ]; then
+  echo "Drush not found in artifact (expected vendor/bin/drush.php)"
   exit 1
 fi
+
+mel_drush_log_cli_limits
 
 # Fail fast before switching current/: new code + shared settings must bootstrap and reach MySQL.
 mel_verify_drush_bootstrap "Preflight (new release, before symlink switch)"
@@ -265,9 +277,15 @@ if [ -e "$CURRENT_PATH" ]; then
 fi
 
 # ---- MAINTENANCE MODE ----
+# Prefer the live release for maintenance toggles (lighter, already warmed).
 MEL_MM_ENABLED_ATTEMPTED=1
-mel_drush_maintenance_mode 1
-mel_drush_run "Cache rebuild (pre-switch)" vendor/bin/drush cr --uri="$SITE_URI"
+if [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -f "${MEL_PREVIOUS_CURRENT}/vendor/bin/drush.php" ]; then
+  ( cd "$MEL_PREVIOUS_CURRENT" && mel_drush_maintenance_mode 1 )
+else
+  mel_drush_maintenance_mode 1
+fi
+# No pre-switch cache rebuild: drush cr on the unreleased tree peaks memory during container
+# rebuild; staging CLI defaults are often 128M. Post-switch finalize runs drush cr with mel_drush.
 
 # ---- SWITCH RELEASE (ATOMIC) ----
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
@@ -307,15 +325,15 @@ fi
 
 # ---- OPTIONAL UPDATES ----
 if [ "$RUN_UPDB" = "1" ]; then
-  vendor/bin/drush updb -y --uri="$SITE_URI"
+  mel_drush updb -y --uri="$SITE_URI"
 fi
 
 if [ "$RUN_CIM" = "1" ]; then
-  vendor/bin/drush cim -y --uri="$SITE_URI"
+  mel_drush cim -y --uri="$SITE_URI"
 
   # Deploy safety: active storage must match sync after import (see Drush docs: grep "No differences").
   echo "Verifying config:status after import..."
-  CST_OUT="$(vendor/bin/drush cst --uri="$SITE_URI" 2>&1)" || true
+  CST_OUT="$(mel_drush cst --uri="$SITE_URI" 2>&1)" || true
   if echo "$CST_OUT" | grep -qi 'configuration differences'; then
     echo "ERROR: config:status reports configuration differences — deployment aborted." >&2
     echo "$CST_OUT" >&2
@@ -356,52 +374,28 @@ MEL_DEPLOY_MODE="$(mel_resolve_deploy_mode)"
 
 if [ "$MEL_DEPLOY_MODE" = "production" ]; then
   echo "Applying production domain settings (APP_ENV/SITE_URI → production)..."
-  vendor/bin/drush cset myeventlane_core.domain_settings public_domain 'https://myeventlane.com.au' -y --uri="$SITE_URI"
-  vendor/bin/drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.myeventlane.com.au' -y --uri="$SITE_URI"
-  vendor/bin/drush cset myeventlane_core.domain_settings admin_domain 'https://admin.myeventlane.com.au' -y --uri="$SITE_URI"
+  mel_drush cset myeventlane_core.domain_settings public_domain 'https://myeventlane.com.au' -y --uri="$SITE_URI"
+  mel_drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.myeventlane.com.au' -y --uri="$SITE_URI"
+  mel_drush cset myeventlane_core.domain_settings admin_domain 'https://admin.myeventlane.com.au' -y --uri="$SITE_URI"
 elif [ "$MEL_DEPLOY_MODE" = "staging" ]; then
   echo "Applying staging domain settings (APP_ENV/SITE_URI → staging)..."
-  vendor/bin/drush cset myeventlane_core.domain_settings public_domain 'https://staging.myeventlane.com.au' -y --uri="$SITE_URI"
-  vendor/bin/drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.staging.myeventlane.com.au' -y --uri="$SITE_URI"
-  vendor/bin/drush cset myeventlane_core.domain_settings admin_domain 'https://admin.staging.myeventlane.com.au' -y --uri="$SITE_URI"
+  mel_drush cset myeventlane_core.domain_settings public_domain 'https://staging.myeventlane.com.au' -y --uri="$SITE_URI"
+  mel_drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.staging.myeventlane.com.au' -y --uri="$SITE_URI"
+  mel_drush cset myeventlane_core.domain_settings admin_domain 'https://admin.staging.myeventlane.com.au' -y --uri="$SITE_URI"
 else
   echo "NOTICE: Skipping automatic domain cset (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2
 fi
 
 # ---- FINALISE ----
 # These drush invocations are strict (no "|| true"): failures must surface in CI/SSH logs.
-echo "Finalize: drush cr (post-domain cset)..."
-set +e
-_mel_drush_cr_out="$(vendor/bin/drush cr --uri="$SITE_URI" 2>&1)"
-_mel_drush_cr_rc=$?
-set -e
-printf '%s\n' "$_mel_drush_cr_out"
-if [ "$_mel_drush_cr_rc" -ne 0 ]; then
-  echo "ERROR: drush cr failed during finalize (exit $_mel_drush_cr_rc)." >&2
-  exit "$_mel_drush_cr_rc"
-fi
+mel_drush_run "Finalize: drush cr (post-domain cset)" \
+  mel_drush cr --uri="$SITE_URI"
 
-echo "Finalize: drush state:set system.maintenance_mode 0..."
-set +e
-_mel_drush_mm_out="$(mel_drush_maintenance_mode 0 2>&1)"
-_mel_drush_mm_rc=$?
-set -e
-printf '%s\n' "$_mel_drush_mm_out"
-if [ "$_mel_drush_mm_rc" -ne 0 ]; then
-  echo "ERROR: drush state:set system.maintenance_mode 0 failed during finalize (exit $_mel_drush_mm_rc)." >&2
-  exit "$_mel_drush_mm_rc"
-fi
+mel_drush_run "Finalize: drush state:set system.maintenance_mode 0" \
+  mel_drush_maintenance_mode 0
 
-echo "Finalize: drush cr (after maintenance off)..."
-set +e
-_mel_drush_cr2_out="$(vendor/bin/drush cr --uri="$SITE_URI" 2>&1)"
-_mel_drush_cr2_rc=$?
-set -e
-printf '%s\n' "$_mel_drush_cr2_out"
-if [ "$_mel_drush_cr2_rc" -ne 0 ]; then
-  echo "ERROR: second drush cr failed during finalize (exit $_mel_drush_cr2_rc)." >&2
-  exit "$_mel_drush_cr2_rc"
-fi
+mel_drush_run "Finalize: drush cr (after maintenance off)" \
+  mel_drush cr --uri="$SITE_URI"
 
 DEPLOY_SUCCEEDED=1
 
