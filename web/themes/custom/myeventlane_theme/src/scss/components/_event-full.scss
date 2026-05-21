@@ -1159,7 +1159,8 @@
   line-height: 1.2;
 }
 
-.mel-event-layout {
+// Event full uses .mel-event-full__layout for grid/flex; avoid forcing grid on that node.
+.mel-event-layout:not(.mel-event-full__layout) {
   margin-top: space-tokens.mel-space(5);
   display: grid;
   gap: space-tokens.mel-space(5);
@@ -1255,86 +1256,25 @@
   margin-top: 6px;
 }
 
-// Stacked layout (<1100px): hero → booking → view details → gallery → content → support.
+// Stacked sidebar booking panel (<1100px); section order lives at end of file.
 @media (width < 1100px) {
-  .mel-event-full__layout {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mel-full-layout-gap, var(--mel-full-stack-gap, 20px));
-  }
-
-  .mel-event-full__main,
-  .mel-event-full__sidebar,
-  .mel-event-full__content-grid,
-  .mel-event-full__content-below {
-    display: contents;
-  }
-
-  .mel-event-full__hero {
-    order: 1;
-  }
-
   .mel-event-full__booking,
   .mel-event-sidebar__booking {
-    order: 2;
     margin-top: 0;
   }
 
   .mel-event-full__view-details,
   .mel-event-sidebar__details {
-    order: 3;
     margin-top: 0;
   }
 
   .mel-event-full__gallery {
-    order: 4;
     margin: 0;
   }
 
-  .mel-event-full__about {
-    order: 5;
-  }
-
-  .mel-event-full__highlights {
-    order: 6;
-  }
-
-  .mel-event-full__expect {
-    order: 7;
-  }
-
-  .mel-event-full__content-below > .mel-event-section--extras {
-    order: 15;
-  }
-
-  .mel-event-full__content-below > .mel-card.mel-mt-5:first-of-type {
-    order: 16;
-  }
-
-  .mel-event-full__content-below .mel-event-section--share {
-    order: 17;
-  }
-
-  .mel-event-full__content-below > .mel-event-section--share + .mel-card.mel-mt-5:not(.mel-organiser-card) {
-    order: 18;
-  }
-
-  .mel-event-full__content-below > .mel-organiser-card {
-    order: 19;
-  }
-
   .mel-event-full__content-below > .mel-return-block {
-    order: 20;
     margin-top: 0;
     padding-top: 12px;
-  }
-
-  .mel-event-full__content-below > .mel-return-block ~ .mel-card.mel-mt-5 {
-    order: 21;
-  }
-
-  .mel-event-full__support {
-    order: 30;
   }
 
   .mel-event-full__booking-body {
@@ -2846,6 +2786,10 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   flex-direction: column;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
+
+  @media (width < 1100px) {
+    display: contents;
+  }
 }
 
 .mel-event-full__sidebar {
@@ -2853,6 +2797,10 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   flex-direction: column;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
+
+  @media (width < 1100px) {
+    display: contents;
+  }
 }
 
 .mel-event-full .mel-event-sidebar-rail {
@@ -2959,6 +2907,10 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   gap: var(--mel-full-grid-gap, 20px);
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
+
+  @media (width < 1100px) {
+    display: contents;
+  }
 }
 
 .mel-event-full__content-grid--duo {
@@ -3007,6 +2959,10 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   flex-direction: column;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
+
+  @media (width < 1100px) {
+    display: contents;
+  }
 
   > .mel-card--surface .mel-card__header,
   > .mel-card--surface .mel-card__body,
@@ -3358,5 +3314,88 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   .mel-event-gallery__trigger {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
     border: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mobile stack (must be last): flex column + contents wrappers + section order.
+// Earlier rules set .mel-event-full__main { display:flex } which overrides an
+// earlier media block if placed above those definitions.
+// ---------------------------------------------------------------------------
+
+@media (width < 1100px) {
+  .mel-event-full .mel-event-full__layout.mel-event-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mel-full-layout-gap, var(--mel-full-stack-gap, 20px));
+  }
+
+  .mel-event-full .mel-event-full__main,
+  .mel-event-full .mel-event-full__sidebar,
+  .mel-event-full .mel-event-full__content-grid,
+  .mel-event-full .mel-event-full__content-below {
+    display: contents;
+  }
+
+  .mel-event-full .mel-event-full__hero {
+    order: 1;
+  }
+
+  .mel-event-full .mel-event-full__booking,
+  .mel-event-full .mel-event-sidebar__booking {
+    order: 2;
+  }
+
+  .mel-event-full .mel-event-full__view-details,
+  .mel-event-full .mel-event-sidebar__details {
+    order: 3;
+  }
+
+  .mel-event-full .mel-event-full__gallery {
+    order: 4;
+  }
+
+  .mel-event-full .mel-event-full__about {
+    order: 5;
+  }
+
+  .mel-event-full .mel-event-full__highlights {
+    order: 6;
+  }
+
+  .mel-event-full .mel-event-full__expect {
+    order: 7;
+  }
+
+  .mel-event-full .mel-event-full__content-below > .mel-event-section--extras {
+    order: 15;
+  }
+
+  .mel-event-full .mel-event-full__content-below > .mel-card.mel-mt-5:first-of-type {
+    order: 16;
+  }
+
+  .mel-event-full .mel-event-full__content-below .mel-event-section--share {
+    order: 17;
+  }
+
+  .mel-event-full .mel-event-full__content-below > .mel-event-section--share + .mel-card.mel-mt-5:not(.mel-organiser-card) {
+    order: 18;
+  }
+
+  .mel-event-full .mel-event-full__content-below > .mel-organiser-card {
+    order: 19;
+  }
+
+  .mel-event-full .mel-event-full__content-below > .mel-return-block {
+    order: 20;
+  }
+
+  .mel-event-full .mel-event-full__content-below > .mel-return-block ~ .mel-card.mel-mt-5 {
+    order: 21;
+  }
+
+  .mel-event-full .mel-event-full__support {
+    order: 30;
   }
 }
