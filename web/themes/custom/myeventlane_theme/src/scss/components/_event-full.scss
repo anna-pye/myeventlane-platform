@@ -2757,7 +2757,6 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
     position: sticky;
     top: var(--mel-sticky-offset, 5.5rem);
     max-height: calc(100vh - var(--mel-sticky-offset, 5.5rem) - #{space-tokens.mel-space(4)});
-    overflow-y: auto;
   }
 
   .mel-event-page--classic.mel-event--v2 .mel-event-full__support.mel-event-support-zone,
