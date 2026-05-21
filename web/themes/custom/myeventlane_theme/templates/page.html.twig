@@ -12,6 +12,9 @@
 #}
 
 {% set page_wrapper_attributes = create_attribute().addClass('mel-page') %}
+{% if mel_event_full_page is defined and mel_event_full_page %}
+  {% set page_wrapper_attributes = page_wrapper_attributes.addClass('mel-page--event-full', 'mel-page--event-full--' ~ (mel_event_page_style|default('classic'))) %}
+{% endif %}
 
 <div{{ page_wrapper_attributes }}>
   {{ title_prefix }}
@@ -42,13 +45,13 @@
     {# Optional: login page create-event intro (page--user-login). #}
     {% block mel_pre_highlighted %}{% endblock %}
     {# Status messages: Highlighted region, or preprocess fallback if no block placed. #}
-    {% if page.highlighted %}
+    {% if page.highlighted and (mel_show_highlighted is not defined or mel_show_highlighted) %}
       <div class="mel-region-highlighted" role="region" aria-label="{{ 'Status messages'|t }}">
         <div class="mel-container">
           {{ page.highlighted }}
         </div>
       </div>
-    {% elseif mel_fallback_messages is defined %}
+    {% elseif mel_fallback_messages is defined and not mel_event_full_page %}
       <div class="mel-region-highlighted mel-region-highlighted--fallback" role="region" aria-label="{{ 'Status messages'|t }}">
         <div class="mel-container">
           {{ mel_fallback_messages }}

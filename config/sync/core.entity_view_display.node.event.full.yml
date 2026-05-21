@@ -94,7 +94,6 @@ hidden:
   field_event_end: true
   field_event_geo: true
   field_event_highlights: true
-  field_mel_event_gallery: true
   field_event_setup_complete: true
   field_event_start: true
   field_event_state: true
@@ -109,11 +108,16 @@ hidden:
   field_location_latitude: true
   field_location_longitude: true
   field_location_place_id: true
+  field_mel_event_gallery: true
+  field_mel_extras_book_placement: true
+  field_mel_op_capabilities: true
+  field_mel_page_style: true
   field_mel_sup_amt: true
   field_mel_sup_chk: true
   field_mel_sup_mode: true
   field_mel_sup_oid: true
   field_mel_sup_pct: true
+  field_mel_theme_colour: true
   field_product_target: true
   field_promo_expires: true
   field_promoted: true

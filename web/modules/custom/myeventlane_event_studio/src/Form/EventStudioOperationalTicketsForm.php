@@ -177,7 +177,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $form['new_ticket'] = [
       '#type' => 'details',
       '#title' => $this->t('Add a ticket guests can book'),
-      '#open' => TRUE,
+      '#open' => FALSE,
       '#attributes' => ['class' => ['mel-es-card', 'mel-event-studio-ticket-add']],
       'intro' => [
         '#type' => 'html_tag',
@@ -198,6 +198,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       'title' => [
         '#type' => 'textfield',
         '#title' => $this->t('Ticket name'),
+        '#required' => FALSE,
         '#maxlength' => 255,
         '#description' => $this->t('Example: General admission, VIP pass, Workshop seat.'),
       ],
@@ -282,21 +283,30 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $form_state->setErrorByName('tickets][' . $ticket_id, $this->t('Ticket data could not be matched to this event. Reload and try again.'));
         continue;
       }
+      $row = $this->normalizeExistingTicketRowInput($ticket, $row);
       try {
         $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
       }
       catch (\InvalidArgumentException $e) {
-        $form_state->setErrorByName('tickets][' . $ticket_id, $e->getMessage());
+        $form_state->setErrorByName(
+          $this->ticketValidationErrorElement((int) $ticket_id, $e),
+          $this->mapTicketInputExceptionMessage($e),
+        );
       }
     }
 
     $new = $form_state->getValue('new_ticket');
-    if (is_array($new) && trim((string) ($new['title'] ?? '')) !== '') {
-      try {
-        $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser, $new);
+    if (is_array($new) && $this->newTicketRowHasIntent($new)) {
+      if (trim((string) ($new['title'] ?? '')) === '') {
+        $form_state->setErrorByName('new_ticket][title', $this->t('Ticket name is required when adding a ticket.'));
       }
-      catch (\InvalidArgumentException $e) {
-        $form_state->setErrorByName('new_ticket', $e->getMessage());
+      else {
+        try {
+          $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser, $new);
+        }
+        catch (\InvalidArgumentException $e) {
+          $form_state->setErrorByName('new_ticket][title', $this->mapTicketInputExceptionMessage($e));
+        }
       }
     }
   }
@@ -319,12 +329,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           $this->ticketTierLifecycle->archiveTicketOnEvent($event, $ticket);
           continue;
         }
+        $row = $this->normalizeExistingTicketRowInput($ticket, $row);
         $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
         $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
       }
 
       $new = $form_state->getValue('new_ticket');
-      if (is_array($new) && trim((string) ($new['title'] ?? '')) !== '') {
+      if (is_array($new) && $this->newTicketRowHasIntent($new) && trim((string) ($new['title'] ?? '')) !== '') {
         $values = $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser, $new);
         $this->ticketTierLifecycle->createAttachAndSync($event, $values);
       }
@@ -402,6 +413,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           'title' => [
             '#type' => 'textfield',
             '#title' => $this->t('Ticket name'),
+            '#required' => FALSE,
             '#default_value' => $ticket->getTitle(),
             '#maxlength' => 255,
             '#parents' => ['tickets', $ticket_id, 'title'],
@@ -598,6 +610,66 @@ final class EventStudioOperationalTicketsForm extends FormBase {
   }
 
   /**
+   * Whether the add-ticket row contains values beyond untouched defaults.
+   *
+   * @param array<string, mixed> $new
+   */
+  private function newTicketRowHasIntent(array $new): bool {
+    if (trim((string) ($new['title'] ?? '')) !== '') {
+      return TRUE;
+    }
+    $price = trim((string) ($new['price_amount'] ?? ''));
+    if ($price !== '' && is_numeric($price) && (float) $price > 0) {
+      return TRUE;
+    }
+    $capacity = trim((string) ($new['capacity'] ?? ''));
+    if ($capacity !== '' && is_numeric($capacity) && (int) $capacity > 0) {
+      return TRUE;
+    }
+    $external = trim((string) ($new['external_uri'] ?? ''));
+    if ($external !== '') {
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Keeps saved ticket names when a row is posted without a title field value.
+   *
+   * @param array<string, mixed> $row
+   *
+   * @return array<string, mixed>
+   */
+  private function normalizeExistingTicketRowInput(TicketTypeInterface $ticket, array $row): array {
+    $submittedTitle = array_key_exists('title', $row) ? trim((string) $row['title']) : NULL;
+    if ($submittedTitle === NULL) {
+      $row['title'] = $ticket->getTitle();
+      return $row;
+    }
+    if ($submittedTitle === '') {
+      return $row;
+    }
+    $row['title'] = $submittedTitle;
+    return $row;
+  }
+
+  private function mapTicketInputExceptionMessage(\InvalidArgumentException $exception): string {
+    $message = trim($exception->getMessage());
+    if ($message === 'Ticket title is required.') {
+      return (string) $this->t('Ticket name is required.');
+    }
+    return $message !== '' ? $message : (string) $this->t('Ticket row could not be validated.');
+  }
+
+  private function ticketValidationErrorElement(int $ticket_id, \InvalidArgumentException $exception): string {
+    $message = trim($exception->getMessage());
+    if (str_contains($message, 'Best value')) {
+      return 'tickets][' . $ticket_id . '][status][best_value';
+    }
+    return 'tickets][' . $ticket_id . '][title';
+  }
+
+  /**
    * @return array<int, array<string, mixed>>
    */
   private function submittedExistingTicketRows(FormStateInterface $form_state): array {
@@ -612,8 +684,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       }
       $row['id'] = (int) $ticket_id;
       $row['price_amount'] = $row['price_amount'] ?? '';
-      $row['status'] = !empty($row['status']['published']) ? 1 : 0;
-      $row['field_is_best_value'] = !empty($row['status']['best_value']) ? 1 : 0;
+      $status = is_array($row['status'] ?? NULL) ? $row['status'] : [];
+      $row['field_is_best_value'] = !empty($status['best_value']) ? 1 : 0;
+      $row['status'] = !empty($status['published']) ? 1 : 0;
       if (isset($row['sales_window']) && is_array($row['sales_window'])) {
         $row['sale_start'] = $row['sales_window']['sale_start'] ?? NULL;
         $row['sale_end'] = $row['sales_window']['sale_end'] ?? NULL;
