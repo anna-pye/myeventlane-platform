@@ -9,15 +9,10 @@ dependencies:
   - drupal:user
   - drupal:file
   - drupal:image
+  - drupal:config
   - commerce:commerce_product
   - commerce:commerce_store
   - myeventlane_vendor:myeventlane_vendor
   - myeventlane_rsvp:myeventlane_rsvp
   - myeventlane_event:myeventlane_event
-
-
-
-
-
-
-
+  - mel_ticket:mel_ticket

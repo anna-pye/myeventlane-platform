@@ -1,0 +1,6 @@
+myeventlane_seed.demo_content_settings:
+  title: 'Demo content'
+  description: 'Configure and generate deterministic [MEL TEST] demo events.'
+  route_name: myeventlane_seed.demo_content_settings
+  parent: myeventlane_core.config
+  weight: 50
