@@ -28,12 +28,35 @@ MEL_CURRENT_SWITCHED=0
 MEL_MM_ENABLED_ATTEMPTED=0
 MEL_PREVIOUS_CURRENT=""
 
+# Avoid CLI opcache/stale-class issues and OOM during container rebuild on constrained hosts.
+export DRUSH_PHP_OPTIONS="${DRUSH_PHP_OPTIONS:--d memory_limit=512M -d opcache.enable_cli=0}"
+
+mel_drush_run() {
+  local label="$1"
+  shift
+  echo "${label}..."
+  local out rc
+  set +e
+  out="$("$@" 2>&1)"
+  rc=$?
+  set -e
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+  fi
+  if [ "$rc" -ne 0 ]; then
+    echo "ERROR: ${label} failed (exit ${rc})." >&2
+    return "$rc"
+  fi
+  return 0
+}
+
 mel_drush_maintenance_mode() {
   # state:set (alias sset) requires a bootstrapped site; use integer for 0/1.
   local mode="$1"
-  vendor/bin/drush state:set system.maintenance_mode "$mode" \
-    --input-format=integer \
-    --uri="$SITE_URI"
+  mel_drush_run "Set system.maintenance_mode=${mode}" \
+    vendor/bin/drush state:set system.maintenance_mode "$mode" \
+      --input-format=integer \
+      --uri="$SITE_URI"
 }
 
 mel_db_connection_hint() {
@@ -243,9 +266,8 @@ fi
 
 # ---- MAINTENANCE MODE ----
 MEL_MM_ENABLED_ATTEMPTED=1
-echo "Enabling maintenance mode..."
 mel_drush_maintenance_mode 1
-vendor/bin/drush cr --uri="$SITE_URI"
+mel_drush_run "Cache rebuild (pre-switch)" vendor/bin/drush cr --uri="$SITE_URI"
 
 # ---- SWITCH RELEASE (ATOMIC) ----
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
