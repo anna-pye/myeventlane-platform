@@ -66,7 +66,12 @@
                 <p class="mel-booking-panel__trust-micro-primary">{{ 'Free RSVP'|t }}</p>
                 <p>{{ 'No payment required — confirmation by email'|t }}</p>
               {% endif %}
-              <p>{{ 'No hidden fees on MyEventLane'|t }}</p>
+              <p class="mel-booking-panel__trust-line">
+                <span class="mel-booking-panel__trust-line-icon" aria-hidden="true">
+                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'shield-check', class: 'mel-booking-panel__trust-svg', size: 18 } only %}
+                </span>
+                {{ 'No hidden fees on MyEventLane'|t }}
+              </p>
             </div>
             {% set _mel_trust_capacity_highlight = event_ui is defined
               and (mel_cta_urgency|default('')|striptags|length == 0)
@@ -79,13 +84,22 @@
             <div class="mel-trust-rotator" data-rotate aria-live="polite" aria-atomic="true">
               <div class="mel-trust-item is-active" data-trust-item>
                 {% if event_viewer_count is not empty %}
+                  <span class="mel-trust-item__icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'flame', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
                   <span class="mel-trust-item__text">{{ event_viewer_count }}</span>
                 {% else %}
-                  <span class="mel-trust-item__text">🔥 {{ 'Popular on MyEventLane'|t }}</span>
+                  <span class="mel-trust-item__icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'flame', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-trust-item__text">{{ 'Popular on MyEventLane'|t }}</span>
                 {% endif %}
               </div>
               <div class="mel-trust-item" data-trust-item>
-                <span class="mel-trust-item__text">✉️ {{ 'Instant confirmation'|t }} — {% if mel_trust_checkout %}{{ 'You’ll receive confirmation by email'|t }}{% else %}{{ 'You’ll get a confirmation email'|t }}{% endif %}</span>
+                <span class="mel-trust-item__icon" aria-hidden="true">
+                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'mail', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                </span>
+                <span class="mel-trust-item__text">{{ 'Instant confirmation'|t }} — {% if mel_trust_checkout %}{{ 'You’ll receive confirmation by email'|t }}{% else %}{{ 'You’ll get a confirmation email'|t }}{% endif %}</span>
               </div>
             </div>
             {% set _show_mel_decision_prompts = (not logged_in)
@@ -97,7 +111,9 @@
                 {% if _decision_count < 2 and (not logged_in) %}
                   {% set _decision_count = _decision_count + 1 %}
                   <div class="mel-decision-item">
-                    <span class="mel-icon">👤</span>
+                    <span class="mel-icon" aria-hidden="true">
+                      {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'user', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                    </span>
                     <div>
                       <strong>{{ 'First time here?'|t }}</strong>
                       <p>{{ 'Book in seconds — no account needed'|t }}</p>
@@ -107,7 +123,9 @@
                 {% if _decision_count < 2 and event_ui is defined and (event_ui.is_free|default(false) == true) %}
                   {% set _decision_count = _decision_count + 1 %}
                   <div class="mel-decision-item">
-                    <span class="mel-icon">🎟</span>
+                    <span class="mel-icon" aria-hidden="true">
+                      {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'ticket', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                    </span>
                     <div>
                       <strong>{{ 'Free event'|t }}</strong>
                       <p>{{ 'No payment required'|t }}</p>
@@ -120,7 +138,9 @@
                   and (not _mel_trust_capacity_highlight) %}
                   {% set _decision_count = _decision_count + 1 %}
                   <div class="mel-decision-item mel-decision-item--urgent">
-                    <span class="mel-icon">⚡</span>
+                    <span class="mel-icon" aria-hidden="true">
+                      {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                    </span>
                     <div>
                       <strong>{{ event_ui.capacity_hint }}</strong>
                       <p>{{ "Don't miss out"|t }}</p>
@@ -131,7 +151,9 @@
             {% endif %}
             {% if _mel_trust_capacity_highlight %}
               <div class="mel-booking-panel__item mel-booking-panel__item--highlight">
-                <span class="mel-icon" aria-hidden="true">⚡</span>
+                <span class="mel-icon" aria-hidden="true">
+                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                </span>
                 <div>
                   <p class="mel-booking-panel__capacity" role="status">
                     <strong>{{ event_ui.capacity_hint|default('Limited spots remaining'|t) }}</strong>
@@ -142,7 +164,9 @@
             {% endif %}
             {% if _support_urgent %}
               <div class="mel-booking-panel__item">
-                <span class="mel-booking-panel__item-icon" aria-hidden="true">⚡</span>
+                <span class="mel-booking-panel__item-icon" aria-hidden="true">
+                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                </span>
                 <div>
                   <strong>{{ mel_cta_urgency }}</strong>
                   <p>{{ 'Secure your spot today'|t }}</p>
@@ -151,7 +175,9 @@
             {% endif %}
             {% if event_save_count_total|default(0) > 0 and event_save_count is not empty %}
               <div class="mel-booking-panel__item mel-booking-panel__item--social">
-                <span class="mel-icon" aria-hidden="true">💖</span>
+                <span class="mel-icon" aria-hidden="true">
+                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'heart', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                </span>
                 <div>
                   <strong>{{ event_save_count }}</strong>
                 </div>
@@ -162,44 +188,6 @@
                 <strong>{{ event_interest.label }}</strong>
               </div>
             {% endif %}
-          </div>
-        {% endif %}
-        {% if google_calendar_url|default('')|length > 0 %}
-          <div class="mel-booking-panel__item">
-            <span class="mel-booking-panel__item-icon" aria-hidden="true">📅</span>
-            <div>
-              <div class="mel-calendar">
-                <div class="mel-calendar__tabs" role="tablist" aria-label="{{ 'Add to calendar'|t }}">
-                  <button type="button" class="mel-calendar__tab is-active" data-tab="apple" role="tab" aria-selected="true">{{ 'Apple'|t }}</button>
-                  <button type="button" class="mel-calendar__tab" data-tab="outlook" role="tab" aria-selected="false">{{ 'Outlook'|t }}</button>
-                  <button type="button" class="mel-calendar__tab" data-tab="google" role="tab" aria-selected="false">{{ 'Google'|t }}</button>
-                </div>
-                <div class="mel-calendar__content">
-                  <div class="mel-calendar__pane is-active" data-pane="apple">
-                    <a href="{{ apple_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Apple Calendar'|t }}</a>
-                  </div>
-                  <div class="mel-calendar__pane" data-pane="outlook">
-                    <a href="{{ outlook_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Outlook'|t }}</a>
-                  </div>
-                  <div class="mel-calendar__pane" data-pane="google">
-                    <a href="{{ google_calendar_url }}" class="mel-button mel-button--ghost" target="_blank" rel="noopener noreferrer">{{ 'Add to Google Calendar'|t }}</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        {% endif %}
-        {% if event_flag_event_save %}
-          <div class="mel-booking-panel__save mel-booking-panel__save--fav" role="group" aria-label="{{ 'Save for later'|t }}">
-            <div class="mel-booking-panel__save-inner">
-              <div id="mel-event-full-save" class="mel-event-save mel-booking-panel__save-flag">
-                {{ event_flag_event_save }}
-              </div>
-              <div class="mel-booking-panel__save-copy">
-                <span class="mel-booking-panel__save-label">{{ 'Save for later'|t }}</span>
-                <span class="mel-booking-panel__save-hint mel-text--muted">{{ 'Tap the heart to remember this event'|t }}</span>
-              </div>
-            </div>
           </div>
         {% endif %}
       {% endif %}

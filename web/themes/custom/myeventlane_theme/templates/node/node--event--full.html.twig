@@ -110,18 +110,19 @@
         </div>
       {% endif %}
       <div class="mel-event-hero__content">
-        <div class="mel-event-hero__glass mel-event-hero__info">
+        <div class="mel-event-hero__info">
           <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
           {% set _hero_has_schedule = node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
           {% set _hero_venue_entity = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
           {% set _hero_venue_line = (node.hasField('field_venue_name') and not node.field_venue_name.isEmpty) ? node.field_venue_name.value|trim : _hero_venue_entity|trim %}
-          {% set _hero_address = mel_address|default('')|trim %}
-          {% set _hero_has_location = _hero_venue_line is not empty or _hero_address is not empty or (node.hasField('field_location') and not node.field_location.isEmpty) %}
+          {% set _hero_has_location = _hero_venue_line is not empty %}
           {% if _hero_has_schedule or _hero_has_location %}
             <ul class="mel-event-hero__meta" role="list">
               {% if _hero_has_schedule %}
                 <li class="mel-event-hero__meta-item">
-                  <span class="mel-event-hero__meta-icon" aria-hidden="true"></span>
+                  <span class="mel-event-hero__meta-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'calendar', class: 'mel-event-hero__meta-svg', size: 28 } only %}
+                  </span>
                   <span class="mel-event-hero__meta-text">
                     <span class="mel-event-hero__meta-primary">
                       {{ node.field_event_start.value|date('l, F j, Y') }}
@@ -135,7 +136,9 @@
                   </span>
                 </li>
                 <li class="mel-event-hero__meta-item mel-event-hero__meta-item--time">
-                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--time" aria-hidden="true"></span>
+                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--time" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'clock', class: 'mel-event-hero__meta-svg mel-event-hero__meta-svg--time', size: 28 } only %}
+                  </span>
                   <span class="mel-event-hero__meta-text">
                     <span class="mel-event-hero__meta-primary">
                       {{ node.field_event_start.value|date('g:i A') }}
@@ -148,14 +151,11 @@
               {% endif %}
               {% if _hero_has_location %}
                 <li class="mel-event-hero__meta-item mel-event-hero__meta-item--location">
-                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--location" aria-hidden="true"></span>
+                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--location" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'map-pin', class: 'mel-event-hero__meta-svg mel-event-hero__meta-svg--location', size: 28 } only %}
+                  </span>
                   <span class="mel-event-hero__meta-text">
-                    {% if _hero_venue_line is not empty %}
-                      <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
-                    {% endif %}
-                    {% if _hero_address is not empty %}
-                      <span class="mel-event-hero__meta-secondary">{{ _hero_address }}</span>
-                    {% endif %}
+                    <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
                   </span>
                 </li>
               {% endif %}
@@ -176,7 +176,7 @@
               {
                 '#theme': 'mel_event_gallery',
                 '#gallery': mel_event_gallery,
-                '#event_page_style': 'classic',
+                '#event_page_style': event_page_style|default('classic'),
               }
             }}
           </div>
@@ -382,7 +382,7 @@
         </div>
 
         {% if canonical_url %}
-          <section class="mel-event-section mel-event-section--share mel-card mel-card--surface mel-mt-5" role="region" aria-labelledby="mel-event-full-share-label">
+          <section class="mel-event-section mel-event-section--share mel-card mel-card--surface mel-mt-5" id="mel-event-full-share" role="region" aria-labelledby="mel-event-full-share-label">
             <div class="mel-card__header mel-event-section__header">
               <h2 class="mel-card__title mel-event-section__title" id="mel-event-full-share-label">{{ 'Share this event'|t }}</h2>
               <p class="mel-event-section__lede mel-text--muted">{{ 'Send the link to friends who might want to come along.'|t }}</p>

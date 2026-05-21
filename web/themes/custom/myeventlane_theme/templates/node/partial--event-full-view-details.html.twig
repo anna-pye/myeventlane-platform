@@ -62,6 +62,49 @@
       </div>
     {% endif %}
 
+    {% set _has_calendar = (apple_ics_url|default('')|length > 0) or (google_calendar_url|default('')|length > 0) or (outlook_ics_url|default('')|length > 0) %}
+    {% set _has_share = canonical_url is defined and canonical_url %}
+    {% if _has_share or _has_calendar or event_flag_event_save %}
+      <div class="mel-event-sidebar-details__actions" role="group" aria-label="{{ 'Event actions'|t }}">
+        {% if _has_share %}
+          <a class="mel-event-sidebar-details__action-btn" href="#mel-event-full-share" aria-label="{{ 'Share this event'|t }}">
+            {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'share', class: 'mel-event-sidebar-details__action-icon', size: 22 } only %}
+            <span class="visually-hidden">{{ 'Share'|t }}</span>
+          </a>
+        {% endif %}
+        {% if _has_calendar %}
+          <details class="mel-event-sidebar-details__calendar">
+            <summary class="mel-event-sidebar-details__action-btn mel-event-sidebar-details__action-btn--calendar">
+              {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'calendar-plus', class: 'mel-event-sidebar-details__action-icon', size: 22 } only %}
+              <span class="visually-hidden">{{ 'Add to calendar'|t }}</span>
+            </summary>
+            <ul class="mel-event-sidebar-details__calendar-links">
+              {% if apple_ics_url|default('')|length > 0 %}
+                <li>
+                  <a href="{{ apple_ics_url }}" class="mel-event-sidebar-details__calendar-link">{{ 'Apple Calendar'|t }}</a>
+                </li>
+              {% endif %}
+              {% if outlook_ics_url|default('')|length > 0 %}
+                <li>
+                  <a href="{{ outlook_ics_url }}" class="mel-event-sidebar-details__calendar-link">{{ 'Outlook'|t }}</a>
+                </li>
+              {% endif %}
+              {% if google_calendar_url|default('')|length > 0 %}
+                <li>
+                  <a href="{{ google_calendar_url }}" class="mel-event-sidebar-details__calendar-link" target="_blank" rel="noopener noreferrer">{{ 'Google Calendar'|t }}</a>
+                </li>
+              {% endif %}
+            </ul>
+          </details>
+        {% endif %}
+        {% if event_flag_event_save %}
+          <div class="mel-event-sidebar-details__action-save" aria-label="{{ 'Save for later'|t }}">
+            {{ event_flag_event_save }}
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
     <p class="mel-event-sidebar-details__action">
       <a class="mel-event-sidebar-details__link" href="#mel-event-information">{{ 'See full event information'|t }}</a>
     </p>

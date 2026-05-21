@@ -3835,6 +3835,95 @@ function _myeventlane_theme_resolve_event_page_style_for_node(NodeInterface $nod
 }
 
 /**
+ * Sanitises a hex colour for safe inline CSS custom properties.
+ */
+function _myeventlane_theme_sanitize_event_branding_hex(?string $value, string $fallback): string {
+  $value = strtoupper(trim((string) $value));
+  if (preg_match('/^#([0-9A-F]{3}|[0-9A-F]{6})$/', $value) !== 1) {
+    return $fallback;
+  }
+  if (strlen($value) === 4) {
+    $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
+  }
+  return $value;
+}
+
+/**
+ * Approved accent hex values keyed by Event Studio theme colour machine name.
+ *
+ * @return array<string, string>
+ */
+function _myeventlane_theme_event_branding_accent_hex_map(): array {
+  return [
+    'coral' => '#F26D5B',
+    'purple' => '#7C83FD',
+    'mint' => '#3D9B7A',
+    'gold' => '#F5A04C',
+    'blue' => '#5B8DEF',
+  ];
+}
+
+/**
+ * Builds safe branding CSS variables for public event full pages.
+ *
+ * Uses Event Studio field_mel_theme_colour (resolved) only — no raw user CSS.
+ *
+ * @return array{
+ *   style: string,
+ *   colour: string,
+ *   css_vars: array<string, string>,
+ *   css_inline: string,
+ * }
+ */
+function _myeventlane_theme_build_mel_event_branding(string $style, string $colour): array {
+  $defaults = [
+    '--mel-event-page-bg' => '#FFF9F5',
+    '--mel-event-surface' => '#FFFFFF',
+    '--mel-event-soft-surface' => '#FDF1EC',
+    '--mel-event-border' => '#E9E3DE',
+    '--mel-event-accent' => '#F26D5B',
+    '--mel-event-secondary-accent' => '#7C83FD',
+  ];
+
+  $accent_map = _myeventlane_theme_event_branding_accent_hex_map();
+  $accent = $accent_map[$colour] ?? $defaults['--mel-event-accent'];
+  $accent = _myeventlane_theme_sanitize_event_branding_hex($accent, $defaults['--mel-event-accent']);
+
+  $secondary = $colour === 'purple' ? '#7C83FD' : ($colour === 'coral' ? '#7C83FD' : $accent);
+  if ($colour === 'mint') {
+    $secondary = '#7C83FD';
+  }
+  elseif ($colour === 'gold') {
+    $secondary = '#7C83FD';
+  }
+  elseif ($colour === 'blue') {
+    $secondary = '#F26D5B';
+  }
+
+  $css_vars = [
+    '--mel-event-page-bg' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-page-bg'], $defaults['--mel-event-page-bg']),
+    '--mel-event-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-surface'], $defaults['--mel-event-surface']),
+    '--mel-event-soft-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-soft-surface'], $defaults['--mel-event-soft-surface']),
+    '--mel-event-border' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-border'], $defaults['--mel-event-border']),
+    '--mel-event-accent' => $accent,
+    '--mel-event-secondary-accent' => _myeventlane_theme_sanitize_event_branding_hex($secondary, $defaults['--mel-event-secondary-accent']),
+  ];
+
+  $parts = [];
+  foreach ($css_vars as $name => $hex) {
+    $parts[] = $name . ': ' . $hex;
+  }
+  $css_inline = implode('; ', $parts);
+
+  return [
+    'style' => $style,
+    'colour' => $colour,
+    'css_vars' => $css_vars,
+    'css_inline' => $css_inline,
+  ];
+}
+
+/**
  * Applies Classic/Immersive page style classes to event node template variables.
  */
 function _myeventlane_theme_apply_event_page_style_theme_variables(array &$variables, NodeInterface $node): void {
@@ -3846,12 +3935,19 @@ function _myeventlane_theme_apply_event_page_style_theme_variables(array &$varia
   $variables['event_page_style'] = $resolved['style'];
   $variables['event_theme_colour'] = $resolved['colour'];
   $variables['event_page_classes'] = $resolved['classes'];
+  $variables['mel_event_branding'] = _myeventlane_theme_build_mel_event_branding(
+    $resolved['style'],
+    $resolved['colour'],
+  );
 
   if (!isset($variables['attributes']) || !$variables['attributes'] instanceof Attribute) {
     $existing = $variables['attributes'] ?? [];
     $variables['attributes'] = new Attribute(is_array($existing) ? $existing : []);
   }
   $variables['attributes']->addClass($resolved['classes']);
+  if (!empty($variables['mel_event_branding']['css_inline'])) {
+    $variables['attributes']->setAttribute('style', $variables['mel_event_branding']['css_inline']);
+  }
 }
 
 /**

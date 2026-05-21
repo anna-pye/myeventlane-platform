@@ -45,8 +45,8 @@
   .mel-event-gallery__carousel-shell {
     overflow: hidden;
     padding: 0;
-    background: #fff;
-    border: 1px solid #e9e3de;
+    background: var(--mel-event-surface, #fff);
+    border: 1px solid var(--mel-event-border, #e9e3de);
     border-radius: radii.$mel-radius-lg;
     box-shadow: 0 12px 32px rgba(36, 48, 58, 0.06);
     color: #24303a;
@@ -87,12 +87,15 @@
     }
 
     .mel-event-gallery__img {
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
       max-height: 10.625rem;
       width: 100%;
+      height: auto;
     }
 
     .mel-sidebar-carousel__slide.is-active .mel-event-gallery__trigger {
-      outline: 2px solid #f26d5b;
+      outline: 2px solid var(--mel-event-accent, #f26d5b);
       outline-offset: 2px;
     }
   }
@@ -104,8 +107,8 @@
   .mel-sidebar-carousel__arrow {
     min-width: 2.75rem;
     min-height: 2.75rem;
-    border-color: #e9e3de;
-    background: #fdf1ec;
+    border-color: var(--mel-event-border, #e9e3de);
+    background: var(--mel-event-soft-surface, #fdf1ec);
     color: #24303a;
 
     &:focus-visible {
@@ -120,7 +123,7 @@
     background: color-mix(in srgb, #24303a 20%, transparent);
 
     &.is-active {
-      background: #f26d5b;
+      background: var(--mel-event-accent, #f26d5b);
     }
 
     &:focus-visible {

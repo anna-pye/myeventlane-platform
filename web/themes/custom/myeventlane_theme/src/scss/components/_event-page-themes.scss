@@ -69,8 +69,10 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
 .mel-event-page--classic.mel-event--v2 {
   --mel-event-page-bg: #fff9f5;
   --mel-event-surface: #ffffff;
-  --mel-event-surface-soft: #fff1ec;
-  --mel-event-border: rgba(242, 109, 91, 0.18);
+  --mel-event-soft-surface: #fdf1ec;
+  --mel-event-surface-soft: #fdf1ec;
+  --mel-event-border: #e9e3de;
+  --mel-event-secondary-accent: #7c83fd;
   --mel-event-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
   --mel-event-text: #1f2933;
   --mel-event-muted: #6b7280;
@@ -102,12 +104,12 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     overflow: hidden;
   }
 
-  .mel-event-hero--featured-style .mel-event-hero__overlay {
+  .mel-event-full__hero.mel-event-hero--featured-style .mel-event-hero__overlay {
     background: linear-gradient(
       180deg,
-      rgba(0, 0, 0, 0.08) 0%,
-      rgba(31, 41, 51, 0.45) 55%,
-      rgba(31, 41, 51, 0.82) 100%
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.12) 45%,
+      rgba(36, 48, 58, 0.72) 100%
     );
   }
 

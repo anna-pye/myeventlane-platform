@@ -1295,14 +1295,14 @@
 // ---------------------------------------------------------------------------
 
 .mel-event-sidebar-rail {
-  --mel-sidebar-page-bg: #fff9f5;
-  --mel-sidebar-card-surface: #fff;
-  --mel-sidebar-card-soft: #fdf1ec;
+  --mel-sidebar-page-bg: var(--mel-event-page-bg, #fff9f5);
+  --mel-sidebar-card-surface: var(--mel-event-surface, #fff);
+  --mel-sidebar-card-soft: var(--mel-event-soft-surface, #fdf1ec);
   --mel-sidebar-text: #24303a;
   --mel-sidebar-muted: #5b6670;
-  --mel-sidebar-border: #e9e3de;
-  --mel-sidebar-coral: #f26d5b;
-  --mel-sidebar-lavender: #7c83fd;
+  --mel-sidebar-border: var(--mel-event-border, #e9e3de);
+  --mel-sidebar-coral: var(--mel-event-accent, #f26d5b);
+  --mel-sidebar-lavender: var(--mel-event-secondary-accent, #7c83fd);
 
   display: flex;
   flex-direction: column;
@@ -1384,6 +1384,102 @@
   border-top: 1px solid var(--mel-sidebar-border);
 }
 
+.mel-event-sidebar-details__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space-tokens.mel-space(2);
+  margin-top: space-tokens.mel-space(1);
+  padding-top: space-tokens.mel-space(2);
+  border-top: 1px solid var(--mel-sidebar-border);
+}
+
+.mel-event-sidebar-details__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--mel-sidebar-border);
+  border-radius: radii.$mel-radius-full;
+  background: var(--mel-sidebar-card-surface);
+  color: var(--mel-sidebar-coral);
+  text-decoration: none;
+  cursor: pointer;
+  list-style: none;
+  box-shadow: 0 4px 12px rgba(36, 48, 58, 0.06);
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--mel-sidebar-lavender) 55%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.mel-event-sidebar-details__action-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.mel-event-sidebar-details__calendar {
+  position: relative;
+}
+
+.mel-event-sidebar-details__calendar-links {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 11rem;
+  margin: 0;
+  padding: space-tokens.mel-space(2);
+  list-style: none;
+  background: var(--mel-sidebar-card-surface);
+  border: 1px solid var(--mel-sidebar-border);
+  border-radius: radii.$mel-radius-md;
+  box-shadow: 0 12px 28px rgba(36, 48, 58, 0.1);
+}
+
+.mel-event-sidebar-details__calendar-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 space-tokens.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: var(--mel-sidebar-text);
+  text-decoration: none;
+  border-radius: radii.$mel-radius-sm;
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--mel-sidebar-lavender) 55%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.mel-event-sidebar-details__action-save {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+
+  .flag-event-save a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--mel-sidebar-border);
+    border-radius: radii.$mel-radius-full;
+    background: var(--mel-sidebar-card-surface);
+    color: var(--mel-sidebar-coral);
+  }
+}
+
 .mel-event-sidebar-details__link {
   display: inline-flex;
   align-items: center;
@@ -1401,20 +1497,59 @@
   }
 }
 
+.mel-booking-panel__trust-line {
+  display: flex;
+  align-items: center;
+  gap: space-tokens.mel-space(2);
+  margin: 0;
+}
+
+.mel-booking-panel__trust-svg,
+.mel-trust-item__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mel-sidebar-coral, var(--mel-event-accent, #f26d5b));
+}
+
+.mel-trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: space-tokens.mel-space(2);
+}
+
+.mel-decision-item .mel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--mel-sidebar-coral, var(--mel-event-accent, #f26d5b));
+}
+
+.mel-event-full__booking .mel-booking-panel__trust {
+  gap: space-tokens.mel-space(2);
+}
+
+.mel-event-full__booking .mel-booking-panel__trust-micro {
+  gap: space-tokens.mel-space(1);
+}
+
 .mel-event-sidebar__details {
   background: var(--mel-sidebar-card-soft);
 }
 
 // Immersive event pages — keep sidebar + main gallery rail on light MEL surfaces.
 .mel-event-page--immersive.mel-event--v2 .mel-event-sidebar-rail {
-  --mel-sidebar-page-bg: #fff9f5;
-  --mel-sidebar-card-surface: #fff;
-  --mel-sidebar-card-soft: #fdf1ec;
+  --mel-sidebar-page-bg: var(--mel-event-page-bg, #fff9f5);
+  --mel-sidebar-card-surface: var(--mel-event-surface, #fff);
+  --mel-sidebar-card-soft: var(--mel-event-soft-surface, #fdf1ec);
   --mel-sidebar-text: #24303a;
   --mel-sidebar-muted: #5b6670;
-  --mel-sidebar-border: #e9e3de;
-  --mel-sidebar-coral: #f26d5b;
-  --mel-sidebar-lavender: #7c83fd;
+  --mel-sidebar-border: var(--mel-event-border, #e9e3de);
+  --mel-sidebar-coral: var(--mel-event-accent, #f26d5b);
+  --mel-sidebar-lavender: var(--mel-event-secondary-accent, #7c83fd);
 }
 
 .mel-event-page--immersive.mel-event--v2 .mel-event-sidebar-rail .mel-card--surface {
@@ -2620,7 +2755,11 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 }
 
 .mel-event-full__booking-body {
-  padding: 28px;
+  padding: space-tokens.mel-space(4);
+
+  @include breakpoints.mel-break(lg) {
+    padding: space-tokens.mel-space(5);
+  }
 }
 
 .mel-event-full__booking-heading,
