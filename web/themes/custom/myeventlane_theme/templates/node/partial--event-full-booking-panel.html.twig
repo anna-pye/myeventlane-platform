@@ -29,15 +29,16 @@
             <span class="mel-price__tax-note">{{ 'Includes GST'|t }}</span>
           {% endif %}
         </div>
+      {% elseif cta_type is defined and cta_type == 'rsvp' %}
+        <p class="mel-booking-panel__status-label">{{ 'Free RSVP'|t }}</p>
       {% endif %}
       {% if cta_type is defined and cta_type == 'paid'
         and mel_event_selling_fast|default(false)
         and (event_ui is not defined or not (event_ui.is_sold_out|default(false) == true)) %}
-        <div class="mel-event__urgency">
-          {{ 'Tickets selling fast'|t }}
-        </div>
+        <p class="mel-booking-panel__urgency-line">{{ 'Tickets selling fast'|t }}</p>
       {% endif %}
-      {% if content.field_product_target is defined %}
+      {% set _product_markup = (content.field_product_target is defined) ? (content.field_product_target|render|striptags|trim) : '' %}
+      {% if _product_markup is not empty %}
         <div class="mel-booking-panel__product">
           {{ content.field_product_target }}
         </div>
@@ -76,7 +77,14 @@
                 </span>
                 <span class="mel-booking-panel__trust-row-text">{{ 'Instant confirmation'|t }}</span>
               </li>
-              {% if _support_urgent %}
+              {% if mel_event_selling_fast|default(false) and (event_ui is not defined or not (event_ui.is_sold_out|default(false) is same as(true))) %}
+                <li class="mel-booking-panel__trust-row mel-booking-panel__trust-row--urgent">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">{{ 'Tickets selling fast'|t }}</span>
+                </li>
+              {% elseif _support_urgent %}
                 <li class="mel-booking-panel__trust-row mel-booking-panel__trust-row--urgent">
                   <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
                     {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
@@ -99,6 +107,17 @@
                 </li>
               {% endif %}
             </ul>
+          </div>
+        {% endif %}
+
+        {% if event_flag_event_save %}
+          <div class="mel-booking-panel__save" aria-label="{{ 'Save for later'|t }}">
+            <span class="mel-booking-panel__save-icon" aria-hidden="true">
+              {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'heart', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+            </span>
+            <div class="mel-booking-panel__save-flag">
+              {{ event_flag_event_save }}
+            </div>
           </div>
         {% endif %}
       {% endif %}

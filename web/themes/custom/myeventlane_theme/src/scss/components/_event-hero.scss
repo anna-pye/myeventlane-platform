@@ -179,7 +179,7 @@
 
 .mel-event-full__hero.mel-event-hero--featured-style {
   width: 100%;
-  min-height: clamp(26.25rem, 42vw, 33.75rem);
+  min-height: clamp(26.875rem, 42vw, 31.25rem);
   border-radius: 24px;
   border: 0;
   box-shadow: 0 12px 32px rgba(36, 48, 58, 0.1);
@@ -187,11 +187,54 @@
   @media (width <= 767px) {
     min-height: 20rem;
   }
+
+  .mel-event-hero__content {
+    right: auto;
+    bottom: spacing.mel-space(4);
+    left: spacing.mel-space(4);
+    max-width: min(44rem, calc(100% - #{spacing.mel-space(8)}));
+  }
+
+  .mel-event-hero__title {
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+    line-height: 1.15;
+    margin: 0;
+  }
+
+  .mel-event-hero__meta {
+    margin-top: spacing.mel-space(2);
+    flex-wrap: nowrap;
+    gap: spacing.mel-space(2) spacing.mel-space(3);
+    align-items: center;
+  }
+
+  .mel-event-hero__meta-item {
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .mel-event-hero__meta-primary {
+    font-size: typography.mel-font-size(sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (width <= 767px) {
+    .mel-event-hero__meta {
+      flex-wrap: wrap;
+    }
+
+    .mel-event-hero__meta-primary {
+      white-space: normal;
+    }
+  }
 }
 
 .mel-event-page--classic.mel-event--v2 .mel-event-full__hero.mel-event-hero--featured-style,
 .mel-event-page--immersive.mel-event--v2 .mel-event-full__hero.mel-event-hero--featured-style {
-  min-height: clamp(26.25rem, 42vw, 33.75rem);
+  min-height: clamp(26.875rem, 42vw, 31.25rem);
 
   @media (width <= 767px) {
     min-height: 20rem;
@@ -208,21 +251,6 @@
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-.mel-event-full__hero.mel-event-hero--featured-style .mel-event-hero__title {
-  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
-}
-
-@media (width >= 768px) {
-  .mel-event-page--classic.mel-event--v2 .mel-event-full__hero.mel-event-hero--featured-style .mel-event-hero__title {
-    font-size: 2.5rem;
-  }
-}
-
-@media (width <= 767px) {
-  .mel-event-page--classic.mel-event--v2 .mel-event-full__hero.mel-event-hero--featured-style .mel-event-hero__title {
-    font-size: 1.75rem;
-  }
-}
 
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__datetime,
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__venue,

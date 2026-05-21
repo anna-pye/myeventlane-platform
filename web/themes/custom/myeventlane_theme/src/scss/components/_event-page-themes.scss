@@ -237,6 +237,8 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     background: var(--mel-event-surface);
     border: 1px solid var(--mel-event-border);
     box-shadow: var(--mel-event-shadow);
+    min-height: 0;
+    height: auto;
   }
 
   .mel-event-highlights__icon {

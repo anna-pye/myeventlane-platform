@@ -57,12 +57,21 @@
   }
 
   .mel-event-gallery__viewport {
-    max-height: 10.625rem;
-    margin-inline: auto;
+    max-height: none;
+    margin-inline: 0;
     max-width: 100%;
+    overflow: visible;
   }
 
   &.mel-event-gallery--rail {
+    .mel-event-gallery__rail,
+    .mel-event-gallery__carousel {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-width: 0;
+    }
+
     .mel-event-gallery__viewport {
       max-height: none;
       overflow: visible;
@@ -71,11 +80,13 @@
     .mel-sidebar-carousel__track {
       display: flex;
       flex-flow: row nowrap;
+      align-items: stretch;
+      justify-content: flex-start;
       gap: 14px;
       overflow-x: auto;
       overflow-y: hidden;
       scroll-snap-type: x proximity;
-      padding-bottom: 6px;
+      padding: 0;
       -webkit-overflow-scrolling: touch;
       grid-template-columns: none;
       grid-template-rows: none;
@@ -85,7 +96,8 @@
       position: static;
       grid-area: auto;
       flex: 0 0 auto;
-      width: clamp(11.25rem, 22vw, 13.125rem);
+      width: clamp(11.25rem, 18%, 13.125rem);
+      max-width: 13.125rem;
       min-width: 11.25rem;
       opacity: 1;
       visibility: visible;
@@ -95,14 +107,21 @@
     }
 
     .mel-event-gallery__trigger {
+      display: block;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 0;
       border-radius: 14px;
       overflow: hidden;
+      line-height: 0;
     }
 
     .mel-event-gallery__img {
       display: block;
       width: 100%;
-      height: clamp(9.0625rem, 12vw, 10.3125rem);
+      height: clamp(9.0625rem, 11vw, 10.3125rem);
+      min-height: 9.0625rem;
       max-height: 10.3125rem;
       aspect-ratio: 4 / 3;
       object-fit: cover;
@@ -120,13 +139,21 @@
       }
 
       .mel-sidebar-carousel__slide {
-        width: clamp(11.25rem, 55%, 13.125rem);
+        width: clamp(11.25rem, 42%, 13.125rem);
+        max-width: 13.125rem;
       }
     }
   }
 
   .mel-sidebar-carousel__footer {
-    border-top-color: #e9e3de;
+    margin-top: 16px;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .mel-sidebar-carousel__nav {
+    justify-content: center;
+    gap: 12px;
   }
 
   .mel-sidebar-carousel__arrow {

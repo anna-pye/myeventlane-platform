@@ -205,10 +205,12 @@
           {% endfor %}
         {% endif %}
 
-        {% if body_plain or highlights|length or expect_text %}
-          <div class="mel-event-full__content-grid">
-            {% if body_plain %}
-              <div class="mel-event-full__about mel-card mel-card--surface mel-event-full__card">
+        {% set _has_about = body_plain is not empty %}
+        {% set _has_highlights = highlights|length > 0 %}
+        {% if _has_about or _has_highlights or expect_text %}
+          <div class="mel-event-full__content-grid{% if _has_about and _has_highlights %} mel-event-full__content-grid--duo{% endif %}">
+            {% if _has_about %}
+              <div class="mel-event-full__about mel-card mel-card--surface mel-event-full__card{% if not _has_highlights %} mel-event-full__about--wide{% endif %}">
                 <div class="mel-card__header">
                   <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
                 </div>
@@ -218,7 +220,7 @@
               </div>
             {% endif %}
 
-            {% if highlights|length %}
+            {% if _has_highlights %}
               <div class="mel-event-full__highlights mel-card mel-card--surface mel-card--highlights mel-event-full__card" aria-label="{{ 'Highlights'|t }}">
                 <div class="mel-card__header">
                   <h2 class="mel-card__title">{{ 'Highlights'|t }}</h2>

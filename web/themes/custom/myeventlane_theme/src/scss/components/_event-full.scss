@@ -17,6 +17,10 @@
 // MEL v2 Event Page (Reference Implementation)
 // ==========================================================================
 
+.mel-event--v2:has(.mel-event-full) {
+  padding: space-tokens.mel-space(3) 0 space-tokens.mel-space(5);
+}
+
 .mel-event--v2 {
   padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
 
@@ -1407,19 +1411,25 @@
 
 .mel-event-sidebar-details__action-btn {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0;
+  gap: 4px;
+  min-width: 4.5rem;
+  min-height: 4.5rem;
+  padding: 8px 10px;
   border: 1px solid var(--mel-sidebar-border);
-  border-radius: radii.$mel-radius-full;
+  border-radius: 14px;
   background: var(--mel-sidebar-card-surface);
   color: var(--mel-sidebar-coral);
   text-decoration: none;
   cursor: pointer;
   list-style: none;
   box-shadow: 0 4px 12px rgba(36, 48, 58, 0.06);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-semibold;
+  line-height: 1.2;
+  text-align: center;
 
   &::-webkit-details-marker {
     display: none;
@@ -1429,6 +1439,10 @@
     outline: 2px solid color-mix(in srgb, var(--mel-sidebar-lavender) 55%, transparent);
     outline-offset: 2px;
   }
+}
+
+.mel-event-sidebar-details__action-label {
+  display: block;
 }
 
 .mel-event-sidebar-details__action-icon {
@@ -1494,6 +1508,7 @@
 .mel-event-sidebar-details__link {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 44px;
   font-size: typography.mel-font-size(sm);
   font-weight: typography.$mel-font-semibold;
@@ -1506,6 +1521,11 @@
     outline-offset: 2px;
     border-radius: radii.$mel-radius-sm;
   }
+}
+
+.mel-event-sidebar-details__link-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
 }
 
 .mel-booking-panel__trust-line {
@@ -1715,9 +1735,25 @@
 // ---------------------------------------------------------------------------
 // Highlights: quick-scan, calm, distinct from body copy.
 
+.mel-event-full .mel-card--highlights,
+.mel-event-full .mel-card--expect {
+  min-height: 0;
+  height: auto;
+}
+
 .mel-event--v2 .mel-card--highlights {
   background: colors.$mel-color-surface-alt;
   border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mel-event-full .mel-card--highlights {
+  background: var(--mel-full-surface, #fff);
+  border: 1px solid var(--mel-full-border, #e9e3de);
+}
+
+.mel-event-full .mel-card--expect {
+  background: var(--mel-full-surface, #fff);
+  border: 1px solid var(--mel-full-border, #e9e3de);
 }
 
 .mel-event-highlights {
@@ -2608,11 +2644,16 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   color: var(--mel-full-text);
 }
 
+.mel-event--v2 .mel-container:has(.mel-event-full) {
+  max-width: min(100%, 82.5rem);
+  padding-inline: clamp(16px, 3vw, 24px);
+}
+
 .mel-event-full__layout {
   display: grid;
   gap: 32px;
   align-items: start;
-  max-width: min(100%, 86.25rem);
+  max-width: 100%;
   margin-inline: auto;
 
   @media (width >= 1100px) {
@@ -2715,9 +2756,13 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   display: grid;
   gap: 24px;
   min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
 
+.mel-event-full__content-grid--duo {
   @media (width >= 1100px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
 }
 
@@ -2734,13 +2779,22 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   }
 }
 
+.mel-event-full__about--wide,
 .mel-event-full__about:only-child {
   @media (width >= 1100px) {
     grid-column: 1 / -1;
   }
 }
 
+.mel-event-full__highlights {
+  align-self: start;
+  height: fit-content;
+}
+
 .mel-event-full__expect {
+  height: fit-content;
+  min-height: 0;
+
   @media (width >= 1100px) {
     grid-column: 1 / -1;
   }
@@ -2774,13 +2828,65 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 .mel-event-full__booking {
   align-self: start;
   height: fit-content;
+  min-height: 0;
+  max-width: 100%;
   padding: 0;
   border-radius: var(--mel-full-radius-lg);
+  overflow: visible;
 
-  @media (width >= 1024px) {
+  @media (width >= 1100px) {
     position: sticky;
-    top: 7rem;
+    top: 5.5rem;
   }
+}
+
+.mel-event-full__booking-body,
+.mel-event-full__booking .mel-booking-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mel-event-full__booking .mel-booking-panel__cta,
+.mel-event-full__booking .mel-event-sticky-cta,
+.mel-event-full__booking .mel-event-sticky-cta--sidebar {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mel-event-full__booking .mel-booking-panel__cta .mel-btn {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.mel-booking-panel__status-label {
+  margin: 0;
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-bold;
+  line-height: 1.25;
+  color: var(--mel-full-text);
+}
+
+.mel-booking-panel__urgency-line {
+  margin: 0;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: var(--mel-full-coral, #f26d5b);
+}
+
+.mel-booking-panel__save {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+}
+
+.mel-booking-panel__save-flag {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .mel-event-full__booking-body {
@@ -2910,10 +3016,66 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   margin-block: 0;
 }
 
-.mel-event-full__gallery .mel-event-gallery__carousel-shell {
-  border: 0;
-  box-shadow: none;
-  background: transparent;
+.mel-event-full__gallery .mel-event-gallery__rail {
+  min-width: 0;
+}
+
+.mel-event-full__gallery .mel-event-gallery--carousel {
+  margin-block: 0;
+}
+
+// Beat _event-sidebar-carousel.scss stacked grid (single visible slide at full width).
+.mel-event-full__gallery .mel-event-gallery--rail {
+  .mel-sidebar-carousel__viewport {
+    overflow: visible;
+  }
+
+  .mel-sidebar-carousel__track {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 14px;
+    grid-template-columns: unset;
+    grid-template-rows: unset;
+  }
+
+  .mel-sidebar-carousel__slide {
+    position: relative;
+    grid-area: auto;
+    flex: 0 0 clamp(11.25rem, 18%, 13.125rem);
+    width: clamp(11.25rem, 18%, 13.125rem);
+    max-width: 13.125rem;
+    min-width: 11.25rem;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .mel-event-gallery__trigger {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    line-height: 0;
+  }
+
+  .mel-event-gallery__img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: clamp(9.0625rem, 11vw, 10.3125rem);
+    min-height: 9.0625rem;
+    max-height: 10.3125rem;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+
+  .mel-sidebar-carousel__footer {
+    margin-top: 16px;
+    padding: 0;
+    border-top: 0;
+  }
 }
 
 .mel-event-full__gallery .mel-event-gallery__header {
