@@ -75,10 +75,11 @@
       </div>
     {% endif %}
 
-    <div class="mel-event-layout mel-event-layout--option1">
-      <div class="mel-event-layout__main">
+    <div class="mel-event-full">
+      <div class="mel-event-full__layout mel-event-layout mel-event-layout--option1">
+        <div class="mel-event-full__main mel-event-layout__main">
     {# Hero: node--event--full — same stack as homepage featured_hero (mel-event-card variant). #}
-    <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
+    <section class="mel-event-full__hero mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
       <div class="mel-event-hero__media">
         {% if content.field_event_image %}
           {{ content.field_event_image }}
@@ -170,27 +171,21 @@
     </section>
 
         {% if mel_event_gallery is defined and mel_event_gallery.count > 0 %}
-          {{
-            {
-              '#theme': 'mel_event_gallery',
-              '#gallery': mel_event_gallery,
-              '#event_page_style': event_page_style|default('classic'),
-            }
-          }}
+          <div class="mel-event-full__gallery">
+            {{
+              {
+                '#theme': 'mel_event_gallery',
+                '#gallery': mel_event_gallery,
+                '#event_page_style': 'classic',
+              }
+            }}
+          </div>
         {% endif %}
 
         {% set body_render = (content.body is defined) ? (content.body|render) : '' %}
         {% set body_plain = body_render|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
-        {% if body_plain %}
-          <div class="mel-card mel-card--surface">
-            <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
-            </div>
-            <div class="mel-card__body">
-              {{ content.body }}
-            </div>
-          </div>
-        {% endif %}
+        {% set expect_html = (content.field_event_intro is defined and content.field_event_intro) ? (content.field_event_intro|render) : '' %}
+        {% set expect_text = expect_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
         {# Highlights: render only when there are non-empty items (quick-scan list). #}
         {% set highlights = [] %}
@@ -210,60 +205,72 @@
           {% endfor %}
         {% endif %}
 
-        {% if highlights|length %}
-          <div class="mel-card mel-card--surface mel-card--highlights mel-mt-5" aria-label="{{ 'Highlights'|t }}">
-            <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'Highlights'|t }}</h2>
-            </div>
-            <div class="mel-card__body">
-              <ul class="mel-event-highlights" role="list">
-                {% for item in highlights %}
-                  {% set icon_key = item.icon|default('') %}
-                  {% set icon_char = '' %}
-                  {# Keys match paragraph.field_highlight_icon allowed_values (config/sync). #}
-                  {% if icon_key == 'star' %}
-                    {% set icon_char = '★' %}
-                  {% elseif icon_key == 'music' %}
-                    {% set icon_char = '♪' %}
-                  {% elseif icon_key == 'food' %}
-                    {% set icon_char = '☕' %}
-                  {% elseif icon_key == 'clock' %}
-                    {% set icon_char = '🕐' %}
-                  {% elseif icon_key == 'info' %}
-                    {% set icon_char = 'ℹ' %}
-                  {% elseif icon_key == 'access' %}
-                    {% set icon_char = '♿' %}
-                  {% endif %}
+        {% if body_plain or highlights|length or expect_text %}
+          <div class="mel-event-full__content-grid">
+            {% if body_plain %}
+              <div class="mel-event-full__about mel-card mel-card--surface mel-event-full__card">
+                <div class="mel-card__header">
+                  <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
+                </div>
+                <div class="mel-card__body">
+                  {{ content.body }}
+                </div>
+              </div>
+            {% endif %}
 
-                  <li class="mel-event-highlights__item">
-                    <span class="mel-event-highlights__icon" aria-hidden="true">
-                      {% if icon_char %}
-                        {{ icon_char }}
+            {% if highlights|length %}
+              <div class="mel-event-full__highlights mel-card mel-card--surface mel-card--highlights mel-event-full__card" aria-label="{{ 'Highlights'|t }}">
+                <div class="mel-card__header">
+                  <h2 class="mel-card__title">{{ 'Highlights'|t }}</h2>
+                </div>
+                <div class="mel-card__body">
+                  <ul class="mel-event-highlights" role="list">
+                    {% for item in highlights %}
+                      {% set icon_key = item.icon|default('') %}
+                      {% set icon_char = '' %}
+                      {# Keys match paragraph.field_highlight_icon allowed_values (config/sync). #}
+                      {% if icon_key == 'star' %}
+                        {% set icon_char = '★' %}
+                      {% elseif icon_key == 'music' %}
+                        {% set icon_char = '♪' %}
+                      {% elseif icon_key == 'food' %}
+                        {% set icon_char = '☕' %}
+                      {% elseif icon_key == 'clock' %}
+                        {% set icon_char = '🕐' %}
+                      {% elseif icon_key == 'info' %}
+                        {% set icon_char = 'ℹ' %}
+                      {% elseif icon_key == 'access' %}
+                        {% set icon_char = '♿' %}
                       {% endif %}
-                    </span>
-                    <span class="mel-event-highlights__text">{{ item.text|e }}</span>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
+
+                      <li class="mel-event-highlights__item">
+                        <span class="mel-event-highlights__icon" aria-hidden="true">
+                          {% if icon_char %}
+                            {{ icon_char }}
+                          {% endif %}
+                        </span>
+                        <span class="mel-event-highlights__text">{{ item.text|e }}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if expect_text %}
+              <div class="mel-event-full__expect mel-card mel-card--surface mel-card--expect mel-event-full__card">
+                <div class="mel-card__header">
+                  <h2 class="mel-card__title">{{ 'What to expect'|t }}</h2>
+                </div>
+                <div class="mel-card__body">
+                  {{ expect_html }}
+                </div>
+              </div>
+            {% endif %}
           </div>
         {% endif %}
 
-        {# What to expect: render only if non-trivial (not empty/whitespace markup). #}
-        {% set expect_html = (content.field_event_intro is defined and content.field_event_intro) ? (content.field_event_intro|render) : '' %}
-        {% set expect_text = expect_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
-
-        {% if expect_text %}
-          <div class="mel-card mel-card--surface mel-card--expect mel-mt-5">
-            <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'What to expect'|t }}</h2>
-            </div>
-            <div class="mel-card__body">
-              {{ expect_html }}
-            </div>
-          </div>
-        {% endif %}
-
+        <div class="mel-event-full__content-below">
         {% if operational_addon_teaser or (content.mel_operational_addon_teaser is defined and content.mel_operational_addon_teaser) %}
           <section class="mel-event-section mel-event-section--extras mel-card mel-card--surface mel-mt-5" aria-labelledby="mel-event-extras-section-title">
             <div class="mel-card__header mel-event-section__header">
@@ -534,15 +541,6 @@
           </div>
         {% endif %}
 
-        <nav class="mel-event-support-zone mel-mt-5" aria-label="{{ 'Help and policies'|t }}">
-          <ul class="mel-event-support-zone__list">
-            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
-            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
-            <li><a class="mel-event-support-zone__link" href="/privacy">{{ 'Privacy'|t }}</a></li>
-            <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
-          </ul>
-        </nav>
-
         {% set cancellation_html = (content.field_cancellation_policy is defined and content.field_cancellation_policy) ? (content.field_cancellation_policy|render) : '' %}
         {% set cancellation_text = cancellation_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
@@ -600,15 +598,23 @@
 
         {# Note: We intentionally do NOT render field_ticket_types or field_attendee_questions on Event Full.
            These are configuration inputs, not attendee-facing content. #}
+        </div>
+        </div>
+
+        <aside class="mel-event-full__sidebar mel-event-layout__sidebar mel-event-sidebar-rail" aria-label="{{ 'Tickets and event information'|t }}">
+          {% include '@myeventlane_theme/node/partial--event-full-booking-panel.html.twig' %}
+          {% include '@myeventlane_theme/node/partial--event-full-view-details.html.twig' %}
+
+          <nav class="mel-event-full__support mel-event-support-zone" aria-label="{{ 'Help and policies'|t }}">
+            <ul class="mel-event-support-zone__list">
+              <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
+              <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
+              <li><a class="mel-event-support-zone__link" href="/privacy">{{ 'Privacy'|t }}</a></li>
+              <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
+            </ul>
+          </nav>
+        </aside>
       </div>
-
-      <aside class="mel-event-layout__sidebar mel-event-sidebar-rail" aria-label="{{ 'Tickets and event information'|t }}">
-        {% include '@myeventlane_theme/node/partial--event-full-booking-panel.html.twig' %}
-        {% include '@myeventlane_theme/node/partial--event-full-view-details.html.twig' %}
-
-        {# Registration metadata intentionally hidden on Event Full (capacity, sales windows, etc.)
-           to keep the sidebar calm and attendee-focused. #}
-      </aside>
     </div>
   </div>
 

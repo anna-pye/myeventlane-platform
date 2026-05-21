@@ -2,9 +2,16 @@
   Sticky booking card — single conversion surface (sidebar + mobile stack).
   Trust copy and primary CTA live here only; do not duplicate in main column.
 #}
-<div class="mel-card mel-card--surface mel-card--sticky mel-event__card mel-event-sidebar__booking">
-  <div class="mel-card__body">
+<div class="mel-event-full__booking mel-card mel-card--surface mel-card--sticky mel-event__card mel-event-sidebar__booking">
+  <div class="mel-card__body mel-event-full__booking-body">
     <div class="mel-booking-panel" role="region" aria-label="{{ 'Book this event'|t }}">
+      {% set _booking_panel_heading = mel_booking_action_label|default('')|striptags|trim %}
+      {% if _booking_panel_heading is empty and mel_mode_chip %}
+        {% set _booking_panel_heading = mel_mode_chip %}
+      {% endif %}
+      {% if _booking_panel_heading is not empty %}
+        <h2 class="mel-booking-panel__heading mel-event-full__booking-heading">{{ _booking_panel_heading }}</h2>
+      {% endif %}
       {% if mel_mode_chip %}
         <div class="mel-booking-panel__chip" aria-label="{{ 'Registration type'|t }}">
           <span class="mel-chip mel-chip--sm mel-chip--filled">{{ mel_mode_chip }}</span>

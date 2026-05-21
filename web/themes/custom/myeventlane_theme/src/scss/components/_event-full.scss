@@ -1251,32 +1251,42 @@
   margin-top: 6px;
 }
 
-// Option 1 mobile stack: hero → booking → gallery → long-form content (view details stays in sidebar stack).
-@media (width <= 768px) {
-  .mel-event--v2 .mel-event-layout--option1:has(> .mel-event-layout__sidebar) {
+// Mockup mobile stack: hero → booking → view details → gallery → content.
+@media (width <= 767px) {
+  .mel-event-full__layout {
     display: flex;
     flex-direction: column;
-    gap: space-tokens.mel-space(5);
+    gap: 24px;
   }
 
-  .mel-event--v2 .mel-event-layout--option1:has(> .mel-event-layout__sidebar) > .mel-event-layout__main {
+  .mel-event-full__main,
+  .mel-event-full__sidebar {
     display: contents;
   }
 
-  .mel-event--v2 .mel-event-layout--option1 > .mel-event-layout__main > .mel-event-hero {
+  .mel-event-full__hero {
     order: 1;
   }
 
-  .mel-event--v2 .mel-event-layout--option1 > .mel-event-layout__sidebar {
+  .mel-event-full__booking {
     order: 2;
   }
 
-  .mel-event--v2 .mel-event-layout--option1 > .mel-event-layout__main > .mel-event-gallery {
+  .mel-event-full__view-details {
     order: 3;
   }
 
-  .mel-event--v2 .mel-event-layout--option1 > .mel-event-layout__main > *:not(.mel-event-hero, .mel-event-gallery) {
+  .mel-event-full__gallery {
     order: 4;
+  }
+
+  .mel-event-full__content-grid,
+  .mel-event-full__content-below {
+    order: 5;
+  }
+
+  .mel-event-full__support {
+    order: 6;
   }
 }
 
@@ -2414,4 +2424,278 @@ button.mel-filter-chip--reset {
   &:hover {
     border-color: rgba(242, 109, 91, 0.55);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Event full — mockup layout shell (light MEL v2)
+// ---------------------------------------------------------------------------
+
+body:has(.mel-event-full),
+main.mel-main:has(.mel-event-full),
+body:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full),
+main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full) {
+  background-color: #fff9f5;
+  background-image: none;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) {
+  background: transparent;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  color: #24303a;
+}
+
+.mel-event-full {
+  --mel-full-page-bg: #fff9f5;
+  --mel-full-surface: #fff;
+  --mel-full-surface-soft: #fdf1ec;
+  --mel-full-text: #24303a;
+  --mel-full-text-secondary: #5b6670;
+  --mel-full-text-muted: #7c8791;
+  --mel-full-border: #e9e3de;
+  --mel-full-coral: #f26d5b;
+  --mel-full-lavender: #7c83fd;
+  --mel-full-radius-lg: 24px;
+  --mel-full-radius-md: 16px;
+  --mel-full-shadow-1: 0 2px 8px rgba(36, 48, 58, 0.06);
+  --mel-full-shadow-2: 0 6px 18px rgba(36, 48, 58, 0.08);
+
+  color: var(--mel-full-text);
+}
+
+.mel-event-full__layout {
+  display: grid;
+  gap: 32px;
+  align-items: start;
+  max-width: min(100%, 82.5rem);
+  margin-inline: auto;
+
+  @media (width >= 1024px) {
+    grid-template-columns: minmax(0, 1fr) 390px;
+  }
+}
+
+.mel-event-full__main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.mel-event-full__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.mel-event-full__card {
+  background: var(--mel-full-surface);
+  border: 1px solid var(--mel-full-border);
+  border-radius: var(--mel-full-radius-lg);
+  box-shadow: var(--mel-full-shadow-1);
+  color: var(--mel-full-text);
+}
+
+.mel-event-full__card .mel-card__title,
+.mel-event-full__card .mel-event-gallery__title {
+  color: var(--mel-full-text);
+}
+
+.mel-event-full__card .mel-card__body,
+.mel-event-full__card .mel-event-gallery__lede {
+  color: var(--mel-full-text-secondary);
+}
+
+// Force light surfaces inside immersive article for layout shell.
+.mel-event-page--immersive.mel-event--v2 .mel-event-full {
+  .mel-event-full__card,
+  .mel-event-sidebar-rail .mel-card--surface,
+  .mel-event-layout__main .mel-card--surface,
+  .mel-event-layout__main .mel-card--highlights,
+  .mel-event-layout__main .mel-card--expect,
+  .mel-event-full__content-below .mel-card--surface,
+  .mel-event-full__content-below .mel-organiser-card,
+  .mel-event-full__booking.mel-card--sticky {
+    background: var(--mel-full-surface);
+    border: 1px solid var(--mel-full-border);
+    border-radius: var(--mel-full-radius-lg);
+    box-shadow: var(--mel-full-shadow-1);
+    backdrop-filter: none;
+    color: var(--mel-full-text);
+  }
+
+  .mel-card__title,
+  .mel-booking-panel__price,
+  .mel-booking-panel__item strong,
+  .mel-booking-panel__save-label,
+  .mel-event-sidebar-details__value,
+  .mel-info-row__label,
+  .mel-info-row__value {
+    color: var(--mel-full-text);
+  }
+
+  .mel-booking-panel__item p,
+  .mel-booking-panel__save-hint,
+  .mel-booking-panel__trust-micro,
+  .mel-trust-rotator,
+  .mel-event-sidebar-details__label,
+  .mel-event-sidebar-details__secondary,
+  .mel-text--muted,
+  .mel-event-section__lede {
+    color: var(--mel-full-text-secondary);
+  }
+
+  .mel-event-gallery__title {
+    color: var(--mel-full-text);
+  }
+
+  .mel-event-gallery__lede {
+    color: var(--mel-full-text-secondary);
+  }
+
+  .mel-event-layout__main,
+  .mel-event-layout__sidebar,
+  .mel-event-full__content-below {
+    color: var(--mel-full-text);
+  }
+
+  .mel-event-layout__main a:not(.mel-btn, .mel-social),
+  .mel-event-support-zone__link {
+    color: var(--mel-full-lavender);
+  }
+}
+
+.mel-event-full__content-grid {
+  display: grid;
+  gap: 24px;
+
+  @media (width >= 1024px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-event-full__expect {
+  @media (width >= 1024px) {
+    grid-column: 1 / -1;
+  }
+}
+
+.mel-event-full__content-below {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.mel-event-full__content-below > .mel-card,
+.mel-event-full__content-below > .mel-event-section,
+.mel-event-full__content-below > .mel-organiser-card,
+.mel-event-full__content-below > .mel-return-block {
+  margin-top: 0;
+}
+
+.mel-event-full__content-below > .mel-card--surface,
+.mel-event-full__content-below > .mel-event-section.mel-card--surface,
+.mel-event-full__content-below > .mel-organiser-card.mel-card--surface {
+  background: var(--mel-full-surface);
+  border: 1px solid var(--mel-full-border);
+  border-radius: var(--mel-full-radius-lg);
+  box-shadow: var(--mel-full-shadow-1);
+  color: var(--mel-full-text);
+}
+
+// Booking panel — compact sticky card.
+.mel-event-full__booking {
+  align-self: start;
+  height: fit-content;
+  padding: 0;
+  border-radius: var(--mel-full-radius-lg);
+
+  @media (width >= 1024px) {
+    position: sticky;
+    top: 7rem;
+  }
+}
+
+.mel-event-full__booking-body {
+  padding: 28px;
+}
+
+.mel-event-full__booking-heading,
+.mel-booking-panel__heading {
+  margin: 0 0 12px;
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-bold;
+  line-height: 1.25;
+  color: var(--mel-full-text);
+}
+
+.mel-event-full__booking .mel-booking-panel {
+  gap: 12px;
+}
+
+.mel-event-full__booking .mel-booking-panel__rule {
+  margin: 8px 0;
+}
+
+.mel-event-full__booking .mel-decision-prompts {
+  gap: 8px;
+}
+
+.mel-event-full__view-details {
+  padding: 28px;
+
+  .mel-card__header {
+    margin-bottom: 16px;
+    padding: 0;
+  }
+
+  .mel-card__body {
+    padding: 0;
+  }
+}
+
+.mel-event-full__support {
+  margin-top: 0;
+  padding: 0 4px;
+  font-size: typography.mel-font-size(sm);
+
+  .mel-event-support-zone__link {
+    color: var(--mel-full-text-secondary);
+
+    &:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--mel-full-lavender) 55%, transparent);
+      outline-offset: 2px;
+      border-radius: radii.$mel-radius-sm;
+    }
+  }
+}
+
+@media (width <= 767px) {
+  .mel-event--v2 .mel-container:has(.mel-event-full) {
+    padding-inline: 16px;
+  }
+
+  .mel-event-full__booking {
+    position: static;
+  }
+}
+
+// Gallery wrapper spacing.
+.mel-event-full__gallery {
+  margin: 0;
+  min-width: 0;
+}
+
+.mel-event-full__gallery-card {
+  padding: 28px 28px 20px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.mel-event-full__gallery .mel-event-gallery {
+  margin-block: 0;
 }

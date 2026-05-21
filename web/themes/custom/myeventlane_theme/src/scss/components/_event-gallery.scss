@@ -57,9 +57,44 @@
   }
 
   .mel-event-gallery__viewport {
-    max-height: 11.25rem;
+    max-height: 10.625rem;
     margin-inline: auto;
-    max-width: min(100%, 28rem);
+    max-width: 100%;
+  }
+
+  &.mel-event-gallery--rail {
+    .mel-event-gallery__viewport {
+      max-height: none;
+    }
+
+    .mel-sidebar-carousel__track {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mel-sidebar-carousel__slide {
+      flex: 0 0 auto;
+      width: clamp(7.5rem, 18%, 10.625rem);
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      scroll-snap-align: center;
+    }
+
+    .mel-event-gallery__img {
+      max-height: 10.625rem;
+      width: 100%;
+    }
+
+    .mel-sidebar-carousel__slide.is-active .mel-event-gallery__trigger {
+      outline: 2px solid #f26d5b;
+      outline-offset: 2px;
+    }
   }
 
   .mel-sidebar-carousel__footer {
@@ -144,6 +179,10 @@
 @include breakpoints.mel-break(md, max) {
   .mel-event-gallery--carousel .mel-event-gallery__viewport {
     touch-action: pan-y;
+  }
+
+  .mel-event-gallery--carousel.mel-event-gallery--rail .mel-event-gallery__img {
+    max-height: 9.375rem;
   }
 }
 

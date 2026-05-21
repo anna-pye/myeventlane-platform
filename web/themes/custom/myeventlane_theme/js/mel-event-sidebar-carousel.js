@@ -17,6 +17,9 @@
     const next = carousel.querySelector("[data-mel-sidebar-next]");
     const dots = Array.from(carousel.querySelectorAll("[data-mel-sidebar-dot]"));
     const viewport = carousel.querySelector("[data-mel-sidebar-viewport]");
+    const isRail =
+      carousel.hasAttribute("data-mel-gallery-rail") ||
+      carousel.classList.contains("mel-event-gallery--rail");
     let active = slides.findIndex((slide) => slide.classList.contains("is-active"));
     if (active < 0) {
       active = 0;
@@ -29,17 +32,30 @@
      */
     function goTo(index) {
       const target = Math.max(0, Math.min(index, slides.length - 1));
-      if (target === active) {
-        return;
-      }
-      slides[active].classList.remove("is-active");
-      slides[active].hidden = true;
-      slides[active].setAttribute("aria-hidden", "true");
 
-      active = target;
-      slides[active].classList.add("is-active");
-      slides[active].hidden = false;
-      slides[active].removeAttribute("aria-hidden");
+      if (target !== active) {
+        if (isRail) {
+          slides[active].classList.remove("is-active");
+          slides[active].setAttribute("aria-hidden", "true");
+          active = target;
+          slides[active].classList.add("is-active");
+          slides[active].removeAttribute("aria-hidden");
+          slides[active].scrollIntoView({
+            behavior: reducedMotion ? "auto" : "smooth",
+            block: "nearest",
+            inline: "center",
+          });
+        } else {
+          slides[active].classList.remove("is-active");
+          slides[active].hidden = true;
+          slides[active].setAttribute("aria-hidden", "true");
+
+          active = target;
+          slides[active].classList.add("is-active");
+          slides[active].hidden = false;
+          slides[active].removeAttribute("aria-hidden");
+        }
+      }
 
       dots.forEach((dot, i) => {
         const selected = i === active;
@@ -143,6 +159,14 @@
 
     if (!reducedMotion && slides.length > 1) {
       carousel.setAttribute("data-mel-sidebar-enhanced", "true");
+    }
+
+    if (isRail) {
+      slides.forEach((slide, i) => {
+        slide.hidden = false;
+        slide.classList.toggle("is-active", i === active);
+        slide.setAttribute("aria-hidden", i === active ? "false" : "true");
+      });
     }
 
     goTo(active);

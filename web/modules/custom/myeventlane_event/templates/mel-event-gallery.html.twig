@@ -12,19 +12,21 @@
   {{ attach_library('myeventlane_theme/mel_event_gallery') }}
   {% set style_mod = event_page_style == 'immersive' ? 'immersive' : 'classic' %}
   <section
-    class="mel-event-gallery mel-event-gallery--{{ style_mod }} mel-event-gallery--carousel mel-event-gallery--count-{{ gallery.count }}"
+    class="mel-event-gallery mel-event-gallery--{{ style_mod }} mel-event-gallery--carousel mel-event-gallery--count-{{ gallery.count }} mel-event-full__card"
     aria-labelledby="mel-event-gallery-title"
     data-mel-lightbox-root
     data-mel-lightbox-root-id="mel-event-gallery-main"
   >
-    <header class="mel-event-gallery__header">
-      <h2 class="mel-event-gallery__title" id="mel-event-gallery-title">{{ 'Moments from this event'|t }}</h2>
-      <p class="mel-event-gallery__lede">{{ 'A closer look — tap any photo to expand.'|t }}</p>
-    </header>
+    <div class="mel-event-full__gallery-card mel-card mel-card--surface">
+      <header class="mel-event-gallery__header mel-card__header">
+        <h2 class="mel-event-gallery__title mel-card__title" id="mel-event-gallery-title">{{ 'Moments from this event'|t }}</h2>
+        <p class="mel-event-gallery__lede">{{ 'A closer look — tap any photo to expand.'|t }}</p>
+      </header>
 
     <div
-      class="mel-event-gallery__carousel mel-sidebar-carousel mel-sidebar-carousel--{{ style_mod }}{% if gallery.count < 2 %} mel-sidebar-carousel--single{% endif %}"
+      class="mel-event-gallery__carousel mel-sidebar-carousel mel-sidebar-carousel--{{ style_mod }}{% if gallery.count < 2 %} mel-sidebar-carousel--single{% endif %}{% if gallery.count >= 2 %} mel-event-gallery--rail{% endif %}"
       data-mel-sidebar-carousel
+      {% if gallery.count >= 2 %}data-mel-gallery-rail{% endif %}
       data-mel-sidebar-slide-count="{{ gallery.count }}"
       role="region"
       aria-roledescription="{{ 'Carousel'|t }}"
@@ -114,6 +116,7 @@
           </div>
         {% endif %}
       </div>
+    </div>
     </div>
 
     <dialog class="mel-media-lightbox" data-mel-lightbox-dialog aria-label="{{ 'Expanded photo'|t }}">
