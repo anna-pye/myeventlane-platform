@@ -290,6 +290,14 @@ services:
       - '@file_url_generator'
       - '@string_translation'
 
+  myeventlane_event_studio.event_branding_preview_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventBrandingPreviewBuilder
+    arguments:
+      - '@myeventlane_event_studio.event_page_style_resolver'
+      - '@myeventlane_event.media_presenter'
+      - '@file_url_generator'
+      - '@string_translation'
+
   myeventlane_event_studio.event_style_access:
     class: Drupal\myeventlane_event_studio\Service\EventStyleAccessManager
     arguments:
