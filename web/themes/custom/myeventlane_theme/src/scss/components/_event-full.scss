@@ -18,11 +18,15 @@
 // ==========================================================================
 
 .mel-event--v2:has(.mel-event-full) {
-  padding: space-tokens.mel-space(3) 0 space-tokens.mel-space(5);
+  padding-top: 0;
+  padding-bottom: space-tokens.mel-space(5);
+}
+
+.mel-event--v2:not(:has(.mel-event-full)) {
+  padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
 }
 
 .mel-event--v2 {
-  padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
 
   // Event Intelligence Layer — single calm chip (copy from preprocess).
   .mel-event__signal {
@@ -1159,7 +1163,7 @@
   line-height: 1.2;
 }
 
-.mel-event-layout {
+.mel-event-layout:not(.mel-event-full__layout) {
   margin-top: space-tokens.mel-space(5);
   display: grid;
   gap: space-tokens.mel-space(5);
@@ -1255,7 +1259,7 @@
   margin-top: 6px;
 }
 
-// Mockup mobile stack: hero → booking → view details → gallery → content.
+// Mockup mobile stack: hero → booking → view details → gallery → content (grid areas, not flex order).
 @media (width <= 767px) {
   .mel-event-full__layout {
     display: flex;
@@ -1263,45 +1267,40 @@
     gap: var(--mel-full-stack-gap, 20px);
   }
 
-  .mel-event-full__main,
-  .mel-event-full__sidebar {
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__primary,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__primary {
+    display: grid;
+    gap: var(--mel-full-stack-gap, 20px);
+    grid-template-areas:
+      'hero'
+      'sidebar'
+      'content'
+      'support';
+  }
+
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__main-col,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__main-col {
     display: contents;
   }
 
-  .mel-event-full__hero {
-    order: 1;
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__main--hero,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__main--hero {
+    grid-area: hero;
   }
 
-  .mel-event-full__booking {
-    order: 2;
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__main--content,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__main--content {
+    grid-area: content;
   }
 
-  .mel-event-full__view-details {
-    order: 3;
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__sidebar,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__sidebar {
+    grid-area: sidebar;
   }
 
-  .mel-event-full__gallery {
-    order: 4;
-  }
-
-  .mel-event-full__about {
-    order: 5;
-  }
-
-  .mel-event-full__highlights {
-    order: 6;
-  }
-
-  .mel-event-full__expect {
-    order: 7;
-  }
-
-  .mel-event-full__content-below {
-    order: 8;
-  }
-
-  .mel-event-full__support {
-    order: 9;
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__support,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__support {
+    grid-area: support;
   }
 }
 
@@ -2650,25 +2649,123 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
 .mel-event--v2 .mel-container:has(.mel-event-full) {
   max-width: min(100%, 82.5rem);
   padding-inline: clamp(16px, 3vw, 24px);
+  padding-top: 0;
 }
 
-.mel-event-full__layout {
-  display: grid;
+// Event full — flush under site header; main is full-bleed (not capped at 1200px).
+.mel-page:has(.mel-event-full) > main.mel-main {
+  max-width: none;
+  width: 100%;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+main.mel-main:has(.mel-event-full) {
+  padding-top: 0;
+}
+
+// Immersive canvas on page shell so no white band shows above hero.
+.mel-page:has(.mel-event-page--immersive.mel-event--v2 .mel-event-full) {
+  background-color: #080c14;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
+}
+
+.mel-page:has(.mel-event-page--classic.mel-event--v2 .mel-event-full) {
+  background-color: #fff9f5;
+}
+
+// Event full layout: DOM order hero → sidebar → content (mobile); named grid at 1100px+.
+.mel-event-page--classic.mel-event--v2 .mel-event-full__layout.mel-event-layout,
+.mel-event-page--immersive.mel-event--v2 .mel-event-full__layout.mel-event-layout {
+  margin-top: 0;
+}
+
+main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) {
+  display: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  border: 0;
+}
+
+.mel-event-full__layout.mel-event-layout {
+  display: flex;
+  flex-direction: column;
   gap: var(--mel-full-stack-gap, 20px);
-  align-items: start;
+  align-items: stretch;
   max-width: 100%;
   margin-inline: auto;
+}
+
+// Desktop: main column stacks hero + content; sidebar rail is a separate grid column.
+.mel-event-page--classic.mel-event--v2 .mel-event-full__primary,
+.mel-event-page--immersive.mel-event--v2 .mel-event-full__primary {
+  display: grid;
+  gap: var(--mel-full-stack-gap, 20px);
+  min-width: 0;
 
   @media (width >= 1100px) {
     grid-template-columns: minmax(0, 1fr) 390px;
+    grid-template-areas:
+      'stack sidebar'
+      'support sidebar';
+    gap: var(--mel-full-stack-gap, 20px) 32px;
+    align-items: start;
   }
 }
 
-.mel-event-full__main {
+.mel-event-page--classic.mel-event--v2 .mel-event-full__main-col,
+.mel-event-page--immersive.mel-event--v2 .mel-event-full__main-col {
   display: flex;
   flex-direction: column;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
+
+  @media (width >= 1100px) {
+    grid-area: stack;
+  }
+}
+
+.mel-event-full__main,
+.mel-event-full__main--hero,
+.mel-event-full__main--content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-full-stack-gap, 20px);
+  min-width: 0;
+}
+
+@media (width >= 1100px) {
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__sidebar,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__sidebar {
+    grid-area: sidebar;
+    grid-row: 1 / -1;
+    align-self: start;
+    width: 390px;
+    max-width: 390px;
+  }
+
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__sidebar-inner,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mel-full-stack-gap, 20px);
+    position: sticky;
+    top: var(--mel-sticky-offset, 5.5rem);
+    max-height: calc(100vh - var(--mel-sticky-offset, 5.5rem) - #{space-tokens.mel-space(4)});
+    overflow-y: auto;
+  }
+
+  .mel-event-page--classic.mel-event--v2 .mel-event-full__support.mel-event-support-zone,
+  .mel-event-page--immersive.mel-event--v2 .mel-event-full__support.mel-event-support-zone {
+    grid-area: support;
+    align-self: start;
+    margin-top: 0;
+  }
 }
 
 .mel-event-full__sidebar {
