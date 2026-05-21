@@ -1779,6 +1779,17 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     }
   }
 
+  $browse_display_map = [
+    'view.upcoming_events.page_events' => 'page_events',
+    'view.upcoming_events.page_free' => 'page_free',
+    'view.upcoming_events.page_this_weekend' => 'page_this_weekend',
+    'view.upcoming_events.page_today' => 'page_today',
+    'view.upcoming_events.page_category' => 'page_category',
+  ];
+  if (isset($browse_display_map[$route])) {
+    $variables['mel_browse_active_display'] = $browse_display_map[$route];
+  }
+
   // Hero image for listing pages (category, search, events).
   // Prefer Page Visuals Manager (myeventlane_page_visuals) when available.
   if (isset($variables['page_visual']['image_url']) && $variables['page_visual']['image_url']) {
