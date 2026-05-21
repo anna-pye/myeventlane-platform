@@ -145,6 +145,23 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-extra-preview',
     ],
+    'mel_event_branding_preview' => [
+      'variables' => [
+        'title' => '',
+        'hero' => NULL,
+        'gallery' => [],
+        'style' => 'classic',
+        'colour' => 'coral',
+        'style_label' => '',
+        'colour_label' => '',
+        'accent_hex' => '#F26D5B',
+        'wrapper_classes' => [],
+        'sample_meta' => [],
+        'sample_cta' => '',
+        'trust_rows' => [],
+      ],
+      'template' => 'mel-event-branding-preview',
+    ],
     'mel_customer_operational_experience' => [
       'variables' => [
         'experience' => [],

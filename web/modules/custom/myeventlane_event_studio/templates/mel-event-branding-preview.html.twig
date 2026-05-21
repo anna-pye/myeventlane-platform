@@ -1,0 +1,114 @@
+{#
+/**
+ * @file
+ * Public event page feel preview for Event Studio branding tab.
+ *
+ * Variables:
+ * - title: Event title (public).
+ * - hero: { url, alt }|null
+ * - gallery: list of { url, alt }
+ * - style: classic|immersive
+ * - colour: coral|purple|mint|gold|blue
+ * - style_label, colour_label: human labels
+ * - accent_hex: safe hex for accent chip
+ * - wrapper_classes: BEM + mel-event-page--* modifiers
+ * - sample_meta: { date, time, location }
+ * - sample_cta: sample button label
+ * - trust_rows: list of sample trust strings
+ */
+#}
+{% set preview_classes = wrapper_classes|default(['mel-event-branding-preview']) %}
+<section
+  class="{{ preview_classes|join(' ') }}"
+  aria-labelledby="mel-es-branding-preview-title"
+  data-mel-branding-preview
+  data-preview-style="{{ style|default('classic') }}"
+  data-preview-colour="{{ colour|default('coral') }}"
+>
+  <header class="mel-event-branding-preview__header">
+    <h3 class="mel-event-branding-preview__title" id="mel-es-branding-preview-title">
+      {{ 'This is how your public event page will feel'|t }}
+    </h3>
+    <p class="mel-event-branding-preview__lede">
+      {{ 'Your selected page style, colour, hero image, and gallery shape the public event page.'|t }}
+    </p>
+    <p class="mel-event-branding-preview__hint mel-text--muted">
+      {{ 'Style and colour update as you choose options. Save to refresh hero and gallery images.'|t }}
+    </p>
+  </header>
+
+  <div class="mel-event-branding-preview__canvas">
+    <div class="mel-event-branding-preview__hero{% if not hero %} mel-event-branding-preview__hero--empty{% endif %}">
+      {% if hero and hero.url|default('') %}
+        <img
+          class="mel-event-branding-preview__hero-img"
+          src="{{ hero.url }}"
+          alt="{{ hero.alt|default(title) }}"
+          loading="lazy"
+          decoding="async"
+        />
+      {% endif %}
+      <div class="mel-event-branding-preview__hero-overlay" aria-hidden="true"></div>
+      <div class="mel-event-branding-preview__hero-copy">
+        <h4 class="mel-event-branding-preview__event-title">{{ title|default('') }}</h4>
+        <ul class="mel-event-branding-preview__meta" aria-label="{{ 'Sample event details'|t }}">
+          <li>{{ sample_meta.date|default('') }}</li>
+          <li aria-hidden="true">·</li>
+          <li>{{ sample_meta.time|default('') }}</li>
+          <li aria-hidden="true">·</li>
+          <li>{{ sample_meta.location|default('') }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mel-event-branding-preview__body">
+      <div class="mel-event-branding-preview__style-row">
+        <span class="mel-event-branding-preview__style-pill">{{ style_label|default(style) }}</span>
+        <span
+          class="mel-event-branding-preview__accent-chip"
+          style="--mel-branding-preview-accent: {{ accent_hex|default('#F26D5B') }}"
+          title="{{ colour_label|default(colour) }}"
+        >
+          <span class="mel-event-branding-preview__accent-chip-swatch" aria-hidden="true"></span>
+          <span class="mel-event-branding-preview__accent-chip-label">{{ colour_label|default(colour) }}</span>
+        </span>
+      </div>
+
+      <aside class="mel-event-branding-preview__booking" aria-label="{{ 'Sample booking card'|t }}">
+        <p class="mel-event-branding-preview__booking-price">{{ 'From $45'|t }}</p>
+        <button type="button" class="mel-event-branding-preview__booking-cta" disabled>
+          {{ sample_cta|default('Get tickets'|t) }}
+        </button>
+        <ul class="mel-event-branding-preview__trust">
+          {% for row in trust_rows|default([]) %}
+            <li>{{ row }}</li>
+          {% endfor %}
+        </ul>
+      </aside>
+
+      <div class="mel-event-branding-preview__gallery" aria-label="{{ 'Gallery preview'|t }}">
+        {% if gallery is not empty %}
+          <ul class="mel-event-branding-preview__gallery-rail">
+            {% for thumb in gallery %}
+              <li>
+                <img
+                  src="{{ thumb.url }}"
+                  alt="{{ thumb.alt|default('') }}"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <ul class="mel-event-branding-preview__gallery-rail mel-event-branding-preview__gallery-rail--placeholder" aria-hidden="true">
+            {% for i in 1..4 %}
+              <li><span class="mel-event-branding-preview__gallery-placeholder"></span></li>
+            {% endfor %}
+          </ul>
+          <p class="mel-event-branding-preview__gallery-empty mel-text--muted">{{ 'Gallery photos appear here when you add them above.'|t }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
