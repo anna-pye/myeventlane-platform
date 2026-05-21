@@ -37,6 +37,7 @@ final class EventStudioSectionRenderer {
     private readonly MelSupportResolverInterface $supportResolver,
     private readonly ?EventCapacityServiceInterface $capacityService = NULL,
     private readonly ?EventMetricsServiceInterface $metricsService = NULL,
+    private readonly ?EventTicketPreviewBuilder $eventTicketPreviewBuilder = NULL,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -185,8 +186,17 @@ final class EventStudioSectionRenderer {
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-section__form-stack']],
       'mode' => $this->formBuilder->getForm(EventStudioTicketsForm::class, $event),
-      'operational' => $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event),
     ];
+
+    if ($this->eventTicketPreviewBuilder instanceof EventTicketPreviewBuilder) {
+      $preview = $this->eventTicketPreviewBuilder->build($event);
+      if ($preview !== []) {
+        $build['ticket_preview'] = $preview;
+        $build['ticket_preview']['#weight'] = 5;
+      }
+    }
+
+    $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);
 
     $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
       ? (string) $event->get('field_event_type')->value

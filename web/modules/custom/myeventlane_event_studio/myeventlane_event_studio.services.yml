@@ -95,6 +95,7 @@ services:
       - '@myeventlane_event_studio.mel_support_resolver'
       - '@?myeventlane_capacity.service'
       - '@?myeventlane_metrics.service'
+      - '@myeventlane_event_studio.event_ticket_preview_builder'
 
   myeventlane_event_studio.highlight_helper:
     class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper
@@ -298,6 +299,16 @@ services:
       - '@file_url_generator'
       - '@current_user'
       - '@string_translation'
+
+  myeventlane_event_studio.event_ticket_preview_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventTicketPreviewBuilder
+    arguments:
+      - '@myeventlane_event.booking_flow_resolver'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@myeventlane_event.event_mode_manager'
+      - '@commerce_price.currency_formatter'
+      - '@string_translation'
+      - '@?myeventlane_commerce.ticket_capacity'
 
   myeventlane_event_studio.event_style_access:
     class: Drupal\myeventlane_event_studio\Service\EventStyleAccessManager

@@ -165,6 +165,21 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-branding-preview',
     ],
+    'mel_event_ticket_preview' => [
+      'variables' => [
+        'preview_state' => 'not_configured',
+        'mode_badge' => '',
+        'heading' => '',
+        'cta' => [],
+        'availability' => [],
+        'ticket_rows' => [],
+        'rsvp_summary' => NULL,
+        'trust_rows' => [],
+        'show_empty_state' => TRUE,
+        'wrapper_classes' => [],
+      ],
+      'template' => 'mel-event-ticket-preview',
+    ],
     'mel_customer_operational_experience' => [
       'variables' => [
         'experience' => [],
