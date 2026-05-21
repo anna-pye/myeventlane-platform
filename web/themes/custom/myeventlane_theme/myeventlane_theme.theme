@@ -1624,6 +1624,16 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
       $variables['attributes']['class'][] = 'mel-commerce-order-detail';
     }
   }
+
+  $route_node = $route_match->getParameter('node');
+  if ($route_node instanceof NodeInterface && $route_node->bundle() === 'event') {
+    $variables['attributes']['class'][] = 'mel-body--event-full';
+    $resolved_style = _myeventlane_theme_resolve_event_page_style_for_node($route_node);
+    $style = $resolved_style['style'] ?? 'classic';
+    $variables['attributes']['class'][] = $style === 'immersive'
+      ? 'mel-body--event-full-immersive'
+      : 'mel-body--event-full-classic';
+  }
 }
 
 /**
@@ -2030,13 +2040,28 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $variables['mel_hero_mobile_url'] = $hero_mobile_url;
   $variables['mel_category_slug'] = $category_slug;
 
+  // Event full: page shell classes + skip empty status region (placeholder adds white gap).
+  $route_node = \Drupal::routeMatch()->getParameter('node');
+  if ($route_node instanceof NodeInterface && $route_node->bundle() === 'event') {
+    $resolved_style = _myeventlane_theme_resolve_event_page_style_for_node($route_node);
+    $variables['mel_event_full_page'] = TRUE;
+    $variables['mel_event_page_style'] = $resolved_style['style'] ?? 'classic';
+    $variables['mel_show_highlighted'] = FALSE;
+    foreach (\Drupal::messenger()->all() as $type_messages) {
+      if (!empty($type_messages)) {
+        $variables['mel_show_highlighted'] = TRUE;
+        break;
+      }
+    }
+  }
+
   // Status messages: when Highlighted has no blocks (config not imported, etc.),
   // page.highlighted is empty and users see no success/errors (e.g. /contact).
   // Build the same system block programmatically as a fallback only in that case.
   $page_render = $variables['page'] ?? [];
   $highlighted = $page_render['highlighted'] ?? [];
   $highlighted_has_blocks = is_array($highlighted) && count(Element::children($highlighted)) > 0;
-  if (!$highlighted_has_blocks) {
+  if (!$highlighted_has_blocks && empty($variables['mel_event_full_page'])) {
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
       $messages_block = $block_manager->createInstance('system_messages_block', []);
@@ -4526,6 +4551,7 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
   $variables['mel_signal_is_community'] = FALSE;
   $variables['mel_signal_trust_label'] = NULL;
   $variables['mel_signal_urgency_label'] = NULL;
+  $variables['mel_refund_policy_text'] = NULL;
   $variables['event_page_style'] = 'classic';
   $variables['event_theme_colour'] = 'coral';
   $variables['event_page_classes'] = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
@@ -4635,6 +4661,19 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
         $variables['event_summary_excerpt'] = Unicode::truncate($plain, 220, TRUE, TRUE);
       }
     }
+  }
+
+  if ($event->hasField('field_refund_policy') && !$event->get('field_refund_policy')->isEmpty()) {
+    $refund_key = (string) $event->get('field_refund_policy')->value;
+    $refund_map = [
+      'none_specified' => new TranslatableMarkup('No specified policy on refunds'),
+      '1_day' => new TranslatableMarkup('Refunds are available up to 1 day prior to the event'),
+      '7_days' => new TranslatableMarkup('Refunds are available up to 7 days prior to the event'),
+      '14_days' => new TranslatableMarkup('Refunds are available up to 14 days prior to the event'),
+      '30_days' => new TranslatableMarkup('Refunds are available up to 30 days prior to the event'),
+      'no_refunds' => new TranslatableMarkup('No refunds'),
+    ];
+    $variables['mel_refund_policy_text'] = $refund_map[$refund_key] ?? NULL;
   }
 
   if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {

@@ -1104,23 +1104,23 @@
   }
 }
 
-// Mobile: order summary + extras teaser before ticket form (matches event full sidebar).
+// Legacy mel-event-layout book grid (module template). mel-book-page uses _booking-page.scss order.
 @media (width <= 768px) {
-  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) {
+  .mel-booking-v2:not(.mel-book-page) .mel-event-layout:not(.mel-event-layout--booking-single) {
     display: flex;
     flex-direction: column;
     gap: spacing.mel-space(5);
   }
 
-  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__main {
+  .mel-booking-v2:not(.mel-book-page) .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__main {
     display: contents;
   }
 
-  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__side {
+  .mel-booking-v2:not(.mel-book-page) .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__side {
     order: 1;
   }
 
-  .mel-booking-v2 .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__main > * {
+  .mel-booking-v2:not(.mel-book-page) .mel-event-layout:not(.mel-event-layout--booking-single) > .mel-event-layout__main > * {
     order: 2;
   }
 }

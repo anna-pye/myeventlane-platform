@@ -1,10 +1,235 @@
 {#
 /**
  * @file
- * Theme override for the event booking page.
+ * Event booking page — MEL book surface aligned with public event full page.
  *
- * Extends the module default so markup stays in one place; replace this file
- * with a full template if the theme needs a divergent layout.
+ * Ticket matrix, access code, and Add to cart remain in Drupal forms unchanged.
  */
 #}
-{% extends "@myeventlane_commerce/myeventlane-event-book.html.twig" %}
+{% set extras_in_sidebar = addons_available and (extras_sidebar_selection|default(false) or extras_book_placement|default('main_before_access') == 'sidebar') %}
+{% set extras_in_main = addons_available and (extras_inline_before_access_code|default(false) or not extras_in_sidebar) %}
+{% set mel_book_paid = event_mode == 'paid' %}
+<article class="mel-book-page mel-booking-v2 mel-event-book mel-event--v2{% if event_page_classes is defined and event_page_classes %} {{ event_page_classes|join(' ') }}{% else %} mel-event-page--classic mel-event-page--colour-coral{% endif %}" data-event-mode="{{ event_mode }}">
+  <div class="mel-book-page__shell mel-container">
+    <header class="mel-book-header mel-card" aria-labelledby="mel-booking-event-title">
+      {% if event_back_url %}
+        <nav class="mel-book-header__nav" aria-label="{{ 'Event navigation'|t }}">
+          <a class="mel-book-back-link" href="{{ event_back_url }}">
+            <span class="mel-book-back-link__icon" aria-hidden="true">←</span>
+            {{ event_back_label|default('Back to event'|t) }}
+          </a>
+        </nav>
+      {% endif %}
+      <div class="mel-book-header__inner">
+        {% if hero_image or hero_url %}
+          <div class="mel-book-header__thumb" aria-hidden="true">
+            {% if hero_image %}
+              {{ hero_image }}
+            {% else %}
+              <img class="mel-book-header__thumb-img" src="{{ hero_url }}" alt="" width="120" height="80" loading="lazy" decoding="async" />
+            {% endif %}
+          </div>
+        {% endif %}
+        <div class="mel-book-header__copy">
+          {% if mel_category_label %}
+            <p class="mel-book-header__category">
+              <span class="mel-pill mel-pill--category mel-pill--cat-{{ mel_category_slug|default('default') }}">
+                <span class="mel-pill__label">{{ mel_category_label }}</span>
+              </span>
+            </p>
+          {% endif %}
+          <h1 class="mel-book-title" id="mel-booking-event-title">{{ label }}</h1>
+          <div class="mel-book-meta">
+            {% if hero_datetime %}
+              <p class="mel-book-meta__item mel-book-meta__datetime">{{ hero_datetime }}</p>
+            {% endif %}
+            {% if hero_venue %}
+              <p class="mel-book-meta__item mel-book-meta__venue">{{ hero_venue }}</p>
+            {% endif %}
+            {% if hero_status %}
+              <p class="mel-book-meta__item mel-book-meta__status mel-event-card__status mel-event-card__status--{{ hero_status_modifier|default('default') }}">{{ hero_status }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mel-event-info-strip mel-card" role="note">
+      {% if event_mode == 'paid' %}
+        <span class="mel-event-info-strip__item">{{ 'Secure checkout'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'No hidden fees'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'Confirmation email sent'|t }}</span>
+      {% elseif event_mode == 'rsvp' %}
+        <span class="mel-event-info-strip__item">{{ 'No payment required'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'Your RSVP will be confirmed by email'|t }}</span>
+      {% elseif event_mode == 'external' %}
+        <span class="mel-event-info-strip__item">{{ 'External ticketing'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'You will leave this site to buy tickets'|t }}</span>
+      {% else %}
+        <span class="mel-event-info-strip__item">{{ 'Hosted on MyEventLane'|t }}</span>
+      {% endif %}
+    </div>
+
+    {% if not addons_available and mel_customer_operational_experience %}
+      <div class="mel-booking-operational-experience">
+        {{ mel_customer_operational_experience }}
+      </div>
+    {% endif %}
+
+    {% if not addons_available and mel_operational_checkout %}
+      <div class="mel-booking-operational-checkout">
+        {{ mel_operational_checkout }}
+      </div>
+    {% endif %}
+
+    {% if not addons_available and mel_operational_purchase_composition %}
+      <div class="mel-booking-operational-composition">
+        {{ mel_operational_purchase_composition }}
+      </div>
+    {% endif %}
+
+    <div class="mel-book-layout mel-booking-container{% if not mel_book_paid %} mel-book-layout--single mel-event-layout--booking-single{% endif %}">
+      <main class="mel-book-main mel-event-layout__main">
+        <div class="mel-ticket-panel mel-book-panel mel-card mel-event-book__form" aria-labelledby="mel-ticket-panel-title">
+          <h2 class="mel-ticket-panel__title" id="mel-ticket-panel-title">
+            {% if event_mode == 'paid' %}
+              {{ 'Choose your tickets'|t }}
+            {% elseif event_mode == 'rsvp' %}
+              {{ 'Your details'|t }}
+            {% elseif event_mode == 'external' %}
+              {{ 'Continue'|t }}
+            {% else %}
+              {{ 'Booking'|t }}
+            {% endif %}
+          </h2>
+
+          <div class="mel-ticket-panel__body mel-event-book__form-body mel-booking-flow" data-mel-booking-flow>
+            {% if ticket_form is not empty %}
+              {{ ticket_form }}
+            {% elseif matrix_form is not empty %}
+              {{ matrix_form }}
+            {% elseif rsvp_form is not empty %}
+              {{ rsvp_form }}
+            {% else %}
+              <div class="mel-alert mel-alert--info" role="status">
+                {% if event_mode == 'none' %}
+                  {{ 'Registration opens soon.'|t }}
+                {% else %}
+                  {{ "We couldn't load the booking form. Please refresh the page."|t }}
+                {% endif %}
+              </div>
+            {% endif %}
+
+            {% if extras_in_main and operational_addon_form %}
+              <section id="mel-operational-addons--inline" class="mel-booking-extras mel-booking-extras--inline mel-operational-addons-section mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title--inline" tabindex="-1">
+                <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title--inline">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
+                <p class="mel-operational-addons-section__lede">{{ operational_addons_section_lede|default('Merch, perks, and add-ons for this booking — collect at the event after checkout.'|t) }}</p>
+                {{ operational_addon_form }}
+              </section>
+            {% endif %}
+
+            {% if ticket_booking_access is not empty %}
+              <div class="mel-ticket-booking-access-wrap">
+                {{ ticket_booking_access }}
+              </div>
+            {% endif %}
+
+            {% if ticket_form_actions is not empty %}
+              <div class="mel-booking__cta mel-booking-flow__checkout mel-book-mobile-action" role="region" aria-label="{{ 'Reserve tickets'|t }}">
+                <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
+                  <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
+                  <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
+                </div>
+                <p class="mel-booking__cta-note">
+                  {{ "Tickets will be added to your cart — checkout when you're ready."|t }}
+                </p>
+                {{ ticket_form_actions }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </main>
+
+      {% if mel_book_paid %}
+        <aside class="mel-book-sidebar mel-event-layout__side" aria-label="{{ 'Order summary and booking details'|t }}">
+          <div class="mel-book-sidebar__inner">
+            <div class="mel-book-summary mel-book-panel mel-card" data-mel-booking-summary>
+              <header class="mel-booking-summary__header">
+                <h3 class="mel-booking-summary__title">{{ 'Your selection'|t }}</h3>
+                <p class="mel-booking-summary__kicker mel-text--muted">{{ 'Clear pricing before you pay.'|t }}</p>
+              </header>
+              <div class="mel-booking-summary__body">
+                <div class="mel-booking-summary__empty" data-mel-summary-empty>
+                  <p class="mel-booking-summary__empty-line">{{ 'Choose your tickets to see your total.'|t }}</p>
+                  <p class="mel-booking-summary__empty-line mel-booking-summary__empty-line--soft">{{ 'You can review everything before checkout.'|t }}</p>
+                </div>
+                <div class="mel-booking-summary__items" data-mel-summary-items aria-live="polite" aria-atomic="true"></div>
+                <div class="mel-booking-summary__subtotal" data-mel-summary-subtotal hidden>
+                  <span class="mel-booking-summary__subtotal-label">{{ 'Subtotal'|t }}</span>
+                  <span class="mel-booking-summary__subtotal-value" data-mel-summary-subtotal-value></span>
+                </div>
+              </div>
+              <footer class="mel-booking-summary__footer">
+                <p class="mel-booking-summary__cta-note">{{ 'Tickets go to your cart first — continue to checkout when you are ready.'|t }}</p>
+              </footer>
+            </div>
+
+            <div class="mel-book-trust mel-book-panel mel-card" role="region" aria-label="{{ 'Booking reassurance'|t }}">
+              <h3 class="mel-book-trust__title">{{ 'Before you pay'|t }}</h3>
+              <ul class="mel-book-trust__list" role="list">
+                <li class="mel-book-trust__item">
+                  <span class="mel-book-trust__icon" aria-hidden="true">🔒</span>
+                  <span class="mel-book-trust__text">{{ 'Secure checkout — payment processed safely'|t }}</span>
+                </li>
+                <li class="mel-book-trust__item">
+                  <span class="mel-book-trust__icon" aria-hidden="true">✓</span>
+                  <span class="mel-book-trust__text">{{ 'No hidden fees on MyEventLane'|t }}</span>
+                </li>
+                <li class="mel-book-trust__item">
+                  <span class="mel-book-trust__icon" aria-hidden="true">✉</span>
+                  <span class="mel-book-trust__text">{{ 'Instant confirmation by email'|t }}</span>
+                </li>
+                {% if mel_signal_trust_label %}
+                  <li class="mel-book-trust__item">
+                    <span class="mel-book-trust__icon" aria-hidden="true">◎</span>
+                    <span class="mel-book-trust__text">{{ mel_signal_trust_label }}</span>
+                  </li>
+                {% endif %}
+                {% if mel_signal_urgency_label %}
+                  <li class="mel-book-trust__item mel-book-trust__item--urgent">
+                    <span class="mel-book-trust__icon" aria-hidden="true">⚡</span>
+                    <span class="mel-book-trust__text">{{ mel_signal_urgency_label }}</span>
+                  </li>
+                {% endif %}
+                {% if mel_refund_policy_text is defined and mel_refund_policy_text %}
+                  <li class="mel-book-trust__item">
+                    <span class="mel-book-trust__icon" aria-hidden="true">↩</span>
+                    <span class="mel-book-trust__text">{{ mel_refund_policy_text }}</span>
+                  </li>
+                {% endif %}
+              </ul>
+              {% if event_summary_excerpt %}
+                <p class="mel-book-summary__excerpt mel-text--muted">{{ event_summary_excerpt }}</p>
+              {% endif %}
+              <p class="mel-book-trust__support">
+                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Need help? Contact support'|t }}</a>
+              </p>
+            </div>
+
+            {% if operational_addon_teaser %}
+              {{ operational_addon_teaser }}
+            {% endif %}
+
+            {% if extras_in_sidebar and operational_addon_form %}
+              <section id="mel-operational-addons--sidebar" class="mel-booking-extras mel-booking-extras--sidebar mel-operational-addons-section mel-operational-addons-section--sidebar mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title--sidebar" tabindex="-1">
+                <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title--sidebar">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
+                <p class="mel-operational-addons-section__lede">{{ operational_addons_section_lede|default('Merch, perks, and add-ons for this booking — collect at the event after checkout.'|t) }}</p>
+                {{ operational_addon_form }}
+              </section>
+            {% endif %}
+          </div>
+        </aside>
+      {% endif %}
+    </div>
+  </div>
+</article>
