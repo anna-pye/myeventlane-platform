@@ -3,6 +3,7 @@
 @use '../tokens/shadows';
 @use '../tokens/typography';
 @use '../tokens/colors';
+@use '../tokens/breakpoints';
 
 // ---------------------------------------------------------------------------
 // Event gallery — editorial composition (presenter-driven roles)
@@ -12,6 +13,63 @@
   position: relative;
   // Vertical rhythm owned by _event-cinematic-convergence.scss per page style.
   margin-block: spacing.mel-space(5);
+}
+
+// ---------------------------------------------------------------------------
+// Main-column carousel (reuses mel-event-sidebar-carousel.js)
+// ---------------------------------------------------------------------------
+
+.mel-event-gallery--carousel {
+  margin-block: spacing.mel-space(4) spacing.mel-space(5);
+}
+
+.mel-event-gallery__carousel-shell {
+  overflow: hidden;
+  padding: 0;
+}
+
+.mel-event-gallery__viewport {
+  outline: none;
+}
+
+.mel-event-gallery__slide {
+  padding: 0;
+}
+
+.mel-event-gallery--carousel .mel-event-gallery__trigger {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: radii.$mel-radius-lg;
+}
+
+.mel-event-gallery--carousel .mel-event-gallery__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.mel-event-gallery--carousel .mel-sidebar-carousel__arrow {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.mel-event-gallery--carousel .mel-sidebar-carousel__dot {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-gallery--carousel .mel-event-gallery__trigger:hover {
+    transform: none;
+  }
+}
+
+@include breakpoints.mel-break(md, max) {
+  .mel-event-gallery--carousel .mel-event-gallery__viewport {
+    touch-action: pan-y;
+  }
 }
 
 .mel-event-gallery__header {

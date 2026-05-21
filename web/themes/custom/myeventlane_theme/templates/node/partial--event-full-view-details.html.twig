@@ -1,0 +1,69 @@
+{#
+  View details — compact when/where summary; links to full Event Information in main.
+#}
+<div class="mel-card mel-card--surface mel-event-sidebar__details">
+  <div class="mel-card__header">
+    <h2 class="mel-card__title">{{ 'View details'|t }}</h2>
+  </div>
+  <div class="mel-card__body mel-event-sidebar-details">
+    {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+      <div class="mel-event-sidebar-details__row">
+        <span class="mel-event-sidebar-details__label">{{ 'When'|t }}</span>
+        <div class="mel-event-sidebar-details__value">
+          <div class="mel-event-sidebar-details__primary">
+            {{ node.field_event_start.value|date('l, F j, Y') }}
+            {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+              {% set end_day = node.field_event_end.value|date('l, F j, Y') %}
+              {% if end_day != node.field_event_start.value|date('l, F j, Y') %}
+                <span class="mel-event-sidebar-details__range"> – {{ end_day }}</span>
+              {% endif %}
+            {% endif %}
+          </div>
+          <div class="mel-event-sidebar-details__secondary">
+            {{ node.field_event_start.value|date('g:i A') }}
+            {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+              – {{ node.field_event_end.value|date('g:i A') }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% set display_address = mel_address|default('')|trim %}
+    {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
+    {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
+    {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
+    {% set venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
+    {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
+    {% if venue_line is not empty or display_address is not empty or has_field_location %}
+      <div class="mel-event-sidebar-details__row">
+        <span class="mel-event-sidebar-details__label">{{ 'Where'|t }}</span>
+        <div class="mel-event-sidebar-details__value mel-event-location">
+          {% if venue_line is not empty %}
+            <div class="mel-event-location__venue">{{ venue_line }}</div>
+          {% endif %}
+          {% if display_address is not empty or has_field_location %}
+            <div class="mel-event-location__address">
+              {% if location_has_markup %}
+                {{ content.field_location }}
+              {% elseif display_address is not empty %}
+                {{ display_address }}
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if mel_category_label is defined and mel_category_label %}
+      <div class="mel-event-sidebar-details__row">
+        <span class="mel-event-sidebar-details__label">{{ 'Category'|t }}</span>
+        <div class="mel-event-sidebar-details__value">{{ mel_category_label }}</div>
+      </div>
+    {% endif %}
+
+    <p class="mel-event-sidebar-details__action">
+      <a class="mel-event-sidebar-details__link" href="#mel-event-information">{{ 'See full event information'|t }}</a>
+    </p>
+  </div>
+</div>
