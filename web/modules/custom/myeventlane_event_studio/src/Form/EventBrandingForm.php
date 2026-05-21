@@ -92,7 +92,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
   }
 
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
-    $this->messenger()->addStatus($this->t('Branding saved.'));
+    $this->messenger()->addStatus($this->t('Branding saved. Your public event page preview has been updated.'));
     $form_state->setRedirect('myeventlane_event_studio.workspace_branding', ['node' => $saved->id()]);
   }
 

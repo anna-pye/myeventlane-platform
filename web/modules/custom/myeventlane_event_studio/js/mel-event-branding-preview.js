@@ -2,7 +2,7 @@
  * @file
  * Event Studio branding tab — sync preview style/colour with form radios.
  */
-(function (Drupal, once) {
+(function (Drupal, drupalSettings, once) {
   'use strict';
 
   var STYLE_CLASS_PREFIX = 'mel-event-branding-preview--';
@@ -42,6 +42,70 @@
   }
 
   /**
+   * @param {object} settings
+   * @return {object}
+   */
+  function previewSettings(settings) {
+    return settings && settings.melEventBrandingPreview
+      ? settings.melEventBrandingPreview
+      : {};
+  }
+
+  /**
+   * @param {HTMLElement} preview
+   * @param {object} cfg
+   * @param {string} style
+   * @param {string} colour
+   */
+  function updateSelectionLabels(preview, cfg, style, colour) {
+    var styleLabels = cfg.styleLabels || {};
+    var colourLabels = cfg.colourLabels || {};
+    var styleEl = preview.querySelector('[data-mel-branding-preview-style-label]');
+    var colourEl = preview.querySelector('[data-mel-branding-preview-colour-label] .mel-event-branding-preview__accent-chip-label');
+    var styleLabel = styleLabels[style] || style;
+    var colourLabel = colourLabels[colour] || colour;
+
+    if (styleEl) {
+      styleEl.textContent = styleLabel;
+      styleEl.setAttribute('data-preview-style-label', styleLabel);
+    }
+    if (colourEl) {
+      colourEl.textContent = colourLabel;
+    }
+    var colourChip = preview.querySelector('[data-mel-branding-preview-colour-label]');
+    if (colourChip) {
+      colourChip.setAttribute('title', colourLabel);
+      colourChip.setAttribute('data-preview-colour-label', colourLabel);
+    }
+  }
+
+  /**
+   * @param {HTMLElement} preview
+   * @param {object} cfg
+   * @param {string} style
+   * @param {string} colour
+   */
+  function updateSavedStateNote(preview, cfg, style, colour) {
+    var stateEl = preview.querySelector('[data-mel-branding-preview-state]');
+    if (!stateEl) {
+      return;
+    }
+
+    var savedStyle = cfg.savedStyle || preview.dataset.savedStyle || '';
+    var savedColour = cfg.savedColour || preview.dataset.savedColour || '';
+    var hasUnsavedStyleColour = style !== savedStyle || colour !== savedColour;
+    var unsavedText = cfg.stateUnsavedStyleColour
+      || 'Unsaved style and colour changes are shown here before saving.';
+    var savedMediaText = cfg.stateSavedMedia || 'Preview based on saved event media.';
+
+    stateEl.textContent = hasUnsavedStyleColour ? unsavedText : savedMediaText;
+    stateEl.setAttribute(
+      'data-mel-branding-preview-state',
+      hasUnsavedStyleColour ? 'unsaved' : 'saved',
+    );
+  }
+
+  /**
    * @param {HTMLElement} preview
    * @param {HTMLFormElement|null} form
    */
@@ -50,6 +114,7 @@
       return;
     }
 
+    var cfg = previewSettings(drupalSettings);
     var styleName = 'mel[field_mel_page_style]';
     var colourName = 'mel[field_mel_theme_colour]';
 
@@ -59,7 +124,11 @@
     }
 
     function syncFromForm() {
-      applyPreviewModifiers(preview, readRadio(styleName), readRadio(colourName));
+      var style = readRadio(styleName);
+      var colour = readRadio(colourName);
+      applyPreviewModifiers(preview, style, colour);
+      updateSelectionLabels(preview, cfg, style, colour);
+      updateSavedStateNote(preview, cfg, style, colour);
     }
 
     form.addEventListener('change', function (event) {
@@ -83,4 +152,4 @@
       );
     },
   };
-})(Drupal, once);
+})(Drupal, drupalSettings, once);

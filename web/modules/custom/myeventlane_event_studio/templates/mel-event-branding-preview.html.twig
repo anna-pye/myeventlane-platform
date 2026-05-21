@@ -9,9 +9,11 @@
  * - gallery: list of { url, alt }
  * - style: classic|immersive
  * - colour: coral|purple|mint|gold|blue
+ * - saved_style, saved_colour: values last saved on the event
  * - style_label, colour_label: human labels
  * - accent_hex: safe hex for accent chip
  * - wrapper_classes: BEM + mel-event-page--* modifiers
+ * - public_page_link: render array link|null
  * - sample_meta: { date, time, location }
  * - sample_cta: sample button label
  * - trust_rows: list of sample trust strings
@@ -24,17 +26,32 @@
   data-mel-branding-preview
   data-preview-style="{{ style|default('classic') }}"
   data-preview-colour="{{ colour|default('coral') }}"
+  data-saved-style="{{ saved_style|default(style|default('classic')) }}"
+  data-saved-colour="{{ saved_colour|default(colour|default('coral')) }}"
 >
   <header class="mel-event-branding-preview__header">
     <h3 class="mel-event-branding-preview__title" id="mel-es-branding-preview-title">
       {{ 'This is how your public event page will feel'|t }}
     </h3>
     <p class="mel-event-branding-preview__lede">
-      {{ 'Your selected page style, colour, hero image, and gallery shape the public event page.'|t }}
+      {{ 'Your public event page uses these settings when the event is published.'|t }}
     </p>
-    <p class="mel-event-branding-preview__hint mel-text--muted">
-      {{ 'Style and colour update as you choose options. Save to refresh hero and gallery images.'|t }}
+    <ul class="mel-event-branding-preview__helpers">
+      <li>{{ 'Style and colour preview update immediately.'|t }}</li>
+      <li>{{ 'Hero and gallery preview update after saving.'|t }}</li>
+    </ul>
+    <p
+      class="mel-event-branding-preview__state-note"
+      data-mel-branding-preview-state
+      aria-live="polite"
+    >
+      {{ 'Preview based on saved event media.'|t }}
     </p>
+    {% if public_page_link %}
+      <div class="mel-event-branding-preview__actions">
+        {{ public_page_link }}
+      </div>
+    {% endif %}
   </header>
 
   <div class="mel-event-branding-preview__canvas">
@@ -63,11 +80,15 @@
 
     <div class="mel-event-branding-preview__body">
       <div class="mel-event-branding-preview__style-row">
-        <span class="mel-event-branding-preview__style-pill">{{ style_label|default(style) }}</span>
+        <span
+          class="mel-event-branding-preview__style-pill"
+          data-mel-branding-preview-style-label
+        >{{ style_label|default(style) }}</span>
         <span
           class="mel-event-branding-preview__accent-chip"
           style="--mel-branding-preview-accent: {{ accent_hex|default('#F26D5B') }}"
           title="{{ colour_label|default(colour) }}"
+          data-mel-branding-preview-colour-label
         >
           <span class="mel-event-branding-preview__accent-chip-swatch" aria-hidden="true"></span>
           <span class="mel-event-branding-preview__accent-chip-label">{{ colour_label|default(colour) }}</span>

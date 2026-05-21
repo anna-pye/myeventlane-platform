@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
@@ -41,6 +43,7 @@ final class EventBrandingPreviewBuilder {
     private readonly EventPageStyleResolver $eventPageStyleResolver,
     private readonly EventMediaPresenter $eventMediaPresenter,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly AccountProxyInterface $currentUser,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -73,6 +76,8 @@ final class EventBrandingPreviewBuilder {
       ],
     );
 
+    $public_page_link = $this->buildPublicPageLink($event);
+
     return [
       '#theme' => 'mel_event_branding_preview',
       '#title' => $event->label(),
@@ -80,10 +85,13 @@ final class EventBrandingPreviewBuilder {
       '#gallery' => $gallery,
       '#style' => $style,
       '#colour' => $colour,
+      '#saved_style' => $style,
+      '#saved_colour' => $colour,
       '#style_label' => $style_labels[$style] ?? $style,
       '#colour_label' => $colour_labels[$colour] ?? $colour,
       '#accent_hex' => self::ACCENT_HEX[$colour] ?? self::ACCENT_HEX[EventPageStyleResolver::COLOUR_CORAL],
       '#wrapper_classes' => $wrapper_classes,
+      '#public_page_link' => $public_page_link,
       '#sample_meta' => [
         'date' => (string) $this->t('Sat 14 Jun 2026'),
         'time' => (string) $this->t('7:00 pm – 10:00 pm'),
@@ -97,10 +105,56 @@ final class EventBrandingPreviewBuilder {
       ],
       '#attached' => [
         'library' => ['myeventlane_event_studio/mel_branding_preview'],
+        'drupalSettings' => [
+          'melEventBrandingPreview' => [
+            'savedStyle' => $style,
+            'savedColour' => $colour,
+            'styleLabels' => $style_labels,
+            'colourLabels' => $colour_labels,
+            'stateSavedMedia' => (string) $this->t('Preview based on saved event media.'),
+            'stateUnsavedStyleColour' => (string) $this->t('Unsaved style and colour changes are shown here before saving.'),
+          ],
+        ],
       ],
       '#cache' => [
         'tags' => $event->getCacheTags(),
         'contexts' => ['user.permissions'],
+      ],
+    ];
+  }
+
+  /**
+   * Canonical public event page link when the current user may view it.
+   *
+   * @return array<string, mixed>|null
+   */
+  private function buildPublicPageLink(NodeInterface $event): ?array {
+    if ($event->isNew() || $event->id() === NULL || (int) $event->id() < 1) {
+      return NULL;
+    }
+
+    try {
+      $url = Url::fromRoute('entity.node.canonical', ['node' => (int) $event->id()]);
+      if (!$url->access($this->currentUser)) {
+        return NULL;
+      }
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+
+    return [
+      '#type' => 'link',
+      '#title' => $this->t('View public event page'),
+      '#url' => $url,
+      '#attributes' => [
+        'class' => [
+          'button',
+          'button--secondary',
+          'mel-event-branding-preview__public-link',
+        ],
+        'target' => '_blank',
+        'rel' => 'noopener noreferrer',
       ],
     ];
   }
