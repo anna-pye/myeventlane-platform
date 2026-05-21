@@ -176,15 +176,6 @@
         <aside class="mel-event-full__sidebar mel-event-layout__sidebar mel-event-sidebar-rail" aria-label="{{ 'Tickets and event information'|t }}">
           {% include '@myeventlane_theme/node/partial--event-full-booking-panel.html.twig' %}
           {% include '@myeventlane_theme/node/partial--event-full-view-details.html.twig' %}
-
-          <nav class="mel-event-full__support mel-event-support-zone" aria-label="{{ 'Help and policies'|t }}">
-            <ul class="mel-event-support-zone__list">
-              <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
-              <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
-              <li><a class="mel-event-support-zone__link" href="/privacy">{{ 'Privacy'|t }}</a></li>
-              <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
-            </ul>
-          </nav>
         </aside>
 
         <div class="mel-event-full__main mel-event-full__main--content mel-event-layout__main">
@@ -619,6 +610,15 @@
            These are configuration inputs, not attendee-facing content. #}
         </div>
         </div>
+
+        <nav class="mel-event-full__support mel-event-support-zone" aria-label="{{ 'Help and policies'|t }}">
+          <ul class="mel-event-support-zone__list">
+            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="/privacy">{{ 'Privacy'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
+          </ul>
+        </nav>
       </div>
     </div>
   </div>

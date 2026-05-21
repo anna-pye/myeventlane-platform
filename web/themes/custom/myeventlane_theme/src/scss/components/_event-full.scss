@@ -2795,6 +2795,16 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   }
 }
 
+@media (width >= 1100px) {
+  .mel-event-full__main--hero {
+    grid-row: 1;
+  }
+
+  .mel-event-full__main--content {
+    grid-row: 2;
+  }
+}
+
 .mel-event-full__sidebar {
   display: flex;
   flex-direction: column;
@@ -2803,7 +2813,7 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
 
   @media (width >= 1100px) {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1;
     align-self: start;
     position: sticky;
     top: var(--mel-sticky-offset, 5.5rem);
@@ -3143,7 +3153,7 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   border-top: 0;
 }
 
-// Sidebar help links — compact strip (overrides global .mel-event-support-zone card + 44px targets).
+// Help links — after main content in DOM; desktop grid places in right column below sidebar.
 .mel-event-full__support.mel-event-support-zone {
   margin-top: 0;
   padding: 12px 16px;
@@ -3152,6 +3162,13 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   border: 1px solid var(--mel-full-border, #e9e3de);
   box-shadow: none;
   color: var(--mel-full-text-secondary, #5b6670);
+
+  @media (width >= 1100px) {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    margin-top: 1rem;
+  }
 
   .mel-event-support-zone__list {
     display: flex;
