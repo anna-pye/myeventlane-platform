@@ -8,6 +8,7 @@
   var MODE_MAP = {
     rsvp: 'rsvp',
     paid: 'paid',
+    both: 'both',
     external: 'external',
   };
 

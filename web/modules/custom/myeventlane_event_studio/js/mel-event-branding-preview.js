@@ -27,13 +27,17 @@
     preview.dataset.previewStyle = style;
     preview.dataset.previewColour = colour;
 
+    var classesToRemove = [];
     preview.classList.forEach(function (cls) {
       if (
         cls.indexOf(STYLE_CLASS_PREFIX) === 0
         || cls.indexOf(PAGE_STYLE_PREFIX) === 0
       ) {
-        preview.classList.remove(cls);
+        classesToRemove.push(cls);
       }
+    });
+    classesToRemove.forEach(function (cls) {
+      preview.classList.remove(cls);
     });
 
     preview.classList.add('mel-event-branding-preview--' + style);

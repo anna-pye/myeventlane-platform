@@ -30,6 +30,8 @@ final class EventTicketPreviewBuilder {
 
   public const PREVIEW_EXTERNAL = 'external';
 
+  public const PREVIEW_BOTH = 'both';
+
   public function __construct(
     private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly TicketTierLifecycleService $ticketTierLifecycle,
@@ -77,6 +79,7 @@ final class EventTicketPreviewBuilder {
               self::PREVIEW_RSVP => (string) $this->t('RSVP'),
               self::PREVIEW_PAID => (string) $this->t('Paid tickets'),
               self::PREVIEW_EXTERNAL => (string) $this->t('External'),
+              self::PREVIEW_BOTH => (string) $this->t('RSVP + Paid'),
             ],
             'saveReminder' => (string) $this->t('Save to refresh ticket rows.'),
           ],
@@ -119,6 +122,7 @@ final class EventTicketPreviewBuilder {
     return match ($configuredMode) {
       'rsvp' => self::PREVIEW_RSVP,
       'paid' => self::PREVIEW_PAID,
+      'both' => self::PREVIEW_BOTH,
       'external' => self::PREVIEW_EXTERNAL,
       default => self::PREVIEW_NOT_CONFIGURED,
     };
@@ -129,6 +133,7 @@ final class EventTicketPreviewBuilder {
       self::PREVIEW_RSVP => (string) $this->t('RSVP'),
       self::PREVIEW_PAID => (string) $this->t('Paid tickets'),
       self::PREVIEW_EXTERNAL => (string) $this->t('External'),
+      self::PREVIEW_BOTH => (string) $this->t('RSVP + Paid'),
       default => (string) $this->t('Not configured'),
     };
   }
@@ -137,6 +142,7 @@ final class EventTicketPreviewBuilder {
     return match ($previewState) {
       self::PREVIEW_RSVP => (string) $this->t('Free RSVP'),
       self::PREVIEW_PAID => (string) $this->t('Tickets'),
+      self::PREVIEW_BOTH => (string) $this->t('Tickets & RSVP'),
       self::PREVIEW_EXTERNAL => (string) $this->t('External booking'),
       default => '',
     };
@@ -179,6 +185,11 @@ final class EventTicketPreviewBuilder {
         'disabled' => FALSE,
         'reason' => NULL,
       ],
+      self::PREVIEW_BOTH => [
+        'label' => (string) $this->t('Get your tickets'),
+        'disabled' => FALSE,
+        'reason' => NULL,
+      ],
       default => [
         'label' => '',
         'disabled' => TRUE,
@@ -218,7 +229,7 @@ final class EventTicketPreviewBuilder {
    * @return list<array{name: string, price: string, availability: string}>
    */
   private function buildTicketRows(NodeInterface $event, string $previewState): array {
-    if ($previewState !== self::PREVIEW_PAID) {
+    if (!in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)) {
       return [];
     }
 
@@ -242,7 +253,7 @@ final class EventTicketPreviewBuilder {
    * @return array{capacity_line: string|null}|null
    */
   private function buildRsvpSummary(NodeInterface $event, string $previewState): ?array {
-    if ($previewState !== self::PREVIEW_RSVP) {
+    if (!in_array($previewState, [self::PREVIEW_RSVP, self::PREVIEW_BOTH], TRUE)) {
       return NULL;
     }
 
@@ -278,6 +289,11 @@ final class EventTicketPreviewBuilder {
       ],
       self::PREVIEW_RSVP => [
         (string) $this->t('No payment required'),
+        $confirmation,
+      ],
+      self::PREVIEW_BOTH => [
+        (string) $this->t('Secure checkout'),
+        (string) $this->t('No payment required for RSVP'),
         $confirmation,
       ],
       default => [$confirmation],
@@ -322,7 +338,7 @@ final class EventTicketPreviewBuilder {
 
     $pool = $this->ticketCapacity->getRemaining($eventId, (int) $ticket->id(), $variationId, $ticket);
     if ($pool < 1) {
-      return (string) $this->t('Limited availability');
+      return (string) $this->t('Sold out');
     }
     if ($pool === 1) {
       return (string) $this->t('Only 1 left');

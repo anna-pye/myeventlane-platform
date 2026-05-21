@@ -113,8 +113,6 @@
 
     carousel.addEventListener("keydown", handleCarouselKey);
     if (viewport) {
-      viewport.addEventListener("keydown", handleCarouselKey);
-
       let touchStartX = 0;
       let touchDeltaX = 0;
 
