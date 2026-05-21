@@ -135,7 +135,7 @@
             {% endif %}
 
             {% if ticket_form_actions is not empty %}
-              <div class="mel-booking__cta mel-booking-flow__checkout mel-book-mobile-action" role="region" aria-label="{{ 'Reserve tickets'|t }}">
+              <div class="mel-booking__cta mel-booking__cta--panel mel-booking-flow__checkout mel-book-mobile-action" role="region" aria-label="{{ 'Reserve tickets'|t }}">
                 <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
                   <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
                   <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
@@ -208,9 +208,9 @@
                   </li>
                 {% endif %}
               </ul>
-              {% if event_summary_excerpt %}
-                <p class="mel-book-summary__excerpt mel-text--muted">{{ event_summary_excerpt }}</p>
-              {% endif %}
+              <p class="mel-book-trust__note mel-text--muted">
+                {{ 'You can review your order before checkout. Your tickets are only confirmed once checkout is complete.'|t }}
+              </p>
               <p class="mel-book-trust__support">
                 <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Need help? Contact support'|t }}</a>
               </p>
