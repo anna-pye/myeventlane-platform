@@ -1,0 +1,45 @@
+{#
+  Inline SVG icons for public event page UI (outline style, currentColor).
+  Usage: {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'calendar', class: 'mel-event-icon', size: 24 } only %}
+#}
+{% set _size = size|default(24) %}
+{% set _class = (class|default('mel-event-icon'))|e('html_attr') %}
+<svg class="{{ _class }}" width="{{ _size }}" height="{{ _size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  {% if icon == 'calendar' %}
+    <rect x="3.5" y="5.5" width="17" height="15" rx="2.25" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M8 4v3M16 4v3M3.5 10h17" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+  {% elseif icon == 'clock' %}
+    <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M12 8v4.25l2.75 2.75" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elseif icon == 'map-pin' %}
+    <path d="M12 21s6-5.2 6-10.5a6 6 0 1 0-12 0C6 15.8 12 21 12 21Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <circle cx="12" cy="10.5" r="2.25" stroke="currentColor" stroke-width="1.75"/>
+  {% elseif icon == 'shield-check' %}
+    <path d="M12 3.5 5.5 6v5.2c0 4.1 2.8 7.9 6.5 9.3 3.7-1.4 6.5-5.2 6.5-9.3V6L12 3.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="m9.25 12 1.75 1.75L15 10.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elseif icon == 'mail' %}
+    <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elseif icon == 'heart' %}
+    <path d="M12 20.25s-6.75-4.35-6.75-9.1C5.25 7.65 7.65 5.25 10.5 5.25c1.65 0 3.15.9 3.75 2.2.6-1.3 2.1-2.2 3.75-2.2 2.85 0 5.25 2.4 5.25 5.9 0 4.75-6.75 9.1-6.75 9.1Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+  {% elseif icon == 'share' %}
+    <path d="M14 4.5h5.5V10M9.75 14.25 19.5 4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M19 14.5v5H5V5.5h5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elseif icon == 'calendar-plus' %}
+    <rect x="3.5" y="5.5" width="17" height="15" rx="2.25" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M8 4v3M16 4v3M12 11v5M9.5 13.5H14.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+  {% elseif icon == 'bolt' %}
+    <path d="M13 2 5 14h6l-1 8 8-12h-6l1-8Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+  {% elseif icon == 'user' %}
+    <circle cx="12" cy="8.25" r="3.25" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M5.5 19.5c1.4-3.5 4-5.25 6.5-5.25s5.1 1.75 6.5 5.25" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+  {% elseif icon == 'ticket' %}
+    <path d="M4 8.5a2 2 0 0 1 2-2h1.2a1.5 1.5 0 0 0 0-3H6a4 4 0 0 0-4 4v1.5a2.5 2.5 0 0 1 0 5V16a4 4 0 0 0 4 4h1.2a1.5 1.5 0 0 0 0-3H6a2 2 0 0 1-2-2v-1a2.5 2.5 0 0 1 0-5V8.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="M20 8.5a2 2 0 0 0-2-2h-1.2a1.5 1.5 0 0 1 0-3H18a4 4 0 0 1 4 4v1.5a2.5 2.5 0 0 0 0 5V16a4 4 0 0 1-4 4h-1.2a1.5 1.5 0 0 1 0-3H18a2 2 0 0 0 2-2v-1a2.5 2.5 0 0 0 0-5V8.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+  {% elseif icon == 'flame' %}
+    <path d="M12 22c4-3.5 6-7 6-11a6 6 0 0 0-11-3.5C5.5 9.5 6 13 8 16c-.5-2.5 0-4.5 2-6.5-1 3-1 5.5 2 8.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+  {% elseif icon == 'external' %}
+    <path d="M14 4.5h5.5V10M9.75 14.25 19.5 4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M19 14.5v5H5V5.5h5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% endif %}
+</svg>

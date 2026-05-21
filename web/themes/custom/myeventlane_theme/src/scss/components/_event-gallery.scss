@@ -3,6 +3,7 @@
 @use '../tokens/shadows';
 @use '../tokens/typography';
 @use '../tokens/colors';
+@use '../tokens/breakpoints';
 
 // ---------------------------------------------------------------------------
 // Event gallery — editorial composition (presenter-driven roles)
@@ -12,6 +13,233 @@
   position: relative;
   // Vertical rhythm owned by _event-cinematic-convergence.scss per page style.
   margin-block: spacing.mel-space(5);
+}
+
+// ---------------------------------------------------------------------------
+// Main-column carousel (reuses mel-event-sidebar-carousel.js)
+// ---------------------------------------------------------------------------
+
+.mel-event-gallery--carousel {
+  margin-block: spacing.mel-space(4) spacing.mel-space(5);
+  margin-inline: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+
+  &::before {
+    display: none;
+  }
+
+  .mel-event-gallery__title {
+    color: #24303a;
+  }
+
+  .mel-event-gallery__lede {
+    color: #5b6670;
+  }
+
+  .mel-event-gallery__carousel-shell {
+    overflow: hidden;
+    padding: 0;
+    background: var(--mel-event-surface, #fff);
+    border: 1px solid var(--mel-event-border, #e9e3de);
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: 0 12px 32px rgba(36, 48, 58, 0.06);
+    color: #24303a;
+  }
+
+  .mel-event-gallery__header {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  .mel-event-gallery__viewport {
+    max-height: none;
+    margin-inline: 0;
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  &.mel-event-gallery--rail {
+    .mel-event-gallery__rail,
+    .mel-event-gallery__carousel {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-width: 0;
+    }
+
+    .mel-event-gallery__viewport {
+      max-height: none;
+      overflow: visible;
+    }
+
+    .mel-sidebar-carousel__track {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 14px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x proximity;
+      padding: 0;
+      -webkit-overflow-scrolling: touch;
+      grid-template-columns: none;
+      grid-template-rows: none;
+    }
+
+    .mel-sidebar-carousel__slide {
+      position: static;
+      grid-area: auto;
+      flex: 0 0 auto;
+      width: clamp(11.25rem, 18%, 13.125rem);
+      max-width: 13.125rem;
+      min-width: 11.25rem;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      scroll-snap-align: start;
+      transition: none;
+    }
+
+    .mel-event-gallery__trigger {
+      display: block;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      line-height: 0;
+    }
+
+    .mel-event-gallery__img {
+      display: block;
+      width: 100%;
+      height: clamp(9.0625rem, 11vw, 10.3125rem);
+      min-height: 9.0625rem;
+      max-height: 10.3125rem;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 14px;
+    }
+
+    .mel-sidebar-carousel__slide.is-active .mel-event-gallery__trigger {
+      outline: 2px solid var(--mel-event-accent, #f26d5b);
+      outline-offset: 2px;
+    }
+
+    &.mel-event-gallery--rail-single {
+      .mel-sidebar-carousel__track {
+        justify-content: flex-start;
+      }
+
+      .mel-sidebar-carousel__slide {
+        width: clamp(11.25rem, 42%, 13.125rem);
+        max-width: 13.125rem;
+      }
+    }
+  }
+
+  .mel-sidebar-carousel__footer {
+    margin-top: 16px;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .mel-sidebar-carousel__nav {
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .mel-sidebar-carousel__arrow {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    border-color: var(--mel-event-border, #e9e3de);
+    background: var(--mel-event-soft-surface, #fdf1ec);
+    color: #24303a;
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  .mel-sidebar-carousel__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    min-width: 0.5rem;
+    min-height: 0.5rem;
+    padding: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, #24303a 22%, transparent);
+
+    &.is-active {
+      transform: scale(1.15);
+      background: var(--mel-event-accent, #f26d5b);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+}
+
+.mel-event-gallery__carousel-shell {
+  overflow: hidden;
+  padding: 0;
+}
+
+.mel-event-gallery__viewport {
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid #7c83fd;
+    outline-offset: 2px;
+    border-radius: radii.$mel-radius-md;
+  }
+}
+
+.mel-event-gallery__slide {
+  padding: 0;
+}
+
+.mel-event-gallery--carousel .mel-event-gallery__trigger {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: radii.$mel-radius-md;
+
+  &:focus-visible {
+    outline: 2px solid #7c83fd;
+    outline-offset: 2px;
+  }
+}
+
+.mel-event-gallery--carousel .mel-event-gallery__img {
+  display: block;
+  width: 100%;
+  max-height: 11.25rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: radii.$mel-radius-md;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-gallery--carousel .mel-event-gallery__trigger:hover {
+    transform: none;
+  }
+}
+
+@include breakpoints.mel-break(md, max) {
+  .mel-event-gallery--carousel .mel-event-gallery__viewport {
+    touch-action: pan-y;
+  }
+
+  .mel-event-gallery--carousel.mel-event-gallery--rail .mel-event-gallery__img {
+    max-height: 9.375rem;
+  }
 }
 
 .mel-event-gallery__header {
@@ -182,7 +410,7 @@
 // Classic — warm editorial magazine
 // ---------------------------------------------------------------------------
 
-.mel-event-page--classic .mel-event-gallery--classic {
+.mel-event-page--classic.mel-event--v2 .mel-event-gallery:not(.mel-event-full__card) {
   padding: spacing.mel-space(5) spacing.mel-space(5) spacing.mel-space(6);
   border-radius: radii.$mel-radius-xl;
   border: 1px solid color-mix(in srgb, var(--mel-event-border, rgba(36, 48, 58, 0.08)) 80%, transparent);
@@ -222,7 +450,7 @@
 // Immersive — cinematic, designed (not themed)
 // ---------------------------------------------------------------------------
 
-.mel-event-page--immersive .mel-event-gallery--immersive {
+.mel-event-page--immersive.mel-event--v2 .mel-event-gallery:not(.mel-event-full__card) {
   margin-inline: calc(-1 * #{spacing.mel-space(4)});
   padding: spacing.mel-space(6) spacing.mel-space(4) spacing.mel-space(7);
   border-radius: radii.$mel-radius-xl;

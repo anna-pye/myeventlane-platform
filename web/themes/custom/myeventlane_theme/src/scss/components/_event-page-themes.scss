@@ -56,21 +56,23 @@
 // Page shell warmth when Classic event is present (article bg alone leaves white gutters).
 body:has(.mel-event-page--classic.mel-event--v2),
 main.mel-main:has(.mel-event-page--classic.mel-event--v2) {
-  background-color: #fff8f4;
+  background-color: #fff9f5;
 }
 
 body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
-  background-color: #fff8f4;
+  background-color: #fff9f5;
   color: #1f2933;
 }
 
 // Classic — warm MEL default (Mockup 1): light page, white cards, preset accent CTAs.
 // Accent colours come from mel-event-page--colour-* on <article> (coral default).
 .mel-event-page--classic.mel-event--v2 {
-  --mel-event-page-bg: #fff8f4;
+  --mel-event-page-bg: #fff9f5;
   --mel-event-surface: #ffffff;
-  --mel-event-surface-soft: #fff1ec;
-  --mel-event-border: rgba(242, 109, 91, 0.18);
+  --mel-event-soft-surface: #fdf1ec;
+  --mel-event-surface-soft: #fdf1ec;
+  --mel-event-border: #e9e3de;
+  --mel-event-secondary-accent: #7c83fd;
   --mel-event-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
   --mel-event-text: #1f2933;
   --mel-event-muted: #6b7280;
@@ -102,12 +104,12 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     overflow: hidden;
   }
 
-  .mel-event-hero--featured-style .mel-event-hero__overlay {
+  .mel-event-full__hero.mel-event-hero--featured-style .mel-event-hero__overlay {
     background: linear-gradient(
       180deg,
-      rgba(0, 0, 0, 0.08) 0%,
-      rgba(31, 41, 51, 0.45) 55%,
-      rgba(31, 41, 51, 0.82) 100%
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.12) 45%,
+      rgba(36, 48, 58, 0.72) 100%
     );
   }
 
@@ -235,6 +237,8 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     background: var(--mel-event-surface);
     border: 1px solid var(--mel-event-border);
     box-shadow: var(--mel-event-shadow);
+    min-height: 0;
+    height: auto;
   }
 
   .mel-event-highlights__icon {
@@ -481,7 +485,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
 }
 
-// Immersive — cinematic Pro experience (single authored visual system).
+// Immersive — cinematic Pro experience (Event Studio branding tab).
 .mel-event-page--immersive.mel-event--v2 {
   // Typography scale — authoritative immersive contrast (explicit rgba, no opacity fade).
   --mel-immersive-text: #fff;
