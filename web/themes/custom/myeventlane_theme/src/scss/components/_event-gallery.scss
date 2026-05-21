@@ -21,6 +21,78 @@
 
 .mel-event-gallery--carousel {
   margin-block: spacing.mel-space(4) spacing.mel-space(5);
+
+  &.mel-event-gallery--classic,
+  &.mel-event-gallery--immersive {
+    margin-inline: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .mel-event-gallery__title {
+    color: #24303a;
+  }
+
+  .mel-event-gallery__lede {
+    color: #5b6670;
+  }
+
+  .mel-event-gallery__carousel-shell {
+    overflow: hidden;
+    padding: 0;
+    background: #fff;
+    border: 1px solid #e9e3de;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: 0 12px 32px rgba(36, 48, 58, 0.06);
+    color: #24303a;
+  }
+
+  .mel-event-gallery__header {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  .mel-event-gallery__viewport {
+    max-height: 11.25rem;
+    margin-inline: auto;
+    max-width: min(100%, 28rem);
+  }
+
+  .mel-sidebar-carousel__footer {
+    border-top-color: #e9e3de;
+  }
+
+  .mel-sidebar-carousel__arrow {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    border-color: #e9e3de;
+    background: #fdf1ec;
+    color: #24303a;
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  .mel-sidebar-carousel__dot {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    background: color-mix(in srgb, #24303a 20%, transparent);
+
+    &.is-active {
+      background: #f26d5b;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
 }
 
 .mel-event-gallery__carousel-shell {
@@ -30,6 +102,12 @@
 
 .mel-event-gallery__viewport {
   outline: none;
+
+  &:focus-visible {
+    outline: 2px solid #7c83fd;
+    outline-offset: 2px;
+    border-radius: radii.$mel-radius-md;
+  }
 }
 
 .mel-event-gallery__slide {
@@ -40,24 +118,21 @@
   display: block;
   width: 100%;
   min-height: 2.75rem;
-  border-radius: radii.$mel-radius-lg;
+  border-radius: radii.$mel-radius-md;
+
+  &:focus-visible {
+    outline: 2px solid #7c83fd;
+    outline-offset: 2px;
+  }
 }
 
 .mel-event-gallery--carousel .mel-event-gallery__img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  max-height: 11.25rem;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
-}
-
-.mel-event-gallery--carousel .mel-sidebar-carousel__arrow {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-}
-
-.mel-event-gallery--carousel .mel-sidebar-carousel__dot {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  border-radius: radii.$mel-radius-md;
 }
 
 @media (prefers-reduced-motion: reduce) {

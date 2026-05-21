@@ -109,18 +109,63 @@
         </div>
       {% endif %}
       <div class="mel-event-hero__content">
-        <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
-        {% if hero_datetime %}
-          <p class="mel-event-hero__datetime">{{ hero_datetime }}</p>
-        {% endif %}
-        {% if hero_venue %}
-          <p class="mel-event-hero__venue">{{ hero_venue }}</p>
-        {% endif %}
-        {% if (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) or hero_status %}
-          {% set _hero_status_mod = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? 'sold-out' : (hero_status_modifier|default('default')) %}
-          {% set _hero_status_text = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? (event_ui.status_label|default('')|striptags|length > 0 ? event_ui.status_label : ('Sold out'|t)) : hero_status %}
-          <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ _hero_status_mod }}">{{ _hero_status_text }}</p>
-        {% endif %}
+        <div class="mel-event-hero__glass mel-event-hero__info">
+          <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
+          {% set _hero_has_schedule = node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+          {% set _hero_venue_entity = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
+          {% set _hero_venue_line = (node.hasField('field_venue_name') and not node.field_venue_name.isEmpty) ? node.field_venue_name.value|trim : _hero_venue_entity|trim %}
+          {% set _hero_address = mel_address|default('')|trim %}
+          {% set _hero_has_location = _hero_venue_line is not empty or _hero_address is not empty or (node.hasField('field_location') and not node.field_location.isEmpty) %}
+          {% if _hero_has_schedule or _hero_has_location %}
+            <ul class="mel-event-hero__meta" role="list">
+              {% if _hero_has_schedule %}
+                <li class="mel-event-hero__meta-item">
+                  <span class="mel-event-hero__meta-icon" aria-hidden="true"></span>
+                  <span class="mel-event-hero__meta-text">
+                    <span class="mel-event-hero__meta-primary">
+                      {{ node.field_event_start.value|date('l, F j, Y') }}
+                      {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                        {% set _hero_end_day = node.field_event_end.value|date('l, F j, Y') %}
+                        {% if _hero_end_day != node.field_event_start.value|date('l, F j, Y') %}
+                          – {{ _hero_end_day }}
+                        {% endif %}
+                      {% endif %}
+                    </span>
+                  </span>
+                </li>
+                <li class="mel-event-hero__meta-item mel-event-hero__meta-item--time">
+                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--time" aria-hidden="true"></span>
+                  <span class="mel-event-hero__meta-text">
+                    <span class="mel-event-hero__meta-primary">
+                      {{ node.field_event_start.value|date('g:i A') }}
+                      {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                        – {{ node.field_event_end.value|date('g:i A') }}
+                      {% endif %}
+                    </span>
+                  </span>
+                </li>
+              {% endif %}
+              {% if _hero_has_location %}
+                <li class="mel-event-hero__meta-item mel-event-hero__meta-item--location">
+                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--location" aria-hidden="true"></span>
+                  <span class="mel-event-hero__meta-text">
+                    {% if _hero_venue_line is not empty %}
+                      <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
+                    {% endif %}
+                    {% if _hero_address is not empty %}
+                      <span class="mel-event-hero__meta-secondary">{{ _hero_address }}</span>
+                    {% endif %}
+                  </span>
+                </li>
+              {% endif %}
+            </ul>
+          {% endif %}
+          {% if (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) or hero_status %}
+            {% set _hero_status_mod = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? 'sold-out' : (hero_status_modifier|default('default')) %}
+            {% set _hero_status_text = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? (event_ui.status_label|default('')|striptags|length > 0 ? event_ui.status_label : ('Sold out'|t)) : hero_status %}
+            <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ _hero_status_mod }}">{{ _hero_status_text }}</p>
+          {% endif %}
+        </div>
       </div>
     </section>
 

@@ -70,17 +70,34 @@
       });
     });
 
+    /**
+     * @param {KeyboardEvent} event
+     */
+    function handleCarouselKey(event) {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goTo(active - 1);
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goTo(active + 1);
+        return;
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        goTo(0);
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        goTo(slides.length - 1);
+      }
+    }
+
+    carousel.addEventListener("keydown", handleCarouselKey);
     if (viewport) {
-      viewport.addEventListener("keydown", (event) => {
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          goTo(active - 1);
-        }
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          goTo(active + 1);
-        }
-      });
+      viewport.addEventListener("keydown", handleCarouselKey);
 
       let touchStartX = 0;
       let touchDeltaX = 0;

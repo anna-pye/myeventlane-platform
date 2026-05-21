@@ -153,7 +153,7 @@ myeventlane_event_full:
     js/event-full-trust-rotator.js: { attributes: { defer: true } }
 
 mel_event_gallery:
-  version: 1.2
+  version: 1.3
   js:
     js/mel-media-lightbox.js: {}
     js/mel-event-sidebar-carousel.js: { attributes: { defer: true } }

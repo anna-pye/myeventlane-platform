@@ -31,7 +31,13 @@
       aria-label="{{ 'Event photo gallery'|t }}"
     >
       <div class="mel-card mel-card--surface mel-event-gallery__carousel-shell">
-        <div class="mel-sidebar-carousel__viewport mel-event-gallery__viewport" data-mel-sidebar-viewport tabindex="0">
+        <div
+          class="mel-sidebar-carousel__viewport mel-event-gallery__viewport"
+          data-mel-sidebar-viewport
+          tabindex="0"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <div class="mel-sidebar-carousel__track mel-event-gallery__track" data-mel-sidebar-track>
             {% for item in gallery.items %}
               <div
