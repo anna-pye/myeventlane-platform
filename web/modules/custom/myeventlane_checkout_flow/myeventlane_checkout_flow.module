@@ -16,6 +16,7 @@ declare(strict_types=1);
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\myeventlane_surface\MelWorkflowContext;
@@ -29,6 +30,7 @@ function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkou
     /** @var \Drupal\myeventlane_checkout_flow\Service\CheckoutUxAttacher $attacher */
     $attacher = \Drupal::service('myeventlane_checkout_flow.checkout_ux_attacher');
     $attacher->attachCompleteStepSidebar($form);
+    myeventlane_checkout_flow_hide_empty_complete_sidebar_panes($form);
     return;
   }
   if ($step_id !== 'checkout') {
@@ -54,6 +56,30 @@ function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkou
   $attacher->attach($form);
 
   myeventlane_checkout_flow_attach_fast_checkout($form, $form_state);
+}
+
+/**
+ * Hides empty checkout sidebar panes on the completion step.
+ *
+ * Commerce sets #access from visible children for main panes only; sidebar panes
+ * (including grouped_order_summary) can render an empty fieldset shell otherwise.
+ */
+function myeventlane_checkout_flow_hide_empty_complete_sidebar_panes(array &$form): void {
+  if (!isset($form['sidebar']) || !is_array($form['sidebar'])) {
+    return;
+  }
+
+  $disabled_summary_panes = ['grouped_order_summary', 'mel_fee_transparency'];
+  foreach (Element::children($form['sidebar']) as $pane_id) {
+    if (!isset($form['sidebar'][$pane_id]) || !is_array($form['sidebar'][$pane_id])) {
+      continue;
+    }
+    if (in_array($pane_id, $disabled_summary_panes, TRUE)) {
+      $form['sidebar'][$pane_id]['#access'] = FALSE;
+      continue;
+    }
+    $form['sidebar'][$pane_id]['#access'] = (bool) Element::getVisibleChildren($form['sidebar'][$pane_id]);
+  }
 }
 
 /**

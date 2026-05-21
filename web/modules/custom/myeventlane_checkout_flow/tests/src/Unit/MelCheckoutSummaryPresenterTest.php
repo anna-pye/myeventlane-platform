@@ -83,6 +83,48 @@ final class MelCheckoutSummaryPresenterTest extends UnitTestCase {
 
     $this->assertSame('complete', $render['surface']);
     $this->assertFalse($render['show_jump_to_payment']);
+    $this->assertFalse($render['has_grouped_line_items']);
+    $this->assertTrue($render['has_pricing_block']);
+  }
+
+  /**
+   * @covers ::buildGroupedSummaryRenderArray
+   */
+  public function testGroupedLineItemsFlagWhenTicketRowsExist(): void {
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getCacheTags')->willReturn(['commerce_order:3']);
+    $order->method('getCacheContexts')->willReturn(['user']);
+
+    $built = [
+      'grouped_items' => [[
+        'title' => 'Show',
+        'items' => [[
+          'quantity' => 2,
+          'ticket_type' => 'General',
+          'total_price' => '$20.00',
+        ]],
+      ]],
+      'order_total' => '$20.00',
+      'subtotal_formatted' => '$20.00',
+      'optional_donation_formatted' => '',
+      'tax_rows' => [],
+      'fee_rows' => [],
+      'platform_fee_absorbed' => FALSE,
+      'show_includes_gst_note' => FALSE,
+      'cache_tags' => [],
+    ];
+
+    $grouped = $this->createMock(CheckoutGroupedSummaryBuilderInterface::class);
+    $grouped->method('build')->willReturn($built);
+
+    $readiness = new MelReadinessHelper($this->getStringTranslationStub());
+    $templates = new GovernedOperationalTemplates($readiness);
+
+    $presenter = new MelCheckoutSummaryPresenter($grouped, $readiness, $templates);
+    $render = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'complete']);
+
+    $this->assertTrue($render['has_grouped_line_items']);
+    $this->assertSame('mel_checkout_order_summary_grouped', $render['#theme']);
   }
 
   /**
