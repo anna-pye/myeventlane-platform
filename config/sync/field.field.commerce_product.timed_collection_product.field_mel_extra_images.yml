@@ -21,5 +21,4 @@ settings:
   handler_settings:
     target_bundles:
       image: image
-
 field_type: entity_reference

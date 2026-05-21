@@ -197,6 +197,7 @@ final class EventStudioSectionRenderer {
     }
 
     $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);
+    $build['operational']['#weight'] = 10;
 
     $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
       ? (string) $event->get('field_event_type')->value

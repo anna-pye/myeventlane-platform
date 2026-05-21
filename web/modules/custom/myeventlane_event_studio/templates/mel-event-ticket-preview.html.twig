@@ -4,7 +4,7 @@
  * Customer booking preview for Event Studio ticket setup.
  *
  * Variables:
- * - preview_state: not_configured|rsvp|paid|external
+ * - preview_state: not_configured|rsvp|paid|both|external
  * - mode_badge: short mode label
  * - heading: section heading inside canvas
  * - cta: { label, disabled, reason }
@@ -58,13 +58,13 @@
         <h4 class="mel-event-ticket-preview__heading">{{ heading }}</h4>
       {% endif %}
 
-      {% if preview_state == 'rsvp' and rsvp_summary %}
+      {% if preview_state in ['rsvp', 'both'] and rsvp_summary %}
         {% if rsvp_summary.capacity_line %}
           <p class="mel-event-ticket-preview__capacity">{{ rsvp_summary.capacity_line }}</p>
         {% endif %}
       {% endif %}
 
-      {% if preview_state == 'paid' %}
+      {% if preview_state in ['paid', 'both'] %}
         {% if ticket_rows is not empty %}
           <ul class="mel-event-ticket-preview__ticket-rows" aria-label="{{ 'Ticket options'|t }}">
             {% for row in ticket_rows %}

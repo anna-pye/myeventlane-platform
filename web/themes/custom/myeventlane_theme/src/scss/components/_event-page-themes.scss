@@ -170,7 +170,7 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
     color: var(--mel-event-muted);
   }
 
-  .mel-event-layout {
+  .mel-event-layout:not(.mel-event-full__layout) {
     margin-top: space-tokens.mel-space(5);
   }
 
@@ -582,8 +582,11 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     --mel-event-surface-tint: #{color.mix(colors.$mel-color-info, #121820, 10%)};
   }
 
-  padding-top: space-tokens.mel-space(6);
   padding-bottom: space-tokens.mel-space(9);
+
+  &:not(:has(.mel-event-full)) {
+    padding-top: space-tokens.mel-space(6);
+  }
 
   .mel-container {
     max-width: min(100%, 76rem);
@@ -699,8 +702,8 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     }
   }
 
-  // Layout rhythm — connected columns on one canvas.
-  .mel-event-layout {
+  // Layout rhythm — connected columns on one canvas (not event-full grid; that shell owns ≥1100px).
+  .mel-event-layout:not(.mel-event-full__layout) {
     margin-top: 0;
     gap: var(--mel-immersive-section-gap);
 
@@ -710,8 +713,8 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     }
   }
 
-  .mel-event-layout__main,
-  .mel-event-layout__sidebar {
+  .mel-event-layout__main:not(.mel-event-full__primary),
+  .mel-event-layout__sidebar:not(.mel-event-full__sidebar) {
     display: flex;
     flex-direction: column;
     gap: var(--mel-immersive-section-gap);
@@ -1370,8 +1373,15 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     --mel-immersive-pad-secondary: #{space-tokens.mel-space(4)};
     --mel-immersive-pad-tertiary: #{space-tokens.mel-space(4)};
 
-    padding-top: space-tokens.mel-space(5);
     padding-bottom: space-tokens.mel-space(7);
+
+    &:has(.mel-event-full) {
+      padding-top: 0;
+    }
+
+    &:not(:has(.mel-event-full)) {
+      padding-top: space-tokens.mel-space(5);
+    }
 
     .mel-event-hero--featured-style {
       min-height: 20rem;
@@ -1463,4 +1473,78 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
       }
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Event full — flush under global header (body/page classes; both page styles).
+// ---------------------------------------------------------------------------
+
+body.mel-body--event-full-immersive,
+.mel-page--event-full--immersive {
+  background-color: #080c14;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
+}
+
+body.mel-body--event-full-classic,
+.mel-page--event-full--classic {
+  background-color: #fff9f5;
+}
+
+body.mel-body--event-full .mel-page > main.mel-main,
+body.mel-body--event-full .mel-page > main.mel-main > div:first-child,
+.mel-page--event-full > main.mel-main,
+.mel-page--event-full > main.mel-main > div:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  max-width: none;
+  width: 100%;
+}
+
+body.mel-body--event-full-immersive .mel-page > main.mel-main,
+.mel-page--event-full--immersive > main.mel-main {
+  background-color: #080c14;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
+}
+
+body.mel-body--event-full-classic .mel-page > main.mel-main,
+.mel-page--event-full--classic > main.mel-main {
+  background-color: #fff9f5;
+  background-image: none;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full),
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-container,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-container {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-event-full,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-event-full {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-event-full__layout,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-event-full__layout {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-event-full__hero.mel-event-hero--featured-style,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-event-full__hero.mel-event-hero--featured-style {
+  margin-top: 0;
 }

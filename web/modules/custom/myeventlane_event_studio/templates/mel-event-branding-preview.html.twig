@@ -42,7 +42,7 @@
     </ul>
     <p
       class="mel-event-branding-preview__state-note"
-      data-mel-branding-preview-state
+      data-mel-branding-preview-state="saved"
       aria-live="polite"
     >
       {{ 'Preview based on saved event media.'|t }}
@@ -86,7 +86,6 @@
         >{{ style_label|default(style) }}</span>
         <span
           class="mel-event-branding-preview__accent-chip"
-          style="--mel-branding-preview-accent: {{ accent_hex|default('#F26D5B') }}"
           title="{{ colour_label|default(colour) }}"
           data-mel-branding-preview-colour-label
         >

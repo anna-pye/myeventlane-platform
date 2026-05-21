@@ -1628,7 +1628,7 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
     }
   }
 
-  $route_node = $route_match->getParameter('node');
+  $route_node = $route_match ? $route_match->getParameter('node') : NULL;
   if ($route_node instanceof NodeInterface && $route_node->bundle() === 'event') {
     $variables['attributes']['class'][] = 'mel-body--event-full';
     $resolved_style = _myeventlane_theme_resolve_event_page_style_for_node($route_node);

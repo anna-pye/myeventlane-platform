@@ -1510,7 +1510,7 @@ display:
           plugin_id: text
           empty: true
           content:
-            value: '<div class="mel-empty-state mel-empty-state--governed mel-empty-state--browse-filtered" role="status"><h3 class="mel-empty-state__heading">No events match your filters</h3><p class="mel-empty-state__what">Try clearing filters, browsing all upcoming events, or exploring free events and this weekend.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Browse all events</a> <a class="mel-link" href="/events/free">Free events</a> <a class="mel-link" href="/events/this-weekend">This weekend</a></p></div>'
+            value: '<div class="mel-empty mel-empty--browse" role="status"><p>No events found — try adjusting your filters.</p></div>'
             format: full_html
           tokenize: false
       filters:

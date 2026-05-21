@@ -37,7 +37,6 @@
     {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
     {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
     {% set venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
-    {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
     {% if venue_line is not empty or display_address is not empty or has_field_location %}
       <div class="mel-event-sidebar-details__row">
         <span class="mel-event-sidebar-details__label">{{ 'Where'|t }}</span>
@@ -47,9 +46,7 @@
           {% endif %}
           {% if display_address is not empty or has_field_location %}
             <div class="mel-event-location__address">
-              {% if location_has_markup %}
-                {{ content.field_location }}
-              {% elseif display_address is not empty %}
+              {% if display_address is not empty %}
                 {{ display_address }}
               {% endif %}
             </div>
