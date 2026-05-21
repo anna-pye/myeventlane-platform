@@ -312,7 +312,7 @@
 }
 
 // Classic
-.mel-event-page--classic .mel-sidebar-carousel--classic {
+.mel-event-page--classic.mel-event--v2 .mel-sidebar-carousel {
   .mel-sidebar-carousel__slide-header,
   .mel-sidebar-carousel__slide-body {
     color: var(--mel-event-text, colors.$mel-color-text);
@@ -335,7 +335,7 @@
 }
 
 // Immersive
-.mel-event-page--immersive .mel-sidebar-carousel--immersive {
+.mel-event-page--immersive.mel-event--v2 .mel-sidebar-carousel {
   .mel-sidebar-carousel__footer {
     border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
   }

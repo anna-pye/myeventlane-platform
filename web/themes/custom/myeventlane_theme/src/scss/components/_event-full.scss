@@ -3011,20 +3011,54 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   border-top: 0;
 }
 
-.mel-event-full__support {
+// Sidebar help links — compact strip (overrides global .mel-event-support-zone card + 44px targets).
+.mel-event-full__support.mel-event-support-zone {
   margin-top: 0;
-  padding: 0 4px;
-  font-size: typography.mel-font-size(sm);
+  padding: 12px 16px;
+  border-radius: var(--mel-full-radius-md, 16px);
+  background: var(--mel-full-surface-soft, #fdf1ec);
+  border: 1px solid var(--mel-full-border, #e9e3de);
+  box-shadow: none;
+  color: var(--mel-full-text-secondary, #5b6670);
+
+  .mel-event-support-zone__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
 
   .mel-event-support-zone__link {
-    color: var(--mel-full-text-secondary);
+    display: inline;
+    min-height: 0;
+    padding: 0;
+    font-size: 0.8125rem;
+    font-weight: typography.$mel-font-medium;
+    line-height: 1.35;
+    color: var(--mel-full-text-secondary, #5b6670);
+    text-decoration: none;
+    text-underline-offset: 0.14em;
+
+    &:hover {
+      color: var(--mel-full-lavender, #7c83fd);
+      text-decoration: underline;
+    }
 
     &:focus-visible {
-      outline: 2px solid color-mix(in srgb, var(--mel-full-lavender) 55%, transparent);
+      outline: 2px solid color-mix(in srgb, var(--mel-full-lavender, #7c83fd) 55%, transparent);
       outline-offset: 2px;
       border-radius: radii.$mel-radius-sm;
     }
   }
+}
+
+.mel-event-page--immersive.mel-event--v2 .mel-event-full__support.mel-event-support-zone {
+  padding-top: 12px;
+  margin-top: 0;
+  border-top: 0;
 }
 
 @media (width <= 767px) {
