@@ -4521,6 +4521,62 @@
   }
 }
 
+/* Guided builder intro (Phase 1 product reset). */
+.mel-event-studio .mel-event-studio-guided-intro {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--mel-color-surface-soft, #fdf1ec);
+  border: 1px solid var(--mel-color-border-soft, #e9e3de);
+}
+
+.mel-event-studio .mel-event-studio-guided-intro__eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mel-color-text-muted, #5c6770);
+}
+
+.mel-event-studio .mel-event-studio-guided-intro__lede {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--mel-color-text, #24303a);
+}
+
+/* Sticky save footer — keeps Drupal form actions visible while scrolling. */
+.mel-event-studio .mel-event-studio__footer-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 16px 16px 0 0;
+  background: var(--mel-color-surface, #fff);
+  border-top: 1px solid var(--mel-color-border-soft, #e9e3de);
+  box-shadow: 0 -8px 24px rgba(36, 48, 58, 0.08);
+}
+
+.mel-event-studio .mel-event-studio__footer-actions .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+}
+
+.mel-event-studio .mel-event-studio__footer-actions .button,
+.mel-event-studio .mel-event-studio__footer-actions .mel-btn {
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-studio .mel-event-studio__footer-actions {
+    box-shadow: none;
+  }
+}
+
 @media (max-width: 640px) {
   .mel-event-studio .mel-event-studio-ticket-card,
   .mel-event-studio .mel-event-studio-questions__card,
