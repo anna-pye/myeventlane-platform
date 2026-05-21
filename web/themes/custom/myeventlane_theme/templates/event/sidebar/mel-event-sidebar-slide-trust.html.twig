@@ -11,8 +11,12 @@
         <div class="mel-booking-panel__trust-micro">
           {% if mel_trust_checkout and cta_type is defined and cta_type == 'paid' %}
             <p class="mel-booking-panel__trust-micro-primary">{{ 'Secure checkout'|t }}</p>
+            <p>{{ 'Payment processed securely via Stripe'|t }}</p>
+          {% elseif cta_type is defined and cta_type == 'rsvp' %}
+            <p class="mel-booking-panel__trust-micro-primary">{{ 'Free RSVP'|t }}</p>
+            <p>{{ 'No payment required — confirmation by email'|t }}</p>
           {% endif %}
-          <p>{{ 'No hidden fees'|t }}</p>
+          <p>{{ 'No hidden fees on MyEventLane'|t }}</p>
         </div>
         {% set _mel_trust_capacity_highlight = event_ui is defined
           and (mel_cta_urgency|default('')|striptags|length == 0)
