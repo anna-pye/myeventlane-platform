@@ -13,6 +13,17 @@
   ];
 
   /**
+   * @returns {string}
+   */
+  function brandingHeroSourceUrl() {
+    const settings = drupalSettings.myeventlane_event_studio;
+    if (settings && settings.brandingHero && settings.brandingHero.sourceUrl) {
+      return String(settings.brandingHero.sourceUrl);
+    }
+    return "";
+  }
+
+  /**
    * @param {HTMLElement} root
    * @returns {HTMLInputElement|null}
    */
@@ -107,6 +118,19 @@
 
   /**
    * @param {HTMLElement} root
+   * @returns {string}
+   */
+  function resolveFramingImageSrc(root) {
+    const fromSettings = brandingHeroSourceUrl();
+    if (fromSettings) {
+      return fromSettings;
+    }
+    const source = findWidgetPreviewImage(root);
+    return source && source.getAttribute("src") ? source.src : "";
+  }
+
+  /**
+   * @param {HTMLElement} root
    * @param {string} focalValue
    */
   function syncFramingPreview(root, focalValue) {
@@ -114,10 +138,10 @@
     if (!frame) {
       return;
     }
-    const source = findWidgetPreviewImage(root);
+    const src = resolveFramingImageSrc(root);
     const { x, y } = parseFocal(focalValue);
     let img = frame.querySelector("img.mel-es-branding-hero-framing__img");
-    if (!source || !source.getAttribute("src")) {
+    if (!src) {
       frame.hidden = true;
       if (img) {
         img.removeAttribute("src");
@@ -133,10 +157,20 @@
       img.loading = "lazy";
       frame.appendChild(img);
     }
-    if (img.getAttribute("src") !== source.src) {
-      img.src = source.src;
+    if (img.getAttribute("src") !== src) {
+      img.src = src;
     }
     img.style.objectPosition = `${x}% ${y}%`;
+  }
+
+  /**
+   * Notifies focal_point JS to reposition the crop-widget indicator.
+   *
+   * @param {HTMLInputElement} field
+   */
+  function notifyFocalPointModule(field) {
+    $(field).trigger("change");
+    $(document).trigger("drupalFocalPointSet");
   }
 
   /**
@@ -146,7 +180,7 @@
     const focal = findFocalField(root);
     const presets = root.querySelector(".mel-es-branding-hero-focal-presets");
     const framing = root.querySelector(".mel-es-branding-hero-framing");
-    const hasImage = !!findWidgetPreviewImage(root);
+    const hasImage = !!resolveFramingImageSrc(root);
 
     if (presets) {
       presets.hidden = !focal;
@@ -203,6 +237,32 @@
     }
   }
 
+  /**
+   * @param {HTMLElement} root
+   */
+  function observeWidgetPreview(root) {
+    if (root.dataset.melHeroPreviewObserved === "1") {
+      return;
+    }
+    const preview = root.querySelector(".image-widget .preview, .image-widget");
+    if (!preview || typeof MutationObserver === "undefined") {
+      return;
+    }
+    root.dataset.melHeroPreviewObserved = "1";
+    const observer = new MutationObserver(() => {
+      syncHeroToolStrip(root);
+      const field = findFocalField(root);
+      if (field) {
+        onFocalChanged(root, field, false);
+      }
+    });
+    observer.observe(preview, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+  }
+
   if (!Drupal.melBrandingHeroToolsAjaxBound) {
     Drupal.melBrandingHeroToolsAjaxBound = true;
     $(document).on("ajaxComplete.melBrandingHeroTools", () => {
@@ -210,6 +270,7 @@
         .querySelectorAll(".mel-es-field-group--branding")
         .forEach((root) => {
           syncHeroToolStrip(root);
+          observeWidgetPreview(root);
         });
     });
     $(document).on("drupalFocalPointSet.melBrandingHeroTools", () => {
@@ -229,11 +290,16 @@
       once("mel-branding-hero-tools", ".mel-es-field-group--branding", context).forEach(
         (root) => {
           syncHeroToolStrip(root);
+          observeWidgetPreview(root);
 
           const focal = findFocalField(root);
           if (focal) {
             focal.addEventListener("change", () => {
               onFocalChanged(root, focal, false);
+            });
+            focal.addEventListener("input", () => {
+              syncPresetButtons(root, focal);
+              syncFramingPreview(root, focal.value);
             });
           }
 
@@ -250,7 +316,7 @@
                 return;
               }
               field.value = value;
-              $(field).trigger("change");
+              notifyFocalPointModule(field);
               onFocalChanged(root, field, true);
               return;
             }

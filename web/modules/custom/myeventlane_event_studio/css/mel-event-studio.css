@@ -1215,7 +1215,24 @@ textarea.mel-input--body {
   background: #1a2330;
 }
 
+.mel-es-branding-hero-framing__frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.35) 38%,
+    rgba(0, 0, 0, 0.08) 68%,
+    transparent 100%
+  );
+}
+
 .mel-es-branding-hero-framing__img {
+  position: relative;
+  z-index: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -1229,11 +1246,29 @@ textarea.mel-input--body {
   line-height: 1.4;
 }
 
-.mel-es-branding-hero-size-hint {
+.mel-es-branding-hero-quality {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mel-es-branding-hero-quality__title {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mel-studio-text);
+}
+
+.mel-es-branding-hero-quality__list {
+  margin: 0;
+  padding-inline-start: 1.15rem;
+  font-size: 0.8125rem;
   color: var(--mel-studio-muted);
   line-height: 1.45;
+}
+
+.mel-es-branding-hero-quality__list li + li {
+  margin-top: 0.2rem;
 }
 
 .mel-es-branding-hero-focal-presets {
@@ -1251,15 +1286,29 @@ textarea.mel-input--body {
 .mel-es-branding-hero-focal-presets__buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.5rem;
+}
+
+.mel-es-branding-focal-preset {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding-inline: 0.85rem;
+  font-weight: 600;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
 }
 
 .mel-es-branding-focal-preset.is-active,
 .mel-es-branding-focal-preset[aria-pressed="true"] {
   border-color: #5b63e8;
-  background: rgba(91, 99, 232, 0.12);
-  color: #3d45c4;
-  box-shadow: 0 0 0 2px rgba(91, 99, 232, 0.2);
+  background: linear-gradient(180deg, rgba(91, 99, 232, 0.18) 0%, rgba(91, 99, 232, 0.1) 100%);
+  color: #2f36a8;
+  box-shadow:
+    0 0 0 2px rgba(91, 99, 232, 0.28),
+    0 4px 12px rgba(91, 99, 232, 0.15);
 }
 
 .mel-es-branding-focal-preset:focus-visible {
@@ -1277,6 +1326,22 @@ textarea.mel-input--body {
 
 .mel-es-field-group--branding .js-mel-branding-hero-remove:not(:disabled) {
   align-self: flex-start;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 640px) {
+  .mel-es-branding-hero-tools {
+    padding: 0.85rem;
+    gap: 0.85rem;
+  }
+
+  .mel-es-branding-hero-framing__frame {
+    max-width: none;
+  }
+
+  .mel-es-branding-hero-focal-presets__buttons {
+    gap: 0.45rem;
+  }
 }
 
 /* Branding: focal_point augment on image_widget_crop — click preview to set focus. */
@@ -1301,6 +1366,20 @@ textarea.mel-input--body {
 
 .mel-event-studio .mel-es-field-group--branding .focal-point-indicator {
   z-index: 2;
+}
+
+/* Event gallery (media library) — separate from hero branding block */
+.mel-event-studio .mel-es-field-group--gallery {
+  margin-top: 1.25rem;
+}
+
+.mel-event-studio .mel-es-field-group__body--gallery .media-library-widget {
+  margin-top: 0.35rem;
+}
+
+.mel-event-studio .mel-es-field-group--gallery .description {
+  font-size: 0.8125rem;
+  color: var(--mel-studio-muted);
 }
 
 /* Event page style (Classic / Immersive) + colour presets */

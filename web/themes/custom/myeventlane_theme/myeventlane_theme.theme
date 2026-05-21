@@ -1779,6 +1779,17 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     }
   }
 
+  $browse_display_map = [
+    'view.upcoming_events.page_events' => 'page_events',
+    'view.upcoming_events.page_free' => 'page_free',
+    'view.upcoming_events.page_this_weekend' => 'page_this_weekend',
+    'view.upcoming_events.page_today' => 'page_today',
+    'view.upcoming_events.page_category' => 'page_category',
+  ];
+  if (isset($browse_display_map[$route])) {
+    $variables['mel_browse_active_display'] = $browse_display_map[$route];
+  }
+
   // Hero image for listing pages (category, search, events).
   // Prefer Page Visuals Manager (myeventlane_page_visuals) when available.
   if (isset($variables['page_visual']['image_url']) && $variables['page_visual']['image_url']) {
@@ -4190,6 +4201,21 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
   }
   if (!isset($variables['operational_addon_teaser'])) {
     $variables['operational_addon_teaser'] = NULL;
+  }
+
+  $view_mode = (string) ($variables['view_mode'] ?? '');
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_event.sidebar_carousel_builder')) {
+    /** @var \Drupal\myeventlane_event\Service\EventSidebarCarouselBuilder $carousel_builder */
+    $carousel_builder = \Drupal::service('myeventlane_event.sidebar_carousel_builder');
+    $carousel = $carousel_builder->buildFromEventPageVariables($variables);
+    $variables['mel_sidebar_carousel'] = [
+      '#theme' => 'mel_event_sidebar_carousel',
+      '#carousel' => $carousel,
+      '#event_page_style' => $variables['event_page_style'] ?? 'classic',
+      '#attached' => [
+        'library' => ['myeventlane_theme/mel_event_sidebar_carousel'],
+      ],
+    ];
   }
 }
 

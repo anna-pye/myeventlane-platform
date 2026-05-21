@@ -153,10 +153,11 @@
     <section class="mel-vendor-dashboard__attention-strip" aria-labelledby="mel-dash-attention-title">
       <div class="mel-vendor-dashboard__section-head">
         <div>
-          <p class="mel-live-ops__eyebrow">{{ 'Events needing attention'|t }}</p>
-          <h2 id="mel-dash-attention-title" class="mel-live-ops__panel-title">{{ 'Review next'|t }}</h2>
+          <p class="mel-live-ops__eyebrow">{{ 'Needs your attention'|t }}</p>
+          <h2 id="mel-dash-attention-title" class="mel-live-ops__panel-title">{{ 'Events to fix or finish'|t }}</h2>
+          <p class="mel-live-ops__muted mel-vendor-dashboard__attention-lede">{{ 'Drafts, missing ticket or RSVP setup, upcoming dates, and check-in readiness — without exposing attendee details here.'|t }}</p>
         </div>
-        <span class="mel-live-ops__chip mel-live-ops__chip--warn">{{ 'Contextual'|t }}</span>
+        <span class="mel-live-ops__chip mel-live-ops__chip--warn">{{ attention_events|length }} {{ 'to review'|t }}</span>
       </div>
       <div class="mel-vendor-dashboard__attention-row" role="list">
         {% for ev in attention_events %}

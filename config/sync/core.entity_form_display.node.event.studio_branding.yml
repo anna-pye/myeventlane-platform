@@ -24,6 +24,7 @@ dependencies:
     - field.field.node.event.field_event_end
     - field.field.node.event.field_event_highlights
     - field.field.node.event.field_event_image
+    - field.field.node.event.field_mel_event_gallery
     - field.field.node.event.field_event_intro
     - field.field.node.event.field_event_start
     - field.field.node.event.field_event_state
@@ -63,6 +64,7 @@ dependencies:
     - crop
     - image
     - image_widget_crop
+    - media_library
 id: node.event.studio_branding
 targetEntityType: node
 bundle: event
@@ -83,6 +85,14 @@ content:
       warn_multiple_usages: false
       show_crop_area: true
       show_default_crop: true
+    third_party_settings: {  }
+  field_mel_event_gallery:
+    type: media_library_widget
+    weight: 14
+    region: content
+    settings:
+      media_types:
+        image: image
     third_party_settings: {  }
 hidden:
   body: true

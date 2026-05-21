@@ -982,6 +982,11 @@ final class EventStudioSaveService {
       }
     }
 
+    $gallery_errors = $this->saveBrandingGalleryField($node, $mel_structure, $form_state);
+    if ($gallery_errors !== []) {
+      return ['node' => NULL, 'errors' => $gallery_errors, 'warnings' => []];
+    }
+
     $style_errors = $this->applyBrandingPageStyleFields($node, $mel_values);
     if ($style_errors !== []) {
       return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
@@ -1000,6 +1005,48 @@ final class EventStudioSaveService {
     }
 
     return ['node' => $node, 'errors' => [], 'warnings' => $warnings];
+  }
+
+  /**
+   * Persists optional gallery media from the branding form widget.
+   *
+   * @param array<string, mixed> $mel_structure
+   *
+   * @return list<string>
+   */
+  private function saveBrandingGalleryField(NodeInterface $node, array $mel_structure, FormStateInterface $form_state): array {
+    if (!$node->hasField('field_mel_event_gallery')) {
+      return [];
+    }
+
+    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    if (!$display instanceof EntityFormDisplay) {
+      return [];
+    }
+
+    $widget = $display->getRenderer('field_mel_event_gallery');
+    if ($widget === NULL) {
+      return [];
+    }
+
+    if (!isset($mel_structure['field_mel_event_gallery'])) {
+      return [];
+    }
+
+    try {
+      $items = $node->get('field_mel_event_gallery');
+      $widget->extractFormValues($items, $mel_structure, $form_state);
+      $node->set('field_mel_event_gallery', $items->getValue());
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding gallery save failed for node @nid: @m', [
+        '@nid' => (string) $node->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return ['Could not save event gallery.'];
+    }
+
+    return [];
   }
 
   /**
