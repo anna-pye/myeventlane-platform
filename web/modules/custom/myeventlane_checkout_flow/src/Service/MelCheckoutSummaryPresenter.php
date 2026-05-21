@@ -44,7 +44,8 @@ final class MelCheckoutSummaryPresenter {
     ];
 
     $has_pricing_block = $this->hasPricingBlock($built);
-    if ($built['grouped_items'] === [] && !$has_pricing_block) {
+    $has_grouped_line_items = $this->hasGroupedLineItems($built);
+    if (!$has_grouped_line_items && !$has_pricing_block) {
       return [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-checkout-order-summary', 'mel-checkout-order-summary--empty-state']],
@@ -74,9 +75,38 @@ final class MelCheckoutSummaryPresenter {
       'labels' => $labels,
       'trust' => $trust,
       'has_pricing_block' => $has_pricing_block,
+      'has_grouped_line_items' => $has_grouped_line_items,
       'surface' => $surface,
       'show_jump_to_payment' => $surface === 'checkout',
     ];
+  }
+
+  /**
+   * Whether any event group has ticket/add-on lines to show (not pricing-only).
+   *
+   * @param array<string, mixed> $built
+   *   Output shape from CheckoutGroupedSummaryBuilder::build().
+   */
+  private function hasGroupedLineItems(array $built): bool {
+    foreach ($built['grouped_items'] as $event) {
+      if (!is_array($event)) {
+        continue;
+      }
+      foreach ($event['items'] ?? [] as $item) {
+        if (!is_array($item)) {
+          continue;
+        }
+        if ((int) ($item['quantity'] ?? 0) <= 0) {
+          continue;
+        }
+        $ticket_type = trim((string) ($item['ticket_type'] ?? ''));
+        $total_price = trim((string) ($item['total_price'] ?? ''));
+        if ($ticket_type !== '' || $total_price !== '' || !empty($item['operational_addon_display'])) {
+          return TRUE;
+        }
+      }
+    }
+    return FALSE;
   }
 
   /**

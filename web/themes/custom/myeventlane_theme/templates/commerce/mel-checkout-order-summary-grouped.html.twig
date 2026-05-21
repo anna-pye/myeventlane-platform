@@ -7,10 +7,13 @@
 {% set labels = labels|default({}) %}
 {% set trust = trust|default({}) %}
 {% set surface = surface|default('checkout') %}
-{% if grouped_items is not empty or subtotal_formatted or optional_donation_formatted|default('') or tax_rows is not empty or fee_rows is not empty or platform_fee_absorbed %}
+{% set has_grouped_line_items = has_grouped_line_items|default(false) %}
+{% set show_grouped_summary = has_grouped_line_items or has_pricing_block|default(false) %}
+{% if show_grouped_summary %}
 <div class="mel-checkout-order-summary mel-summary-grouped mel-summary-grouped--{{ surface|e('html_attr') }}" role="region" aria-label="{{ labels.summary_region }}">
   <h2 class="visually-hidden">{{ labels.core_heading_visually_hidden }}</h2>
 
+  {% if has_grouped_line_items %}
   {% for event in grouped_items %}
     <article class="mel-summary-event mel-summary-event--card">
       {% if event.thumbnail_url|default('') %}
@@ -47,7 +50,9 @@
       </div>
     </article>
   {% endfor %}
+  {% endif %}
 
+  {% if has_pricing_block|default(false) %}
   <div class="mel-summary-breakdown" role="group" aria-label="{{ labels.pricing_breakdown_region }}">
     {% if subtotal_formatted %}
       <div class="mel-summary-row mel-summary-row--subtotal">
@@ -89,6 +94,7 @@
     <span class="mel-summary-total__label">{{ labels.total_label }}</span>
     <strong class="mel-summary-total__value">{{ order_total }}</strong>
   </div>
+  {% endif %}
 
   {% if show_includes_gst_note %}
     <p class="mel-tax-note">{{ labels.gst_note }}</p>

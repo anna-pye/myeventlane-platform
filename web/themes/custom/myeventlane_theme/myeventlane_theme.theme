@@ -165,6 +165,7 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
         'labels' => [],
         'trust' => [],
         'has_pricing_block' => TRUE,
+        'has_grouped_line_items' => FALSE,
         'surface' => 'checkout',
         'show_jump_to_payment' => TRUE,
       ],
@@ -646,7 +647,9 @@ function myeventlane_theme_preprocess_commerce_checkout_order_summary(array &$va
   }
   /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $presenter */
   $presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
-  $variables['mel_checkout_order_summary_build'] = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'checkout']);
+  $step = \Drupal::routeMatch()->getParameter('step');
+  $surface = $step === 'complete' ? 'complete' : 'checkout';
+  $variables['mel_checkout_order_summary_build'] = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => $surface]);
   $variables['order_entity'] = $order;
   _myeventlane_theme_attach_mel_operational_checkout($variables);
 }
