@@ -475,15 +475,8 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
 }
 
 // Immersive shell — atmospheric canvas (article carries local accents).
-// When mel-event-full layout is present, keep the page shell light (mockup v2).
-body:has(.mel-event-page--immersive.mel-event--v2 .mel-event-full),
-main.mel-main:has(.mel-event-page--immersive.mel-event--v2 .mel-event-full) {
-  background-color: #fff9f5;
-  background-image: none;
-}
-
-body:has(.mel-event-page--immersive.mel-event--v2):not(:has(.mel-event-full)),
-main.mel-main:has(.mel-event-page--immersive.mel-event--v2):not(:has(.mel-event-full)) {
+body:has(.mel-event-page--immersive.mel-event--v2),
+main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
   background-color: #080c14;
   background-image:
     radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
@@ -492,7 +485,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):not(:has(.mel-event-
     linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
 }
 
-// Immersive — cinematic Pro experience (single authored visual system).
+// Immersive — cinematic Pro experience (Event Studio branding tab).
 .mel-event-page--immersive.mel-event--v2 {
   // Typography scale — authoritative immersive contrast (explicit rgba, no opacity fade).
   --mel-immersive-text: #fff;

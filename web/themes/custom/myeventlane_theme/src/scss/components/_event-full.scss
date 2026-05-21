@@ -1260,7 +1260,7 @@
   .mel-event-full__layout {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--mel-full-stack-gap, 20px);
   }
 
   .mel-event-full__main,
@@ -1567,14 +1567,14 @@
   background: var(--mel-sidebar-card-soft);
 }
 
-// Immersive event pages — keep sidebar + main gallery rail on light MEL surfaces.
+// Immersive event pages — sidebar tokens follow immersive article theme.
 .mel-event-page--immersive.mel-event--v2 .mel-event-sidebar-rail {
-  --mel-sidebar-page-bg: var(--mel-event-page-bg, #fff9f5);
-  --mel-sidebar-card-surface: var(--mel-event-surface, #fff);
-  --mel-sidebar-card-soft: var(--mel-event-soft-surface, #fdf1ec);
-  --mel-sidebar-text: #24303a;
-  --mel-sidebar-muted: #5b6670;
-  --mel-sidebar-border: var(--mel-event-border, #e9e3de);
+  --mel-sidebar-page-bg: transparent;
+  --mel-sidebar-card-surface: var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78));
+  --mel-sidebar-card-soft: var(--mel-event-surface-quiet, rgba(22, 28, 40, 0.55));
+  --mel-sidebar-text: var(--mel-event-heading, #fff);
+  --mel-sidebar-muted: var(--mel-event-text-muted, rgba(255, 255, 255, 0.72));
+  --mel-sidebar-border: var(--mel-event-border, rgba(255, 255, 255, 0.06));
   --mel-sidebar-coral: var(--mel-event-accent, #f26d5b);
   --mel-sidebar-lavender: var(--mel-event-secondary-accent, #7c83fd);
 }
@@ -1583,7 +1583,7 @@
   background: var(--mel-sidebar-card-surface);
   border-color: var(--mel-sidebar-border);
   color: var(--mel-sidebar-text);
-  box-shadow: 0 12px 32px rgba(36, 48, 58, 0.08);
+  box-shadow: var(--mel-event-shadow-sidebar, 0 18px 44px rgba(0, 0, 0, 0.32));
 }
 
 .mel-event-page--immersive.mel-event--v2 .mel-event-sidebar-rail .mel-card__title,
@@ -1739,21 +1739,13 @@
 .mel-event-full .mel-card--expect {
   min-height: 0;
   height: auto;
+  background: var(--mel-full-surface, #fff);
+  border: 1px solid var(--mel-full-border, #e9e3de);
 }
 
 .mel-event--v2 .mel-card--highlights {
   background: colors.$mel-color-surface-alt;
   border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.mel-event-full .mel-card--highlights {
-  background: var(--mel-full-surface, #fff);
-  border: 1px solid var(--mel-full-border, #e9e3de);
-}
-
-.mel-event-full .mel-card--expect {
-  background: var(--mel-full-surface, #fff);
-  border: 1px solid var(--mel-full-border, #e9e3de);
 }
 
 .mel-event-highlights {
@@ -2608,10 +2600,10 @@ button.mel-filter-chip--reset {
 // Event full — mockup layout shell (light MEL v2)
 // ---------------------------------------------------------------------------
 
-body:has(.mel-event-full),
-main.mel-main:has(.mel-event-full),
-body:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full),
-main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full) {
+body:has(.mel-event-page--classic.mel-event--v2 .mel-event-full),
+main.mel-main:has(.mel-event-page--classic.mel-event--v2 .mel-event-full),
+body:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event--v2)),
+main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event--v2)) {
   background-color: #fff9f5;
   background-image: none;
 }
@@ -2621,7 +2613,6 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   min-height: 0;
   padding-top: 0;
   padding-bottom: 0;
-  color: #24303a;
 }
 
 .mel-event-full {
@@ -2640,8 +2631,20 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   --mel-full-radius-md: 16px;
   --mel-full-shadow-1: 0 2px 8px rgba(36, 48, 58, 0.06);
   --mel-full-shadow-2: 0 6px 18px rgba(36, 48, 58, 0.08);
+  --mel-full-card-pad: 20px;
+  --mel-full-card-header-gap: 12px;
+  --mel-full-stack-gap: 20px;
+  --mel-full-grid-gap: 20px;
 
   color: var(--mel-full-text);
+
+  .mel-info-row {
+    padding: space-tokens.mel-space(2) 0;
+  }
+
+  .mel-organiser-card {
+    padding: var(--mel-full-card-pad);
+  }
 }
 
 .mel-event--v2 .mel-container:has(.mel-event-full) {
@@ -2651,7 +2654,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 
 .mel-event-full__layout {
   display: grid;
-  gap: 32px;
+  gap: var(--mel-full-stack-gap, 20px);
   align-items: start;
   max-width: 100%;
   margin-inline: auto;
@@ -2664,15 +2667,19 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 .mel-event-full__main {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
 }
 
 .mel-event-full__sidebar {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
+}
+
+.mel-event-full .mel-event-sidebar-rail {
+  gap: space-tokens.mel-space(2);
 }
 
 .mel-event-full__card {
@@ -2693,8 +2700,22 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   color: var(--mel-full-text-secondary);
 }
 
-// Force light surfaces inside immersive article for layout shell.
+// Immersive branding — map layout shell tokens to article immersive theme.
 .mel-event-page--immersive.mel-event--v2 .mel-event-full {
+  --mel-full-page-bg: transparent;
+  --mel-full-surface: var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78));
+  --mel-full-surface-soft: var(--mel-event-surface-quiet, rgba(22, 28, 40, 0.55));
+  --mel-full-text: var(--mel-event-heading, #fff);
+  --mel-full-text-secondary: var(--mel-event-text-secondary, rgba(255, 255, 255, 0.82));
+  --mel-full-text-muted: var(--mel-event-text-muted, rgba(255, 255, 255, 0.72));
+  --mel-full-border: var(--mel-event-border, rgba(255, 255, 255, 0.06));
+  --mel-full-coral: var(--mel-event-accent, #f26d5b);
+  --mel-full-lavender: var(--mel-event-secondary-accent, #7c83fd);
+  --mel-full-shadow-1: var(--mel-immersive-shadow-quiet, 0 14px 36px rgba(0, 0, 0, 0.22));
+  --mel-full-shadow-2: var(--mel-immersive-shadow-panel, 0 22px 52px rgba(0, 0, 0, 0.3));
+
+  color: var(--mel-full-text);
+
   .mel-event-full__card,
   .mel-event-sidebar-rail .mel-card--surface,
   .mel-event-layout__main .mel-card--surface,
@@ -2737,7 +2758,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   }
 
   .mel-event-gallery__lede {
-    color: var(--mel-full-text-secondary);
+    color: var(--mel-full-text-muted);
   }
 
   .mel-event-layout__main,
@@ -2750,11 +2771,15 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   .mel-event-support-zone__link {
     color: var(--mel-full-lavender);
   }
+
+  .mel-info-row {
+    border-top-color: var(--mel-full-border);
+  }
 }
 
 .mel-event-full__content-grid {
   display: grid;
-  gap: 24px;
+  gap: var(--mel-full-grid-gap, 20px);
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
 }
@@ -2767,10 +2792,10 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 }
 
 .mel-event-full__content-grid > .mel-event-full__card {
-  padding: 32px;
+  padding: var(--mel-full-card-pad, 20px);
 
   .mel-card__header {
-    margin-bottom: 16px;
+    margin-bottom: var(--mel-full-card-header-gap, 12px);
     padding: 0;
   }
 
@@ -2803,14 +2828,28 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 .mel-event-full__content-below {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
+
+  > .mel-card--surface .mel-card__header,
+  > .mel-card--surface .mel-card__body,
+  > .mel-event-section.mel-card--surface .mel-card__header,
+  > .mel-event-section.mel-card--surface .mel-card__body,
+  > .mel-organiser-card.mel-card--surface .mel-card__header,
+  > .mel-organiser-card.mel-card--surface .mel-card__body {
+    padding: var(--mel-full-card-pad, 20px);
+  }
+
+  > .mel-event-section .mel-card__header {
+    padding-bottom: space-tokens.mel-space(2);
+  }
 }
 
 .mel-event-full__content-below > .mel-card,
 .mel-event-full__content-below > .mel-event-section,
 .mel-event-full__content-below > .mel-organiser-card,
-.mel-event-full__content-below > .mel-return-block {
+.mel-event-full__content-below > .mel-return-block,
+.mel-event-full__content-below > .mel-mt-5 {
   margin-top: 0;
 }
 
@@ -2890,7 +2929,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 }
 
 .mel-event-full__booking-body {
-  padding: 28px;
+  padding: var(--mel-full-card-pad, 20px);
 }
 
 .mel-event-full__booking-heading,
@@ -2903,7 +2942,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 }
 
 .mel-event-full__booking .mel-booking-panel {
-  gap: 18px;
+  gap: 14px;
 }
 
 .mel-event-full__booking .mel-booking-panel__rule {
@@ -2920,7 +2959,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .mel-booking-panel__trust-row {
@@ -2943,7 +2982,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 }
 
 .mel-event-full__view-details {
-  padding: 28px;
+  padding: var(--mel-full-card-pad, 20px);
 
   .mel-event-sidebar-details__header {
     margin-bottom: 0;
@@ -2958,7 +2997,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 .mel-event-sidebar-details__rule {
   border: 0;
   border-top: 1px solid var(--mel-full-border, #e9e3de);
-  margin: 16px 0;
+  margin: 12px 0;
   width: 100%;
 }
 
@@ -3000,12 +3039,12 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
 
 // Gallery wrapper spacing.
 .mel-event-full__gallery {
-  margin: 24px 0 0;
+  margin: var(--mel-full-stack-gap, 20px) 0 0;
   min-width: 0;
 }
 
 .mel-event-full__gallery-card {
-  padding: 32px;
+  padding: var(--mel-full-card-pad, 20px);
   border: 1px solid var(--mel-full-border, #e9e3de);
   border-radius: var(--mel-full-radius-lg, 24px);
   box-shadow: var(--mel-full-shadow-1);
@@ -3072,12 +3111,41 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2):has(.mel-event-full)
   }
 
   .mel-sidebar-carousel__footer {
-    margin-top: 16px;
+    margin-top: 12px;
     padding: 0;
     border-top: 0;
   }
 }
 
 .mel-event-full__gallery .mel-event-gallery__header {
-  margin-bottom: 20px;
+  margin-bottom: var(--mel-full-card-header-gap, 12px);
+}
+
+// Immersive gallery card inside unified layout shell.
+.mel-event-page--immersive.mel-event--v2 .mel-event-full__gallery-card,
+.mel-event-page--immersive.mel-event--v2 .mel-event-full .mel-event-gallery.mel-event-full__card {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% 0%,
+      color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 16%, transparent) 0%,
+      transparent 62%
+    ),
+    color-mix(in srgb, var(--mel-event-surface-spotlight, rgba(40, 52, 70, 0.85)) 88%, transparent);
+  border-color: var(--mel-full-border);
+  box-shadow: var(--mel-full-shadow-2, 0 22px 52px rgba(0, 0, 0, 0.3));
+}
+
+.mel-event-page--immersive.mel-event--v2 .mel-event-full__gallery .mel-event-gallery--carousel {
+  .mel-event-gallery__title {
+    color: var(--mel-full-text);
+  }
+
+  .mel-event-gallery__lede {
+    color: var(--mel-full-text-muted);
+  }
+
+  .mel-event-gallery__trigger {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    border: 0;
+  }
 }

@@ -3900,14 +3900,25 @@ function _myeventlane_theme_build_mel_event_branding(string $style, string $colo
     $secondary = '#F26D5B';
   }
 
-  $css_vars = [
-    '--mel-event-page-bg' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-page-bg'], $defaults['--mel-event-page-bg']),
-    '--mel-event-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-surface'], $defaults['--mel-event-surface']),
-    '--mel-event-soft-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-soft-surface'], $defaults['--mel-event-soft-surface']),
-    '--mel-event-border' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-border'], $defaults['--mel-event-border']),
-    '--mel-event-accent' => $accent,
-    '--mel-event-secondary-accent' => _myeventlane_theme_sanitize_event_branding_hex($secondary, $defaults['--mel-event-secondary-accent']),
-  ];
+  // Immersive surfaces and typography come from _event-page-themes.scss (no rgba in inline).
+  // Inline vars must not force Classic light tokens over Immersive on public full pages.
+  $style_key = strtolower(trim($style));
+  if ($style_key === 'immersive') {
+    $css_vars = [
+      '--mel-event-accent' => $accent,
+      '--mel-event-secondary-accent' => _myeventlane_theme_sanitize_event_branding_hex($secondary, $defaults['--mel-event-secondary-accent']),
+    ];
+  }
+  else {
+    $css_vars = [
+      '--mel-event-page-bg' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-page-bg'], $defaults['--mel-event-page-bg']),
+      '--mel-event-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-surface'], $defaults['--mel-event-surface']),
+      '--mel-event-soft-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-soft-surface'], $defaults['--mel-event-soft-surface']),
+      '--mel-event-border' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-border'], $defaults['--mel-event-border']),
+      '--mel-event-accent' => $accent,
+      '--mel-event-secondary-accent' => _myeventlane_theme_sanitize_event_branding_hex($secondary, $defaults['--mel-event-secondary-accent']),
+    ];
+  }
 
   $parts = [];
   foreach ($css_vars as $name => $hex) {
@@ -4309,6 +4320,10 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
  * pages use node__event__full and do not invoke preprocess_node__event.
  */
 function myeventlane_theme_preprocess_node__event__full(array &$variables): void {
+  $node = $variables['node'] ?? NULL;
+  if ($node instanceof NodeInterface) {
+    _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
+  }
   _myeventlane_theme_attach_event_sidebar_carousel($variables);
 }
 

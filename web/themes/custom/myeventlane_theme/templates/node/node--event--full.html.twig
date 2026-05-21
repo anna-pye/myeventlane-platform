@@ -4,6 +4,8 @@
  * Event node template for full view mode.
  *
  * Design source of truth: MEL v2 event page reference.
+ * Classic and Immersive (Event Studio branding) share this template; page style is
+ * mel-event-page--classic|immersive + mel-event-page--colour-* on <article> only.
  * Requirements:
  * - No inline script/style tags.
  * - All assets via libraries (Vite → dist).
@@ -176,7 +178,6 @@
               {
                 '#theme': 'mel_event_gallery',
                 '#gallery': mel_event_gallery,
-                '#event_page_style': event_page_style|default('classic'),
               }
             }}
           </div>

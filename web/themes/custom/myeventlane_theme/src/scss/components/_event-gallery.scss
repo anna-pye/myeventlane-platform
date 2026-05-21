@@ -21,17 +21,13 @@
 
 .mel-event-gallery--carousel {
   margin-block: spacing.mel-space(4) spacing.mel-space(5);
+  margin-inline: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 
-  &.mel-event-gallery--classic,
-  &.mel-event-gallery--immersive {
-    margin-inline: 0;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
-
-    &::before {
-      display: none;
-    }
+  &::before {
+    display: none;
   }
 
   .mel-event-gallery__title {
@@ -414,7 +410,7 @@
 // Classic — warm editorial magazine
 // ---------------------------------------------------------------------------
 
-.mel-event-page--classic .mel-event-gallery--classic {
+.mel-event-page--classic.mel-event--v2 .mel-event-gallery:not(.mel-event-full__card) {
   padding: spacing.mel-space(5) spacing.mel-space(5) spacing.mel-space(6);
   border-radius: radii.$mel-radius-xl;
   border: 1px solid color-mix(in srgb, var(--mel-event-border, rgba(36, 48, 58, 0.08)) 80%, transparent);
@@ -454,7 +450,7 @@
 // Immersive — cinematic, designed (not themed)
 // ---------------------------------------------------------------------------
 
-.mel-event-page--immersive .mel-event-gallery--immersive {
+.mel-event-page--immersive.mel-event--v2 .mel-event-gallery:not(.mel-event-full__card) {
   margin-inline: calc(-1 * #{spacing.mel-space(4)});
   padding: spacing.mel-space(6) spacing.mel-space(4) spacing.mel-space(7);
   border-radius: radii.$mel-radius-xl;

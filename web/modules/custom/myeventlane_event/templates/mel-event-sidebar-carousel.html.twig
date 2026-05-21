@@ -5,14 +5,13 @@
  *
  * Variables:
  * - carousel: { slides, count, lightbox_root_id }
- * - event_page_style: classic|immersive
+ * - event_page_style: (deprecated) styling uses mel-event-page--* on <article>.
  */
 #}
-{% set style_mod = event_page_style == 'immersive' ? 'immersive' : 'classic' %}
 {% set slide_count = carousel.count|default(0) %}
 {% if slide_count > 0 %}
   <div
-    class="mel-sidebar-carousel mel-sidebar-carousel--{{ style_mod }}{% if slide_count < 2 %} mel-sidebar-carousel--single{% endif %}"
+    class="mel-sidebar-carousel{% if slide_count < 2 %} mel-sidebar-carousel--single{% endif %}"
     data-mel-sidebar-carousel
     data-mel-sidebar-slide-count="{{ slide_count }}"
     role="region"
