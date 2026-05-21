@@ -2,9 +2,10 @@
   View details — compact when/where summary; links to full Event Information in main.
 #}
 <div class="mel-event-full__view-details mel-card mel-card--surface mel-event-sidebar__details mel-event-full__card">
-  <div class="mel-card__header">
+  <div class="mel-card__header mel-event-sidebar-details__header">
     <h2 class="mel-card__title">{{ 'View details'|t }}</h2>
   </div>
+  <hr class="mel-event-sidebar-details__rule" role="separator" />
   <div class="mel-card__body mel-event-sidebar-details">
     {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
       <div class="mel-event-sidebar-details__row">
@@ -62,10 +63,13 @@
       </div>
     {% endif %}
 
+    <hr class="mel-event-sidebar-details__rule" role="separator" />
+
     {% set _has_calendar = (apple_ics_url|default('')|length > 0) or (google_calendar_url|default('')|length > 0) or (outlook_ics_url|default('')|length > 0) %}
     {% set _has_share = canonical_url is defined and canonical_url %}
     {% if _has_share or _has_calendar or event_flag_event_save %}
       <div class="mel-event-sidebar-details__actions" role="group" aria-label="{{ 'Event actions'|t }}">
+        <span class="visually-hidden">{{ 'Share, calendar, and save'|t }}</span>
         {% if _has_share %}
           <a class="mel-event-sidebar-details__action-btn" href="#mel-event-full-share" aria-label="{{ 'Share this event'|t }}">
             {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'share', class: 'mel-event-sidebar-details__action-icon', size: 22 } only %}

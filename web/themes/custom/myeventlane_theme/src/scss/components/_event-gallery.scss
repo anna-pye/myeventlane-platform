@@ -65,38 +65,63 @@
   &.mel-event-gallery--rail {
     .mel-event-gallery__viewport {
       max-height: none;
+      overflow: visible;
     }
 
     .mel-sidebar-carousel__track {
       display: flex;
-      flex-direction: row;
-      gap: 12px;
+      flex-flow: row nowrap;
+      gap: 14px;
       overflow-x: auto;
+      overflow-y: hidden;
       scroll-snap-type: x proximity;
-      padding-bottom: 4px;
+      padding-bottom: 6px;
       -webkit-overflow-scrolling: touch;
+      grid-template-columns: none;
+      grid-template-rows: none;
     }
 
     .mel-sidebar-carousel__slide {
+      position: static;
+      grid-area: auto;
       flex: 0 0 auto;
-      width: clamp(7.5rem, 18%, 10.625rem);
+      width: clamp(11.25rem, 22vw, 13.125rem);
+      min-width: 11.25rem;
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
-      scroll-snap-align: center;
+      scroll-snap-align: start;
+      transition: none;
+    }
+
+    .mel-event-gallery__trigger {
+      border-radius: 14px;
+      overflow: hidden;
     }
 
     .mel-event-gallery__img {
+      display: block;
+      width: 100%;
+      height: clamp(9.0625rem, 12vw, 10.3125rem);
+      max-height: 10.3125rem;
       aspect-ratio: 4 / 3;
       object-fit: cover;
-      max-height: 10.625rem;
-      width: 100%;
-      height: auto;
+      border-radius: 14px;
     }
 
     .mel-sidebar-carousel__slide.is-active .mel-event-gallery__trigger {
       outline: 2px solid var(--mel-event-accent, #f26d5b);
       outline-offset: 2px;
+    }
+
+    &.mel-event-gallery--rail-single {
+      .mel-sidebar-carousel__track {
+        justify-content: flex-start;
+      }
+
+      .mel-sidebar-carousel__slide {
+        width: clamp(11.25rem, 55%, 13.125rem);
+      }
     }
   }
 
@@ -118,11 +143,16 @@
   }
 
   .mel-sidebar-carousel__dot {
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-    background: color-mix(in srgb, #24303a 20%, transparent);
+    width: 0.5rem;
+    height: 0.5rem;
+    min-width: 0.5rem;
+    min-height: 0.5rem;
+    padding: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, #24303a 22%, transparent);
 
     &.is-active {
+      transform: scale(1.15);
       background: var(--mel-event-accent, #f26d5b);
     }
 

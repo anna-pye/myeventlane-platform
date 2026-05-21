@@ -24,9 +24,9 @@
       </header>
 
     <div
-      class="mel-event-gallery__carousel mel-sidebar-carousel mel-sidebar-carousel--{{ style_mod }}{% if gallery.count < 2 %} mel-sidebar-carousel--single{% endif %}{% if gallery.count >= 2 %} mel-event-gallery--rail{% endif %}"
+      class="mel-event-gallery__carousel mel-sidebar-carousel mel-sidebar-carousel--{{ style_mod }} mel-event-gallery--rail{% if gallery.count < 2 %} mel-event-gallery--rail-single{% endif %}"
       data-mel-sidebar-carousel
-      {% if gallery.count >= 2 %}data-mel-gallery-rail{% endif %}
+      data-mel-gallery-rail
       data-mel-sidebar-slide-count="{{ gallery.count }}"
       role="region"
       aria-roledescription="{{ 'Carousel'|t }}"
@@ -50,7 +50,6 @@
                 role="group"
                 aria-roledescription="{{ 'Slide'|t }}"
                 aria-label="{{ 'Photo @n of @total'|t({'@n': item.index + 1, '@total': gallery.count}) }}"
-                {% if not loop.first %}hidden{% endif %}
               >
                 <button
                   type="button"

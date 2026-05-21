@@ -12,7 +12,7 @@
       {% if _booking_panel_heading is not empty %}
         <h2 class="mel-booking-panel__heading mel-event-full__booking-heading">{{ _booking_panel_heading }}</h2>
       {% endif %}
-      {% if mel_mode_chip %}
+      {% if mel_mode_chip and (_booking_panel_heading|default('')|striptags|trim|lower != mel_mode_chip|striptags|trim|lower) %}
         <div class="mel-booking-panel__chip" aria-label="{{ 'Registration type'|t }}">
           <span class="mel-chip mel-chip--sm mel-chip--filled">{{ mel_mode_chip }}</span>
         </div>
@@ -21,9 +21,6 @@
         <div class="mel-event__badge">
           {{ 'Limited availability'|t }}
         </div>
-      {% endif %}
-      {% if mel_signal %}
-        <div class="mel-event__signal mel-event__signal--strong">{{ mel_signal }}</div>
       {% endif %}
       {% if mel_sidebar_pricing|default('')|striptags|trim is not empty %}
         <div class="mel-booking-panel__price mel-price" aria-label="{{ 'Price'|t }}">
@@ -57,137 +54,51 @@
         {% endif %}
 
         {% if mel_show_booking_trust_copy %}
+          {% set _mel_trust_capacity_highlight = event_ui is defined
+            and (mel_cta_urgency|default('')|striptags|length == 0)
+            and (not mel_event_selling_fast|default(false))
+            and (not (event_ui.is_sold_out|default(false) is same as(true)))
+            and (
+              (event_ui.is_limited|default(false))
+              or (event_ui.capacity_hint|default('')|striptags|length > 0)
+            ) %}
           <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
-            <div class="mel-booking-panel__trust-micro">
-              {% if mel_trust_checkout and cta_type is defined and cta_type == 'paid' %}
-                <p class="mel-booking-panel__trust-micro-primary">{{ 'Secure checkout'|t }}</p>
-                <p>{{ 'Payment processed securely via Stripe'|t }}</p>
-              {% elseif cta_type is defined and cta_type == 'rsvp' %}
-                <p class="mel-booking-panel__trust-micro-primary">{{ 'Free RSVP'|t }}</p>
-                <p>{{ 'No payment required — confirmation by email'|t }}</p>
-              {% endif %}
-              <p class="mel-booking-panel__trust-line">
-                <span class="mel-booking-panel__trust-line-icon" aria-hidden="true">
-                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'shield-check', class: 'mel-booking-panel__trust-svg', size: 18 } only %}
+            <ul class="mel-booking-panel__trust-rows" role="list">
+              <li class="mel-booking-panel__trust-row">
+                <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'shield-check', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
                 </span>
-                {{ 'No hidden fees on MyEventLane'|t }}
-              </p>
-            </div>
-            {% set _mel_trust_capacity_highlight = event_ui is defined
-              and (mel_cta_urgency|default('')|striptags|length == 0)
-              and (not mel_event_selling_fast|default(false))
-              and (not (event_ui.is_sold_out|default(false) is same as(true)))
-              and (
-                (event_ui.is_limited|default(false))
-                or (event_ui.capacity_hint|default('')|striptags|length > 0)
-              ) %}
-            <div class="mel-trust-rotator" data-rotate aria-live="polite" aria-atomic="true">
-              <div class="mel-trust-item is-active" data-trust-item>
-                {% if event_viewer_count is not empty %}
-                  <span class="mel-trust-item__icon" aria-hidden="true">
-                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'flame', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                  </span>
-                  <span class="mel-trust-item__text">{{ event_viewer_count }}</span>
-                {% else %}
-                  <span class="mel-trust-item__icon" aria-hidden="true">
-                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'flame', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                  </span>
-                  <span class="mel-trust-item__text">{{ 'Popular on MyEventLane'|t }}</span>
-                {% endif %}
-              </div>
-              <div class="mel-trust-item" data-trust-item>
-                <span class="mel-trust-item__icon" aria-hidden="true">
+                <span class="mel-booking-panel__trust-row-text">{{ 'No hidden fees on MyEventLane'|t }}</span>
+              </li>
+              <li class="mel-booking-panel__trust-row">
+                <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
                   {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'mail', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
                 </span>
-                <span class="mel-trust-item__text">{{ 'Instant confirmation'|t }} — {% if mel_trust_checkout %}{{ 'You’ll receive confirmation by email'|t }}{% else %}{{ 'You’ll get a confirmation email'|t }}{% endif %}</span>
-              </div>
-            </div>
-            {% set _show_mel_decision_prompts = (not logged_in)
-              or (event_ui is defined and (event_ui.is_free|default(false) == true))
-              or (event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) and (not _mel_trust_capacity_highlight)) %}
-            {% if _show_mel_decision_prompts %}
-              {% set _decision_count = 0 %}
-              <div class="mel-decision-prompts">
-                {% if _decision_count < 2 and (not logged_in) %}
-                  {% set _decision_count = _decision_count + 1 %}
-                  <div class="mel-decision-item">
-                    <span class="mel-icon" aria-hidden="true">
-                      {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'user', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                    </span>
-                    <div>
-                      <strong>{{ 'First time here?'|t }}</strong>
-                      <p>{{ 'Book in seconds — no account needed'|t }}</p>
-                    </div>
-                  </div>
-                {% endif %}
-                {% if _decision_count < 2 and event_ui is defined and (event_ui.is_free|default(false) == true) %}
-                  {% set _decision_count = _decision_count + 1 %}
-                  <div class="mel-decision-item">
-                    <span class="mel-icon" aria-hidden="true">
-                      {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'ticket', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                    </span>
-                    <div>
-                      <strong>{{ 'Free event'|t }}</strong>
-                      <p>{{ 'No payment required'|t }}</p>
-                    </div>
-                  </div>
-                {% endif %}
-                {% if _decision_count < 2
-                  and event_ui is defined
-                  and (event_ui.capacity_hint|default('')|striptags|length > 0)
-                  and (not _mel_trust_capacity_highlight) %}
-                  {% set _decision_count = _decision_count + 1 %}
-                  <div class="mel-decision-item mel-decision-item--urgent">
-                    <span class="mel-icon" aria-hidden="true">
-                      {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                    </span>
-                    <div>
-                      <strong>{{ event_ui.capacity_hint }}</strong>
-                      <p>{{ "Don't miss out"|t }}</p>
-                    </div>
-                  </div>
-                {% endif %}
-              </div>
-            {% endif %}
-            {% if _mel_trust_capacity_highlight %}
-              <div class="mel-booking-panel__item mel-booking-panel__item--highlight">
-                <span class="mel-icon" aria-hidden="true">
-                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                </span>
-                <div>
-                  <p class="mel-booking-panel__capacity" role="status">
-                    <strong>{{ event_ui.capacity_hint|default('Limited spots remaining'|t) }}</strong>
-                  </p>
-                  <p>{{ 'Secure your spot today'|t }}</p>
-                </div>
-              </div>
-            {% endif %}
-            {% if _support_urgent %}
-              <div class="mel-booking-panel__item">
-                <span class="mel-booking-panel__item-icon" aria-hidden="true">
-                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                </span>
-                <div>
-                  <strong>{{ mel_cta_urgency }}</strong>
-                  <p>{{ 'Secure your spot today'|t }}</p>
-                </div>
-              </div>
-            {% endif %}
-            {% if event_save_count_total|default(0) > 0 and event_save_count is not empty %}
-              <div class="mel-booking-panel__item mel-booking-panel__item--social">
-                <span class="mel-icon" aria-hidden="true">
-                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'heart', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                </span>
-                <div>
-                  <strong>{{ event_save_count }}</strong>
-                </div>
-              </div>
-            {% endif %}
-            {% if event_interest is defined and event_interest.label is defined %}
-              <div class="mel-booking-panel__item mel-booking-panel__item--interest mel-booking-panel__item--{{ event_interest.type }}">
-                <strong>{{ event_interest.label }}</strong>
-              </div>
-            {% endif %}
+                <span class="mel-booking-panel__trust-row-text">{{ 'Instant confirmation'|t }}</span>
+              </li>
+              {% if _support_urgent %}
+                <li class="mel-booking-panel__trust-row mel-booking-panel__trust-row--urgent">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">{{ mel_cta_urgency }}</span>
+                </li>
+              {% elseif _mel_trust_capacity_highlight %}
+                <li class="mel-booking-panel__trust-row mel-booking-panel__trust-row--urgent">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">{{ event_ui.capacity_hint|default('Limited spots remaining'|t) }}</span>
+                </li>
+              {% elseif event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
+                <li class="mel-booking-panel__trust-row mel-booking-panel__trust-row--urgent">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'bolt', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">{{ 'Sold out'|t }}</span>
+                </li>
+              {% endif %}
+            </ul>
           </div>
         {% endif %}
       {% endif %}

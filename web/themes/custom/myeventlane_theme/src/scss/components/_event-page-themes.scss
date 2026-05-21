@@ -473,8 +473,15 @@ body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
 }
 
 // Immersive shell — atmospheric canvas (article carries local accents).
-body:has(.mel-event-page--immersive.mel-event--v2),
-main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
+// When mel-event-full layout is present, keep the page shell light (mockup v2).
+body:has(.mel-event-page--immersive.mel-event--v2 .mel-event-full),
+main.mel-main:has(.mel-event-page--immersive.mel-event--v2 .mel-event-full) {
+  background-color: #fff9f5;
+  background-image: none;
+}
+
+body:has(.mel-event-page--immersive.mel-event--v2):not(:has(.mel-event-full)),
+main.mel-main:has(.mel-event-page--immersive.mel-event--v2):not(:has(.mel-event-full)) {
   background-color: #080c14;
   background-image:
     radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
