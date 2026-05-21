@@ -647,6 +647,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       return $row;
     }
     if ($submittedTitle === '') {
+      $row['title'] = '';
       return $row;
     }
     $row['title'] = $submittedTitle;
