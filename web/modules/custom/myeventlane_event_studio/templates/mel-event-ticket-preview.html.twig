@@ -1,0 +1,116 @@
+{#
+/**
+ * @file
+ * Customer booking preview for Event Studio ticket setup.
+ *
+ * Variables:
+ * - preview_state: not_configured|rsvp|paid|external
+ * - mode_badge: short mode label
+ * - heading: section heading inside canvas
+ * - cta: { label, disabled, reason }
+ * - availability: { state, message }
+ * - ticket_rows: list of { name, price, availability }
+ * - rsvp_summary: { capacity_line }|null
+ * - trust_rows: list of trust strings
+ * - show_empty_state: bool
+ * - wrapper_classes: BEM classes
+ */
+#}
+{% set preview_classes = wrapper_classes|default(['mel-event-ticket-preview']) %}
+<section
+  class="{{ preview_classes|join(' ') }}"
+  aria-labelledby="mel-es-ticket-preview-title"
+  data-mel-ticket-preview
+  data-preview-state="{{ preview_state|default('not_configured') }}"
+>
+  <header class="mel-event-ticket-preview__header">
+    <h3 class="mel-event-ticket-preview__title" id="mel-es-ticket-preview-title">
+      {{ 'Customer booking preview'|t }}
+    </h3>
+    <p class="mel-event-ticket-preview__lede">
+      {{ 'This is a preview of what customers will see when they book.'|t }}
+    </p>
+    <ul class="mel-event-ticket-preview__helpers">
+      <li>{{ 'Ticket rows and RSVP limits update here after saving.'|t }}</li>
+      <li>{{ 'The public booking button uses the same booking resolver as the event page.'|t }}</li>
+      <li>{{ 'Customers will not see this setup panel.'|t }}</li>
+    </ul>
+    <p class="mel-event-ticket-preview__save-note" data-mel-ticket-preview-save-note>
+      {{ 'Save to refresh ticket rows.'|t }}
+    </p>
+  </header>
+
+  <div class="mel-event-ticket-preview__canvas">
+    <div class="mel-event-ticket-preview__mode-row">
+      <span class="mel-event-ticket-preview__mode-badge" data-mel-ticket-preview-mode-badge>
+        {{ mode_badge|default('') }}
+      </span>
+    </div>
+
+    {% if show_empty_state %}
+      <div class="mel-event-ticket-preview__empty" data-mel-ticket-preview-empty>
+        <p class="mel-event-ticket-preview__empty-copy">
+          {{ 'Choose RSVP or Paid tickets to preview the customer booking experience.'|t }}
+        </p>
+      </div>
+    {% else %}
+      {% if heading %}
+        <h4 class="mel-event-ticket-preview__heading">{{ heading }}</h4>
+      {% endif %}
+
+      {% if preview_state == 'rsvp' and rsvp_summary %}
+        {% if rsvp_summary.capacity_line %}
+          <p class="mel-event-ticket-preview__capacity">{{ rsvp_summary.capacity_line }}</p>
+        {% endif %}
+      {% endif %}
+
+      {% if preview_state == 'paid' %}
+        {% if ticket_rows is not empty %}
+          <ul class="mel-event-ticket-preview__ticket-rows" aria-label="{{ 'Ticket options'|t }}">
+            {% for row in ticket_rows %}
+              <li class="mel-event-ticket-preview__ticket-row">
+                <div class="mel-event-ticket-preview__ticket-main">
+                  <span class="mel-event-ticket-preview__ticket-name">{{ row.name }}</span>
+                  <span class="mel-event-ticket-preview__ticket-price">{{ row.price }}</span>
+                </div>
+                {% if row.availability %}
+                  <p class="mel-event-ticket-preview__ticket-availability">{{ row.availability }}</p>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="mel-event-ticket-preview__ticket-empty mel-text--muted">
+            {{ 'Paid ticket rows appear here after you save tickets below.'|t }}
+          </p>
+        {% endif %}
+      {% endif %}
+
+      {% if availability.message %}
+        <p class="mel-event-ticket-preview__availability" role="status">{{ availability.message }}</p>
+      {% endif %}
+
+      {% if cta.label %}
+        <button
+          type="button"
+          class="mel-event-ticket-preview__cta{% if cta.disabled %} is-disabled{% endif %}"
+          disabled
+          aria-disabled="true"
+        >
+          {{ cta.label }}
+        </button>
+        {% if cta.reason %}
+          <p class="mel-event-ticket-preview__cta-reason mel-text--muted">{{ cta.reason }}</p>
+        {% endif %}
+      {% endif %}
+
+      {% if trust_rows is not empty %}
+        <ul class="mel-event-ticket-preview__trust">
+          {% for row in trust_rows %}
+            <li>{{ row }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>

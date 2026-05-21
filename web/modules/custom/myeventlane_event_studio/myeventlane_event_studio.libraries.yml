@@ -82,6 +82,18 @@ mel_branding_preview:
     - core/drupalSettings
     - core/once
 
+mel_ticket_preview:
+  version: 1.0
+  css:
+    theme:
+      css/mel-event-ticket-preview.css: {}
+  js:
+    js/mel-event-ticket-preview.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
 # Reuse Event Studio layout shell (sidebar + main) without wizard JS — onboarding, etc.
 mel_event_studio_shell_only:
   version: 1.1
