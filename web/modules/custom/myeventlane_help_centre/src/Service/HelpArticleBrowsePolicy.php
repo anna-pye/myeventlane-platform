@@ -15,6 +15,63 @@ use Drupal\Core\Session\AccountInterface;
 final class HelpArticleBrowsePolicy {
 
   /**
+   * Views that list help_article metadata (title, summary, teaser) on public hubs.
+   */
+  public const BROWSE_LISTING_VIEWS = [
+    'mel_help_search',
+    'mel_help_attendee_help',
+    'mel_help_organiser_help',
+    'mel_help_vendor_help',
+    'mel_help_policies_help',
+    'mel_help_featured_articles',
+    'mel_help_faq',
+    'mel_help_related_articles',
+  ];
+
+  /**
+   * Whether a view display should apply browse listing policy.
+   */
+  public function isBrowseListingView(string $viewId): bool {
+    return in_array($viewId, self::BROWSE_LISTING_VIEWS, TRUE);
+  }
+
+  /**
+   * Hub-specific audience cap (intersected with account policy).
+   *
+   * @return list<string>|null
+   *   Fixed scope, or NULL when only account policy applies.
+   */
+  public function hubAudienceScope(string $viewId): ?array {
+    return match ($viewId) {
+      'mel_help_attendee_help',
+      'mel_help_organiser_help',
+      'mel_help_policies_help' => ['public'],
+      'mel_help_vendor_help' => ['vendor'],
+      default => NULL,
+    };
+  }
+
+  /**
+   * Effective audience filter values for a browse listing view and account.
+   *
+   * @return list<string>
+   */
+  public function effectiveAudiencesForBrowseView(
+    string $viewId,
+    AccountInterface $account,
+    ?string $requestedAudience = NULL,
+  ): array {
+    $policyAudiences = $viewId === 'mel_help_search'
+      ? $this->effectiveAudienceFilter($account, $requestedAudience)
+      : $this->allowedAudienceValues($account);
+    $scope = $this->hubAudienceScope($viewId);
+    if ($scope === NULL) {
+      return $policyAudiences;
+    }
+    return array_values(array_intersect($policyAudiences, $scope));
+  }
+
+  /**
    * Canonical field_audience values allowed in browse/search for this account.
    *
    * @return list<string>

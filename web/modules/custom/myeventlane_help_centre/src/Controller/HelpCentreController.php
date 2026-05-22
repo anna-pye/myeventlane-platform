@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
 use Drupal\myeventlane_help_centre\Service\MelSupportSettingsBuilder;
 use Drupal\taxonomy\TermInterface;
@@ -144,7 +145,10 @@ final class HelpCentreController extends ControllerBase {
   /**
    * Renders the organiser Help Centre listing.
    */
-  public function organisersIndex(): array {
+  public function organisersIndex(): array|RedirectResponse {
+    if (VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser())) {
+      return $this->redirect('myeventlane_help_centre.vendors_index', [], [], 302);
+    }
     return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_organiser_help', 'block_organisers');
   }
 
@@ -152,7 +156,7 @@ final class HelpCentreController extends ControllerBase {
    * Renders the vendor Help Centre listing.
    */
   public function vendorsIndex(): array {
-    return $this->buildViewPage((string) $this->t('Vendor help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
+    return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
   }
 
   /**
