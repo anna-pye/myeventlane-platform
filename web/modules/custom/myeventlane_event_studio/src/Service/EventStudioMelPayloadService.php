@@ -500,6 +500,10 @@ final class EventStudioMelPayloadService {
         'required' => !empty($row['required']),
         'save_to_library' => !empty($row['save_to_library']),
       ];
+      $paragraph_id = isset($row['id']) ? (int) $row['id'] : 0;
+      if ($paragraph_id > 0) {
+        $item['id'] = $paragraph_id;
+      }
       $status = trim((string) ($row['status'] ?? ''));
       if ($status !== '') {
         $item['status'] = $status;

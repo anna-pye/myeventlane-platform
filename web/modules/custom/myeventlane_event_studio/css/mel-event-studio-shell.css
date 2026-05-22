@@ -518,11 +518,18 @@
   background: #f8fafc;
 }
 
-.mel-event-studio-questions__builder-cta-copy {
+.mel-event-studio-questions__builder-cta-copy,
+.mel-event-studio-questions__builder-cta-hint {
   margin: 0 0 10px;
   color: #475569;
   font-size: 0.875rem;
   line-height: 1.45;
+}
+
+.mel-event-studio-questions__builder-cta-hint {
+  margin-bottom: 12px;
+  color: #64748b;
+  font-size: 0.8125rem;
 }
 
 .mel-event-studio-questions__builder-cta-link {

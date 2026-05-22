@@ -139,6 +139,124 @@ final class EventStudioQuestionTemplateManagerTest extends TestCase {
     $this->assertNull($error);
   }
 
+  /**
+   * @covers ::mergeBuilderItemOntoExistingRow
+   */
+  public function testMergeBuilderItemPreservesGovernanceWhenOmitted(): void {
+    $manager = $this->manager();
+
+    $merged = $manager->mergeBuilderItemOntoExistingRow([
+      'id' => 42,
+      'label' => 'Dietary needs',
+      'type' => 'select',
+      'required' => TRUE,
+      'status' => EventStudioQuestionTemplateManager::STATUS_ACTIVE,
+      'applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE,
+      'ticket_type_ids' => [10, 20],
+      'options' => "Vegan\nGluten free",
+      'machine_name' => 'dietary',
+    ], [
+      'label' => 'Dietary requirements',
+      'type' => 'textarea',
+      'required' => FALSE,
+    ]);
+
+    $this->assertSame('Dietary requirements', $merged['label']);
+    $this->assertSame('textarea', $merged['type']);
+    $this->assertFalse($merged['required']);
+    $this->assertSame(EventStudioQuestionTemplateManager::STATUS_ACTIVE, $merged['status']);
+    $this->assertSame(EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE, $merged['applicability']);
+    $this->assertSame([10, 20], $merged['ticket_type_ids']);
+    $this->assertSame("Vegan\nGluten free", $merged['options']);
+    $this->assertSame('dietary', $merged['machine_name']);
+  }
+
+  /**
+   * @covers ::composeRowsFromBuilderPayload
+   */
+  public function testComposeRowsFromBuilderPayloadPreservesMissingQuestions(): void {
+    $manager = $this->manager();
+    $existing = [
+      [
+        'id' => 10,
+        'weight' => 0,
+        'label' => 'Workspace only',
+        'type' => 'textfield',
+        'required' => FALSE,
+        'status' => EventStudioQuestionTemplateManager::STATUS_ACTIVE,
+        'applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET,
+        'ticket_type_ids' => [],
+        'options' => '',
+        'machine_name' => 'workspace_only',
+      ],
+      [
+        'id' => 11,
+        'weight' => 1,
+        'label' => 'Phone',
+        'type' => 'tel',
+        'required' => TRUE,
+        'status' => EventStudioQuestionTemplateManager::STATUS_ACTIVE,
+        'applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET,
+        'ticket_type_ids' => [],
+        'options' => '',
+        'machine_name' => 'phone',
+      ],
+    ];
+    $event = $this->createMock(NodeInterface::class);
+    $rows = $manager->composeRowsFromBuilderPayload($event, [
+      [
+        'id' => 11,
+        'label' => 'Mobile number',
+        'type' => 'tel',
+        'required' => TRUE,
+      ],
+    ], $existing);
+
+    $this->assertCount(2, $rows);
+    $this->assertSame(11, (int) $rows[0]['id']);
+    $this->assertSame('Mobile number', $rows[0]['label']);
+    $this->assertSame(10, (int) $rows[1]['id']);
+    $this->assertSame('Workspace only', $rows[1]['label']);
+  }
+
+  /**
+   * @covers ::composeRowsFromBuilderPayload
+   */
+  public function testComposeRowsFromBuilderPayloadMatchesByParagraphId(): void {
+    $manager = $this->manager();
+    $existing = [
+      [
+        'id' => 99,
+        'weight' => 0,
+        'label' => 'Old label',
+        'type' => 'textfield',
+        'required' => FALSE,
+        'status' => EventStudioQuestionTemplateManager::STATUS_ARCHIVED,
+        'applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE,
+        'ticket_type_ids' => [5],
+        'options' => '',
+        'machine_name' => 'stable_key',
+      ],
+    ];
+    $event = $this->createMock(NodeInterface::class);
+    $rows = $manager->composeRowsFromBuilderPayload($event, [
+      [
+        'id' => 99,
+        'label' => 'Updated label',
+        'type' => 'textfield',
+        'required' => TRUE,
+      ],
+    ], $existing);
+
+    $this->assertCount(1, $rows);
+    $this->assertSame(99, (int) $rows[0]['id']);
+    $this->assertSame('Updated label', $rows[0]['label']);
+    $this->assertTrue($rows[0]['required']);
+    $this->assertSame(EventStudioQuestionTemplateManager::STATUS_ARCHIVED, $rows[0]['status']);
+    $this->assertSame(EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE, $rows[0]['applicability']);
+    $this->assertSame([5], $rows[0]['ticket_type_ids']);
+  }
+
   private function manager(?EventStudioQuestionAnswerExistenceRepository $repository = NULL): EventStudioQuestionTemplateManager {
     $registry = new QuestionFieldTypeRegistry();
     $registry->setStringTranslation($this->translator());

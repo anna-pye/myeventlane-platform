@@ -4587,11 +4587,23 @@
         required: req ? !!req.checked : false,
         save_to_library: libSave ? !!libSave.checked : false,
       };
+      if (old.id) {
+        row.id = old.id;
+      }
       if (opts.length) {
         row.options = opts;
       }
       if (old.machine_name) {
         row.machine_name = old.machine_name;
+      }
+      if (old.status) {
+        row.status = old.status;
+      }
+      if (old.applicability) {
+        row.applicability = old.applicability;
+      }
+      if (old.ticket_type_ids) {
+        row.ticket_type_ids = old.ticket_type_ids;
       }
       rows.push(row);
     });
