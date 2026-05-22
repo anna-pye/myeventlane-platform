@@ -118,7 +118,8 @@ final class EventTicketPreviewBuilder {
         'name' => $row['name'],
         'price' => $row['price'],
         'availability' => $row['availability'],
-        'description' => $row['description'],
+        'short_description' => $row['short_description'] ?? NULL,
+        'is_best_value' => !empty($row['is_best_value']),
       ];
     }
 

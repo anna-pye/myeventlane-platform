@@ -17,6 +17,7 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Drupal\myeventlane_help_centre\Service\ContextualHelpResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views\Plugin\views\query\Sql;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -719,9 +720,52 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
 }
 
 /**
+ * Implements hook_views_pre_view().
+ *
+ * Enforces audience on mel_help_search before the SQL query runs so titles/summaries
+ * for vendor/staff articles are not listed for anonymous users.
+ */
+function myeventlane_help_centre_views_pre_view(ViewExecutable $view, string $display_id, ?array &$args): void {
+  if ($view->id() !== 'mel_help_search') {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_help_centre\Service\HelpArticleBrowsePolicy $policy */
+  $policy = \Drupal::service('myeventlane_help_centre.help_browse_policy');
+  $account = \Drupal::currentUser()->getAccount();
+  $exposed = $view->getExposedInput();
+  $requested = isset($exposed['audience']) && is_string($exposed['audience']) && $exposed['audience'] !== ''
+    ? trim($exposed['audience'])
+    : NULL;
+  $effective = $policy->effectiveAudienceFilter($account, $requested);
+
+  $handler = $view->display_handler->getHandler('filter', 'field_audience_value');
+  if ($handler !== NULL) {
+    $handler->value = array_combine($effective, $effective) ?: [];
+    $handler->operator = 'or';
+  }
+}
+
+/**
  * Implements hook_views_query_alter().
  */
 function myeventlane_help_centre_views_query_alter(ViewExecutable $view, QueryPluginBase $query): void {
+  if ($view->id() === 'mel_help_search' && $query instanceof Sql) {
+    /** @var \Drupal\myeventlane_help_centre\Service\HelpArticleBrowsePolicy $policy */
+    $policy = \Drupal::service('myeventlane_help_centre.help_browse_policy');
+    $account = \Drupal::currentUser()->getAccount();
+    $exposed = $view->getExposedInput();
+    $requested = isset($exposed['audience']) && is_string($exposed['audience']) && $exposed['audience'] !== ''
+      ? trim($exposed['audience'])
+      : NULL;
+    $audiences = $policy->effectiveAudienceFilter($account, $requested);
+    $query->ensureTable('node__field_audience');
+    $query->addWhere(0, 'node__field_audience.field_audience_value', $audiences, 'IN');
+    $statuses = $policy->allowedHelpStatusesForBrowse($account);
+    $query->ensureTable('node__field_help_status');
+    $query->addWhere(0, 'node__field_help_status.field_help_status_value', $statuses, 'IN');
+  }
+
   if ($view->id() !== 'mel_help_related_articles' || $view->current_display !== 'block_related') {
     return;
   }

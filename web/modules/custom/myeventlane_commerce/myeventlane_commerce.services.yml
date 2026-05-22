@@ -152,6 +152,9 @@ services:
       - '@current_route_match'
       - '@request_stack'
 
+  myeventlane_commerce.event_default_ticket_resolver:
+    alias: myeventlane_event.ticket_type_manager
+
   myeventlane_commerce.customer_ticket_tier_display:
     class: Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder
     arguments:
@@ -159,6 +162,7 @@ services:
       - '@myeventlane_event.ticket_tier_lifecycle'
       - '@commerce_price.currency_formatter'
       - '@myeventlane_commerce.ticket_tier_waitlist'
+      - '@myeventlane_commerce.event_default_ticket_resolver'
       - '@string_translation'
 
   myeventlane_commerce.ticket_waitlist_order_subscriber:

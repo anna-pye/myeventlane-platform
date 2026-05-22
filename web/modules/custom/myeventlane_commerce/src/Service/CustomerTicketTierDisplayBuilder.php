@@ -11,6 +11,7 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\mel_ticket\Entity\TicketType;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Service\EventPaidTicketLoaderInterface;
+use Drupal\myeventlane_commerce\Service\EventDefaultTicketResolverInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\node\NodeInterface;
@@ -31,12 +32,15 @@ final class CustomerTicketTierDisplayBuilder {
    *   Formats variation prices for display.
    * @param \Drupal\myeventlane_commerce\Service\TicketTierWaitlistService $tierWaitlist
    *   Waitlist hold counts for availability copy.
+   * @param \Drupal\myeventlane_commerce\Service\EventDefaultTicketResolverInterface $defaultTicketResolver
+   *   Resolves default ticket ordering aligned with TicketSelectionForm.
    */
   public function __construct(
     private readonly TicketCustomerDisplayGatewayInterface $ticketAvailability,
     private readonly EventPaidTicketLoaderInterface $ticketTierLifecycle,
     private readonly CurrencyFormatter $currencyFormatter,
     private readonly TicketTierWaitlistHoldCounterInterface $tierWaitlist,
+    private readonly EventDefaultTicketResolverInterface $defaultTicketResolver,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -50,7 +54,8 @@ final class CustomerTicketTierDisplayBuilder {
    *     name: string,
    *     price: string,
    *     availability: string,
-   *     description: string|null,
+   *     short_description: string|null,
+   *     is_best_value: bool,
    *     variation_id: int,
    *     ticket_id: int|null,
    *   }>,
@@ -92,6 +97,8 @@ final class CustomerTicketTierDisplayBuilder {
 
     $context = $this->ticketAvailability->buildDefaultCustomerAccessContext($event);
     $purchasable = $this->ticketAvailability->filterPurchasableVariations($event, $product, $context);
+    $purchasable = $this->sortPurchasableLikeBookForm($event, $purchasable);
+    $best_value_variation_id = $this->resolveBestValueVariationId($event);
     $purchasable_variation_ids = [];
     foreach ($purchasable as $variation) {
       $purchasable_variation_ids[(int) $variation->id()] = $variation;
@@ -106,7 +113,8 @@ final class CustomerTicketTierDisplayBuilder {
         'name' => $this->resolveCustomerLabel($variation, $label_map),
         'price' => $this->formatVariationPrice($variation),
         'availability' => $this->buyerFacingAvailabilityMessage($event, $tier, $variation_id),
-        'description' => $this->resolveShortDescription($tier),
+        'short_description' => $this->resolveShortDescription($tier),
+        'is_best_value' => $best_value_variation_id !== NULL && $variation_id === $best_value_variation_id,
         'variation_id' => $variation_id,
         'ticket_id' => $tier instanceof TicketTypeInterface ? (int) $tier->id() : NULL,
       ];
@@ -215,6 +223,74 @@ final class CustomerTicketTierDisplayBuilder {
       $label = $parts[1] ?? $label;
     }
     return $label;
+  }
+
+  /**
+   * Aligns purchasable variation order with TicketSelectionForm.
+   *
+   * @param \Drupal\commerce_product\Entity\ProductVariationInterface[] $variations
+   *
+   * @return \Drupal\commerce_product\Entity\ProductVariationInterface[]
+   */
+  private function sortPurchasableLikeBookForm(NodeInterface $event, array $variations): array {
+    $default_tier = $this->defaultTicketResolver->getDefaultTicket($event);
+    $default_variation_id = $this->resolveDefaultVariationId($default_tier);
+    if ($default_variation_id === NULL) {
+      return $variations;
+    }
+    return $this->sortVariationsDefaultFirst($variations, $default_variation_id);
+  }
+
+  private function resolveDefaultVariationId(?TicketTypeInterface $tier): ?int {
+    if (!$tier instanceof TicketTypeInterface
+      || !$tier->hasField('commerce_variation')
+      || $tier->get('commerce_variation')->isEmpty()) {
+      return NULL;
+    }
+    $variation_id = (int) $tier->get('commerce_variation')->target_id;
+    return $variation_id > 0 ? $variation_id : NULL;
+  }
+
+  /**
+   * First mel_ticket_type flagged field_is_best_value, matching TicketSelectionForm.
+   */
+  private function resolveBestValueVariationId(NodeInterface $event): ?int {
+    if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      return NULL;
+    }
+
+    foreach ($event->get('field_ticket_types')->referencedEntities() as $ticket) {
+      if (!$ticket instanceof TicketTypeInterface || $ticket->isArchived()) {
+        continue;
+      }
+      if (!$ticket->hasField('field_is_best_value') || !$ticket->isBestValueTicket()) {
+        continue;
+      }
+      if (!$ticket->hasField('commerce_variation') || $ticket->get('commerce_variation')->isEmpty()) {
+        continue;
+      }
+      $variation_id = (int) $ticket->get('commerce_variation')->target_id;
+      return $variation_id > 0 ? $variation_id : NULL;
+    }
+
+    return NULL;
+  }
+
+  /**
+   * @param \Drupal\commerce_product\Entity\ProductVariationInterface[] $variations
+   *
+   * @return \Drupal\commerce_product\Entity\ProductVariationInterface[]
+   */
+  private function sortVariationsDefaultFirst(array $variations, int $defaultVariationId): array {
+    usort($variations, static function (ProductVariationInterface $a, ProductVariationInterface $b) use ($defaultVariationId): int {
+      $a_default = (int) $a->id() === $defaultVariationId;
+      $b_default = (int) $b->id() === $defaultVariationId;
+      if ($a_default === $b_default) {
+        return 0;
+      }
+      return $a_default ? -1 : 1;
+    });
+    return $variations;
   }
 
   private function resolveShortDescription(?TicketTypeInterface $tier): ?string {

@@ -9,7 +9,7 @@
  * - heading: section heading inside canvas
  * - cta: { label, disabled, reason }
  * - availability: { state, message }
- * - ticket_rows: list of { name, price, availability, description? }
+ * - ticket_rows: list of { name, price, availability, short_description?, is_best_value? }
  * - excluded_rows: list of { name, diagnostic }
  * - show_customer_ticket_empty: bool
  * - rsvp_summary: { capacity_line }|null
@@ -70,13 +70,18 @@
         {% if ticket_rows is not empty %}
           <ul class="mel-event-ticket-preview__ticket-rows" aria-label="{{ 'Ticket options customers can book'|t }}">
             {% for row in ticket_rows %}
-              <li class="mel-event-ticket-preview__ticket-row">
+              <li class="mel-event-ticket-preview__ticket-row{% if row.is_best_value %} mel-event-ticket-preview__ticket-row--best-value{% endif %}">
                 <div class="mel-event-ticket-preview__ticket-main">
-                  <span class="mel-event-ticket-preview__ticket-name">{{ row.name }}</span>
+                  <div class="mel-event-ticket-preview__ticket-title">
+                    <span class="mel-event-ticket-preview__ticket-name">{{ row.name }}</span>
+                    {% if row.is_best_value %}
+                      <span class="mel-event-ticket-preview__best-value-badge">{{ 'Best value'|t }}</span>
+                    {% endif %}
+                  </div>
                   <span class="mel-event-ticket-preview__ticket-price">{{ row.price }}</span>
                 </div>
-                {% if row.description %}
-                  <p class="mel-event-ticket-preview__ticket-description mel-text--muted">{{ row.description }}</p>
+                {% if row.short_description %}
+                  <p class="mel-event-ticket-preview__ticket-description mel-text--muted">{{ row.short_description|e }}</p>
                 {% endif %}
                 {% if row.availability %}
                   <p class="mel-event-ticket-preview__ticket-availability">{{ row.availability }}</p>
