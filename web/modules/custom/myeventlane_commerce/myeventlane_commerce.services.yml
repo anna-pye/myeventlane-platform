@@ -187,6 +187,11 @@ services:
     arguments:
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@myeventlane_commerce.ticket_booking_session'
+      - '@commerce_cart.cart_provider'
+      - '@commerce_cart.cart_manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_commerce.ticket_capacity'
+      - '@logger.channel.myeventlane_commerce'
     tags:
       - { name: controller.service_arguments }
 
