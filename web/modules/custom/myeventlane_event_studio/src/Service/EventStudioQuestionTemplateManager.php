@@ -54,6 +54,66 @@ final class EventStudioQuestionTemplateManager {
   }
 
   /**
+   * Vendor-facing applicability labels for the Event Studio questions table.
+   *
+   * @return array<string, string>
+   */
+  public function workspaceApplicabilityLabels(): array {
+    return [
+      self::APPLIES_PER_TICKET => (string) $this->t('All ticket holders'),
+      self::APPLIES_PER_TICKET_TYPE => (string) $this->t('Specific ticket types'),
+      self::APPLIES_PER_ORDER => (string) $this->t('Per order'),
+    ];
+  }
+
+  /**
+   * Summarises legacy tier-level attendee question templates on ticket types.
+   *
+   * @return array{
+   *   total_count: int,
+   *   ticket_type_names: list<string>,
+   *   questions_per_ticket_type: array<string, int>
+   * }
+   */
+  public function findLegacyTierQuestionSummary(NodeInterface $event): array {
+    $total_count = 0;
+    $ticket_type_names = [];
+    $questions_per_ticket_type = [];
+
+    foreach ($this->loadEventTickets($event) as $ticket) {
+      if (!$ticket->hasField('field_use_ticket_attendee_questions')
+        || empty($ticket->get('field_use_ticket_attendee_questions')->value)) {
+        continue;
+      }
+      if (!$ticket->hasField('field_attendee_questions')
+        || $ticket->get('field_attendee_questions')->isEmpty()) {
+        continue;
+      }
+
+      $count = 0;
+      foreach ($ticket->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if ($paragraph instanceof ParagraphInterface && $paragraph->bundle() === 'attendee_extra_field') {
+          $count++;
+        }
+      }
+      if ($count < 1) {
+        continue;
+      }
+
+      $total_count += $count;
+      $name = $ticket->label();
+      $ticket_type_names[] = $name;
+      $questions_per_ticket_type[$name] = $count;
+    }
+
+    return [
+      'total_count' => $total_count,
+      'ticket_type_names' => $ticket_type_names,
+      'questions_per_ticket_type' => $questions_per_ticket_type,
+    ];
+  }
+
+  /**
    * @return array<string, string>
    */
   public function statusOptions(): array {
@@ -368,7 +428,25 @@ final class EventStudioQuestionTemplateManager {
       }
     }
 
+    $old_ticket_ids = $this->paragraphTicketTypeIds($paragraph);
+    $new_ticket_ids = $this->normalizeTicketTypeIds($newRow['ticket_type_ids'] ?? []);
+    if (!$this->ticketTypeIdSetsEqual($old_ticket_ids, $new_ticket_ids)) {
+      return (string) $this->t('@question already has attendee answers, so its ticket type targeting cannot be changed. Archive it and add a new question instead.', ['@question' => $context]);
+    }
+
     return NULL;
+  }
+
+  /**
+   * @param list<int> $left
+   * @param list<int> $right
+   */
+  public function ticketTypeIdSetsEqual(array $left, array $right): bool {
+    $normalized_left = $this->normalizeTicketTypeIds($left);
+    $normalized_right = $this->normalizeTicketTypeIds($right);
+    sort($normalized_left);
+    sort($normalized_right);
+    return $normalized_left === $normalized_right;
   }
 
   /**
