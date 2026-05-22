@@ -34,16 +34,22 @@ Editorial guardrails applied at export: conditional QR/PDF/wallet/calendar wordi
 
 ## Import commands (run later — not executed for this task)
 
-Dry-run:
+Dry-run (YAML path is a **positional argument**, not `--file`):
 
 ```bash
-ddev drush mel:help-import-priority --file=docs/content-audit/help-article-exports/help-articles-batch-02-2026-05.yml --dry-run
+ddev drush mel:help-import-priority docs/content-audit/help-article-exports/help-articles-batch-02-2026-05.yml --dry-run
 ```
 
 Live import:
 
 ```bash
-ddev drush mel:help-import-priority --file=docs/content-audit/help-article-exports/help-articles-batch-02-2026-05.yml --yes
+ddev drush mel:help-import-priority docs/content-audit/help-article-exports/help-articles-batch-02-2026-05.yml --yes
+```
+
+Default file (priority export only) when the path is omitted:
+
+```bash
+ddev drush mel:help-import-priority
 ```
 
 ## Post-import checks
