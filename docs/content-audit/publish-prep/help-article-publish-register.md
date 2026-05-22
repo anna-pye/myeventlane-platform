@@ -2,15 +2,15 @@
 
 **Date:** 2026-05-22  
 **Branch:** `feature/help-article-publish-prep`  
-**Drupal nodes:** not updated in this pass
+**Drupal nodes:** updated 2026-05-22 on `feature/help-article-editorial-updates` — see `editorial-update-log.md`
 
 | Article | Source | Existing node | Audience | Action | Publish readiness | Blockers | Next step |
 |---------|--------|---------------|----------|--------|-------------------|----------|-----------|
-| Support contact | Draft + nid **1498** | 1498 “Contacting support” | public | **Merge** draft into 1498; expand body & summary | **Ready for editorial update** | Friendly path alias unconfirmed | Update nid 1498 in CMS; `drush search-api:index mel_content` |
-| Stripe payouts | Draft + nid **1510** | 1510 “Payouts and fees” | vendor | **Merge** draft into 1510; keep title | **Ready for editorial update** (staging labels) | Exact fee/payout copy on dashboard | Update nid 1510; verify `/stripe/connect` labels on staging |
-| Waitlist | Draft only | None (no matching published title) | public | **New article** after QA | **Blocked until product behaviour is verified** | Staging: join UI, offer email, RSVP vs paid clarity | Browser QA on sold-out paid event; then write node |
-| Ticket confirmation | Draft only | None (“How to access your tickets” seed not on staging) | public | **New article** after QA | **Blocked until product behaviour is verified** | Wallet UI, email attachments, assignment flow | Complete test purchase on staging; then write node |
-| Checkout errors | Draft only | None | public | **New article** (generic copy OK) | **Ready for editorial update** | Optional: capture real decline message on staging | Editorial review → new node; link from checkout help |
+| Support contact | Draft + nid **1498** | 1498 “Contacting support” | public | **Done** — merged body/summary | **Published** | Path alias | — |
+| Stripe payouts | Draft + nid **1510** | 1510 “Payouts and fees” | vendor | **Done** — merged body/summary | **Published** | Dashboard fee labels on staging | — |
+| Waitlist | Draft only | None | public | **New article** after QA | **Blocked until product behaviour is verified** | Staging QA | Browser QA; then create node |
+| Ticket confirmation | Draft only | None | public | **New article** after QA | **Blocked until product behaviour is verified** | Staging QA | Test purchase; then create node |
+| Checkout errors | Draft + **nid 1668** | 1668 “Having trouble checking out” | public | **Done** — created | **Published** | Moderation state must be `published` on create | Optional checkout contextual link |
 
 ## Working tree note (start of pass)
 
