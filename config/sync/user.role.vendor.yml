@@ -35,6 +35,7 @@ dependencies:
     - myeventlane_messaging
     - myeventlane_refunds
     - myeventlane_rsvp
+    - myeventlane_tickets
     - myeventlane_vendor
     - myeventlane_vendor_ai
     - myeventlane_venue
@@ -54,6 +55,9 @@ permissions:
   - 'access analytics dashboard'
   - 'access attendee repository'
   - 'access check-in'
+  - 'check in tickets'
+  - 'scan qr codes'
+  - 'toggle check-in status'
   - 'access checkout'
   - 'access commerce_order overview'
   - 'access content overview'
