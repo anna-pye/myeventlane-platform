@@ -105,16 +105,44 @@
   border: 1px solid var(--mel-ticket-preview-border);
 }
 
+.mel-event-ticket-preview__ticket-row--best-value {
+  border-color: rgba(242, 109, 91, 0.42);
+  box-shadow: 0 6px 18px rgba(242, 109, 91, 0.1);
+}
+
 .mel-event-ticket-preview__ticket-main {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.mel-event-ticket-preview__ticket-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .mel-event-ticket-preview__ticket-name {
   font-weight: 600;
   font-size: 0.9375rem;
+}
+
+.mel-event-ticket-preview__best-value-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(242, 109, 91, 0.12);
+  color: var(--mel-ticket-preview-accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .mel-event-ticket-preview__ticket-price {

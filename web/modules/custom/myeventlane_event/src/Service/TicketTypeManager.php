@@ -16,13 +16,14 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_commerce\Service\EventDefaultTicketResolverInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\node\NodeInterface;
 
 /**
  * Manages ticket type entities and syncs paid types to Commerce variations.
  */
-final class TicketTypeManager {
+final class TicketTypeManager implements EventDefaultTicketResolverInterface {
 
   use StringTranslationTrait;
 
