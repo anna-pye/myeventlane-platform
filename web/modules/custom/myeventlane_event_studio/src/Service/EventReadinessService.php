@@ -26,6 +26,7 @@ final class EventReadinessService {
     private readonly TicketTypeManager $ticketTypeManager,
     private readonly VendorPublishRequirementsGate $publishRequirementsGate,
     private readonly PaidPublishStripeGate $paidPublishStripeGate,
+    private readonly EventStudioQuestionTemplateManager $questionTemplateManager,
     TranslationInterface $stringTranslation,
   ) {
     $this->stringTranslation = $stringTranslation;
@@ -103,6 +104,7 @@ final class EventReadinessService {
     }
 
     $this->addOptionalRecommendations($event, $recommendations);
+    $this->mergeQuestionReadinessFindings($event, $errors, $warnings);
 
     $errors = array_values(array_unique($errors));
     $warnings = array_values(array_unique($warnings));
@@ -197,6 +199,24 @@ final class EventReadinessService {
       return '';
     }
     return (string) $event->get('field_event_type')->value;
+  }
+
+  /**
+   * @param list<string> $errors
+   * @param list<string> $warnings
+   */
+  private function mergeQuestionReadinessFindings(NodeInterface $event, array &$errors, array &$warnings): void {
+    foreach ($this->questionTemplateManager->buildQuestionReadinessFindings($event) as $finding) {
+      $message = trim((string) ($finding['message'] ?? ''));
+      if ($message === '') {
+        continue;
+      }
+      if (($finding['severity'] ?? '') === 'blocker') {
+        $errors[] = $message;
+        continue;
+      }
+      $warnings[] = $message;
+    }
   }
 
   /**

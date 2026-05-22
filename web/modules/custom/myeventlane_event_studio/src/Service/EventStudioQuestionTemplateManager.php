@@ -75,6 +75,79 @@ final class EventStudioQuestionTemplateManager {
    *   questions_per_ticket_type: array<string, int>
    * }
    */
+  /**
+   * Publish-readiness findings for Event Studio checkout questions.
+   *
+   * @return list<array{severity: string, code: string, message: string}>
+   */
+  public function buildQuestionReadinessFindings(NodeInterface $event): array {
+    $findings = [];
+    $paid_event = $this->eventHasPaidBooking($event);
+
+    $has_missing_ticket_types = FALSE;
+    $has_per_order = FALSE;
+    $has_locked_questions = FALSE;
+
+    if ($event->hasField('field_attendee_questions') && !$event->get('field_attendee_questions')->isEmpty()) {
+      foreach ($event->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if (!$paragraph instanceof ParagraphInterface || $paragraph->bundle() !== 'attendee_extra_field') {
+          continue;
+        }
+        if ($this->paragraphStatus($paragraph) === self::STATUS_ARCHIVED) {
+          continue;
+        }
+
+        $applicability = $this->paragraphApplicability($paragraph);
+        if ($paid_event
+          && $applicability === self::APPLIES_PER_TICKET_TYPE
+          && $this->paragraphTicketTypeIds($paragraph) === []) {
+          $has_missing_ticket_types = TRUE;
+        }
+        if ($applicability === self::APPLIES_PER_ORDER) {
+          $has_per_order = TRUE;
+        }
+        if ($this->questionHasHistoricalAnswers($event, $paragraph)) {
+          $has_locked_questions = TRUE;
+        }
+      }
+    }
+
+    if ($has_missing_ticket_types) {
+      $findings[] = [
+        'severity' => 'blocker',
+        'code' => 'ticket_question_missing_ticket_types',
+        'message' => (string) $this->t('A ticket-specific checkout question has no ticket types selected.'),
+      ];
+    }
+
+    if ($has_per_order) {
+      $findings[] = [
+        'severity' => 'warning',
+        'code' => 'checkout_question_per_order_inactive',
+        'message' => (string) $this->t('Per-order checkout questions are not active in checkout yet.'),
+      ];
+    }
+
+    if ($has_locked_questions) {
+      $findings[] = [
+        'severity' => 'warning',
+        'code' => 'checkout_question_historical_answers',
+        'message' => (string) $this->t('Some checkout questions already have attendee answers. Archive them instead of changing type, options, or ticket targeting.'),
+      ];
+    }
+
+    $legacy = $this->findLegacyTierQuestionSummary($event);
+    if (($legacy['total_count'] ?? 0) > 0) {
+      $findings[] = [
+        'severity' => 'warning',
+        'code' => 'legacy_ticket_type_questions',
+        'message' => (string) $this->t('This event has ticket-level questions stored on ticket types. They still work at checkout, but new questions should be managed from Checkout questions.'),
+      ];
+    }
+
+    return $findings;
+  }
+
   public function findLegacyTierQuestionSummary(NodeInterface $event): array {
     $total_count = 0;
     $ticket_type_names = [];
@@ -488,6 +561,13 @@ final class EventStudioQuestionTemplateManager {
   /**
    * @return list<\Drupal\mel_ticket\Entity\TicketTypeInterface>
    */
+  private function eventHasPaidBooking(NodeInterface $event): bool {
+    if (!$event->hasField('field_event_type') || $event->get('field_event_type')->isEmpty()) {
+      return FALSE;
+    }
+    return in_array((string) $event->get('field_event_type')->value, ['paid', 'both'], TRUE);
+  }
+
   private function loadEventTickets(NodeInterface $event): array {
     if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
       return [];

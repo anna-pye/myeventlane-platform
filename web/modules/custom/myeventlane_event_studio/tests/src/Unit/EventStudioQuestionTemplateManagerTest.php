@@ -242,6 +242,99 @@ final class EventStudioQuestionTemplateManagerTest extends TestCase {
   }
 
   /**
+   * @covers ::buildQuestionReadinessFindings
+   */
+  public function testBuildQuestionReadinessFindingsFlagsMissingTicketTypesOnPaidEvents(): void {
+    $manager = $this->manager();
+    $event = $this->eventWithCheckoutQuestions([
+      $this->checkoutQuestionParagraph([
+        'field_question_applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE,
+        'field_question_ticket_types' => [],
+      ], TRUE),
+    ], 'paid');
+
+    $findings = $manager->buildQuestionReadinessFindings($event);
+
+    $this->assertCount(1, $findings);
+    $this->assertSame('blocker', $findings[0]['severity']);
+    $this->assertSame('ticket_question_missing_ticket_types', $findings[0]['code']);
+    $this->assertSame('A ticket-specific checkout question has no ticket types selected.', $findings[0]['message']);
+  }
+
+  /**
+   * @covers ::buildQuestionReadinessFindings
+   */
+  public function testBuildQuestionReadinessFindingsSkipsMissingTicketTypesOnRsvpEvents(): void {
+    $manager = $this->manager();
+    $event = $this->eventWithCheckoutQuestions([
+      $this->checkoutQuestionParagraph([
+        'field_question_applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE,
+        'field_question_ticket_types' => [],
+      ], TRUE),
+    ], 'rsvp');
+
+    $this->assertSame([], $manager->buildQuestionReadinessFindings($event));
+  }
+
+  /**
+   * @covers ::buildQuestionReadinessFindings
+   */
+  public function testBuildQuestionReadinessFindingsWarnsForPerOrderQuestions(): void {
+    $manager = $this->manager();
+    $event = $this->eventWithCheckoutQuestions([
+      $this->checkoutQuestionParagraph([
+        'field_question_applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_ORDER,
+      ]),
+    ]);
+
+    $findings = $manager->buildQuestionReadinessFindings($event);
+
+    $this->assertCount(1, $findings);
+    $this->assertSame('warning', $findings[0]['severity']);
+    $this->assertSame('checkout_question_per_order_inactive', $findings[0]['code']);
+    $this->assertSame('Per-order checkout questions are not active in checkout yet.', $findings[0]['message']);
+  }
+
+  /**
+   * @covers ::buildQuestionReadinessFindings
+   */
+  public function testBuildQuestionReadinessFindingsWarnsForHistoricalAnswers(): void {
+    $repository = $this->createMock(EventStudioQuestionAnswerExistenceRepository::class);
+    $repository->method('questionHasHistoricalAnswers')->willReturn(TRUE);
+    $manager = $this->manager($repository);
+    $event = $this->eventWithCheckoutQuestions([
+      $this->checkoutQuestionParagraph([
+        'field_question_applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET,
+      ]),
+    ]);
+
+    $findings = $manager->buildQuestionReadinessFindings($event);
+
+    $this->assertCount(1, $findings);
+    $this->assertSame('warning', $findings[0]['severity']);
+    $this->assertSame('checkout_question_historical_answers', $findings[0]['code']);
+    $this->assertSame('Some checkout questions already have attendee answers. Archive them instead of changing type, options, or ticket targeting.', $findings[0]['message']);
+  }
+
+  /**
+   * @covers ::buildQuestionReadinessFindings
+   */
+  public function testBuildQuestionReadinessFindingsWarnsForLegacyTierQuestions(): void {
+    $manager = $this->manager();
+    $event = $this->eventWithLegacyTierQuestions();
+
+    $findings = $manager->buildQuestionReadinessFindings($event);
+
+    $legacy = array_values(array_filter(
+      $findings,
+      static fn (array $finding): bool => ($finding['code'] ?? '') === 'legacy_ticket_type_questions',
+    ));
+    $this->assertCount(1, $legacy);
+    $this->assertSame('warning', $legacy[0]['severity']);
+    $this->assertSame('This event has ticket-level questions stored on ticket types. They still work at checkout, but new questions should be managed from Checkout questions.', $legacy[0]['message']);
+  }
+
+  /**
    * @covers ::findLegacyTierQuestionSummary
    */
   public function testFindLegacyTierQuestionSummaryReturnsCountAndTicketNames(): void {
@@ -298,6 +391,51 @@ final class EventStudioQuestionTemplateManagerTest extends TestCase {
         }
       };
     });
+    return $paragraph;
+  }
+
+  /**
+   * @param list<\Drupal\paragraphs\ParagraphInterface> $questions
+   */
+  private function eventWithCheckoutQuestions(array $questions, string $eventType = 'paid'): NodeInterface {
+    $event = $this->createMock(NodeInterface::class);
+    $event->method('hasField')->willReturnCallback(static fn (string $field): bool => in_array($field, ['field_attendee_questions', 'field_event_type'], TRUE));
+    $event->method('get')->willReturnCallback(static function (string $field) use ($questions, $eventType): object {
+      if ($field === 'field_event_type') {
+        return new class($eventType) {
+          public function __construct(public string $value) {}
+          public function isEmpty(): bool {
+            return FALSE;
+          }
+        };
+      }
+      return new class($questions) {
+        /**
+         * @param list<\Drupal\paragraphs\ParagraphInterface> $questions
+         */
+        public function __construct(private readonly array $questions) {}
+        public function isEmpty(): bool {
+          return $this->questions === [];
+        }
+        /**
+         * @return list<\Drupal\paragraphs\ParagraphInterface>
+         */
+        public function referencedEntities(): array {
+          return $this->questions;
+        }
+      };
+    });
+    return $event;
+  }
+
+  /**
+   * @param array<string, mixed> $values
+   */
+  private function checkoutQuestionParagraph(array $values, bool $ticketTypesUseGetValue = FALSE): ParagraphInterface {
+    $paragraph = $this->paragraph(array_merge([
+      'field_question_status' => EventStudioQuestionTemplateManager::STATUS_ACTIVE,
+    ], $values), $ticketTypesUseGetValue);
+    $paragraph->method('bundle')->willReturn('attendee_extra_field');
     return $paragraph;
   }
 
