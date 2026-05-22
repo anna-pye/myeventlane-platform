@@ -13,9 +13,9 @@
 | missing-ticket-help.md | public | /help/attendees/missing-ticket-help | No | Yes | batch_02_2026_05 | — | Exported in batch 02 |
 | organiser-manage-waitlists.md | vendor | /help/vendors/organiser-manage-waitlists | No | No | — | Blocked until paid waitlist organiser UI/reporting and auto-offer claim flow are verified | See organiser-ticket-capacity-waitlist-verification.md |
 | ticket-sales-and-capacity.md | vendor | /help/vendors/ticket-sales-and-capacity | No | Yes | batch_04_2026_05 | Refund→sold count; lower capacity below sold | Exported in help-articles-batch-04-2026-05.yml; importer not run |
-| attendee-questions-for-organisers.md | vendor | /help/vendors/attendee-questions-for-organisers | No | No | — | Field types; archive behaviour; export columns | Privacy-first collection guidance |
+| attendee-questions-for-organisers.md | vendor | /help/vendors/attendee-questions-for-organisers | Yes | Yes | batch_05_2026_05 | — | Verified 2026-05-22; see attendee-questions-template-verification.md |
 | check-in-attendees.md | vendor | /help/vendors/check-in-attendees | No | No | — | QR issuance coverage; RSVP check-in source | Does not claim every ticket has QR/PDF |
-| saved-question-templates.md | vendor | /help/vendors/saved-question-templates | No | No | — | Library permissions; edit vs clone semantics | Route `/vendor/questions` |
+| saved-question-templates.md | vendor | /help/vendors/saved-question-templates | Yes | Yes | batch_05_2026_05 | — | Verified 2026-05-22; clone-not-link; library types subset of Event Studio |
 
 ## Publish order suggestion
 
