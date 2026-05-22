@@ -12,6 +12,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\mel_ticket\Entity\TicketWaitlistEntry;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
@@ -23,7 +25,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Enforces mel_ticket_type rules, event capacity, and Commerce alignment at purchase.
  */
-final class TicketAvailabilityService implements TicketTierForVariationResolverInterface {
+final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInterface {
+
+  use StringTranslationTrait;
 
   private const PURCHASABLE_CACHE_MAX_AGE = 90;
 
@@ -37,13 +41,16 @@ final class TicketAvailabilityService implements TicketTierForVariationResolverI
     private readonly TicketBookingSessionService $bookingSession,
     private readonly TicketTierWaitlistService $tierWaitlist,
     private readonly AccountProxyInterface $currentUser,
+    TranslationInterface $string_translation,
     private readonly ?TicketAccessCodeService $accessCodeService = NULL,
     private readonly ?TicketGroupEligibilityService $groupEligibility = NULL,
     private readonly ?TicketCapacityService $capacity = NULL,
     private readonly ?CacheBackendInterface $cache = NULL,
     private readonly ?RouteMatchInterface $routeMatch = NULL,
     private readonly ?RequestStack $requestStack = NULL,
-  ) {}
+  ) {
+    $this->stringTranslation = $string_translation;
+  }
 
   public function buildPublicAccessContext(NodeInterface $event): TicketAccessContext {
     $eid = (int) $event->id();
@@ -54,6 +61,20 @@ final class TicketAvailabilityService implements TicketTierForVariationResolverI
       grantedTierIds: $this->resolveGrantedTierIds($event),
       waitlistClaimEntryId: $this->bookingSession->getWaitlistClaimEntryId($eid),
       groupEligible: $this->resolveGroupEligible($account, $event),
+      routeSource: 'public_booking',
+    );
+  }
+
+  /**
+   * Anonymous default-customer context for vendor Studio preview (no grants).
+   */
+  public function buildDefaultCustomerAccessContext(NodeInterface $event): TicketAccessContext {
+    return new TicketAccessContext(
+      eventId: (int) $event->id(),
+      account: NULL,
+      grantedTierIds: [],
+      waitlistClaimEntryId: NULL,
+      groupEligible: FALSE,
       routeSource: 'public_booking',
     );
   }
@@ -128,21 +149,25 @@ final class TicketAvailabilityService implements TicketTierForVariationResolverI
   public function filterPurchasableVariations(
     NodeInterface $event,
     ProductInterface $product,
+    ?TicketAccessContext $accessContext = NULL,
   ): array {
     $eid = (int) $event->id();
     $pid = (int) $product->id();
-    $uid = (int) $this->currentUser->id();
+    $context = $accessContext ?? $this->buildPublicAccessContext($event);
     $route = $this->cacheRouteName();
     $sessionId = $this->cacheSessionId();
-    $grants = $this->resolveGrantedTierIds($event);
+    $grants = $context->grantedTierIds;
     sort($grants, SORT_NUMERIC);
-    $waitlistClaimId = $this->bookingSession->getWaitlistClaimEntryId($eid) ?? 0;
+    $waitlistClaimId = $context->waitlistClaimEntryId ?? 0;
+    $account_uid = $context->account !== NULL ? (int) $context->account->id() : 0;
     $cid = 'mel_ticket:purchasable_variations:' . hash('sha256', implode(':', [
       (string) $eid,
       (string) $pid,
-      (string) $uid,
+      (string) $account_uid,
       $sessionId,
       $route,
+      $context->routeSource,
+      $context->groupEligible ? '1' : '0',
       implode(',', $grants),
       (string) $waitlistClaimId,
     ]));
@@ -164,7 +189,6 @@ final class TicketAvailabilityService implements TicketTierForVariationResolverI
       }
     }
 
-    $context = $this->buildPublicAccessContext($event);
     $capacityMaps = $this->buildCapacityMapsForProduct($event, $product);
 
     $out = [];
@@ -533,6 +557,80 @@ final class TicketAvailabilityService implements TicketTierForVariationResolverI
    */
   public function countCompletedSoldForVariation(int $eventId, int $variationId): int {
     return $this->variationSold->countCompletedSoldForVariation($eventId, $variationId);
+  }
+
+  /**
+   * Vendor-only reason a saved tier is not on the public book matrix.
+   */
+  public function explainVendorPreviewExclusion(
+    NodeInterface $event,
+    ProductInterface $product,
+    TicketTypeInterface $tier,
+    ?ProductVariationInterface $variation,
+    TicketAccessContext $context,
+  ): string {
+    if (!$tier->isPublished()) {
+      return (string) $this->t('Hidden from checkout: this ticket is not published.');
+    }
+
+    if ($variation === NULL || !$variation->isPublished()) {
+      return (string) $this->t('Hidden from checkout: linked product variation is missing or unpublished.');
+    }
+
+    $visibility = $this->tierAccess->visibilityReason($tier, $context->account, $context);
+    $visibility_copy = match ($visibility) {
+      TicketTierAccessService::REASON_HIDDEN => (string) $this->t('Hidden from checkout: ticket is not visible to this customer.'),
+      TicketTierAccessService::REASON_ACCESS_CODE_REQUIRED => (string) $this->t('Hidden from checkout: ticket requires an access code for this customer.'),
+      TicketTierAccessService::REASON_GROUP_ONLY => (string) $this->t('Hidden from checkout: ticket is not visible to this customer.'),
+      default => NULL,
+    };
+    if ($visibility_copy !== NULL) {
+      return $visibility_copy;
+    }
+
+    $status = TicketStatusEvaluator::evaluate($tier, $this->variationSold, $this->time, $event);
+    $status_copy = match ($status) {
+      TicketStatusEvaluator::STATUS_UPCOMING => (string) $this->t('Hidden from checkout: sale has not started.'),
+      TicketStatusEvaluator::STATUS_ENDED => (string) $this->t('Hidden from checkout: sale has ended.'),
+      TicketStatusEvaluator::STATUS_INACTIVE => (string) $this->t('Hidden from checkout: this ticket is not on sale.'),
+      TicketStatusEvaluator::STATUS_ARCHIVED => (string) $this->t('Hidden from checkout: this ticket is archived.'),
+      TicketStatusEvaluator::STATUS_SOLD_OUT => (string) $this->t('Hidden from checkout: sold out.'),
+      default => NULL,
+    };
+    if ($status_copy !== NULL) {
+      return $status_copy;
+    }
+
+    try {
+      $this->assertPaidVariationLineConstraints($event, $product, $variation, 1, $context);
+      return (string) $this->t('Hidden from checkout: ticket is not available on the book page.');
+    }
+    catch (CapacityExceededException $exception) {
+      return $this->mapPurchasabilityExceptionToVendorDiagnostic($exception->getMessage());
+    }
+  }
+
+  private function mapPurchasabilityExceptionToVendorDiagnostic(string $message): string {
+    $message = trim($message);
+    if ($message === '') {
+      return (string) $this->t('Hidden from checkout: ticket is not available on the book page.');
+    }
+    if (str_contains($message, 'not started')) {
+      return (string) $this->t('Hidden from checkout: sale has not started.');
+    }
+    if (str_contains($message, 'ended')) {
+      return (string) $this->t('Hidden from checkout: sale has ended.');
+    }
+    if (str_contains($message, 'sold out') || str_contains($message, 'remaining')) {
+      return (string) $this->t('Hidden from checkout: sold out.');
+    }
+    if (str_contains($message, 'not on sale') || str_contains($message, 'not available')) {
+      return (string) $this->t('Hidden from checkout: ticket is not visible to this customer.');
+    }
+    if (str_contains($message, 'price')) {
+      return (string) $this->t('Hidden from checkout: linked product variation price does not match this ticket.');
+    }
+    return (string) $this->t('Hidden from checkout: @reason', ['@reason' => $message]);
   }
 
   private function capacitySoldCount(int $eventId, int $variationId): int {

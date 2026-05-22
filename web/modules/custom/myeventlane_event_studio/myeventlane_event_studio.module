@@ -173,6 +173,8 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'cta' => [],
         'availability' => [],
         'ticket_rows' => [],
+        'excluded_rows' => [],
+        'show_customer_ticket_empty' => FALSE,
         'rsvp_summary' => NULL,
         'trust_rows' => [],
         'show_empty_state' => TRUE,

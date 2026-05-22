@@ -21,7 +21,7 @@ use Drupal\user\UserInterface;
 /**
  * Tier waitlist queue, offers, and capacity holds for paid tickets.
  */
-final class TicketTierWaitlistService {
+final class TicketTierWaitlistService implements TicketTierWaitlistHoldCounterInterface {
 
   private const OFFER_TTL = 172800;
 

@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
-use Drupal\commerce_price\CurrencyFormatter;
-use Drupal\commerce_price\Price;
-use Drupal\mel_ticket\Entity\TicketTypeInterface;
-use Drupal\myeventlane_commerce\Service\TicketCapacityService;
+use Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\EventModeManager;
-use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\node\NodeInterface;
@@ -34,11 +30,9 @@ final class EventTicketPreviewBuilder {
 
   public function __construct(
     private readonly BookingFlowResolver $bookingFlowResolver,
-    private readonly TicketTierLifecycleService $ticketTierLifecycle,
     private readonly EventModeManager $eventModeManager,
-    private readonly CurrencyFormatter $currencyFormatter,
+    private readonly CustomerTicketTierDisplayBuilder $customerTicketTierDisplay,
     TranslationInterface $string_translation,
-    private readonly ?TicketCapacityService $ticketCapacity = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -57,6 +51,7 @@ final class EventTicketPreviewBuilder {
     $previewState = $this->resolvePreviewState($event, $configuredMode);
     $cta = $this->resolveCtaPreview($event, $previewState);
     $availability = $this->resolveAvailabilityPreview($event, $previewState);
+    $tierDisplay = $this->buildPaidTierDisplay($event, $previewState);
 
     $build = [
       '#theme' => 'mel_event_ticket_preview',
@@ -65,7 +60,9 @@ final class EventTicketPreviewBuilder {
       '#heading' => $this->previewHeading($previewState),
       '#cta' => $cta,
       '#availability' => $availability,
-      '#ticket_rows' => $this->buildTicketRows($event, $previewState),
+      '#ticket_rows' => $tierDisplay['visible_rows'],
+      '#excluded_rows' => $tierDisplay['excluded_rows'],
+      '#show_customer_ticket_empty' => $tierDisplay['show_customer_ticket_empty'],
       '#rsvp_summary' => $this->buildRsvpSummary($event, $previewState),
       '#trust_rows' => $this->buildTrustRows($previewState),
       '#show_empty_state' => $previewState === self::PREVIEW_NOT_CONFIGURED,
@@ -81,12 +78,12 @@ final class EventTicketPreviewBuilder {
               self::PREVIEW_EXTERNAL => (string) $this->t('External'),
               self::PREVIEW_BOTH => (string) $this->t('RSVP + Paid'),
             ],
-            'saveReminder' => (string) $this->t('Save to refresh ticket rows.'),
+            'saveReminder' => (string) $this->t('Save tickets above to refresh this preview.'),
           ],
         ],
       ],
       '#cache' => [
-        'tags' => $this->buildCacheTags($event),
+        'tags' => $tierDisplay['cache_tags'],
         'contexts' => ['user.permissions'],
       ],
     ];
@@ -95,20 +92,42 @@ final class EventTicketPreviewBuilder {
   }
 
   /**
-   * @return list<string>
+   * @return array{
+   *   visible_rows: list<array<string, mixed>>,
+   *   excluded_rows: list<array{name: string, diagnostic: string}>,
+   *   show_customer_ticket_empty: bool,
+   *   cache_tags: list<string>,
+   * }
    */
-  private function buildCacheTags(NodeInterface $event): array {
-    $tags = $event->getCacheTags();
-    if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
-      $product = $event->get('field_product_target')->entity;
-      if ($product !== NULL) {
-        $tags = array_merge($tags, $product->getCacheTags());
-      }
+  private function buildPaidTierDisplay(NodeInterface $event, string $previewState): array {
+    $base = [
+      'visible_rows' => [],
+      'excluded_rows' => [],
+      'show_customer_ticket_empty' => FALSE,
+      'cache_tags' => $event->getCacheTags(),
+    ];
+
+    if (!in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)) {
+      return $base;
     }
-    foreach ($this->ticketTierLifecycle->loadOrderedTicketsForEvent($event) as $ticket) {
-      $tags = array_merge($tags, $ticket->getCacheTags());
+
+    $display = $this->customerTicketTierDisplay->buildForEvent($event);
+    $visible_rows = [];
+    foreach ($display['visible_rows'] as $row) {
+      $visible_rows[] = [
+        'name' => $row['name'],
+        'price' => $row['price'],
+        'availability' => $row['availability'],
+        'description' => $row['description'],
+      ];
     }
-    return array_values(array_unique($tags));
+
+    return [
+      'visible_rows' => $visible_rows,
+      'excluded_rows' => $display['excluded_rows'],
+      'show_customer_ticket_empty' => $visible_rows === [] && $display['excluded_rows'] === [],
+      'cache_tags' => $display['cache_tags'],
+    ];
   }
 
   private function resolveConfiguredMode(NodeInterface $event): string {
@@ -226,30 +245,6 @@ final class EventTicketPreviewBuilder {
   }
 
   /**
-   * @return list<array{name: string, price: string, availability: string}>
-   */
-  private function buildTicketRows(NodeInterface $event, string $previewState): array {
-    if (!in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)) {
-      return [];
-    }
-
-    $rows = [];
-    $eventId = (int) $event->id();
-    foreach ($this->ticketTierLifecycle->loadOrderedTicketsForEvent($event) as $ticket) {
-      if ($ticket->getTicketKind() !== 'paid' || !$ticket->isPublished()) {
-        continue;
-      }
-      $rows[] = [
-        'name' => $ticket->getTitle(),
-        'price' => $this->formatTicketPrice($ticket),
-        'availability' => $this->formatTierAvailability($event, $eventId, $ticket),
-      ];
-    }
-
-    return $rows;
-  }
-
-  /**
    * @return array{capacity_line: string|null}|null
    */
   private function buildRsvpSummary(NodeInterface $event, string $previewState): ?array {
@@ -298,56 +293,6 @@ final class EventTicketPreviewBuilder {
       ],
       default => [$confirmation],
     };
-  }
-
-  private function formatTicketPrice(TicketTypeInterface $ticket): string {
-    $price = $ticket->toPriceValue();
-    if (!$price instanceof Price) {
-      return (string) $this->t('Free');
-    }
-    if ($price->isZero()) {
-      return (string) $this->t('Free');
-    }
-    return $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
-  }
-
-  private function formatTierAvailability(
-    NodeInterface $event,
-    int $eventId,
-    TicketTypeInterface $ticket,
-  ): string {
-    if ($ticket->get('capacity')->isEmpty()) {
-      return (string) $this->t('Available');
-    }
-
-    $cap = (int) $ticket->get('capacity')->value;
-    if ($cap < 1) {
-      return (string) $this->t('Available');
-    }
-
-    if (!$this->ticketCapacity instanceof TicketCapacityService) {
-      return (string) $this->t('Available');
-    }
-
-    $variationId = $ticket->get('commerce_variation')->isEmpty()
-      ? 0
-      : (int) $ticket->get('commerce_variation')->target_id;
-    if ($variationId < 1) {
-      return (string) $this->t('Available');
-    }
-
-    $pool = $this->ticketCapacity->getRemaining($eventId, (int) $ticket->id(), $variationId, $ticket);
-    if ($pool < 1) {
-      return (string) $this->t('Sold out');
-    }
-    if ($pool === 1) {
-      return (string) $this->t('Only 1 left');
-    }
-    if ($pool <= 10) {
-      return (string) $this->t('Only @count left', ['@count' => (string) $pool]);
-    }
-
-    return (string) $this->t('Available');
   }
 
 }

@@ -188,16 +188,16 @@ final class EventStudioSectionRenderer {
       'mode' => $this->formBuilder->getForm(EventStudioTicketsForm::class, $event),
     ];
 
+    $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);
+    $build['operational']['#weight'] = 5;
+
     if ($this->eventTicketPreviewBuilder instanceof EventTicketPreviewBuilder) {
       $preview = $this->eventTicketPreviewBuilder->build($event);
       if ($preview !== []) {
         $build['ticket_preview'] = $preview;
-        $build['ticket_preview']['#weight'] = 5;
+        $build['ticket_preview']['#weight'] = 10;
       }
     }
-
-    $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);
-    $build['operational']['#weight'] = 10;
 
     $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
       ? (string) $event->get('field_event_type')->value
