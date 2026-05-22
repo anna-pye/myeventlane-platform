@@ -133,3 +133,47 @@ npm run mel:build
 ## Git commit
 
 Only this log file is committed; **Drupal node content is database-only** (not exported to config in this pass).
+
+---
+
+## Final polish pass (2026-05-22)
+
+**Branch:** `feature/help-article-final-polish`
+
+### Path aliases applied (local DDEV)
+
+| nid | Alias | Anonymous HTTP |
+|-----|-------|----------------|
+| 1498 | `/help/attendees/contacting-support` | 200 |
+| 1510 | `/help/vendors/payouts-and-fees` | 403 (vendor-only; expected) |
+| 1668 | `/help/attendees/having-trouble-checking-out` | 200 |
+
+Pattern matches seeded articles in `myeventlane_help_centre.help_content.yml` (`/help/attendees/…`, `/help/vendors/…`). No pathauto pattern exists for `help_article`; aliases created manually.
+
+### Stripe fee label verification (nid 1510)
+
+**Method:** Code audit (vendor dashboard, checkout, analytics) — vendor UI not browser-walked this pass.
+
+| UI surface | Label found |
+|------------|-------------|
+| Checkout fee pane | “Platform fee” (`FeeTransparencyPane`) |
+| Vendor analytics KPI | “platform_fees” / net earnings |
+| Stripe Connect dashboard copy | “payouts”, “Connect Stripe to receive card payments and payouts” |
+
+**Decision:** No change to nid 1510 body. Existing copy (“Platform and processing fees”, “organiser dashboard or Stripe”) aligns with product terminology without quoting percentages or payout schedules.
+
+### Checkout contextual link
+
+| Item | Before | After |
+|------|--------|-------|
+| Config key `checkout` | “Help with checkout and tickets” → `/help/attendees/how-to-request-a-refund` | “Having trouble checking out?” → `/help/attendees/having-trouble-checking-out` |
+| Refund link | Unchanged (`refunds_checkout` key) | — |
+
+**Files:** `config/sync/myeventlane_help_centre.contextual_help.yml` + active config updated via Drush.
+
+**Rationale:** Smallest safe fix — config only, no module changes. Surfaces when checkout has no inline support card (`mel_help_checkout_guide` in `myeventlane_help_centre_preprocess_commerce_checkout_form`).
+
+### Articles unchanged
+
+- Waitlist, ticket confirmation — still blocked.
+- No body copy edits on 1498, 1510, 1668.

@@ -72,8 +72,10 @@ final class EventCheckoutQuestionsForm extends FormBase {
 
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'mel-event-studio-questions';
+    $form['#attributes']['class'][] = 'mel-event-studio-questions--table';
     $form['#attributes']['data-mel-event-studio-form'] = '1';
     $form['#attributes']['data-mel-event-studio-section'] = 'questions';
+    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio';
 
     $form['event_id'] = [
       '#type' => 'hidden',
@@ -108,9 +110,14 @@ final class EventCheckoutQuestionsForm extends FormBase {
       'per_order_notice' => [
         '#markup' => '<p class="mel-event-studio-questions__notice">' . $this->t('Recommended: keep questions short. Attendees can edit their answers before submitting checkout.') . '</p>',
       ],
+      'per_order_planned' => [
+        '#markup' => '<p class="mel-event-studio-questions__per-order-note">' . $this->t('Per order questions are planned but not active yet.') . '</p>',
+      ],
     ];
 
     $ticket_options = $this->studioQuestionTemplateManager->ticketOptions($event);
+    $question_rows = $this->studioQuestionTemplateManager->loadRows($event);
+
     $form['questions_card'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-es-card', 'mel-event-studio-questions__manager']],
@@ -119,20 +126,24 @@ final class EventCheckoutQuestionsForm extends FormBase {
       '#type' => 'container',
       '#tree' => TRUE,
       '#attributes' => [
-        'class' => ['mel-event-studio-questions__table', 'mel-event-studio-questions__cards'],
-        'role' => 'list',
+        'class' => ['mel-event-studio-questions__table'],
+        'role' => 'table',
       ],
     ];
+    $form['questions_card']['questions']['header'] = $this->buildTableHeaderRow();
 
-    $question_rows = $this->studioQuestionTemplateManager->loadRows($event);
     foreach ($question_rows as $row) {
       $row_id = (int) $row['id'];
       $form['questions_card']['questions'][$row_id] = $this->buildQuestionRow($event, $row, $ticket_options);
     }
+
     if ($question_rows === []) {
       $form['questions_card']['questions']['empty'] = [
         '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-questions__empty']],
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__empty'],
+          'role' => 'row',
+        ],
         'copy' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
@@ -152,18 +163,8 @@ final class EventCheckoutQuestionsForm extends FormBase {
         '#value' => $this->t('Ask for the information you actually need to welcome people well. You can archive questions later without losing past answers.'),
         '#attributes' => ['class' => ['mel-event-studio-questions__add-helper']],
       ],
-    ] + $this->buildQuestionEditor([
-      'id' => 0,
-      'weight' => count($this->studioQuestionTemplateManager->loadRows($event)),
-      'label' => '',
-      'type' => 'textfield',
-      'required' => FALSE,
-      'status' => EventStudioQuestionTemplateManager::STATUS_ACTIVE,
-      'applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET,
-      'ticket_type_ids' => [],
-      'options' => '',
-      'machine_name' => '',
-    ], $ticket_options, TRUE);
+      'row' => $this->buildNewQuestionRow($ticket_options, count($question_rows)),
+    ];
 
     $form['actions'] = [
       '#type' => 'actions',
@@ -171,6 +172,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
         '#type' => 'submit',
         '#value' => $this->t('Save questions'),
         '#button_type' => 'primary',
+        '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
       ],
     ];
 
@@ -225,172 +227,37 @@ final class EventCheckoutQuestionsForm extends FormBase {
   }
 
   /**
-   * @param array<string, mixed> $row
-   * @param array<int, string> $ticketOptions
+   * Column headings for the questions table.
+   *
+   * @return array<string, mixed>
    */
-  private function buildQuestionRow(NodeInterface $event, array $row, array $ticketOptions): array {
-    $editor = $this->buildQuestionEditor($row, $ticketOptions, FALSE);
-    $row_id = (int) $row['id'];
-    $editor['label']['#parents'] = ['questions_card', 'questions', $row_id, 'label', 'label'];
-    $editor['type']['#parents'] = ['questions_card', 'questions', $row_id, 'type', 'type'];
-    $editor['options']['#parents'] = ['questions_card', 'questions', $row_id, 'type', 'options'];
-    $editor['applicability']['#parents'] = ['questions_card', 'questions', $row_id, 'applicability', 'applicability'];
-    $editor['ticket_type_ids']['#parents'] = ['questions_card', 'questions', $row_id, 'applicability', 'ticket_type_ids'];
-    $editor['required']['#parents'] = ['questions_card', 'questions', $row_id, 'required', 'required'];
-    $editor['status']['#parents'] = ['questions_card', 'questions', $row_id, 'status', 'status'];
-    $editor['machine_name']['#parents'] = ['questions_card', 'questions', $row_id, 'actions', 'machine_name'];
-    $preview = $this->buildPreviewText($row);
-    $status = (string) ($row['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE);
-    $required = !empty($row['required']);
-    $type_label = (string) ($row['type_label'] ?? $this->studioQuestionTemplateManager->typeOptions()[(string) ($row['type'] ?? '')] ?? $row['type'] ?? $this->t('Question'));
-    $applicability_label = $this->applicabilityLabel((string) ($row['applicability'] ?? EventStudioQuestionTemplateManager::APPLIES_PER_TICKET));
-    $has_answers = $this->questionHasHistoricalAnswers($event, $row);
+  private function buildTableHeaderRow(): array {
+    $head_cell = function (string $label, string $modifier): array {
+      return [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--' . $modifier],
+          'role' => 'columnheader',
+        ],
+        'text' => [
+          '#markup' => '<span class="mel-event-studio-questions__head-label">' . $label . '</span>',
+        ],
+      ];
+    };
 
     return [
       '#type' => 'container',
       '#attributes' => [
-        'class' => [
-          'mel-event-studio-questions__card',
-          $status === EventStudioQuestionTemplateManager::STATUS_ARCHIVED ? 'is-archived' : 'is-active',
-        ],
-        'role' => 'listitem',
+        'class' => ['mel-event-studio-questions__row', 'mel-event-studio-questions__row--head'],
+        'role' => 'row',
       ],
-      'header' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-questions__header']],
-        'id' => [
-          '#type' => 'hidden',
-          '#value' => (string) (int) $row['id'],
-          '#parents' => ['questions_card', 'questions', $row_id, 'label', 'id'],
-        ],
-        'weight' => [
-          '#type' => 'hidden',
-          '#value' => (string) (int) $row['weight'],
-          '#parents' => ['questions_card', 'questions', $row_id, 'label', 'weight'],
-        ],
-        'identity' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-questions__identity']],
-          'label' => $editor['label'],
-          'preview' => [
-            '#markup' => '<p class="mel-event-studio-questions__preview">' . $preview . '</p>',
-          ],
-        ],
-        'badges' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-questions__badges']],
-          'type' => [
-            '#type' => 'html_tag',
-            '#tag' => 'span',
-            '#value' => $type_label,
-            '#attributes' => ['class' => ['mel-event-studio-card-badge', 'mel-event-studio-card-badge--type']],
-          ],
-          'required' => [
-            '#type' => 'html_tag',
-            '#tag' => 'span',
-            '#value' => $required ? $this->t('Required') : $this->t('Optional'),
-            '#attributes' => ['class' => ['mel-event-studio-card-badge', $required ? 'mel-event-studio-card-badge--required' : 'mel-event-studio-card-badge--muted']],
-          ],
-          'status' => [
-            '#type' => 'html_tag',
-            '#tag' => 'span',
-            '#value' => $status === EventStudioQuestionTemplateManager::STATUS_ARCHIVED ? $this->t('Archived') : $this->t('Active'),
-            '#attributes' => ['class' => ['mel-event-studio-card-badge', $status === EventStudioQuestionTemplateManager::STATUS_ARCHIVED ? 'mel-event-studio-card-badge--muted' : 'mel-event-studio-card-badge--active']],
-          ],
-        ],
-      ],
-      'body' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-questions__body']],
-        'answer_preview' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-questions__preview-panel']],
-          'heading' => [
-            '#type' => 'html_tag',
-            '#tag' => 'h4',
-            '#value' => $this->t('How attendees will see this'),
-            '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
-          ],
-          'content' => $this->buildAnswerPreview($row, $type_label),
-          'reassurance' => [
-            '#type' => 'html_tag',
-            '#tag' => 'p',
-            '#value' => $required
-              ? $this->t('Attendees will answer this before checkout can continue.')
-              : $this->t('Attendees can skip this if it does not apply.'),
-            '#attributes' => ['class' => ['mel-event-studio-questions__preview-reassurance']],
-          ],
-        ],
-        'summary' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-questions__summary-row']],
-          'applies' => [
-            '#type' => 'html_tag',
-            '#tag' => 'p',
-            '#value' => $this->t('Shown for: @scope', ['@scope' => $applicability_label]),
-            '#attributes' => ['class' => ['mel-event-studio-questions__summary-pill']],
-          ],
-          'status' => [
-            '#type' => 'html_tag',
-            '#tag' => 'p',
-            '#value' => $status === EventStudioQuestionTemplateManager::STATUS_ARCHIVED
-              ? $this->t('Archived for new checkouts')
-              : $this->t('Active in checkout'),
-            '#attributes' => ['class' => ['mel-event-studio-questions__summary-pill']],
-          ],
-        ],
-      ],
-      'advanced' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-questions__advanced-content']],
-        '#prefix' => '<details class="mel-event-studio-questions__advanced"><summary>' . $this->t('Optional question settings') . '</summary>',
-        '#suffix' => '</details>',
-        'governance_note' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $has_answers
-            ? $this->t('This question already has attendee answers. To protect past responses, archive it and add a new question when you need a different answer shape.')
-            : $this->t('Most events can leave these settings as-is. Use them when a question should appear only for certain tickets.'),
-          '#attributes' => ['class' => array_filter(['mel-event-studio-questions__governance-note', $has_answers ? 'has-warning' : NULL])],
-        ],
-        'type_group' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-questions__field-group', 'mel-event-studio-questions__type']],
-          'heading' => [
-            '#type' => 'html_tag',
-            '#tag' => 'h4',
-            '#value' => $this->t('Answer setup'),
-            '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
-          ],
-          'type' => $editor['type'],
-          'options' => $editor['options'],
-          'required' => $editor['required'],
-        ],
-        'audience_group' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-questions__field-group', 'mel-event-studio-questions__applicability']],
-          'heading' => [
-            '#type' => 'html_tag',
-            '#tag' => 'h4',
-            '#value' => $this->t('Where it appears'),
-            '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
-          ],
-          'applicability' => $editor['applicability'],
-          'ticket_type_ids' => $editor['ticket_type_ids'],
-        ],
-        'governance_group' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-questions__field-group', 'mel-event-studio-questions__governance']],
-          'heading' => [
-            '#type' => 'html_tag',
-            '#tag' => 'h4',
-            '#value' => $this->t('Governance'),
-            '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
-          ],
-          'status' => $editor['status'],
-          'machine_name' => $editor['machine_name'],
-        ],
-      ],
+      'label' => $head_cell((string) $this->t('Question'), 'label'),
+      'type' => $head_cell((string) $this->t('Type'), 'type'),
+      'required' => $head_cell((string) $this->t('Required'), 'required'),
+      'applicability' => $head_cell((string) $this->t('Applies to'), 'applicability'),
+      'tickets' => $head_cell((string) $this->t('Ticket types'), 'tickets'),
+      'status' => $head_cell((string) $this->t('Status'), 'status'),
+      'actions' => $head_cell((string) $this->t('More'), 'actions'),
     ];
   }
 
@@ -400,50 +267,363 @@ final class EventCheckoutQuestionsForm extends FormBase {
    *
    * @return array<string, mixed>
    */
-  private function buildQuestionEditor(array $row, array $ticketOptions, bool $isNew): array {
-    $applicabilitySelector = $isNew
-      ? ':input[name="questions_card[new_question][applicability]"]'
-      : ':input[name="questions_card[questions][' . (int) $row['id'] . '][applicability][applicability]"]';
+  private function buildQuestionRow(NodeInterface $event, array $row, array $ticketOptions): array {
+    $row_id = (int) $row['id'];
+    $status = (string) ($row['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE);
+    $applicability = (string) ($row['applicability'] ?? EventStudioQuestionTemplateManager::APPLIES_PER_TICKET);
+    $has_answers = $this->questionHasHistoricalAnswers($event, $row);
+    $type_selector = ':input[name="questions_card[questions][' . $row_id . '][type][type]"]';
+    $applicability_selector = ':input[name="questions_card[questions][' . $row_id . '][applicability][applicability]"]';
+
+    $editor = $this->buildQuestionEditor(
+      $row,
+      $ticketOptions,
+      FALSE,
+      $has_answers,
+      $type_selector,
+      $applicability_selector,
+      $applicability
+    );
+
+    $editor['label']['#parents'] = ['questions_card', 'questions', $row_id, 'label', 'label'];
+    $editor['type']['#parents'] = ['questions_card', 'questions', $row_id, 'type', 'type'];
+    $editor['options']['#parents'] = ['questions_card', 'questions', $row_id, 'type', 'options'];
+    $editor['applicability']['#parents'] = ['questions_card', 'questions', $row_id, 'applicability', 'applicability'];
+    $editor['ticket_type_ids']['#parents'] = ['questions_card', 'questions', $row_id, 'applicability', 'ticket_type_ids'];
+    $editor['required']['#parents'] = ['questions_card', 'questions', $row_id, 'required', 'required'];
+    $editor['status']['#parents'] = ['questions_card', 'questions', $row_id, 'status', 'status'];
+    $editor['machine_name']['#parents'] = ['questions_card', 'questions', $row_id, 'actions', 'machine_name'];
+
+    $type_label = (string) ($row['type_label'] ?? $this->studioQuestionTemplateManager->typeOptions()[(string) ($row['type'] ?? '')] ?? $row['type'] ?? $this->t('Question'));
+
+    $row_classes = [
+      'mel-event-studio-questions__row',
+      $status === EventStudioQuestionTemplateManager::STATUS_ARCHIVED ? 'is-archived' : 'is-active',
+    ];
+    if ($has_answers) {
+      $row_classes[] = 'mel-event-studio-questions__locked';
+    }
+
+    return [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => $row_classes,
+        'role' => 'row',
+      ],
+      'label_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--label'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Question'),
+        ],
+        'id' => [
+          '#type' => 'hidden',
+          '#value' => (string) $row_id,
+          '#parents' => ['questions_card', 'questions', $row_id, 'label', 'id'],
+        ],
+        'weight' => [
+          '#type' => 'hidden',
+          '#value' => (string) (int) $row['weight'],
+          '#parents' => ['questions_card', 'questions', $row_id, 'label', 'weight'],
+        ],
+        'label' => $editor['label'],
+        'locked_note' => $has_answers ? [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Has attendee answers — archive to retire; unsafe edits are blocked on save.'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__locked-note']],
+        ] : [],
+      ],
+      'type_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--type'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Type'),
+        ],
+        'type' => $editor['type'],
+      ],
+      'required_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--required'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Required'),
+        ],
+        'required' => $editor['required'],
+      ],
+      'applicability_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--applicability'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Applies to'),
+        ],
+        'applicability' => $editor['applicability'],
+      ],
+      'tickets_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--tickets'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Ticket types'),
+        ],
+        'ticket_type_ids' => $editor['ticket_type_ids'],
+      ],
+      'status_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--status'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Status'),
+        ],
+        'status' => $editor['status'],
+      ],
+      'actions_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--actions'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('More'),
+        ],
+        'details_toggle' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => $this->t('Expand row below'),
+          '#attributes' => ['class' => ['visually-hidden']],
+        ],
+      ],
+      'details' => [
+        '#type' => 'details',
+        '#title' => $this->t('Options and preview'),
+        '#open' => FALSE,
+        '#attributes' => ['class' => ['mel-event-studio-questions__details']],
+        'options' => $editor['options'],
+        'machine_name' => $editor['machine_name'],
+        'preview_heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('How attendees will see this'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__group-title']],
+        ],
+        'preview' => $this->buildAnswerPreview($row, $type_label),
+        'preview_reassurance' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => !empty($row['required'])
+            ? $this->t('Attendees will answer this before checkout can continue.')
+            : $this->t('Attendees can skip this if it does not apply.'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__preview-reassurance']],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * @param array<int, string> $ticketOptions
+   *
+   * @return array<string, mixed>
+   */
+  private function buildNewQuestionRow(array $ticketOptions, int $weight): array {
+    $type_selector = ':input[name="questions_card[new_question][row][type][type]"]';
+    $applicability_selector = ':input[name="questions_card[new_question][row][applicability][applicability]"]';
+    $row = [
+      'id' => 0,
+      'weight' => $weight,
+      'label' => '',
+      'type' => 'textfield',
+      'required' => FALSE,
+      'status' => EventStudioQuestionTemplateManager::STATUS_ACTIVE,
+      'applicability' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET,
+      'ticket_type_ids' => [],
+      'options' => '',
+      'machine_name' => '',
+    ];
+    $editor = $this->buildQuestionEditor(
+      $row,
+      $ticketOptions,
+      TRUE,
+      FALSE,
+      $type_selector,
+      $applicability_selector,
+      EventStudioQuestionTemplateManager::APPLIES_PER_TICKET
+    );
+
+    $editor['label']['#parents'] = ['questions_card', 'new_question', 'row', 'label', 'label'];
+    $editor['type']['#parents'] = ['questions_card', 'new_question', 'row', 'type', 'type'];
+    $editor['options']['#parents'] = ['questions_card', 'new_question', 'row', 'type', 'options'];
+    $editor['applicability']['#parents'] = ['questions_card', 'new_question', 'row', 'applicability', 'applicability'];
+    $editor['ticket_type_ids']['#parents'] = ['questions_card', 'new_question', 'row', 'applicability', 'ticket_type_ids'];
+    $editor['required']['#parents'] = ['questions_card', 'new_question', 'row', 'required', 'required'];
+    $editor['status']['#parents'] = ['questions_card', 'new_question', 'row', 'status', 'status'];
+    $editor['machine_name']['#parents'] = ['questions_card', 'new_question', 'row', 'actions', 'machine_name'];
+    $editor['weight']['#parents'] = ['questions_card', 'new_question', 'row', 'label', 'weight'];
+
+    return [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-event-studio-questions__row', 'mel-event-studio-questions__row--add'],
+        'role' => 'row',
+      ],
+      'label_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--label'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Question'),
+        ],
+        'label' => $editor['label'],
+        'weight' => $editor['weight'],
+      ],
+      'type_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--type'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Type'),
+        ],
+        'type' => $editor['type'],
+      ],
+      'required_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--required'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Required'),
+        ],
+        'required' => $editor['required'],
+      ],
+      'applicability_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--applicability'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Applies to'),
+        ],
+        'applicability' => $editor['applicability'],
+      ],
+      'tickets_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--tickets'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Ticket types'),
+        ],
+        'ticket_type_ids' => $editor['ticket_type_ids'],
+      ],
+      'status_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--status'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('Status'),
+        ],
+        'status' => $editor['status'],
+      ],
+      'actions_cell' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__cell', 'mel-event-studio-questions__cell--actions'],
+          'role' => 'cell',
+          'data-cell-label' => (string) $this->t('More'),
+        ],
+      ],
+      'details' => [
+        '#type' => 'details',
+        '#title' => $this->t('Options and machine name'),
+        '#open' => FALSE,
+        '#attributes' => ['class' => ['mel-event-studio-questions__details']],
+        'options' => $editor['options'],
+        'machine_name' => $editor['machine_name'],
+      ],
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $row
+   * @param array<int, string> $ticketOptions
+   * @param bool $isNew
+   * @param bool $locked
+   * @param string $typeSelector
+   * @param string $applicabilitySelector
+   * @param string $currentApplicability
+   *
+   * @return array<string, mixed>
+   */
+  private function buildQuestionEditor(
+    array $row,
+    array $ticketOptions,
+    bool $isNew,
+    bool $locked,
+    string $typeSelector,
+    string $applicabilitySelector,
+    string $currentApplicability,
+  ): array {
+    $lock_message = $locked
+      ? (string) $this->t('Locked because attendee answers exist. Archive this question and add a new one to change answer shape.')
+      : NULL;
+
+    $type = (string) ($row['type'] ?? 'textfield');
+    $options_visible_states = [
+      'visible' => [
+        $typeSelector => [
+          ['value' => 'select'],
+          ['value' => 'checkboxes'],
+          ['value' => 'radios'],
+        ],
+      ],
+    ];
+
     return [
       'label' => [
         '#type' => 'textfield',
         '#title' => $this->t('Question'),
-        '#title_display' => 'before',
+        '#title_display' => 'invisible',
         '#default_value' => (string) ($row['label'] ?? ''),
         '#maxlength' => 255,
+        '#required' => $isNew,
         '#attributes' => ['class' => ['mel-event-studio-questions__label']],
-        '#description' => $this->t('Write this exactly as attendees should see it.'),
+        '#description' => $isNew ? $this->t('Write this exactly as attendees should see it.') : NULL,
       ],
       'type' => [
         '#type' => 'select',
         '#title' => $this->t('Type'),
-        '#title_display' => 'before',
+        '#title_display' => 'invisible',
         '#options' => $this->studioQuestionTemplateManager->typeOptions(),
-        '#default_value' => (string) ($row['type'] ?? 'textfield'),
+        '#default_value' => $type,
+        '#disabled' => $locked,
+        '#description' => $lock_message,
       ],
       'options' => [
         '#type' => 'textarea',
         '#title' => $this->t('Options'),
+        '#title_display' => 'before',
         '#default_value' => (string) ($row['options'] ?? ''),
         '#rows' => 3,
-        '#description' => $this->t('One option per line. Keep choices clear and easy to answer.'),
+        '#disabled' => $locked,
+        '#description' => $this->t('One option per line.'),
+        '#states' => $options_visible_states,
       ],
       'applicability' => [
         '#type' => 'select',
         '#title' => $this->t('Applies to'),
-        '#title_display' => 'before',
-        '#options' => $this->studioQuestionTemplateManager->applicabilityOptions(),
-        '#default_value' => (string) ($row['applicability'] ?? EventStudioQuestionTemplateManager::APPLIES_PER_TICKET),
-        '#description' => $isNew ? $this->t('Most events can use Per ticket. Choose Per ticket type only when a question applies to specific offers.') : NULL,
+        '#title_display' => 'invisible',
+        '#options' => $this->workspaceApplicabilityOptions($currentApplicability),
+        '#default_value' => $currentApplicability,
+        '#disabled' => $locked || $currentApplicability === EventStudioQuestionTemplateManager::APPLIES_PER_ORDER,
+        '#description' => $isNew ? $this->t('Most events can use Per ticket.') : $lock_message,
       ],
       'ticket_type_ids' => [
         '#type' => 'checkboxes',
         '#title' => $this->t('Ticket types'),
+        '#title_display' => 'invisible',
         '#options' => $ticketOptions,
         '#default_value' => $row['ticket_type_ids'] ?? [],
+        '#disabled' => $locked,
         '#description' => $ticketOptions === []
           ? $this->t('Create ticket types before using per-ticket-type questions.')
-          : $this->t('Required when Applies to is Per ticket type.'),
+          : NULL,
         '#states' => [
           'visible' => [
             $applicabilitySelector => ['value' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE],
@@ -453,20 +633,25 @@ final class EventCheckoutQuestionsForm extends FormBase {
       'required' => [
         '#type' => 'checkbox',
         '#title' => $this->t('Required'),
+        '#title_display' => 'invisible',
         '#default_value' => !empty($row['required']),
+        '#disabled' => $locked,
       ],
       'status' => [
         '#type' => 'select',
         '#title' => $this->t('Status'),
-        '#title_display' => 'before',
+        '#title_display' => 'invisible',
         '#options' => $this->studioQuestionTemplateManager->statusOptions(),
         '#default_value' => (string) ($row['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE),
+        '#description' => $locked ? $this->t('Archive to hide from new checkouts while keeping past answers.') : NULL,
       ],
       'machine_name' => [
         '#type' => 'textfield',
         '#title' => $this->t('Machine name'),
+        '#title_display' => 'before',
         '#default_value' => (string) ($row['machine_name'] ?? ''),
         '#maxlength' => 64,
+        '#disabled' => $locked,
         '#description' => $this->t('Optional stable key. Leave blank to generate from the label.'),
       ],
       'weight' => [
@@ -477,16 +662,17 @@ final class EventCheckoutQuestionsForm extends FormBase {
   }
 
   /**
-   * @param array<string, mixed> $row
+   * Applicability choices for workspace UI (per_order not selectable).
+   *
+   * @return array<string, string>
    */
-  private function buildPreviewText(array $row): string {
-    $status = (string) ($row['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE);
-    $required = !empty($row['required']) ? (string) $this->t('Required') : (string) $this->t('Optional');
-    $type_label = (string) ($row['type_label'] ?? $this->studioQuestionTemplateManager->typeOptions()[(string) ($row['type'] ?? '')] ?? $row['type'] ?? $this->t('Question'));
-    if ($status === EventStudioQuestionTemplateManager::STATUS_ARCHIVED) {
-      return (string) $this->t('Archived: hidden from new checkout sessions.');
+  private function workspaceApplicabilityOptions(string $currentApplicability = EventStudioQuestionTemplateManager::APPLIES_PER_TICKET): array {
+    $options = $this->studioQuestionTemplateManager->applicabilityOptions();
+    unset($options[EventStudioQuestionTemplateManager::APPLIES_PER_ORDER]);
+    if ($currentApplicability === EventStudioQuestionTemplateManager::APPLIES_PER_ORDER) {
+      $options[EventStudioQuestionTemplateManager::APPLIES_PER_ORDER] = (string) $this->t('Per order (not active in checkout yet)');
     }
-    return $required . ' • ' . $type_label;
+    return $options;
   }
 
   /**
@@ -510,11 +696,6 @@ final class EventCheckoutQuestionsForm extends FormBase {
       '#value' => $this->t('@type answer field shown at checkout.', ['@type' => $typeLabel]),
       '#attributes' => ['class' => ['mel-event-studio-questions__answer-placeholder']],
     ];
-  }
-
-  private function applicabilityLabel(string $applicability): string {
-    $options = $this->studioQuestionTemplateManager->applicabilityOptions();
-    return $options[$applicability] ?? $options[EventStudioQuestionTemplateManager::APPLIES_PER_TICKET];
   }
 
   /**
@@ -553,21 +734,25 @@ final class EventCheckoutQuestionsForm extends FormBase {
    * @return array<string, mixed>|null
    */
   private function submittedNewRow(FormStateInterface $form_state): ?array {
-    $row = $form_state->getValue(['questions_card', 'new_question']) ?? NULL;
-    if (!is_array($row) || trim((string) ($row['label'] ?? '')) === '') {
+    $row = $form_state->getValue(['questions_card', 'new_question', 'row']) ?? NULL;
+    if (!is_array($row)) {
+      return NULL;
+    }
+    $label = trim((string) ($row['label']['label'] ?? ''));
+    if ($label === '') {
       return NULL;
     }
     return [
       'id' => 0,
-      'weight' => (int) ($row['weight'] ?? 999),
-      'label' => (string) ($row['label'] ?? ''),
-      'type' => (string) ($row['type'] ?? 'textfield'),
-      'options' => (string) ($row['options'] ?? ''),
-      'applicability' => (string) ($row['applicability'] ?? EventStudioQuestionTemplateManager::APPLIES_PER_TICKET),
-      'ticket_type_ids' => $row['ticket_type_ids'] ?? [],
-      'required' => !empty($row['required']),
-      'status' => (string) ($row['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE),
-      'machine_name' => (string) ($row['machine_name'] ?? ''),
+      'weight' => (int) ($row['label']['weight'] ?? 999),
+      'label' => $label,
+      'type' => (string) ($row['type']['type'] ?? 'textfield'),
+      'options' => (string) ($row['type']['options'] ?? ''),
+      'applicability' => (string) ($row['applicability']['applicability'] ?? EventStudioQuestionTemplateManager::APPLIES_PER_TICKET),
+      'ticket_type_ids' => $row['applicability']['ticket_type_ids'] ?? [],
+      'required' => !empty($row['required']['required']),
+      'status' => (string) ($row['status']['status'] ?? EventStudioQuestionTemplateManager::STATUS_ACTIVE),
+      'machine_name' => (string) ($row['actions']['machine_name'] ?? ''),
     ];
   }
 
