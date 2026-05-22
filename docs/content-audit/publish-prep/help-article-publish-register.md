@@ -6,11 +6,11 @@
 
 | Article | Source | Existing node | Audience | Action | Publish readiness | Blockers | Next step |
 |---------|--------|---------------|----------|--------|-------------------|----------|-----------|
-| Support contact | Draft + nid **1498** | 1498 “Contacting support” | public | **Done** — merged body/summary | **Published** | Path alias | — |
-| Stripe payouts | Draft + nid **1510** | 1510 “Payouts and fees” | vendor | **Done** — merged body/summary | **Published** | Dashboard fee labels on staging | — |
+| Support contact | Draft + nid **1498** | 1498 “Contacting support” | public | **Done** | **Published** | — | Alias `/help/attendees/contacting-support` |
+| Stripe payouts | Draft + nid **1510** | 1510 “Payouts and fees” | vendor | **Done** | **Published** | — | Alias `/help/vendors/payouts-and-fees`; fee wording verified (code) |
 | Waitlist | Draft only | None | public | **New article** after QA | **Blocked until product behaviour is verified** | Staging QA | Browser QA; then create node |
 | Ticket confirmation | Draft only | None | public | **New article** after QA | **Blocked until product behaviour is verified** | Staging QA | Test purchase; then create node |
-| Checkout errors | Draft + **nid 1668** | 1668 “Having trouble checking out” | public | **Done** — created | **Published** | Moderation state must be `published` on create | Optional checkout contextual link |
+| Checkout errors | Draft + **nid 1668** | 1668 “Having trouble checking out” | public | **Done** | **Published** | — | Alias `/help/attendees/having-trouble-checking-out`; checkout contextual link updated |
 
 ## Working tree note (start of pass)
 
