@@ -190,6 +190,7 @@ services:
       - '@commerce_cart.cart_provider'
       - '@commerce_cart.cart_manager'
       - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_capacity.order_inspector'
       - '@myeventlane_commerce.ticket_capacity'
       - '@logger.channel.myeventlane_commerce'
     tags:
