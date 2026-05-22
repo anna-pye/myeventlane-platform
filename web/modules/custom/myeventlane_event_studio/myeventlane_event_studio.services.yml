@@ -344,6 +344,7 @@ services:
       - '@myeventlane_event.ticket_type_manager'
       - '@myeventlane_vendor.publish_requirements_gate'
       - '@myeventlane_vendor.paid_publish_stripe_gate'
+      - '@myeventlane_event_studio.question_template_manager'
       - '@string_translation'
 
   myeventlane_event_studio.autosave:
