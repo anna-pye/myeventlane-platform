@@ -234,6 +234,22 @@
   max-width: 100%;
 }
 
+.mel-event-studio .mel-event-studio-questions__targeting-helper {
+  margin: 0.5rem 0 0;
+  color: var(--mel-color-text-muted, #5c6570);
+  font-size: 0.9375rem;
+}
+
+.mel-event-studio .mel-event-studio-questions__legacy-notice {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--mel-radius-md, 8px);
+  background: var(--mel-color-surface-alt, #f4f6f8);
+  border: 1px solid var(--mel-color-border, #d8dee6);
+  color: var(--mel-color-text, #1a1f26);
+  font-size: 0.9375rem;
+}
+
 .mel-event-studio .mel-event-studio-questions__notice {
   margin: 12px 0 0;
   padding: 10px 12px;
