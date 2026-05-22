@@ -354,7 +354,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
         'locked_note' => $has_answers ? [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Has attendee answers — archive to retire; unsafe edits are blocked on save.'),
+          '#value' => $this->t('Answers on file — archive to retire. Type, targeting, and options cannot change.'),
           '#attributes' => ['class' => ['mel-event-studio-questions__locked-note']],
         ] : [],
       ],
@@ -419,7 +419,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
       ],
       'details' => [
         '#type' => 'details',
-        '#title' => $this->t('Options and preview'),
+        '#title' => $this->t('More: options & preview'),
         '#open' => FALSE,
         '#attributes' => ['class' => ['mel-event-studio-questions__details']],
         'options' => $editor['options'],
