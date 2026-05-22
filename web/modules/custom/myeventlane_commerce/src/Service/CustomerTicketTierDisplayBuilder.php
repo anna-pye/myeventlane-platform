@@ -96,7 +96,7 @@ final class CustomerTicketTierDisplayBuilder {
     }
 
     $context = $this->ticketAvailability->buildDefaultCustomerAccessContext($event);
-    $purchasable = $this->ticketAvailability->filterPurchasableVariations($event, $product, $context);
+    $purchasable = $this->ticketAvailability->filterPurchasableVariations($event, $product, $context, FALSE);
     $purchasable = $this->sortPurchasableLikeBookForm($event, $purchasable);
     $best_value_variation_id = $this->resolveBestValueVariationId($event);
     $purchasable_variation_ids = [];
