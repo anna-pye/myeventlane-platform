@@ -582,7 +582,6 @@ final class EventCheckoutQuestionsForm extends FormBase {
         '#title_display' => 'invisible',
         '#default_value' => (string) ($row['label'] ?? ''),
         '#maxlength' => 255,
-        '#required' => $isNew,
         '#attributes' => ['class' => ['mel-event-studio-questions__label']],
         '#description' => $isNew ? $this->t('Write this exactly as attendees should see it.') : NULL,
       ],
