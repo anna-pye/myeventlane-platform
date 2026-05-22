@@ -5,3 +5,10 @@ services:
       - '@entity.definition_update_manager'
     tags:
       - { name: drush.command }
+
+  myeventlane_help_centre.commands.help_content:
+    class: Drupal\myeventlane_help_centre\Commands\HelpContentCommands
+    arguments:
+      - '@myeventlane_help_centre.priority_help_article_importer'
+    tags:
+      - { name: drush.command }
