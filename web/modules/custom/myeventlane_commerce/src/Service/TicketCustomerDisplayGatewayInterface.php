@@ -28,6 +28,7 @@ interface TicketCustomerDisplayGatewayInterface extends TicketTierForVariationRe
     NodeInterface $event,
     ProductInterface $product,
     ?TicketAccessContext $accessContext = NULL,
+    bool $useCache = TRUE,
   ): array;
 
   /**

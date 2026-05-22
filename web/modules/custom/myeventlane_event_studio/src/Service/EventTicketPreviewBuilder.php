@@ -49,9 +49,9 @@ final class EventTicketPreviewBuilder {
 
     $configuredMode = $this->resolveConfiguredMode($event);
     $previewState = $this->resolvePreviewState($event, $configuredMode);
-    $cta = $this->resolveCtaPreview($event, $previewState);
-    $availability = $this->resolveAvailabilityPreview($event, $previewState);
     $tierDisplay = $this->buildPaidTierDisplay($event, $previewState);
+    $cta = $this->resolveCtaPreview($event, $previewState, $tierDisplay);
+    $availability = $this->resolveAvailabilityPreview($event, $previewState, $tierDisplay);
 
     $build = [
       '#theme' => 'mel_event_ticket_preview',
@@ -169,9 +169,16 @@ final class EventTicketPreviewBuilder {
   }
 
   /**
+   * @param array{
+   *   visible_rows: list<array<string, mixed>>,
+   *   excluded_rows: list<array{name: string, diagnostic: string}>,
+   *   show_customer_ticket_empty: bool,
+   *   cache_tags: list<string>,
+   * } $tierDisplay
+   *
    * @return array{label: string, disabled: bool, reason: string|null}
    */
-  private function resolveCtaPreview(NodeInterface $event, string $previewState): array {
+  private function resolveCtaPreview(NodeInterface $event, string $previewState, array $tierDisplay): array {
     if ($previewState === self::PREVIEW_NOT_CONFIGURED) {
       return [
         'label' => '',
@@ -181,6 +188,11 @@ final class EventTicketPreviewBuilder {
     }
 
     if ($event->isPublished()) {
+      $availability = $this->resolveAvailabilityPreview($event, $previewState, $tierDisplay);
+      if ($this->usesCustomerTierAvailability($previewState, $availability['state'])) {
+        return $this->ctaFromCustomerTierAvailability($previewState, $availability['state']);
+      }
+
       $primary = $this->bookingFlowResolver->getPrimaryCta($event);
       return [
         'label' => (string) ($primary['label'] ?? ''),
@@ -219,9 +231,16 @@ final class EventTicketPreviewBuilder {
   }
 
   /**
+   * @param array{
+   *   visible_rows: list<array<string, mixed>>,
+   *   excluded_rows: list<array{name: string, diagnostic: string}>,
+   *   show_customer_ticket_empty: bool,
+   *   cache_tags: list<string>,
+   * } $tierDisplay
+   *
    * @return array{state: string, message: string|null}
    */
-  private function resolveAvailabilityPreview(NodeInterface $event, string $previewState): array {
+  private function resolveAvailabilityPreview(NodeInterface $event, string $previewState, array $tierDisplay): array {
     if ($previewState === self::PREVIEW_NOT_CONFIGURED) {
       return ['state' => 'none', 'message' => NULL];
     }
@@ -231,6 +250,16 @@ final class EventTicketPreviewBuilder {
     }
 
     $availability = $this->bookingFlowResolver->getAvailabilityState($event);
+    if (in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)
+      && in_array($availability, [
+        BookingFlowResolver::AVAILABILITY_AVAILABLE,
+        BookingFlowResolver::AVAILABILITY_SOLD_OUT,
+      ], TRUE)) {
+      $availability = $tierDisplay['visible_rows'] === []
+        ? BookingFlowResolver::AVAILABILITY_SOLD_OUT
+        : BookingFlowResolver::AVAILABILITY_AVAILABLE;
+    }
+
     $message = match ($availability) {
       BookingFlowResolver::AVAILABILITY_SOLD_OUT => (string) $this->t('This event is sold out.'),
       BookingFlowResolver::AVAILABILITY_ENDED => (string) $this->t('This event has ended.'),
@@ -271,6 +300,43 @@ final class EventTicketPreviewBuilder {
     return [
       'capacity_line' => $line,
     ];
+  }
+
+  /**
+   * Paid preview CTA/availability use anonymous default-customer tier rows, not vendor session grants.
+   */
+  private function usesCustomerTierAvailability(string $previewState, string $availability): bool {
+    return in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)
+      && in_array($availability, [
+        BookingFlowResolver::AVAILABILITY_AVAILABLE,
+        BookingFlowResolver::AVAILABILITY_SOLD_OUT,
+      ], TRUE);
+  }
+
+  /**
+   * @return array{label: string, disabled: bool, reason: string|null}
+   */
+  private function ctaFromCustomerTierAvailability(string $previewState, string $availability): array {
+    if ($availability === BookingFlowResolver::AVAILABILITY_SOLD_OUT) {
+      return [
+        'label' => (string) $this->t('Sold out'),
+        'disabled' => TRUE,
+        'reason' => (string) $this->t('This event is sold out.'),
+      ];
+    }
+
+    return match ($previewState) {
+      self::PREVIEW_PAID, self::PREVIEW_BOTH => [
+        'label' => (string) $this->t('Get your tickets'),
+        'disabled' => FALSE,
+        'reason' => NULL,
+      ],
+      default => [
+        'label' => '',
+        'disabled' => TRUE,
+        'reason' => NULL,
+      ],
+    };
   }
 
   /**

@@ -150,6 +150,7 @@ final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInt
     NodeInterface $event,
     ProductInterface $product,
     ?TicketAccessContext $accessContext = NULL,
+    bool $useCache = TRUE,
   ): array {
     $eid = (int) $event->id();
     $pid = (int) $product->id();
@@ -172,7 +173,7 @@ final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInt
       (string) $waitlistClaimId,
     ]));
 
-    if ($this->cache !== NULL && ($cached = $this->cache->get($cid))) {
+    if ($useCache && $this->cache !== NULL && ($cached = $this->cache->get($cid))) {
       $ids = $cached->data;
       if (is_array($ids)) {
         $by_id = [];
@@ -218,7 +219,7 @@ final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInt
       }
     }
 
-    if ($this->cache !== NULL) {
+    if ($useCache && $this->cache !== NULL) {
       $this->cache->set(
         $cid,
         array_map(static fn (ProductVariationInterface $v) => (int) $v->id(), $out),
@@ -615,20 +616,34 @@ final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInt
     if ($message === '') {
       return (string) $this->t('Hidden from checkout: ticket is not available on the book page.');
     }
-    if (str_contains($message, 'not started')) {
+    if (str_contains($message, 'Ticketing is not configured')) {
+      return (string) $this->t('Hidden from checkout: ticketing is not configured for this event.');
+    }
+    if (str_contains($message, 'not available for this event')) {
+      return (string) $this->t('Hidden from checkout: linked product variation is not mapped to this event.');
+    }
+    if (str_contains($message, 'temporarily unavailable')
+      || str_contains($message, 'not available for purchase')
+      || str_contains($message, 'price')) {
+      return (string) $this->t('Hidden from checkout: linked product variation price does not match this ticket.');
+    }
+    if (str_contains($message, 'not started') || str_contains($message, 'Sales have not started')) {
       return (string) $this->t('Hidden from checkout: sale has not started.');
     }
-    if (str_contains($message, 'ended')) {
+    if (str_contains($message, 'ended') || str_contains($message, 'Sales have ended')) {
       return (string) $this->t('Hidden from checkout: sale has ended.');
     }
     if (str_contains($message, 'sold out') || str_contains($message, 'remaining')) {
       return (string) $this->t('Hidden from checkout: sold out.');
     }
-    if (str_contains($message, 'not on sale') || str_contains($message, 'not available')) {
-      return (string) $this->t('Hidden from checkout: ticket is not visible to this customer.');
+    if (str_contains($message, 'no longer available')) {
+      return (string) $this->t('Hidden from checkout: this ticket is archived.');
     }
-    if (str_contains($message, 'price')) {
-      return (string) $this->t('Hidden from checkout: linked product variation price does not match this ticket.');
+    if (str_contains($message, 'not on sale')) {
+      return (string) $this->t('Hidden from checkout: this ticket is not on sale.');
+    }
+    if ($message === 'This ticket is not available.') {
+      return (string) $this->t('Hidden from checkout: ticket is not visible to this customer.');
     }
     return (string) $this->t('Hidden from checkout: @reason', ['@reason' => $message]);
   }
