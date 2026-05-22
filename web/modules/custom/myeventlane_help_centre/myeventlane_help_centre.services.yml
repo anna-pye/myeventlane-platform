@@ -9,6 +9,9 @@ services:
     arguments:
       - '@config.factory'
 
+  myeventlane_help_centre.help_browse_policy:
+    class: Drupal\myeventlane_help_centre\Service\HelpArticleBrowsePolicy
+
   myeventlane_help_centre.support_panel_builder:
     class: Drupal\myeventlane_help_centre\Service\SupportPanelBuilder
     arguments:
