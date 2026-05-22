@@ -8,6 +8,7 @@ dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_event:myeventlane_event
   - drupal:node
+  - drupal:path_alias
   - drupal:taxonomy
   - drupal:views
   - drupal:search
