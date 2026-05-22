@@ -1,0 +1,58 @@
+metadata:
+  exported_from: local
+  export_reason: organiser_ticket_capacity_batch_04
+  generated_at: '2026-05-22T20:10:47+10:00'
+  notes:
+    - 'ticket sales and capacity article verified from completed-order sales logic and ticket tier capacity services'
+    - 'organiser waitlist article deliberately excluded pending paid waitlist organiser UI/reporting verification'
+    - 'import identity should use stable key and/or alias'
+articles:
+  ticket_sales_and_capacity:
+    source_nid: null
+    title: 'Ticket sales and capacity'
+    alias: '/help/vendors/ticket-sales-and-capacity'
+    audience: vendor
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'How ticket type capacity relates to tickets sold on your organiser dashboard, Pro analytics, and what buyers see on the book page — including waitlist holds and completed orders.'
+    body:
+      format: full_html
+      value: |-
+        <p>Capacity tells you how many tickets you can sell for each ticket type. This page explains how sales counts relate to availability, your dashboard, and waitlists.</p>
+
+        <h2>What this means</h2>
+        <p>Each paid ticket type may have a <strong>capacity</strong> (maximum tickets for that type). MyEventLane tracks <strong>tickets sold</strong> from <strong>completed</strong> ticket orders and compares that to capacity to decide when a type is sold out.</p>
+        <p>Some events also set an <strong>overall event capacity</strong> (separate fields on the event). That limit may apply across RSVPs and paid tickets together at checkout. It is not the same as adding up each ticket type&rsquo;s capacity. Check your event settings if you use both paid tickets and RSVPs.</p>
+        <p>Free RSVP events use RSVP limits and waitlist settings, not paid ticket type capacity.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Sign in to your organiser dashboard or Event Studio.</li>
+          <li>Open the event and go to <strong>Tickets</strong> (ticket workspace) or the tickets section in Event Studio.</li>
+          <li>Set or review <strong>capacity</strong> for each paid ticket type you sell.</li>
+          <li>Optionally set a <strong>limit per order</strong> on a ticket type if you want to cap how many tickets one buyer can purchase in a single order (when that field is available).</li>
+          <li>Publish or update ticket types only when pricing and Stripe connection (for paid events) are ready.</li>
+          <li>Monitor sales from your <strong>event overview</strong> (<strong>Tickets sold</strong>, <strong>Gross sales</strong>) or, if you have Pro analytics, the <strong>Ticket tiers snapshot</strong> on the analytics tab.</li>
+          <li>If a type sells out and waitlist is enabled on that type, buyers may see <strong>Join waitlist</strong> on the public book page instead of purchasing. See <em>Managing waitlists for your event</em> and the attendee article <a href="/help/attendees/joining-a-waitlist">Joining a waitlist</a>.</li>
+        </ol>
+
+        <h2>Good to know</h2>
+        <ul>
+          <li><strong>Tickets sold</strong> on dashboard and overview figures generally means quantities on <strong>completed</strong> Commerce orders for your event, not draft or unpaid carts.</li>
+          <li><strong>Sold out</strong> for a paid ticket type means completed sales have reached that type&rsquo;s capacity. The book page may also reserve places for active waitlist offers, so buyer-facing &ldquo;only X left&rdquo; can differ slightly from organiser <strong>Remaining</strong> on Pro analytics (analytics remaining is based on sold counts and may not subtract waitlist holds).</li>
+          <li>Capacity is enforced <strong>per ticket type</strong>. If you have a venue maximum, plan your type capacities (and any event-level capacity field) so they work together. Do not assume the system enforces one combined cap across all types unless you have configured and tested that for your event.</li>
+          <li><strong>Refunds and cancellations</strong> are shown in sales summaries where applicable, but they <strong>may not</strong> reduce <strong>tickets sold</strong> unless the underlying order is no longer treated as completed. Check your event&rsquo;s orders before assuming capacity has reopened.</li>
+          <li>Active waitlist offers can temporarily hold capacity until they expire or are purchased. That can make availability look tighter on the book page for a short time.</li>
+          <li>Lowering capacity below tickets already sold <strong>may</strong> be blocked or <strong>may</strong> need support. Check your ticket workspace or contact support before you change caps near event day.</li>
+        </ul>
+
+        <h2>Related help</h2>
+        <ul>
+          <li>Managing waitlists for your event</li>
+          <li><a href="/help/vendors/payouts-and-fees">Payouts and fees</a></li>
+          <li>Choosing RSVP or paid tickets</li>
+          <li>Managing your event dashboard</li>
+        </ul>
