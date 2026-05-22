@@ -304,11 +304,9 @@ services:
     class: Drupal\myeventlane_event_studio\Service\EventTicketPreviewBuilder
     arguments:
       - '@myeventlane_event.booking_flow_resolver'
-      - '@myeventlane_event.ticket_tier_lifecycle'
       - '@myeventlane_event.event_mode_manager'
-      - '@commerce_price.currency_formatter'
+      - '@myeventlane_commerce.customer_ticket_tier_display'
       - '@string_translation'
-      - '@?myeventlane_commerce.ticket_capacity'
 
   myeventlane_event_studio.event_style_access:
     class: Drupal\myeventlane_event_studio\Service\EventStyleAccessManager

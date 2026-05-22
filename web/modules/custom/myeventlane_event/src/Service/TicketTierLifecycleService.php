@@ -25,7 +25,7 @@ use InvalidArgumentException;
  * Forms and controllers must not call mel_ticket_type storage->create() directly;
  * use this service so Commerce projection stays consistent.
  */
-final class TicketTierLifecycleService {
+final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface {
 
   public const CURRENCY_MISMATCH_MESSAGE = 'All tickets for an event must use the same currency.';
 

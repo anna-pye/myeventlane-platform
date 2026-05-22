@@ -144,12 +144,22 @@ services:
       - '@myeventlane_commerce.ticket_booking_session'
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@current_user'
+      - '@string_translation'
       - '@myeventlane_commerce.ticket_access_code'
       - '@myeventlane_commerce.ticket_group_eligibility'
       - '@myeventlane_commerce.ticket_capacity'
       - '@cache.data'
       - '@current_route_match'
       - '@request_stack'
+
+  myeventlane_commerce.customer_ticket_tier_display:
+    class: Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder
+    arguments:
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@commerce_price.currency_formatter'
+      - '@myeventlane_commerce.ticket_tier_waitlist'
+      - '@string_translation'
 
   myeventlane_commerce.ticket_waitlist_order_subscriber:
     class: Drupal\myeventlane_commerce\EventSubscriber\TicketWaitlistOrderSubscriber

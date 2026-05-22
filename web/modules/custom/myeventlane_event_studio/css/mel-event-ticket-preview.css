@@ -123,9 +123,48 @@
   white-space: nowrap;
 }
 
+.mel-event-ticket-preview__ticket-description,
 .mel-event-ticket-preview__ticket-availability {
   margin: 0.35rem 0 0;
   font-size: 0.8125rem;
+  color: var(--mel-ticket-preview-muted);
+}
+
+.mel-event-ticket-preview__excluded {
+  margin-block: 1rem 0;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  background: var(--mel-ticket-preview-surface);
+  border: 1px dashed var(--mel-ticket-preview-border);
+}
+
+.mel-event-ticket-preview__excluded-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mel-ticket-preview-text);
+}
+
+.mel-event-ticket-preview__excluded-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mel-event-ticket-preview__excluded-row {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.8125rem;
+}
+
+.mel-event-ticket-preview__excluded-name {
+  font-weight: 600;
+  color: var(--mel-ticket-preview-text);
+}
+
+.mel-event-ticket-preview__excluded-diagnostic {
   color: var(--mel-ticket-preview-muted);
 }
 

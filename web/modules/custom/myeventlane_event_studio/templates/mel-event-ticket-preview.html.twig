@@ -9,7 +9,9 @@
  * - heading: section heading inside canvas
  * - cta: { label, disabled, reason }
  * - availability: { state, message }
- * - ticket_rows: list of { name, price, availability }
+ * - ticket_rows: list of { name, price, availability, description? }
+ * - excluded_rows: list of { name, diagnostic }
+ * - show_customer_ticket_empty: bool
  * - rsvp_summary: { capacity_line }|null
  * - trust_rows: list of trust strings
  * - show_empty_state: bool
@@ -31,12 +33,12 @@
       {{ 'This is a preview of what customers will see when they book.'|t }}
     </p>
     <ul class="mel-event-ticket-preview__helpers">
-      <li>{{ 'Ticket rows and RSVP limits update here after saving.'|t }}</li>
+      <li>{{ 'Rows match checkout-visible tickets on the public book page (default customer, no access code).'|t }}</li>
       <li>{{ 'The public booking button uses the same booking resolver as the event page.'|t }}</li>
       <li>{{ 'Customers will not see this setup panel.'|t }}</li>
     </ul>
     <p class="mel-event-ticket-preview__save-note" data-mel-ticket-preview-save-note>
-      {{ 'Save to refresh ticket rows.'|t }}
+      {{ 'Save tickets above to refresh this preview.'|t }}
     </p>
   </header>
 
@@ -66,23 +68,40 @@
 
       {% if preview_state in ['paid', 'both'] %}
         {% if ticket_rows is not empty %}
-          <ul class="mel-event-ticket-preview__ticket-rows" aria-label="{{ 'Ticket options'|t }}">
+          <ul class="mel-event-ticket-preview__ticket-rows" aria-label="{{ 'Ticket options customers can book'|t }}">
             {% for row in ticket_rows %}
               <li class="mel-event-ticket-preview__ticket-row">
                 <div class="mel-event-ticket-preview__ticket-main">
                   <span class="mel-event-ticket-preview__ticket-name">{{ row.name }}</span>
                   <span class="mel-event-ticket-preview__ticket-price">{{ row.price }}</span>
                 </div>
+                {% if row.description %}
+                  <p class="mel-event-ticket-preview__ticket-description mel-text--muted">{{ row.description }}</p>
+                {% endif %}
                 {% if row.availability %}
                   <p class="mel-event-ticket-preview__ticket-availability">{{ row.availability }}</p>
                 {% endif %}
               </li>
             {% endfor %}
           </ul>
-        {% else %}
+        {% elseif show_customer_ticket_empty %}
           <p class="mel-event-ticket-preview__ticket-empty mel-text--muted">
-            {{ 'Paid ticket rows appear here after you save tickets below.'|t }}
+            {{ 'No checkout-visible tickets yet. Save paid tickets above, then check again.'|t }}
           </p>
+        {% endif %}
+
+        {% if excluded_rows is not empty %}
+          <div class="mel-event-ticket-preview__excluded" role="note" aria-label="{{ 'Tickets hidden from checkout'|t }}">
+            <p class="mel-event-ticket-preview__excluded-title">{{ 'Not shown on the public book page'|t }}</p>
+            <ul class="mel-event-ticket-preview__excluded-rows">
+              {% for row in excluded_rows %}
+                <li class="mel-event-ticket-preview__excluded-row">
+                  <span class="mel-event-ticket-preview__excluded-name">{{ row.name }}</span>
+                  <span class="mel-event-ticket-preview__excluded-diagnostic">{{ row.diagnostic }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
         {% endif %}
       {% endif %}
 
