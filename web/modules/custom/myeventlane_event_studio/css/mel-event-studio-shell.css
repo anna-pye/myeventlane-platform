@@ -459,8 +459,15 @@
 }
 
 .mel-event-studio-questions--table .mel-event-studio-questions__cell--required .form-type-checkbox input {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
   min-height: 1.25rem;
-  width: auto;
+}
+
+.mel-event-studio-questions--table .mel-event-studio-questions__cell--required .form-type-checkbox label {
+  min-height: 44px;
+  padding: 10px 0 10px 8px;
 }
 
 .mel-event-studio-questions--table .mel-event-studio-questions__cell--tickets .form-checkboxes {
@@ -547,24 +554,33 @@
   min-height: 44px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+  .mel-event-studio .mel-event-studio-questions__manager {
+    overflow-x: visible;
+  }
+
   .mel-event-studio-questions--table .mel-event-studio-questions__row--head {
     display: none;
   }
 
   .mel-event-studio-questions--table .mel-event-studio-questions__row {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 12px;
     padding: 14px;
     border: 1px solid #e2e8f0;
     border-radius: 14px;
     margin-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__row--head {
+    border-bottom: 0;
   }
 
   .mel-event-studio-questions--table .mel-event-studio-questions__cell::before {
     content: attr(data-cell-label);
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     color: #64748b;
     font-size: 0.72rem;
     font-weight: 700;
@@ -572,8 +588,137 @@
     text-transform: uppercase;
   }
 
-  .mel-event-studio-questions--table .mel-event-studio-questions__cell--actions::before {
-    content: none;
+  .mel-event-studio-questions--table .mel-event-studio-questions__cell--actions {
+    display: none;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__cell--tickets .form-checkboxes {
+    max-height: none;
+    overflow: visible;
+    gap: 0;
+    padding: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__cell--tickets .form-type-checkbox {
+    margin: 0;
+    padding: 0 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__cell--tickets .form-type-checkbox:last-child {
+    border-bottom: 0;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__cell--tickets .form-type-checkbox label {
+    flex: 1;
+    min-height: 44px;
+    padding: 10px 0 10px 8px;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__cell--tickets .form-type-checkbox input {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    min-height: 1.25rem;
+    margin-top: 0;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__details {
+    margin: 0;
+    padding: 0;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__details > summary {
+    padding: 0 14px;
+    list-style-position: inside;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__details[open] > summary {
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 0;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__details[open] {
+    padding: 0 14px 14px;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__details .form-item,
+  .mel-event-studio-questions--table .mel-event-studio-questions__details .mel-event-studio-questions__group-title,
+  .mel-event-studio-questions--table .mel-event-studio-questions__details .mel-event-studio-questions__preview-reassurance {
+    margin-top: 10px;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__row.mel-event-studio-questions__locked {
+    border-left-width: 4px;
+    background: linear-gradient(90deg, #fffbeb 0%, #fff 12%);
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__row.mel-event-studio-questions__locked::before {
+    content: 'Locked';
+    grid-column: 1 / -1;
+    display: inline-flex;
+    align-self: start;
+    width: fit-content;
+    margin: 0 0 2px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__row.mel-event-studio-questions__locked .mel-event-studio-questions__locked-note {
+    margin-top: 0;
+    font-size: 0.8125rem;
+  }
+
+  .mel-event-studio .mel-event-studio-questions__legacy-notice {
+    margin: 0.75rem 0 0;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .mel-event-studio .mel-event-studio-questions__targeting-helper {
+    font-size: 0.875rem;
+  }
+
+  .mel-event-studio form.mel-event-studio-questions--table {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mel-event-studio .mel-event-studio-questions .form-actions {
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    margin-inline: 0;
+  }
+
+  .mel-event-studio .mel-event-studio-questions__add > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__add .mel-event-studio-questions__row--add {
+    margin-top: 8px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mel-event-studio .mel-event-studio-questions__intro .mel-event-studio-questions__per-order-note {
+    display: none;
+  }
+
+  .mel-event-studio-questions--table .mel-event-studio-questions__row.mel-event-studio-questions__locked .mel-event-studio-questions__locked-note {
+    display: none;
   }
 }
 
