@@ -11,8 +11,8 @@
 | add-event-to-calendar.md | public | /help/attendees/add-event-to-calendar | No | No | — | Event `/ics` availability; email vs My Tickets parity | Calendar links conditional in copy |
 | wallet-passes-explained.md | public | /help/attendees/wallet-passes-explained | No | No | — | Admin wallet enablement; order-state eligibility | Wallet buttons conditional in copy |
 | missing-ticket-help.md | public | /help/attendees/missing-ticket-help | No | Yes | batch_02_2026_05 | — | Exported in batch 02 |
-| organiser-manage-waitlists.md | vendor | /help/vendors/organiser-manage-waitlists | No | No | — | Auto-offer config; RSVP vs paid waitlist UI | No auto-promotion promise |
-| ticket-sales-and-capacity.md | vendor | /help/vendors/ticket-sales-and-capacity | No | No | — | Refund impact on sold counts; combined venue caps | Capacity rules may vary by setup |
+| organiser-manage-waitlists.md | vendor | /help/vendors/organiser-manage-waitlists | No | No | — | Paid tier organiser list/export missing; tier waitlist toggles not in Event Studio UI; RSVP route only for RSVP waitlist | See organiser-ticket-capacity-waitlist-verification.md |
+| ticket-sales-and-capacity.md | vendor | /help/vendors/ticket-sales-and-capacity | No | Yes | batch_04_2026_05 (proposed) | Refund→sold count; lower capacity below sold | QA 2026-05-22: completed-order sold; analytics remaining may omit waitlist holds |
 | attendee-questions-for-organisers.md | vendor | /help/vendors/attendee-questions-for-organisers | No | No | — | Field types; archive behaviour; export columns | Privacy-first collection guidance |
 | check-in-attendees.md | vendor | /help/vendors/check-in-attendees | No | No | — | QR issuance coverage; RSVP check-in source | Does not claim every ticket has QR/PDF |
 | saved-question-templates.md | vendor | /help/vendors/saved-question-templates | No | No | — | Library permissions; edit vs clone semantics | Route `/vendor/questions` |
