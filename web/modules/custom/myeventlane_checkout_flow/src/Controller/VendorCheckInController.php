@@ -120,16 +120,16 @@ final class VendorCheckInController extends ControllerBase {
 
     if ($result['success'] && !$result['transitioned'] && $result['reason'] === 'already_checked_in') {
       $this->messenger()->addWarning($this->t('This attendee is already checked in.'));
-      return $this->redirect('myeventlane_checkin.page', ['node' => $event->id()], [], 302);
+      return $this->redirect('myeventlane_event_attendees.vendor_operations_door', ['node' => $event->id()], [], 302);
     }
 
     if (!$result['success']) {
       $this->messenger()->addError($this->t('Check-in could not be completed.'));
-      return $this->redirect('myeventlane_checkin.page', ['node' => $event->id()], [], 302);
+      return $this->redirect('myeventlane_event_attendees.vendor_operations_door', ['node' => $event->id()], [], 302);
     }
 
     $this->messenger()->addStatus($this->t('Attendee checked in successfully via QR code.'));
-    return $this->redirect('myeventlane_checkin.page', ['node' => $event->id()], [], 302);
+    return $this->redirect('myeventlane_event_attendees.vendor_operations_door', ['node' => $event->id()], [], 302);
   }
 
 }

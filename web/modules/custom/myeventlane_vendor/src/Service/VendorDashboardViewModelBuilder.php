@@ -647,7 +647,7 @@ final class VendorDashboardViewModelBuilder {
         'orders' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_orders', ['event' => $nid]),
         'attendees' => $this->safeUrlFromRoute('myeventlane_event_attendees.vendor_list', ['node' => $nid]),
         'analytics' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_analytics', ['event' => $nid]),
-        'checkin' => $this->safeUrlFromRouteIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account),
+        'checkin' => $this->safeUrlFromRouteIfAccessible('myeventlane_event_attendees.vendor_operations_door', ['node' => $nid], $account),
         'share' => $published ? $this->safeUrlFromRouteIfAccessible('entity.node.canonical', ['node' => $nid], $account) : NULL,
         'promote' => $this->promoteUrl($nid, $account),
         'support' => $this->safeUrlFromRouteIfAccessible('myeventlane_help_centre.vendors_index', [], $account),
@@ -800,7 +800,7 @@ final class VendorDashboardViewModelBuilder {
     $actions = [];
     $this->appendQuickAction($actions, 'edit', (string) $this->t('Edit event'), $this->safeUrlFromRouteIfAccessible('myeventlane_event_studio.edit', ['node' => $nid], $account), 'settings');
     $this->appendQuickAction($actions, 'attendees', (string) $this->t('View attendees'), $this->safeUrlFromRouteIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account), 'list');
-    $this->appendQuickAction($actions, 'checkin', (string) $this->t('Open check-in'), $this->safeUrlFromRouteIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account), 'scan');
+    $this->appendQuickAction($actions, 'checkin', (string) $this->t('Open check-in'), $this->safeUrlFromRouteIfAccessible('myeventlane_event_attendees.vendor_operations_door', ['node' => $nid], $account), 'scan');
     if ($published) {
       $this->appendQuickAction($actions, 'share', (string) $this->t('Share event'), $this->safeUrlFromRouteIfAccessible('entity.node.canonical', ['node' => $nid], $account), 'export');
       $this->appendQuickAction($actions, 'promote', (string) $this->t('Promote event'), $this->promoteUrl($nid, $account), 'search');

@@ -4,7 +4,7 @@ myeventlane_checkin.page:
     _controller: '\Drupal\myeventlane_checkin\Controller\CheckInController::page'
     _title: 'Check-in'
   requirements:
-    _permission: 'myeventlane_checkin.access'
+    _permission: 'access check-in'
     node: \d+
   options:
     parameters:
@@ -19,7 +19,7 @@ myeventlane_checkin.scan:
     _controller: '\Drupal\myeventlane_checkin\Controller\CheckInController::scan'
     _title: 'QR Scan Check-in'
   requirements:
-    _permission: 'myeventlane_checkin.scan'
+    _permission: 'scan qr codes'
     node: \d+
   options:
     parameters:
@@ -34,7 +34,7 @@ myeventlane_checkin.list:
     _controller: '\Drupal\myeventlane_checkin\Controller\CheckInController::list'
     _title: 'Attendee List'
   requirements:
-    _permission: 'myeventlane_checkin.access'
+    _permission: 'access check-in'
     node: \d+
   options:
     parameters:
@@ -48,7 +48,7 @@ myeventlane_checkin.toggle:
   defaults:
     _controller: '\Drupal\myeventlane_checkin\Controller\CheckInController::toggle'
   requirements:
-    _permission: 'myeventlane_checkin.toggle'
+    _permission: 'toggle check-in status'
     node: \d+
     attendee_id: \d+
   options:
@@ -63,7 +63,7 @@ myeventlane_checkin.search:
   defaults:
     _controller: '\Drupal\myeventlane_checkin\Controller\CheckInController::search'
   requirements:
-    _permission: 'myeventlane_checkin.access'
+    _permission: 'access check-in'
     node: \d+
   options:
     parameters:

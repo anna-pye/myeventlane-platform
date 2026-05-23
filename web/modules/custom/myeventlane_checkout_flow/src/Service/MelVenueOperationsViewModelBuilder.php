@@ -136,7 +136,6 @@ final class MelVenueOperationsViewModelBuilder {
       'export' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $eventId])->toString(),
       'operations' => $this->safeRouteUrl('myeventlane_event_attendees.vendor_operations', ['node' => $eventId]),
       'door_checkin' => $this->safeRouteUrl('myeventlane_event_attendees.vendor_operations_door', ['node' => $eventId]),
-      'legacy_checkin' => $this->safeRouteUrl('myeventlane_checkin.page', ['node' => $eventId]),
     ];
 
     $search = [

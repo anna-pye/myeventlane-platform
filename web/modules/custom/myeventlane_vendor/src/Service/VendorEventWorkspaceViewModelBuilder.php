@@ -187,7 +187,7 @@ final class VendorEventWorkspaceViewModelBuilder {
       'orders' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_orders', ['event' => $nid], $account),
       'addon_orders' => $addonOrdersUrl,
       'attendees' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account),
-      'checkin' => $this->routeUrlIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account),
+      'checkin' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_operations_door', ['node' => $nid], $account),
       'analytics' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_analytics', ['event' => $nid], $account),
       'settings' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_settings', ['event' => $nid], $account),
       'preview' => $previewUrl,
