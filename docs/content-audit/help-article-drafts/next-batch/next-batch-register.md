@@ -1,8 +1,8 @@
 # Next Help Centre batch — draft register
 
-**Date:** 2026-05-22  
+**Date:** 2026-05-23 (register updated after batch 06 import)  
 **Folder:** `docs/content-audit/help-article-drafts/next-batch/`  
-**Importer:** Not run. Drupal nodes not created.
+**Importer:** Batch 06 live import complete (see `help-articles-batch-06-import-log.md`). Other rows unchanged unless noted.
 
 | Draft | Audience | Recommended alias | Ready to publish? | Ready to export? | Export batch | Needs verification | Notes |
 |-------|----------|-------------------|-------------------|------------------|--------------|--------------------|-------|
@@ -14,7 +14,7 @@
 | organiser-manage-waitlists.md | vendor | /help/vendors/organiser-manage-waitlists | No | No | — | Blocked until paid waitlist organiser UI/reporting and auto-offer claim flow are verified | See organiser-ticket-capacity-waitlist-verification.md |
 | ticket-sales-and-capacity.md | vendor | /help/vendors/ticket-sales-and-capacity | No | Yes | batch_04_2026_05 | Refund→sold count; lower capacity below sold | Exported in help-articles-batch-04-2026-05.yml; importer not run |
 | attendee-questions-for-organisers.md | vendor | /help/vendors/attendee-questions-for-organisers | No | No | — | Field types; archive behaviour; export columns | Privacy-first collection guidance |
-| check-in-attendees.md | vendor | /help/vendors/check-in-attendees | Yes | Yes | batch_06_2026_05 | Physical device camera QA optional | Exported in help-articles-batch-06-2026-05.yml; publish-ready after door/browser QA 2026-05-23; importer not run |
+| check-in-attendees.md | vendor | /help/vendors/check-in-attendees | **Imported** | Yes | batch_06_2026_05 | Physical device camera QR not verified | Imported 2026-05-23; node **1677** `/help/vendors/check-in-attendees`; publish-ready QA 2026-05-23; physical-camera QA still optional |
 | saved-question-templates.md | vendor | /help/vendors/saved-question-templates | No | No | — | Library permissions; edit vs clone semantics | Route `/vendor/questions` |
 
 ## Publish order suggestion
