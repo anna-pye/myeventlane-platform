@@ -1,7 +1,7 @@
 // ==========================================================================
 // MEL event card — unified public listing component
 // ==========================================================================
-// Variants: .mel-event-card--standard | --featured | --compact | --hero
+// Variants: .mel-event-card--standard | --list | --featured | --editorial | --compact | --hero
 // Promoted/boosted state: .mel-event-card--promoted (.mel-event-card--boosted alias)
 // Markup: templates/components/event-card/mel-event-card.html.twig
 
@@ -85,6 +85,7 @@
 
 .mel-event-card--featured .mel-event-card__link:focus-visible,
 .mel-event-card--standard .mel-event-card__link:focus-visible,
+.mel-event-card--list .mel-event-card__link:focus-visible,
 .mel-event-card--hero .mel-event-card__link:focus-visible {
   border-radius: inherit;
 }
@@ -722,8 +723,9 @@
 
 }
 
-// --- Standard (default discovery grid — image-led overlay) ---
-.mel-event-card--standard {
+// --- Standard / list (default discovery grid — image-led overlay) ---
+.mel-event-card--standard,
+.mel-event-card--list {
   align-self: start;
   box-shadow: 0 14px 36px rgba(36, 48, 58, 0.1);
 
@@ -767,7 +769,9 @@
 
 // Canonical overlay CTA — solid lavender (reference carousel / boosted cards).
 .mel-event-card--standard,
+.mel-event-card--list,
 .mel-event-card--featured,
+.mel-event-card--editorial,
 .mel-event-card--hero {
   .mel-event-card__cta-chip {
     min-height: 44px;
@@ -882,7 +886,8 @@
 
 // Featured / carousel — glass dock hugs copy width (not full card width).
 .mel-featured-carousel:not(.mel-featured-home-carousel) .mel-event-card--featured:not(.mel-event-card--hero),
-.mel-featured-home-carousel .mel-event-card--hero {
+.mel-featured-home-carousel .mel-event-card--hero,
+.mel-featured-home-carousel .mel-event-card--editorial.mel-event-card--hero {
   .mel-event-card__body,
   .mel-event-card__content {
     right: auto;

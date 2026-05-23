@@ -1130,7 +1130,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           if (!$related instanceof NodeInterface) {
             continue;
           }
-          $builds[] = $view_builder->view($related, 'event_card');
+          $builds[] = $view_builder->view($related, 'list_card');
           $append_tags = Cache::mergeTags($append_tags, $related->getCacheTags());
         }
         $variables['mel_related_events'] = $builds;
@@ -1424,7 +1424,13 @@ function myeventlane_event_finalize_event_ui(
  * @return list<string>
  */
 function myeventlane_event_get_event_card_view_modes(): array {
+  if (\Drupal::hasService('myeventlane_event.event_card_view_model')) {
+    return \Drupal::service('myeventlane_event.event_card_view_model')->getCardViewModes();
+  }
   return [
+    'editorial_magazine',
+    'compact_commerce',
+    'list_card',
     'card',
     'event_card',
     'teaser',

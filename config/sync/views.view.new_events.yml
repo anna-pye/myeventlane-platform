@@ -173,7 +173,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: list_card
       query:
         type: views_query
         options:

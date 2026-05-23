@@ -389,7 +389,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: list_card
       query:
         type: views_query
         options:
@@ -655,7 +655,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: list_card
       defaults:
         pager: false
         row: false
@@ -930,7 +930,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         empty: false
         pager: false
@@ -1205,7 +1205,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser_tonight
+          view_mode: compact_commerce
       defaults:
         empty: false
         pager: false
@@ -1452,7 +1452,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: list_card
       defaults:
         pager: false
         row: false
@@ -1808,7 +1808,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: list_card
       defaults:
         empty: false
         pager: false
@@ -2129,7 +2129,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: list_card
       defaults:
         title: false
         pager: false
@@ -2524,7 +2524,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: list_card
       defaults:
         empty: false
         pager: false
@@ -2842,7 +2842,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: list_card
       defaults:
         title: false
         pager: false
@@ -3150,7 +3150,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: list_card
       defaults:
         title: false
         pager: false

@@ -151,3 +151,12 @@ services:
     arguments:
       - '@string_translation'
       - '@?myeventlane_commerce.event_operational_addon_teaser_builder'
+
+  myeventlane_event.event_card_view_model:
+    class: Drupal\myeventlane_event\EventCard\EventCardViewModel
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@file_url_generator'
+      - '@file_system'
+      - '@?flag'

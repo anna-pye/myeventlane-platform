@@ -12,9 +12,10 @@
  * @see myeventlane_event.module — myeventlane_event_preprocess_node() (event_ui for all view modes).
  */
 #}
-{% set _variant_raw = variant|default('standard') %}
-{% set _is_hero = _variant_raw == 'featured_hero' %}
-{% set _variant = _is_hero ? 'featured' : _variant_raw %}
+{% set _variant_raw = variant|default(mel_event_card_variant|default('standard')) %}
+{% set _layout = layout|default(mel_event_card_layout|default('')) %}
+{% set _is_hero = _variant_raw in ['featured_hero', 'editorial'] or (_variant_raw == 'featured' and _layout == 'hero') %}
+{% set _variant = _variant_raw in ['featured_hero', 'editorial'] ? 'featured' : (_variant_raw == 'list' ? 'standard' : _variant_raw) %}
 
 {% set _title = card_title|default(title|default('')) %}
 {% set _url = card_url|default(url|default('#')) %}
@@ -79,7 +80,10 @@
   {% set _state_badge_type = 'category' %}
 {% endif %}
 
-{% set card_classes = ['mel-event-card', 'mel-event-card--' ~ _variant] %}
+{% set card_classes = ['mel-event-card', 'mel-event-card--' ~ _variant_raw] %}
+{% if _layout %}
+  {% set card_classes = card_classes|merge(['mel-event-card--' ~ _layout]) %}
+{% endif %}
 {% if _is_hero %}
   {% set card_classes = card_classes|merge(['mel-event-card--hero']) %}
 {% endif %}

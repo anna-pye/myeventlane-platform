@@ -232,25 +232,13 @@ final class VendorDetailController extends ControllerBase {
     $nodes = $this->entityTypeManagerService->getStorage('node')->loadMultiple($nids);
     $cards = [];
 
-    foreach ($this->eventRepository->loadMany($nids) as $dto) {
-      $node = $nodes[$dto->id] ?? NULL;
-      $thumb = $node instanceof NodeInterface
-        ? $this->vendorEventRemovalService->buildEventThumbnailData($node)
-        : $this->vendorEventRemovalService->buildPlaceholderThumbnailData($dto->title);
-
-      $cards[] = [
-        'event_id' => $dto->id,
-        'title' => $dto->title,
-        'url' => Url::fromRoute('entity.node.canonical', ['node' => $dto->id])->toString(),
-        'card_image_url' => $thumb['url'],
-        'card_image_alt' => $thumb['alt'],
-        'date_full' => $dto->start_timestamp > 0
-          ? $this->dateFormatter->format($dto->start_timestamp, 'custom', 'M j, Y')
-          : '',
-        'location' => $dto->venue_label,
-        'ticket_type' => $dto->ticket_type,
-        'category' => $dto->category_label,
-      ];
+    $view_builder = $this->entityTypeManagerService->getViewBuilder('node');
+    foreach ($nids as $nid) {
+      $node = $nodes[$nid] ?? NULL;
+      if (!$node instanceof NodeInterface || !$node->access('view', $this->account)) {
+        continue;
+      }
+      $cards[] = $view_builder->view($node, 'list_card');
     }
 
     return $cards;
