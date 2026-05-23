@@ -2,28 +2,30 @@
 
 **Date:** 2026-05-23  
 **Related draft:** `check-in-attendees.md`  
+**QA log:** `check-in-publish-readiness-qa.md`  
 **Code fix:** `docs/audits/check-in-permission-route-parity-audit.md`
 
 ## Browser verification summary
 
 | Persona | Canonical door | Attendees list | Attendees export | Ticket scanner | Legacy `/check-in/scan` | RSVP check-in |
 |---------|----------------|----------------|------------------|----------------|-------------------------|---------------|
-| Anonymous | 403 | 403 | 403 | 403 | 403 | 403 |
-| Authenticated non-vendor | 403 | 403 | 403 | 403 | 403 | 403 |
-| Vendor event owner | 200 | 200 | 200 | 200 | 302 → door | 200 (when RSVPs enabled) |
+| Anonymous | denied | denied | denied | denied | denied | denied |
+| Authenticated non-vendor | 403 | denied/redirect | 403 | 403 | denied | denied |
+| Vendor event owner | 200 | 200 | 200 | 200 | 302 → door | 200 |
 | Administrator | 200 | 200 | 200 | 200 | 302 → door | 200 |
 
-## Documentation updates required before publish
+## Documentation updates applied
 
-1. **Canonical path:** Replace example `/vendor/events/{event}/check-in` with `/vendor/events/{node}/operations/door` for primary door check-in.
-2. **Operations hub:** Mention `/vendor/events/{node}/operations` for live attendee list, export, and manual lookup.
-3. **RSVP vs tickets:** RSVP check-in remains at `/vendor/event/{event}/rsvps/checkin`; paid ticket scanner at `/event/{event}/tickets/scan` (also embedded in Door Mode).
-4. **Do not document** legacy `/vendor/events/{node}/check-in/scan` (redirects to door).
+1. **Canonical path:** Draft points to `/vendor/events/{node}/operations/door` for primary door check-in.
+2. **Operations hub:** `/vendor/events/{node}/operations` documented.
+3. **RSVP vs tickets:** RSVP at `/vendor/event/{event}/rsvps/checkin`; paid scanner at `/event/{event}/tickets/scan` (secondary to Door Mode).
+4. **Legacy scan:** Not documented; redirects to door.
+5. **Privacy:** Export columns, `?obfuscate=1`, RSVP export sensitivity.
 
 ## Publish readiness
 
-**Not yet ready for publish QA** until a human re-walks the vendor event-day flow in the browser after config import (`drush cim` or role sync) and confirms Door Mode scanner behaviour on a real paid-ticket event.
+**Ready for export/import** after publish-readiness QA on local DDEV (2026-05-23).
 
-**Blockers cleared by code fix:** permission mismatch, vendor 403 on ticket scanner, broken legacy scan asset.
+**Blockers cleared:** permission parity, vendor ticket scanner access, legacy scan redirect, RSVP check-in controller bug (500 → 200).
 
-**Remaining:** Help draft body and Batch 06 YAML still reference legacy routes — update in a separate content pass after browser sign-off.
+**Residual:** Help node not created until batch 06 import; physical device camera QA recommended.
