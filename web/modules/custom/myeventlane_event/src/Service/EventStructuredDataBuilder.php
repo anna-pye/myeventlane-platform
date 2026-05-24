@@ -154,7 +154,7 @@ final class EventStructuredDataBuilder {
     $offer = [
       '@type' => 'Offer',
       'url' => $bookUrl,
-      'availability' => 'https://schema.org/InStock',
+      'availability' => $this->resolveOfferAvailability($event),
     ];
 
     if ($mode === BookingFlowResolver::MODE_RSVP) {
@@ -178,6 +178,14 @@ final class EventStructuredDataBuilder {
     $offer['priceCurrency'] = $lowest->getCurrencyCode();
 
     return $offer;
+  }
+
+  private function resolveOfferAvailability(NodeInterface $event): string {
+    if ($this->bookingFlowResolver->getAvailabilityState($event) === BookingFlowResolver::AVAILABILITY_SOLD_OUT) {
+      return 'https://schema.org/SoldOut';
+    }
+
+    return 'https://schema.org/InStock';
   }
 
   private function formatTimestamp(int $timestamp): string {

@@ -82,6 +82,7 @@ final class EventCardViewModel {
     }
 
     $cacheability = CacheableMetadata::createFromObject($node);
+    $this->addCategoryCacheability($node, $cacheability);
     $canView = $node->access('view', $this->currentUser);
     $url = $canView ? $node->toUrl()->toString() : '';
 
@@ -518,6 +519,21 @@ final class EventCardViewModel {
       ],
       '#create_placeholder' => TRUE,
     ];
+  }
+
+  /**
+   * Ensures category pill data invalidates when the referenced term changes.
+   */
+  private function addCategoryCacheability(NodeInterface $node, CacheableMetadata $cacheability): void {
+    if (!$node->hasField('field_category') || $node->get('field_category')->isEmpty()) {
+      return;
+    }
+    foreach ($node->get('field_category')->referencedEntities() as $term) {
+      if ($term !== NULL) {
+        $cacheability->addCacheableDependency($term);
+        return;
+      }
+    }
   }
 
   /**
