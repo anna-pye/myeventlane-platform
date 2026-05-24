@@ -2891,7 +2891,8 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
       }
       $variables['#cache']['tags'] = Cache::mergeTags(
         (array) ($variables['#cache']['tags'] ?? []),
-        $event_node->getCacheTags()
+        $event_node->getCacheTags(),
+        $canonical->getCacheTags()
       );
       $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
         (array) ($variables['#cache']['contexts'] ?? []),
