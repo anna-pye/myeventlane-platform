@@ -195,6 +195,46 @@
   }
 }
 
+// list_card in event grids: always stack (grid cells are too narrow for horizontal layout).
+// Container queries are a progressive enhancement; grids must not rely on them alone.
+.mel-grid--events .mel-event-card--list,
+.mel-event-grid.mel-grid--events .mel-event-card--list {
+  .mel-event-card__link {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: unset;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .mel-event-card__image,
+  .mel-event-card__media {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    aspect-ratio: 4 / 3;
+    border-radius: mel.$mel-ds-radius-md mel.$mel-ds-radius-md 0 0;
+  }
+
+  .mel-event-card__body,
+  .mel-event-card__content {
+    position: static;
+    inset: auto;
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    padding: 14px 16px 16px;
+  }
+
+  .mel-event-card__title {
+    min-height: calc(1.25em * 2);
+  }
+
+  .mel-event-card__cta-row {
+    margin-top: auto;
+  }
+}
+
 // list_card listings share the event grid (1 → 2 → 4 columns); layout/_grid.scss + discovery.
 .mel-event-list {
   width: 100%;

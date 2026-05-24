@@ -145,7 +145,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: list_card
+          view_mode: compact_commerce
       query:
         type: views_query
         options:
@@ -180,7 +180,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: list_card
+          view_mode: compact_commerce
       display_extenders: {  }
       block_description: 'Front: Discover Events'
       block_category: MyEventLane
