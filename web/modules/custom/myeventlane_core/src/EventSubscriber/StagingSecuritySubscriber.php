@@ -57,21 +57,23 @@ final class StagingSecuritySubscriber implements EventSubscriberInterface {
       $is_staging = ($env_staging === '1' || $env_staging === 'true');
     }
 
-    // Auto-detect by hostname if not explicitly set.
+    // Auto-detect by hostname if not explicitly set (staging hosts only).
     if (!$is_staging && isset($_SERVER['HTTP_HOST'])) {
-      $host = $_SERVER['HTTP_HOST'];
-      $staging_patterns = [
-        '/staging\./i',
-        '/stage\./i',
-        '/test\./i',
-        '/dev\./i',
-        '/\.staging\./i',
+      $host = strtolower((string) $_SERVER['HTTP_HOST']);
+      $staging_hosts = [
+        'staging.myeventlane.com.au',
+        'vendor.staging.myeventlane.com.au',
+        'admin.staging.myeventlane.com.au',
+        'staging.myeventlane.com',
+        'vendor.staging.myeventlane.com',
+        'admin.staging.myeventlane.com',
       ];
-      foreach ($staging_patterns as $pattern) {
-        if (preg_match($pattern, $host)) {
-          $is_staging = TRUE;
-          break;
-        }
+      if (in_array($host, $staging_hosts, TRUE)) {
+        $is_staging = TRUE;
+      }
+      elseif (str_contains($host, 'staging.myeventlane.com.au')
+        || str_contains($host, 'staging.myeventlane.com')) {
+        $is_staging = TRUE;
       }
     }
 

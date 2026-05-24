@@ -285,6 +285,9 @@ function myeventlane_auth_register_page_is_create_event_flow(Request $request): 
  * theme, including Gin Login on /user/register.
  */
 function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $is_vendor_registration = \Drupal::request()->query->get('vendor') === '1'
+    || str_contains((string) \Drupal::request()->query->get('destination', ''), '/vendor/onboard');
+
   foreach ([
     'user_picture',
     'contact',
@@ -296,6 +299,17 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
     if (isset($form[$key])) {
       $form[$key]['#access'] = FALSE;
     }
+  }
+
+  if ($is_vendor_registration) {
+    $form_state->set('is_vendor_registration', TRUE);
+    if (isset($form['account']['name'])) {
+      $form['account']['name']['#access'] = FALSE;
+    }
+    elseif (isset($form['name'])) {
+      $form['name']['#access'] = FALSE;
+    }
+    $form['#validate'][] = 'myeventlane_auth_vendor_register_set_username_from_mail';
   }
   foreach (['field_marketing', 'field_vendor'] as $key) {
     if (isset($form[$key])) {
@@ -358,6 +372,22 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
   ])));
 
   $form['actions']['submit']['#submit'][] = 'myeventlane_auth_user_register_form_post_save_redirect';
+}
+
+/**
+ * Sets username from email for vendor onboarding registration.
+ */
+function myeventlane_auth_vendor_register_set_username_from_mail(array &$form, FormStateInterface $form_state): void {
+  if (!$form_state->get('is_vendor_registration')) {
+    return;
+  }
+  $mail = trim((string) $form_state->getValue('mail'));
+  if ($mail === '') {
+    return;
+  }
+  $local = strstr($mail, '@', TRUE);
+  $base = preg_replace('/[^a-z0-9._-]+/i', '_', is_string($local) && $local !== '' ? $local : $mail) ?: 'vendor';
+  $form_state->setValue('name', substr($base, 0, 60));
 }
 
 /**
