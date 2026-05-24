@@ -355,6 +355,8 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: calc(1.25em * 2);
+  // WebKit line-clamp can clip the first/last glyph at the box edge (listing grids).
+  padding-inline: 1px;
 }
 
 .mel-event-card__when {

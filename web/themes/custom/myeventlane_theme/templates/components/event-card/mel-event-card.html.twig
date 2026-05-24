@@ -15,7 +15,7 @@
 {% set _variant_raw = variant|default(mel_event_card_variant|default('standard')) %}
 {% set _layout = layout|default(mel_event_card_layout|default('')) %}
 {% set _is_hero = _variant_raw in ['featured_hero', 'editorial'] or (_variant_raw == 'featured' and _layout == 'hero') %}
-{% set _variant = _variant_raw in ['featured_hero', 'editorial'] ? 'featured' : (_variant_raw == 'list' ? 'standard' : _variant_raw) %}
+{% set _variant = _variant_raw in ['featured_hero', 'editorial'] ? 'featured' : _variant_raw %}
 {% set _css_modifier = _variant_raw in ['featured_hero', 'editorial'] ? 'editorial' : (_variant_raw in ['compact', 'list'] ? _variant_raw : _variant) %}
 
 {% set _title = card_title|default(title|default('')) %}
