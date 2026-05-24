@@ -158,6 +158,11 @@ services:
       - '@myeventlane_event_state.resolver'
       - '@datetime.time'
 
+  myeventlane_event.public_discovery_query_alter:
+    class: Drupal\myeventlane_event\Service\PublicEventDiscoveryQueryAlter
+    arguments:
+      - '@myeventlane_event.public_visibility'
+
   myeventlane_event.structured_data_builder:
     class: Drupal\myeventlane_event\Service\EventStructuredDataBuilder
     arguments:

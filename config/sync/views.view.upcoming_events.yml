@@ -970,7 +970,7 @@ display:
           plugin_id: text
           empty: true
           content:
-            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">Nothing listed for tonight yet</h3><p class="mel-empty-state__what">Explore upcoming events or check back as hosts publish new plans.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Explore events</a> <a class="mel-link" href="/events/this-weekend">Browse this weekend</a></p></div>'
+            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">Nothing on tonight yet</h3><p class="mel-empty-state__what">Browse upcoming events across MyEventLane — new listings land throughout the day.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Browse upcoming events</a></p></div>'
             format: full_html
           tokenize: false
       filters:

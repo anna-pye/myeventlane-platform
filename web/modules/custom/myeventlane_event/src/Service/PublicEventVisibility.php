@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\node\NodeInterface;
@@ -32,6 +33,18 @@ final class PublicEventVisibility {
   ) {}
 
   /**
+   * Obvious internal staging markers in titles (fallback when no status field).
+   *
+   * @var list<string>
+   */
+  private const INTERNAL_TITLE_MARKERS = [
+    'test',
+    'demo',
+    'copy',
+    'untitled',
+  ];
+
+  /**
    * Whether a published event may appear on public discovery listings or SEO.
    */
   public function isPubliclyListable(NodeInterface $event): bool {
@@ -47,7 +60,53 @@ final class PublicEventVisibility {
       return FALSE;
     }
 
+    if ($this->hasInternalMarkerTitle($event->label())) {
+      return FALSE;
+    }
+
     return TRUE;
+  }
+
+  /**
+   * Whether a title contains obvious internal staging markers.
+   */
+  public function hasInternalMarkerTitle(string $title): bool {
+    $normalized = trim(mb_strtolower($title));
+    if ($normalized === '') {
+      return TRUE;
+    }
+
+    foreach (self::INTERNAL_TITLE_MARKERS as $marker) {
+      if ($normalized === $marker) {
+        return TRUE;
+      }
+      if (str_starts_with($normalized, $marker . ' ')
+        || str_starts_with($normalized, $marker . '-')
+        || str_contains($normalized, ' ' . $marker . ' ')
+        || str_contains($normalized, ' ' . $marker)) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * SQL LIKE patterns for excluding internal marker titles in Views queries.
+   *
+   * @return list<string>
+   */
+  public function getInternalTitleSqlLikePatterns(): array {
+    $patterns = [];
+    foreach (self::INTERNAL_TITLE_MARKERS as $marker) {
+      $patterns[] = $marker;
+      $patterns[] = $marker . ' %';
+      $patterns[] = $marker . '-%';
+      $patterns[] = '% ' . $marker;
+      $patterns[] = '% ' . $marker . ' %';
+    }
+
+    return $patterns;
   }
 
   /**
@@ -100,6 +159,43 @@ final class PublicEventVisibility {
     }
 
     return $this->eventStateResolver->resolveState($event) === EventStateResolver::STATE_ENDED;
+  }
+
+  /**
+   * Replaces obvious placeholder copy for public event display surfaces.
+   *
+   * Returns NULL when the source text should not be shown publicly.
+   */
+  public function sanitizePublicDisplayText(?string $text): ?string {
+    if ($text === NULL || trim($text) === '') {
+      return NULL;
+    }
+
+    $plain = trim(strip_tags($text));
+    if ($plain === '') {
+      return NULL;
+    }
+
+    $markers = [
+      '[date]',
+      '[time]',
+      '[venue]',
+      'lorem ipsum',
+    ];
+    foreach ($markers as $marker) {
+      if (stripos($plain, $marker) !== FALSE) {
+        return NULL;
+      }
+    }
+
+    return $text;
+  }
+
+  /**
+   * Fallback copy when public teaser/highlight text is withheld.
+   */
+  public function publicDisplayFallbackMessage(): string {
+    return (string) new TranslatableMarkup('More details coming soon.');
   }
 
 }

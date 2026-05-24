@@ -12,13 +12,4 @@
       </div>
     {% endfor %}
   </div>
-{% else %}
-  {% include '@myeventlane_theme/components/empty-state.html.twig' with {
-    title: 'No guides yet'|t,
-    text: 'Helpful organiser guides are coming soon.'|t,
-    cta_primary_url: '/create-event',
-    cta_primary_label: 'Create event'|t,
-    cta_secondary_url: '/events',
-    cta_secondary_label: 'Explore events'|t
-  } %}
 {% endif %}
