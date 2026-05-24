@@ -389,15 +389,14 @@ final class HelpCentreController extends ControllerBase {
    */
   private function hasFeaturedArticles(): bool {
     try {
-      $count = $this->entityTypeManagerService->getStorage('node')->getQuery()
-        ->accessCheck(TRUE)
-        ->condition('type', 'help_article')
-        ->condition('status', 1)
-        ->condition('field_featured_help', 1)
-        ->range(0, 1)
-        ->count()
-        ->execute();
-      return $count > 0;
+      $view = Views::getView('mel_help_featured_articles');
+      if (!$view) {
+        return FALSE;
+      }
+      $view->setDisplay('block_featured');
+      _myeventlane_help_centre_apply_browse_listing_policy($view);
+      $view->execute();
+      return count($view->result) > 0;
     }
     catch (\Throwable $e) {
       $this->logger->warning('Could not count featured help articles: @message', [

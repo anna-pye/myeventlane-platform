@@ -20,6 +20,7 @@ regions:
   homepage_categories: 'Homepage Categories'
   homepage_latest: 'Homepage Latest'
   homepage_tonight: 'Homepage Tonight'
+  homepage_free: 'Homepage Free & RSVP'
   homepage_nearby: 'Homepage Nearby'
   homepage_online: 'Homepage Online'
   homepage_host_cta: 'Homepage Host CTA'

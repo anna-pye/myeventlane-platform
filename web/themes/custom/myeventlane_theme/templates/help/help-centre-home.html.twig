@@ -115,8 +115,8 @@
           <p class="mel-help-home__card-excerpt">{{ 'Running an event? Find practical guides for setup, ticketing, and attendee updates.'|t }}</p>
         </article>
         <article class="mel-help-home__card">
-          <h3 class="mel-help-home__card-title"><a href="/help/vendors">{{ 'Vendor help'|t }}</a></h3>
-          <p class="mel-help-home__card-excerpt">{{ 'Looking after your vendor profile and applications? This section keeps it simple.'|t }}</p>
+          <h3 class="mel-help-home__card-title"><a href="{% if logged_in %}/help/vendors{% else %}/user/login?destination=/help/vendors{% endif %}">{{ 'Vendor help'|t }}</a></h3>
+          <p class="mel-help-home__card-excerpt">{% if logged_in %}{{ 'Looking after your vendor profile and applications? This section keeps it simple.'|t }}{% else %}{{ 'Sign in to browse organiser console guides for your vendor profile and applications.'|t }}{% endif %}</p>
         </article>
       </div>
     </section>

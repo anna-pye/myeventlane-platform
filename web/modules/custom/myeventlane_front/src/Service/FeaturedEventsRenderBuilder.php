@@ -23,6 +23,34 @@ final class FeaturedEventsRenderBuilder {
   ) {}
 
   /**
+   * Whether the featured events View display has at least one row.
+   */
+  public function hasResults(): bool {
+    try {
+      $storage = $this->entityTypeManager
+        ->getStorage('view')
+        ->load(self::VIEW_ID);
+
+      if ($storage === NULL) {
+        return FALSE;
+      }
+
+      $view = $this->viewExecutableFactory->get($storage);
+      if (!$view->access(self::DISPLAY_ID)) {
+        return FALSE;
+      }
+
+      $view->setDisplay(self::DISPLAY_ID);
+      $view->execute();
+
+      return $view->result !== [];
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
+  }
+
+  /**
    * Builds the existing featured events View display.
    *
    * @return array
@@ -31,6 +59,10 @@ final class FeaturedEventsRenderBuilder {
    */
   public function build(): array {
     try {
+      if (!$this->hasResults()) {
+        return $this->emptyBuild();
+      }
+
       $storage = $this->entityTypeManager
         ->getStorage('view')
         ->load(self::VIEW_ID);
@@ -45,12 +77,6 @@ final class FeaturedEventsRenderBuilder {
 
       $view = $this->viewExecutableFactory->get($storage);
       if (!$view->access(self::DISPLAY_ID)) {
-        return $this->emptyBuild();
-      }
-
-      $view->setDisplay(self::DISPLAY_ID);
-      $view->execute();
-      if ($view->result === []) {
         return $this->emptyBuild();
       }
 

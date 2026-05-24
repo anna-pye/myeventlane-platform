@@ -1755,6 +1755,21 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
 
   // mel_header_categories for listing pages (events, search, category).
   $route = \Drupal::routeMatch()->getRouteName();
+
+  // Public marketplace directory pages must never inherit vendor console chrome.
+  $public_marketplace_routes = [
+    'myeventlane_vendor.public_list',
+    'myeventlane_vendor.organisers',
+    'entity.myeventlane_vendor.canonical',
+  ];
+  if (is_string($route) && in_array($route, $public_marketplace_routes, TRUE)) {
+    $variables['mel_is_organiser'] = FALSE;
+    if (isset($variables['footer_context']) && is_array($variables['footer_context'])) {
+      $variables['footer_context']['is_vendor'] = FALSE;
+      unset($variables['footer_context']['vendor_console_urls']);
+    }
+  }
+
   $listing_routes = [
     'view.upcoming_events.page_events',
     'view.upcoming_events.page_category',
@@ -1929,8 +1944,32 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     if (isset($variables['page']['bottom_cta']) && is_array($variables['page']['bottom_cta'])) {
       $variables['mel_home_use_bottom_cta_region'] = count(Element::children($variables['page']['bottom_cta'])) > 0;
     }
+
+    // Homepage discovery rails: region truthiness is true when a block is placed,
+    // even if the View returns zero rows. Gate section shells on real content.
+    if (\Drupal::hasService('myeventlane_front.homepage_section_visibility')) {
+      /** @var \Drupal\myeventlane_front\Service\HomepageSectionVisibility $homepageVisibility */
+      $homepageVisibility = \Drupal::service('myeventlane_front.homepage_section_visibility');
+      $variables['mel_home_show_featured'] = $homepageVisibility->hasFeaturedEvents()
+        && isset($variables['page']['homepage_featured'])
+        && is_array($variables['page']['homepage_featured'])
+        && count(Element::children($variables['page']['homepage_featured'])) > 0;
+      $variables['mel_home_show_blog'] = $homepageVisibility->hasPublicBlogPosts()
+        && isset($variables['page']['homepage_blog'])
+        && is_array($variables['page']['homepage_blog'])
+        && count(Element::children($variables['page']['homepage_blog'])) > 0;
+      $variables['mel_home_show_free_rsvp'] = $homepageVisibility->viewDisplayHasResults('mel_home_events', 'under_20')
+        && isset($variables['page']['homepage_free'])
+        && is_array($variables['page']['homepage_free'])
+        && count(Element::children($variables['page']['homepage_free'])) > 0;
+    }
+    else {
+      $variables['mel_home_show_featured'] = FALSE;
+      $variables['mel_home_show_blog'] = FALSE;
+      $variables['mel_home_show_free_rsvp'] = FALSE;
+    }
   }
-  
+
   // MyEventLane Illustration System: Category-aware hero swaps.
   // Category pages MUST use category banners from /images/mel/categories/.
   // Homepage MUST ALWAYS use journey hero images.

@@ -1264,6 +1264,41 @@ function myeventlane_event_preprocess_node(array &$variables): void {
         ],
       ];
     }
+
+    if (!empty($variables['content']['body']) && $node->hasField('body') && !$node->get('body')->isEmpty()) {
+      $body_raw = (string) $node->get('body')->value;
+      if ($visibility->sanitizePublicDisplayText($body_raw) === NULL) {
+        $variables['content']['body'] = [
+          '#markup' => '<p>' . $fallback . '</p>',
+          '#cache' => [
+            'contexts' => ['languages:language_interface'],
+            'tags' => $node->getCacheTags(),
+          ],
+        ];
+      }
+    }
+
+    if ($node->hasField('field_event_highlights') && !$node->get('field_event_highlights')->isEmpty()) {
+      $public_highlights = [];
+      foreach ($node->get('field_event_highlights') as $ref) {
+        $paragraph = $ref->entity;
+        if (!$paragraph || !$paragraph->hasField('field_highlight_text') || $paragraph->get('field_highlight_text')->isEmpty()) {
+          continue;
+        }
+        $highlight_text = (string) $paragraph->get('field_highlight_text')->value;
+        if ($visibility->sanitizePublicDisplayText($highlight_text) === NULL) {
+          continue;
+        }
+        $icon_key = ($paragraph->hasField('field_highlight_icon') && !$paragraph->get('field_highlight_icon')->isEmpty())
+          ? (string) $paragraph->get('field_highlight_icon')->value
+          : '';
+        $public_highlights[] = [
+          'text' => strip_tags($highlight_text),
+          'icon' => $icon_key,
+        ];
+      }
+      $variables['mel_public_highlights'] = $public_highlights;
+    }
   }
 }
 
