@@ -55,9 +55,12 @@ body.mel-vendor a {
   transition: color 0.15s ease-in-out;
 
   &:hover,
-  &:focus {
+  &:focus,
+  &:focus-visible,
+  &:active,
+  &:visited {
     color: $primary-dark;
-    text-decoration: underline;
+    text-decoration: none;
   }
 }
 
