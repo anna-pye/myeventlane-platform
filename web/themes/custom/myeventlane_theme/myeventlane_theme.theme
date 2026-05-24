@@ -2139,6 +2139,33 @@ function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): arra
 }
 
 /**
+ * Implements hook_preprocess_page() for the homepage.
+ *
+ * Hides guide/blog section shell when no published articles exist.
+ */
+function myeventlane_theme_preprocess_page__front(array &$variables): void {
+  if (!isset($variables['page']['homepage_blog'])) {
+    return;
+  }
+
+  try {
+    $count = (int) \Drupal::entityTypeManager()->getStorage('node')->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('type', 'blog_post')
+      ->condition('status', 1)
+      ->range(0, 1)
+      ->count()
+      ->execute();
+    if ($count === 0) {
+      unset($variables['page']['homepage_blog']);
+    }
+  }
+  catch (\Throwable) {
+    unset($variables['page']['homepage_blog']);
+  }
+}
+
+/**
  * Implements hook_preprocess_page() for category pages.
  *
  * Adds category info and all categories for the hero section.

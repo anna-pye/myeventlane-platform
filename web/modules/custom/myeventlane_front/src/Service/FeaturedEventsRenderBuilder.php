@@ -48,6 +48,12 @@ final class FeaturedEventsRenderBuilder {
         return $this->emptyBuild();
       }
 
+      $view->setDisplay(self::DISPLAY_ID);
+      $view->execute();
+      if ($view->result === []) {
+        return $this->emptyBuild();
+      }
+
       return $view->buildRenderable(self::DISPLAY_ID);
     }
     catch (\Throwable $e) {

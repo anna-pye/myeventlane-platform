@@ -63,6 +63,8 @@ final class HelpCentreController extends ControllerBase {
 
     $melPayload = $this->melSupportSettingsBuilder->buildDrupalSettings('hub', TRUE);
 
+    $featuredArticlesHasContent = $this->hasFeaturedArticles();
+
     $build = [
       '#theme' => 'help_centre_home',
       '#context' => $isVendorContext ? 'vendor' : NULL,
@@ -71,7 +73,10 @@ final class HelpCentreController extends ControllerBase {
         'value' => $searchValue,
         'placeholder' => $this->t('Search help articles...'),
       ],
-      '#featured_articles' => $this->buildView('mel_help_featured_articles', 'block_featured'),
+      '#featured_articles_has_content' => $featuredArticlesHasContent,
+      '#featured_articles' => $featuredArticlesHasContent
+        ? $this->buildView('mel_help_featured_articles', 'block_featured')
+        : [],
       '#vendors' => $isVendorContext ? $this->buildView('mel_help_vendor_help', 'block_vendors') : [],
       '#faq_listing' => $this->buildView('mel_help_faq', 'block_faq'),
       '#ia_sections' => $isVendorContext ? [] : $this->buildHelpCentreIaSections(),
@@ -377,6 +382,29 @@ final class HelpCentreController extends ControllerBase {
     }
 
     return $build;
+  }
+
+  /**
+   * Whether published featured help articles exist for the hub section.
+   */
+  private function hasFeaturedArticles(): bool {
+    try {
+      $count = $this->entityTypeManagerService->getStorage('node')->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('type', 'help_article')
+        ->condition('status', 1)
+        ->condition('field_featured_help', 1)
+        ->range(0, 1)
+        ->count()
+        ->execute();
+      return $count > 0;
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not count featured help articles: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return FALSE;
+    }
   }
 
   /**
