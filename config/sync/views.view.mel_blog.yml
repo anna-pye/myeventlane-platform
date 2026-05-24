@@ -209,20 +209,6 @@ display:
         options:
           offset: 0
           items_per_page: 3
-      empty:
-        area:
-          id: area
-          table: views
-          field: area
-          relationship: none
-          group_type: group
-          admin_label: ''
-          plugin_id: text
-          empty: true
-          content:
-            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">No guides yet</h3><p class="mel-empty-state__what">Helpful organiser guides are coming soon.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/create-event">Create event</a> <a class="mel-link" href="/events">Explore events</a></p></div>'
-            format: full_html
-          tokenize: false
       filters:
         status:
           id: status

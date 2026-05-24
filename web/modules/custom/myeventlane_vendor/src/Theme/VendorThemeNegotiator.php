@@ -44,9 +44,12 @@ final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
       return TRUE;
     }
 
-    // Fallback for path-based routes (/vendor/* console, not /vendors directory).
+    // Vendor console lives under /vendor/* — not the public /vendors directory.
     $request = \Drupal::request();
     $path = $request->getPathInfo();
+    if (str_starts_with($path, '/vendors')) {
+      return FALSE;
+    }
 
     if (preg_match('#^/vendor(/|$)#', $path)) {
       return TRUE;

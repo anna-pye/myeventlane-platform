@@ -194,8 +194,8 @@
         {% set expect_text = expect_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
         {# Highlights: render only when there are non-empty items (quick-scan list). #}
-        {% set highlights = [] %}
-        {% if node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
+        {% set highlights = mel_public_highlights|default([]) %}
+        {% if highlights is empty and node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
           {% for ref in node.field_event_highlights %}
             {% set p = ref.entity %}
             {% if p and p.hasField('field_highlight_text') and not p.field_highlight_text.isEmpty %}

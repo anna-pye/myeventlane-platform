@@ -26,7 +26,7 @@
 
   <div class="mel-page mel-page--home">
 
-    {% if page.homepage_featured %}
+    {% if mel_home_show_featured|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--featured',
         section_width_class: 'mel-section--wide',
@@ -69,6 +69,20 @@
       } %}
     {% endif %}
 
+    {% if mel_home_show_free_rsvp|default(false) %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--free-rsvp mel-section--discover',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        title: 'Free & RSVP'|t,
+        subtitle: 'No ticket purchase needed — just turn up or RSVP.'|t,
+        link_url: path('view.upcoming_events.page_free'),
+        link_text: 'See all free events'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_free
+      } %}
+    {% endif %}
+
     {% if page.homepage_nearby %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--nearby',
@@ -97,7 +111,7 @@
       } %}
     {% endif %}
 
-    {% if page.homepage_blog %}
+    {% if mel_home_show_blog|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--blog',
         section_width_class: 'mel-section--wide',
