@@ -2678,7 +2678,7 @@ main.mel-main:has(.mel-event-full) {
   background-color: #fff9f5;
 }
 
-// Event full layout: DOM order hero → sidebar → content (mobile); named grid at 1100px+.
+// Event full layout: DOM order hero → sidebar → content (mobile); two-column grid ≥768px.
 .mel-event-page--classic.mel-event--v2 .mel-event-full__layout.mel-event-layout,
 .mel-event-page--immersive.mel-event--v2 .mel-event-full__layout.mel-event-layout {
   margin-top: 0;
@@ -2701,20 +2701,23 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
   margin-inline: auto;
 }
 
-// Desktop: main column stacks hero + content; sidebar rail is a separate grid column.
+// Desktop + tablet: main column stacks hero + content; sidebar aligns to hero top (col 2).
 .mel-event-page--classic.mel-event--v2 .mel-event-full__primary,
 .mel-event-page--immersive.mel-event--v2 .mel-event-full__primary {
   display: grid;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
 
-  @media (width >= 1100px) {
-    grid-template-columns: minmax(0, 1fr) 390px;
-    grid-template-areas:
-      'stack sidebar'
-      'support sidebar';
-    gap: var(--mel-full-stack-gap, 20px) 32px;
+  @media (width >= 768px) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, min(340px, 36vw));
+    gap: var(--mel-full-stack-gap, 20px) clamp(16px, 2vw, 32px);
     align-items: start;
+  }
+
+  @media (width >= 1024px) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 390px);
   }
 }
 
@@ -2725,8 +2728,9 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
 
-  @media (width >= 1100px) {
-    grid-area: stack;
+  @media (width >= 768px) {
+    grid-column: 1;
+    grid-row: 1;
   }
 }
 
@@ -2739,14 +2743,15 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
   min-width: 0;
 }
 
-@media (width >= 1100px) {
+@media (width >= 768px) {
   .mel-event-page--classic.mel-event--v2 .mel-event-full__sidebar,
   .mel-event-page--immersive.mel-event--v2 .mel-event-full__sidebar {
-    grid-area: sidebar;
-    grid-row: 1 / -1;
+    grid-column: 2;
+    grid-row: 1;
     align-self: start;
-    width: 390px;
-    max-width: 390px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .mel-event-page--classic.mel-event--v2 .mel-event-full__sidebar-inner,
@@ -2754,14 +2759,23 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
     display: flex;
     flex-direction: column;
     gap: var(--mel-full-stack-gap, 20px);
-    position: sticky;
-    top: var(--mel-sticky-offset, 5.5rem);
-    max-height: calc(100vh - var(--mel-sticky-offset, 5.5rem) - #{space-tokens.mel-space(4)});
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    > .mel-event-full__booking,
+    > .mel-event-full__view-details {
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
   }
 
   .mel-event-page--classic.mel-event--v2 .mel-event-full__support.mel-event-support-zone,
   .mel-event-page--immersive.mel-event--v2 .mel-event-full__support.mel-event-support-zone {
-    grid-area: support;
+    grid-column: 1;
+    grid-row: 2;
     align-self: start;
     margin-top: 0;
   }
@@ -2881,7 +2895,7 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
 }
 
 .mel-event-full__content-grid--duo {
-  @media (width >= 1100px) {
+  @media (width >= 768px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
   }
@@ -2902,7 +2916,7 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
 
 .mel-event-full__about--wide,
 .mel-event-full__about:only-child {
-  @media (width >= 1100px) {
+  @media (width >= 768px) {
     grid-column: 1 / -1;
   }
 }
@@ -2916,7 +2930,7 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
   height: fit-content;
   min-height: 0;
 
-  @media (width >= 1100px) {
+  @media (width >= 768px) {
     grid-column: 1 / -1;
   }
 }
@@ -2959,7 +2973,20 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
   color: var(--mel-full-text);
 }
 
-// Booking panel — compact sticky card.
+// Booking panel — top card sticks on scroll; view-details flows with the page (no sidebar scroll trap).
+// mel-card--sticky is a styling hook; override global _cards.scss default top (see >=768 rule below).
+.mel-event-full__sidebar .mel-event-full__booking.mel-card--sticky {
+  position: relative;
+  top: auto;
+  z-index: auto;
+
+  @media (width >= 768px) {
+    position: sticky;
+    top: var(--mel-sticky-offset, 5.5rem);
+    z-index: 2;
+  }
+}
+
 .mel-event-full__booking {
   align-self: start;
   height: fit-content;
@@ -2967,12 +2994,8 @@ main.mel-main:has(.mel-event-full) .mel-region-highlighted:not(:has(.messages)) 
   max-width: 100%;
   padding: 0;
   border-radius: var(--mel-full-radius-lg);
-  overflow: visible;
-
-  @media (width >= 1100px) {
-    position: sticky;
-    top: 5.5rem;
-  }
+  overflow: hidden;
+  position: relative;
 }
 
 .mel-event-full__booking-body,
