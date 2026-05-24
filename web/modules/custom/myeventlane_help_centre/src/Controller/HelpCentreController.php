@@ -155,7 +155,15 @@ final class HelpCentreController extends ControllerBase {
   /**
    * Renders the vendor Help Centre listing.
    */
-  public function vendorsIndex(): array {
+  public function vendorsIndex(): array|RedirectResponse {
+    $account = $this->currentUser();
+    if (!$account->isAuthenticated()) {
+      return $this->redirect('user.login', [], [
+        'query' => [
+          'destination' => '/help/vendors',
+        ],
+      ], 302);
+    }
     return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
   }
 
@@ -304,7 +312,11 @@ final class HelpCentreController extends ControllerBase {
           ],
           [
             'title' => (string) $this->t('Vendor help'),
-            'url' => Url::fromRoute('myeventlane_help_centre.vendors_index')->toString(),
+            'url' => $this->currentUser()->isAuthenticated()
+              ? Url::fromRoute('myeventlane_help_centre.vendors_index')->toString()
+              : Url::fromRoute('user.login', [], [
+                'query' => ['destination' => '/help/vendors'],
+              ])->toString(),
             'excerpt' => (string) $this->t('Vendor profile, applications, and organiser console basics.'),
           ],
         ],
