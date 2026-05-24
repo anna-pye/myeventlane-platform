@@ -14,6 +14,7 @@
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -31,6 +32,7 @@ use Drupal\node\NodeInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_core\VendorConsoleTrust;
+use Drupal\views\ResultRow;
 
 /**
  * Public marketing create-event URL via onboarding gateway (/create-event).
@@ -2809,6 +2811,24 @@ function _myeventlane_theme_view_is_event_listing(ViewExecutable $view): bool {
 }
 
 /**
+ * Resolves an event node from a Views result row when present.
+ */
+function _myeventlane_theme_views_row_event_node(mixed $row): ?NodeInterface {
+  if (!$row instanceof ResultRow) {
+    return NULL;
+  }
+  if (isset($row->_entity) && $row->_entity instanceof NodeInterface) {
+    return $row->_entity->bundle() === 'event' ? $row->_entity : NULL;
+  }
+  $nid = $row->nid ?? NULL;
+  if (!is_numeric($nid)) {
+    return NULL;
+  }
+  $node = \Drupal::entityTypeManager()->getStorage('node')->load((int) $nid);
+  return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
+}
+
+/**
  * Implements hook_preprocess_views_view_unformatted().
  */
 function myeventlane_theme_preprocess_views_view_unformatted(array &$variables): void {
@@ -2858,6 +2878,27 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
     }
   }
   $variables['mel_is_event_view'] = $is_event_view;
+
+  // Field-based event Views must not scrape internal /node/{nid} paths from
+  // view_node; resolve the canonical entity URL once here for mel-event-card.
+  if ($is_event_view) {
+    $event_node = _myeventlane_theme_views_row_event_node($variables['row'] ?? NULL);
+    if ($event_node instanceof NodeInterface && $event_node->access('view')) {
+      $canonical = $event_node->toUrl('canonical');
+      $variables['mel_event_card_url'] = $canonical->toString();
+      if (!isset($variables['#cache'])) {
+        $variables['#cache'] = [];
+      }
+      $variables['#cache']['tags'] = Cache::mergeTags(
+        (array) ($variables['#cache']['tags'] ?? []),
+        $event_node->getCacheTags()
+      );
+      $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
+        (array) ($variables['#cache']['contexts'] ?? []),
+        $canonical->getCacheContexts()
+      )));
+    }
+  }
 }
 
 /**
