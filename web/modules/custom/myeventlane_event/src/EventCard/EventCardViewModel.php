@@ -84,7 +84,12 @@ final class EventCardViewModel {
     $cacheability = CacheableMetadata::createFromObject($node);
     $this->addCategoryCacheability($node, $cacheability);
     $canView = $node->access('view', $this->currentUser);
-    $url = $canView ? $node->toUrl()->toString() : '';
+    $url = '';
+    if ($canView) {
+      $canonicalUrl = $node->toUrl('canonical');
+      $cacheability->addCacheableDependency($canonicalUrl);
+      $url = $canonicalUrl->toString();
+    }
 
     $presentation = $this->resolvePresentation($viewMode);
     $image = $this->resolveCardImage($node, $viewMode, $cacheability);
