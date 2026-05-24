@@ -309,7 +309,14 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
     elseif (isset($form['name'])) {
       $form['name']['#access'] = FALSE;
     }
-    $form['#validate'][] = 'myeventlane_auth_vendor_register_set_username_from_mail';
+    // Must run before RegisterForm::validateForm() copies values and entity validates.
+    $form['#validate'] ??= [];
+    array_unshift($form['#validate'], 'myeventlane_auth_vendor_register_set_username_from_mail');
+    $existing_vendor_cache = $form['#cache']['contexts'] ?? [];
+    $form['#cache']['contexts'] = array_values(array_unique(array_merge($existing_vendor_cache, [
+      'url.query_args:vendor',
+      'url.query_args:destination',
+    ])));
   }
   foreach (['field_marketing', 'field_vendor'] as $key) {
     if (isset($form[$key])) {
