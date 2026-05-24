@@ -25,7 +25,8 @@
   grid-template-columns: minmax(0, 1fr);
   width: 100%;
   min-width: 0;
-  overflow-x: clip;
+  // Avoid clipping card copy when a row was wider than its column (list_card horizontal layout).
+  overflow-x: visible;
 }
 
 .mel-discovery .mel-event-grid.mel-grid--events > *,
