@@ -148,7 +148,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: card
+          view_mode: list_card
       query:
         type: views_query
         options: {  }

@@ -49,6 +49,23 @@
   Drupal.behaviors.melCardBrightness = {
     attach: function (context) {
       once('melCardBrightness', '.mel-event-card', context).forEach(function (card) {
+        // Homepage hero editorial cards always use the dark full-bleed overlay treatment.
+        if (card.closest('.mel-home-hero__feature-rotator')) {
+          card.classList.remove('mel-event-card--light-bg');
+          card.classList.add('mel-event-card--dark-bg');
+          return;
+        }
+
+        // Overlay cards only — compact/list use a separate text panel (see _event-card.scss).
+        if (
+          !card.classList.contains('mel-event-card--standard')
+          && !card.classList.contains('mel-event-card--featured')
+          && !card.classList.contains('mel-event-card--editorial')
+          && !card.classList.contains('mel-event-card--hero')
+        ) {
+          return;
+        }
+
         var img = card.querySelector(
           '.mel-event-card__image > img, .mel-event-card__image > .mel-event-card__image-element, .mel-event-card__media > img'
         );

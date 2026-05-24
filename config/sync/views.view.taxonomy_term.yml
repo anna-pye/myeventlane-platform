@@ -3,6 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - core.entity_view_mode.node.list_card
     - core.entity_view_mode.node.teaser
     - node.type.event
   module:
@@ -578,7 +579,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: list_card
       query:
         type: views_query
         options:

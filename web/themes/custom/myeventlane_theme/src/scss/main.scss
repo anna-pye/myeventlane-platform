@@ -134,13 +134,13 @@
 @use 'components/panels';
 @use 'components/hero';
 @use 'components/event-hero';
-@use 'components/home-hero';
 @use 'components/featured-events';
 @use 'components/event-grid';
 @use 'components/vibe-mixer';
 @use 'components/featured-carousel';
 @use 'components/featured-badge';
 @use 'components/event-card';
+@use 'components/event-cards';
 @use 'components/vendor-card';
 @use 'pages/mel-browse';
 @use 'components/attendees-event-card';
@@ -213,6 +213,7 @@
 @use 'pages/front';
 @use 'pages/homepage' as homepage-pages;
 @use 'pages/front-page';
+@use 'components/home-hero';
 @use 'pages/event';
 @use 'pages/event-form';
 @use 'pages/dashboard';
@@ -242,3 +243,4 @@
 @use 'utilities/skeletons';
 @use 'utilities/empty-states';
 @use 'utilities/spacing' as space-utils;
+@use 'utilities/link-chrome';

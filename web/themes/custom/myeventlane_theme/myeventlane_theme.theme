@@ -20,6 +20,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
+use Drupal\views\ViewExecutable;
 use Drupal\file\Entity\File;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_price\Price;
@@ -2616,240 +2617,15 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     $variables['mel_placeholder_image_url'] = $placeholder_url;
     $variables['mel_fallback_image_url'] = $placeholder_url;
 
-    // 4. For card view modes, prepare variables for mel-event-card component
-    $card_view_modes = [
-      'card',
-      'event_card',
-      'teaser',
-      'teaser_tonight',
-      'teaser_featured',
-      'event_card_poster',
-      'event_card_compact',
-      'event_home_card',
-    ];
-    if (in_array($view_mode, $card_view_modes, TRUE)) {
-      // Listing cards: real image only; missing image uses CSS gradient (no text-bearing assets).
-      $card_image_url = $event_image_url;
-      $is_placeholder = !$event_image_url;
-      if ($event_image_uri) {
-        $style_storage = \Drupal::entityTypeManager()->getStorage('image_style');
-        $styled_modes = [
-          'teaser',
-          'teaser_tonight',
-          'event_card',
-          'teaser_featured',
-          'event_card_compact',
-          'event_home_card',
-          'event_card_poster',
-        ];
-        if (in_array($view_mode, $styled_modes, TRUE)) {
-          $style_id = ($view_mode === 'teaser_featured' || $view_mode === 'event_card_poster')
-            ? 'mel_event_card_featured'
-            : 'mel_event_card_standard';
-          $image_style = $style_storage->load($style_id);
-          if ($image_style) {
-            $card_image_url = $image_style->buildUrl($event_image_uri);
-            if (!isset($variables['#cache']['tags'])) {
-              $variables['#cache']['tags'] = [];
-            }
-            $variables['#cache']['tags'] = array_merge($variables['#cache']['tags'], $image_style->getCacheTags());
-          }
-        }
+    // 4. Public event cards: centralised view model (all card view modes).
+    if (\Drupal::hasService('myeventlane_event.event_card_view_model')) {
+      /** @var \Drupal\myeventlane_event\EventCard\EventCardViewModel $event_card_view_model */
+      $event_card_view_model = \Drupal::service('myeventlane_event.event_card_view_model');
+      if ($event_card_view_model->isCardViewMode($view_mode)) {
+        $event_card_view_model->applyToNodeVariables($variables, $view_mode);
       }
-      else {
-        $card_image_url = NULL;
-      }
-      $variables['mel_card_image_url'] = $card_image_url;
-      $variables['mel_card_is_placeholder'] = $is_placeholder;
-
-      // Note: Offset classes are now handled via CSS :nth-child selectors
-      // in _mel-lane-cards.scss for reliability across Views and contexts.
-      // No need to set mel_lane_offset_class - CSS handles the pattern.
-
-      // Category pill classes
-      $pill_classes = 'mel-category-pill mel-category-pill--' . $category_slug . ' mel-category-pill--sm';
-      $variables['mel_category_pill_classes'] = $pill_classes;
-      $variables['mel_category_name'] = $category_label;
-      $variables['mel_category_slug'] = $category_slug;
-
-      // Badge text comes from BookingFlowResolver::getDisplayPricing().
-      $display_pricing = is_array($variables['mel_display_pricing'] ?? NULL)
-        ? $variables['mel_display_pricing']
-        : _myeventlane_theme_get_event_display_pricing($node);
-      $variables['mel_card_badge_text'] = NULL;
-      if (is_array($display_pricing) && ($display_pricing['type'] ?? NULL) !== BookingFlowResolver::MODE_EXTERNAL) {
-        $display_pricing_label = trim((string) ($display_pricing['label'] ?? ''));
-        $variables['mel_card_badge_text'] = $display_pricing_label !== '' ? $display_pricing_label : NULL;
-      }
-      $variables['mel_card_pricing_type'] = is_array($display_pricing)
-        ? (string) ($display_pricing['type'] ?? '')
-        : '';
-
-      $card_type = 'none';
-      if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
-        $et = $node->get('field_event_type')->value;
-        if (in_array($et, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
-          $card_type = $et;
-        }
-      }
-      $variables['card_type'] = $card_type;
-
-      $state = (string) ($variables['mel_event_state'] ?? '');
-      $cta_type = (string) ($variables['cta_type'] ?? 'none');
-      $variables['card_status_primary'] = _myeventlane_theme_event_card_status_primary($node, $variables['mel_card_badge_text'], $state, $cta_type);
-      $variables['card_status_secondary'] = NULL;
-      if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
-        $ec_sched = $variables['event_cta'] ?? [];
-        $variables['card_status_secondary'] = trim((string) ($ec_sched['label'] ?? ''));
-      }
-      $event_ui = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : NULL;
-      if ($event_ui !== NULL && $event_ui !== []) {
-        if (empty($event_ui['show_cta'])) {
-          $variables['card_cta_label'] = '';
-        }
-        else {
-          $variables['card_cta_label'] = trim((string) ($event_ui['cta_label'] ?? ''));
-        }
-      }
-      else {
-        $ec = $variables['event_cta'] ?? [];
-        $cta_label = trim((string) ($ec['label'] ?? ''));
-        if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
-          $cta_label = (string) t('View details');
-        }
-        elseif (in_array($state, ['cancelled', 'ended'], TRUE)) {
-          $cta_label = (string) t('View details');
-        }
-        elseif ($cta_label === '') {
-          $cta_label = (string) t('View details');
-        }
-        $variables['card_cta_label'] = $cta_label;
-      }
-
-      $badge_for_modifier = $variables['mel_card_badge_text'];
-      $variables['card_status_modifier'] = match (TRUE) {
-        in_array($state, ['cancelled'], TRUE) => 'cancelled',
-        $state === 'ended' => 'ended',
-        $state === 'sold_out' => 'sold-out',
-        $state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID => 'scheduled',
-        $card_type === 'external' => 'external',
-        $variables['mel_card_pricing_type'] === BookingFlowResolver::MODE_RSVP => 'free',
-        $variables['mel_card_pricing_type'] === BookingFlowResolver::MODE_PAID => 'paid',
-        default => 'default',
-      };
-
-      $domain_state_for_badge = $variables['event_domain_state'] ?? NULL;
-      if (is_array($domain_state_for_badge) && !empty($domain_state_for_badge['is_boosted'])) {
-        $variables['is_promoted'] = TRUE;
-      }
-      else {
-        $variables['is_promoted'] = $eventDomainStateResolver
-          ? $eventDomainStateResolver->isEventBoosted($node)
-          : ($node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value);
-      }
-
-      // Poster cards: compact overlay pill (Free / Tickets / $$).
-      $variables['mel_poster_price_pill'] = NULL;
       if ($view_mode === 'event_card_poster') {
-        $pill = _myeventlane_theme_get_event_poster_price_pill($node);
-        $variables['mel_poster_price_pill'] = $pill;
-      }
-
-      // Card URL
-      $variables['mel_card_url'] = $node->toUrl()->toString();
-
-      // Date/time (when)
-      $when_text = NULL;
-      if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-        $start_value = $node->get('field_event_start')->value;
-        if ($start_value) {
-          $start_timestamp = strtotime($start_value);
-          if ($start_timestamp) {
-            // Format: "D j M, g:ia" e.g. "Sat 15 Mar, 7:00pm"
-            $when_text = date('D j M, g:ia', $start_timestamp);
-          }
-        }
-      }
-      $variables['mel_card_when'] = $when_text;
-
-      // Discovery cards: venue / locality only (no street dump).
-      $variables['mel_card_where'] = _myeventlane_theme_event_card_location_label($node);
-
-      // card_* variables for event-card and teaser templates (they use card_* not mel_*).
-      $variables['card_url'] = $variables['mel_card_url'];
-      $variables['card_title'] = $node->label();
-      $variables['card_image_url'] = $variables['mel_card_image_url'];
-      $variables['card_image_alt'] = $node->label();
-      $variables['card_time_range'] = $when_text;
-      $variables['card_location'] = $variables['mel_card_where'];
-      $variables['card_price_label'] = $variables['mel_card_badge_text'] ?? '';
-
-      if ($category_label !== NULL && $category_url !== NULL) {
-        $variables['card_category'] = ['label' => $category_label, 'url' => $category_url];
-      }
-      else {
-        $variables['card_category'] = NULL;
-      }
-
-      $card_day = NULL;
-      $card_month = NULL;
-      if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-        $start_value = $node->get('field_event_start')->value;
-        if ($start_value && ($ts = strtotime($start_value))) {
-          $card_day = (string) (int) date('j', $ts);
-          $card_month = date('M', $ts);
-        }
-      }
-      $variables['card_day'] = $card_day;
-      $variables['card_month'] = $card_month;
-
-      $variables['card_is_low_stock'] = FALSE;
-      $variables['card_attendance'] = NULL;
-      if (\Drupal::hasService('myeventlane_capacity.service')) {
-        /** @var \Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface $capacity */
-        $capacity = \Drupal::service('myeventlane_capacity.service');
-        $total_cap = $capacity->getCapacityTotal($node);
-        $remaining = $capacity->getRemaining($node);
-        if ($total_cap !== NULL && $remaining !== NULL && $remaining > 0) {
-          $threshold = max(3, (int) floor($total_cap * 0.15));
-          if ($remaining <= $threshold) {
-            $variables['card_is_low_stock'] = TRUE;
-          }
-        }
-      }
-      if (\Drupal::hasService('myeventlane_domain_events.read_model.event_metrics')) {
-        $read_model = \Drupal::service('myeventlane_domain_events.read_model.event_metrics');
-        $metrics = $read_model->getEventMetrics((int) $node->id());
-        $going = (int) ($metrics['tickets_sold'] ?? 0) + (int) ($metrics['rsvp_count'] ?? 0);
-        if ($going >= 8) {
-          $variables['card_attendance'] = $going;
-        }
-        if (!isset($variables['#cache']['tags'])) {
-          $variables['#cache']['tags'] = [];
-        }
-        $variables['#cache']['tags'][] = sprintf('event_metrics:%d', (int) $node->id());
-      }
-
-      $event_flag = _myeventlane_theme_event_event_save_flag_link($node);
-      $variables['event_flag_event_save'] = $event_flag;
-      if ($event_flag) {
-        if (!isset($variables['#cache']['contexts'])) {
-          $variables['#cache']['contexts'] = [];
-        }
-        $variables['#cache']['contexts'][] = 'user';
-      }
-
-      // Add cache contexts/tags
-      if (!isset($variables['#cache']['contexts'])) {
-        $variables['#cache']['contexts'] = [];
-      }
-      $variables['#cache']['contexts'][] = 'route';
-      if (!isset($variables['#cache']['tags'])) {
-        $variables['#cache']['tags'] = [];
-      }
-      // Add taxonomy term cache tag if category exists
-      if ($category_term ?? NULL) {
-        $variables['#cache']['tags'][] = 'taxonomy_term:' . $category_term->id();
+        $variables['mel_poster_price_pill'] = _myeventlane_theme_get_event_poster_price_pill($node);
       }
     }
 
@@ -3005,6 +2781,44 @@ function _myeventlane_theme_get_event_display_pricing(\Drupal\node\NodeInterface
   /** @var \Drupal\myeventlane_event\Service\BookingFlowResolver $booking_flow_resolver */
   $booking_flow_resolver = \Drupal::service('myeventlane_event.booking_flow_resolver');
   return $booking_flow_resolver->getDisplayPricing($node);
+}
+
+/**
+ * Whether a View renders public event cards in the homepage grid style.
+ */
+function _myeventlane_theme_view_uses_compact_commerce_grid(ViewExecutable $view): bool {
+  $row = $view->getDisplay()->getOption('row') ?? [];
+  if (($row['type'] ?? '') !== 'entity:node') {
+    return FALSE;
+  }
+  $view_mode = (string) ($row['options']['view_mode'] ?? '');
+  return in_array($view_mode, ['compact_commerce', 'list_card'], TRUE);
+}
+
+/**
+ * Whether a View renders public event node listings.
+ */
+function _myeventlane_theme_view_is_event_listing(ViewExecutable $view): bool {
+  if (str_contains($view->id(), 'event')) {
+    return TRUE;
+  }
+  return in_array($view->id(), [
+    'mel_saved_events',
+    'taxonomy_term',
+  ], TRUE);
+}
+
+/**
+ * Implements hook_preprocess_views_view_unformatted().
+ */
+function myeventlane_theme_preprocess_views_view_unformatted(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  $variables['mel_is_event_view'] = FALSE;
+  if (!$view instanceof ViewExecutable) {
+    return;
+  }
+  $variables['mel_is_event_view'] = _myeventlane_theme_view_is_event_listing($view)
+    && _myeventlane_theme_view_uses_compact_commerce_grid($view);
 }
 
 /**

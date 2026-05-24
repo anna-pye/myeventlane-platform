@@ -105,7 +105,7 @@ final class SearchController extends ControllerBase {
         foreach ($groups['events']['items'] as &$item) {
           $nid = (int) ($item['nid'] ?? 0);
           if ($nid && isset($nodes[$nid])) {
-            $item['rendered'] = $view_builder->view($nodes[$nid], 'event_card');
+            $item['rendered'] = $view_builder->view($nodes[$nid], 'compact_commerce');
           }
           else {
             $item['rendered'] = ['#markup' => ''];

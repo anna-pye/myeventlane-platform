@@ -241,7 +241,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser_featured
+          view_mode: editorial_magazine
       query:
         type: views_query
         options:
@@ -270,7 +270,7 @@ display:
     display_options:
       row:
         options:
-          view_mode: event_home_card
+          view_mode: editorial_magazine
       display_extenders: {  }
     cache_metadata:
       max-age: -1

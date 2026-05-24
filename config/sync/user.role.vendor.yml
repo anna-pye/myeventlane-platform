@@ -55,9 +55,6 @@ permissions:
   - 'access analytics dashboard'
   - 'access attendee repository'
   - 'access check-in'
-  - 'check in tickets'
-  - 'scan qr codes'
-  - 'toggle check-in status'
   - 'access checkout'
   - 'access commerce_order overview'
   - 'access content overview'
@@ -75,6 +72,7 @@ permissions:
   - cancel_event
   - cancel_events
   - 'change own username'
+  - 'check in tickets'
   - 'comment on vendor escalations'
   - 'create customer profile'
   - 'create event content'
@@ -107,6 +105,8 @@ permissions:
   - request_refunds
   - 'resolve vendor escalations'
   - 'reuse mel_ticket_type entities'
+  - 'scan qr codes'
+  - 'toggle check-in status'
   - 'unlock orders'
   - 'update default commerce_order'
   - 'update own boost_upgrade commerce_product'

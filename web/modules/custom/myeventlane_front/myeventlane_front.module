@@ -19,6 +19,8 @@ function myeventlane_front_theme($existing, $type, $theme, $path): array {
         'hero_image_url_mobile' => NULL,
         'hero_hide_on_mobile' => FALSE,
         'hero_alt' => '',
+        'search_events_url' => NULL,
+        'search_site_url' => NULL,
       ],
       'template' => 'myeventlane-home-hero',
       'path' => $path . '/templates',

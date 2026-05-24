@@ -1,0 +1,10 @@
+{#
+/**
+ * @file
+ * Event node — list_card (search, category, organiser, saved, related, listings).
+ */
+#}
+{% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
+  variant: mel_event_card_variant|default('list'),
+  attributes: attributes,
+} %}

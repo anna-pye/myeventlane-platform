@@ -82,9 +82,10 @@
 
     // =========================================================================
     // FULL-BLEED IMAGE WITH APPLE LIQUID GLASS OVERLAY
+    // Editorial hero cards (homepage header) use _home-hero.scss instead.
     // =========================================================================
 
-    .mel-event-card {
+    .mel-event-card:not(.mel-event-card--editorial) {
       position: relative;
       width: 100%;
       min-height: 300px;
@@ -98,7 +99,6 @@
       @include breakpoints.mel-break(md) {
         min-height: 340px;
       }
-    }
 
     // -------------------------------------------------------------------------
     // Full-bleed image covering entire card
@@ -323,6 +323,7 @@
         rgba(0, 0, 0, 0.03) 100%
       );
       border-top-color: rgba(255, 255, 255, 0.5);
+    }
     }
   }
 

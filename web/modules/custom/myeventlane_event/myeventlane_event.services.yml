@@ -151,3 +151,25 @@ services:
     arguments:
       - '@string_translation'
       - '@?myeventlane_commerce.event_operational_addon_teaser_builder'
+
+  myeventlane_event.public_visibility:
+    class: Drupal\myeventlane_event\Service\PublicEventVisibility
+    arguments:
+      - '@myeventlane_event_state.resolver'
+      - '@datetime.time'
+
+  myeventlane_event.structured_data_builder:
+    class: Drupal\myeventlane_event\Service\EventStructuredDataBuilder
+    arguments:
+      - '@myeventlane_event.public_visibility'
+      - '@myeventlane_event.booking_flow_resolver'
+      - '@myeventlane_event.ticket_type_manager'
+
+  myeventlane_event.event_card_view_model:
+    class: Drupal\myeventlane_event\EventCard\EventCardViewModel
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@file_url_generator'
+      - '@file_system'
+      - '@?flag'
