@@ -26,6 +26,7 @@ skeleton:
 home-hero-rotator:
   js:
     js/home-hero-rotator.js: {}
+    js/home-hero-search.js: {}
   dependencies:
     - core/drupal
     - core/once

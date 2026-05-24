@@ -1,14 +1,10 @@
 {#
 /**
  * @file
- * Template for Saved events (mel_saved_events, page) — grid of event cards.
- * View title is output by views-view.html.twig (view wrapper).
+ * Saved events — list_card grid.
  */
 #}
-{% if rows %}
-  <div class="mel-event-grid mel-grid mel-grid--events">
-    {% for row in rows %}
-      {{- row.content -}}
-    {% endfor %}
-  </div>
-{% endif %}
+{% include '@myeventlane_theme/includes/mel-event-rows-wrapper.html.twig' with {
+  rows: rows,
+  mel_is_event_view: mel_is_event_view|default(true),
+} only %}

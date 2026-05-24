@@ -1,0 +1,22 @@
+uuid: 6e0f4c32-bd5f-6030-c8e4-0f60708c9d23
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+id: event_category
+label: 'Event category paths'
+type: 'canonical_entities:taxonomy_term'
+pattern: 'events/[term:name]'
+selection_criteria:
+  6e0f4c32-bd5f-6030-c8e4-0f60708c9d24:
+    id: 'entity_bundle:taxonomy_term'
+    negate: false
+    uuid: 6e0f4c32-bd5f-6030-c8e4-0f60708c9d25
+    context_mapping:
+      taxonomy_term: taxonomy_term
+    bundles:
+      categories: categories
+selection_logic: and
+weight: 0
+relationships: {  }

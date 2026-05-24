@@ -474,6 +474,12 @@ final class EventCardViewModel {
     if (!$this->flagService) {
       return FALSE;
     }
+    if ($this->currentUser->isAnonymous()) {
+      $request = \Drupal::requestStack()->getCurrentRequest();
+      if ($request === NULL || !$request->hasSession() || !$request->getSession()->isStarted()) {
+        return FALSE;
+      }
+    }
     $flag = $this->flagService->getFlagById('event_save');
     if (!$flag instanceof FlagInterface) {
       return FALSE;
@@ -481,7 +487,13 @@ final class EventCardViewModel {
     if (!in_array('event', $flag->getBundles(), TRUE) && $flag->getBundles() !== []) {
       return FALSE;
     }
-    return $flag->isFlagged($node, $this->currentUser);
+    try {
+      return $flag->isFlagged($node, $this->currentUser);
+    }
+    catch (\LogicException) {
+      // Anonymous flag checks require an active session (see FlagService).
+      return FALSE;
+    }
   }
 
   /**

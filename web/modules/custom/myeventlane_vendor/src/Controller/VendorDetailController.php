@@ -238,7 +238,7 @@ final class VendorDetailController extends ControllerBase {
       if (!$node instanceof NodeInterface || !$node->access('view', $this->account)) {
         continue;
       }
-      $cards[] = $view_builder->view($node, 'list_card');
+      $cards[] = $view_builder->view($node, 'compact_commerce');
     }
 
     return $cards;

@@ -1130,7 +1130,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           if (!$related instanceof NodeInterface) {
             continue;
           }
-          $builds[] = $view_builder->view($related, 'list_card');
+          $builds[] = $view_builder->view($related, 'compact_commerce');
           $append_tags = Cache::mergeTags($append_tags, $related->getCacheTags());
         }
         $variables['mel_related_events'] = $builds;
@@ -1569,6 +1569,23 @@ function myeventlane_event_page_attachments(array &$attachments): void {
         ],
         'mel_event_og_image',
       ];
+    }
+  }
+
+  if (\Drupal::hasService('myeventlane_event.structured_data_builder')) {
+    $schema = \Drupal::service('myeventlane_event.structured_data_builder')->build($node);
+    if ($schema !== NULL) {
+      $encoded = json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+      if (is_string($encoded)) {
+        $attachments['#attached']['html_head'][] = [
+          [
+            '#tag' => 'script',
+            '#attributes' => ['type' => 'application/ld+json'],
+            '#value' => $encoded,
+          ],
+          'myeventlane_event_schema_' . $node->id(),
+        ];
+      }
     }
   }
 }

@@ -134,7 +134,6 @@
 @use 'components/panels';
 @use 'components/hero';
 @use 'components/event-hero';
-@use 'components/home-hero';
 @use 'components/featured-events';
 @use 'components/event-grid';
 @use 'components/vibe-mixer';
@@ -214,6 +213,7 @@
 @use 'pages/front';
 @use 'pages/homepage' as homepage-pages;
 @use 'pages/front-page';
+@use 'components/home-hero';
 @use 'pages/event';
 @use 'pages/event-form';
 @use 'pages/dashboard';
@@ -243,3 +243,4 @@
 @use 'utilities/skeletons';
 @use 'utilities/empty-states';
 @use 'utilities/spacing' as space-utils;
+@use 'utilities/link-chrome';

@@ -20,6 +20,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
+use Drupal\views\ViewExecutable;
 use Drupal\file\Entity\File;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_price\Price;
@@ -2780,6 +2781,44 @@ function _myeventlane_theme_get_event_display_pricing(\Drupal\node\NodeInterface
   /** @var \Drupal\myeventlane_event\Service\BookingFlowResolver $booking_flow_resolver */
   $booking_flow_resolver = \Drupal::service('myeventlane_event.booking_flow_resolver');
   return $booking_flow_resolver->getDisplayPricing($node);
+}
+
+/**
+ * Whether a View renders public event cards in the homepage grid style.
+ */
+function _myeventlane_theme_view_uses_compact_commerce_grid(ViewExecutable $view): bool {
+  $row = $view->getDisplay()->getOption('row') ?? [];
+  if (($row['type'] ?? '') !== 'entity:node') {
+    return FALSE;
+  }
+  $view_mode = (string) ($row['options']['view_mode'] ?? '');
+  return in_array($view_mode, ['compact_commerce', 'list_card'], TRUE);
+}
+
+/**
+ * Whether a View renders public event node listings.
+ */
+function _myeventlane_theme_view_is_event_listing(ViewExecutable $view): bool {
+  if (str_contains($view->id(), 'event')) {
+    return TRUE;
+  }
+  return in_array($view->id(), [
+    'mel_saved_events',
+    'taxonomy_term',
+  ], TRUE);
+}
+
+/**
+ * Implements hook_preprocess_views_view_unformatted().
+ */
+function myeventlane_theme_preprocess_views_view_unformatted(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  $variables['mel_is_event_view'] = FALSE;
+  if (!$view instanceof ViewExecutable) {
+    return;
+  }
+  $variables['mel_is_event_view'] = _myeventlane_theme_view_is_event_listing($view)
+    && _myeventlane_theme_view_uses_compact_commerce_grid($view);
 }
 
 /**

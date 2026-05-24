@@ -61,7 +61,7 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       'limit' => 8,
       // Default is intentionally a best-guess; can be changed in block UI.
       // If this view mode doesn't exist, we fall back to 'teaser' at runtime.
-      'view_mode' => 'list_card',
+      'view_mode' => 'compact_commerce',
       'title' => 'Popular this week',
       'show_going' => TRUE,
     ] + parent::defaultConfiguration();
@@ -99,7 +99,7 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       '#type' => 'textfield',
       '#title' => $this->t('Node view mode to render'),
       '#description' => $this->t('Use an existing event card view mode (e.g. event_card, teaser, event_card_poster).'),
-      '#default_value' => (string) ($this->configuration['view_mode'] ?? 'list_card'),
+      '#default_value' => (string) ($this->configuration['view_mode'] ?? 'compact_commerce'),
       '#required' => TRUE,
     ];
 
@@ -125,7 +125,7 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
   public function build(): array {
     $days = (int) ($this->configuration['days'] ?? 7);
     $limit = (int) ($this->configuration['limit'] ?? 8);
-    $view_mode = (string) ($this->configuration['view_mode'] ?? 'list_card');
+    $view_mode = (string) ($this->configuration['view_mode'] ?? 'compact_commerce');
     $title = (string) ($this->configuration['title'] ?? 'Popular this week');
     $show_going = (bool) ($this->configuration['show_going'] ?? TRUE);
 
