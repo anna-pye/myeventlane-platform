@@ -304,10 +304,10 @@ hidden:
   field_event_setup_complete: true
   field_event_state: true
   field_event_state_override: true
-  field_event_visibility: true
   field_event_store: true
   field_event_summary: true
   field_event_vendor: true
+  field_event_visibility: true
   field_is_series_template: true
   field_location_latitude: true
   field_location_longitude: true
