@@ -1714,7 +1714,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     if ($count > 3) {
       $categories[] = [
         'title' => $term->label(),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+        'url' => _myeventlane_theme_get_category_url($term),
       ];
     }
   }
@@ -1788,7 +1788,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'tid' => $term->id(),
         'name' => $term->label(),
         'label' => $term->label(),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+        'url' => _myeventlane_theme_get_category_url($term),
         'slug' => $slug,
       ];
     }
@@ -1798,9 +1798,9 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   // Active category pill for discovery headers (matches route to chip).
   $variables['mel_active_category_tid'] = NULL;
   if ($route === 'view.upcoming_events.page_category') {
-    $arg = \Drupal::routeMatch()->getParameter('arg_0');
-    if ($arg !== NULL && $arg !== '') {
-      $variables['mel_active_category_tid'] = (string) $arg;
+    $term = _myeventlane_theme_get_active_category_term();
+    if ($term instanceof TermInterface) {
+      $variables['mel_active_category_tid'] = (string) $term->id();
     }
   }
   elseif ($route === 'entity.taxonomy_term.canonical') {
@@ -1913,7 +1913,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'tid' => $term->id(),
         'name' => $term->label(),
         'label' => $term->label(),
-        'url' => '/events/category/' . $term->id(),
+        'url' => '/events/category/' . _myeventlane_theme_get_category_slug($term),
         'slug' => $slug,
       ];
     }
@@ -1925,7 +1925,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     foreach ($categories as $c) {
       $popular_tags[] = [
         'name' => $c['name'],
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $c['tid']])->toString(),
+        'url' => _myeventlane_theme_get_category_url($term),
       ];
     }
     $variables['popular_tags'] = $popular_tags;
@@ -2210,35 +2210,31 @@ function myeventlane_theme_preprocess_page__front(array &$variables): void {
  * Adds category info and all categories for the hero section.
  */
 function myeventlane_theme_preprocess_page__events__category(array &$variables): void {
-  // Get the category term ID from the URL.
-  $tid = \Drupal::routeMatch()->getParameter('arg_0');
-  
-  if ($tid) {
-    $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($tid);
-    if ($term) {
-      $variables['current_category'] = [
-        'tid' => $term->id(),
-        'name' => $term->label(),
-      ];
-    }
+  $term = _myeventlane_theme_get_active_category_term();
+
+  if ($term instanceof TermInterface) {
+    $variables['current_category'] = [
+      'tid' => $term->id(),
+      'name' => $term->label(),
+    ];
   }
-  
+
   // Load all categories for the hero chips.
   $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
   $terms = $term_storage->loadByProperties(['vid' => 'categories']);
-  
+
   $categories = [];
-  foreach ($terms as $term) {
-    $slug = _myeventlane_theme_get_category_slug($term);
+  foreach ($terms as $category_term) {
+    $slug = _myeventlane_theme_get_category_slug($category_term);
     $categories[] = [
-      'tid' => $term->id(),
-      'name' => $term->label(),
-      'label' => $term->label(),
-      'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+      'tid' => $category_term->id(),
+      'name' => $category_term->label(),
+      'label' => $category_term->label(),
+      'url' => _myeventlane_theme_get_category_url($category_term),
       'slug' => $slug,
     ];
   }
-  
+
   $variables['event_categories'] = $categories;
   // Also set as mel_header_categories if used by page header component.
   $variables['mel_header_categories'] = $categories;
@@ -2640,9 +2636,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         if ($category_term instanceof \Drupal\taxonomy\Entity\Term) {
           $category_slug = _myeventlane_theme_get_category_slug($category_term);
           $category_label = $category_term->label();
-          $category_url = Url::fromRoute('view.upcoming_events.page_category', [
-            'arg_0' => (string) $category_term->id(),
-          ])->toString();
+          $category_url = _myeventlane_theme_get_category_url($category_term);
         }
       }
     }
@@ -3043,7 +3037,7 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
         'tid' => $cat_term->id(),
         'name' => $cat_term->label(),
         'label' => $cat_term->label(),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $cat_term->id()])->toString(),
+        'url' => _myeventlane_theme_get_category_url($cat_term),
         'slug' => $slug,
       ];
     }
@@ -3296,6 +3290,42 @@ function _myeventlane_theme_event_primary_location_label(NodeInterface $node): ?
 }
 
 /**
+ * Returns the canonical category listing URL for a taxonomy term.
+ */
+function _myeventlane_theme_get_category_url(TermInterface $term): string {
+  /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+  $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+  return $categoryUrl->getCategoryUrlString($term);
+}
+
+/**
+ * Resolves the active category term on discovery routes.
+ */
+function _myeventlane_theme_get_active_category_term(): ?TermInterface {
+  $request = \Drupal::request();
+  $term = $request->attributes->get('mel_category_term');
+  if ($term instanceof TermInterface) {
+    return $term;
+  }
+
+  $route = \Drupal::routeMatch()->getRouteName();
+  if ($route === 'view.upcoming_events.page_category') {
+    /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+    $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+    return $categoryUrl->resolveTerm(\Drupal::routeMatch()->getParameter('arg_0'));
+  }
+
+  if ($route === 'entity.taxonomy_term.canonical') {
+    $taxonomy_term = \Drupal::routeMatch()->getParameter('taxonomy_term');
+    if ($taxonomy_term instanceof TermInterface && $taxonomy_term->bundle() === 'categories') {
+      return $taxonomy_term;
+    }
+  }
+
+  return NULL;
+}
+
+/**
  * Helper function to get category slug from taxonomy term.
  *
  * @param \Drupal\taxonomy\TermInterface|null $term
@@ -3352,25 +3382,22 @@ function _myeventlane_theme_get_listing_hero_url(?string $route): ?string {
 
   // Category page: prefer term's field_category_image, else theme file.
   if ($route === 'view.upcoming_events.page_category') {
-    $tid = \Drupal::routeMatch()->getParameter('arg_0');
-    if ($tid) {
-      $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($tid);
-      if ($term && $term->bundle() === 'categories') {
-        if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
-          $cat_files = $term->get('field_category_image')->referencedEntities();
-          $file = !empty($cat_files) ? reset($cat_files) : NULL;
-          if ($file) {
-            $file_url_generator = \Drupal::service('file_url_generator');
-            return $file_url_generator->generateAbsoluteString($file->getFileUri());
-          }
+    $term = _myeventlane_theme_get_active_category_term();
+    if ($term instanceof TermInterface && $term->bundle() === 'categories') {
+      if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
+        $cat_files = $term->get('field_category_image')->referencedEntities();
+        $file = !empty($cat_files) ? reset($cat_files) : NULL;
+        if ($file) {
+          $file_url_generator = \Drupal::service('file_url_generator');
+          return $file_url_generator->generateAbsoluteString($file->getFileUri());
         }
-        $slug = _myeventlane_theme_get_category_slug($term);
-        $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
-        $file_slug = $slug_map[$slug] ?? $slug;
-        $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
-        if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
-          return $base_path . $rel;
-        }
+      }
+      $slug = _myeventlane_theme_get_category_slug($term);
+      $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
+      $file_slug = $slug_map[$slug] ?? $slug;
+      $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
+      if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
+        return $base_path . $rel;
       }
     }
   }

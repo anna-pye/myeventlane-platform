@@ -1,13 +1,13 @@
 uuid: 6e0f4c32-bd5f-6030-c8e4-0f60708c9d23
 langcode: en
-status: true
+status: false
 dependencies:
   module:
     - taxonomy
 id: event_category
 label: 'Event category paths'
 type: 'canonical_entities:taxonomy_term'
-pattern: 'events/[term:name]'
+pattern: 'events/category/[term:field_mel_slug]'
 selection_criteria:
   6e0f4c32-bd5f-6030-c8e4-0f60708c9d24:
     id: 'entity_bundle:taxonomy_term'

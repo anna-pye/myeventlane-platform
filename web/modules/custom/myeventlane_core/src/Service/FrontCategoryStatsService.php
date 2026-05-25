@@ -8,7 +8,6 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
 
 /**
@@ -52,6 +51,13 @@ final class FrontCategoryStatsService {
   private ConfigFactoryInterface $configFactory;
 
   /**
+   * Canonical category URL builder.
+   *
+   * @var \Drupal\myeventlane_core\Service\EventCategoryUrlService
+   */
+  private EventCategoryUrlService $categoryUrl;
+
+  /**
    * Constructs a FrontCategoryStatsService.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -64,6 +70,8 @@ final class FrontCategoryStatsService {
    *   The category color service.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The config factory.
+   * @param \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl
+   *   Canonical category URL builder.
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
@@ -71,12 +79,14 @@ final class FrontCategoryStatsService {
     TimeInterface $time,
     CategoryColorService $colors,
     ConfigFactoryInterface $configFactory,
+    EventCategoryUrlService $categoryUrl,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->cache = $cache;
     $this->time = $time;
     $this->colors = $colors;
     $this->configFactory = $configFactory;
+    $this->categoryUrl = $categoryUrl;
   }
 
   /**
@@ -108,12 +118,11 @@ final class FrontCategoryStatsService {
 
       $items[] = [
         'tid' => (int) $term->id(),
+        'slug' => $this->categoryUrl->getSlug($term),
         'label' => $term->label(),
         'count' => $count,
         'color' => $this->colors->getColorForLabel($term->label(), $i),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', [
-          'arg_0' => (string) $term->id(),
-        ])->toString(),
+        'url' => $this->categoryUrl->getCategoryUrlString($term),
       ];
     }
 
