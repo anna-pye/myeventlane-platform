@@ -469,6 +469,17 @@ final class EventStudioOperationalTicketsForm extends FormBase {
               'class' => ['mel-event-studio-card-badge', 'mel-event-studio-card-badge--accent'],
             ],
           ],
+          'access_code' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $this->t('Access code required'),
+            '#access' => $ticket->hasField('visibility_mode')
+              && !$ticket->get('visibility_mode')->isEmpty()
+              && (string) $ticket->get('visibility_mode')->value === 'access_code',
+            '#attributes' => [
+              'class' => ['mel-event-studio-card-badge', 'mel-event-studio-card-badge--access-code'],
+            ],
+          ],
         ],
       ],
       'attendee_preview' => [

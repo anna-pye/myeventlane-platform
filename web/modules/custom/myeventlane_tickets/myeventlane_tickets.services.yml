@@ -367,6 +367,13 @@ services:
     tags:
       - { name: access_check }
 
+  myeventlane_tickets.access_code_management_builder:
+    class: Drupal\myeventlane_tickets\Service\AccessCodeManagementBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_tickets'
+      - '@string_translation'
+
   myeventlane_tickets.operational_integrity_inspector:
     class: Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector
     arguments:
