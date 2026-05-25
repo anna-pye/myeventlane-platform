@@ -162,11 +162,12 @@ final class PublicEventDiscoveryQueryAlter {
     }
 
     $group = 1;
-    foreach ($patterns as $pattern) {
+    foreach ($patterns as $idx => $pattern) {
+      $placeholder = ':mel_title_pattern_' . $idx;
       $query->addWhereExpression(
         $group,
-        "LOWER($title_field) NOT LIKE :mel_title_pattern",
-        [':mel_title_pattern' => mb_strtolower($pattern)]
+        "LOWER($title_field) NOT LIKE $placeholder",
+        [$placeholder => mb_strtolower($pattern)]
       );
     }
   }

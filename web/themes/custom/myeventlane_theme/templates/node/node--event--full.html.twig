@@ -23,7 +23,7 @@
 {% if mel_cta_text|striptags|trim is empty and event_cta is defined and event_cta.label|default('')|striptags|trim is not empty %}
   {% set mel_cta_text = event_cta.label %}
 {% endif %}
-{% if mel_cta_text|striptags|trim is empty and cta_type is defined and cta_type == 'none' and (mel_event_state is not defined or mel_event_state not in ['ended', 'cancelled']) %}
+{% if mel_cta_text|striptags|trim is empty and cta_type is defined and cta_type == 'none' and (mel_event_state is not defined or mel_event_state not in ['ended', 'cancelled']) and (event_ui is not defined or event_ui.show_cta|default(true)) %}
   {% set mel_cta_text = 'Booking coming soon'|t %}
 {% endif %}
 
@@ -205,7 +205,7 @@
 
         {# Highlights: render only when there are non-empty items (quick-scan list). #}
         {% set highlights = mel_public_highlights|default([]) %}
-        {% if highlights is empty and node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
+        {% if mel_public_highlights is not defined and node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
           {% for ref in node.field_event_highlights %}
             {% set p = ref.entity %}
             {% if p and p.hasField('field_highlight_text') and not p.field_highlight_text.isEmpty %}
@@ -683,7 +683,7 @@
   {% if _mel_mobile_price is empty and cta_type is defined and cta_type == 'rsvp' %}
     {% set _mel_mobile_price = 'Free RSVP'|t %}
   {% endif %}
-  {% set mel_show_mobile_sticky = mel_cta_text|striptags|trim|length > 0 %}
+  {% set mel_show_mobile_sticky = mel_show_booking_cta and mel_cta_text|striptags|trim|length > 0 %}
   {% if mel_show_mobile_sticky %}
     <div class="mel-mobile-cta" role="region" aria-label="{{ 'Ticket actions'|t }}">
       <div class="mel-mobile-cta__inner">
