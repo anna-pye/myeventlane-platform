@@ -332,12 +332,29 @@
   justify-content: center;
 }
 
+.mel-event-section--share {
+  .mel-card__title {
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-semibold;
+  }
+}
+
+.mel-event-share--secondary {
+  opacity: 0.92;
+}
+
 .mel-event-share--panel {
   display: flex;
   flex-wrap: wrap;
   gap: space-tokens.mel-space(2);
   margin-top: 0;
   align-items: center;
+}
+
+.mel-event-share--panel .mel-share-copy {
+  cursor: pointer;
+  font: inherit;
+  appearance: none;
 }
 
 .mel-event-share--panel .mel-event-share__chip {
@@ -403,6 +420,54 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+}
+
+.mel-booking-panel__trust-link {
+  color: colors.$mel-color-text;
+  font-weight: typography.$mel-font-medium;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+    border-radius: 2px;
+  }
+}
+
+.mel-booking-panel__cta-note,
+.mel-cta-external-hint {
+  margin: 0.35rem 0 0;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.35;
+  color: colors.$mel-color-text-muted;
+  text-align: center;
+}
+
+.mel-cta-external-hint {
+  font-weight: typography.$mel-font-regular;
+}
+
+.mel-organiser-card__hosted {
+  margin: 0 0 0.35rem;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-organiser-card__hosted-name {
+  color: colors.$mel-color-text;
+  font-weight: typography.$mel-font-semibold;
+}
+
+.mel-event-hero--featured-style .mel-event-hero-card__placeholder--branded {
+  background: linear-gradient(145deg, color-mix(in srgb, #f26d5b 18%, #fff9f5) 0%, #fff 55%, color-mix(in srgb, #7c83fd 12%, #fff9f5) 100%);
+  min-height: 220px;
+}
+
+.mel-event-hero-card__placeholder-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .mel-booking-panel__trust-micro {
@@ -1840,13 +1905,24 @@
   bottom: 0;
   padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0));
   background: #fff;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid #e9e3de;
   z-index: 100;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -4px 12px rgba(36, 48, 58, 0.08);
 
   @include breakpoints.mel-break(lg) {
     display: none;
   }
+
+}
+
+@media print {
+  .mel-event--v2 > .mel-mobile-cta {
+    display: none;
+  }
+}
+
+.mel-mobile-cta__eyebrow--muted {
+  color: colors.$mel-color-text-muted;
 }
 
 .mel-mobile-cta__inner {
