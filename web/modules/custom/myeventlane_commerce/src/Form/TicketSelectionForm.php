@@ -132,6 +132,7 @@ final class TicketSelectionForm extends FormBase {
       '#type' => 'fieldset',
       '#title' => $this->t('Access code'),
       '#description' => $this->t('If you have an organiser code, enter it here to reveal hidden or invite-only tickets for this browser session.'),
+      '#tree' => TRUE,
       '#attributes' => ['class' => ['mel-ticket-booking-access']],
       '#weight' => 25,
     ];

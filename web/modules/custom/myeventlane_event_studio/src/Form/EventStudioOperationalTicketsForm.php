@@ -235,7 +235,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         '#title' => $this->t('Visibility'),
         '#options' => $this->visibilityOptions(),
         '#default_value' => 'public',
-        '#description' => $this->t('Most events should use Public.'),
+        '#description' => $this->t('Access code tickets require codes to be created in Ticket Tools before customers can see them.'),
       ],
       'status' => [
         '#type' => 'checkbox',
@@ -567,6 +567,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
             '#default_value' => $ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()
               ? (string) $ticket->get('visibility_mode')->value
               : 'public',
+            '#description' => $this->t('Access code tickets require codes to be created in Ticket Tools before customers can see them.'),
             '#parents' => ['tickets', $ticket_id, 'visibility_mode'],
           ],
         ],
