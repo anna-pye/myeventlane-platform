@@ -114,8 +114,11 @@ final class BrandingHeroFocalAugmenter {
    * @param array<string, mixed> $delta
    */
   private function augmentWidgetDelta(array &$delta, NodeInterface $node, ?string $focal_override = NULL): void {
+    // #parents from the already-processed widget delta; used as base for
+    // elements injected here (after doBuildForm has finished).
+    $delta_parents = $delta['#parents'] ?? [];
+
     if (isset($delta['focal_point']) && is_array($delta['focal_point'])) {
-      // Cached or prior builds may still reference the core focal widget validator.
       $delta['focal_point']['#element_validate'] = [[$this, 'validateFocalPointElement']];
       if (!empty($delta['focal_point']['#description']) && !isset($delta['focal_point']['#description_display'])) {
         $delta['focal_point']['#description_display'] = 'after';
@@ -136,6 +139,7 @@ final class BrandingHeroFocalAugmenter {
       '#description_display' => 'after',
       '#default_value' => $focal_value,
       '#element_validate' => [[$this, 'validateFocalPointElement']],
+      '#parents' => array_merge($delta_parents, ['focal_point']),
       '#attributes' => [
         'class' => ['focal-point', $selector],
         'data-selector' => $selector,
@@ -155,9 +159,11 @@ final class BrandingHeroFocalAugmenter {
       $preview_weight = $delta['preview']['#weight'] ?? 0;
       unset($delta['preview']['#weight']);
       $delta['preview'] = [
+        '#parents' => array_merge($delta_parents, ['preview']),
         'indicator' => [
           '#type' => 'html_tag',
           '#tag' => 'div',
+          '#parents' => array_merge($delta_parents, ['preview', 'indicator']),
           '#attributes' => [
             'class' => ['focal-point-indicator'],
             'data-selector' => $selector,
