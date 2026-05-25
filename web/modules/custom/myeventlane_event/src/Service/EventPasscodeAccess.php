@@ -111,6 +111,16 @@ final class EventPasscodeAccess {
   }
 
   /**
+   * Whether a session is available for passcode state checks.
+   *
+   * Returns FALSE during CLI, cron, Search API indexing, or any context
+   * where starting/reading a session would be unsafe.
+   */
+  public function hasSessionContext(?Request $request = NULL): bool {
+    return $this->getSession($request) !== NULL;
+  }
+
+  /**
    * Returns the stored bcrypt hash, or NULL if absent.
    */
   private function getStoredHash(NodeInterface $event): ?string {
@@ -136,13 +146,29 @@ final class EventPasscodeAccess {
     return self::SESSION_PREFIX . (int) $event->id();
   }
 
+  /**
+   * Safely resolves an active session, or NULL if unavailable.
+   *
+   * Guards against "Failed to start the session because headers have already
+   * been sent" during cron, CLI, and Search API indexing by catching the
+   * exception rather than letting it propagate into node access or render.
+   */
   private function getSession(?Request $request = NULL): ?SessionInterface {
-    $request ??= $this->requestStack->getCurrentRequest();
-    if ($request === NULL) {
+    if (PHP_SAPI === 'cli') {
       return NULL;
     }
 
-    return $request->hasSession() ? $request->getSession() : NULL;
+    $request ??= $this->requestStack->getCurrentRequest();
+    if ($request === NULL || !$request->hasSession()) {
+      return NULL;
+    }
+
+    try {
+      return $request->getSession();
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
 }

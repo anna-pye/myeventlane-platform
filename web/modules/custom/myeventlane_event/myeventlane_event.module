@@ -1704,6 +1704,11 @@ function myeventlane_event_views_query_alter(\Drupal\views\ViewExecutable $view,
  * Implements hook_node_access().
  *
  * Enforces visibility-based access for private and passcode events.
+ *
+ * Public and unlisted events pass through without session-dependent checks.
+ * Private and passcode enforcement requires a real HTTP session context;
+ * during CLI/cron/Search-API-indexing the hook returns neutral to avoid
+ * "Failed to start the session because headers have already been sent".
  */
 function myeventlane_event_node_access(NodeInterface $node, string $op, AccountInterface $account): AccessResult {
   if ($node->bundle() !== 'event' || $op !== 'view') {
@@ -1716,6 +1721,20 @@ function myeventlane_event_node_access(NodeInterface $node, string $op, AccountI
 
   /** @var \Drupal\myeventlane_event\Service\PublicEventVisibility $visibility */
   $visibility = \Drupal::service('myeventlane_event.public_visibility');
+
+  $eventVisibility = $visibility->getVisibility($node);
+
+  if ($eventVisibility === \Drupal\myeventlane_event\Service\PublicEventVisibility::VISIBILITY_PUBLIC
+    || $eventVisibility === \Drupal\myeventlane_event\Service\PublicEventVisibility::VISIBILITY_UNLISTED) {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node);
+  }
+
+  if (PHP_SAPI === 'cli') {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node);
+  }
+
   $request = \Drupal::request();
 
   if ($visibility->isDirectlyViewable($node, $account, $request)) {
