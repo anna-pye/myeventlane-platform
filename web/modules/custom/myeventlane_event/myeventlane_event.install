@@ -1208,30 +1208,50 @@ function myeventlane_event_update_11021(array &$sandbox): void {
 }
 
 /**
- * Creates field_event_passcode_hash field storage and instance on Event nodes.
+ * Ensures field_event_passcode_hash exists on Event nodes.
+ *
+ * The canonical source for this field is config/sync. On standard deployments
+ * `drush cim` creates the field before this hook runs. The hook only acts as a
+ * safety net for environments where config sync has not been imported yet; it
+ * will not create config that conflicts with a subsequent `cim`.
  */
 function myeventlane_event_update_11022(): void {
   $field_name = 'field_event_passcode_hash';
   $entity_type = 'node';
   $bundle = 'event';
+  $logger = \Drupal::logger('myeventlane_event');
 
   $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+  $field_config = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+
+  if ($field_storage && $field_config) {
+    $logger->notice('field_event_passcode_hash already exists (config import). No action needed.');
+    return;
+  }
+
+  $sync = \Drupal::service('config.storage.sync');
+  $storage_in_sync = $sync->exists('field.storage.' . $entity_type . '.' . $field_name);
+  $instance_in_sync = $sync->exists('field.field.' . $entity_type . '.' . $bundle . '.' . $field_name);
+
+  if ($storage_in_sync || $instance_in_sync) {
+    $logger->notice('field_event_passcode_hash config exists in sync directory. Deferring to drush cim.');
+    return;
+  }
+
   if (!$field_storage) {
     $field_storage = FieldStorageConfig::create([
       'field_name' => $field_name,
       'entity_type' => $entity_type,
       'type' => 'string',
-      'settings' => [
-        'max_length' => 255,
-      ],
+      'settings' => ['max_length' => 255],
       'cardinality' => 1,
     ]);
     $field_storage->save();
+    $logger->notice('Created field storage @field (no sync config found).', ['@field' => $field_name]);
   }
 
-  $field_config = FieldConfig::loadByName($entity_type, $bundle, $field_name);
   if (!$field_config) {
-    $field_config = FieldConfig::create([
+    FieldConfig::create([
       'field_name' => $field_name,
       'entity_type' => $entity_type,
       'bundle' => $bundle,
@@ -1239,12 +1259,10 @@ function myeventlane_event_update_11022(): void {
       'description' => 'Stores a hashed passcode for passcode-protected events. Never expose this value.',
       'required' => FALSE,
       'translatable' => FALSE,
+    ])->save();
+    $logger->notice('Created field instance @field on @bundle (no sync config found).', [
+      '@field' => $field_name,
+      '@bundle' => $bundle,
     ]);
-    $field_config->save();
   }
-
-  \Drupal::logger('myeventlane_event')->notice('Created field @field on @bundle.', [
-    '@field' => $field_name,
-    '@bundle' => $bundle,
-  ]);
 }
