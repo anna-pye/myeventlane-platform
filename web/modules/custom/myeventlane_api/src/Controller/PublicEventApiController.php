@@ -147,7 +147,7 @@ final class PublicEventApiController extends ControllerBase {
 
     $public_events = [];
     foreach ($events as $event) {
-      if (!$this->publicEventVisibility->isPubliclyListable($event)) {
+      if (!$this->publicEventVisibility->isApiVisible($event)) {
         continue;
       }
       $public_events[] = $event;
@@ -217,7 +217,7 @@ final class PublicEventApiController extends ControllerBase {
       return $this->responseFormatter->error('NOT_FOUND', 'Event not found.', 404);
     }
 
-    if (!$this->publicEventVisibility->isPubliclyListable($node)
+    if (!$this->publicEventVisibility->isApiVisible($node)
       && !($request->query->getBoolean('include_cancelled')
         && $node->hasField('field_event_state')
         && (string) $node->get('field_event_state')->value === 'cancelled')) {

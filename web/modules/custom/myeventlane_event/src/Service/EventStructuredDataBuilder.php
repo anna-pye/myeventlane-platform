@@ -29,7 +29,7 @@ final class EventStructuredDataBuilder {
    * @return array<string, mixed>|null
    */
   public function build(NodeInterface $event): ?array {
-    if (!$this->publicEventVisibility->isPubliclyListable($event)) {
+    if (!$this->publicEventVisibility->isSeoIndexable($event)) {
       return NULL;
     }
 

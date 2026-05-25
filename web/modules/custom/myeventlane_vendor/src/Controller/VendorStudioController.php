@@ -240,9 +240,16 @@ final class VendorStudioController extends VendorConsoleBaseController implement
     $invalid_values = [];
     $has_changes = FALSE;
 
+    $security_blocked_fields = ['field_event_passcode_hash'];
+
     foreach ($payload['values'] as $field_name => $value) {
       if (!is_string($field_name) || $field_name === '' || !$event->hasField($field_name)) {
         $unknown_fields[] = (string) $field_name;
+        continue;
+      }
+
+      if (in_array($field_name, $security_blocked_fields, TRUE)) {
+        $blocked_fields[] = $field_name;
         continue;
       }
 
@@ -739,11 +746,51 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       }
 
       if (isset($payload['visibility']) && $event->hasField('field_event_visibility')) {
-        $visibility = (string) $payload['visibility'];
+        $visibility = \Drupal\myeventlane_event\Service\PublicEventVisibility::normalizeVisibilityValue((string) $payload['visibility']);
         $current_visibility = (string) ($event->get('field_event_visibility')->value ?? '');
         if ($current_visibility !== $visibility) {
           $event->set('field_event_visibility', $visibility);
           $has_changes = TRUE;
+        }
+      }
+
+      if (isset($payload['passcode']) && $event->hasField('field_event_passcode_hash')) {
+        $passcode = trim((string) $payload['passcode']);
+        $visibility = $event->hasField('field_event_visibility')
+          ? (string) ($event->get('field_event_visibility')->value ?? '')
+          : '';
+
+        if ($passcode !== '') {
+          $hash = password_hash($passcode, PASSWORD_BCRYPT);
+          $event->set('field_event_passcode_hash', $hash);
+          $has_changes = TRUE;
+        }
+        elseif ($visibility === 'passcode') {
+          $existing_hash = $event->get('field_event_passcode_hash')->isEmpty()
+            ? ''
+            : (string) $event->get('field_event_passcode_hash')->value;
+          if ($existing_hash === '') {
+            return new JsonResponse([
+              'success' => FALSE,
+              'message' => 'A passcode is required when visibility is set to passcode.',
+            ], 422);
+          }
+        }
+      }
+      elseif (!isset($payload['passcode'])) {
+        $visibility = $event->hasField('field_event_visibility')
+          ? (string) ($event->get('field_event_visibility')->value ?? '')
+          : '';
+        if ($visibility === 'passcode' && $event->hasField('field_event_passcode_hash')) {
+          $existing_hash = $event->get('field_event_passcode_hash')->isEmpty()
+            ? ''
+            : (string) $event->get('field_event_passcode_hash')->value;
+          if ($existing_hash === '') {
+            return new JsonResponse([
+              'success' => FALSE,
+              'message' => 'A passcode is required when visibility is set to passcode. Include a "passcode" field in the payload.',
+            ], 422);
+          }
         }
       }
 
@@ -1074,6 +1121,9 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'visibility' => $event->hasField('field_event_visibility')
           ? (string) ($event->get('field_event_visibility')->value ?? '')
           : '',
+        'has_passcode' => $event->hasField('field_event_passcode_hash')
+          && !$event->get('field_event_passcode_hash')->isEmpty()
+          && (string) $event->get('field_event_passcode_hash')->value !== '',
       ],
       'checklist' => $checklist,
       'quick_actions' => [
