@@ -31,10 +31,7 @@ use Drupal\node\NodeInterface;
  *       "default" = "Drupal\myeventlane_tickets\Form\EventTicketSettingsForm",
  *       "edit" = "Drupal\myeventlane_tickets\Form\EventTicketSettingsForm"
  *     },
- *     "access" = "Drupal\myeventlane_tickets\EventTicketSettingsAccessControlHandler",
- *     "route_provider" = {
- *       "html" = "Drupal\Core\Entity\Routing\AdminHtmlRouteProvider"
- *     }
+ *     "access" = "Drupal\myeventlane_tickets\EventTicketSettingsAccessControlHandler"
  *   },
  *   base_table = "mel_event_ticket_settings",
  *   data_table = "mel_event_ticket_settings_field_data",
@@ -42,9 +39,6 @@ use Drupal\node\NodeInterface;
  *   entity_keys = {
  *     "id" = "id",
  *     "uuid" = "uuid"
- *   },
- *   links = {
- *     "edit-form" = "/vendor/events/{event}/tickets/settings"
  *   }
  * )
  */
