@@ -84,9 +84,15 @@ final class AccessCodeManagementBuilder {
       $build['create_action'] = $this->buildCreateAction($event_id);
     }
 
+    $code_cache_tags = [];
+    foreach ($codes as $code) {
+      $code_cache_tags = array_merge($code_cache_tags, $code->getCacheTags());
+    }
+
     $build['#cache'] = [
       'tags' => array_merge(
         $event->getCacheTags(),
+        $code_cache_tags,
         ['mel_access_code_list'],
       ),
       'contexts' => ['user.permissions'],
