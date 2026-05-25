@@ -113,8 +113,13 @@ $settings['reverse_proxy'] = TRUE;
 $mel_default_proxy_addresses = [
   '127.0.0.1',
   '::1',
+  '10.0.0.0/8',
   '172.16.0.0/12',
+  '192.168.0.0/16',
 ];
+if (getenv('IS_DDEV_PROJECT') !== 'true' && isset($_SERVER['REMOTE_ADDR']) && $_SERVER['REMOTE_ADDR'] !== '') {
+  $mel_default_proxy_addresses[] = $_SERVER['REMOTE_ADDR'];
+}
 $settings['reverse_proxy_addresses'] = array_values(array_unique(array_merge(
   $settings['reverse_proxy_addresses'] ?? [],
   $mel_default_proxy_addresses
