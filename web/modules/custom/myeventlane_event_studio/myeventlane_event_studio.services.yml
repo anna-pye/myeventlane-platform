@@ -96,6 +96,7 @@ services:
       - '@?myeventlane_capacity.service'
       - '@?myeventlane_metrics.service'
       - '@myeventlane_event_studio.event_ticket_preview_builder'
+      - '@?myeventlane_tickets.access_code_management_builder'
 
   myeventlane_event_studio.highlight_helper:
     class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper
