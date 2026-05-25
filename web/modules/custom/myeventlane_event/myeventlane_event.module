@@ -1703,12 +1703,14 @@ function myeventlane_event_views_query_alter(\Drupal\views\ViewExecutable $view,
 /**
  * Implements hook_node_access().
  *
- * Enforces visibility-based access for private and passcode events.
+ * Enforces visibility-based access for private events. Passcode events
+ * return neutral here so that EventPasscodeGateSubscriber can redirect
+ * to the passcode form (the subscriber runs at KernelEvents::REQUEST
+ * priority 30, which is after Drupal's router at priority 32 — a 403
+ * from this hook would prevent the redirect from ever firing).
  *
  * Public and unlisted events pass through without session-dependent checks.
- * Private and passcode enforcement requires a real HTTP session context;
- * during CLI/cron/Search-API-indexing the hook returns neutral to avoid
- * "Failed to start the session because headers have already been sent".
+ * CLI/cron contexts return neutral to avoid session errors during indexing.
  */
 function myeventlane_event_node_access(NodeInterface $node, string $op, AccountInterface $account): AccessResult {
   if ($node->bundle() !== 'event' || $op !== 'view') {
@@ -1730,11 +1732,21 @@ function myeventlane_event_node_access(NodeInterface $node, string $op, AccountI
       ->addCacheableDependency($node);
   }
 
+  // Passcode events: allow node access so the gate subscriber can redirect.
+  // Actual gate enforcement is in EventPasscodeGateSubscriber; booking route
+  // enforcement is in EventBookAccessCheck.
+  if ($eventVisibility === \Drupal\myeventlane_event\Service\PublicEventVisibility::VISIBILITY_PASSCODE) {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node)
+      ->addCacheContexts(['session']);
+  }
+
   if (PHP_SAPI === 'cli') {
     return AccessResult::neutral()
       ->addCacheableDependency($node);
   }
 
+  // Private events: hard block for non-privileged users.
   $request = \Drupal::request();
 
   if ($visibility->isDirectlyViewable($node, $account, $request)) {
