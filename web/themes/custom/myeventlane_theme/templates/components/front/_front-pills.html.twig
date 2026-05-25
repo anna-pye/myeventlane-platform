@@ -1,7 +1,7 @@
 <nav class="mel-category-pills" aria-label="Event categories">
   {% for c in front.categories %}
     <a
-      href="{{ path('view.upcoming_events.page_category', {'arg_0': c.tid}) }}"
+      href="{{ c.url|default(path('view.upcoming_events.page_category', {'arg_0': c.slug|default(c.tid)})) }}"
       class="mel-pill"
       style="--pill-color: {{ c.color }}"
     >
