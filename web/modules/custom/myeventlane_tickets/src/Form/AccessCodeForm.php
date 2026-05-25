@@ -29,13 +29,35 @@ final class AccessCodeForm extends ContentEntityForm {
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
 
-    // Pre-populate event if not set (from route parameter).
     /** @var \Drupal\myeventlane_tickets\Entity\AccessCode $entity */
     $entity = $this->entity;
-    if ($entity->isNew() && $entity->get('event')->isEmpty()) {
-      $event = $this->routeMatch->getParameter('event');
-      if ($event && $event->id()) {
-        $entity->set('event', $event->id());
+
+    if ($entity->isNew()) {
+      // Pre-populate event from route parameter.
+      if ($entity->get('event')->isEmpty()) {
+        $event = $this->routeMatch->getParameter('event');
+        if ($event && $event->id()) {
+          $entity->set('event', $event->id());
+        }
+      }
+
+      if (isset($form['code'])) {
+        $form['code']['widget'][0]['value']['#description'] = $this->t('The access code string. This will be shown only once after creation.');
+      }
+    }
+    else {
+      // Editing: show masked code, don't require re-entry.
+      if (isset($form['code'])) {
+        $current_code = $entity->getCode();
+        $masked = strlen($current_code) > 4
+          ? '****' . substr($current_code, -4)
+          : '****';
+        $form['code']['widget'][0]['value']['#default_value'] = '';
+        $form['code']['widget'][0]['value']['#required'] = FALSE;
+        $form['code']['widget'][0]['value']['#placeholder'] = $masked;
+        $form['code']['widget'][0]['value']['#description'] = $this->t('Current code: %masked. Leave blank to keep unchanged, or enter a new code to replace it.', [
+          '%masked' => $masked,
+        ]);
       }
     }
 
@@ -45,21 +67,41 @@ final class AccessCodeForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, FormStateInterface $form_state): void {
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    /** @var \Drupal\myeventlane_tickets\Entity\AccessCode $entity */
     $entity = $this->entity;
+
+    // On edit, if code field is left blank, restore the existing value.
+    if (!$entity->isNew()) {
+      $code_value = $form_state->getValue(['code', 0, 'value']);
+      if ($code_value === '' || $code_value === NULL) {
+        $entity->set('code', $entity->getCode());
+        $form_state->setValue(['code', 0, 'value'], $entity->getCode());
+      }
+    }
+
+    parent::validateForm($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function save(array $form, FormStateInterface $form_state): void {
+    /** @var \Drupal\myeventlane_tickets\Entity\AccessCode $entity */
+    $entity = $this->entity;
+    $is_new = $entity->isNew();
+    $plaintext_code = $entity->getCode();
     $status = $entity->save();
 
     $event_id = $entity->getEventId();
 
     if ($status === SAVED_NEW) {
-      $this->messenger()->addStatus($this->t('Created the %label access code.', [
-        '%label' => $entity->getCode(),
+      $this->messenger()->addStatus($this->t('Access code created. The code is: %code — copy it now, it will not be shown again in full.', [
+        '%code' => $plaintext_code,
       ]));
     }
     else {
-      $this->messenger()->addStatus($this->t('Saved the %label access code.', [
-        '%label' => $entity->getCode(),
-      ]));
+      $this->messenger()->addStatus($this->t('Access code saved.'));
     }
 
     $form_state->setRedirect('myeventlane_tickets.event_tickets_access_codes', ['event' => $event_id]);

@@ -81,15 +81,16 @@ final class VendorEventAccessCodesController extends VendorEventTicketsBaseContr
     // Add header action button.
     $header_actions = [
       [
-        'label' => $this->t('Add access code'),
+        'label' => $this->t('Create access code'),
         'url' => Url::fromRoute('myeventlane_tickets.event_tickets_access_codes_add', ['event' => $event->id()])->toString(),
-        'style' => 'primary',
+        'class' => 'mel-btn--cta',
       ],
     ];
 
     if (empty($codes)) {
       $build['empty'] = [
-        '#markup' => '<p>' . $this->t('No access codes have been created for this event.') . '</p>',
+        '#markup' => '<div class="mel-empty-state"><p>' . $this->t('No access codes have been created for this event.') . '</p>'
+          . '<a class="mel-btn mel-btn--primary" href="' . Url::fromRoute('myeventlane_tickets.event_tickets_access_codes_add', ['event' => $event->id()])->toString() . '">' . $this->t('Create access code') . '</a></div>',
       ];
     }
     else {
@@ -105,6 +106,11 @@ final class VendorEventAccessCodesController extends VendorEventTicketsBaseContr
       $rows = [];
       foreach ($codes as $code) {
         /** @var \Drupal\myeventlane_tickets\Entity\AccessCode $code */
+        $raw_code = $code->getCode();
+        $masked = strlen($raw_code) > 4
+          ? '****' . substr($raw_code, -4)
+          : '****';
+
         $usage_count = (int) $code->get('usage_count')->value;
         $usage_limit = $code->get('usage_limit')->isEmpty() ? NULL : (int) $code->get('usage_limit')->value;
         if ($usage_limit !== NULL) {
@@ -127,7 +133,10 @@ final class VendorEventAccessCodesController extends VendorEventTicketsBaseContr
               ],
               'delete' => [
                 'title' => $this->t('Delete'),
-                'url' => $code->toUrl('delete-form', ['event' => $event->id()]),
+                'url' => Url::fromRoute('entity.mel_access_code.delete_form', [
+                  'event' => $event->id(),
+                  'mel_access_code' => $code->id(),
+                ]),
               ],
             ],
           ],
@@ -135,7 +144,7 @@ final class VendorEventAccessCodesController extends VendorEventTicketsBaseContr
 
         $rows[] = [
           'data' => [
-            $code->getCode(),
+            $masked,
             $code->get('status')->value,
             $usage_text,
             $operations,
