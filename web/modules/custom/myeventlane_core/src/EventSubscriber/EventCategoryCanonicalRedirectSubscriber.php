@@ -20,7 +20,7 @@ final class EventCategoryCanonicalRedirectSubscriber implements EventSubscriberI
 
   public function __construct(
     private readonly EventCategoryUrlService $categoryUrl,
-    private readonly AliasManagerInterface $aliasManager,
+    private readonly ?AliasManagerInterface $aliasManager,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -83,6 +83,10 @@ final class EventCategoryCanonicalRedirectSubscriber implements EventSubscriberI
    * Avoids stealing /events/{title} paths that belong to event nodes.
    */
   private function redirectLegacyFlatCategoryPath(RequestEvent $event, string $pathInfo): bool {
+    if ($this->aliasManager === NULL) {
+      return FALSE;
+    }
+
     if (!preg_match('#^/events/([^/]+)$#', $pathInfo, $matches)) {
       return FALSE;
     }
