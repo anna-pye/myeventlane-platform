@@ -16,6 +16,9 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\myeventlane_core\Service\EventCategoryUrlService;
+use Drupal\taxonomy\TermInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
@@ -190,10 +193,18 @@ function myeventlane_core_entity_presave(EntityInterface $entity): void {
 }
 
 /**
+ * Implements hook_entity_update().
+ */
+function myeventlane_core_entity_update(EntityInterface $entity): void {
+  myeventlane_core_invalidate_event_category_slug_map($entity);
+}
+
+/**
  * Implements hook_entity_insert().
  */
 function myeventlane_core_entity_insert(EntityInterface $entity): void {
   myeventlane_core_invalidate_vendor_follow_list_cache($entity);
+  myeventlane_core_invalidate_event_category_slug_map($entity);
 }
 
 /**
@@ -201,6 +212,7 @@ function myeventlane_core_entity_insert(EntityInterface $entity): void {
  */
 function myeventlane_core_entity_delete(EntityInterface $entity): void {
   myeventlane_core_invalidate_vendor_follow_list_cache($entity);
+  myeventlane_core_invalidate_event_category_slug_map($entity);
 }
 
 /**
@@ -223,6 +235,19 @@ function myeventlane_core_invalidate_vendor_follow_list_cache(EntityInterface $e
 }
 
 /**
+ * Busts cached category slug lookups when category terms change.
+ */
+function myeventlane_core_invalidate_event_category_slug_map(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'taxonomy_term') {
+    return;
+  }
+  if ($entity->bundle() !== 'categories') {
+    return;
+  }
+  \Drupal::cache('data')->delete('myeventlane:event_category_slug_map:v1');
+}
+
+/**
  * Implements hook_views_post_execute().
  *
  * Log commerce_cart_form result count for debugging empty cart table.
@@ -235,4 +260,46 @@ function myeventlane_core_views_post_execute(ViewExecutable $view): void {
     '@args' => implode(',', array_map('strval', $view->args)),
     '@c' => count($view->result),
   ]);
+}
+
+/**
+ * Implements hook_views_pre_view().
+ *
+ * Converts category slug arguments to term IDs for upcoming_events filtering.
+ */
+function myeventlane_core_views_pre_view(ViewExecutable $view, string $display_id, array &$args): void {
+  if ($view->id() !== 'upcoming_events' || $display_id !== 'page_category' || empty($args[0])) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+  $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+  $term = $categoryUrl->resolveTerm($args[0]);
+  if (!$term instanceof TermInterface) {
+    throw new NotFoundHttpException();
+  }
+  $args[0] = (string) $term->id();
+}
+
+/**
+ * Implements hook_metatags_alter().
+ */
+function myeventlane_core_metatags_alter(array &$metatags): void {
+  $route = \Drupal::routeMatch()->getRouteName();
+  if ($route !== 'view.upcoming_events.page_category') {
+    return;
+  }
+
+  $request = \Drupal::request();
+  $term = $request->attributes->get('mel_category_term');
+  if (!$term instanceof TermInterface) {
+    /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+    $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+    $term = $categoryUrl->resolveTerm(\Drupal::routeMatch()->getParameter('arg_0'));
+  }
+  if ($term instanceof TermInterface) {
+    /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+    $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+    $metatags['canonical_url'] = $categoryUrl->getCategoryUrlString($term);
+  }
 }
