@@ -233,7 +233,7 @@ services:
     class: Drupal\myeventlane_core\EventSubscriber\EventCategoryCanonicalRedirectSubscriber
     arguments:
       - '@myeventlane_core.event_category_url'
-      - '@path_alias.manager'
+      - '@?path_alias.manager'
       - '@logger.channel.myeventlane_core'
     tags:
       - { name: event_subscriber }
