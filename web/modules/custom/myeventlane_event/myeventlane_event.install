@@ -1131,19 +1131,120 @@ function myeventlane_event_update_11020(): void {
 }
 
 /**
- * Testing checklist (for reference):
+ * Sets existing events with empty field_event_visibility to 'public'.
  *
- * Commands:
- * - ddev drush updb -y
- * - ddev drush cr.
- *
- * Manual tests:
- * 1) Create event → Location step → choose address suggestion
- *    Confirm:
- *    - street + suburb + state + postcode populate
- *    - venue name populates
- *    - lat/lng populate
- *    - place id saved (inspect submitted values or event fields)
- * 2) Click Next → Back → confirm values persist
- * 3) Save wizard → open Event node → confirm all fields saved
+ * Ensures all events have an explicit visibility value. Idempotent and
+ * safe to run more than once. Does not overwrite existing values.
  */
+function myeventlane_event_update_11021(array &$sandbox): void {
+  $logger = \Drupal::logger('myeventlane_event');
+
+  if (!isset($sandbox['event_ids'])) {
+    $db = \Drupal::database();
+
+    $all_event_ids = $db->query(
+      "SELECT nid FROM {node_field_data} WHERE type = :type",
+      [':type' => 'event']
+    )->fetchCol();
+
+    $has_value_ids = [];
+    if ($db->schema()->tableExists('node__field_event_visibility')) {
+      $has_value_ids = $db->query(
+        "SELECT entity_id FROM {node__field_event_visibility} WHERE bundle = :bundle AND field_event_visibility_value IS NOT NULL AND field_event_visibility_value != ''",
+        [':bundle' => 'event']
+      )->fetchCol();
+    }
+
+    $missing = array_values(array_diff($all_event_ids, $has_value_ids));
+
+    $sandbox['event_ids'] = $missing;
+    $sandbox['total'] = count($missing);
+    $sandbox['processed'] = 0;
+    $sandbox['updated'] = 0;
+
+    if ($sandbox['total'] === 0) {
+      $logger->notice('All events already have an explicit visibility value.');
+      $sandbox['#finished'] = 1;
+      return;
+    }
+  }
+
+  $batch_size = 50;
+  $ids = array_slice($sandbox['event_ids'], $sandbox['processed'], $batch_size);
+  if (empty($ids)) {
+    $sandbox['#finished'] = 1;
+    return;
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+
+  foreach ($storage->loadMultiple($ids) as $event) {
+    if ($event->bundle() !== 'event') {
+      continue;
+    }
+    if (!$event->hasField('field_event_visibility')) {
+      continue;
+    }
+    if (!$event->get('field_event_visibility')->isEmpty()) {
+      $current = (string) $event->get('field_event_visibility')->value;
+      if ($current !== '') {
+        continue;
+      }
+    }
+    $event->set('field_event_visibility', 'public');
+    $event->save();
+    $sandbox['updated']++;
+  }
+
+  $sandbox['processed'] += count($ids);
+  $sandbox['#finished'] = min(1, $sandbox['processed'] / $sandbox['total']);
+
+  if ($sandbox['#finished'] >= 1) {
+    $logger->notice(
+      'Event visibility backfill complete. Set @updated of @total events to public.',
+      ['@updated' => $sandbox['updated'], '@total' => $sandbox['total']]
+    );
+  }
+}
+
+/**
+ * Creates field_event_passcode_hash field storage and instance on Event nodes.
+ */
+function myeventlane_event_update_11022(): void {
+  $field_name = 'field_event_passcode_hash';
+  $entity_type = 'node';
+  $bundle = 'event';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+  if (!$field_storage) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'type' => 'string',
+      'settings' => [
+        'max_length' => 255,
+      ],
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+  }
+
+  $field_config = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+  if (!$field_config) {
+    $field_config = FieldConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'bundle' => $bundle,
+      'label' => 'Event Passcode Hash',
+      'description' => 'Stores a hashed passcode for passcode-protected events. Never expose this value.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+    ]);
+    $field_config->save();
+  }
+
+  \Drupal::logger('myeventlane_event')->notice('Created field @field on @bundle.', [
+    '@field' => $field_name,
+    '@bundle' => $bundle,
+  ]);
+}

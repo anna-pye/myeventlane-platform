@@ -4,6 +4,7 @@ status: true
 dependencies:
   config:
     - field.field.node.event.field_event_intro
+    - field.field.node.event.field_event_passcode_hash
     - field.field.node.event.field_venue
     - node.type.event
   module:
@@ -68,6 +69,7 @@ hidden:
   field_event_geo: true
   field_event_highlights: true
   field_event_image: true
+  field_event_passcode_hash: true
   field_event_setup_complete: true
   field_event_start: true
   field_event_state: true

@@ -152,11 +152,41 @@ services:
       - '@string_translation'
       - '@?myeventlane_commerce.event_operational_addon_teaser_builder'
 
+  myeventlane_event.passcode_access:
+    class: Drupal\myeventlane_event\Service\EventPasscodeAccess
+    arguments:
+      - '@request_stack'
+
   myeventlane_event.public_visibility:
     class: Drupal\myeventlane_event\Service\PublicEventVisibility
     arguments:
       - '@myeventlane_event_state.resolver'
       - '@datetime.time'
+      - '@myeventlane_event.passcode_access'
+
+  myeventlane_event.event_visibility_noindex_subscriber:
+    class: Drupal\myeventlane_event\EventSubscriber\EventVisibilityNoindexSubscriber
+    arguments:
+      - '@myeventlane_event.public_visibility'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_event.event_passcode_gate_subscriber:
+    class: Drupal\myeventlane_event\EventSubscriber\EventPasscodeGateSubscriber
+    arguments:
+      - '@myeventlane_event.public_visibility'
+      - '@myeventlane_event.passcode_access'
+      - '@current_user'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_event.access.event_book:
+    class: Drupal\myeventlane_event\Access\EventBookAccessCheck
+    arguments:
+      - '@myeventlane_event.public_visibility'
+      - '@request_stack'
+    tags:
+      - { name: access_check, applies_to: _event_book_access }
 
   myeventlane_event.public_discovery_query_alter:
     class: Drupal\myeventlane_event\Service\PublicEventDiscoveryQueryAlter

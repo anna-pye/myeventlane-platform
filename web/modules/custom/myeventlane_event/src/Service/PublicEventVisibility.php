@@ -10,6 +10,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\node\NodeInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Canonical rules for whether an event belongs on public discovery surfaces.
@@ -43,6 +44,7 @@ final class PublicEventVisibility {
   public function __construct(
     private readonly EventStateResolverInterface $eventStateResolver,
     private readonly TimeInterface $time,
+    private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
   ) {}
 
   /**
@@ -130,9 +132,9 @@ final class PublicEventVisibility {
    *
    * - public/unlisted: viewable by anyone (anonymous included)
    * - private: viewable only by owner, vendor, admin, staff
-   * - passcode: in Phase A, treated same as private (gate not yet built)
+   * - passcode: viewable after valid passcode unlock OR by privileged accounts
    */
-  public function isDirectlyViewable(NodeInterface $event, AccountInterface $account): bool {
+  public function isDirectlyViewable(NodeInterface $event, AccountInterface $account, ?Request $request = NULL): bool {
     if ($event->bundle() !== 'event') {
       return TRUE;
     }
@@ -147,7 +149,55 @@ final class PublicEventVisibility {
       return TRUE;
     }
 
-    return $this->isPrivilegedAccount($event, $account);
+    if ($this->isPrivilegedAccount($event, $account)) {
+      return TRUE;
+    }
+
+    if ($visibility === self::VISIBILITY_PASSCODE) {
+      return $this->isPasscodeUnlocked($event, $request);
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Whether the user can access the booking flow for this event.
+   *
+   * - public/unlisted: allowed (booking resolver decides availability)
+   * - private: owner/vendor/admin/staff only
+   * - passcode: allowed after passcode unlock OR by privileged accounts
+   */
+  public function canBook(NodeInterface $event, AccountInterface $account, ?Request $request = NULL): bool {
+    if ($event->bundle() !== 'event' || !$event->isPublished()) {
+      return FALSE;
+    }
+
+    $visibility = $this->getVisibility($event);
+
+    if ($visibility === self::VISIBILITY_PUBLIC || $visibility === self::VISIBILITY_UNLISTED) {
+      return TRUE;
+    }
+
+    if ($this->isPrivilegedAccount($event, $account)) {
+      return TRUE;
+    }
+
+    if ($visibility === self::VISIBILITY_PASSCODE) {
+      return $this->isPasscodeUnlocked($event, $request);
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Whether the passcode gate has been unlocked in the current session.
+   */
+  public function isPasscodeUnlocked(NodeInterface $event, ?Request $request = NULL): bool {
+    if ($this->passcodeAccess === NULL) {
+      return FALSE;
+    }
+
+    return $this->passcodeAccess->isUnlocked($event, $request);
   }
 
   /**
@@ -155,6 +205,22 @@ final class PublicEventVisibility {
    */
   public function isSeoIndexable(NodeInterface $event): bool {
     return $this->isPubliclyListable($event);
+  }
+
+  /**
+   * Whether the event should have noindex headers applied.
+   *
+   * Unlisted, private, and passcode events must never be indexed, even if
+   * accessible via direct URL.
+   */
+  public function shouldNoindex(NodeInterface $event): bool {
+    if ($event->bundle() !== 'event') {
+      return FALSE;
+    }
+
+    $visibility = $this->getVisibility($event);
+
+    return $visibility !== self::VISIBILITY_PUBLIC;
   }
 
   /**

@@ -1,0 +1,21 @@
+uuid: d4f9a2b1-7e63-4c0d-b8a5-1f2e3d4c5b6a
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_event_passcode_hash
+field_name: field_event_passcode_hash
+entity_type: node
+type: string
+settings:
+  max_length: 255
+  is_ascii: false
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

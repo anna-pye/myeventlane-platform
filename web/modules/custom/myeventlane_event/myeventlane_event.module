@@ -1716,14 +1716,17 @@ function myeventlane_event_node_access(NodeInterface $node, string $op, AccountI
 
   /** @var \Drupal\myeventlane_event\Service\PublicEventVisibility $visibility */
   $visibility = \Drupal::service('myeventlane_event.public_visibility');
+  $request = \Drupal::request();
 
-  if ($visibility->isDirectlyViewable($node, $account)) {
+  if ($visibility->isDirectlyViewable($node, $account, $request)) {
     return AccessResult::neutral()
       ->addCacheableDependency($node)
-      ->cachePerUser();
+      ->cachePerUser()
+      ->addCacheContexts(['session']);
   }
 
   return AccessResult::forbidden('Event visibility restricts access.')
     ->addCacheableDependency($node)
-    ->cachePerUser();
+    ->cachePerUser()
+    ->addCacheContexts(['session']);
 }
