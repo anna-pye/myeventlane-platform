@@ -72,6 +72,7 @@ hidden:
   field_event_start: true
   field_event_state: true
   field_event_state_override: true
+  field_event_visibility: true
   field_event_store: true
   field_event_summary: true
   field_event_type: true

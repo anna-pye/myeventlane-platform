@@ -739,7 +739,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       }
 
       if (isset($payload['visibility']) && $event->hasField('field_event_visibility')) {
-        $visibility = (string) $payload['visibility'];
+        $visibility = \Drupal\myeventlane_event\Service\PublicEventVisibility::normalizeVisibilityValue((string) $payload['visibility']);
         $current_visibility = (string) ($event->get('field_event_visibility')->value ?? '');
         if ($current_visibility !== $visibility) {
           $event->set('field_event_visibility', $visibility);

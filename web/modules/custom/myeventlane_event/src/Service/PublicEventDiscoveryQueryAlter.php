@@ -115,6 +115,7 @@ final class PublicEventDiscoveryQueryAlter {
 
     $this->applyEndedStateExclusion($query);
     $this->applyInternalTitleExclusion($query, $base_alias);
+    $this->applyVisibilityExclusion($query);
 
     if ($this->isFreeRsvpDisplay($view)) {
       $this->applyFreeRsvpExclusion($query);
@@ -170,6 +171,25 @@ final class PublicEventDiscoveryQueryAlter {
         [$placeholder => mb_strtolower($pattern)]
       );
     }
+  }
+
+  /**
+   * Excludes non-public events (unlisted, private, passcode) from listings.
+   *
+   * Events with NULL or empty visibility are treated as public (backwards compat).
+   */
+  private function applyVisibilityExclusion(QueryPluginBase $query): void {
+    $vis_alias = $query->ensureTable('node__field_event_visibility');
+    if (!$vis_alias) {
+      return;
+    }
+
+    $group = 1;
+    $field = $vis_alias . '.field_event_visibility_value';
+    $query->addWhereExpression(
+      $group,
+      "($field IS NULL OR $field = '' OR $field = '" . PublicEventVisibility::VISIBILITY_PUBLIC . "')"
+    );
   }
 
   /**

@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_search\Controller;
 use Drupal\Component\Datetime\Time;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\node\NodeInterface;
 use Drupal\search_api\IndexInterface;
 use Drupal\taxonomy\TermInterface;
@@ -43,19 +44,20 @@ final class SearchController extends ControllerBase {
 
   /**
    * Constructs the controller.
-   *
-   * @param \Drupal\Component\Datetime\Time $time
-   *   The time service for "upcoming" filters.
    */
   public function __construct(
     private readonly Time $time,
+    private readonly PublicEventVisibility $publicEventVisibility,
   ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('datetime.time'));
+    return new static(
+      $container->get('datetime.time'),
+      $container->get('myeventlane_event.public_visibility'),
+    );
   }
 
   /**
@@ -98,7 +100,6 @@ final class SearchController extends ControllerBase {
       [$events, $pages] = $this->runContentQuery($contentIndex, $q);
       $groups['events']['items'] = $events;
       if (count($events) >= 1) {
-        // Enrich event items with rendered event_card (same as /events discovery).
         $nids = array_filter(array_map('intval', array_column($events, 'nid')));
         $nodes = $nids ? $this->entityTypeManager()->getStorage('node')->loadMultiple($nids) : [];
         $view_builder = $this->entityTypeManager()->getViewBuilder('node');
@@ -112,7 +113,6 @@ final class SearchController extends ControllerBase {
           }
         }
         unset($item);
-        // Only show Events; suppress non-event groups.
         $groups['pages']['items'] = [];
         $groups['venues']['items'] = [];
       }
@@ -140,12 +140,6 @@ final class SearchController extends ControllerBase {
 
   /**
    * Loads a Search API index by ID.
-   *
-   * @param string $id
-   *   The index ID.
-   *
-   * @return \Drupal\search_api\IndexInterface|null
-   *   The index or NULL if not found.
    */
   private function getIndex(string $id): ?IndexInterface {
     $storage = $this->entityTypeManager()->getStorage('search_api_index');
@@ -168,7 +162,6 @@ final class SearchController extends ControllerBase {
     $query = $index->query();
     $query->setFulltextFields(self::CONTENT_MAIN_FULLTEXT_FIELDS);
     $query->keys($keys);
-    // Include: non-events (page, article) OR events with start >= now.
     $or = $query->createConditionGroup('OR');
     $or->addCondition('type', 'event', '<>');
     $or->addCondition('field_event_start', $now, '>=');
@@ -190,6 +183,9 @@ final class SearchController extends ControllerBase {
       $link = $entity->toLink($entity->getTitle() ?? '', 'canonical');
       $row = ['title' => $entity->getTitle(), 'url' => $link->getUrl()->toString()];
       if ($bundle === 'event') {
+        if (!$this->publicEventVisibility->isPubliclyListable($entity)) {
+          continue;
+        }
         $row['nid'] = (int) $entity->id();
         $events[] = $row;
       }
@@ -225,6 +221,9 @@ final class SearchController extends ControllerBase {
       }
       $node = $obj->getValue();
       if (!$node instanceof NodeInterface) {
+        continue;
+      }
+      if (!$this->publicEventVisibility->isPubliclyListable($node)) {
         continue;
       }
       $venueName = $node->get('field_venue_name')->value ?? '';

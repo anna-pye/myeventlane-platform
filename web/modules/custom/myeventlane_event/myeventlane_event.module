@@ -1699,3 +1699,31 @@ function myeventlane_event_views_query_alter(\Drupal\views\ViewExecutable $view,
   $alter = \Drupal::service('myeventlane_event.public_discovery_query_alter');
   $alter->alter($view, $query);
 }
+
+/**
+ * Implements hook_node_access().
+ *
+ * Enforces visibility-based access for private and passcode events.
+ */
+function myeventlane_event_node_access(NodeInterface $node, string $op, AccountInterface $account): AccessResult {
+  if ($node->bundle() !== 'event' || $op !== 'view') {
+    return AccessResult::neutral();
+  }
+
+  if (!\Drupal::hasService('myeventlane_event.public_visibility')) {
+    return AccessResult::neutral();
+  }
+
+  /** @var \Drupal\myeventlane_event\Service\PublicEventVisibility $visibility */
+  $visibility = \Drupal::service('myeventlane_event.public_visibility');
+
+  if ($visibility->isDirectlyViewable($node, $account)) {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node)
+      ->cachePerUser();
+  }
+
+  return AccessResult::forbidden('Event visibility restricts access.')
+    ->addCacheableDependency($node)
+    ->cachePerUser();
+}
