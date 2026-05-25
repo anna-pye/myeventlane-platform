@@ -1913,7 +1913,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'tid' => $term->id(),
         'name' => $term->label(),
         'label' => $term->label(),
-        'url' => '/events/category/' . _myeventlane_theme_get_category_slug($term),
+        'url' => _myeventlane_theme_get_category_url($term),
         'slug' => $slug,
       ];
     }
@@ -1925,7 +1925,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     foreach ($categories as $c) {
       $popular_tags[] = [
         'name' => $c['name'],
-        'url' => _myeventlane_theme_get_category_url($term),
+        'url' => $c['url'],
       ];
     }
     $variables['popular_tags'] = $popular_tags;
