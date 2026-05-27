@@ -233,6 +233,20 @@ services:
       - '@myeventlane_commerce.operational_merchandise_manager'
       - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_event_studio.vendor_operational_product_creation_manager'
+      - '@string_translation'
+
+  myeventlane_event_studio.operational_product_studio_field_registry:
+    class: Drupal\myeventlane_event_studio\Service\OperationalProductStudioFieldRegistry
+    arguments:
+      - '@entity_field.manager'
+
+  myeventlane_event_studio.extras_product_editor_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioExtrasProductEditorBuilder
+    arguments:
+      - '@myeventlane_event_studio.event_extras_builder'
+      - '@myeventlane_event_studio.vendor_operational_product_creation_manager'
+      - '@myeventlane_event_studio.operational_product_studio_field_registry'
       - '@string_translation'
 
   myeventlane_event_studio.vendor_productisation_studio_builder:
