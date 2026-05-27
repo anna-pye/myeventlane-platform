@@ -4,6 +4,8 @@ Status: acceptance audit
 Scope: Event Commerce resolver, classification registry, purchasable classifications, and mixed-cart governance foundation  
 Date: 2026-05-11
 
+> **Note (2026-05-27):** This audit predates operational merchandise Phase 4D–4F (Studio authoring, customer add-ons on booking, purchase composition, checkout orchestration). It validates the passive governance layer only—not the full current operational Commerce feature inventory. Post–Phase 0 safety work is documented in [commerce-merch-addon-phase0-safety.md](./commerce-merch-addon-phase0-safety.md).
+
 ## Objective
 
 This audit validates that the event-commerce governance foundation is operationally passive. The reviewed layer may resolve existing relationships, classify existing purchasables from explicit metadata, and expose read-only groupings. It must not mutate carts, orders, checkout, products, ticket lifecycle, RSVP state, Stripe behavior, payment routing, capacities, or fulfilment state.

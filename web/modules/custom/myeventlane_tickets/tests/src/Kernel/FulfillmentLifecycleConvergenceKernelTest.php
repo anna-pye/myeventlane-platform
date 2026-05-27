@@ -16,6 +16,7 @@ use Drupal\commerce_store\Entity\Store;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifierStubTrait;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Service\EntitlementCapabilityRegistry;
 use Drupal\myeventlane_tickets\Service\FulfillmentAuditProjector;
@@ -38,6 +39,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 #[RunTestsInSeparateProcesses]
 final class FulfillmentLifecycleConvergenceKernelTest extends KernelTestBase {
+
+  use RegistersTicketBackedClassifierStubTrait;
 
   protected static $modules = [
     'system',
@@ -89,6 +92,7 @@ final class FulfillmentLifecycleConvergenceKernelTest extends KernelTestBase {
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $this->registerTicketBackedClassifierStub($container);
   }
 
   protected function setUp(): void {

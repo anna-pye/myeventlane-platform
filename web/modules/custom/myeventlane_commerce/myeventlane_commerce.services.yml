@@ -55,6 +55,7 @@ services:
       - '@config.factory'
       - '@logger.channel.myeventlane_commerce'
       - '@myeventlane_commerce.order_item_classifier'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
 
   myeventlane_commerce.platform_fee_order_processor:
     class: Drupal\myeventlane_commerce\OrderProcessor\PlatformFeeOrderProcessor

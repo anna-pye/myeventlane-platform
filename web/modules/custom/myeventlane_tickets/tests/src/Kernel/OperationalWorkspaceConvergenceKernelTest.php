@@ -17,6 +17,7 @@ use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifierStubTrait;
 use Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\myeventlane_tickets\Service\InventoryReservationAuditProjector;
@@ -41,6 +42,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 #[RunTestsInSeparateProcesses]
 final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
+
+  use RegistersTicketBackedClassifierStubTrait;
 
   protected static $modules = [
     'system',
@@ -95,6 +98,7 @@ final class OperationalWorkspaceConvergenceKernelTest extends KernelTestBase {
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $this->registerTicketBackedClassifierStub($container);
   }
 
   /**
