@@ -10,6 +10,8 @@
 
 ## Commerce product types (architecture)
 
+Canonical bundle ids and bundle→classification map: `Drupal\myeventlane_core\Commerce\OperationalProductBundles` (see [commerce-merch-addon-phase0-safety.md](./commerce-merch-addon-phase0-safety.md)).
+
 Dedicated Commerce **product types** (and matching variation types) isolate non-ticket operational catalog from ticket entitlement products:
 
 - `operational_merchandise` — physical merch, pickup-oriented messaging.

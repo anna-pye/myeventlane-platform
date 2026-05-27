@@ -18,7 +18,7 @@ use Psr\Log\LoggerInterface;
  * Operational merchandise must not flow through attendee creation, ticket
  * issuance integrity, or waitlist reconciliation.
  */
-final class TicketBackedOrderItemClassifier {
+final class TicketBackedOrderItemClassifier implements TicketBackedOrderItemClassifierInterface {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,

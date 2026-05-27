@@ -47,7 +47,8 @@ services:
     arguments: [
       '@entity_type.manager',
       '@myeventlane_tickets.ticket_code_generator',
-      '@logger.factory'
+      '@logger.factory',
+      '@myeventlane_commerce.ticket_backed_order_item_classifier',
     ]
 
   myeventlane_tickets.order_paid_subscriber:
