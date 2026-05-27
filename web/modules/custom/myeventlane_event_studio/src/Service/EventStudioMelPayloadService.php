@@ -120,6 +120,8 @@ final class EventStudioMelPayloadService {
       'event_highlights' => $this->decodeAndNormalizeEventHighlightsFromMel($mel),
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
       'attendee_questions' => $attendee_questions,
+      'field_event_visibility' => trim((string) ($mel['field_event_visibility'] ?? '')),
+      'event_passcode' => trim((string) ($mel['event_passcode'] ?? '')),
     ];
 
     $eventNode = NULL;
