@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Component\Utility\Tags;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
@@ -35,7 +36,10 @@ final class EventStudioMelPayloadService {
     $venue_id = NULL;
     if ($choice === 'saved' && !empty($mel['venue_saved'])) {
       $raw = $mel['venue_saved'];
-      if (is_array($raw) && isset($raw[0]['target_id'])) {
+      if ($raw instanceof EntityInterface) {
+        $venue_id = (int) $raw->id();
+      }
+      elseif (is_array($raw) && isset($raw[0]['target_id'])) {
         $venue_id = (int) $raw[0]['target_id'];
       }
       elseif (is_numeric($raw)) {
@@ -379,6 +383,10 @@ final class EventStudioMelPayloadService {
   private function extractSingleEntityId(mixed $raw): ?int {
     if ($raw === NULL || $raw === '') {
       return NULL;
+    }
+    if ($raw instanceof EntityInterface) {
+      $id = (int) $raw->id();
+      return $id > 0 ? $id : NULL;
     }
     if (is_numeric($raw)) {
       $id = (int) $raw;
