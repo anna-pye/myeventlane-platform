@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_event\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\EventPasscodeAccess;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -19,11 +21,13 @@ final class EventPasscodeForm extends FormBase {
 
   public function __construct(
     private readonly EventPasscodeAccess $passcodeAccess,
+    private readonly DomainDetector $domainDetector,
   ) {}
 
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_event.passcode_access'),
+      $container->get('myeventlane_core.domain_detector'),
     );
   }
 
@@ -95,7 +99,7 @@ final class EventPasscodeForm extends FormBase {
 
     $form['back_url'] = [
       '#type' => 'value',
-      '#value' => Url::fromRoute('<front>')->toString(),
+      '#value' => $this->domainDetector->publicUrl(Url::fromRoute('<front>')->toString()),
     ];
 
     return $form;
@@ -129,9 +133,17 @@ final class EventPasscodeForm extends FormBase {
 
     $this->passcodeAccess->unlock($node);
 
-    $form_state->setRedirectUrl(
-      Url::fromRoute('entity.node.canonical', ['node' => $node->id()])
-    );
+    $canonical_path = Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString();
+    $target = $this->domainDetector->publicUrl($canonical_path);
+
+    if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
+      $form_state->setResponse(new TrustedRedirectResponse($target, 302));
+    }
+    else {
+      $form_state->setRedirectUrl(
+        Url::fromRoute('entity.node.canonical', ['node' => $node->id()])
+      );
+    }
   }
 
 }

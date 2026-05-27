@@ -9,6 +9,7 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
@@ -27,6 +28,7 @@ final class EventStudioPreprocess {
     private readonly OnboardingManager $onboardingManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RequestStack $requestStack,
+    private readonly DomainDetector $domainDetector,
   ) {}
 
   /**
@@ -171,11 +173,18 @@ final class EventStudioPreprocess {
       && $node->isPublished()) {
       $variables['mel_publish_celebrate'] = TRUE;
 
-      $canonical_absolute = Url::fromRoute(
+      $canonical_path = Url::fromRoute(
         'entity.node.canonical',
         ['node' => (int) $node->id()],
-        ['absolute' => TRUE],
       )->toString();
+      $canonical_absolute = $this->domainDetector->publicUrl($canonical_path);
+      if (!str_starts_with($canonical_absolute, 'http')) {
+        $canonical_absolute = Url::fromRoute(
+          'entity.node.canonical',
+          ['node' => (int) $node->id()],
+          ['absolute' => TRUE],
+        )->toString();
+      }
 
       $variables['mel_publish_celebrate_share_url_absolute'] = $canonical_absolute;
       $variables['mel_publish_celebrate_dismiss_url'] = Url::fromRoute('myeventlane_event_studio.edit', ['node' => (int) $node->id()])->toString();

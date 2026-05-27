@@ -285,7 +285,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
       ],
       [
         'label' => (string) $this->t('View page'),
-        'url' => Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString(),
+        'url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString()),
         'class' => 'mel-btn--secondary',
         'external' => TRUE,
       ],

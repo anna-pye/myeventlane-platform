@@ -177,6 +177,7 @@ services:
       - '@myeventlane_event.public_visibility'
       - '@myeventlane_event.passcode_access'
       - '@current_user'
+      - '@myeventlane_core.domain_detector'
     tags:
       - { name: event_subscriber }
 

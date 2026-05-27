@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\ManageEventNavigation;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -17,6 +18,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Base controller for vendor event management pages.
  */
 abstract class ManageEventControllerBase extends ControllerBase {
+
+  protected ?DomainDetector $domainDetector = NULL;
 
   /**
    * Constructs ManageEventControllerBase.
@@ -29,9 +32,11 @@ abstract class ManageEventControllerBase extends ControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static(
+    $instance = new static(
       $container->get('myeventlane_vendor.manage_event_navigation'),
     );
+    $instance->domainDetector = $container->get('myeventlane_core.domain_detector');
+    return $instance;
   }
 
   /**
@@ -108,10 +113,10 @@ abstract class ManageEventControllerBase extends ControllerBase {
     $status = $event->isPublished() ? 'Published' : 'Draft';
     $status_class = $event->isPublished() ? 'status-published' : 'status-draft';
 
-    // Build preview URL.
     $preview_url = NULL;
     if (!$event->isNew()) {
-      $preview_url = $event->toUrl('canonical');
+      $canonical = $event->toUrl('canonical')->toString();
+      $preview_url = $this->domainDetector?->publicUrl($canonical) ?? $canonical;
     }
 
     // Vendor edit: Event Studio only (legacy wizard is staff-only / redirected).

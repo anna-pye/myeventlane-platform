@@ -105,7 +105,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $boost_page_url = NULL;
     }
 
-    $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
+    $public_event_url = $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString());
 
     $workspace_back_url = NULL;
     try {

@@ -12,6 +12,7 @@ services:
       - '@myeventlane_event_studio.autosave'
       - '@plugin.manager.myeventlane_event_studio_section'
       - '@myeventlane_event_studio.section_renderer'
+      - '@myeventlane_core.domain_detector'
     tags:
       - { name: controller.service_arguments }
 
@@ -23,6 +24,7 @@ services:
       - '@myeventlane_onboarding.manager'
       - '@entity_type.manager'
       - '@request_stack'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_event_studio.vendor_mel_ticket_type_edit_redirect_subscriber:
     class: Drupal\myeventlane_event_studio\EventSubscriber\VendorMelTicketTypeEditRedirectSubscriber
@@ -300,6 +302,7 @@ services:
       - '@file_url_generator'
       - '@current_user'
       - '@string_translation'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_event_studio.event_ticket_preview_builder:
     class: Drupal\myeventlane_event_studio\Service\EventTicketPreviewBuilder
