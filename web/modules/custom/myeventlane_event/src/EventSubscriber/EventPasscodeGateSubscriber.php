@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\EventSubscriber;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -77,7 +78,11 @@ final class EventPasscodeGateSubscriber implements EventSubscriberInterface {
     $target = $this->domainDetector->publicUrl($relative_path);
 
     if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
-      $event->setResponse(new TrustedRedirectResponse($target, 302));
+      $response = new TrustedRedirectResponse($target, 302);
+      $cacheable_metadata = new CacheableMetadata();
+      $cacheable_metadata->setCacheMaxAge(0);
+      $response->addCacheableDependency($cacheable_metadata);
+      $event->setResponse($response);
     }
     else {
       $event->setResponse(new RedirectResponse($target, 302));

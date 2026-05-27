@@ -178,7 +178,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     $tabs = $this->vendorEventTabsService->buildWorkspaceTabs($event, 'overview', $account);
 
     $previewUrl = $this->routeUrlIfAccessible('entity.node.canonical', ['node' => $nid], $account);
-    $publicPreviewUrl = $this->toPublicUrl($previewUrl);
+    $publicPreviewUrl = $this->domainDetector?->publicUrlObject($previewUrl) ?? $previewUrl;
 
     // Reuse tab availability so add-on order gating runs once per request.
     $addonOrdersUrl = $this->addonOrdersUrlFromWorkspaceTabs($tabs);
@@ -653,21 +653,6 @@ final class VendorEventWorkspaceViewModelBuilder {
       ]);
       return NULL;
     }
-  }
-
-  /**
-   * Converts an internal Url to a public-domain Url when on a vendor host.
-   */
-  private function toPublicUrl(?Url $url): ?Url {
-    if (!$url instanceof Url || $this->domainDetector === NULL) {
-      return $url;
-    }
-    $path = $url->toString();
-    $publicPath = $this->domainDetector->publicUrl($path);
-    if ($publicPath !== $path) {
-      return Url::fromUri($publicPath);
-    }
-    return $url;
   }
 
 }
