@@ -14,6 +14,8 @@ use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
+use Drupal\myeventlane_event\Service\EventPasscodeAccess;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
 use Drupal\myeventlane_questions\Service\QuestionTemplateCloner;
@@ -61,6 +63,7 @@ final class EventStudioSaveService {
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
     private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
     private readonly ?EventPageStyleResolver $eventPageStyleResolver = NULL,
+    private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
   ) {}
 
   /**
@@ -311,6 +314,11 @@ final class EventStudioSaveService {
     $attendee_errors = $this->syncAttendeeQuestions($node, $payload, $account);
     if ($attendee_errors !== []) {
       return ['node' => NULL, 'errors' => $attendee_errors];
+    }
+
+    $visibility_errors = $this->applyVisibilityPayload($node, $payload);
+    if ($visibility_errors !== []) {
+      return ['node' => NULL, 'errors' => $visibility_errors];
     }
 
     $capability_errors = $this->applyOperationalCapabilitiesPayload($node, $payload);
@@ -837,6 +845,52 @@ final class EventStudioSaveService {
         ],
       ]);
     }
+  }
+
+  /**
+   * Sets field_event_visibility and manages field_event_passcode_hash.
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function applyVisibilityPayload(NodeInterface $node, array $payload): array {
+    if (!array_key_exists('field_event_visibility', $payload)) {
+      return [];
+    }
+
+    $visibility = trim((string) $payload['field_event_visibility']);
+    if ($visibility === '') {
+      return [];
+    }
+
+    $visibility = PublicEventVisibility::normalizeVisibilityValue($visibility);
+
+    if ($node->hasField('field_event_visibility')) {
+      $node->set('field_event_visibility', $visibility);
+    }
+
+    if (!$node->hasField('field_event_passcode_hash')) {
+      return [];
+    }
+
+    if ($visibility === PublicEventVisibility::VISIBILITY_PASSCODE) {
+      $new_passcode = trim((string) ($payload['event_passcode'] ?? ''));
+      if ($new_passcode !== '') {
+        if ($this->passcodeAccess === NULL) {
+          $this->logger->error('Event Studio: cannot hash passcode — EventPasscodeAccess service not injected for event @nid.', [
+            '@nid' => (string) ($node->id() ?? 'new'),
+          ]);
+          return ['Passcode service is temporarily unavailable.'];
+        }
+        $node->set('field_event_passcode_hash', $this->passcodeAccess->hashPasscode($new_passcode));
+      }
+    }
+    else {
+      $node->set('field_event_passcode_hash', NULL);
+    }
+
+    return [];
   }
 
   /**
