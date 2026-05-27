@@ -46,8 +46,31 @@ final class EventPasscodeForm extends FormBase {
       'max-age' => 0,
     ];
 
-    $form['title_display'] = [
-      '#markup' => '<h2>' . $this->t('This event requires a passcode') . '</h2>',
+    $form['event_title'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h1',
+      '#value' => $node->label(),
+      '#attributes' => [
+        'class' => ['mel-passcode-gate__event-title'],
+      ],
+    ];
+
+    $form['gate_heading'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => $this->t('This event is passcode protected'),
+      '#attributes' => [
+        'class' => ['mel-passcode-gate__heading'],
+      ],
+    ];
+
+    $form['gate_description'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => $this->t('Enter the passcode from the organiser to continue.'),
+      '#attributes' => [
+        'class' => ['mel-passcode-gate__description'],
+      ],
     ];
 
     $form['passcode'] = [
@@ -68,6 +91,11 @@ final class EventPasscodeForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Unlock event'),
       '#button_type' => 'primary',
+    ];
+
+    $form['back_url'] = [
+      '#type' => 'value',
+      '#value' => Url::fromRoute('<front>')->toString(),
     ];
 
     return $form;

@@ -1,0 +1,57 @@
+{#
+/**
+ * @file
+ * Passcode gate form — styled card for passcode-protected events.
+ *
+ * Wraps the EventPasscodeForm in a centered card matching MEL auth styling.
+ * Template suggestion: form__myeventlane_event_passcode_form.
+ *
+ * @see \Drupal\myeventlane_event\Form\EventPasscodeForm
+ */
+#}
+<form{{ attributes.addClass('mel-passcode-gate__form') }}>
+  {% if element is defined and element is iterable %}
+    {{ element.form_build_id }}
+    {{ element.form_token }}
+    {{ element.form_id }}
+
+    <div class="mel-passcode-gate">
+      <div class="mel-passcode-gate__container">
+        <div class="mel-passcode-gate__card">
+
+          <div class="mel-passcode-gate__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+
+          <div class="mel-passcode-gate__header">
+            {{ element.event_title }}
+            {{ element.gate_heading }}
+            {{ element.gate_description }}
+          </div>
+
+          <div class="mel-passcode-gate__fields">
+            {{ element.passcode }}
+          </div>
+
+          <div class="mel-passcode-gate__actions">
+            {{ element.actions }}
+          </div>
+
+          {% if element.back_url is defined and element.back_url['#value'] is defined %}
+            <div class="mel-passcode-gate__footer">
+              <a href="{{ element.back_url['#value'] }}" class="mel-passcode-gate__back-link">
+                &larr; {{ 'Browse events'|t }}
+              </a>
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  {% else %}
+    {{ children }}
+  {% endif %}
+</form>
