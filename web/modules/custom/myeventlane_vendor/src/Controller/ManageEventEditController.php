@@ -28,9 +28,11 @@ final class ManageEventEditController extends ManageEventControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static(
+    $instance = new static(
       $container->get('myeventlane_vendor.manage_event_navigation'),
     );
+    $instance->domainDetector = $container->get('myeventlane_core.domain_detector');
+    return $instance;
   }
 
   /**

@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
@@ -39,8 +40,8 @@ final class EventStudioController extends ControllerBase {
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly EventStudioSectionManager $sectionManager,
     private readonly EventStudioSectionRenderer $sectionRenderer,
+    private readonly DomainDetector $domainDetector,
   ) {
-    // ControllerBase / EntityTypeManagerTrait already declare protected $entityTypeManager.
     $this->entityTypeManager = $entity_type_manager;
   }
 
@@ -56,6 +57,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('plugin.manager.myeventlane_event_studio_section'),
       $container->get('myeventlane_event_studio.section_renderer'),
+      $container->get('myeventlane_core.domain_detector'),
     );
   }
 
@@ -253,7 +255,7 @@ final class EventStudioController extends ControllerBase {
       ], [
         'query' => ['restore_draft' => '1'],
       ])->toString(),
-      'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
+      'preview_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString()),
       'publish_url' => Url::fromRoute('myeventlane_event_studio.publish', ['node' => $node->id()])->toString(),
       'published' => $node->isPublished(),
       'can_publish' => $readiness->ready,

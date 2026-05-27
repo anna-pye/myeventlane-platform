@@ -1065,8 +1065,8 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'promotion_save_url' => $studio_endpoints['promotion_save'],
         'settings_save_url' => $studio_endpoints['settings_save'],
         'publish_url' => $studio_endpoints['publish'],
-        'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
-        'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+        'preview_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
+        'view_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
         'wizard_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),
         'active' => $active_event_id > 0 && $active_event_id === $event_id,
       ];
@@ -1131,8 +1131,8 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       ],
       'checklist' => $checklist,
       'quick_actions' => [
-        'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
-        'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+        'preview_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
+        'view_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
         'duplicate_url' => NULL,
       ],
       'wizard_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),

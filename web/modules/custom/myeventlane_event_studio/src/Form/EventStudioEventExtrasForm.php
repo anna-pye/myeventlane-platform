@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver;
 use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_event_studio\Service\EventStudioEventExtrasBuilder;
@@ -43,6 +44,8 @@ final class EventStudioEventExtrasForm extends FormBase {
 
   protected LoggerInterface $logger;
 
+  protected ?DomainDetector $domainDetector = NULL;
+
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     EventVendorAccessChecker $event_vendor_access_checker,
@@ -60,7 +63,7 @@ final class EventStudioEventExtrasForm extends FormBase {
   }
 
   public static function create(ContainerInterface $container): static {
-    return new static(
+    $form = new static(
       $container->get('entity_type.manager'),
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('myeventlane_event_studio.vendor_operational_product_creation_manager'),
@@ -68,6 +71,8 @@ final class EventStudioEventExtrasForm extends FormBase {
       $container->get('myeventlane_commerce.event_extras_book_placement_resolver'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
+    $form->domainDetector = $container->get('myeventlane_core.domain_detector');
+    return $form;
   }
 
   /**
@@ -518,7 +523,7 @@ final class EventStudioEventExtrasForm extends FormBase {
       'preview_booking' => [
         '#type' => 'link',
         '#title' => $this->t('Preview booking page'),
-        '#url' => Url::fromRoute('entity.node.canonical', ['node' => $event->id()]),
+        '#url' => $this->buildPublicEventUrl($event),
         '#attributes' => ['class' => ['button', 'mel-event-extras-studio__cta']],
       ],
       'publish' => [
@@ -528,6 +533,15 @@ final class EventStudioEventExtrasForm extends FormBase {
         '#attributes' => ['class' => ['button', 'button--primary', 'mel-event-extras-studio__cta']],
       ],
     ];
+  }
+
+  private function buildPublicEventUrl(NodeInterface $event): Url {
+    $canonical_path = Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
+    $target = $this->domainDetector?->publicUrl($canonical_path) ?? $canonical_path;
+    if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
+      return Url::fromUri($target);
+    }
+    return Url::fromRoute('entity.node.canonical', ['node' => $event->id()]);
   }
 
   /**

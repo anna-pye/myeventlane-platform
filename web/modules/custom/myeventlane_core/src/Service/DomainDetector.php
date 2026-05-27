@@ -149,6 +149,35 @@ final class DomainDetector {
   }
 
   /**
+   * Builds a public-domain URL from an internal path.
+   *
+   * When the current request is on the vendor or admin domain and
+   * public_domain config is available, returns an absolute URL on the
+   * configured public host. Otherwise falls back to the relative path,
+   * which keeps single-domain local environments (DDEV) working.
+   *
+   * @param string $internal_path
+   *   A Drupal-generated relative path, e.g. /events/my-event.
+   *
+   * @return string
+   *   Absolute public URL or the original relative path.
+   */
+  public function publicUrl(string $internal_path): string {
+    $path = '/' . ltrim($internal_path, '/');
+
+    if ($this->isPublicDomain()) {
+      return $path;
+    }
+
+    try {
+      return $this->buildDomainUrl($path, 'public');
+    }
+    catch (\Throwable) {
+      return $path;
+    }
+  }
+
+  /**
    * Hostnames to consider for domain matching.
    *
    * Behind reverse proxies, Request::getHost() follows X-Forwarded-Host. Some

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\EventSubscriber;
 
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\EventPasscodeAccess;
 use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\node\NodeInterface;
@@ -26,6 +28,7 @@ final class EventPasscodeGateSubscriber implements EventSubscriberInterface {
     private readonly PublicEventVisibility $publicVisibility,
     private readonly EventPasscodeAccess $passcodeAccess,
     private readonly AccountProxyInterface $currentUser,
+    private readonly DomainDetector $domainDetector,
   ) {}
 
   public static function getSubscribedEvents(): array {
@@ -67,11 +70,18 @@ final class EventPasscodeGateSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $passcode_url = Url::fromRoute('myeventlane_event.passcode_gate', [
+    $relative_path = Url::fromRoute('myeventlane_event.passcode_gate', [
       'node' => $node->id(),
     ])->toString();
 
-    $event->setResponse(new RedirectResponse($passcode_url, 302));
+    $target = $this->domainDetector->publicUrl($relative_path);
+
+    if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
+      $event->setResponse(new TrustedRedirectResponse($target, 302));
+    }
+    else {
+      $event->setResponse(new RedirectResponse($target, 302));
+    }
   }
 
 }
