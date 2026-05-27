@@ -26,12 +26,21 @@ mel_operational_capability_studio:
     - core/once
 
 mel_event_extras_studio:
+  version: 1.2
+  css:
+    theme:
+      css/mel-event-extras-studio.css: {}
+  dependencies:
+    - core/drupal
+
+mel_event_extras_product_editor:
   version: 1.0
   css:
     theme:
       css/mel-event-extras-studio.css: {}
   dependencies:
     - core/drupal
+    - myeventlane_event_studio/mel_event_extras_studio
 
 mel_vendor_productisation_studio:
   version: 1.0
