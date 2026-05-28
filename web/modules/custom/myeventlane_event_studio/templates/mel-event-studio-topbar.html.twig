@@ -20,6 +20,9 @@
     </span>
   </div>
   <div class="mel-event-studio-topbar__actions">
+    {% if topbar.show_manage_event_link %}
+      <a class="mel-btn mel-btn--secondary mel-event-studio-topbar__manage-event" href="{{ topbar.manage_event_url }}">{{ 'Manage event'|t }}</a>
+    {% endif %}
     <a class="mel-btn mel-btn--ghost" href="{{ topbar.preview_url }}" target="_blank" rel="noopener noreferrer">{{ 'Preview'|t }}</a>
     <button
       class="mel-btn mel-btn--primary"

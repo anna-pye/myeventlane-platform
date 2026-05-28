@@ -1,0 +1,104 @@
+{#
+/**
+ * @file
+ * Read-only merch & add-on sales panel for Manage event dashboard.
+ */
+#}
+{% set compact = panel.compact|default(false) %}
+{% set summary = panel.summary|default({}) %}
+{% set actions = panel.actions|default({}) %}
+<section class="mel-es-card mel-event-extras-studio__extras-sales{% if compact %} mel-event-extras-studio__extras-sales--compact{% endif %}" aria-labelledby="mel-event-extras-sales-title">
+  <header class="mel-event-extras-studio__extras-sales-header">
+    <h3 id="mel-event-extras-sales-title" class="mel-es-card__title">{{ 'Merch & add-on sales'|t }}</h3>
+    <p class="mel-event-extras-studio__extras-sales-helper mel-text--muted">
+      {{ panel.helper_copy }}
+    </p>
+  </header>
+
+  <div class="mel-event-extras-studio__extras-sales-summary" role="list">
+    <div class="mel-event-extras-studio__extras-sales-metric" role="listitem">
+      <span class="mel-event-extras-studio__extras-sales-metric-label">{{ 'Total extras revenue'|t }}</span>
+      <span class="mel-event-extras-studio__extras-sales-metric-value">{{ summary.total_revenue|default('—') }}</span>
+    </div>
+    <div class="mel-event-extras-studio__extras-sales-metric" role="listitem">
+      <span class="mel-event-extras-studio__extras-sales-metric-label">{{ 'Total extras sold'|t }}</span>
+      <span class="mel-event-extras-studio__extras-sales-metric-value">{{ summary.total_items_sold|default(0) }}</span>
+    </div>
+    <div class="mel-event-extras-studio__extras-sales-metric" role="listitem">
+      <span class="mel-event-extras-studio__extras-sales-metric-label">{{ 'Orders containing extras'|t }}</span>
+      <span class="mel-event-extras-studio__extras-sales-metric-value">{{ summary.orders_with_extras|default(0) }}</span>
+    </div>
+    <div class="mel-event-extras-studio__extras-sales-metric" role="listitem">
+      <span class="mel-event-extras-studio__extras-sales-metric-label">{{ 'Top category/type'|t }}</span>
+      <span class="mel-event-extras-studio__extras-sales-metric-value">{{ summary.top_category|default('—') }}</span>
+    </div>
+  </div>
+
+  {% if panel.rows is iterable and panel.rows|length > 0 %}
+    <div class="mel-event-extras-studio__extras-sales-table-wrap">
+      <table class="mel-event-extras-studio__extras-sales-table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Category'|t }}</th>
+            <th scope="col">{{ 'Items sold'|t }}</th>
+            <th scope="col">{{ 'Revenue'|t }}</th>
+            <th scope="col">{{ 'Orders'|t }}</th>
+            <th scope="col">{{ 'Stock remaining'|t }}</th>
+            <th scope="col">{{ 'Status'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in panel.rows %}
+            <tr class="mel-event-extras-studio__extras-sales-row mel-event-extras-studio__extras-sales-row--{{ row.status.key|default('no_sales') }}">
+              <td data-label="{{ 'Category'|t }}">{{ row.label }}</td>
+              <td data-label="{{ 'Items sold'|t }}">{{ row.items_sold }}</td>
+              <td data-label="{{ 'Revenue'|t }}">{{ row.revenue }}</td>
+              <td data-label="{{ 'Orders'|t }}">{{ row.order_count }}</td>
+              <td data-label="{{ 'Stock remaining'|t }}">{{ row.stock_remaining_label }}</td>
+              <td data-label="{{ 'Status'|t }}">
+                <span class="mel-pill mel-pill--tone-{{ row.status.tone|default('muted') }}">{{ row.status.label }}</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="mel-event-extras-studio__extras-sales-empty mel-text--muted">{{ panel.empty_message }}</p>
+  {% endif %}
+
+  <div class="mel-event-extras-studio__extras-sales-actions">
+    {% if actions.view_orders.available|default(false) and actions.view_orders.url %}
+      <a href="{{ actions.view_orders.url }}" class="mel-btn mel-btn--secondary">{{ actions.view_orders.label }}</a>
+    {% endif %}
+    {% if actions.manage_extras.available|default(false) and actions.manage_extras.url %}
+      <a href="{{ actions.manage_extras.url }}" class="mel-btn mel-btn--ghost">{{ actions.manage_extras.label }}</a>
+    {% endif %}
+  </div>
+
+  {% set docs = panel.operational_documents|default({}) %}
+  {% set doc_items = docs.items|default({}) %}
+  {% if doc_items is iterable and doc_items|length > 0 %}
+    <section class="mel-event-extras-studio__operational-docs mel-es-card mel-es-card--nested" aria-labelledby="mel-extras-operational-docs-title">
+      <h4 id="mel-extras-operational-docs-title" class="mel-event-extras-studio__operational-docs-title">{{ docs.heading|default('Operational documents'|t) }}</h4>
+      {% if docs.helper|default('') is not empty %}
+        <p class="mel-event-extras-studio__operational-docs-helper mel-text--muted">{{ docs.helper }}</p>
+      {% endif %}
+      <div class="mel-event-extras-studio__operational-docs-actions" role="group" aria-label="{{ 'Operational document actions'|t }}">
+        {% for item in doc_items %}
+          {% if item.available|default(false) and item.url %}
+            <a href="{{ item.url }}" class="mel-btn mel-btn--secondary">{{ item.label }}</a>
+          {% else %}
+            <button type="button" class="mel-btn mel-btn--secondary mel-btn--disabled" disabled aria-disabled="true">
+              <span class="mel-event-extras-studio__operational-docs-btn-label">{{ item.label }}</span>
+              <span class="mel-event-extras-studio__operational-docs-coming-soon">{{ item.coming_soon|default('Coming soon'|t) }}</span>
+            </button>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% if docs.deferred_notice|default('') is not empty %}
+        <p class="mel-event-extras-studio__operational-docs-notice mel-text--muted">{{ docs.deferred_notice }}</p>
+      {% endif %}
+    </section>
+  {% endif %}
+</section>

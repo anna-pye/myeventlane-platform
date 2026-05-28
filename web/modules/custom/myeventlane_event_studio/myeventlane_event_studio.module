@@ -143,14 +143,48 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
     'mel_event_studio_extra_preview' => [
       'variables' => [
         'preview' => [],
+        'price_display' => '',
+        'options_summary' => '',
+        'stock_label' => '',
+        'visibility_label' => '',
+        'hidden_notice' => '',
       ],
       'template' => 'mel-event-studio-extra-preview',
     ],
     'mel_event_studio_extra_variant_preview' => [
       'variables' => [
         'rows' => [],
+        'stock_supported' => FALSE,
+        'stock_editor_enabled' => FALSE,
+        'open' => FALSE,
+        'summary_title' => '',
       ],
       'template' => 'mel-event-studio-extra-variant-preview',
+    ],
+    'mel_event_studio_extra_product_setup_summary' => [
+      'variables' => [
+        'summary' => [],
+        'show_preview_anchor' => FALSE,
+      ],
+      'template' => 'mel-event-studio-extra-product-setup-summary',
+    ],
+    'mel_event_studio_ticket_sales_panel' => [
+      'variables' => [
+        'panel' => [],
+      ],
+      'template' => 'mel-event-studio-ticket-sales-panel',
+    ],
+    'mel_event_studio_extras_sales_panel' => [
+      'variables' => [
+        'panel' => [],
+      ],
+      'template' => 'mel-event-studio-extras-sales-panel',
+    ],
+    'mel_event_studio_extras_configured_summary' => [
+      'variables' => [
+        'panel' => [],
+      ],
+      'template' => 'mel-event-studio-extras-configured-summary',
     ],
     'mel_event_branding_preview' => [
       'variables' => [

@@ -8,6 +8,9 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_commerce\Service\EventOperationalExtrasSalesSummaryBuilder;
+use Drupal\myeventlane_event_studio\Service\EventStudioCommerceSalesSummaryBuilder;
+use Drupal\myeventlane_event_studio\Service\EventStudioExtrasConfiguredSummaryBuilder;
 use Drupal\myeventlane_vendor\Service\VendorEventWorkspaceViewModelBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -27,6 +30,9 @@ final class EventWorkspaceController extends VendorConsoleBaseController {
     private readonly LoggerInterface $logger,
     private readonly RequestStack $requestStack,
     private readonly VendorEventWorkspaceViewModelBuilder $eventWorkspaceViewModelBuilder,
+    private readonly EventStudioCommerceSalesSummaryBuilder $commerceSalesSummaryBuilder,
+    private readonly EventOperationalExtrasSalesSummaryBuilder $extrasSalesSummaryBuilder,
+    private readonly EventStudioExtrasConfiguredSummaryBuilder $extrasConfiguredSummaryBuilder,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -38,11 +44,23 @@ final class EventWorkspaceController extends VendorConsoleBaseController {
     $this->assertEventOwnership($event);
 
     $model = $this->eventWorkspaceViewModelBuilder->build($event, $this->currentUser);
+    $ticket_sales_panel = $this->commerceSalesSummaryBuilder->buildTicketSalesPanelRenderArray($event, 0);
+    if (isset($ticket_sales_panel['#panel']) && is_array($ticket_sales_panel['#panel'])) {
+      $ticket_sales_panel['#panel']['compact'] = TRUE;
+    }
+    $extras_sales_panel = $this->extrasSalesSummaryBuilder->buildExtrasSalesPanelRenderArray($event, 0);
+    if (isset($extras_sales_panel['#panel']) && is_array($extras_sales_panel['#panel'])) {
+      $extras_sales_panel['#panel']['compact'] = TRUE;
+    }
+    $extras_configured_panel = $this->extrasConfiguredSummaryBuilder->buildPanelRenderArray($event, -6);
 
     return $this->buildVendorPage('mel_event_workspace', [
       'event' => $event,
       'tabs' => [],
       'vendor_event_workspace_model' => $model,
+      'ticket_sales_panel' => $ticket_sales_panel,
+      'extras_configured_panel' => $extras_configured_panel,
+      'extras_sales_panel' => $extras_sales_panel,
       'insights' => [],
       'header_stats' => NULL,
       'meta' => NULL,
@@ -52,6 +70,13 @@ final class EventWorkspaceController extends VendorConsoleBaseController {
         '#tag' => 'div',
         '#attributes' => ['class' => ['mel-live-ops__content-anchor']],
         '#value' => '',
+      ],
+      '#attached' => [
+        'library' => [
+          'myeventlane_event_studio/mel_event_studio_ticket_sales_panel',
+          'myeventlane_event_studio/mel_event_studio_extras_sales_panel',
+          'myeventlane_vendor_theme/event_mission_control',
+        ],
       ],
     ]);
   }

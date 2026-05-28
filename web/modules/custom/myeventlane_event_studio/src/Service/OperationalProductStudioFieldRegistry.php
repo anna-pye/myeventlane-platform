@@ -41,8 +41,9 @@ final class OperationalProductStudioFieldRegistry {
     $defs = $this->entityFieldManager->getFieldDefinitions('commerce_product_variation', $variation_bundle);
     return [
       'size' => isset($defs['field_mel_size']),
-      'stock_quantity' => isset($defs['field_stock']) || isset($defs['commerce_stock']),
-      'limit_per_order' => isset($defs['field_limit_per_order']),
+      'stock_quantity' => isset($defs['field_mel_stock_quantity']),
+      'limit_per_order' => isset($defs['field_mel_limit_per_order']),
+      'show_remaining' => isset($defs['field_mel_show_remaining']),
       'status' => isset($defs['status']),
       'price' => isset($defs['price']),
       'sku' => isset($defs['sku']),

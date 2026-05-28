@@ -21,27 +21,27 @@ entity.myeventlane_vendor.delete_form:
 
 # Vendor event workspace — primary tabs (base_route shared; Boost + Refund use plugins).
 myeventlane_vendor.event_workspace.overview:
-  title: 'Overview'
-  route_name: myeventlane_vendor.console.event_overview
-  base_route: myeventlane_vendor.console.event_overview
+  title: 'Manage event'
+  route_name: myeventlane_vendor.console.event_workspace
+  base_route: myeventlane_vendor.console.event_workspace
   weight: -20
 
 myeventlane_vendor.event_workspace.tickets:
   title: 'Tickets'
   route_name: myeventlane_vendor.console.event_tickets
-  base_route: myeventlane_vendor.console.event_overview
+  base_route: myeventlane_vendor.console.event_workspace
   weight: -15
 
 myeventlane_vendor.event_workspace.orders:
   title: 'Orders'
   route_name: myeventlane_vendor.console.event_orders
-  base_route: myeventlane_vendor.console.event_overview
+  base_route: myeventlane_vendor.console.event_workspace
   weight: -12
 
 myeventlane_vendor.event_workspace.addon_orders:
   title: 'Add-on orders'
   route_name: myeventlane_vendor.console.event_operational_addon_orders
-  base_route: myeventlane_vendor.console.event_overview
+  base_route: myeventlane_vendor.console.event_workspace
   weight: -11
 
 myeventlane_vendor.event_workspace.attendees:
@@ -53,19 +53,19 @@ myeventlane_vendor.event_workspace.attendees:
 myeventlane_vendor.event_workspace.rsvps:
   title: 'RSVPs'
   route_name: myeventlane_vendor.console.event_rsvps
-  base_route: myeventlane_vendor.console.event_overview
+  base_route: myeventlane_vendor.console.event_workspace
   weight: -6
 
 myeventlane_vendor.event_workspace.analytics:
   title: 'Analytics'
   route_name: myeventlane_vendor.console.event_analytics
-  base_route: myeventlane_vendor.console.event_overview
+  base_route: myeventlane_vendor.console.event_workspace
   weight: 10
 
 myeventlane_vendor.event_workspace.settings:
   title: 'Settings'
   route_name: myeventlane_vendor.console.event_settings
-  base_route: myeventlane_vendor.console.event_overview
+  base_route: myeventlane_vendor.console.event_workspace
   weight: 30
 
 myeventlane_vendor.event_order_resend:

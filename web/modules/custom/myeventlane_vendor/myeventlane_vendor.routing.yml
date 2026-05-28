@@ -532,7 +532,7 @@ myeventlane_vendor.console.event_overview:
   path: '/vendor/events/{event}/overview'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_event_overview:overview'
-    _title: 'Event overview'
+    _title: 'Manage event'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'

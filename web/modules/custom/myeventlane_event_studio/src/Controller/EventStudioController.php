@@ -260,6 +260,8 @@ final class EventStudioController extends ControllerBase {
       'published' => $node->isPublished(),
       'can_publish' => $readiness->ready,
       'current_section' => $section,
+      'show_manage_event_link' => TRUE,
+      'manage_event_url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $node->id()])->toString(),
       'changed' => $node->getChangedTime(),
       'revision_id' => (int) $node->getRevisionId(),
     ];

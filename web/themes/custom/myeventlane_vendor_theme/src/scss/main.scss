@@ -107,6 +107,7 @@
   @include meta.load-css('pages/analytics');
   @include meta.load-css('pages/mel-dashboard');
   @include meta.load-css('pages/vendor-events');
+  @include meta.load-css('pages/event-mission-control');
   @include meta.load-css('pages/settings');
   @include meta.load-css('pages/vendor-console-stack');
 }

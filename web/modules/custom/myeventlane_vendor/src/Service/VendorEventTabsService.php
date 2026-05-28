@@ -113,7 +113,7 @@ final class VendorEventTabsService {
     $rows = [
       [
         'key' => 'overview',
-        'label' => (string) $t->translate('Overview'),
+        'label' => (string) $t->translate('Manage event'),
         'route' => 'myeventlane_vendor.console.event_workspace',
         'params' => ['event' => $id],
         'disabled' => FALSE,

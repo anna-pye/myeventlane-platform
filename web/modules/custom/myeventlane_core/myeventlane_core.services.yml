@@ -1,5 +1,11 @@
 services:
 
+  myeventlane_core.platform_fee_settings:
+    class: Drupal\myeventlane_core\Service\PlatformFeeSettings
+    arguments:
+      - '@config.factory'
+      - '@string_translation'
+
   myeventlane_core.entity_id_normalizer:
     class: Drupal\myeventlane_core\Service\EntityIdNormalizer
 

@@ -36,6 +36,14 @@
     {% if card.price_label %}
       <p class="mel-event-extra-card__price">{{ card.price_label }}</p>
     {% endif %}
+    {% if card.stock_label|default('') %}
+      <p class="mel-event-extra-card__stock mel-event-extra-card__stock--{{ card.stock_state|default('unknown') }}">
+        {{ card.stock_label }}
+      </p>
+    {% endif %}
+    {% if card.limit_per_order_label|default('') %}
+      <p class="mel-event-extra-card__stock-limit">{{ card.limit_per_order_label }}</p>
+    {% endif %}
     {% if card.capacity_note|default('') %}
       <p class="mel-event-extra-card__quantity-note">
         <span class="mel-event-extra-card__quantity-label">{{ 'Quantity note'|t }}:</span>

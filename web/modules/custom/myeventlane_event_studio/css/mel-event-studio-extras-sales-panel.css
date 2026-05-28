@@ -1,0 +1,136 @@
+/**
+ * Merch & add-on sales panel (Manage event dashboard).
+ */
+
+.mel-event-extras-studio__extras-sales {
+  margin-block: 0;
+}
+
+.mel-event-extras-studio__extras-sales-header {
+  margin-block-end: 1rem;
+}
+
+.mel-event-extras-studio__extras-sales-helper {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+}
+
+.mel-event-extras-studio__extras-sales-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block-end: 1rem;
+}
+
+@media (min-width: 640px) {
+  .mel-event-extras-studio__extras-sales-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.mel-event-extras-studio__extras-sales-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.mel-event-extras-studio__extras-sales-metric-label {
+  font-size: 0.75rem;
+  color: rgba(15, 23, 42, 0.65);
+}
+
+.mel-event-extras-studio__extras-sales-metric-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mel-event-extras-studio__extras-sales-table-wrap {
+  overflow-x: auto;
+}
+
+.mel-event-extras-studio__extras-sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.mel-event-extras-studio__extras-sales-table th,
+.mel-event-extras-studio__extras-sales-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.mel-event-extras-studio__extras-sales-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-block-start: 1rem;
+}
+
+.mel-event-extras-studio__extras-sales-deferred {
+  font-size: 0.8125rem;
+}
+
+.mel-event-extras-studio__extras-sales--compact .mel-event-extras-studio__extras-sales-header {
+  display: none;
+}
+
+.mel-event-extras-studio__operational-docs {
+  margin-block-start: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.75rem;
+  background: rgba(244, 241, 250, 0.55);
+}
+
+.mel-event-extras-studio__operational-docs-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mel-event-extras-studio__operational-docs-helper {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.875rem;
+}
+
+.mel-event-extras-studio__operational-docs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-event-extras-studio__operational-docs-actions .mel-btn--disabled,
+.mel-event-extras-studio__operational-docs-actions button:disabled {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-height: 2.75rem;
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.mel-event-extras-studio__operational-docs-coming-soon {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.mel-event-extras-studio__operational-docs-notice {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.mel-event-extras-studio__operational-docs-note {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}

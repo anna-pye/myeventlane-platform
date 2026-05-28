@@ -223,6 +223,7 @@ services:
       - '@myeventlane_commerce.operational_merchandise_manager'
       - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
       - '@myeventlane_vendor.event_access_checker'
+      - '@myeventlane_commerce.operational_variation_stock_resolver'
       - '@string_translation'
       - '@logger.channel.myeventlane_event_studio'
 
@@ -234,6 +235,24 @@ services:
       - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@myeventlane_commerce.event_operational_addon_builder'
       - '@myeventlane_event_studio.vendor_operational_product_creation_manager'
+      - '@myeventlane_commerce.operational_variation_stock_resolver'
+      - '@string_translation'
+
+  myeventlane_event_studio.commerce_sales_summary_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioCommerceSalesSummaryBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
+      - '@myeventlane_commerce.ticket_variation_sold'
+      - '@commerce_price.currency_formatter'
+      - '@datetime.time'
+      - '@string_translation'
+
+  myeventlane_event_studio.extras_configured_summary_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioExtrasConfiguredSummaryBuilder
+    arguments:
+      - '@myeventlane_event_studio.event_extras_builder'
       - '@string_translation'
 
   myeventlane_event_studio.operational_product_studio_field_registry:
@@ -247,6 +266,7 @@ services:
       - '@myeventlane_event_studio.event_extras_builder'
       - '@myeventlane_event_studio.vendor_operational_product_creation_manager'
       - '@myeventlane_event_studio.operational_product_studio_field_registry'
+      - '@myeventlane_commerce.operational_variation_stock_resolver'
       - '@string_translation'
 
   myeventlane_event_studio.vendor_productisation_studio_builder:

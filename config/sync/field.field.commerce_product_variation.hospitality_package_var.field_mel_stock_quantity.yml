@@ -1,0 +1,23 @@
+uuid: 471a8ec0-c9d7-4314-a90c-71a4ebc2da34
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.hospitality_package_var
+    - field.storage.commerce_product_variation.field_mel_stock_quantity
+id: commerce_product_variation.hospitality_package_var.field_mel_stock_quantity
+field_name: field_mel_stock_quantity
+entity_type: commerce_product_variation
+bundle: hospitality_package_var
+label: 'Stock quantity'
+description: 'Maximum quantity available for this option.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

@@ -13,6 +13,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
+use Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver;
 use Drupal\myeventlane_core\Commerce\OperationalProductBundles;
 use Drupal\node\NodeInterface;
 
@@ -29,6 +30,7 @@ final class EventStudioEventExtrasBuilder {
     private readonly OperationalExtraVisualPresenter $visualPresenter,
     private readonly EventOperationalAddonBuilder $eventOperationalAddonBuilder,
     private readonly VendorOperationalProductCreationManager $productCreationManager,
+    private readonly OperationalVariationStockResolver $stockResolver,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -86,6 +88,7 @@ final class EventStudioEventExtrasBuilder {
     $editor_defaults = $this->productCreationManager->extractEditorDefaultsFromProduct($product);
     $product_status = (string) ($editor_defaults['product_status'] ?? 'hidden');
     $status_options = $this->productCreationManager->productStatusOptions();
+    $stock_summary = $this->stockResolver->summarizeProductStock($product);
 
     return [
       'product_id' => (int) $product->id(),
@@ -106,6 +109,12 @@ final class EventStudioEventExtrasBuilder {
       'product_status' => $product_status,
       'product_status_label' => $status_options[$product_status] ?? $product_status,
       'capacity_note' => (string) ($editor_defaults['capacity_note'] ?? ''),
+      'stock_state' => (string) ($stock_summary['stock_state'] ?? ''),
+      'stock_label' => (string) ($stock_summary['stock_label'] ?? ''),
+      'stock_sold_out' => !empty($stock_summary['sold_out']),
+      'stock_low' => !empty($stock_summary['low_stock']),
+      'stock_unlimited' => !empty($stock_summary['unlimited']),
+      'limit_per_order_label' => (string) ($stock_summary['limit_label'] ?? ''),
       'booking_visibility_label' => $product->isPublished()
         ? (string) $this->t('Visible on booking page')
         : (string) $this->t('Not on booking page'),
