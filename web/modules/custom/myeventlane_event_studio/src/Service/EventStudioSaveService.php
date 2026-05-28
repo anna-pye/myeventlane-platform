@@ -159,12 +159,19 @@ final class EventStudioSaveService {
     $this->applyAccessibilityTextPayload($node, $payload);
 
     if ($node->hasField('field_event_type') && isset($payload['field_event_type'])) {
-      $node->set('field_event_type', (string) $payload['field_event_type']);
+      $submitted_event_type = trim((string) $payload['field_event_type']);
+      if ($submitted_event_type !== '') {
+        $node->set('field_event_type', $submitted_event_type);
+      }
     }
 
-    $event_type = (string) ($payload['field_event_type'] ?? ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
-      ? (string) $node->get('field_event_type')->value
-      : 'rsvp'));
+    $event_type = trim((string) ($payload['field_event_type'] ?? ''));
+    if ($event_type === '' && $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
+      $event_type = (string) $node->get('field_event_type')->value;
+    }
+    if ($event_type === '') {
+      $event_type = 'rsvp';
+    }
 
     $ticket_errors = $this->applyTicketPayload($node, $payload, $event_type, $draft);
     if ($ticket_errors !== []) {
@@ -587,11 +594,11 @@ final class EventStudioSaveService {
     }
 
     if ($node->hasField('field_product_target')) {
-      if ($event_type === 'paid') {
+      if (in_array($event_type, ['paid', 'both'], TRUE)) {
         // Preserve field_product_target unless we successfully set a new valid product id.
         // Missing key / empty / zero from POST must NOT clear an existing link: conditional ticket UI,
         // autosave fragments, and multi-step wizard saves often omit the autocomplete while still paid.
-        // Switching booking mode away from paid clears in the branch below.
+        // Switching booking mode away from paid/both clears in the branch below.
         $has_explicit = array_key_exists('field_product_target', $payload);
         $raw_pid = $has_explicit ? $payload['field_product_target'] : NULL;
         $pid = ($raw_pid !== NULL && $raw_pid !== '' && (is_int($raw_pid) || is_numeric($raw_pid)))
@@ -619,7 +626,7 @@ final class EventStudioSaveService {
       }
     }
 
-    if (!$draft && $event_type === 'paid' && $node->hasField('field_product_target') && $node->get('field_product_target')->isEmpty()) {
+    if (!$draft && in_array($event_type, ['paid', 'both'], TRUE) && $node->hasField('field_product_target') && $node->get('field_product_target')->isEmpty()) {
       return ['Paid events need a ticket product. Link one above or open the Advanced ticket manager from Event Studio.'];
     }
 
