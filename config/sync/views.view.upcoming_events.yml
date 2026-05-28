@@ -389,7 +389,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: compact_commerce
       query:
         type: views_query
         options:
@@ -655,7 +655,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         pager: false
         row: false
@@ -930,7 +930,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         empty: false
         pager: false
@@ -970,7 +970,7 @@ display:
           plugin_id: text
           empty: true
           content:
-            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">Nothing listed for tonight yet</h3><p class="mel-empty-state__what">Explore upcoming events or check back as hosts publish new plans.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Explore events</a> <a class="mel-link" href="/events/this-weekend">Browse this weekend</a></p></div>'
+            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">Nothing on tonight yet</h3><p class="mel-empty-state__what">Browse upcoming events across MyEventLane — new listings land throughout the day.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Browse upcoming events</a></p></div>'
             format: full_html
           tokenize: false
       filters:
@@ -1205,7 +1205,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser_tonight
+          view_mode: compact_commerce
       defaults:
         empty: false
         pager: false
@@ -1452,7 +1452,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         pager: false
         row: false
@@ -1510,7 +1510,7 @@ display:
           plugin_id: text
           empty: true
           content:
-            value: '<div class="mel-empty-state mel-empty-state--governed mel-empty-state--browse-filtered" role="status"><h3 class="mel-empty-state__heading">No events match your filters</h3><p class="mel-empty-state__what">Try clearing filters, browsing all upcoming events, or exploring free events and this weekend.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Browse all events</a> <a class="mel-link" href="/events/free">Free events</a> <a class="mel-link" href="/events/this-weekend">This weekend</a></p></div>'
+            value: '<div class="mel-empty mel-empty--browse" role="status"><p>No events found — try adjusting your filters.</p></div>'
             format: full_html
           tokenize: false
       filters:
@@ -1808,7 +1808,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         empty: false
         pager: false
@@ -2129,7 +2129,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         title: false
         pager: false
@@ -2524,7 +2524,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         empty: false
         pager: false
@@ -2842,7 +2842,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         title: false
         pager: false
@@ -3150,7 +3150,7 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: teaser
+          view_mode: compact_commerce
       defaults:
         title: false
         pager: false

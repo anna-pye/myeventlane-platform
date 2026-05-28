@@ -5,13 +5,24 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\node\NodeInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Wizard step: publishing (live / draft).
  */
 class EventStudioPublishForm extends EventStudioBaseForm {
+
+  private ?DomainDetector $domainDetector = NULL;
+
+  public static function create(ContainerInterface $container): static {
+    $form = parent::create($container);
+    $form->domainDetector = $container->get('myeventlane_core.domain_detector');
+    return $form;
+  }
 
   /**
    * {@inheritdoc}
@@ -69,7 +80,16 @@ class EventStudioPublishForm extends EventStudioBaseForm {
       return;
     }
     $this->messenger()->addStatus($this->t('Event saved.'));
-    $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $saved->id()]));
+
+    $canonical_path = Url::fromRoute('entity.node.canonical', ['node' => $saved->id()])->toString();
+    $target = $this->domainDetector?->publicUrl($canonical_path) ?? $canonical_path;
+
+    if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
+      $form_state->setResponse(new TrustedRedirectResponse($target, 302));
+    }
+    else {
+      $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $saved->id()]));
+    }
   }
 
   /**

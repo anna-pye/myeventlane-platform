@@ -1,0 +1,144 @@
+metadata:
+  exported_from: local
+  export_reason: post_purchase_help_articles_batch_02
+  generated_at: '2026-05-22T19:23:25+10:00'
+  notes:
+    - 'source_nid is not used for these draft-derived articles unless a node already exists'
+    - 'import identity should use stable key and/or alias'
+    - 'calendar and wallet articles are deliberately excluded pending verification'
+articles:
+  how_to_access_your_tickets:
+    source_nid: null
+    title: 'How to access your tickets'
+    alias: '/help/attendees/how-to-access-your-tickets'
+    audience: public
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'Where to find your tickets and booking details after purchase — in email, My tickets when signed in, or on links sent after checkout.'
+    body:
+      format: full_html
+      value: |-
+        <p>After you buy a ticket or complete an RSVP, you need a reliable way to open your booking before the event. This page explains where to look.</p>
+
+        <h2>What this means</h2>
+        <p>Your tickets and booking details may be in a confirmation email, in <strong>My tickets</strong> when you are signed in, or on a link sent after purchase. What you see depends on the event setup and whether tickets have been issued yet.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Check your inbox for a confirmation message from MyEventLane or the organiser.</li>
+          <li>Check your junk or spam folder.</li>
+          <li>Sign in with the same email you used at checkout.</li>
+          <li>Open <strong>My tickets</strong> at <a href="/my-tickets">/my-tickets</a>.</li>
+          <li>Select <strong>View booking</strong> on the event you are attending.</li>
+          <li>If you see an assign-tickets step, complete it so each attendee has the details the organiser needs.</li>
+          <li>Open any ticket link, QR code, or PDF shown on the booking page when they appear.</li>
+        </ol>
+
+        <h2>Good to know</h2>
+        <ul>
+          <li><strong>My tickets</strong> is for signed-in buyers. If you checked out without an account, you may rely on email links until you sign in or create an account with the same email.</li>
+          <li>QR codes and PDF tickets may arrive in a follow-up message or appear later in <strong>My tickets</strong> while tickets are being issued.</li>
+          <li>For questions about the venue, schedule, or what to bring, check the event page or contact the organiser if their details are listed there.</li>
+        </ul>
+
+        <h2>Related help</h2>
+        <ul>
+          <li><a href="/help/attendees/after-you-book-a-ticket">After you book a ticket</a></li>
+          <li><a href="/help/attendees/how-to-use-my-tickets">How to use My tickets</a></li>
+          <li><a href="/help/attendees/missing-ticket-help">Missing ticket or confirmation email</a></li>
+          <li><a href="/help/attendees/contacting-support">Contacting support</a></li>
+          <li><a href="/help/attendees/having-trouble-checking-out">Having trouble checking out</a></li>
+        </ul>
+  how_to_use_my_tickets:
+    source_nid: null
+    title: 'How to use My tickets'
+    alias: '/help/attendees/how-to-use-my-tickets'
+    audience: public
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'How to open upcoming and past bookings, view event details, and reach ticket links from your signed-in My tickets page.'
+    body:
+      format: full_html
+      value: |-
+        <p><strong>My tickets</strong> is your signed-in home for upcoming and past bookings. Use it to open event details, download calendar files, and reach ticket links when they are ready.</p>
+
+        <h2>What this means</h2>
+        <p>Each booking card shows the event name, date, booking reference, and amount paid for ticket orders. From there you can open the full booking page for calendar options, wallet passes, and ticket access when available.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Sign in with the email you used at checkout.</li>
+          <li>Go to <strong>My tickets</strong> at <a href="/my-tickets">/my-tickets</a>.</li>
+          <li>Under <strong>Upcoming</strong>, find your event and select <strong>View booking</strong>.</li>
+          <li>On the booking page, review ticket holders, add-ons, and any steps still required (such as assigning names).</li>
+          <li>Use <strong>Add to calendar</strong> on a booking when that option is shown.</li>
+          <li>Open wallet or ticket links from the booking page when they appear.</li>
+          <li>For past events, expand <strong>Past</strong> to find older bookings.</li>
+        </ol>
+
+        <h2>Good to know</h2>
+        <ul>
+          <li>Calendar and wallet options may not appear on every booking. They depend on the event and site configuration.</li>
+          <li>If a booking still shows as processing, ticket links may appear after issuance completes. Refresh <strong>My tickets</strong> or check your email before contacting support.</li>
+          <li>Refund requests, when available, are started from the booking or support area.</li>
+        </ul>
+
+        <h2>Related help</h2>
+        <ul>
+          <li><a href="/help/attendees/how-to-access-your-tickets">How to access your tickets</a></li>
+          <li>Adding an event to your calendar</li>
+          <li>Wallet passes explained</li>
+          <li><a href="/help/attendees/missing-ticket-help">Missing ticket or confirmation email</a></li>
+          <li>How to request a refund</li>
+        </ul>
+  missing_ticket_help:
+    source_nid: null
+    title: 'Missing ticket or confirmation email'
+    alias: '/help/attendees/missing-ticket-help'
+    audience: public
+    article_type: troubleshooting
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'What to do if a confirmation email or ticket link has not arrived — check inbox, My tickets, and when to contact support.'
+    body:
+      format: full_html
+      value: |-
+        <p>If you expected a confirmation email or ticket link and nothing has arrived, work through the steps below before trying to pay again.</p>
+
+        <h2>What this means</h2>
+        <p>Email can be delayed, filtered to junk, or sent to a typo address. Your booking may still exist in <strong>My tickets</strong> even when email is slow. A missing message does not by itself tell you whether checkout finished — check your account and order status first.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Wait a few minutes and refresh your inbox.</li>
+          <li>Search for messages from MyEventLane or the event organiser, including junk and spam folders.</li>
+          <li>Sign in with the exact email address you entered at checkout.</li>
+          <li>Open <strong>My tickets</strong> at <a href="/my-tickets">/my-tickets</a> and look for the event under <strong>Upcoming</strong>.</li>
+          <li>If you see the booking, open <strong>View booking</strong> and check for ticket links, QR codes, or an assign-tickets step.</li>
+          <li>If you checked out as a guest, try signing in or registering with the same email, or use any secure link from an earlier message.</li>
+          <li>If you still cannot find the booking, contact MyEventLane support with the event name, date, and your email address. You can also contact the organiser through the event page when details are listed.</li>
+        </ol>
+
+        <h2>Good to know</h2>
+        <ul>
+          <li>Do not submit a second payment unless you are confident no booking was created and the organiser has advised you to try again.</li>
+          <li>Ticket QR codes and PDFs may be issued after the initial confirmation when the organiser assigns tickets or issuance is still in progress.</li>
+          <li>Support may ask for your booking reference, payment date, or a screenshot of any bank pending charge. That helps them locate the order without guessing about payment status.</li>
+        </ul>
+
+        <h2>Related help</h2>
+        <ul>
+          <li><a href="/help/attendees/having-trouble-checking-out">Having trouble checking out</a></li>
+          <li><a href="/help/attendees/how-to-access-your-tickets">How to access your tickets</a></li>
+          <li><a href="/help/attendees/how-to-use-my-tickets">How to use My tickets</a></li>
+          <li><a href="/help/attendees/contacting-support">Contacting support</a></li>
+          <li><a href="/help/attendees/after-you-book-a-ticket">After you book a ticket</a></li>
+        </ul>

@@ -25,7 +25,7 @@ use InvalidArgumentException;
  * Forms and controllers must not call mel_ticket_type storage->create() directly;
  * use this service so Commerce projection stays consistent.
  */
-final class TicketTierLifecycleService {
+final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface {
 
   public const CURRENCY_MISMATCH_MESSAGE = 'All tickets for an event must use the same currency.';
 
@@ -660,22 +660,14 @@ final class TicketTierLifecycleService {
   }
 
   /**
-   * Enforces the MEL guided model for newly created joinable ticket types.
+   * Optional best-value guidance for newly created joinable ticket types.
+   *
+   * Previously enforced as a hard block; now advisory only so vendors can
+   * save tickets without designating a "best value" tier upfront.
    *
    * @param array<string, mixed> $payload
    */
   private function assertBestValueSelectionForNewTicket(NodeInterface $event, array $payload): void {
-    $kind = (string) ($payload['ticket_kind'] ?? '');
-    if (!in_array($kind, ['paid', 'rsvp'], TRUE)) {
-      return;
-    }
-
-    $analysis = $this->analyzeBestValueTickets($event);
-    $joinableCount = $analysis['joinable_count'] + 1;
-    $hasBestValue = $analysis['has_best_value'] || !empty($payload['field_is_best_value']);
-    if ($joinableCount > 1 && !$hasBestValue) {
-      throw new InvalidArgumentException(self::BEST_VALUE_REQUIRED_MESSAGE);
-    }
   }
 
   /**

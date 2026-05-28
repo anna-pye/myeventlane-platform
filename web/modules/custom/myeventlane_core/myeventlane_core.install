@@ -835,3 +835,24 @@ function myeventlane_core_update_9118(): void {
   $module_schema = myeventlane_core_schema();
   $schema->createTable('myeventlane_public_analytics_event', $module_schema['myeventlane_public_analytics_event']);
 }
+
+/**
+ * Points main menu Support at the public Help Centre hub (not /my/support).
+ *
+ * /my/support remains on the account menu; a restricted main-menu link was
+ * hidden for anonymous users while Twig also rendered a hardcoded Support item.
+ */
+function myeventlane_core_update_9119(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('menu_link_content');
+  $links = $storage->loadByProperties([
+    'menu_name' => 'main',
+    'title' => 'Support',
+  ]);
+  foreach ($links as $link) {
+    $uri = $link->get('link')->uri ?? '';
+    if ($uri === 'internal:/my/support' || str_ends_with((string) $uri, '/my/support')) {
+      $link->set('link', ['uri' => 'internal:/help']);
+      $link->save();
+    }
+  }
+}

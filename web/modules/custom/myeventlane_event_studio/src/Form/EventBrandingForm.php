@@ -9,6 +9,7 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\myeventlane_event_studio\Service\BrandingHeroFocalAugmenter;
+use Drupal\myeventlane_event_studio\Service\EventBrandingPreviewBuilder;
 use Drupal\myeventlane_event_studio\Service\EventPageStyleResolver;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStyleAccessManager;
@@ -25,6 +26,8 @@ final class EventBrandingForm extends EventStudioBaseForm {
   private EventPageStyleResolver $eventPageStyleResolver;
 
   private BrandingHeroFocalAugmenter $brandingHeroFocalAugmenter;
+
+  private EventBrandingPreviewBuilder $eventBrandingPreviewBuilder;
 
   /**
    * {@inheritdoc}
@@ -50,7 +53,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
    * after parent::create() are not re-initialized unless restored here.
    */
   private function ensureInjectedServices(?ContainerInterface $container = NULL): void {
-    if (isset($this->eventStyleAccess, $this->eventPageStyleResolver, $this->brandingHeroFocalAugmenter)) {
+    if (isset($this->eventStyleAccess, $this->eventPageStyleResolver, $this->brandingHeroFocalAugmenter, $this->eventBrandingPreviewBuilder)) {
       return;
     }
     $container ??= \Drupal::getContainer();
@@ -62,6 +65,9 @@ final class EventBrandingForm extends EventStudioBaseForm {
     }
     if (!isset($this->brandingHeroFocalAugmenter)) {
       $this->brandingHeroFocalAugmenter = $container->get('myeventlane_event_studio.branding_hero_focal_augmenter');
+    }
+    if (!isset($this->eventBrandingPreviewBuilder)) {
+      $this->eventBrandingPreviewBuilder = $container->get('myeventlane_event_studio.event_branding_preview_builder');
     }
   }
 
@@ -86,7 +92,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
   }
 
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
-    $this->messenger()->addStatus($this->t('Branding saved.'));
+    $this->messenger()->addStatus($this->t('Branding saved. Your public event page preview has been updated.'));
     $form_state->setRedirect('myeventlane_event_studio.workspace_branding', ['node' => $saved->id()]);
   }
 
@@ -454,6 +460,9 @@ final class EventBrandingForm extends EventStudioBaseForm {
       ),
       '#weight' => 15,
     ];
+
+    $form['mel']['branding_preview'] = $this->eventBrandingPreviewBuilder->build($node);
+    $form['mel']['branding_preview']['#weight'] = 16;
 
     $style_options = [
       EventPageStyleResolver::STYLE_CLASSIC => $this->t('Classic MyEventLane'),

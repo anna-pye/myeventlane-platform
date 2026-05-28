@@ -62,6 +62,7 @@ entity.myeventlane_vendor.canonical:
     parameters:
       myeventlane_vendor:
         type: entity:myeventlane_vendor
+    _theme: myeventlane_theme
 
 # Vendor settings page (Field UI base route).
 myeventlane_vendor.settings:
@@ -84,6 +85,7 @@ myeventlane_vendor.public_list:
     _permission: 'access content'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_theme
 
 # Alias for /organisers (points to same controller).
 myeventlane_vendor.organisers:
@@ -95,6 +97,7 @@ myeventlane_vendor.organisers:
     _permission: 'access content'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_theme
 
 # Stripe Connect onboarding.
 myeventlane_vendor.stripe_connect:

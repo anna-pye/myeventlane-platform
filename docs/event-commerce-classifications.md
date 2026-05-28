@@ -34,7 +34,7 @@ Classifications are metadata. They do not create products, variations, order ite
 
 The event ticket product is classified as `ticket` when it is resolved from the event `field_product_target` relationship.
 
-Other products and purchasables may be classified only from explicit owning-domain maps, such as a product bundle to classification map supplied by future merchandise or add-on services. The resolver must not guess that a bundle is merchandise, add-on, donation, or upgrade without that owning-domain contract.
+Other products and purchasables may be classified only from explicit owning-domain maps, such as a product bundle to classification map supplied by owning services. Operational Commerce bundles use `Drupal\myeventlane_core\Commerce\OperationalProductBundles::productBundleClassifications()` as the single bundle map. The resolver must not guess that a bundle is merchandise, add-on, donation, or upgrade without that owning-domain contract.
 
 ## Resolver Behavior
 

@@ -237,6 +237,11 @@ final class EventRecommendationService {
       ->condition('nid', (int) $node->id(), '<>')
       ->condition('field_event_state', $excluded_states, 'NOT IN');
 
+    $visibilityGroup = $query->orConditionGroup()
+      ->condition('field_event_visibility', 'public')
+      ->notExists('field_event_visibility');
+    $query->condition($visibilityGroup);
+
     UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($query, $now);
 
     $query

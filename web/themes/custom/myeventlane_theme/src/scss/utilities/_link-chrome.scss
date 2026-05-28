@@ -1,0 +1,15 @@
+// ==========================================================================
+// Global link chrome — no underlines site-wide
+// ==========================================================================
+// Loaded last in main.scss so it wins over component hover underline rules.
+// Keyboard visibility uses :focus-visible rings (base/_base.scss), not underline.
+
+a:any-link,
+a:hover,
+a:active,
+a:focus,
+a:focus-visible,
+a:visited {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+}

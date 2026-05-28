@@ -55,6 +55,7 @@ services:
       - '@config.factory'
       - '@logger.channel.myeventlane_commerce'
       - '@myeventlane_commerce.order_item_classifier'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
 
   myeventlane_commerce.platform_fee_order_processor:
     class: Drupal\myeventlane_commerce\OrderProcessor\PlatformFeeOrderProcessor
@@ -144,12 +145,26 @@ services:
       - '@myeventlane_commerce.ticket_booking_session'
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@current_user'
+      - '@string_translation'
       - '@myeventlane_commerce.ticket_access_code'
       - '@myeventlane_commerce.ticket_group_eligibility'
       - '@myeventlane_commerce.ticket_capacity'
       - '@cache.data'
       - '@current_route_match'
       - '@request_stack'
+
+  myeventlane_commerce.event_default_ticket_resolver:
+    alias: myeventlane_event.ticket_type_manager
+
+  myeventlane_commerce.customer_ticket_tier_display:
+    class: Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder
+    arguments:
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@commerce_price.currency_formatter'
+      - '@myeventlane_commerce.ticket_tier_waitlist'
+      - '@myeventlane_commerce.event_default_ticket_resolver'
+      - '@string_translation'
 
   myeventlane_commerce.ticket_waitlist_order_subscriber:
     class: Drupal\myeventlane_commerce\EventSubscriber\TicketWaitlistOrderSubscriber
@@ -173,6 +188,12 @@ services:
     arguments:
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@myeventlane_commerce.ticket_booking_session'
+      - '@commerce_cart.cart_provider'
+      - '@commerce_cart.cart_manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_capacity.order_inspector'
+      - '@myeventlane_commerce.ticket_capacity'
+      - '@logger.channel.myeventlane_commerce'
     tags:
       - { name: controller.service_arguments }
 

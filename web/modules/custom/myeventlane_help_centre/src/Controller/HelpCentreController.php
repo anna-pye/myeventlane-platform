@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
 use Drupal\myeventlane_help_centre\Service\MelSupportSettingsBuilder;
 use Drupal\taxonomy\TermInterface;
@@ -62,6 +63,8 @@ final class HelpCentreController extends ControllerBase {
 
     $melPayload = $this->melSupportSettingsBuilder->buildDrupalSettings('hub', TRUE);
 
+    $featuredArticlesHasContent = $this->hasFeaturedArticles();
+
     $build = [
       '#theme' => 'help_centre_home',
       '#context' => $isVendorContext ? 'vendor' : NULL,
@@ -70,7 +73,10 @@ final class HelpCentreController extends ControllerBase {
         'value' => $searchValue,
         'placeholder' => $this->t('Search help articles...'),
       ],
-      '#featured_articles' => $this->buildView('mel_help_featured_articles', 'block_featured'),
+      '#featured_articles_has_content' => $featuredArticlesHasContent,
+      '#featured_articles' => $featuredArticlesHasContent
+        ? $this->buildView('mel_help_featured_articles', 'block_featured')
+        : [],
       '#vendors' => $isVendorContext ? $this->buildView('mel_help_vendor_help', 'block_vendors') : [],
       '#faq_listing' => $this->buildView('mel_help_faq', 'block_faq'),
       '#ia_sections' => $isVendorContext ? [] : $this->buildHelpCentreIaSections(),
@@ -144,15 +150,26 @@ final class HelpCentreController extends ControllerBase {
   /**
    * Renders the organiser Help Centre listing.
    */
-  public function organisersIndex(): array {
+  public function organisersIndex(): array|RedirectResponse {
+    if (VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser())) {
+      return $this->redirect('myeventlane_help_centre.vendors_index', [], [], 302);
+    }
     return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_organiser_help', 'block_organisers');
   }
 
   /**
    * Renders the vendor Help Centre listing.
    */
-  public function vendorsIndex(): array {
-    return $this->buildViewPage((string) $this->t('Vendor help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
+  public function vendorsIndex(): array|RedirectResponse {
+    $account = $this->currentUser();
+    if (!$account->isAuthenticated()) {
+      return $this->redirect('user.login', [], [
+        'query' => [
+          'destination' => '/help/vendors',
+        ],
+      ], 302);
+    }
+    return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
   }
 
   /**
@@ -300,7 +317,11 @@ final class HelpCentreController extends ControllerBase {
           ],
           [
             'title' => (string) $this->t('Vendor help'),
-            'url' => Url::fromRoute('myeventlane_help_centre.vendors_index')->toString(),
+            'url' => $this->currentUser()->isAuthenticated()
+              ? Url::fromRoute('myeventlane_help_centre.vendors_index')->toString()
+              : Url::fromRoute('user.login', [], [
+                'query' => ['destination' => '/help/vendors'],
+              ])->toString(),
             'excerpt' => (string) $this->t('Vendor profile, applications, and organiser console basics.'),
           ],
         ],
@@ -361,6 +382,28 @@ final class HelpCentreController extends ControllerBase {
     }
 
     return $build;
+  }
+
+  /**
+   * Whether published featured help articles exist for the hub section.
+   */
+  private function hasFeaturedArticles(): bool {
+    try {
+      $view = Views::getView('mel_help_featured_articles');
+      if (!$view) {
+        return FALSE;
+      }
+      $view->setDisplay('block_featured');
+      _myeventlane_help_centre_apply_browse_listing_policy($view);
+      $view->execute();
+      return count($view->result) > 0;
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not count featured help articles: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return FALSE;
+    }
   }
 
   /**

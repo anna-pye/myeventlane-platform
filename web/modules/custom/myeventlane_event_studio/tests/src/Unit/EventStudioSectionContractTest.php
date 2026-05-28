@@ -51,6 +51,7 @@ final class EventStudioSectionContractTest extends TestCase {
     $this->assertStringContainsString('form:' . $formClass, $contents);
     $this->assertStringContainsString("routeName: 'myeventlane_event_studio.workspace_extras'", $contents);
     $this->assertStringContainsString("id: 'extras'", $contents);
+    $this->assertStringContainsString("title: 'Merch & add-ons'", $contents);
   }
 
   /**

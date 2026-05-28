@@ -9,6 +9,7 @@ use Drupal\Component\Utility\Html;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
+use Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder;
 use Drupal\myeventlane_commerce\Service\TicketAccessCodeService;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\myeventlane_commerce\Service\TicketBookingSessionService;
@@ -63,6 +64,7 @@ final class TicketSelectionForm extends FormBase {
     protected CapacityOrderInspector $orderInspector,
     protected TicketTypeManager $ticketTypeManager,
     protected ?EventCapacityServiceInterface $capacityService = NULL,
+    protected ?CustomerTicketTierDisplayBuilder $customerTicketTierDisplay = NULL,
   ) {}
 
   /**
@@ -84,6 +86,9 @@ final class TicketSelectionForm extends FormBase {
       $container->get('myeventlane_event.ticket_type_manager'),
       $container->has('myeventlane_capacity.service')
         ? $container->get('myeventlane_capacity.service')
+        : NULL,
+      $container->has('myeventlane_commerce.customer_ticket_tier_display')
+        ? $container->get('myeventlane_commerce.customer_ticket_tier_display')
         : NULL,
     );
   }
@@ -125,8 +130,10 @@ final class TicketSelectionForm extends FormBase {
 
     $form['booking_access'] = [
       '#type' => 'fieldset',
+      '#tree' => TRUE,
       '#title' => $this->t('Access code'),
       '#description' => $this->t('If you have an organiser code, enter it here to reveal hidden or invite-only tickets for this browser session.'),
+      '#tree' => TRUE,
       '#attributes' => ['class' => ['mel-ticket-booking-access']],
       '#weight' => 25,
     ];
@@ -858,6 +865,9 @@ final class TicketSelectionForm extends FormBase {
     ?TicketTypeInterface $tier,
     int $variationId,
   ): string {
+    if ($this->customerTicketTierDisplay instanceof CustomerTicketTierDisplayBuilder) {
+      return $this->customerTicketTierDisplay->buyerFacingAvailabilityMessage($event, $tier, $variationId);
+    }
     if (!$tier instanceof TicketTypeInterface) {
       return (string) $this->t('Available');
     }

@@ -124,7 +124,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: compact_commerce
       query:
         type: views_query
         options:

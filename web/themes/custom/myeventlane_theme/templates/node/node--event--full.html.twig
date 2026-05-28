@@ -20,6 +20,12 @@
   {% set mel_cta_text = mel_booking_action_label %}
 {% endif %}
 {% set mel_cta_type_ui = event_ui is defined ? (event_ui.cta_type|default('primary')) : 'primary' %}
+{% if mel_cta_text|striptags|trim is empty and event_cta is defined and event_cta.label|default('')|striptags|trim is not empty %}
+  {% set mel_cta_text = event_cta.label %}
+{% endif %}
+{% if mel_cta_text|striptags|trim is empty and cta_type is defined and cta_type == 'none' and (mel_event_state is not defined or mel_event_state not in ['ended', 'cancelled']) and (event_ui is not defined or event_ui.show_cta|default(true)) %}
+  {% set mel_cta_text = 'Booking coming soon'|t %}
+{% endif %}
 
 {# Registration status chip: cta_type + labels aligned with EventCtaResolver and public event cards. #}
 {% set mel_mode_chip = '' %}
@@ -85,8 +91,12 @@
       <div class="mel-event-hero__media">
         {% if content.field_event_image %}
           {{ content.field_event_image }}
+        {% elseif image_src is defined and image_src %}
+          <div class="mel-event-hero-card__placeholder mel-event-hero-card__placeholder--branded" role="img" aria-label="{{ label }}">
+            <img src="{{ image_src }}" alt="" class="mel-event-hero-card__placeholder-img" loading="eager" decoding="async" />
+          </div>
         {% else %}
-          <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
+          <div class="mel-event-hero-card__placeholder mel-event-hero-card__placeholder--branded" aria-hidden="true"></div>
         {% endif %}
       </div>
       <div class="mel-event-hero__overlay" aria-hidden="true"></div>
@@ -196,8 +206,8 @@
         {% set expect_text = expect_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
         {# Highlights: render only when there are non-empty items (quick-scan list). #}
-        {% set highlights = [] %}
-        {% if node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
+        {% set highlights = mel_public_highlights|default([]) %}
+        {% if mel_public_highlights is not defined and node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
           {% for ref in node.field_event_highlights %}
             {% set p = ref.entity %}
             {% if p and p.hasField('field_highlight_text') and not p.field_highlight_text.isEmpty %}
@@ -303,7 +313,36 @@
             <h2 class="mel-card__title">{{ 'Event Information'|t }}</h2>
           </div>
           <div class="mel-card__body">
-            {# Location first: venue name, address (field render), map under address. #}
+            {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Date'|t }}</div>
+                <div class="mel-info-row__value">
+                  {{ node.field_event_start.value|date('l, F j, Y') }}
+                  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                    {% set _info_end_day = node.field_event_end.value|date('l, F j, Y') %}
+                    {% if _info_end_day != node.field_event_start.value|date('l, F j, Y') %}
+                      – {{ _info_end_day }}
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Time'|t }}</div>
+                <div class="mel-info-row__value">
+                  {{ node.field_event_start.value|date('g:i A') }}
+                  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                    – {{ node.field_event_end.value|date('g:i A') }}
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+            {% if mel_mode_chip %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Tickets'|t }}</div>
+                <div class="mel-info-row__value">{{ mel_mode_chip }}{% if mel_sidebar_pricing|default('')|striptags|trim is not empty %} · {{ mel_sidebar_pricing }}{% endif %}</div>
+              </div>
+            {% endif %}
+            {# Location: venue name, address (field render), map under address. #}
             {% set info_address = mel_address|default('')|trim %}
             {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
             {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
@@ -390,44 +429,6 @@
             {% endif %}
           </div>
         </div>
-
-        {% if canonical_url %}
-          <section class="mel-event-section mel-event-section--share mel-card mel-card--surface mel-mt-5" id="mel-event-full-share" role="region" aria-labelledby="mel-event-full-share-label">
-            <div class="mel-card__header mel-event-section__header">
-              <h2 class="mel-card__title mel-event-section__title" id="mel-event-full-share-label">{{ 'Share this event'|t }}</h2>
-              <p class="mel-event-section__lede mel-text--muted">{{ 'Send the link to friends who might want to come along.'|t }}</p>
-            </div>
-            <div class="mel-card__body mel-event-section__body">
-              <div class="mel-event-share mel-event-share--panel" role="group" aria-label="{{ 'Share this event'|t }}">
-                <a class="mel-event-share__chip mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
-                  <span class="mel-event-share__chip-icon" aria-hidden="true">
-                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                      <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
-                      <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </span>
-                  <span class="mel-event-share__chip-label">{{ 'Email'|t }}</span>
-                </a>
-                <a class="mel-event-share__chip mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on Facebook (opens in a new tab)'|t }}">
-                  <span class="mel-event-share__chip-icon" aria-hidden="true">
-                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                      <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
-                    </svg>
-                  </span>
-                  <span class="mel-event-share__chip-label">{{ 'Facebook'|t }}</span>
-                </a>
-                <a class="mel-event-share__chip mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
-                  <span class="mel-event-share__chip-icon" aria-hidden="true">
-                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                      <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
-                    </svg>
-                  </span>
-                  <span class="mel-event-share__chip-label">{{ 'X'|t }}</span>
-                </a>
-              </div>
-            </div>
-          </section>
-        {% endif %}
 
         {% if (node.hasField('field_accessibility') and not node.field_accessibility.isEmpty)
           or (content.field_accessibility_contact is defined and content.field_accessibility_contact)
@@ -521,11 +522,58 @@
                 {% else %}
                   <span class="mel-organiser-card__name">{{ mel_organiser.name }}</span>
                 {% endif %}
+                <p class="mel-organiser-card__hosted">{{ 'Hosted by'|t }} <span class="mel-organiser-card__hosted-name">{{ mel_organiser.name }}</span></p>
                 {% if mel_organiser.tagline %}
                   <p class="mel-organiser-card__tagline">{{ mel_organiser.tagline }}</p>
                 {% else %}
-                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'Events on MyEventLane'|t }}</p>
+                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'This event is hosted by @name on MyEventLane.'|t({ '@name': mel_organiser.name }) }}</p>
                 {% endif %}
+              </div>
+            </div>
+          </section>
+        {% endif %}
+
+        {% if canonical_url %}
+          <section class="mel-event-section mel-event-section--share mel-card mel-card--surface mel-mt-5" id="mel-event-full-share" role="region" aria-labelledby="mel-event-full-share-label">
+            <div class="mel-card__header mel-event-section__header">
+              <h2 class="mel-card__title mel-event-section__title" id="mel-event-full-share-label">{{ 'Share this event'|t }}</h2>
+            </div>
+            <div class="mel-card__body mel-event-section__body">
+              <div class="mel-event-share mel-event-share--panel mel-event-share--secondary" role="group" aria-label="{{ 'Share this event'|t }}">
+                <button type="button" class="mel-event-share__chip mel-share-copy" data-url="{{ canonical_url }}" aria-label="{{ 'Copy event link'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path d="M9 9.75A2.25 2.25 0 0 1 11.25 7.5h6A2.25 2.25 0 0 1 19.5 9.75v6A2.25 2.25 0 0 1 17.25 18h-6A2.25 2.25 0 0 1 9 15.75v-6Z" stroke="currentColor" stroke-width="1.75"/>
+                      <path d="M7.5 16.5H6.75A2.25 2.25 0 0 1 4.5 14.25v-6A2.25 2.25 0 0 1 6.75 6h6A2.25 2.25 0 0 1 14.25 8.25V9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Copy link'|t }}</span>
+                </button>
+                <a class="mel-event-share__chip mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                      <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Email'|t }}</span>
+                </a>
+                <a class="mel-event-share__chip mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share this event on Facebook (opens in a new tab)'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Facebook'|t }}</span>
+                </a>
+                <a class="mel-event-share__chip mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'X'|t }}</span>
+                </a>
               </div>
             </div>
           </section>
@@ -610,6 +658,7 @@
            These are configuration inputs, not attendee-facing content. #}
         </div>
         </div>
+        </div>
 
         <nav class="mel-event-full__support mel-event-support-zone" aria-label="{{ 'Help and policies'|t }}">
           <ul class="mel-event-support-zone__list">
@@ -624,13 +673,22 @@
   </div>
 
   {# Mobile sticky CTA: same primary action as sidebar (partial); thumb-friendly full-width bar. #}
-  {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
+  {% set _mel_mobile_price = mel_context_above|default('')|striptags|trim %}
+  {% if _mel_mobile_price is empty and cta_type is defined and cta_type == 'rsvp' %}
+    {% set _mel_mobile_price = 'Free RSVP'|t %}
+  {% endif %}
+  {% set mel_show_mobile_sticky = mel_show_booking_cta and mel_cta_text|striptags|trim|length > 0 %}
+  {% if mel_show_mobile_sticky %}
     <div class="mel-mobile-cta" role="region" aria-label="{{ 'Ticket actions'|t }}">
       <div class="mel-mobile-cta__inner">
-        {% if (not mel_cta_is_soldout_ui) and (mel_context_above|default('')|striptags|length > 0) and (mel_cta_type_ui is same as('primary')) %}
-          <p class="mel-mobile-cta__eyebrow">{{ mel_context_above }}</p>
+        {% if (not mel_cta_is_soldout_ui) and _mel_mobile_price is not empty %}
+          <p class="mel-mobile-cta__eyebrow">{{ _mel_mobile_price }}</p>
+        {% elseif mel_cta_is_soldout_ui %}
+          <p class="mel-mobile-cta__eyebrow mel-mobile-cta__eyebrow--muted">{{ 'Sold out'|t }}</p>
         {% endif %}
-        {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'mobile' } %}
+        {% if mel_show_booking_cta or mel_cta_text|striptags|trim|length > 0 %}
+          {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'mobile' } %}
+        {% endif %}
         {% if mel_cta_is_soldout_ui and event_cta and event_cta.type|default('disabled') in ['internal', 'external'] and (event_cta.url|default('')|striptags|length > 0) %}
           <p class="mel-mobile-cta__waitlist-sub" role="note">{{ 'Be the first notified if spots open'|t }}</p>
         {% endif %}

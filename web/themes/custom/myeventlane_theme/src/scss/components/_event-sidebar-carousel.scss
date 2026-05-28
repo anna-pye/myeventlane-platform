@@ -311,8 +311,8 @@
   line-height: 1.5;
 }
 
-// Classic
-.mel-event-page--classic.mel-event--v2 .mel-sidebar-carousel {
+// Classic (sidebar carousel only — exclude main-column gallery rail)
+.mel-event-page--classic.mel-event--v2 .mel-sidebar-carousel:not(.mel-event-gallery__rail) {
   .mel-sidebar-carousel__slide-header,
   .mel-sidebar-carousel__slide-body {
     color: var(--mel-event-text, colors.$mel-color-text);
@@ -334,8 +334,8 @@
   }
 }
 
-// Immersive
-.mel-event-page--immersive.mel-event--v2 .mel-sidebar-carousel {
+// Immersive (sidebar carousel only — exclude main-column gallery rail)
+.mel-event-page--immersive.mel-event--v2 .mel-sidebar-carousel:not(.mel-event-gallery__rail) {
   .mel-sidebar-carousel__footer {
     border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
   }

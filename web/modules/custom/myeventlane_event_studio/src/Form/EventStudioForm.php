@@ -1001,6 +1001,22 @@ final class EventStudioForm extends FormBase {
           'mel-attendee-questions-editor',
         ],
       ],
+      'checkout_workspace_cta' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-questions__builder-cta']],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Use Checkout questions for attendee details shown during ticket checkout.'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__builder-cta-copy']],
+        ],
+        'link' => [
+          '#type' => 'link',
+          '#title' => $this->t('Manage checkout questions'),
+          '#url' => Url::fromRoute('myeventlane_event_studio.workspace_questions', ['node' => $event->id()]),
+          '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-event-studio-questions__builder-cta-link']],
+        ],
+      ],
       'library_wrap' => [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-attendee-questions-library']],

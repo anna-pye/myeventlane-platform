@@ -5,3 +5,10 @@ services:
       - '@entity_type.manager'
       - '@views.executable'
       - '@logger.factory'
+
+  myeventlane_front.homepage_section_visibility:
+    class: Drupal\myeventlane_front\Service\HomepageSectionVisibility
+    arguments:
+      - '@entity_type.manager'
+      - '@views.executable'
+      - '@myeventlane_front.featured_events_render_builder'

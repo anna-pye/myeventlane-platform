@@ -110,6 +110,7 @@ services:
     arguments:
       - '@current_route_match'
       - '@string_translation'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_vendor.vendor_store_subscriber:
     class: Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber
@@ -274,6 +275,7 @@ services:
       - '@myeventlane_vendor.vendor_event_removal'
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_surface.data_presentation_manager'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService
@@ -303,6 +305,7 @@ services:
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_core.domain_detector'
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
