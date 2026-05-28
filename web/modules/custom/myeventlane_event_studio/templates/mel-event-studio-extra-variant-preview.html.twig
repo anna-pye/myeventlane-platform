@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Variant preview table for Event Studio product editor.
+ */
+#}
+{% if rows is not empty %}
+  <div class="mel-event-variant-preview">
+    <table class="mel-event-variant-preview__table">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'Option'|t }}</th>
+          <th scope="col">{{ 'SKU'|t }}</th>
+          <th scope="col">{{ 'Price'|t }}</th>
+          <th scope="col">{{ 'Quantity note'|t }}</th>
+          <th scope="col">{{ 'Status'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.size_label }}</td>
+            <td><code>{{ row.sku }}</code></td>
+            <td>{{ row.price }}</td>
+            <td>{{ row.capacity_note|default('—') }}</td>
+            <td>{{ row.status_label }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}

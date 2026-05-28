@@ -136,10 +136,10 @@ final class CheckInForm extends FormBase {
     }
 
     try {
-      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_attendees.vendor_operations', ['node' => $event->id()]));
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $event->id()]));
     }
     catch (\Throwable $e) {
-      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_checkin.page', ['node' => $event->id()]));
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_attendees.vendor_operations', ['node' => $event->id()]));
     }
   }
 

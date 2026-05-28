@@ -1,5 +1,5 @@
 /**
- * Unified Event Extras Studio (vendor).
+ * Unified Event Extras Studio (vendor) — merch & add-ons.
  */
 
 .mel-event-extras-studio {
@@ -8,8 +8,73 @@
   gap: 1.25rem;
 }
 
-.mel-event-extras-studio__probe {
+.mel-event-extras-studio__safety {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--mel-surface-muted, #f4f1fa);
+  font-size: 0.9375rem;
+}
+
+.mel-event-extras-studio__safety .item-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.mel-event-extras-studio__ticket-note {
   margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.mel-event-extras-studio__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.mel-event-extras-studio__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  color: inherit;
+  background: var(--mel-surface-elevated, #fff);
+  border: 1px solid var(--mel-border-soft, #e8e4ef);
+}
+
+.mel-event-extras-studio__tab.is-active,
+.mel-event-extras-studio__tab:hover,
+.mel-event-extras-studio__tab:focus-visible {
+  background: color-mix(in srgb, var(--mel-accent-lavender, #c4b5fd) 35%, #fff);
+  border-color: var(--mel-accent, #7c6cf0);
+  outline: none;
+}
+
+.mel-event-extras-studio__empty-state {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.mel-event-extras-studio__empty-cta,
+.mel-event-extras-studio__add-more {
+  min-height: 2.75rem;
+  margin-top: 0.75rem;
+}
+
+.mel-event-extras-studio__probe {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.mel-event-extras-studio__probe-panel {
+  padding: 1rem;
 }
 
 .mel-event-extra-choices {
@@ -32,6 +97,10 @@
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.mel-event-extra-choice--addon {
+  background: color-mix(in srgb, var(--mel-accent-lavender, #c4b5fd) 12%, #fff);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -66,6 +135,39 @@
   align-items: start;
 }
 
+.mel-event-extra-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.mel-event-extra-card__type {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.mel-event-extra-card__type--merchandise {
+  background: color-mix(in srgb, var(--mel-coral, #ff6b6b) 18%, #fff);
+  color: var(--mel-coral-dark, #c44545);
+}
+
+.mel-event-extra-card__type--addon {
+  background: color-mix(in srgb, var(--mel-accent-lavender, #c4b5fd) 45%, #fff);
+  color: var(--mel-accent, #5b4fc7);
+}
+
+.mel-event-extra-card__variants {
+  font-size: 0.8125rem;
+  color: var(--mel-text-muted, #6b6578);
+}
+
 .mel-event-extra-actions {
   display: flex;
   flex-wrap: wrap;
@@ -73,8 +175,14 @@
 }
 
 @media (max-width: 640px) {
-  .mel-event-extra-card {
+  .mel-event-extra-card__inner {
     grid-template-columns: 1fr;
+  }
+
+  .mel-event-extra-card__media img,
+  .mel-event-extra-card__placeholder {
+    width: 100%;
+    max-width: 12rem;
   }
 }
 
@@ -96,12 +204,10 @@
   background: var(--mel-surface-muted, #f4f1fa);
 }
 
-.mel-event-extra-actions .button {
+.mel-event-extra-actions .button,
+.mel-event-extra-actions .mel-btn {
   min-height: 2.75rem;
-}
-
-.mel-event-extra-editor .form-actions .button {
-  min-height: 2.75rem;
+  min-width: 2.75rem;
 }
 
 .mel-event-extras-studio__footer-cta {
@@ -136,4 +242,163 @@
   display: inline-block;
   margin-top: 0.5rem;
   font-size: 0.875rem;
+}
+
+.mel-event-extras-studio .button--primary,
+.mel-event-extras-studio .mel-btn--primary {
+  background: var(--mel-coral, #ff6b6b);
+  border-color: var(--mel-coral, #ff6b6b);
+  color: #fff;
+}
+
+.mel-event-extras-studio .mel-btn--secondary {
+  background: color-mix(in srgb, var(--mel-accent-lavender, #c4b5fd) 25%, #fff);
+  border-color: var(--mel-accent, #7c6cf0);
+}
+
+/* Commerce-style product editor */
+.mel-event-product-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mel-event-product-editor__nav {
+  margin-bottom: 0.25rem;
+}
+
+.mel-event-product-editor__back {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mel-event-product-editor__section {
+  padding: 1rem 1.125rem;
+}
+
+.mel-event-product-editor__type-pill {
+  display: inline-block;
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  background: color-mix(in srgb, var(--mel-accent-lavender, #c4b5fd) 35%, #fff);
+}
+
+.mel-event-product-editor__stock-warning {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--mel-coral, #ff6b6b) 35%, #e8e4ef);
+  background: color-mix(in srgb, var(--mel-coral, #ff6b6b) 8%, #fff);
+  font-size: 0.9375rem;
+}
+
+.mel-event-product-editor__media-disabled {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--mel-surface-muted, #f4f1fa);
+  color: var(--mel-text-muted, #6b6578);
+}
+
+.mel-event-product-editor__current-image {
+  margin-bottom: 0.75rem;
+}
+
+.mel-event-product-editor__thumb {
+  width: 6rem;
+  height: 6rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.mel-event-product-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mel-event-product-editor__actions .button,
+.mel-event-product-editor__actions .mel-btn {
+  min-height: 2.75rem;
+}
+
+.mel-event-variant-preview {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.mel-event-variant-preview__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.mel-event-variant-preview__table th,
+.mel-event-variant-preview__table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--mel-border-soft, #e8e4ef);
+}
+
+.mel-event-variant-preview__table th {
+  font-weight: 700;
+  background: var(--mel-surface-muted, #f4f1fa);
+}
+
+.mel-event-extra-card__status-pill {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.mel-event-extra-card__status-pill--active {
+  background: color-mix(in srgb, #3d9a5f 20%, #fff);
+  color: #2d6a42;
+}
+
+.mel-event-extra-card__status-pill--draft,
+.mel-event-extra-card__status-pill--hidden {
+  background: var(--mel-surface-muted, #f4f1fa);
+  color: var(--mel-text-muted, #6b6578);
+}
+
+.mel-event-extra-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mel-event-extra-card__placeholder-label {
+  font-size: 0.75rem;
+  color: var(--mel-text-muted, #6b6578);
+}
+
+.mel-event-extra-card__image-count {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: rgb(0 0 0 / 65%);
+  color: #fff;
+}
+
+.mel-event-extra-card__media {
+  position: relative;
+}
+
+.mel-event-extra-card__quantity-note {
+  font-size: 0.875rem;
+  color: var(--mel-text-muted, #6b6578);
+}
+
+.mel-event-extra-card__quantity-label {
+  font-weight: 600;
 }

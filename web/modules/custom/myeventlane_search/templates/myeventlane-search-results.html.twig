@@ -29,7 +29,7 @@
           <section class="mel-search-results__group" aria-labelledby="mel-search-group-{{ group_id }}">
             <h2 id="mel-search-group-{{ group_id }}" class="mel-search-results__group-title">{{ group.title }}</h2>
             {% if group_id == 'events' %}
-              <div class="mel-event-grid">
+              <div class="mel-event-grid mel-grid mel-grid--events">
                 {% for item in group.items %}
                   {{ item.rendered }}
                 {% endfor %}

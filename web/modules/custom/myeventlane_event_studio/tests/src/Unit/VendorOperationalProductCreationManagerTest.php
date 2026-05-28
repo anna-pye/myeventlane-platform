@@ -32,6 +32,10 @@ final class VendorOperationalProductCreationManagerTest extends TestCase {
       VendorOperationalProductCreationManager::VENDOR_EXTRA_TYPE_MAP['merchandise'],
     );
     $this->assertSame(
+      VendorProductisationStudioManager::TYPE_PARKING_ADDON,
+      VendorOperationalProductCreationManager::VENDOR_EXTRA_TYPE_MAP['parking'],
+    );
+    $this->assertSame(
       VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE,
       VendorOperationalProductCreationManager::VENDOR_EXTRA_TYPE_MAP['vip_hospitality'],
     );
@@ -39,6 +43,15 @@ final class VendorOperationalProductCreationManagerTest extends TestCase {
       VendorProductisationStudioManager::TYPE_OPERATIONAL_BUNDLE,
       VendorOperationalProductCreationManager::VENDOR_EXTRA_TYPE_MAP['bundle'],
     );
+  }
+
+  public function testIsMerchandiseAndAddonExtraTypeHelpers(): void {
+    $manager = $this->createPartialManager();
+    $this->assertTrue($manager->isMerchandiseExtraType('merchandise'));
+    $this->assertFalse($manager->isMerchandiseExtraType('parking'));
+    $this->assertTrue($manager->isAddonExtraType('parking'));
+    $this->assertTrue($manager->isAddonExtraType('meal_package'));
+    $this->assertFalse($manager->isAddonExtraType('merchandise'));
   }
 
   public function testStripForbiddenFromPayloadRemovesOperationalKeys(): void {

@@ -1,0 +1,19 @@
+uuid: e5a0b3c2-8f74-4d1e-c9b6-2a3f4e5d6c7b
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_event_passcode_hash
+    - node.type.event
+id: node.event.field_event_passcode_hash
+field_name: field_event_passcode_hash
+entity_type: node
+bundle: event
+label: 'Event Passcode Hash'
+description: 'Stores a hashed passcode for passcode-protected events. Never expose this value.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

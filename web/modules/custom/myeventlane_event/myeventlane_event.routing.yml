@@ -181,3 +181,18 @@ myeventlane_event.generate_series_instances:
         type: entity:node
         bundle:
           - event
+
+myeventlane_event.passcode_gate:
+  path: '/event/{node}/passcode'
+  defaults:
+    _form: '\Drupal\myeventlane_event\Form\EventPasscodeForm'
+    _title: 'Enter event passcode'
+  requirements:
+    _access: 'TRUE'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event

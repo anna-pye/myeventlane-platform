@@ -8,8 +8,8 @@ use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_analytics\Service\TrendingCategoriesService;
+use Drupal\myeventlane_core\Service\EventCategoryUrlService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -25,14 +25,18 @@ final class TrendingCategoriesBlock extends BlockBase implements ContainerFactor
 
   private TrendingCategoriesService $trending;
 
+  private EventCategoryUrlService $categoryUrl;
+
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
     TrendingCategoriesService $trending,
+    EventCategoryUrlService $categoryUrl,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->trending = $trending;
+    $this->categoryUrl = $categoryUrl;
   }
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): self {
@@ -41,6 +45,7 @@ final class TrendingCategoriesBlock extends BlockBase implements ContainerFactor
       $plugin_id,
       $plugin_definition,
       $container->get('myeventlane_analytics.trending_categories'),
+      $container->get('myeventlane_core.event_category_url'),
     );
   }
 
@@ -137,6 +142,11 @@ final class TrendingCategoriesBlock extends BlockBase implements ContainerFactor
       $going = (int) ($item['going'] ?? 0);
       $score = (int) ($item['score'] ?? 0);
 
+      $term = $this->categoryUrl->resolveTerm($tid);
+      if ($term === NULL) {
+        continue;
+      }
+
       $pill_items[] = [
         '#type' => 'container',
         '#attributes' => [
@@ -148,7 +158,7 @@ final class TrendingCategoriesBlock extends BlockBase implements ContainerFactor
         'link' => [
           '#type' => 'link',
           '#title' => $label,
-          '#url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => (string) $tid]),
+          '#url' => $this->categoryUrl->getCategoryUrl($term),
           '#attributes' => [
             'class' => ['mel-trending-category-pill__link'],
           ],

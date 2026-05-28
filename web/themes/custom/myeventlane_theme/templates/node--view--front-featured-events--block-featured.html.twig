@@ -1,12 +1,13 @@
 {#
 /**
  * @file
- * Event node in Front: Featured Events (block_featured) — full-bleed hero slide.
+ * Event node in Front: Featured Events (block_featured) — editorial magazine hero slide.
  *
- * Other views that reuse teaser_featured keep node--event--teaser-featured (carousel card).
+ * Uses the same presentation as node--event--editorial-magazine (view model + mel-event-card).
  */
 #}
 {% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
-  variant: 'featured_hero',
+  variant: mel_event_card_variant|default('editorial'),
+  layout: mel_event_card_layout|default('hero'),
   attributes: attributes,
 } %}

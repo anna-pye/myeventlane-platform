@@ -17,6 +17,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver;
+use Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifierStubTrait;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -35,6 +36,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 #[RunTestsInSeparateProcesses]
 final class IssuancePipelineConvergenceTest extends KernelTestBase {
+
+  use RegistersTicketBackedClassifierStubTrait;
 
   /**
    * {@inheritdoc}
@@ -94,6 +97,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $this->registerTicketBackedClassifierStub($container);
   }
 
   /**

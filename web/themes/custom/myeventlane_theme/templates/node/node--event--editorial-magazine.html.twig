@@ -1,0 +1,11 @@
+{#
+/**
+ * @file
+ * Event node — editorial_magazine (hero / slideshow / featured carousel).
+ */
+#}
+{% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
+  variant: mel_event_card_variant|default('editorial'),
+  layout: mel_event_card_layout|default('hero'),
+  attributes: attributes,
+} %}

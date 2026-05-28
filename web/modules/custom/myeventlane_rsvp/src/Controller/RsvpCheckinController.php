@@ -33,8 +33,8 @@ final class RsvpCheckinController extends ControllerBase {
    *
    */
   public function checkinPage(NodeInterface $event): array {
-    $confirmed = $this->repo->getEventRsvpsByStatus($event->id(), 'confirmed');
-    $waitlist = $this->repo->getEventRsvpsByStatus($event->id(), 'waitlist');
+    $confirmed = $this->getEventRsvpsByStatus((int) $event->id(), 'confirmed');
+    $waitlist = $this->getEventRsvpsByStatus((int) $event->id(), 'waitlist');
 
     return [
       '#theme' => 'myeventlane_rsvp_checkin',
@@ -50,8 +50,8 @@ final class RsvpCheckinController extends ControllerBase {
    *
    */
   public function pdf(NodeInterface $event): Response {
-    $confirmed = $this->repo->getEventRsvpsByStatus($event->id(), 'confirmed');
-    $waitlist = $this->repo->getEventRsvpsByStatus($event->id(), 'waitlist');
+    $confirmed = $this->getEventRsvpsByStatus((int) $event->id(), 'confirmed');
+    $waitlist = $this->getEventRsvpsByStatus((int) $event->id(), 'waitlist');
 
     $html = $this->renderPlain([
       '#theme' => 'myeventlane_rsvp_checkin_pdf',

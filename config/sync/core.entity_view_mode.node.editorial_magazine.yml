@@ -1,0 +1,11 @@
+uuid: be466e18-ed0f-4ec8-93ee-5301c3b9a2ab
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.editorial_magazine
+label: 'Editorial magazine'
+description: 'Hero / slideshow / featured carousel event card.'
+targetEntityType: node
+cache: true

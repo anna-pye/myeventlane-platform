@@ -92,10 +92,15 @@
         <div class="mel-rsvp-trust mel-rsvp-trust--compact" role="region" aria-label="{{ 'RSVP confirmation'|t }}">
           <ul class="mel-rsvp-trust__list">
             <li>{{ 'No payment required'|t }}</li>
-            <li>{{ 'Your RSVP will be confirmed by email'|t }}</li>
+            <li>{{ 'Your RSVP details are used for event administration only'|t }}</li>
+            <li>{{ "You'll receive confirmation by email"|t }}</li>
           </ul>
         </div>
-        <div class="mel-rsvp-submit">
+        <div class="mel-rsvp-submit mel-rsvp-submit--book-sticky">
+          <div class="mel-mobile-booking-bar mel-mobile-booking-bar--rsvp" aria-hidden="true">
+            <span class="mel-mobile-booking-bar__count">{{ 'Free RSVP'|t }}</span>
+            <span class="mel-mobile-booking-bar__total">{{ 'No payment'|t }}</span>
+          </div>
           {{ element.actions }}
         </div>
         {# Any other alter-added elements; keeps them inside the single form. #}

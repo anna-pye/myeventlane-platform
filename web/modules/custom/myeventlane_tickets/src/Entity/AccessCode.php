@@ -36,7 +36,7 @@ use Drupal\node\NodeInterface;
  *       "default" = "Drupal\myeventlane_tickets\Form\AccessCodeForm",
  *       "add" = "Drupal\myeventlane_tickets\Form\AccessCodeForm",
  *       "edit" = "Drupal\myeventlane_tickets\Form\AccessCodeForm",
- *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm"
+ *       "delete" = "Drupal\myeventlane_tickets\Form\AccessCodeDeleteForm"
  *     }
  *   },
  *   base_table = "mel_access_code",
@@ -48,7 +48,6 @@ use Drupal\node\NodeInterface;
  *     "label" = "code"
  *   },
  *   links = {
- *     "canonical" = "/vendor/events/{event}/tickets/access-codes/{mel_access_code}",
  *     "add-form" = "/vendor/events/{event}/tickets/access-codes/add",
  *     "edit-form" = "/vendor/events/{event}/tickets/access-codes/{mel_access_code}/edit",
  *     "delete-form" = "/vendor/events/{event}/tickets/access-codes/{mel_access_code}/delete"

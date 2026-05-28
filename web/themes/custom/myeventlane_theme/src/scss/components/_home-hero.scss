@@ -79,8 +79,8 @@
 }
 
 .mel-home-hero__search {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   width: min(100%, 720px);
   margin-top: 24px;
@@ -96,12 +96,39 @@
   }
 
   @include breakpoints.mel-break(sm) {
-    grid-template-columns: minmax(0, 1fr) auto;
+    flex-direction: row;
     align-items: center;
+    gap: 8px;
   }
 }
 
-.mel-home-hero__search input {
+.mel-home-hero__search-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+
+  @include breakpoints.mel-break(sm) {
+    grid-template-columns: minmax(0, 1.1fr) auto minmax(0, 0.9fr);
+    align-items: center;
+    gap: 0;
+  }
+}
+
+.mel-home-hero__search-divider {
+  display: none;
+
+  @include breakpoints.mel-break(sm) {
+    display: block;
+    width: 1px;
+    height: 28px;
+    margin: 0 10px;
+    background: color-mix(in srgb, mel.$mel-ds-color-text 16%, transparent);
+  }
+}
+
+.mel-home-hero__search-input {
   min-width: 0;
   min-height: 48px;
   padding: 0 18px;
@@ -124,7 +151,8 @@
   }
 }
 
-.mel-home-hero__search button {
+.mel-home-hero__search-submit {
+  flex: 0 0 auto;
   min-height: 48px;
   padding: 0 22px;
   border: 0;
@@ -133,6 +161,7 @@
   color: #fff;
   cursor: pointer;
   font-weight: 800;
+  white-space: nowrap;
   box-shadow: 0 10px 28px color-mix(in srgb, mel.$mel-ds-color-primary 32%, transparent);
 
   &:focus-visible {
@@ -225,11 +254,22 @@
     display: block;
     height: 100%;
   }
+
+}
+
+// Featured rotator: card only — no frame chrome or control tray.
+.mel-home-hero__art-frame--rotator {
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
 }
 
 .mel-home-hero__feature-rotator {
   position: relative;
-  min-height: clamp(260px, 34vw, 430px);
+  min-height: 0;
   isolation: isolate;
 }
 
@@ -238,8 +278,8 @@
 .mel-home-hero__feature-rotator .mel-featured-carousel__track,
 .mel-home-hero__feature-rotator .mel-featured-home-carousel__track {
   display: block;
-  height: 100%;
-  min-height: inherit;
+  height: auto;
+  min-height: 0;
 }
 
 .mel-home-hero__feature-rotator .mel-featured-carousel {
@@ -264,7 +304,9 @@
 .mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
   grid-area: 1 / 1;
   display: block;
+  flex: none;
   width: 100%;
+  max-width: none;
   height: 100%;
   min-height: inherit;
   min-width: 0;
@@ -298,87 +340,361 @@
 .mel-home-hero__feature-rotator .mel-featured-home-carousel__track,
 .mel-home-hero__feature-rotator .mel-featured-carousel__item,
 .mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
-  height: 100%;
-  min-height: inherit;
+  height: auto;
+  min-height: 0;
 }
 
 .mel-home-hero__feature-rotator .views-element-container,
 .mel-home-hero__feature-rotator .views-element-container > div {
   display: block;
-  height: 100%;
-  min-height: inherit;
+  height: auto;
+  min-height: 0;
 }
 
 .mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
   overflow: hidden;
-  border-radius: clamp(24px, 4vw, 38px);
+  border-radius: 0;
 }
 
-.mel-home-hero__feature-rotator .mel-event-card--featured,
-.mel-home-hero__feature-rotator .mel-event-card--hero,
-.mel-home-hero__feature-rotator .mel-event-hero-card {
-  --mel-event-card-glass-inset: 14px;
-  --mel-event-card-glass-panel-radius: clamp(20px, 3vw, 28px);
-  --mel-event-card-glass-pad-x: clamp(16px, 3vw, 22px);
-  --mel-event-card-glass-pad-y: clamp(14px, 2.5vw, 18px);
-  width: 100%;
-  height: clamp(260px, 34vw, 430px);
-  min-height: clamp(260px, 34vw, 430px);
-  background: transparent;
-  border-radius: inherit;
-  border: 0;
-  box-shadow: 0 18px 48px rgba(36, 48, 58, 0.14);
+// Homepage hero editorial card — clean full-bleed slide (no mockup chrome).
+.mel-home-hero__feature-rotator {
+  .mel-featured-carousel__controls,
+  .mel-featured-carousel__button,
+  .mel-home-hero__rotator-dots,
+  .mel-featured-carousel__dots,
+  [data-mel-home-hero-dots] {
+    display: none;
+  }
 
-  // Intentional override: rotator is carousel-only (not .mel-event-grid). Fills parent clamp height.
-  .mel-event-card__link {
-    aspect-ratio: auto;
+  .mel-event-card--editorial.mel-event-card--hero,
+  .mel-event-card--featured.mel-event-card--hero {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    min-height: clamp(320px, 30vw, 400px);
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: clamp(20px, 3vw, 28px);
+    background: #1a2230;
+    box-shadow: 0 18px 48px rgba(36, 48, 58, 0.14);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__link {
+    position: absolute;
+    inset: 0;
+    display: block;
     width: 100%;
     height: 100%;
     min-height: 100%;
     overflow: hidden;
     border-radius: inherit;
+    color: #fff;
   }
 
-  .mel-event-card__image,
-  .mel-event-card__media {
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__link::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.72) 0%,
+        rgba(0, 0, 0, 0.42) 42%,
+        rgba(0, 0, 0, 0.12) 72%,
+        transparent 100%
+      ),
+      linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.72) 0%,
+        rgba(0, 0, 0, 0.28) 48%,
+        transparent 68%
+      );
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__overlay,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__overlay--hero {
+    display: none;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__media,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__image,
+  .mel-event-card--editorial.mel-event-card--hero picture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
     border-radius: 0;
     background: transparent;
   }
 
-  .mel-event-hero__glass {
-    max-width: min(100%, 390px);
+  .mel-event-card--editorial.mel-event-card--hero img,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__image-element,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__placeholder {
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    object-fit: cover;
+    object-position: center;
   }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__image-badge,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__badge,
+  .mel-event-card--editorial.mel-event-card--hero .mel-pill--on-image {
+    position: absolute;
+    z-index: 4;
+    top: 20px;
+    left: 20px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    max-width: calc(100% - 80px);
+    padding: 6px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 88%, #000 12%);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__save,
+  .mel-event-card--editorial.mel-event-card--hero .mel-save-button,
+  .mel-event-card--editorial.mel-event-card--hero .flag {
+    position: absolute;
+    z-index: 5;
+    top: 24px;
+    right: 24px;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-hero__glass,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__body,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__content {
+    position: absolute;
+    z-index: 3;
+    top: auto;
+    right: clamp(22px, 3.5vw, 40px);
+    bottom: clamp(22px, 3.5vw, 36px);
+    left: clamp(22px, 3.5vw, 40px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title title"
+      "meta meta"
+      "price price"
+      "chips cta";
+    align-items: end;
+    gap: 12px 20px;
+    width: auto;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: #fff;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__title {
+    grid-area: title;
+    max-width: 34ch;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.65rem, 2.6vw, 2.35rem);
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    -webkit-line-clamp: unset;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__meta {
+    grid-area: meta;
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: clamp(0.92rem, 1.1vw, 1.05rem);
+    font-weight: 600;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__when,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__date,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__location {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: 1.35;
+    text-shadow: inherit;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__meta-icon {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    background-color: currentcolor;
+    opacity: 0.94;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__meta-icon--calendar {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__meta-icon--pin {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 21s7-4.35 7-10a7 7 0 1 0-14 0c0 5.65 7 10 7 10z'/%3E%3Ccircle cx='12' cy='11' r='2.5'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 21s7-4.35 7-10a7 7 0 1 0-14 0c0 5.65 7 10 7 10z'/%3E%3Ccircle cx='12' cy='11' r='2.5'/%3E%3C/svg%3E");
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__price,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__status {
+    grid-area: price;
+    margin: 0;
+    color: mel.$mel-ds-color-primary;
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__category-chips,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__chips {
+    grid-area: chips;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin: 0;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__category-chip,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 5px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: color-mix(in srgb, mel.$mel-ds-color-accent 72%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__category-chip--2,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__chip:nth-child(2) {
+    background: color-mix(in srgb, #2eb88a 68%, transparent);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__category-chip--3,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__chip:nth-child(3) {
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 62%, transparent);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__cta-row {
+    grid-area: cta;
+    display: contents;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__cta,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__cta-chip,
+  .mel-event-card--editorial.mel-event-card--hero .button,
+  .mel-event-card--editorial.mel-event-card--hero a[href].mel-button {
+    justify-self: end;
+    align-self: end;
+    min-width: 0;
+    min-height: 46px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 999px;
+    background: mel.$mel-ds-color-primary;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-align: center;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__going,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__count,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__attendees,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__tertiary,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__social,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__signal,
+  .mel-event-card--editorial.mel-event-card--hero [data-mel-attendee-count],
+  .mel-event-card--editorial.mel-event-card--hero .mel-card-reason,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-hero__glass {
+    display: none;
+  }
+
 }
 
-.mel-home-hero__feature-rotator .mel-event-hero-card__overlay {
-  background:
-    linear-gradient(90deg, rgba(13, 18, 28, 0.7) 0%, rgba(13, 18, 28, 0.28) 52%, rgba(13, 18, 28, 0.08) 100%),
-    linear-gradient(0deg, rgba(13, 18, 28, 0.72) 0%, transparent 58%);
-}
+@media (max-width: 767px) {
+  .mel-home-hero__feature-rotator {
+    .mel-event-card--editorial.mel-event-card--hero {
+      min-height: 380px;
+      aspect-ratio: auto;
+    }
 
-.mel-home-hero__feature-rotator .mel-featured-carousel__controls {
-  display: none;
-}
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__body,
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__content {
+      right: 22px;
+      bottom: 24px;
+      left: 22px;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "title"
+        "meta"
+        "price"
+        "chips"
+        "cta";
+      gap: 12px;
+    }
 
-.mel-home-hero__feature-rotator .mel-event-hero-card__content,
-.mel-home-hero__feature-rotator .mel-event-card__body {
-  width: min(100%, 390px);
-  padding: clamp(20px, 3vw, 30px);
-}
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__title {
+      font-size: clamp(1.75rem, 8vw, 2.35rem);
+    }
 
-.mel-home-hero__feature-rotator .mel-event-card--hero .mel-event-card__title,
-.mel-home-hero__feature-rotator .mel-event-hero-card__title,
-.mel-home-hero__feature-rotator .mel-event-card__title {
-  font-size: clamp(1.45rem, 3vw, 2.35rem);
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-}
-
-.mel-home-hero__feature-rotator .mel-event-hero-card__when,
-.mel-home-hero__feature-rotator .mel-event-hero-card__where,
-.mel-home-hero__feature-rotator .mel-event-card__when,
-.mel-home-hero__feature-rotator .mel-event-card__location {
-  font-size: 0.9rem;
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__cta,
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__cta-chip {
+      justify-self: stretch;
+      min-width: 0;
+      width: 100%;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

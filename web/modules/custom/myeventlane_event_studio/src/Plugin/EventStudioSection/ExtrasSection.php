@@ -7,11 +7,11 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Unified Event Extras authoring section.
+ * Unified merch and add-on product setup (Commerce-backed).
  */
 #[EventStudioSection(
   id: 'extras',
-  title: 'Extras',
+  title: 'Merch & add-ons',
   group: 'Commerce',
   routeName: 'myeventlane_event_studio.workspace_extras',
   section_state: 'active',

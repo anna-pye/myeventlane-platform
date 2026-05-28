@@ -113,7 +113,30 @@ final class EventCheckoutQuestionsForm extends FormBase {
       'per_order_planned' => [
         '#markup' => '<p class="mel-event-studio-questions__per-order-note">' . $this->t('Per order questions are planned but not active yet.') . '</p>',
       ],
+      'targeting_helper' => [
+        '#markup' => '<p class="mel-event-studio-questions__targeting-helper">' . $this->t('Use ticket type targeting when a question only applies to selected ticket types.') . '</p>',
+      ],
     ];
+
+    $legacy_summary = $this->studioQuestionTemplateManager->findLegacyTierQuestionSummary($event);
+    if ($legacy_summary['total_count'] > 0) {
+      $ticket_names = implode(', ', $legacy_summary['ticket_type_names']);
+      $form['intro']['legacy_tier_notice'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#value' => $this->t(
+          'This event has @count ticket-type question templates saved on individual ticket types (@tickets). They still work at checkout, but new targeting should be managed here using “Specific ticket types”.',
+          [
+            '@count' => (int) $legacy_summary['total_count'],
+            '@tickets' => $ticket_names,
+          ]
+        ),
+        '#attributes' => [
+          'class' => ['mel-event-studio-questions__legacy-notice'],
+          'role' => 'note',
+        ],
+      ];
+    }
 
     $ticket_options = $this->studioQuestionTemplateManager->ticketOptions($event);
     $question_rows = $this->studioQuestionTemplateManager->loadRows($event);
@@ -331,7 +354,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
         'locked_note' => $has_answers ? [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Has attendee answers — archive to retire; unsafe edits are blocked on save.'),
+          '#value' => $this->t('Answers on file — archive to retire. Type, targeting, and options cannot change.'),
           '#attributes' => ['class' => ['mel-event-studio-questions__locked-note']],
         ] : [],
       ],
@@ -396,7 +419,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
       ],
       'details' => [
         '#type' => 'details',
-        '#title' => $this->t('Options and preview'),
+        '#title' => $this->t('More: options & preview'),
         '#open' => FALSE,
         '#attributes' => ['class' => ['mel-event-studio-questions__details']],
         'options' => $editor['options'],
@@ -611,7 +634,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
         '#options' => $this->workspaceApplicabilityOptions($currentApplicability),
         '#default_value' => $currentApplicability,
         '#disabled' => $locked || $currentApplicability === EventStudioQuestionTemplateManager::APPLIES_PER_ORDER,
-        '#description' => $isNew ? $this->t('Most events can use Per ticket.') : $lock_message,
+        '#description' => $lock_message,
       ],
       'ticket_type_ids' => [
         '#type' => 'checkboxes',
@@ -621,8 +644,8 @@ final class EventCheckoutQuestionsForm extends FormBase {
         '#default_value' => $row['ticket_type_ids'] ?? [],
         '#disabled' => $locked,
         '#description' => $ticketOptions === []
-          ? $this->t('Create ticket types before using per-ticket-type questions.')
-          : NULL,
+          ? $this->t('Create ticket types before using specific ticket type targeting.')
+          : ($isNew ? $this->t('Use ticket type targeting when a question only applies to selected ticket types.') : $lock_message),
         '#states' => [
           'visible' => [
             $applicabilitySelector => ['value' => EventStudioQuestionTemplateManager::APPLIES_PER_TICKET_TYPE],
@@ -666,7 +689,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
    * @return array<string, string>
    */
   private function workspaceApplicabilityOptions(string $currentApplicability = EventStudioQuestionTemplateManager::APPLIES_PER_TICKET): array {
-    $options = $this->studioQuestionTemplateManager->applicabilityOptions();
+    $options = $this->studioQuestionTemplateManager->workspaceApplicabilityLabels();
     unset($options[EventStudioQuestionTemplateManager::APPLIES_PER_ORDER]);
     if ($currentApplicability === EventStudioQuestionTemplateManager::APPLIES_PER_ORDER) {
       $options[EventStudioQuestionTemplateManager::APPLIES_PER_ORDER] = (string) $this->t('Per order (not active in checkout yet)');

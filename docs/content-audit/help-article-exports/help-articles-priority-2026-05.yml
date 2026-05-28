@@ -1,0 +1,204 @@
+metadata:
+  exported_from: local
+  export_reason: priority_help_article_portability
+  generated_at: '2026-05-22T16:33:34+10:00'
+  notes:
+    - 'source_nid is a local reference only and must not be used as the import identity'
+    - 'import identity should use stable key and/or alias'
+    - 'no staff-only content included'
+articles:
+  contacting_support:
+    source_nid: 1498
+    title: 'Contacting support'
+    alias: /help/attendees/contacting-support
+    audience: public
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'How to get help with a booking, payment, or ticket — and when to contact the event organiser instead.'
+    body:
+      format: full_html
+      value: |-
+        <p>Start with the event page if your question is about the venue, schedule, or what to bring. The organiser is best placed to answer those questions when contact details are listed there.</p>
+
+        <p>For booking, payment, refunds, or problems accessing your tickets on MyEventLane, use the steps below.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Find your confirmation email or sign in and open <strong>My tickets</strong> at <a href="/my-tickets">/my-tickets</a>.</li>
+          <li>Note the event name, date, and your order or ticket reference if you have one.</li>
+          <li>If you are signed in, open <a href="/my/support">Support</a> to view or add a support request.</li>
+          <li>Describe what happened and what you need (for example a missing email, wrong ticket, or refund question).</li>
+          <li>If you are not signed in, go to the <a href="/help">Help Centre</a> and use <strong>Contact support</strong> from there.</li>
+        </ol>
+
+        <h2>If it still does not work</h2>
+        <p>If you cannot use the support area, check your junk folder for confirmation mail. For event-day questions, use the organiser contact on the event page. Do not submit multiple payments unless you are sure no confirmation arrived.</p>
+  payouts_and_fees:
+    source_nid: 1510
+    title: 'Payouts and fees'
+    alias: /help/vendors/payouts-and-fees
+    audience: vendor
+    article_type: faq
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'How organisers connect Stripe, sell paid tickets, and where to check payouts and fees.'
+    body:
+      format: full_html
+      value: |-
+        <p>Paid ticket sales on MyEventLane are processed through Stripe. You need a connected Stripe account before you can sell paid tickets and receive payouts.</p>
+
+        <h2>Connect Stripe</h2>
+        <ol>
+          <li>Sign in to your organiser dashboard.</li>
+          <li>Open the Stripe or payments area and start Connect — the path is usually <a href="/stripe/connect">Connect Stripe</a>.</li>
+          <li>Complete Stripe’s verification steps (business and bank details as required).</li>
+          <li>Return to your event and confirm paid ticket types can be published.</li>
+        </ol>
+
+        <h2>Payouts and fees</h2>
+        <p>When tickets sell, funds are handled according to Stripe’s rules and your account status. Payout timing and fees are shown in Stripe and in your organiser dashboard — they can vary by account and verification state.</p>
+        <p>Platform and processing fees, if applicable, are described in your organiser dashboard or Stripe. Check there for current fee details.</p>
+
+        <h2>If something looks wrong</h2>
+        <p>If onboarding stalls or a payout does not match what you expect, note any message from Stripe and contact MyEventLane support with your event name. Do not share secret keys or full bank details in support messages.</p>
+  checkout_errors:
+    source_nid: 1668
+    title: 'Having trouble checking out'
+    alias: /help/attendees/having-trouble-checking-out
+    audience: public
+    article_type: troubleshooting
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'What to try when checkout stops or your card is declined.'
+    body:
+      format: full_html
+      value: |-
+        <p>If checkout stops or your payment does not go through, this page explains what to try and when to ask for help.</p>
+
+        <h2>What this means</h2>
+        <p>Checkout can stop if something is missing on the form, your bank declines the card, your connection drops, or the ticket is no longer available. A failed attempt does not always mean you have been charged.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Check the order total, ticket type, and quantity.</li>
+          <li>Read any message shown on the payment step.</li>
+          <li>Check your card number, expiry date, and security code.</li>
+          <li>Try again on a stable internet connection, or try another card if you have one.</li>
+          <li>If the event looks sold out, see whether a waitlist is offered on the event page.</li>
+          <li>Before paying again, check your inbox and junk folder for a confirmation email, or sign in and open <a href="/my-tickets">My tickets</a>.</li>
+        </ol>
+
+        <h2>If it still does not work</h2>
+        <p>Sign in and open <a href="/my/support">Support</a>, or go to the <a href="/help">Help Centre</a> and use <strong>Contact support</strong>. Include the event name, date, and what you saw on screen. Do not submit multiple payments unless you are sure no confirmation arrived.</p>
+  joining_a_waitlist:
+    source_nid: 1669
+    title: 'Joining a waitlist'
+    alias: /help/attendees/joining-a-waitlist
+    audience: public
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'When a paid ticket type is sold out and the organiser has enabled a waitlist, you can register your interest on the event booking page. Joining does not book or buy a ticket.'
+    body:
+      format: full_html
+      value: |-
+        <p>When a paid ticket type is sold out, the organiser may offer a waitlist on the event booking page. This page explains how to join and what to expect.</p>
+
+        <h2>What this means</h2>
+        <p>A waitlist records your interest when that ticket type has no places left. Joining the waitlist does <strong>not</strong> book or buy a ticket, and it does <strong>not</strong> guarantee you will get one.</p>
+        <p>Free RSVP events can use a separate waitlist system. The steps below apply to <strong>paid ticket</strong> waitlists on the event book page (for example <em>/event/123/book</em>).</p>
+
+        <h2>How to join</h2>
+        <ol>
+          <li>Open the event page and go to the booking page for tickets.</li>
+          <li>If a ticket type is sold out and a waitlist is available, you will see <strong>Sold out — join a waitlist</strong> for that type.</li>
+          <li>Enter the email address you check regularly and how many tickets you want.</li>
+          <li>Select <strong>Join waitlist</strong>.</li>
+          <li>You should see a confirmation message, such as that you are on the waitlist (sometimes with a position number).</li>
+        </ol>
+
+        <h2>What happens next</h2>
+        <p>After you join, your details are stored as a waitlist entry. No order or payment is created at this step.</p>
+        <p>If the organiser has enabled automatic offers for that ticket type and places become available, MyEventLane may give you a way to complete purchase within a limited time (for example a link from the booking page or an email). Offers are not automatic on every event, and we cannot guarantee you will receive one.</p>
+        <p>If you receive an offer, complete checkout promptly. Offers may expire.</p>
+
+        <h2>What it does not mean</h2>
+        <ul>
+          <li>You do not have a ticket until you complete a successful purchase while tickets are available.</li>
+          <li>Joining does not charge your card or create a booking by itself.</li>
+          <li>RSVP waitlists for free events are separate from paid ticket waitlists on the book page.</li>
+        </ul>
+
+        <h2>If it still does not work</h2>
+        <p>If you cannot see a waitlist option, the ticket type may not be sold out, waitlist may not be enabled, or the waitlist may be full. Check the event page again later.</p>
+        <p>Contact the organiser through the event page if contact details are listed. Otherwise contact MyEventLane support with the event name, date, and the email you used.</p>
+
+        <h2>Related help</h2>
+        <ul>
+          <li><a href="/help/attendees/how-to-buy-tickets">How to buy tickets</a></li>
+          <li><a href="/help/attendees/having-trouble-checking-out">Having trouble checking out</a></li>
+          <li><a href="/help/attendees/after-you-book-a-ticket">After you book a ticket</a></li>
+          <li><a href="/help/attendees/contacting-support">Contacting support</a></li>
+        </ul>
+  after_you_book_a_ticket:
+    source_nid: 1497
+    title: 'After you book a ticket'
+    alias: /help/attendees/after-you-book-a-ticket
+    audience: public
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'Where to find your booking confirmation, My Tickets, calendar links, and optional wallet passes after you buy a ticket.'
+    body:
+      format: full_html
+      value: |-
+        <p>After you buy a paid ticket, this page explains where to find your confirmation, tickets, calendar options, and wallet passes.</p>
+
+        <h2>Confirmation page and email</h2>
+        <p>When checkout finishes, you should reach a confirmation step for your order. You may also receive a confirmation email sent to the address you used at checkout.</p>
+        <p>The email usually includes your order details and may include a calendar file (.ics) when event dates are available. Check your inbox and junk or spam folder. Delivery can take a few minutes.</p>
+        <p>Keep your confirmation email until after the event if you need proof of purchase.</p>
+
+        <h2>My Tickets</h2>
+        <p>Sign in with the account or email you used to buy tickets, then open <strong>My Tickets</strong> (<a href="/my-tickets">/my-tickets</a>). From there you can open each booking and see event details.</p>
+        <p>Ticket and wallet links on My Tickets are for signed-in buyers. They are not available to anonymous visitors.</p>
+
+        <h2>Calendar</h2>
+        <p>Where supported, you can add the event to your calendar:</p>
+        <ul>
+          <li>From <strong>My Tickets</strong>, use <strong>Add to calendar</strong> on your booking.</li>
+          <li>From your confirmation email, open any attached .ics file, or use calendar options shown in the email.</li>
+          <li>Some events also offer a calendar download from the event page (for example <em>/event/123/ics</em>).</li>
+        </ul>
+        <p>Calendar options depend on the event and your device.</p>
+
+        <h2>Wallet passes</h2>
+        <p>On some orders, <strong>Apple Wallet</strong> or <strong>Google Wallet</strong> buttons may appear on your order page in My Tickets or in your confirmation email when this feature is enabled for the site.</p>
+        <p>Wallet passes are optional and are not available on every order. You must be signed in as the buyer to open wallet links. Wallet buttons do not work for anonymous users.</p>
+
+        <h2>QR codes and PDF tickets</h2>
+        <p>Some events issue QR codes or PDF tickets after purchase or after you assign tickets to attendees. If your order is still being processed, these may arrive in a later email or appear in My Tickets once tickets are issued.</p>
+        <p>If you expected a QR code or PDF and do not see one yet, open My Tickets and check for an assign-tickets step or a follow-up message before contacting support.</p>
+
+        <h2>If confirmation is missing</h2>
+        <p>If nothing arrives within a few minutes, do not assume your order failed. Sign in and check <strong>My Tickets</strong> first.</p>
+        <p>Contact MyEventLane support with the event name, date, and the email address you used at checkout. You can also contact the organiser through the event page when details are listed.</p>
+
+        <h2>Related help</h2>
+        <ul>
+          <li><a href="/help/attendees/how-to-buy-tickets">How to buy tickets</a></li>
+          <li><a href="/help/attendees/having-trouble-checking-out">Having trouble checking out</a></li>
+          <li><a href="/help/attendees/joining-a-waitlist">Joining a waitlist</a></li>
+          <li><a href="/help/attendees/contacting-support">Contacting support</a></li>
+        </ul>

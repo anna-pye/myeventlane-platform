@@ -234,6 +234,44 @@
   }
 }
 
+// Event pages on phone: keep footer usable without dominating the scroll.
+@media (width <= 767px) {
+  body:has(.mel-event-full) .mel-footer {
+    padding-top: 28px;
+  }
+
+  body:has(.mel-event-full) .mel-footer__container {
+    gap: 18px;
+    padding-inline: 18px;
+  }
+
+  body:has(.mel-event-full) .mel-footer__nav {
+    gap: 18px;
+  }
+
+  body:has(.mel-event-full) .mel-footer__col h4 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  body:has(.mel-event-full) .mel-footer .menu a,
+  body:has(.mel-event-full) .mel-footer .menu-item a,
+  body:has(.mel-event-full) .mel-footer nav a,
+  body:has(.mel-event-full) .mel-footer__dynamic a {
+    min-height: 36px;
+  }
+
+  body:has(.mel-event-full) .mel-footer__base {
+    margin-top: 28px;
+    padding: 18px 0;
+  }
+
+  body:has(.mel-event-full) .mel-footer__base-inner {
+    padding-inline: 18px;
+    gap: 14px;
+  }
+}
+
 // ==========================================================================
 // Internal footer (vendor/admin)
 // ==========================================================================

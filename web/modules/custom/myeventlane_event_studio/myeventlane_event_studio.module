@@ -105,6 +105,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
     'mel_event_studio_wizard_preview' => [
       'variables' => [
         'node' => NULL,
+        'preview_url' => NULL,
       ],
       'template' => 'mel-event-studio-wizard-preview',
     ],
@@ -144,6 +145,12 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'preview' => [],
       ],
       'template' => 'mel-event-studio-extra-preview',
+    ],
+    'mel_event_studio_extra_variant_preview' => [
+      'variables' => [
+        'rows' => [],
+      ],
+      'template' => 'mel-event-studio-extra-variant-preview',
     ],
     'mel_event_branding_preview' => [
       'variables' => [

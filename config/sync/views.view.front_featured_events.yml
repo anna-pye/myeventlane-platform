@@ -286,7 +286,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser_featured
+          view_mode: editorial_magazine
       query:
         type: views_query
         options:
@@ -328,7 +328,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser_featured
+          view_mode: editorial_magazine
       display_extenders: {  }
       block_description: 'Front: Featured Events'
       block_category: MyEventLane

@@ -28,6 +28,15 @@ services:
       - '@myeventlane_help_centre.help_content_repository'
       - '@logger.factory'
 
+  myeventlane_help_centre.priority_help_article_importer:
+    class: Drupal\myeventlane_help_centre\Service\PriorityHelpArticleImporter
+    arguments:
+      - '@entity_type.manager'
+      - '@file_system'
+      - '@language_manager'
+      - '@logger.channel.myeventlane_help_centre'
+      - '%app.root%'
+
   myeventlane_help_centre.analytics:
     class: Drupal\myeventlane_help_centre\Service\HelpAnalyticsService
     arguments:

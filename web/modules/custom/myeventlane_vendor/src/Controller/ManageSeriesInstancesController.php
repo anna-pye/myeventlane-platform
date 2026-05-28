@@ -28,10 +28,12 @@ final class ManageSeriesInstancesController extends ManageEventControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static(
+    $instance = new static(
       $container->get('myeventlane_vendor.manage_event_navigation'),
       $container->get('myeventlane_event.recurrence_generator'),
     );
+    $instance->domainDetector = $container->get('myeventlane_core.domain_detector');
+    return $instance;
   }
 
   /**

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_tickets;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityAccessControlHandler;
+use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -15,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Access control handler for Event Ticket Settings entities.
  */
-final class EventTicketSettingsAccessControlHandler extends EntityAccessControlHandler {
+final class EventTicketSettingsAccessControlHandler extends EntityAccessControlHandler implements EntityHandlerInterface {
 
   /**
    * Constructs EventTicketSettingsAccessControlHandler.

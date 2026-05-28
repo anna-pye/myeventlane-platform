@@ -65,18 +65,45 @@
             ) %}
           <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
             <ul class="mel-booking-panel__trust-rows" role="list">
-              <li class="mel-booking-panel__trust-row">
-                <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
-                  {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'shield-check', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
-                </span>
-                <span class="mel-booking-panel__trust-row-text">{{ 'No hidden fees on MyEventLane'|t }}</span>
-              </li>
+              {% if cta_type is defined and cta_type == 'paid' %}
+                <li class="mel-booking-panel__trust-row">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'shield-check', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">{{ 'Secure checkout'|t }}</span>
+                </li>
+              {% elseif cta_type is defined and cta_type == 'rsvp' %}
+                <li class="mel-booking-panel__trust-row">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'shield-check', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">{{ 'No payment required'|t }}</span>
+                </li>
+              {% endif %}
               <li class="mel-booking-panel__trust-row">
                 <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
                   {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'mail', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
                 </span>
-                <span class="mel-booking-panel__trust-row-text">{{ 'Instant confirmation'|t }}</span>
+                <span class="mel-booking-panel__trust-row-text">{{ "You'll receive confirmation by email"|t }}</span>
               </li>
+              {% if cta_type is defined and cta_type == 'rsvp' %}
+                <li class="mel-booking-panel__trust-row">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'info', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">{{ 'Your RSVP details are used for event administration only'|t }}</span>
+                </li>
+              {% else %}
+                <li class="mel-booking-panel__trust-row">
+                  <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'info', class: 'mel-booking-panel__trust-svg', size: 20 } only %}
+                  </span>
+                  <span class="mel-booking-panel__trust-row-text">
+                    {{ 'Need help?'|t }}
+                    <a class="mel-booking-panel__trust-link" href="{{ path('myeventlane_support.page') }}">{{ 'Visit support'|t }}</a>
+                  </span>
+                </li>
+              {% endif %}
               {% if mel_event_selling_fast|default(false) and (event_ui is not defined or not (event_ui.is_sold_out|default(false) is same as(true))) %}
                 <li class="mel-booking-panel__trust-row mel-booking-panel__trust-row--urgent">
                   <span class="mel-booking-panel__trust-row-icon" aria-hidden="true">

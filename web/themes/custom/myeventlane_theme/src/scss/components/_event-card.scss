@@ -1,7 +1,7 @@
 // ==========================================================================
 // MEL event card — unified public listing component
 // ==========================================================================
-// Variants: .mel-event-card--standard | --featured | --compact | --hero
+// Variants: .mel-event-card--standard | --list | --featured | --editorial | --compact | --hero
 // Promoted/boosted state: .mel-event-card--promoted (.mel-event-card--boosted alias)
 // Markup: templates/components/event-card/mel-event-card.html.twig
 
@@ -85,6 +85,7 @@
 
 .mel-event-card--featured .mel-event-card__link:focus-visible,
 .mel-event-card--standard .mel-event-card__link:focus-visible,
+.mel-event-card--list .mel-event-card__link:focus-visible,
 .mel-event-card--hero .mel-event-card__link:focus-visible {
   border-radius: inherit;
 }
@@ -354,6 +355,8 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: calc(1.25em * 2);
+  // WebKit line-clamp can clip the first/last glyph at the box edge (listing grids).
+  padding-inline: 1px;
 }
 
 .mel-event-card__when {
@@ -722,7 +725,7 @@
 
 }
 
-// --- Standard (default discovery grid — image-led overlay) ---
+// --- Standard (image-led overlay — homepage grids use compact_commerce instead) ---
 .mel-event-card--standard {
   align-self: start;
   box-shadow: 0 14px 36px rgba(36, 48, 58, 0.1);
@@ -768,6 +771,7 @@
 // Canonical overlay CTA — solid lavender (reference carousel / boosted cards).
 .mel-event-card--standard,
 .mel-event-card--featured,
+.mel-event-card--editorial,
 .mel-event-card--hero {
   .mel-event-card__cta-chip {
     min-height: 44px;
@@ -882,7 +886,7 @@
 
 // Featured / carousel — glass dock hugs copy width (not full card width).
 .mel-featured-carousel:not(.mel-featured-home-carousel) .mel-event-card--featured:not(.mel-event-card--hero),
-.mel-featured-home-carousel .mel-event-card--hero {
+.mel-featured-home-carousel .mel-event-card--hero:not(.mel-event-card--editorial) {
   .mel-event-card__body,
   .mel-event-card__content {
     right: auto;
@@ -995,13 +999,33 @@
   .mel-event-card__content {
     min-width: 0;
     padding: 14px mel.$mel-ds-space-md;
-    justify-content: center;
+    justify-content: flex-start;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-event-card__cta-row {
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+
+  .mel-event-card__tertiary--context {
+    flex-shrink: 0;
+    min-height: 1.25em;
   }
 
   .mel-event-card__title {
     font-size: mel.$mel-ds-font-body;
     margin-bottom: mel.$mel-ds-space-xs;
     min-height: calc(1.25em * 2);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    color: mel.$mel-ds-color-text;
+    text-shadow: none;
   }
 
   .mel-event-card__when {
@@ -1010,6 +1034,27 @@
 
   .mel-event-card__location {
     font-size: 13px;
+  }
+
+  // Body copy always uses surface colours (not overlay contrast from mel-cards.js).
+  .mel-event-card__when,
+  .mel-event-card__date,
+  .mel-event-card__location,
+  .mel-event-card__status-secondary,
+  .mel-event-card__social,
+  .mel-event-card__urgency,
+  .mel-event-card__capacity-hint {
+    color: mel.$mel-ds-color-muted;
+    text-shadow: none;
+  }
+
+  &.mel-event-card--dark-bg,
+  &.mel-event-card--light-bg {
+    .mel-event-card__link,
+    .mel-event-card__link:hover,
+    .mel-event-card__link:active {
+      color: mel.$mel-ds-color-text;
+    }
   }
 }
 
@@ -1049,7 +1094,7 @@
   border-radius: clamp(24px, 3vw, 34px);
 }
 
-.mel-featured-home-carousel .mel-event-card--hero {
+.mel-featured-home-carousel .mel-event-card--hero:not(.mel-event-card--editorial) {
   --mel-event-card-glass-inset: 16px;
   --mel-event-card-glass-panel-radius: 22px;
   --mel-event-card-glass-pad-x: 22px;
@@ -1154,7 +1199,7 @@
     linear-gradient(145deg, color-mix(in srgb, mel.$mel-ds-color-primary 28%, #fff) 0%, color-mix(in srgb, mel.$mel-ds-color-accent 22%, #fff) 100%);
 }
 
-.mel-event-card--hero {
+.mel-event-card--hero:not(.mel-event-card--editorial) {
   align-self: start;
   border-radius: clamp(20px, 2.5vw, 32px);
   overflow: hidden;
