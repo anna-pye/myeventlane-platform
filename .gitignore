@@ -118,6 +118,8 @@ settings.local.*
 ############################################
 # PHPUnit (local execution cache; noisy, machine-specific)
 ############################################
+/web/.phpunit.result.cache
+**/.phpunit.result.cache
 .phpunit.result.cache
 
 ############################################
