@@ -15,6 +15,7 @@ use Drupal\myeventlane_core\Service\PlatformFeeSettings;
 use Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver;
 use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_event_studio\Service\EventStudioEventExtrasBuilder;
+use Drupal\myeventlane_event_studio\Service\EventStudioExtrasConfiguredSummaryBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioExtrasProductEditorBuilder;
 use Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -44,6 +45,8 @@ final class EventStudioEventExtrasForm extends FormBase {
 
   protected EventStudioExtrasProductEditorBuilder $productEditorBuilder;
 
+  protected EventStudioExtrasConfiguredSummaryBuilder $extrasConfiguredSummaryBuilder;
+
   protected EventExtrasBookPlacementResolver $extrasBookPlacementResolver;
 
   protected LoggerInterface $logger;
@@ -58,6 +61,7 @@ final class EventStudioEventExtrasForm extends FormBase {
     VendorOperationalProductCreationManager $product_creation_manager,
     EventStudioEventExtrasBuilder $extras_builder,
     EventStudioExtrasProductEditorBuilder $product_editor_builder,
+    EventStudioExtrasConfiguredSummaryBuilder $extras_configured_summary_builder,
     EventExtrasBookPlacementResolver $extras_book_placement_resolver,
     LoggerInterface $logger,
   ) {
@@ -66,6 +70,7 @@ final class EventStudioEventExtrasForm extends FormBase {
     $this->productCreationManager = $product_creation_manager;
     $this->extrasBuilder = $extras_builder;
     $this->productEditorBuilder = $product_editor_builder;
+    $this->extrasConfiguredSummaryBuilder = $extras_configured_summary_builder;
     $this->extrasBookPlacementResolver = $extras_book_placement_resolver;
     $this->logger = $logger;
   }
@@ -77,6 +82,7 @@ final class EventStudioEventExtrasForm extends FormBase {
       $container->get('myeventlane_event_studio.vendor_operational_product_creation_manager'),
       $container->get('myeventlane_event_studio.event_extras_builder'),
       $container->get('myeventlane_event_studio.extras_product_editor_builder'),
+      $container->get('myeventlane_event_studio.extras_configured_summary_builder'),
       $container->get('myeventlane_commerce.event_extras_book_placement_resolver'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
@@ -99,7 +105,7 @@ final class EventStudioEventExtrasForm extends FormBase {
    * Ensures services are present after form cache unserialization.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->eventVendorAccessChecker, $this->productCreationManager, $this->extrasBuilder, $this->productEditorBuilder, $this->extrasBookPlacementResolver, $this->logger)) {
+    if (isset($this->entityTypeManager, $this->eventVendorAccessChecker, $this->productCreationManager, $this->extrasBuilder, $this->productEditorBuilder, $this->extrasConfiguredSummaryBuilder, $this->extrasBookPlacementResolver, $this->logger)) {
       return;
     }
     $container = \Drupal::getContainer();
@@ -117,6 +123,9 @@ final class EventStudioEventExtrasForm extends FormBase {
     }
     if (!isset($this->productEditorBuilder)) {
       $this->productEditorBuilder = $container->get('myeventlane_event_studio.extras_product_editor_builder');
+    }
+    if (!isset($this->extrasConfiguredSummaryBuilder)) {
+      $this->extrasConfiguredSummaryBuilder = $container->get('myeventlane_event_studio.extras_configured_summary_builder');
     }
     if (!isset($this->extrasBookPlacementResolver)) {
       $this->extrasBookPlacementResolver = $container->get('myeventlane_commerce.event_extras_book_placement_resolver');
@@ -245,10 +254,21 @@ final class EventStudioEventExtrasForm extends FormBase {
       $form['intro']['#access'] = FALSE;
     }
     else {
-      $form['list'] = $this->buildList($event);
-      $form += $this->buildBookingPlacement($event);
-      $form['probe'] = $this->buildProbe($event);
-      $form['footer_cta'] = $this->buildFooterCta($event);
+      $form['#attributes']['class'][] = 'mel-event-extras-studio--list';
+      $placement = $this->buildBookingPlacement($event);
+      $form['layout'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-extras-studio__layout']],
+        'main' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-event-extras-studio__main']],
+          'list' => $this->buildList($event),
+        ] + $placement + [
+          'probe' => $this->buildProbe($event),
+          'footer_cta' => $this->buildFooterCta($event),
+        ],
+        'aside' => $this->extrasConfiguredSummaryBuilder->buildStudioAsideRenderArray($event),
+      ];
     }
 
     return $form;

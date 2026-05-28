@@ -55,6 +55,86 @@
     transform: translateX(0);
     box-shadow: $shadow-xl;
   }
+
+  // Global body.mel-vendor link reset tints :visited as $primary blue; keep shell nav neutral.
+  .mel-sidebar__link:not(.mel-sidebar__link--disabled),
+  .mel-sidebar__footer .mel-sidebar__link {
+    &:link,
+    &:visited {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    &:hover {
+      color: $text-inverse;
+    }
+
+    &:focus-visible {
+      color: $text-inverse;
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+
+    &.is-active,
+    &[aria-current='page'] {
+      color: $text-inverse;
+    }
+  }
+
+  .mel-sidebar__subnav-link:not([aria-disabled='true']) {
+    &:link,
+    &:visited {
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: $text-inverse;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+
+    &.is-active,
+    &[aria-current='page'] {
+      color: $text-inverse;
+    }
+  }
+
+  .mel-sidebar__logo {
+    &:link,
+    &:visited {
+      color: $text-inverse;
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: $text-inverse;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
+
+  .mel-sidebar__logout a {
+    &:link,
+    &:visited {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: $text-inverse;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #7c83fd;
+      outline-offset: 2px;
+    }
+  }
 }
 
 // Mobile sidebar overlay: full-screen layer behind open sidebar.

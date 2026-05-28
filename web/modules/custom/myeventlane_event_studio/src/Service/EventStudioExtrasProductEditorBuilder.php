@@ -96,51 +96,78 @@ final class EventStudioExtrasProductEditorBuilder {
 
     $actions = $this->buildActionsSection();
 
-    $editor['accordion'] = [
+    $setup_summary = $this->buildProductSetupSummarySection(
+      $defaults,
+      $product,
+      $event,
+      $is_merch,
+      $rows,
+      $variation_fields,
+    );
+    $preview = $this->buildPreviewSection($product, $event, $defaults, $form_state);
+
+    $editor['layout'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-product-editor__accordion']],
-      'basics' => $this->buildAccordionPanel(
-        'basics',
-        (string) $this->t('Basics'),
-        (string) $this->t('Name, description, status, and default price for new options.'),
-        $open['basics'],
-        $this->buildBasicsPanelContent($defaults, $product, $extra_type, $is_merch),
-      ),
-      'photos' => $this->buildAccordionPanel(
-        'photos',
-        (string) $this->t('Photos'),
-        (string) $this->t('Images customers see on the booking page.'),
-        $open['photos'],
-        $this->buildMediaPanelContent($form, $form_state, $event, $product, $extra_type, $product_fields),
-      ),
-      'product_options' => $this->buildAccordionPanel(
-        'product_options',
-        (string) $this->t('Product options'),
-        (string) $this->t('Each option is something customers can buy.'),
-        $open['product_options'],
-        $this->buildProductOptionsPanelContent($defaults, $variation_fields, $form_state),
-      ),
-      'stock_limits' => $this->buildAccordionPanel(
-        'stock_limits',
-        (string) $this->t('Stock and limits'),
-        (string) $this->t('Inventory and per-order limits for each option.'),
-        $open['stock_limits'],
-        $this->buildStockLimitsPanelContent($defaults, $variation_fields, $form_state, $rows),
-      ),
-      'booking_preview' => $this->buildAccordionPanel(
-        'booking_preview',
-        (string) $this->t('Booking preview'),
-        (string) $this->t('How this item may appear to customers.'),
-        $open['booking_preview'],
-        $this->buildPreviewPanelContent($product, $event, $defaults, $form_state, $rows),
-      ),
-      'collection_documents' => $this->buildAccordionPanel(
-        'collection_documents',
-        (string) $this->t('Collection and documents'),
-        (string) $this->t('Pickup notes, booking visibility, and operational print guidance.'),
-        $open['collection_documents'],
-        $this->buildCollectionDocumentsPanelContent($defaults, $event),
-      ),
+      '#attributes' => ['class' => ['mel-event-product-editor__layout']],
+      'main' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-product-editor__main']],
+        'accordion' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-event-product-editor__accordion']],
+          'basics' => $this->buildAccordionPanel(
+            'basics',
+            (string) $this->t('Basics'),
+            (string) $this->t('Name, description, status, and default price for new options.'),
+            $open['basics'],
+            $this->buildBasicsPanelContent($defaults, $product, $extra_type, $is_merch),
+          ),
+          'photos' => $this->buildAccordionPanel(
+            'photos',
+            (string) $this->t('Photos'),
+            (string) $this->t('Images customers see on the booking page.'),
+            $open['photos'],
+            $this->buildMediaPanelContent($form, $form_state, $event, $product, $extra_type, $product_fields),
+          ),
+          'product_options' => $this->buildAccordionPanel(
+            'product_options',
+            (string) $this->t('Product options'),
+            (string) $this->t('Each option is something customers can buy.'),
+            $open['product_options'],
+            $this->buildProductOptionsPanelContent($defaults, $variation_fields, $form_state),
+          ),
+          'stock_limits' => $this->buildAccordionPanel(
+            'stock_limits',
+            (string) $this->t('Stock and limits'),
+            (string) $this->t('Inventory and per-order limits for each option.'),
+            $open['stock_limits'],
+            $this->buildStockLimitsPanelContent($defaults, $variation_fields, $form_state, $rows),
+          ),
+          'collection_documents' => $this->buildAccordionPanel(
+            'collection_documents',
+            (string) $this->t('Collection and documents'),
+            (string) $this->t('Pickup notes, booking visibility, and operational print guidance.'),
+            $open['collection_documents'],
+            $this->buildCollectionDocumentsPanelContent($defaults, $event),
+          ),
+        ],
+      ],
+      'aside' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-product-editor__aside']],
+        'setup_summary' => $setup_summary['setup_summary'],
+        'booking_preview' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-es-card', 'mel-event-product-editor__aside-preview']],
+          'title' => [
+            '#type' => 'html_tag',
+            '#tag' => 'h3',
+            '#value' => $this->t('Booking preview'),
+            '#attributes' => ['class' => ['mel-es-card__title']],
+          ],
+          'preview' => $preview['customer_preview'],
+        ],
+      ],
     ];
 
     $editor['footer'] = $this->buildFooterNav($event, $actions);
@@ -204,7 +231,6 @@ final class EventStudioExtrasProductEditorBuilder {
       'photos' => FALSE,
       'product_options' => FALSE,
       'stock_limits' => FALSE,
-      'booking_preview' => FALSE,
       'collection_documents' => FALSE,
     ];
 
@@ -221,7 +247,6 @@ final class EventStudioExtrasProductEditorBuilder {
     }
 
     $closed['product_options'] = TRUE;
-    $closed['booking_preview'] = TRUE;
     return $closed;
   }
 
@@ -525,22 +550,6 @@ final class EventStudioExtrasProductEditorBuilder {
       }
     }
     return FALSE;
-  }
-
-  /**
-   * @param list<array<string, mixed>> $rows
-   *
-   * @return array<string, mixed>
-   */
-  private function buildPreviewPanelContent(
-    ?ProductInterface $product,
-    NodeInterface $event,
-    array $defaults,
-    FormStateInterface $form_state,
-    array $rows,
-  ): array {
-    $preview = $this->buildPreviewSection($product, $event, $defaults, $form_state);
-    return ['preview' => $preview['customer_preview']];
   }
 
   /**

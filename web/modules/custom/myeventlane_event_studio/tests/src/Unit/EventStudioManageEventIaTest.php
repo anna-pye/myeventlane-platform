@@ -80,12 +80,18 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
   public function testStudioTopBarManageEventLinkPointsToVendorWorkspace(): void {
     $topbar = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-topbar.html.twig');
     $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
+    $shellCss = file_get_contents(dirname(__DIR__, 3) . '/css/mel-event-studio-shell.css');
     $this->assertIsString($topbar);
     $this->assertIsString($controller);
+    $this->assertIsString($shellCss);
     $this->assertStringContainsString('show_manage_event_link', $topbar);
     $this->assertStringContainsString('Manage event', $topbar);
     $this->assertStringContainsString('manage_event_url', $topbar);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $controller);
+    $this->assertStringContainsString('mel-event-studio-topbar__primary', $topbar);
+    $this->assertStringContainsString('{% if topbar.state %}', $topbar);
+    $this->assertStringContainsString('display: flex', $shellCss);
+    $this->assertStringNotContainsString('grid-template-columns: minmax(0, 1fr) auto auto', $shellCss);
   }
 
   public function testVendorEventWorkspaceRendersTodaysFocusRegion(): void {
@@ -132,11 +138,17 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
   public function testConfiguredExtrasSummaryBuilderExists(): void {
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioExtrasConfiguredSummaryBuilder.php');
     $template = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-extras-configured-summary.html.twig');
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/EventStudioEventExtrasForm.php');
     $this->assertIsString($builder);
     $this->assertIsString($template);
+    $this->assertIsString($form);
     $this->assertStringContainsString('has_products', $builder);
     $this->assertStringContainsString('empty_state', $builder);
     $this->assertStringContainsString('Add merch or extras', $builder);
+    $this->assertStringContainsString('buildStudioAsideRenderArray', $builder);
+    $this->assertStringContainsString('mel-event-extras-studio__layout', $form);
+    $this->assertStringContainsString('buildStudioAsideRenderArray', $form);
+    $this->assertStringContainsString('hide_manage_cta', $template);
     $this->assertStringContainsString('empty.title', $template);
   }
 

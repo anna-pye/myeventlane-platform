@@ -10,6 +10,7 @@ use Drupal\myeventlane_event_studio\Service\OperationalProductStudioFieldRegistr
 use Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use Drupal\myeventlane_event_studio\Service\EventStudioExtrasProductEditorBuilder;
 
 /**
  * @group myeventlane_event_studio
@@ -103,7 +104,7 @@ final class EventStudioExtrasProductEditorTest extends TestCase {
   }
 
   public function testExtrasProductEditorBuilderClassExists(): void {
-    $this->assertTrue(class_exists(\Drupal\myeventlane_event_studio\Service\EventStudioExtrasProductEditorBuilder::class));
+    $this->assertTrue(class_exists(EventStudioExtrasProductEditorBuilder::class));
   }
 
   public function testProductEditorUsesVendorManagedProductOptions(): void {
@@ -182,13 +183,16 @@ final class EventStudioExtrasProductEditorTest extends TestCase {
     $this->assertIsString($twig);
     $this->assertStringContainsString('#preview_meta_line', $builder);
     $this->assertStringContainsString('preview_meta_line', $twig);
+    $this->assertStringContainsString('mel-event-product-editor__layout', $builder);
+    $this->assertStringContainsString('mel-event-product-editor__aside', $builder);
+    $this->assertStringContainsString('buildProductSetupSummarySection', $builder);
   }
 
   public function testStockHelperCopyAppearsOnceInStockPanel(): void {
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioExtrasProductEditorBuilder.php');
     $this->assertIsString($builder);
     preg_match(
-      '/private function buildStockLimitsPanelContent\([\s\S]*?private function buildPreviewPanelContent/s',
+      '/private function buildStockLimitsPanelContent\([\s\S]*?private function buildCollectionDocumentsPanelContent/s',
       $builder,
       $panel_match,
     );

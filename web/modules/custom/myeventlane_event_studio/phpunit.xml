@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Lightweight unit tests (no Drupal bootstrap). From repo root:
+     ddev exec vendor/bin/phpunit -c web/modules/custom/myeventlane_event_studio/phpunit.xml
+     Filter one class (use filter=ClassName on the phpunit command).
+
+     Other tests under tests/src/Unit (Drupal UnitTestCase or heavier TestCase) use:
+     ddev exec bash -lc 'cd web && ../vendor/bin/phpunit -c phpunit-event-studio.xml' -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="tests/bootstrap-unit.php"
+         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd">
+  <testsuites>
+    <testsuite name="myeventlane_event_studio_unit_light">
+      <file>tests/src/Unit/EntityAutocompleteMelNormalizerTest.php</file>
+      <file>tests/src/Unit/EventStudioExtrasProductEditorTest.php</file>
+      <file>tests/src/Unit/EventStudioMerchAddonStudioTest.php</file>
+      <file>tests/src/Unit/QuestionFieldTypeRegistryTest.php</file>
+      <file>tests/src/Unit/VendorOperationalProductCreationManagerTest.php</file>
+    </testsuite>
+  </testsuites>
+</phpunit>

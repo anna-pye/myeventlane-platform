@@ -17,6 +17,7 @@ use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Service\EventPasscodeAccess;
 use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
+use Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
@@ -59,6 +60,7 @@ final class EventStudioSaveService {
     private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
     private readonly ?EventPageStyleResolver $eventPageStyleResolver = NULL,
     private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
+    private readonly ?EventStudioQuestionTemplateManager $questionTemplateManager = NULL,
   ) {}
 
   /**

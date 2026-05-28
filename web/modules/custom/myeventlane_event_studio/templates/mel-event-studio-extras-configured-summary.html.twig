@@ -62,7 +62,7 @@
     </div>
   {% endif %}
 
-  {% if panel.manage_url %}
+  {% if panel.manage_url and not panel.hide_manage_cta|default(false) %}
     <div class="mel-event-extras-studio__configured-actions">
       <a href="{{ panel.manage_url }}" class="mel-btn mel-btn--primary">{{ panel.manage_label|default('Manage merch & add-ons'|t) }}</a>
     </div>

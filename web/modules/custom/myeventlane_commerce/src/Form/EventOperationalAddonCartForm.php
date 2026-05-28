@@ -247,22 +247,7 @@ final class EventOperationalAddonCartForm extends FormBase {
             'id' => $size_id,
           ],
         ],
-        'options' => [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['mel-event-extra-card__size-radios'],
-            'role' => 'radiogroup',
-            'aria-labelledby' => $size_id,
-          ],
-          'selected_size' => [
-            '#type' => 'radios',
-            '#options' => $this->sizeRadioOptions($size_options),
-            '#options_disabled' => $this->disabledSizeOptionKeys($size_options),
-            '#default_value' => '',
-            '#parents' => ['lines', (string) $index, 'selected_size'],
-            '#disabled' => $product_sold_out,
-          ],
-        ],
+        'options' => $this->buildSizeRadioGroup($size_options, $index, $size_id, $product_sold_out),
         'selected' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
@@ -504,10 +489,17 @@ final class EventOperationalAddonCartForm extends FormBase {
   /**
    * @param list<array<string, mixed>> $size_options
    *
-   * @return array<string, string>
+   * @return array<string, mixed>
    */
-  private function sizeRadioOptions(array $size_options): array {
-    $options = [];
+  private function buildSizeRadioGroup(array $size_options, int $index, string $size_id, bool $product_sold_out): array {
+    $group = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-event-extra-card__size-radios'],
+        'role' => 'radiogroup',
+        'aria-labelledby' => $size_id,
+      ],
+    ];
     foreach ($size_options as $opt) {
       if (!is_array($opt)) {
         continue;
@@ -523,30 +515,15 @@ final class EventOperationalAddonCartForm extends FormBase {
       elseif (($opt['remaining_label'] ?? '') !== '') {
         $label .= ' — ' . (string) $opt['remaining_label'];
       }
-      $options[$key] = $label;
+      $group[$key] = [
+        '#type' => 'radio',
+        '#title' => $label,
+        '#return_value' => $key,
+        '#parents' => ['lines', (string) $index, 'selected_size'],
+        '#disabled' => $product_sold_out || !empty($opt['sold_out']),
+      ];
     }
-    return $options;
-  }
-
-  /**
-   * @param list<array<string, mixed>> $size_options
-   *
-   * @return list<string>
-   */
-  private function disabledSizeOptionKeys(array $size_options): array {
-    $disabled = [];
-    foreach ($size_options as $opt) {
-      if (!is_array($opt)) {
-        continue;
-      }
-      if (!empty($opt['sold_out'])) {
-        $key = (string) ($opt['size_key'] ?? '');
-        if ($key !== '') {
-          $disabled[] = $key;
-        }
-      }
-    }
-    return $disabled;
+    return $group;
   }
 
   /**

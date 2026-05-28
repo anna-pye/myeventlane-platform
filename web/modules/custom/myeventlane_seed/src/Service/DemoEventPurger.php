@@ -11,6 +11,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\file\FileInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\user\Entity\User;
@@ -26,6 +27,7 @@ final class DemoEventPurger {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly CurrentVendorResolverInterface $currentVendorResolver,
   ) {}
 
   /**
@@ -60,7 +62,7 @@ final class DemoEventPurger {
       throw new \InvalidArgumentException(sprintf('Owner user "%s" was not found.', $settings['owner_username']));
     }
 
-    $vendor = $this->resolveVendorForUser($owner);
+    $vendor = $this->currentVendorResolver->resolveFromUser($owner);
     if ($vendor === NULL) {
       throw new \InvalidArgumentException(sprintf('No vendor entity found for user "%s".', $settings['owner_username']));
     }
@@ -235,21 +237,6 @@ final class DemoEventPurger {
     }
     $user = reset($users);
     return $user instanceof User ? $user : NULL;
-  }
-
-  private function resolveVendorForUser(User $user): ?Vendor {
-    $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
-    $query = $storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('uid', (int) $user->id())
-      ->sort('id', 'ASC')
-      ->range(0, 1);
-    $ids = $query->execute();
-    if ($ids === []) {
-      return NULL;
-    }
-    $vendor = $storage->load(reset($ids));
-    return $vendor instanceof Vendor ? $vendor : NULL;
   }
 
   /**

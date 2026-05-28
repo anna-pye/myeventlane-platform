@@ -1,3 +1,6 @@
+# Site alias for staging / manual Drush on the release tree.
+# Drush 13 requires an absolute `root` when set; omit it here and run Drush from the
+# release root (parent of web/) or use scripts/deploy/mel-deploy.sh (vendor/bin/drush.php).
+# Use: drush @default status   or   drush --uri=https://staging.myeventlane.com.au …
 default:
-  root: /home/myeventlanecom/staging/web
   uri: https://staging.myeventlane.com.au

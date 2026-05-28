@@ -34,7 +34,7 @@ default_rsvp_capacity: 40
 create_general_ticket: true
 create_concession_ticket: true
 create_early_bird_ticket: true
-create_supporter_ticket: true
+create_supporter_ticket: false
 min_ticket_price: 10.0
 max_ticket_price: 45.0
 use_wheelchair_access: true
