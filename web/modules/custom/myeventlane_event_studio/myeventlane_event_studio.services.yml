@@ -352,7 +352,6 @@ services:
       - '@image.factory'
       - '@string_translation'
       - '@file_system'
-      - '@?myeventlane_questions.template_cloner'
       - '@myeventlane_event_studio.operational_capability_studio_manager'
       - '@myeventlane_event_studio.event_page_style_resolver'
       - '@myeventlane_event.passcode_access'

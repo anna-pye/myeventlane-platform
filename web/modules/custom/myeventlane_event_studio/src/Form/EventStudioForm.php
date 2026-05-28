@@ -1007,8 +1007,14 @@ final class EventStudioForm extends FormBase {
         'copy' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Use Checkout questions for attendee details shown during ticket checkout.'),
+          '#value' => $this->t('Checkout questions are managed in the Checkout questions workspace. Use that table for status, ticket targeting, and archiving.'),
           '#attributes' => ['class' => ['mel-event-studio-questions__builder-cta-copy']],
+        ],
+        'copy_secondary' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('The list below is a quick preview. Saving this event updates labels and types only; it will not remove questions you edited in the workspace.'),
+          '#attributes' => ['class' => ['mel-event-studio-questions__builder-cta-hint']],
         ],
         'link' => [
           '#type' => 'link',
@@ -1762,11 +1768,30 @@ final class EventStudioForm extends FormBase {
         $required = (bool) $paragraph->get('field_question_required')->value;
       }
       $row = [
+        'id' => (int) $paragraph->id(),
         'label' => $label,
         'type' => $type,
         'required' => $required,
         'save_to_library' => FALSE,
       ];
+      if ($paragraph->hasField('field_question_status') && !$paragraph->get('field_question_status')->isEmpty()) {
+        $row['status'] = (string) $paragraph->get('field_question_status')->value;
+      }
+      if ($paragraph->hasField('field_question_applicability') && !$paragraph->get('field_question_applicability')->isEmpty()) {
+        $row['applicability'] = (string) $paragraph->get('field_question_applicability')->value;
+      }
+      if ($paragraph->hasField('field_question_ticket_types') && !$paragraph->get('field_question_ticket_types')->isEmpty()) {
+        $ticket_type_ids = [];
+        foreach ($paragraph->get('field_question_ticket_types')->getValue() as $item) {
+          $target_id = isset($item['target_id']) ? (int) $item['target_id'] : 0;
+          if ($target_id > 0) {
+            $ticket_type_ids[] = $target_id;
+          }
+        }
+        if ($ticket_type_ids !== []) {
+          $row['ticket_type_ids'] = $ticket_type_ids;
+        }
+      }
       if ($paragraph->hasField('field_question_options') && !$paragraph->get('field_question_options')->isEmpty()) {
         $opt_raw = trim((string) ($paragraph->get('field_question_options')->value ?? ''));
         if ($opt_raw !== '') {
