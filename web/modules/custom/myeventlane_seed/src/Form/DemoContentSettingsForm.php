@@ -86,6 +86,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['general'] = [
       '#type' => 'details',
       '#title' => $this->t('General generation settings'),
+      '#tree' => TRUE,
       '#open' => TRUE,
     ];
     $form['general']['enabled'] = [
@@ -154,6 +155,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['population'] = [
       '#type' => 'details',
       '#title' => $this->t('Event field population toggles'),
+      '#tree' => TRUE,
       '#open' => TRUE,
     ];
     foreach ($this->populationToggleKeys() as $key => $label) {
@@ -167,6 +169,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['mix'] = [
       '#type' => 'details',
       '#title' => $this->t('Content type mix'),
+      '#tree' => TRUE,
       '#open' => TRUE,
     ];
     $form['mix']['generate_rsvp_events'] = [
@@ -195,6 +198,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['tickets'] = [
       '#type' => 'details',
       '#title' => $this->t('Ticket settings'),
+      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     $form['tickets']['default_currency'] = [
@@ -246,6 +250,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['accessibility'] = [
       '#type' => 'details',
       '#title' => $this->t('Accessibility settings'),
+      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     foreach ([
@@ -270,6 +275,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['images'] = [
       '#type' => 'details',
       '#title' => $this->t('Image settings'),
+      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     $form['images']['generate_images'] = [
@@ -303,6 +309,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['safety'] = [
       '#type' => 'details',
       '#title' => $this->t('Safety settings'),
+      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     $form['safety']['dry_run'] = [

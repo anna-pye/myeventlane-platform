@@ -12,6 +12,7 @@ use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_seed\Util\ImageFactory;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\node\NodeInterface;
@@ -464,6 +465,7 @@ final class DemoEventSeeder {
       $this->populateLocation($event, $owner, $location, $start, $end, $type);
     }
 
+    $this->publishSeededEvent($event);
     $event->save();
     return $event;
   }
@@ -893,6 +895,16 @@ final class DemoEventSeeder {
     $range = (int) round(($max - $min) * 100);
     $offset = ($eventIndex * 13 + $tierOffset * 7) % ($range + 1);
     return round($min + ($offset / 100), 2);
+  }
+
+  private function publishSeededEvent(NodeInterface $event): void {
+    $event->setPublished(TRUE);
+    if ($event->hasField('moderation_state')) {
+      $event->set('moderation_state', 'published');
+    }
+    if (!$event->isNew()) {
+      EventNodeRevisionSave::prepare($event, 'Demo seed: event updated.');
+    }
   }
 
 }

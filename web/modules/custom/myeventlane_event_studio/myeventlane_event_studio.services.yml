@@ -375,6 +375,7 @@ services:
       - '@myeventlane_event_studio.operational_capability_studio_manager'
       - '@myeventlane_event_studio.event_page_style_resolver'
       - '@myeventlane_event.passcode_access'
+      - '@myeventlane_event_studio.question_template_manager'
 
   myeventlane_event_studio.readiness:
     class: Drupal\myeventlane_event_studio\Service\EventReadinessService

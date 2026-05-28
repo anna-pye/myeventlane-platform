@@ -31,10 +31,16 @@ mel_drush() {
 echo "Drush deploy (uri=${SITE_URI}, memory_limit=${MEL_DRUSH_PHP_MEMORY})"
 php -r 'printf("  CLI memory_limit=%s max_execution_time=%s\n", ini_get("memory_limit"), ini_get("max_execution_time"));'
 
-mel_drush status --uri="$SITE_URI" | grep -E 'Drupal bootstrap|Drupal version|Site URI' || {
-  echo "ERROR: Drupal bootstrap failed before deploy." >&2
+bootstrap_out="$(mel_drush status --uri="$SITE_URI" 2>&1)" || {
+  echo "ERROR: drush status failed before deploy." >&2
+  echo "$bootstrap_out" >&2
   exit 1
 }
+if ! echo "$bootstrap_out" | grep -qE 'Drupal bootstrap\s*:\s*Successful'; then
+  echo "ERROR: Drupal bootstrap failed before deploy." >&2
+  echo "$bootstrap_out" >&2
+  exit 1
+fi
 
 mel_drush deploy -y -v --uri="$SITE_URI"
 

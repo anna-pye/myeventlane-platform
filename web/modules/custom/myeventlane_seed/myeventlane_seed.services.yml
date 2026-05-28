@@ -13,7 +13,11 @@ services:
 
   myeventlane_seed.demo_event_purger:
     class: Drupal\myeventlane_seed\Service\DemoEventPurger
-    arguments: ['@entity_type.manager', '@logger.factory', '@config.factory']
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+      - '@config.factory'
+      - '@myeventlane_vendor.current_vendor_resolver'
 
   myeventlane_seed.demo_event_seeder:
     class: Drupal\myeventlane_seed\Service\DemoEventSeeder

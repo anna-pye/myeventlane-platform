@@ -231,7 +231,6 @@ final class EventStudioExtrasProductEditorBuilder {
       'photos' => FALSE,
       'product_options' => FALSE,
       'stock_limits' => FALSE,
-      'booking_preview' => FALSE,
       'collection_documents' => FALSE,
     ];
 
@@ -248,7 +247,6 @@ final class EventStudioExtrasProductEditorBuilder {
     }
 
     $closed['product_options'] = TRUE;
-    $closed['booking_preview'] = TRUE;
     return $closed;
   }
 
@@ -552,22 +550,6 @@ final class EventStudioExtrasProductEditorBuilder {
       }
     }
     return FALSE;
-  }
-
-  /**
-   * @param list<array<string, mixed>> $rows
-   *
-   * @return array<string, mixed>
-   */
-  private function buildPreviewPanelContent(
-    ?ProductInterface $product,
-    NodeInterface $event,
-    array $defaults,
-    FormStateInterface $form_state,
-    array $rows,
-  ): array {
-    $preview = $this->buildPreviewSection($product, $event, $defaults, $form_state);
-    return ['preview' => $preview['customer_preview']];
   }
 
   /**
