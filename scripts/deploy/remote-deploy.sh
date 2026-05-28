@@ -233,7 +233,7 @@ mel_deploy_cleanup() {
   echo "DEPLOY FAILED — cleanup: restoring previous release (if any) and clearing maintenance mode..." >&2
   if [ -n "${RELEASE_PATH:-}" ] && [ -d "$RELEASE_PATH" ]; then
     echo "  Removing failed partial release: $RELEASE_PATH" >&2
-    rm -rf "$RELEASE_PATH" || true
+    mel_remove_release_dir "$RELEASE_PATH"
   fi
   if [ "${MEL_CURRENT_SWITCHED:-0}" = "1" ] && [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -d "$MEL_PREVIOUS_CURRENT" ]; then
     echo "  Rolling back current symlink to: $MEL_PREVIOUS_CURRENT" >&2
