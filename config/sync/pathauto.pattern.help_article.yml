@@ -1,0 +1,22 @@
+uuid: 5d9e3b21-ac4e-502f-b7d3-9e5f607b8c12
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: help_article
+label: 'Help article paths'
+type: 'canonical_entities:node'
+pattern: 'help/[node:title]'
+selection_criteria:
+  5d9e3b21-ac4e-502f-b7d3-9e5f607b8c13:
+    id: 'entity_bundle:node'
+    negate: false
+    uuid: 5d9e3b21-ac4e-502f-b7d3-9e5f607b8c14
+    context_mapping:
+      node: node
+    bundles:
+      help_article: help_article
+selection_logic: and
+weight: 0
+relationships: {  }

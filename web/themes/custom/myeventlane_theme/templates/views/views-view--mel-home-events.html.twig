@@ -11,5 +11,9 @@
 {% if rows -%}
   {{ rows }}
 {% elseif empty -%}
-  {{ empty }}
+  <div class="view-empty mel-empty-state mel-empty-state--governed" role="status">
+    {{ empty }}
+  </div>
+{% else -%}
+  {% include '@myeventlane_theme/includes/mel-view-empty-events.html.twig' %}
 {% endif -%}

@@ -1,0 +1,42 @@
+uuid: bca75731-4b92-4866-ab06-911e567bd72e
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+    - options
+id: commerce_product_variation.field_mel_size
+field_name: field_mel_size
+entity_type: commerce_product_variation
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: xs
+      label: XS
+    -
+      value: s
+      label: S
+    -
+      value: m
+      label: M
+    -
+      value: l
+      label: L
+    -
+      value: xl
+      label: XL
+    -
+      value: 2xl
+      label: 2XL
+    -
+      value: 3xl
+      label: 3XL
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -15,7 +15,9 @@
  * templates/commerce/myeventlane-event-book.html.twig extending this file.
  */
 #}
-<article class="mel-booking-v2 mel-booking mel-event-book mel-event--v2" data-event-mode="{{ event_mode }}">
+{% set extras_in_sidebar = addons_available and (extras_sidebar_selection|default(false) or extras_book_placement|default('main_before_access') == 'sidebar') %}
+{% set extras_in_main = addons_available and (extras_inline_before_access_code|default(false) or not extras_in_sidebar) %}
+<article class="mel-booking-v2 mel-booking mel-event-book mel-event--v2{% if event_page_classes is defined and event_page_classes %} {{ event_page_classes|join(' ') }}{% else %} mel-event-page--classic mel-event-page--colour-coral{% endif %}" data-event-mode="{{ event_mode }}">
   <div class="mel-container mel-container--event">
     <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-booking-event-title">
       <div class="mel-event-hero__media">
@@ -68,6 +70,24 @@
       {% endif %}
     </div>
 
+    {% if not addons_available and mel_customer_operational_experience %}
+      <div class="mel-booking-operational-experience mel-container mel-container--event">
+        {{ mel_customer_operational_experience }}
+      </div>
+    {% endif %}
+
+    {% if not addons_available and mel_operational_checkout %}
+      <div class="mel-booking-operational-checkout mel-container mel-container--event">
+        {{ mel_operational_checkout }}
+      </div>
+    {% endif %}
+
+    {% if not addons_available and mel_operational_purchase_composition %}
+      <div class="mel-booking-operational-composition mel-container mel-container--event">
+        {{ mel_operational_purchase_composition }}
+      </div>
+    {% endif %}
+
     <div class="mel-booking-container">
       <div class="mel-event-layout{% if event_mode != 'paid' %} mel-event-layout--booking-single{% endif %}">
         <div class="mel-event-layout__main">
@@ -84,8 +104,10 @@
               {% endif %}
             </h2>
 
-            <div class="mel-ticket-panel__body mel-event-book__form-body">
-              {% if matrix_form is not empty %}
+            <div class="mel-ticket-panel__body mel-event-book__form-body mel-booking-flow" data-mel-booking-flow>
+              {% if ticket_form is not empty %}
+                {{ ticket_form }}
+              {% elseif matrix_form is not empty %}
                 {{ matrix_form }}
               {% elseif rsvp_form is not empty %}
                 {{ rsvp_form }}
@@ -95,6 +117,41 @@
                     {{ 'Registration opens soon.'|t }}
                   {% else %}
                     {{ "We couldn't load the booking form. Please refresh the page."|t }}
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              {% if extras_in_main and operational_addon_form %}
+                <section id="mel-operational-addons--inline" class="mel-booking-extras mel-booking-extras--inline mel-operational-addons-section mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title--inline" tabindex="-1">
+                  <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title--inline">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
+                  <p class="mel-operational-addons-section__lede">{{ operational_addons_section_lede|default('Merch, perks, and add-ons for this booking — collect at the event after checkout.'|t) }}</p>
+                  {{ operational_addon_form }}
+                </section>
+              {% endif %}
+
+              {% if ticket_booking_access is not empty %}
+                <div class="mel-ticket-booking-access-wrap">
+                  {{ ticket_booking_access }}
+                </div>
+              {% endif %}
+
+              {% if ticket_form_actions is not empty %}
+                <div class="mel-booking__cta mel-booking-flow__checkout" role="region" aria-label="{{ 'Reserve tickets'|t }}">
+                  <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
+                    <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
+                    <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
+                  </div>
+                  <p class="mel-booking__cta-note">
+                    {{ "Tickets will be added to your cart — checkout when you're ready."|t }}
+                  </p>
+                  {{ ticket_form_actions }}
+                  {% if event_back_url %}
+                    <nav class="mel-booking-nav mel-booking-nav--after-cta" aria-label="{{ 'Event navigation'|t }}">
+                      <a class="mel-booking-nav__back mel-btn mel-btn--ghost mel-btn--sm" href="{{ event_back_url }}">
+                        <span class="mel-booking-nav__back-icon" aria-hidden="true">←</span>
+                        {{ event_back_label|default('Back to event'|t) }}
+                      </a>
+                    </nav>
                   {% endif %}
                 </div>
               {% endif %}
@@ -124,6 +181,18 @@
                 <p class="mel-booking-summary__cta-note">{{ 'Tickets go to your cart first — continue to checkout when you are ready.'|t }}</p>
               </footer>
             </div>
+
+            {% if operational_addon_teaser %}
+              {{ operational_addon_teaser }}
+            {% endif %}
+
+            {% if extras_in_sidebar and operational_addon_form %}
+              <section id="mel-operational-addons--sidebar" class="mel-booking-extras mel-booking-extras--sidebar mel-operational-addons-section mel-operational-addons-section--sidebar mel-booking-flow__addons" aria-labelledby="mel-operational-addons-title--sidebar" tabindex="-1">
+                <h3 class="mel-operational-addons-section__title" id="mel-operational-addons-title--sidebar">{{ operational_addons_section_title|default('Grab the extras'|t) }}</h3>
+                <p class="mel-operational-addons-section__lede">{{ operational_addons_section_lede|default('Merch, perks, and add-ons for this booking — collect at the event after checkout.'|t) }}</p>
+                {{ operational_addon_form }}
+              </section>
+            {% endif %}
           </aside>
         {% endif %}
       </div>

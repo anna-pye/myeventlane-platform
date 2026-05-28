@@ -1,0 +1,19 @@
+uuid: 8c4f2a1b-9d3e-4f6a-b2c1-0e5d7a9f3b2c
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_mel_op_capabilities
+field_name: field_mel_op_capabilities
+entity_type: node
+type: string_long
+settings:
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

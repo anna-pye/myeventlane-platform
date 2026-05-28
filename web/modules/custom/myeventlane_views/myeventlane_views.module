@@ -6,6 +6,7 @@
  */
 
 use Drupal\views\ViewExecutable;
+use Drupal\taxonomy\TermInterface;
 use Twig\Loader\FilesystemLoader;
 
 /**
@@ -129,4 +130,23 @@ function myeventlane_views_preprocess_views_view_field(array &$variables): void 
       }
     });
   }
+
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof ViewExecutable || $view->id() !== 'front_category_pills') {
+    return;
+  }
+  if (($variables['field']->field ?? '') !== 'name') {
+    return;
+  }
+  $row = $variables['row'] ?? NULL;
+  if (!isset($row->_entity) || !$row->_entity instanceof TermInterface || $row->_entity->bundle() !== 'categories') {
+    return;
+  }
+  /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+  $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+  $variables['output'] = [
+    '#type' => 'link',
+    '#title' => $row->_entity->label(),
+    '#url' => $categoryUrl->getCategoryUrl($row->_entity),
+  ];
 }

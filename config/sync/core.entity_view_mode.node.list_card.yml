@@ -1,0 +1,11 @@
+uuid: a03dd106-ec5f-4b21-b0a3-cf886cd1ade7
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.list_card
+label: 'List card'
+description: 'Default discovery list event card (search, category, organiser, saved).'
+targetEntityType: node
+cache: true

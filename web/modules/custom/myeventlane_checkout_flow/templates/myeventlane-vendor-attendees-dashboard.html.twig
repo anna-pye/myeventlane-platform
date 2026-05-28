@@ -126,7 +126,7 @@
               </div>
             </div>
             <div class="mel-event-actions mel-mt-4">
-              <a href="{{ url('myeventlane_checkin.page', {'node': event_data.id}) }}" class="mel-btn mel-btn-primary">✓ {{ 'Check In'|t }}</a>
+              <a href="{{ url('myeventlane_event_attendees.vendor_operations_door', {'node': event_data.id}) }}" class="mel-btn mel-btn-primary">✓ {{ 'Check In'|t }}</a>
               <a href="{{ url('myeventlane_event_attendees.vendor_list', {'node': event_data.id}) }}" class="mel-btn mel-btn-secondary">{{ 'View Attendees'|t }}</a>
               <a href="{{ url('myeventlane_views.attendee_csv', [], {'query': {'download_csv': event_data.id}}) }}" class="mel-btn mel-btn-secondary" target="_blank">📥 {{ 'Export CSV'|t }}</a>
             </div>

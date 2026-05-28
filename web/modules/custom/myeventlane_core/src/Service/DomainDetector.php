@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -146,6 +147,59 @@ final class DomainDetector {
     $path = '/' . ltrim($path, '/');
 
     return $base_url . $path;
+  }
+
+  /**
+   * Builds a public-domain URL from an internal path.
+   *
+   * When the current request is on the vendor or admin domain and
+   * public_domain config is available, returns an absolute URL on the
+   * configured public host. Otherwise falls back to the relative path,
+   * which keeps single-domain local environments (DDEV) working.
+   *
+   * @param string $internal_path
+   *   A Drupal-generated relative path, e.g. /events/my-event.
+   *
+   * @return string
+   *   Absolute public URL or the original relative path.
+   */
+  public function publicUrl(string $internal_path): string {
+    $path = '/' . ltrim($internal_path, '/');
+
+    if ($this->isPublicDomain()) {
+      return $path;
+    }
+
+    try {
+      return $this->buildDomainUrl($path, 'public');
+    }
+    catch (\Throwable) {
+      return $path;
+    }
+  }
+
+  /**
+   * Converts a Drupal Url object to one pointing at the public domain.
+   *
+   * Returns the original Url unchanged when already on the public domain
+   * or when no domain configuration is available.
+   *
+   * @param \Drupal\Core\Url|null $url
+   *   A Url object, or NULL.
+   *
+   * @return \Drupal\Core\Url|null
+   *   A public-domain Url, or the original value.
+   */
+  public function publicUrlObject(?Url $url): ?Url {
+    if (!$url instanceof Url) {
+      return $url;
+    }
+    $path = $url->toString();
+    $publicPath = $this->publicUrl($path);
+    if ($publicPath !== $path) {
+      return Url::fromUri($publicPath);
+    }
+    return $url;
   }
 
   /**

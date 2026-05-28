@@ -1,0 +1,117 @@
+{#
+/**
+ * @file
+ * Vendor read-only list of operational add-on purchases for an event.
+ *
+ * @see \Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder
+ */
+#}
+{% set doc = document|default({}) %}
+<div class="mel-vendor-addon-orders">
+  {% if doc.page_intro %}
+    <p class="mel-vendor-addon-orders__intro">{{ doc.page_intro }}</p>
+  {% endif %}
+  {% if doc.vendor_prepare_hint %}
+    <p class="mel-vendor-addon-orders__prepare-hint">{{ doc.vendor_prepare_hint }}</p>
+  {% endif %}
+
+  {% if doc.empty %}
+    <div class="mel-vendor-addon-orders__empty mel-card">
+      <div class="mel-card-body">
+        <p class="mel-vendor-addon-orders__empty-text">{{ doc.empty_message|default('') }}</p>
+      </div>
+    </div>
+  {% else %}
+    {% set totals = doc.totals|default({}) %}
+    <div class="mel-vendor-addon-orders__summary mel-card mel-mb-4">
+      <div class="mel-card-body">
+        <h2 class="mel-vendor-addon-orders__summary-title">{{ 'Summary'|t }}</h2>
+        <ul class="mel-vendor-addon-orders__stat-grid">
+          <li class="mel-vendor-addon-orders__stat">
+            <span class="mel-vendor-addon-orders__stat-label">{{ 'Orders with add-ons'|t }}</span>
+            <span class="mel-vendor-addon-orders__stat-value">{{ totals.order_count|default(0) }}</span>
+          </li>
+          <li class="mel-vendor-addon-orders__stat">
+            <span class="mel-vendor-addon-orders__stat-label">{{ 'Add-on line items'|t }}</span>
+            <span class="mel-vendor-addon-orders__stat-value">{{ totals.item_count|default(0) }}</span>
+          </li>
+        </ul>
+        {% set gc = totals.group_counts|default({}) %}
+        {% if gc is iterable %}
+          <ul class="mel-vendor-addon-orders__group-counts">
+            {% for key, count in gc %}
+              {% if count > 0 %}
+                <li><span class="mel-vendor-addon-orders__chip">{{ key|replace({'_': ' '})|title }}: {{ count }}</span></li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="mel-vendor-addon-orders__list">
+      {% for order in doc.orders %}
+        <article class="mel-vendor-addon-orders__order mel-card mel-mb-3">
+          <div class="mel-card-body">
+            <header class="mel-vendor-addon-orders__order-head">
+              <div>
+                <h3 class="mel-vendor-addon-orders__order-title">{{ order.order_number|default('') }}</h3>
+                <p class="mel-vendor-addon-orders__order-meta">
+                  {% if order.placed_display %}
+                    <span>{{ 'Placed'|t }}: {{ order.placed_display }}</span>
+                  {% endif %}
+                </p>
+              </div>
+              <div class="mel-vendor-addon-orders__customer">
+                <span class="mel-vendor-addon-orders__customer-label">{{ order.customer_display_label|default('') }}</span>
+              </div>
+            </header>
+
+            {% for gkey, group in order.groups %}
+              <section class="mel-vendor-addon-orders__group" aria-labelledby="mel-vendor-addon-group-{{ order.order_id }}-{{ gkey }}">
+                <h4 id="mel-vendor-addon-group-{{ order.order_id }}-{{ gkey }}" class="mel-vendor-addon-orders__group-title">{{ group.label|default(gkey) }}</h4>
+                <ul class="mel-vendor-addon-orders__lines">
+                  {% for line in group.lines %}
+                    <li class="mel-vendor-addon-orders__line">
+                      {% if line.thumbnail_url|default('') %}
+                        <img class="mel-vendor-addon-orders__thumb" src="{{ line.thumbnail_url }}" alt="{{ line.thumbnail_alt|default(line.product_label|default('')) }}" loading="lazy" width="56" height="56" />
+                      {% endif %}
+                      <div class="mel-vendor-addon-orders__line-body">
+                        <div class="mel-vendor-addon-orders__line-main">
+                          <span class="mel-vendor-addon-orders__line-product">{{ line.product_label|default('') }}</span>
+                          {% if line.size_label|default('') %}
+                            <span class="mel-vendor-addon-orders__line-size">{{ 'Size @size'|t({'@size': line.size_label}) }}</span>
+                          {% elseif line.variation_label %}
+                            <span class="mel-vendor-addon-orders__line-variation">{{ line.variation_label }}</span>
+                          {% endif %}
+                          <span class="mel-vendor-addon-orders__line-qty">× {{ line.quantity|default(0) }}</span>
+                          {% if line.payment_status_label|default('') %}
+                            <span class="mel-vendor-addon-orders__line-paid">{{ line.payment_status_label }}</span>
+                          {% endif %}
+                        </div>
+                        {% if line.pickup_note|default('') %}
+                          <p class="mel-vendor-addon-orders__line-pickup">{{ line.pickup_note }}</p>
+                        {% elseif line.short_description|default('') %}
+                          <p class="mel-vendor-addon-orders__line-summary">{{ line.short_description }}</p>
+                        {% elseif line.operational_summary %}
+                          <p class="mel-vendor-addon-orders__line-summary">{{ line.operational_summary }}</p>
+                        {% endif %}
+                      {% if line.chips is defined and line.chips|length > 0 %}
+                        <ul class="mel-vendor-addon-orders__chips">
+                          {% for chip in line.chips %}
+                            <li><span class="mel-vendor-addon-orders__chip mel-vendor-addon-orders__chip--{{ chip.tone|default('muted') }}">{{ chip.label }}</span></li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endfor %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

@@ -55,6 +55,11 @@
                   <strong>{{ 'Amount paid'|t }}:</strong> ${{ order_data.total_price|number_format(2) }}
                 </div>
               </div>
+              {% if order_data.operational_addon_guidance %}
+                <div class="mel-my-tickets-addon-guidance mel-mt-3" role="region" aria-label="{{ 'Your add-ons'|t }}">
+                  {{ order_data.operational_addon_guidance }}
+                </div>
+              {% endif %}
 
               <div class="mel-order-actions mel-mt-4">
                 <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"
@@ -111,6 +116,11 @@
                     </span>
                   </div>
                 </div>
+              {% if order_data.operational_addon_guidance %}
+                  <div class="mel-my-tickets-addon-guidance mel-mt-3" role="region" aria-label="{{ 'Your add-ons'|t }}">
+                    {{ order_data.operational_addon_guidance }}
+                  </div>
+                {% endif %}
 
                 <div class="mel-order-actions mel-mt-4">
                   <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"

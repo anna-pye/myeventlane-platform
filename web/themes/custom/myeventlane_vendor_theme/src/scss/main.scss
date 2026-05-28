@@ -110,3 +110,14 @@
   @include meta.load-css('pages/settings');
   @include meta.load-css('pages/vendor-console-stack');
 }
+
+// No underline on vendor console links (wins over component hover rules).
+body.mel-vendor a:any-link,
+body.mel-vendor a:hover,
+body.mel-vendor a:active,
+body.mel-vendor a:focus,
+body.mel-vendor a:focus-visible,
+body.mel-vendor a:visited {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+}

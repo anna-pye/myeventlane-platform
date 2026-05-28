@@ -1,0 +1,70 @@
+{#
+/**
+ * @file
+ * Customer-safe operational expectation strip (read-only; no scanner/QR data).
+ *
+ * Variables:
+ * - experience: sanitised array from CustomerOperationalCommerceExperienceBuilder.
+ */
+#}
+{% set exp = experience|default({}) %}
+{% if exp.empty|default(false) or (exp.items|default([])|length == 0) %}
+  {# Empty document: render nothing. #}
+{% else %}
+  <section class="mel-coe mel-card-surface" role="region" aria-labelledby="mel-coe-heading">
+    <header class="mel-coe__header">
+      <h2 id="mel-coe-heading" class="mel-coe__title">{{ 'On the day'|t }}</h2>
+      {% if exp.preview_disclaimer|default('') %}
+        <p class="mel-coe__disclaimer mel-text--muted">{{ exp.preview_disclaimer }}</p>
+      {% endif %}
+    </header>
+    <div class="mel-coe__grid">
+      {% for item in exp.items|default([]) %}
+        <article class="mel-coe-card" data-readiness="{{ item.readiness_state|default('')|e('html_attr') }}">
+          <div class="mel-coe-card__head">
+            <h3 class="mel-coe-card__label">{{ item.capability_label|default('') }}</h3>
+            {% if item.readiness_label|default('') %}
+              <span class="mel-coe-chip mel-coe-chip--readiness mel-coe-chip--{{ item.readiness_state|default('default')|clean_class }}">{{ item.readiness_label }}</span>
+            {% endif %}
+          </div>
+          {% if item.operational_chips is defined and item.operational_chips is iterable %}
+            <ul class="mel-coe-chips" aria-label="{{ 'What to expect'|t }}">
+              {% for chip in item.operational_chips %}
+                <li class="mel-coe-chip mel-coe-chip--{{ chip.tone|default('muted')|clean_class }}">{{ chip.label|default('') }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          <ul class="mel-coe-summaries mel-text--muted">
+            {% if item.fulfillment_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.fulfillment_summary }}</li>
+            {% endif %}
+            {% if item.reservation_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.reservation_summary }}</li>
+            {% endif %}
+            {% if item.pickup_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.pickup_summary }}</li>
+            {% endif %}
+            {% if item.redemption_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.redemption_summary }}</li>
+            {% endif %}
+            {% if item.timing_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.timing_summary }}</li>
+            {% endif %}
+            {% if item.collection_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.collection_summary }}</li>
+            {% endif %}
+            {% if item.hospitality_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.hospitality_summary }}</li>
+            {% endif %}
+            {% if item.parking_summary|default('') %}
+              <li class="mel-coe-summary">{{ item.parking_summary }}</li>
+            {% endif %}
+            {% if item.operational_notice|default('') %}
+              <li class="mel-coe-summary mel-coe-summary--notice">{{ item.operational_notice }}</li>
+            {% endif %}
+          </ul>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

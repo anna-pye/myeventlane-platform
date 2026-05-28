@@ -1,0 +1,10 @@
+uuid: fab3f316-618c-4eea-a43d-95a342d37d1a
+langcode: en
+status: true
+dependencies: {  }
+id: timed_collection_var
+label: 'Timed collection variation'
+traits: {  }
+locked: false
+orderItemType: default
+generateTitle: true

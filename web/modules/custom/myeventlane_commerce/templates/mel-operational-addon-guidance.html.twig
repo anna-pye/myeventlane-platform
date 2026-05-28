@@ -1,0 +1,60 @@
+{#
+/**
+ * @file
+ * Compact customer add-on guidance (mel_operational_addon_guidance).
+ *
+ * Variables are pre-built in PHP; no calculations here.
+ *
+ * @see \Drupal\myeventlane_commerce\Service\OperationalAddonGuidanceBuilder
+ */
+#}
+{% set g = guidance|default({}) %}
+{% if g.mel_operational_addon_guidance %}
+  <div class="mel-addon-guidance" role="region" aria-labelledby="mel-addon-guidance-title">
+    <div class="mel-addon-guidance__header">
+      <h2 id="mel-addon-guidance-title" class="mel-addon-guidance__title">{{ g.page_title }}</h2>
+      {% if g.page_intro %}
+        <p class="mel-addon-guidance__intro">{{ g.page_intro }}</p>
+      {% endif %}
+    </div>
+
+    {% if g.sections is defined and g.sections|length > 0 %}
+      <ul class="mel-addon-guidance__sections">
+        {% for section in g.sections %}
+          <li class="mel-addon-guidance__section">
+            <h3 class="mel-addon-guidance__section-title">{{ section.title }}</h3>
+            {% if section.summary_lines is defined and section.summary_lines|length > 0 %}
+              <ul class="mel-addon-guidance__summaries">
+                {% for line in section.summary_lines %}
+                  <li>{{ line }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% if section.chips is defined and section.chips|length > 0 %}
+              <ul class="mel-addon-guidance__chips">
+                {% for chip in section.chips %}
+                  <li>
+                    <span class="mel-addon-guidance__chip mel-addon-guidance__chip--{{ chip.tone|default('muted') }}">{{ chip.label }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% if section.next_step %}
+              <p class="mel-addon-guidance__next">{{ section.next_step }}</p>
+            {% endif %}
+            {% if section.collection_hint %}
+              <p class="mel-addon-guidance__hint">{{ section.collection_hint }}</p>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if g.footer_note %}
+      <p class="mel-addon-guidance__footer">{{ g.footer_note }}</p>
+    {% endif %}
+    {% if g.support_hint %}
+      <p class="mel-addon-guidance__support mel-text--muted">{{ g.support_hint }}</p>
+    {% endif %}
+  </div>
+{% endif %}

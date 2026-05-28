@@ -15,6 +15,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -40,6 +41,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MelReadinessHelper $readinessHelper,
+    private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -176,17 +178,22 @@ final class VendorEventWorkspaceViewModelBuilder {
     $tabs = $this->vendorEventTabsService->buildWorkspaceTabs($event, 'overview', $account);
 
     $previewUrl = $this->routeUrlIfAccessible('entity.node.canonical', ['node' => $nid], $account);
+    $publicPreviewUrl = $this->domainDetector?->publicUrlObject($previewUrl) ?? $previewUrl;
+
+    // Reuse tab availability so add-on order gating runs once per request.
+    $addonOrdersUrl = $this->addonOrdersUrlFromWorkspaceTabs($tabs);
 
     $actions = [
       'edit' => $editUrl,
       'advanced_tickets' => $advancedTicketsUrl,
       'rsvps' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_rsvps', ['event' => $nid], $account),
       'orders' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_orders', ['event' => $nid], $account),
+      'addon_orders' => $addonOrdersUrl,
       'attendees' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account),
-      'checkin' => $this->routeUrlIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account),
+      'checkin' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_operations_door', ['node' => $nid], $account),
       'analytics' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_analytics', ['event' => $nid], $account),
       'settings' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_settings', ['event' => $nid], $account),
-      'preview' => $previewUrl,
+      'preview' => $publicPreviewUrl,
     ];
 
     return [
@@ -199,7 +206,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'date_label' => $dateLabel,
         'event_type' => $eventType,
         'event_type_label' => $eventTypeLabel,
-        'public_url' => $previewUrl,
+        'public_url' => $publicPreviewUrl,
       ],
       'readiness' => [
         'score' => $score,
@@ -288,6 +295,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'advanced_tickets' => NULL,
         'rsvps' => NULL,
         'orders' => NULL,
+        'addon_orders' => NULL,
         'attendees' => NULL,
         'checkin' => NULL,
         'analytics' => NULL,
@@ -584,6 +592,25 @@ final class VendorEventWorkspaceViewModelBuilder {
     }
 
     return $metrics;
+  }
+
+  /**
+   * Resolves the add-on orders shortcut from workspace tabs.
+   *
+   * @param list<array<string, mixed>> $tabs
+   */
+  private function addonOrdersUrlFromWorkspaceTabs(array $tabs): ?Url {
+    foreach ($tabs as $tab) {
+      if (($tab['key'] ?? '') !== 'addon_orders') {
+        continue;
+      }
+      if (empty($tab['available'])) {
+        return NULL;
+      }
+      $url = $tab['url'] ?? NULL;
+      return $url instanceof Url ? $url : NULL;
+    }
+    return NULL;
   }
 
   private function routeExists(string $name): bool {

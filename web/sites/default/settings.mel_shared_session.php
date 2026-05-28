@@ -113,7 +113,9 @@ $settings['reverse_proxy'] = TRUE;
 $mel_default_proxy_addresses = [
   '127.0.0.1',
   '::1',
+  '10.0.0.0/8',
   '172.16.0.0/12',
+  '192.168.0.0/16',
 ];
 $settings['reverse_proxy_addresses'] = array_values(array_unique(array_merge(
   $settings['reverse_proxy_addresses'] ?? [],

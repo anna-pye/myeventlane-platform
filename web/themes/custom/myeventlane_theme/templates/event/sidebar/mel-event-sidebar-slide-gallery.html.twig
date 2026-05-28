@@ -1,0 +1,38 @@
+{#
+  Gallery preview slide — opens main page lightbox.
+#}
+<div class="mel-sidebar-carousel__slide-header mel-sidebar-carousel__slide-header--gallery">
+  <h2 class="mel-card__title">{{ 'Moments from this event'|t }}</h2>
+  <p class="mel-sidebar-carousel__lede">{{ 'Tap a photo to expand.'|t }}</p>
+</div>
+<div class="mel-sidebar-carousel__slide-body mel-sidebar-gallery">
+  <ul class="mel-sidebar-gallery__grid" role="list">
+    {% for item in slide.items %}
+      <li class="mel-sidebar-gallery__item" role="listitem">
+        <button
+          type="button"
+          class="mel-sidebar-gallery__trigger"
+          data-mel-lightbox-open
+          data-mel-lightbox-index="{{ item.index }}"
+          data-mel-lightbox-root-ref="{{ lightbox_root_id }}"
+          aria-label="{{ 'View photo @n of @total'|t({'@n': item.index + 1, '@total': slide.total}) }}{% if item.alt %}: {{ item.alt }}{% endif %}"
+        >
+          <img
+            class="mel-sidebar-gallery__img"
+            src="{{ item.urls.card }}"
+            alt="{{ item.alt }}"
+            width="{{ item.width > 0 ? item.width : 320 }}"
+            height="{{ item.height > 0 ? item.height : 213 }}"
+            loading="lazy"
+            decoding="async"
+          />
+        </button>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if slide.total > slide.items|length %}
+    <p class="mel-sidebar-gallery__more mel-text--muted">
+      {{ '@count photos in the gallery'|t({'@count': slide.total}) }}
+    </p>
+  {% endif %}
+</div>

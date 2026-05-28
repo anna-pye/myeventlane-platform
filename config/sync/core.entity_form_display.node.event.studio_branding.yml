@@ -4,7 +4,7 @@ status: true
 dependencies:
   config:
     - core.entity_form_mode.node.studio_branding
-    - crop.type.focal_point
+    - crop.type.event_hero
     - field.field.node.event.body
     - field.field.node.event.field_accessibility
     - field.field.node.event.field_accessibility_contact
@@ -24,6 +24,7 @@ dependencies:
     - field.field.node.event.field_event_end
     - field.field.node.event.field_event_highlights
     - field.field.node.event.field_event_image
+    - field.field.node.event.field_mel_event_gallery
     - field.field.node.event.field_event_intro
     - field.field.node.event.field_event_start
     - field.field.node.event.field_event_state
@@ -38,6 +39,8 @@ dependencies:
     - field.field.node.event.field_location_latitude
     - field.field.node.event.field_location_longitude
     - field.field.node.event.field_location_place_id
+    - field.field.node.event.field_mel_page_style
+    - field.field.node.event.field_mel_theme_colour
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
@@ -54,25 +57,42 @@ dependencies:
     - field.field.node.event.field_venue_address
     - field.field.node.event.field_venue_name
     - field.field.node.event.field_waitlist_capacity
+    - image.style.crop_thumbnail
     - image.style.thumbnail
     - node.type.event
   module:
-    - focal_point
+    - crop
     - image
+    - image_widget_crop
+    - media_library
 id: node.event.studio_branding
 targetEntityType: node
 bundle: event
 mode: studio_branding
 content:
   field_event_image:
-    type: image_focal_point
+    type: image_widget_crop
     weight: 0
     region: content
     settings:
       progress_indicator: throbber
       preview_image_style: thumbnail
-      preview_link: true
-      offsets: '50,50'
+      crop_preview_image_style: crop_thumbnail
+      crop_list:
+        - event_hero
+      crop_types_required:
+        - event_hero
+      warn_multiple_usages: false
+      show_crop_area: true
+      show_default_crop: true
+    third_party_settings: {  }
+  field_mel_event_gallery:
+    type: media_library_widget
+    weight: 14
+    region: content
+    settings:
+      media_types:
+        image: image
     third_party_settings: {  }
 hidden:
   body: true
@@ -98,6 +118,7 @@ hidden:
   field_event_geo: true
   field_event_highlights: true
   field_event_intro: true
+  field_event_passcode_hash: true
   field_event_setup_complete: true
   field_event_start: true
   field_event_state: true
@@ -106,6 +127,7 @@ hidden:
   field_event_summary: true
   field_event_type: true
   field_event_vendor: true
+  field_event_visibility: true
   field_external_url: true
   field_featured: true
   field_is_series_template: true
@@ -113,11 +135,15 @@ hidden:
   field_location_latitude: true
   field_location_longitude: true
   field_location_place_id: true
+  field_mel_extras_book_placement: true
+  field_mel_op_capabilities: true
+  field_mel_page_style: true
   field_mel_sup_amt: true
   field_mel_sup_chk: true
   field_mel_sup_mode: true
   field_mel_sup_oid: true
   field_mel_sup_pct: true
+  field_mel_theme_colour: true
   field_product_target: true
   field_promo_expires: true
   field_promoted: true

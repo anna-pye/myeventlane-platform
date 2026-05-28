@@ -17,6 +17,7 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Drupal\myeventlane_help_centre\Service\ContextualHelpResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views\Plugin\views\query\Sql;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -719,9 +720,66 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
 }
 
 /**
+ * Applies browse listing audience constraints on a Views handler when present.
+ */
+function _myeventlane_help_centre_apply_browse_listing_policy(ViewExecutable $view): void {
+  /** @var \Drupal\myeventlane_help_centre\Service\HelpArticleBrowsePolicy $policy */
+  $policy = \Drupal::service('myeventlane_help_centre.help_browse_policy');
+  if (!$policy->isBrowseListingView($view->id())) {
+    return;
+  }
+
+  $exposed = $view->getExposedInput();
+  $requested = isset($exposed['audience']) && is_string($exposed['audience']) && $exposed['audience'] !== ''
+    ? trim($exposed['audience'])
+    : NULL;
+  $effective = $policy->effectiveAudiencesForBrowseView(
+    $view->id(),
+    \Drupal::currentUser()->getAccount(),
+    $requested,
+  );
+
+  $handler = $view->display_handler->getHandler('filter', 'field_audience_value');
+  if ($handler !== NULL) {
+    $handler->value = array_combine($effective, $effective) ?: [];
+    $handler->operator = 'or';
+  }
+}
+
+/**
+ * Implements hook_views_pre_view().
+ *
+ * Enforces audience on help browse listings before SQL runs.
+ */
+function myeventlane_help_centre_views_pre_view(ViewExecutable $view, string $display_id, ?array &$args): void {
+  _myeventlane_help_centre_apply_browse_listing_policy($view);
+}
+
+/**
  * Implements hook_views_query_alter().
  */
 function myeventlane_help_centre_views_query_alter(ViewExecutable $view, QueryPluginBase $query): void {
+  /** @var \Drupal\myeventlane_help_centre\Service\HelpArticleBrowsePolicy $policy */
+  $policy = \Drupal::service('myeventlane_help_centre.help_browse_policy');
+  if ($policy->isBrowseListingView($view->id()) && $query instanceof Sql) {
+    $account = \Drupal::currentUser()->getAccount();
+    $exposed = $view->getExposedInput();
+    $requested = isset($exposed['audience']) && is_string($exposed['audience']) && $exposed['audience'] !== ''
+      ? trim($exposed['audience'])
+      : NULL;
+    $audiences = $policy->effectiveAudiencesForBrowseView($view->id(), $account, $requested);
+    $query->ensureTable('node__field_audience');
+    if ($audiences === []) {
+      $query->addWhereExpression(0, '1 = 0');
+    }
+    else {
+      $query->addWhere(0, 'node__field_audience.field_audience_value', $audiences, 'IN');
+    }
+    $statuses = $policy->allowedHelpStatusesForBrowse($account);
+    $query->ensureTable('node__field_help_status');
+    $query->addWhere(0, 'node__field_help_status.field_help_status_value', $statuses, 'IN');
+  }
+
   if ($view->id() !== 'mel_help_related_articles' || $view->current_display !== 'block_related') {
     return;
   }

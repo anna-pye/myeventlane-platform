@@ -5,10 +5,14 @@
  * (displays without a more specific template).
  */
 #}
+{#
+  Listing pages only — homepage block displays use display-specific templates.
+#}
+{% set mel_discovery_displays = ['page_events', 'page_today', 'page_this_weekend', 'page_free', 'page_category', 'page_popular'] %}
 <div class="mel-discovery mel-discovery--upcoming">
-  {% if not mel_chip_listing_fragment|default(false) %}
+  {% if display_id in mel_discovery_displays and not mel_chip_listing_fragment|default(false) %}
     {{ attach_library('myeventlane_theme/mel-events-discovery') }}
-    {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' %}
+    {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with { display_id: display_id } %}
     {{ exposed }}
   {% endif %}
 

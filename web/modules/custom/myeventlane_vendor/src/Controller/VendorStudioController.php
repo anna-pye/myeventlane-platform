@@ -12,6 +12,8 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_event\Service\EventPasscodeAccess;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event_studio\DTO\MelEventData;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
@@ -57,6 +59,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
     private readonly ?TicketSalesService $ticketSalesService = NULL,
     private readonly ?RsvpStatsService $rsvpStatsService = NULL,
     private readonly ?EventMetricsServiceInterface $eventMetricsService = NULL,
+    private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger);
   }
@@ -79,6 +82,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       $container->has('myeventlane_vendor.service.ticket_sales') ? $container->get('myeventlane_vendor.service.ticket_sales') : NULL,
       $container->has('myeventlane_vendor.service.rsvp_stats') ? $container->get('myeventlane_vendor.service.rsvp_stats') : NULL,
       $container->has('myeventlane_metrics.service') ? $container->get('myeventlane_metrics.service') : NULL,
+      $container->has('myeventlane_event.passcode_access') ? $container->get('myeventlane_event.passcode_access') : NULL,
     );
   }
 
@@ -240,9 +244,16 @@ final class VendorStudioController extends VendorConsoleBaseController implement
     $invalid_values = [];
     $has_changes = FALSE;
 
+    $security_blocked_fields = ['field_event_passcode_hash'];
+
     foreach ($payload['values'] as $field_name => $value) {
       if (!is_string($field_name) || $field_name === '' || !$event->hasField($field_name)) {
         $unknown_fields[] = (string) $field_name;
+        continue;
+      }
+
+      if (in_array($field_name, $security_blocked_fields, TRUE)) {
+        $blocked_fields[] = $field_name;
         continue;
       }
 
@@ -739,10 +750,49 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       }
 
       if (isset($payload['visibility']) && $event->hasField('field_event_visibility')) {
-        $visibility = (string) $payload['visibility'];
+        $visibility = PublicEventVisibility::normalizeVisibilityValue((string) $payload['visibility']);
         $current_visibility = (string) ($event->get('field_event_visibility')->value ?? '');
         if ($current_visibility !== $visibility) {
           $event->set('field_event_visibility', $visibility);
+          $has_changes = TRUE;
+        }
+      }
+
+      $effective_visibility = $event->hasField('field_event_visibility')
+        ? (string) ($event->get('field_event_visibility')->value ?? '')
+        : '';
+
+      if ($effective_visibility === PublicEventVisibility::VISIBILITY_PASSCODE) {
+        $passcode = isset($payload['passcode']) ? trim((string) $payload['passcode']) : '';
+        if ($passcode !== '') {
+          if ($this->passcodeAccess === NULL) {
+            $this->logger->error('Vendor Studio settings save: EventPasscodeAccess not available for nid=@nid', [
+              '@nid' => (int) $event->id(),
+            ]);
+            return new JsonResponse([
+              'success' => FALSE,
+              'message' => 'Passcode service is temporarily unavailable.',
+            ], 500);
+          }
+          $event->set('field_event_passcode_hash', $this->passcodeAccess->hashPasscode($passcode));
+          $has_changes = TRUE;
+        }
+        else {
+          $existing_hash = $event->hasField('field_event_passcode_hash')
+            && !$event->get('field_event_passcode_hash')->isEmpty()
+            ? (string) $event->get('field_event_passcode_hash')->value
+            : '';
+          if ($existing_hash === '') {
+            return new JsonResponse([
+              'success' => FALSE,
+              'message' => 'A passcode is required when visibility is set to passcode.',
+            ], 422);
+          }
+        }
+      }
+      elseif ($event->hasField('field_event_passcode_hash')) {
+        if (!$event->get('field_event_passcode_hash')->isEmpty()) {
+          $event->set('field_event_passcode_hash', NULL);
           $has_changes = TRUE;
         }
       }
@@ -1015,8 +1065,8 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'promotion_save_url' => $studio_endpoints['promotion_save'],
         'settings_save_url' => $studio_endpoints['settings_save'],
         'publish_url' => $studio_endpoints['publish'],
-        'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
-        'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+        'preview_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
+        'view_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
         'wizard_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),
         'active' => $active_event_id > 0 && $active_event_id === $event_id,
       ];
@@ -1074,11 +1124,15 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'visibility' => $event->hasField('field_event_visibility')
           ? (string) ($event->get('field_event_visibility')->value ?? '')
           : '',
+        'visibility_label' => $this->resolveVisibilityLabel($event),
+        'has_passcode' => $event->hasField('field_event_passcode_hash')
+          && !$event->get('field_event_passcode_hash')->isEmpty()
+          && (string) $event->get('field_event_passcode_hash')->value !== '',
       ],
       'checklist' => $checklist,
       'quick_actions' => [
-        'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
-        'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+        'preview_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
+        'view_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString()),
         'duplicate_url' => NULL,
       ],
       'wizard_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),
@@ -1343,6 +1397,23 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       'review', 'needs_review' => 'review',
       'published', 'live' => 'published',
       default => 'draft',
+    };
+  }
+
+  /**
+   * Maps visibility value to a human label for the Studio payload.
+   */
+  protected function resolveVisibilityLabel(NodeInterface $event): string {
+    $visibility = $event->hasField('field_event_visibility') && !$event->get('field_event_visibility')->isEmpty()
+      ? (string) $event->get('field_event_visibility')->value
+      : '';
+
+    return match ($visibility) {
+      PublicEventVisibility::VISIBILITY_PUBLIC => (string) $this->t('Public'),
+      PublicEventVisibility::VISIBILITY_UNLISTED => (string) $this->t('Unlisted'),
+      PublicEventVisibility::VISIBILITY_PRIVATE => (string) $this->t('Private'),
+      PublicEventVisibility::VISIBILITY_PASSCODE => (string) $this->t('Passcode protected'),
+      default => (string) $this->t('Public'),
     };
   }
 

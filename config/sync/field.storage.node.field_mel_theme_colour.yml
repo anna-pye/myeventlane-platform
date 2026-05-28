@@ -1,0 +1,36 @@
+uuid: b2c3d4e5-f6a7-4890-b123-456789abcdef
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_mel_theme_colour
+field_name: field_mel_theme_colour
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: coral
+      label: 'Coral Pop'
+    -
+      value: purple
+      label: 'Violet Pulse'
+    -
+      value: mint
+      label: 'Mint Night'
+    -
+      value: gold
+      label: 'Golden Hour'
+    -
+      value: blue
+      label: 'Ocean Blue'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

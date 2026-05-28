@@ -1,0 +1,21 @@
+uuid: ab91203c-c622-47b2-8f5e-448cb8bd2416
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.operational_merchandise_var
+    - field.storage.commerce_product_variation.field_mel_size
+  module:
+    - options
+id: commerce_product_variation.operational_merchandise_var.field_mel_size
+field_name: field_mel_size
+entity_type: commerce_product_variation
+bundle: operational_merchandise_var
+label: Size
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

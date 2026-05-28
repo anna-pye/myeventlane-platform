@@ -1,0 +1,1550 @@
+// ==========================================================================
+// Event page style themes — Mockup 1 Classic (default) + Mockup 3 Immersive (Pro).
+// Mockup 2 Clean & Modern deferred.
+// Scoped to public full event pages via modifier classes on <article>.
+// ==========================================================================
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/spacing' as space-tokens;
+@use '../tokens/breakpoints';
+@use '../tokens/motion' as melmotion;
+
+// Colour presets — CSS custom properties consumed by Classic and Immersive.
+.mel-event-page--colour-coral {
+  --mel-event-accent: #{colors.$mel-color-primary};
+  --mel-event-accent-soft: #{color.mix(colors.$mel-color-primary, #fff, 18%)};
+  --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-primary, $alpha: 0.32)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-primary, #fff, 35%)};
+}
+
+.mel-event-page--colour-purple {
+  --mel-event-accent: #{colors.$mel-color-accent};
+  --mel-event-accent-soft: #{colors.$mel-color-pastel-lavender};
+  --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-accent, $alpha: 0.34)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-accent, #fff, 40%)};
+}
+
+.mel-event-page--colour-mint {
+  --mel-event-accent: #{color.adjust(colors.$mel-color-success, $lightness: -8%)};
+  --mel-event-accent-soft: #{colors.$mel-color-pastel-mint};
+  --mel-event-accent-contrast: #{colors.$mel-color-text};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-success, $alpha: 0.28)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-success, #fff, 42%)};
+}
+
+.mel-event-page--colour-gold {
+  --mel-event-accent: #{colors.$mel-color-orange};
+  --mel-event-accent-soft: #{color.mix(colors.$mel-color-orange, #fff, 22%)};
+  --mel-event-accent-contrast: #{colors.$mel-color-text};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-orange, $alpha: 0.3)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-orange, #fff, 38%)};
+}
+
+.mel-event-page--colour-blue {
+  --mel-event-accent: #{colors.$mel-color-info};
+  --mel-event-accent-soft: #{colors.$mel-color-info-bg};
+  --mel-event-accent-contrast: #{colors.$mel-color-on-primary};
+  --mel-event-accent-glow: #{color.change(colors.$mel-color-info, $alpha: 0.3)};
+  --mel-event-chip-border: #{color.mix(colors.$mel-color-info, #fff, 40%)};
+}
+
+// Page shell warmth when Classic event is present (article bg alone leaves white gutters).
+body:has(.mel-event-page--classic.mel-event--v2),
+main.mel-main:has(.mel-event-page--classic.mel-event--v2) {
+  background-color: #fff9f5;
+}
+
+body:has(.mel-event-page--classic.mel-event--v2) .mel-footer {
+  background-color: #fff9f5;
+  color: #1f2933;
+}
+
+// Classic — warm MEL default (Mockup 1): light page, white cards, preset accent CTAs.
+// Accent colours come from mel-event-page--colour-* on <article> (coral default).
+.mel-event-page--classic.mel-event--v2 {
+  --mel-event-page-bg: #fff9f5;
+  --mel-event-surface: #ffffff;
+  --mel-event-soft-surface: #fdf1ec;
+  --mel-event-surface-soft: #fdf1ec;
+  --mel-event-border: #e9e3de;
+  --mel-event-secondary-accent: #7c83fd;
+  --mel-event-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
+  --mel-event-text: #1f2933;
+  --mel-event-muted: #6b7280;
+  --mel-event-accent-strong: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 88%, #1f2933 12%);
+  // --mel-event-accent-soft comes from mel-event-page--colour-* (coral default).
+  // Aliases used elsewhere in this file.
+  --mel-event-card-bg: var(--mel-event-surface);
+  --mel-event-card-border: var(--mel-event-border);
+  --mel-event-card-shadow: var(--mel-event-shadow);
+  --mel-event-surface-raised: var(--mel-event-surface);
+  --mel-event-text-muted: var(--mel-event-muted);
+
+  display: block;
+  width: 100%;
+  background: var(--mel-event-page-bg);
+  color: var(--mel-event-text);
+  min-height: 100vh;
+  overflow-x: clip;
+
+  .mel-container {
+    color: var(--mel-event-text);
+  }
+
+  // Hero — rounded featured image, dark overlay, white title (base _event-hero.scss).
+  .mel-event-hero--featured-style {
+    border-radius: radii.$mel-radius-xl;
+    border: none;
+    box-shadow: var(--mel-event-card-shadow);
+    overflow: hidden;
+  }
+
+  .mel-event-full__hero.mel-event-hero--featured-style .mel-event-hero__overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.12) 45%,
+      rgba(36, 48, 58, 0.72) 100%
+    );
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__title,
+  .mel-event-hero--featured-style #mel-event-title,
+  .mel-event-hero--featured-style .mel-event-hero__datetime,
+  .mel-event-hero--featured-style .mel-event-hero__venue {
+    color: #fff;
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__category,
+  .mel-event-hero--featured-style .mel-event__category,
+  .mel-event-hero--featured-style .mel-pill--on-image {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    border: none;
+    box-shadow: 0 4px 14px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.18));
+  }
+
+  // Popularity / intelligence pill in hero chip (Mockup 1 top-left).
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__signal--hero-chip,
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__signal {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    box-shadow: 0 4px 14px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.18));
+  }
+
+  // Floating meta strip — white card overlapping hero foot.
+  .mel-event-meta-bar {
+    position: relative;
+    z-index: 4;
+    margin-top: calc(-1 * #{space-tokens.mel-space(5)});
+    background: var(--mel-event-card-bg);
+    border: 1px solid var(--mel-event-card-border);
+    border-radius: radii.$mel-radius-xl;
+    box-shadow: var(--mel-event-card-shadow);
+    color: var(--mel-event-text);
+
+    @include breakpoints.mel-break(md, max) {
+      margin-top: space-tokens.mel-space(3);
+    }
+  }
+
+  .mel-event-meta__primary {
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-meta__secondary,
+  .mel-event-meta__icon {
+    color: var(--mel-event-muted);
+  }
+
+  .mel-event-layout:not(.mel-event-full__layout) {
+    margin-top: space-tokens.mel-space(5);
+  }
+
+  @include breakpoints.mel-break(lg) {
+    .mel-event-layout__sidebar {
+      align-self: start;
+    }
+
+    .mel-event-layout__sidebar > .mel-card--sticky {
+      position: sticky;
+      top: space-tokens.mel-space(4);
+    }
+  }
+
+  .mel-event-layout__main,
+  .mel-event-layout__sidebar,
+  .mel-event-info__body,
+  .mel-event-section__body {
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-layout__main .mel-event__signal,
+  .mel-event-layout__sidebar .mel-event__signal {
+    background: var(--mel-event-accent-soft);
+    color: var(--mel-event-text);
+  }
+
+  .mel-card--sticky .mel-event__signal--strong,
+  .mel-event-layout__sidebar .mel-event__signal--strong {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mel-event-meta-bar,
+  .mel-event__card,
+  .mel-card--sticky,
+  .mel-event-layout__main .mel-card,
+  .mel-card--surface {
+    background: var(--mel-event-surface);
+    border-radius: radii.$mel-radius-xl;
+    box-shadow: var(--mel-event-shadow);
+    border: 1px solid var(--mel-event-border);
+    color: var(--mel-event-text);
+  }
+
+  .mel-card--surface .mel-card__header,
+  .mel-card--surface .mel-card__body,
+  .mel-card--sticky .mel-card__header,
+  .mel-card--sticky .mel-card__body {
+    padding: space-tokens.mel-space(4);
+
+    @include breakpoints.mel-break(lg) {
+      padding: space-tokens.mel-space(5);
+    }
+  }
+
+  // Beat _event-full.scss tinted highlights / expect cards on Mockup 1.
+  .mel-card--highlights,
+  .mel-card--expect {
+    background: var(--mel-event-surface);
+    border: 1px solid var(--mel-event-border);
+    box-shadow: var(--mel-event-shadow);
+    min-height: 0;
+    height: auto;
+  }
+
+  .mel-event-highlights__icon {
+    background: var(--mel-event-accent-soft);
+    color: var(--mel-event-accent);
+  }
+
+  .mel-card__title,
+  .mel-event-info__title,
+  .mel-event-section__title {
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-info__title::after,
+  .mel-event-section__title::after {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+  }
+
+  .mel-text--muted,
+  .mel-event-section__lede,
+  .mel-muted {
+    color: var(--mel-event-muted);
+  }
+
+  .mel-card--sticky .mel-booking-panel__price {
+    color: var(--mel-event-text);
+  }
+
+  .mel-card--sticky .mel-booking-panel__chip,
+  .mel-event__meta,
+  .mel-event-info__label {
+    color: var(--mel-event-muted);
+  }
+
+  // Ticket sidebar — coral chips, save tint, trust accents.
+  .mel-card--sticky .mel-chip--filled,
+  .mel-card--sticky .mel-chip {
+    background: var(--mel-event-accent-soft);
+    border: 1px solid var(--mel-event-chip-border, var(--mel-event-accent));
+    color: var(--mel-event-accent-strong);
+    box-shadow: 0 2px 8px var(--mel-event-accent-glow, transparent);
+  }
+
+  .mel-card--sticky .mel-booking-panel__save,
+  .mel-card--sticky .mel-booking-panel__save--fav {
+    background: var(--mel-event-surface-soft);
+    border-color: var(--mel-event-border);
+  }
+
+  .mel-card--sticky .mel-booking-panel__item-icon,
+  .mel-card--sticky .mel-booking-panel__item--highlight .mel-icon,
+  .mel-card--sticky .mel-trust-item__text {
+    color: var(--mel-event-accent);
+  }
+
+  .mel-card--sticky .mel-booking-panel__item--highlight {
+    background: var(--mel-event-accent-soft);
+    border-radius: radii.$mel-radius-md;
+  }
+
+  // Warm “Grab the extras” panel (outer section card).
+  .mel-event-section--extras.mel-card--surface {
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 55%, var(--mel-event-surface-soft) 45%);
+    border-color: var(--mel-event-chip-border, var(--mel-event-border));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+
+    > .mel-card__header,
+    > .mel-card__body {
+      background: transparent;
+    }
+  }
+
+  .mel-event-section--extras .mel-card__title,
+  .mel-event-section--extras .mel-event-section__title {
+    color: var(--mel-event-accent);
+  }
+
+  // Nested operational teaser — do not double as a white inner card (_event-full + module CSS).
+  .mel-event-section--extras .mel-addon-teaser.mel-card--surface {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__list {
+    display: flex;
+    flex-direction: column;
+    gap: space-tokens.mel-space(2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__item {
+    display: flex;
+    align-items: center;
+    gap: space-tokens.mel-space(3);
+    padding: space-tokens.mel-space(3);
+    background: var(--mel-event-surface);
+    border: 1px solid var(--mel-event-border);
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: none;
+  }
+
+  // Beat _event-full.scss lavender tint on extras rows.
+  .mel-event--v2.mel-event-page--classic .mel-event-section--extras .mel-addon-teaser__item {
+    background: var(--mel-event-surface);
+    border-color: var(--mel-event-border);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__thumb {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: radii.$mel-radius-md;
+    object-fit: cover;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__cta,
+  .mel-event-section--extras .mel-addon-teaser__scroll,
+  .mel-event-section--extras .mel-addon-teaser__cta.mel-btn--secondary,
+  .mel-event-section--extras .mel-addon-teaser__scroll.mel-btn--secondary {
+    background: transparent;
+    border: 2px solid var(--mel-event-accent);
+    color: var(--mel-event-accent-strong);
+    min-height: 44px;
+    font-weight: 600;
+    border-radius: radii.$mel-radius-lg;
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: var(--mel-event-accent-soft);
+        color: var(--mel-event-accent-strong);
+      }
+    }
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__more {
+    color: var(--mel-event-accent-strong);
+    font-weight: 600;
+  }
+
+  // Map + share on warm page.
+  .mel-event-map-embed {
+    border-radius: radii.$mel-radius-lg;
+    border-color: var(--mel-event-border);
+    overflow: hidden;
+  }
+
+  .mel-event-share--panel .mel-event-share__chip-icon {
+    background: var(--mel-event-accent-soft);
+    border-color: var(--mel-event-chip-border, var(--mel-event-border));
+    color: var(--mel-event-accent-strong);
+    box-shadow: 0 4px 12px var(--mel-event-accent-glow, transparent);
+  }
+
+  .mel-event-layout__main a:not(.mel-btn):not(.mel-social) {
+    color: var(--mel-event-accent-strong);
+  }
+
+  .mel-btn--primary,
+  .button--primary,
+  .mel-event--v2 .mel-btn--primary,
+  .mel-event--v2 .mel-btn--coral-cta {
+    background-color: var(--mel-event-accent, colors.$mel-color-primary);
+    border-color: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    min-height: 44px;
+    font-weight: 600;
+    box-shadow: 0 8px 22px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.12));
+  }
+
+  .mel-btn--secondary,
+  .button--secondary {
+    background: var(--mel-event-card-bg);
+    border-color: var(--mel-event-card-border);
+    color: var(--mel-event-text);
+    min-height: 44px;
+  }
+
+  // Preserve coral pill CTA from _event-full (do not let generic primary rule flatten radius).
+  .mel-card--sticky .mel-btn--coral-cta,
+  .mel-mobile-cta .mel-btn--coral-cta {
+    border-radius: 16px;
+    background: var(--mel-coral, var(--mel-event-accent, #{colors.$mel-color-primary}));
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    box-shadow: 0 10px 26px var(--mel-event-accent-glow, rgba(41, 50, 65, 0.14));
+  }
+
+  .mel-mobile-cta {
+    background: var(--mel-event-card-bg);
+    border-top: 1px solid var(--mel-event-card-border);
+    box-shadow: 0 -6px 24px rgba(41, 50, 65, 0.1);
+  }
+
+  .mel-event-support-zone__link {
+    color: var(--mel-event-text);
+  }
+
+  .mel-organiser-card,
+  .mel-return-block {
+    color: var(--mel-event-text);
+  }
+
+  .mel-event-support-zone {
+    border-top: 1px solid var(--mel-event-border);
+    padding-top: space-tokens.mel-space(4);
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    .mel-event-meta-bar__items {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .mel-event-meta-bar__cluster {
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mel-event-hero--featured-style .mel-event-hero__overlay {
+      transition: none;
+    }
+  }
+}
+
+// Immersive shell — atmospheric canvas (article carries local accents).
+body:has(.mel-event-page--immersive.mel-event--v2),
+main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
+  background-color: #080c14;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
+}
+
+// Immersive — cinematic Pro experience (Event Studio branding tab).
+.mel-event-page--immersive.mel-event--v2 {
+  // Typography scale — authoritative immersive contrast (explicit rgba, no opacity fade).
+  --mel-immersive-text: #fff;
+  --mel-immersive-text-secondary: rgba(255, 255, 255, 0.82);
+  --mel-immersive-text-muted: rgba(255, 255, 255, 0.72);
+  --mel-immersive-text-helper: rgba(255, 255, 255, 0.64);
+  --mel-immersive-text-body: var(--mel-immersive-text-secondary);
+  --mel-immersive-text-meta: var(--mel-immersive-text-helper);
+  --mel-immersive-text-label: var(--mel-immersive-text-muted);
+  --mel-event-heading: var(--mel-immersive-text);
+  --mel-event-text: var(--mel-immersive-text-secondary);
+  --mel-event-text-secondary: var(--mel-immersive-text-secondary);
+  --mel-event-text-muted: var(--mel-immersive-text-muted);
+  --mel-event-divider: rgba(255, 255, 255, 0.1);
+  --mel-immersive-heading-size: clamp(1.375rem, 2.1vw, 1.6rem);
+  --mel-immersive-heading-secondary: clamp(1.125rem, 1.6vw, 1.25rem);
+  --mel-immersive-body-size: 1.0625rem;
+  --mel-immersive-lede-size: 1rem;
+  --mel-immersive-meta-size: 0.9375rem;
+  --mel-immersive-label-size: 0.8125rem;
+  // Spacing rhythm.
+  --mel-immersive-section-gap: #{space-tokens.mel-space(6)};
+  --mel-immersive-block-gap: #{space-tokens.mel-space(4)};
+  --mel-immersive-pad-primary: #{space-tokens.mel-space(6)};
+  --mel-immersive-pad-secondary: #{space-tokens.mel-space(5)};
+  --mel-immersive-pad-tertiary: #{space-tokens.mel-space(4)};
+  // Surfaces — tonal layers, minimal outlines.
+  --mel-event-surface-quiet: rgba(22, 28, 40, 0.55);
+  --mel-event-surface: rgba(28, 36, 50, 0.72);
+  --mel-event-surface-raised: rgba(34, 44, 60, 0.78);
+  --mel-event-surface-spotlight: rgba(40, 52, 70, 0.85);
+  --mel-event-border: rgba(255, 255, 255, 0.06);
+  --mel-event-border-strong: rgba(255, 255, 255, 0.1);
+  --mel-immersive-radius: #{radii.$mel-radius-xl};
+  --mel-immersive-radius-inner: #{radii.$mel-radius-lg};
+  --mel-immersive-shadow-quiet: 0 14px 36px rgba(0, 0, 0, 0.22);
+  --mel-immersive-shadow-panel: 0 22px 52px rgba(0, 0, 0, 0.3);
+  --mel-immersive-shadow-featured: 0 26px 60px rgba(0, 0, 0, 0.34);
+  --mel-immersive-shadow-sidebar: 0 18px 44px rgba(0, 0, 0, 0.32);
+  --mel-immersive-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --mel-event-shadow-elevated: var(--mel-immersive-shadow-panel);
+  --mel-event-shadow-sidebar: var(--mel-immersive-shadow-sidebar);
+  --mel-event-accent-strong: color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 78%, #fff 22%);
+  --mel-event-accent-glow-cta: color-mix(in srgb, var(--mel-event-accent-glow, rgba(0, 0, 0, 0.35)) 55%, transparent);
+  --mel-event-surface-tint: transparent;
+
+  background:
+    radial-gradient(ellipse 95% 65% at 50% -10%, color-mix(in srgb, var(--mel-event-accent) 14%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 48% 40% at 100% 6%, color-mix(in srgb, var(--mel-event-accent) 8%, transparent) 0%, transparent 52%),
+    radial-gradient(ellipse 42% 36% at 0% 88%, rgba(255, 255, 255, 0.025) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(0, 0, 0, 0.25) 0%, transparent 62%),
+    linear-gradient(180deg, transparent 0%, rgba(12, 18, 28, 0.4) 100%);
+  background-color: transparent;
+  color: var(--mel-event-text);
+  min-height: 100vh;
+
+  .mel-container {
+    color: var(--mel-event-text);
+  }
+
+  // Immersive-only palette tuning (Classic colour tokens above stay unchanged).
+  &.mel-event-page--colour-coral {
+    --mel-event-accent-soft: #{color.mix(colors.$mel-color-primary, #283545, 36%)};
+    --mel-event-accent-glow: #{color.change(colors.$mel-color-primary, $alpha: 0.32)};
+    --mel-event-chip-border: #{color.mix(colors.$mel-color-primary, #fff, 28%)};
+    --mel-event-surface-tint: #{color.mix(colors.$mel-color-primary, #121820, 10%)};
+  }
+
+  &.mel-event-page--colour-purple {
+    --mel-event-accent-soft: #{color.mix(colors.$mel-color-accent, #283545, 38%)};
+    --mel-event-accent-glow: #{color.change(colors.$mel-color-accent, $alpha: 0.34)};
+    --mel-event-chip-border: #{color.mix(colors.$mel-color-accent, #fff, 30%)};
+    --mel-event-surface-tint: #{color.mix(colors.$mel-color-accent, #121820, 12%)};
+  }
+
+  &.mel-event-page--colour-mint {
+    --mel-event-accent-soft: #{color.mix(colors.$mel-color-success, #283545, 36%)};
+    --mel-event-accent-glow: #{color.change(colors.$mel-color-success, $alpha: 0.3)};
+    --mel-event-chip-border: #{color.mix(colors.$mel-color-success, #fff, 30%)};
+    --mel-event-surface-tint: #{color.mix(colors.$mel-color-success, #121820, 10%)};
+  }
+
+  &.mel-event-page--colour-gold {
+    --mel-event-accent-soft: #{color.mix(colors.$mel-color-orange, #283545, 36%)};
+    --mel-event-accent-glow: #{color.change(colors.$mel-color-orange, $alpha: 0.32)};
+    --mel-event-chip-border: #{color.mix(colors.$mel-color-orange, #fff, 28%)};
+    --mel-event-surface-tint: #{color.mix(colors.$mel-color-orange, #121820, 10%)};
+  }
+
+  &.mel-event-page--colour-blue {
+    --mel-event-accent-soft: #{color.mix(colors.$mel-color-info, #283545, 36%)};
+    --mel-event-accent-glow: #{color.change(colors.$mel-color-info, $alpha: 0.3)};
+    --mel-event-chip-border: #{color.mix(colors.$mel-color-info, #fff, 30%)};
+    --mel-event-surface-tint: #{color.mix(colors.$mel-color-info, #121820, 10%)};
+  }
+
+  padding-bottom: space-tokens.mel-space(9);
+
+  &:not(:has(.mel-event-full)) {
+    padding-top: space-tokens.mel-space(6);
+  }
+
+  .mel-container {
+    max-width: min(100%, 76rem);
+  }
+
+  .mel-event__hero {
+    margin-bottom: var(--mel-immersive-block-gap);
+  }
+
+  // Hero — primary focal (soft edge, no outline box).
+  .mel-event-hero--featured-style {
+    min-height: clamp(22rem, 42vw, 34rem);
+    margin-bottom: var(--mel-immersive-block-gap);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    overflow: hidden;
+    box-shadow: var(--mel-immersive-shadow-featured);
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__overlay {
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 100%, rgba(0, 0, 0, 0.5) 0%, transparent 68%),
+      radial-gradient(ellipse 60% 40% at 12% 18%, color-mix(in srgb, var(--mel-event-accent) 14%, transparent) 0%, transparent 55%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(8, 11, 18, 0.5) 48%, rgba(6, 9, 15, 0.88) 100%);
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__content {
+    right: space-tokens.mel-space(6);
+    bottom: space-tokens.mel-space(6);
+    left: space-tokens.mel-space(6);
+    max-width: 44rem;
+    gap: space-tokens.mel-space(3);
+  }
+
+  .mel-event-hero__content,
+  .mel-event-hero-card__title,
+  #mel-event-title {
+    color: var(--mel-immersive-text);
+    text-shadow: 0 2px 32px rgba(0, 0, 0, 0.7);
+    letter-spacing: -0.03em;
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__title,
+  #mel-event-title {
+    font-size: clamp(2rem, 4.8vw, 3.35rem);
+    font-weight: 800;
+    line-height: 1.06;
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__datetime,
+  .mel-event-hero--featured-style .mel-event-hero__venue {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    opacity: 1;
+  }
+
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__category,
+  .mel-event-hero--featured-style .mel-event__category,
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__signal--hero-chip,
+  .mel-event-hero--featured-style .mel-event-hero__chip .mel-event__signal {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  // Meta strip — integrated bar (tonal, not a separate widget).
+  .mel-event-meta-bar {
+    margin-top: 0;
+    margin-bottom: var(--mel-immersive-section-gap);
+    padding: var(--mel-immersive-pad-secondary) var(--mel-immersive-pad-primary);
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 12%, rgba(12, 17, 26, 0.78) 88%);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    color: var(--mel-immersive-text-body);
+    backdrop-filter: blur(12px);
+    gap: var(--mel-immersive-block-gap);
+  }
+
+  .mel-event-meta__primary {
+    color: var(--mel-immersive-text);
+    font-size: var(--mel-immersive-body-size);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .mel-event-meta__secondary {
+    color: var(--mel-immersive-text-meta);
+    font-size: var(--mel-immersive-meta-size);
+    line-height: 1.5;
+  }
+
+  .mel-event-meta__icon {
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: var(--mel-immersive-radius-inner);
+    opacity: 1;
+  }
+
+  .mel-event-meta__icon::after {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .mel-event-meta-bar a {
+    color: var(--mel-immersive-text);
+    text-decoration-color: color-mix(in srgb, var(--mel-event-accent) 55%, transparent);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        color: var(--mel-event-accent-strong);
+      }
+    }
+  }
+
+  // Layout rhythm — connected columns on one canvas (not event-full grid; that shell owns ≥1100px).
+  .mel-event-layout:not(.mel-event-full__layout) {
+    margin-top: 0;
+    gap: var(--mel-immersive-section-gap);
+
+    @include breakpoints.mel-break(lg) {
+      grid-template-columns: minmax(0, 1fr) min(392px, 33vw);
+      column-gap: var(--mel-immersive-section-gap);
+    }
+  }
+
+  .mel-event-layout__main:not(.mel-event-full__primary),
+  .mel-event-layout__sidebar:not(.mel-event-full__sidebar) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mel-immersive-section-gap);
+  }
+
+  // Card hierarchy — primary / secondary / tertiary weight.
+  .mel-event-layout__main .mel-card--surface {
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 16%, var(--mel-event-surface-raised) 84%);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-panel);
+    backdrop-filter: blur(8px);
+  }
+
+  .mel-card--highlights {
+    background: var(--mel-event-surface-quiet);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    backdrop-filter: none;
+  }
+
+  .mel-card--expect {
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 8%, var(--mel-event-surface) 92%);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-panel);
+    backdrop-filter: blur(6px);
+  }
+
+  .mel-event-section--share.mel-card--surface {
+    background: var(--mel-event-surface-quiet);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    backdrop-filter: none;
+  }
+
+  .mel-card--sticky {
+    background: color-mix(in srgb, var(--mel-event-surface-tint, transparent) 14%, var(--mel-event-surface-spotlight) 86%);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-sidebar);
+    backdrop-filter: blur(10px);
+  }
+
+  .mel-card--surface .mel-card__header,
+  .mel-card--surface .mel-card__body {
+    padding: var(--mel-immersive-pad-secondary) var(--mel-immersive-pad-primary);
+
+    @include breakpoints.mel-break(lg) {
+      padding: var(--mel-immersive-pad-primary) calc(var(--mel-immersive-pad-primary) + #{space-tokens.mel-space(1)});
+    }
+  }
+
+  .mel-card--highlights .mel-card__header,
+  .mel-card--highlights .mel-card__body {
+    padding: var(--mel-immersive-pad-tertiary) var(--mel-immersive-pad-secondary);
+  }
+
+  .mel-card--expect .mel-card__header,
+  .mel-card--expect .mel-card__body {
+    padding: var(--mel-immersive-pad-secondary) var(--mel-immersive-pad-primary);
+  }
+
+  .mel-card--sticky .mel-card__header,
+  .mel-card--sticky .mel-card__body {
+    padding: var(--mel-immersive-pad-secondary);
+
+    @include breakpoints.mel-break(lg) {
+      padding: var(--mel-immersive-pad-primary) var(--mel-immersive-pad-secondary);
+    }
+  }
+
+  .mel-card__header {
+    margin-bottom: 0;
+  }
+
+  .mel-card__title {
+    margin-bottom: var(--mel-immersive-block-gap);
+  }
+
+  .mel-event-layout__main,
+  .mel-event-layout__sidebar,
+  .mel-event-info__body,
+  .mel-event-section__body,
+  .mel-card--surface,
+  .mel-card--sticky,
+  .mel-event-meta-bar,
+  .mel-event-section--extras.mel-card--surface,
+  .mel-event-share--panel,
+  .mel-organiser-card,
+  .mel-return-block,
+  .mel-event-support-zone {
+    color: var(--mel-immersive-text-body);
+  }
+
+  .mel-event-layout__main a:not(.mel-btn):not(.mel-social),
+  .mel-event-support-zone__link {
+    color: var(--mel-immersive-text);
+    text-decoration-color: var(--mel-event-accent-strong);
+  }
+
+  .mel-card--sticky .mel-booking-panel__price {
+    color: var(--mel-immersive-text);
+    font-weight: 700;
+  }
+
+  .mel-card--sticky .mel-booking-panel__chip,
+  .mel-event__meta {
+    color: var(--mel-immersive-text-meta);
+  }
+
+  .mel-event-info__label {
+    color: var(--mel-immersive-text-muted);
+  }
+
+  .mel-card--sticky .mel-chip--filled,
+  .mel-card--sticky .mel-chip {
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 85%, transparent);
+    border: none;
+    color: var(--mel-event-accent-strong);
+    box-shadow: none;
+    font-size: var(--mel-immersive-label-size);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .mel-card--sticky .mel-booking-panel__item-icon,
+  .mel-card--sticky .mel-booking-panel__item--highlight .mel-icon,
+  .mel-card--sticky .mel-trust-item__text {
+    color: var(--mel-event-accent-strong);
+  }
+
+  .mel-card--sticky .mel-booking-panel__item--highlight {
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 55%, var(--mel-event-surface-spotlight) 45%);
+    border: none;
+    border-radius: var(--mel-immersive-radius-inner);
+  }
+
+  .mel-card--sticky .mel-booking-panel__save,
+  .mel-card--sticky .mel-booking-panel__save--fav {
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    box-shadow: none;
+    color: var(--mel-immersive-text-body);
+  }
+
+  .mel-event__signal,
+  .mel-event-layout__main .mel-event__signal,
+  .mel-event-layout__sidebar .mel-event__signal {
+    color: var(--mel-immersive-text-body);
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 80%, transparent);
+    border: none;
+    box-shadow: none;
+    font-size: var(--mel-immersive-label-size);
+  }
+
+  .mel-event__signal--strong,
+  .mel-card--sticky .mel-event__signal--strong {
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  }
+
+  .mel-event-info__title,
+  .mel-event-section__title,
+  .mel-card__title {
+    color: var(--mel-immersive-text);
+    font-size: var(--mel-immersive-heading-size);
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+  }
+
+  .mel-card--highlights .mel-card__title,
+  .mel-event-section--share .mel-event-section__title {
+    font-size: var(--mel-immersive-heading-secondary);
+    font-weight: 600;
+  }
+
+  .mel-event-info__title::after,
+  .mel-event-section__title::after {
+    height: 2px;
+    margin-top: space-tokens.mel-space(2);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--mel-event-accent, #{colors.$mel-color-primary}) 70%, transparent) 0%,
+      var(--mel-event-divider) 72%
+    );
+    opacity: 0.9;
+  }
+
+  .mel-event-info__body,
+  .mel-event-section__body {
+    font-size: var(--mel-immersive-body-size);
+    line-height: 1.68;
+  }
+
+  .mel-event-section__lede {
+    font-size: var(--mel-immersive-lede-size);
+    line-height: 1.6;
+    margin-bottom: var(--mel-immersive-block-gap);
+  }
+
+  .mel-event-info__label {
+    font-size: var(--mel-immersive-label-size);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .mel-card--sticky .mel-card__title {
+    font-size: var(--mel-immersive-heading-secondary);
+    margin-bottom: space-tokens.mel-space(3);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Immersive typography authority — beats _event-full.scss grey/dark inheritance.
+  // ---------------------------------------------------------------------------
+
+  .mel-event-meta-bar,
+  .mel-event-meta,
+  .mel-event-layout__main,
+  .mel-event-layout__sidebar,
+  .mel-card--surface,
+  .mel-card--highlights,
+  .mel-card--expect,
+  .mel-card--sticky,
+  .mel-event-section--extras,
+  .mel-event-share--panel,
+  .mel-organiser-card,
+  .mel-return-block,
+  .mel-event-support-zone,
+  .mel-mobile-cta {
+    opacity: 1;
+  }
+
+  .mel-event-info__body,
+  .mel-event-info__body .field__item,
+  .mel-event-info__body .text-formatted,
+  .mel-event-section__body,
+  .mel-event-section__body .text-formatted,
+  .mel-event-info__body p,
+  .mel-event-section__body p,
+  .mel-event-info__body li,
+  .mel-event-section__body li,
+  .mel-event-info__body dd,
+  .mel-event-info__body dt {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-event-info__body p + p,
+  .mel-event-section__body p + p {
+    margin-top: 1em;
+  }
+
+  .mel-card--expect .mel-card__body,
+  .mel-card--expect .mel-card__body p,
+  .mel-card--expect .mel-card__body li,
+  .mel-card--expect .mel-card__body .field__item,
+  .mel-card--expect .mel-card__body .text-formatted {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-event-highlights,
+  .mel-event-highlights__item,
+  .mel-event-highlights__text {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-text--muted,
+  .mel-muted {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-section__lede {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-location__venue,
+  .mel-event-meta--venue .mel-event-location__venue {
+    color: var(--mel-immersive-text);
+    font-weight: 700;
+    opacity: 1;
+  }
+
+  .mel-event-meta__secondary,
+  .mel-event-location__address,
+  .mel-event-meta--venue .mel-event-location__address,
+  .mel-event-meta--venue a {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-info-row__label {
+    color: var(--mel-immersive-text);
+    opacity: 1;
+  }
+
+  .mel-info-row__value,
+  .mel-info-row__value .field__item,
+  .mel-info-row__value .text-formatted,
+  .mel-info-row__value p,
+  .mel-info-row__value a:not(.mel-btn) {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-info-row__category-label {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-organiser-card__title {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
+  }
+
+  .mel-organiser-card__name,
+  .mel-organiser-card__tagline {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-organiser-card__tagline--muted {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-layout__main .mel-return-header h3 {
+    color: var(--mel-immersive-text);
+    opacity: 1;
+  }
+
+  .mel-event-layout__main .mel-return-header p {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__intro,
+  .mel-event-section--extras .mel-addon-teaser__hint,
+  .mel-event-section--extras .mel-addon-teaser__more {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__name {
+    color: var(--mel-immersive-text);
+    opacity: 1;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__price {
+    color: var(--mel-immersive-text);
+    font-weight: 600;
+    opacity: 1;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__actions {
+    border-top-color: var(--mel-event-divider);
+  }
+
+  .mel-card--sticky .mel-booking-panel__chip {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
+  }
+
+  .mel-card--sticky .mel-booking-panel__product,
+  .mel-card--sticky .mel-booking-panel__subline,
+  .mel-card--sticky .mel-booking-panel__item p,
+  .mel-card--sticky .mel-booking-panel__trust-line,
+  .mel-card--sticky .mel-booking-panel__trust-micro,
+  .mel-card--sticky .mel-booking-panel__trust-micro p,
+  .mel-card--sticky .mel-trust-rotator,
+  .mel-card--sticky .mel-trust-rotator .mel-trust-item,
+  .mel-card--sticky .mel-trust-rotator .mel-trust-item__text,
+  .mel-card--sticky .mel-trust-item__text,
+  .mel-card--sticky .mel-booking-panel__save-hint,
+  .mel-card--sticky .mel-booking-panel__save-text p,
+  .mel-decision-prompts .mel-decision-item__text {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
+  }
+
+  .mel-card--sticky .mel-booking-panel__trust-micro-primary,
+  .mel-card--sticky .mel-booking-panel__save-label,
+  .mel-card--sticky .mel-booking-panel__save-text strong,
+  .mel-card--sticky .mel-booking-panel__item strong {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-card--sticky .mel-booking-panel__rule,
+  .mel-card--sticky .mel-booking-panel__trust-micro,
+  .mel-card--sticky .mel-decision-prompts {
+    border-top-color: var(--mel-event-divider);
+  }
+
+  .mel-event-share--panel .mel-event-share__chip-label {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-event-support-zone,
+  .mel-event-support-zone p {
+    color: var(--mel-immersive-text-muted);
+    opacity: 1;
+  }
+
+  .mel-mobile-cta__eyebrow {
+    color: var(--mel-immersive-text);
+    opacity: 1;
+  }
+
+  .mel-mobile-cta__urgency,
+  .mel-mobile-cta__helper,
+  .mel-mobile-cta__soldout-head {
+    color: var(--mel-immersive-text-secondary);
+    opacity: 1;
+  }
+
+  .mel-mobile-cta__waitlist-sub,
+  .mel-mobile-cta__waitlist-sub--muted,
+  .mel-mobile-cta__trust,
+  .mel-mobile-cta__trust-t,
+  .mel-mobile-cta__trust-d {
+    color: var(--mel-immersive-text-helper);
+    opacity: 1;
+  }
+
+  .mel-event-highlights__icon {
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 75%, transparent);
+    color: var(--mel-event-accent-strong);
+    border: none;
+  }
+
+  .mel-card--highlights .mel-event-highlights__item {
+    gap: space-tokens.mel-space(3);
+  }
+
+  // Extras — featured primary block, integrated rows (not nested commerce widgets).
+  .mel-event-section--extras.mel-card--surface {
+    background: color-mix(in srgb, var(--mel-event-accent-soft) 32%, var(--mel-event-surface-spotlight) 68%);
+    border: none;
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-featured);
+
+    > .mel-card__header,
+    > .mel-card__body {
+      background: transparent;
+    }
+  }
+
+  .mel-event-section--extras .mel-card__title,
+  .mel-event-section--extras .mel-event-section__title {
+    color: var(--mel-immersive-text);
+    font-size: var(--mel-immersive-heading-size);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser.mel-card--surface {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__item {
+    display: flex;
+    align-items: center;
+    gap: var(--mel-immersive-block-gap);
+    padding: var(--mel-immersive-pad-secondary) 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--mel-event-divider);
+    border-radius: 0;
+    box-shadow: none;
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    &:first-child {
+      padding-top: space-tokens.mel-space(2);
+    }
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__thumb {
+    width: 72px;
+    height: 72px;
+    border-radius: var(--mel-immersive-radius-inner);
+    object-fit: cover;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__name {
+    font-size: var(--mel-immersive-body-size);
+    font-weight: 600;
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__price {
+    font-size: var(--mel-immersive-meta-size);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__actions {
+    margin-top: var(--mel-immersive-block-gap);
+    padding-top: var(--mel-immersive-block-gap);
+    border-top: 1px solid var(--mel-event-divider);
+  }
+
+  .mel-event-section--extras .mel-addon-teaser__cta,
+  .mel-event-section--extras .mel-addon-teaser__scroll,
+  .mel-event-section--extras .mel-addon-teaser__cta.mel-btn--secondary,
+  .mel-event-section--extras .mel-addon-teaser__scroll.mel-btn--secondary {
+    border: none;
+    color: var(--mel-immersive-text);
+    background: var(--mel-event-accent, colors.$mel-color-primary);
+    min-height: 44px;
+    font-weight: 600;
+    border-radius: var(--mel-immersive-radius-inner);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        filter: brightness(1.06);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+      }
+    }
+  }
+
+  .mel-event-map-embed {
+    border: none;
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    border-radius: var(--mel-immersive-radius-inner);
+  }
+
+  .mel-event-share--panel .mel-event-share__chip-icon {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--mel-event-border);
+    color: var(--mel-immersive-text);
+    box-shadow: none;
+  }
+
+  .mel-event-share--panel .mel-event-share__chip-label {
+    color: var(--mel-immersive-text-secondary);
+  }
+
+  // Conversion CTA — sidebar + mobile only; calm panel, bright button.
+  .mel-card--sticky .mel-btn--primary,
+  .mel-card--sticky .mel-btn--coral-cta,
+  .mel-card--sticky .button--primary,
+  .mel-mobile-cta .mel-btn--primary,
+  .mel-mobile-cta .mel-btn--coral-cta {
+    background-color: var(--mel-event-accent, colors.$mel-color-primary);
+    border-color: transparent;
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    min-height: 48px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow:
+      0 12px 28px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.32)),
+      0 2px 8px rgba(0, 0, 0, 0.2);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        filter: brightness(1.06) saturate(1.04);
+        box-shadow:
+          0 16px 34px var(--mel-event-accent-glow-cta, rgba(0, 0, 0, 0.36)),
+          0 4px 12px rgba(0, 0, 0, 0.22);
+      }
+    }
+  }
+
+  .mel-card--sticky .mel-btn--coral-cta,
+  .mel-mobile-cta .mel-btn--coral-cta {
+    border-radius: var(--mel-immersive-radius-inner);
+  }
+
+  .mel-btn--primary,
+  .button--primary,
+  .mel-event-layout__main .mel-btn--primary {
+    background-color: var(--mel-event-accent, colors.$mel-color-primary);
+    border-color: var(--mel-event-accent, colors.$mel-color-primary);
+    color: var(--mel-event-accent-contrast, colors.$mel-color-on-primary);
+    min-height: 44px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  }
+
+  .mel-btn--secondary,
+  .button--secondary {
+    background: color-mix(in srgb, var(--mel-event-surface-spotlight) 90%, transparent);
+    border: none;
+    color: var(--mel-event-heading);
+    min-height: 44px;
+    box-shadow: var(--mel-immersive-inset-highlight);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: color-mix(in srgb, var(--mel-event-accent-soft) 40%, var(--mel-event-surface-spotlight) 60%);
+        color: var(--mel-event-accent-strong);
+      }
+    }
+  }
+
+  .mel-organiser-card,
+  .mel-return-block {
+    border-radius: var(--mel-immersive-radius);
+    box-shadow: var(--mel-immersive-shadow-quiet);
+    border: none;
+  }
+
+  .mel-event-support-zone {
+    border-top: 1px solid var(--mel-event-divider);
+    padding-top: var(--mel-immersive-pad-primary);
+    margin-top: var(--mel-immersive-block-gap);
+    color: var(--mel-immersive-text-body);
+  }
+
+  @include breakpoints.mel-break(lg) {
+    .mel-event-layout__sidebar > .mel-card--sticky {
+      position: sticky;
+      top: space-tokens.mel-space(4);
+    }
+  }
+
+  .mel-mobile-cta {
+    background: color-mix(in srgb, var(--mel-event-surface-raised) 92%, transparent);
+    border-top: none;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.36);
+    color: var(--mel-immersive-text-body);
+    backdrop-filter: blur(10px);
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    --mel-immersive-section-gap: #{space-tokens.mel-space(5)};
+    --mel-immersive-block-gap: #{space-tokens.mel-space(3)};
+    --mel-immersive-heading-size: 1.3125rem;
+    --mel-immersive-pad-primary: #{space-tokens.mel-space(5)};
+    --mel-immersive-pad-secondary: #{space-tokens.mel-space(4)};
+    --mel-immersive-pad-tertiary: #{space-tokens.mel-space(4)};
+
+    padding-bottom: space-tokens.mel-space(7);
+
+    &:has(.mel-event-full) {
+      padding-top: 0;
+    }
+
+    &:not(:has(.mel-event-full)) {
+      padding-top: space-tokens.mel-space(5);
+    }
+
+    .mel-event-hero--featured-style {
+      min-height: 20rem;
+      margin-bottom: space-tokens.mel-space(4);
+    }
+
+    .mel-event-hero--featured-style .mel-event-hero__content {
+      right: space-tokens.mel-space(4);
+      bottom: space-tokens.mel-space(4);
+      left: space-tokens.mel-space(4);
+    }
+
+    .mel-event-hero--featured-style .mel-event-hero__title,
+    #mel-event-title {
+      font-size: clamp(1.625rem, 7vw, 2.25rem);
+    }
+
+    .mel-event-meta-bar {
+      margin-bottom: space-tokens.mel-space(5);
+      padding: space-tokens.mel-space(4);
+    }
+
+    .mel-event-meta-bar__items {
+      flex-direction: column;
+      align-items: stretch;
+      gap: space-tokens.mel-space(3);
+    }
+
+    .mel-event-meta-bar__cluster {
+      width: 100%;
+    }
+
+    .mel-event-meta__primary,
+    .mel-event-meta__secondary {
+      font-size: 1rem;
+      line-height: 1.45;
+    }
+
+    .mel-event-layout {
+      gap: space-tokens.mel-space(5);
+    }
+
+    .mel-card--surface .mel-card__header,
+    .mel-card--surface .mel-card__body,
+    .mel-card--sticky .mel-card__header,
+    .mel-card--sticky .mel-card__body {
+      padding: space-tokens.mel-space(4);
+    }
+
+    .mel-card--sticky .mel-btn--primary,
+    .mel-card--sticky .mel-btn--coral-cta,
+    .mel-mobile-cta .mel-btn--primary,
+    .mel-mobile-cta .mel-btn--coral-cta,
+    .mel-btn--secondary,
+    .button--secondary {
+      min-height: 44px;
+    }
+
+    .mel-event-section--extras .mel-addon-teaser__thumb {
+      width: 64px;
+      height: 64px;
+    }
+
+    .mel-card--highlights .mel-card__header,
+    .mel-card--highlights .mel-card__body,
+    .mel-card--expect .mel-card__header,
+    .mel-card--expect .mel-card__body {
+      padding: var(--mel-immersive-pad-tertiary) var(--mel-immersive-pad-secondary);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mel-event-hero--featured-style .mel-event-hero__overlay {
+      transition: none;
+    }
+
+    .mel-event-meta-bar,
+    .mel-event__card,
+    .mel-card--sticky {
+      backdrop-filter: none;
+    }
+
+    .mel-card--sticky .mel-btn--primary,
+    .mel-card--sticky .mel-btn--coral-cta,
+    .mel-mobile-cta .mel-btn--primary,
+    .mel-mobile-cta .mel-btn--coral-cta {
+      &:hover {
+        filter: none;
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Event full — flush under global header (body/page classes; both page styles).
+// ---------------------------------------------------------------------------
+
+body.mel-body--event-full-immersive,
+.mel-page--event-full--immersive {
+  background-color: #080c14;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
+}
+
+body.mel-body--event-full-classic,
+.mel-page--event-full--classic {
+  background-color: #fff9f5;
+}
+
+body.mel-body--event-full .mel-page > main.mel-main,
+body.mel-body--event-full .mel-page > main.mel-main > div:first-child,
+.mel-page--event-full > main.mel-main,
+.mel-page--event-full > main.mel-main > div:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  max-width: none;
+  width: 100%;
+}
+
+body.mel-body--event-full-immersive .mel-page > main.mel-main,
+.mel-page--event-full--immersive > main.mel-main {
+  background-color: #080c14;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -8%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 50%),
+    linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
+}
+
+body.mel-body--event-full-classic .mel-page > main.mel-main,
+.mel-page--event-full--classic > main.mel-main {
+  background-color: #fff9f5;
+  background-image: none;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full),
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-container,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-container {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-event-full,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-event-full {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-event-full__layout,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-event-full__layout {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mel-event-page--immersive.mel-event--v2:has(.mel-event-full) .mel-event-full__hero.mel-event-hero--featured-style,
+.mel-event-page--classic.mel-event--v2:has(.mel-event-full) .mel-event-full__hero.mel-event-hero--featured-style {
+  margin-top: 0;
+}

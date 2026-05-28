@@ -14,6 +14,15 @@ services:
   myeventlane_commerce.order_item_classifier:
     class: Drupal\myeventlane_commerce\Service\OrderItemClassifier
 
+  myeventlane_commerce.ticket_backed_order_item_classifier:
+    class: Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_commerce.order_item_classifier'
+      - '@logger.channel.myeventlane_commerce'
+
   myeventlane_commerce.paragraph_question_mapper:
     class: Drupal\myeventlane_commerce\Service\ParagraphQuestionMapper
 
@@ -34,6 +43,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@logger.factory'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
     tags:
       - { name: event_subscriber }
 
@@ -45,6 +55,7 @@ services:
       - '@config.factory'
       - '@logger.channel.myeventlane_commerce'
       - '@myeventlane_commerce.order_item_classifier'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
 
   myeventlane_commerce.platform_fee_order_processor:
     class: Drupal\myeventlane_commerce\OrderProcessor\PlatformFeeOrderProcessor
@@ -134,12 +145,26 @@ services:
       - '@myeventlane_commerce.ticket_booking_session'
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@current_user'
+      - '@string_translation'
       - '@myeventlane_commerce.ticket_access_code'
       - '@myeventlane_commerce.ticket_group_eligibility'
       - '@myeventlane_commerce.ticket_capacity'
       - '@cache.data'
       - '@current_route_match'
       - '@request_stack'
+
+  myeventlane_commerce.event_default_ticket_resolver:
+    alias: myeventlane_event.ticket_type_manager
+
+  myeventlane_commerce.customer_ticket_tier_display:
+    class: Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder
+    arguments:
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@commerce_price.currency_formatter'
+      - '@myeventlane_commerce.ticket_tier_waitlist'
+      - '@myeventlane_commerce.event_default_ticket_resolver'
+      - '@string_translation'
 
   myeventlane_commerce.ticket_waitlist_order_subscriber:
     class: Drupal\myeventlane_commerce\EventSubscriber\TicketWaitlistOrderSubscriber
@@ -148,6 +173,7 @@ services:
       - '@myeventlane_commerce.ticket_availability'
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@logger.channel.myeventlane_commerce'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
     tags:
       - { name: event_subscriber }
 
@@ -162,6 +188,12 @@ services:
     arguments:
       - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@myeventlane_commerce.ticket_booking_session'
+      - '@commerce_cart.cart_provider'
+      - '@commerce_cart.cart_manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_capacity.order_inspector'
+      - '@myeventlane_commerce.ticket_capacity'
+      - '@logger.channel.myeventlane_commerce'
     tags:
       - { name: controller.service_arguments }
 
@@ -189,3 +221,111 @@ services:
       - '@request_stack'
     tags:
       - { name: event_subscriber }
+
+  myeventlane_commerce.operational_merchandise_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager
+    arguments:
+      - '@entity_type.manager'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_commerce'
+
+  myeventlane_commerce.operational_extra_visual_presenter:
+    class: Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter
+    arguments:
+      - '@entity_type.manager'
+      - '@file_url_generator'
+      - '@extension.path.resolver'
+      - '@string_translation'
+
+  myeventlane_commerce.event_operational_addon_builder:
+    class: Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
+      - '@string_translation'
+
+  myeventlane_commerce.event_operational_addon_teaser_builder:
+    class: Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder
+    arguments:
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_commerce.event_extras_book_placement_resolver'
+      - '@commerce_price.currency_formatter'
+      - '@string_translation'
+
+  myeventlane_commerce.event_extras_book_placement_resolver:
+    class: Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@string_translation'
+
+  myeventlane_commerce.event_booking_summary_cart_extras_builder:
+    class: Drupal\myeventlane_commerce\Service\EventBookingSummaryCartExtrasBuilder
+    arguments:
+      - '@commerce_cart.cart_provider'
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_commerce.operational_order_item_display_builder'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
+      - '@entity_type.manager'
+
+  myeventlane_commerce.operational_order_item_display_builder:
+    class: Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
+      - '@entity_type.manager'
+      - '@commerce_price.currency_formatter'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_merchandise_governance_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalMerchandiseGovernanceManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_purchase_composition_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_merchandise_governance_manager'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_checkout_governance_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalCheckoutGovernanceManager
+    arguments:
+      - '@string_translation'
+
+  myeventlane_commerce.operational_customer_guidance_builder:
+    class: Drupal\myeventlane_commerce\Service\OperationalCustomerGuidanceBuilder
+    arguments:
+      - '@string_translation'
+
+  myeventlane_commerce.operational_cart_projection_builder:
+    class: Drupal\myeventlane_commerce\Service\OperationalCartProjectionBuilder
+    arguments:
+      - '@string_translation'
+
+  myeventlane_commerce.operational_checkout_orchestration_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager
+    arguments:
+      - '@myeventlane_commerce.operational_purchase_composition_manager'
+      - '@myeventlane_commerce.operational_checkout_governance_manager'
+      - '@myeventlane_commerce.operational_customer_guidance_builder'
+      - '@myeventlane_commerce.operational_cart_projection_builder'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_addon_guidance_builder:
+    class: Drupal\myeventlane_commerce\Service\OperationalAddonGuidanceBuilder
+    arguments:
+      - '@string_translation'
+
+  myeventlane_commerce.vendor_operational_addon_order_builder:
+    class: Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_purchase_composition_manager'
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
+      - '@date.formatter'
+      - '@string_translation'

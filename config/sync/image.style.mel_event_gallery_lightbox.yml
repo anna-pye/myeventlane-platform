@@ -1,0 +1,15 @@
+uuid: 8a2c6e5f-3d7b-41ae-f6e5-2b1c9d8e7f6a
+langcode: en
+status: true
+dependencies: {  }
+name: mel_event_gallery_lightbox
+label: 'MEL event gallery (lightbox)'
+effects:
+  9b3d7f6a-4e8c-42bf-a7f6-3c2d0e9f8a7b:
+    uuid: 9b3d7f6a-4e8c-42bf-a7f6-3c2d0e9f8a7b
+    id: image_scale
+    weight: 0
+    data:
+      width: 1600
+      height: null
+      upscale: false

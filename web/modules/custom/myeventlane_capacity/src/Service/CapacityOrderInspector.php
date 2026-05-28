@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_capacity\Service;
 
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\myeventlane_core\Commerce\OperationalProductBundles;
 
 /**
  * Inspects orders to extract event capacity requirements.
@@ -117,6 +119,15 @@ final class CapacityOrderInspector {
     // Exclude boost items.
     if ($bundle === 'boost') {
       return TRUE;
+    }
+
+    // Operational merchandise add-ons (event-scoped, not ticket matrix lines).
+    $purchased = $item->getPurchasedEntity();
+    if ($purchased instanceof ProductVariationInterface) {
+      $product = $purchased->getProduct();
+      if ($product !== NULL && OperationalProductBundles::isOperationalProductBundle($product->bundle())) {
+        return TRUE;
+      }
     }
 
     // All other items are considered tickets and subject to capacity checks.

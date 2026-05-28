@@ -1,24 +1,14 @@
 {#
 /**
  * @file
- * Default theme implementation to display a view of unformatted rows.
- *
- * MyEventLane override:
- * - If this is an Event View (node: event), wrap rows in
- *   `.mel-grid.mel-grid--events`.
- * - Otherwise, fall back to core's default unformatted markup.
+ * Default unformatted rows — event grid or core fallback.
  */
 #}
-
-{% if mel_is_event_view %}
-  {% if rows %}
-    {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
-    <div class="mel-event-grid mel-grid mel-grid--events" data-loaded="false">
-      {% for row in rows %}
-        {{- row.content -}}
-      {% endfor %}
-    </div>
+{% if mel_is_event_view|default(false) %}
+  {% if title %}
+    <h3>{{ title }}</h3>
   {% endif %}
+  {% include '@myeventlane_theme/includes/mel-event-rows-wrapper.html.twig' %}
 {% else %}
   {% if title %}
     <h3>{{ title }}</h3>

@@ -45,6 +45,9 @@ services:
       - '@myeventlane_commerce.order_item_classifier'
       - '@myeventlane_surface.state_readiness_helper'
       - '@file_url_generator'
+      - '@?myeventlane_commerce.operational_order_item_display_builder'
+      - '@?myeventlane_commerce.ticket_backed_order_item_classifier'
+      - '@?myeventlane_core.ticket_label_resolver'
 
   myeventlane_checkout_flow.tax_invoice_presentation:
     class: Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder
@@ -82,6 +85,7 @@ services:
       - '@myeventlane_tickets.universal_ticket_view_model_builder'
       - '@myeventlane_core.ticket_label_resolver'
       - '@string_translation'
+      - '@?myeventlane_commerce.operational_order_item_display_builder'
 
   logger.channel.myeventlane_checkout_flow:
     parent: logger.channel_base

@@ -34,6 +34,9 @@ final class OperationalWorkspaceBuilder {
     'operation_fingerprint',
     'replay_continuity_metadata',
     'deterministic_continuity_descriptor',
+    'qr_payload',
+    'qr_material',
+    'payload_signature',
   ];
 
   public function __construct(
@@ -48,6 +51,12 @@ final class OperationalWorkspaceBuilder {
     private readonly InventoryReservationAuditProjector $inventoryReservationAuditProjector,
     private readonly OperationalCapabilityProjectionBuilder $operationalCapabilityProjectionBuilder,
     private readonly OperationalCapabilityAuditProjector $operationalCapabilityAuditProjector,
+    private readonly OperationalCoordinationProjectionBuilder $operationalCoordinationProjectionBuilder,
+    private readonly OperationalCoordinationAuditProjector $operationalCoordinationAuditProjector,
+    private readonly FulfillmentExecutionProjectionBuilder $fulfillmentExecutionProjectionBuilder,
+    private readonly FulfillmentAuditProjector $fulfillmentAuditProjector,
+    private readonly OperationalFulfillmentExecutionProjectionBuilder $operationalFulfillmentExecutionProjectionBuilder,
+    private readonly OperationalFulfillmentExecutionAuditProjector $operationalFulfillmentExecutionAuditProjector,
   ) {}
 
   /**
@@ -67,6 +76,9 @@ final class OperationalWorkspaceBuilder {
     $governance_enabled = $this->currentUser->hasPermission('govern mel operational escalations');
     $reservation_projection_enabled = $this->currentUser->hasPermission('govern mel inventory reservations');
     $capability_projection_enabled = $this->currentUser->hasPermission('govern mel operational capabilities');
+    $coordination_projection_enabled = $this->currentUser->hasPermission('govern mel operational coordination');
+    $fulfillment_projection_enabled = $this->currentUser->hasPermission('govern mel fulfillment lifecycle');
+    $fulfillment_execution_projection_enabled = $this->currentUser->hasPermission('govern mel fulfillment execution');
 
     $meta = [
       'built_at' => $this->time->getRequestTime(),
@@ -78,6 +90,9 @@ final class OperationalWorkspaceBuilder {
       'governance_projection_enabled' => $governance_enabled,
       'reservation_projection_enabled' => $reservation_projection_enabled,
       'capability_projection_enabled' => $capability_projection_enabled,
+      'coordination_projection_enabled' => $coordination_projection_enabled,
+      'fulfillment_projection_enabled' => $fulfillment_projection_enabled,
+      'fulfillment_execution_projection_enabled' => $fulfillment_execution_projection_enabled,
     ];
 
     if ($event) {
@@ -137,6 +152,57 @@ final class OperationalWorkspaceBuilder {
       );
       foreach ($capability_audit as $capability_audit_section) {
         $sections[] = $capability_audit_section;
+      }
+    }
+
+    if ($coordination_projection_enabled) {
+      $coordination_sections = $this->operationalCoordinationProjectionBuilder->buildWorkspaceCoordinationSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($coordination_sections as $coordination_section) {
+        $sections[] = $coordination_section;
+      }
+      $coordination_audit = $this->operationalCoordinationAuditProjector->buildWorkspaceCoordinationAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($coordination_audit as $coordination_audit_section) {
+        $sections[] = $coordination_audit_section;
+      }
+    }
+
+    if ($fulfillment_projection_enabled) {
+      $fulfillment_sections = $this->fulfillmentExecutionProjectionBuilder->buildWorkspaceFulfillmentSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($fulfillment_sections as $fulfillment_section) {
+        $sections[] = $fulfillment_section;
+      }
+      $fulfillment_audit = $this->fulfillmentAuditProjector->buildWorkspaceFulfillmentAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($fulfillment_audit as $fulfillment_audit_section) {
+        $sections[] = $fulfillment_audit_section;
+      }
+    }
+
+    if ($fulfillment_execution_projection_enabled) {
+      $execution_sections = $this->operationalFulfillmentExecutionProjectionBuilder->buildWorkspaceExecutionGovernanceSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($execution_sections as $execution_section) {
+        $sections[] = $execution_section;
+      }
+      $execution_audit = $this->operationalFulfillmentExecutionAuditProjector->buildWorkspaceExecutionAuditSections(
+        $merged,
+        (int) $meta['built_at']
+      );
+      foreach ($execution_audit as $execution_audit_section) {
+        $sections[] = $execution_audit_section;
       }
     }
 

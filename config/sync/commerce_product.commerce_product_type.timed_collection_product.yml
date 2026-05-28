@@ -1,0 +1,13 @@
+uuid: c69b955b-e55e-42d8-8649-319b7de774c4
+langcode: en
+status: true
+dependencies: {  }
+id: timed_collection_product
+label: 'Timed collection product'
+traits: {  }
+locked: false
+description: 'Timed collection window products (operational guidance only).'
+variationTypes:
+  - timed_collection_var
+multipleVariations: true
+injectVariationFields: true

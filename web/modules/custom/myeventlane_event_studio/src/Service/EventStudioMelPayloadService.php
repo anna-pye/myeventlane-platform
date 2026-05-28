@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Component\Utility\Tags;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
@@ -19,6 +20,7 @@ final class EventStudioMelPayloadService {
   public function __construct(
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
+    private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
   ) {}
 
   /**
@@ -179,7 +181,10 @@ final class EventStudioMelPayloadService {
     $venue_id = NULL;
     if ($choice === 'saved' && !empty($mel['venue_saved'])) {
       $raw = $mel['venue_saved'];
-      if (is_array($raw) && isset($raw[0]['target_id'])) {
+      if ($raw instanceof EntityInterface) {
+        $venue_id = (int) $raw->id();
+      }
+      elseif (is_array($raw) && isset($raw[0]['target_id'])) {
         $venue_id = (int) $raw[0]['target_id'];
       }
       elseif (is_numeric($raw)) {
@@ -264,20 +269,32 @@ final class EventStudioMelPayloadService {
       'event_highlights' => $this->decodeAndNormalizeEventHighlightsFromMel($mel),
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
       'attendee_questions' => $attendee_questions,
+      'field_event_visibility' => trim((string) ($mel['field_event_visibility'] ?? '')),
+      'event_passcode' => trim((string) ($mel['event_passcode'] ?? '')),
     ];
 
+    $eventNode = NULL;
     $nid = (int) ($form_state->getValue('nid') ?? 0);
     if ($nid > 0) {
       $loaded = $entityTypeManager->getStorage('node')->load($nid);
       if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
-        // Ticket product autocomplete may be omitted from POST when hidden or unchanged; do not
-        // clear field_product_target on save when the node already has a linked product.
-        $pid = $payload['field_product_target'] ?? NULL;
-        if (($pid === NULL || $pid < 1)
-            && $loaded->hasField('field_product_target')
-            && !$loaded->get('field_product_target')->isEmpty()) {
-          $payload['field_product_target'] = (int) $loaded->get('field_product_target')->target_id;
-        }
+        $eventNode = $loaded;
+      }
+    }
+
+    if ($this->operationalCapabilityStudioManager !== NULL
+      && (isset($mel['operational_capabilities']) || isset($mel['mel_operational_capabilities']))) {
+      $payload['mel_operational_capabilities'] = $this->operationalCapabilityStudioManager->normalizeMelFragment($mel, $eventNode);
+    }
+
+    if ($eventNode instanceof NodeInterface) {
+      // Ticket product autocomplete may be omitted from POST when hidden or unchanged; do not
+      // clear field_product_target on save when the node already has a linked product.
+      $pid = $payload['field_product_target'] ?? NULL;
+      if (($pid === NULL || $pid < 1)
+          && $eventNode->hasField('field_product_target')
+          && !$eventNode->get('field_product_target')->isEmpty()) {
+        $payload['field_product_target'] = (int) $eventNode->get('field_product_target')->target_id;
       }
     }
 
@@ -387,6 +404,45 @@ final class EventStudioMelPayloadService {
   }
 
   /**
+   * Builds a `field_event_image` item from a mel fragment (branding widget save).
+   *
+   * @param array<string, mixed> $fragment
+   *
+   * @return array<string, mixed>|null
+   *   NULL when no file is selected.
+   */
+  public static function buildHeroFieldItemFromMelFragment(array $fragment): ?array {
+    $hero = self::normalizeHeroFromMelFragment($fragment);
+    if ($hero['fid'] < 1) {
+      return NULL;
+    }
+
+    $raw = $fragment['field_event_image'] ?? [];
+    if (!is_array($raw)) {
+      $raw = [];
+    }
+    $delta = self::imageWidgetDeltaFromRaw($raw);
+
+    $item = [
+      'target_id' => $hero['fid'],
+      'alt' => $hero['alt'],
+      'title' => trim((string) ($delta['title'] ?? '')),
+    ];
+
+    if (isset($delta['focal_point']) && trim((string) $delta['focal_point']) !== '') {
+      $item['focal_point'] = trim((string) $delta['focal_point']);
+    }
+
+    foreach (['width', 'height'] as $key) {
+      if (isset($delta[$key]) && $delta[$key] !== '' && $delta[$key] !== NULL) {
+        $item[$key] = $delta[$key];
+      }
+    }
+
+    return $item;
+  }
+
+  /**
    * @return int
    *   First positive file id from a managed_file / image widget fids value.
    */
@@ -472,6 +528,10 @@ final class EventStudioMelPayloadService {
   private function extractSingleEntityId(mixed $raw): ?int {
     if ($raw === NULL || $raw === '') {
       return NULL;
+    }
+    if ($raw instanceof EntityInterface) {
+      $id = (int) $raw->id();
+      return $id > 0 ? $id : NULL;
     }
     if (is_numeric($raw)) {
       $id = (int) $raw;
@@ -595,6 +655,10 @@ final class EventStudioMelPayloadService {
         'required' => !empty($row['required']),
         'save_to_library' => !empty($row['save_to_library']),
       ];
+      $paragraph_id = isset($row['id']) ? (int) $row['id'] : 0;
+      if ($paragraph_id > 0) {
+        $item['id'] = $paragraph_id;
+      }
       $status = trim((string) ($row['status'] ?? ''));
       if ($status !== '') {
         $item['status'] = $status;

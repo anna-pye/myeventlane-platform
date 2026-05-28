@@ -4,6 +4,8 @@
  * Event node template for full view mode.
  *
  * Design source of truth: MEL v2 event page reference.
+ * Classic and Immersive (Event Studio branding) share this template; page style is
+ * mel-event-page--classic|immersive + mel-event-page--colour-* on <article> only.
  * Requirements:
  * - No inline script/style tags.
  * - All assets via libraries (Vite → dist).
@@ -11,12 +13,19 @@
  */
 #}
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
+{% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
 {# Google Maps in Event Information card uses iframe embed (no API key). JS map library only if needed elsewhere. #}
 {% set mel_cta_text = (event_ui is defined and (event_ui.cta_label|default(''))|striptags|length > 0) ? event_ui.cta_label : (event_cta and event_cta.label ? event_cta.label : '') %}
 {% if mel_booking_action_label is defined and mel_booking_action_label %}
   {% set mel_cta_text = mel_booking_action_label %}
 {% endif %}
 {% set mel_cta_type_ui = event_ui is defined ? (event_ui.cta_type|default('primary')) : 'primary' %}
+{% if mel_cta_text|striptags|trim is empty and event_cta is defined and event_cta.label|default('')|striptags|trim is not empty %}
+  {% set mel_cta_text = event_cta.label %}
+{% endif %}
+{% if mel_cta_text|striptags|trim is empty and cta_type is defined and cta_type == 'none' and (mel_event_state is not defined or mel_event_state not in ['ended', 'cancelled']) and (event_ui is not defined or event_ui.show_cta|default(true)) %}
+  {% set mel_cta_text = 'Booking coming soon'|t %}
+{% endif %}
 
 {# Registration status chip: cta_type + labels aligned with EventCtaResolver and public event cards. #}
 {% set mel_mode_chip = '' %}
@@ -68,13 +77,26 @@
 
 <article{{ attributes.addClass('mel-event', 'mel-event--v2') }}>
   <div class="mel-container">
+    {% if mel_event_state is defined and mel_event_state == 'cancelled' %}
+      <div class="mel-alert mel-alert--warning" role="status">
+        <strong>{{ 'This event has been cancelled.'|t }}</strong>
+      </div>
+    {% endif %}
+
+    <div class="mel-event-full">
+      <div class="mel-event-full__layout mel-event-layout mel-event-layout--option1">
+        <div class="mel-event-full__main mel-event-full__main--hero mel-event-layout__main">
     {# Hero: node--event--full — same stack as homepage featured_hero (mel-event-card variant). #}
-    <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
+    <section class="mel-event-full__hero mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
       <div class="mel-event-hero__media">
         {% if content.field_event_image %}
           {{ content.field_event_image }}
+        {% elseif image_src is defined and image_src %}
+          <div class="mel-event-hero-card__placeholder mel-event-hero-card__placeholder--branded" role="img" aria-label="{{ label }}">
+            <img src="{{ image_src }}" alt="" class="mel-event-hero-card__placeholder-img" loading="eager" decoding="async" />
+          </div>
         {% else %}
-          <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
+          <div class="mel-event-hero-card__placeholder mel-event-hero-card__placeholder--branded" aria-hidden="true"></div>
         {% endif %}
       </div>
       <div class="mel-event-hero__overlay" aria-hidden="true"></div>
@@ -94,123 +116,98 @@
             {{ content.field_category }}
           </div>
         </div>
+      {% elseif mel_signal %}
+        <div class="mel-event-hero__chip" aria-hidden="true">
+          <div class="mel-event__signal mel-event__signal--hero-chip">{{ mel_signal }}</div>
+        </div>
       {% endif %}
       <div class="mel-event-hero__content">
-        <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
-        {% if mel_signal %}
-          <div class="mel-event__signal">{{ mel_signal }}</div>
-        {% endif %}
-        {% if hero_datetime %}
-          <p class="mel-event-hero__datetime">{{ hero_datetime }}</p>
-        {% endif %}
-        {% if hero_venue %}
-          <p class="mel-event-hero__venue">{{ hero_venue }}</p>
-        {% endif %}
-        {% if (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) or hero_status %}
-          {% set _hero_status_mod = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? 'sold-out' : (hero_status_modifier|default('default')) %}
-          {% set _hero_status_text = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? (event_ui.status_label|default('')|striptags|length > 0 ? event_ui.status_label : ('Sold out'|t)) : hero_status %}
-          <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ _hero_status_mod }}">{{ _hero_status_text }}</p>
-        {% endif %}
+        <div class="mel-event-hero__info">
+          <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
+          {% set _hero_has_schedule = node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+          {% set _hero_venue_entity = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
+          {% set _hero_venue_line = (node.hasField('field_venue_name') and not node.field_venue_name.isEmpty) ? node.field_venue_name.value|trim : _hero_venue_entity|trim %}
+          {% set _hero_has_location = _hero_venue_line is not empty %}
+          {% if _hero_has_schedule or _hero_has_location %}
+            <ul class="mel-event-hero__meta" role="list">
+              {% if _hero_has_schedule %}
+                <li class="mel-event-hero__meta-item">
+                  <span class="mel-event-hero__meta-icon" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'calendar', class: 'mel-event-hero__meta-svg', size: 28 } only %}
+                  </span>
+                  <span class="mel-event-hero__meta-text">
+                    <span class="mel-event-hero__meta-primary">
+                      {{ node.field_event_start.value|date('l, F j, Y') }}
+                      {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                        {% set _hero_end_day = node.field_event_end.value|date('l, F j, Y') %}
+                        {% if _hero_end_day != node.field_event_start.value|date('l, F j, Y') %}
+                          – {{ _hero_end_day }}
+                        {% endif %}
+                      {% endif %}
+                    </span>
+                  </span>
+                </li>
+                <li class="mel-event-hero__meta-item mel-event-hero__meta-item--time">
+                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--time" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'clock', class: 'mel-event-hero__meta-svg mel-event-hero__meta-svg--time', size: 28 } only %}
+                  </span>
+                  <span class="mel-event-hero__meta-text">
+                    <span class="mel-event-hero__meta-primary">
+                      {{ node.field_event_start.value|date('g:i A') }}
+                      {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                        – {{ node.field_event_end.value|date('g:i A') }}
+                      {% endif %}
+                    </span>
+                  </span>
+                </li>
+              {% endif %}
+              {% if _hero_has_location %}
+                <li class="mel-event-hero__meta-item mel-event-hero__meta-item--location">
+                  <span class="mel-event-hero__meta-icon mel-event-hero__meta-icon--location" aria-hidden="true">
+                    {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'map-pin', class: 'mel-event-hero__meta-svg mel-event-hero__meta-svg--location', size: 28 } only %}
+                  </span>
+                  <span class="mel-event-hero__meta-text">
+                    <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
+                  </span>
+                </li>
+              {% endif %}
+            </ul>
+          {% endif %}
+          {% if (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) or hero_status %}
+            {% set _hero_status_mod = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? 'sold-out' : (hero_status_modifier|default('default')) %}
+            {% set _hero_status_text = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? (event_ui.status_label|default('')|striptags|length > 0 ? event_ui.status_label : ('Sold out'|t)) : hero_status %}
+            <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ _hero_status_mod }}">{{ _hero_status_text }}</p>
+          {% endif %}
+        </div>
       </div>
     </section>
+        </div>
 
-    {# Meta row: when / where (primary CTA + trust live in the sticky sidebar card) #}
-    <section class="mel-event-meta-bar" aria-label="{{ 'Event summary'|t }}">
-      <div class="mel-event-meta-bar__items">
-        {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
-          <div class="mel-event-meta-bar__cluster">
-            <div class="mel-event-meta">
-              <span class="mel-event-meta__icon" aria-hidden="true"></span>
-              <div class="mel-event-meta__text">
-                {% set start_day = node.field_event_start.value|date('l, F j') %}
-                {% set start_year = node.field_event_start.value|date('Y') %}
-                {% set end_day = (node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value) ? node.field_event_end.value|date('l, F j') : '' %}
-                {% set end_year = (node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value) ? node.field_event_end.value|date('Y') : '' %}
+        <aside class="mel-event-full__sidebar mel-event-layout__sidebar mel-event-sidebar-rail" aria-label="{{ 'Tickets and event information'|t }}">
+          {% include '@myeventlane_theme/node/partial--event-full-booking-panel.html.twig' %}
+          {% include '@myeventlane_theme/node/partial--event-full-view-details.html.twig' %}
+        </aside>
 
-                <div class="mel-event-meta__primary">
-                  {{ start_day }}
-                  {% if end_day and end_day != start_day %}
-                    – {{ end_day }}
-                  {% endif %}
-                </div>
-                <div class="mel-event-meta__secondary">
-                  {{ start_year }}
-                  {% if end_year and end_year != start_year %}
-                    – {{ end_year }}
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-
-            <div class="mel-event-meta mel-event-meta--time">
-              <span class="mel-event-meta__icon mel-event-meta__icon--time" aria-hidden="true"></span>
-              <div class="mel-event-meta__text">
-                <div class="mel-event-meta__primary">
-                  {{ node.field_event_start.value|date('g:i A') }}
-                  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
-                    – {{ node.field_event_end.value|date('g:i A') }}
-                  {% endif %}
-                </div>
-              </div>
-            </div>
+        <div class="mel-event-full__main mel-event-full__main--content mel-event-layout__main">
+        {% if mel_event_gallery is defined and mel_event_gallery.count > 0 %}
+          <div class="mel-event-full__gallery">
+            {{
+              {
+                '#theme': 'mel_event_gallery',
+                '#gallery': mel_event_gallery,
+              }
+            }}
           </div>
         {% endif %}
 
-        {% set display_address = mel_address|default('')|trim %}
-        {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
-        {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
-        {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
-        {% set venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
-        {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
-        {% set has_address = display_address is not empty or has_field_location %}
-        {% if venue_line is not empty or has_address %}
-          <div class="mel-event-meta mel-event-meta--venue">
-            <span class="mel-event-meta__icon mel-event-meta__icon--location" aria-hidden="true"></span>
-            <div class="mel-event-meta__text mel-event-location">
-              {% if venue_line is not empty %}
-                <div class="mel-event-location__venue">{{ venue_line }}</div>
-              {% endif %}
-              {% if has_address %}
-                <div class="mel-event-location__address">
-                  {% if location_has_markup %}
-                    {{ content.field_location }}
-                  {% elseif display_address is not empty %}
-                    {{ display_address }}
-                  {% endif %}
-                </div>
-              {% endif %}
-            </div>
-          </div>
-        {% endif %}
-      </div>
-
-    </section>
-
-    {# Cancelled banner #}
-    {% if mel_event_state is defined and mel_event_state == 'cancelled' %}
-      <div class="mel-alert mel-alert--warning" role="status">
-        <strong>{{ 'This event has been cancelled.'|t }}</strong>
-      </div>
-    {% endif %}
-
-    <div class="mel-event-layout">
-      <div class="mel-event-layout__main">
         {% set body_render = (content.body is defined) ? (content.body|render) : '' %}
         {% set body_plain = body_render|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
-        {% if body_plain %}
-          <div class="mel-card mel-card--surface">
-            <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
-            </div>
-            <div class="mel-card__body">
-              {{ content.body }}
-            </div>
-          </div>
-        {% endif %}
+        {% set expect_html = (content.field_event_intro is defined and content.field_event_intro) ? (content.field_event_intro|render) : '' %}
+        {% set expect_text = expect_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
         {# Highlights: render only when there are non-empty items (quick-scan list). #}
-        {% set highlights = [] %}
-        {% if node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
+        {% set highlights = mel_public_highlights|default([]) %}
+        {% if mel_public_highlights is not defined and node.hasField('field_event_highlights') and not node.field_event_highlights.isEmpty %}
           {% for ref in node.field_event_highlights %}
             {% set p = ref.entity %}
             {% if p and p.hasField('field_highlight_text') and not p.field_highlight_text.isEmpty %}
@@ -226,59 +223,212 @@
           {% endfor %}
         {% endif %}
 
-        {% if highlights|length %}
-          <div class="mel-card mel-card--surface mel-card--highlights mel-mt-5" aria-label="{{ 'Highlights'|t }}">
-            <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'Highlights'|t }}</h2>
-            </div>
-            <div class="mel-card__body">
-              <ul class="mel-event-highlights" role="list">
-                {% for item in highlights %}
-                  {% set icon_key = item.icon|default('') %}
-                  {% set icon_char = '' %}
-                  {# Keys match paragraph.field_highlight_icon allowed_values (config/sync). #}
-                  {% if icon_key == 'star' %}
-                    {% set icon_char = '★' %}
-                  {% elseif icon_key == 'music' %}
-                    {% set icon_char = '♪' %}
-                  {% elseif icon_key == 'food' %}
-                    {% set icon_char = '☕' %}
-                  {% elseif icon_key == 'clock' %}
-                    {% set icon_char = '🕐' %}
-                  {% elseif icon_key == 'info' %}
-                    {% set icon_char = 'ℹ' %}
-                  {% elseif icon_key == 'access' %}
-                    {% set icon_char = '♿' %}
-                  {% endif %}
+        {% set _has_about = body_plain is not empty %}
+        {% set _has_highlights = highlights|length > 0 %}
+        {% if _has_about or _has_highlights or expect_text %}
+          <div class="mel-event-full__content-grid{% if _has_about and _has_highlights %} mel-event-full__content-grid--duo{% endif %}">
+            {% if _has_about %}
+              <div class="mel-event-full__about mel-card mel-card--surface mel-event-full__card{% if not _has_highlights %} mel-event-full__about--wide{% endif %}">
+                <div class="mel-card__header">
+                  <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
+                </div>
+                <div class="mel-card__body">
+                  {{ content.body }}
+                </div>
+              </div>
+            {% endif %}
 
-                  <li class="mel-event-highlights__item">
-                    <span class="mel-event-highlights__icon" aria-hidden="true">
-                      {% if icon_char %}
-                        {{ icon_char }}
+            {% if _has_highlights %}
+              <div class="mel-event-full__highlights mel-card mel-card--surface mel-card--highlights mel-event-full__card" aria-label="{{ 'Highlights'|t }}">
+                <div class="mel-card__header">
+                  <h2 class="mel-card__title">{{ 'Highlights'|t }}</h2>
+                </div>
+                <div class="mel-card__body">
+                  <ul class="mel-event-highlights" role="list">
+                    {% for item in highlights %}
+                      {% set icon_key = item.icon|default('') %}
+                      {% set icon_char = '' %}
+                      {# Keys match paragraph.field_highlight_icon allowed_values (config/sync). #}
+                      {% if icon_key == 'star' %}
+                        {% set icon_char = '★' %}
+                      {% elseif icon_key == 'music' %}
+                        {% set icon_char = '♪' %}
+                      {% elseif icon_key == 'food' %}
+                        {% set icon_char = '☕' %}
+                      {% elseif icon_key == 'clock' %}
+                        {% set icon_char = '🕐' %}
+                      {% elseif icon_key == 'info' %}
+                        {% set icon_char = 'ℹ' %}
+                      {% elseif icon_key == 'access' %}
+                        {% set icon_char = '♿' %}
                       {% endif %}
-                    </span>
-                    <span class="mel-event-highlights__text">{{ item.text|e }}</span>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
+
+                      <li class="mel-event-highlights__item">
+                        <span class="mel-event-highlights__icon" aria-hidden="true">
+                          {% if icon_char %}
+                            {{ icon_char }}
+                          {% endif %}
+                        </span>
+                        <span class="mel-event-highlights__text">{{ item.text|e }}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if expect_text %}
+              <div class="mel-event-full__expect mel-card mel-card--surface mel-card--expect mel-event-full__card">
+                <div class="mel-card__header">
+                  <h2 class="mel-card__title">{{ 'What to expect'|t }}</h2>
+                </div>
+                <div class="mel-card__body">
+                  {{ expect_html }}
+                </div>
+              </div>
+            {% endif %}
           </div>
         {% endif %}
 
-        {# What to expect: render only if non-trivial (not empty/whitespace markup). #}
-        {% set expect_html = (content.field_event_intro is defined and content.field_event_intro) ? (content.field_event_intro|render) : '' %}
-        {% set expect_text = expect_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
-
-        {% if expect_text %}
-          <div class="mel-card mel-card--surface mel-card--expect mel-mt-5">
-            <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'What to expect'|t }}</h2>
+        <div class="mel-event-full__content-below">
+        {% if operational_addon_teaser or (content.mel_operational_addon_teaser is defined and content.mel_operational_addon_teaser) %}
+          <section class="mel-event-section mel-event-section--extras mel-card mel-card--surface mel-mt-5" aria-labelledby="mel-event-extras-section-title">
+            <div class="mel-card__header mel-event-section__header">
+              <h2 class="mel-card__title mel-event-section__title" id="mel-event-extras-section-title">{{ 'Grab the extras'|t }}</h2>
+              <p class="mel-event-section__lede mel-text--muted">{{ 'Merch and add-ons you can include when you book.'|t }}</p>
             </div>
-            <div class="mel-card__body">
-              {{ expect_html }}
+            <div class="mel-card__body mel-event-section__body mel-event-section__body--extras">
+              {% if operational_addon_teaser %}
+                {{ operational_addon_teaser }}
+              {% else %}
+                {{ content.mel_operational_addon_teaser }}
+              {% endif %}
             </div>
-          </div>
+          </section>
         {% endif %}
+
+        {# Event Information: Location first (with map under address), then Category, Age Suitability. #}
+        <div class="mel-card mel-card--surface mel-mt-5" id="mel-event-information">
+          <div class="mel-card__header">
+            <h2 class="mel-card__title">{{ 'Event Information'|t }}</h2>
+          </div>
+          <div class="mel-card__body">
+            {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Date'|t }}</div>
+                <div class="mel-info-row__value">
+                  {{ node.field_event_start.value|date('l, F j, Y') }}
+                  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                    {% set _info_end_day = node.field_event_end.value|date('l, F j, Y') %}
+                    {% if _info_end_day != node.field_event_start.value|date('l, F j, Y') %}
+                      – {{ _info_end_day }}
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Time'|t }}</div>
+                <div class="mel-info-row__value">
+                  {{ node.field_event_start.value|date('g:i A') }}
+                  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                    – {{ node.field_event_end.value|date('g:i A') }}
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+            {% if mel_mode_chip %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Tickets'|t }}</div>
+                <div class="mel-info-row__value">{{ mel_mode_chip }}{% if mel_sidebar_pricing|default('')|striptags|trim is not empty %} · {{ mel_sidebar_pricing }}{% endif %}</div>
+              </div>
+            {% endif %}
+            {# Location: venue name, address (field render), map under address. #}
+            {% set info_address = mel_address|default('')|trim %}
+            {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
+            {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
+            {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
+            {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
+            {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
+            {% if info_venue_line is not empty or info_address is not empty or has_field_location %}
+              {% set map_query = '' %}
+              {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
+                {% set map_query = mel_lat ~ ',' ~ mel_lng %}
+              {% elseif info_venue_line is not empty and info_address is not empty %}
+                {% set map_query = info_venue_line ~ ', ' ~ info_address %}
+              {% elseif info_venue_line is not empty %}
+                {% set map_query = info_venue_line %}
+              {% elseif info_address is not empty %}
+                {% set map_query = info_address %}
+              {% elseif has_field_location and content.field_location is defined %}
+                {% set map_query = content.field_location|render|striptags|trim %}
+              {% endif %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Location'|t }}</div>
+                <div class="mel-info-row__value mel-event-location">
+                  {% if info_venue_line is not empty %}
+                    <div class="mel-event-location__venue">{{ info_venue_line }}</div>
+                  {% endif %}
+                  {% if info_address is not empty or has_field_location %}
+                    <div class="mel-event-location__address">
+                      {% if location_has_markup %}
+                        {{ content.field_location }}
+                      {% elseif info_address is not empty %}
+                        {{ info_address }}
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  {% if map_query is not empty %}
+                    <div class="mel-event-map-embed mel-mt-3">
+                      <iframe
+                        src="https://www.google.com/maps?output=embed&amp;q={{ map_query|url_encode }}"
+                        width="100%"
+                        height="200"
+                        allowfullscreen
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        title="{{ 'Map of event location'|t }}">
+                      </iframe>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+
+            {% if mel_category_label is defined and mel_category_label %}
+              <div class="mel-info-row mel-info-row--category-follow">
+                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
+                <div class="mel-info-row__value mel-info-row__value--split">
+                  <span class="mel-info-row__category-label">{{ mel_category_label }}</span>
+                  {% if mel_category_follow_flag|default(null) or mel_category_follow_login_url|default(null) %}
+                    {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
+                      mel_category_follow_flag: mel_category_follow_flag|default(null),
+                      mel_category_follow_login_url: mel_category_follow_login_url|default(null),
+                      category_display_name: mel_category_label,
+                      mel_category_follow_modifier: 'event-info'
+                    } %}
+                  {% endif %}
+                </div>
+              </div>
+            {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
+                <div class="mel-info-row__value">{{ content.field_category }}</div>
+              </div>
+            {% endif %}
+
+            {% if mel_age_policy_label is defined and mel_age_policy_label %}
+              <div class="mel-info-row">
+                <div class="mel-info-row__label">{{ 'Age Suitability'|t }}</div>
+                <div class="mel-info-row__value">
+                  {{ mel_age_policy_label }}
+                  {% if mel_age_policy_note is defined and mel_age_policy_note %}
+                    <div class="mel-muted">{{ mel_age_policy_note }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
 
         {% if (node.hasField('field_accessibility') and not node.field_accessibility.isEmpty)
           or (content.field_accessibility_contact is defined and content.field_accessibility_contact)
@@ -372,11 +522,58 @@
                 {% else %}
                   <span class="mel-organiser-card__name">{{ mel_organiser.name }}</span>
                 {% endif %}
+                <p class="mel-organiser-card__hosted">{{ 'Hosted by'|t }} <span class="mel-organiser-card__hosted-name">{{ mel_organiser.name }}</span></p>
                 {% if mel_organiser.tagline %}
                   <p class="mel-organiser-card__tagline">{{ mel_organiser.tagline }}</p>
                 {% else %}
-                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'Events on MyEventLane'|t }}</p>
+                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'This event is hosted by @name on MyEventLane.'|t({ '@name': mel_organiser.name }) }}</p>
                 {% endif %}
+              </div>
+            </div>
+          </section>
+        {% endif %}
+
+        {% if canonical_url %}
+          <section class="mel-event-section mel-event-section--share mel-card mel-card--surface mel-mt-5" id="mel-event-full-share" role="region" aria-labelledby="mel-event-full-share-label">
+            <div class="mel-card__header mel-event-section__header">
+              <h2 class="mel-card__title mel-event-section__title" id="mel-event-full-share-label">{{ 'Share this event'|t }}</h2>
+            </div>
+            <div class="mel-card__body mel-event-section__body">
+              <div class="mel-event-share mel-event-share--panel mel-event-share--secondary" role="group" aria-label="{{ 'Share this event'|t }}">
+                <button type="button" class="mel-event-share__chip mel-share-copy" data-url="{{ canonical_url }}" aria-label="{{ 'Copy event link'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path d="M9 9.75A2.25 2.25 0 0 1 11.25 7.5h6A2.25 2.25 0 0 1 19.5 9.75v6A2.25 2.25 0 0 1 17.25 18h-6A2.25 2.25 0 0 1 9 15.75v-6Z" stroke="currentColor" stroke-width="1.75"/>
+                      <path d="M7.5 16.5H6.75A2.25 2.25 0 0 1 4.5 14.25v-6A2.25 2.25 0 0 1 6.75 6h6A2.25 2.25 0 0 1 14.25 8.25V9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Copy link'|t }}</span>
+                </button>
+                <a class="mel-event-share__chip mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                      <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Email'|t }}</span>
+                </a>
+                <a class="mel-event-share__chip mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share this event on Facebook (opens in a new tab)'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'Facebook'|t }}</span>
+                </a>
+                <a class="mel-event-share__chip mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
+                  <span class="mel-event-share__chip-icon" aria-hidden="true">
+                    <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                      <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
+                    </svg>
+                  </span>
+                  <span class="mel-event-share__chip-label">{{ 'X'|t }}</span>
+                </a>
               </div>
             </div>
           </section>
@@ -401,15 +598,6 @@
             </div>
           </div>
         {% endif %}
-
-        <nav class="mel-event-support-zone mel-mt-5" aria-label="{{ 'Help and policies'|t }}">
-          <ul class="mel-event-support-zone__list">
-            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
-            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
-            <li><a class="mel-event-support-zone__link" href="/privacy">{{ 'Privacy'|t }}</a></li>
-            <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
-          </ul>
-        </nav>
 
         {% set cancellation_html = (content.field_cancellation_policy is defined and content.field_cancellation_policy) ? (content.field_cancellation_policy|render) : '' %}
         {% set cancellation_text = cancellation_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
@@ -468,345 +656,39 @@
 
         {# Note: We intentionally do NOT render field_ticket_types or field_attendee_questions on Event Full.
            These are configuration inputs, not attendee-facing content. #}
+        </div>
+        </div>
+        </div>
+
+        <nav class="mel-event-full__support mel-event-support-zone" aria-label="{{ 'Help and policies'|t }}">
+          <ul class="mel-event-support-zone__list">
+            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="/privacy">{{ 'Privacy'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
+          </ul>
+        </nav>
       </div>
-
-      <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
-        <div class="mel-card mel-card--surface mel-card--sticky mel-event__card">
-          <div class="mel-card__header">
-            <h2 class="mel-card__title">{% if mel_cta_text|striptags|length > 0 %}{{ mel_cta_text }}{% else %}{% if cta_type is defined and cta_type == 'rsvp' %}{{ 'Book free RSVP'|t }}{% elseif cta_type is defined and cta_type == 'paid' %}{{ 'Get your tickets'|t }}{% else %}{{ 'View details'|t }}{% endif %}{% endif %}</h2>
-          </div>
-          <div class="mel-card__body">
-            <div class="mel-booking-panel" role="region" aria-label="{{ 'Book this event'|t }}">
-              {% if mel_mode_chip %}
-                <div class="mel-booking-panel__chip" aria-label="{{ 'Registration type'|t }}">
-                  <span class="mel-chip mel-chip--sm mel-chip--filled">{{ mel_mode_chip }}</span>
-                </div>
-              {% endif %}
-              {% if mel_show_sidebar_scarcity_badge %}
-                <div class="mel-event__badge">
-                  {{ 'Limited availability'|t }}
-                </div>
-              {% endif %}
-              {% if mel_signal %}
-                <div class="mel-event__signal mel-event__signal--strong">{{ mel_signal }}</div>
-              {% endif %}
-              {% if mel_sidebar_pricing|default('')|striptags|trim is not empty %}
-                <div class="mel-booking-panel__price mel-price" aria-label="{{ 'Price'|t }}">
-                  {{ mel_sidebar_pricing }}
-                  {% if cta_type is defined and cta_type == 'paid' and mel_show_price_includes_gst_note|default(false) %}
-                    <span class="mel-price__tax-note">{{ 'Includes GST'|t }}</span>
-                  {% endif %}
-                </div>
-              {% endif %}
-              {% if cta_type is defined and cta_type == 'paid'
-                and mel_event_selling_fast|default(false)
-                and (event_ui is not defined or not (event_ui.is_sold_out|default(false) == true)) %}
-                <div class="mel-event__urgency">
-                  {{ 'Tickets selling fast'|t }}
-                </div>
-              {% endif %}
-              {% if content.field_product_target is defined %}
-                <div class="mel-booking-panel__product">
-                  {{ content.field_product_target }}
-                </div>
-              {% endif %}
-
-              {% if mel_event_state is not defined or mel_event_state != 'cancelled' %}
-                {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
-                  <div class="mel-booking-panel__cta mel-event__cta">
-                    <div class="mel-event-sticky-cta mel-event-sticky-cta--sidebar" role="group" aria-label="{{ 'Register or buy tickets'|t }}">
-                      {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'sidebar' } %}
-                    </div>
-                  </div>
-                  <hr class="mel-booking-panel__rule" role="separator" />
-                {% endif %}
-
-                {# Share: secondary to booking CTA; same targets as former main-column row. #}
-                {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
-                {% if canonical_url %}
-                  <div class="mel-booking-panel__share">
-                    <p class="mel-booking-panel__share-label" id="mel-event-full-share-label">{{ 'Share'|t }}</p>
-                    <div class="mel-event-share mel-event-share--sidebar" role="group" aria-labelledby="mel-event-full-share-label">
-                      <a class="mel-event-share__link mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
-                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                          <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
-                          <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      </a>
-                      <a class="mel-event-share__link mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on Facebook (opens in a new tab)'|t }}">
-                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                          <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
-                        </svg>
-                      </a>
-                      <a class="mel-event-share__link mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
-                        <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                          <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
-                        </svg>
-                      </a>
-                    </div>
-                  </div>
-                  <hr class="mel-booking-panel__rule mel-booking-panel__rule--share" role="separator" />
-                {% endif %}
-
-                {% if mel_show_booking_trust_copy %}
-                <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
-                  <div class="mel-booking-panel__trust-micro">
-                    {% if mel_trust_checkout and cta_type is defined and cta_type == 'paid' %}
-                      <p class="mel-booking-panel__trust-micro-primary">{{ 'Secure checkout'|t }}</p>
-                    {% endif %}
-                    <p>{{ 'No hidden fees'|t }}</p>
-                  </div>
-                  {% set _mel_trust_capacity_highlight = event_ui is defined
-                    and (mel_cta_urgency|default('')|striptags|length == 0)
-                    and (not mel_event_selling_fast|default(false))
-                    and (not (event_ui.is_sold_out|default(false) is same as(true)))
-                    and (
-                      (event_ui.is_limited|default(false))
-                      or (event_ui.capacity_hint|default('')|striptags|length > 0)
-                    ) %}
-                  <div class="mel-trust-rotator" data-rotate aria-live="polite" aria-atomic="true">
-                    <div class="mel-trust-item is-active" data-trust-item>
-                      {% if event_viewer_count is not empty %}
-                        <span class="mel-trust-item__text">{{ event_viewer_count }}</span>
-                      {% else %}
-                        <span class="mel-trust-item__text">🔥 {{ 'Popular on MyEventLane'|t }}</span>
-                      {% endif %}
-                    </div>
-                    <div class="mel-trust-item" data-trust-item>
-                      <span class="mel-trust-item__text">✉️ {{ 'Instant confirmation'|t }} — {% if mel_trust_checkout %}{{ 'You’ll receive confirmation by email'|t }}{% else %}{{ 'You’ll get a confirmation email'|t }}{% endif %}</span>
-                    </div>
-                  </div>
-                  {% set _show_mel_decision_prompts = (not logged_in)
-                    or (event_ui is defined and (event_ui.is_free|default(false) == true))
-                    or (event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) and (not _mel_trust_capacity_highlight)) %}
-                  {% if _show_mel_decision_prompts %}
-                    {% set _decision_count = 0 %}
-                    <div class="mel-decision-prompts">
-                      {% if _decision_count < 2 and (not logged_in) %}
-                        {% set _decision_count = _decision_count + 1 %}
-                        <div class="mel-decision-item">
-                          <span class="mel-icon">👤</span>
-                          <div>
-                            <strong>{{ 'First time here?'|t }}</strong>
-                            <p>{{ 'Book in seconds — no account needed'|t }}</p>
-                          </div>
-                        </div>
-                      {% endif %}
-                      {% if _decision_count < 2 and event_ui is defined and (event_ui.is_free|default(false) == true) %}
-                        {% set _decision_count = _decision_count + 1 %}
-                        <div class="mel-decision-item">
-                          <span class="mel-icon">🎟</span>
-                          <div>
-                            <strong>{{ 'Free event'|t }}</strong>
-                            <p>{{ 'No payment required'|t }}</p>
-                          </div>
-                        </div>
-                      {% endif %}
-                      {% if _decision_count < 2
-                        and event_ui is defined
-                        and (event_ui.capacity_hint|default('')|striptags|length > 0)
-                        and (not _mel_trust_capacity_highlight) %}
-                        {% set _decision_count = _decision_count + 1 %}
-                        <div class="mel-decision-item mel-decision-item--urgent">
-                          <span class="mel-icon">⚡</span>
-                          <div>
-                            <strong>{{ event_ui.capacity_hint }}</strong>
-                            <p>{{ "Don't miss out"|t }}</p>
-                          </div>
-                        </div>
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                  {% if _mel_trust_capacity_highlight %}
-                    <div class="mel-booking-panel__item mel-booking-panel__item--highlight">
-                      <span class="mel-icon" aria-hidden="true">⚡</span>
-                      <div>
-                        <p class="mel-booking-panel__capacity" role="status">
-                          <strong>{{ event_ui.capacity_hint|default('Limited spots remaining'|t) }}</strong>
-                        </p>
-                        <p>{{ 'Secure your spot today'|t }}</p>
-                      </div>
-                    </div>
-                  {% endif %}
-                  {% if _support_urgent %}
-                    <div class="mel-booking-panel__item">
-                      <span class="mel-booking-panel__item-icon" aria-hidden="true">⚡</span>
-                      <div>
-                        <strong>{{ mel_cta_urgency }}</strong>
-                        <p>{{ 'Secure your spot today'|t }}</p>
-                      </div>
-                    </div>
-                  {% endif %}
-                  {% if event_save_count_total|default(0) > 0 and event_save_count is not empty %}
-                    <div class="mel-booking-panel__item mel-booking-panel__item--social">
-                      <span class="mel-icon" aria-hidden="true">💖</span>
-                      <div>
-                        <strong>{{ event_save_count }}</strong>
-                      </div>
-                    </div>
-                  {% endif %}
-                  {% if event_interest is defined and event_interest.label is defined %}
-                    <div class="mel-booking-panel__item mel-booking-panel__item--interest mel-booking-panel__item--{{ event_interest.type }}">
-                      <strong>{{ event_interest.label }}</strong>
-                    </div>
-                  {% endif %}
-                </div>
-                {% endif %}
-                {% if google_calendar_url|default('')|length > 0 %}
-                  <div class="mel-booking-panel__item">
-                    <span class="mel-booking-panel__item-icon" aria-hidden="true">📅</span>
-                    <div>
-                      <div class="mel-calendar">
-                        <div class="mel-calendar__tabs" role="tablist" aria-label="{{ 'Add to calendar'|t }}">
-                          <button type="button" class="mel-calendar__tab is-active" data-tab="apple" role="tab" aria-selected="true">{{ 'Apple'|t }}</button>
-                          <button type="button" class="mel-calendar__tab" data-tab="outlook" role="tab" aria-selected="false">{{ 'Outlook'|t }}</button>
-                          <button type="button" class="mel-calendar__tab" data-tab="google" role="tab" aria-selected="false">{{ 'Google'|t }}</button>
-                        </div>
-                        <div class="mel-calendar__content">
-                          <div class="mel-calendar__pane is-active" data-pane="apple">
-                            <a href="{{ apple_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Apple Calendar'|t }}</a>
-                          </div>
-                          <div class="mel-calendar__pane" data-pane="outlook">
-                            <a href="{{ outlook_ics_url }}" class="mel-button mel-button--ghost">{{ 'Download for Outlook'|t }}</a>
-                          </div>
-                          <div class="mel-calendar__pane" data-pane="google">
-                            <a href="{{ google_calendar_url }}" class="mel-button mel-button--ghost" target="_blank" rel="noopener noreferrer">{{ 'Add to Google Calendar'|t }}</a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                {% endif %}
-                {% if event_flag_event_save %}
-                  <hr class="mel-booking-panel__rule" role="separator" />
-                  <div class="mel-booking-panel__save" role="group" aria-label="{{ 'Save for later'|t }}">
-                    <div id="mel-event-full-save" class="mel-event-save mel-booking-panel__save-flag" role="group" aria-label="{{ 'Save for later'|t }}">
-                      {{ event_flag_event_save }}
-                    </div>
-                    {% if event_save_count_total|default(0) > 5 %}
-                      <div class="mel-save-reinforcement">
-                        <small>{{ '💖 @count people saved this'|t({ '@count': event_save_count_total|default(0) }) }}</small>
-                      </div>
-                    {% endif %}
-                    <div class="mel-booking-panel__save-text">
-                      <strong>{{ 'Don’t miss this'|t }}</strong>
-                      <p>{{ 'Save this event to come back later'|t }}</p>
-                    </div>
-                  </div>
-                {% endif %}
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        {# Event Information: Location first (with map under address), then Category, Age Suitability. #}
-        <div class="mel-card mel-card--surface mel-mt-5">
-          <div class="mel-card__header">
-            <h2 class="mel-card__title">{{ 'Event Information'|t }}</h2>
-          </div>
-          <div class="mel-card__body">
-            {# Location first: venue name, address (field render), map under address. #}
-            {% set info_address = mel_address|default('')|trim %}
-            {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
-            {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
-            {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
-            {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
-            {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
-            {% if info_venue_line is not empty or info_address is not empty or has_field_location %}
-              {% set map_query = '' %}
-              {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
-                {% set map_query = mel_lat ~ ',' ~ mel_lng %}
-              {% elseif info_venue_line is not empty and info_address is not empty %}
-                {% set map_query = info_venue_line ~ ', ' ~ info_address %}
-              {% elseif info_venue_line is not empty %}
-                {% set map_query = info_venue_line %}
-              {% elseif info_address is not empty %}
-                {% set map_query = info_address %}
-              {% elseif has_field_location and content.field_location is defined %}
-                {% set map_query = content.field_location|render|striptags|trim %}
-              {% endif %}
-              <div class="mel-info-row">
-                <div class="mel-info-row__label">{{ 'Location'|t }}</div>
-                <div class="mel-info-row__value mel-event-location">
-                  {% if info_venue_line is not empty %}
-                    <div class="mel-event-location__venue">{{ info_venue_line }}</div>
-                  {% endif %}
-                  {% if info_address is not empty or has_field_location %}
-                    <div class="mel-event-location__address">
-                      {% if location_has_markup %}
-                        {{ content.field_location }}
-                      {% elseif info_address is not empty %}
-                        {{ info_address }}
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                  {% if map_query is not empty %}
-                    <div class="mel-event-map-embed mel-mt-3">
-                      <iframe
-                        src="https://www.google.com/maps?output=embed&amp;q={{ map_query|url_encode }}"
-                        width="100%"
-                        height="200"
-                        allowfullscreen
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade"
-                        title="{{ 'Map of event location'|t }}">
-                      </iframe>
-                    </div>
-                  {% endif %}
-                </div>
-              </div>
-            {% endif %}
-
-            {% if mel_category_label is defined and mel_category_label %}
-              <div class="mel-info-row mel-info-row--category-follow">
-                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
-                <div class="mel-info-row__value mel-info-row__value--split">
-                  <span class="mel-info-row__category-label">{{ mel_category_label }}</span>
-                  {% if mel_category_follow_flag|default(null) or mel_category_follow_login_url|default(null) %}
-                    {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
-                      mel_category_follow_flag: mel_category_follow_flag|default(null),
-                      mel_category_follow_login_url: mel_category_follow_login_url|default(null),
-                      category_display_name: mel_category_label,
-                      mel_category_follow_modifier: 'event-info'
-                    } %}
-                  {% endif %}
-                </div>
-              </div>
-            {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
-              <div class="mel-info-row">
-                <div class="mel-info-row__label">{{ 'Category'|t }}</div>
-                <div class="mel-info-row__value">{{ content.field_category }}</div>
-              </div>
-            {% endif %}
-
-            {% if mel_age_policy_label is defined and mel_age_policy_label %}
-              <div class="mel-info-row">
-                <div class="mel-info-row__label">{{ 'Age Suitability'|t }}</div>
-                <div class="mel-info-row__value">
-                  {{ mel_age_policy_label }}
-                  {% if mel_age_policy_note is defined and mel_age_policy_note %}
-                    <div class="mel-muted">{{ mel_age_policy_note }}</div>
-                  {% endif %}
-                </div>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        {# Registration metadata intentionally hidden on Event Full (capacity, sales windows, etc.)
-           to keep the sidebar calm and attendee-focused. #}
-      </aside>
     </div>
   </div>
 
   {# Mobile sticky CTA: same primary action as sidebar (partial); thumb-friendly full-width bar. #}
-  {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
+  {% set _mel_mobile_price = mel_context_above|default('')|striptags|trim %}
+  {% if _mel_mobile_price is empty and cta_type is defined and cta_type == 'rsvp' %}
+    {% set _mel_mobile_price = 'Free RSVP'|t %}
+  {% endif %}
+  {% set mel_show_mobile_sticky = mel_show_booking_cta and mel_cta_text|striptags|trim|length > 0 %}
+  {% if mel_show_mobile_sticky %}
     <div class="mel-mobile-cta" role="region" aria-label="{{ 'Ticket actions'|t }}">
       <div class="mel-mobile-cta__inner">
-        {% if (not mel_cta_is_soldout_ui) and (mel_context_above|default('')|striptags|length > 0) and (mel_cta_type_ui is same as('primary')) %}
-          <p class="mel-mobile-cta__eyebrow">{{ mel_context_above }}</p>
+        {% if (not mel_cta_is_soldout_ui) and _mel_mobile_price is not empty %}
+          <p class="mel-mobile-cta__eyebrow">{{ _mel_mobile_price }}</p>
+        {% elseif mel_cta_is_soldout_ui %}
+          <p class="mel-mobile-cta__eyebrow mel-mobile-cta__eyebrow--muted">{{ 'Sold out'|t }}</p>
         {% endif %}
-        {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'mobile' } %}
+        {% if mel_show_booking_cta or mel_cta_text|striptags|trim|length > 0 %}
+          {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'mobile' } %}
+        {% endif %}
         {% if mel_cta_is_soldout_ui and event_cta and event_cta.type|default('disabled') in ['internal', 'external'] and (event_cta.url|default('')|striptags|length > 0) %}
           <p class="mel-mobile-cta__waitlist-sub" role="note">{{ 'Be the first notified if spots open'|t }}</p>
         {% endif %}

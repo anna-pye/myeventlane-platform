@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\paragraphs\ParagraphInterface;
@@ -18,6 +20,8 @@ use Psr\Log\LoggerInterface;
 final class EventStudioQuestionTemplateManager {
 
   use StringTranslationTrait;
+
+  public const BUILDER_QUESTION_LIMIT = 5;
 
   public const STATUS_ACTIVE = 'active';
   public const STATUS_ARCHIVED = 'archived';
@@ -50,6 +54,139 @@ final class EventStudioQuestionTemplateManager {
       self::APPLIES_PER_TICKET => (string) $this->t('Per ticket'),
       self::APPLIES_PER_TICKET_TYPE => (string) $this->t('Per ticket type'),
       self::APPLIES_PER_ORDER => (string) $this->t('Per order'),
+    ];
+  }
+
+  /**
+   * Vendor-facing applicability labels for the Event Studio questions table.
+   *
+   * @return array<string, string>
+   */
+  public function workspaceApplicabilityLabels(): array {
+    return [
+      self::APPLIES_PER_TICKET => (string) $this->t('All ticket holders'),
+      self::APPLIES_PER_TICKET_TYPE => (string) $this->t('Specific ticket types'),
+      self::APPLIES_PER_ORDER => (string) $this->t('Per order'),
+    ];
+  }
+
+  /**
+   * Summarises legacy tier-level attendee question templates on ticket types.
+   *
+   * @return array{
+   *   total_count: int,
+   *   ticket_type_names: list<string>,
+   *   questions_per_ticket_type: array<string, int>
+   * }
+   */
+  /**
+   * Publish-readiness findings for Event Studio checkout questions.
+   *
+   * @return list<array{severity: string, code: string, message: string}>
+   */
+  public function buildQuestionReadinessFindings(NodeInterface $event): array {
+    $findings = [];
+    $paid_event = $this->eventHasPaidBooking($event);
+
+    $has_missing_ticket_types = FALSE;
+    $has_per_order = FALSE;
+    $has_locked_questions = FALSE;
+
+    if ($event->hasField('field_attendee_questions') && !$event->get('field_attendee_questions')->isEmpty()) {
+      foreach ($event->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if (!$paragraph instanceof ParagraphInterface || $paragraph->bundle() !== 'attendee_extra_field') {
+          continue;
+        }
+        if ($this->paragraphStatus($paragraph) === self::STATUS_ARCHIVED) {
+          continue;
+        }
+
+        $applicability = $this->paragraphApplicability($paragraph);
+        if ($paid_event
+          && $applicability === self::APPLIES_PER_TICKET_TYPE
+          && $this->paragraphTicketTypeIds($paragraph) === []) {
+          $has_missing_ticket_types = TRUE;
+        }
+        if ($applicability === self::APPLIES_PER_ORDER) {
+          $has_per_order = TRUE;
+        }
+        if ($this->questionHasHistoricalAnswers($event, $paragraph)) {
+          $has_locked_questions = TRUE;
+        }
+      }
+    }
+
+    if ($has_missing_ticket_types) {
+      $findings[] = [
+        'severity' => 'blocker',
+        'code' => 'ticket_question_missing_ticket_types',
+        'message' => (string) $this->t('A ticket-specific checkout question has no ticket types selected.'),
+      ];
+    }
+
+    if ($has_per_order) {
+      $findings[] = [
+        'severity' => 'warning',
+        'code' => 'checkout_question_per_order_inactive',
+        'message' => (string) $this->t('Per-order checkout questions are not active in checkout yet.'),
+      ];
+    }
+
+    if ($has_locked_questions) {
+      $findings[] = [
+        'severity' => 'warning',
+        'code' => 'checkout_question_historical_answers',
+        'message' => (string) $this->t('Some checkout questions already have attendee answers. Archive them instead of changing type, options, or ticket targeting.'),
+      ];
+    }
+
+    $legacy = $this->findLegacyTierQuestionSummary($event);
+    if (($legacy['total_count'] ?? 0) > 0) {
+      $findings[] = [
+        'severity' => 'warning',
+        'code' => 'legacy_ticket_type_questions',
+        'message' => (string) $this->t('This event has ticket-level questions stored on ticket types. They still work at checkout, but new questions should be managed from Checkout questions.'),
+      ];
+    }
+
+    return $findings;
+  }
+
+  public function findLegacyTierQuestionSummary(NodeInterface $event): array {
+    $total_count = 0;
+    $ticket_type_names = [];
+    $questions_per_ticket_type = [];
+
+    foreach ($this->loadEventTickets($event) as $ticket) {
+      if (!$ticket->hasField('field_use_ticket_attendee_questions')
+        || empty($ticket->get('field_use_ticket_attendee_questions')->value)) {
+        continue;
+      }
+      if (!$ticket->hasField('field_attendee_questions')
+        || $ticket->get('field_attendee_questions')->isEmpty()) {
+        continue;
+      }
+
+      $count = 0;
+      foreach ($ticket->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if ($paragraph instanceof ParagraphInterface && $paragraph->bundle() === 'attendee_extra_field') {
+          $count++;
+        }
+      }
+      if ($count < 1) {
+        continue;
+      }
+
+      $total_count += $count;
+      $name = $ticket->label();
+      $ticket_type_names[] = $name;
+      $questions_per_ticket_type[$name] = $count;
+    }
+
+    return [
+      'total_count' => $total_count,
+      'ticket_type_names' => $ticket_type_names,
+      'questions_per_ticket_type' => $questions_per_ticket_type,
     ];
   }
 
@@ -208,9 +345,18 @@ final class EventStudioQuestionTemplateManager {
         if (!is_array($row)) {
           continue;
         }
-        $paragraph = $this->loadManagedParagraph($event, (int) ($row['id'] ?? 0));
-        if (!$paragraph instanceof ParagraphInterface) {
-          continue;
+        $paragraph_id = (int) ($row['id'] ?? 0);
+        if ($paragraph_id > 0) {
+          $paragraph = $this->loadManagedParagraph($event, $paragraph_id);
+          if (!$paragraph instanceof ParagraphInterface) {
+            continue;
+          }
+        }
+        else {
+          if (trim((string) ($row['label'] ?? '')) === '') {
+            continue;
+          }
+          $paragraph = Paragraph::create(['type' => 'attendee_extra_field']);
         }
         $this->applyRowToParagraph($paragraph, $row);
         $paragraph->save();
@@ -268,6 +414,303 @@ final class EventStudioQuestionTemplateManager {
     }
 
     return [];
+  }
+
+  /**
+   * Persists builder/autosave attendee question JSON via merge + saveRows().
+   *
+   * Does not wipe field_attendee_questions. Questions missing from builder JSON
+   * are preserved. Governance fields are only overwritten when builder sends them.
+   *
+   * @param list<array<string, mixed>> $builderItems
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   Required when builder items reference vendor_question library entries.
+   *
+   * @return list<string>
+   */
+  public function saveBuilderPayload(NodeInterface $event, array $builderItems, ?AccountInterface $account = NULL): array {
+    if (!$event->hasField('field_attendee_questions')) {
+      return [];
+    }
+
+    $normalized = [];
+    foreach ($builderItems as $index => $item) {
+      if (!is_array($item)) {
+        return [sprintf('Attendee question at index %d was invalid.', (int) $index)];
+      }
+      $vendor_qid = isset($item['vendor_question_id']) ? (int) $item['vendor_question_id'] : 0;
+      if ($vendor_qid > 0) {
+        $library_row = $this->builderRowFromVendorQuestion($vendor_qid, $account, (int) $index);
+        if ($library_row === NULL) {
+          continue;
+        }
+        $normalized[] = $library_row;
+        continue;
+      }
+      $normalized[] = $item;
+    }
+
+    if (count($normalized) > self::BUILDER_QUESTION_LIMIT) {
+      return [(string) $this->t('Add at most 5 attendee questions. More questions may reduce bookings.')];
+    }
+
+    $rows = $this->composeRowsFromBuilderPayload($event, $normalized);
+    return $this->saveRows($event, $rows, NULL);
+  }
+
+  /**
+   * Merges builder-controlled fields onto a stored workspace row.
+   *
+   * Preserves status, applicability, ticket_type_ids, and machine_name when the
+   * builder payload omits them (typical for the lightweight JSON editor).
+   *
+   * @param array<string, mixed> $existingRow
+   * @param array<string, mixed> $builderItem
+   *
+   * @return array<string, mixed>
+   */
+  public function mergeBuilderItemOntoExistingRow(array $existingRow, array $builderItem): array {
+    $merged = $existingRow;
+
+    $label = trim((string) ($builderItem['label'] ?? ''));
+    if ($label !== '') {
+      $merged['label'] = $label;
+    }
+
+    if (isset($builderItem['type']) && trim((string) $builderItem['type']) !== '') {
+      $merged['type'] = $this->normalizeType((string) $builderItem['type']);
+    }
+
+    if (array_key_exists('required', $builderItem)) {
+      $merged['required'] = !empty($builderItem['required']);
+    }
+
+    if (array_key_exists('options', $builderItem)) {
+      if (is_array($builderItem['options'])) {
+        $lines = [];
+        foreach ($builderItem['options'] as $line) {
+          $t = trim((string) $line);
+          if ($t !== '') {
+            $lines[] = $t;
+          }
+        }
+        $merged['options'] = $lines === [] ? '' : implode("\n", $lines);
+      }
+      else {
+        $merged['options'] = trim((string) $builderItem['options']);
+      }
+    }
+
+    if (isset($builderItem['machine_name']) && trim((string) $builderItem['machine_name']) !== '') {
+      $merged['machine_name'] = trim((string) $builderItem['machine_name']);
+    }
+
+    if (isset($builderItem['status']) && trim((string) $builderItem['status']) !== '') {
+      $merged['status'] = $this->normalizeStatus((string) $builderItem['status']);
+    }
+
+    if (isset($builderItem['applicability']) && trim((string) $builderItem['applicability']) !== '') {
+      $merged['applicability'] = $this->normalizeApplicability((string) $builderItem['applicability']);
+    }
+
+    if (isset($builderItem['ticket_type_ids']) && is_array($builderItem['ticket_type_ids'])) {
+      $merged['ticket_type_ids'] = $this->normalizeTicketTypeIds($builderItem['ticket_type_ids']);
+    }
+
+    return $merged;
+  }
+
+  /**
+   * Builds saveRows() input from builder JSON without dropping unstored questions.
+   *
+   * @param list<array<string, mixed>> $builderItems
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function composeRowsFromBuilderPayload(NodeInterface $event, array $builderItems, ?array $existingRows = NULL): array {
+    $existing_rows = $existingRows ?? $this->loadRows($event);
+    $by_id = [];
+    $by_machine = [];
+    $by_label = [];
+    foreach ($existing_rows as $row) {
+      $id = (int) ($row['id'] ?? 0);
+      if ($id < 1) {
+        continue;
+      }
+      $by_id[$id] = $row;
+      $machine = trim((string) ($row['machine_name'] ?? ''));
+      if ($machine !== '') {
+        $by_machine[mb_strtolower($machine)] = $row;
+      }
+      $label_key = mb_strtolower(trim((string) ($row['label'] ?? '')));
+      if ($label_key !== '') {
+        $by_label[$label_key] = $row;
+      }
+    }
+
+    $matched_ids = [];
+    $output = [];
+
+    foreach ($builderItems as $index => $item) {
+      if (!is_array($item)) {
+        continue;
+      }
+
+      $match = NULL;
+      $builder_id = (int) ($item['id'] ?? 0);
+      if ($builder_id > 0 && isset($by_id[$builder_id]) && !isset($matched_ids[$builder_id])) {
+        $match = $by_id[$builder_id];
+      }
+
+      if ($match === NULL) {
+        $machine = trim((string) ($item['machine_name'] ?? ''));
+        if ($machine !== '') {
+          $machine_key = mb_strtolower($machine);
+          if (isset($by_machine[$machine_key]) && !isset($matched_ids[(int) $by_machine[$machine_key]['id']])) {
+            $match = $by_machine[$machine_key];
+          }
+        }
+      }
+
+      if ($match === NULL) {
+        $label_key = mb_strtolower(trim((string) ($item['label'] ?? '')));
+        if ($label_key !== '' && isset($by_label[$label_key]) && !isset($matched_ids[(int) $by_label[$label_key]['id']])) {
+          $match = $by_label[$label_key];
+        }
+      }
+
+      if ($match === NULL && isset($existing_rows[$index]) && !isset($matched_ids[(int) $existing_rows[$index]['id']])) {
+        $match = $existing_rows[$index];
+      }
+
+      if ($match !== NULL) {
+        $merged = $this->mergeBuilderItemOntoExistingRow($match, $item);
+        $merged['weight'] = $index;
+        $output[] = $merged;
+        $matched_ids[(int) $merged['id']] = TRUE;
+        continue;
+      }
+
+      $new_row = $this->builderItemToRow($item, $index);
+      if ($new_row !== NULL) {
+        $output[] = $new_row;
+      }
+    }
+
+    foreach ($existing_rows as $row) {
+      $id = (int) ($row['id'] ?? 0);
+      if ($id > 0 && !isset($matched_ids[$id])) {
+        $output[] = $row;
+      }
+    }
+
+    usort($output, static fn (array $a, array $b): int => ((int) ($a['weight'] ?? 0)) <=> ((int) ($b['weight'] ?? 0)));
+
+    return $output;
+  }
+
+  /**
+   * @return array<string, mixed>|null
+   */
+  private function builderItemToRow(array $item, int $weight): ?array {
+    $label = trim((string) ($item['label'] ?? ''));
+    if ($label === '') {
+      return NULL;
+    }
+
+    $options = '';
+    if (isset($item['options'])) {
+      if (is_array($item['options'])) {
+        $lines = [];
+        foreach ($item['options'] as $line) {
+          $t = trim((string) $line);
+          if ($t !== '') {
+            $lines[] = $t;
+          }
+        }
+        $options = implode("\n", $lines);
+      }
+      else {
+        $options = trim((string) $item['options']);
+      }
+    }
+
+    $row = [
+      'id' => 0,
+      'weight' => $weight,
+      'label' => $label,
+      'type' => $this->normalizeType((string) ($item['type'] ?? 'textfield')),
+      'required' => !empty($item['required']),
+      'status' => isset($item['status']) && trim((string) $item['status']) !== ''
+        ? $this->normalizeStatus((string) $item['status'])
+        : self::STATUS_ACTIVE,
+      'applicability' => isset($item['applicability']) && trim((string) $item['applicability']) !== ''
+        ? $this->normalizeApplicability((string) $item['applicability'])
+        : self::APPLIES_PER_TICKET,
+      'ticket_type_ids' => isset($item['ticket_type_ids']) && is_array($item['ticket_type_ids'])
+        ? $this->normalizeTicketTypeIds($item['ticket_type_ids'])
+        : [],
+      'options' => $options,
+      'machine_name' => trim((string) ($item['machine_name'] ?? '')),
+    ];
+
+    if ($row['machine_name'] === '') {
+      $row['machine_name'] = $this->machineNameFromLabel($label);
+    }
+
+    return $row;
+  }
+
+  /**
+   * @return array<string, mixed>|null
+   */
+  private function builderRowFromVendorQuestion(int $vendorQuestionId, ?AccountInterface $account, int $weight): ?array {
+    if ($vendorQuestionId < 1 || $account === NULL) {
+      return NULL;
+    }
+
+    $storage = $this->entityTypeManager->getStorage('vendor_question');
+    $template = $storage->load($vendorQuestionId);
+    if (!$template instanceof VendorQuestionInterface || !$this->vendorQuestionAccessible($template, $account)) {
+      return NULL;
+    }
+
+    $options = $template->getOptions();
+    $option_lines = [];
+    if (is_string($options) && $options !== '') {
+      foreach (preg_split('/\R/', $options) ?: [] as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+          $option_lines[] = $line;
+        }
+      }
+    }
+
+    return $this->builderItemToRow([
+      'label' => $template->getLabel(),
+      'type' => $template->getQuestionType(),
+      'required' => $template->isRequired(),
+      'options' => $option_lines,
+    ], $weight);
+  }
+
+  private function vendorQuestionAccessible(VendorQuestionInterface $question, AccountInterface $account): bool {
+    if ($account->hasPermission('administer site configuration')) {
+      return TRUE;
+    }
+    $store = $question->getStore();
+    if ($store === NULL) {
+      return FALSE;
+    }
+    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadByProperties([
+      'uid' => (int) $account->id(),
+    ]);
+    $vendor = reset($vendors);
+    if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+      return FALSE;
+    }
+    $vendor_store = $vendor->get('field_vendor_store')->entity;
+    return $vendor_store && (int) $vendor_store->id() === (int) $store->id();
   }
 
   public function normalizeType(string $type): string {
@@ -368,7 +811,25 @@ final class EventStudioQuestionTemplateManager {
       }
     }
 
+    $old_ticket_ids = $this->paragraphTicketTypeIds($paragraph);
+    $new_ticket_ids = $this->normalizeTicketTypeIds($newRow['ticket_type_ids'] ?? []);
+    if (!$this->ticketTypeIdSetsEqual($old_ticket_ids, $new_ticket_ids)) {
+      return (string) $this->t('@question already has attendee answers, so its ticket type targeting cannot be changed. Archive it and add a new question instead.', ['@question' => $context]);
+    }
+
     return NULL;
+  }
+
+  /**
+   * @param list<int> $left
+   * @param list<int> $right
+   */
+  public function ticketTypeIdSetsEqual(array $left, array $right): bool {
+    $normalized_left = $this->normalizeTicketTypeIds($left);
+    $normalized_right = $this->normalizeTicketTypeIds($right);
+    sort($normalized_left);
+    sort($normalized_right);
+    return $normalized_left === $normalized_right;
   }
 
   /**
@@ -410,6 +871,13 @@ final class EventStudioQuestionTemplateManager {
   /**
    * @return list<\Drupal\mel_ticket\Entity\TicketTypeInterface>
    */
+  private function eventHasPaidBooking(NodeInterface $event): bool {
+    if (!$event->hasField('field_event_type') || $event->get('field_event_type')->isEmpty()) {
+      return FALSE;
+    }
+    return in_array((string) $event->get('field_event_type')->value, ['paid', 'both'], TRUE);
+  }
+
   private function loadEventTickets(NodeInterface $event): array {
     if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
       return [];

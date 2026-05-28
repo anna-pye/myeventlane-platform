@@ -70,20 +70,20 @@ final class CheckoutUxAttacher {
    *   Passed to MelCheckoutSummaryPresenter::buildGroupedSummaryRenderArray().
    */
   private function replaceSidebarWithGroupedSummary(array &$form, OrderInterface $order, array $presenter_options = []): void {
-    if (!isset($form['sidebar']['order_summary']['summary']) || !is_array($form['sidebar']['order_summary']['summary'])) {
+    if (!isset($form['sidebar']['order_summary']) || !is_array($form['sidebar']['order_summary'])) {
       return;
     }
 
-    $summary = &$form['sidebar']['order_summary']['summary'];
-    $is_view_embed = ($summary['#type'] ?? '') === 'view';
-    $is_core_theme = ($summary['#theme'] ?? '') === 'commerce_checkout_order_summary';
-
-    if (!$is_view_embed && !$is_core_theme) {
-      return;
-    }
-
+    $render = $this->checkoutSummaryPresenter->buildGroupedSummaryRenderArray($order, $presenter_options);
     $form['sidebar']['order_summary']['#attributes']['class'][] = 'mel-checkout-summary-pane';
-    $form['sidebar']['order_summary']['summary'] = $this->checkoutSummaryPresenter->buildGroupedSummaryRenderArray($order, $presenter_options);
+
+    if (isset($form['sidebar']['order_summary']['summary']) && is_array($form['sidebar']['order_summary']['summary'])) {
+      $form['sidebar']['order_summary']['summary'] = $render;
+      return;
+    }
+
+    // Complete step panes may expose the View embed without a summary child.
+    $form['sidebar']['order_summary']['summary'] = $render;
   }
 
   private function addPaymentConfidence(array &$form): void {

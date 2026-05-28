@@ -12,6 +12,7 @@ services:
       - '@myeventlane_event_studio.autosave'
       - '@plugin.manager.myeventlane_event_studio_section'
       - '@myeventlane_event_studio.section_renderer'
+      - '@myeventlane_core.domain_detector'
     tags:
       - { name: controller.service_arguments }
 
@@ -23,6 +24,7 @@ services:
       - '@myeventlane_onboarding.manager'
       - '@entity_type.manager'
       - '@request_stack'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_event_studio.vendor_mel_ticket_type_edit_redirect_subscriber:
     class: Drupal\myeventlane_event_studio\EventSubscriber\VendorMelTicketTypeEditRedirectSubscriber
@@ -95,6 +97,8 @@ services:
       - '@myeventlane_event_studio.mel_support_resolver'
       - '@?myeventlane_capacity.service'
       - '@?myeventlane_metrics.service'
+      - '@myeventlane_event_studio.event_ticket_preview_builder'
+      - '@?myeventlane_tickets.access_code_management_builder'
 
   myeventlane_event_studio.highlight_helper:
     class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper
@@ -106,6 +110,7 @@ services:
     arguments:
       - '@myeventlane_event_studio.highlight_helper'
       - '@myeventlane_event_studio.question_field_type_registry'
+      - '@myeventlane_event_studio.operational_capability_studio_manager'
 
   myeventlane_event_studio.entity_autocomplete_mel_normalizer:
     class: Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer
@@ -188,6 +193,151 @@ services:
       - '@?myeventlane_event_state.resolver'
       - '@?myeventlane_capacity.service'
 
+  myeventlane_event_studio.operational_capability_commerce_link_manager:
+    class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@myeventlane_tickets.operational_entitlement_capability_manager'
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+      - '@myeventlane_tickets.inventory_reservation_governance_manager'
+
+  myeventlane_event_studio.operational_capability_commerce_preview_builder:
+    class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommercePreviewBuilder
+    arguments:
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+      - '@entity_type.manager'
+      - '@string_translation'
+
+  myeventlane_event_studio.vendor_productisation_studio_manager:
+    class: Drupal\myeventlane_event_studio\Service\VendorProductisationStudioManager
+    arguments:
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+
+  myeventlane_event_studio.vendor_operational_product_creation_manager:
+    class: Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_event_studio'
+
+  myeventlane_event_studio.event_extras_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioEventExtrasBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.operational_extra_visual_presenter'
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_event_studio.vendor_operational_product_creation_manager'
+      - '@string_translation'
+
+  myeventlane_event_studio.operational_product_studio_field_registry:
+    class: Drupal\myeventlane_event_studio\Service\OperationalProductStudioFieldRegistry
+    arguments:
+      - '@entity_field.manager'
+
+  myeventlane_event_studio.extras_product_editor_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioExtrasProductEditorBuilder
+    arguments:
+      - '@myeventlane_event_studio.event_extras_builder'
+      - '@myeventlane_event_studio.vendor_operational_product_creation_manager'
+      - '@myeventlane_event_studio.operational_product_studio_field_registry'
+      - '@string_translation'
+
+  myeventlane_event_studio.vendor_productisation_studio_builder:
+    class: Drupal\myeventlane_event_studio\Service\VendorProductisationStudioBuilder
+    arguments:
+      - '@myeventlane_event_studio.vendor_productisation_studio_manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_preview_builder'
+      - '@myeventlane_event_studio.customer_operational_commerce_experience_builder'
+      - '@entity_type.manager'
+      - '@string_translation'
+
+  myeventlane_event_studio.operational_capability_studio_manager:
+    class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager
+    arguments:
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@myeventlane_tickets.venue_operation_policy_manager'
+      - '@myeventlane_tickets.operational_entitlement_capability_manager'
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+      - '@myeventlane_tickets.inventory_reservation_governance_manager'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_event_studio.vendor_productisation_studio_manager'
+
+  myeventlane_event_studio.operational_capability_studio_builder:
+    class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioBuilder
+    arguments:
+      - '@myeventlane_event_studio.operational_capability_studio_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_preview_builder'
+      - '@string_translation'
+
+  myeventlane_event_studio.operational_capability_preview_builder:
+    class: Drupal\myeventlane_event_studio\Service\OperationalCapabilityPreviewBuilder
+    arguments:
+      - '@myeventlane_event_studio.operational_capability_studio_manager'
+      - '@myeventlane_event_studio.operational_capability_commerce_preview_builder'
+      - '@string_translation'
+
+  myeventlane_event_studio.customer_operational_commerce_experience_builder:
+    class: Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder
+    arguments:
+      - '@myeventlane_event_studio.operational_capability_commerce_link_manager'
+      - '@myeventlane_event_studio.operational_capability_preview_builder'
+      - '@myeventlane_event_studio.operational_capability_studio_manager'
+      - '@myeventlane_tickets.entitlement_capability_registry'
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+      - '@myeventlane_tickets.inventory_reservation_governance_manager'
+      - '@entity_type.manager'
+      - '@string_translation'
+
+  myeventlane_event_studio.branding_hero_focal_augmenter:
+    class: Drupal\myeventlane_event_studio\Service\BrandingHeroFocalAugmenter
+    arguments:
+      - '@focal_point.manager'
+      - '@config.factory'
+      - '@image.factory'
+      - '@entity_type.manager'
+      - '@file_url_generator'
+      - '@string_translation'
+
+  myeventlane_event_studio.event_branding_preview_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventBrandingPreviewBuilder
+    arguments:
+      - '@myeventlane_event_studio.event_page_style_resolver'
+      - '@myeventlane_event.media_presenter'
+      - '@file_url_generator'
+      - '@current_user'
+      - '@string_translation'
+      - '@myeventlane_core.domain_detector'
+
+  myeventlane_event_studio.event_ticket_preview_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventTicketPreviewBuilder
+    arguments:
+      - '@myeventlane_event.booking_flow_resolver'
+      - '@myeventlane_event.event_mode_manager'
+      - '@myeventlane_commerce.customer_ticket_tier_display'
+      - '@string_translation'
+
+  myeventlane_event_studio.event_style_access:
+    class: Drupal\myeventlane_event_studio\Service\EventStyleAccessManager
+    arguments:
+      - '@?myeventlane_pro.pro_access'
+      - '@entity_type.manager'
+
+  myeventlane_event_studio.event_page_style_resolver:
+    class: Drupal\myeventlane_event_studio\Service\EventPageStyleResolver
+    arguments:
+      - '@myeventlane_event_studio.event_style_access'
+      - '@entity_type.manager'
+
   myeventlane_event_studio.save:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSaveService
     arguments:
@@ -202,7 +352,9 @@ services:
       - '@image.factory'
       - '@string_translation'
       - '@file_system'
-      - '@?myeventlane_questions.template_cloner'
+      - '@myeventlane_event_studio.operational_capability_studio_manager'
+      - '@myeventlane_event_studio.event_page_style_resolver'
+      - '@myeventlane_event.passcode_access'
 
   myeventlane_event_studio.readiness:
     class: Drupal\myeventlane_event_studio\Service\EventReadinessService
@@ -210,6 +362,7 @@ services:
       - '@myeventlane_event.ticket_type_manager'
       - '@myeventlane_vendor.publish_requirements_gate'
       - '@myeventlane_vendor.paid_publish_stripe_gate'
+      - '@myeventlane_event_studio.question_template_manager'
       - '@string_translation'
 
   myeventlane_event_studio.autosave:

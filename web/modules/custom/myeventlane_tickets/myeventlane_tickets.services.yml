@@ -47,7 +47,8 @@ services:
     arguments: [
       '@entity_type.manager',
       '@myeventlane_tickets.ticket_code_generator',
-      '@logger.factory'
+      '@logger.factory',
+      '@myeventlane_commerce.ticket_backed_order_item_classifier',
     ]
 
   myeventlane_tickets.order_paid_subscriber:
@@ -283,6 +284,64 @@ services:
     arguments:
       - '@myeventlane_tickets.operational_entitlement_capability_manager'
 
+  myeventlane_tickets.operational_coordination_state_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalCoordinationStateManager
+    arguments:
+      - '@myeventlane_tickets.operational_escalation_policy_manager'
+      - '@myeventlane_tickets.operational_resolution_governance_manager'
+      - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.operational_coordination_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalCoordinationProjectionBuilder
+    arguments:
+      - '@myeventlane_tickets.operational_coordination_state_manager'
+
+  myeventlane_tickets.operational_coordination_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\OperationalCoordinationAuditProjector
+    arguments:
+      - '@myeventlane_tickets.operational_coordination_state_manager'
+      - '@myeventlane_tickets.operational_resolution_governance_manager'
+
+  myeventlane_tickets.fulfillment_lifecycle_manager:
+    class: Drupal\myeventlane_tickets\Service\FulfillmentLifecycleManager
+    arguments:
+      - '@myeventlane_tickets.entitlement_capability_registry'
+
+  myeventlane_tickets.fulfillment_execution_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\FulfillmentExecutionProjectionBuilder
+    arguments:
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+
+  myeventlane_tickets.fulfillment_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\FulfillmentAuditProjector
+    arguments:
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+
+  myeventlane_tickets.operational_fulfillment_execution_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionManager
+    arguments:
+      - '@myeventlane_tickets.fulfillment_lifecycle_manager'
+      - '@string_translation'
+
+  myeventlane_tickets.operational_fulfillment_execution_governance_manager:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionGovernanceManager
+    arguments:
+      - '@string_translation'
+
+  myeventlane_tickets.operational_fulfillment_execution_projection_builder:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionProjectionBuilder
+    arguments:
+      - '@myeventlane_tickets.operational_integrity_inspector'
+      - '@myeventlane_tickets.operational_fulfillment_execution_manager'
+      - '@myeventlane_tickets.operational_fulfillment_execution_governance_manager'
+      - '@datetime.time'
+      - '@string_translation'
+
+  myeventlane_tickets.operational_fulfillment_execution_audit_projector:
+    class: Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionAuditProjector
+    arguments:
+      - '@myeventlane_tickets.operational_fulfillment_execution_manager'
+
   myeventlane_tickets.operational_workspace_builder:
     class: Drupal\myeventlane_tickets\Service\OperationalWorkspaceBuilder
     arguments:
@@ -297,11 +356,24 @@ services:
       - '@myeventlane_tickets.inventory_reservation_audit_projector'
       - '@myeventlane_tickets.operational_capability_projection_builder'
       - '@myeventlane_tickets.operational_capability_audit_projector'
+      - '@myeventlane_tickets.operational_coordination_projection_builder'
+      - '@myeventlane_tickets.operational_coordination_audit_projector'
+      - '@myeventlane_tickets.fulfillment_execution_projection_builder'
+      - '@myeventlane_tickets.fulfillment_audit_projector'
+      - '@myeventlane_tickets.operational_fulfillment_execution_projection_builder'
+      - '@myeventlane_tickets.operational_fulfillment_execution_audit_projector'
 
   myeventlane_tickets.operational_workspace_access:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker
     tags:
       - { name: access_check }
+
+  myeventlane_tickets.access_code_management_builder:
+    class: Drupal\myeventlane_tickets\Service\AccessCodeManagementBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_tickets'
+      - '@string_translation'
 
   myeventlane_tickets.operational_integrity_inspector:
     class: Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector

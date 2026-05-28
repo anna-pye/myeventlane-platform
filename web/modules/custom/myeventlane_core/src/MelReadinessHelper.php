@@ -374,9 +374,9 @@ final class MelReadinessHelper {
    */
   public function customerCheckoutSidebarConfidenceLines(): array {
     return [
-      'secure' => (string) $this->t('🔒 Secure payment via Stripe'),
-      'instant' => (string) $this->t('🧾 Confirmation email sent as soon as you finish'),
-      'calendar_hint' => (string) $this->t('📅 Add to your calendar from your tickets after booking'),
+      'secure' => (string) $this->t('Secure checkout — payment processed via Stripe'),
+      'instant' => (string) $this->t('Confirmation email sent as soon as you complete booking'),
+      'calendar_hint' => (string) $this->t('Add to your calendar from My Tickets after booking'),
     ];
   }
 

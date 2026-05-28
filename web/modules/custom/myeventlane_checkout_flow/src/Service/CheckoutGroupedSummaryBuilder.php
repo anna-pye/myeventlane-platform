@@ -12,7 +12,10 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
+use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier;
+use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\node\NodeInterface;
@@ -31,6 +34,9 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
     private readonly OrderItemClassifier $orderItemClassifier,
     private readonly MelReadinessHelper $readinessHelper,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly ?OperationalOrderItemDisplayBuilder $operationalOrderItemDisplayBuilder = NULL,
+    private readonly ?TicketBackedOrderItemClassifier $ticketBackedOrderItemClassifier = NULL,
+    private readonly ?TicketLabelResolver $ticketLabelResolver = NULL,
   ) {}
 
   /**
@@ -61,7 +67,8 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
       $line_key = $purchased ? 'p:' . $purchased->id() : 'i:' . $item->id();
       $bucket_key = ($event_id ?? 'other') . ':' . $line_key;
 
-      $ticket_type = $purchased ? $purchased->label() : $item->label();
+      $operational_display = $this->operationalOrderItemDisplayBuilder?->buildForOrderItem($item);
+      $ticket_type = $this->resolveLineLabel($item, $operational_display, $purchased);
 
       if (!isset($line_buckets[$bucket_key])) {
         $line_buckets[$bucket_key] = [
@@ -69,6 +76,7 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
           'ticket_type' => $ticket_type,
           'quantity' => 0,
           'total' => NULL,
+          'operational_addon_display' => $operational_display,
         ];
       }
 
@@ -158,6 +166,7 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
         'quantity' => $bucket['quantity'],
         'ticket_type' => $bucket['ticket_type'],
         'total_price' => $total_price,
+        'operational_addon_display' => $bucket['operational_addon_display'] ?? NULL,
       ];
     }
 
@@ -208,6 +217,47 @@ final class CheckoutGroupedSummaryBuilder implements CheckoutGroupedSummaryBuild
   /**
    * Resolves event node ID from an order item, if known.
    */
+  /**
+   * @param array<string, mixed>|null $operational_display
+   */
+  private function resolveLineLabel(
+    OrderItemInterface $item,
+    ?array $operational_display,
+    mixed $purchased,
+  ): string {
+    if (is_array($operational_display)) {
+      $title = trim((string) ($operational_display['title'] ?? ''));
+      if ($title !== '') {
+        return $title;
+      }
+    }
+
+    if ($this->ticketBackedOrderItemClassifier?->isOperationalOrderItem($item) === TRUE) {
+      $product = $purchased && method_exists($purchased, 'getProduct') ? $purchased->getProduct() : NULL;
+      if ($product) {
+        $raw = trim((string) $product->label());
+        $stripped = preg_replace('/\s*-\s*Node\s+\d+$/i', '', $raw);
+        if (is_string($stripped) && trim($stripped) !== '') {
+          return trim($stripped);
+        }
+        if ($raw !== '') {
+          return $raw;
+        }
+      }
+    }
+
+    $tier_label = $this->ticketBackedOrderItemClassifier?->resolveTicketTierLabel($item);
+    if (is_string($tier_label) && $tier_label !== '') {
+      return $tier_label;
+    }
+
+    if ($this->ticketLabelResolver !== NULL) {
+      return $this->ticketLabelResolver->getTicketLabel($item);
+    }
+
+    return $purchased ? (string) $purchased->label() : (string) $item->label();
+  }
+
   private function resolveEventId(OrderItemInterface $item): ?int {
     if (method_exists($item, 'hasField') && $item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
       return (int) $item->get('field_target_event')->target_id;

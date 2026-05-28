@@ -14,12 +14,14 @@
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
+use Drupal\views\ViewExecutable;
 use Drupal\file\Entity\File;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_price\Price;
@@ -30,6 +32,7 @@ use Drupal\node\NodeInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_core\VendorConsoleTrust;
+use Drupal\views\ResultRow;
 
 /**
  * Public marketing create-event URL via onboarding gateway (/create-event).
@@ -165,6 +168,7 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
         'labels' => [],
         'trust' => [],
         'has_pricing_block' => TRUE,
+        'has_grouped_line_items' => FALSE,
         'surface' => 'checkout',
         'show_jump_to_payment' => TRUE,
       ],
@@ -635,15 +639,22 @@ function myeventlane_theme_preprocess_commerce_checkout_order_summary(array &$va
   $order = $variables['order_entity'] ?? NULL;
   if (!$order instanceof OrderInterface) {
     $variables['mel_checkout_order_summary_build'] = [];
+    $variables['mel_operational_checkout'] = NULL;
     return;
   }
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_checkout_flow')) {
     $variables['mel_checkout_order_summary_build'] = [];
+    $variables['order_entity'] = $order;
+    _myeventlane_theme_attach_mel_operational_checkout($variables);
     return;
   }
   /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $presenter */
   $presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
-  $variables['mel_checkout_order_summary_build'] = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'checkout']);
+  $step = \Drupal::routeMatch()->getParameter('step');
+  $surface = $step === 'complete' ? 'complete' : 'checkout';
+  $variables['mel_checkout_order_summary_build'] = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => $surface]);
+  $variables['order_entity'] = $order;
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
 }
 
 /**
@@ -659,6 +670,159 @@ function myeventlane_theme_preprocess_commerce_order(array &$variables): void {
   if ($store) {
     $variables['#cache']['tags'][] = 'commerce_store:' . $store->id();
   }
+  _myeventlane_theme_attach_mel_customer_operational_experience($variables);
+  _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
+  _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
+  _myeventlane_theme_attach_operational_addon_guidance($variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_tickets.
+ */
+function myeventlane_theme_preprocess_myeventlane_my_tickets(array &$variables): void {
+  foreach (['upcoming_orders', 'past_orders'] as $orders_key) {
+    if (empty($variables[$orders_key]) || !is_array($variables[$orders_key])) {
+      continue;
+    }
+    foreach ($variables[$orders_key] as $idx => $order_data) {
+      if (!is_array($order_data)) {
+        continue;
+      }
+      $order = $order_data['order'] ?? NULL;
+      if (!$order instanceof OrderInterface) {
+        continue;
+      }
+      $variables[$orders_key][$idx]['mel_operational_fulfillment_execution_customer'] = _myeventlane_theme_mel_operational_fulfillment_execution_customer_for_order($order);
+      $variables[$orders_key][$idx]['mel_operational_purchase_composition'] = _myeventlane_theme_mel_operational_purchase_composition_for_order($order);
+      $variables[$orders_key][$idx]['mel_operational_checkout'] = _myeventlane_theme_mel_operational_checkout_for_order($order);
+      $variables[$orders_key][$idx]['operational_addon_guidance'] = _myeventlane_theme_mel_operational_addon_guidance_for_order($order);
+    }
+  }
+
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+  $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+  foreach (['upcoming_orders', 'past_orders'] as $orders_key) {
+    if (empty($variables[$orders_key]) || !is_array($variables[$orders_key])) {
+      continue;
+    }
+    foreach ($variables[$orders_key] as $idx => $order_data) {
+      if (!is_array($order_data)) {
+        continue;
+      }
+      $order = $order_data['order'] ?? NULL;
+      if (!$order instanceof OrderInterface) {
+        continue;
+      }
+      try {
+        $doc = $mce->buildCustomerOperationalExperienceForOrder($order);
+        $variables[$orders_key][$idx]['mel_customer_operational_experience'] = _myeventlane_theme_mel_customer_operational_render_from_doc($doc, $order);
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_theme')->notice('MEL My Tickets operational strip skipped for order @oid: @message', [
+          '@oid' => (string) $order->id(),
+          '@message' => $e->getMessage(),
+        ]);
+        $variables[$orders_key][$idx]['mel_customer_operational_experience'] = NULL;
+      }
+    }
+  }
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_fulfillment_execution_customer_for_order(OrderInterface $order): ?array {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_tickets')
+    || !\Drupal::hasService('myeventlane_tickets.operational_fulfillment_execution_projection_builder')) {
+    return NULL;
+  }
+  try {
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionProjectionBuilder $builder */
+    $builder = \Drupal::service('myeventlane_tickets.operational_fulfillment_execution_projection_builder');
+    return $builder->buildCustomerRenderArray($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL fulfillment execution (My Tickets) skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_order_detail.
+ */
+function myeventlane_theme_preprocess_myeventlane_order_detail(array &$variables): void {
+  $order_data = $variables['order'] ?? NULL;
+  if (!is_array($order_data)) {
+    return;
+  }
+  $order = $order_data['order'] ?? NULL;
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  $variables['order_entity'] = $order;
+  _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
+  _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
+  _myeventlane_theme_attach_operational_addon_guidance($variables);
+
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+    $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+    $doc = $mce->buildCustomerOperationalExperienceForOrder($order);
+    $variables['mel_customer_operational_experience'] = _myeventlane_theme_mel_customer_operational_render_from_doc($doc, $order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL order detail operational strip skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    $variables['mel_customer_operational_experience'] = NULL;
+  }
+}
+
+/**
+ * Builds a render array for the customer operational experience theme hook.
+ *
+ * @param array<string, mixed> $doc
+ *   Sanitised experience document.
+ * @param \Drupal\commerce_order\Entity\OrderInterface|null $order
+ *   Order for cache tags when known.
+ *
+ * @return array<string, mixed>|null
+ *   Render array or NULL when empty.
+ */
+function _myeventlane_theme_mel_customer_operational_render_from_doc(array $doc, ?OrderInterface $order = NULL): ?array {
+  if (!empty($doc['empty'])) {
+    return NULL;
+  }
+  $tags = [];
+  if ($order instanceof OrderInterface) {
+    $tags[] = 'commerce_order:' . $order->id();
+    $event = _myeventlane_theme_get_first_event_from_order($order);
+    if ($event instanceof NodeInterface) {
+      $tags[] = 'node:' . $event->id();
+    }
+  }
+  return [
+    '#theme' => 'mel_customer_operational_experience',
+    '#experience' => $doc,
+    '#cache' => [
+      'tags' => $tags,
+      'contexts' => ['languages:language_interface'],
+    ],
+  ];
 }
 
 /**
@@ -931,6 +1095,403 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       }
     }
   }
+
+  _myeventlane_theme_attach_mel_customer_operational_experience($variables);
+  _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
+  _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+  _myeventlane_theme_attach_mel_operational_checkout($variables);
+  _myeventlane_theme_attach_operational_addon_guidance($variables);
+
+  if (($variables['form']['#step_id'] ?? '') === 'complete') {
+    $variables['mel_operational_checkout'] = NULL;
+    $variables['mel_operational_purchase_composition'] = NULL;
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+    $variables['mel_customer_operational_experience'] = NULL;
+    if (isset($variables['order_entity']) && $variables['order_entity'] instanceof OrderInterface) {
+      $variables['mel_confirmation_line_labels'] = _myeventlane_theme_build_confirmation_order_line_labels($variables['order_entity']);
+    }
+  }
+}
+
+/**
+ * Builds customer-safe order line labels for checkout completion cards.
+ *
+ * @return array<int, string>
+ *   Labels keyed by order item ID.
+ */
+function _myeventlane_theme_build_confirmation_order_line_labels(OrderInterface $order): array {
+  $labels = [];
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')) {
+    return $labels;
+  }
+
+  /** @var \Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder|null $display_builder */
+  $display_builder = \Drupal::hasService('myeventlane_commerce.operational_order_item_display_builder')
+    ? \Drupal::service('myeventlane_commerce.operational_order_item_display_builder')
+    : NULL;
+  /** @var \Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier|null $classifier */
+  $classifier = \Drupal::hasService('myeventlane_commerce.ticket_backed_order_item_classifier')
+    ? \Drupal::service('myeventlane_commerce.ticket_backed_order_item_classifier')
+    : NULL;
+  /** @var \Drupal\myeventlane_core\Service\TicketLabelResolver|null $ticket_labels */
+  $ticket_labels = \Drupal::hasService('myeventlane_core.ticket_label_resolver')
+    ? \Drupal::service('myeventlane_core.ticket_label_resolver')
+    : NULL;
+
+  foreach ($order->getItems() as $item) {
+    if (!$item instanceof \Drupal\commerce_order\Entity\OrderItemInterface) {
+      continue;
+    }
+    if (in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation', 'boost'], TRUE)) {
+      continue;
+    }
+    $item_id = (int) $item->id();
+    $display = $display_builder?->buildForOrderItem($item);
+    if (is_array($display) && ($display['title'] ?? '') !== '') {
+      $labels[$item_id] = (string) $display['title'];
+      continue;
+    }
+    $tier_label = $classifier?->resolveTicketTierLabel($item);
+    if (is_string($tier_label) && $tier_label !== '') {
+      $labels[$item_id] = $tier_label;
+      continue;
+    }
+    $labels[$item_id] = $ticket_labels ? $ticket_labels->getTicketLabel($item) : (string) $item->label();
+  }
+
+  return $labels;
+}
+
+/**
+ * Attaches read-only operational expectation copy for checkout (Event Studio enabled).
+ */
+function _myeventlane_theme_attach_mel_customer_operational_experience(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    || !\Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface) {
+    $order = _myeventlane_theme_commerce_order_from_route();
+  }
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+    $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+    $doc = $mce->buildCustomerOperationalExperienceForOrder($order);
+    _myeventlane_theme_set_mel_customer_operational_block($variables, $doc, ['commerce_order:' . $order->id()], $order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL customer operational experience attach skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['mel_customer_operational_experience'] = NULL;
+  }
+}
+
+/**
+ * Sets a themed render array for customer-safe operational expectations.
+ *
+ * @param array<string, mixed> $variables
+ *   Preprocess variables (by reference).
+ * @param array<string, mixed> $doc
+ *   Builder document (already sanitised server-side).
+ * @param list<string> $cache_tags
+ *   Base cache tags for the block.
+ * @param \Drupal\commerce_order\Entity\OrderInterface|null $order
+ *   Optional order for additional node tag from line items.
+ */
+function _myeventlane_theme_set_mel_customer_operational_block(array &$variables, array $doc, array $cache_tags, ?OrderInterface $order): void {
+  $render = _myeventlane_theme_mel_customer_operational_render_from_doc($doc, $order);
+  if ($render === NULL) {
+    $variables['mel_customer_operational_experience'] = NULL;
+    return;
+  }
+  $render['#cache']['tags'] = array_values(array_unique(array_merge($cache_tags, $render['#cache']['tags'] ?? [])));
+  $variables['mel_customer_operational_experience'] = $render;
+}
+
+/**
+ * Composition document per order, static-cached for the current request.
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_theme_mel_operational_composition_document(OrderInterface $order): array {
+  static $by_order = [];
+  $oid = (int) $order->id();
+  if (array_key_exists($oid, $by_order)) {
+    return $by_order[$oid];
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_purchase_composition_manager')) {
+    $by_order[$oid] = _myeventlane_theme_mel_operational_composition_empty_groups();
+    return $by_order[$oid];
+  }
+  try {
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
+    $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
+    $by_order[$oid] = $pcm->composeForOrder($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational composition document skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    $by_order[$oid] = _myeventlane_theme_mel_operational_composition_empty_groups();
+  }
+  return $by_order[$oid];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function _myeventlane_theme_mel_operational_composition_empty_groups(): array {
+  return [
+    'groups' => [
+      'merchandise' => [],
+      'hospitality' => [],
+      'timed_collection' => [],
+      'bundles' => [],
+      'parking' => [],
+    ],
+  ];
+}
+
+/**
+ * Cached checkout render array for an order (single orchestration finalize per request).
+ *
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_checkout_render_for_order(OrderInterface $order): ?array {
+  static $cache = [];
+  $oid = (int) $order->id();
+  if (array_key_exists($oid, $cache)) {
+    return $cache[$oid];
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+    $cache[$oid] = NULL;
+    return NULL;
+  }
+  try {
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager $oco */
+    $oco = \Drupal::service('myeventlane_commerce.operational_checkout_orchestration_manager');
+    $cache[$oid] = $oco->buildOrderRenderArrayFromComposition($order, $composition);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout orchestration skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    $cache[$oid] = NULL;
+  }
+  return $cache[$oid];
+}
+
+/**
+ * Attaches customer-safe fulfillment execution hints (myeventlane_tickets).
+ */
+function _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_tickets')
+    || !\Drupal::hasService('myeventlane_tickets.operational_fulfillment_execution_projection_builder')) {
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order'])) {
+    $candidate = $variables['form']['#order'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface) {
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionProjectionBuilder $builder */
+    $builder = \Drupal::service('myeventlane_tickets.operational_fulfillment_execution_projection_builder');
+    $variables['mel_operational_fulfillment_execution_customer'] = $builder->buildCustomerRenderArray($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL fulfillment execution customer strip skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['mel_operational_fulfillment_execution_customer'] = NULL;
+  }
+}
+
+/**
+ * Attaches operational purchase composition (operational Commerce products on orders).
+ */
+function _myeventlane_theme_attach_mel_operational_purchase_composition(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_purchase_composition_manager')) {
+    $variables['mel_operational_purchase_composition'] = NULL;
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order'])) {
+    $candidate = $variables['form']['#order'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order_entity'])) {
+    $candidate = $variables['form']['#order_entity'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface) {
+    $variables['mel_operational_purchase_composition'] = NULL;
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
+    $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    $variables['mel_operational_purchase_composition'] = $pcm->buildOrderRenderArrayFromDocument($order, $composition);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational purchase composition skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['mel_operational_purchase_composition'] = NULL;
+  }
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_purchase_composition_for_order(OrderInterface $order): ?array {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_purchase_composition_manager')) {
+    return NULL;
+  }
+  try {
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager $pcm */
+    $pcm = \Drupal::service('myeventlane_commerce.operational_purchase_composition_manager');
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    return $pcm->buildOrderRenderArrayFromDocument($order, $composition);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational purchase composition (My Tickets) skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
+ * Attaches operational checkout orchestration (grouped customer-safe contract).
+ */
+function _myeventlane_theme_attach_mel_operational_checkout(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+    $variables['mel_operational_checkout'] = NULL;
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order'])) {
+    $candidate = $variables['form']['#order'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order_entity'])) {
+    $candidate = $variables['form']['#order_entity'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface) {
+    $variables['mel_operational_checkout'] = NULL;
+    return;
+  }
+  try {
+    $variables['mel_operational_checkout'] = _myeventlane_theme_mel_operational_checkout_render_for_order($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout orchestration skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['mel_operational_checkout'] = NULL;
+  }
+}
+
+/**
+ * Compact post-purchase add-on guidance (read-only).
+ */
+function _myeventlane_theme_attach_operational_addon_guidance(array &$variables): void {
+  $variables['operational_addon_guidance'] = NULL;
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_addon_guidance_builder')) {
+    return;
+  }
+  $order = $variables['order_entity'] ?? NULL;
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order'])) {
+    $candidate = $variables['form']['#order'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface && isset($variables['form']['#order_entity'])) {
+    $candidate = $variables['form']['#order_entity'];
+    $order = $candidate instanceof OrderInterface ? $candidate : NULL;
+  }
+  if (!$order instanceof OrderInterface) {
+    return;
+  }
+  try {
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    $checkout_render = _myeventlane_theme_mel_operational_checkout_render_for_order($order);
+    $contract = is_array($checkout_render) ? ($checkout_render['#checkout'] ?? NULL) : NULL;
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalAddonGuidanceBuilder $builder */
+    $builder = \Drupal::service('myeventlane_commerce.operational_addon_guidance_builder');
+    $variables['operational_addon_guidance'] = $builder->buildRenderArray(
+      $order,
+      $composition,
+      is_array($contract) ? $contract : NULL,
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational add-on guidance skipped: @message', ['@message' => $e->getMessage()]);
+    $variables['operational_addon_guidance'] = NULL;
+  }
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_checkout_for_order(OrderInterface $order): ?array {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_checkout_orchestration_manager')) {
+    return NULL;
+  }
+  try {
+    return _myeventlane_theme_mel_operational_checkout_render_for_order($order);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational checkout (My Tickets) skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function _myeventlane_theme_mel_operational_addon_guidance_for_order(OrderInterface $order): ?array {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    || !\Drupal::hasService('myeventlane_commerce.operational_addon_guidance_builder')) {
+    return NULL;
+  }
+  try {
+    $composition = _myeventlane_theme_mel_operational_composition_document($order);
+    $checkout_render = _myeventlane_theme_mel_operational_checkout_render_for_order($order);
+    $contract = is_array($checkout_render) ? ($checkout_render['#checkout'] ?? NULL) : NULL;
+    /** @var \Drupal\myeventlane_commerce\Service\OperationalAddonGuidanceBuilder $builder */
+    $builder = \Drupal::service('myeventlane_commerce.operational_addon_guidance_builder');
+    return $builder->buildRenderArray(
+      $order,
+      $composition,
+      is_array($contract) ? $contract : NULL,
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->notice('MEL operational add-on guidance (My Tickets) skipped for order @oid: @message', [
+      '@oid' => (string) $order->id(),
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
 }
 
 /**
@@ -1069,6 +1630,16 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
       $variables['attributes']['class'][] = 'mel-commerce-order-detail';
     }
   }
+
+  $route_node = $route_match ? $route_match->getParameter('node') : NULL;
+  if ($route_node instanceof NodeInterface && $route_node->bundle() === 'event') {
+    $variables['attributes']['class'][] = 'mel-body--event-full';
+    $resolved_style = _myeventlane_theme_resolve_event_page_style_for_node($route_node);
+    $style = $resolved_style['style'] ?? 'classic';
+    $variables['attributes']['class'][] = $style === 'immersive'
+      ? 'mel-body--event-full-immersive'
+      : 'mel-body--event-full-classic';
+  }
 }
 
 /**
@@ -1143,7 +1714,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     if ($count > 3) {
       $categories[] = [
         'title' => $term->label(),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+        'url' => _myeventlane_theme_get_category_url($term),
       ];
     }
   }
@@ -1184,6 +1755,21 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
 
   // mel_header_categories for listing pages (events, search, category).
   $route = \Drupal::routeMatch()->getRouteName();
+
+  // Public marketplace directory pages must never inherit vendor console chrome.
+  $public_marketplace_routes = [
+    'myeventlane_vendor.public_list',
+    'myeventlane_vendor.organisers',
+    'entity.myeventlane_vendor.canonical',
+  ];
+  if (is_string($route) && in_array($route, $public_marketplace_routes, TRUE)) {
+    $variables['mel_is_organiser'] = FALSE;
+    if (isset($variables['footer_context']) && is_array($variables['footer_context'])) {
+      $variables['footer_context']['is_vendor'] = FALSE;
+      unset($variables['footer_context']['vendor_console_urls']);
+    }
+  }
+
   $listing_routes = [
     'view.upcoming_events.page_events',
     'view.upcoming_events.page_category',
@@ -1202,7 +1788,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'tid' => $term->id(),
         'name' => $term->label(),
         'label' => $term->label(),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+        'url' => _myeventlane_theme_get_category_url($term),
         'slug' => $slug,
       ];
     }
@@ -1212,9 +1798,9 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   // Active category pill for discovery headers (matches route to chip).
   $variables['mel_active_category_tid'] = NULL;
   if ($route === 'view.upcoming_events.page_category') {
-    $arg = \Drupal::routeMatch()->getParameter('arg_0');
-    if ($arg !== NULL && $arg !== '') {
-      $variables['mel_active_category_tid'] = (string) $arg;
+    $term = _myeventlane_theme_get_active_category_term();
+    if ($term instanceof TermInterface) {
+      $variables['mel_active_category_tid'] = (string) $term->id();
     }
   }
   elseif ($route === 'entity.taxonomy_term.canonical') {
@@ -1222,6 +1808,17 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     if ($taxonomy_term instanceof TermInterface && $taxonomy_term->bundle() === 'categories') {
       $variables['mel_active_category_tid'] = (string) $taxonomy_term->id();
     }
+  }
+
+  $browse_display_map = [
+    'view.upcoming_events.page_events' => 'page_events',
+    'view.upcoming_events.page_free' => 'page_free',
+    'view.upcoming_events.page_this_weekend' => 'page_this_weekend',
+    'view.upcoming_events.page_today' => 'page_today',
+    'view.upcoming_events.page_category' => 'page_category',
+  ];
+  if (isset($browse_display_map[$route])) {
+    $variables['mel_browse_active_display'] = $browse_display_map[$route];
   }
 
   // Hero image for listing pages (category, search, events).
@@ -1316,7 +1913,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'tid' => $term->id(),
         'name' => $term->label(),
         'label' => $term->label(),
-        'url' => '/events/category/' . $term->id(),
+        'url' => _myeventlane_theme_get_category_url($term),
         'slug' => $slug,
       ];
     }
@@ -1328,7 +1925,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     foreach ($categories as $c) {
       $popular_tags[] = [
         'name' => $c['name'],
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $c['tid']])->toString(),
+        'url' => $c['url'],
       ];
     }
     $variables['popular_tags'] = $popular_tags;
@@ -1347,8 +1944,32 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     if (isset($variables['page']['bottom_cta']) && is_array($variables['page']['bottom_cta'])) {
       $variables['mel_home_use_bottom_cta_region'] = count(Element::children($variables['page']['bottom_cta'])) > 0;
     }
+
+    // Homepage discovery rails: region truthiness is true when a block is placed,
+    // even if the View returns zero rows. Gate section shells on real content.
+    if (\Drupal::hasService('myeventlane_front.homepage_section_visibility')) {
+      /** @var \Drupal\myeventlane_front\Service\HomepageSectionVisibility $homepageVisibility */
+      $homepageVisibility = \Drupal::service('myeventlane_front.homepage_section_visibility');
+      $variables['mel_home_show_featured'] = $homepageVisibility->hasFeaturedEvents()
+        && isset($variables['page']['homepage_featured'])
+        && is_array($variables['page']['homepage_featured'])
+        && count(Element::children($variables['page']['homepage_featured'])) > 0;
+      $variables['mel_home_show_blog'] = $homepageVisibility->hasPublicBlogPosts()
+        && isset($variables['page']['homepage_blog'])
+        && is_array($variables['page']['homepage_blog'])
+        && count(Element::children($variables['page']['homepage_blog'])) > 0;
+      $variables['mel_home_show_free_rsvp'] = $homepageVisibility->viewDisplayHasResults('mel_home_events', 'under_20')
+        && isset($variables['page']['homepage_free'])
+        && is_array($variables['page']['homepage_free'])
+        && count(Element::children($variables['page']['homepage_free'])) > 0;
+    }
+    else {
+      $variables['mel_home_show_featured'] = FALSE;
+      $variables['mel_home_show_blog'] = FALSE;
+      $variables['mel_home_show_free_rsvp'] = FALSE;
+    }
   }
-  
+
   // MyEventLane Illustration System: Category-aware hero swaps.
   // Category pages MUST use category banners from /images/mel/categories/.
   // Homepage MUST ALWAYS use journey hero images.
@@ -1464,13 +2085,28 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $variables['mel_hero_mobile_url'] = $hero_mobile_url;
   $variables['mel_category_slug'] = $category_slug;
 
+  // Event full: page shell classes + skip empty status region (placeholder adds white gap).
+  $route_node = \Drupal::routeMatch()->getParameter('node');
+  if ($route_node instanceof NodeInterface && $route_node->bundle() === 'event') {
+    $resolved_style = _myeventlane_theme_resolve_event_page_style_for_node($route_node);
+    $variables['mel_event_full_page'] = TRUE;
+    $variables['mel_event_page_style'] = $resolved_style['style'] ?? 'classic';
+    $variables['mel_show_highlighted'] = FALSE;
+    foreach (\Drupal::messenger()->all() as $type_messages) {
+      if (!empty($type_messages)) {
+        $variables['mel_show_highlighted'] = TRUE;
+        break;
+      }
+    }
+  }
+
   // Status messages: when Highlighted has no blocks (config not imported, etc.),
   // page.highlighted is empty and users see no success/errors (e.g. /contact).
   // Build the same system block programmatically as a fallback only in that case.
   $page_render = $variables['page'] ?? [];
   $highlighted = $page_render['highlighted'] ?? [];
   $highlighted_has_blocks = is_array($highlighted) && count(Element::children($highlighted)) > 0;
-  if (!$highlighted_has_blocks) {
+  if (!$highlighted_has_blocks && empty($variables['mel_event_full_page'])) {
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
       $messages_block = $block_manager->createInstance('system_messages_block', []);
@@ -1542,40 +2178,63 @@ function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): arra
 }
 
 /**
+ * Implements hook_preprocess_page() for the homepage.
+ *
+ * Hides guide/blog section shell when no published articles exist.
+ */
+function myeventlane_theme_preprocess_page__front(array &$variables): void {
+  if (!isset($variables['page']['homepage_blog'])) {
+    return;
+  }
+
+  try {
+    $count = (int) \Drupal::entityTypeManager()->getStorage('node')->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('type', 'blog_post')
+      ->condition('status', 1)
+      ->range(0, 1)
+      ->count()
+      ->execute();
+    if ($count === 0) {
+      unset($variables['page']['homepage_blog']);
+    }
+  }
+  catch (\Throwable) {
+    unset($variables['page']['homepage_blog']);
+  }
+}
+
+/**
  * Implements hook_preprocess_page() for category pages.
  *
  * Adds category info and all categories for the hero section.
  */
 function myeventlane_theme_preprocess_page__events__category(array &$variables): void {
-  // Get the category term ID from the URL.
-  $tid = \Drupal::routeMatch()->getParameter('arg_0');
-  
-  if ($tid) {
-    $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($tid);
-    if ($term) {
-      $variables['current_category'] = [
-        'tid' => $term->id(),
-        'name' => $term->label(),
-      ];
-    }
+  $term = _myeventlane_theme_get_active_category_term();
+
+  if ($term instanceof TermInterface) {
+    $variables['current_category'] = [
+      'tid' => $term->id(),
+      'name' => $term->label(),
+    ];
   }
-  
+
   // Load all categories for the hero chips.
   $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
   $terms = $term_storage->loadByProperties(['vid' => 'categories']);
-  
+
   $categories = [];
-  foreach ($terms as $term) {
-    $slug = _myeventlane_theme_get_category_slug($term);
+  foreach ($terms as $category_term) {
+    $slug = _myeventlane_theme_get_category_slug($category_term);
     $categories[] = [
-      'tid' => $term->id(),
-      'name' => $term->label(),
-      'label' => $term->label(),
-      'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $term->id()])->toString(),
+      'tid' => $category_term->id(),
+      'name' => $category_term->label(),
+      'label' => $category_term->label(),
+      'url' => _myeventlane_theme_get_category_url($category_term),
       'slug' => $slug,
     ];
   }
-  
+
   $variables['event_categories'] = $categories;
   // Also set as mel_header_categories if used by page header component.
   $variables['mel_header_categories'] = $categories;
@@ -1977,9 +2636,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         if ($category_term instanceof \Drupal\taxonomy\Entity\Term) {
           $category_slug = _myeventlane_theme_get_category_slug($category_term);
           $category_label = $category_term->label();
-          $category_url = Url::fromRoute('view.upcoming_events.page_category', [
-            'arg_0' => (string) $category_term->id(),
-          ])->toString();
+          $category_url = _myeventlane_theme_get_category_url($category_term);
         }
       }
     }
@@ -2022,244 +2679,20 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     $variables['mel_placeholder_image_url'] = $placeholder_url;
     $variables['mel_fallback_image_url'] = $placeholder_url;
 
-    // 4. For card view modes, prepare variables for mel-event-card component
-    $card_view_modes = [
-      'card',
-      'event_card',
-      'teaser',
-      'teaser_tonight',
-      'teaser_featured',
-      'event_card_poster',
-      'event_card_compact',
-      'event_home_card',
-    ];
-    if (in_array($view_mode, $card_view_modes, TRUE)) {
-      // Listing cards: real image only; missing image uses CSS gradient (no text-bearing assets).
-      $card_image_url = $event_image_url;
-      $is_placeholder = !$event_image_url;
-      if ($event_image_uri) {
-        $style_storage = \Drupal::entityTypeManager()->getStorage('image_style');
-        $styled_modes = [
-          'teaser',
-          'teaser_tonight',
-          'event_card',
-          'teaser_featured',
-          'event_card_compact',
-          'event_home_card',
-          'event_card_poster',
-        ];
-        if (in_array($view_mode, $styled_modes, TRUE)) {
-          $style_id = ($view_mode === 'teaser_featured' || $view_mode === 'event_card_poster')
-            ? 'mel_event_card_featured'
-            : 'mel_event_card_standard';
-          $image_style = $style_storage->load($style_id);
-          if ($image_style) {
-            $card_image_url = $image_style->buildUrl($event_image_uri);
-            if (!isset($variables['#cache']['tags'])) {
-              $variables['#cache']['tags'] = [];
-            }
-            $variables['#cache']['tags'] = array_merge($variables['#cache']['tags'], $image_style->getCacheTags());
-          }
-        }
+    // 4. Public event cards: centralised view model (all card view modes).
+    if (\Drupal::hasService('myeventlane_event.event_card_view_model')) {
+      /** @var \Drupal\myeventlane_event\EventCard\EventCardViewModel $event_card_view_model */
+      $event_card_view_model = \Drupal::service('myeventlane_event.event_card_view_model');
+      if ($event_card_view_model->isCardViewMode($view_mode)) {
+        $event_card_view_model->applyToNodeVariables($variables, $view_mode);
       }
-      else {
-        $card_image_url = NULL;
-      }
-      $variables['mel_card_image_url'] = $card_image_url;
-      $variables['mel_card_is_placeholder'] = $is_placeholder;
-
-      // Note: Offset classes are now handled via CSS :nth-child selectors
-      // in _mel-lane-cards.scss for reliability across Views and contexts.
-      // No need to set mel_lane_offset_class - CSS handles the pattern.
-
-      // Category pill classes
-      $pill_classes = 'mel-category-pill mel-category-pill--' . $category_slug . ' mel-category-pill--sm';
-      $variables['mel_category_pill_classes'] = $pill_classes;
-      $variables['mel_category_name'] = $category_label;
-      $variables['mel_category_slug'] = $category_slug;
-
-      // Badge text comes from BookingFlowResolver::getDisplayPricing().
-      $display_pricing = is_array($variables['mel_display_pricing'] ?? NULL)
-        ? $variables['mel_display_pricing']
-        : _myeventlane_theme_get_event_display_pricing($node);
-      $variables['mel_card_badge_text'] = NULL;
-      if (is_array($display_pricing) && ($display_pricing['type'] ?? NULL) !== BookingFlowResolver::MODE_EXTERNAL) {
-        $display_pricing_label = trim((string) ($display_pricing['label'] ?? ''));
-        $variables['mel_card_badge_text'] = $display_pricing_label !== '' ? $display_pricing_label : NULL;
-      }
-      $variables['mel_card_pricing_type'] = is_array($display_pricing)
-        ? (string) ($display_pricing['type'] ?? '')
-        : '';
-
-      $card_type = 'none';
-      if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
-        $et = $node->get('field_event_type')->value;
-        if (in_array($et, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
-          $card_type = $et;
-        }
-      }
-      $variables['card_type'] = $card_type;
-
-      $state = (string) ($variables['mel_event_state'] ?? '');
-      $cta_type = (string) ($variables['cta_type'] ?? 'none');
-      $variables['card_status_primary'] = _myeventlane_theme_event_card_status_primary($node, $variables['mel_card_badge_text'], $state, $cta_type);
-      $variables['card_status_secondary'] = NULL;
-      if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
-        $ec_sched = $variables['event_cta'] ?? [];
-        $variables['card_status_secondary'] = trim((string) ($ec_sched['label'] ?? ''));
-      }
-      $event_ui = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : NULL;
-      if ($event_ui !== NULL && $event_ui !== []) {
-        if (empty($event_ui['show_cta'])) {
-          $variables['card_cta_label'] = '';
-        }
-        else {
-          $variables['card_cta_label'] = trim((string) ($event_ui['cta_label'] ?? ''));
-        }
-      }
-      else {
-        $ec = $variables['event_cta'] ?? [];
-        $cta_label = trim((string) ($ec['label'] ?? ''));
-        if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
-          $cta_label = (string) t('View details');
-        }
-        elseif (in_array($state, ['cancelled', 'ended'], TRUE)) {
-          $cta_label = (string) t('View details');
-        }
-        elseif ($cta_label === '') {
-          $cta_label = (string) t('View details');
-        }
-        $variables['card_cta_label'] = $cta_label;
-      }
-
-      $badge_for_modifier = $variables['mel_card_badge_text'];
-      $variables['card_status_modifier'] = match (TRUE) {
-        in_array($state, ['cancelled'], TRUE) => 'cancelled',
-        $state === 'ended' => 'ended',
-        $state === 'sold_out' => 'sold-out',
-        $state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID => 'scheduled',
-        $card_type === 'external' => 'external',
-        $variables['mel_card_pricing_type'] === BookingFlowResolver::MODE_RSVP => 'free',
-        $variables['mel_card_pricing_type'] === BookingFlowResolver::MODE_PAID => 'paid',
-        default => 'default',
-      };
-
-      $domain_state_for_badge = $variables['event_domain_state'] ?? NULL;
-      if (is_array($domain_state_for_badge) && !empty($domain_state_for_badge['is_boosted'])) {
-        $variables['is_promoted'] = TRUE;
-      }
-      else {
-        $variables['is_promoted'] = $eventDomainStateResolver
-          ? $eventDomainStateResolver->isEventBoosted($node)
-          : ($node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value);
-      }
-
-      // Poster cards: compact overlay pill (Free / Tickets / $$).
-      $variables['mel_poster_price_pill'] = NULL;
       if ($view_mode === 'event_card_poster') {
-        $pill = _myeventlane_theme_get_event_poster_price_pill($node);
-        $variables['mel_poster_price_pill'] = $pill;
-      }
-
-      // Card URL
-      $variables['mel_card_url'] = $node->toUrl()->toString();
-
-      // Date/time (when)
-      $when_text = NULL;
-      if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-        $start_value = $node->get('field_event_start')->value;
-        if ($start_value) {
-          $start_timestamp = strtotime($start_value);
-          if ($start_timestamp) {
-            // Format: "D j M, g:ia" e.g. "Sat 15 Mar, 7:00pm"
-            $when_text = date('D j M, g:ia', $start_timestamp);
-          }
-        }
-      }
-      $variables['mel_card_when'] = $when_text;
-
-      // Discovery cards: venue / locality only (no street dump).
-      $variables['mel_card_where'] = _myeventlane_theme_event_card_location_label($node);
-
-      // card_* variables for event-card and teaser templates (they use card_* not mel_*).
-      $variables['card_url'] = $variables['mel_card_url'];
-      $variables['card_title'] = $node->label();
-      $variables['card_image_url'] = $variables['mel_card_image_url'];
-      $variables['card_image_alt'] = $node->label();
-      $variables['card_time_range'] = $when_text;
-      $variables['card_location'] = $variables['mel_card_where'];
-      $variables['card_price_label'] = $variables['mel_card_badge_text'] ?? '';
-
-      if ($category_label !== NULL && $category_url !== NULL) {
-        $variables['card_category'] = ['label' => $category_label, 'url' => $category_url];
-      }
-      else {
-        $variables['card_category'] = NULL;
-      }
-
-      $card_day = NULL;
-      $card_month = NULL;
-      if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-        $start_value = $node->get('field_event_start')->value;
-        if ($start_value && ($ts = strtotime($start_value))) {
-          $card_day = (string) (int) date('j', $ts);
-          $card_month = date('M', $ts);
-        }
-      }
-      $variables['card_day'] = $card_day;
-      $variables['card_month'] = $card_month;
-
-      $variables['card_is_low_stock'] = FALSE;
-      $variables['card_attendance'] = NULL;
-      if (\Drupal::hasService('myeventlane_capacity.service')) {
-        /** @var \Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface $capacity */
-        $capacity = \Drupal::service('myeventlane_capacity.service');
-        $total_cap = $capacity->getCapacityTotal($node);
-        $remaining = $capacity->getRemaining($node);
-        if ($total_cap !== NULL && $remaining !== NULL && $remaining > 0) {
-          $threshold = max(3, (int) floor($total_cap * 0.15));
-          if ($remaining <= $threshold) {
-            $variables['card_is_low_stock'] = TRUE;
-          }
-        }
-      }
-      if (\Drupal::hasService('myeventlane_domain_events.read_model.event_metrics')) {
-        $read_model = \Drupal::service('myeventlane_domain_events.read_model.event_metrics');
-        $metrics = $read_model->getEventMetrics((int) $node->id());
-        $going = (int) ($metrics['tickets_sold'] ?? 0) + (int) ($metrics['rsvp_count'] ?? 0);
-        if ($going >= 8) {
-          $variables['card_attendance'] = $going;
-        }
-        if (!isset($variables['#cache']['tags'])) {
-          $variables['#cache']['tags'] = [];
-        }
-        $variables['#cache']['tags'][] = sprintf('event_metrics:%d', (int) $node->id());
-      }
-
-      $event_flag = _myeventlane_theme_event_event_save_flag_link($node);
-      $variables['event_flag_event_save'] = $event_flag;
-      if ($event_flag) {
-        if (!isset($variables['#cache']['contexts'])) {
-          $variables['#cache']['contexts'] = [];
-        }
-        $variables['#cache']['contexts'][] = 'user';
-      }
-
-      // Add cache contexts/tags
-      if (!isset($variables['#cache']['contexts'])) {
-        $variables['#cache']['contexts'] = [];
-      }
-      $variables['#cache']['contexts'][] = 'route';
-      if (!isset($variables['#cache']['tags'])) {
-        $variables['#cache']['tags'] = [];
-      }
-      // Add taxonomy term cache tag if category exists
-      if ($category_term ?? NULL) {
-        $variables['#cache']['tags'][] = 'taxonomy_term:' . $category_term->id();
+        $variables['mel_poster_price_pill'] = _myeventlane_theme_get_event_poster_price_pill($node);
       }
     }
 
     if ($view_mode === 'full' && $node?->bundle() === 'event') {
+      _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
       $variables['mel_event_selling_fast'] = FALSE;
       if (\Drupal::hasService('myeventlane_capacity.service')) {
         $capacity = \Drupal::service('myeventlane_capacity.service');
@@ -2413,6 +2846,62 @@ function _myeventlane_theme_get_event_display_pricing(\Drupal\node\NodeInterface
 }
 
 /**
+ * Whether a View renders public event cards in the homepage grid style.
+ */
+function _myeventlane_theme_view_uses_compact_commerce_grid(ViewExecutable $view): bool {
+  $row = $view->getDisplay()->getOption('row') ?? [];
+  if (($row['type'] ?? '') !== 'entity:node') {
+    return FALSE;
+  }
+  $view_mode = (string) ($row['options']['view_mode'] ?? '');
+  return in_array($view_mode, ['compact_commerce', 'list_card'], TRUE);
+}
+
+/**
+ * Whether a View renders public event node listings.
+ */
+function _myeventlane_theme_view_is_event_listing(ViewExecutable $view): bool {
+  if (str_contains($view->id(), 'event')) {
+    return TRUE;
+  }
+  return in_array($view->id(), [
+    'mel_saved_events',
+    'taxonomy_term',
+  ], TRUE);
+}
+
+/**
+ * Resolves an event node from a Views result row when present.
+ */
+function _myeventlane_theme_views_row_event_node(mixed $row): ?NodeInterface {
+  if (!$row instanceof ResultRow) {
+    return NULL;
+  }
+  if (isset($row->_entity) && $row->_entity instanceof NodeInterface) {
+    return $row->_entity->bundle() === 'event' ? $row->_entity : NULL;
+  }
+  $nid = $row->nid ?? NULL;
+  if (!is_numeric($nid)) {
+    return NULL;
+  }
+  $node = \Drupal::entityTypeManager()->getStorage('node')->load((int) $nid);
+  return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
+}
+
+/**
+ * Implements hook_preprocess_views_view_unformatted().
+ */
+function myeventlane_theme_preprocess_views_view_unformatted(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  $variables['mel_is_event_view'] = FALSE;
+  if (!$view instanceof ViewExecutable) {
+    return;
+  }
+  $variables['mel_is_event_view'] = _myeventlane_theme_view_is_event_listing($view)
+    && _myeventlane_theme_view_uses_compact_commerce_grid($view);
+}
+
+/**
  * Implements hook_preprocess_views_view_fields().
  *
  * Adds directory path for MyEventLane illustration system in views.
@@ -2449,6 +2938,28 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
     }
   }
   $variables['mel_is_event_view'] = $is_event_view;
+
+  // Field-based event Views must not scrape internal /node/{nid} paths from
+  // view_node; resolve the canonical entity URL once here for mel-event-card.
+  if ($is_event_view) {
+    $event_node = _myeventlane_theme_views_row_event_node($variables['row'] ?? NULL);
+    if ($event_node instanceof NodeInterface && $event_node->access('view')) {
+      $canonical = $event_node->toUrl('canonical');
+      $variables['mel_event_card_url'] = $canonical->toString();
+      if (!isset($variables['#cache'])) {
+        $variables['#cache'] = [];
+      }
+      $variables['#cache']['tags'] = Cache::mergeTags(
+        (array) ($variables['#cache']['tags'] ?? []),
+        $event_node->getCacheTags(),
+        $canonical->getCacheTags()
+      );
+      $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
+        (array) ($variables['#cache']['contexts'] ?? []),
+        $canonical->getCacheContexts()
+      )));
+    }
+  }
 }
 
 /**
@@ -2526,7 +3037,7 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
         'tid' => $cat_term->id(),
         'name' => $cat_term->label(),
         'label' => $cat_term->label(),
-        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $cat_term->id()])->toString(),
+        'url' => _myeventlane_theme_get_category_url($cat_term),
         'slug' => $slug,
       ];
     }
@@ -2779,6 +3290,42 @@ function _myeventlane_theme_event_primary_location_label(NodeInterface $node): ?
 }
 
 /**
+ * Returns the canonical category listing URL for a taxonomy term.
+ */
+function _myeventlane_theme_get_category_url(TermInterface $term): string {
+  /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+  $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+  return $categoryUrl->getCategoryUrlString($term);
+}
+
+/**
+ * Resolves the active category term on discovery routes.
+ */
+function _myeventlane_theme_get_active_category_term(): ?TermInterface {
+  $request = \Drupal::request();
+  $term = $request->attributes->get('mel_category_term');
+  if ($term instanceof TermInterface) {
+    return $term;
+  }
+
+  $route = \Drupal::routeMatch()->getRouteName();
+  if ($route === 'view.upcoming_events.page_category') {
+    /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
+    $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
+    return $categoryUrl->resolveTerm(\Drupal::routeMatch()->getParameter('arg_0'));
+  }
+
+  if ($route === 'entity.taxonomy_term.canonical') {
+    $taxonomy_term = \Drupal::routeMatch()->getParameter('taxonomy_term');
+    if ($taxonomy_term instanceof TermInterface && $taxonomy_term->bundle() === 'categories') {
+      return $taxonomy_term;
+    }
+  }
+
+  return NULL;
+}
+
+/**
  * Helper function to get category slug from taxonomy term.
  *
  * @param \Drupal\taxonomy\TermInterface|null $term
@@ -2835,25 +3382,22 @@ function _myeventlane_theme_get_listing_hero_url(?string $route): ?string {
 
   // Category page: prefer term's field_category_image, else theme file.
   if ($route === 'view.upcoming_events.page_category') {
-    $tid = \Drupal::routeMatch()->getParameter('arg_0');
-    if ($tid) {
-      $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($tid);
-      if ($term && $term->bundle() === 'categories') {
-        if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
-          $cat_files = $term->get('field_category_image')->referencedEntities();
-          $file = !empty($cat_files) ? reset($cat_files) : NULL;
-          if ($file) {
-            $file_url_generator = \Drupal::service('file_url_generator');
-            return $file_url_generator->generateAbsoluteString($file->getFileUri());
-          }
+    $term = _myeventlane_theme_get_active_category_term();
+    if ($term instanceof TermInterface && $term->bundle() === 'categories') {
+      if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
+        $cat_files = $term->get('field_category_image')->referencedEntities();
+        $file = !empty($cat_files) ? reset($cat_files) : NULL;
+        if ($file) {
+          $file_url_generator = \Drupal::service('file_url_generator');
+          return $file_url_generator->generateAbsoluteString($file->getFileUri());
         }
-        $slug = _myeventlane_theme_get_category_slug($term);
-        $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
-        $file_slug = $slug_map[$slug] ?? $slug;
-        $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
-        if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
-          return $base_path . $rel;
-        }
+      }
+      $slug = _myeventlane_theme_get_category_slug($term);
+      $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
+      $file_slug = $slug_map[$slug] ?? $slug;
+      $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
+      if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
+        return $base_path . $rel;
       }
     }
   }
@@ -3241,8 +3785,159 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
 }
 
 /**
- * Preprocess variables for event nodes only.
+ * Resolves public event page style + colour classes for a node.
+ *
+ * @return array{style: string, colour: string, classes: list<string>}
  */
+function _myeventlane_theme_resolve_event_page_style_for_node(NodeInterface $node): array {
+  $classes = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
+  $style = 'classic';
+  $colour = 'coral';
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    && \Drupal::hasService('myeventlane_event_studio.event_page_style_resolver')) {
+    /** @var \Drupal\myeventlane_event_studio\Service\EventPageStyleResolver $resolver */
+    $resolver = \Drupal::service('myeventlane_event_studio.event_page_style_resolver');
+    $resolved = $resolver->resolveForPublicRender($node);
+    $style = $resolved['style'];
+    $colour = $resolved['colour'];
+    $classes = $resolved['classes'];
+  }
+
+  return [
+    'style' => $style,
+    'colour' => $colour,
+    'classes' => $classes,
+  ];
+}
+
+/**
+ * Sanitises a hex colour for safe inline CSS custom properties.
+ */
+function _myeventlane_theme_sanitize_event_branding_hex(?string $value, string $fallback): string {
+  $value = strtoupper(trim((string) $value));
+  if (preg_match('/^#([0-9A-F]{3}|[0-9A-F]{6})$/', $value) !== 1) {
+    return $fallback;
+  }
+  if (strlen($value) === 4) {
+    $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
+  }
+  return $value;
+}
+
+/**
+ * Approved accent hex values keyed by Event Studio theme colour machine name.
+ *
+ * @return array<string, string>
+ */
+function _myeventlane_theme_event_branding_accent_hex_map(): array {
+  return [
+    'coral' => '#F26D5B',
+    'purple' => '#7C83FD',
+    'mint' => '#3D9B7A',
+    'gold' => '#F5A04C',
+    'blue' => '#5B8DEF',
+  ];
+}
+
+/**
+ * Builds safe branding CSS variables for public event full pages.
+ *
+ * Uses Event Studio field_mel_theme_colour (resolved) only — no raw user CSS.
+ *
+ * @return array{
+ *   style: string,
+ *   colour: string,
+ *   css_vars: array<string, string>,
+ *   css_inline: string,
+ * }
+ */
+function _myeventlane_theme_build_mel_event_branding(string $style, string $colour): array {
+  $defaults = [
+    '--mel-event-page-bg' => '#FFF9F5',
+    '--mel-event-surface' => '#FFFFFF',
+    '--mel-event-soft-surface' => '#FDF1EC',
+    '--mel-event-border' => '#E9E3DE',
+    '--mel-event-accent' => '#F26D5B',
+    '--mel-event-secondary-accent' => '#7C83FD',
+  ];
+
+  $accent_map = _myeventlane_theme_event_branding_accent_hex_map();
+  $accent = $accent_map[$colour] ?? $defaults['--mel-event-accent'];
+  $accent = _myeventlane_theme_sanitize_event_branding_hex($accent, $defaults['--mel-event-accent']);
+
+  $secondary = $colour === 'purple' ? '#7C83FD' : ($colour === 'coral' ? '#7C83FD' : $accent);
+  if ($colour === 'mint') {
+    $secondary = '#7C83FD';
+  }
+  elseif ($colour === 'gold') {
+    $secondary = '#7C83FD';
+  }
+  elseif ($colour === 'blue') {
+    $secondary = '#F26D5B';
+  }
+
+  // Immersive surfaces and typography come from _event-page-themes.scss (no rgba in inline).
+  // Inline vars must not force Classic light tokens over Immersive on public full pages.
+  $style_key = strtolower(trim($style));
+  if ($style_key === 'immersive') {
+    $css_vars = [
+      '--mel-event-accent' => $accent,
+      '--mel-event-secondary-accent' => _myeventlane_theme_sanitize_event_branding_hex($secondary, $defaults['--mel-event-secondary-accent']),
+    ];
+  }
+  else {
+    $css_vars = [
+      '--mel-event-page-bg' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-page-bg'], $defaults['--mel-event-page-bg']),
+      '--mel-event-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-surface'], $defaults['--mel-event-surface']),
+      '--mel-event-soft-surface' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-soft-surface'], $defaults['--mel-event-soft-surface']),
+      '--mel-event-border' => _myeventlane_theme_sanitize_event_branding_hex($defaults['--mel-event-border'], $defaults['--mel-event-border']),
+      '--mel-event-accent' => $accent,
+      '--mel-event-secondary-accent' => _myeventlane_theme_sanitize_event_branding_hex($secondary, $defaults['--mel-event-secondary-accent']),
+    ];
+  }
+
+  $parts = [];
+  foreach ($css_vars as $name => $hex) {
+    $parts[] = $name . ': ' . $hex;
+  }
+  $css_inline = implode('; ', $parts);
+
+  return [
+    'style' => $style,
+    'colour' => $colour,
+    'css_vars' => $css_vars,
+    'css_inline' => $css_inline,
+  ];
+}
+
+/**
+ * Applies Classic/Immersive page style classes to event node template variables.
+ */
+function _myeventlane_theme_apply_event_page_style_theme_variables(array &$variables, NodeInterface $node): void {
+  if (($variables['view_mode'] ?? '') !== 'full') {
+    return;
+  }
+
+  $resolved = _myeventlane_theme_resolve_event_page_style_for_node($node);
+  $variables['event_page_style'] = $resolved['style'];
+  $variables['event_theme_colour'] = $resolved['colour'];
+  $variables['event_page_classes'] = $resolved['classes'];
+  $variables['mel_event_branding'] = _myeventlane_theme_build_mel_event_branding(
+    $resolved['style'],
+    $resolved['colour'],
+  );
+
+  if (!isset($variables['attributes']) || !$variables['attributes'] instanceof Attribute) {
+    $existing = $variables['attributes'] ?? [];
+    $variables['attributes'] = new Attribute(is_array($existing) ? $existing : []);
+  }
+  $variables['attributes']->addClass($resolved['classes']);
+  if (!empty($variables['mel_event_branding']['css_inline'])) {
+    $variables['attributes']->setAttribute('style', $variables['mel_event_branding']['css_inline']);
+  }
+}
+
 /**
  * Preprocess event nodes to resolve hero image safely.
  */
@@ -3572,6 +4267,75 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     $variables['outlook_ics_url'] = $cal_links['ics'] ?? '';
     $variables['google_calendar_url'] = $cal_links['google'] ?? '';
   }
+
+  if (empty($variables['operational_addon_teaser'])
+    && ($variables['view_mode'] ?? '') === 'full'
+    && \Drupal::moduleHandler()->moduleExists('myeventlane_commerce')
+    && \Drupal::hasService('myeventlane_commerce.event_operational_addon_teaser_builder')
+  ) {
+    $show_teaser = FALSE;
+    if (\Drupal::hasService('myeventlane_event.booking_flow_resolver')) {
+      $show_teaser = \Drupal::service('myeventlane_event.booking_flow_resolver')->getBookingMode($node) === BookingFlowResolver::MODE_PAID;
+    }
+    if ($show_teaser) {
+      /** @var \Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder $teaser_builder */
+      $teaser_builder = \Drupal::service('myeventlane_commerce.event_operational_addon_teaser_builder');
+      $variables['operational_addon_teaser'] = $teaser_builder->buildRenderArray($node, 'event');
+    }
+  }
+  if (!isset($variables['operational_addon_teaser'])) {
+    $variables['operational_addon_teaser'] = NULL;
+  }
+
+  _myeventlane_theme_attach_event_sidebar_carousel($variables);
+}
+
+/**
+ * Preprocess event nodes in full view mode (node--event--full.html.twig).
+ *
+ * Drupal registers bundle preprocess only for matching theme-hook depth; full
+ * pages use node__event__full and do not invoke preprocess_node__event.
+ */
+function myeventlane_theme_preprocess_node__event__full(array &$variables): void {
+  $node = $variables['node'] ?? NULL;
+  if ($node instanceof NodeInterface) {
+    _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
+  }
+  _myeventlane_theme_attach_event_sidebar_carousel($variables);
+}
+
+/**
+ * Attaches the event full-page sidebar carousel render array when available.
+ */
+function _myeventlane_theme_attach_event_sidebar_carousel(array &$variables): void {
+  if ((string) ($variables['view_mode'] ?? '') !== 'full') {
+    return;
+  }
+
+  $node = $variables['node'] ?? NULL;
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
+    return;
+  }
+
+  if (isset($variables['mel_sidebar_carousel'])) {
+    return;
+  }
+
+  if (!\Drupal::hasService('myeventlane_event.sidebar_carousel_builder')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_event\Service\EventSidebarCarouselBuilder $carousel_builder */
+  $carousel_builder = \Drupal::service('myeventlane_event.sidebar_carousel_builder');
+  $carousel = $carousel_builder->buildFromEventPageVariables($variables);
+  $variables['mel_sidebar_carousel'] = [
+    '#theme' => 'mel_event_sidebar_carousel',
+    '#carousel' => $carousel,
+    '#event_page_style' => $variables['event_page_style'] ?? 'classic',
+    '#attached' => [
+      'library' => ['myeventlane_theme/mel_event_sidebar_carousel'],
+    ],
+  ];
 }
 
 /**
@@ -3655,6 +4419,12 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
     $cart_presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
     $variables['mel_cart_order_summary_build'] = $cart_presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'cart']);
   }
+  if ($order instanceof OrderInterface) {
+    $variables['order_entity'] = $order;
+    _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
+    _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
+    _myeventlane_theme_attach_mel_operational_checkout($variables);
+  }
 }
 
 /**
@@ -3666,6 +4436,7 @@ function myeventlane_theme_preprocess_commerce_cart_empty_page(array &$variables
   $extension_list = \Drupal::service('extension.list.theme');
   $theme_path = $extension_list->getPath('myeventlane_theme');
   $variables['directory'] = $theme_path;
+  $variables['mel_cart_illustration_url'] = _myeventlane_theme_mel_cart_illustration_url();
   if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
     /** @var \Drupal\myeventlane_core\MelReadinessHelper $readiness */
     $readiness = \Drupal::service('myeventlane_surface.state_readiness_helper');
@@ -3732,6 +4503,10 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
   $variables['mel_signal_is_community'] = FALSE;
   $variables['mel_signal_trust_label'] = NULL;
   $variables['mel_signal_urgency_label'] = NULL;
+  $variables['mel_refund_policy_text'] = NULL;
+  $variables['event_page_style'] = 'classic';
+  $variables['event_theme_colour'] = 'coral';
+  $variables['event_page_classes'] = ['mel-event-page--classic', 'mel-event-page--colour-coral'];
 
   $variables['label'] = $variables['title'] ?? '';
   $variables['hero_image'] = NULL;
@@ -3840,6 +4615,19 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
     }
   }
 
+  if ($event->hasField('field_refund_policy') && !$event->get('field_refund_policy')->isEmpty()) {
+    $refund_key = (string) $event->get('field_refund_policy')->value;
+    $refund_map = [
+      'none_specified' => new TranslatableMarkup('No specified policy on refunds'),
+      '1_day' => new TranslatableMarkup('Refunds are available up to 1 day prior to the event'),
+      '7_days' => new TranslatableMarkup('Refunds are available up to 7 days prior to the event'),
+      '14_days' => new TranslatableMarkup('Refunds are available up to 14 days prior to the event'),
+      '30_days' => new TranslatableMarkup('Refunds are available up to 30 days prior to the event'),
+      'no_refunds' => new TranslatableMarkup('No refunds'),
+    ];
+    $variables['mel_refund_policy_text'] = $refund_map[$refund_key] ?? NULL;
+  }
+
   if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
     $vendor = $event->get('field_event_vendor')->entity;
     if ($vendor && $vendor->access('view')) {
@@ -3889,6 +4677,29 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
       || str_contains($categoryText, 'lgbtq')
       || str_contains($categoryText, 'grassroots');
   }
+
+  if (empty($variables['addons_available'])
+    && \Drupal::moduleHandler()->moduleExists('myeventlane_event_studio')
+    && \Drupal::hasService('myeventlane_event_studio.customer_operational_commerce_experience_builder')) {
+    try {
+      /** @var \Drupal\myeventlane_event_studio\Service\CustomerOperationalCommerceExperienceBuilder $mce */
+      $mce = \Drupal::service('myeventlane_event_studio.customer_operational_commerce_experience_builder');
+      $doc = $mce->buildCustomerOperationalExperienceForEvent($event);
+      _myeventlane_theme_set_mel_customer_operational_block($variables, $doc, ['node:' . $event->id()], NULL);
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->notice('MEL customer operational experience (event book) skipped for node @nid: @message', [
+        '@nid' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $variables['mel_customer_operational_experience'] = NULL;
+    }
+  }
+
+  $pageStyle = _myeventlane_theme_resolve_event_page_style_for_node($event);
+  $variables['event_page_style'] = $pageStyle['style'];
+  $variables['event_theme_colour'] = $pageStyle['colour'];
+  $variables['event_page_classes'] = $pageStyle['classes'];
 
 }
 
@@ -4203,16 +5014,115 @@ function myeventlane_theme_best_value_ticket_badge_label(?TicketTypeInterface $t
 }
 
 /**
+ * URL for the soft 3D Mel illustration (empty cart, cart toast, etc.).
+ */
+function _myeventlane_theme_mel_cart_illustration_url(): string {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  return base_path() . $theme_path . '/images/mel-empty-cart.png';
+}
+
+/**
+ * Whether status/info messages should render as MEL toasts (not inline banners).
+ *
+ * Aligns with checkout classification in MelFormClassificationResolver and
+ * mel-form-system.md (cart, checkout, event book).
+ */
+function _myeventlane_theme_status_messages_use_toasts(): bool {
+  $route = \Drupal::routeMatch()->getRouteName() ?? '';
+  $path = \Drupal::request()->getPathInfo() ?? '';
+
+  if (str_starts_with((string) $route, 'commerce_')) {
+    return TRUE;
+  }
+  if ($route === 'myeventlane_commerce.event_book') {
+    return TRUE;
+  }
+  if (preg_match('#^/cart(?:/|$)#', $path) === 1 || preg_match('#^/checkout(?:/|$)#', $path) === 1) {
+    return TRUE;
+  }
+  if (preg_match('#^/event/\d+/book/?$#', $path) === 1) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function myeventlane_theme_page_attachments(array &$attachments): void {
+  if (!_myeventlane_theme_status_messages_use_toasts()) {
+    return;
+  }
+  $attachments['#attached']['library'][] = 'myeventlane_theme/mel_toasts';
+}
+
+/**
+ * Consolidates duplicate cart success toasts into a single message.
+ *
+ * @param array<string, list<mixed>> $message_list
+ *
+ * @return array<string, list<mixed>>
+ */
+function _myeventlane_theme_consolidate_cart_toast_messages(array $message_list): array {
+  if (empty($message_list['status']) || count($message_list['status']) <= 1) {
+    return $message_list;
+  }
+
+  $cart_related = [];
+  $other = [];
+  foreach ($message_list['status'] as $message) {
+    $text = trim(strip_tags((string) $message));
+    if ($text !== '' && stripos($text, 'cart') !== FALSE) {
+      $cart_related[] = $message;
+      continue;
+    }
+    $other[] = $message;
+  }
+
+  if (count($cart_related) > 1) {
+    usort($cart_related, static function ($a, $b): int {
+      return strlen(strip_tags((string) $b)) <=> strlen(strip_tags((string) $a));
+    });
+    $cart_related = [reset($cart_related)];
+  }
+
+  $message_list['status'] = array_merge($other, $cart_related);
+  return $message_list;
+}
+
+/**
+ * Plain-text cart toast line (Commerce may embed a cart link in the message).
+ */
+function _myeventlane_theme_cart_toast_plain_text(mixed $message): string {
+  $text = trim(strip_tags((string) $message));
+  $text = preg_replace('/\s*-\s*Node\s+\d+$/i', '', $text) ?? $text;
+  $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+  return trim($text);
+}
+
+/**
  * Implements hook_preprocess_HOOK() for status_messages.
  *
  * Adds is_commerce_route for toast vs banner display.
  */
 function myeventlane_theme_preprocess_status_messages(array &$variables): void {
-  $route = \Drupal::routeMatch()->getRouteName() ?? '';
-  $path = \Drupal::request()->getPathInfo() ?? '';
+  $variables['is_commerce_route'] = _myeventlane_theme_status_messages_use_toasts();
+  if (!$variables['is_commerce_route']) {
+    return;
+  }
 
-  $variables['is_commerce_route'] =
-    str_starts_with((string) $route, 'commerce_') ||
-    str_starts_with($path, '/cart') ||
-    str_starts_with($path, '/checkout');
+  $variables['mel_toast_mascot_url'] = _myeventlane_theme_mel_cart_illustration_url();
+
+  if (!empty($variables['message_list']) && is_array($variables['message_list'])) {
+    $variables['message_list'] = _myeventlane_theme_consolidate_cart_toast_messages($variables['message_list']);
+    foreach (['status', 'info'] as $type) {
+      if (empty($variables['message_list'][$type])) {
+        continue;
+      }
+      foreach ($variables['message_list'][$type] as $key => $message) {
+        $variables['message_list'][$type][$key] = _myeventlane_theme_cart_toast_plain_text($message);
+      }
+    }
+  }
 }

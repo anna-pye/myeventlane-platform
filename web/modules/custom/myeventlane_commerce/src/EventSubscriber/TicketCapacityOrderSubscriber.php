@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
+use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\node\NodeInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
@@ -101,6 +102,13 @@ final class TicketCapacityOrderSubscriber implements EventSubscriberInterface {
         $requested_total = (int) ($event_totals[$event_id] ?? 0);
         foreach ($variations as $variation_id => $qty) {
           $variation = $variation_storage->load($variation_id);
+          if ($variation instanceof ProductVariationInterface) {
+            $variation_product = $variation->getProduct();
+            if ($variation_product !== NULL
+              && OperationalMerchandiseManager::isOperationalProductBundle($variation_product->bundle())) {
+              continue;
+            }
+          }
           if (!$variation instanceof ProductVariationInterface) {
             $this->logger->error(
               'Orphan ticket variation @vid on order @oid (event @eid): variation entity missing.',

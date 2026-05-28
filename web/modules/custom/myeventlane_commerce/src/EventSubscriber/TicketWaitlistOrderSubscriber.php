@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
+use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier;
 use Drupal\myeventlane_commerce\Service\TicketTierWaitlistService;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use Psr\Log\LoggerInterface;
@@ -23,6 +24,7 @@ final class TicketWaitlistOrderSubscriber implements EventSubscriberInterface {
     private readonly TicketAvailabilityService $ticketAvailability,
     private readonly TicketTierWaitlistService $tierWaitlist,
     private readonly LoggerInterface $logger,
+    private readonly TicketBackedOrderItemClassifier $ticketBackedOrderItemClassifier,
   ) {}
 
   /**
@@ -50,6 +52,12 @@ final class TicketWaitlistOrderSubscriber implements EventSubscriberInterface {
     }
 
     foreach ($order->getItems() as $item) {
+      if ($this->ticketBackedOrderItemClassifier->isOperationalOrderItem($item)) {
+        continue;
+      }
+      if (!$this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($item)) {
+        continue;
+      }
       if (!$item->hasField('field_target_event') || $item->get('field_target_event')->isEmpty()) {
         continue;
       }
@@ -64,14 +72,6 @@ final class TicketWaitlistOrderSubscriber implements EventSubscriberInterface {
       }
       $tier = $this->ticketAvailability->resolveTierForVariation($eventNode, $purchased);
       if (!$tier) {
-        $this->logger->notice(
-          'Completed order @oid: variation @vid has no mel_ticket_type for event @e; skipping waitlist reconcile.',
-          [
-            '@oid' => (string) $order->id(),
-            '@vid' => (string) $purchased->id(),
-            '@e' => (string) $eventId,
-          ]
-        );
         continue;
       }
       $qty = (int) $item->getQuantity();

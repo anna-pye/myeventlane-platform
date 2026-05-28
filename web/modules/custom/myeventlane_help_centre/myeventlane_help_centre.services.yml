@@ -9,6 +9,9 @@ services:
     arguments:
       - '@config.factory'
 
+  myeventlane_help_centre.help_browse_policy:
+    class: Drupal\myeventlane_help_centre\Service\HelpArticleBrowsePolicy
+
   myeventlane_help_centre.support_panel_builder:
     class: Drupal\myeventlane_help_centre\Service\SupportPanelBuilder
     arguments:
@@ -24,6 +27,15 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_help_centre.help_content_repository'
       - '@logger.factory'
+
+  myeventlane_help_centre.priority_help_article_importer:
+    class: Drupal\myeventlane_help_centre\Service\PriorityHelpArticleImporter
+    arguments:
+      - '@entity_type.manager'
+      - '@file_system'
+      - '@language_manager'
+      - '@logger.channel.myeventlane_help_centre'
+      - '%app.root%'
 
   myeventlane_help_centre.analytics:
     class: Drupal\myeventlane_help_centre\Service\HelpAnalyticsService

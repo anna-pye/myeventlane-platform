@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_theme_settings\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -33,23 +35,27 @@ final class HeroSettingsForm extends ConfigFormBase {
   ];
 
   /**
-   * The file usage service.
+   * Constructs HeroSettingsForm.
    */
-  private FileUsageInterface $fileUsage;
-
-  /**
-   * The entity type manager.
-   */
-  private EntityTypeManagerInterface $entityTypeManager;
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    TypedConfigManagerInterface $typed_config_manager,
+    protected FileUsageInterface $fileUsage,
+    protected EntityTypeManagerInterface $entityTypeManager,
+  ) {
+    parent::__construct($config_factory, $typed_config_manager);
+  }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    $instance = parent::create($container);
-    $instance->fileUsage = $container->get('file.usage');
-    $instance->entityTypeManager = $container->get('entity_type.manager');
-    return $instance;
+    return new static(
+      $container->get('config.factory'),
+      $container->get('config.typed'),
+      $container->get('file.usage'),
+      $container->get('entity_type.manager'),
+    );
   }
 
   /**

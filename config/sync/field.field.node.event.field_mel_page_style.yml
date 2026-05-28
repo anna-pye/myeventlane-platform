@@ -1,0 +1,23 @@
+uuid: c3d4e5f6-a7b8-4901-c234-56789abcdef0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_page_style
+    - node.type.event
+  module:
+    - options
+id: node.event.field_mel_page_style
+field_name: field_mel_page_style
+entity_type: node
+bundle: event
+label: 'Event page style'
+description: 'Public event page layout style (Classic or Immersive).'
+required: false
+translatable: true
+default_value:
+  -
+    value: classic
+default_value_callback: ''
+settings: {  }
+field_type: list_string

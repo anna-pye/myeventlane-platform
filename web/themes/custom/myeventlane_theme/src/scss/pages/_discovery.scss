@@ -14,23 +14,34 @@
   min-width: 0;
 }
 
-// Shared grid: explicit columns for scannable discovery density.
+// compact_commerce grids (1 → 2 → 4 columns) — same as homepage.
 .mel-discovery .mel-event-grid.mel-grid--events,
+.mel-browse__results .mel-event-grid.mel-grid--events,
+.mel-search-results .mel-event-grid.mel-grid--events,
+.mel-vendor__event-grid.mel-event-grid.mel-grid--events,
 .mel-home-discover .mel-event-grid.mel-grid--events {
   display: grid;
   gap: mel.$mel-ds-space-md;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
   min-width: 0;
+  // Avoid clipping card copy when a row was wider than its column (list_card horizontal layout).
+  overflow-x: visible;
 }
 
 .mel-discovery .mel-event-grid.mel-grid--events > *,
+.mel-browse__results .mel-event-grid.mel-grid--events > *,
+.mel-search-results .mel-event-grid.mel-grid--events > *,
+.mel-vendor__event-grid.mel-event-grid.mel-grid--events > *,
 .mel-home-discover .mel-event-grid.mel-grid--events > * {
   min-width: 0;
 }
 
 @include breakpoints.mel-break(md) {
   .mel-discovery .mel-event-grid.mel-grid--events,
+  .mel-browse__results .mel-event-grid.mel-grid--events,
+  .mel-search-results .mel-event-grid.mel-grid--events,
+  .mel-vendor__event-grid.mel-event-grid.mel-grid--events,
   .mel-home-discover .mel-event-grid.mel-grid--events {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: mel.$mel-ds-space-md;
@@ -39,6 +50,9 @@
 
 @include breakpoints.mel-break(lg) {
   .mel-discovery .mel-event-grid.mel-grid--events,
+  .mel-browse__results .mel-event-grid.mel-grid--events,
+  .mel-search-results .mel-event-grid.mel-grid--events,
+  .mel-vendor__event-grid.mel-event-grid.mel-grid--events,
   .mel-home-discover .mel-event-grid.mel-grid--events {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

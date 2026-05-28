@@ -1,0 +1,24 @@
+uuid: d79cbbfc-968a-4826-a3e6-ffbe89d313fc
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_type.hospitality_package
+    - field.storage.commerce_product.field_mel_extra_images
+    - media.type.image
+id: commerce_product.hospitality_package.field_mel_extra_images
+field_name: field_mel_extra_images
+entity_type: commerce_product
+bundle: hospitality_package
+label: 'Extra images'
+description: 'Upload product photos, detail shots, size charts, or collection reference images. The first image is shown as the main image.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      image: image
+field_type: entity_reference

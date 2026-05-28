@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Customer-style preview for one event extra (studio editor).
+ */
+#}
+{% set img = preview.primary_image|default({}) %}
+<aside class="mel-event-extra-preview mel-es-card" aria-label="{{ 'Customer preview'|t }}">
+  <h3 class="mel-event-extra-preview__heading">{{ 'Guest preview'|t }}</h3>
+  <div class="mel-event-extra-preview__card">
+    {% if img.url|default('') %}
+      <img class="mel-event-extra-preview__image" src="{{ img.url }}" alt="{{ img.alt|default(preview.title) }}" loading="lazy" />
+    {% endif %}
+    <div class="mel-event-extra-preview__body">
+      <h4 class="mel-event-extra-preview__title">{{ preview.title|default('') }}</h4>
+      {% if preview.short_description|default('') %}
+        <p class="mel-event-extra-preview__desc">{{ preview.short_description }}</p>
+      {% endif %}
+      {% if preview.pickup_note|default('') %}
+        <p class="mel-event-extra-preview__pickup">{{ preview.pickup_note }}</p>
+      {% endif %}
+      <p class="mel-event-extra-preview__cta mel-text--muted">{{ 'Add to booking (preview only)'|t }}</p>
+    </div>
+  </div>
+</aside>

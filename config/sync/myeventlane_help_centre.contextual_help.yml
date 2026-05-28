@@ -25,8 +25,8 @@ links:
     text: 'Tips for completing your event setup'
     path: /help/organisers/how-to-create-an-event
   checkout:
-    text: 'Help with checkout and tickets'
-    path: /help/attendees/how-to-request-a-refund
+    text: 'Having trouble checking out?'
+    path: /help/attendees/having-trouble-checking-out
   refunds:
     text: 'How refunds work on MyEventLane'
     path: /help/attendees/how-to-request-a-refund

@@ -1,16 +1,10 @@
 {#
 /**
  * @file
- * Template override for Upcoming Events view category page display.
- *
- * Canonical event grid wrapper - no additional markup.
+ * Upcoming Events — page_category: category browse grid.
  */
 #}
-{% if rows %}
-  {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
-  <div class="mel-event-grid mel-grid mel-grid--events" data-loaded="false">
-    {% for row in rows %}
-      {{- row.content -}}
-    {% endfor %}
-  </div>
-{% endif %}
+{% include '@myeventlane_theme/includes/mel-event-rows-wrapper.html.twig' with {
+  rows: rows,
+  mel_is_event_view: mel_is_event_view|default(true),
+} only %}

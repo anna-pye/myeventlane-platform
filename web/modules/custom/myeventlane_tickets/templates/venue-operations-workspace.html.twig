@@ -21,6 +21,15 @@
     {% if meta.capability_projection_enabled is defined and meta.capability_projection_enabled %}
       <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Operational entitlement capability projections are enabled for your account (read-only).'|t }}</p>
     {% endif %}
+    {% if meta.coordination_projection_enabled is defined and meta.coordination_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Operational coordination projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+    {% if meta.fulfillment_projection_enabled is defined and meta.fulfillment_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Fulfillment lifecycle projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+    {% if meta.fulfillment_execution_projection_enabled is defined and meta.fulfillment_execution_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Fulfillment execution orchestration projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
   </header>
 
   {% for section in sections %}

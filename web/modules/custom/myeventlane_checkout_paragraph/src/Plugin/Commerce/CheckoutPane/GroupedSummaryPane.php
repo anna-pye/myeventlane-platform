@@ -39,9 +39,12 @@ final class GroupedSummaryPane extends CheckoutPaneBase {
         $pane_form['summary'] = $rendered;
       }
       else {
-        // Return empty array to hide the pane when view is empty.
-        return [];
+        // Sidebar panes do not get Commerce's main-pane empty #access handling.
+        $pane_form['#access'] = FALSE;
       }
+    }
+    else {
+      $pane_form['#access'] = FALSE;
     }
     return $pane_form;
   }

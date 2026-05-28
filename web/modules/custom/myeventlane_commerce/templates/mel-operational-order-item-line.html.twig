@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Customer line label for an Event Extra order item (cart / summaries).
+ *
+ * Variables:
+ * - display: sanitized array from OperationalOrderItemDisplayBuilder.
+ */
+#}
+{% set d = display|default({}) %}
+<div class="mel-event-extra-line">
+  {% if d.thumbnail_url|default('') %}
+    <img class="mel-event-extra-line__thumb" src="{{ d.thumbnail_url }}" alt="{{ d.thumbnail_alt|default(d.title|default('')) }}" loading="lazy" width="64" height="64" />
+  {% endif %}
+  <div class="mel-event-extra-line__content">
+    {% if d.title|default('') %}
+      <div class="mel-event-extra-line__title">{{ d.title }}</div>
+    {% endif %}
+    {% if d.size_label|default('') %}
+      <p class="mel-event-extra-line__size">{{ 'Size: @size'|t({'@size': d.size_label}) }}</p>
+    {% elseif d.variation_label|default('') %}
+      <p class="mel-event-extra-line__size">{{ 'Size: @size'|t({'@size': d.variation_label}) }}</p>
+    {% endif %}
+    {% if d.pickup_note|default('') %}
+      <p class="mel-event-extra-line__pickup">{{ d.pickup_note }}</p>
+    {% elseif d.description|default('') %}
+      <p class="mel-event-extra-line__description">{{ d.description }}</p>
+    {% endif %}
+    {% if d.price_display|default('') %}
+      <p class="mel-event-extra-line__price">{{ d.price_display }}</p>
+    {% endif %}
+    {% if d.subtitle|default('') %}
+      <p class="mel-event-extra-line__subtitle mel-text--muted">{{ d.subtitle }}</p>
+    {% endif %}
+    {% if d.chips|default([])|length > 0 %}
+      <ul class="mel-event-extra-line__chips" aria-label="{{ 'Extra details'|t }}">
+        {% for chip in d.chips %}
+          <li class="mel-event-extra-line__chip mel-event-extra-line__chip--{{ chip.tone|default('muted')|clean_class }}">{{ chip.label|default('') }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>

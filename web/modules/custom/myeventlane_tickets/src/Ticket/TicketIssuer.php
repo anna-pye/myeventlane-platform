@@ -6,9 +6,11 @@ namespace Drupal\myeventlane_tickets\Ticket;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\mel_ticket\Entity\TicketType;
+use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifierInterface;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\node\NodeInterface;
 
@@ -21,6 +23,7 @@ final class TicketIssuer {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TicketCodeGenerator $codeGenerator,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly TicketBackedOrderItemClassifierInterface $ticketBackedOrderItemClassifier,
   ) {}
 
   /**
@@ -36,14 +39,12 @@ final class TicketIssuer {
         continue;
       }
 
-      $purchased_entity = $order_item->getPurchasedEntity();
-      if (!$purchased_entity || $purchased_entity->getEntityTypeId() !== 'commerce_product_variation') {
+      if (!$this->isOrderItemEligibleForTicketIssuance($order_item)) {
         continue;
       }
 
-      if (!$this->resolveEventFromOrderItem($order_item)) {
-        continue;
-      }
+      /** @var \Drupal\commerce_product\Entity\ProductVariationInterface $purchased_entity */
+      $purchased_entity = $order_item->getPurchasedEntity();
 
       $qty = (int) $order_item->getQuantity();
       if ($qty < 1) {
@@ -61,7 +62,11 @@ final class TicketIssuer {
    */
   public function isOrderItemEligibleForTicketIssuance(OrderItemInterface $order_item): bool {
     $purchased_entity = $order_item->getPurchasedEntity();
-    if (!$purchased_entity || $purchased_entity->getEntityTypeId() !== 'commerce_product_variation') {
+    if (!$purchased_entity instanceof ProductVariationInterface) {
+      return FALSE;
+    }
+
+    if (!$this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($order_item)) {
       return FALSE;
     }
 
@@ -98,10 +103,12 @@ final class TicketIssuer {
         continue;
       }
 
-      $purchased_entity = $order_item->getPurchasedEntity();
-      if (!$purchased_entity || $purchased_entity->getEntityTypeId() !== 'commerce_product_variation') {
+      if (!$this->isOrderItemEligibleForTicketIssuance($order_item)) {
         continue;
       }
+
+      /** @var \Drupal\commerce_product\Entity\ProductVariationInterface $purchased_entity */
+      $purchased_entity = $order_item->getPurchasedEntity();
 
       $event = $this->resolveEventFromOrderItem($order_item);
       if (!$event) {

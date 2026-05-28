@@ -281,6 +281,9 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
       $this->container->get('myeventlane_tickets.universal_ticket_view_model_builder'),
       $this->container->get('myeventlane_core.ticket_label_resolver'),
       $this->container->get('string_translation'),
+      $this->container->has('myeventlane_commerce.operational_order_item_display_builder')
+        ? $this->container->get('myeventlane_commerce.operational_order_item_display_builder')
+        : NULL,
     );
   }
 

@@ -94,6 +94,24 @@
         {% endif %}
       </div>
 
+      {% if mel_operational_fulfillment_execution_customer %}
+        <div class="mel-cart-fulfillment-execution mel-mt-3" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
+          {{ mel_operational_fulfillment_execution_customer }}
+        </div>
+      {% endif %}
+
+      {% if mel_operational_purchase_composition %}
+        <div class="mel-cart-operational-composition mel-mt-3" role="region" aria-label="{{ 'Operational packages'|t }}">
+          {{ mel_operational_purchase_composition }}
+        </div>
+      {% endif %}
+
+      {% if mel_operational_checkout %}
+        <div class="mel-cart-operational-checkout mel-mt-3" role="region" aria-label="{{ 'Operational checkout plan'|t }}">
+          {{ mel_operational_checkout }}
+        </div>
+      {% endif %}
+
       <div class="mel-cart-actions">
         {{ form.actions }}
       </div>

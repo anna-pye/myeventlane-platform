@@ -33,6 +33,22 @@
       <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelAttendeeCheckinManagerTest.php</file>
       <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelVendorOperationsRoutesYamlTest.php</file>
       <file>modules/custom/myeventlane_event_attendees/tests/src/Unit/MelAttendeeExportBuilderTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Kernel/OperationalCoordinationStateConvergenceKernelTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Kernel/FulfillmentLifecycleConvergenceKernelTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Kernel/OperationalFulfillmentExecutionKernelTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionManagerTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionGovernanceManagerTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Unit/OperationalFulfillmentExecutionProjectionBuilderTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalMerchandiseManagerTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalMerchandiseGovernanceManagerTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalMerchandiseKernelTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalCheckoutOrchestrationManagerTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalCheckoutKernelTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalCheckoutGovernanceManagerTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalCustomerGuidanceBuilderTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalCartProjectionBuilderTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalOrderItemDisplayBuilderTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Unit/TicketBackedOrderItemClassifierTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

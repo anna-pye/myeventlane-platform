@@ -14,9 +14,9 @@ use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
+use Drupal\myeventlane_event\Service\EventPasscodeAccess;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
-use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
-use Drupal\myeventlane_questions\Service\QuestionTemplateCloner;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
@@ -37,8 +37,6 @@ use Psr\Log\LoggerInterface;
  */
 final class EventStudioSaveService {
 
-  private const ATTENDEE_QUESTION_LIMIT = 5;
-
   /**
    * Warn when the saved hero is meaningfully smaller than MEL hero derivatives.
    */
@@ -58,7 +56,9 @@ final class EventStudioSaveService {
     private readonly ImageFactory $imageFactory,
     private readonly TranslationInterface $stringTranslation,
     private readonly FileSystemInterface $fileSystem,
-    private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
+    private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
+    private readonly ?EventPageStyleResolver $eventPageStyleResolver = NULL,
+    private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
   ) {}
 
   /**
@@ -309,6 +309,16 @@ final class EventStudioSaveService {
     $attendee_errors = $this->syncAttendeeQuestions($node, $payload, $account);
     if ($attendee_errors !== []) {
       return ['node' => NULL, 'errors' => $attendee_errors];
+    }
+
+    $visibility_errors = $this->applyVisibilityPayload($node, $payload);
+    if ($visibility_errors !== []) {
+      return ['node' => NULL, 'errors' => $visibility_errors];
+    }
+
+    $capability_errors = $this->applyOperationalCapabilitiesPayload($node, $payload);
+    if ($capability_errors !== []) {
+      return ['node' => NULL, 'errors' => $capability_errors];
     }
 
     if (!$draft && $willPublish) {
@@ -833,6 +843,52 @@ final class EventStudioSaveService {
   }
 
   /**
+   * Sets field_event_visibility and manages field_event_passcode_hash.
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function applyVisibilityPayload(NodeInterface $node, array $payload): array {
+    if (!array_key_exists('field_event_visibility', $payload)) {
+      return [];
+    }
+
+    $visibility = trim((string) $payload['field_event_visibility']);
+    if ($visibility === '') {
+      return [];
+    }
+
+    $visibility = PublicEventVisibility::normalizeVisibilityValue($visibility);
+
+    if ($node->hasField('field_event_visibility')) {
+      $node->set('field_event_visibility', $visibility);
+    }
+
+    if (!$node->hasField('field_event_passcode_hash')) {
+      return [];
+    }
+
+    if ($visibility === PublicEventVisibility::VISIBILITY_PASSCODE) {
+      $new_passcode = trim((string) ($payload['event_passcode'] ?? ''));
+      if ($new_passcode !== '') {
+        if ($this->passcodeAccess === NULL) {
+          $this->logger->error('Event Studio: cannot hash passcode — EventPasscodeAccess service not injected for event @nid.', [
+            '@nid' => (string) ($node->id() ?? 'new'),
+          ]);
+          return ['Passcode service is temporarily unavailable.'];
+        }
+        $node->set('field_event_passcode_hash', $this->passcodeAccess->hashPasscode($new_passcode));
+      }
+    }
+    else {
+      $node->set('field_event_passcode_hash', NULL);
+    }
+
+    return [];
+  }
+
+  /**
    * @return list<string>
    */
   private function listStringValueKeys(FieldDefinitionInterface $definition): array {
@@ -947,26 +1003,45 @@ final class EventStudioSaveService {
           $file->setPermanent();
           $file->save();
         }
-        if (!$items->isEmpty()) {
-          $values = $items->getValue();
-          $first = $values[0] ?? NULL;
-          if (is_array($first)) {
-            $values[0] = $this->enrichBrandingHeroFieldItem($first, $file);
-          }
-          $node->set('field_event_image', $values);
+        $values = $items->isEmpty() ? [] : $items->getValue();
+        $row = [];
+        if ($values !== [] && isset($values[0]) && is_array($values[0])) {
+          $row = $values[0];
         }
         else {
-          $item = [
+          $row = [
             'target_id' => $fid,
             'alt' => $alt,
             'title' => '',
           ];
-          $node->set('field_event_image', [
-            $this->enrichBrandingHeroFieldItem($item, $file),
-          ]);
         }
+        $from_mel = EventStudioMelPayloadService::buildHeroFieldItemFromMelFragment($mel_values);
+        if ($from_mel !== NULL) {
+          foreach (['focal_point', 'width', 'height', 'title'] as $key) {
+            if (!array_key_exists($key, $from_mel)) {
+              continue;
+            }
+            $candidate = $from_mel[$key];
+            if ($candidate !== '' && $candidate !== NULL) {
+              $row[$key] = $candidate;
+            }
+          }
+        }
+        $node->set('field_event_image', [
+          $this->enrichBrandingHeroFieldItem($row, $file),
+        ]);
         $warnings = $this->buildBrandingHeroDimensionWarnings($file);
       }
+    }
+
+    $gallery_errors = $this->saveBrandingGalleryField($node, $mel_structure, $form_state);
+    if ($gallery_errors !== []) {
+      return ['node' => NULL, 'errors' => $gallery_errors, 'warnings' => []];
+    }
+
+    $style_errors = $this->applyBrandingPageStyleFields($node, $mel_values);
+    if ($style_errors !== []) {
+      return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
     }
 
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
@@ -982,6 +1057,76 @@ final class EventStudioSaveService {
     }
 
     return ['node' => $node, 'errors' => [], 'warnings' => $warnings];
+  }
+
+  /**
+   * Persists optional gallery media from the branding form widget.
+   *
+   * @param array<string, mixed> $mel_structure
+   *
+   * @return list<string>
+   */
+  private function saveBrandingGalleryField(NodeInterface $node, array $mel_structure, FormStateInterface $form_state): array {
+    if (!$node->hasField('field_mel_event_gallery')) {
+      return [];
+    }
+
+    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    if (!$display instanceof EntityFormDisplay) {
+      return [];
+    }
+
+    $widget = $display->getRenderer('field_mel_event_gallery');
+    if ($widget === NULL) {
+      return [];
+    }
+
+    if (!isset($mel_structure['field_mel_event_gallery'])) {
+      return [];
+    }
+
+    try {
+      $items = $node->get('field_mel_event_gallery');
+      $widget->extractFormValues($items, $mel_structure, $form_state);
+      $node->set('field_mel_event_gallery', $items->getValue());
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding gallery save failed for node @nid: @m', [
+        '@nid' => (string) $node->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return ['Could not save event gallery.'];
+    }
+
+    return [];
+  }
+
+  /**
+   * Persists page style and theme colour from the branding mel fragment.
+   *
+   * @param array<string, mixed> $mel_values
+   *
+   * @return list<string>
+   */
+  private function applyBrandingPageStyleFields(NodeInterface $node, array $mel_values): array {
+    if (!$this->eventPageStyleResolver instanceof EventPageStyleResolver) {
+      return [];
+    }
+
+    $account = \Drupal::currentUser();
+    $resolved = $this->eventPageStyleResolver->resolveForPersistence($node, $mel_values, $account);
+
+    if ($node->hasField('field_mel_page_style')
+      && array_key_exists('field_mel_page_style', $mel_values)) {
+      $node->set('field_mel_page_style', $resolved['style']);
+    }
+
+    if ($node->hasField('field_mel_theme_colour')
+      && array_key_exists('field_mel_theme_colour', $mel_values)) {
+      $node->set('field_mel_theme_colour', $resolved['colour']);
+    }
+
+    return [];
   }
 
   /**
@@ -1214,230 +1359,53 @@ final class EventStudioSaveService {
       return [];
     }
 
+    if ($this->questionTemplateManager === NULL) {
+      $this->logger->error('Event Studio: attendee questions save failed — question template manager not injected.');
+      return ['Attendee questions could not be saved.'];
+    }
+
     $items = $payload['attendee_questions'];
     if (!is_array($items)) {
       return ['Attendee questions data was invalid. Reload and try again.'];
     }
-    if (count($items) > self::ATTENDEE_QUESTION_LIMIT) {
-      return ['Add at most 5 attendee questions. More questions may reduce bookings.'];
-    }
 
-    $field_map = $this->resolveAttendeeQuestionFieldMap();
-    if ($field_map === NULL) {
-      $this->logger->error('Event Studio: attendee questions save failed — paragraph field map missing for attendee_extra_field.');
-      return ['Attendee questions are not available on this site configuration.'];
-    }
-
-    $paragraph_bundle = $this->entityTypeManager->getStorage('paragraphs_type')->load('attendee_extra_field');
-    if ($paragraph_bundle === NULL) {
-      $this->logger->error('Event Studio: attendee questions save failed — paragraph bundle attendee_extra_field missing.');
-      return ['Attendee questions could not be saved.'];
-    }
-
-    try {
-      $node->set('field_attendee_questions', []);
-      $references = [];
-
-      foreach ($items as $index => $question) {
-        if (!is_array($question)) {
-          return [sprintf('Attendee question at index %d was invalid.', (int) $index)];
-        }
-
-        $vendor_qid = isset($question['vendor_question_id']) ? (int) $question['vendor_question_id'] : 0;
-        if ($vendor_qid > 0) {
-          if ($this->questionTemplateCloner === NULL) {
-            $this->logger->error('Event Studio: cannot clone vendor_question @id — QuestionTemplateCloner service not injected.', [
-              '@id' => (string) $vendor_qid,
-            ]);
-            return ['Organiser question library is temporarily unavailable. Reload the page or contact support.'];
-          }
-          $storage = $this->entityTypeManager->getStorage('vendor_question');
-          $template = $storage->load($vendor_qid);
-          if ($template instanceof VendorQuestionInterface && $this->vendorQuestionAccessible($template, $account)) {
-            $paragraph = $this->questionTemplateCloner->cloneToParagraph($template);
-            $references[] = [
-              'target_id' => (int) $paragraph->id(),
-              'target_revision_id' => (int) $paragraph->getRevisionId(),
-            ];
-          }
-          continue;
-        }
-
-        $label = trim((string) ($question['label'] ?? ''));
-        $type = trim((string) ($question['type'] ?? 'textfield'));
-        $required = !empty($question['required']);
-
-        if ($label === '') {
-          return [sprintf('Each attendee question needs a label (row %d).', (int) $index + 1)];
-        }
-
-        $paragraph = Paragraph::create([
-          'type' => 'attendee_extra_field',
-        ]);
-        $paragraph->set($field_map['label'], $label);
-        $paragraph->set($field_map['type'], $this->normalizeAttendeeQuestionTypeValue($type));
-        $paragraph->set($field_map['required'], $required ? 1 : 0);
-        if ($paragraph->hasField('field_question_status')) {
-          $paragraph->set('field_question_status', $this->normalizeAttendeeQuestionStatusValue((string) ($question['status'] ?? 'active')));
-        }
-        if ($paragraph->hasField('field_question_applicability')) {
-          $paragraph->set('field_question_applicability', $this->normalizeAttendeeQuestionApplicabilityValue((string) ($question['applicability'] ?? 'per_ticket')));
-        }
-        if ($paragraph->hasField('field_question_ticket_types')) {
-          $ticket_type_references = [];
-          if (isset($question['ticket_type_ids']) && is_array($question['ticket_type_ids'])) {
-            foreach ($question['ticket_type_ids'] as $ticket_type_id) {
-              $ticket_type_id = (int) $ticket_type_id;
-              if ($ticket_type_id > 0) {
-                $ticket_type_references[] = ['target_id' => $ticket_type_id];
-              }
-            }
-          }
-          $paragraph->set('field_question_ticket_types', $ticket_type_references);
-        }
-
-        $normalized_type = $this->normalizeAttendeeQuestionTypeValue($type);
-        if ($paragraph->hasField('field_question_options')) {
-          $needs_opts = $this->fieldTypeRegistry->requiresOptions($normalized_type);
-          if ($needs_opts) {
-            $lines = [];
-            if (isset($question['options']) && is_array($question['options'])) {
-              foreach ($question['options'] as $opt_line) {
-                $t = trim((string) $opt_line);
-                if ($t !== '') {
-                  $lines[] = $t;
-                }
-              }
-            }
-            if ($lines === []) {
-              return [sprintf('Add at least one choice for question %d.', (int) $index + 1)];
-            }
-            $paragraph->set('field_question_options', ['value' => implode("\n", $lines)]);
-          }
-          else {
-            $paragraph->set('field_question_options', NULL);
-          }
-        }
-
-        if ($paragraph->hasField('field_question_machine_name')) {
-          $machine = trim((string) ($question['machine_name'] ?? ''));
-          if ($machine === '') {
-            $machine = $this->machineNameFromLabel($label);
-          }
-          $paragraph->set('field_question_machine_name', $machine);
-        }
-
-        if (!empty($question['save_to_library'])) {
-          $paragraph->save_to_library = TRUE;
-        }
-
-        $paragraph->save();
-
-        $references[] = [
-          'target_id' => (int) $paragraph->id(),
-          'target_revision_id' => (int) $paragraph->getRevisionId(),
-        ];
-      }
-
-      $node->set('field_attendee_questions', $references);
-
-      if ($references !== [] && $node->hasField('field_collect_per_ticket')) {
-        $node->set('field_collect_per_ticket', TRUE);
-      }
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Event Studio: sync attendee questions failed: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-      return ['Could not save attendee questions.'];
-    }
-
-    return [];
+    return $this->questionTemplateManager->saveBuilderPayload($node, $items, $account);
   }
 
   /**
-   * @return array{label: string, type: string, required: string}|null
+   * Persists mel_operational_capabilities authoring metadata when present in payload.
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
    */
-  private function resolveAttendeeQuestionFieldMap(): ?array {
-    $mapping = [
-      'label' => NULL,
-      'type' => NULL,
-      'required' => NULL,
-    ];
-
-    $label_candidates = ['field_label', 'field_question_label'];
-    $type_candidates = ['field_type', 'field_question_type'];
-    $required_candidates = ['field_required', 'field_question_required'];
-
-    foreach ($label_candidates as $candidate) {
-      if ($this->entityTypeManager->getStorage('field_config')->load("paragraph.attendee_extra_field.$candidate")) {
-        $mapping['label'] = $candidate;
-        break;
+  private function applyOperationalCapabilitiesPayload(NodeInterface $node, array $payload): array {
+    if ($this->operationalCapabilityStudioManager === NULL) {
+      return [];
+    }
+    if (!array_key_exists('mel_operational_capabilities', $payload)) {
+      return [];
+    }
+    $raw = $payload['mel_operational_capabilities'];
+    if (!is_array($raw)) {
+      return ['Operational capabilities data was invalid.'];
+    }
+    try {
+      $document = $this->operationalCapabilityStudioManager->normalizeMelFragment(['mel_operational_capabilities' => $raw], $node);
+      $errors = $this->operationalCapabilityStudioManager->validateDocument($node, $document);
+      if ($errors !== []) {
+        return $errors;
       }
+      $this->operationalCapabilityStudioManager->persistToEvent($node, $document);
     }
-    foreach ($type_candidates as $candidate) {
-      if ($this->entityTypeManager->getStorage('field_config')->load("paragraph.attendee_extra_field.$candidate")) {
-        $mapping['type'] = $candidate;
-        break;
-      }
+    catch (\Throwable $e) {
+      $this->logger->error('Studio operational capability save failed for node @nid: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return ['Could not save operational capabilities.'];
     }
-    foreach ($required_candidates as $candidate) {
-      if ($this->entityTypeManager->getStorage('field_config')->load("paragraph.attendee_extra_field.$candidate")) {
-        $mapping['required'] = $candidate;
-        break;
-      }
-    }
-
-    if ($mapping['label'] === NULL || $mapping['type'] === NULL || $mapping['required'] === NULL) {
-      return NULL;
-    }
-
-    return [
-      'label' => $mapping['label'],
-      'type' => $mapping['type'],
-      'required' => $mapping['required'],
-    ];
-  }
-
-  private function normalizeAttendeeQuestionTypeValue(string $type): string {
-    return $this->fieldTypeRegistry->normalize($type);
-  }
-
-  private function normalizeAttendeeQuestionStatusValue(string $status): string {
-    return trim($status) === 'archived' ? 'archived' : 'active';
-  }
-
-  private function normalizeAttendeeQuestionApplicabilityValue(string $applicability): string {
-    return match (trim($applicability)) {
-      'per_ticket_type' => 'per_ticket_type',
-      'per_order' => 'per_order',
-      default => 'per_ticket',
-    };
-  }
-
-  private function machineNameFromLabel(string $label): string {
-    $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '_', $label));
-    $slug = trim((string) preg_replace('/_+/', '_', $slug), '_');
-    return $slug !== '' ? $slug : 'question_' . substr(hash('sha256', $label), 0, 10);
-  }
-
-  private function vendorQuestionAccessible(VendorQuestionInterface $question, AccountInterface $account): bool {
-    if ($account->hasPermission('administer site configuration')) {
-      return TRUE;
-    }
-    $store = $question->getStore();
-    if ($store === NULL) {
-      return FALSE;
-    }
-    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadByProperties([
-      'uid' => $account->id(),
-    ]);
-    $vendor = reset($vendors);
-    if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
-      return FALSE;
-    }
-    $vendor_store = $vendor->get('field_vendor_store')->entity;
-    return $vendor_store && (int) $vendor_store->id() === (int) $store->id();
+    return [];
   }
 
 }

@@ -24,6 +24,36 @@
     line-height: 1.45;
     color: mel.$mel-ds-color-muted;
   }
+
+  &__lede {
+    max-width: 42rem;
+  }
+
+  &__prompt {
+    margin-top: mel.$mel-ds-space-sm;
+    font-size: mel.$mel-ds-font-body;
+    font-weight: 600;
+    color: mel.$mel-ds-color-text;
+  }
+}
+
+.mel-browse-quicklinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 mel.$mel-ds-space-lg;
+  padding: 0;
+
+  .mel-filter-chip {
+    min-height: 44px;
+    align-items: center;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: none;
+    }
+  }
 }
 
 .mel-filter-panel {
