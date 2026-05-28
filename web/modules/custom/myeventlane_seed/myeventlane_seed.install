@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for myeventlane_seed.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Config\FileStorage;
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_seed_install(): void {
+  myeventlane_seed_install_default_config();
+}
+
+/**
+ * Ensures default demo content settings exist on existing sites.
+ */
+function myeventlane_seed_update_9001(): string {
+  myeventlane_seed_install_default_config();
+  return 'Installed myeventlane_seed.settings default configuration.';
+}
+
+/**
+ * Imports myeventlane_seed.settings from config/install when missing.
+ */
+function myeventlane_seed_install_default_config(): void {
+  $config_factory = \Drupal::configFactory();
+  if (!$config_factory->get('myeventlane_seed.settings')->isNew()) {
+    return;
+  }
+
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_seed');
+  $storage = new FileStorage($module_path . '/config/install');
+  $data = $storage->read('myeventlane_seed.settings');
+  if (is_array($data)) {
+    $config_factory->getEditable('myeventlane_seed.settings')->setData($data)->save();
+  }
+}

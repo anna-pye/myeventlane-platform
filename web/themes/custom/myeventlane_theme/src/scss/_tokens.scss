@@ -5,7 +5,17 @@
 }
 
 .mel-muted { color: var(--mel-muted); }
-.mel-link { color: var(--mel-ink); text-decoration: underline; text-underline-offset: 3px; }
+.mel-link {
+  color: var(--mel-primary, var(--mel-ink));
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: none;
+    color: color-mix(in srgb, var(--mel-primary, var(--mel-ink)) 85%, #000);
+  }
+}
 .mel-text-coral { color: var(--mel-coral); }
 
 .visually-hidden {

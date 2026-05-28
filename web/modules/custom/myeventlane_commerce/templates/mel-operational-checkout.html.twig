@@ -1,0 +1,73 @@
+{#
+/**
+ * Customer-safe operational checkout orchestration (mel_operational_checkout).
+ *
+ * @see \Drupal\myeventlane_commerce\Service\OperationalCheckoutOrchestrationManager
+ */
+#}
+{% set c = checkout|default({}) %}
+{% if c.checkout_groups is defined and c.checkout_groups is not empty %}
+<section class="mel-op-checkout mel-card mel-card--pastel" aria-label="{{ 'Pickup and add-on reminders'|t }}">
+  <h2 class="mel-op-checkout__title">{{ 'Pickup and add-on reminders'|t }}</h2>
+
+  {% if c.governance is defined and c.governance.severity_label %}
+    {% set sev = c.governance.severity|default('nominal') %}
+    <p class="mel-op-checkout__governance mel-op-checkout__governance--{{ sev|e('html_attr') }}">{{ c.governance.severity_label }}</p>
+  {% endif %}
+
+  {% if c.operational_banners is defined and c.operational_banners is not empty %}
+    <div class="mel-op-checkout__banners" role="status">
+      {% for banner in c.operational_banners %}
+        <div class="mel-op-checkout__banner mel-op-checkout__banner--{{ banner.tone|default('info')|e('html_attr') }}">
+          <span class="mel-op-checkout__banner-label">{{ banner.label }}</span>
+          <span>{{ banner.body }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if c.customer_guidance is defined and c.customer_guidance is not empty %}
+    <ul class="mel-op-checkout__guidance">
+      {% for g in c.customer_guidance %}
+        <li>{{ g.body }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="mel-op-checkout__groups">
+    {% for group in c.checkout_groups %}
+      <div class="mel-op-checkout__group">
+        <h3 class="mel-op-checkout__group-title">{{ group.label }}</h3>
+        <div class="mel-op-checkout__cards">
+          {% for line in group.lines %}
+            {% set pres = line.presentation ?? {} %}
+            <article class="mel-op-checkout__card">
+              <p class="mel-op-checkout__card-title">{{ pres.operational_summary|default('') }}</p>
+              {% if pres.operational_chips is defined and pres.operational_chips is not empty %}
+                <div class="mel-op-checkout__chips">
+                  {% for chip in pres.operational_chips %}
+                    <span class="mel-pill mel-pill--operational mel-pill--tone-{{ chip.tone|default('muted')|e('html_attr') }}">{{ chip.label }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if c.continuity_groups is defined and c.continuity_groups is not empty %}
+    <div class="mel-op-checkout__continuity" role="region" aria-label="{{ 'Continuity reminders'|t }}">
+      <strong>{{ 'Continuity'|t }}</strong>
+      <ul>
+        {% for row in c.continuity_groups %}
+          {% if row.summary is defined %}
+            <li>{{ row.summary }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</section>
+{% endif %}

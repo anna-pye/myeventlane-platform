@@ -1,0 +1,9 @@
+myeventlane_seed.demo_content_settings:
+  path: '/admin/config/myeventlane/demo-content'
+  defaults:
+    _form: '\Drupal\myeventlane_seed\Form\DemoContentSettingsForm'
+    _title: 'Demo content generation'
+  requirements:
+    _permission: 'administer myeventlane demo content'
+  options:
+    _admin_route: TRUE

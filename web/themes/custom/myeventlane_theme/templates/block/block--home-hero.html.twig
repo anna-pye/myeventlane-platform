@@ -31,7 +31,7 @@
       {% if categories is defined and categories|length %}
         {% for term in categories %}
           {% set term_normalized = term.name|lower|replace({' ': '-', '&': 'and', '+': ''}) %}
-          <a href="{{ path('view.upcoming_events.page_category', {'arg_0': term.tid}) }}" class="category-button tag-{{ term_normalized }}">
+          <a href="{{ term.url|default(path('view.upcoming_events.page_category', {'arg_0': term.slug|default(term.tid)})) }}" class="category-button tag-{{ term_normalized }}">
             {{ term.name }}
           </a>
         {% endfor %}

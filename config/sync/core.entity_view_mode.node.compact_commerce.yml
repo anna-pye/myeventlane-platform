@@ -1,0 +1,11 @@
+uuid: 05bea4bc-7246-4d4f-a0c5-48aed8dccd0f
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.compact_commerce
+label: 'Compact commerce'
+description: 'Homepage grid event card with commerce cues.'
+targetEntityType: node
+cache: true

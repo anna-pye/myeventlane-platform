@@ -222,6 +222,29 @@ services:
   myeventlane_core.category_color:
     class: Drupal\myeventlane_core\Service\CategoryColorService
 
+  myeventlane_core.event_category_url:
+    class: Drupal\myeventlane_core\Service\EventCategoryUrlService
+    arguments:
+      - '@entity_type.manager'
+      - '@cache.data'
+      - '@datetime.time'
+
+  myeventlane_core.event_category_canonical_redirect_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\EventCategoryCanonicalRedirectSubscriber
+    arguments:
+      - '@myeventlane_core.event_category_url'
+      - '@?path_alias.manager'
+      - '@logger.channel.myeventlane_core'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_core.event_category_request_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\EventCategoryRequestSubscriber
+    arguments:
+      - '@myeventlane_core.event_category_url'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_core.front_category_stats:
     class: Drupal\myeventlane_core\Service\FrontCategoryStatsService
     arguments:
@@ -230,6 +253,7 @@ services:
       - '@datetime.time'
       - '@myeventlane_core.category_color'
       - '@config.factory'
+      - '@myeventlane_core.event_category_url'
 
   myeventlane_core.homepage_location:
     class: Drupal\myeventlane_core\Service\HomepageLocationService

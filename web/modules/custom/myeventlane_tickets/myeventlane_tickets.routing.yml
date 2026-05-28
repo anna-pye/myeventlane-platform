@@ -1,3 +1,14 @@
+# Staff venue operations workspace (read-only shell).
+myeventlane_tickets.venue_operations_workspace:
+  path: '/admin/mel/operations'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\VenueOperationsController::page'
+    _title_callback: '\Drupal\myeventlane_tickets\Controller\VenueOperationsController::title'
+  requirements:
+    _custom_access: 'myeventlane_tickets.operational_workspace_access:accessWorkspace'
+  options:
+    _admin_route: TRUE
+
 # Admin settings page.
 myeventlane_tickets.settings:
   path: '/admin/config/myeventlane/tickets'
@@ -59,10 +70,10 @@ myeventlane_tickets.event_tickets_types:
 myeventlane_tickets.event_tickets_settings:
   path: '/vendor/events/{event}/tickets/settings'
   defaults:
-    _controller: 'myeventlane_event_studio.controller:redirectEventToTicketsWorkspace'
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::settings'
     _title: 'Ticket settings'
   requirements:
-    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
   options:
     parameters:
       event:
@@ -132,11 +143,13 @@ myeventlane_tickets.event_tickets_access_codes:
     _controller: '\Drupal\myeventlane_tickets\Controller\VendorEventAccessCodesController::list'
     _title: 'Access codes'
   requirements:
-    _permission: 'manage own events tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
   options:
     parameters:
       event:
         type: entity:node
+        bundle:
+          - event
 
 myeventlane_tickets.event_tickets_access_codes_add:
   path: '/vendor/events/{event}/tickets/access-codes/add'

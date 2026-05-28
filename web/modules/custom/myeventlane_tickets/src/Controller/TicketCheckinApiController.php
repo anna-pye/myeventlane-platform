@@ -65,7 +65,8 @@ final class TicketCheckinApiController extends ControllerBase {
       return new JsonResponse(['ok' => FALSE, 'result' => 'error', 'message' => 'Rate limit exceeded. Try again shortly.'], 429);
     }
 
-    $result = $this->ticketCheckinService->checkIn((int) $event->id(), $input, $device_id, $mode);
+    $operational_context = $this->extractOperationalDeviceContext($data);
+    $result = $this->ticketCheckinService->checkIn((int) $event->id(), $input, $device_id, $mode, $operational_context === [] ? NULL : $operational_context);
     return new JsonResponse($result, 200);
   }
 
@@ -84,6 +85,7 @@ final class TicketCheckinApiController extends ControllerBase {
     }
 
     $device_id = $this->normalizeDeviceId((string) ($data['device_id'] ?? 'unknown-device'));
+    $global_operational = $this->extractOperationalDeviceContext($data);
     $items = array_slice($data['items'], 0, 250);
     $results = [];
     $processed = 0;
@@ -112,7 +114,10 @@ final class TicketCheckinApiController extends ControllerBase {
         continue;
       }
 
-      $results[] = $this->ticketCheckinService->checkIn((int) $event->id(), $input, $device_id, 'offline');
+      $item_ctx = is_array($item) ? $this->extractOperationalDeviceContext($item) : [];
+      $merged_ctx = array_merge($global_operational, $item_ctx);
+
+      $results[] = $this->ticketCheckinService->checkIn((int) $event->id(), $input, $device_id, 'offline', $merged_ctx === [] ? NULL : $merged_ctx);
       $processed++;
     }
 
@@ -179,6 +184,23 @@ final class TicketCheckinApiController extends ControllerBase {
       $this->flood->register('myeventlane_tickets.checkin_api', 60, $identifier);
     }
     return $allowed;
+  }
+
+  /**
+   * Extracts operational device metadata containers from JSON (optional).
+   *
+   * @param array<string, mixed> $data
+   *
+   * @return array<string, mixed>
+   */
+  private function extractOperationalDeviceContext(array $data): array {
+    $out = [];
+    foreach (['mel_operational_device', 'operational_device'] as $key) {
+      if (!empty($data[$key]) && is_array($data[$key])) {
+        $out[$key] = $data[$key];
+      }
+    }
+    return $out;
   }
 
   /**

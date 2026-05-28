@@ -1,0 +1,19 @@
+uuid: 6e0a4c3d-1b5f-408c-d4e3-0f9a7b6c5d4e
+langcode: en
+status: true
+dependencies:
+  config:
+    - crop.type.focal_point
+  module:
+    - focal_point
+name: mel_event_gallery_card
+label: 'MEL event gallery (card)'
+effects:
+  7f1b5d4e-2c6a-409d-e5f4-1a0b8c7d6e5f:
+    uuid: 7f1b5d4e-2c6a-409d-e5f4-1a0b8c7d6e5f
+    id: focal_point_scale_and_crop
+    weight: 0
+    data:
+      width: 960
+      height: 640
+      crop_type: focal_point

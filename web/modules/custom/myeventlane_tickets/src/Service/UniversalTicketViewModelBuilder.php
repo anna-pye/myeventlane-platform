@@ -28,6 +28,9 @@ final class UniversalTicketViewModelBuilder {
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
+    private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
+    private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
+    private readonly OccupancyPolicyManager $occupancyPolicyManager,
   ) {}
 
   /**
@@ -48,7 +51,6 @@ final class UniversalTicketViewModelBuilder {
     $remaining_redemptions = $this->capabilityManager->getRemainingRedemptions($ticket);
     $is_expired = $this->capabilityManager->isExpired($ticket);
     $can_scan = $this->capabilityManager->canBeScanned($ticket);
-    $timed_entry = $this->venueOperationPolicyManager->buildTimedEntryPolicy($ticket);
     $scanner_status = $this->scannerStatus($ticket, $entitlement_type, $can_scan, $is_expired, $fulfilment_status);
 
     $now = $this->time->getCurrentTime();
@@ -56,8 +58,9 @@ final class UniversalTicketViewModelBuilder {
     $session_entitlement = $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, NULL, $timed_entry);
     $zone_access = $this->zoneAccessPolicyManager->normalizeOperationalZonesMetadata($ticket);
     $topology = $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed_entry, $session_entitlement);
+    $operational_identity = $this->deviceOperationIdentityManager->buildCustomerVisibleOperationalIdentityFromTicket($ticket);
 
-    return [
+    $model = [
       'ticket' => [
         'id' => (int) $ticket->id(),
         'uuid' => (string) $ticket->uuid(),
@@ -128,6 +131,15 @@ final class UniversalTicketViewModelBuilder {
         'session' => $session_entitlement['progression'] ?? [],
       ],
     ];
+    if ($operational_identity !== []) {
+      $model['operational_identity'] = $operational_identity;
+    }
+    $model['continuity'] = $this->operationalContinuityPolicyManager->buildCustomerSafeContinuityProjection($ticket);
+    $occupancy_public = $this->occupancyPolicyManager->buildCustomerSafeOccupancySummary($ticket);
+    if ($occupancy_public !== []) {
+      $model['occupancy'] = $occupancy_public;
+    }
+    return $model;
   }
 
   /**

@@ -1,0 +1,61 @@
+metadata:
+  exported_from: local
+  export_reason: vendor_check_in_attendees_batch_06
+  generated_at: '2026-05-23T11:45:00+10:00'
+  notes:
+    - 'check-in article publish-ready after permission/route parity and door/browser QA (2026-05-23)'
+    - 'RSVP check-in controller fix required for /vendor/event/{event}/rsvps/checkin (500 → 200)'
+    - 'import identity should use stable key and/or alias'
+articles:
+  check_in_attendees:
+    source_nid: null
+    title: 'Checking in attendees at your event'
+    alias: '/help/vendors/check-in-attendees'
+    audience: vendor
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'How organisers use Operations, Door Mode, the guest list, paid ticket scanning, and RSVP check-in on event day — with privacy notes for exports.'
+    body:
+      format: full_html
+      value: |-
+        <p>Check-in helps you see who has arrived and reduce queues at the door. This page covers the check-in tools organisers use on event day.</p>
+
+        <h2>What this means</h2>
+        <p>Check-in marks an attendee or ticket holder as arrived. <strong>Paid ticket events</strong> use Door Mode and the ticket scanner. <strong>RSVP events</strong> use a separate RSVP check-in list and scan flow. Not every booking includes a scannable QR code &mdash; some guests may present email confirmation or match by name on the guest list.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Sign in on a phone or laptop with your organiser account.</li>
+          <li>Open the event and go to <strong>Operations</strong> (<code>/vendor/events/{event}/operations</code>) for the event-day hub (live list, export, door tools).</li>
+          <li>Open <strong>Door Mode</strong> (<code>/vendor/events/{event}/operations/door</code>) as the primary check-in surface:
+            <ul>
+              <li><strong>Start scan</strong> for camera QR check-in when guests have a scannable ticket.</li>
+              <li><strong>Type a code instead</strong> for manual entry when the camera is unavailable.</li>
+              <li>Use <strong>search</strong> on the door screen to find attendees by name or email when scan fails.</li>
+            </ul>
+          </li>
+          <li>For paid tickets only, you can also use the <strong>ticket scanner</strong> at <code>/event/{event}/tickets/scan</code> (secondary to Door Mode; same permission and ownership rules).</li>
+          <li>For <strong>RSVP-only</strong> events, use <strong>RSVP check-in</strong> at <code>/vendor/event/{event}/rsvps/checkin</code>. RSVP QR scan, when available, is at <code>/vendor/event/{event}/scan</code> &mdash; not the paid ticket scanner.</li>
+          <li>Review the <strong>guest list</strong> at <code>/vendor/events/{event}/attendees</code>. Export from <code>/vendor/events/{event}/attendees/export</code> when you need a spreadsheet.</li>
+        </ol>
+
+        <h2>Good to know</h2>
+        <ul>
+          <li><strong>QR codes</strong> are available when tickets with QR were issued. RSVP-only guests may not have a paid-ticket QR until a ticket is assigned.</li>
+          <li>Check-in access is limited to your team and roles with permission. Do not share organiser passwords on shared devices.</li>
+          <li>Poor connectivity can delay updates. Refresh the list or retry the scan after signal improves.</li>
+          <li><strong>Exports</strong> can include names, emails, phone numbers, custom answers, ticket codes, and check-in state. Combined attendee export supports <code>?obfuscate=1</code> to mask emails; RSVP-only export does not obfuscate by default &mdash; treat exports as sensitive.</li>
+          <li>Checked-in status is operational data &mdash; use it for door control, not as a legal attendance record unless your policies say otherwise.</li>
+          <li>Do not use legacy <code>/vendor/events/{event}/check-in</code> URLs for training; use Operations and Door Mode instead.</li>
+        </ul>
+
+        <h2>Related help</h2>
+        <ul>
+          <li>How to access your tickets</li>
+          <li>Managing attendees and orders for your event</li>
+          <li>Ticket sales and capacity</li>
+          <li>Managing your event dashboard</li>
+        </ul>

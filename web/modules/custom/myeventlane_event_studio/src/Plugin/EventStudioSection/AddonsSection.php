@@ -24,5 +24,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'deferred',
   mobile_priority: 170,
   operationalArea: 'commerce_product',
+  navigationVisible: FALSE,
 )]
 final class AddonsSection extends EventStudioSectionBase {}

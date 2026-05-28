@@ -25,6 +25,41 @@ resend ticket emails:
   title: 'Resend ticket emails'
   description: 'Resend assigned ticket emails for accessible events.'
 
+view mel venue operations workspace:
+  title: 'View MyEventLane venue operations workspace'
+  description: 'Access the read-only staff venue operations workspace at /admin/mel/operations.'
+  restrict access: true
+
+govern mel operational escalations:
+  title: 'Govern MyEventLane operational escalations'
+  description: 'View escalation, SLA, resolution, and suppression governance projections in the venue operations workspace.'
+  restrict access: true
+
+govern mel inventory reservations:
+  title: 'Govern MyEventLane inventory reservations'
+  description: 'View reservation governance, allocation continuity, degradation, and lifecycle audit projections in the venue operations workspace.'
+  restrict access: true
+
+govern mel operational capabilities:
+  title: 'Govern MyEventLane operational capabilities'
+  description: 'View operational entitlement capability convergence, readiness, degradation, fulfillment/reservation capability visibility, and lifecycle audit projections in the venue operations workspace.'
+  restrict access: true
+
+govern mel operational coordination:
+  title: 'Govern MyEventLane operational coordination'
+  description: 'View operational coordination, posture, readiness, recovery, reconciliation, confidence, and coordination audit projections in the venue operations workspace.'
+  restrict access: true
+
+govern mel fulfillment lifecycle:
+  title: 'Govern MyEventLane fulfillment lifecycle'
+  description: 'View fulfillment lifecycle, pickup, redemption, partial fulfillment, execution, and fulfillment audit projections in the venue operations workspace.'
+  restrict access: true
+
+govern mel fulfillment execution:
+  title: 'Govern MyEventLane fulfillment execution orchestration'
+  description: 'View fulfillment execution governance, collection visibility, readiness, and execution audit timelines in the venue operations workspace (read-only projections).'
+  restrict access: true
+
 
 
 

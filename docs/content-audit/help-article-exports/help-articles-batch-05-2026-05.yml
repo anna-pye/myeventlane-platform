@@ -1,0 +1,111 @@
+metadata:
+  exported_from: local
+  export_reason: organiser_attendee_questions_batch_05
+  generated_at: '2026-05-22T20:26:04+10:00'
+  notes:
+    - 'attendee question articles verified from Event Studio checkout question workspace and saved question template library'
+    - 'import identity should use stable key and/or alias'
+    - 'saved question templates are copied into events; editing the library template does not update existing event questions'
+articles:
+  attendee_questions_for_organisers:
+    source_nid: null
+    title: 'Collecting attendee questions at checkout'
+    alias: '/help/vendors/attendee-questions-for-organisers'
+    audience: vendor
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'How to add checkout questions in Event Studio, target ticket types, review answers, and export attendee data — while collecting only the personal information you need.'
+    body:
+      format: full_html
+      value: |-
+        <p>You can ask buyers short questions during checkout when they enter ticket holder details. Use this to collect useful logistics information without gathering more personal data than you need.</p>
+
+        <h2>What this means</h2>
+        <p>Attendee questions are custom fields attached to your <strong>event</strong> (and, for older setups, sometimes to individual ticket types). Answers are stored with each ticket holder on the booking so you can plan catering, accessibility, or session choices. Custom answers may contain <strong>personal information</strong> — treat exports and attendee lists accordingly. Keep most questions optional unless you truly need an answer to admit someone or run the session safely.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Open the event in <strong>Event Studio</strong>.</li>
+          <li>Go to <strong>Checkout questions</strong> (<code>/vendor/events/{event}/studio/questions</code>). Older links such as <code>/vendor/event/{event}/checkout-questions</code> redirect here.</li>
+          <li>Add a clear <strong>Question</strong> label — buyers should understand why you are asking.</li>
+          <li>Choose a <strong>Type</strong> (short text, long text, email, number, dropdown, checkbox, or radio). For choice types, add one option per line.</li>
+          <li>Set <strong>Required</strong> only when you need every answer.</li>
+          <li>Under <strong>Applies to</strong>, choose <strong>All ticket holders</strong> or <strong>Specific ticket types</strong> when a question only applies to some tiers.</li>
+          <li>Leave new questions <strong>Active</strong>. Use <strong>Archived</strong> to retire a question without deleting past answers.</li>
+          <li>Save, then preview checkout as a buyer before you publish.</li>
+          <li>After sales, review answers on your attendee list or export attendees — custom answers appear in a <strong>Custom answers</strong> column in the CSV export.</li>
+        </ol>
+
+        <h2>Good to know</h2>
+        <ul>
+          <li><strong>Collect only what you need</strong> to run the event. Avoid sensitive data such as full medical histories, government ID numbers, payment card details, or passwords unless you have a lawful reason and secure handling. MyEventLane does not automatically block sensitive questions — you are responsible for what you ask.</li>
+          <li>Tell buyers how you will use their answers and how long you will keep them. Follow your privacy policy and applicable law.</li>
+          <li><strong>Per order</strong> questions can be configured in Event Studio but are <strong>not collected at checkout yet</strong> — use per-ticket or ticket-type questions instead.</li>
+          <li><strong>First name, last name, and email</strong> are collected separately for each ticket holder. Do not duplicate those unless your process truly requires it.</li>
+          <li>If buyers have already answered a question, the system <strong>locks</strong> field type, choices, ticket targeting, and required rules. You can still tidy the label or help text, change order, or <strong>archive</strong> the question and add a new one — do not rewrite the meaning of a question that already has answers.</li>
+          <li>Events with a long-standing setup may still have questions stored on <strong>ticket types</strong>; those continue to work at checkout, but new questions should be managed from <strong>Checkout questions</strong>.</li>
+        </ul>
+
+        <h2>Related help</h2>
+        <ul>
+          <li><a href="/help/vendors/saved-question-templates">Saved question templates</a></li>
+          <li>Managing attendees and orders for your event</li>
+          <li><a href="/help/vendors/ticket-sales-and-capacity">Ticket sales and capacity</a></li>
+          <li>Community guidelines</li>
+        </ul>
+  saved_question_templates:
+    source_nid: null
+    title: 'Saved question templates'
+    alias: '/help/vendors/saved-question-templates'
+    audience: vendor
+    article_type: guide
+    help_status: published
+    ai_allowed: true
+    summary:
+      format: basic_html
+      value: 'How to build a reusable organiser question library, copy templates onto events, and set ticket-type targeting on the event copy — without changing live events when you edit the library.'
+    body:
+      format: full_html
+      value: |-
+        <p>Reuse common checkout questions across events by saving them to your organiser question library. This saves time and keeps wording consistent.</p>
+
+        <h2>What this means</h2>
+        <p>A saved question template is a reusable definition (label, field type, options, and whether it is required) stored for your <strong>organiser account</strong> (Commerce store). Templates are <strong>not</strong> shown to buyers until you add them to an event. Adding a template <strong>copies</strong> it onto the event as its own question — it is not a live link. Answers on live bookings may contain personal information once buyers respond.</p>
+
+        <h2>What to do next</h2>
+        <ol>
+          <li>Sign in to your organiser account.</li>
+          <li>Open your question library at <code>/vendor/questions</code> (you need permission to view the library).</li>
+          <li>Select <strong>Add question</strong> and enter a clear label buyers will understand.</li>
+          <li>Choose the field type: <strong>Text field</strong>, <strong>Textarea</strong>, <strong>Select (dropdown)</strong>, or <strong>Checkbox</strong>. For select or checkbox, enter one option per line.</li>
+          <li>Optionally mark the template as <strong>Required</strong> and add help text.</li>
+          <li>Save the template.</li>
+          <li>On the event, either:
+            <ul>
+              <li>In <strong>Event Studio</strong>, use <strong>Reuse from library</strong> on the tickets/attendee area and <strong>Add from library</strong>, then open <strong>Checkout questions</strong> to set ticket targeting; or</li>
+              <li>In <strong>Checkout questions</strong> (<code>/vendor/events/{event}/studio/questions</code>), recreate or adjust questions manually to match your template.</li>
+            </ul>
+          </li>
+          <li>Set <strong>Applies to</strong> and ticket types on the <strong>event copy</strong> if needed, then preview checkout before publishing.</li>
+        </ol>
+
+        <h2>Good to know</h2>
+        <ul>
+          <li>Templates belong to your organiser store. Another organiser cannot see or edit your library.</li>
+          <li><strong>Editing a saved template does not change</strong> questions already on live events or answers buyers submitted. Update the library for future events, or archive the event question and add a new one.</li>
+          <li>The library supports fewer field types than <strong>Checkout questions</strong> on an event (for example, radio, email, and number are event-only).</li>
+          <li>Saved templates do not include <strong>ticket type targeting</strong> — set that on the event after the question is attached.</li>
+          <li><strong>Collect only what you need</strong> in reusable templates. Do not store unnecessary sensitive data in the library. MyEventLane does not automatically block sensitive questions.</li>
+          <li>If buyers have already answered a question on the event, treat changes like any other checkout question: archive and add anew rather than changing type or choices.</li>
+          <li>Keep the library small. Long lists of rarely used fields slow checkout.</li>
+        </ul>
+
+        <h2>Related help</h2>
+        <ul>
+          <li><a href="/help/vendors/attendee-questions-for-organisers">Collecting attendee questions at checkout</a></li>
+          <li>Managing your event dashboard</li>
+          <li>Community guidelines</li>
+        </ul>

@@ -1,0 +1,59 @@
+{#
+/**
+ * @file
+ * Staff venue operations workspace shell (read-only).
+ */
+#}
+<div class="mel-ops-workspace">
+  <header class="mel-ops-workspace__header">
+    <h1 class="mel-ops-workspace__title">{{ 'Venue operations workspace'|t }}</h1>
+    {% if meta.scope == 'global' %}
+      <p class="mel-ops-workspace__hint">{{ 'Append the query parameter event with a numeric node ID to scope diagnostics to that event.'|t }}</p>
+    {% else %}
+      <p class="mel-ops-workspace__meta">{{ 'Event'|t }}: {{ meta.event_title }} <span class="mel-ops-workspace__id">({{ meta.event_id }})</span></p>
+    {% endif %}
+    {% if meta.governance_projection_enabled is defined and meta.governance_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Escalation and resolution governance projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+    {% if meta.reservation_projection_enabled is defined and meta.reservation_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Inventory reservation governance projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+    {% if meta.capability_projection_enabled is defined and meta.capability_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Operational entitlement capability projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+    {% if meta.coordination_projection_enabled is defined and meta.coordination_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Operational coordination projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+    {% if meta.fulfillment_projection_enabled is defined and meta.fulfillment_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Fulfillment lifecycle projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+    {% if meta.fulfillment_execution_projection_enabled is defined and meta.fulfillment_execution_projection_enabled %}
+      <p class="mel-ops-workspace__meta mel-ops-workspace__meta--governance">{{ 'Fulfillment execution orchestration projections are enabled for your account (read-only).'|t }}</p>
+    {% endif %}
+  </header>
+
+  {% for section in sections %}
+    <section class="mel-ops-workspace__section{% if section.section_tone is defined %} mel-ops-workspace__section--tone-{{ section.section_tone }}{% endif %}" data-ops-section="{{ section.id }}">
+      <h2 class="mel-ops-workspace__section-title">{{ section.title }}</h2>
+      <div class="mel-ops-workspace__cards">
+        {% for card in section.cards %}
+          <article class="mel-ops-card">
+            <div class="mel-ops-card__label">{{ card.label }}</div>
+            <div class="mel-ops-card__value">{{ card.value }}</div>
+          </article>
+        {% endfor %}
+      </div>
+      {% if section.timeline is defined and section.timeline %}
+        <ol class="mel-ops-workspace__timeline">
+          {% for entry in section.timeline %}
+            <li class="mel-ops-workspace__timeline-entry">
+              <span class="mel-ops-workspace__timeline-state">{{ entry.lane_state }}</span>
+              <span class="mel-ops-workspace__timeline-at">{{ entry.recorded_at_unix }}</span>
+              <span class="mel-ops-workspace__timeline-note">{{ entry.audit_note }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </section>
+  {% endfor %}
+</div>

@@ -1,0 +1,341 @@
+/**
+ * @file
+ * Event Studio branding tab — scoped public page feel preview.
+ */
+
+.mel-event-branding-preview {
+  --mel-branding-preview-accent: #f26d5b;
+  --mel-branding-preview-bg: #fff9f5;
+  --mel-branding-preview-surface: #ffffff;
+  --mel-branding-preview-text: #1f2933;
+  --mel-branding-preview-muted: #6b7280;
+  --mel-branding-preview-border: #e9e3de;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.mel-event-branding-preview__header {
+  margin-bottom: 16px;
+}
+
+.mel-event-branding-preview__title {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--mel-color-text, #1f2933);
+}
+
+.mel-event-branding-preview__lede {
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--mel-color-text-secondary, #4b5563);
+}
+
+.mel-event-branding-preview__helpers {
+  margin: 0 0 10px;
+  padding-left: 1.125rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mel-color-text-secondary, #4b5563);
+}
+
+.mel-event-branding-preview__helpers li + li {
+  margin-top: 4px;
+}
+
+.mel-event-branding-preview__state-note {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--mel-color-text-secondary, #4b5563);
+  background: rgba(242, 109, 91, 0.08);
+  border: 1px solid rgba(242, 109, 91, 0.18);
+}
+
+.mel-event-branding-preview__state-note[data-mel-branding-preview-state='saved'] {
+  background: rgba(61, 155, 122, 0.08);
+  border-color: rgba(61, 155, 122, 0.2);
+}
+
+.mel-event-branding-preview__actions {
+  margin: 0 0 4px;
+}
+
+.mel-event-branding-preview__public-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mel-event-branding-preview__canvas {
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--mel-branding-preview-border);
+  background: var(--mel-branding-preview-bg);
+  color: var(--mel-branding-preview-text);
+  box-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
+}
+
+.mel-event-branding-preview__hero {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  min-height: 140px;
+  background: linear-gradient(135deg, #fdf1ec 0%, #f5e6dc 48%, #e9e3de 100%);
+  overflow: hidden;
+}
+
+.mel-event-branding-preview__hero--empty {
+  background: linear-gradient(135deg, #fdf1ec 0%, #f8ebe3 55%, #efe4db 100%);
+}
+
+.mel-event-branding-preview__hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.mel-event-branding-preview__hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 20, 28, 0.08) 0%, rgba(15, 20, 28, 0.55) 100%);
+  pointer-events: none;
+}
+
+.mel-event-branding-preview__hero-copy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px 18px;
+  z-index: 1;
+}
+
+.mel-event-branding-preview__event-title {
+  margin: 0 0 6px;
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.mel-event-branding-preview__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mel-event-branding-preview__body {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px 18px;
+}
+
+.mel-event-branding-preview__style-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.mel-event-branding-preview__style-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--mel-branding-preview-surface);
+  border: 1px solid var(--mel-branding-preview-border);
+  color: var(--mel-branding-preview-text);
+}
+
+.mel-event-branding-preview__accent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--mel-branding-preview-muted);
+}
+
+.mel-event-branding-preview__accent-chip-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--mel-branding-preview-accent);
+  box-shadow: 0 0 0 2px var(--mel-branding-preview-surface), 0 0 0 3px var(--mel-branding-preview-border);
+}
+
+.mel-event-branding-preview__booking {
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--mel-branding-preview-surface);
+  border: 1px solid var(--mel-branding-preview-border);
+}
+
+.mel-event-branding-preview__booking-price {
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mel-branding-preview-text);
+}
+
+.mel-event-branding-preview__booking-cta {
+  display: block;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--mel-branding-preview-accent);
+  cursor: not-allowed;
+}
+
+.mel-event-branding-preview__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.6875rem;
+  color: var(--mel-branding-preview-muted);
+}
+
+.mel-event-branding-preview__gallery-rail {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mel-event-branding-preview__gallery-rail li {
+  flex: 0 0 auto;
+}
+
+.mel-event-branding-preview__gallery-rail img {
+  display: block;
+  width: 72px;
+  height: 54px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--mel-branding-preview-border);
+}
+
+.mel-event-branding-preview__gallery-placeholder {
+  display: block;
+  width: 72px;
+  height: 54px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border: 1px dashed var(--mel-branding-preview-border);
+}
+
+.mel-event-branding-preview__gallery-empty {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+}
+
+/* Colour presets — accent chip + CTA (scoped; mirrors approved public palettes). */
+.mel-event-branding-preview.mel-event-page--colour-coral {
+  --mel-branding-preview-accent: #f26d5b;
+}
+
+.mel-event-branding-preview.mel-event-page--colour-purple {
+  --mel-branding-preview-accent: #7c83fd;
+}
+
+.mel-event-branding-preview.mel-event-page--colour-mint {
+  --mel-branding-preview-accent: #3d9b7a;
+}
+
+.mel-event-branding-preview.mel-event-page--colour-gold {
+  --mel-branding-preview-accent: #f5a04c;
+}
+
+.mel-event-branding-preview.mel-event-page--colour-blue {
+  --mel-branding-preview-accent: #5b8def;
+}
+
+/* Classic — light public page feel. */
+.mel-event-branding-preview.mel-event-branding-preview--classic,
+.mel-event-branding-preview.mel-event-page--classic {
+  --mel-branding-preview-bg: #fff9f5;
+  --mel-branding-preview-surface: #ffffff;
+  --mel-branding-preview-text: #1f2933;
+  --mel-branding-preview-muted: #6b7280;
+  --mel-branding-preview-border: #e9e3de;
+}
+
+/* Immersive — dark cinematic feel. */
+.mel-event-branding-preview.mel-event-branding-preview--immersive,
+.mel-event-branding-preview.mel-event-page--immersive {
+  --mel-branding-preview-bg: #080c14;
+  --mel-branding-preview-surface: rgba(28, 36, 50, 0.88);
+  --mel-branding-preview-text: #fff;
+  --mel-branding-preview-muted: rgba(255, 255, 255, 0.72);
+  --mel-branding-preview-border: rgba(255, 255, 255, 0.12);
+}
+
+.mel-event-branding-preview.mel-event-branding-preview--immersive .mel-event-branding-preview__canvas,
+.mel-event-branding-preview.mel-event-page--immersive .mel-event-branding-preview__canvas {
+  background: linear-gradient(180deg, #080c14 0%, #0c121c 50%, #101826 100%);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.3);
+}
+
+.mel-event-branding-preview.mel-event-branding-preview--immersive .mel-event-branding-preview__style-pill,
+.mel-event-branding-preview.mel-event-page--immersive .mel-event-branding-preview__style-pill {
+  background: rgba(28, 36, 50, 0.72);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.mel-event-branding-preview.mel-event-branding-preview--immersive .mel-event-branding-preview__hero--empty,
+.mel-event-branding-preview.mel-event-page--immersive .mel-event-branding-preview__hero--empty {
+  background: linear-gradient(135deg, #141c28 0%, #1a2433 55%, #101826 100%);
+}
+
+.mel-event-branding-preview.mel-event-branding-preview--immersive .mel-event-branding-preview__gallery-placeholder,
+.mel-event-branding-preview.mel-event-page--immersive .mel-event-branding-preview__gallery-placeholder {
+  background: linear-gradient(135deg, #1a2433 0%, #243044 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 640px) {
+  .mel-event-branding-preview__header {
+    margin-bottom: 12px;
+  }
+
+  .mel-event-branding-preview__canvas {
+    border-radius: 20px;
+  }
+
+  .mel-event-branding-preview__body {
+    padding: 14px;
+  }
+
+  .mel-event-branding-preview__style-row {
+    gap: 8px;
+  }
+
+  .mel-event-branding-preview__public-link {
+    width: 100%;
+    justify-content: center;
+  }
+}

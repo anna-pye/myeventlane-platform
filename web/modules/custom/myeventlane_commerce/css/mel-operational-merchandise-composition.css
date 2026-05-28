@@ -1,0 +1,44 @@
+/**
+ * Operational purchase composition — pastel cards, mobile-first.
+ */
+.mel-op-composition {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #f6f4ff 0%, #f0f9ff 100%);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.mel-op-composition__hint {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+
+.mel-op-composition__group-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.mel-op-composition__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-op-composition__item {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.mel-op-composition__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.mel-pill--operational {
+  font-size: 0.8rem;
+}

@@ -39,9 +39,18 @@
             function onScanSuccess(decodedText) {
               handleInput(decodedText);
             },
-            function onScanError() {}
-          ).catch(function () {
-            showState('invalid', 'Camera unavailable', 'Use manual entry.');
+            function onScanError(err) {
+              if (window.MEL_CHECKIN_SCAN_DEBUG === true) {
+                console.warn('[MEL_CHECKIN_SCAN] scan error callback', err);
+              }
+            }
+          ).catch(function (err) {
+            var msg = err && err.message ? String(err.message) : String(err || '');
+            if (msg.indexOf('mel_scanner_no_decoder') !== -1) {
+              showState('invalid', 'Scanner not available', 'This browser cannot decode QR in-page. Use manual entry or Chrome/Android.');
+            } else {
+              showState('invalid', 'Camera unavailable', 'Use manual entry.');
+            }
           });
         } else {
           showState('invalid', 'Scanner unavailable', 'Use manual entry.');

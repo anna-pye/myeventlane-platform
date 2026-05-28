@@ -56,6 +56,9 @@ final class VenueOperationPolicyManager {
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
+    private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
+    private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
+    private readonly OccupancyPolicyManager $occupancyPolicyManager,
   ) {}
 
   /**
@@ -126,7 +129,7 @@ final class VenueOperationPolicyManager {
     return [
       'operation_type' => $gate_action,
       'entitlement_type' => $type,
-      'offline_eligible' => $this->offlineEligible($map, $mode),
+      'offline_eligible' => $this->operationalContinuityPolicyManager->evaluateOfflineEligibilityScaffold($map, $mode),
       'requires_online_validation' => FALSE,
       'conflict_policy' => $this->conflictPolicy($type, $map),
       'multi_use' => (bool) $map['multi_use'],
@@ -137,6 +140,7 @@ final class VenueOperationPolicyManager {
       'session_entitlement' => $session,
       'zone_topology' => $this->zoneAccessPolicyManager->buildTopologyDescriptor($ticket, $timed, $session),
       'zone_conflict_policy' => $this->normalizeZoneConflictPolicy($ticket),
+      'occupancy' => $this->occupancyPolicyManager->buildOccupancyDescriptor($ticket, $mode),
     ];
   }
 
@@ -144,17 +148,7 @@ final class VenueOperationPolicyManager {
    * Maps an existing scanner/API result token to a normalized operation label.
    */
   public function normalizeScannerResultToken(string $scanner_result_token): string {
-    return match ($scanner_result_token) {
-      'admitted' => self::OPERATION_ADMIT,
-      'redeemed' => self::OPERATION_REDEEM,
-      'collected' => self::OPERATION_COLLECT,
-      'validated' => self::OPERATION_VALIDATE,
-      'verified' => self::OPERATION_VERIFY,
-      'expired' => self::OPERATION_EXPIRED,
-      'already_checked_in', 'redemption_limit_reached' => self::OPERATION_ALREADY_USED,
-      'duplicate', 'duplicate_operation' => self::OPERATION_DUPLICATE,
-      default => self::OPERATION_DENY,
-    };
+    return $this->operationalContinuityPolicyManager->normalizeScannerResultToken($scanner_result_token);
   }
 
   /**
@@ -215,7 +209,26 @@ final class VenueOperationPolicyManager {
   ): array {
     $composition = $this->evaluateTimedEntryForScan($ticket, $now, $parsed_qr_expires_at);
     if (!$composition['allow']) {
-      return $composition;
+      $policy = is_array($composition['policy'] ?? NULL) ? $composition['policy'] : [];
+      $timed = is_array($policy['timed_entry'] ?? NULL) ? $policy['timed_entry'] : [];
+      $session = is_array($policy['session_entitlement'] ?? NULL) ? $policy['session_entitlement'] : [];
+      $requested = $requested_zone_id !== NULL && trim($requested_zone_id) !== '' ? trim($requested_zone_id) : NULL;
+      $zone_skipped = $this->zoneAccessPolicyManager->evaluateZoneAccessForComposition(
+        $ticket,
+        $requested,
+        $timed,
+        $session,
+      );
+      return [
+        'allow' => FALSE,
+        'result_token' => (string) $composition['result_token'],
+        'message' => (string) $composition['message'],
+        'policy' => [
+          'timed_entry' => $timed,
+          'session_entitlement' => $session,
+          'zone_access' => $zone_skipped['policy'],
+        ],
+      ];
     }
 
     $timed = $composition['policy']['timed_entry'] ?? [];
@@ -255,6 +268,250 @@ final class VenueOperationPolicyManager {
   }
 
   /**
+   * Orchestrates operational identity metadata with the composed scan gate.
+   *
+   * Delegates timing, session, and zone decisions to existing managers; does
+   * not implement parallel gate logic.
+   *
+   * @param array<string, mixed> $raw_operational_context
+   *   Merged operational device context (see DeviceOperationIdentityManager).
+   *
+   * @return array<string, mixed>
+   *   Keys: scan_gate, checkpoint_descriptor, operational_identity.
+   */
+  public function evaluateOperationalIdentity(
+    Ticket $ticket,
+    array $raw_operational_context,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    ?string $requested_zone_id = NULL,
+  ): array {
+    $normalized = $this->deviceOperationIdentityManager->normalizeOperationalIdentity($raw_operational_context, '');
+    $zone_from_identity = ($normalized['zone_id'] ?? '') !== '' ? (string) $normalized['zone_id'] : NULL;
+    $effective_zone = $requested_zone_id !== NULL && trim($requested_zone_id) !== '' ? trim($requested_zone_id) : NULL;
+    $effective_zone ??= $zone_from_identity;
+    $scan = $this->evaluateZoneAccessForScan($ticket, $now, $parsed_qr_expires_at, $effective_zone);
+    if (!empty($scan['allow'])) {
+      $occ = $this->occupancyPolicyManager->evaluateOccupancyForScan(
+        $ticket,
+        $now,
+        $parsed_qr_expires_at,
+        $raw_operational_context,
+        $effective_zone,
+        is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [],
+      );
+      $policy = is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [];
+      $policy['occupancy'] = $occ['policy'];
+      if (empty($occ['allow'])) {
+        $scan = [
+          'allow' => FALSE,
+          'result_token' => (string) $occ['result_token'],
+          'message' => (string) $occ['message'],
+          'policy' => $policy,
+        ];
+      }
+      else {
+        $scan['policy'] = $policy;
+      }
+    }
+    $policy_snapshot = is_array($scan['policy'] ?? NULL) ? $scan['policy'] : [];
+    $checkpoint = $this->buildOperationalCheckpointDescriptor(
+      $ticket,
+      $normalized,
+      $now,
+      $parsed_qr_expires_at,
+      $effective_zone,
+      $policy_snapshot,
+    );
+    $descriptors = $this->deviceOperationIdentityManager->buildOperationalIdentityDescriptors(
+      $ticket,
+      $normalized,
+      $policy_snapshot,
+    );
+    $trust = $this->normalizeDeviceTrustPolicy((string) ($normalized['trust_level'] ?? ''));
+
+    return [
+      'scan_gate' => $scan,
+      'checkpoint_descriptor' => $checkpoint,
+      'operational_identity' => $descriptors + ['trust_policy' => $trust],
+    ];
+  }
+
+  /**
+   * Orchestrates operational identity with canonical continuity metadata.
+   *
+   * @param array<string, mixed> $raw_operational_context
+   *
+   * @return array<string, mixed>
+   *   Keys: scan_gate, checkpoint_descriptor, operational_identity, operational_continuity.
+   */
+  public function evaluateOperationalContinuity(
+    Ticket $ticket,
+    array $raw_operational_context,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    ?string $requested_zone_id = NULL,
+  ): array {
+    $bundle = $this->evaluateOperationalIdentity(
+      $ticket,
+      $raw_operational_context,
+      $now,
+      $parsed_qr_expires_at,
+      $requested_zone_id,
+    );
+    $normalized_identity = is_array($bundle['operational_identity']['normalized'] ?? NULL)
+      ? $bundle['operational_identity']['normalized']
+      : [];
+    $ledger_mode = !empty($normalized_identity['offline_mode']) ? 'offline' : 'online';
+    $continuity = $this->operationalContinuityPolicyManager->buildMachineSafeContinuityPayload(
+      $ticket,
+      $raw_operational_context,
+      $normalized_identity,
+      is_array($bundle['scan_gate']['policy'] ?? NULL) ? $bundle['scan_gate']['policy'] : [],
+      $ledger_mode,
+      $parsed_qr_expires_at !== NULL && $parsed_qr_expires_at > 0 ? $parsed_qr_expires_at : NULL,
+    );
+
+    return $bundle + [
+      'operational_continuity' => $continuity,
+    ];
+  }
+
+  /**
+   * Normalizes raw continuity / reconciliation material for callers.
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public function normalizeReconciliationPolicy(array $raw): array {
+    return $this->operationalContinuityPolicyManager->normalizeReconciliationMetadata($raw);
+  }
+
+  /**
+   * Normalizes occupancy metadata blobs (machine-stable tokens only).
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public function normalizeOccupancyPolicies(array $raw): array {
+    return $this->occupancyPolicyManager->normalizeOccupancyPolicies($raw);
+  }
+
+  /**
+   * Evaluates occupancy + directional composition after timing/session/zone gates.
+   *
+   * @param array<string, mixed> $raw_operational_context
+   * @param array<string, mixed> $scan_gate_policy
+   *
+   * @return array<string, mixed>
+   */
+  public function evaluateOccupancyPolicies(
+    Ticket $ticket,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    array $raw_operational_context,
+    ?string $effective_zone_id,
+    array $scan_gate_policy,
+  ): array {
+    return $this->occupancyPolicyManager->evaluateOccupancyForScan(
+      $ticket,
+      $now,
+      $parsed_qr_expires_at,
+      $raw_operational_context,
+      $effective_zone_id,
+      $scan_gate_policy,
+    );
+  }
+
+  /**
+   * Deterministic occupancy descriptor (metadata composition only).
+   *
+   * @param array<string, mixed>|null $scan_gate_policy
+   *
+   * @return array<string, mixed>
+   */
+  public function buildOccupancyDescriptor(Ticket $ticket, string $mode = 'online', ?array $scan_gate_policy = NULL): array {
+    return $this->occupancyPolicyManager->buildOccupancyDescriptor($ticket, $mode, $scan_gate_policy);
+  }
+
+  /**
+   * Builds a continuity descriptor (timed + session + zone + reconciliation).
+   *
+   * @return array<string, mixed>
+   */
+  public function buildContinuityDescriptor(Ticket $ticket, string $mode = 'online'): array {
+    return $this->operationalContinuityPolicyManager->buildContinuityDescriptor($ticket, $mode);
+  }
+
+  /**
+   * Normalizes device trust labels for policy orchestration (metadata-only).
+   *
+   * @return array<string, mixed>
+   */
+  public function normalizeDeviceTrustPolicy(string $trust_level_raw): array {
+    $canonical = $this->deviceOperationIdentityManager->classifyTrustLevel($trust_level_raw);
+    return [
+      'canonical_trust' => $canonical,
+      'policy_token' => match ($canonical) {
+        'elevated' => 'trust_elevated',
+        'limited' => 'trust_limited',
+        'standard' => 'trust_standard',
+        default => 'trust_unknown',
+      },
+    ];
+  }
+
+  /**
+   * Machine-only checkpoint + gate composition for audits and observability.
+   *
+   * @param array<string, mixed> $normalized_identity
+   *   Output of DeviceOperationIdentityManager::normalizeOperationalIdentity().
+   * @param array<string, mixed> $scan_gate_policy_snapshot
+   *   The `policy` array from evaluateZoneAccessForScan().
+   *
+   * @return array<string, mixed>
+   */
+  public function buildOperationalCheckpointDescriptor(
+    Ticket $ticket,
+    array $normalized_identity,
+    int $now,
+    ?int $parsed_qr_expires_at,
+    ?string $effective_zone_id,
+    array $scan_gate_policy_snapshot,
+  ): array {
+    $timed = is_array($scan_gate_policy_snapshot['timed_entry'] ?? NULL)
+      ? $scan_gate_policy_snapshot['timed_entry']
+      : $this->timedEntryPolicyManager->evaluate($ticket, $now, $parsed_qr_expires_at);
+    $session = is_array($scan_gate_policy_snapshot['session_entitlement'] ?? NULL)
+      ? $scan_gate_policy_snapshot['session_entitlement']
+      : $this->sessionEntitlementPolicyManager->buildNormalizedPayload($ticket, $now, $parsed_qr_expires_at, $timed);
+    $zone_slice = is_array($scan_gate_policy_snapshot['zone_access'] ?? NULL)
+      ? $scan_gate_policy_snapshot['zone_access']
+      : [];
+    $topology_id = '';
+    if ($zone_slice !== []) {
+      $topology_id = (string) (($zone_slice['topology'] ?? [])['topology_id'] ?? $zone_slice['topology_id'] ?? '');
+    }
+
+    return [
+      'checkpoint_id' => (string) ($normalized_identity['checkpoint_id'] ?? ''),
+      'gate_id' => (string) ($normalized_identity['gate_id'] ?? ''),
+      'device_id' => (string) ($normalized_identity['device_id'] ?? ''),
+      'effective_zone_request' => $effective_zone_id !== NULL && $effective_zone_id !== '' ? $effective_zone_id : '',
+      'scan_mode' => (string) ($normalized_identity['scan_mode'] ?? ''),
+      'reconciliation_group' => (string) ($normalized_identity['reconciliation_group'] ?? ''),
+      'offline_mode' => (bool) ($normalized_identity['offline_mode'] ?? FALSE),
+      'timed_scanner' => is_array($timed['scanner'] ?? NULL) ? $timed['scanner'] : [],
+      'session_scanner' => is_array($session['scanner'] ?? NULL) ? $session['scanner'] : [],
+      'zone_scanner' => is_array($zone_slice['scanner'] ?? NULL) ? $zone_slice['scanner'] : [],
+      'topology_id' => $topology_id,
+      'operator_attribution_present' => (($normalized_identity['operator_id'] ?? '') !== '' || ($normalized_identity['operator_role'] ?? '') !== ''),
+    ];
+  }
+
+  /**
    * Machine-only zone topology descriptor (inward composition).
    *
    * @return array<string, mixed>
@@ -279,24 +536,7 @@ final class VenueOperationPolicyManager {
    * @return array<string, mixed>
    */
   public function interpretDenial(?Ticket $ticket, string $scanner_result_token): array {
-    $normalized = $this->normalizeScannerResultToken($scanner_result_token);
-    $gate_action = $ticket instanceof Ticket ? $this->resolveGateAction($ticket) : '';
-    $type = $ticket instanceof Ticket ? $this->ticketCapabilityManager->getEntitlementType($ticket) : '';
-
-    return [
-      'normalized_operation' => $normalized,
-      'scanner_result' => $scanner_result_token,
-      'gate_action' => $gate_action,
-      'entitlement_type' => $type,
-      'conflict' => match ($scanner_result_token) {
-        'already_checked_in' => 'admission_replay',
-        'redemption_limit_reached' => 'redemption_exhausted',
-        'expired' => 'entitlement_expired',
-        'wrong_event', 'invalid' => 'scope_or_integrity',
-        'void', 'refunded' => 'entitlement_revoked',
-        default => 'operational_deny',
-      },
-    ];
+    return $this->operationalContinuityPolicyManager->interpretScannerDenial($ticket, $scanner_result_token);
   }
 
   /**
@@ -378,7 +618,7 @@ final class VenueOperationPolicyManager {
       'redemption_count_after' => $redemption_count_after,
       'multi_use' => (bool) $map['multi_use'],
       'conflict_policy' => $this->conflictPolicy($type, $map),
-      'offline_eligible' => $this->offlineEligible($map, $mode),
+      'offline_eligible' => $this->operationalContinuityPolicyManager->evaluateOfflineEligibilityScaffold($map, 'online'),
       'requires_online_validation' => FALSE,
       'replay_protected' => TRUE,
       'timed_entry_scanner_state' => (string) ($timed['scanner']['state'] ?? ''),
@@ -394,18 +634,6 @@ final class VenueOperationPolicyManager {
     string $fingerprint_b,
   ): bool {
     return $fingerprint_a !== '' && strcasecmp($fingerprint_a, $fingerprint_b) === 0;
-  }
-
-  /**
-   * @param array<string, mixed> $map
-   */
-  private function offlineEligible(array $map, string $mode): bool {
-    if (!in_array($mode, ['online', 'offline'], TRUE)) {
-      return FALSE;
-    }
-    // Current spine resolves state from persisted ticket rows and QR integrity
-    // only; no live Commerce calls on the scan path — safe offline scaffold.
-    return TRUE;
   }
 
   /**

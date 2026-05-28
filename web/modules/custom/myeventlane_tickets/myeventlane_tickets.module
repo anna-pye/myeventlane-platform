@@ -16,6 +16,20 @@ use Drupal\myeventlane_tickets\Entity\Ticket;
  */
 function myeventlane_tickets_theme(array $existing, $type, $theme, $path): array {
   return [
+    'venue_operations_workspace' => [
+      'variables' => [
+        'sections' => [],
+        'meta' => [],
+      ],
+      'template' => 'venue-operations-workspace',
+    ],
+    'mel_operational_fulfillment_execution_customer' => [
+      'variables' => [
+        'document' => [],
+        'presentation' => [],
+      ],
+      'template' => 'mel-operational-fulfillment-execution-customer',
+    ],
     'ticket_pdf' => [
       'variables' => [
         'order_item' => NULL,
@@ -63,6 +77,13 @@ function myeventlane_tickets_preprocess_ticket_pdf(array &$variables): void {
   /** @var \Drupal\myeventlane_tickets\Service\TicketPdfTemplateBuilder $builder */
   $builder = \Drupal::service('myeventlane_tickets.ticket_pdf_template_builder');
   $builder->preprocess($variables);
+}
+
+/**
+ * Prepares variables for mel-operational-fulfillment-execution-customer.html.twig.
+ */
+function template_preprocess_mel_operational_fulfillment_execution_customer(array &$variables): void {
+  $variables['#attached']['library'][] = 'myeventlane_tickets/mel_operational_fulfillment_execution_customer';
 }
 
 /**

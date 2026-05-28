@@ -26,6 +26,15 @@ skeleton:
 home-hero-rotator:
   js:
     js/home-hero-rotator.js: {}
+    js/home-hero-search.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+# Event card image brightness (light/dark text contrast classes on .mel-event-card).
+mel-card-behaviors:
+  js:
+    js/mel-cards.js: {}
   dependencies:
     - core/drupal
     - core/once
@@ -64,11 +73,8 @@ front:
   css:
     theme:
       dist/css/front.css: {}
-  js:
-    js/mel-cards.js: {}
   dependencies:
-    - core/drupal
-    - core/once
+    - myeventlane_theme/mel-card-behaviors
     - myeventlane_theme/home-hero-rotator
 
 # Help Centre search (/help/search) — compiled into dist/main.scss via Vite.
@@ -84,11 +90,13 @@ mel-listing-header:
       dist/css/front.css: {}
   dependencies:
     - core/drupal
+    - myeventlane_theme/mel-card-behaviors
 
 # /events listing: date pills + exposed filter bar (bundled in main.css via Vite).
 mel-events-discovery:
   dependencies:
     - myeventlane_theme/global-styling
+    - myeventlane_theme/mel-card-behaviors
     - core/drupal
 
 # Category discovery chip bar (AJAX, no full page reload).
@@ -142,8 +150,28 @@ myeventlane_event_full:
     - core/once
     - myeventlane_location/event_map
     - myeventlane_theme/global-styling
+    - myeventlane_theme/mel_confirmation
   js:
     js/event-full-trust-rotator.js: { attributes: { defer: true } }
+
+mel_event_gallery:
+  version: 1.4
+  js:
+    js/mel-media-lightbox.js: {}
+    js/mel-event-sidebar-carousel.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
+
+mel_event_sidebar_carousel:
+  version: 1.0
+  js:
+    js/mel-event-sidebar-carousel.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
+    - myeventlane_theme/myeventlane_event_full
+    - myeventlane_theme/mel_event_gallery
 
 # Commerce pages: toast-style add-to-cart messages (attached via page_attachments).
 mel_toasts:
@@ -209,9 +237,12 @@ mel_confirmation:
 
 # Live order summary + mobile totals on /event/{nid}/book (paid ticket matrix only).
 mel_booking_summary:
+  version: 1.3
   js:
     js/mel-booking-summary.js: {}
   dependencies:
     - core/drupal
     - core/drupalSettings
     - core/once
+    - myeventlane_commerce/event_extras_booking
+    - myeventlane_theme/mel_toasts

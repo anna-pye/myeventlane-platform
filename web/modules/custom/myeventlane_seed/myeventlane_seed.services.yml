@@ -2,22 +2,32 @@ services:
   myeventlane_seed.event_reset:
     class: Drupal\myeventlane_seed\Service\EventResetService
     arguments: ['@entity_type.manager', '@logger.factory']
-  
+
   myeventlane_seed.demo_seeder:
     class: Drupal\myeventlane_seed\Service\DemoSeeder
     arguments: ['@entity_type.manager', '@logger.factory', '@current_user', '@myeventlane_onboarding.manager', '@file_system', '@image.factory', '@myeventlane_seed.image_factory', '@?myeventlane_event_studio.save']
-  
+
   myeventlane_seed.demo_purger:
     class: Drupal\myeventlane_seed\Service\DemoPurger
     arguments: ['@entity_type.manager', '@logger.factory']
-  
+
+  myeventlane_seed.demo_event_purger:
+    class: Drupal\myeventlane_seed\Service\DemoEventPurger
+    arguments: ['@entity_type.manager', '@logger.factory', '@config.factory']
+
+  myeventlane_seed.demo_event_seeder:
+    class: Drupal\myeventlane_seed\Service\DemoEventSeeder
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+      - '@config.factory'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@myeventlane_seed.image_factory'
+      - '@?myeventlane_event_studio.save'
+      - '@?myeventlane_event_studio.highlight_helper'
+      - '@myeventlane_seed.demo_event_purger'
+
   myeventlane_seed.image_factory:
     class: Drupal\myeventlane_seed\Util\ImageFactory
     arguments: ['@file_system', '@image.factory']
-
-
-
-
-
-
-

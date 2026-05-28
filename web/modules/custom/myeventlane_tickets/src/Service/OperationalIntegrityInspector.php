@@ -42,6 +42,9 @@ final class OperationalIntegrityInspector {
     private readonly TimedEntryPolicyManager $timedEntryPolicyManager,
     private readonly SessionEntitlementPolicyManager $sessionEntitlementPolicyManager,
     private readonly ZoneAccessPolicyManager $zoneAccessPolicyManager,
+    private readonly DeviceOperationIdentityManager $deviceOperationIdentityManager,
+    private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
+    private readonly OccupancyPolicyManager $occupancyPolicyManager,
     private readonly TimeInterface $time,
     private readonly StateInterface $state,
     private readonly LoggerInterface $logger,
@@ -57,16 +60,23 @@ final class OperationalIntegrityInspector {
    *   artifacts: array<string, mixed>,
    *   recovery: array<string, mixed>,
    *   compatibility: array<string, mixed>,
-   *   guest_continuity: array<string, mixed>
+   *   guest_continuity: array<string, mixed>,
+   *   fulfillment_operational_signals: array<string, mixed>
    * }
    *
- * Artifacts include `venue_operation_policy` (machine-only venue gate
+   * Artifacts include `venue_operation_policy` (machine-only venue gate
  * diagnostics derived from EntitlementCapabilityRegistry and
  * VenueOperationPolicyManager), `timed_entry_policy` (per-ticket timing from
  * TimedEntryPolicyManager), `session_entitlement_policy` (per-ticket
  * session / progression snapshots from SessionEntitlementPolicyManager), and
  * `zone_access_topology` (per-ticket zone topology summaries from
- * ZoneAccessPolicyManager).
+ * ZoneAccessPolicyManager), `operational_identity` (device / checkpoint /
+ * trust summaries composed via DeviceOperationIdentityManager and
+ * VenueOperationPolicyManager, staff-safe diagnostics only), and
+ * `operational_continuity` (reconciliation, replay alignment, recovery policy,
+ * and deterministic continuity descriptors via OperationalContinuityPolicyManager),
+ * and `occupancy_policy` (read-only occupancy, directional scan, anti-passback,
+ * balancing, and continuity summaries via OccupancyPolicyManager).
    */
   public function inspectOrder(OrderInterface $order): array {
     $orderId = (int) $order->id();
@@ -94,6 +104,7 @@ final class OperationalIntegrityInspector {
     $recovery = $this->buildRecoveryDomain($order, $tickets);
     $compatibility = $this->buildCompatibilityDomain($order, $tickets, $artifacts);
     $guest_continuity = $this->buildGuestContinuityDomain($order, $tickets);
+    $fulfillment_operational_signals = $this->buildFulfillmentOperationalSignalsDomain($tickets);
 
     $this->maybeLogAnomalies(
       $orderId,
@@ -107,6 +118,7 @@ final class OperationalIntegrityInspector {
       'recovery' => $recovery,
       'compatibility' => $compatibility,
       'guest_continuity' => $guest_continuity,
+      'fulfillment_operational_signals' => $fulfillment_operational_signals,
     ];
   }
 
@@ -135,6 +147,9 @@ final class OperationalIntegrityInspector {
         'timed_entry_policy' => [],
         'session_entitlement_policy' => [],
         'zone_access_topology' => [],
+        'operational_identity' => [],
+        'operational_continuity' => [],
+        'occupancy_policy' => [],
       ],
       'recovery' => [
         'completion_state' => 'missing',
@@ -154,6 +169,34 @@ final class OperationalIntegrityInspector {
         'purchaser_identity_continuity_valid' => FALSE,
         'continuity_status' => 'invalid',
       ],
+      'fulfillment_operational_signals' => [
+        'by_ticket_id' => [],
+      ],
+    ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, mixed>
+   *   Staff-safe operational signals for reservation governance read-models.
+   */
+  private function buildFulfillmentOperationalSignalsDomain(array $tickets): array {
+    $by = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $type = $this->ticketCapabilityManager->getEntitlementType($ticket);
+      $by[$id] = [
+        'entitlement_type' => $type,
+        'fulfilment_status' => $ticket->getFulfilmentStatus(),
+        'redemption_count' => $ticket->getRedemptionCount(),
+        'redemption_limit' => $ticket->getRedemptionLimit(),
+        'ticket_status' => (string) ($ticket->get('status')->value ?? ''),
+        'admission_checked_in' => ((string) ($ticket->get('status')->value ?? '')) === Ticket::STATUS_CHECKED_IN,
+      ];
+    }
+    return [
+      'by_ticket_id' => $by,
     ];
   }
 
@@ -215,6 +258,9 @@ final class OperationalIntegrityInspector {
         'timed_entry_policy' => [],
         'session_entitlement_policy' => [],
         'zone_access_topology' => [],
+        'operational_identity' => [],
+        'operational_continuity' => [],
+        'occupancy_policy' => [],
       ];
     }
 
@@ -231,6 +277,9 @@ final class OperationalIntegrityInspector {
     $timed_entry_policy = $this->buildTimedEntryDiagnosticsByTicket($tickets);
     $session_entitlement_policy = $this->buildSessionEntitlementDiagnosticsByTicket($tickets);
     $zone_access_topology = $this->buildZoneAccessTopologyDiagnosticsByTicket($tickets);
+    $operational_identity = $this->buildOperationalIdentityDiagnosticsByTicket($tickets);
+    $operational_continuity = $this->buildOperationalContinuityDiagnosticsByTicket($tickets);
+    $occupancy_policy = $this->buildOccupancyDiagnosticsByTicket($tickets);
 
     foreach ($tickets as $ticket) {
       if ($this->ticketPdfGenerator->canonicalPdfPreconditionsSatisfied($ticket)) {
@@ -268,7 +317,89 @@ final class OperationalIntegrityInspector {
       'timed_entry_policy' => $timed_entry_policy,
       'session_entitlement_policy' => $session_entitlement_policy,
       'zone_access_topology' => $zone_access_topology,
+      'operational_identity' => $operational_identity,
+      'operational_continuity' => $operational_continuity,
+      'occupancy_policy' => $occupancy_policy,
     ];
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildOperationalContinuityDiagnosticsByTicket(array $tickets): array {
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $desc = $this->operationalContinuityPolicyManager->buildContinuityDescriptor($ticket, 'online');
+      $reconciliation = is_array($desc['reconciliation'] ?? NULL) ? $desc['reconciliation'] : [];
+      $topology_id = (string) (($desc['zone_topology'] ?? [])['topology_id'] ?? '');
+      $fingerprints = $this->operationalContinuityPolicyManager->buildDeterministicReconciliationFingerprints(
+        (int) $ticket->id(),
+        $reconciliation,
+        $topology_id,
+        (string) ($reconciliation['reconciliation_group'] ?? ''),
+      );
+      $out[$id] = [
+        'continuity_summary' => [
+          'continuity_mode' => (string) ($reconciliation['continuity_mode'] ?? 'live_operations'),
+          'sync_hint' => (string) ($reconciliation['sync_hint'] ?? 'none'),
+          'recovery_scope' => (string) ($reconciliation['recovery_scope'] ?? 'ticket_row'),
+        ],
+        'reconciliation_policy' => $reconciliation,
+        'offline_eligibility_summary' => [
+          'offline_eligible' => (bool) ($desc['offline_eligible'] ?? FALSE),
+        ],
+        'replay_continuity_metadata' => is_array($desc['replay_continuity'] ?? NULL) ? $desc['replay_continuity'] : [],
+        'recovery_continuity_policy' => is_array($desc['recovery_policy'] ?? NULL) ? $desc['recovery_policy'] : [],
+        'conflict_descriptor_sample' => $this->operationalContinuityPolicyManager->normalizeConflictDescriptor($ticket, 'invalid'),
+        'deterministic_continuity_descriptor' => [
+          'continuity_descriptor_token' => (string) ($fingerprints['continuity_descriptor_token'] ?? ''),
+          'reconciliation_fingerprint' => (string) ($fingerprints['reconciliation_fingerprint'] ?? ''),
+        ],
+        'timing_session_composition_refs' => [
+          'timed_scanner_state' => (string) (($desc['timed_entry']['scanner'] ?? [])['state'] ?? ''),
+          'session_scanner_state' => (string) (($desc['session_entitlement']['scanner'] ?? [])['state'] ?? ''),
+        ],
+      ];
+    }
+    return $out;
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildOccupancyDiagnosticsByTicket(array $tickets): array {
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $staff = $this->occupancyPolicyManager->buildStaffOccupancyDiagnostics($ticket, []);
+      $descriptor = $this->venueOperationPolicyManager->buildOccupancyDescriptor($ticket, 'online');
+      $raw = $this->occupancyPolicyManager->mergeOccupancyFromTicket($ticket);
+      $out[$id] = [
+        'occupancy_summary' => [
+          'occupancy_mode' => (string) (($staff['normalized_occupancy'] ?? [])['occupancy_mode'] ?? ''),
+          'anti_passback_mode' => (string) (($staff['normalized_occupancy'] ?? [])['anti_passback_mode'] ?? ''),
+          'reentry_policy' => (string) (($staff['normalized_occupancy'] ?? [])['reentry_policy'] ?? ''),
+          'directional_mode' => (string) (($staff['normalized_occupancy'] ?? [])['directional_mode'] ?? ''),
+        ],
+        'anti_passback_summary' => $staff['anti_passback_descriptor'] ?? [],
+        'directional_scan_descriptors' => $staff['directional_scan_descriptor'] ?? [],
+        'occupancy_balancing_descriptors' => $staff['balancing_descriptor'] ?? [],
+        'occupancy_continuity_summaries' => $staff['occupancy_continuity_summary'] ?? [],
+        'topology_timing_session_composition' => [
+          'topology_plus_occupancy' => $staff['topology_plus_occupancy_composition'] ?? [],
+          'timing_plus_occupancy' => $staff['timing_plus_occupancy_composition'] ?? [],
+          'session_plus_occupancy' => $staff['session_plus_occupancy_composition'] ?? [],
+        ],
+        'deterministic_occupancy_descriptor' => $descriptor,
+        'metadata_present' => $raw !== [],
+      ];
+    }
+    return $out;
   }
 
   /**
@@ -282,6 +413,57 @@ final class OperationalIntegrityInspector {
       $out[(string) $ticket->id()] = $this->zoneAccessPolicyManager->summarizeZoneInspection($ticket);
     }
     return $out;
+  }
+
+  /**
+   * @param list<Ticket> $tickets
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  private function buildOperationalIdentityDiagnosticsByTicket(array $tickets): array {
+    $now = $this->time->getCurrentTime();
+    $out = [];
+    foreach ($tickets as $ticket) {
+      $id = (string) $ticket->id();
+      $raw = $this->deviceOperationIdentityManager->mergeOperationalContextFromTicket($ticket, []);
+      $normalized = $this->deviceOperationIdentityManager->normalizeOperationalIdentity($raw, '');
+      $bundle = $this->venueOperationPolicyManager->evaluateOperationalIdentity($ticket, $raw, $now, NULL, NULL);
+      $descriptor = $bundle['checkpoint_descriptor'] ?? [];
+      $identity = $bundle['operational_identity'] ?? [];
+      $op_desc = $this->venueOperationPolicyManager->buildOperationDescriptor($ticket, 'online');
+      $out[$id] = [
+        'device_identity_summary' => $identity['public_summary'] ?? [],
+        'trust_policy_summary' => $identity['trust_policy'] ?? [],
+        'checkpoint_descriptor' => $descriptor,
+        'reconciliation_group' => (string) ($normalized['reconciliation_group'] ?? ''),
+        'offline_eligible' => (bool) ($op_desc['offline_eligible'] ?? FALSE),
+        'offline_mode_metadata' => (bool) ($normalized['offline_mode'] ?? FALSE),
+        'operator_attribution_summary' => [
+          'present' => (bool) ($descriptor['operator_attribution_present'] ?? FALSE),
+          'operator_id_suffix' => $this->maskOperatorIdSuffix((string) ($normalized['operator_id'] ?? '')),
+        ],
+        'device_fingerprint' => $this->deviceOperationIdentityManager->buildReplaySafeDeviceFingerprint($normalized),
+        'zone_id_normalized' => (string) ($normalized['zone_id'] ?? ''),
+        'timing_identity_composition' => [
+          'timed_scanner_state' => (string) (($descriptor['timed_scanner'] ?? [])['state'] ?? ''),
+        ],
+        'session_identity_composition' => [
+          'session_scanner_allowed' => (bool) (($descriptor['session_scanner'] ?? [])['allowed_now'] ?? FALSE),
+        ],
+      ];
+    }
+    return $out;
+  }
+
+  private function maskOperatorIdSuffix(string $operator_id): string {
+    $operator_id = trim($operator_id);
+    if ($operator_id === '') {
+      return '';
+    }
+    if (strlen($operator_id) <= 4) {
+      return '****';
+    }
+    return '…' . substr($operator_id, -4);
   }
 
   /**

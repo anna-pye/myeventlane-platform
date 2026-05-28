@@ -11,6 +11,16 @@ use Drupal\Core\Template\Attribute;
 use Drupal\myeventlane_event_studio\EventStudioMelOptionCards;
 
 /**
+ * Returns a root-relative URL for the default MEL hero placeholder graphic.
+ */
+function myeventlane_event_studio_hero_placeholder_url(): string {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  $request = \Drupal::request();
+  $base = $request ? $request->getBasePath() : '';
+  return $base . '/' . $theme_path . '/images/mel/placeholders/mel-placeholder-default.svg';
+}
+
+/**
  * Implements hook_theme().
  *
  * Render-element theme on the form root so the template outputs a real <form>
@@ -95,8 +105,95 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
     'mel_event_studio_wizard_preview' => [
       'variables' => [
         'node' => NULL,
+        'preview_url' => NULL,
       ],
       'template' => 'mel-event-studio-wizard-preview',
+    ],
+    'mel_event_studio_operational_capabilities' => [
+      'variables' => [
+        'cards' => [],
+        'customer_preview' => [],
+        'readiness_preview' => [],
+        'ui_metadata' => [],
+      ],
+      'template' => 'mel-event-studio-operational-capabilities',
+    ],
+    'mel_event_studio_productisation' => [
+      'variables' => [
+        'cards' => [],
+        'customer_experience_data' => [],
+        'validation' => [],
+        'cta_rows' => [],
+      ],
+      'template' => 'mel-event-studio-productisation',
+    ],
+    'mel_event_studio_extras_list' => [
+      'variables' => [
+        'cards' => [],
+        'empty' => FALSE,
+      ],
+      'template' => 'mel-event-studio-extras-list',
+    ],
+    'mel_event_studio_extra_card' => [
+      'variables' => [
+        'card' => [],
+      ],
+      'template' => 'mel-event-studio-extra-card',
+    ],
+    'mel_event_studio_extra_preview' => [
+      'variables' => [
+        'preview' => [],
+      ],
+      'template' => 'mel-event-studio-extra-preview',
+    ],
+    'mel_event_studio_extra_variant_preview' => [
+      'variables' => [
+        'rows' => [],
+      ],
+      'template' => 'mel-event-studio-extra-variant-preview',
+    ],
+    'mel_event_branding_preview' => [
+      'variables' => [
+        'title' => '',
+        'hero' => NULL,
+        'gallery' => [],
+        'style' => 'classic',
+        'colour' => 'coral',
+        'saved_style' => 'classic',
+        'saved_colour' => 'coral',
+        'style_label' => '',
+        'colour_label' => '',
+        'accent_hex' => '#F26D5B',
+        'wrapper_classes' => [],
+        'public_page_link' => NULL,
+        'sample_meta' => [],
+        'sample_cta' => '',
+        'trust_rows' => [],
+      ],
+      'template' => 'mel-event-branding-preview',
+    ],
+    'mel_event_ticket_preview' => [
+      'variables' => [
+        'preview_state' => 'not_configured',
+        'mode_badge' => '',
+        'heading' => '',
+        'cta' => [],
+        'availability' => [],
+        'ticket_rows' => [],
+        'excluded_rows' => [],
+        'show_customer_ticket_empty' => FALSE,
+        'rsvp_summary' => NULL,
+        'trust_rows' => [],
+        'show_empty_state' => TRUE,
+        'wrapper_classes' => [],
+      ],
+      'template' => 'mel-event-ticket-preview',
+    ],
+    'mel_customer_operational_experience' => [
+      'variables' => [
+        'experience' => [],
+      ],
+      'template' => 'mel-customer-operational-experience',
     ],
     'form_element__mel_option_card' => [
       'base hook' => 'form_element',
@@ -107,6 +204,13 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       'template' => 'form-element-label--mel-option-card',
     ],
   ];
+}
+
+/**
+ * Prepares variables for mel-customer-operational-experience.html.twig.
+ */
+function template_preprocess_mel_customer_operational_experience(array &$variables): void {
+  $variables['#attached']['library'][] = 'myeventlane_event_studio/mel_customer_operational_experience';
 }
 
 /**
@@ -145,6 +249,10 @@ function myeventlane_event_studio_theme_suggestions_form_element_label_alter(arr
 function myeventlane_event_studio_preprocess_form_element__mel_option_card(array &$variables): void {
   if (isset($variables['label']) && is_array($variables['label'])) {
     $variables['label']['#mel_option_card_label'] = TRUE;
+  }
+  $element = $variables['element'] ?? [];
+  if (is_array($element) && !empty($element['#mel_option_badge'])) {
+    $variables['mel_option_badge'] = $element['#mel_option_badge'];
   }
 }
 
@@ -189,6 +297,7 @@ function _myeventlane_event_studio_is_event_studio_route(?string $route_name = N
     'myeventlane_event_studio.workspace_tickets',
     'myeventlane_event_studio.workspace_questions',
     'myeventlane_event_studio.workspace_capacity',
+    'myeventlane_event_studio.workspace_extras',
     'myeventlane_event_studio.workspace_merchandise',
     'myeventlane_event_studio.workspace_addons',
     'myeventlane_event_studio.workspace_promotions',
@@ -374,4 +483,5 @@ function myeventlane_event_studio_preprocess_mel_event_studio(&$variables): void
 
   $variables['mel_advanced_ticket_manager_url'] = $element['#mel_advanced_ticket_manager_url'] ?? NULL;
   $variables['mel_studio_governance'] = $element['#mel_studio_governance'] ?? ['enabled' => FALSE];
+  $variables['mel_hero_placeholder_url'] = myeventlane_event_studio_hero_placeholder_url();
 }

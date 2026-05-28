@@ -512,6 +512,12 @@
     if (!el && fieldName === 'mel[field_event_image][]') {
       el = form.querySelector('input[name="mel[field_event_image][]"]');
     }
+    if (!el && fieldName === 'mel[field_event_image][0][fids]') {
+      el = form.querySelector('input[name="mel[field_event_image][0][fids]"]');
+    }
+    if (!el && fieldName === 'mel[field_event_image][0][upload]') {
+      el = form.querySelector('input[name="mel[field_event_image][0][upload]"]');
+    }
     if (!el && fieldName === 'mel[studio_ticket_focus]') {
       el = form.querySelector('#mel-add-ticket-tier') || form.querySelector('.mel-tier-title');
     }
@@ -551,6 +557,51 @@
       return el.checked;
     }
     return (el.value || '').trim();
+  }
+
+  /**
+   * Alt text for hero: image widget delta first when that control exists, else legacy field.
+   *
+   * @param {HTMLFormElement} form
+   * @returns {string}
+   */
+  function melHeroAltValue(form) {
+    if (form.querySelector('[name="mel[field_event_image][0][alt]"]')) {
+      return val(form, 'mel[field_event_image][0][alt]') || val(form, 'mel[field_event_image_alt]');
+    }
+    return val(form, 'mel[field_event_image_alt]');
+  }
+
+  /**
+   * Name= attribute for the active hero alt control (must align with {@link melHeroAltValue}).
+   *
+   * @param {HTMLFormElement} form
+   * @returns {string}
+   */
+  function melHeroAltFieldName(form) {
+    if (form.querySelector('[name="mel[field_event_image][0][alt]"]')) {
+      return 'mel[field_event_image][0][alt]';
+    }
+    return 'mel[field_event_image_alt]';
+  }
+
+  /**
+   * Jump target for "add cover" — legacy managed_file vs image widget controls.
+   *
+   * @param {HTMLFormElement} form
+   * @returns {string}
+   */
+  function melCoverImageJumpTarget(form) {
+    if (form.querySelector('input[name="mel[field_event_image][]"]')) {
+      return 'mel[field_event_image][]';
+    }
+    if (form.querySelector('input[name="mel[field_event_image][0][fids]"]')) {
+      return 'mel[field_event_image][0][fids]';
+    }
+    if (form.querySelector('input[name="mel[field_event_image][0][upload]"]')) {
+      return 'mel[field_event_image][0][upload]';
+    }
+    return 'mel[field_event_image][]';
   }
 
   /** Category: multi-select uses mel[field_category][]; autocomplete uses mel[field_category]. */
@@ -2053,6 +2104,53 @@
     host.innerHTML = chips.join('');
   }
 
+  /**
+   * Finds the anchor for an uploaded image inside Drupal managed_file markup.
+   *
+   * @param {Element|null} root
+   * @return {HTMLAnchorElement|null}
+   */
+  function melFindManagedFileImageLink(root) {
+    if (!root || !root.querySelectorAll) {
+      return null;
+    }
+    var candidates = root.querySelectorAll('.form-managed-file a[href]');
+    var i;
+    for (i = 0; i < candidates.length; i++) {
+      var a = candidates[i];
+      var href = a.getAttribute('href') || '';
+      if (!href || href.indexOf('javascript:') === 0) {
+        continue;
+      }
+      if (
+        href.indexOf('/files/') !== -1 ||
+        href.indexOf('/system/files') !== -1 ||
+        href.indexOf('files/') !== -1 ||
+        /\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(href)
+      ) {
+        return a;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * True when managed_file has non-empty fids for mel[field_event_image].
+   *
+   * @param {HTMLFormElement} form
+   * @return {boolean}
+   */
+  function melHeroImageFidsPresent(form) {
+    var inp =
+      form.querySelector('input[name="mel[field_event_image][fids]"]') ||
+      form.querySelector('input[name="mel[field_event_image][0][fids]"]') ||
+      form.querySelector('input[name*="field_event_image"][name*="fids"]');
+    if (!inp) {
+      return false;
+    }
+    return String(inp.value || '').trim() !== '';
+  }
+
   function syncCoverPreview(form) {
     var wrap = document.getElementById('mel-cover-preview');
     var img = document.getElementById('mel-cover-preview-img');
@@ -2062,13 +2160,36 @@
     }
 
     var mediaRoot = form.querySelector('.mel-identity-media');
-    var link =
-      (mediaRoot && mediaRoot.querySelector('.form-managed-file a[href*="files/"]')) ||
-      form.querySelector('.form-managed-file a[href*="files/"]');
-    if (link && link.href) {
-      img.src = link.href;
+    var url =
+      (mediaRoot && melFindManagedFileImageUrl(mediaRoot)) || melFindManagedFileImageUrl(form);
+    if (url) {
+      img.src = url;
       img.removeAttribute('hidden');
       empty.setAttribute('hidden', 'hidden');
+      return;
+    }
+
+    var existingSrc = (img.getAttribute('src') || '').trim();
+    var fidsPresent = melHeroImageFidsPresent(form);
+
+    // Fids or SSR preview: do not show the empty-state placeholder while a file
+    // is still attached, even if Gin/theme omitted a matching file link.
+    if (fidsPresent || existingSrc !== '') {
+      if (existingSrc === '' && fidsPresent) {
+        var fallback = melCoverPlaceholderSrc(wrap);
+        if (fallback) {
+          img.src = fallback;
+          existingSrc = fallback;
+        }
+      }
+      if (existingSrc !== '') {
+        img.removeAttribute('hidden');
+        empty.setAttribute('hidden', 'hidden');
+      } else {
+        // Attached file but no preview URL yet — keep empty visible (never hide both).
+        img.setAttribute('hidden', 'hidden');
+        empty.removeAttribute('hidden');
+      }
       return;
     }
 
@@ -2084,50 +2205,82 @@
       return;
     }
     var mediaRoot = form.querySelector('.mel-identity-media');
-    var link =
-      (mediaRoot && mediaRoot.querySelector('.form-managed-file a[href*="files/"]')) ||
-      form.querySelector('.form-managed-file a[href*="files/"]');
-    if (link && link.href) {
-      img.src = link.href;
-      img.alt = val(form, 'mel[field_event_image_alt]') || '';
+    var url =
+      (mediaRoot && melFindManagedFileImageUrl(mediaRoot)) || melFindManagedFileImageUrl(form);
+    if (url) {
+      img.src = url;
+      img.alt = melHeroAltValue(form) || '';
       img.removeAttribute('hidden');
       ph.setAttribute('hidden', 'hidden');
-    } else {
-      img.removeAttribute('src');
-      img.setAttribute('hidden', 'hidden');
-      ph.removeAttribute('hidden');
+      return;
     }
+
+    var existingSrc = (img.getAttribute('src') || '').trim();
+    if (hasCoverFile(form)) {
+      if (existingSrc === '' && melHeroImageFidsPresent(form)) {
+        var coverWrap = document.getElementById('mel-cover-preview');
+        var fallback = melCoverPlaceholderSrc(coverWrap);
+        if (fallback) {
+          img.src = fallback;
+          existingSrc = fallback;
+        }
+      }
+      if (existingSrc !== '') {
+        img.alt = melHeroAltValue(form) || '';
+        img.removeAttribute('hidden');
+        ph.setAttribute('hidden', 'hidden');
+      } else {
+        img.setAttribute('hidden', 'hidden');
+        ph.removeAttribute('hidden');
+      }
+      return;
+    }
+
+    img.removeAttribute('src');
+    img.setAttribute('hidden', 'hidden');
+    ph.removeAttribute('hidden');
+  }
+
+  function applyCoverFileDataUrl(form, dataUrl) {
+    var img = document.getElementById('mel-cover-preview-img');
+    var empty = document.getElementById('mel-cover-preview-empty');
+    var prevImg = document.getElementById('mel-preview-card-img');
+    var ph = document.getElementById('mel-preview-card-placeholder');
+    if (img && empty) {
+      img.src = dataUrl;
+      img.removeAttribute('hidden');
+      empty.setAttribute('hidden', 'hidden');
+    }
+    if (prevImg && ph) {
+      prevImg.src = dataUrl;
+      prevImg.alt = melHeroAltValue(form) || '';
+      prevImg.removeAttribute('hidden');
+      ph.setAttribute('hidden', 'hidden');
+    }
+    scheduleApplyLivePreview(form, false);
   }
 
   function bindCoverFilePreview(form) {
-    var media = form.querySelector('.mel-identity-media');
-    if (!media) {
-      return;
-    }
-    once('mel-cover-file', 'input[type="file"]', media).forEach(function (input) {
-      input.addEventListener('change', function () {
+    // Delegate on the form so every .mel-identity-media file input is covered,
+    // including inputs added after AJAX managed_file refreshes.
+    once('mel-cover-file', form).forEach(function () {
+      form.addEventListener('change', function (e) {
+        var input = e.target;
+        if (
+          !input ||
+          input.type !== 'file' ||
+          !form.contains(input) ||
+          !input.closest('.mel-identity-media')
+        ) {
+          return;
+        }
         var f = input.files && input.files[0];
         if (!f || !f.type || f.type.indexOf('image/') !== 0) {
           return;
         }
         var r = new FileReader();
         r.onload = function () {
-          var img = document.getElementById('mel-cover-preview-img');
-          var empty = document.getElementById('mel-cover-preview-empty');
-          var prevImg = document.getElementById('mel-preview-card-img');
-          var ph = document.getElementById('mel-preview-card-placeholder');
-          if (img && empty) {
-            img.src = r.result;
-            img.removeAttribute('hidden');
-            empty.setAttribute('hidden', 'hidden');
-          }
-          if (prevImg && ph) {
-            prevImg.src = r.result;
-            prevImg.alt = val(form, 'mel[field_event_image_alt]') || '';
-            prevImg.removeAttribute('hidden');
-            ph.setAttribute('hidden', 'hidden');
-          }
-          scheduleApplyLivePreview(form, false);
+          applyCoverFileDataUrl(form, r.result);
         };
         r.readAsDataURL(f);
       });
@@ -2648,9 +2801,13 @@
   }
 
   function hasCoverFile(form) {
+    var media = form.querySelector('.mel-identity-media');
+    var managedLegacy = form.querySelector('input[name="mel[field_event_image][]"]');
     return !!(
-      form.querySelector('.mel-identity-media .form-managed-file a[href*="files/"]') ||
-      form.querySelector('input[name="mel[field_event_image][]"]')?.value
+      (media && melFindManagedFileImageLink(media)) ||
+      melFindManagedFileImageLink(form) ||
+      (managedLegacy && managedLegacy.value) ||
+      melHeroImageFidsPresent(form)
     );
   }
 
@@ -2777,7 +2934,7 @@
       add(
         'high',
         Drupal.t('Events with images get more visibility — add a cover now so your card pops in discovery and shares.'),
-        'mel[field_event_image][]',
+        melCoverImageJumpTarget(form),
       );
     }
 
@@ -2850,8 +3007,12 @@
       }
     }
 
-    if (!val(form, 'mel[field_event_image_alt]') && hasCoverFile(form)) {
-      add('medium', Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'), 'mel[field_event_image_alt]');
+    if (!melHeroAltValue(form) && hasCoverFile(form)) {
+      add(
+        'medium',
+        Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'),
+        melHeroAltFieldName(form),
+      );
     }
 
     if (rows.length === 0) {

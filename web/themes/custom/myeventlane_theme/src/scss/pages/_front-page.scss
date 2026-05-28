@@ -61,21 +61,21 @@
   max-width: 1240px;
 }
 
-.mel-page--home .mel-featured-home-carousel {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel {
   overflow: hidden;
 }
 
-.mel-page--home .mel-featured-home-carousel::before,
-.mel-page--home .mel-featured-home-carousel::after {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel::before,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel::after {
   display: none;
 }
 
-.mel-page--home .mel-featured-home-carousel__track {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel__track {
   display: flex;
   flex-wrap: nowrap;
   gap: 0;
   margin: 0;
-  padding: 6px 0 18px;
+  padding: 0 0 18px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-padding-inline: 0;
@@ -94,20 +94,26 @@
   }
 }
 
-.mel-page--home .mel-featured-home-carousel__item {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel__item {
   flex: 0 0 100%;
   min-width: 0;
   scroll-snap-align: start;
+  overflow: hidden;
+  border-radius: clamp(24px, 3vw, 34px);
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card-article,
-.mel-page--home .mel-featured-home-carousel .mel-event-card {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card-article,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-card,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-card--editorial,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-card--hero,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-card--featured {
   display: block;
-  height: 100%;
+  width: 100%;
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured,
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-card--editorial,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-card--featured,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card {
   width: 100%;
   min-height: clamp(360px, 42vw, 520px);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -117,31 +123,31 @@
   box-shadow: 0 26px 70px rgba(31, 38, 51, 0.2);
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card {
   color: #fff;
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__overlay {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card__overlay {
   background:
     linear-gradient(90deg, rgba(13, 18, 28, 0.78) 0%, rgba(13, 18, 28, 0.32) 52%, rgba(13, 18, 28, 0.06) 100%),
     linear-gradient(0deg, rgba(13, 18, 28, 0.8) 0%, transparent 62%);
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__title {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card__title {
   max-width: 11ch;
   font-size: clamp(2.2rem, 5.2vw, 4.4rem);
   line-height: 0.95;
   letter-spacing: -0.06em;
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__when,
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__where,
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__status,
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__status-note {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card__when,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card__where,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card__status,
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card__status-note {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-hero-card__cta-chip {
+.mel-page--home .mel-section--featured .mel-featured-home-carousel .mel-event-hero-card__cta-chip {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
 }
 
@@ -213,95 +219,138 @@
   }
 }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__link {
-  position: relative;
-  min-height: inherit;
-  color: #fff;
-}
+// Full-bleed editorial magazine cards in the lower homepage featured section only.
+// Hero header rotator: components/_home-hero.scss
+.mel-page--home .mel-section--featured .mel-featured-home-carousel {
+  .mel-event-card--editorial,
+  .mel-event-card--featured,
+  .mel-event-card--hero {
+    position: relative;
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-}
+    .mel-event-card__link {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      aspect-ratio: auto;
+      overflow: hidden;
+      border-radius: inherit;
+      color: #fff;
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background:
-    linear-gradient(90deg, rgba(13, 18, 28, 0.78) 0%, rgba(13, 18, 28, 0.32) 48%, rgba(13, 18, 28, 0.12) 100%),
-    linear-gradient(0deg, rgba(13, 18, 28, 0.78) 0%, transparent 58%);
-  pointer-events: none;
-}
+    .mel-event-card__image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image .mel-event-card__image-element,
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__placeholder {
-  width: 100%;
-  height: 100%;
-  min-height: clamp(360px, 42vw, 520px);
-  object-fit: cover;
-}
+    .mel-event-card__overlay {
+      z-index: 2;
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image-badge {
-  z-index: 4;
-  top: 22px;
-  left: 22px;
-}
+    .mel-event-card__image .mel-event-card__image-element,
+    .mel-event-card__image img,
+    .mel-event-card__placeholder {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      min-width: 100%;
+      min-height: 100%;
+      max-width: none;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+      border-radius: 0;
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__body {
-  position: relative;
-  z-index: 3;
-  justify-content: flex-end;
-  width: min(100%, 560px);
-  min-height: clamp(360px, 42vw, 520px);
-  padding: clamp(24px, 5vw, 48px);
-  color: #fff;
-}
+    .mel-event-card__image-badge {
+      z-index: 4;
+      top: 22px;
+      left: 22px;
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__title {
-  min-height: 0;
-  margin-bottom: 12px;
-  color: #fff;
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
-}
+    .mel-event-card__body,
+    .mel-event-card__content {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      width: min(100%, 560px);
+      max-width: 100%;
+      min-height: 0;
+      margin: 0;
+      padding: clamp(24px, 5vw, 48px);
+      color: #fff;
+      pointer-events: none;
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__when,
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__location,
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__status,
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__status-secondary {
-  color: rgba(255, 255, 255, 0.9);
-}
+      > * {
+        pointer-events: auto;
+      }
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__location-slot {
-  min-height: 0;
-  margin-bottom: 12px;
-}
+    .mel-event-hero__glass {
+      width: fit-content;
+      max-width: 100%;
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__cta-row {
-  margin-top: 8px;
-}
+    .mel-event-card__title {
+      min-height: 0;
+      margin-bottom: 12px;
+      color: #fff;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
 
-.mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__cta-chip {
-  background: mel.$mel-ds-color-primary;
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #fff;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+    .mel-event-card__when,
+    .mel-event-card__location,
+    .mel-event-card__status,
+    .mel-event-card__status-secondary {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .mel-event-card__location-slot {
+      min-height: 0;
+      margin-bottom: 12px;
+    }
+
+    .mel-event-card__cta-row {
+      margin-top: 8px;
+    }
+
+    .mel-event-card__cta-chip {
+      background: mel.$mel-ds-color-primary;
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+    }
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured:hover,
-  .mel-page--home .mel-featured-home-carousel .mel-event-hero-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 30px 76px rgba(31, 38, 51, 0.24);
+  .mel-page--home .mel-section--featured .mel-featured-home-carousel {
+    .mel-event-card--editorial:hover,
+    .mel-event-card--featured:hover,
+    .mel-event-card--hero:hover,
+    .mel-event-hero-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 30px 76px rgba(31, 38, 51, 0.24);
+    }
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mel-page--home .mel-featured-home-carousel__track {
+  .mel-page--home .mel-section--featured .mel-featured-home-carousel__track {
     scroll-behavior: auto;
   }
 
@@ -311,16 +360,22 @@
 }
 
 @media (width <= 640px) {
-  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured,
-  .mel-page--home .mel-featured-home-carousel .mel-event-hero-card,
-  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__image .mel-event-card__image-element,
-  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__placeholder,
-  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__body {
-    min-height: clamp(300px, 88vw, 360px);
-  }
+  .mel-page--home .mel-section--featured .mel-featured-home-carousel {
+    .mel-event-card--editorial,
+    .mel-event-card--featured,
+    .mel-event-card--hero,
+    .mel-event-hero-card {
+      min-height: clamp(300px, 88vw, 360px);
+    }
 
-  .mel-page--home .mel-featured-home-carousel .mel-event-card--featured .mel-event-card__body {
-    padding: 22px;
+    .mel-event-card--editorial,
+    .mel-event-card--featured,
+    .mel-event-card--hero {
+      .mel-event-card__body,
+      .mel-event-card__content {
+        padding: 22px;
+      }
+    }
   }
 }
 
@@ -330,6 +385,19 @@
 
 .mel-page--home .mel-section--latest {
   padding-top: clamp(1rem, 2.6vw, 1.9rem);
+}
+
+// Homepage blocks must not show listing discovery chips or exposed filters.
+.mel-page--home .mel-section--latest,
+.mel-page--home .mel-section--tonight,
+.mel-page--home .mel-section--discover {
+  .mel-events-date-filters,
+  .mel-filter-chip-row,
+  .mel-front-filters,
+  .views-exposed-form,
+  form.views-exposed-form {
+    display: none !important;
+  }
 }
 
 .mel-page--home .mel-section--tonight {
@@ -358,6 +426,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
+  align-items: stretch;
 
   @media (width <= 1024px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -385,88 +454,41 @@
   letter-spacing: 0.02em;
 }
 
-.mel-page--home .mel-section--discover .mel-event-card,
-.mel-page--home .mel-section--latest .mel-event-card,
-.mel-page--home .mel-section--nearby .mel-event-card,
-.mel-page--home .mel-section--online .mel-event-card,
-.mel-page--home .mel-section--tonight .mel-event-card {
+// Image-led discovery grids: layout only — card chrome lives in _event-card.scss.
+.mel-page--home .mel-section--discover .mel-event-grid,
+.mel-page--home .mel-section--latest .mel-event-grid,
+.mel-page--home .mel-section--nearby .mel-event-grid,
+.mel-page--home .mel-section--online .mel-event-grid,
+.mel-page--home .mel-section--tonight .mel-event-grid {
+  overflow-x: clip;
+}
+
+.mel-page--home .mel-section--discover .mel-event-card--compact,
+.mel-page--home .mel-section--latest .mel-event-card--compact,
+.mel-page--home .mel-section--nearby .mel-event-card--compact,
+.mel-page--home .mel-section--online .mel-event-card--compact,
+.mel-page--home .mel-section--tonight .mel-event-card--compact {
   height: 100%;
-  border-radius: 18px;
+  align-self: stretch;
 }
 
-.mel-page--home .mel-section--discover .mel-event-card__image,
-.mel-page--home .mel-section--latest .mel-event-card__image,
-.mel-page--home .mel-section--nearby .mel-event-card__image,
-.mel-page--home .mel-section--online .mel-event-card__image,
-.mel-page--home .mel-section--tonight .mel-event-card__image {
-  aspect-ratio: 4 / 3;
-}
-
-.mel-page--home .mel-section--discover .mel-event-card__body,
-.mel-page--home .mel-section--latest .mel-event-card__body,
-.mel-page--home .mel-section--nearby .mel-event-card__body,
-.mel-page--home .mel-section--online .mel-event-card__body,
-.mel-page--home .mel-section--tonight .mel-event-card__body {
-  padding: 12px 13px 13px;
-}
-
-.mel-page--home .mel-section--discover .mel-event-card__title,
-.mel-page--home .mel-section--latest .mel-event-card__title,
-.mel-page--home .mel-section--nearby .mel-event-card__title,
-.mel-page--home .mel-section--online .mel-event-card__title,
-.mel-page--home .mel-section--tonight .mel-event-card__title {
-  margin-bottom: 8px;
-  font-size: 16px;
-  line-height: 1.22;
-}
-
-.mel-page--home .mel-section--discover .mel-event-card__when,
-.mel-page--home .mel-section--latest .mel-event-card__when,
-.mel-page--home .mel-section--nearby .mel-event-card__when,
-.mel-page--home .mel-section--online .mel-event-card__when,
-.mel-page--home .mel-section--tonight .mel-event-card__when,
-.mel-page--home .mel-section--discover .mel-event-card__status,
-.mel-page--home .mel-section--latest .mel-event-card__status,
-.mel-page--home .mel-section--nearby .mel-event-card__status,
-.mel-page--home .mel-section--online .mel-event-card__status,
-.mel-page--home .mel-section--tonight .mel-event-card__status {
-  font-size: 13px;
-}
-
-.mel-page--home .mel-section--discover .mel-event-card__location-slot,
-.mel-page--home .mel-section--latest .mel-event-card__location-slot,
-.mel-page--home .mel-section--nearby .mel-event-card__location-slot,
-.mel-page--home .mel-section--online .mel-event-card__location-slot,
-.mel-page--home .mel-section--tonight .mel-event-card__location-slot {
-  min-height: 1.2em;
-  margin-bottom: 6px;
-}
-
-.mel-page--home .mel-section--discover .mel-event-card__location,
-.mel-page--home .mel-section--latest .mel-event-card__location,
-.mel-page--home .mel-section--nearby .mel-event-card__location,
-.mel-page--home .mel-section--online .mel-event-card__location,
-.mel-page--home .mel-section--tonight .mel-event-card__location {
-  font-size: 12px;
-}
-
-.mel-page--home .mel-section--discover .mel-event-card__cta-chip,
-.mel-page--home .mel-section--latest .mel-event-card__cta-chip,
-.mel-page--home .mel-section--nearby .mel-event-card__cta-chip,
-.mel-page--home .mel-section--online .mel-event-card__cta-chip,
-.mel-page--home .mel-section--tonight .mel-event-card__cta-chip {
-  min-height: 44px;
-  padding-inline: 12px;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .mel-page--home .mel-event-card:hover .mel-event-card__cta-chip {
-    background: color-mix(in srgb, mel.$mel-ds-color-primary 16%, mel.$mel-ds-color-surface);
-    border-color: color-mix(in srgb, mel.$mel-ds-color-primary 40%, transparent);
-    color: mel.$mel-ds-color-text;
-  }
+.mel-page--home .mel-section--discover .mel-event-card--standard,
+.mel-page--home .mel-section--discover .mel-event-card--hero,
+.mel-page--home .mel-section--discover .mel-event-card--featured,
+.mel-page--home .mel-section--latest .mel-event-card--standard,
+.mel-page--home .mel-section--latest .mel-event-card--hero,
+.mel-page--home .mel-section--latest .mel-event-card--featured,
+.mel-page--home .mel-section--nearby .mel-event-card--standard,
+.mel-page--home .mel-section--nearby .mel-event-card--hero,
+.mel-page--home .mel-section--nearby .mel-event-card--featured,
+.mel-page--home .mel-section--online .mel-event-card--standard,
+.mel-page--home .mel-section--online .mel-event-card--hero,
+.mel-page--home .mel-section--online .mel-event-card--featured,
+.mel-page--home .mel-section--tonight .mel-event-card--standard,
+.mel-page--home .mel-section--tonight .mel-event-card--hero,
+.mel-page--home .mel-section--tonight .mel-event-card--featured {
+  height: auto;
+  align-self: start;
 }
 
 // ---------------------------------------------------------------------------

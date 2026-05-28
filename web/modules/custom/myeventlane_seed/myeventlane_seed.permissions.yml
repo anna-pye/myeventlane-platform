@@ -1,0 +1,4 @@
+administer myeventlane demo content:
+  title: 'Administer MyEventLane demo content'
+  description: 'Configure and generate deterministic demo events for testing.'
+  restrict access: true

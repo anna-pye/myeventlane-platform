@@ -52,6 +52,9 @@
   {% endif %}
   {% if label_display == 'after' %}
     <div class="mel-option-card__content">
+      {% if mel_option_badge is defined and mel_option_badge %}
+        <span class="mel-option-card__badge">{{ mel_option_badge }}</span>
+      {% endif %}
       {{ label }}
       {% if description_display in ['after', 'invisible'] and description.content %}
         <p{{ description.attributes.addClass(desc_card_classes) }}>

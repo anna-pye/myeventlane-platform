@@ -82,9 +82,10 @@
 
     // =========================================================================
     // FULL-BLEED IMAGE WITH APPLE LIQUID GLASS OVERLAY
+    // Editorial hero cards (homepage header) use _home-hero.scss instead.
     // =========================================================================
 
-    .mel-event-card {
+    .mel-event-card:not(.mel-event-card--editorial) {
       position: relative;
       width: 100%;
       min-height: 300px;
@@ -98,7 +99,6 @@
       @include breakpoints.mel-break(md) {
         min-height: 340px;
       }
-    }
 
     // -------------------------------------------------------------------------
     // Full-bleed image covering entire card
@@ -167,64 +167,31 @@
     //      https://blog.logrocket.com/how-create-liquid-glass-effects-css-and-svg/
     // =========================================================================
 
+    // Body positions the glass dock; canonical glass is .mel-event-hero__glass (mixin).
+    .mel-event-card__body,
     .mel-event-card__content {
       position: absolute;
       bottom: 0;
       left: 12px;
       right: 12px;
       z-index: 10;
-      padding: 18px 24px;
-      margin: 0 0 12px 0;
-      border-radius: 16px;
-      overflow: hidden;
+      padding: 0;
+      margin: 0 0 12px;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      overflow: visible;
 
-      // --- LIQUID GLASS REFRACTION ---
-      // SVG filter for true refraction (Chrome/Edge) + CSS blur fallback
-      background: rgba(255, 255, 255, 0.12);
-
-      // Fallback for Safari/Firefox: standard blur
-      backdrop-filter: blur(24px) saturate(180%) brightness(1.1);
-      -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.1);
-
-      // SVG filter override for Chromium (true refraction + blur)
-      @supports (backdrop-filter: url(#a)) {
-        backdrop-filter: url(#mel-liquid-glass) saturate(180%) brightness(1.1);
+      &::after {
+        display: none;
       }
-
-      // --- GLASS EDGE ---
-      // Thin border all around with brighter top edge
-      border: 1px solid rgba(255, 255, 255, 0.25);
-
-      // --- DEPTH + SPECULAR HIGHLIGHTS ---
-      box-shadow:
-        // Outer: floating glass shadow
-        0 8px 32px rgba(0, 0, 0, 0.18),
-        // Inner top: specular highlight (light catching top edge)
-        inset 0 2px 1px 0 rgba(255, 255, 255, 0.5),
-        // Inner bottom: subtle depth
-        inset 0 -1px 1px 0 rgba(0, 0, 0, 0.06);
     }
 
-    // --- SPECULAR RIM GRADIENT (Reflection layer) ---
-    .mel-event-card__content::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: 1;
-
-      // Diagonal specular gradient (simulates light source top-left)
-      background: linear-gradient(
-        160deg,
-        rgba(255, 255, 255, 0.3) 0%,
-        rgba(255, 255, 255, 0.1) 25%,
-        transparent 50%,
-        transparent 100%
-      );
-
-      // Top-edge refraction rim
-      border-top: 1px solid rgba(255, 255, 255, 0.4);
+    .mel-event-hero__glass {
+      width: 100%;
+      border-radius: 20px;
     }
 
     // -------------------------------------------------------------------------
@@ -357,6 +324,7 @@
       );
       border-top-color: rgba(255, 255, 255, 0.5);
     }
+    }
   }
 
   // Respect reduced motion
@@ -469,7 +437,7 @@
     @media (hover: hover) and (pointer: fine) {
       &:hover {
         background: colors.$mel-color-bg;
-        text-decoration: underline;
+        text-decoration: none;
       }
     }
 

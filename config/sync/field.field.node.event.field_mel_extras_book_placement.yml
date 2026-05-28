@@ -1,0 +1,21 @@
+uuid: 7b9c3d2e-5f4a-4b8c-9d1e-2a3b4c5d6e7f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_extras_book_placement
+    - node.type.event
+id: node.event.field_mel_extras_book_placement
+field_name: field_mel_extras_book_placement
+entity_type: node
+bundle: event
+label: 'Extras on booking page'
+description: 'Where guests see event extras when booking paid tickets.'
+required: false
+translatable: false
+default_value:
+  -
+    value: main_before_access
+default_value_callback: ''
+settings: {  }
+field_type: list_string

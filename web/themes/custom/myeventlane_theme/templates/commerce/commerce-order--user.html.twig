@@ -57,6 +57,51 @@
     </div>
   </div>
 
+  {% if mel_customer_operational_experience %}
+    <div class="mel-order-detail__section mel-order-detail__operational mel-card mel-mb-4">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'What to expect at the venue'|t }}</h2>
+        {{ mel_customer_operational_experience }}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if mel_operational_fulfillment_execution_customer %}
+    <div class="mel-order-detail__section mel-order-detail__fulfillment-execution mel-card mel-mb-4" role="region" aria-label="{{ 'On-site fulfillment'|t }}">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'On-site fulfillment'|t }}</h2>
+        {{ mel_operational_fulfillment_execution_customer }}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if mel_operational_purchase_composition %}
+    <div class="mel-order-detail__section mel-order-detail__operational-composition mel-card mel-mb-4" role="region" aria-label="{{ 'Operational packages'|t }}">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'Operational packages'|t }}</h2>
+        {{ mel_operational_purchase_composition }}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if mel_operational_checkout %}
+    <div class="mel-order-detail__section mel-order-detail__operational-checkout mel-card mel-mb-4" role="region" aria-label="{{ 'Operational checkout plan'|t }}">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'Operational checkout plan'|t }}</h2>
+        {{ mel_operational_checkout }}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if operational_addon_guidance %}
+    <div class="mel-order-detail__section mel-order-detail__addon-guidance mel-card mel-mb-4" role="region" aria-label="{{ 'Your add-ons'|t }}">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'Your add-ons'|t }}</h2>
+        {{ operational_addon_guidance }}
+      </div>
+    </div>
+  {% endif %}
+
   {# Order items table #}
   {% if order.order_items is defined and order.order_items|render|striptags|trim %}
     <div class="mel-order-detail__section mel-order-detail__items mel-card mel-mb-4">

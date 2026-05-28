@@ -18,6 +18,12 @@ This phase introduces a **single venue operation policy layer** for ticket-backe
 | Staff/API entry point | `myeventlane_tickets.ticket_checkin_service` | `TicketCheckinService` |
 
 `ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry**, **session entitlement**, and **zone access topology** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`**, **`SessionEntitlementPolicyManager`**, and **`ZoneAccessPolicyManager`**), and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`, optional `operational_scan_policy` snapshot when the composed gate produced policy metadata).
+| Operational device / gate / checkpoint identity (metadata-only descriptors) | `myeventlane_tickets.device_operation_identity_manager` | `DeviceOperationIdentityManager` |
+| Operational continuity / reconciliation metadata (policy-only, no alternate authority) | `myeventlane_tickets.operational_continuity_policy_manager` | `OperationalContinuityPolicyManager` |
+| Scanner orchestration (QR parse, mutations, audit) | `mel_scanner.operation_manager` | `ScannerOperationManager` |
+| Staff/API entry point | `myeventlane_tickets.ticket_checkin_service` | `TicketCheckinService` |
+
+`ScannerOperationManager` remains the **only** scanner orchestration implementation. It **must** route gate actions through `EntitlementCapabilityRegistry`, apply **timed entry**, **session entitlement**, and **zone access topology** decisions through **`VenueOperationPolicyManager`** (which delegates to **`TimedEntryPolicyManager`**, **`SessionEntitlementPolicyManager`**, and **`ZoneAccessPolicyManager`**), merge optional operational device metadata through **`DeviceOperationIdentityManager`**, evaluate **`VenueOperationPolicyManager::evaluateOperationalContinuity()`** for canonical continuity payloads, and enrich `mel_redemption_log.metadata_json` using `VenueOperationPolicyManager` (nested key `venue_operation_integrity`, optional `operational_scan_policy` snapshot when the composed gate produced policy metadata, optional `operational_identity` with public summaries and staff-only integrity payloads, optional `operational_continuity` machine payload from **`OperationalContinuityPolicyManager`**). See [device-gate-identity-convergence.md](./device-gate-identity-convergence.md) and [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md).
 
 ## Zone and access topology (Phase 2G)
 
@@ -64,6 +70,9 @@ This phase adds **non-authoritative scaffolding**:
 ## Observability
 
 `OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector adds **`artifacts.zone_access_topology`** (per ticket id: topology summaries, gate policy counts, progression/re-entry semantics, structural zone conflicts). The inspector remains **read-only**.
+`OperationalIntegrityInspector::inspectOrder()` adds `artifacts.venue_operation_policy`, keyed by normalized entitlement type, with machine-only gate semantics, descriptors, offline eligibility flags, replay state summaries, and conflict policy tokens. It also adds **`artifacts.timed_entry_policy`** (per ticket id: policy snapshot + timing conflict codes from `TimedEntryPolicyManager`). The inspector adds **`artifacts.zone_access_topology`** (per ticket id: topology summaries, gate policy counts, progression/re-entry semantics, structural zone conflicts) and **`artifacts.operational_identity`** (per ticket id: device/trust/checkpoint summaries, offline signals, and staff-safe operator attribution masks composed through `DeviceOperationIdentityManager` / `VenueOperationPolicyManager`). It adds **`artifacts.operational_continuity`** (per ticket id: reconciliation policy snapshots, replay alignment metadata, recovery policy labels, offline eligibility summaries, and deterministic continuity descriptors from `OperationalContinuityPolicyManager`, read-only). The inspector remains **read-only**.
+
+The Phase 3A staff workspace (`OperationalWorkspaceBuilder`, `/admin/mel/operations`) merges inspector diagnostics for display only; see [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md).
 
 ## Anti-patterns (forbidden)
 
@@ -79,6 +88,7 @@ This phase adds **non-authoritative scaffolding**:
 
 ## Related documentation
 
+- [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)
 - [entitlement-capability-convergence.md](./entitlement-capability-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)

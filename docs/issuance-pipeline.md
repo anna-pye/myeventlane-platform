@@ -17,6 +17,7 @@ Intended flow:
 7. **Notifications** — Order confirmation PDFs at send time are merged by **`MessagingManager`** → **`OrderConfirmationAttachmentResolver`** → **`TicketPdfGenerator::getPdfContentForTicket()`** per ticket row for the order. Ticket-ready email uses **`TicketMailer`**, which attaches PDFs from **`TicketPdfGenerator`** for assigned tickets.
 
 Venue gate execution for scans continues to flow through **`mel_scanner.operation_manager`** (`ScannerOperationManager`), composed with **`EntitlementCapabilityRegistry`** and **`VenueOperationPolicyManager`** for policy and staff-side integrity metadata (see [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)); issuance steps above are unchanged. Zone and access topology policy is centralized in **`ZoneAccessPolicyManager`** (`myeventlane_tickets.zone_access_policy_manager`) and composed on the scan path through **`VenueOperationPolicyManager::evaluateZoneAccessForScan()`** without changing QR contracts or public scanner tokens (see [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)).
+Venue gate execution for scans continues to flow through **`mel_scanner.operation_manager`** (`ScannerOperationManager`), composed with **`EntitlementCapabilityRegistry`** and **`VenueOperationPolicyManager`** for policy and staff-side integrity metadata (see [offline-venue-operations-convergence.md](./offline-venue-operations-convergence.md)); issuance steps above are unchanged. **Event Studio** may author per-event operational capability metadata (`field_mel_op_capabilities`) for vendor configuration and guest-facing previews only; it does not participate in issuance or QR generation (see [vendor-operational-capability-studio.md](./vendor-operational-capability-studio.md)). **`DeviceOperationIdentityManager`** (`myeventlane_tickets.device_operation_identity_manager`) normalizes optional **`mel_operational_device`** / **`operational_device`** metadata, orchestrated with zone/timing/session policy through **`VenueOperationPolicyManager::evaluateOperationalIdentity()`** and continuity/reconciliation scaffolding through **`VenueOperationPolicyManager::evaluateOperationalContinuity()`** / **`OperationalContinuityPolicyManager`** without changing QR contracts or public scanner tokens (see [device-gate-identity-convergence.md](./device-gate-identity-convergence.md), [offline-reconciliation-operational-continuity.md](./offline-reconciliation-operational-continuity.md)). **`OccupancyPolicyManager`** (`myeventlane_tickets.occupancy_policy_manager`) normalizes optional **`mel_operational_occupancy`** / **`operational_occupancy`** metadata and is composed after timing/session/zone gates for directional scan policy only (see [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)). Zone and access topology policy remains in **`ZoneAccessPolicyManager`** (`myeventlane_tickets.zone_access_policy_manager`) and is composed through **`VenueOperationPolicyManager::evaluateZoneAccessForScan()`** (see [zone-access-topology-convergence.md](./zone-access-topology-convergence.md)).
 
 ```mermaid
 flowchart LR
@@ -75,6 +76,8 @@ A vestigial **`OrderPaidSubscriber`** under **`myeventlane_commerce`** (logging 
 
 Read-only integrity diagnostics for paid orders are centralized in **`OperationalIntegrityInspector`** (`myeventlane_tickets.operational_integrity_inspector`). It inspects issuance alignment, artifact readiness, recovery markers, compatibility surfaces, guest/purchaser continuity, venue gate descriptors, **timed entry diagnostics** (`artifacts.timed_entry_policy`), **session entitlement diagnostics** (`artifacts.session_entitlement_policy`), and **zone access topology diagnostics** (`artifacts.zone_access_topology`) **without** generating PDFs, wallet artifacts, or QR output for persistence. See [operational-observability.md](./operational-observability.md), [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md), [session-multiuse-entitlement-convergence.md](./session-multiuse-entitlement-convergence.md), and [zone-access-topology-convergence.md](./zone-access-topology-convergence.md).
 
+**Staff workspace shell:** Phase 3A adds `OperationalWorkspaceBuilder` + `/admin/mel/operations` to surface **normalized** inspector-derived summaries for venue operations staff (optional `?event={nid}` scope). Details: [venue-operations-workspace-convergence.md](./venue-operations-workspace-convergence.md).
+
 ## Timed entry and capacity windows (operational clock policy)
 
 Operational clock semantics (entry windows, grace, early/late states, session/capacity metadata) are centralized in **`TimedEntryPolicyManager`** (`myeventlane_tickets.timed_entry_policy_manager`). **`VenueOperationPolicyManager`** composes timed policy into descriptors and scan gates; **`ScannerOperationManager`** enforces the gate before mutations. QR payload contracts remain unchanged; structured QR `exp` continues to cap interpretation through the policy layer. Details: [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md).
@@ -90,11 +93,16 @@ Operational semantics for the seven ticket-backed entitlement types (admission, 
 ## Tests
 
 Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`), **`OperationalIntegrityInspectorTest`** (read-only diagnostics), **`TimedEntryPolicyManagerTest`** (timing policy), **`SessionEntitlementPolicyManagerTest`** (session orchestration), **`ZoneAccessPolicyManagerTest`** (zone topology policy), and the existing **`VenueOperationPolicyManagerTest`**, **`TicketCheckinServiceTest`**, and **`UniversalTicketViewModelBuilderTest`** slices that cover scanner and view-model wiring.
+Kernel coverage: **`IssuancePipelineConvergenceTest`** (`myeventlane_tickets`), **`OperationalIntegrityInspectorTest`** (read-only diagnostics), **`TimedEntryPolicyManagerTest`** (timing policy), **`SessionEntitlementPolicyManagerTest`** (session orchestration), **`ZoneAccessPolicyManagerTest`** (zone topology policy), **`DeviceOperationIdentityManagerTest`** (operational identity normalization), and the existing **`VenueOperationPolicyManagerTest`**, **`TicketCheckinServiceTest`**, and **`UniversalTicketViewModelBuilderTest`** slices that cover scanner and view-model wiring.
 
 - Issuance creates one ticket entity per unit quantity.
 - **Regression:** calling **`issueForOrder()`** twice on the same order does **not** create additional ticket rows.
 - **`getPdfContentForTicket()`** succeeds for issued tickets after holder fields are set (PDF continuity from ticket entities).
 - **`OrderConfirmationAttachmentResolver::mergeOrderConfirmationAttachments()`** appends one PDF per issued ticket for `order_confirmation` while preserving queued non-PDF attachments (same behavior as production **`MessagingManager`** wiring).
+
+## Post-issuance execution projections
+
+After tickets exist, **fulfillment execution orchestration** (Phase 4C) may surface **read-only** execution hints to customers and staff from merged operational diagnostics. This path **does not** change issuance, QR contracts, or scanner outcomes; it consumes lifecycle read-models only. See [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md).
 
 ## Manual verification checklist
 
@@ -112,6 +120,9 @@ Performed in a full environment (e.g. DDEV) with real mail and checkout:
 
 ## Related documentation
 
+- [operational-fulfillment-execution-convergence.md](./operational-fulfillment-execution-convergence.md) — read-only fulfillment execution orchestration over lifecycle read-models (no issuance or QR mutation).
+- [customer-operational-commerce-experience.md](./customer-operational-commerce-experience.md) — customer-safe operational expectation copy (no issuance or QR exposure).
+- [operational-commerce-capability-linking.md](./operational-commerce-capability-linking.md) — Event Studio authoring links capabilities to Commerce products (no issuance/inventory execution).
 - [operational-surface-convergence.md](./operational-surface-convergence.md) — My Tickets and PDF rendering convergence onto **`UniversalTicketViewModelBuilder`**.
 - [operational-observability.md](./operational-observability.md) — read-only operational diagnostics authority and anti-patterns.
 - [wallet-operational-convergence.md](./wallet-operational-convergence.md) — Wallet routes, inward ticket resolution, and QR authority alignment.

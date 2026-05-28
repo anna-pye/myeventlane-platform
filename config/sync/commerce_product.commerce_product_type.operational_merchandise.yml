@@ -1,0 +1,13 @@
+uuid: d04d00ec-f0fe-468a-9c7e-a1841f8f7dce
+langcode: en
+status: true
+dependencies: {  }
+id: operational_merchandise
+label: 'Operational merchandise'
+traits: {  }
+locked: false
+description: 'MEL operational merchandise products (pickup semantics; Commerce remains authoritative for catalog and pricing).'
+variationTypes:
+  - operational_merchandise_var
+multipleVariations: true
+injectVariationFields: true

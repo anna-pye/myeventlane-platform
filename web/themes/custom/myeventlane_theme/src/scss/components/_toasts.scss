@@ -1,104 +1,298 @@
+@use 'sass:color';
+@use '../tokens/colors' as colors;
+@use '../tokens/radii' as radii;
+@use '../tokens/spacing' as space;
+@use '../tokens/shadows' as shadows;
+@use '../tokens/typography' as type;
+@use '../tokens/zindex' as z;
+@use '../abstracts/mixins';
+
+// ---------------------------------------------------------------------------
+// Cart success toast — MEL glass panel + Mel illustration
+// ---------------------------------------------------------------------------
+
 .mel-toasts {
   position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: 16px;
-  z-index: 9999;
-  display: grid;
-  gap: 8px;
+  z-index: z.mel-z('modal');
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
 }
 
-.mel-toast {
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
-  gap: 10px;
+.mel-toasts--cart {
+  left: 50%;
+  right: auto;
+  bottom: max(#{space.mel-space(5)}, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(100% - #{space.mel-space(6)}, 22.5rem);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 12px 12px;
-  border-radius: 16px;
-  background: #fef5ec;
-  border: 1px solid rgba(242, 109, 91, 0.25);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  gap: space.mel-space(2);
 }
 
-.mel-toast__icon {
-  width: 28px;
-  height: 28px;
+.mel-region-highlighted:has(.mel-toasts):not(:has(.mel-banner)) {
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  border: 0;
+}
+
+.mel-toast--cart {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    'mascot body'
+    'mascot body';
+  align-items: start;
+  gap: 0 space.mel-space(3);
+  width: 100%;
+  padding: space.mel-space(3) space.mel-space(3) space.mel-space(3) space.mel-space(2);
+  border-radius: radii.$mel-radius-xl;
+  @include mixins.glass-panel(colors.$mel-glass-bg-strong, 18px, radii.$mel-radius-xl);
+  border: 1px solid color.mix(colors.$mel-color-accent, #fff, 22%);
+  box-shadow:
+    shadows.$mel-shadow-glass,
+    0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+  overflow: hidden;
+  animation: mel-toast-enter 380ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.96);
+  }
+}
+
+.mel-toast--cart::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 100%, rgba(124, 131, 253, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 100% 0%, rgba(242, 109, 91, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.mel-toast__accent {
+  position: absolute;
+  left: 0;
+  top: space.mel-space(3);
+  bottom: space.mel-space(3);
+  width: 4px;
+  border-radius: 0 radii.$mel-radius-full radii.$mel-radius-full 0;
+  background: linear-gradient(
+    180deg,
+    colors.$mel-color-primary 0%,
+    colors.$mel-color-accent 100%
+  );
+  box-shadow: 0 0 12px rgba(242, 109, 91, 0.35);
+}
+
+.mel-toast__mascot-frame {
+  position: relative;
+  grid-area: mascot;
+  flex-shrink: 0;
+  width: 4.75rem;
+  height: 4.75rem;
   display: grid;
   place-items: center;
-  border-radius: 999px;
-  background: rgba(242, 109, 91, 0.12);
+  border-radius: radii.$mel-radius-lg;
+  background: linear-gradient(
+    145deg,
+    color.mix(colors.$mel-color-accent, #fff, 18%) 0%,
+    color.mix(colors.$mel-color-primary, #fff, 22%) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 4px 14px rgba(124, 131, 253, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  overflow: hidden;
+}
+
+.mel-toast__mascot-glow {
+  position: absolute;
+  inset: 10%;
+  border-radius: radii.$mel-radius-full;
+  background: radial-gradient(circle, rgba(124, 131, 253, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.mel-toast__mascot-img {
+  position: relative;
+  width: 92%;
+  height: auto;
+  object-fit: contain;
+  opacity: 1;
+  filter: drop-shadow(0 4px 8px rgba(36, 48, 58, 0.12));
+  pointer-events: none;
+  user-select: none;
+}
+
+.mel-toast__body {
+  position: relative;
+  grid-area: body;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: space.mel-space(2);
+  min-width: 0;
+  padding-right: space.mel-space(6);
+}
+
+.mel-toast__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: space.mel-space(1);
+  padding: space.mel-space(1) space.mel-space(2);
+  border-radius: radii.$mel-radius-pill;
+  background: color.mix(colors.$mel-color-success, #fff, 82%);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: color.adjust(#14532d, $lightness: 5%);
+  font-size: type.mel-font-size(xs);
+  font-weight: type.$mel-font-semibold;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mel-toast__badge-icon {
+  display: grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: radii.$mel-radius-full;
+  background: colors.$mel-color-success;
+  color: #fff;
+  font-size: 0.625rem;
+  line-height: 1;
 }
 
 .mel-toast__title {
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.mel-toast__text {
-  font-size: 14px;
-  line-height: 1.25;
-  opacity: 0.9;
+  margin: 0;
+  font-size: type.mel-font-size(sm);
+  font-weight: type.$mel-font-semibold;
+  line-height: type.$mel-leading-relaxed;
+  color: colors.$mel-color-text;
 }
 
 .mel-toast__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: space.mel-space(2);
+  margin-top: space.mel-space(1);
+}
+
+.mel-toast__cart-link {
+  min-height: 2.5rem;
+  border-radius: radii.$mel-radius-pill;
+  box-shadow: 0 6px 16px rgba(242, 109, 91, 0.28);
 }
 
 .mel-toast__close {
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: #fff;
+  position: absolute;
+  top: space.mel-space(2);
+  right: space.mel-space(2);
+  z-index: 1;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: radii.$mel-radius-full;
+  border: 1px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface;
+  color: colors.$mel-color-text-muted;
+  font-size: 1.25rem;
   line-height: 1;
+  cursor: pointer;
+  box-shadow: shadows.$mel-shadow-sm;
+  transition:
+    background-color var(--mel-motion-fast) var(--mel-ease),
+    color var(--mel-motion-fast) var(--mel-ease),
+    border-color var(--mel-motion-fast) var(--mel-ease);
+
+  &:hover {
+    background: colors.$mel-color-surface-alt;
+    color: colors.$mel-color-text;
+    border-color: colors.$mel-color-border-strong;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
 }
 
 .mel-toast.is-leaving {
   opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transform: translateY(10px) scale(0.97);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
 }
 
+@keyframes mel-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (width >= 480px) {
+  .mel-toasts--cart {
+    width: min(22.5rem, calc(100% - #{space.mel-space(8)}));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Inline banners (warnings, errors, non-commerce status)
+// ---------------------------------------------------------------------------
+
 .mel-banners {
-  margin: 12px 0;
+  margin: space.mel-space(3) 0;
   display: grid;
-  gap: 10px;
+  gap: space.mel-space(2);
 }
 
 .mel-banner {
-  border-radius: 16px;
-  padding: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: #fff;
+  border-radius: radii.$mel-radius-lg;
+  padding: space.mel-space(3);
+  border: 1px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface;
+  box-shadow: shadows.$mel-shadow-sm;
 }
 
 .mel-banner__inner {
   display: grid;
   grid-template-columns: 28px 1fr;
-  gap: 10px;
+  gap: space.mel-space(2);
   align-items: start;
 }
 
 .mel-banner--warning {
-  background: #fff6df;
-  border-color: rgba(245, 192, 76, 0.55);
+  background: colors.$mel-color-warning-bg;
+  border-color: rgba(245, 158, 11, 0.35);
 }
 
 .mel-banner--error {
-  background: #ffe9e6;
-  border-color: rgba(242, 109, 91, 0.65);
+  background: colors.$mel-color-error-bg;
+  border-color: rgba(242, 109, 91, 0.45);
 }
 
-/* Success / status (e.g. contact form “message sent”) — was unstyled vs .warning/.error */
 .mel-banner--status {
-  background: #e8f7ef;
-  border-color: rgba(34, 197, 94, 0.45);
+  background: colors.$mel-color-success-bg;
+  border-color: rgba(34, 197, 94, 0.35);
   color: #14532d;
 }
 
 .mel-banner__text {
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: type.mel-font-size(sm);
+  line-height: type.$mel-leading-relaxed;
 }

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkin\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 use Drupal\myeventlane_checkin\Service\CheckInStorageInterface;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -64,20 +66,15 @@ final class CheckInController extends ControllerBase {
   }
 
   /**
-   * QR scan page.
+   * Legacy QR scan route — redirects to canonical Door Mode.
    */
-  public function scan(NodeInterface $node): array {
+  public function scan(NodeInterface $node): RedirectResponse {
     $this->assertEventAccess($node);
 
-    $build = [
-      '#theme' => 'myeventlane_checkin_scan',
-      '#event' => $node,
-      '#attached' => [
-        'library' => ['myeventlane_checkin/scan'],
-      ],
-    ];
-
-    return $build;
+    return new RedirectResponse(
+      Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
+      302,
+    );
   }
 
   /**

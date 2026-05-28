@@ -117,8 +117,7 @@
                 {% if item_event and item_event.id() == event.id() %}
                   <div class="mel-confirmation-card__ticket-row">
                     <span class="mel-confirmation-card__ticket-name">
-                      {% set pe = item.getPurchasedEntity() %}
-                      {{ pe ? pe.label() : item.getTitle() }}
+                      {{ mel_confirmation_line_labels[item.id()]|default(item.getTitle()) }}
                     </span>
                     <span class="mel-confirmation-card__ticket-qty">x {{ item.getQuantity()|number_format(0) }}</span>
                     <span class="mel-confirmation-card__ticket-price">{{ item.getTotalPrice()|commerce_price_format }}</span>
@@ -138,8 +137,7 @@
             {% for item in ticket_items %}
               <div class="mel-confirmation-card__ticket-row">
                 <span class="mel-confirmation-card__ticket-name">
-                  {% set pe = item.getPurchasedEntity() %}
-                  {{ pe ? pe.label() : item.getTitle() }}
+                  {{ mel_confirmation_line_labels[item.id()]|default(item.getTitle()) }}
                 </span>
                 <span class="mel-confirmation-card__ticket-qty">x {{ item.getQuantity()|number_format(0) }}</span>
                 <span class="mel-confirmation-card__ticket-price">{{ item.getTotalPrice()|commerce_price_format }}</span>
@@ -148,6 +146,12 @@
           </div>
         </div>
       </section>
+    {% endif %}
+
+    {% if operational_addon_guidance %}
+      <div class="mel-confirmation__addon-guidance mel-confirmation__main-pad" role="region" aria-label="{{ 'Your add-ons'|t }}">
+        {{ operational_addon_guidance }}
+      </div>
     {% endif %}
 
     {% if mel_donation_total_formatted %}

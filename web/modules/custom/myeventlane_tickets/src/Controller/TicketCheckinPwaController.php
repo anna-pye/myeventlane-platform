@@ -57,13 +57,14 @@ final class TicketCheckinPwaController extends ControllerBase {
   public function serviceWorker(NodeInterface $event): Response {
     $this->assertEventAccess($event);
     $event_id = (int) $event->id();
-    $cache_name = 'mel-checkin-scanner-v1-event-' . $event_id;
+    $cache_name = 'mel-checkin-scanner-v2-event-' . $event_id;
 
     $scan_url = Url::fromRoute('myeventlane_tickets.ticket_scan', ['event' => $event_id])->toString();
     $manifest_url = Url::fromRoute('myeventlane_tickets.ticket_checkin_manifest', ['event' => $event_id])->toString();
     $assets = [
       '/modules/custom/myeventlane_tickets/js/checkin-scanner.js',
-      '/modules/custom/myeventlane_tickets/js/vendor/html5-qrcode.min.js',
+      '/modules/custom/myeventlane_tickets/js/vendor/jsQR.min.js',
+      '/modules/custom/myeventlane_tickets/js/mel-html5-qrcode.js',
       '/modules/custom/myeventlane_tickets/css/checkin-scanner.css',
       $scan_url,
       $manifest_url,

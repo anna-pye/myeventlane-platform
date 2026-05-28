@@ -45,16 +45,5 @@
     {{ form.empty }}
   </div>
 
-  {% if form.actions is defined %}
-    <div class="mel-booking__cta" role="region" aria-label="{{ 'Reserve tickets'|t }}">
-      <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
-        <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
-        <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
-      </div>
-      <p class="mel-booking__cta-note">
-        {{ "Tickets will be added to your cart — checkout when you're ready."|t }}
-      </p>
-      {{ form.actions }}
-    </div>
-  {% endif %}
+  {# Checkout CTA renders on the book page after the operational add-on form (sibling forms). #}
 </form>

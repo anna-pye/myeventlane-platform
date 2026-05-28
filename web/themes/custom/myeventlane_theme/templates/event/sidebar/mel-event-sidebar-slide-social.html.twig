@@ -1,0 +1,29 @@
+{#
+  Social proof slide — viewing, saves, interest signals.
+#}
+<div class="mel-sidebar-carousel__slide-header">
+  <h2 class="mel-card__title">{{ 'The buzz'|t }}</h2>
+  <p class="mel-sidebar-carousel__lede">{{ 'What others are saying about this event.'|t }}</p>
+</div>
+<div class="mel-sidebar-carousel__slide-body mel-sidebar-social">
+  <ul class="mel-sidebar-social__list" role="list">
+    {% if event_viewer_count is not empty %}
+      <li class="mel-sidebar-social__item mel-sidebar-social__item--viewing" role="listitem">
+        <span class="mel-sidebar-social__icon" aria-hidden="true">👀</span>
+        <span class="mel-sidebar-social__text">{{ event_viewer_count }}</span>
+      </li>
+    {% endif %}
+    {% if event_save_count_total|default(0) > 0 and event_save_count is not empty %}
+      <li class="mel-sidebar-social__item mel-sidebar-social__item--saves" role="listitem">
+        <span class="mel-sidebar-social__icon" aria-hidden="true">💖</span>
+        <span class="mel-sidebar-social__text">{{ event_save_count }}</span>
+      </li>
+    {% endif %}
+    {% if event_interest is defined and event_interest.label is defined %}
+      <li class="mel-sidebar-social__item mel-sidebar-social__item--interest mel-sidebar-social__item--{{ event_interest.type }}" role="listitem">
+        <span class="mel-sidebar-social__icon" aria-hidden="true">✨</span>
+        <span class="mel-sidebar-social__text">{{ event_interest.label }}</span>
+      </li>
+    {% endif %}
+  </ul>
+</div>

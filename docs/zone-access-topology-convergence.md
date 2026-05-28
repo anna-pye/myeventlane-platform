@@ -15,6 +15,7 @@ This phase adds **one canonical operational zone / access topology policy layer*
 **`VenueOperationPolicyManager`** remains the **orchestrator** for scan-time composition: it delegates clock policy to **`TimedEntryPolicyManager`**, session / sequencing / multi-use orchestration to **`SessionEntitlementPolicyManager`**, entitlement type maps to **`EntitlementCapabilityRegistry`** (via **`TicketCapabilityManager`**), and **zone / topology policy** to **`ZoneAccessPolicyManager`**.
 
 **`ScannerOperationManager`** applies **`VenueOperationPolicyManager::evaluateZoneAccessForScan()`** before mutations. It does **not** own zone rules, timing math, or session progression.
+**`ScannerOperationManager`** applies **`VenueOperationPolicyManager::evaluateOperationalIdentity()`**, which in turn calls **`evaluateZoneAccessForScan()`** before mutations. It does **not** own zone rules, timing math, session progression, or device trust semantics. When **`mel_operational_device.zone_id`** (or alias `operational_device`) is present, **`VenueOperationPolicyManager`** supplies it as the effective gate zone argument to **`ZoneAccessPolicyManager::evaluateZoneAccessForComposition()`** without duplicating topology math. See [device-gate-identity-convergence.md](./device-gate-identity-convergence.md).
 
 ## Metadata sources (no new entities)
 

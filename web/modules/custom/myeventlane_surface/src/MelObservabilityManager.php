@@ -124,7 +124,9 @@ final class MelObservabilityManager {
         $payload['#cache']['tags'][] = 'user:' . $context->account->id();
       }
 
-      $this->moduleHandler->alter('mel_observability_page_payload', $payload, $context, $merged, $evaluations);
+      // ModuleHandler::alter() accepts only two context arguments after $payload.
+      $merged['state_evaluations'] = $evaluations;
+      $this->moduleHandler->alter('mel_observability_page_payload', $payload, $context, $merged);
 
       $payload['traces'] = MelObservabilityTraceSanitizer::sanitizeRows(is_array($payload['traces'] ?? NULL) ? $payload['traces'] : []);
       $payload['registry_meta'] = MelObservabilityTraceSanitizer::sanitizeRegistryMeta(

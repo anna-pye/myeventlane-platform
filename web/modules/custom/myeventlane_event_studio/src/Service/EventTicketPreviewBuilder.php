@@ -1,0 +1,365 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\myeventlane_event_studio\Service;
+
+use Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder;
+use Drupal\myeventlane_event\Service\BookingFlowResolver;
+use Drupal\myeventlane_event\Service\EventModeManager;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Builds a customer-safe booking preview for Event Studio ticket setup.
+ */
+final class EventTicketPreviewBuilder {
+
+  use StringTranslationTrait;
+
+  public const PREVIEW_NOT_CONFIGURED = 'not_configured';
+
+  public const PREVIEW_RSVP = 'rsvp';
+
+  public const PREVIEW_PAID = 'paid';
+
+  public const PREVIEW_EXTERNAL = 'external';
+
+  public const PREVIEW_BOTH = 'both';
+
+  public function __construct(
+    private readonly BookingFlowResolver $bookingFlowResolver,
+    private readonly EventModeManager $eventModeManager,
+    private readonly CustomerTicketTierDisplayBuilder $customerTicketTierDisplay,
+    TranslationInterface $string_translation,
+  ) {
+    $this->stringTranslation = $string_translation;
+  }
+
+  /**
+   * Render array for the tickets section preview panel.
+   *
+   * @return array<string, mixed>
+   */
+  public function build(NodeInterface $event): array {
+    if ($event->bundle() !== 'event' || $event->isNew() || $event->id() === NULL) {
+      return [];
+    }
+
+    $configuredMode = $this->resolveConfiguredMode($event);
+    $previewState = $this->resolvePreviewState($event, $configuredMode);
+    $tierDisplay = $this->buildPaidTierDisplay($event, $previewState);
+    $cta = $this->resolveCtaPreview($event, $previewState, $tierDisplay);
+    $availability = $this->resolveAvailabilityPreview($event, $previewState, $tierDisplay);
+
+    $build = [
+      '#theme' => 'mel_event_ticket_preview',
+      '#preview_state' => $previewState,
+      '#mode_badge' => $this->modeBadgeLabel($previewState),
+      '#heading' => $this->previewHeading($previewState),
+      '#cta' => $cta,
+      '#availability' => $availability,
+      '#ticket_rows' => $tierDisplay['visible_rows'],
+      '#excluded_rows' => $tierDisplay['excluded_rows'],
+      '#show_customer_ticket_empty' => $tierDisplay['show_customer_ticket_empty'],
+      '#rsvp_summary' => $this->buildRsvpSummary($event, $previewState),
+      '#trust_rows' => $this->buildTrustRows($previewState),
+      '#show_empty_state' => $previewState === self::PREVIEW_NOT_CONFIGURED,
+      '#wrapper_classes' => ['mel-event-ticket-preview'],
+      '#attached' => [
+        'library' => ['myeventlane_event_studio/mel_ticket_preview'],
+        'drupalSettings' => [
+          'melEventTicketPreview' => [
+            'modeLabels' => [
+              self::PREVIEW_NOT_CONFIGURED => (string) $this->t('Not configured'),
+              self::PREVIEW_RSVP => (string) $this->t('RSVP'),
+              self::PREVIEW_PAID => (string) $this->t('Paid tickets'),
+              self::PREVIEW_EXTERNAL => (string) $this->t('External'),
+              self::PREVIEW_BOTH => (string) $this->t('RSVP + Paid'),
+            ],
+            'saveReminder' => (string) $this->t('Save tickets above to refresh this preview.'),
+          ],
+        ],
+      ],
+      '#cache' => [
+        'tags' => $tierDisplay['cache_tags'],
+        'contexts' => ['user.permissions'],
+      ],
+    ];
+
+    return $build;
+  }
+
+  /**
+   * @return array{
+   *   visible_rows: list<array<string, mixed>>,
+   *   excluded_rows: list<array{name: string, diagnostic: string}>,
+   *   show_customer_ticket_empty: bool,
+   *   cache_tags: list<string>,
+   * }
+   */
+  private function buildPaidTierDisplay(NodeInterface $event, string $previewState): array {
+    $base = [
+      'visible_rows' => [],
+      'excluded_rows' => [],
+      'show_customer_ticket_empty' => FALSE,
+      'cache_tags' => $event->getCacheTags(),
+    ];
+
+    if (!in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)) {
+      return $base;
+    }
+
+    $display = $this->customerTicketTierDisplay->buildForEvent($event);
+    $visible_rows = [];
+    foreach ($display['visible_rows'] as $row) {
+      $visible_rows[] = [
+        'name' => $row['name'],
+        'price' => $row['price'],
+        'availability' => $row['availability'],
+        'short_description' => $row['short_description'] ?? NULL,
+        'is_best_value' => !empty($row['is_best_value']),
+      ];
+    }
+
+    return [
+      'visible_rows' => $visible_rows,
+      'excluded_rows' => $display['excluded_rows'],
+      'show_customer_ticket_empty' => $visible_rows === [] && $display['excluded_rows'] === [],
+      'cache_tags' => $display['cache_tags'],
+    ];
+  }
+
+  private function resolveConfiguredMode(NodeInterface $event): string {
+    if (!$event->hasField('field_event_type') || $event->get('field_event_type')->isEmpty()) {
+      return '';
+    }
+    return (string) $event->get('field_event_type')->value;
+  }
+
+  private function resolvePreviewState(NodeInterface $event, string $configuredMode): string {
+    return match ($configuredMode) {
+      'rsvp' => self::PREVIEW_RSVP,
+      'paid' => self::PREVIEW_PAID,
+      'both' => self::PREVIEW_BOTH,
+      'external' => self::PREVIEW_EXTERNAL,
+      default => self::PREVIEW_NOT_CONFIGURED,
+    };
+  }
+
+  private function modeBadgeLabel(string $previewState): string {
+    return match ($previewState) {
+      self::PREVIEW_RSVP => (string) $this->t('RSVP'),
+      self::PREVIEW_PAID => (string) $this->t('Paid tickets'),
+      self::PREVIEW_EXTERNAL => (string) $this->t('External'),
+      self::PREVIEW_BOTH => (string) $this->t('RSVP + Paid'),
+      default => (string) $this->t('Not configured'),
+    };
+  }
+
+  private function previewHeading(string $previewState): string {
+    return match ($previewState) {
+      self::PREVIEW_RSVP => (string) $this->t('Free RSVP'),
+      self::PREVIEW_PAID => (string) $this->t('Tickets'),
+      self::PREVIEW_BOTH => (string) $this->t('Tickets & RSVP'),
+      self::PREVIEW_EXTERNAL => (string) $this->t('External booking'),
+      default => '',
+    };
+  }
+
+  /**
+   * @param array{
+   *   visible_rows: list<array<string, mixed>>,
+   *   excluded_rows: list<array{name: string, diagnostic: string}>,
+   *   show_customer_ticket_empty: bool,
+   *   cache_tags: list<string>,
+   * } $tierDisplay
+   *
+   * @return array{label: string, disabled: bool, reason: string|null}
+   */
+  private function resolveCtaPreview(NodeInterface $event, string $previewState, array $tierDisplay): array {
+    if ($previewState === self::PREVIEW_NOT_CONFIGURED) {
+      return [
+        'label' => '',
+        'disabled' => TRUE,
+        'reason' => NULL,
+      ];
+    }
+
+    if ($event->isPublished()) {
+      $availability = $this->resolveAvailabilityPreview($event, $previewState, $tierDisplay);
+      if ($this->usesCustomerTierAvailability($previewState, $availability['state'])) {
+        return $this->ctaFromCustomerTierAvailability($previewState, $availability['state']);
+      }
+
+      $primary = $this->bookingFlowResolver->getPrimaryCta($event);
+      return [
+        'label' => (string) ($primary['label'] ?? ''),
+        'disabled' => !empty($primary['disabled']),
+        'reason' => isset($primary['reason']) && $primary['reason'] !== '' ? (string) $primary['reason'] : NULL,
+      ];
+    }
+
+    return match ($previewState) {
+      self::PREVIEW_RSVP => [
+        'label' => (string) $this->t('RSVP free'),
+        'disabled' => FALSE,
+        'reason' => NULL,
+      ],
+      self::PREVIEW_PAID => [
+        'label' => (string) $this->t('Get your tickets'),
+        'disabled' => FALSE,
+        'reason' => NULL,
+      ],
+      self::PREVIEW_EXTERNAL => [
+        'label' => (string) $this->t('View details'),
+        'disabled' => FALSE,
+        'reason' => NULL,
+      ],
+      self::PREVIEW_BOTH => [
+        'label' => (string) $this->t('Get your tickets'),
+        'disabled' => FALSE,
+        'reason' => NULL,
+      ],
+      default => [
+        'label' => '',
+        'disabled' => TRUE,
+        'reason' => NULL,
+      ],
+    };
+  }
+
+  /**
+   * @param array{
+   *   visible_rows: list<array<string, mixed>>,
+   *   excluded_rows: list<array{name: string, diagnostic: string}>,
+   *   show_customer_ticket_empty: bool,
+   *   cache_tags: list<string>,
+   * } $tierDisplay
+   *
+   * @return array{state: string, message: string|null}
+   */
+  private function resolveAvailabilityPreview(NodeInterface $event, string $previewState, array $tierDisplay): array {
+    if ($previewState === self::PREVIEW_NOT_CONFIGURED) {
+      return ['state' => 'none', 'message' => NULL];
+    }
+
+    if (!$event->isPublished()) {
+      return ['state' => 'draft', 'message' => NULL];
+    }
+
+    $availability = $this->bookingFlowResolver->getAvailabilityState($event);
+    if (in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)
+      && in_array($availability, [
+        BookingFlowResolver::AVAILABILITY_AVAILABLE,
+        BookingFlowResolver::AVAILABILITY_SOLD_OUT,
+      ], TRUE)) {
+      $availability = $tierDisplay['visible_rows'] === []
+        ? BookingFlowResolver::AVAILABILITY_SOLD_OUT
+        : BookingFlowResolver::AVAILABILITY_AVAILABLE;
+    }
+
+    $message = match ($availability) {
+      BookingFlowResolver::AVAILABILITY_SOLD_OUT => (string) $this->t('This event is sold out.'),
+      BookingFlowResolver::AVAILABILITY_ENDED => (string) $this->t('This event has ended.'),
+      BookingFlowResolver::AVAILABILITY_NOT_STARTED => (string) $this->t('Booking is not open yet.'),
+      BookingFlowResolver::AVAILABILITY_UNAVAILABLE => (string) $this->t('Booking is not available for this event.'),
+      default => NULL,
+    };
+
+    return [
+      'state' => $availability,
+      'message' => $message,
+    ];
+  }
+
+  /**
+   * @return array{capacity_line: string|null}|null
+   */
+  private function buildRsvpSummary(NodeInterface $event, string $previewState): ?array {
+    if (!in_array($previewState, [self::PREVIEW_RSVP, self::PREVIEW_BOTH], TRUE)) {
+      return NULL;
+    }
+
+    $rsvp = $this->eventModeManager->getRsvpAvailability($event);
+    $line = NULL;
+    if (isset($rsvp['spots_remaining']) && $rsvp['spots_remaining'] !== NULL) {
+      $remaining = (int) $rsvp['spots_remaining'];
+      if ($remaining === 0) {
+        $line = (string) $this->t('No spots remaining.');
+      }
+      else {
+        $line = (string) $this->t('@count spot(s) remaining.', ['@count' => $remaining]);
+      }
+    }
+    elseif (!empty($rsvp['reason']) && is_string($rsvp['reason'])) {
+      $line = $rsvp['reason'];
+    }
+
+    return [
+      'capacity_line' => $line,
+    ];
+  }
+
+  /**
+   * Paid preview CTA/availability use anonymous default-customer tier rows, not vendor session grants.
+   */
+  private function usesCustomerTierAvailability(string $previewState, string $availability): bool {
+    return in_array($previewState, [self::PREVIEW_PAID, self::PREVIEW_BOTH], TRUE)
+      && in_array($availability, [
+        BookingFlowResolver::AVAILABILITY_AVAILABLE,
+        BookingFlowResolver::AVAILABILITY_SOLD_OUT,
+      ], TRUE);
+  }
+
+  /**
+   * @return array{label: string, disabled: bool, reason: string|null}
+   */
+  private function ctaFromCustomerTierAvailability(string $previewState, string $availability): array {
+    if ($availability === BookingFlowResolver::AVAILABILITY_SOLD_OUT) {
+      return [
+        'label' => (string) $this->t('Sold out'),
+        'disabled' => TRUE,
+        'reason' => (string) $this->t('This event is sold out.'),
+      ];
+    }
+
+    return match ($previewState) {
+      self::PREVIEW_PAID, self::PREVIEW_BOTH => [
+        'label' => (string) $this->t('Get your tickets'),
+        'disabled' => FALSE,
+        'reason' => NULL,
+      ],
+      default => [
+        'label' => '',
+        'disabled' => TRUE,
+        'reason' => NULL,
+      ],
+    };
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function buildTrustRows(string $previewState): array {
+    $confirmation = (string) $this->t('Confirmation email');
+    return match ($previewState) {
+      self::PREVIEW_PAID => [
+        (string) $this->t('Secure checkout'),
+        $confirmation,
+      ],
+      self::PREVIEW_RSVP => [
+        (string) $this->t('No payment required'),
+        $confirmation,
+      ],
+      self::PREVIEW_BOTH => [
+        (string) $this->t('Secure checkout'),
+        (string) $this->t('No payment required for RSVP'),
+        $confirmation,
+      ],
+      default => [$confirmation],
+    };
+  }
+
+}

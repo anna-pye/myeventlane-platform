@@ -38,6 +38,12 @@ myeventlane_vendor.event_workspace.orders:
   base_route: myeventlane_vendor.console.event_overview
   weight: -12
 
+myeventlane_vendor.event_workspace.addon_orders:
+  title: 'Add-on orders'
+  route_name: myeventlane_vendor.console.event_operational_addon_orders
+  base_route: myeventlane_vendor.console.event_overview
+  weight: -11
+
 myeventlane_vendor.event_workspace.attendees:
   title: 'Attendees'
   route_name: myeventlane_event_attendees.vendor_list

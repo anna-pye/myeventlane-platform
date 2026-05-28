@@ -1,0 +1,19 @@
+uuid: f5fa6d9d-7242-4d40-aa60-38c6fa817c84
+langcode: en
+status: true
+dependencies:
+  config:
+    - crop.type.focal_point
+  module:
+    - focal_point
+name: mel_extra_square
+label: 'MEL Event extra (square)'
+effects:
+  6bd98da5-6fe6-4444-bfaf-82a42da0d0eb:
+    uuid: 6bd98da5-6fe6-4444-bfaf-82a42da0d0eb
+    id: focal_point_scale_and_crop
+    weight: 0
+    data:
+      width: 400
+      height: 400
+      crop_type: focal_point

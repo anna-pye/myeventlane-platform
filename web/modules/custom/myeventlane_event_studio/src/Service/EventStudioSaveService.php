@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\WidgetInterface;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Image\ImageFactory;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
+use Drupal\myeventlane_event\Service\EventPasscodeAccess;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
 use Drupal\myeventlane_questions\Service\QuestionTemplateCloner;
@@ -33,6 +41,13 @@ final class EventStudioSaveService {
 
   private const ATTENDEE_QUESTION_LIMIT = 5;
 
+  /**
+   * Warn when the saved hero is meaningfully smaller than MEL hero derivatives.
+   */
+  private const BRANDING_HERO_WARN_WIDTH_LT = 1280;
+
+  private const BRANDING_HERO_WARN_HEIGHT_LT = 720;
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly VenueManager $venueManager,
@@ -42,7 +57,13 @@ final class EventStudioSaveService {
     private readonly VendorPublishRequirementsGate $publishRequirementsGate,
     private readonly EventReadinessService $eventReadiness,
     private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
+    private readonly ImageFactory $imageFactory,
+    private readonly TranslationInterface $stringTranslation,
+    private readonly FileSystemInterface $fileSystem,
     private readonly ?QuestionTemplateCloner $questionTemplateCloner = NULL,
+    private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
+    private readonly ?EventPageStyleResolver $eventPageStyleResolver = NULL,
+    private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
   ) {}
 
   /**
@@ -293,6 +314,16 @@ final class EventStudioSaveService {
     $attendee_errors = $this->syncAttendeeQuestions($node, $payload, $account);
     if ($attendee_errors !== []) {
       return ['node' => NULL, 'errors' => $attendee_errors];
+    }
+
+    $visibility_errors = $this->applyVisibilityPayload($node, $payload);
+    if ($visibility_errors !== []) {
+      return ['node' => NULL, 'errors' => $visibility_errors];
+    }
+
+    $capability_errors = $this->applyOperationalCapabilitiesPayload($node, $payload);
+    if ($capability_errors !== []) {
+      return ['node' => NULL, 'errors' => $capability_errors];
     }
 
     if (!$draft && $willPublish) {
@@ -817,6 +848,52 @@ final class EventStudioSaveService {
   }
 
   /**
+   * Sets field_event_visibility and manages field_event_passcode_hash.
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function applyVisibilityPayload(NodeInterface $node, array $payload): array {
+    if (!array_key_exists('field_event_visibility', $payload)) {
+      return [];
+    }
+
+    $visibility = trim((string) $payload['field_event_visibility']);
+    if ($visibility === '') {
+      return [];
+    }
+
+    $visibility = PublicEventVisibility::normalizeVisibilityValue($visibility);
+
+    if ($node->hasField('field_event_visibility')) {
+      $node->set('field_event_visibility', $visibility);
+    }
+
+    if (!$node->hasField('field_event_passcode_hash')) {
+      return [];
+    }
+
+    if ($visibility === PublicEventVisibility::VISIBILITY_PASSCODE) {
+      $new_passcode = trim((string) ($payload['event_passcode'] ?? ''));
+      if ($new_passcode !== '') {
+        if ($this->passcodeAccess === NULL) {
+          $this->logger->error('Event Studio: cannot hash passcode — EventPasscodeAccess service not injected for event @nid.', [
+            '@nid' => (string) ($node->id() ?? 'new'),
+          ]);
+          return ['Passcode service is temporarily unavailable.'];
+        }
+        $node->set('field_event_passcode_hash', $this->passcodeAccess->hashPasscode($new_passcode));
+      }
+    }
+    else {
+      $node->set('field_event_passcode_hash', NULL);
+    }
+
+    return [];
+  }
+
+  /**
    * @return list<string>
    */
   private function listStringValueKeys(FieldDefinitionInterface $definition): array {
@@ -837,6 +914,282 @@ final class EventStudioSaveService {
       }
     }
     return $keys;
+  }
+
+  /**
+   * Whether the event hero references a file record that is missing on disk.
+   */
+  public function isBrokenHeroImageReference(NodeInterface $node): bool {
+    if (!$node->hasField('field_event_image') || $node->get('field_event_image')->isEmpty()) {
+      return FALSE;
+    }
+    $file = $node->get('field_event_image')->entity;
+    if (!$file instanceof FileInterface) {
+      return TRUE;
+    }
+    return !$this->heroFileIsRenderable($file);
+  }
+
+  /**
+   * Persists branding hero image via the studio_branding field widget.
+   *
+   * @param array<string, mixed> $mel_subform
+   *   The `mel` form fragment containing `field_event_image`.
+   *
+   * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>, warnings: list<string>}
+   */
+  public function saveBrandingHero(NodeInterface $node, array $mel_subform, FormStateInterface $form_state, bool $draft = FALSE): array {
+    if (!$node->hasField('field_event_image')) {
+      return ['node' => $node, 'errors' => [], 'warnings' => []];
+    }
+
+    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    if (!$display instanceof EntityFormDisplay) {
+      $this->logger->error('Branding save: missing form display node.event.studio_branding for node @nid.', ['@nid' => (string) $node->id()]);
+      return ['node' => NULL, 'errors' => ['Hero image editor is not available.'], 'warnings' => []];
+    }
+
+    $mel_values = $form_state->getValue('mel') ?? [];
+    if (!is_array($mel_values)) {
+      $mel_values = [];
+    }
+    $mel_structure = $form_state->getCompleteForm()['mel'] ?? $mel_subform;
+    if (!is_array($mel_structure) || !isset($mel_structure['field_event_image'])) {
+      return ['node' => NULL, 'errors' => ['Hero image field is missing from the form.'], 'warnings' => []];
+    }
+
+    $widget = $display->getRenderer('field_event_image');
+    if (!$widget instanceof WidgetInterface) {
+      $this->logger->error('Branding save: missing field_event_image widget for node @nid.', ['@nid' => (string) $node->id()]);
+      return ['node' => NULL, 'errors' => ['Hero image widget is not configured.'], 'warnings' => []];
+    }
+
+    $items = $node->get('field_event_image');
+    $widget->extractFormValues($items, $mel_structure, $form_state);
+
+    $fid = 0;
+    $alt = '';
+    if (!$items->isEmpty()) {
+      $value = $items->first()?->getValue() ?? [];
+      $fid = (int) ($value['target_id'] ?? 0);
+      $alt = trim((string) ($value['alt'] ?? ''));
+    }
+
+    if ($fid < 1) {
+      $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values);
+      $fid = $hero['fid'];
+      if ($alt === '' && $hero['alt'] !== '') {
+        $alt = $hero['alt'];
+      }
+    }
+
+    $warnings = [];
+
+    if ($fid < 1) {
+      $node->set('field_event_image', []);
+    }
+    else {
+      if ($alt === '' && !$draft) {
+        return ['node' => NULL, 'errors' => ['Alt text is required for the cover image.'], 'warnings' => []];
+      }
+      $file = $this->entityTypeManager->getStorage('file')->load($fid);
+      if (!$file instanceof FileInterface || !$this->heroFileIsRenderable($file)) {
+        $this->logger->warning('Branding save: clearing missing or unreadable hero file @fid on node @nid.', [
+          '@fid' => (string) $fid,
+          '@nid' => (string) $node->id(),
+        ]);
+        $node->set('field_event_image', []);
+      }
+      else {
+        if ($file->isTemporary()) {
+          $file->setPermanent();
+          $file->save();
+        }
+        $values = $items->isEmpty() ? [] : $items->getValue();
+        $row = [];
+        if ($values !== [] && isset($values[0]) && is_array($values[0])) {
+          $row = $values[0];
+        }
+        else {
+          $row = [
+            'target_id' => $fid,
+            'alt' => $alt,
+            'title' => '',
+          ];
+        }
+        $from_mel = EventStudioMelPayloadService::buildHeroFieldItemFromMelFragment($mel_values);
+        if ($from_mel !== NULL) {
+          foreach (['focal_point', 'width', 'height', 'title'] as $key) {
+            if (!array_key_exists($key, $from_mel)) {
+              continue;
+            }
+            $candidate = $from_mel[$key];
+            if ($candidate !== '' && $candidate !== NULL) {
+              $row[$key] = $candidate;
+            }
+          }
+        }
+        $node->set('field_event_image', [
+          $this->enrichBrandingHeroFieldItem($row, $file),
+        ]);
+        $warnings = $this->buildBrandingHeroDimensionWarnings($file);
+      }
+    }
+
+    $gallery_errors = $this->saveBrandingGalleryField($node, $mel_structure, $form_state);
+    if ($gallery_errors !== []) {
+      return ['node' => NULL, 'errors' => $gallery_errors, 'warnings' => []];
+    }
+
+    $style_errors = $this->applyBrandingPageStyleFields($node, $mel_values);
+    if ($style_errors !== []) {
+      return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
+    }
+
+    EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
+    try {
+      $node->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding hero save failed for node @nid: @m', [
+        '@nid' => (string) $node->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return ['node' => NULL, 'errors' => ['Could not save branding.'], 'warnings' => []];
+    }
+
+    return ['node' => $node, 'errors' => [], 'warnings' => $warnings];
+  }
+
+  /**
+   * Persists optional gallery media from the branding form widget.
+   *
+   * @param array<string, mixed> $mel_structure
+   *
+   * @return list<string>
+   */
+  private function saveBrandingGalleryField(NodeInterface $node, array $mel_structure, FormStateInterface $form_state): array {
+    if (!$node->hasField('field_mel_event_gallery')) {
+      return [];
+    }
+
+    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    if (!$display instanceof EntityFormDisplay) {
+      return [];
+    }
+
+    $widget = $display->getRenderer('field_mel_event_gallery');
+    if ($widget === NULL) {
+      return [];
+    }
+
+    if (!isset($mel_structure['field_mel_event_gallery'])) {
+      return [];
+    }
+
+    try {
+      $items = $node->get('field_mel_event_gallery');
+      $widget->extractFormValues($items, $mel_structure, $form_state);
+      $node->set('field_mel_event_gallery', $items->getValue());
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding gallery save failed for node @nid: @m', [
+        '@nid' => (string) $node->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return ['Could not save event gallery.'];
+    }
+
+    return [];
+  }
+
+  /**
+   * Persists page style and theme colour from the branding mel fragment.
+   *
+   * @param array<string, mixed> $mel_values
+   *
+   * @return list<string>
+   */
+  private function applyBrandingPageStyleFields(NodeInterface $node, array $mel_values): array {
+    if (!$this->eventPageStyleResolver instanceof EventPageStyleResolver) {
+      return [];
+    }
+
+    $account = \Drupal::currentUser();
+    $resolved = $this->eventPageStyleResolver->resolveForPersistence($node, $mel_values, $account);
+
+    if ($node->hasField('field_mel_page_style')
+      && array_key_exists('field_mel_page_style', $mel_values)) {
+      $node->set('field_mel_page_style', $resolved['style']);
+    }
+
+    if ($node->hasField('field_mel_theme_colour')
+      && array_key_exists('field_mel_theme_colour', $mel_values)) {
+      $node->set('field_mel_theme_colour', $resolved['colour']);
+    }
+
+    return [];
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function buildBrandingHeroDimensionWarnings(FileInterface $file): array {
+    $image = $this->imageFactory->get($file->getFileUri());
+    if (!$image->isValid()) {
+      return [];
+    }
+    $w = $image->getWidth();
+    $h = $image->getHeight();
+    if ($w >= self::BRANDING_HERO_WARN_WIDTH_LT && $h >= self::BRANDING_HERO_WARN_HEIGHT_LT) {
+      return [];
+    }
+    return [
+      (string) $this->stringTranslation->translate('Your cover image is smaller than we recommend (at least @w×@h pixels; ideally about 1600×900). It may look softer when scaled on large screens.', [
+        '@w' => (string) self::BRANDING_HERO_WARN_WIDTH_LT,
+        '@h' => (string) self::BRANDING_HERO_WARN_HEIGHT_LT,
+      ]),
+    ];
+  }
+
+  /**
+   * Ensures focal point + dimensions are present for focal_point_entity_update().
+   *
+   * @param array<string, mixed> $field_item
+   *
+   * @return array<string, mixed>
+   */
+  private function enrichBrandingHeroFieldItem(array $field_item, FileInterface $file): array {
+    if (empty($field_item['focal_point'])) {
+      $field_item['focal_point'] = '50,50';
+    }
+    if (empty($field_item['width']) || empty($field_item['height'])) {
+      $image = $this->imageFactory->get($file->getFileUri());
+      if ($image->isValid()) {
+        $field_item['width'] = $image->getWidth();
+        $field_item['height'] = $image->getHeight();
+      }
+    }
+    return $field_item;
+  }
+
+  /**
+   * Whether a file entity URI exists and is a readable image for crop widgets.
+   */
+  private function heroFileIsRenderable(FileInterface $file): bool {
+    $uri = $file->getFileUri();
+    if ($uri === '') {
+      return FALSE;
+    }
+    $real = $this->fileSystem->realpath($uri);
+    if ($real === FALSE || !is_readable($real)) {
+      return FALSE;
+    }
+    $mime = $file->getMimeType();
+    if ($mime !== '' && !str_starts_with($mime, 'image/')) {
+      return FALSE;
+    }
+    return TRUE;
   }
 
   /**
@@ -1213,6 +1566,42 @@ final class EventStudioSaveService {
     $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '_', $label));
     $slug = trim((string) preg_replace('/_+/', '_', $slug), '_');
     return $slug !== '' ? $slug : 'question_' . substr(hash('sha256', $label), 0, 10);
+  }
+
+  /**
+   * Persists mel_operational_capabilities authoring metadata when present in payload.
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function applyOperationalCapabilitiesPayload(NodeInterface $node, array $payload): array {
+    if ($this->operationalCapabilityStudioManager === NULL) {
+      return [];
+    }
+    if (!array_key_exists('mel_operational_capabilities', $payload)) {
+      return [];
+    }
+    $raw = $payload['mel_operational_capabilities'];
+    if (!is_array($raw)) {
+      return ['Operational capabilities data was invalid.'];
+    }
+    try {
+      $document = $this->operationalCapabilityStudioManager->normalizeMelFragment(['mel_operational_capabilities' => $raw], $node);
+      $errors = $this->operationalCapabilityStudioManager->validateDocument($node, $document);
+      if ($errors !== []) {
+        return $errors;
+      }
+      $this->operationalCapabilityStudioManager->persistToEvent($node, $document);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Studio operational capability save failed for node @nid: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return ['Could not save operational capabilities.'];
+    }
+    return [];
   }
 
   private function vendorQuestionAccessible(VendorQuestionInterface $question, AccountInterface $account): bool {

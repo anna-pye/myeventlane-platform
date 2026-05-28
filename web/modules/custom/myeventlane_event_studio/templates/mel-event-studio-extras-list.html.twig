@@ -1,0 +1,48 @@
+{#
+/**
+ * @file
+ * Event Extras list (vendor studio).
+ */
+#}
+<div class="mel-event-extras-studio__list" role="list">
+  {% if empty %}
+    <p class="mel-event-extras-studio__empty mel-text--muted">{{ 'No extras yet. Choose a type below to add your first one.'|t }}</p>
+  {% else %}
+    {% for card in cards %}
+      <article class="mel-event-extra-card mel-es-card" role="listitem">
+        <div class="mel-event-extra-card__media">
+          {% if card.primary_image.url|default('') %}
+            <img src="{{ card.primary_image.url }}" alt="{{ card.primary_image.alt|default(card.title) }}" width="120" height="120" loading="lazy" />
+          {% else %}
+            <div class="mel-event-extra-card__placeholder" aria-hidden="true"></div>
+          {% endif %}
+        </div>
+        <div class="mel-event-extra-card__body">
+          <h3 class="mel-event-extra-card__title">{{ card.title }}</h3>
+          {% if card.short_description %}
+            <p class="mel-event-extra-card__desc">{{ card.short_description }}</p>
+          {% endif %}
+          {% if card.price_label %}
+            <p class="mel-event-extra-card__price">{{ card.price_label }}</p>
+          {% endif %}
+          {% if card.sizes_summary is not empty %}
+            <p class="mel-event-extra-card__sizes">
+              {% for size in card.sizes_summary %}
+                <span class="mel-event-extra-size-chip">{{ size }}</span>
+              {% endfor %}
+            </p>
+          {% endif %}
+          {% if card.pickup_note %}
+            <p class="mel-event-extra-card__pickup mel-text--muted">{{ card.pickup_note }}</p>
+          {% endif %}
+          <p class="mel-event-extra-card__status">
+            {{ card.show_on_booking ? 'Shown on booking page'|t : 'Hidden from booking page'|t }}
+          </p>
+        </div>
+        <div class="mel-event-extra-card__actions mel-event-extra-actions">
+          <a href="{{ card.edit_url }}" class="button mel-event-extra-card__edit">{{ 'Edit'|t }}</a>
+        </div>
+      </article>
+    {% endfor %}
+  {% endif %}
+</div>

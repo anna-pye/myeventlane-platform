@@ -22,6 +22,7 @@ final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
     'myeventlane_event_studio.create',
     'myeventlane_vendor.public_list',
     'myeventlane_vendor.organisers',
+    'entity.myeventlane_vendor.canonical',
   ];
 
   /**
@@ -43,11 +44,14 @@ final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
       return TRUE;
     }
 
-    // Fallback for path-based routes.
+    // Vendor console lives under /vendor/* — not the public /vendors directory.
     $request = \Drupal::request();
     $path = $request->getPathInfo();
+    if (str_starts_with($path, '/vendors')) {
+      return FALSE;
+    }
 
-    if (str_starts_with($path, '/vendor')) {
+    if (preg_match('#^/vendor(/|$)#', $path)) {
       return TRUE;
     }
 

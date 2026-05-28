@@ -1,0 +1,94 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\myeventlane_event_studio\Unit;
+
+use Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager;
+use Drupal\myeventlane_tickets\Service\OperationalEntitlementCapabilityManager;
+use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\Tests\UnitTestCase;
+
+/**
+ * @coversDefaultClass \Drupal\myeventlane_event_studio\Service\OperationalCapabilityStudioManager
+ *
+ * @group myeventlane_event_studio
+ */
+final class OperationalCapabilityStudioManagerTest extends UnitTestCase {
+
+  /**
+   * @covers ::normalizeDocument
+   */
+  public function testNormalizeStripsForbiddenKeys(): void {
+    $manager = OperationalCapabilityStudioTestFactory::buildManager();
+    $doc = $manager->normalizeDocument([
+      'capabilities' => [
+        OperationalEntitlementCapabilityManager::TYPE_MERCH_PICKUP => [
+          'enabled' => TRUE,
+          'replay_token' => 'secret',
+          'fulfillment_mode' => 'collect',
+        ],
+      ],
+    ]);
+    $row = $doc['capabilities'][OperationalEntitlementCapabilityManager::TYPE_MERCH_PICKUP];
+    $this->assertTrue($row['enabled']);
+    $this->assertArrayHasKey('commerce_linkage', $row);
+    $this->assertArrayNotHasKey('replay_token', $row);
+    $this->assertSame('collect', $row['fulfillment_mode']);
+  }
+
+  /**
+   * @covers ::buildCustomerSafePreviewSummary
+   */
+  public function testCustomerPreviewOmitsHiddenCapabilities(): void {
+    $manager = OperationalCapabilityStudioTestFactory::buildManager();
+    $doc = $manager->normalizeDocument([
+      'capabilities' => [
+        OperationalEntitlementCapabilityManager::TYPE_VIP_ACCESS => [
+          'enabled' => TRUE,
+          'customer_visibility' => 'hidden',
+        ],
+      ],
+    ]);
+    $summary = $manager->buildCustomerSafePreviewSummary(
+      OperationalEntitlementCapabilityManager::TYPE_VIP_ACCESS,
+      $doc['capabilities'][OperationalEntitlementCapabilityManager::TYPE_VIP_ACCESS],
+    );
+    $this->assertSame('', $summary);
+  }
+
+  /**
+   * @covers ::projectPolicySemantics
+   */
+  public function testPolicyProjectionDelegatesToRegistry(): void {
+    $manager = OperationalCapabilityStudioTestFactory::buildManager();
+    $semantics = $manager->projectPolicySemantics(
+      OperationalEntitlementCapabilityManager::TYPE_ADMISSION,
+      ['enabled' => TRUE],
+    );
+    $this->assertSame(Ticket::ENTITLEMENT_TICKET, $semantics['entitlement_type']);
+    $this->assertSame('none', $semantics['fulfillment_mode']);
+  }
+
+  /**
+   * @covers ::projectOperationalReadiness
+   */
+  public function testProjectOperationalReadinessUsesDocumentCapabilities(): void {
+    $manager = OperationalCapabilityStudioTestFactory::buildManager();
+    $type = OperationalEntitlementCapabilityManager::TYPE_MERCH_PICKUP;
+    $projection = $manager->projectOperationalReadiness([
+      'schema_version' => 2,
+      'capabilities' => [
+        $type => [
+          'enabled' => TRUE,
+          'readiness_state' => OperationalCapabilityStudioManager::READINESS_CONFIGURED,
+        ],
+      ],
+    ]);
+    $this->assertSame(1, $projection['enabled_count']);
+    $this->assertSame(1, $projection['configured_count']);
+    $this->assertSame(0, $projection['needs_review_count']);
+    $this->assertSame('configured', $projection['descriptor']);
+  }
+
+}

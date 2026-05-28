@@ -1,0 +1,118 @@
+uuid: 70c37d3e-2083-447d-be80-a28b6dffb88f
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_type.operational_bundle
+    - field.field.commerce_product.operational_bundle.field_event
+    - field.field.commerce_product.operational_bundle.field_mel_extra_images
+    - field.field.commerce_product.operational_bundle.field_mel_extra_pickup_note
+    - field.field.commerce_product.operational_bundle.field_mel_extra_short_desc
+    - field.field.commerce_product.operational_bundle.field_mel_operational_product
+  module:
+    - commerce
+    - media_library
+    - path
+id: commerce_product.operational_bundle.default
+targetEntityType: commerce_product
+bundle: operational_bundle
+mode: default
+content:
+  created:
+    type: datetime_timestamp
+    weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_event:
+    type: entity_reference_autocomplete
+    weight: 91
+    region: hidden
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_mel_extra_images:
+    type: media_library_widget
+    weight: 20
+    region: content
+    settings:
+      media_types:
+        image: image
+    third_party_settings: {  }
+  field_mel_extra_pickup_note:
+    type: string_textarea
+    weight: 22
+    region: content
+    settings:
+      rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+  field_mel_extra_short_desc:
+    type: string_textarea
+    weight: 21
+    region: content
+    settings:
+      rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+  field_mel_operational_product:
+    type: string_textarea
+    weight: 92
+    region: hidden
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+  langcode:
+    type: language_select
+    weight: 2
+    region: content
+    settings:
+      include_locked: true
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 30
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  status:
+    type: boolean_checkbox
+    weight: 90
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  stores:
+    type: commerce_entity_select
+    weight: -10
+    region: content
+    settings:
+      hide_single_entity: true
+      autocomplete_threshold: 7
+      autocomplete_size: 60
+      autocomplete_placeholder: ''
+    third_party_settings: {  }
+  title:
+    type: string_textfield
+    weight: -5
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  uid:
+    type: entity_reference_autocomplete
+    weight: 5
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  variations: true

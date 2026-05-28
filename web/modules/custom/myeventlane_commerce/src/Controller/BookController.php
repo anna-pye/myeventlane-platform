@@ -8,7 +8,11 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Url;
+use Drupal\myeventlane_commerce\Form\EventOperationalAddonCartForm;
 use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
+use Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver;
+use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_rsvp\Form\RsvpPublicForm;
 use Drupal\node\NodeInterface;
@@ -33,11 +37,17 @@ final class BookController extends ControllerBase {
    *   The canonical booking flow resolver.
    * @param \Drupal\Core\Form\FormBuilderInterface $formBuilderService
    *   The form builder.
+   * @param \Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder $eventOperationalAddonBuilder
+   *   Customer operational add-on read model for paid booking pages.
+   * @param \Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver $extrasBookPlacementResolver
+   *   Vendor preference for extras placement on the book page.
    */
   public function __construct(
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly FormBuilderInterface $formBuilderService,
+    private readonly EventOperationalAddonBuilder $eventOperationalAddonBuilder,
+    private readonly EventExtrasBookPlacementResolver $extrasBookPlacementResolver,
   ) {}
 
   /**
@@ -48,6 +58,8 @@ final class BookController extends ControllerBase {
       $container->get('file_url_generator'),
       $container->get('myeventlane_event.booking_flow_resolver'),
       $container->get('form_builder'),
+      $container->get('myeventlane_commerce.event_operational_addon_builder'),
+      $container->get('myeventlane_commerce.event_extras_book_placement_resolver'),
     );
   }
 
@@ -127,8 +139,18 @@ final class BookController extends ControllerBase {
       '#event_cta' => $primaryCta,
       '#event_mode' => $bookingMode,
       '#event' => $node,
+      '#addons_available' => FALSE,
+      '#operational_addon_form' => [],
+      '#ticket_form' => [],
+      '#ticket_form_actions' => [],
+      '#ticket_booking_access' => [],
+      '#extras_book_placement' => EventExtrasBookPlacementResolver::PLACEMENT_MAIN_BEFORE_ACCESS,
+      '#event_back_url' => Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
+      '#event_back_label' => (string) $this->t('Back to @title', ['@title' => $node->label()]),
+      '#operational_addons_section_title' => (string) $this->t('Grab the extras'),
+      '#operational_addons_section_lede' => (string) $this->t('Merch, perks, and add-ons for this booking — collect at the event after checkout.'),
       '#cache' => [
-        'contexts' => ['route', 'user.roles', 'url.query_args', 'session'],
+        'contexts' => ['route', 'user.roles', 'url.query_args', 'session', 'languages:language_interface'],
         'tags' => $node->getCacheTags(),
       ],
     ];
@@ -143,7 +165,7 @@ final class BookController extends ControllerBase {
     $formClass = $this->bookingFlowResolver->resolveBookingForm($node);
     switch ($formClass) {
       case TicketSelectionForm::class:
-        $build['#matrix_form'] = $this->buildPaidForm($node);
+        $this->attachPaidTicketBookingForms($build, $node);
         break;
 
       case RsvpPublicForm::class:
@@ -155,7 +177,64 @@ final class BookController extends ControllerBase {
         break;
     }
 
+    $build['#cache']['tags'] = array_values(array_unique($build['#cache']['tags']));
+
     return $build;
+  }
+
+  /**
+   * Paid book page: ticket form, optional add-ons, then checkout CTA (sibling forms).
+   *
+   * @param array<string, mixed> $build
+   *   Page render array (altered in place).
+   */
+  private function attachPaidTicketBookingForms(array &$build, NodeInterface $node): void {
+    $form = $this->buildPaidForm($node);
+    if (isset($form['#type']) && $form['#type'] === 'container' && !isset($form['#form_id'])) {
+      $build['#matrix_form'] = $form;
+      return;
+    }
+
+    $form['#attributes']['id'] = 'mel-ticket-selection-form';
+    $actions = $form['actions'] ?? NULL;
+    unset($form['actions']);
+    if (isset($form['booking_access']) && is_array($form['booking_access'])) {
+      $access = $form['booking_access'];
+      if (isset($access['code']) && is_array($access['code'])) {
+        $access['code']['#attributes']['form'] = 'mel-ticket-selection-form';
+      }
+      if (isset($access['apply']) && is_array($access['apply'])) {
+        $access['apply']['#attributes']['form'] = 'mel-ticket-selection-form';
+      }
+      $build['#ticket_booking_access'] = $access;
+      unset($form['booking_access']);
+    }
+    if (is_array($actions) && isset($actions['submit']) && is_array($actions['submit'])) {
+      $actions['submit']['#attributes']['form'] = 'mel-ticket-selection-form';
+    }
+
+    $build['#ticket_form'] = $form;
+    $build['#matrix_form'] = $form;
+    if ($actions !== NULL) {
+      $build['#ticket_form_actions'] = $actions;
+    }
+
+    $addon_catalog = $this->eventOperationalAddonBuilder->buildForEvent($node);
+    if ($addon_catalog['addons'] === []) {
+      return;
+    }
+    $build['#addons_available'] = TRUE;
+    $placement = $this->extrasBookPlacementResolver->resolve($node);
+    $build['#extras_book_placement'] = $placement;
+    $build['#extras_inline_before_access_code'] = $this->extrasBookPlacementResolver->isInline($node);
+    $build['#extras_sidebar_selection'] = $this->extrasBookPlacementResolver->isSidebar($node);
+    foreach ($addon_catalog['product_ids'] as $pid) {
+      $build['#cache']['tags'][] = 'commerce_product:' . $pid;
+    }
+    $build['#operational_addon_form'] = $this->formBuilderService->getForm(
+      EventOperationalAddonCartForm::class,
+      $node,
+    );
   }
 
   /**

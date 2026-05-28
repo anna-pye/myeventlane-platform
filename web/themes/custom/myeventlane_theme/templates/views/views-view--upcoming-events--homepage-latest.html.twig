@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * Homepage latest events — grid only (no discovery filter chips or exposed form).
+ */
+#}
+{% if rows %}
+  <div class="view-content">
+    {{ rows }}
+  </div>
+{% elseif empty %}
+  <div class="view-empty">
+    {{ empty }}
+  </div>
+{% endif %}

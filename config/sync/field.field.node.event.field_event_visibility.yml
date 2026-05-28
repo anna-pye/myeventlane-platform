@@ -1,0 +1,23 @@
+uuid: c2e8f4a1-0d53-4c9f-b7a2-3e4f5a6b7c8d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_event_visibility
+    - node.type.event
+  module:
+    - options
+id: node.event.field_event_visibility
+field_name: field_event_visibility
+entity_type: node
+bundle: event
+label: 'Event Visibility'
+description: 'Controls whether this event appears in public discovery surfaces.'
+required: false
+translatable: true
+default_value:
+  -
+    value: public
+default_value_callback: ''
+settings: {  }
+field_type: list_string

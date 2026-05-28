@@ -17,4 +17,64 @@ mel_waitlist_offer_countdown:
       css/mel_waitlist_offer_countdown.css: {}
   dependencies:
     - core/drupal
+
+mel_operational_merchandise_composition:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-merchandise-composition.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+mel_operational_checkout:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-checkout.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+operational_addon_guidance:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-addon-guidance.css: {}
+  dependencies:
+    - core/drupal
+
+vendor_operational_addon_orders:
+  version: 1.0
+  css:
+    theme:
+      css/mel-vendor-operational-addon-orders.css: {}
+  dependencies:
+    - core/drupal
+
+operational_addons:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-addons.css: {}
+  dependencies:
+    - core/drupal
+
+mel_operational_addon_teaser:
+  version: 1.0
+  css:
+    theme:
+      css/mel-operational-addon-teaser.css: {}
+  dependencies:
+    - core/drupal
+
+event_extras_booking:
+  version: 1.8
+  css:
+    theme:
+      css/mel-operational-addons.css: {}
+  js:
+    js/mel-event-extras-booking.js: {}
+  dependencies:
+    - core/drupal
     - core/once

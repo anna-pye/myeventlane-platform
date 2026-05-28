@@ -12,8 +12,10 @@
 {% if mel_is_event_view %}
   {# Views field output is often markup (links/wrappers). Normalize to plain values. #}
 
-  {# URL: prefer raw, fall back to extracting href from link markup. #}
-  {% set _url = fields.view_node.raw|default('') %}
+  {# URL: canonical entity URL from preprocess; legacy field fallback only. #}
+  {% set _url = mel_event_card_url|default('') %}
+  {% if not _url %}
+    {% set _url = fields.view_node.raw|default('') %}
   {% if not _url %}
     {% set _link_html = fields.view_node.content|default('')|render|trim %}
     {% if 'href="' in _link_html %}

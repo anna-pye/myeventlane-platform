@@ -140,3 +140,72 @@ services:
 
   myeventlane_event.icalendar_builder:
     class: Drupal\myeventlane_event\Service\EventIcalendarBuilder
+
+  myeventlane_event.media_presenter:
+    class: Drupal\myeventlane_event\Service\EventMediaPresenter
+    arguments:
+      - '@logger.channel.myeventlane_event'
+
+  myeventlane_event.sidebar_carousel_builder:
+    class: Drupal\myeventlane_event\Service\EventSidebarCarouselBuilder
+    arguments:
+      - '@string_translation'
+      - '@?myeventlane_commerce.event_operational_addon_teaser_builder'
+
+  myeventlane_event.passcode_access:
+    class: Drupal\myeventlane_event\Service\EventPasscodeAccess
+    arguments:
+      - '@request_stack'
+
+  myeventlane_event.public_visibility:
+    class: Drupal\myeventlane_event\Service\PublicEventVisibility
+    arguments:
+      - '@myeventlane_event_state.resolver'
+      - '@datetime.time'
+      - '@myeventlane_event.passcode_access'
+
+  myeventlane_event.event_visibility_noindex_subscriber:
+    class: Drupal\myeventlane_event\EventSubscriber\EventVisibilityNoindexSubscriber
+    arguments:
+      - '@myeventlane_event.public_visibility'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_event.event_passcode_gate_subscriber:
+    class: Drupal\myeventlane_event\EventSubscriber\EventPasscodeGateSubscriber
+    arguments:
+      - '@myeventlane_event.public_visibility'
+      - '@myeventlane_event.passcode_access'
+      - '@current_user'
+      - '@myeventlane_core.domain_detector'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_event.access.event_book:
+    class: Drupal\myeventlane_event\Access\EventBookAccessCheck
+    arguments:
+      - '@myeventlane_event.public_visibility'
+      - '@request_stack'
+    tags:
+      - { name: access_check, applies_to: _event_book_access }
+
+  myeventlane_event.public_discovery_query_alter:
+    class: Drupal\myeventlane_event\Service\PublicEventDiscoveryQueryAlter
+    arguments:
+      - '@myeventlane_event.public_visibility'
+
+  myeventlane_event.structured_data_builder:
+    class: Drupal\myeventlane_event\Service\EventStructuredDataBuilder
+    arguments:
+      - '@myeventlane_event.public_visibility'
+      - '@myeventlane_event.booking_flow_resolver'
+      - '@myeventlane_event.ticket_type_manager'
+
+  myeventlane_event.event_card_view_model:
+    class: Drupal\myeventlane_event\EventCard\EventCardViewModel
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@file_url_generator'
+      - '@file_system'
+      - '@?flag'

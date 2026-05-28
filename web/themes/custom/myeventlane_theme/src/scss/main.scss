@@ -134,13 +134,13 @@
 @use 'components/panels';
 @use 'components/hero';
 @use 'components/event-hero';
-@use 'components/home-hero';
 @use 'components/featured-events';
 @use 'components/event-grid';
 @use 'components/vibe-mixer';
 @use 'components/featured-carousel';
 @use 'components/featured-badge';
 @use 'components/event-card';
+@use 'components/event-cards';
 @use 'components/vendor-card';
 @use 'pages/mel-browse';
 @use 'components/attendees-event-card';
@@ -177,6 +177,7 @@
 @use 'components/confirmation';
 @use 'components/ticket-types';
 @use 'components/event-book';
+@use 'components/booking-page';
 @use 'components/diagnostics';
 @use 'components/vendor-profile';
 @use 'components/card-carousel/card-carousel';
@@ -203,6 +204,7 @@
 @use 'components/studio-inspector';
 @use 'components/vendor-studio-layout';
 @use 'components/event-studio';
+@use 'components/event-passcode-gate';
 
 // ---------------------------------------------------------------------------
 // 6. Pages
@@ -212,6 +214,7 @@
 @use 'pages/front';
 @use 'pages/homepage' as homepage-pages;
 @use 'pages/front-page';
+@use 'components/home-hero';
 @use 'pages/event';
 @use 'pages/event-form';
 @use 'pages/dashboard';
@@ -226,6 +229,12 @@
 @use 'pages/discovery';
 @use 'pages/vendor';
 
+// Event page Classic/Immersive themes — load after pages/event so Mockup 1 rules win cascade.
+@use 'components/event-page-themes';
+@use 'components/event-gallery';
+@use 'components/event-cinematic-convergence';
+@use 'components/event-sidebar-carousel';
+
 // ---------------------------------------------------------------------------
 // 7. Utilities
 // ---------------------------------------------------------------------------
@@ -235,3 +244,4 @@
 @use 'utilities/skeletons';
 @use 'utilities/empty-states';
 @use 'utilities/spacing' as space-utils;
+@use 'utilities/link-chrome';

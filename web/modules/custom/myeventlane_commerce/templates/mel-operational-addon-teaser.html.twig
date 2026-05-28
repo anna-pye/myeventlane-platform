@@ -1,0 +1,50 @@
+{#
+/**
+ * @file
+ * Compact operational add-on discovery (event + book sidebars).
+ *
+ * @see \Drupal\myeventlane_commerce\Service\EventOperationalAddonTeaserBuilder
+ */
+#}
+{% set doc = document|default({}) %}
+{% if doc.items|default([])|length > 0 %}
+  <section class="mel-addon-teaser mel-card mel-card--surface" aria-labelledby="mel-addon-teaser-title-{{ doc.event_id|default('0') }}">
+    <header class="mel-addon-teaser__header">
+      <h3 class="mel-addon-teaser__title" id="mel-addon-teaser-title-{{ doc.event_id|default('0') }}">{{ doc.title|default('Extras'|t) }}</h3>
+      {% if doc.intro|default('') %}
+        <p class="mel-addon-teaser__intro mel-text--muted">{{ doc.intro }}</p>
+      {% endif %}
+    </header>
+    <ul class="mel-addon-teaser__list">
+      {% for item in doc.items %}
+        <li class="mel-addon-teaser__item">
+          {% if item.thumbnail_url|default('') %}
+            <img class="mel-addon-teaser__thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy" width="48" height="48" />
+          {% else %}
+            <span class="mel-addon-teaser__thumb mel-addon-teaser__thumb--placeholder" aria-hidden="true"></span>
+          {% endif %}
+          <div class="mel-addon-teaser__body">
+            <span class="mel-addon-teaser__name">{{ item.title|default('') }}</span>
+            {% if item.price_label|default('') %}
+              <span class="mel-addon-teaser__price">{{ item.price_label }}</span>
+            {% endif %}
+            {% if item.size_hint|default('') %}
+              <span class="mel-addon-teaser__hint mel-text--muted">{{ item.size_hint }}</span>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% if doc.more_label|default('') %}
+      <p class="mel-addon-teaser__more mel-text--muted">{{ doc.more_label }}</p>
+    {% endif %}
+    <div class="mel-addon-teaser__actions">
+      {% if doc.show_book_cta|default(false) and doc.book_url|default('') %}
+        <a class="mel-btn mel-btn--secondary mel-btn--sm mel-addon-teaser__cta" href="{{ doc.book_url }}">{{ doc.book_cta_label|default('View extras'|t) }}</a>
+      {% endif %}
+      {% if doc.show_scroll_cta|default(false) and doc.book_anchor|default('') %}
+        <a class="mel-btn mel-btn--secondary mel-btn--sm mel-addon-teaser__scroll" href="{{ doc.book_anchor }}">{{ doc.choose_label|default('Choose extras'|t) }}</a>
+      {% endif %}
+    </div>
+  </section>
+{% endif %}
