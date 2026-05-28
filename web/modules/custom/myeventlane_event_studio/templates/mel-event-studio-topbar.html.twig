@@ -5,19 +5,21 @@
  */
 #}
 <header class="mel-event-studio-topbar" role="banner">
-  <div class="mel-event-studio-topbar__event">
+  <div class="mel-event-studio-topbar__primary">
     <p class="mel-event-studio-topbar__eyebrow">{{ 'Event Studio'|t }}</p>
     <h1 class="mel-event-studio-topbar__title">{{ topbar.title }}</h1>
-  </div>
-  <div class="mel-event-studio-topbar__meta" aria-label="{{ 'Event status'|t }}">
-    <span class="mel-event-studio-topbar__badge" data-mel-publish-status>{{ topbar.status }}</span>
-    <span class="mel-event-studio-topbar__state" data-mel-publish-state>{{ topbar.state }}</span>
-    <span class="mel-event-studio-topbar__saved" data-mel-publish-last-saved>{{ topbar.last_saved }}</span>
-    <span class="mel-event-studio-topbar__autosave{% if topbar.restore_draft %} has-draft{% endif %}" id="mel-studio-form-state" role="status">
-      {% if topbar.restore_draft %}
-        <a href="{{ topbar.restore_url }}">{{ 'Restore draft available'|t }}</a>
+    <div class="mel-event-studio-topbar__meta" aria-label="{{ 'Event status'|t }}">
+      <span class="mel-event-studio-topbar__badge" data-mel-publish-status>{{ topbar.status }}</span>
+      {% if topbar.state %}
+        <span class="mel-event-studio-topbar__state" data-mel-publish-state>{{ topbar.state }}</span>
       {% endif %}
-    </span>
+      <span class="mel-event-studio-topbar__saved" data-mel-publish-last-saved>{{ topbar.last_saved }}</span>
+      <span class="mel-event-studio-topbar__autosave{% if topbar.restore_draft %} has-draft{% endif %}" id="mel-studio-form-state" role="status">
+        {% if topbar.restore_draft %}
+          <a href="{{ topbar.restore_url }}">{{ 'Restore draft available'|t }}</a>
+        {% endif %}
+      </span>
+    </div>
   </div>
   <div class="mel-event-studio-topbar__actions">
     {% if topbar.show_manage_event_link %}

@@ -238,9 +238,9 @@ final class EventStudioController extends ControllerBase {
    * @return array<string, mixed>
    */
   private function buildTopbar(NodeInterface $node, EventReadinessResult $readiness, string $section): array {
-    $state = $node->isPublished()
-      ? $this->t('Published')
-      : $this->operationalState($readiness);
+    $operational_state = $this->operationalState($readiness);
+    // Published events use the status badge only; readiness text is draft-oriented.
+    $state = ($node->isPublished() && $readiness->ready) ? '' : $operational_state;
 
     return [
       'title' => $node->label(),
