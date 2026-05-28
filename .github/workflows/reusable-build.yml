@@ -133,6 +133,10 @@ jobs:
           tar \
             --exclude='.git' \
             --exclude='.ddev' \
+            --exclude='.github' \
+            --exclude='.cursor' \
+            --exclude='.husky' \
+            --exclude='docs' \
             --exclude='node_modules' \
             --exclude='*/node_modules' \
             --exclude='tests' \
@@ -142,9 +146,33 @@ jobs:
             --exclude='web/sites/*/settings.php' \
             --exclude='web/sites/*/settings.local.php' \
             --exclude='web/sites/*/services.yml' \
+            --exclude='composer.phar' \
+            --exclude='_INVALID_config_backup_*' \
+            --exclude='_myeventlane_audit' \
+            --exclude='*.md' \
+            --exclude='*.bak' \
+            --exclude='*.sql' \
+            --exclude='*.sql.gz' \
+            --exclude='web/error_log' \
+            --exclude='web/phpinfo-temp.php' \
+            --exclude='check-*.sh' \
+            --exclude='test-*.sh' \
+            --exclude='fix-*.sh' \
+            --exclude='reset-*.sh' \
+            --exclude='create-*.sh' \
+            --exclude='start-*.sh' \
+            --exclude='rebuild-*.sh' \
+            --exclude='diagnose-*.sh' \
+            --exclude='delete-*.php' \
+            --exclude='install-*.php' \
+            --exclude='create-*.php' \
+            --exclude='staging-nginx.conf' \
+            --exclude='phpcs.xml' \
+            --exclude='phpunit-governance.xml' \
             -czf "$archive_path" .
 
           echo "artifact_path=$archive_path" >> "$GITHUB_OUTPUT"
+          echo "Artifact size: $(du -h "$archive_path" | awk '{print $1}')"
 
       - name: Validate artifact contains NEW code
         run: |
