@@ -26,13 +26,13 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
   /**
    * @return array<string, mixed>
    */
-  public function buildPanel(NodeInterface $event): array {
+  public function buildPanel(NodeInterface $event, ?array $cards = NULL): array {
     $event_id = (int) $event->id();
     if ($event_id < 1 || $event->bundle() !== 'event') {
       return $this->emptyPanel($event);
     }
 
-    $cards = $this->extrasBuilder->loadExtrasForEvent($event);
+    $cards ??= $this->extrasBuilder->loadExtrasForEvent($event);
     if ($cards === []) {
       return $this->emptyPanel($event);
     }
@@ -98,7 +98,8 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
    * @return array<string, mixed>
    */
   public function buildStudioAsideRenderArray(NodeInterface $event): array {
-    $panel = $this->buildPanel($event);
+    $cards = $this->extrasBuilder->loadExtrasForEvent($event);
+    $panel = $this->buildPanel($event, $cards);
     $panel['hide_manage_cta'] = TRUE;
     $panel['studio_context'] = TRUE;
 
@@ -106,7 +107,7 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-extras-studio__aside']],
       'summary' => $this->buildConfiguredSummaryRenderArray($panel, $event, 0),
-      'booking_preview' => $this->buildListBookingPreviewRenderArray($event),
+      'booking_preview' => $this->buildListBookingPreviewRenderArray($event, $cards),
       'next_steps' => $this->buildExtrasNextStepsCard($event, $panel),
       '#cache' => [
         'tags' => $panel['cache_tags'] ?? $event->getCacheTags(),
@@ -135,8 +136,8 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
   /**
    * @return array<string, mixed>
    */
-  public function buildListBookingPreviewRenderArray(NodeInterface $event): array {
-    $cards = $this->extrasBuilder->loadExtrasForEvent($event);
+  public function buildListBookingPreviewRenderArray(NodeInterface $event, ?array $cards = NULL): array {
+    $cards ??= $this->extrasBuilder->loadExtrasForEvent($event);
     $featured = $this->selectListPreviewCard($cards);
 
     if ($featured === NULL) {

@@ -191,7 +191,7 @@ final class EventStudioExtrasProductEditorTest extends TestCase {
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioExtrasProductEditorBuilder.php');
     $this->assertIsString($builder);
     preg_match(
-      '/private function buildStockLimitsPanelContent\([\s\S]*?private function buildPreviewPanelContent/s',
+      '/private function buildStockLimitsPanelContent\([\s\S]*?private function buildCollectionDocumentsPanelContent/s',
       $builder,
       $panel_match,
     );
