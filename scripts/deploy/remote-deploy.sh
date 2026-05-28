@@ -132,10 +132,57 @@ mel_check_disk_space() {
   fi
 }
 
+# Strip sites/default symlinks (shared files, settings, etc.) before rm so we never
+# touch live shared paths and so web-server-owned targets are not involved.
+mel_prepare_release_for_removal() {
+  local release_dir="$1"
+  local default_dir="$release_dir/web/sites/default"
+  local entry known
+
+  [ -d "$default_dir" ] || return 0
+
+  for known in files settings.php services.yml config; do
+    if [ -L "$default_dir/$known" ]; then
+      rm -f "$default_dir/$known" || true
+    fi
+  done
+
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    rm -f "$entry" || true
+  done < <(find "$default_dir" -maxdepth 1 -type l 2>/dev/null || true)
+
+  chmod -R u+w "$release_dir" 2>/dev/null || true
+}
+
+# Best-effort release removal. Pruning must not abort deploy: old trees often
+# contain www-data-owned files under sites/default from prior live releases.
+mel_remove_release_dir() {
+  local release_dir="$1"
+  local name
+  name="$(basename "$release_dir")"
+
+  mel_prepare_release_for_removal "$release_dir"
+
+  set +e
+  rm -rf "$release_dir" 2>/dev/null
+  local rc=$?
+  set -e
+
+  if [ "$rc" -eq 0 ] && [ ! -e "$release_dir" ]; then
+    return 0
+  fi
+
+  echo "  WARNING: could not fully remove release $name (permission denied on some paths)." >&2
+  echo "  On the staging host, remove leftovers manually or fix ownership under:" >&2
+  echo "    $release_dir/web/sites/default" >&2
+  return 0
+}
+
 mel_prune_old_releases() {
   local keep="${MEL_KEEP_RELEASES}"
   local releases_dir="$APP_PATH/releases"
-  local protected="" dir name candidates=() count i
+  local protected="" dir name candidates=() count i prune_failed=0
 
   [ -d "$releases_dir" ] || return 0
 
@@ -165,8 +212,17 @@ mel_prune_old_releases() {
   for ((i=keep; i<count; i++)); do
     name="$(basename "${candidates[$i]}")"
     echo "  Removing old release: $name"
-    rm -rf "${candidates[$i]}"
+    if [ -e "${candidates[$i]}" ]; then
+      mel_remove_release_dir "${candidates[$i]}"
+      if [ -e "${candidates[$i]}" ]; then
+        prune_failed=1
+      fi
+    fi
   done
+
+  if [ "$prune_failed" = "1" ]; then
+    echo "  NOTICE: Some old releases could not be pruned (non-fatal). Disk preflight will still run." >&2
+  fi
 }
 
 mel_deploy_cleanup() {
