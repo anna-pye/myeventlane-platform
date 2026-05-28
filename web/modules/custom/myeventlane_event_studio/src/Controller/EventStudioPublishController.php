@@ -252,7 +252,9 @@ final class EventStudioPublishController {
       'published' => $node->isPublished(),
       'topbar' => [
         'status' => $node->isPublished() ? (string) $this->t('Published') : (string) $this->t('Draft'),
-        'state' => $node->isPublished() ? (string) $this->t('Published') : $this->operationalState($readiness),
+        'state' => ($node->isPublished() && $readiness->ready)
+          ? ''
+          : $this->operationalState($readiness),
         'lastSaved' => $node->getChangedTime() > 0 ? (string) $this->t('Last saved @time', [
           '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
         ]) : (string) $this->t('Not saved yet'),

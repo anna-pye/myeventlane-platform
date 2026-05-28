@@ -120,6 +120,7 @@ settings.local.*
 ############################################
 /web/.phpunit.result.cache
 **/.phpunit.result.cache
+.phpunit.result.cache
 
 ############################################
 # Logs
