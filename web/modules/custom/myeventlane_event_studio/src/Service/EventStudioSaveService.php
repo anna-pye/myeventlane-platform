@@ -928,6 +928,9 @@ final class EventStudioSaveService {
   /**
    * Persists branding hero image via the studio_branding field widget.
    *
+   * Uses widget extraction so crop / focal point values from the image widget
+   * reach the entity before save.
+   *
    * @param array<string, mixed> $mel_subform
    *   The `mel` form fragment containing `field_event_image`.
    *

@@ -1677,3 +1677,18 @@ textarea.mel-input--body {
   }
 }
 
+/* Branding: image_focal_point — click preview to set focal point. */
+.mel-event-studio .mel-es-field-group--branding .focal-point-indicator,
+.mel-event-studio .mel-es-field-group--branding .image-widget .preview,
+.mel-event-studio .mel-es-field-group--branding .focal-point-wrapper {
+  pointer-events: auto;
+}
+
+.mel-event-studio .mel-es-field-group--branding .image-widget .preview {
+  cursor: crosshair;
+}
+
+.mel-event-studio .mel-es-field-group--branding .focal-point-indicator {
+  z-index: 2;
+}
+
