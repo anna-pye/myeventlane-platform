@@ -489,11 +489,6 @@ final class EventOperationalAddonCartForm extends FormBase {
   /**
    * @param list<array<string, mixed>> $size_options
    *
-   * @return array<string, string>
-   */
-  /**
-   * @param list<array<string, mixed>> $size_options
-   *
    * @return array<string, mixed>
    */
   private function buildSizeRadioGroup(array $size_options, int $index, string $size_id, bool $product_sold_out): array {
