@@ -1,7 +1,16 @@
 # Next Help Centre batch — draft register
 
-**Date:** 2026-05-23 (reconciled against import logs on `main`)  
+**Date:** 2026-05-23 (reconciled against import logs on `main`; calendar duplicate governance added)  
 **Folder:** `docs/content-audit/help-article-drafts/next-batch/`  
+**Importer:** Batches 04, 05, and 06 live imports complete (see `help-articles-batch-04-import-log.md`, `help-articles-batch-05-import-log.md`, `help-articles-batch-06-import-log.md`). **Batch 02 is exported only — not imported; there is no batch 02 import log and batch 02 must not be treated as closed.**
+
+**Calendar duplicate (2026-05-23):** See `calendar-duplicate-governance.md` and `calendar-article-merge-qa.md`. Canonical node **nid 1501**; duplicate **nid 1673** holds seed key + alias until manual cleanup. **Do not import** calendar YAML while `add_event_to_calendar` is on nid 1673.
+
+| Draft | Audience | Recommended alias | Ready to publish? | Ready to export? | Export batch | Needs verification | Notes |
+|-------|----------|-------------------|-------------------|------------------|--------------|--------------------|-------|
+| how-to-access-your-tickets.md | public | /help/attendees/how-to-access-your-tickets | No | Yes | batch_02_2026_05 | — | Exported in batch 02; **import pending** (no import log) |
+| how-to-use-my-tickets.md | public | /help/attendees/how-to-use-my-tickets | No | Yes | batch_02_2026_05 | — | Exported in batch 02; **import pending** |
+| add-event-to-calendar.md | public | /help/attendees/add-event-to-calendar | No | No | — | Event `/ics` availability; email vs My Tickets parity | **Blocked:** duplicate nid **1673** (seed + alias) vs canonical **1501** (stub). Content update only after 1673 retired — see `calendar-duplicate-governance.md`. **Do not create new node.** **Do not import** until seed/alias on 1501. |
 **Importer:** Batches 02, 04, 05, and 06 live imports complete (see `help-articles-batch-02-import-log.md`, `help-articles-batch-04-import-log.md`, `help-articles-batch-05-import-log.md`, `help-articles-batch-06-import-log.md`).
 
 | Draft | Audience | Recommended alias | Ready to publish? | Ready to export? | Export batch | Needs verification | Notes |
