@@ -85,10 +85,7 @@
 
     <div class="mel-event-full">
       <div class="mel-event-full__layout mel-event-layout mel-event-layout--option1">
-        {# Primary column: mobile flex order hero → sidebar → content → support; desktop inner grid. #}
-        <div class="mel-event-full__primary mel-event-layout__main">
-        <div class="mel-event-full__main-col">
-        <div class="mel-event-full__main mel-event-full__main--hero">
+        <div class="mel-event-full__main mel-event-full__main--hero mel-event-layout__main">
     {# Hero: node--event--full — same stack as homepage featured_hero (mel-event-card variant). #}
     <section class="mel-event-full__hero mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
       <div class="mel-event-hero__media">
@@ -186,7 +183,12 @@
     </section>
         </div>
 
-        <div class="mel-event-full__main mel-event-full__main--content">
+        <aside class="mel-event-full__sidebar mel-event-layout__sidebar mel-event-sidebar-rail" aria-label="{{ 'Tickets and event information'|t }}">
+          {% include '@myeventlane_theme/node/partial--event-full-booking-panel.html.twig' %}
+          {% include '@myeventlane_theme/node/partial--event-full-view-details.html.twig' %}
+        </aside>
+
+        <div class="mel-event-full__main mel-event-full__main--content mel-event-layout__main">
         {% if mel_event_gallery is defined and mel_event_gallery.count > 0 %}
           <div class="mel-event-full__gallery">
             {{
@@ -658,13 +660,6 @@
         </div>
         </div>
 
-        <aside class="mel-event-full__sidebar mel-event-layout__sidebar mel-event-sidebar-rail" aria-label="{{ 'Tickets and event information'|t }}">
-          <div class="mel-event-full__sidebar-inner">
-            {% include '@myeventlane_theme/node/partial--event-full-booking-panel.html.twig' %}
-            {% include '@myeventlane_theme/node/partial--event-full-view-details.html.twig' %}
-          </div>
-        </aside>
-
         <nav class="mel-event-full__support mel-event-support-zone" aria-label="{{ 'Help and policies'|t }}">
           <ul class="mel-event-support-zone__list">
             <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
@@ -673,7 +668,6 @@
             <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
           </ul>
         </nav>
-        </div>
       </div>
     </div>
   </div>
