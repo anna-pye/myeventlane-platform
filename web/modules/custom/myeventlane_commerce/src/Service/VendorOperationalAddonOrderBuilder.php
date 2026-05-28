@@ -68,7 +68,7 @@ final class VendorOperationalAddonOrderBuilder {
    *
    * @var list<string>
    */
-  private const INCLUDED_STATES = [
+  public const QUALIFYING_ORDER_STATES = [
     'completed',
     'partially_refunded',
     'refunded',
@@ -76,6 +76,13 @@ final class VendorOperationalAddonOrderBuilder {
     'fulfilled',
     'fulfillment',
   ];
+
+  /**
+   * @deprecated Use {@see self::QUALIFYING_ORDER_STATES}.
+   *
+   * @var list<string>
+   */
+  private const INCLUDED_STATES = self::QUALIFYING_ORDER_STATES;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -144,6 +151,15 @@ final class VendorOperationalAddonOrderBuilder {
    * Lightweight signal: any placed order for this event includes operational
    * Commerce lines (by product bundle), without building full composition.
    */
+  /**
+   * Loads vendor-qualifying orders for an event (read-only summaries).
+   *
+   * @return list<OrderInterface>
+   */
+  public function loadQualifyingOrdersForEvent(NodeInterface $event): array {
+    return $this->loadOrdersForEvent($event);
+  }
+
   public function eventHasPurchasedOperationalAddons(NodeInterface $event): bool {
     $eventId = (int) $event->id();
     foreach ($this->loadOrdersForEvent($event) as $order) {

@@ -86,7 +86,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['general'] = [
       '#type' => 'details',
       '#title' => $this->t('General generation settings'),
-      '#tree' => TRUE,
       '#open' => TRUE,
     ];
     $form['general']['enabled'] = [
@@ -155,7 +154,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['population'] = [
       '#type' => 'details',
       '#title' => $this->t('Event field population toggles'),
-      '#tree' => TRUE,
       '#open' => TRUE,
     ];
     foreach ($this->populationToggleKeys() as $key => $label) {
@@ -169,7 +167,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['mix'] = [
       '#type' => 'details',
       '#title' => $this->t('Content type mix'),
-      '#tree' => TRUE,
       '#open' => TRUE,
     ];
     $form['mix']['generate_rsvp_events'] = [
@@ -198,7 +195,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['tickets'] = [
       '#type' => 'details',
       '#title' => $this->t('Ticket settings'),
-      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     $form['tickets']['default_currency'] = [
@@ -250,7 +246,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['accessibility'] = [
       '#type' => 'details',
       '#title' => $this->t('Accessibility settings'),
-      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     foreach ([
@@ -275,7 +270,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['images'] = [
       '#type' => 'details',
       '#title' => $this->t('Image settings'),
-      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     $form['images']['generate_images'] = [
@@ -309,7 +303,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
     $form['safety'] = [
       '#type' => 'details',
       '#title' => $this->t('Safety settings'),
-      '#tree' => TRUE,
       '#open' => FALSE,
     ];
     $form['safety']['dry_run'] = [
@@ -337,7 +330,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
       $form['confirm'] = [
         '#type' => 'details',
         '#title' => $this->t('Confirmation'),
-        '#tree' => TRUE,
         '#open' => TRUE,
       ];
       $form['confirm']['confirm_text'] = [
@@ -410,8 +402,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
       $this->demoEventSeeder->validateSettings($values);
     }
     catch (\InvalidArgumentException $e) {
-      $element = $this->validationErrorElementForSettingsException($e);
-      $form_state->setErrorByName($element, $e->getMessage());
+      $form_state->setErrorByName('general][event_count', $e->getMessage());
     }
 
     $parents = $form_state->getTriggeringElement()['#parents'] ?? [];
@@ -557,52 +548,6 @@ final class DemoContentSettingsForm extends ConfigFormBase {
       'require_confirm_text' => $bool($s('require_confirm_text')),
       'confirm_text_value' => trim((string) $s('confirm_text_value')),
     ];
-  }
-
-  /**
-   * Maps seeder validation messages to the matching form element name.
-   */
-  private function validationErrorElementForSettingsException(\InvalidArgumentException $exception): string {
-    $message = $exception->getMessage();
-
-    if (str_starts_with($message, 'event_count must')) {
-      return 'general][event_count';
-    }
-    if (str_starts_with($message, 'future_date_start_days must')) {
-      return 'general][future_date_start_days';
-    }
-    if (str_starts_with($message, 'future_date_spacing_days must')) {
-      return 'general][future_date_spacing_days';
-    }
-    if (str_starts_with($message, 'owner_username')) {
-      return 'general][owner_username';
-    }
-    if (str_contains($message, 'generate_rsvp_events or generate_paid_events')) {
-      return 'mix][generate_rsvp_events';
-    }
-    if (str_contains($message, 'rsvp_event_count + paid_event_count')) {
-      return 'mix][rsvp_event_count';
-    }
-    if (str_starts_with($message, 'rsvp_event_count must')) {
-      return 'mix][rsvp_event_count';
-    }
-    if (str_starts_with($message, 'paid_event_count must')) {
-      return 'mix][paid_event_count';
-    }
-    if (str_starts_with($message, 'populate_ticket_types requires')) {
-      return 'population][populate_ticket_types';
-    }
-    if (str_starts_with($message, 'populate_rsvp_settings requires')) {
-      return 'population][populate_rsvp_settings';
-    }
-    if (preg_match('/Required setting "(populate_[^"]+)"/', $message, $matches) === 1) {
-      return 'population][' . $matches[1];
-    }
-    if (str_starts_with($message, 'min_ticket_price cannot')) {
-      return 'tickets][min_ticket_price';
-    }
-
-    return '';
   }
 
   /**

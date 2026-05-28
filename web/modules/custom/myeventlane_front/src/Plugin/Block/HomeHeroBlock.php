@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_front\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Block\BlockManagerInterface;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_front\Service\FeaturedEventsRenderBuilder;
 use Drupal\myeventlane_page_visuals\Service\PageVisualResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -59,10 +61,12 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
    */
   public function build(): array {
     $pills = [];
+    $pills_cache = new CacheableMetadata();
     try {
       $instance = $this->blockManager->createInstance('myeventlane_category_pills', []);
       $pills = $instance->build();
       $pills['#cache']['contexts'][] = 'url.path';
+      $pills_cache = CacheableMetadata::createFromRenderArray($pills);
     }
     catch (\Throwable $e) {
       $pills = [];
@@ -94,6 +98,8 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       '#hero_image_url_mobile' => $hero_image_url_mobile,
       '#hero_hide_on_mobile' => $hero_hide_on_mobile,
       '#hero_alt' => $hero_alt,
+      '#search_events_url' => Url::fromRoute('view.upcoming_events.page_events')->toString(),
+      '#search_site_url' => Url::fromRoute('mel_search.view')->toString(),
       '#attached' => [
         'library' => [
           'myeventlane_theme/home-hero-rotator',
@@ -105,6 +111,10 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
         'max-age' => 3600,
       ],
     ];
+
+    $cache_meta = CacheableMetadata::createFromRenderArray($build);
+    $cache_meta->merge($pills_cache);
+    $cache_meta->applyTo($build);
 
     return $build;
   }

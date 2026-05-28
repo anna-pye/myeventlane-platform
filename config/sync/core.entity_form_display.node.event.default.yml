@@ -15,6 +15,7 @@ dependencies:
     - field.field.node.event.field_collect_per_ticket
     - field.field.node.event.field_event_end
     - field.field.node.event.field_event_image
+    - field.field.node.event.field_event_passcode_hash
     - field.field.node.event.field_mel_event_gallery
     - field.field.node.event.field_event_start
     - field.field.node.event.field_event_type
@@ -301,12 +302,14 @@ hidden:
   field_event_geo: true
   field_event_highlights: true
   field_event_intro: true
+  field_event_passcode_hash: true
   field_event_setup_complete: true
   field_event_state: true
   field_event_state_override: true
   field_event_store: true
   field_event_summary: true
   field_event_vendor: true
+  field_event_visibility: true
   field_is_series_template: true
   field_location_latitude: true
   field_location_longitude: true

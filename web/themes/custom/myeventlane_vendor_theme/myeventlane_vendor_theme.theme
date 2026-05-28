@@ -149,7 +149,8 @@ function myeventlane_vendor_theme_page_attachments_alter(array &$attachments): v
  * Includes /vendor/* and core user auth paths served on the vendor host.
  */
 function _myeventlane_vendor_theme_is_vendor_scoped_path(string $path): bool {
-  if (str_starts_with($path, '/vendor')) {
+  // Match /vendor and /vendor/* only — not the public directory /vendors.
+  if (preg_match('#^/vendor(/|$)#', $path)) {
     return TRUE;
   }
   $auth = ['/user/login', '/user/register', '/user/password'];
@@ -818,6 +819,16 @@ function myeventlane_vendor_theme_theme_suggestions_page_alter(array &$suggestio
   // Add page suggestions based on route.
   $route_name = \Drupal::routeMatch()->getRouteName();
 
+  // Public marketplace vendor routes use the default MEL shell, not console chrome.
+  $public_marketplace_routes = [
+    'myeventlane_vendor.public_list',
+    'myeventlane_vendor.organisers',
+    'entity.myeventlane_vendor.canonical',
+  ];
+  if (is_string($route_name) && in_array($route_name, $public_marketplace_routes, TRUE)) {
+    return;
+  }
+
   if (is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor')) {
     $suggestions[] = 'page__vendor';
   }
@@ -1247,6 +1258,10 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'header_meta_line' => NULL,
         'workspace_event_boost' => NULL,
         'vendor_event_workspace_model' => NULL,
+        'ticket_sales_panel' => NULL,
+        'extras_configured_panel' => NULL,
+        'extras_sales_panel' => NULL,
+        'manage_event_back' => NULL,
       ],
       'template' => 'mel-event/mel-event-workspace',
     ],
@@ -1529,6 +1544,13 @@ function myeventlane_vendor_theme_preprocess_mel_event_workspace(array &$variabl
       && (string) $event->get('moderation_state')->value === 'review') {
       $variables['event_status_badge_modifier'] = 'mel-badge--warning';
     }
+  }
+
+  if (empty($variables['manage_event_back']) && empty($variables['vendor_event_workspace_model'])) {
+    $variables['manage_event_back'] = [
+      'url' => \Drupal\Core\Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()])->toString(),
+      'label' => (string) t('Back to Manage event'),
+    ];
   }
 
   // Boost insights payload (optional module): same source as dashboard rows, no vendor→boost hard dependency.

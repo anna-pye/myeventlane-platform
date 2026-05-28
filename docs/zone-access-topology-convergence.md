@@ -14,6 +14,7 @@ This phase adds **one canonical operational zone / access topology policy layer*
 
 **`VenueOperationPolicyManager`** remains the **orchestrator** for scan-time composition: it delegates clock policy to **`TimedEntryPolicyManager`**, session / sequencing / multi-use orchestration to **`SessionEntitlementPolicyManager`**, entitlement type maps to **`EntitlementCapabilityRegistry`** (via **`TicketCapabilityManager`**), and **zone / topology policy** to **`ZoneAccessPolicyManager`**.
 
+**`ScannerOperationManager`** applies **`VenueOperationPolicyManager::evaluateZoneAccessForScan()`** before mutations. It does **not** own zone rules, timing math, or session progression.
 **`ScannerOperationManager`** applies **`VenueOperationPolicyManager::evaluateOperationalIdentity()`**, which in turn calls **`evaluateZoneAccessForScan()`** before mutations. It does **not** own zone rules, timing math, session progression, or device trust semantics. When **`mel_operational_device.zone_id`** (or alias `operational_device`) is present, **`VenueOperationPolicyManager`** supplies it as the effective gate zone argument to **`ZoneAccessPolicyManager::evaluateZoneAccessForComposition()`** without duplicating topology math. See [device-gate-identity-convergence.md](./device-gate-identity-convergence.md).
 
 ## Metadata sources (no new entities)
@@ -67,7 +68,6 @@ When the composed gate succeeds or is denied before mutation, **`operational_sca
 - `gate_groups` — gate→zone map from metadata
 - `reentry` — zone defaults / per-zone map plus `session_reentry_allowed` (session slice is not duplicated as a full map)
 - `progression` — `zone_order` plus the existing `session_entitlement.progression` payload by reference under `progression.session`
-- `occupancy` — optional customer-safe occupancy hints when ticket metadata declares **`mel_operational_occupancy`** / **`operational_occupancy`** (see [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)); never exposes anti-passback internals, balancing material, or topology identifiers on public surfaces
 
 Templates that do not reference these keys remain visually unchanged.
 
@@ -79,8 +79,6 @@ Templates that do not reference these keys remain visually unchanged.
 - structural conflict codes (for example allow/deny overlap)
 - progression / re-entry semantics summaries
 - gate policy counts (no raw purchaser PII)
-
-**`artifacts.occupancy_policy`** (per ticket id) summarizes occupancy/directional/balancing composition alongside zone/timing/session refs (read-only; see [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)).
 
 ## Anti-patterns (forbidden)
 
@@ -98,4 +96,3 @@ Templates that do not reference these keys remain visually unchanged.
 - [timed-entry-capacity-convergence.md](./timed-entry-capacity-convergence.md)
 - [operational-observability.md](./operational-observability.md)
 - [issuance-pipeline.md](./issuance-pipeline.md)
-- [anti-passback-live-occupancy-convergence.md](./anti-passback-live-occupancy-convergence.md)

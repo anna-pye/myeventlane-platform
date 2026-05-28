@@ -1,0 +1,49 @@
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+auth.json
+secrets/
+private/
+credentials/
+
+# Databases / dumps
+*.sql
+*.sql.gz
+*.sqlite
+*.sqlite3
+database/
+db-dumps/
+backups/
+
+# Local / generated
+.DS_Store
+.ddev/.global_commands/
+.ddev/.webimageBuild/
+.ddev/.dbimageBuild/
+node_modules/
+vendor/
+web/sites/default/files/
+web/sites/default/private/
+web/sites/*/files/
+web/sites/*/private/
+
+# Build output
+dist/
+build/
+coverage/
+storybook-static/
+
+# Logs
+*.log
+logs/
+var/log/
+tmp/
+
+# Production or deploy-only config
+deploy/secrets/
+production/

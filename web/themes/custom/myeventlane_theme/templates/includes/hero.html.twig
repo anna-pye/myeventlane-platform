@@ -43,7 +43,7 @@
       </a>
       {% if categories is defined and categories|length %}
         {% for term in categories %}
-          <a href="{{ path('view.upcoming_events.page_category', {'arg_0': term.tid}) }}" class="mel-category-chip">
+          <a href="{{ term.url|default(path('view.upcoming_events.page_category', {'arg_0': term.slug|default(term.tid)})) }}" class="mel-category-chip">
             {{ term.name }}
           </a>
         {% endfor %}

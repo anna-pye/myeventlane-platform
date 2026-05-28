@@ -235,7 +235,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         '#title' => $this->t('Visibility'),
         '#options' => $this->visibilityOptions(),
         '#default_value' => 'public',
-        '#description' => $this->t('Most events should use Public.'),
+        '#description' => $this->t('Access code tickets require codes to be created in Ticket Tools before customers can see them.'),
       ],
       'status' => [
         '#type' => 'checkbox',
@@ -469,6 +469,17 @@ final class EventStudioOperationalTicketsForm extends FormBase {
               'class' => ['mel-event-studio-card-badge', 'mel-event-studio-card-badge--accent'],
             ],
           ],
+          'access_code' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $this->t('Access code required'),
+            '#access' => $ticket->hasField('visibility_mode')
+              && !$ticket->get('visibility_mode')->isEmpty()
+              && (string) $ticket->get('visibility_mode')->value === 'access_code',
+            '#attributes' => [
+              'class' => ['mel-event-studio-card-badge', 'mel-event-studio-card-badge--access-code'],
+            ],
+          ],
         ],
       ],
       'attendee_preview' => [
@@ -556,6 +567,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
             '#default_value' => $ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()
               ? (string) $ticket->get('visibility_mode')->value
               : 'public',
+            '#description' => $this->t('Access code tickets require codes to be created in Ticket Tools before customers can see them.'),
             '#parents' => ['tickets', $ticket_id, 'visibility_mode'],
           ],
         ],

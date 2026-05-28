@@ -11,6 +11,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
+use Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver;
 use Drupal\Tests\UnitTestCase;
 use Psr\Log\LoggerInterface;
 
@@ -35,10 +36,12 @@ final class EventOperationalAddonBuilderTest extends UnitTestCase {
       $this->createMock(\Drupal\Core\Extension\ExtensionPathResolver::class),
       $this->getStringTranslationStub(),
     );
+    $stock = new OperationalVariationStockResolver($this->getStringTranslationStub());
     return new EventOperationalAddonBuilder(
       $etm,
       $merch,
       $visual,
+      $stock,
       $this->getStringTranslationStub(),
     );
   }
@@ -144,7 +147,7 @@ final class EventOperationalAddonBuilderTest extends UnitTestCase {
 
     $logger = $this->createMock(LoggerInterface::class);
     $merch = new OperationalMerchandiseManager($etm, $this->getStringTranslationStub(), $logger);
-    $builder = new EventOperationalAddonBuilder($etm, $merch, $visual, $this->getStringTranslationStub());
+    $builder = new EventOperationalAddonBuilder($etm, $merch, $visual, new OperationalVariationStockResolver($this->getStringTranslationStub()), $this->getStringTranslationStub());
 
     $event = $this->createMock(\Drupal\node\NodeInterface::class);
     $event->method('id')->willReturn('99');

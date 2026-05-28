@@ -9,7 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_api\Service\ApiResponseFormatter;
 use Drupal\myeventlane_api\Service\EventSerializer;
 use Drupal\myeventlane_api\Service\RateLimiterService;
-use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -28,7 +28,7 @@ final class PublicEventApiController extends ControllerBase {
     private readonly ApiResponseFormatter $responseFormatter,
     private readonly EventSerializer $eventSerializer,
     private readonly RateLimiterService $rateLimiter,
-    private readonly EventStateResolverInterface $eventStateResolver,
+    private readonly PublicEventVisibility $publicEventVisibility,
   ) {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -42,7 +42,7 @@ final class PublicEventApiController extends ControllerBase {
       $container->get('myeventlane_api.response_formatter'),
       $container->get('myeventlane_api.event_serializer'),
       $container->get('myeventlane_api.rate_limiter'),
-      $container->get('myeventlane_event_state.resolver'),
+      $container->get('myeventlane_event.public_visibility'),
     );
   }
 
@@ -145,17 +145,11 @@ final class PublicEventApiController extends ControllerBase {
 
     $events = $storage->loadMultiple($event_ids);
 
-    // Filter by visibility and state.
     $public_events = [];
     foreach ($events as $event) {
-      // Skip cancelled events unless explicitly requested.
-      $state = $this->eventStateResolver->resolveState($event);
-      if ($state === 'cancelled') {
+      if (!$this->publicEventVisibility->isApiVisible($event)) {
         continue;
       }
-
-      // @todo Add visibility check (public/unlisted/private) if field exists.
-      // For now, assume all published events are public.
       $public_events[] = $event;
     }
 
@@ -223,13 +217,12 @@ final class PublicEventApiController extends ControllerBase {
       return $this->responseFormatter->error('NOT_FOUND', 'Event not found.', 404);
     }
 
-    // Check state - skip cancelled unless explicitly requested.
-    $state = $this->eventStateResolver->resolveState($node);
-    if ($state === 'cancelled' && !$request->query->getBoolean('include_cancelled')) {
+    if (!$this->publicEventVisibility->isApiVisible($node)
+      && !($request->query->getBoolean('include_cancelled')
+        && $node->hasField('field_event_state')
+        && (string) $node->get('field_event_state')->value === 'cancelled')) {
       return $this->responseFormatter->error('NOT_FOUND', 'Event not found.', 404);
     }
-
-    // @todo Add visibility check (public/unlisted/private).
     try {
       $data = $this->eventSerializer->serializePublic($node);
       $response = $this->responseFormatter->success($data);

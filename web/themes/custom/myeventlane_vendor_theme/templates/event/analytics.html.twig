@@ -12,7 +12,7 @@
       {% if workspace_back_url %}
         <a href="{{ workspace_back_url }}" class="mel-live-ops__action mel-live-ops__action--lavender" data-icon="list">
           <span class="mel-live-ops__action-glyph" aria-hidden="true"></span>
-          <span class="mel-live-ops__action-label">{{ 'Back to event workspace'|t }}</span>
+          <span class="mel-live-ops__action-label">{{ 'Back to Manage event'|t }}</span>
         </a>
       {% endif %}
       {% if edit_event_url %}
@@ -53,6 +53,7 @@
     {% trans %}Next: share your public link and keep an eye on ticket velocity — when you are ready, <strong>Boost</strong> can put your event in front of more people.{% endtrans %}
   </p>
 
+  {% set commerce = commerce_analytics|default({}) %}
   {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
     metric_title: 'Performance'|t,
     metric_title_id: 'mel-analytics-kpis',
@@ -64,6 +65,27 @@
       { label: 'RSVPs'|t, value: rsvp_block.total_submissions|default(rsvp_block.count|default(0)), note: 'All non-cancelled responses'|t },
     ],
   } only %}
+
+  <section class="mel-live-ops__panel" aria-labelledby="mel-analytics-commerce-title">
+    <div class="mel-live-ops__timeline-head">
+      <h2 id="mel-analytics-commerce-title" class="mel-live-ops__panel-title">{{ 'Event commerce'|t }}</h2>
+      <p class="mel-live-ops__panel-intro">{{ 'Ticket revenue and merch/add-on sales are tracked separately.'|t }}</p>
+    </div>
+    {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+      metric_wrap_section: false,
+      metric_items: [
+        { label: 'Ticket revenue'|t, value: commerce.ticket_revenue|default('—') },
+        { label: 'Ticket quantity sold'|t, value: commerce.ticket_quantity_sold|default(0) },
+        { label: 'Merch/add-on revenue'|t, value: commerce.extras_revenue|default('—') },
+        { label: 'Merch/add-on items sold'|t, value: commerce.extras_items_sold|default(0) },
+        { label: 'Orders with extras'|t, value: commerce.orders_with_extras|default(0) },
+        { label: 'Top extras category'|t, value: commerce.top_extras_category|default('—') },
+      ],
+    } only %}
+    {% if commerce.booking_activity_note|default('') is not empty %}
+      <p class="mel-text--muted mel-analytics__conversion-note">{{ commerce.booking_activity_note }}</p>
+    {% endif %}
+  </section>
 
   {% if overview.donations.count|default(0) > 0 %}
     {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {

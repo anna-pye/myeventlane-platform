@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_tickets\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifierStubTrait;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Service\OperationalFulfillmentExecutionManager;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -18,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 #[RunTestsInSeparateProcesses]
 final class OperationalFulfillmentExecutionKernelTest extends KernelTestBase {
+
+  use RegistersTicketBackedClassifierStubTrait;
 
   protected static $modules = [
     'system',
@@ -56,6 +59,7 @@ final class OperationalFulfillmentExecutionKernelTest extends KernelTestBase {
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $this->registerTicketBackedClassifierStub($container);
   }
 
   protected function setUp(): void {

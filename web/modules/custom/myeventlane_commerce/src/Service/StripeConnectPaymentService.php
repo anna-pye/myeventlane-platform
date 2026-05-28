@@ -36,6 +36,8 @@ final class StripeConnectPaymentService {
    *   The logger.
    * @param \Drupal\myeventlane_commerce\Service\OrderItemClassifier $orderItemClassifier
    *   The order item classifier.
+   * @param \Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifierInterface $ticketBackedOrderItemClassifier
+   *   Ticket-backed line item classifier for Connect revenue boundaries.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -43,6 +45,7 @@ final class StripeConnectPaymentService {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
     private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly TicketBackedOrderItemClassifierInterface $ticketBackedOrderItemClassifier,
   ) {}
 
   /**
@@ -167,7 +170,10 @@ final class StripeConnectPaymentService {
   }
 
   /**
-   * Calculates ticket revenue (excludes donations, boosts, and other non-ticket items).
+   * Calculates ticket revenue from ticket-backed order items only.
+   *
+   * Excludes donations, boosts, operational merchandise, and add-ons.
+   * Operational Connect transfer rules for non-ticket revenue are deferred.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -179,19 +185,20 @@ final class StripeConnectPaymentService {
     $ticketAmount = 0;
 
     foreach ($order->getItems() as $item) {
-      // Skip donation items (platform revenue, not vendor revenue).
       if ($this->orderItemClassifier->isDonation($item)) {
         continue;
       }
 
-      // Skip Boost items (they don't use Connect).
       if ($item->bundle() === 'boost') {
+        continue;
+      }
+
+      if (!$this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($item)) {
         continue;
       }
 
       $totalPrice = $item->getTotalPrice();
       if ($totalPrice) {
-        // Convert to cents.
         $ticketAmount += (int) round($totalPrice->getNumber() * 100);
       }
     }
@@ -202,9 +209,9 @@ final class StripeConnectPaymentService {
   /**
    * Ticket revenue in cents for one event on this order (excludes donations, boost).
    *
-   * Uses the same inclusion rules as calculateTicketRevenue(), scoped to
-   * field_target_event = $eventId. Used for vendor MEL percentage contribution
-   * accrual so the base matches Connect ticket revenue (not attendee donations).
+   * Uses the same ticket-backed inclusion rules as calculateTicketRevenue(),
+   * scoped to field_target_event = $eventId. Used for vendor MEL percentage
+   * contribution accrual so the base matches Connect ticket revenue.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -227,6 +234,10 @@ final class StripeConnectPaymentService {
       }
 
       if ($item->bundle() === 'boost') {
+        continue;
+      }
+
+      if (!$this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($item)) {
         continue;
       }
 

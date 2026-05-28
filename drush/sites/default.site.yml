@@ -1,3 +1,6 @@
+# Site alias for staging / manual Drush on the release tree (project root = parent of web/).
+# Use: drush @default status   or   drush --uri=https://staging.myeventlane.com.au …
+# Prefer scripts/deploy/mel-deploy.sh on the host (sets memory_limit + SITE_URI).
 default:
-  root: /home/myeventlanecom/staging/web
+  root: ../web
   uri: https://staging.myeventlane.com.au

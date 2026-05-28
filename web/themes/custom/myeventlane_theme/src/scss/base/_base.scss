@@ -117,9 +117,8 @@ ul, ol {
 }
 
 // ---------------------------------------------------------------------------
-// Links — UI surfaces without default underline; prose inside .mel-content
-// keeps identifiable links with hover underline. Card/event/button links inside
-// .mel-content need equal-or-higher specificity than .mel-content a:hover.
+// Links — no underline site-wide; colour + focus ring identify interactive text.
+// Final cascade guard: utilities/_link-chrome.scss (loaded last in main.scss).
 // ---------------------------------------------------------------------------
 
 a {
@@ -129,7 +128,8 @@ a {
 
   &:hover,
   &:active,
-  &:focus {
+  &:focus,
+  &:visited {
     text-decoration: none;
   }
 

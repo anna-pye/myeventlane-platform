@@ -110,6 +110,7 @@ services:
     arguments:
       - '@current_route_match'
       - '@string_translation'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_vendor.vendor_store_subscriber:
     class: Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber
@@ -274,6 +275,7 @@ services:
       - '@myeventlane_vendor.vendor_event_removal'
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_surface.data_presentation_manager'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService
@@ -303,6 +305,7 @@ services:
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_core.domain_detector'
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
@@ -436,7 +439,20 @@ services:
 
   myeventlane_vendor.controller.vendor_event_analytics:
     class: Drupal\myeventlane_vendor\Controller\VendorEventAnalyticsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.ticket_tier_lifecycle', '@myeventlane_commerce.ticket_tier_analytics', '@access_manager', '@logger.factory', '@?myeventlane_pro.active_resolver']
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.service.metrics_aggregator'
+      - '@myeventlane_vendor.service.event_tabs'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@myeventlane_commerce.ticket_tier_analytics'
+      - '@access_manager'
+      - '@logger.factory'
+      - '@?myeventlane_pro.active_resolver'
+      - '@myeventlane_event_studio.commerce_sales_summary_builder'
+      - '@myeventlane_commerce.event_operational_extras_sales_summary_builder'
     tags:
       - { name: controller.service_arguments }
 
@@ -508,6 +524,9 @@ services:
       - '@logger.channel.myeventlane_vendor'
       - '@request_stack'
       - '@myeventlane_vendor.event_workspace_view_model_builder'
+      - '@myeventlane_event_studio.commerce_sales_summary_builder'
+      - '@myeventlane_commerce.event_operational_extras_sales_summary_builder'
+      - '@myeventlane_event_studio.extras_configured_summary_builder'
     tags:
       - { name: controller.service_arguments }
 

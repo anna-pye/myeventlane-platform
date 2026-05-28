@@ -1,0 +1,52 @@
+{#
+/**
+ * @file
+ * Variant preview table for Event Studio product editor.
+ */
+#}
+{% if rows is not empty %}
+  <details class="mel-event-variant-preview"{% if open|default(false) %} open{% endif %}>
+    <summary class="mel-event-variant-preview__summary">
+      <span class="mel-event-variant-preview__title">{{ summary_title|default('Variation summary'|t) }}</span>
+      <span class="mel-event-variant-preview__hint mel-text--muted">{{ 'SKU, price, and status for each option'|t }}</span>
+    </summary>
+    <div class="mel-event-variant-preview__table-wrap">
+      <table class="mel-event-variant-preview__table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Size'|t }}</th>
+            <th scope="col">{{ 'SKU'|t }}</th>
+            <th scope="col">{{ 'Price'|t }}</th>
+            {% if stock_supported and not stock_editor_enabled|default(false) %}
+              <th scope="col">{{ 'Stock quantity'|t }}</th>
+              <th scope="col">{{ 'Limit per order'|t }}</th>
+              <th scope="col">{{ 'Show remaining'|t }}</th>
+            {% endif %}
+            <th scope="col">{{ 'Status'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td data-label="{{ 'Size'|t }}">{{ row.size_label }}</td>
+              <td data-label="{{ 'SKU'|t }}"><code>{{ row.sku }}</code></td>
+              <td data-label="{{ 'Price'|t }}">{{ row.price }}</td>
+              {% if stock_supported and not stock_editor_enabled|default(false) %}
+                <td data-label="{{ 'Stock quantity'|t }}">
+                  {% if row.stock_quantity is null %}
+                    {{ 'Unlimited'|t }}
+                  {% else %}
+                    {{ row.stock_quantity }}
+                  {% endif %}
+                </td>
+                <td data-label="{{ 'Limit per order'|t }}">{{ row.limit_per_order|default('—') }}</td>
+                <td data-label="{{ 'Show remaining'|t }}">{{ row.show_remaining ? 'Yes'|t : 'No'|t }}</td>
+              {% endif %}
+              <td data-label="{{ 'Status'|t }}">{{ row.status_label }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{% endif %}

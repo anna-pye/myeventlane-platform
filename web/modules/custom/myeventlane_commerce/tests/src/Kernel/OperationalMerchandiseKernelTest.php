@@ -23,6 +23,7 @@ use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseGovernanceManager;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\OperationalPurchaseCompositionManager;
+use Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager;
 use Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager;
 use Drupal\myeventlane_event_studio\Service\VendorProductisationStudioManager;
@@ -438,6 +439,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
         $this->container->get('extension.path.resolver'),
         $this->container->get('string_translation'),
       ),
+      new OperationalVariationStockResolver($this->container->get('string_translation')),
       $this->container->get('string_translation'),
     );
   }
@@ -774,6 +776,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
       $merch,
       $this->commerceWizardLinkManager(),
       new EventVendorAccessChecker(),
+      new OperationalVariationStockResolver($this->container->get('string_translation')),
       $this->container->get('string_translation'),
       $this->container->get('logger.factory')->get('test'),
     );

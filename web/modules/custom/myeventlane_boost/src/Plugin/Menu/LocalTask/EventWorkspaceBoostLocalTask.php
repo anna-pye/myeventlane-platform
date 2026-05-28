@@ -15,7 +15,7 @@ use Drupal\node\NodeInterface;
  *   id = "myeventlane_boost.event_workspace_boost",
  *   route_name = "myeventlane_boost.vendor_event_boost",
  *   title = @Translation("Boost"),
- *   base_route = "myeventlane_vendor.console.event_overview",
+ *   base_route = "myeventlane_vendor.console.event_workspace",
  *   weight = 22,
  * )
  */

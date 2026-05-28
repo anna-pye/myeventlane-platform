@@ -283,7 +283,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: compact_commerce
       query:
         type: views_query
         options:
@@ -319,7 +319,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: compact_commerce
       display_extenders: {  }
       block_description: 'Discover Events (Poster Cards)'
       block_category: MyEventLane
@@ -642,7 +642,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: compact_commerce
       query:
         type: views_query
         options:
@@ -711,7 +711,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: compact_commerce
       display_extenders: {  }
       block_description: 'Newest events (compact). Not geo-filtered yet.'
       block_category: MyEventLane
@@ -935,7 +935,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser_tonight
+          view_mode: compact_commerce
       query:
         type: views_query
         options:
@@ -1207,7 +1207,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: compact_commerce
       query:
         type: views_query
         options:
