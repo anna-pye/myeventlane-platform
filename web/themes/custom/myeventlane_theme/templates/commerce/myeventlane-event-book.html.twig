@@ -109,7 +109,11 @@
             <p class="mel-ticket-panel__lead">{{ 'Free RSVP — no payment required. Complete the form to reserve your place.'|t }}</p>
             {% if mel_signal_remaining_spots is defined and mel_signal_remaining_spots is not null and mel_signal_remaining_spots > 0 %}
               <p class="mel-ticket-panel__capacity mel-text--muted">
-                {{ '@count places remaining'|t({'@count': mel_signal_remaining_spots}) }}
+                {% trans %}
+                  1 place remaining
+                {% plural mel_signal_remaining_spots %}
+                  @count places remaining
+                {% endtrans %}
               </p>
             {% endif %}
           {% endif %}
