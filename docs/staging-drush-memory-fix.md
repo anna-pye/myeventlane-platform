@@ -60,8 +60,38 @@ php -d "memory_limit=${MEL_DRUSH_PHP_MEMORY}" vendor/bin/drush.php php:eval 'ech
 
 (DDEV may still cap `memory_limit` in the container; staging bare-metal CLI uses the `-d` values.)
 
+## `drush deploy` exit 255 after “No pending updates”
+
+Symptom on staging:
+
+```text
+The command ".../vendor/bin/drush updatedb --uri=default" failed.
+Exit Code: 255
+Error Output: [success] No pending updates.
+```
+
+**Cause:** `drush deploy` runs `updatedb` as a subprocess. With default options, `updatedb` calls `drupal_flush_all_caches()` even when there are no hook updates. On hosts with low CLI `memory_limit` (often 128M), that flush can fatal **after** the success line, so SiteProcess reports exit 255. `drush deploy` then runs `cache:rebuild` anyway, so the `updatedb` flush is redundant.
+
+**Repo fixes:**
+
+| Change | Purpose |
+|--------|---------|
+| [`drush/drush.yml`](../drush/drush.yml) | `updatedb` option `cache-clear: false` (deploy still runs `cache:rebuild`) |
+| [`scripts/deploy/mel-deploy.sh`](../scripts/deploy/mel-deploy.sh) | Manual deploy wrapper: `php -d memory_limit=1024M vendor/bin/drush.php deploy` + `SITE_URI` |
+| [`drush/sites/default.site.yml`](../drush/sites/default.site.yml) | Relative `root: ../web` (was a stale absolute path) |
+
+**On staging (after pulling the branch):**
+
+```bash
+cd ~/staging/current
+SITE_URI=https://staging.myeventlane.com.au bash scripts/deploy/mel-deploy.sh
+```
+
+Avoid bare `~/bin/drush512 deploy` without `-l` / `SITE_URI` (Drush defaults to `--uri=default`).
+
 ## Residual risk
 
 - `1024M` may still be insufficient for very large config imports; set `MEL_DRUSH_PHP_MEMORY=-1` if needed.
 - Removing pre-switch `drush cr` means caches are only rebuilt post-switch (intended trade-off for memory).
+- Manual `drush updb` no longer clears caches automatically; run `drush cr` afterward if needed.
 - Does not fix non-memory Drush failures (DB down, bad `cim`, etc.).

@@ -1,0 +1,9 @@
+# Project Drush config (see https://www.drush.org/latest/using-drush-configuration/)
+#
+# updatedb: skip cache flush — `drush deploy` runs cache:rebuild immediately after.
+# Avoids a second, memory-heavy drupal_flush_all_caches() during deploy on hosts
+# with low CLI memory_limit (common on staging; see docs/staging-drush-memory-fix.md).
+command:
+  updatedb:
+    options:
+      cache-clear: false
