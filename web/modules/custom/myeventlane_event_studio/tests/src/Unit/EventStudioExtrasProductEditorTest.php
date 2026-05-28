@@ -182,6 +182,9 @@ final class EventStudioExtrasProductEditorTest extends TestCase {
     $this->assertIsString($twig);
     $this->assertStringContainsString('#preview_meta_line', $builder);
     $this->assertStringContainsString('preview_meta_line', $twig);
+    $this->assertStringContainsString('mel-event-product-editor__layout', $builder);
+    $this->assertStringContainsString('mel-event-product-editor__aside', $builder);
+    $this->assertStringContainsString('buildProductSetupSummarySection', $builder);
   }
 
   public function testStockHelperCopyAppearsOnceInStockPanel(): void {
