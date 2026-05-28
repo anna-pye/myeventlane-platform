@@ -99,6 +99,7 @@ Metadata-driven combinations cover, without inventory or checkout redesign:
 
 ## Observability
 
+`OperationalIntegrityInspector::inspectOrder()` adds **`artifacts.session_entitlement_policy`** (per ticket id: policy snapshot + machine `conflicts` for sequencing / exhaustion). **`artifacts.timed_entry_policy`** remains per-ticket timing diagnostics. **`artifacts.zone_access_topology`** summarizes zone policy, gate counts, progression/re-entry semantics, and structural conflicts. All are read-only.
 `OperationalIntegrityInspector::inspectOrder()` adds **`artifacts.session_entitlement_policy`** (per ticket id: policy snapshot + machine `conflicts` for sequencing / exhaustion). **`artifacts.timed_entry_policy`** remains per-ticket timing diagnostics. **`artifacts.zone_access_topology`** summarizes zone policy, gate counts, progression/re-entry semantics, and structural conflicts. **`artifacts.occupancy_policy`** adds occupancy/directional/balancing read-only diagnostics. All are read-only.
 
 ## Scanner audit metadata

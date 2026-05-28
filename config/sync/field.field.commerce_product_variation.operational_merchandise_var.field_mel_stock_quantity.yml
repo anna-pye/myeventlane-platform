@@ -1,0 +1,23 @@
+uuid: dc0f900f-cae0-4e31-8275-d60fc098e8b5
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.operational_merchandise_var
+    - field.storage.commerce_product_variation.field_mel_stock_quantity
+id: commerce_product_variation.operational_merchandise_var.field_mel_stock_quantity
+field_name: field_mel_stock_quantity
+entity_type: commerce_product_variation
+bundle: operational_merchandise_var
+label: 'Stock quantity'
+description: 'Maximum quantity available for this option.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

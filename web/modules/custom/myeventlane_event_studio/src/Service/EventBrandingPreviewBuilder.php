@@ -12,6 +12,7 @@ use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\EventMediaPresenter;
 use Drupal\node\NodeInterface;
 
@@ -45,6 +46,7 @@ final class EventBrandingPreviewBuilder {
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly AccountProxyInterface $currentUser,
     TranslationInterface $string_translation,
+    private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -141,6 +143,14 @@ final class EventBrandingPreviewBuilder {
     }
     catch (\Throwable) {
       return NULL;
+    }
+
+    if ($this->domainDetector !== NULL) {
+      $path = $url->toString();
+      $publicPath = $this->domainDetector->publicUrl($path);
+      if ($publicPath !== $path) {
+        $url = Url::fromUri($publicPath);
+      }
     }
 
     return [

@@ -891,6 +891,8 @@ function myeventlane_event_entity_view_alter(array &$build, EntityInterface $ent
 
 /**
  * Implements hook_preprocess_node().
+ *
+ * Event bundle: CTA/state, media, recommendations, and public placeholder hygiene.
  */
 function myeventlane_event_preprocess_node(array &$variables): void {
   if (empty($variables['node']) || !$variables['node'] instanceof NodeInterface) {
@@ -1130,7 +1132,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           if (!$related instanceof NodeInterface) {
             continue;
           }
-          $builds[] = $view_builder->view($related, 'event_card');
+          $builds[] = $view_builder->view($related, 'compact_commerce');
           $append_tags = Cache::mergeTags($append_tags, $related->getCacheTags());
         }
         $variables['mel_related_events'] = $builds;
@@ -1226,6 +1228,78 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     $view_mode,
     $bookingAvailability
   );
+
+  // Hide obvious placeholder strings on public event teasers and summaries.
+  $public_visibility_modes = [
+    'full',
+    'teaser',
+    'teaser_featured',
+    'teaser_tonight',
+    'compact_commerce',
+    'list_card',
+    'editorial_magazine',
+  ];
+  if (in_array($view_mode, $public_visibility_modes, TRUE) && \Drupal::hasService('myeventlane_event.public_visibility')) {
+    /** @var \Drupal\myeventlane_event\Service\PublicEventVisibility $visibility */
+    $visibility = \Drupal::service('myeventlane_event.public_visibility');
+    $fallback = $visibility->publicDisplayFallbackMessage();
+
+    foreach (['field_event_intro', 'field_event_summary'] as $field_name) {
+      if (empty($variables['content'][$field_name])) {
+        continue;
+      }
+
+      $raw = $node->hasField($field_name) && !$node->get($field_name)->isEmpty()
+        ? (string) $node->get($field_name)->value
+        : NULL;
+      if ($visibility->sanitizePublicDisplayText($raw) !== NULL) {
+        continue;
+      }
+
+      $variables['content'][$field_name] = [
+        '#markup' => $fallback,
+        '#cache' => [
+          'contexts' => ['languages:language_interface'],
+          'tags' => $node->getCacheTags(),
+        ],
+      ];
+    }
+
+    if (!empty($variables['content']['body']) && $node->hasField('body') && !$node->get('body')->isEmpty()) {
+      $body_raw = (string) $node->get('body')->value;
+      if ($visibility->sanitizePublicDisplayText($body_raw) === NULL) {
+        $variables['content']['body'] = [
+          '#markup' => '<p>' . $fallback . '</p>',
+          '#cache' => [
+            'contexts' => ['languages:language_interface'],
+            'tags' => $node->getCacheTags(),
+          ],
+        ];
+      }
+    }
+
+    if ($node->hasField('field_event_highlights') && !$node->get('field_event_highlights')->isEmpty()) {
+      $public_highlights = [];
+      foreach ($node->get('field_event_highlights') as $ref) {
+        $paragraph = $ref->entity;
+        if (!$paragraph || !$paragraph->hasField('field_highlight_text') || $paragraph->get('field_highlight_text')->isEmpty()) {
+          continue;
+        }
+        $highlight_text = (string) $paragraph->get('field_highlight_text')->value;
+        if ($visibility->sanitizePublicDisplayText($highlight_text) === NULL) {
+          continue;
+        }
+        $icon_key = ($paragraph->hasField('field_highlight_icon') && !$paragraph->get('field_highlight_icon')->isEmpty())
+          ? (string) $paragraph->get('field_highlight_icon')->value
+          : '';
+        $public_highlights[] = [
+          'text' => strip_tags($highlight_text),
+          'icon' => $icon_key,
+        ];
+      }
+      $variables['mel_public_highlights'] = $public_highlights;
+    }
+  }
 }
 
 /**
@@ -1424,7 +1498,13 @@ function myeventlane_event_finalize_event_ui(
  * @return list<string>
  */
 function myeventlane_event_get_event_card_view_modes(): array {
+  if (\Drupal::hasService('myeventlane_event.event_card_view_model')) {
+    return \Drupal::service('myeventlane_event.event_card_view_model')->getCardViewModes();
+  }
   return [
+    'editorial_magazine',
+    'compact_commerce',
+    'list_card',
     'card',
     'event_card',
     'teaser',
@@ -1565,6 +1645,23 @@ function myeventlane_event_page_attachments(array &$attachments): void {
       ];
     }
   }
+
+  if (\Drupal::hasService('myeventlane_event.structured_data_builder')) {
+    $schema = \Drupal::service('myeventlane_event.structured_data_builder')->build($node);
+    if ($schema !== NULL) {
+      $encoded = json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+      if (is_string($encoded)) {
+        $attachments['#attached']['html_head'][] = [
+          [
+            '#tag' => 'script',
+            '#attributes' => ['type' => 'application/ld+json'],
+            '#value' => $encoded,
+          ],
+          'myeventlane_event_schema_' . $node->id(),
+        ];
+      }
+    }
+  }
 }
 
 /**
@@ -1586,4 +1683,81 @@ function myeventlane_event_preprocess_views_view(array &$variables): void {
     $context = $node;
   }
   $variables['default_chip'] = $service->getDefaultChip($context);
+}
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * Applies canonical public discovery hygiene to whitelisted View displays.
+ */
+function myeventlane_event_views_query_alter(\Drupal\views\ViewExecutable $view, \Drupal\views\Plugin\views\query\QueryPluginBase $query): void {
+  if (!\Drupal::hasService('myeventlane_event.public_discovery_query_alter')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_event\Service\PublicEventDiscoveryQueryAlter $alter */
+  $alter = \Drupal::service('myeventlane_event.public_discovery_query_alter');
+  $alter->alter($view, $query);
+}
+
+/**
+ * Implements hook_node_access().
+ *
+ * Enforces visibility-based access for private events. Passcode events
+ * return neutral here so that EventPasscodeGateSubscriber can redirect
+ * to the passcode form (the subscriber runs at KernelEvents::REQUEST
+ * priority 30, which is after Drupal's router at priority 32 — a 403
+ * from this hook would prevent the redirect from ever firing).
+ *
+ * Public and unlisted events pass through without session-dependent checks.
+ * CLI/cron contexts return neutral to avoid session errors during indexing.
+ */
+function myeventlane_event_node_access(NodeInterface $node, string $op, AccountInterface $account): AccessResult {
+  if ($node->bundle() !== 'event' || $op !== 'view') {
+    return AccessResult::neutral();
+  }
+
+  if (!\Drupal::hasService('myeventlane_event.public_visibility')) {
+    return AccessResult::neutral();
+  }
+
+  /** @var \Drupal\myeventlane_event\Service\PublicEventVisibility $visibility */
+  $visibility = \Drupal::service('myeventlane_event.public_visibility');
+
+  $eventVisibility = $visibility->getVisibility($node);
+
+  if ($eventVisibility === \Drupal\myeventlane_event\Service\PublicEventVisibility::VISIBILITY_PUBLIC
+    || $eventVisibility === \Drupal\myeventlane_event\Service\PublicEventVisibility::VISIBILITY_UNLISTED) {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node);
+  }
+
+  // Passcode events: allow node access so the gate subscriber can redirect.
+  // Actual gate enforcement is in EventPasscodeGateSubscriber; booking route
+  // enforcement is in EventBookAccessCheck.
+  if ($eventVisibility === \Drupal\myeventlane_event\Service\PublicEventVisibility::VISIBILITY_PASSCODE) {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node)
+      ->addCacheContexts(['session']);
+  }
+
+  if (PHP_SAPI === 'cli') {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node);
+  }
+
+  // Private events: hard block for non-privileged users.
+  $request = \Drupal::request();
+
+  if ($visibility->isDirectlyViewable($node, $account, $request)) {
+    return AccessResult::neutral()
+      ->addCacheableDependency($node)
+      ->cachePerUser()
+      ->addCacheContexts(['session']);
+  }
+
+  return AccessResult::forbidden('Event visibility restricts access.')
+    ->addCacheableDependency($node)
+    ->cachePerUser()
+    ->addCacheContexts(['session']);
 }

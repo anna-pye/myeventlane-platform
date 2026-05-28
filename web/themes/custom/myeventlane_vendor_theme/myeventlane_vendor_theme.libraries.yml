@@ -70,6 +70,11 @@ event_overview:
     - myeventlane_vendor_theme/global-styling
     - myeventlane_vendor_theme/chartjs
 
+# Manage event dashboard (/vendor/events/{event}) — uses global bundle SCSS.
+event_mission_control:
+  dependencies:
+    - myeventlane_vendor_theme/global-styling
+
 # Vendor workspace UI shell (Event Studio grid + studio chrome).
 # Built by Vite from src/scss/workspace.scss — same pipeline as global (main.css).
 vendor-workspace:

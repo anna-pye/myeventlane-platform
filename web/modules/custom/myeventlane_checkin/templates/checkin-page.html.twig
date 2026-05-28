@@ -23,7 +23,7 @@
   </div>
 
   <div class="checkin-actions">
-    <a href="{{ path('myeventlane_checkin.scan', {'node': event.id}) }}" class="button button--primary">{{ 'Scan QR Code'|t }}</a>
+    <a href="{{ path('myeventlane_event_attendees.vendor_operations_door', {'node': event.id}) }}" class="button button--primary">{{ 'Scan QR Code'|t }}</a>
     <a href="{{ path('myeventlane_checkin.list', {'node': event.id}) }}" class="button">{{ 'View List'|t }}</a>
   </div>
 

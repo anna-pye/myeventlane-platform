@@ -30,7 +30,6 @@ label: 'Authenticated user'
 weight: -9
 is_admin: false
 permissions:
-  - 'access check-in'
   - 'access checkout'
   - 'access comments'
   - 'access commerce_order overview'
@@ -52,10 +51,8 @@ permissions:
   - 'manage own commerce_payment_method'
   - 'post comments'
   - request_refunds
-  - 'scan qr codes'
   - 'search content'
   - 'skip comment approval'
-  - 'toggle check-in status'
   - 'unflag event_save'
   - 'unflag follow_category'
   - 'update own customer profile'

@@ -1,0 +1,157 @@
+---
+description: MEL Drupal 11 + Commerce 3 project rules for Cursor
+globs:
+  - "**/*.php"
+  - "**/*.module"
+  - "**/*.install"
+  - "**/*.theme"
+  - "**/*.twig"
+  - "**/*.yml"
+  - "**/*.yaml"
+  - "**/*.scss"
+  - "**/*.js"
+  - "**/*.ts"
+  - "composer.json"
+  - "package.json"
+alwaysApply: true
+---
+
+# MyEventLane / MEL Cursor Rules
+
+You are working inside the MyEventLane v2 repository, known as MEL.
+
+MEL is a Drupal 11 event marketplace and ticketing platform using Drupal Commerce 3, custom Drupal modules, custom Twig/SCSS/Vite themes, Commerce checkout flows, vendor dashboards, event discovery, booking UX, media workflows, and Humanitix-level product expectations.
+
+## Core priorities
+
+Follow these priorities in order:
+
+1. Stability
+2. Accuracy
+3. Security
+4. Drupal 11 best practice
+5. Drupal Commerce 3 best practice
+6. Long-term maintainability
+7. Humanitix-level feature parity
+8. MEL continuity
+9. Clean UX
+10. Production readiness
+
+## Source of truth
+
+- Treat this repository as the source of truth.
+- Prefer existing MEL conventions over new patterns.
+- Reference exact file paths in explanations.
+- Do not assume a file, service, route, field, config key, plugin, or library exists unless it is visible in the repository.
+- If something cannot be confirmed from the repository, say: `I cannot confirm this from the repository.`
+- Do not invent Drupal APIs, Commerce services, plugin IDs, field names, routes, config schema, permissions, hooks, libraries, or theme regions.
+
+## Drupal 11 rules
+
+- Use dependency injection where appropriate.
+- Avoid deprecated APIs.
+- Do not use unsafe direct database writes unless there is a clear reason and review.
+- Respect Drupal render arrays, cacheability metadata, access checks, translation, and typed config.
+- Do not bypass entity access.
+- Do not assume unpublished, draft, vendor-owned, or private content is safe to expose.
+- Keep custom modules small, cohesive, and maintainable.
+- Add or update config schema when module config is introduced or changed.
+- Avoid placing business logic in Twig templates.
+- Avoid placing complex business logic in preprocess functions when a service or plugin is more appropriate.
+- Use Drupal coding standards for PHP, YAML, Twig, and JS.
+
+## Drupal Commerce 3 rules
+
+- Assume Drupal Commerce 3 unless repository evidence says otherwise.
+- Keep event content modelling separate from Commerce product modelling.
+- Be explicit about product types, variations, order items, stores, carts, checkout panes, payment gateways, taxes, adjustments, promotions, capacity, stock, and order states.
+- Never change checkout, payments, order ownership, refunds, ticket capacity, stock, or availability logic without calling out risk.
+- Do not assume payment has succeeded until the relevant order/payment state confirms it.
+- Do not expose order, customer, ticket, vendor, or payment information without access review.
+- Do not invent Commerce services or plugin IDs.
+- Check existing Commerce config before recommending product variation, order item, checkout pane, or payment changes.
+
+## MEL UX and theme rules
+
+- Follow MEL’s pastel brand direction and existing design conventions.
+- Use mobile-first responsive layouts.
+- Keep components reusable.
+- Maintain accessible contrast and keyboard usability.
+- Preserve locked hero variants unless the user explicitly asks to change them.
+- Do not introduce layout shifts or inaccessible hidden content.
+- Twig should remain presentation-focused.
+- SCSS should be modular and avoid unnecessary global leakage.
+- Vite/theme changes must be validated with the project build process.
+
+## Security rules
+
+Never propose or make changes that:
+
+- Expose private user, vendor, customer, order, payment, or ticket data.
+- Bypass Drupal access control.
+- Disable CSRF protection.
+- Trust request input without validation.
+- Store secrets in the repository.
+- Add production credentials, API keys, tokens, database dumps, or `.env` secrets.
+- Allow an AI agent to commit directly to `main`.
+- Allow destructive Drush commands without explicit human approval.
+
+Call out risks for:
+
+- Route access changes
+- Custom forms
+- Checkout panes
+- Payment gateway settings
+- Entity queries
+- Vendor dashboard access
+- File/media access
+- Webhooks
+- Cron jobs
+- Batch jobs
+- Queue workers
+- Cache contexts/tags/max-age
+
+## Config and deployment rules
+
+MEL may drift between local, active config, sync config, staging, and production.
+
+When changing config, mention the required validation flow:
+
+```bash
+ddev drush config:status
+ddev drush cim --preview
+ddev drush cex
+ddev drush cr
+```
+
+Before commit, recommend:
+
+```bash
+ddev drush cr
+ddev drush config:status
+ddev composer validate
+npm run lint
+npm run build
+git diff
+```
+
+Only recommend config import/export when it matches the user's actual workflow.
+
+## Git rules
+
+- Work on a feature branch.
+- Keep changes small and reviewable.
+- Do not mix unrelated backend, frontend, config, and content-model changes in one commit unless unavoidable.
+- Explain what needs committing.
+- Warn when generated config, compiled assets, or lock files may also need review.
+- Never suggest force-pushing shared branches unless the user explicitly confirms.
+
+## Response style
+
+- Be direct and technical.
+- Use exact file paths where possible.
+- Provide full file rewrites when asked.
+- Explain only what matters.
+- Give validation commands after code/config/theme changes.
+- State assumptions clearly.
+- Ask one clarifying question only when the missing information blocks safe work.

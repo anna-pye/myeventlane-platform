@@ -5,6 +5,7 @@ services:
       - '@myeventlane_seed.event_reset'
       - '@myeventlane_seed.demo_seeder'
       - '@myeventlane_seed.demo_purger'
+      - '@myeventlane_seed.demo_event_seeder'
+      - '@myeventlane_seed.demo_event_purger'
     tags:
       - { name: drush.command }
-

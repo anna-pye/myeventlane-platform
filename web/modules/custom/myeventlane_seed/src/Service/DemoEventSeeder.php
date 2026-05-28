@@ -9,7 +9,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
-use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_seed\Util\ImageFactory;
@@ -465,28 +464,8 @@ final class DemoEventSeeder {
       $this->populateLocation($event, $owner, $location, $start, $end, $type);
     }
 
-    if (empty($settings['dry_run'])) {
-      $this->publishSeededEvent($event, $owner);
-    }
-
-    return $event;
-  }
-
-  /**
-   * Publishes a seeded event so it appears on public and vendor listings.
-   *
-   * Content moderation defaults new events to draft; demo seed must be live.
-   */
-  private function publishSeededEvent(NodeInterface $event, User $owner): void {
-    $event->setPublished(TRUE);
-    if ($event->hasField('moderation_state')) {
-      $event->set('moderation_state', 'published');
-    }
-    if ($event->getEntityType()->isRevisionable()) {
-      $event->setRevisionUserId((int) $owner->id());
-    }
-    EventNodeRevisionSave::prepare($event, 'Demo seed: published test event.');
     $event->save();
+    return $event;
   }
 
   /**

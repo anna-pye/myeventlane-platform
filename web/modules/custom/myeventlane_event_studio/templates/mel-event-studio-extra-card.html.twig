@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Single event extra card (vendor list).
+ * Commerce-style product card for Event Studio extras list.
  */
 #}
 <div class="mel-event-extra-card__inner">
@@ -9,16 +9,46 @@
     {% if card.primary_image.url|default('') %}
       <img src="{{ card.primary_image.url }}" alt="{{ card.primary_image.alt|default(card.title) }}" class="mel-event-extra-card__image" loading="lazy" />
     {% else %}
-      <div class="mel-event-extra-card__placeholder" aria-hidden="true"></div>
+      <div class="mel-event-extra-card__placeholder" aria-hidden="true">
+        <span class="mel-event-extra-card__placeholder-label">{{ 'No image'|t }}</span>
+      </div>
+    {% endif %}
+    {% if card.image_count|default(0) > 1 %}
+      <span class="mel-event-extra-card__image-count">+{{ card.image_count - 1 }}</span>
     {% endif %}
   </div>
   <div class="mel-event-extra-card__body">
+    <div class="mel-event-extra-card__meta">
+      <span class="mel-event-extra-card__type mel-event-extra-card__type--{{ card.classification|default('addon') }}">
+        {{ card.classification_label|default('Add-on'|t) }}
+      </span>
+      <span class="mel-event-extra-card__status-pill mel-event-extra-card__status-pill--{{ card.product_status|default('hidden') }}">
+        {{ card.product_status_label|default(card.status_label) }}
+      </span>
+      {% if card.variant_count_label|default('') %}
+        <span class="mel-event-extra-card__variants">{{ card.variant_count_label }}</span>
+      {% endif %}
+    </div>
     <h3 class="mel-event-extra-card__title">{{ card.title }}</h3>
     {% if card.short_description %}
       <p class="mel-event-extra-card__desc">{{ card.short_description }}</p>
     {% endif %}
     {% if card.price_label %}
       <p class="mel-event-extra-card__price">{{ card.price_label }}</p>
+    {% endif %}
+    {% if card.stock_label|default('') %}
+      <p class="mel-event-extra-card__stock mel-event-extra-card__stock--{{ card.stock_state|default('unknown') }}">
+        {{ card.stock_label }}
+      </p>
+    {% endif %}
+    {% if card.limit_per_order_label|default('') %}
+      <p class="mel-event-extra-card__stock-limit">{{ card.limit_per_order_label }}</p>
+    {% endif %}
+    {% if card.capacity_note|default('') %}
+      <p class="mel-event-extra-card__quantity-note">
+        <span class="mel-event-extra-card__quantity-label">{{ 'Quantity note'|t }}:</span>
+        {{ card.capacity_note }}
+      </p>
     {% endif %}
     {% if card.sizes_summary is not empty %}
       <p class="mel-event-extra-card__sizes">
@@ -30,8 +60,8 @@
     {% if card.pickup_note %}
       <p class="mel-event-extra-card__pickup mel-text--muted">{{ card.pickup_note }}</p>
     {% endif %}
-    <p class="mel-event-extra-card__status">
-      {{ card.show_on_booking ? 'Shown on booking page'|t : 'Hidden from booking page'|t }}
+    <p class="mel-event-extra-card__booking">
+      {{ card.booking_visibility_label|default(card.status_label) }}
     </p>
   </div>
 </div>

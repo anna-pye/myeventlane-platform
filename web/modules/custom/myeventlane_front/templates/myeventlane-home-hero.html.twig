@@ -8,6 +8,9 @@
  * - hero_image_url_mobile: Optional URL for mobile viewports.
  * - hero_hide_on_mobile: Boolean; when TRUE, hide hero on mobile.
  * - hero_alt: Alt text for hero image.
+ * - pills: Category pills render array (myeventlane_category_pills block).
+ * - search_events_url: Events browse URL for keyword-only search.
+ * - search_site_url: Site search URL when a location is entered.
  */
 #}
 
@@ -20,15 +23,36 @@
         {{ 'Find workshops, gigs, markets, festivals, and community moments worth leaving the house for.'|t }}
       </p>
 
-      <form class="mel-home-hero__search" role="search" action="{{ path('view.upcoming_events.page_events') }}" method="get">
-        <label class="visually-hidden" for="mel-home-search">{{ 'Search events'|t }}</label>
-        <input
-          id="mel-home-search"
-          name="q"
-          type="search"
-          placeholder="{{ 'Search events, organisers, or places'|t }}"
-        />
-        <button type="submit">{{ 'Search'|t }}</button>
+      <form
+        class="mel-home-hero__search"
+        role="search"
+        action="{{ search_events_url|default(path('view.upcoming_events.page_events')) }}"
+        method="get"
+        data-events-url="{{ search_events_url|default(path('view.upcoming_events.page_events')) }}"
+        data-search-url="{{ search_site_url|default(path('mel_search.view')) }}"
+      >
+        <div class="mel-home-hero__search-fields">
+          <label class="visually-hidden" for="mel-home-search">{{ 'Search events'|t }}</label>
+          <input
+            id="mel-home-search"
+            class="mel-home-hero__search-input mel-home-hero__search-input--query"
+            name="search"
+            type="search"
+            placeholder="{{ 'Search events, organisers, or places'|t }}"
+            autocomplete="off"
+          />
+          <span class="mel-home-hero__search-divider" aria-hidden="true"></span>
+          <label class="visually-hidden" for="mel-home-search-location">{{ 'Location'|t }}</label>
+          <input
+            id="mel-home-search-location"
+            class="mel-home-hero__search-input mel-home-hero__search-input--location"
+            name="location"
+            type="text"
+            placeholder="{{ 'Suburb or city'|t }}"
+            autocomplete="address-level2"
+          />
+        </div>
+        <button type="submit" class="mel-home-hero__search-submit">{{ 'Search'|t }}</button>
       </form>
 
       <div class="mel-home-hero__actions" role="group" aria-label="{{ 'Homepage actions'|t }}">
@@ -48,7 +72,7 @@
     </div>
 
     <div class="mel-home-hero__art{% if hero_hide_on_mobile|default(false) %} mel-home-hero__art--hide-mobile{% endif %}">
-      <div class="mel-home-hero__art-frame">
+      <div class="mel-home-hero__art-frame{% if featured_events %} mel-home-hero__art-frame--rotator{% endif %}">
         {% if featured_events %}
           <div class="mel-home-hero__feature-rotator" data-mel-home-hero-rotator aria-label="{{ 'Featured event highlights'|t }}">
             {{ featured_events }}

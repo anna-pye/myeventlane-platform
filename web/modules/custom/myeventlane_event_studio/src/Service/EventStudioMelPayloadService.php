@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Component\Utility\Tags;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
@@ -23,6 +24,151 @@ final class EventStudioMelPayloadService {
   ) {}
 
   /**
+   * Normalizes hero fid + alt from `mel` or baseline fragments.
+   *
+   * Supports legacy `managed_file` values (`mel[field_event_image]` fid list),
+   * optional `mel[field_event_image_alt]`, and image / image_widget_crop widgets
+   * (`mel[field_event_image][0][fids]`, `…[0][alt]`).
+   *
+   * @param array<string, mixed> $fragment
+   *   Partial or full mel array containing `field_event_image` / `field_event_image_alt`.
+   *
+   * @return array{fid: int, alt: string}
+   */
+  public static function normalizeHeroFromMelFragment(array $fragment): array {
+    $alt = trim((string) ($fragment['field_event_image_alt'] ?? ''));
+    $raw = $fragment['field_event_image'] ?? NULL;
+    if (!is_array($raw)) {
+      return ['fid' => 0, 'alt' => $alt];
+    }
+
+    $delta = self::imageWidgetDeltaFromRaw($raw);
+    $fid = self::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL);
+    if ($fid < 1 && isset($delta['target_id'])) {
+      $fid = max(0, (int) $delta['target_id']);
+    }
+    $delta_alt = trim((string) ($delta['alt'] ?? ''));
+    if ($delta_alt !== '') {
+      $alt = $delta_alt;
+    }
+    if ($fid > 0) {
+      return ['fid' => $fid, 'alt' => $alt];
+    }
+
+    if (array_key_exists('fids', $raw)) {
+      return ['fid' => self::firstPositiveIntFromFidsValue($raw['fids']), 'alt' => $alt];
+    }
+
+    $fid = 0;
+    foreach ($raw as $value) {
+      if (is_array($value)) {
+        continue;
+      }
+      if (is_numeric($value)) {
+        $candidate = (int) $value;
+        if ($candidate > 0) {
+          $fid = $candidate;
+          break;
+        }
+      }
+    }
+
+    return ['fid' => $fid, 'alt' => $alt];
+  }
+
+  /**
+   * Unwraps an image field widget value to its first delta array.
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public static function imageWidgetDeltaFromRaw(array $raw): array {
+    if (isset($raw['widget']) && is_array($raw['widget'])) {
+      $raw = $raw['widget'];
+    }
+    if (isset($raw[0]) && is_array($raw[0])) {
+      return $raw[0];
+    }
+
+    return $raw;
+  }
+
+  /**
+   * Builds a `field_event_image` item from a mel fragment (branding widget save).
+   *
+   * @param array<string, mixed> $fragment
+   *
+   * @return array<string, mixed>|null
+   *   NULL when no file is selected.
+   */
+  public static function buildHeroFieldItemFromMelFragment(array $fragment): ?array {
+    $hero = self::normalizeHeroFromMelFragment($fragment);
+    if ($hero['fid'] < 1) {
+      return NULL;
+    }
+
+    $raw = $fragment['field_event_image'] ?? [];
+    if (!is_array($raw)) {
+      $raw = [];
+    }
+    $delta = self::imageWidgetDeltaFromRaw($raw);
+
+    $item = [
+      'target_id' => $hero['fid'],
+      'alt' => $hero['alt'],
+      'title' => trim((string) ($delta['title'] ?? '')),
+    ];
+
+    if (isset($delta['focal_point']) && trim((string) $delta['focal_point']) !== '') {
+      $item['focal_point'] = trim((string) $delta['focal_point']);
+    }
+
+    foreach (['width', 'height'] as $key) {
+      if (isset($delta[$key]) && $delta[$key] !== '' && $delta[$key] !== NULL) {
+        $item[$key] = $delta[$key];
+      }
+    }
+
+    return $item;
+  }
+
+  /**
+   * @return int
+   *   First positive file id from a managed_file / image widget fids value.
+   */
+  private static function firstPositiveIntFromFidsValue(mixed $fids): int {
+    if ($fids === NULL || $fids === '') {
+      return 0;
+    }
+    if (is_array($fids)) {
+      foreach ($fids as $value) {
+        $candidate = (int) $value;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+      return 0;
+    }
+    if (is_string($fids)) {
+      $parts = preg_split('/\s+/', trim($fids));
+      if (!is_array($parts)) {
+        return 0;
+      }
+      foreach ($parts as $part) {
+        if ($part === '') {
+          continue;
+        }
+        $candidate = (int) $part;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
    * @return array<string, mixed>
    */
   public function buildFromFormState(FormStateInterface $form_state, EntityTypeManagerInterface $entityTypeManager): array {
@@ -35,7 +181,10 @@ final class EventStudioMelPayloadService {
     $venue_id = NULL;
     if ($choice === 'saved' && !empty($mel['venue_saved'])) {
       $raw = $mel['venue_saved'];
-      if (is_array($raw) && isset($raw[0]['target_id'])) {
+      if ($raw instanceof EntityInterface) {
+        $venue_id = (int) $raw->id();
+      }
+      elseif (is_array($raw) && isset($raw[0]['target_id'])) {
         $venue_id = (int) $raw[0]['target_id'];
       }
       elseif (is_numeric($raw)) {
@@ -120,6 +269,8 @@ final class EventStudioMelPayloadService {
       'event_highlights' => $this->decodeAndNormalizeEventHighlightsFromMel($mel),
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
       'attendee_questions' => $attendee_questions,
+      'field_event_visibility' => trim((string) ($mel['field_event_visibility'] ?? '')),
+      'event_passcode' => trim((string) ($mel['event_passcode'] ?? '')),
     ];
 
     $eventNode = NULL;
@@ -378,6 +529,10 @@ final class EventStudioMelPayloadService {
     if ($raw === NULL || $raw === '') {
       return NULL;
     }
+    if ($raw instanceof EntityInterface) {
+      $id = (int) $raw->id();
+      return $id > 0 ? $id : NULL;
+    }
     if (is_numeric($raw)) {
       $id = (int) $raw;
       return $id > 0 ? $id : NULL;
@@ -500,6 +655,10 @@ final class EventStudioMelPayloadService {
         'required' => !empty($row['required']),
         'save_to_library' => !empty($row['save_to_library']),
       ];
+      $paragraph_id = isset($row['id']) ? (int) $row['id'] : 0;
+      if ($paragraph_id > 0) {
+        $item['id'] = $paragraph_id;
+      }
       $status = trim((string) ($row['status'] ?? ''));
       if ($status !== '') {
         $item['status'] = $status;

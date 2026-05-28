@@ -8,21 +8,29 @@ use Drupal\commerce_order\Adjustment;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\OrderProcessorInterface;
 use Drupal\commerce_price\Price;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_price\RounderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\myeventlane_core\PlatformFeeDefaults;
+use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifierInterface;
+use Drupal\myeventlane_core\Service\PlatformFeeSettings;
 
 /**
- * Applies a configurable platform fee (% of ticket subtotal) to orders.
+ * Applies configurable platform fees to ticket and operational extras subtotals.
  *
- * Fee is calculated on ticket items only. Excludes: donations,
- * Boost items, Pro subscription items, and recurring order types.
+ * Ticket lines use {@see PlatformFeeSettings::getTicketFeePercent()}. Operational
+ * extras use {@see PlatformFeeSettings::getOperationalExtrasFeePercent()}
+ * (defaults to double the ticket rate). Excludes donations, Boost, and Pro.
+ *
  * Configured at: Admin > Config > MyEventLane > General settings.
  */
 final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
 
   use StringTranslationTrait;
+
+  private const SOURCE_TICKET_FEE = 'myeventlane_platform_fee';
+
+  private const SOURCE_EXTRAS_FEE = 'myeventlane_operational_extras_platform_fee';
 
   private const EXCLUDED_ORDER_TYPES = [
     'recurring',
@@ -45,17 +53,11 @@ final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
     'boost_duration',
   ];
 
-  /**
-   * Constructs the processor.
-   *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
-   *   The config factory.
-   * @param \Drupal\commerce_price\RounderInterface $rounder
-   *   The price rounder.
-   */
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
     private readonly RounderInterface $rounder,
+    private readonly TicketBackedOrderItemClassifierInterface $ticketBackedClassifier,
+    private readonly PlatformFeeSettings $platformFeeSettings,
   ) {}
 
   /**
@@ -71,51 +73,89 @@ final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
       return;
     }
 
-    $percent = PlatformFeeDefaults::normalizePercent($settings->get('platform_fee_percent'));
+    $this->removePlatformFeeAdjustments($order);
 
-    if ($percent <= 0) {
-      return;
+    $ticket_percent = $this->platformFeeSettings->getTicketFeePercent();
+    $extras_percent = $this->platformFeeSettings->getOperationalExtrasFeePercent();
+
+    if ($ticket_percent > 0) {
+      $ticket_subtotal = $this->computeTicketBackedSubtotal($order);
+      if ($ticket_subtotal && (float) $ticket_subtotal->getNumber() > 0) {
+        $this->addFeeAdjustment(
+          $order,
+          $ticket_subtotal,
+          $ticket_percent,
+          self::SOURCE_TICKET_FEE,
+          (string) $this->t('Platform fee (@pct%)', ['@pct' => $this->formatPercentLabel($ticket_percent)])
+        );
+      }
     }
 
-    $subtotal = $this->computeTicketSubtotal($order);
-    if (!$subtotal || (float) $subtotal->getNumber() <= 0) {
-      return;
+    if ($extras_percent > 0) {
+      $extras_subtotal = $this->computeOperationalExtrasSubtotal($order);
+      if ($extras_subtotal && (float) $extras_subtotal->getNumber() > 0) {
+        $this->addFeeAdjustment(
+          $order,
+          $extras_subtotal,
+          $extras_percent,
+          self::SOURCE_EXTRAS_FEE,
+          (string) $this->t('Extras platform fee (@pct%)', ['@pct' => $this->formatPercentLabel($extras_percent)])
+        );
+      }
     }
+  }
 
-    $feePrice = $subtotal->multiply((string) ($percent / 100));
-    $rounded = $this->rounder->round($feePrice);
+  private function removePlatformFeeAdjustments(OrderInterface $order): void {
+    foreach ($order->getAdjustments() as $adjustment) {
+      $source = $adjustment->getSourceId();
+      if ($source === self::SOURCE_TICKET_FEE || $source === self::SOURCE_EXTRAS_FEE) {
+        $order->removeAdjustment($adjustment);
+      }
+    }
+  }
+
+  private function addFeeAdjustment(
+    OrderInterface $order,
+    Price $subtotal,
+    float $percent,
+    string $source_id,
+    string $label,
+  ): void {
+    $fee_price = $subtotal->multiply((string) ($percent / 100));
+    $rounded = $this->rounder->round($fee_price);
     if ((float) $rounded->getNumber() <= 0) {
       return;
     }
 
-    $pctLabel = $percent === (float) (int) $percent
-      ? (string) (int) $percent
-      : number_format($percent, 1);
-
     $order->addAdjustment(new Adjustment([
       'type' => 'fee',
-      'label' => (string) $this->t('Platform fee (@pct%)', ['@pct' => $pctLabel]),
+      'label' => $label,
       'amount' => $rounded,
-      'source_id' => 'myeventlane_platform_fee',
+      'source_id' => $source_id,
     ]));
   }
 
+  private function formatPercentLabel(float $percent): string {
+    return $percent === (float) (int) $percent
+      ? (string) (int) $percent
+      : number_format($percent, 1);
+  }
+
   /**
-   * Computes the subtotal of ticket items (excludes donations and Boost).
+   * Subtotal of ticket-backed order items only.
    */
-  private function computeTicketSubtotal(OrderInterface $order): ?Price {
+  private function computeTicketBackedSubtotal(OrderInterface $order): ?Price {
     $total = NULL;
 
     foreach ($order->getItems() as $item) {
-      if (in_array($item->bundle(), self::EXCLUDED_BUNDLES, TRUE)) {
+      $purchased = $item->getPurchasedEntity();
+      $variation_bundle = $purchased instanceof ProductVariationInterface ? $purchased->bundle() : NULL;
+      if (!$this->isEligibleLineItem($item->bundle(), $variation_bundle)) {
         continue;
       }
-
-      $purchasedEntity = $item->getPurchasedEntity();
-      if ($purchasedEntity && in_array($purchasedEntity->bundle(), self::EXCLUDED_VARIATION_TYPES, TRUE)) {
+      if (!$this->ticketBackedClassifier->isTicketBackedOrderItem($item)) {
         continue;
       }
-
       $price = $item->getTotalPrice();
       if (!$price) {
         continue;
@@ -124,6 +164,44 @@ final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
     }
 
     return $total;
+  }
+
+  /**
+   * Subtotal of operational extras order items (not ticket-backed).
+   */
+  private function computeOperationalExtrasSubtotal(OrderInterface $order): ?Price {
+    $total = NULL;
+
+    foreach ($order->getItems() as $item) {
+      $purchased = $item->getPurchasedEntity();
+      $variation_bundle = $purchased instanceof ProductVariationInterface ? $purchased->bundle() : NULL;
+      if (!$this->isEligibleLineItem($item->bundle(), $variation_bundle)) {
+        continue;
+      }
+      if (!$this->ticketBackedClassifier->isOperationalOrderItem($item)) {
+        continue;
+      }
+      $price = $item->getTotalPrice();
+      if (!$price) {
+        continue;
+      }
+      $total = $total ? $total->add($price) : $price;
+    }
+
+    return $total;
+  }
+
+  /**
+   * @param string|null $variation_bundle
+   */
+  private function isEligibleLineItem(string $order_item_bundle, ?string $variation_bundle): bool {
+    if (in_array($order_item_bundle, self::EXCLUDED_BUNDLES, TRUE)) {
+      return FALSE;
+    }
+    if ($variation_bundle !== NULL && in_array($variation_bundle, self::EXCLUDED_VARIATION_TYPES, TRUE)) {
+      return FALSE;
+    }
+    return TRUE;
   }
 
 }

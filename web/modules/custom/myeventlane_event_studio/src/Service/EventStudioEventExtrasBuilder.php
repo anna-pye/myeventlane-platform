@@ -13,6 +13,8 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
+use Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver;
+use Drupal\myeventlane_core\Commerce\OperationalProductBundles;
 use Drupal\node\NodeInterface;
 
 /**
@@ -27,6 +29,8 @@ final class EventStudioEventExtrasBuilder {
     private readonly OperationalMerchandiseManager $operationalMerchandiseManager,
     private readonly OperationalExtraVisualPresenter $visualPresenter,
     private readonly EventOperationalAddonBuilder $eventOperationalAddonBuilder,
+    private readonly VendorOperationalProductCreationManager $productCreationManager,
+    private readonly OperationalVariationStockResolver $stockResolver,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -56,6 +60,20 @@ final class EventStudioEventExtrasBuilder {
   }
 
   /**
+   * @return list<array<string, mixed>>
+   */
+  public function loadExtrasForEventByClassification(NodeInterface $event, string $filter): array {
+    $cards = $this->loadExtrasForEvent($event);
+    if ($filter === 'all' || $filter === '') {
+      return $cards;
+    }
+    return array_values(array_filter($cards, static function (array $card) use ($filter): bool {
+      $classification = (string) ($card['classification'] ?? '');
+      return $filter === $classification;
+    }));
+  }
+
+  /**
    * @return array<string, mixed>
    */
   public function buildExtraCard(ProductInterface $product, NodeInterface $event): array {
@@ -64,6 +82,13 @@ final class EventStudioEventExtrasBuilder {
     $visual = $this->visualPresenter->buildProductVisualDocument($product, $presentation);
     $sizes = $this->summarizeSizes($product);
     $price_label = $this->formatPriceRange($product);
+    $classification = $this->classificationForProduct($product);
+    $variant_count = $this->countPublishedVariations($product);
+    $book_url = $this->buildBookPageUrl($event);
+    $editor_defaults = $this->productCreationManager->extractEditorDefaultsFromProduct($product);
+    $product_status = (string) ($editor_defaults['product_status'] ?? 'hidden');
+    $status_options = $this->productCreationManager->productStatusOptions();
+    $stock_summary = $this->stockResolver->summarizeProductStock($product);
 
     return [
       'product_id' => (int) $product->id(),
@@ -75,6 +100,29 @@ final class EventStudioEventExtrasBuilder {
       'price_label' => $price_label,
       'show_on_booking' => $product->isPublished(),
       'bundle' => $product->bundle(),
+      'classification' => $classification,
+      'classification_label' => $this->classificationLabel($classification),
+      'variant_count' => $variant_count,
+      'variant_count_label' => $variant_count === 1
+        ? (string) $this->t('1 option')
+        : (string) $this->t('@count options', ['@count' => $variant_count]),
+      'product_status' => $product_status,
+      'product_status_label' => $status_options[$product_status] ?? $product_status,
+      'capacity_note' => (string) ($editor_defaults['capacity_note'] ?? ''),
+      'stock_state' => (string) ($stock_summary['stock_state'] ?? ''),
+      'stock_label' => (string) ($stock_summary['stock_label'] ?? ''),
+      'stock_sold_out' => !empty($stock_summary['sold_out']),
+      'stock_low' => !empty($stock_summary['low_stock']),
+      'stock_unlimited' => !empty($stock_summary['unlimited']),
+      'limit_per_order_label' => (string) ($stock_summary['limit_label'] ?? ''),
+      'booking_visibility_label' => $product->isPublished()
+        ? (string) $this->t('Visible on booking page')
+        : (string) $this->t('Not on booking page'),
+      'status_label' => $product->isPublished()
+        ? (string) $this->t('Active on booking')
+        : (string) $this->t('Hidden from booking'),
+      'image_count' => $this->countProductImages($product),
+      'book_page_url' => $book_url,
       'edit_url' => Url::fromRoute('myeventlane_event_studio.workspace_extras', [
         'node' => $event->id(),
       ], [
@@ -110,14 +158,71 @@ final class EventStudioEventExtrasBuilder {
   /**
    * @return array<string, string>
    */
-  public function extraTypeChoices(): array {
+  public function merchandiseTypeChoices(): array {
     return [
-      'merchandise' => (string) $this->t('Merchandise'),
-      'food_drink' => (string) $this->t('Food & drink'),
-      'vip_hospitality' => (string) $this->t('VIP / hospitality'),
-      'pickup_item' => (string) $this->t('Pickup item'),
-      'bundle' => (string) $this->t('Bundle / package'),
+      'merchandise' => (string) $this->t('Merchandise (T-shirt, hoodie, poster, digital item)'),
     ];
+  }
+
+  /**
+   * @return array<string, string>
+   */
+  public function addonTypeChoices(): array {
+    return [
+      'parking' => (string) $this->t('Parking'),
+      'meal_package' => (string) $this->t('Meal package'),
+      'camping' => (string) $this->t('Camping'),
+      'vip_extra' => (string) $this->t('VIP extra'),
+      'shuttle' => (string) $this->t('Shuttle / transport'),
+      'other' => (string) $this->t('Other add-on'),
+    ];
+  }
+
+  /**
+   * @return array<string, string>
+   */
+  public function extraTypeChoices(): array {
+    return $this->merchandiseTypeChoices() + $this->addonTypeChoices();
+  }
+
+  /**
+   * @return array<string, string>
+   */
+  public function listFilterOptions(): array {
+    return [
+      'all' => (string) $this->t('All'),
+      'merchandise' => (string) $this->t('Merchandise'),
+      'addon' => (string) $this->t('Add-ons'),
+    ];
+  }
+
+  public function classificationForProduct(ProductInterface $product): string {
+    $mapped = OperationalProductBundles::classificationForProductBundle($product->bundle());
+    return $mapped !== '' ? $mapped : 'addon';
+  }
+
+  private function classificationLabel(string $classification): string {
+    return match ($classification) {
+      'merchandise' => (string) $this->t('Merchandise'),
+      default => (string) $this->t('Add-on'),
+    };
+  }
+
+  private function countPublishedVariations(ProductInterface $product): int {
+    $count = 0;
+    foreach ($product->getVariations() as $variation) {
+      if ($variation instanceof ProductVariationInterface && $variation->isPublished()) {
+        $count++;
+      }
+    }
+    return $count;
+  }
+
+  private function buildBookPageUrl(NodeInterface $event): string {
+    if ($event->isPublished()) {
+      return Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()])->toString();
+    }
+    return Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
   }
 
   /**
@@ -135,6 +240,13 @@ final class EventStudioEventExtrasBuilder {
       }
     }
     return array_values(array_unique($out));
+  }
+
+  private function countProductImages(ProductInterface $product): int {
+    if (!$product->hasField('field_mel_extra_images') || $product->get('field_mel_extra_images')->isEmpty()) {
+      return 0;
+    }
+    return $product->get('field_mel_extra_images')->count();
   }
 
   private function formatPriceRange(ProductInterface $product): string {

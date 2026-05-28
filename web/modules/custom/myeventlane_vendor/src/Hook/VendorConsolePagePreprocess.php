@@ -8,6 +8,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\node\NodeInterface;
 
 /**
@@ -23,6 +24,7 @@ final class VendorConsolePagePreprocess {
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
     TranslationInterface $stringTranslation,
+    private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->setStringTranslation($stringTranslation);
   }
@@ -89,7 +91,7 @@ final class VendorConsolePagePreprocess {
     }
 
     $workspace_tabs = [
-      ['key' => 'overview', 'route' => 'myeventlane_vendor.console.event_overview', 'label' => $this->t('Overview'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_overview', ['event' => $event_id])->toString()],
+      ['key' => 'overview', 'route' => 'myeventlane_vendor.console.event_workspace', 'label' => $this->t('Manage event'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event_id])->toString()],
       ['key' => 'tickets', 'route' => 'myeventlane_vendor.console.event_tickets', 'label' => $this->t('Tickets'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event_id])->toString()],
       ['key' => 'attendees', 'route' => 'myeventlane_event_attendees.vendor_list', 'label' => $this->t('Attendees'), 'url' => Url::fromRoute('myeventlane_event_attendees.vendor_list', ['node' => $event_id])->toString()],
       ['key' => 'orders', 'route' => 'myeventlane_vendor.console.event_orders', 'label' => $this->t('Orders'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_orders', ['event' => $event_id])->toString()],
@@ -127,7 +129,7 @@ final class VendorConsolePagePreprocess {
       'quick_actions' => [
         [
           'label' => $this->t('View event page'),
-          'url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+          'url' => $this->buildPublicEventUrl($event_id),
         ],
         [
           'label' => $this->t('Review attendees'),
@@ -139,6 +141,11 @@ final class VendorConsolePagePreprocess {
         ],
       ],
     ];
+  }
+
+  private function buildPublicEventUrl(int $event_id): string {
+    $path = Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString();
+    return $this->domainDetector?->publicUrl($path) ?? $path;
   }
 
 }

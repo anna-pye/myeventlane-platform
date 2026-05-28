@@ -26,6 +26,7 @@ skeleton:
 home-hero-rotator:
   js:
     js/home-hero-rotator.js: {}
+    js/home-hero-search.js: {}
   dependencies:
     - core/drupal
     - core/once
@@ -149,6 +150,7 @@ myeventlane_event_full:
     - core/once
     - myeventlane_location/event_map
     - myeventlane_theme/global-styling
+    - myeventlane_theme/mel_confirmation
   js:
     js/event-full-trust-rotator.js: { attributes: { defer: true } }
 

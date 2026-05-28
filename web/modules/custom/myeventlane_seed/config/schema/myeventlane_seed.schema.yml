@@ -1,0 +1,166 @@
+myeventlane_seed.settings:
+  type: config_object
+  label: 'MyEventLane demo content seed settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    owner_username:
+      type: string
+      label: 'Owner username'
+    event_count:
+      type: integer
+      label: 'Event count'
+    title_prefix:
+      type: string
+      label: 'Title prefix'
+    seed_key_prefix:
+      type: string
+      label: 'Seed key prefix'
+    default_timezone:
+      type: string
+      label: 'Default timezone'
+    future_date_start_days:
+      type: integer
+      label: 'Future date start offset (days)'
+    future_date_spacing_days:
+      type: integer
+      label: 'Future date spacing (days)'
+    update_existing:
+      type: boolean
+      label: 'Update existing seeded events'
+    purge_before_generate:
+      type: boolean
+      label: 'Purge before generate'
+    populate_title:
+      type: boolean
+      label: 'Populate title'
+    populate_event_type:
+      type: boolean
+      label: 'Populate event type'
+    populate_start_end_dates:
+      type: boolean
+      label: 'Populate start/end dates'
+    populate_vendor_reference:
+      type: boolean
+      label: 'Populate vendor reference'
+    populate_store_reference:
+      type: boolean
+      label: 'Populate store reference'
+    populate_capacity:
+      type: boolean
+      label: 'Populate capacity'
+    populate_event_image:
+      type: boolean
+      label: 'Populate event image'
+    populate_location:
+      type: boolean
+      label: 'Populate location'
+    populate_venue_name:
+      type: boolean
+      label: 'Populate venue name'
+    populate_body:
+      type: boolean
+      label: 'Populate body'
+    populate_event_summary:
+      type: boolean
+      label: 'Populate event summary'
+    populate_highlights:
+      type: boolean
+      label: 'Populate highlights'
+    populate_accessibility:
+      type: boolean
+      label: 'Populate accessibility'
+    populate_attendee_questions:
+      type: boolean
+      label: 'Populate attendee questions'
+    populate_ticket_types:
+      type: boolean
+      label: 'Populate ticket types'
+    populate_rsvp_settings:
+      type: boolean
+      label: 'Populate RSVP settings'
+    generate_rsvp_events:
+      type: boolean
+      label: 'Generate RSVP events'
+    generate_paid_events:
+      type: boolean
+      label: 'Generate paid events'
+    rsvp_event_count:
+      type: integer
+      label: 'RSVP event count'
+    paid_event_count:
+      type: integer
+      label: 'Paid event count'
+    default_currency:
+      type: string
+      label: 'Default currency'
+    default_paid_ticket_capacity:
+      type: integer
+      label: 'Default paid ticket capacity'
+    default_rsvp_capacity:
+      type: integer
+      label: 'Default RSVP capacity'
+    create_general_ticket:
+      type: boolean
+      label: 'Create general admission ticket'
+    create_concession_ticket:
+      type: boolean
+      label: 'Create concession ticket'
+    create_early_bird_ticket:
+      type: boolean
+      label: 'Create early bird ticket'
+    create_supporter_ticket:
+      type: boolean
+      label: 'Create supporter ticket'
+    min_ticket_price:
+      type: float
+      label: 'Minimum ticket price'
+    max_ticket_price:
+      type: float
+      label: 'Maximum ticket price'
+    use_wheelchair_access:
+      type: boolean
+      label: 'Use wheelchair accessible term'
+    use_auslan_interpreter:
+      type: boolean
+      label: 'Use sign language interpreter term'
+    use_sensory_friendly:
+      type: boolean
+      label: 'Use sensory-friendly term'
+    use_quiet_space:
+      type: boolean
+      label: 'Use quiet space term'
+    use_captions:
+      type: boolean
+      label: 'Use captions term'
+    skip_missing_accessibility_terms:
+      type: boolean
+      label: 'Skip missing accessibility terms'
+    generate_images:
+      type: boolean
+      label: 'Generate images'
+    image_directory:
+      type: string
+      label: 'Image directory URI'
+    image_width:
+      type: integer
+      label: 'Image width'
+    image_height:
+      type: integer
+      label: 'Image height'
+    reuse_existing_seed_images:
+      type: boolean
+      label: 'Reuse existing seed images'
+    dry_run:
+      type: boolean
+      label: 'Dry run'
+    allow_purge_from_ui:
+      type: boolean
+      label: 'Allow purge from UI'
+    require_confirm_text:
+      type: boolean
+      label: 'Require confirm text'
+    confirm_text_value:
+      type: string
+      label: 'Confirm text value'

@@ -15,6 +15,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
+use Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -37,6 +38,13 @@ final class VendorOperationalProductCreationManager {
    */
   public const VENDOR_EXTRA_TYPE_MAP = [
     'merchandise' => VendorProductisationStudioManager::TYPE_MERCHANDISE,
+    'parking' => VendorProductisationStudioManager::TYPE_PARKING_ADDON,
+    'meal_package' => VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE,
+    'camping' => VendorProductisationStudioManager::TYPE_OPERATIONAL_BUNDLE,
+    'vip_extra' => VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE,
+    'shuttle' => VendorProductisationStudioManager::TYPE_TIMED_COLLECTION,
+    'other' => VendorProductisationStudioManager::TYPE_OPERATIONAL_BUNDLE,
+    // Legacy keys (bookmarks / older Studio URLs).
     'food_drink' => VendorProductisationStudioManager::TYPE_TIMED_COLLECTION,
     'vip_hospitality' => VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE,
     'pickup_item' => VendorProductisationStudioManager::TYPE_TIMED_COLLECTION,
@@ -44,10 +52,34 @@ final class VendorOperationalProductCreationManager {
   ];
 
   /**
+   * Vendor-facing merchandise extra type keys.
+   *
+   * @var list<string>
+   */
+  public const VENDOR_MERCH_EXTRA_TYPES = [
+    'merchandise',
+  ];
+
+  /**
+   * Vendor-facing add-on extra type keys.
+   *
+   * @var list<string>
+   */
+  public const VENDOR_ADDON_EXTRA_TYPES = [
+    'parking',
+    'meal_package',
+    'camping',
+    'vip_extra',
+    'shuttle',
+    'other',
+  ];
+
+  /**
    * @var list<string>
    */
   public const VENDOR_EXTRA_TYPE_KEYS = [
-    'merchandise',
+    ...self::VENDOR_MERCH_EXTRA_TYPES,
+    ...self::VENDOR_ADDON_EXTRA_TYPES,
     'food_drink',
     'vip_hospitality',
     'pickup_item',
@@ -80,6 +112,7 @@ final class VendorOperationalProductCreationManager {
     private readonly OperationalMerchandiseManager $operationalMerchandiseManager,
     private readonly OperationalCapabilityCommerceLinkManager $commerceLinkManager,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly OperationalVariationStockResolver $stockResolver,
     private readonly TranslationInterface $translation,
     private readonly LoggerInterface $logger,
   ) {}
@@ -161,6 +194,16 @@ final class VendorOperationalProductCreationManager {
     if (!$product instanceof ProductInterface) {
       throw new \RuntimeException('Event extra product could not be loaded after create.');
     }
+    $this->applyProductStatusFromInput($product, $input);
+    $metadata = $this->operationalMerchandiseManager->normalizeProductFieldFromEntity($product);
+    $metadata = $this->mergeCapacityNoteIntoMetadata($metadata, (string) ($input['capacity_note'] ?? ''));
+    $metadata = $this->mergeVendorStudioStatusIntoMetadata($metadata, (string) ($input['product_status'] ?? 'draft'));
+    if ($product->hasField('field_mel_operational_product')) {
+      $product->set('field_mel_operational_product', json_encode(
+        $this->operationalMerchandiseManager->normalizeProductFieldValue($metadata),
+        JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE,
+      ));
+    }
     $this->applyEventExtraFieldUpdates($product, $input);
     $product->save();
     return $product;
@@ -189,18 +232,23 @@ final class VendorOperationalProductCreationManager {
     if ($currency_in === '') {
       $currency_in = $currency;
     }
-    $show = !array_key_exists('show_on_booking', $input) || !empty($input['show_on_booking']);
+    $show = $this->resolveShowOnBooking($input);
     $pickup_mode = match ($extra_type) {
-      'pickup_item' => 'collect',
-      'food_drink' => 'counter',
+      'pickup_item', 'parking' => 'collect',
+      'food_drink', 'meal_package' => 'counter',
+      'camping', 'other' => 'collect',
       default => 'counter',
     };
     $fulfillment = match ($productisation_type) {
       VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE => 'redeem',
       VendorProductisationStudioManager::TYPE_TIMED_COLLECTION => 'collect',
+      VendorProductisationStudioManager::TYPE_PARKING_ADDON => 'collect',
       default => 'collect',
     };
-    return $this->stripForbiddenFromPayload([
+    $parking_guidance = $extra_type === 'parking'
+      ? (string) ($input['pickup_note'] ?? $input['customer_summary'] ?? '')
+      : '';
+    $payload = [
       'productisation_type' => $productisation_type,
       'event_id' => (int) $event->id(),
       'title' => (string) ($input['title'] ?? ''),
@@ -213,10 +261,33 @@ final class VendorOperationalProductCreationManager {
       'pickup_mode' => $pickup_mode,
       'pickup_note' => (string) ($input['pickup_note'] ?? ''),
       'sizes' => $this->normalizeSizeKeys($input['sizes'] ?? []),
-      'timed_collection_window_copy' => $extra_type === 'pickup_item' ? (string) ($input['pickup_note'] ?? '') : '',
+      'product_options' => $this->normalizeProductOptionsInput($input['product_options'] ?? []),
+      'sku' => trim((string) ($input['sku'] ?? '')),
+      'capacity_note' => trim((string) ($input['capacity_note'] ?? '')),
+      'timed_collection_window_copy' => in_array($extra_type, ['pickup_item', 'shuttle'], TRUE)
+        ? (string) ($input['pickup_note'] ?? '') : '',
       'hospitality_benefits_summary' => $productisation_type === VendorProductisationStudioManager::TYPE_HOSPITALITY_PACKAGE
         ? (string) ($input['customer_summary'] ?? '') : '',
-    ]);
+      'parking_guidance' => $parking_guidance,
+      'product_status' => strtolower(trim((string) ($input['product_status'] ?? 'draft'))),
+    ];
+    return $this->stripForbiddenFromPayload($payload);
+  }
+
+  /**
+   * Whether a vendor extra type key is merchandise (vs add-on).
+   */
+  public function isMerchandiseExtraType(string $extra_type): bool {
+    return in_array($this->normalizeVendorExtraType($extra_type), self::VENDOR_MERCH_EXTRA_TYPES, TRUE);
+  }
+
+  /**
+   * Whether a vendor extra type key is an add-on.
+   */
+  public function isAddonExtraType(string $extra_type): bool {
+    $key = $this->normalizeVendorExtraType($extra_type);
+    return in_array($key, self::VENDOR_ADDON_EXTRA_TYPES, TRUE)
+      || in_array($key, ['food_drink', 'vip_hospitality', 'pickup_item', 'bundle'], TRUE);
   }
 
   /**
@@ -260,6 +331,12 @@ final class VendorOperationalProductCreationManager {
     $amount = $this->normalizePriceAmount($input['price_amount'] ?? NULL);
     if ($amount === NULL) {
       $errors[] = 'A valid price is required.';
+    }
+    foreach ($this->validateStockInputFromEventExtra($input) as $error) {
+      $errors[] = $error;
+    }
+    foreach ($this->validateProductOptionsInput($input) as $error) {
+      $errors[] = $error;
     }
     return $errors;
   }
@@ -355,15 +432,17 @@ final class VendorOperationalProductCreationManager {
     $sku = $sku_base !== '' ? $this->sanitizePlainText($sku_base, 128) : $this->generateSku($event, $type);
 
     $metadata = $this->buildOperationalMetadata($type, $payload, $summary);
+    $metadata = $this->mergeVendorStudioStatusIntoMetadata($metadata, (string) ($payload['product_status'] ?? 'draft'));
     $encoded = json_encode($this->operationalMerchandiseManager->normalizeProductFieldValue($metadata), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
     $pickup_note = $this->sanitizePlainText((string) ($payload['pickup_note'] ?? ''), 400);
     $visibility = $this->normalizeVisibility((string) ($payload['customer_visibility'] ?? 'visible'));
+    $published = $visibility === 'visible';
 
     $product = CommerceProduct::create([
       'type' => $bundles['product_type'],
       'title' => $title,
-      'status' => $visibility === 'visible' ? 1 : 0,
+      'status' => $published ? 1 : 0,
       'stores' => [$store_id],
       'uid' => (int) $account->id(),
       'field_event' => ['target_id' => (int) $event->id()],
@@ -513,6 +592,40 @@ final class VendorOperationalProductCreationManager {
     string $sku_base,
     Price $price,
   ): array {
+    $product_options = $this->normalizeProductOptionsInput($payload['product_options'] ?? []);
+    if ($product_options !== []) {
+      $variation_type = $bundles['variation_type'];
+      $ids = [];
+      foreach ($product_options as $row) {
+        $option_label = trim((string) ($row['option_label'] ?? ''));
+        if ($option_label === '') {
+          continue;
+        }
+        $row_price = $this->normalizePriceAmount($row['price_amount'] ?? $payload['price_amount'] ?? NULL);
+        $row_price_obj = new Price((string) $row_price, $price->getCurrencyCode());
+        $sku = trim((string) ($row['sku'] ?? ''));
+        if ($sku === '') {
+          $sku = $this->generateOptionSku($sku_base, $option_label);
+        }
+        $variation = ProductVariation::create([
+          'type' => $variation_type,
+          'sku' => $this->sanitizePlainText($sku, 128),
+          'title' => $title . ' — ' . $this->sanitizePlainText($option_label, 128),
+          'status' => !empty($row['published']) ? 1 : 0,
+          'price' => $row_price_obj,
+        ]);
+        $this->applySizeFieldFromOptionLabel($variation, $option_label);
+        $this->stockResolver->applyStockFields($variation, [
+          'stock_quantity' => $row['stock_quantity'] ?? NULL,
+          'limit_per_order' => $row['limit_per_order'] ?? NULL,
+          'show_remaining' => !empty($row['show_remaining']),
+        ]);
+        $variation->save();
+        $ids[] = (int) $variation->id();
+      }
+      return $ids;
+    }
+
     $size_keys = $this->normalizeSizeKeys($payload['sizes'] ?? []);
     $variation_type = $bundles['variation_type'];
     $ids = [];
@@ -530,6 +643,7 @@ final class VendorOperationalProductCreationManager {
         if ($variation->hasField('field_mel_size')) {
           $variation->set('field_mel_size', $size_key);
         }
+        $this->stockResolver->applyStockFields($variation, $this->resolveVariantStockInput($payload, $size_key));
         $variation->save();
         $ids[] = (int) $variation->id();
       }
@@ -543,6 +657,7 @@ final class VendorOperationalProductCreationManager {
       'status' => 1,
       'price' => $price,
     ]);
+    $this->stockResolver->applyStockFields($variation, $this->resolveVariantStockInput($payload, '_default'));
     $variation->save();
     return [(int) $variation->id()];
   }
@@ -705,6 +820,10 @@ final class VendorOperationalProductCreationManager {
     if ($parking !== '') {
       $chips[] = ['label' => $parking, 'tone' => 'info'];
     }
+    $capacity_note = $this->sanitizePlainText((string) ($payload['capacity_note'] ?? ''), 200);
+    if ($capacity_note !== '') {
+      $chips[] = ['label' => (string) $this->translation->translate('Capacity note: @note', ['@note' => $capacity_note]), 'tone' => 'muted'];
+    }
     if ($type === VendorProductisationStudioManager::TYPE_OPERATIONAL_BUNDLE && $bundle_types !== []) {
       $chips[] = ['label' => implode(', ', array_map('strval', $bundle_types)), 'tone' => 'muted'];
     }
@@ -849,7 +968,7 @@ final class VendorOperationalProductCreationManager {
     $title = $this->sanitizePlainText((string) ($input['title'] ?? ''), 255);
     $summary = $this->sanitizePlainText((string) ($input['customer_summary'] ?? ''), 600);
     $pickup_note = $this->sanitizePlainText((string) ($input['pickup_note'] ?? ''), 400);
-    $show = !array_key_exists('show_on_booking', $input) || !empty($input['show_on_booking']);
+    $show = $this->resolveShowOnBooking($input);
     $currency = $this->normalizeCurrencyCode((string) ($input['currency_code'] ?? ''));
     if ($currency === '') {
       $store_id = $this->commerceLinkManager->resolveStoreIdForOperationalProductCreation($event);
@@ -867,7 +986,8 @@ final class VendorOperationalProductCreationManager {
     $price = new Price($amount, $currency);
 
     $product->setTitle($title);
-    $product->setPublished($show);
+    $this->applyProductStatusFromInput($product, $input);
+    $show = $product->isPublished();
     if ($product->hasField('field_mel_extra_short_desc')) {
       $product->set('field_mel_extra_short_desc', $summary);
     }
@@ -878,13 +998,15 @@ final class VendorOperationalProductCreationManager {
     $metadata = $this->operationalMerchandiseManager->normalizeProductFieldFromEntity($product);
     $metadata['operational_summary'] = $summary;
     $metadata['customer_visibility'] = $show ? 'visible' : 'hidden';
+    $metadata = $this->mergeCapacityNoteIntoMetadata($metadata, (string) ($input['capacity_note'] ?? ''));
+    $metadata = $this->mergeVendorStudioStatusIntoMetadata($metadata, (string) ($input['product_status'] ?? ''));
     $encoded = json_encode($this->operationalMerchandiseManager->normalizeProductFieldValue($metadata), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     if ($product->hasField('field_mel_operational_product')) {
       $product->set('field_mel_operational_product', $encoded);
     }
 
     $this->applyEventExtraFieldUpdates($product, $input);
-    $this->syncVariationsForEventExtra($product, $input, $title, $price);
+    $this->syncVariationsFromProductOptions($product, $input, $title, $price);
     $product->save();
 
     $this->logger->notice('Vendor event extra @pid updated for event @eid.', [
@@ -919,72 +1041,85 @@ final class VendorOperationalProductCreationManager {
   /**
    * @param array<string, mixed> $input
    */
-  private function syncVariationsForEventExtra(ProductInterface $product, array $input, string $title, Price $price): void {
+  /**
+   * @param array<string, mixed> $input
+   */
+  private function syncVariationsFromProductOptions(ProductInterface $product, array $input, string $title, Price $default_price): void {
     $bundles = $this->mapProductBundleToVariationType($product->bundle());
     $variation_type = $bundles['variation_type'];
-    $size_keys = $variation_type === 'operational_merchandise_var'
-      ? $this->normalizeSizeKeys($input['sizes'] ?? [])
-      : [];
+    $options = $this->normalizeProductOptionsInput($input['product_options'] ?? []);
+    $custom_sku = trim((string) ($input['sku'] ?? ''));
+    $sku_base = $custom_sku !== ''
+      ? $this->sanitizePlainText($custom_sku, 128)
+      : 'mel-extra-' . (int) $product->id();
 
-    $storage = $this->entityTypeManager->getStorage('commerce_product_variation');
-    $existing = [];
+    $existing_by_id = [];
     foreach ($product->getVariations() as $variation) {
-      if (!$variation instanceof ProductVariationInterface) {
-        continue;
+      if ($variation instanceof ProductVariationInterface) {
+        $existing_by_id[(int) $variation->id()] = $variation;
       }
-      $size = '';
-      if ($variation->hasField('field_mel_size') && !$variation->get('field_mel_size')->isEmpty()) {
-        $size = strtolower((string) $variation->get('field_mel_size')->value);
-      }
-      $key = $size !== '' ? $size : '_default';
-      $existing[$key] = $variation;
     }
 
-    $desired_keys = $size_keys !== [] ? $size_keys : ['_default'];
-    $sku_base = 'mel-extra-' . (int) $product->id();
+    $kept_ids = [];
+    foreach ($options as $row) {
+      if (!empty($row['remove'])) {
+        continue;
+      }
+      $option_label = trim((string) ($row['option_label'] ?? ''));
+      if ($option_label === '') {
+        continue;
+      }
+      $variation_id = (int) ($row['variation_id'] ?? 0);
+      $row_amount = $this->normalizePriceAmount($row['price_amount'] ?? $input['price_amount'] ?? NULL);
+      $row_price = new Price((string) $row_amount, $default_price->getCurrencyCode());
+      $sku = trim((string) ($row['sku'] ?? ''));
+      if ($sku === '') {
+        $sku = $this->generateOptionSku($sku_base, $option_label);
+      }
+      $variation_title = $title . ' — ' . $this->sanitizePlainText($option_label, 128);
+      $published = !empty($row['published']);
 
-    foreach ($desired_keys as $size_key) {
-      $lookup = $size_key === '_default' ? '_default' : $size_key;
-      $label = $size_key === '_default'
-        ? $title
-        : $title . ' — ' . (OperationalExtraVisualPresenter::SIZE_LABELS[$size_key] ?? strtoupper($size_key));
-      $sku = $size_key === '_default'
-        ? $this->sanitizePlainText($sku_base, 128)
-        : $this->sanitizePlainText($sku_base . '-' . $size_key, 128);
-
-      if (isset($existing[$lookup])) {
-        $variation = $existing[$lookup];
-        $variation->setTitle($label);
-        $variation->setPrice($price);
-        $variation->setPublished(TRUE);
-        if ($size_key !== '_default' && $variation->hasField('field_mel_size')) {
-          $variation->set('field_mel_size', $size_key);
-        }
+      if ($variation_id > 0 && isset($existing_by_id[$variation_id])) {
+        $variation = $existing_by_id[$variation_id];
+        $variation->setTitle($variation_title);
+        $variation->setSku($this->sanitizePlainText($sku, 128));
+        $variation->setPrice($row_price);
+        $variation->setPublished($published);
+        $this->applySizeFieldFromOptionLabel($variation, $option_label);
+        $this->stockResolver->applyStockFields($variation, [
+          'stock_quantity' => $row['stock_quantity'] ?? NULL,
+          'limit_per_order' => $row['limit_per_order'] ?? NULL,
+          'show_remaining' => !empty($row['show_remaining']),
+        ]);
         $variation->save();
-        unset($existing[$lookup]);
+        $kept_ids[$variation_id] = $variation_id;
         continue;
       }
 
       $variation = ProductVariation::create([
         'type' => $variation_type,
-        'sku' => $sku,
-        'title' => $label,
-        'status' => 1,
-        'price' => $price,
+        'sku' => $this->sanitizePlainText($sku, 128),
+        'title' => $variation_title,
+        'status' => $published ? 1 : 0,
+        'price' => $row_price,
       ]);
-      if ($size_key !== '_default' && $variation->hasField('field_mel_size')) {
-        $variation->set('field_mel_size', $size_key);
-      }
+      $this->applySizeFieldFromOptionLabel($variation, $option_label);
+      $this->stockResolver->applyStockFields($variation, [
+        'stock_quantity' => $row['stock_quantity'] ?? NULL,
+        'limit_per_order' => $row['limit_per_order'] ?? NULL,
+        'show_remaining' => !empty($row['show_remaining']),
+      ]);
       $variation->save();
       $product->addVariation($variation);
+      $kept_ids[(int) $variation->id()] = (int) $variation->id();
     }
 
-    foreach ($existing as $orphan) {
-      if ($orphan instanceof ProductVariationInterface && $orphan->isPublished()) {
+    foreach ($existing_by_id as $vid => $orphan) {
+      if (!isset($kept_ids[$vid]) && $orphan->isPublished()) {
         $orphan->setPublished(FALSE);
         $orphan->save();
-        $this->logger->notice('Unpublished event extra variation @vid (size removed or consolidated).', [
-          '@vid' => (string) $orphan->id(),
+        $this->logger->notice('Unpublished event extra variation @vid (option removed from editor).', [
+          '@vid' => (string) $vid,
         ]);
       }
     }
@@ -1014,6 +1149,377 @@ final class VendorOperationalProductCreationManager {
     };
   }
 
+  /**
+   * @return array<string, string>
+   */
+  public function productStatusOptions(): array {
+    return [
+      'active' => (string) $this->translation->translate('Active'),
+      'hidden' => (string) $this->translation->translate('Hidden'),
+      'draft' => (string) $this->translation->translate('Draft'),
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function emptyEditorDefaults(string $extra_type): array {
+    $extra_type = $this->normalizeVendorExtraType($extra_type) ?: 'merchandise';
+    return [
+      'extra_type' => $extra_type,
+      'title' => '',
+      'customer_summary' => '',
+      'pickup_note' => '',
+      'price_amount' => '',
+      'sku' => '',
+      'capacity_note' => '',
+      'product_status' => 'draft',
+      'show_on_booking' => 0,
+      'sizes' => [],
+      'stock_quantity' => NULL,
+      'limit_per_order' => NULL,
+      'show_remaining' => FALSE,
+      'variant_stock' => [],
+      'product_options' => [$this->emptyProductOptionRow()],
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function emptyProductOptionRow(array $defaults = []): array {
+    return [
+      'variation_id' => 0,
+      'option_label' => '',
+      'sku' => '',
+      'price_amount' => $defaults['price_amount'] ?? '',
+      'stock_quantity' => NULL,
+      'limit_per_order' => NULL,
+      'show_remaining' => FALSE,
+      'published' => TRUE,
+      'remove' => FALSE,
+    ];
+  }
+
+  /**
+   * @return list<array<string, mixed>>
+   */
+  public function buildProductOptionsFromProduct(ProductInterface $product): array {
+    $options = [];
+    foreach ($product->getVariations() as $variation) {
+      if (!$variation instanceof ProductVariationInterface) {
+        continue;
+      }
+      if (!$variation->isPublished()) {
+        continue;
+      }
+      $price = $variation->getPrice();
+      $stock = $this->stockResolver->extractStockFields($variation);
+      $options[] = [
+        'variation_id' => (int) $variation->id(),
+        'option_label' => $this->resolveOptionLabelFromVariation($variation, $product->label()),
+        'sku' => (string) ($variation->getSku() ?? ''),
+        'price_amount' => $price !== NULL ? $price->getNumber() : '',
+        'stock_quantity' => $stock['stock_quantity'],
+        'limit_per_order' => $stock['limit_per_order'],
+        'show_remaining' => !empty($stock['show_remaining']),
+        'published' => TRUE,
+        'remove' => FALSE,
+      ];
+    }
+    return $options;
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function extractEditorDefaultsFromProduct(ProductInterface $product): array {
+    $product_options = $this->buildProductOptionsFromProduct($product);
+    $price = '';
+    $sku = '';
+    foreach ($product_options as $row) {
+      if ($row['price_amount'] !== '' && $row['price_amount'] !== NULL) {
+        $price = (string) $row['price_amount'];
+        $sku = $this->extractBaseSkuFromVariationSku((string) ($row['sku'] ?? ''), (string) ($row['option_label'] ?? ''));
+        break;
+      }
+    }
+    $metadata = $this->operationalMerchandiseManager->normalizeProductFieldFromEntity($product);
+    $status = $this->resolveProductStatusFromEntity($product, $metadata);
+    $sizes = [];
+    foreach ($product_options as $row) {
+      $size_key = $this->inferSizeKeyFromOptionLabel((string) ($row['option_label'] ?? ''));
+      if ($size_key !== NULL) {
+        $sizes[$size_key] = $size_key;
+      }
+    }
+    $first_stock = $product_options[0] ?? [];
+    return [
+      'extra_type' => $this->inferExtraTypeFromProduct($product, $metadata),
+      'title' => $product->label(),
+      'customer_summary' => $product->hasField('field_mel_extra_short_desc') && !$product->get('field_mel_extra_short_desc')->isEmpty()
+        ? (string) $product->get('field_mel_extra_short_desc')->value : '',
+      'pickup_note' => $product->hasField('field_mel_extra_pickup_note') && !$product->get('field_mel_extra_pickup_note')->isEmpty()
+        ? (string) $product->get('field_mel_extra_pickup_note')->value : '',
+      'price_amount' => $price,
+      'sku' => $sku,
+      'capacity_note' => $this->extractCapacityNoteFromMetadata($metadata),
+      'product_status' => $status,
+      'show_on_booking' => $product->isPublished() ? 1 : 0,
+      'sizes' => $sizes,
+      'stock_quantity' => $first_stock['stock_quantity'] ?? NULL,
+      'limit_per_order' => $first_stock['limit_per_order'] ?? NULL,
+      'show_remaining' => !empty($first_stock['show_remaining']) ? 1 : 0,
+      'variant_stock' => [],
+      'product_options' => $product_options !== [] ? $product_options : [$this->emptyProductOptionRow(['price_amount' => $price])],
+    ];
+  }
+
+  public function resolveCommerceProductBundleForExtraType(string $extra_type): string {
+    $extra_type = $this->normalizeVendorExtraType($extra_type) ?: 'merchandise';
+    $productisation = self::VENDOR_EXTRA_TYPE_MAP[$extra_type];
+    return $this->mapProductisationTypeToCommerceBundles($productisation)['product_type'];
+  }
+
+  public function createStubProductForStudioForm(NodeInterface $event, string $extra_type): ProductInterface {
+    $bundle = $this->resolveCommerceProductBundleForExtraType($extra_type);
+    return CommerceProduct::create([
+      'type' => $bundle,
+      'title' => '',
+      'field_event' => ['target_id' => (int) $event->id()],
+    ]);
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function buildVariantPreviewRows(NodeInterface $event, array $input, ?ProductInterface $product = NULL): array {
+    $sizes = $this->normalizeSizeKeys($input['sizes'] ?? []);
+    $sku_base = trim((string) ($input['sku'] ?? ''));
+    if ($sku_base === '' && $product instanceof ProductInterface) {
+      $sku_base = $this->extractBaseSkuFromProduct($product);
+    }
+    if ($sku_base === '') {
+      $extra_type = (string) ($input['extra_type'] ?? 'merchandise');
+      $sku_base = $this->generateSku($event, $extra_type);
+    }
+    $price = $this->normalizePriceAmount($input['price_amount'] ?? NULL) ?? '0.00';
+    $capacity = trim((string) ($input['capacity_note'] ?? ''));
+    $keys = $sizes !== [] ? $sizes : ['_default'];
+    $rows = [];
+    foreach ($keys as $key) {
+      $label = $key === '_default'
+        ? (string) $this->translation->translate('One size')
+        : (OperationalExtraVisualPresenter::SIZE_LABELS[$key] ?? strtoupper($key));
+      $sku = $key === '_default'
+        ? $this->sanitizePlainText($sku_base, 128)
+        : $this->sanitizePlainText($sku_base . '-' . $key, 128);
+      $stock = $this->resolveVariantStockInput($input, $key);
+      $rows[] = [
+        'size_key' => $key,
+        'size_label' => $label,
+        'sku' => $sku,
+        'price' => $price,
+        'capacity_note' => $capacity,
+        'stock_quantity' => $stock['stock_quantity'],
+        'limit_per_order' => $stock['limit_per_order'],
+        'show_remaining' => !empty($stock['show_remaining']),
+        'status_label' => (string) $this->translation->translate('Created on save'),
+      ];
+    }
+    return $rows;
+  }
+
+  /**
+   * @return list<array<string, mixed>>
+   */
+  public function buildVariantPreviewRowsFromProduct(ProductInterface $product): array {
+    $metadata = $this->operationalMerchandiseManager->normalizeProductFieldFromEntity($product);
+    $capacity = $this->extractCapacityNoteFromMetadata($metadata);
+    $rows = [];
+    foreach ($product->getVariations() as $variation) {
+      if (!$variation instanceof ProductVariationInterface || !$variation->isPublished()) {
+        continue;
+      }
+      $size_label = (string) $this->translation->translate('One size');
+      if ($variation->hasField('field_mel_size') && !$variation->get('field_mel_size')->isEmpty()) {
+        $key = strtolower((string) $variation->get('field_mel_size')->value);
+        $size_label = OperationalExtraVisualPresenter::SIZE_LABELS[$key] ?? strtoupper($key);
+      }
+      $price = $variation->getPrice();
+      $stock = $this->stockResolver->extractStockFields($variation);
+      $size_key = '_default';
+      if ($variation->hasField('field_mel_size') && !$variation->get('field_mel_size')->isEmpty()) {
+        $size_key = strtolower((string) $variation->get('field_mel_size')->value);
+      }
+      $rows[] = [
+        'size_key' => $size_key,
+        'size_label' => $size_label,
+        'sku' => (string) ($variation->getSku() ?? ''),
+        'price' => $price !== NULL ? $price->getNumber() : '',
+        'capacity_note' => $capacity,
+        'stock_quantity' => $stock['stock_quantity'],
+        'limit_per_order' => $stock['limit_per_order'],
+        'show_remaining' => (bool) $stock['show_remaining'],
+        'status_label' => (string) $this->translation->translate('Active'),
+      ];
+    }
+    if ($rows === []) {
+      $rows[] = [
+        'size_key' => '_default',
+        'size_label' => (string) $this->translation->translate('One size'),
+        'sku' => '',
+        'price' => '',
+        'capacity_note' => $capacity,
+        'stock_quantity' => NULL,
+        'limit_per_order' => NULL,
+        'show_remaining' => FALSE,
+        'status_label' => (string) $this->translation->translate('No published variations'),
+      ];
+    }
+    return $rows;
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   */
+  public function applyProductStatusFromInput(ProductInterface $product, array $input): void {
+    $status = strtolower(trim((string) ($input['product_status'] ?? '')));
+    if (!array_key_exists($status, $this->productStatusOptions())) {
+      $status = $this->resolveShowOnBooking($input) ? 'active' : 'hidden';
+    }
+    $published = $status === 'active' && $this->resolveShowOnBooking($input);
+    $product->setPublished($published);
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   */
+  public function resolveShowOnBooking(array $input): bool {
+    $status = strtolower(trim((string) ($input['product_status'] ?? '')));
+    if ($status !== 'active') {
+      return FALSE;
+    }
+    return !array_key_exists('show_on_booking', $input) || !empty($input['show_on_booking']);
+  }
+
+  /**
+   * @param array<string, mixed> $metadata
+   */
+  private function extractCapacityNoteFromMetadata(array $metadata): string {
+    $chips = is_array($metadata['operational_chips'] ?? NULL) ? $metadata['operational_chips'] : [];
+    foreach ($chips as $chip) {
+      if (!is_array($chip)) {
+        continue;
+      }
+      $label = (string) ($chip['label'] ?? '');
+      if (str_starts_with($label, 'Capacity note:')) {
+        return trim(substr($label, strlen('Capacity note:')));
+      }
+    }
+    $rules = is_array($metadata['collection_rules'] ?? NULL) ? $metadata['collection_rules'] : [];
+    return trim((string) ($rules['vendor_quantity_note'] ?? ''));
+  }
+
+  /**
+   * @param array<string, mixed> $metadata
+   *
+   * @return array<string, mixed>
+   */
+  private function mergeCapacityNoteIntoMetadata(array $metadata, string $capacity_note): array {
+    $chips = is_array($metadata['operational_chips'] ?? NULL) ? $metadata['operational_chips'] : [];
+    $filtered = [];
+    foreach ($chips as $chip) {
+      if (!is_array($chip)) {
+        continue;
+      }
+      $label = (string) ($chip['label'] ?? '');
+      if (!str_starts_with($label, 'Capacity note:')) {
+        $filtered[] = $chip;
+      }
+    }
+    $capacity_note = $this->sanitizePlainText($capacity_note, 200);
+    if ($capacity_note !== '') {
+      $filtered[] = [
+        'label' => (string) $this->translation->translate('Capacity note: @note', ['@note' => $capacity_note]),
+        'tone' => 'muted',
+      ];
+    }
+    $metadata['operational_chips'] = $filtered;
+    $rules = is_array($metadata['collection_rules'] ?? NULL) ? $metadata['collection_rules'] : [];
+    if ($capacity_note !== '') {
+      $rules['vendor_quantity_note'] = $capacity_note;
+    }
+    else {
+      unset($rules['vendor_quantity_note']);
+    }
+    $metadata['collection_rules'] = $rules;
+    return $metadata;
+  }
+
+  /**
+   * @param array<string, mixed> $metadata
+   *
+   * @return array<string, mixed>
+   */
+  private function mergeVendorStudioStatusIntoMetadata(array $metadata, string $status): array {
+    $rules = is_array($metadata['collection_rules'] ?? NULL) ? $metadata['collection_rules'] : [];
+    $status = strtolower(trim($status));
+    if (in_array($status, ['active', 'hidden', 'draft'], TRUE)) {
+      $rules['vendor_studio_status'] = $status;
+    }
+    $metadata['collection_rules'] = $rules;
+    return $metadata;
+  }
+
+  /**
+   * @param array<string, mixed> $metadata
+   */
+  private function resolveProductStatusFromEntity(ProductInterface $product, array $metadata): string {
+    $rules = is_array($metadata['collection_rules'] ?? NULL) ? $metadata['collection_rules'] : [];
+    $stored = strtolower(trim((string) ($rules['vendor_studio_status'] ?? '')));
+    if (in_array($stored, ['active', 'hidden', 'draft'], TRUE)) {
+      return $stored;
+    }
+    return $product->isPublished() ? 'active' : 'hidden';
+  }
+
+  /**
+   * @param array<string, mixed> $metadata
+   */
+  private function inferExtraTypeFromProduct(ProductInterface $product, array $metadata): string {
+    $cap = strtolower(trim((string) ($metadata['capability_reference'] ?? '')));
+    foreach (self::VENDOR_EXTRA_TYPE_MAP as $key => $ptype) {
+      if ($ptype === $cap) {
+        return $key;
+      }
+    }
+    return $product->bundle() === 'operational_merchandise' ? 'merchandise' : 'other';
+  }
+
+  private function extractBaseSkuFromProduct(ProductInterface $product): string {
+    foreach ($product->getVariations() as $variation) {
+      if (!$variation instanceof ProductVariationInterface) {
+        continue;
+      }
+      $sku = trim((string) ($variation->getSku() ?? ''));
+      if ($sku === '') {
+        continue;
+      }
+      if ($variation->hasField('field_mel_size') && !$variation->get('field_mel_size')->isEmpty()) {
+        $size = strtolower((string) $variation->get('field_mel_size')->value);
+        $suffix = '-' . $size;
+        if (str_ends_with($sku, $suffix)) {
+          return substr($sku, 0, -strlen($suffix));
+        }
+      }
+      return $sku;
+    }
+    return '';
+  }
+
   private function productInStore(ProductInterface $product, int $store_id): bool {
     if (!$product->hasField('stores') || $product->get('stores')->isEmpty()) {
       return FALSE;
@@ -1024,6 +1530,418 @@ final class VendorOperationalProductCreationManager {
       }
     }
     return FALSE;
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   *
+   * @return list<string>
+   */
+  public function validateStockInputFromEventExtra(array $input): array {
+    $errors = [];
+    $options = $this->normalizeProductOptionsInput($input['product_options'] ?? []);
+    if ($options !== []) {
+      foreach ($options as $row) {
+        if (!empty($row['remove']) || trim((string) ($row['option_label'] ?? '')) === '') {
+          continue;
+        }
+        foreach ($this->stockResolver->validateStockInput([
+          'stock_quantity' => $row['stock_quantity'] ?? NULL,
+          'limit_per_order' => $row['limit_per_order'] ?? NULL,
+        ]) as $error) {
+          $errors[] = $error;
+        }
+      }
+      return array_values(array_unique($errors));
+    }
+    $variant_stock = is_array($input['variant_stock'] ?? NULL) ? $input['variant_stock'] : [];
+    if ($variant_stock !== []) {
+      foreach ($variant_stock as $row) {
+        if (!is_array($row)) {
+          continue;
+        }
+        foreach ($this->stockResolver->validateStockInput($row) as $error) {
+          $errors[] = $error;
+        }
+      }
+      return array_values(array_unique($errors));
+    }
+    foreach ($this->stockResolver->validateStockInput([
+      'stock_quantity' => $input['stock_quantity'] ?? NULL,
+      'limit_per_order' => $input['limit_per_order'] ?? NULL,
+    ]) as $error) {
+      $errors[] = $error;
+    }
+    return $errors;
+  }
+
+  /**
+   * @param mixed $raw
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function normalizeProductOptionsInput(mixed $raw): array {
+    if (!is_array($raw)) {
+      return [];
+    }
+    $out = [];
+    foreach ($raw as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      if (!empty($row['remove'])) {
+        $out[] = [
+          'variation_id' => (int) ($row['variation_id'] ?? 0),
+          'option_label' => '',
+          'remove' => TRUE,
+        ];
+        continue;
+      }
+      $label = $this->sanitizePlainText((string) ($row['option_label'] ?? ''), 128);
+      if ($label === '') {
+        continue;
+      }
+      $stock_qty = $row['stock_quantity'] ?? NULL;
+      $out[] = [
+        'variation_id' => (int) ($row['variation_id'] ?? 0),
+        'option_label' => $label,
+        'sku' => $this->sanitizePlainText((string) ($row['sku'] ?? ''), 128),
+        'price_amount' => $row['price_amount'] ?? NULL,
+        'stock_quantity' => $this->stockResolver->normalizeStockInput($stock_qty),
+        'limit_per_order' => $this->stockResolver->normalizeLimitInput($row['limit_per_order'] ?? NULL),
+        'show_remaining' => !empty($row['show_remaining']),
+        'published' => !isset($row['published']) || !empty($row['published']),
+        'remove' => FALSE,
+      ];
+    }
+    return $out;
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   *
+   * @return list<string>
+   */
+  public function validateProductOptionsInput(array $input): array {
+    $errors = [];
+    $options = $this->normalizeProductOptionsInput($input['product_options'] ?? []);
+    $status = strtolower(trim((string) ($input['product_status'] ?? 'draft')));
+    $show = $this->resolveShowOnBooking($input);
+    $requires_options = $status === 'active' || $show;
+
+    if ($requires_options && $options === []) {
+      $errors[] = (string) $this->translation->translate('Add at least one product option before making this item active or visible on the booking page.');
+    }
+
+    $labels = [];
+    foreach ($options as $row) {
+      $label = strtolower(trim((string) ($row['option_label'] ?? '')));
+      if ($label === '') {
+        continue;
+      }
+      if (isset($labels[$label])) {
+        $errors[] = (string) $this->translation->translate('Each product option label must be unique (@label).', [
+          '@label' => (string) $row['option_label'],
+        ]);
+      }
+      $labels[$label] = TRUE;
+      $amount = $this->normalizePriceAmount($row['price_amount'] ?? $input['price_amount'] ?? NULL);
+      if ($amount === NULL) {
+        $errors[] = (string) $this->translation->translate('A valid price is required for option @label.', [
+          '@label' => (string) $row['option_label'],
+        ]);
+      }
+    }
+
+    return array_values(array_unique($errors));
+  }
+
+  public function resolveOptionLabelFromVariation(ProductVariationInterface $variation, string $product_title): string {
+    $label = trim((string) $variation->label());
+    $prefix = trim($product_title) . ' — ';
+    if ($label !== '' && str_starts_with($label, $prefix)) {
+      return trim(substr($label, strlen($prefix)));
+    }
+    if ($label !== '' && str_contains($label, ' — ')) {
+      $parts = explode(' — ', $label, 2);
+      return trim((string) end($parts));
+    }
+    if ($variation->hasField('field_mel_size') && !$variation->get('field_mel_size')->isEmpty()) {
+      $key = strtolower((string) $variation->get('field_mel_size')->value);
+      if (isset(OperationalExtraVisualPresenter::SIZE_LABELS[$key])) {
+        return OperationalExtraVisualPresenter::SIZE_LABELS[$key];
+      }
+    }
+    if ($label !== '' && strcasecmp($label, $product_title) !== 0) {
+      return $label;
+    }
+    return (string) $this->translation->translate('One option');
+  }
+
+  public function inferSizeKeyFromOptionLabel(string $option_label): ?string {
+    $trimmed = strtolower(trim($option_label));
+    if ($trimmed === '') {
+      return NULL;
+    }
+    if (isset(OperationalExtraVisualPresenter::SIZE_LABELS[$trimmed])) {
+      return $trimmed;
+    }
+    foreach (OperationalExtraVisualPresenter::SIZE_LABELS as $key => $human) {
+      if (strcasecmp($trimmed, $human) === 0) {
+        return $key;
+      }
+      if (preg_match('/(?:^|[\s\/\-])' . preg_quote($human, '/') . '$/i', $option_label)) {
+        return $key;
+      }
+      if (preg_match('/(?:^|[\s\/\-])' . preg_quote($key, '/') . '$/i', $option_label)) {
+        return $key;
+      }
+    }
+    return NULL;
+  }
+
+  private function applySizeFieldFromOptionLabel(ProductVariationInterface $variation, string $option_label): void {
+    if (!$variation->hasField('field_mel_size')) {
+      return;
+    }
+    $size_key = $this->inferSizeKeyFromOptionLabel($option_label);
+    if ($size_key !== NULL) {
+      $variation->set('field_mel_size', $size_key);
+      return;
+    }
+    $variation->set('field_mel_size', NULL);
+  }
+
+  private function generateOptionSku(string $sku_base, string $option_label): string {
+    $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $option_label) ?? '');
+    $slug = trim($slug, '-');
+    if ($slug === '') {
+      $slug = 'option';
+    }
+    return $this->sanitizePlainText($sku_base . '-' . $slug, 128);
+  }
+
+  private function extractBaseSkuFromVariationSku(string $sku, string $option_label): string {
+    if ($sku === '') {
+      return '';
+    }
+    $generated_suffix = $this->generateOptionSku('base', $option_label);
+    $suffix = substr($generated_suffix, strlen('base-'));
+    if ($suffix !== '' && str_ends_with($sku, '-' . $suffix)) {
+      return substr($sku, 0, -strlen('-' . $suffix));
+    }
+    $size_key = $this->inferSizeKeyFromOptionLabel($option_label);
+    if ($size_key !== NULL && str_ends_with($sku, '-' . $size_key)) {
+      return substr($sku, 0, -strlen('-' . $size_key));
+    }
+    return $sku;
+  }
+
+  /**
+   * Aggregates per-option stock for Studio summary chips and progressive disclosure.
+   *
+   * @param list<array<string, mixed>> $options
+   *
+   * @return array{
+   *   option_count: int,
+   *   unlimited_count: int,
+   *   sold_out_count: int,
+   *   low_stock_count: int,
+   *   finite_total: int,
+   *   limits_set_count: int,
+   *   stock_mode: string,
+   *   stock_mode_label: string,
+   *   limit_status_label: string,
+   *   open_stock_details: bool,
+   *   chips: list<string>
+   * }
+   */
+  public function summarizeProductOptionsStock(array $options): array {
+    $option_count = 0;
+    $unlimited_count = 0;
+    $sold_out_count = 0;
+    $low_stock_count = 0;
+    $finite_total = 0;
+    $limits_set_count = 0;
+    $has_finite = FALSE;
+    $has_unlimited = FALSE;
+    $has_sold_out = FALSE;
+
+    foreach ($options as $row) {
+      if (!empty($row['remove'])) {
+        continue;
+      }
+      $label = trim((string) ($row['option_label'] ?? ''));
+      if ($label === '' && (int) ($row['variation_id'] ?? 0) <= 0) {
+        continue;
+      }
+      $option_count++;
+      $qty = $this->stockResolver->normalizeStockInput($row['stock_quantity'] ?? NULL);
+      if ($this->stockResolver->normalizeLimitInput($row['limit_per_order'] ?? NULL) !== NULL) {
+        $limits_set_count++;
+      }
+      if ($qty === NULL) {
+        $unlimited_count++;
+        $has_unlimited = TRUE;
+      }
+      elseif ($qty === 0) {
+        $sold_out_count++;
+        $has_sold_out = TRUE;
+      }
+      else {
+        $has_finite = TRUE;
+        $finite_total += $qty;
+        if ($qty <= 5) {
+          $low_stock_count++;
+        }
+      }
+    }
+
+    $stock_mode = 'empty';
+    $stock_mode_label = (string) $this->translation->translate('Not set');
+    if ($option_count > 0) {
+      if ($sold_out_count === $option_count) {
+        $stock_mode = 'sold_out';
+        $stock_mode_label = (string) $this->translation->translate('Sold out');
+      }
+      elseif ($unlimited_count === $option_count && $sold_out_count === 0) {
+        $stock_mode = 'unlimited';
+        $stock_mode_label = (string) $this->translation->translate('Unlimited');
+      }
+      elseif ($has_finite && !$has_unlimited && !$has_sold_out && $finite_total <= 5) {
+        $stock_mode = 'low';
+        $stock_mode_label = (string) $this->translation->translate('Low stock');
+      }
+      elseif ($has_sold_out || ($has_finite && $has_unlimited) || ($has_finite && $sold_out_count > 0)) {
+        $stock_mode = 'mixed';
+        $stock_mode_label = (string) $this->translation->translate('Mixed');
+      }
+      elseif ($has_finite) {
+        $stock_mode = 'finite';
+        $stock_mode_label = (string) $this->translation->translate('@count in stock', ['@count' => $finite_total]);
+      }
+      else {
+        $stock_mode = 'mixed';
+        $stock_mode_label = (string) $this->translation->translate('Mixed');
+      }
+    }
+
+    $limit_status_label = $limits_set_count === 0
+      ? (string) $this->translation->translate('No per-order limits')
+      : ($limits_set_count === $option_count && $option_count > 0
+        ? (string) $this->translation->translate('Limits on all options')
+        : (string) $this->translation->translate('Some per-order limits'));
+
+    $open_stock_details = $has_finite
+      || $has_sold_out
+      || $limits_set_count > 0;
+
+    $chips = [];
+    if ($option_count > 0) {
+      $chips[] = $option_count === 1
+        ? (string) $this->translation->translate('1 option')
+        : (string) $this->translation->translate('@count options', ['@count' => $option_count]);
+      if ($unlimited_count > 0) {
+        $chips[] = $unlimited_count === 1
+          ? (string) $this->translation->translate('1 unlimited')
+          : (string) $this->translation->translate('@count unlimited', ['@count' => $unlimited_count]);
+      }
+      if ($sold_out_count > 0) {
+        $chips[] = $sold_out_count === 1
+          ? (string) $this->translation->translate('1 sold out')
+          : (string) $this->translation->translate('@count sold out', ['@count' => $sold_out_count]);
+      }
+      if ($low_stock_count > 0 && $has_finite) {
+        $chips[] = $low_stock_count === 1
+          ? (string) $this->translation->translate('1 low stock')
+          : (string) $this->translation->translate('@count low stock', ['@count' => $low_stock_count]);
+      }
+      if ($finite_total > 0 && $has_finite) {
+        $chips[] = (string) $this->translation->translate('@count units total', ['@count' => $finite_total]);
+      }
+      $chips[] = $limit_status_label;
+    }
+
+    return [
+      'option_count' => $option_count,
+      'unlimited_count' => $unlimited_count,
+      'sold_out_count' => $sold_out_count,
+      'low_stock_count' => $low_stock_count,
+      'finite_total' => $finite_total,
+      'limits_set_count' => $limits_set_count,
+      'stock_mode' => $stock_mode,
+      'stock_mode_label' => $stock_mode_label,
+      'limit_status_label' => $limit_status_label,
+      'open_stock_details' => $open_stock_details,
+      'chips' => $chips,
+    ];
+  }
+
+  /**
+   * @param list<array<string, mixed>> $options
+   *
+   * @return array{count: int, price_label: string, stock_summary: string}
+   */
+  public function summarizeProductOptionsForPreview(array $options, string $currency_code = 'AUD'): array {
+    $amounts = [];
+    foreach ($options as $row) {
+      if (!empty($row['remove'])) {
+        continue;
+      }
+      $amount = $this->normalizePriceAmount($row['price_amount'] ?? NULL);
+      if ($amount !== NULL) {
+        $amounts[] = (float) $amount;
+      }
+    }
+    $count = count(array_filter($options, static fn(array $row): bool => empty($row['remove']) && trim((string) ($row['option_label'] ?? '')) !== ''));
+    $stock = $this->summarizeProductOptionsStock($options);
+    $stock_summary = match ($stock['stock_mode']) {
+      'unlimited' => (string) $this->translation->translate('unlimited stock'),
+      'sold_out' => (string) $this->translation->translate('sold out'),
+      'low' => (string) $this->translation->translate('low stock per option'),
+      'mixed' => (string) $this->translation->translate('stock managed per option'),
+      'finite' => (string) $this->translation->translate('stock managed per option'),
+      default => (string) $this->translation->translate('stock managed per option'),
+    };
+    if ($amounts === []) {
+      return [
+        'count' => $count,
+        'price_label' => '',
+        'stock_summary' => $stock_summary,
+      ];
+    }
+    $min = min($amounts);
+    $max = max($amounts);
+    $prefix = $currency_code !== '' ? $currency_code . ' ' : '';
+    $price_label = $min === $max
+      ? $prefix . number_format($min, 2)
+      : (string) $this->translation->translate('from @price', ['@price' => $prefix . number_format($min, 2)]);
+    return [
+      'count' => $count,
+      'price_label' => $price_label,
+      'stock_summary' => $stock_summary,
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $input
+   *
+   * @return array<string, mixed>
+   */
+  public function resolveVariantStockInput(array $input, string $size_key): array {
+    $variant_stock = is_array($input['variant_stock'] ?? NULL) ? $input['variant_stock'] : [];
+    if (isset($variant_stock[$size_key]) && is_array($variant_stock[$size_key])) {
+      return [
+        'stock_quantity' => $variant_stock[$size_key]['stock_quantity'] ?? NULL,
+        'limit_per_order' => $variant_stock[$size_key]['limit_per_order'] ?? NULL,
+        'show_remaining' => !empty($variant_stock[$size_key]['show_remaining']),
+      ];
+    }
+    return [
+      'stock_quantity' => $input['stock_quantity'] ?? NULL,
+      'limit_per_order' => $input['limit_per_order'] ?? NULL,
+      'show_remaining' => !empty($input['show_remaining']),
+    ];
   }
 
 }

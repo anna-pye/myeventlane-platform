@@ -17,6 +17,7 @@ use Drupal\myeventlane_event_studio\Form\EventStudioTicketsForm;
 use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
 use Drupal\myeventlane_event_studio\Support\MelSupportResolverInterface;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
+use Drupal\myeventlane_tickets\Service\AccessCodeManagementBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -38,6 +39,7 @@ final class EventStudioSectionRenderer {
     private readonly ?EventCapacityServiceInterface $capacityService = NULL,
     private readonly ?EventMetricsServiceInterface $metricsService = NULL,
     private readonly ?EventTicketPreviewBuilder $eventTicketPreviewBuilder = NULL,
+    private readonly ?AccessCodeManagementBuilder $accessCodeManagementBuilder = NULL,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -106,7 +108,7 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildOverviewSection(NodeInterface $event): array {
-    return [
+    $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-overview']],
       'hero' => [
@@ -151,6 +153,8 @@ final class EventStudioSectionRenderer {
         ],
       ],
     ];
+
+    return $build;
   }
 
   /**
@@ -203,6 +207,14 @@ final class EventStudioSectionRenderer {
       ? (string) $event->get('field_event_type')->value
       : '';
     if (in_array($event_type, ['paid', 'both'], TRUE)) {
+      if ($this->accessCodeManagementBuilder instanceof AccessCodeManagementBuilder) {
+        $accessCodePanel = $this->accessCodeManagementBuilder->build($event);
+        if ($accessCodePanel !== []) {
+          $build['access_codes'] = $accessCodePanel;
+          $build['access_codes']['#weight'] = 15;
+        }
+      }
+
       $support = $this->supportResolver->buildCard($event, 'tickets');
       if ($support !== NULL) {
         $build['support'] = $support;

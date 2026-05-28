@@ -6,6 +6,7 @@ myeventlane_commerce.event_book:
     _title: 'Book tickets'
   requirements:
     _permission: 'access content'
+    _event_book_access: 'TRUE'
     node: '\d+'
   options:
     parameters:

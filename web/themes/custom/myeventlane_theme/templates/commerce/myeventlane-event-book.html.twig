@@ -54,14 +54,15 @@
       </div>
     </header>
 
-    <div class="mel-event-info-strip mel-card" role="note">
+    <div class="mel-event-info-strip mel-card" role="note" aria-label="{{ 'Booking reassurance'|t }}">
       {% if event_mode == 'paid' %}
         <span class="mel-event-info-strip__item">{{ 'Secure checkout'|t }}</span>
-        <span class="mel-event-info-strip__item">{{ 'No hidden fees'|t }}</span>
-        <span class="mel-event-info-strip__item">{{ 'Confirmation email sent'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ "You'll review your order before payment"|t }}</span>
+        <span class="mel-event-info-strip__item">{{ "You'll receive confirmation by email"|t }}</span>
       {% elseif event_mode == 'rsvp' %}
         <span class="mel-event-info-strip__item">{{ 'No payment required'|t }}</span>
-        <span class="mel-event-info-strip__item">{{ 'Your RSVP will be confirmed by email'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'Your RSVP details are used for event administration only'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ "You'll receive confirmation by email"|t }}</span>
       {% elseif event_mode == 'external' %}
         <span class="mel-event-info-strip__item">{{ 'External ticketing'|t }}</span>
         <span class="mel-event-info-strip__item">{{ 'You will leave this site to buy tickets'|t }}</span>
@@ -102,6 +103,20 @@
               {{ 'Booking'|t }}
             {% endif %}
           </h2>
+          {% if event_mode == 'paid' %}
+            <p class="mel-ticket-panel__lead">{{ 'Select ticket quantities below. Payment comes after you review your cart.'|t }}</p>
+          {% elseif event_mode == 'rsvp' %}
+            <p class="mel-ticket-panel__lead">{{ 'Free RSVP — no payment required. Complete the form to reserve your place.'|t }}</p>
+            {% if mel_signal_remaining_spots is defined and mel_signal_remaining_spots is not null and mel_signal_remaining_spots > 0 %}
+              <p class="mel-ticket-panel__capacity mel-text--muted">
+                {% trans %}
+                  1 place remaining
+                {% plural mel_signal_remaining_spots %}
+                  @count places remaining
+                {% endtrans %}
+              </p>
+            {% endif %}
+          {% endif %}
 
           <div class="mel-ticket-panel__body mel-event-book__form-body mel-booking-flow" data-mel-booking-flow>
             {% if ticket_form is not empty %}
@@ -113,9 +128,11 @@
             {% else %}
               <div class="mel-alert mel-alert--info" role="status">
                 {% if event_mode == 'none' %}
-                  {{ 'Registration opens soon.'|t }}
+                  <p class="mel-alert__title">{{ 'Registration is not open yet'|t }}</p>
+                  <p>{{ 'Check back soon or return to the event page for updates.'|t }}</p>
                 {% else %}
-                  {{ "We couldn't load the booking form. Please refresh the page."|t }}
+                  <p class="mel-alert__title">{{ 'Booking is temporarily unavailable'|t }}</p>
+                  <p>{{ 'Please refresh the page. If this continues, return to the event page or contact the organiser.'|t }}</p>
                 {% endif %}
               </div>
             {% endif %}
@@ -141,13 +158,53 @@
                   <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
                 </div>
                 <p class="mel-booking__cta-note">
-                  {{ "Tickets will be added to your cart — checkout when you're ready."|t }}
+                  {{ "Tickets go to your cart first — you'll review everything before payment."|t }}
                 </p>
                 {{ ticket_form_actions }}
               </div>
             {% endif %}
           </div>
         </div>
+
+        {% if not mel_book_paid and event_mode == 'rsvp' %}
+          <div class="mel-book-support mel-book-support--rsvp">
+            <div class="mel-book-trust mel-book-panel mel-card" role="region" aria-label="{{ 'RSVP privacy and reassurance'|t }}">
+              <h3 class="mel-book-trust__title">{{ 'Your RSVP is secure'|t }}</h3>
+              <ul class="mel-book-trust__list" role="list">
+                <li class="mel-book-trust__item">
+                  <span class="mel-book-trust__icon" aria-hidden="true">✓</span>
+                  <span class="mel-book-trust__text">{{ 'No payment required'|t }}</span>
+                </li>
+                <li class="mel-book-trust__item">
+                  <span class="mel-book-trust__icon" aria-hidden="true">◎</span>
+                  <span class="mel-book-trust__text">{{ 'Your RSVP details are used for event administration only'|t }}</span>
+                </li>
+                <li class="mel-book-trust__item">
+                  <span class="mel-book-trust__icon" aria-hidden="true">✉</span>
+                  <span class="mel-book-trust__text">{{ "You'll receive confirmation by email"|t }}</span>
+                </li>
+                {% if mel_signal_trust_label %}
+                  <li class="mel-book-trust__item">
+                    <span class="mel-book-trust__icon" aria-hidden="true">◎</span>
+                    <span class="mel-book-trust__text">{{ mel_signal_trust_label }}</span>
+                  </li>
+                {% endif %}
+              </ul>
+              <p class="mel-book-trust__support">
+                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Need help? Contact support'|t }}</a>
+              </p>
+            </div>
+
+            <div class="mel-book-next-steps mel-book-panel mel-card" role="region" aria-labelledby="mel-book-next-steps-title-rsvp">
+              <h3 class="mel-book-next-steps__title" id="mel-book-next-steps-title-rsvp">{{ 'What happens next'|t }}</h3>
+              <ol class="mel-book-next-steps__list">
+                <li class="mel-book-next-steps__item">{{ 'Complete your details and submit your RSVP.'|t }}</li>
+                <li class="mel-book-next-steps__item">{{ 'Your RSVP helps the organiser plan the event.'|t }}</li>
+                <li class="mel-book-next-steps__item">{{ "You'll receive a confirmation email with your RSVP details."|t }}</li>
+              </ol>
+            </div>
+          </div>
+        {% endif %}
       </main>
 
       {% if mel_book_paid %}
@@ -160,8 +217,8 @@
               </header>
               <div class="mel-booking-summary__body">
                 <div class="mel-booking-summary__empty" data-mel-summary-empty>
-                  <p class="mel-booking-summary__empty-line">{{ 'Choose your tickets to see your total.'|t }}</p>
-                  <p class="mel-booking-summary__empty-line mel-booking-summary__empty-line--soft">{{ 'You can review everything before checkout.'|t }}</p>
+                  <p class="mel-booking-summary__empty-line">{{ 'Choose at least one ticket to see your total.'|t }}</p>
+                  <p class="mel-booking-summary__empty-line mel-booking-summary__empty-line--soft">{{ "You'll review your cart before payment."|t }}</p>
                 </div>
                 <div class="mel-booking-summary__items" data-mel-summary-items aria-live="polite" aria-atomic="true"></div>
                 <div class="mel-booking-summary__subtotal" data-mel-summary-subtotal hidden>
@@ -170,7 +227,7 @@
                 </div>
               </div>
               <footer class="mel-booking-summary__footer">
-                <p class="mel-booking-summary__cta-note">{{ 'Tickets go to your cart first — continue to checkout when you are ready.'|t }}</p>
+                <p class="mel-booking-summary__cta-note">{{ "Tickets go to your cart first — you'll review everything before payment."|t }}</p>
               </footer>
             </div>
 
@@ -178,16 +235,16 @@
               <h3 class="mel-book-trust__title">{{ 'Before you pay'|t }}</h3>
               <ul class="mel-book-trust__list" role="list">
                 <li class="mel-book-trust__item">
-                  <span class="mel-book-trust__icon" aria-hidden="true">🔒</span>
-                  <span class="mel-book-trust__text">{{ 'Secure checkout — payment processed safely'|t }}</span>
+                  <span class="mel-book-trust__icon" aria-hidden="true">✓</span>
+                  <span class="mel-book-trust__text">{{ 'Review your tickets before payment'|t }}</span>
                 </li>
                 <li class="mel-book-trust__item">
-                  <span class="mel-book-trust__icon" aria-hidden="true">✓</span>
-                  <span class="mel-book-trust__text">{{ 'No hidden fees on MyEventLane'|t }}</span>
+                  <span class="mel-book-trust__icon" aria-hidden="true">🔒</span>
+                  <span class="mel-book-trust__text">{{ 'Secure checkout'|t }}</span>
                 </li>
                 <li class="mel-book-trust__item">
                   <span class="mel-book-trust__icon" aria-hidden="true">✉</span>
-                  <span class="mel-book-trust__text">{{ 'Instant confirmation by email'|t }}</span>
+                  <span class="mel-book-trust__text">{{ "You'll receive confirmation by email"|t }}</span>
                 </li>
                 {% if mel_signal_trust_label %}
                   <li class="mel-book-trust__item">
@@ -209,11 +266,20 @@
                 {% endif %}
               </ul>
               <p class="mel-book-trust__note mel-text--muted">
-                {{ 'You can review your order before checkout. Your tickets are only confirmed once checkout is complete.'|t }}
+                {{ 'Your tickets are only confirmed once checkout is complete.'|t }}
               </p>
               <p class="mel-book-trust__support">
                 <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Need help? Contact support'|t }}</a>
               </p>
+            </div>
+
+            <div class="mel-book-next-steps mel-book-panel mel-card" role="region" aria-labelledby="mel-book-next-steps-title-paid">
+              <h3 class="mel-book-next-steps__title" id="mel-book-next-steps-title-paid">{{ 'What happens next'|t }}</h3>
+              <ol class="mel-book-next-steps__list">
+                <li class="mel-book-next-steps__item">{{ 'Choose your tickets and add them to your cart.'|t }}</li>
+                <li class="mel-book-next-steps__item">{{ 'Review your order on the cart and checkout pages.'|t }}</li>
+                <li class="mel-book-next-steps__item">{{ 'Pay securely — then look for your confirmation email.'|t }}</li>
+              </ol>
             </div>
 
             {% if operational_addon_teaser %}

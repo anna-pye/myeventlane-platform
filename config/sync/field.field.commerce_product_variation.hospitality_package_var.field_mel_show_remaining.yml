@@ -1,0 +1,23 @@
+uuid: a5cbac56-eae3-4654-8e10-9f5f5a6337d2
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.hospitality_package_var
+    - field.storage.commerce_product_variation.field_mel_show_remaining
+id: commerce_product_variation.hospitality_package_var.field_mel_show_remaining
+field_name: field_mel_show_remaining
+entity_type: commerce_product_variation
+bundle: hospitality_package_var
+label: 'Show remaining quantity'
+description: 'Shows remaining stock to customers on the booking page when stock is finite.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Show remaining quantity'
+  off_label: 'Hide remaining quantity'
+field_type: boolean

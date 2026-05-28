@@ -15,6 +15,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -40,6 +41,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MelReadinessHelper $readinessHelper,
+    private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -176,21 +178,54 @@ final class VendorEventWorkspaceViewModelBuilder {
     $tabs = $this->vendorEventTabsService->buildWorkspaceTabs($event, 'overview', $account);
 
     $previewUrl = $this->routeUrlIfAccessible('entity.node.canonical', ['node' => $nid], $account);
+    $publicPreviewUrl = $this->domainDetector?->publicUrlObject($previewUrl) ?? $previewUrl;
 
     // Reuse tab availability so add-on order gating runs once per request.
     $addonOrdersUrl = $this->addonOrdersUrlFromWorkspaceTabs($tabs);
 
+    $ordersUrl = $this->routeUrlIfAccessible('myeventlane_vendor.console.event_orders', ['event' => $nid], $account);
+    $attendeesUrl = $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account);
+    $rsvpsUrl = $this->routeUrlIfAccessible('myeventlane_vendor.console.event_rsvps', ['event' => $nid], $account);
+    $checkinUrl = $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_operations_door', ['node' => $nid], $account);
+    $editTicketsUrl = $this->routeUrlIfAccessible('myeventlane_event_studio.workspace_tickets', ['node' => $nid], $account)
+      ?? $advancedTicketsUrl;
+    $extrasUrl = $this->routeUrlIfAccessible('myeventlane_event_studio.workspace_extras', ['node' => $nid], $account);
+    $promoteUrl = $this->routeUrlIfAccessible('myeventlane_vendor.console.event_promotion', ['event' => $nid], $account);
+
+    $checkins = 0;
+    try {
+      $rsvpStats = $this->rsvpStatsService->getStatsForEvent($nid);
+      $checkins = (int) ($rsvpStats['checkins'] ?? 0);
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Workspace check-in count failed for nid @nid: @message', [
+        '@nid' => (string) $nid,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    $operationalItems = $this->readinessHelper->vendorEventWorkspaceOperationalSummary(
+      $eventType,
+      $status,
+      $ticketsSold,
+      $ordersCount,
+      $rsvpCount,
+    );
+
     $actions = [
       'edit' => $editUrl,
       'advanced_tickets' => $advancedTicketsUrl,
-      'rsvps' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_rsvps', ['event' => $nid], $account),
-      'orders' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_orders', ['event' => $nid], $account),
+      'edit_tickets' => $editTicketsUrl,
+      'extras' => $extrasUrl,
+      'promote' => $promoteUrl,
+      'rsvps' => $rsvpsUrl,
+      'orders' => $ordersUrl,
       'addon_orders' => $addonOrdersUrl,
-      'attendees' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account),
-      'checkin' => $this->routeUrlIfAccessible('myeventlane_checkin.page', ['node' => $nid], $account),
+      'attendees' => $attendeesUrl,
+      'checkin' => $checkinUrl,
       'analytics' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_analytics', ['event' => $nid], $account),
       'settings' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_settings', ['event' => $nid], $account),
-      'preview' => $previewUrl,
+      'preview' => $publicPreviewUrl,
     ];
 
     return [
@@ -203,7 +238,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'date_label' => $dateLabel,
         'event_type' => $eventType,
         'event_type_label' => $eventTypeLabel,
-        'public_url' => $previewUrl,
+        'public_url' => $publicPreviewUrl,
       ],
       'readiness' => [
         'score' => $score,
@@ -212,14 +247,30 @@ final class VendorEventWorkspaceViewModelBuilder {
       'operational_readiness' => [
         'heading' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryHeading(),
         'intro' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryIntro(),
-        'items' => $this->readinessHelper->vendorEventWorkspaceOperationalSummary(
-          $eventType,
-          $status,
-          $ticketsSold,
-          $ordersCount,
-          $rsvpCount,
-        ),
+        'items' => $operationalItems,
       ],
+      'todays_focus' => $this->buildTodaysFocus(
+        $eventType,
+        $status,
+        $score,
+        $readinessItems,
+        $actions,
+        $ticketsSold,
+        $ordersCount,
+        $rsvpCount,
+      ),
+      'sales_snapshot' => $this->buildSalesSnapshot(
+        $eventType,
+        $grossDisplay,
+        $ticketsSold,
+        $ordersCount,
+        $rsvpCount,
+        $checkins,
+        $account,
+        $nid,
+      ),
+      'action_grid' => $this->buildActionGrid($actions),
+      'readiness_summary' => $this->buildReadinessSummary($operationalItems, $readinessItems),
       'lifecycle_guidance' => $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
         $eventType,
         $status,
@@ -287,9 +338,25 @@ final class VendorEventWorkspaceViewModelBuilder {
       'metrics' => [],
       'tabs' => [],
       'presentation_alerts' => [],
+      'todays_focus' => [
+        'message' => (string) $this->t('Reload this page or try again shortly.'),
+        'severity' => 'warning',
+        'actions' => [],
+      ],
+      'sales_snapshot' => ['metrics' => []],
+      'action_grid' => ['sales' => [], 'setup' => [], 'growth' => []],
+      'readiness_summary' => [
+        'all_ready' => FALSE,
+        'issue_count' => 0,
+        'groups' => [],
+        'detail_items' => [],
+      ],
       'actions' => [
         'edit' => NULL,
         'advanced_tickets' => NULL,
+        'edit_tickets' => NULL,
+        'extras' => NULL,
+        'promote' => NULL,
         'rsvps' => NULL,
         'orders' => NULL,
         'addon_orders' => NULL,
@@ -589,6 +656,340 @@ final class VendorEventWorkspaceViewModelBuilder {
     }
 
     return $metrics;
+  }
+
+  /**
+   * @param array<string, ?\Drupal\Core\Url> $actions
+   *
+   * @return array{message: string, severity: string, actions: list<array{label: string, url: string, primary: bool}>}
+   */
+  private function buildTodaysFocus(
+    string $eventType,
+    string $status,
+    int $readinessScore,
+    array $readinessItems,
+    array $actions,
+    int $ticketsSold,
+    int $ordersCount,
+    int $rsvpCount,
+  ): array {
+    $incomplete = array_filter($readinessItems, static fn(array $i): bool => empty($i['complete']));
+    $hasActivity = $ticketsSold > 0 || $ordersCount > 0 || $rsvpCount > 0;
+    $isLive = $status === 'published' || $status === 'past';
+
+    if ($eventType === 'unknown') {
+      return [
+        'message' => (string) $this->t('Finish setup before publishing.'),
+        'severity' => 'warning',
+        'actions' => $this->pickFocusActions([
+          ['label' => (string) $this->t('Edit event'), 'url' => $actions['edit'] ?? NULL, 'primary' => TRUE],
+          ['label' => (string) $this->t('Edit tickets'), 'url' => $actions['edit_tickets'] ?? $actions['advanced_tickets'] ?? NULL, 'primary' => FALSE],
+          ['label' => (string) $this->t('Preview public event'), 'url' => $actions['preview'] ?? NULL, 'primary' => FALSE],
+        ]),
+      ];
+    }
+
+    if ($status === 'draft' || $status === 'unknown') {
+      return [
+        'message' => (string) $this->t('Finish setup before publishing.'),
+        'severity' => 'warning',
+        'actions' => $this->pickFocusActions([
+          ['label' => (string) $this->t('Edit event'), 'url' => $actions['edit'] ?? NULL, 'primary' => TRUE],
+          ['label' => (string) $this->t('Edit tickets'), 'url' => $actions['edit_tickets'] ?? $actions['advanced_tickets'] ?? NULL, 'primary' => FALSE],
+          ['label' => (string) $this->t('Preview public event'), 'url' => $actions['preview'] ?? NULL, 'primary' => FALSE],
+        ]),
+      ];
+    }
+
+    if ($incomplete !== [] && $readinessScore < 100) {
+      return [
+        'message' => (string) $this->t('Review these items before sharing.'),
+        'severity' => 'info',
+        'actions' => $this->pickFocusActions([
+          ['label' => (string) $this->t('Edit event'), 'url' => $actions['edit'] ?? NULL, 'primary' => TRUE],
+          ['label' => (string) $this->t('Preview public event'), 'url' => $actions['preview'] ?? NULL, 'primary' => FALSE],
+          ['label' => (string) $this->t('Promote event'), 'url' => $actions['promote'] ?? NULL, 'primary' => FALSE],
+        ]),
+      ];
+    }
+
+    if ($isLive && $hasActivity) {
+      return [
+        'message' => (string) $this->t('Your event is live and taking bookings.'),
+        'severity' => 'success',
+        'actions' => $this->pickFocusActions([
+          ['label' => (string) $this->t('View orders'), 'url' => $actions['orders'] ?? NULL, 'primary' => TRUE],
+          ['label' => (string) $this->t('Edit tickets'), 'url' => $actions['edit_tickets'] ?? $actions['advanced_tickets'] ?? NULL, 'primary' => FALSE],
+          ['label' => (string) $this->t('Add merch & add-ons'), 'url' => $actions['extras'] ?? NULL, 'primary' => FALSE],
+        ]),
+      ];
+    }
+
+    if ($isLive) {
+      return [
+        'message' => (string) $this->t('Your event is live. Share it to start collecting bookings.'),
+        'severity' => 'success',
+        'actions' => $this->pickFocusActions([
+          ['label' => (string) $this->t('Promote event'), 'url' => $actions['promote'] ?? NULL, 'primary' => TRUE],
+          ['label' => (string) $this->t('Preview public event'), 'url' => $actions['preview'] ?? NULL, 'primary' => FALSE],
+          ['label' => (string) $this->t('Edit tickets'), 'url' => $actions['edit_tickets'] ?? $actions['advanced_tickets'] ?? NULL, 'primary' => FALSE],
+        ]),
+      ];
+    }
+
+    return [
+      'message' => (string) $this->t('Keep an eye on bookings and attendee activity.'),
+      'severity' => 'info',
+      'actions' => $this->pickFocusActions([
+        ['label' => (string) $this->t('Edit event'), 'url' => $actions['edit'] ?? NULL, 'primary' => TRUE],
+        ['label' => (string) $this->t('Preview public event'), 'url' => $actions['preview'] ?? NULL, 'primary' => FALSE],
+        ['label' => (string) $this->t('Edit tickets'), 'url' => $actions['edit_tickets'] ?? $actions['advanced_tickets'] ?? NULL, 'primary' => FALSE],
+      ]),
+    ];
+  }
+
+  /**
+   * @param list<array{label: string, url: ?Url, primary: bool}> $candidates
+   *
+   * @return list<array{label: string, url: string, primary: bool}>
+   */
+  private function pickFocusActions(array $candidates): array {
+    $picked = [];
+    foreach ($candidates as $candidate) {
+      if (count($picked) >= 3) {
+        break;
+      }
+      $url = $candidate['url'] ?? NULL;
+      if (!$url instanceof Url) {
+        continue;
+      }
+      $picked[] = [
+        'label' => $candidate['label'],
+        'url' => $url->toString(),
+        'primary' => !empty($candidate['primary']) && count(array_filter($picked, static fn(array $a): bool => $a['primary'])) === 0,
+      ];
+    }
+    if ($picked !== [] && !array_filter($picked, static fn(array $a): bool => $a['primary'])) {
+      $picked[0]['primary'] = TRUE;
+    }
+    return $picked;
+  }
+
+  /**
+   * @return array{metrics: list<array<string, mixed>>}
+   */
+  private function buildSalesSnapshot(
+    string $eventType,
+    string $grossDisplay,
+    int $ticketsSold,
+    int $ordersCount,
+    int $rsvpCount,
+    int $checkins,
+    AccountInterface $account,
+    int $nid,
+  ): array {
+    $metrics = [];
+
+    if ($eventType === 'paid' || $eventType === 'both') {
+      $metrics[] = [
+        'key' => 'gross',
+        'label' => (string) $this->t('Gross sales'),
+        'value' => $grossDisplay !== '' ? $grossDisplay : '—',
+        'url' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_orders', ['event' => $nid], $account)?->toString(),
+      ];
+      $metrics[] = [
+        'key' => 'tickets_sold',
+        'label' => (string) $this->t('Tickets sold'),
+        'value' => (string) $ticketsSold,
+        'url' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_tickets', ['event' => $nid], $account)?->toString(),
+      ];
+    }
+
+    if ($eventType === 'rsvp' || $eventType === 'both') {
+      $metrics[] = [
+        'key' => 'rsvps',
+        'label' => (string) $this->t('Confirmed RSVPs'),
+        'value' => (string) $rsvpCount,
+        'url' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_rsvps', ['event' => $nid], $account)?->toString(),
+      ];
+    }
+
+    if ($eventType !== 'unknown') {
+      $metrics[] = [
+        'key' => 'checkins',
+        'label' => (string) $this->t('Check-ins'),
+        'value' => (string) $checkins,
+        'url' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_operations_door', ['node' => $nid], $account)?->toString(),
+      ];
+    }
+
+    if ($eventType === 'paid' || $eventType === 'both') {
+      $metrics[] = [
+        'key' => 'orders',
+        'label' => (string) $this->t('Orders'),
+        'value' => (string) $ordersCount,
+        'url' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_orders', ['event' => $nid], $account)?->toString(),
+      ];
+    }
+
+    return ['metrics' => $metrics];
+  }
+
+  /**
+   * @param array<string, ?Url> $actions
+   *
+   * @return array{sales: list<array{label: string, url: string}>, setup: list<array{label: string, url: string}>, growth: list<array{label: string, url: string}>}
+   */
+  private function buildActionGrid(array $actions): array {
+    return [
+      'sales' => $this->pickGridActions([
+        ['label' => (string) $this->t('View orders'), 'url' => $actions['orders'] ?? NULL],
+        ['label' => (string) $this->t('Ticket holders'), 'url' => $actions['attendees'] ?? NULL],
+        ['label' => (string) $this->t('Check-in'), 'url' => $actions['checkin'] ?? NULL],
+      ]),
+      'setup' => $this->pickGridActions([
+        ['label' => (string) $this->t('Edit event'), 'url' => $actions['edit'] ?? NULL],
+        ['label' => (string) $this->t('Edit tickets'), 'url' => $actions['edit_tickets'] ?? $actions['advanced_tickets'] ?? NULL],
+        ['label' => (string) $this->t('Merch & add-ons'), 'url' => $actions['extras'] ?? NULL],
+      ]),
+      'growth' => $this->pickGridActions([
+        ['label' => (string) $this->t('Promote event'), 'url' => $actions['promote'] ?? NULL],
+        ['label' => (string) $this->t('View analytics'), 'url' => $actions['analytics'] ?? NULL],
+      ]),
+    ];
+  }
+
+  /**
+   * @param list<array{label: string, url: ?Url}> $candidates
+   *
+   * @return list<array{label: string, url: string}>
+   */
+  private function pickGridActions(array $candidates): array {
+    $picked = [];
+    foreach ($candidates as $candidate) {
+      $url = $candidate['url'] ?? NULL;
+      if (!$url instanceof Url) {
+        continue;
+      }
+      $picked[] = [
+        'label' => $candidate['label'],
+        'url' => $url->toString(),
+      ];
+    }
+    return $picked;
+  }
+
+  /**
+   * @param list<array<string, mixed>> $operationalItems
+   * @param list<array<string, mixed>> $readinessItems
+   *
+   * @return array{all_ready: bool, issue_count: int, groups: list<array<string, mixed>>, detail_items: list<array<string, mixed>>}
+   */
+  private function buildReadinessSummary(array $operationalItems, array $readinessItems): array {
+    $opsByKey = [];
+    foreach ($operationalItems as $item) {
+      $key = (string) ($item['key'] ?? '');
+      if ($key !== '') {
+        $opsByKey[$key] = $item;
+      }
+    }
+
+    $groups = [
+      $this->buildReadinessGroup(
+        'public_visibility',
+        (string) $this->t('Public visibility'),
+        array_filter([$opsByKey['visibility'] ?? NULL]),
+      ),
+      $this->buildReadinessGroup(
+        'booking_setup',
+        (string) $this->t('Booking setup'),
+        array_filter([
+          $opsByKey['booking'] ?? NULL,
+          $opsByKey['paid_tickets'] ?? NULL,
+        ]),
+      ),
+      $this->buildReadinessGroup(
+        'day_of_event',
+        (string) $this->t('Day-of event readiness'),
+        array_filter([
+          $opsByKey['day_of_event'] ?? NULL,
+          $opsByKey['attendees'] ?? NULL,
+        ]),
+      ),
+      $this->buildReadinessGroup(
+        'event_content',
+        (string) $this->t('Event content'),
+        $this->mapReadinessItemsToSummary($readinessItems),
+      ),
+    ];
+
+    $issueCount = 0;
+    foreach ($groups as $group) {
+      if (($group['status'] ?? 'ready') !== 'ready') {
+        $issueCount++;
+      }
+    }
+
+    return [
+      'all_ready' => $issueCount === 0,
+      'issue_count' => $issueCount,
+      'groups' => $groups,
+      'detail_items' => $readinessItems,
+    ];
+  }
+
+  /**
+   * @param list<array<string, mixed>> $items
+   *
+   * @return array{key: string, label: string, status: string, expand: bool, items: list<array<string, mixed>>}
+   */
+  private function buildReadinessGroup(string $key, string $label, array $items): array {
+    $normalized = [];
+    $hasIssue = FALSE;
+    foreach ($items as $item) {
+      if (!is_array($item)) {
+        continue;
+      }
+      $severity = (string) ($item['severity'] ?? 'info');
+      $complete = !empty($item['complete']);
+      if ($severity !== 'success' && $severity !== 'neutral' && !$complete) {
+        $hasIssue = TRUE;
+      }
+      $normalized[] = [
+        'label' => (string) ($item['label'] ?? $item['stage'] ?? ''),
+        'message' => (string) ($item['message'] ?? ''),
+        'severity' => $severity,
+        'complete' => $complete,
+      ];
+    }
+
+    return [
+      'key' => $key,
+      'label' => $label,
+      'status' => $hasIssue ? 'attention' : 'ready',
+      'expand' => $hasIssue,
+      'items' => $normalized,
+    ];
+  }
+
+  /**
+   * @param list<array<string, mixed>> $readinessItems
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function mapReadinessItemsToSummary(array $readinessItems): array {
+    $mapped = [];
+    foreach ($readinessItems as $item) {
+      $mapped[] = [
+        'label' => (string) ($item['label'] ?? ''),
+        'message' => !empty($item['complete'])
+          ? (string) $this->t('Complete')
+          : (string) $this->t('Needs attention'),
+        'severity' => !empty($item['complete']) ? 'success' : (string) ($item['severity'] ?? 'warning'),
+        'complete' => !empty($item['complete']),
+      ];
+    }
+    return $mapped;
   }
 
   /**

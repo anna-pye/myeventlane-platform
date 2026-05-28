@@ -47,7 +47,8 @@ services:
     arguments: [
       '@entity_type.manager',
       '@myeventlane_tickets.ticket_code_generator',
-      '@logger.factory'
+      '@logger.factory',
+      '@myeventlane_commerce.ticket_backed_order_item_classifier',
     ]
 
   myeventlane_tickets.order_paid_subscriber:
@@ -366,6 +367,13 @@ services:
     class: Drupal\myeventlane_tickets\Access\OperationalWorkspaceAccessChecker
     tags:
       - { name: access_check }
+
+  myeventlane_tickets.access_code_management_builder:
+    class: Drupal\myeventlane_tickets\Service\AccessCodeManagementBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_tickets'
+      - '@string_translation'
 
   myeventlane_tickets.operational_integrity_inspector:
     class: Drupal\myeventlane_tickets\Service\OperationalIntegrityInspector
