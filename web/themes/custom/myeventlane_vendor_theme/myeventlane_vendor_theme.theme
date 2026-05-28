@@ -749,6 +749,23 @@ function _myeventlane_vendor_theme_event_studio_routes(): array {
   return [
     'myeventlane_event_studio.create',
     'myeventlane_event_studio.edit',
+    'myeventlane_event_studio.workspace',
+    'myeventlane_event_studio.workspace_information',
+    'myeventlane_event_studio.workspace_branding',
+    'myeventlane_event_studio.workspace_content',
+    'myeventlane_event_studio.workspace_tickets',
+    'myeventlane_event_studio.workspace_questions',
+    'myeventlane_event_studio.workspace_capacity',
+    'myeventlane_event_studio.workspace_extras',
+    'myeventlane_event_studio.workspace_merchandise',
+    'myeventlane_event_studio.workspace_addons',
+    'myeventlane_event_studio.workspace_add_ons',
+    'myeventlane_event_studio.workspace_promotions',
+    'myeventlane_event_studio.workspace_attendees',
+    'myeventlane_event_studio.workspace_fulfilment',
+    'myeventlane_event_studio.workspace_orders',
+    'myeventlane_event_studio.workspace_analytics',
+    'myeventlane_event_studio.workspace_settings',
   ];
 }
 
@@ -829,7 +846,7 @@ function myeventlane_vendor_theme_theme_suggestions_page_alter(array &$suggestio
     return;
   }
 
-  if (is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor')) {
+  if (is_string($route_name) && (str_starts_with($route_name, 'myeventlane_vendor') || str_starts_with($route_name, 'myeventlane_event_studio.'))) {
     $suggestions[] = 'page__vendor';
   }
 
