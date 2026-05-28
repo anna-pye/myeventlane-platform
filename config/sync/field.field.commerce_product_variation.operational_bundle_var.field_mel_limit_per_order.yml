@@ -1,0 +1,23 @@
+uuid: 9df8c498-95ae-45d7-a0fb-b36d568b1c27
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.operational_bundle_var
+    - field.storage.commerce_product_variation.field_mel_limit_per_order
+id: commerce_product_variation.operational_bundle_var.field_mel_limit_per_order
+field_name: field_mel_limit_per_order
+entity_type: commerce_product_variation
+bundle: operational_bundle_var
+label: 'Limit per order'
+description: 'Optional maximum a customer can buy in one order.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 1
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

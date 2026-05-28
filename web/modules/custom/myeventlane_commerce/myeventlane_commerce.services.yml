@@ -62,6 +62,8 @@ services:
     arguments:
       - '@config.factory'
       - '@commerce_price.rounder'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
+      - '@myeventlane_core.platform_fee_settings'
     tags:
       - { name: commerce_order.order_processor, priority: 55 }
 
@@ -237,12 +239,18 @@ services:
       - '@extension.path.resolver'
       - '@string_translation'
 
+  myeventlane_commerce.operational_variation_stock_resolver:
+    class: Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver
+    arguments:
+      - '@string_translation'
+
   myeventlane_commerce.event_operational_addon_builder:
     class: Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_commerce.operational_merchandise_manager'
       - '@myeventlane_commerce.operational_extra_visual_presenter'
+      - '@myeventlane_commerce.operational_variation_stock_resolver'
       - '@string_translation'
 
   myeventlane_commerce.event_operational_addon_teaser_builder:
@@ -328,4 +336,18 @@ services:
       - '@myeventlane_commerce.event_operational_addon_builder'
       - '@myeventlane_commerce.operational_extra_visual_presenter'
       - '@date.formatter'
+      - '@string_translation'
+
+  myeventlane_commerce.event_operational_extras_sales_summary_builder:
+    class: Drupal\myeventlane_commerce\Service\EventOperationalExtrasSalesSummaryBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.vendor_operational_addon_order_builder'
+      - '@myeventlane_commerce.operational_purchase_composition_manager'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+      - '@myeventlane_commerce.event_operational_addon_builder'
+      - '@myeventlane_commerce.operational_variation_stock_resolver'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'
+      - '@commerce_price.currency_formatter'
+      - '@router.route_provider'
       - '@string_translation'

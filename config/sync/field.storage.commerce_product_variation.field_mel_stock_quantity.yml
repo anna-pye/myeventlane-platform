@@ -1,0 +1,20 @@
+uuid: 5fe6e7c5-62c3-4cda-9577-0c04bf3e0baa
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_product
+id: commerce_product_variation.field_mel_stock_quantity
+field_name: field_mel_stock_quantity
+entity_type: commerce_product_variation
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

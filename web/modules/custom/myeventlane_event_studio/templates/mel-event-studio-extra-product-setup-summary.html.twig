@@ -1,0 +1,50 @@
+{#
+/**
+ * @file
+ * Product setup summary for Event Studio Commerce product editor.
+ */
+#}
+{% set summary = summary|default({}) %}
+<section class="mel-es-card mel-event-product-editor__setup-summary" aria-labelledby="mel-product-setup-summary-title">
+  <h3 id="mel-product-setup-summary-title" class="mel-es-card__title">{{ 'Product setup'|t }}</h3>
+  <p class="mel-event-product-editor__section-helper mel-text--muted">{{ 'Quick check before you save.'|t }}</p>
+
+  <dl class="mel-event-product-editor__setup-summary-list">
+    <div class="mel-event-product-editor__setup-summary-row">
+      <dt>{{ 'Status'|t }}</dt>
+      <dd>{{ summary.status_label|default('—') }}</dd>
+    </div>
+    <div class="mel-event-product-editor__setup-summary-row">
+      <dt>{{ 'Price'|t }}</dt>
+      <dd>{{ summary.price_label|default('—') }}</dd>
+    </div>
+    <div class="mel-event-product-editor__setup-summary-row">
+      <dt>{{ 'Images'|t }}</dt>
+      <dd>{{ summary.image_label|default('—') }}</dd>
+    </div>
+    <div class="mel-event-product-editor__setup-summary-row">
+      <dt>{{ 'Options'|t }}</dt>
+      <dd>{{ summary.options_label|default('—') }}</dd>
+    </div>
+    <div class="mel-event-product-editor__setup-summary-row">
+      <dt>{{ 'Stock'|t }}</dt>
+      <dd>{{ summary.stock_label|default('—') }}</dd>
+    </div>
+    <div class="mel-event-product-editor__setup-summary-row">
+      <dt>{{ 'Booking page'|t }}</dt>
+      <dd>{{ summary.visibility_label|default('—') }}</dd>
+    </div>
+  </dl>
+
+  {% if show_preview_anchor %}
+    <p class="mel-event-product-editor__setup-summary-actions">
+      <a href="#mel-product-booking-preview" class="mel-event-product-editor__setup-summary-link">{{ 'View booking preview'|t }}</a>
+      <span class="mel-text--muted"> · </span>
+      <a href="#mel-product-editor-save" class="mel-event-product-editor__setup-summary-link">{{ 'Save product'|t }}</a>
+    </p>
+  {% else %}
+    <p class="mel-event-product-editor__setup-summary-actions mel-text--muted">
+      {{ 'Save using the buttons at the bottom of the page.'|t }}
+    </p>
+  {% endif %}
+</section>

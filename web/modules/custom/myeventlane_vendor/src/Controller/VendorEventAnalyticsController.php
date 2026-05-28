@@ -11,8 +11,10 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_commerce\Service\EventOperationalExtrasSalesSummaryBuilder;
 use Drupal\myeventlane_commerce\Service\TicketTierAnalyticsService;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
+use Drupal\myeventlane_event_studio\Service\EventStudioCommerceSalesSummaryBuilder;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -43,6 +45,8 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     private readonly AccessManagerInterface $accessManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly ?ProActiveResolver $proActiveResolver = NULL,
+    private readonly ?EventStudioCommerceSalesSummaryBuilder $commerceSalesSummaryBuilder = NULL,
+    private readonly ?EventOperationalExtrasSalesSummaryBuilder $extrasSalesSummaryBuilder = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -126,6 +130,8 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     $export_pdf_url = $this->exportUrlIfAccessible($event, 'myeventlane_analytics.export_pdf');
     $export_excel_url = $this->exportUrlIfAccessible($event, 'myeventlane_analytics.export_excel');
 
+    $commerce_analytics = $this->buildCommerceAnalytics($event, $overview, $ticket_tier_rollup);
+
     return $this->buildVendorPage('mel_event_workspace', [
       'event' => $event,
       'tabs' => $tabs,
@@ -150,6 +156,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#edit_event_url' => $edit_event_url,
         '#export_pdf_url' => $export_pdf_url,
         '#export_excel_url' => $export_excel_url,
+        '#commerce_analytics' => $commerce_analytics,
       ],
       '#attached' => [
         'library' => [
@@ -160,6 +167,67 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         ],
       ],
     ]);
+  }
+
+  /**
+   * Ticket vs extras commerce metrics (reuses Manage event summary services).
+   *
+   * @param array<string, mixed> $overview
+   * @param array<string, mixed> $ticket_tier_rollup
+   *
+   * @return array<string, mixed>
+   */
+  private function buildCommerceAnalytics(NodeInterface $event, array $overview, array $ticket_tier_rollup): array {
+    $sales = is_array($overview['sales'] ?? NULL) ? $overview['sales'] : [];
+    $ticket_revenue = (string) ($sales['gross'] ?? '$0.00');
+    $ticket_qty = (int) ($sales['tickets_sold'] ?? 0);
+    if ($ticket_qty === 0) {
+      $ticket_qty = (int) ($ticket_tier_rollup['total_sold'] ?? 0);
+    }
+
+    $extras_revenue = '—';
+    $extras_items = 0;
+    $orders_with_extras = 0;
+    $top_extras_category = '—';
+
+    if ($this->extrasSalesSummaryBuilder) {
+      try {
+        $extras_panel = $this->extrasSalesSummaryBuilder->buildExtrasSalesPanel($event);
+        $summary = is_array($extras_panel['summary'] ?? NULL) ? $extras_panel['summary'] : [];
+        $extras_revenue = (string) ($summary['total_revenue'] ?? '—');
+        $extras_items = (int) ($summary['total_items_sold'] ?? 0);
+        $orders_with_extras = (int) ($summary['orders_with_extras'] ?? 0);
+        $top_extras_category = (string) ($summary['top_category'] ?? '—');
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('myeventlane_vendor')->warning('Analytics extras summary failed for event @nid: @message', [
+          '@nid' => (string) $event->id(),
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    $ticket_panel_rows = 0;
+    if ($this->commerceSalesSummaryBuilder) {
+      try {
+        $ticket_panel = $this->commerceSalesSummaryBuilder->buildTicketSalesPanel($event);
+        $ticket_panel_rows = count(is_array($ticket_panel['rows'] ?? NULL) ? $ticket_panel['rows'] : []);
+      }
+      catch (\Throwable) {
+        // Keep overview-derived ticket metrics.
+      }
+    }
+
+    return [
+      'ticket_revenue' => $ticket_revenue,
+      'ticket_quantity_sold' => $ticket_qty,
+      'ticket_types_configured' => $ticket_panel_rows > 0 ? $ticket_panel_rows : (int) ($ticket_tier_rollup['tier_row_count'] ?? 0),
+      'extras_revenue' => $extras_revenue,
+      'extras_items_sold' => $extras_items,
+      'orders_with_extras' => $orders_with_extras,
+      'top_extras_category' => $top_extras_category,
+      'booking_activity_note' => (string) ($ticket_tier_rollup['conversion_note'] ?? ''),
+    ];
   }
 
   /**

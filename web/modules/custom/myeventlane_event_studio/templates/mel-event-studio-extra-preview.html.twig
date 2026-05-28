@@ -5,21 +5,46 @@
  */
 #}
 {% set img = preview.primary_image|default({}) %}
-<aside class="mel-event-extra-preview mel-es-card" aria-label="{{ 'Customer preview'|t }}">
-  <h3 class="mel-event-extra-preview__heading">{{ 'Guest preview'|t }}</h3>
+<div class="mel-event-extra-preview" aria-label="{{ 'Customer preview'|t }}">
   <div class="mel-event-extra-preview__card">
     {% if img.url|default('') %}
       <img class="mel-event-extra-preview__image" src="{{ img.url }}" alt="{{ img.alt|default(preview.title) }}" loading="lazy" />
     {% endif %}
     <div class="mel-event-extra-preview__body">
-      <h4 class="mel-event-extra-preview__title">{{ preview.title|default('') }}</h4>
+      <h5 class="mel-event-extra-preview__title">{{ preview.title|default('') }}</h5>
+      {% if preview_meta_line|default('') %}
+        <p class="mel-event-extra-preview__summary-line">{{ preview_meta_line }}</p>
+      {% elseif options_summary|default('') or price_display|default('') %}
+        <p class="mel-event-extra-preview__summary-line">
+          {% if options_summary|default('') %}{{ options_summary }}{% endif %}
+          {% if options_summary|default('') and price_display|default('') %} · {% endif %}
+          {% if price_display|default('') %}{{ price_display }}{% endif %}
+        </p>
+      {% endif %}
       {% if preview.short_description|default('') %}
         <p class="mel-event-extra-preview__desc">{{ preview.short_description }}</p>
       {% endif %}
       {% if preview.pickup_note|default('') %}
         <p class="mel-event-extra-preview__pickup">{{ preview.pickup_note }}</p>
       {% endif %}
+      <dl class="mel-event-extra-preview__meta">
+        {% if stock_label|default('') %}
+          <div class="mel-event-extra-preview__meta-row">
+            <dt>{{ 'Stock'|t }}</dt>
+            <dd>{{ stock_label }}</dd>
+          </div>
+        {% endif %}
+        {% if visibility_label|default('') %}
+          <div class="mel-event-extra-preview__meta-row">
+            <dt>{{ 'Booking'|t }}</dt>
+            <dd>{{ visibility_label }}</dd>
+          </div>
+        {% endif %}
+      </dl>
+      {% if hidden_notice|default('') %}
+        <p class="mel-event-extra-preview__hidden-notice">{{ hidden_notice }}</p>
+      {% endif %}
       <p class="mel-event-extra-preview__cta mel-text--muted">{{ 'Add to booking (preview only)'|t }}</p>
     </div>
   </div>
-</aside>
+</div>

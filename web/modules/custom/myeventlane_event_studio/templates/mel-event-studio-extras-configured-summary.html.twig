@@ -1,0 +1,70 @@
+{#
+/**
+ * @file
+ * Configured merch & add-ons summary for Manage event (not sales analytics).
+ */
+#}
+{% set panel = panel|default({}) %}
+<section class="mel-es-card mel-event-extras-studio__configured-summary" aria-labelledby="mel-extras-configured-title">
+  <header class="mel-event-extras-studio__configured-header">
+    <h3 id="mel-extras-configured-title" class="mel-es-card__title">{{ 'Merch & add-ons'|t }}</h3>
+    {% if panel.has_products %}
+      <p class="mel-text--muted">{{ 'What is configured for this event (not sales totals).'|t }}</p>
+    {% endif %}
+  </header>
+
+  {% if panel.has_products %}
+    {% set stats = panel.stats|default({}) %}
+    <dl class="mel-event-extras-studio__configured-stats">
+      <div>
+        <dt>{{ 'Configured extras'|t }}</dt>
+        <dd>{{ stats.total|default(0) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'Active on booking page'|t }}</dt>
+        <dd>{{ stats.active_on_booking|default(0) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'Hidden or draft'|t }}</dt>
+        <dd>{{ stats.hidden_draft|default(0) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'Low stock'|t }}</dt>
+        <dd>{{ stats.low_stock|default(0) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'Sold out'|t }}</dt>
+        <dd>{{ stats.sold_out|default(0) }}</dd>
+      </div>
+    </dl>
+
+    {% if panel.top_products is iterable and panel.top_products|length > 0 %}
+      <div class="mel-event-extras-studio__configured-top">
+        <h4 class="mel-event-extras-studio__configured-top-title">{{ 'Top configured products'|t }}</h4>
+        <ul class="mel-event-extras-studio__configured-top-list">
+          {% for product in panel.top_products %}
+            <li>
+              <span class="mel-event-extras-studio__configured-name">{{ product.name }}</span>
+              <span class="mel-event-extras-studio__configured-meta mel-text--muted">
+                {{ product.type }} · {{ product.stock_state }} · {{ product.visibility }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  {% else %}
+    {% set empty = panel.empty_state|default({}) %}
+    <div class="mel-event-extras-studio__configured-empty">
+      <h4 class="mel-event-extras-studio__configured-empty-title">{{ empty.title|default('') }}</h4>
+      <p>{{ empty.copy|default('') }}</p>
+      <p class="mel-text--muted">{{ empty.note|default('') }}</p>
+    </div>
+  {% endif %}
+
+  {% if panel.manage_url %}
+    <div class="mel-event-extras-studio__configured-actions">
+      <a href="{{ panel.manage_url }}" class="mel-btn mel-btn--primary">{{ panel.manage_label|default('Manage merch & add-ons'|t) }}</a>
+    </div>
+  {% endif %}
+</section>

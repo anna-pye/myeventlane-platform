@@ -108,7 +108,7 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildOverviewSection(NodeInterface $event): array {
-    return [
+    $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-overview']],
       'hero' => [
@@ -153,6 +153,8 @@ final class EventStudioSectionRenderer {
         ],
       ],
     ];
+
+    return $build;
   }
 
   /**

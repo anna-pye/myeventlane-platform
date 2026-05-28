@@ -15,7 +15,7 @@ use Drupal\node\NodeInterface;
  *   id = "myeventlane_refunds.event_workspace_refund_requests",
  *   route_name = "myeventlane_refunds.vendor_refund_requests",
  *   title = @Translation("Refund requests"),
- *   base_route = "myeventlane_vendor.console.event_overview",
+ *   base_route = "myeventlane_vendor.console.event_workspace",
  *   weight = -9,
  * )
  */

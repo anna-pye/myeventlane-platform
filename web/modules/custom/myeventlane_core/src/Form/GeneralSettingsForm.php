@@ -8,6 +8,7 @@ use Drupal\Core\Datetime\TimeZoneFormHelper;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_core\PlatformFeeDefaults;
+use Drupal\myeventlane_core\Service\PlatformFeeSettings;
 
 /**
  * General settings form for MyEventLane platform.
@@ -84,11 +85,27 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#open' => TRUE,
     ];
 
+    $ticket_fee = PlatformFeeDefaults::normalizePercent($config->get('platform_fee_percent'));
+    $extras_raw = $config->get('operational_extras_platform_fee_percent');
+    $extras_default = PlatformFeeDefaults::normalizePercent($ticket_fee * PlatformFeeSettings::EXTRAS_FEE_TICKET_MULTIPLIER);
+
     $form['payments']['platform_fee_percent'] = [
       '#type' => 'number',
-      '#title' => $this->t('Platform fee percentage'),
-      '#description' => $this->t('Percentage applied to ticket subtotals (excludes donations and Boost). For example, 1.5 applies a 1.5% platform fee. Set to 0 to disable.'),
-      '#default_value' => (string) PlatformFeeDefaults::normalizePercent($config->get('platform_fee_percent')),
+      '#title' => $this->t('Platform fee percentage (tickets)'),
+      '#description' => $this->t('Percentage applied to ticket subtotals only (excludes donations, Boost, and operational extras). For example, 1.5 applies a 1.5% platform fee. Set to 0 to disable.'),
+      '#default_value' => (string) $ticket_fee,
+      '#min' => 0,
+      '#max' => 100,
+      '#step' => 0.5,
+      '#size' => 5,
+    ];
+
+    $form['payments']['operational_extras_platform_fee_percent'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Platform fee percentage (merch & add-ons)'),
+      '#description' => $this->t('Percentage applied to operational extras subtotals in mixed checkout. Leave blank to use double the ticket fee (@default%). Does not change Stripe Connect application fees on tickets.',
+        ['@default' => number_format($extras_default, 1)]),
+      '#default_value' => is_numeric($extras_raw) ? (string) PlatformFeeDefaults::normalizePercent($extras_raw) : '',
       '#min' => 0,
       '#max' => 100,
       '#step' => 0.5,
@@ -153,12 +170,19 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $fee_payer = $form_state->getValue(['payments', 'fee_payer']);
     $fee_payer = in_array($fee_payer, ['buyer', 'organizer_absorbs'], TRUE) ? $fee_payer : 'buyer';
 
+    $extras_v = $form_state->getValue(['payments', 'operational_extras_platform_fee_percent']);
+    $operational_extras_platform_fee_percent = NULL;
+    if ($extras_v !== '' && $extras_v !== NULL && is_numeric($extras_v)) {
+      $operational_extras_platform_fee_percent = PlatformFeeDefaults::normalizePercent($extras_v);
+    }
+
     $this->config('myeventlane_core.settings')
       ->set('site_name', $form_state->getValue(['platform', 'site_name']))
       ->set('support_email', $form_state->getValue(['platform', 'support_email']))
       ->set('default_timezone', $form_state->getValue(['defaults', 'default_timezone']))
       ->set('default_currency', $form_state->getValue(['defaults', 'default_currency']))
       ->set('platform_fee_percent', $platform_fee_percent)
+      ->set('operational_extras_platform_fee_percent', $operational_extras_platform_fee_percent)
       ->set('stripe_fee_percent', $stripe_fee_percent)
       ->set('stripe_fee_fixed_cents', $stripe_fee_fixed_cents)
       ->set('fee_payer', $fee_payer)

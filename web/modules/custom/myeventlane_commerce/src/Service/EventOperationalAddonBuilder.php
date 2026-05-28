@@ -60,6 +60,7 @@ final class EventOperationalAddonBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly OperationalMerchandiseManager $operationalMerchandiseManager,
     private readonly OperationalExtraVisualPresenter $visualPresenter,
+    private readonly OperationalVariationStockResolver $stockResolver,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -143,6 +144,7 @@ final class EventOperationalAddonBuilder {
           'size_key' => $size['size_key'],
           'size_label' => $size['size_label'],
         ];
+        $row += $this->stockResolver->buildVariationCustomerStock($variation);
         $variations[] = $row;
 
         if ($size['size_key'] !== '') {
@@ -152,6 +154,10 @@ final class EventOperationalAddonBuilder {
             'size_label' => $size['size_label'],
             'price_number' => $row['price_number'],
             'price_currency_code' => $row['price_currency_code'],
+            'sold_out' => !empty($row['sold_out']),
+            'remaining_label' => (string) ($row['remaining_label'] ?? ''),
+            'limit_label' => (string) ($row['limit_label'] ?? ''),
+            'max_quantity' => $row['max_quantity'],
           ];
         }
       }
@@ -172,12 +178,17 @@ final class EventOperationalAddonBuilder {
             'size_label' => $label,
             'price_number' => (string) ($v['price_number'] ?? ''),
             'price_currency_code' => (string) ($v['price_currency_code'] ?? ''),
+            'sold_out' => !empty($v['sold_out']),
+            'remaining_label' => (string) ($v['remaining_label'] ?? ''),
+            'limit_label' => (string) ($v['limit_label'] ?? ''),
+            'max_quantity' => $v['max_quantity'] ?? NULL,
           ];
         }
       }
 
       $requires_size = count($size_options) > 1;
       $default_variation_id = count($variations) === 1 ? (int) $variations[0]['variation_id'] : NULL;
+      $product_stock = $this->stockResolver->summarizeProductStock($product);
 
       $chips = $this->buildCustomerChips($visual, $presentation);
 
@@ -196,6 +207,7 @@ final class EventOperationalAddonBuilder {
         'requires_size_selection' => $requires_size,
         'default_variation_id' => $default_variation_id,
         'chips' => $chips,
+        'stock' => $product_stock,
         'operational' => [
           'operational_summary' => $visual['short_description'],
           'operational_chips' => $chips,

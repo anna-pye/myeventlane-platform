@@ -141,7 +141,7 @@ final class EventTicketManagerForm extends FormBase {
       if ($show_workspace) {
         $form['back_nav']['workspace'] = [
           '#type' => 'link',
-          '#title' => $this->t('Event workspace'),
+          '#title' => $this->t('Back to Manage event'),
           '#url' => $workspace_url,
           '#attributes' => ['class' => ['mel-ticket-manager-back-nav__link']],
         ];

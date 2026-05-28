@@ -135,6 +135,10 @@ abstract class VendorConsoleBaseController {
       ],
     ];
 
+    if ($theme_hook === 'mel_event_workspace') {
+      $base_attached['library'][] = 'myeventlane_vendor_theme/event_mission_control';
+    }
+
     // Merge in additional attachments provided by controllers.
     if (isset($variables['#attached']) && is_array($variables['#attached'])) {
       $extra = $variables['#attached'];

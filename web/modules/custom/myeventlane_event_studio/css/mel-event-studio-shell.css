@@ -2175,6 +2175,10 @@
   min-height: 44px;
 }
 
+.mel-event-studio-topbar__manage-event {
+  white-space: nowrap;
+}
+
 .mel-event-studio-sidebar-toggle {
   display: none !important;
   align-self: flex-start;

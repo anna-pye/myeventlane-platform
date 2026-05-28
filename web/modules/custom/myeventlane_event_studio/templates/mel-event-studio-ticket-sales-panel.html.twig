@@ -1,0 +1,78 @@
+{#
+/**
+ * @file
+ * Read-only ticket sales panel for Event Studio commerce area.
+ */
+#}
+{% set compact = panel.compact|default(false) %}
+<section class="mel-es-card mel-event-extras-studio__ticket-sales{% if compact %} mel-event-extras-studio__ticket-sales--compact{% endif %}" aria-labelledby="mel-event-ticket-sales-title">
+  {% if not compact %}
+    <header class="mel-event-extras-studio__ticket-sales-header">
+      <h3 id="mel-event-ticket-sales-title" class="mel-es-card__title">{{ 'Ticket sales'|t }}</h3>
+      <p class="mel-event-extras-studio__ticket-sales-helper mel-text--muted">
+        {{ panel.helper_copy }}
+      </p>
+    </header>
+  {% else %}
+    <h3 id="mel-event-ticket-sales-title" class="visually-hidden">{{ 'Ticket sales'|t }}</h3>
+  {% endif %}
+
+  {% if panel.has_rows %}
+    <div class="mel-event-extras-studio__ticket-sales-table-wrap">
+      <table class="mel-event-extras-studio__ticket-sales-table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Ticket'|t }}</th>
+            {% if not compact %}<th scope="col">{{ 'Price'|t }}</th>{% endif %}
+            <th scope="col">{{ 'Sold'|t }}</th>
+            <th scope="col">{{ 'Remaining'|t }}</th>
+            {% if not compact %}<th scope="col">{{ 'Capacity'|t }}</th>{% endif %}
+            {% if not compact %}<th scope="col">{{ '% sold'|t }}</th>{% endif %}
+            <th scope="col">{{ 'Status'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in panel.rows %}
+            <tr class="mel-event-extras-studio__ticket-sales-row mel-event-extras-studio__ticket-sales-row--{{ row.status }}">
+              <td data-label="{{ 'Ticket'|t }}">{{ row.name }}</td>
+              {% if not compact %}<td data-label="{{ 'Price'|t }}">{{ row.price }}</td>{% endif %}
+              <td data-label="{{ 'Sold'|t }}">{{ row.sold }}</td>
+              <td data-label="{{ 'Remaining'|t }}">{{ row.remaining_label }}</td>
+              {% if not compact %}<td data-label="{{ 'Capacity'|t }}">{{ row.capacity_label }}</td>{% endif %}
+              {% if not compact %}<td data-label="{{ '% sold'|t }}">{{ row.percent_sold_label }}</td>{% endif %}
+              <td data-label="{{ 'Status'|t }}">
+                <span class="mel-pill mel-pill--tone-{{ row.status_tone }}">{{ row.status_label }}</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mel-event-extras-studio__ticket-sales-cards">
+      {% for row in panel.rows %}
+        <article class="mel-event-extras-studio__ticket-sales-card">
+          <h4 class="mel-event-extras-studio__ticket-sales-card-title">{{ row.name }}</h4>
+          <dl class="mel-event-extras-studio__ticket-sales-card-meta">
+            <div><dt>{{ 'Price'|t }}</dt><dd>{{ row.price }}</dd></div>
+            <div><dt>{{ 'Sold'|t }}</dt><dd>{{ row.sold }}</dd></div>
+            <div><dt>{{ 'Remaining'|t }}</dt><dd>{{ row.remaining_label }}</dd></div>
+            <div><dt>{{ 'Capacity'|t }}</dt><dd>{{ row.capacity_label }}</dd></div>
+            <div><dt>{{ '% sold'|t }}</dt><dd>{{ row.percent_sold_label }}</dd></div>
+            <div><dt>{{ 'Status'|t }}</dt><dd><span class="mel-pill mel-pill--tone-{{ row.status_tone }}">{{ row.status_label }}</span></dd></div>
+          </dl>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="mel-event-extras-studio__ticket-sales-empty mel-text--muted">{{ panel.empty_message }}</p>
+  {% endif %}
+
+  {% if panel.edit_tickets_url %}
+    <p class="mel-event-extras-studio__ticket-sales-actions">
+      <a href="{{ panel.edit_tickets_url }}" class="mel-btn mel-btn--secondary mel-event-extras-studio__edit-tickets">
+        {{ panel.edit_tickets_label }}
+      </a>
+    </p>
+  {% endif %}
+</section>

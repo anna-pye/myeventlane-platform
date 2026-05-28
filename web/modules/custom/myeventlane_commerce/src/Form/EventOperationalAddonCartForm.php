@@ -17,6 +17,7 @@ use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
+use Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -38,6 +39,7 @@ final class EventOperationalAddonCartForm extends FormBase {
     protected CartProviderInterface $cartProvider,
     protected CartManagerInterface $cartManager,
     protected EventOperationalAddonBuilder $addonBuilder,
+    protected OperationalVariationStockResolver $stockResolver,
     protected CurrencyFormatter $currencyFormatter,
   ) {}
 
@@ -50,6 +52,7 @@ final class EventOperationalAddonCartForm extends FormBase {
       $container->get('commerce_cart.cart_provider'),
       $container->get('commerce_cart.cart_manager'),
       $container->get('myeventlane_commerce.event_operational_addon_builder'),
+      $container->get('myeventlane_commerce.operational_variation_stock_resolver'),
       $container->get('commerce_price.currency_formatter'),
     );
   }
@@ -117,6 +120,12 @@ final class EventOperationalAddonCartForm extends FormBase {
     $size_options = is_array($addon['size_options'] ?? NULL) ? $addon['size_options'] : [];
     $requires_size = !empty($addon['requires_size_selection']);
     $default_vid = (int) ($addon['default_variation_id'] ?? 0);
+    $stock = is_array($addon['stock'] ?? NULL) ? $addon['stock'] : [];
+    $product_sold_out = !empty($stock['sold_out']);
+    $variations = is_array($addon['variations'] ?? NULL) ? $addon['variations'] : [];
+    $default_variation = $variations[0] ?? [];
+    $default_max = is_array($default_variation) ? ($default_variation['max_quantity'] ?? NULL) : NULL;
+    $ui_max = $this->resolveUiMaxQuantity($default_max);
 
     $price_display = $this->resolveDisplayPrice($addon, $size_options);
     $summary_attrs = $this->buildExtraSummaryDataAttributes($addon, $size_options);
@@ -130,6 +139,11 @@ final class EventOperationalAddonCartForm extends FormBase {
         'data-default-variation' => $default_vid > 0 ? (string) $default_vid : '',
       ], $summary_attrs),
     ];
+
+    if ($product_sold_out) {
+      $card['#attributes']['class'][] = 'mel-event-extra-card--sold-out';
+      $card['#attributes']['data-sold-out'] = '1';
+    }
 
     $card['product_id'] = [
       '#type' => 'hidden',
@@ -171,6 +185,22 @@ final class EventOperationalAddonCartForm extends FormBase {
         '#value' => $price_display,
         '#attributes' => ['class' => ['mel-event-extra-card__price']],
       ];
+    }
+
+    $stock_labels = $this->buildStockStatusLabels($addon, $size_options, $default_variation);
+    if ($stock_labels !== []) {
+      $card['body']['stock'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-extra-card__stock']],
+      ];
+      foreach ($stock_labels as $label) {
+        $card['body']['stock'][] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $label,
+          '#attributes' => ['class' => ['mel-event-extra-card__stock-line']],
+        ];
+      }
     }
 
     $chips = is_array($addon['chips'] ?? NULL) ? $addon['chips'] : [];
@@ -227,8 +257,10 @@ final class EventOperationalAddonCartForm extends FormBase {
           'selected_size' => [
             '#type' => 'radios',
             '#options' => $this->sizeRadioOptions($size_options),
+            '#options_disabled' => $this->disabledSizeOptionKeys($size_options),
             '#default_value' => '',
             '#parents' => ['lines', (string) $index, 'selected_size'],
+            '#disabled' => $product_sold_out,
           ],
         ],
         'selected' => [
@@ -257,12 +289,14 @@ final class EventOperationalAddonCartForm extends FormBase {
       '#title' => $this->t('Quantity'),
       '#title_display' => 'invisible',
       '#min' => 0,
-      '#max' => self::UI_QTY_MAX,
+      '#max' => $ui_max,
       '#step' => 1,
       '#default_value' => 0,
+      '#disabled' => $product_sold_out,
       '#attributes' => [
         'class' => ['mel-event-extra-card__qty-input'],
         'inputmode' => 'numeric',
+        'data-ui-max' => (string) $ui_max,
         'aria-label' => (string) $this->t('Quantity for @title', ['@title' => $title !== '' ? $title : $this->t('this extra')]),
       ],
     ];
@@ -300,10 +334,11 @@ final class EventOperationalAddonCartForm extends FormBase {
       '#attributes' => ['class' => ['mel-event-extra-card__footer']],
       'submit' => [
         '#type' => 'submit',
-        '#value' => $this->t('Add to Cart'),
+        '#value' => $product_sold_out ? $this->t('Sold out') : $this->t('Add to Cart'),
         '#button_type' => 'primary',
         '#name' => 'add_extra_' . $index,
         '#line_index' => $index,
+        '#disabled' => $product_sold_out,
         '#attributes' => [
           'class' => [
             'mel-btn',
@@ -482,9 +517,36 @@ final class EventOperationalAddonCartForm extends FormBase {
         continue;
       }
       $label = (string) ($opt['size_label'] ?? $key);
+      if (!empty($opt['sold_out'])) {
+        $label .= ' (' . $this->t('Sold out') . ')';
+      }
+      elseif (($opt['remaining_label'] ?? '') !== '') {
+        $label .= ' — ' . (string) $opt['remaining_label'];
+      }
       $options[$key] = $label;
     }
     return $options;
+  }
+
+  /**
+   * @param list<array<string, mixed>> $size_options
+   *
+   * @return list<string>
+   */
+  private function disabledSizeOptionKeys(array $size_options): array {
+    $disabled = [];
+    foreach ($size_options as $opt) {
+      if (!is_array($opt)) {
+        continue;
+      }
+      if (!empty($opt['sold_out'])) {
+        $key = (string) ($opt['size_key'] ?? '');
+        if ($key !== '') {
+          $disabled[] = $key;
+        }
+      }
+    }
+    return $disabled;
   }
 
   /**
@@ -626,6 +688,19 @@ final class EventOperationalAddonCartForm extends FormBase {
       }
       if (!in_array($vid, $entry['variation_ids'], TRUE)) {
         $form_state->setErrorByName('lines', $this->t('One or more selected extras are not available for this event.'));
+        return;
+      }
+
+      /** @var \Drupal\commerce_product\Entity\ProductVariationInterface|null $variation */
+      $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($vid);
+      if (!$variation instanceof ProductVariationInterface) {
+        $form_state->setErrorByName('lines', $this->t('An extra is no longer available.'));
+        return;
+      }
+
+      $cart = $this->resolveCartForAddonValidation($event, $pid);
+      foreach ($this->stockResolver->validateAddToCartQuantity($variation, $qty, $cart) as $error) {
+        $form_state->setErrorByName('lines][' . $index . '][quantity', $error);
         return;
       }
     }
@@ -810,6 +885,60 @@ final class EventOperationalAddonCartForm extends FormBase {
     }
     $index = (int) $trigger['#line_index'];
     return $index >= 0 ? $index : NULL;
+  }
+
+  /**
+   * @param list<array<string, mixed>> $size_options
+   * @param array<string, mixed> $default_variation
+   *
+   * @return list<string>
+   */
+  private function buildStockStatusLabels(array $addon, array $size_options, array $default_variation): array {
+    if ($size_options !== []) {
+      return [];
+    }
+    $labels = [];
+    if (!empty($default_variation['sold_out'])) {
+      $labels[] = (string) $this->t('Sold out');
+    }
+    elseif (($default_variation['remaining_label'] ?? '') !== '') {
+      $labels[] = (string) $default_variation['remaining_label'];
+    }
+    if (($default_variation['limit_label'] ?? '') !== '') {
+      $labels[] = (string) $default_variation['limit_label'];
+    }
+    $stock = is_array($addon['stock'] ?? NULL) ? $addon['stock'] : [];
+    if ($labels === [] && !empty($stock['unlimited'])) {
+      return [];
+    }
+    return $labels;
+  }
+
+  private function resolveUiMaxQuantity(mixed $configured_max): int {
+    if ($configured_max === NULL) {
+      return self::UI_QTY_MAX;
+    }
+    $max = (int) $configured_max;
+    if ($max < 1) {
+      return 0;
+    }
+    return min(self::UI_QTY_MAX, $max);
+  }
+
+  private function resolveCartForAddonValidation(NodeInterface $event, int $product_id): ?\Drupal\commerce_order\Entity\OrderInterface {
+    $product = $this->entityTypeManager->getStorage('commerce_product')->load($product_id);
+    if (!$product instanceof ProductInterface) {
+      return NULL;
+    }
+    $stores = $product->getStores();
+    if ($stores === []) {
+      return NULL;
+    }
+    $store = reset($stores);
+    if (!$store) {
+      return NULL;
+    }
+    return $this->cartProvider->getCart('default', $store);
   }
 
 }

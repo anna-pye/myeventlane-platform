@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * MEL Event Workspace — shared shell (live-ops primitives + TASK 8 overview).
+ * MEL Event Workspace — mission-control dashboard at /vendor/events/{event}.
  */
 #}
 {% set model = vendor_event_workspace_model|default({}) %}
@@ -14,33 +14,40 @@
       <p class="mel-live-ops__workspace-empty-intro">{{ model.empty_state.message|default('') }}</p>
     </div>
   {% elseif has_ws_model %}
-    <div class="mel-live-operations mel-live-operations--event-landing">
-      <header class="mel-live-ops__hero" aria-labelledby="mel-ws-event-title">
+    {% set st = model.event.status_severity|default('neutral') %}
+    {% set st_chip =
+      st == 'success' ? 'success' :
+      (st == 'warning' or st == 'error') ? 'warn' :
+      (st == 'neutral' ? 'calm' : 'info')
+    %}
+    {% set focus = model.todays_focus|default({}) %}
+    {% set focus_sev = focus.severity|default('info') %}
+    {% set sales = model.sales_snapshot|default({}) %}
+    {% set grid = model.action_grid|default({}) %}
+    {% set readiness_sum = model.readiness_summary|default({}) %}
+    {% set lifecycle_guidance = model.lifecycle_guidance|default({}) %}
+    {% set lifecycle_guidance_items = lifecycle_guidance.items|default([]) %}
+
+    <div class="mel-event-mission-control mel-live-operations mel-live-operations--event-landing">
+      <header class="mel-event-mission-control__hero mel-live-ops__hero" aria-labelledby="mel-ws-event-title">
         <div class="mel-live-ops__hero-surface">
-          <div class="mel-live-ops__hero-layout">
+          <div class="mel-event-mission-control__hero-layout mel-live-ops__hero-layout">
             <div class="mel-live-ops__hero-primary">
-              <p class="mel-live-ops__eyebrow">{{ 'Event workspace'|t }}</p>
-              {% set st = model.event.status_severity|default('neutral') %}
-              {% set st_chip =
-                st == 'success' ? 'success' :
-                (st == 'warning' or st == 'error') ? 'warn' :
-                (st == 'neutral' ? 'calm' : 'info')
-              %}
               <div class="mel-live-ops__chip-row mel-live-ops__chip-row--compact">
                 <span class="mel-live-ops__chip mel-live-ops__chip--{{ st_chip }}">{{ model.event.status_label|default('') }}</span>
+                {% if model.event.event_type_label|default('') is not empty %}
+                  <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ model.event.event_type_label }}</span>
+                {% endif %}
+                <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ '@pct% readiness'|t({'@pct': model.readiness.score|default(0)}) }}</span>
               </div>
               <h1 id="mel-ws-event-title" class="mel-live-ops__hero-title">{{ model.event.title|default('') }}</h1>
               <p class="mel-live-ops__hero-venue">
                 {% if model.event.date_label|default('') is not empty %}
                   <span>{{ model.event.date_label }}</span>
                 {% endif %}
-                {% if model.event.event_type_label|default('') is not empty %}
-                  {% if model.event.date_label|default('') is not empty %} · {% endif %}
-                  <span>{{ model.event.event_type_label }}</span>
-                {% endif %}
               </p>
             </div>
-            <div class="mel-live-ops__hero-aside">
+            <div class="mel-live-ops__hero-aside mel-event-mission-control__hero-actions">
               <div class="mel-live-ops__stack">
                 {% if model.actions.edit is not null %}
                   <a class="mel-live-ops__hero-cta mel-btn mel-btn--primary" href="{{ model.actions.edit }}">{{ 'Edit event'|t }}</a>
@@ -58,22 +65,6 @@
           </div>
         </div>
       </header>
-
-      <section class="mel-live-ops__panel" aria-label="{{ 'Event operational state'|t }}">
-        <div class="mel-live-ops__chip-row">
-          <span class="mel-live-ops__chip mel-live-ops__chip--{{ st_chip }}">{{ model.event.status_label|default('') }}</span>
-          {% if model.event.event_type_label|default('') is not empty %}
-            <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ model.event.event_type_label }}</span>
-          {% endif %}
-          <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ '@pct% readiness'|t({'@pct': model.readiness.score|default(0)}) }}</span>
-          {% if model.actions.checkin is not null %}
-            <a class="mel-live-ops__chip mel-live-ops__chip--lavender" href="{{ model.actions.checkin }}">{{ 'Check-in ready'|t }}</a>
-          {% endif %}
-          {% if model.actions.preview is not null %}
-            <a class="mel-live-ops__chip mel-live-ops__chip--lavender" href="{{ model.actions.preview }}">{{ 'Public preview'|t }}</a>
-          {% endif %}
-        </div>
-      </section>
 
       {% if model.presentation_alerts is defined and model.presentation_alerts is iterable and model.presentation_alerts|length > 0 %}
         <div class="mel-live-ops__presentation-alerts" role="region" aria-label="{{ 'Ticket and pricing setup'|t }}">
@@ -99,164 +90,224 @@
         </div>
       {% endif %}
 
-      {% if model.next_action is defined and model.next_action is iterable %}
-        {% set na = model.next_action %}
-        {% set na_sev = na.severity|default('info') %}
-        {% set na_glyph = na_sev == 'error' ? '!' : (na_sev == 'warning' ? '!' : '•') %}
-        <section class="mel-live-ops__panel" aria-label="{{ 'Suggested next step'|t }}">
-          <div class="mel-live-ops__timeline-feed" role="list">
-            <article class="mel-live-ops__timeline-card" role="listitem">
-              <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ na_glyph }}</div>
-              <div class="mel-live-ops__timeline-body">
-                <h2 class="mel-live-ops__timeline-name">{{ na.title|default('') }}</h2>
-                {% if na.message|default('') is not empty %}
-                  <p class="mel-live-ops__muted">{{ na.message|default('') }}</p>
-                {% endif %}
-                {% if na.action_label|default('') is not empty and na.url is not null %}
-                  <div class="mel-live-ops__stack">
-                    <a class="mel-btn mel-btn--primary" href="{{ na.url }}">{{ na.action_label }}</a>
-                  </div>
-                {% endif %}
-              </div>
-            </article>
-          </div>
-        </section>
-      {% endif %}
-
-      {% set ops_readiness = model.operational_readiness|default({}) %}
-      {% set ops_readiness_items = ops_readiness.items|default([]) %}
-      {% if ops_readiness_items is iterable and ops_readiness_items|length > 0 %}
-        <section class="mel-live-ops__panel" aria-labelledby="mel-ws-operational-readiness-heading">
-          <div class="mel-live-ops__timeline-head">
-            <h2 id="mel-ws-operational-readiness-heading" class="mel-live-ops__panel-title">{{ ops_readiness.heading|default('Operational readiness'|t) }}</h2>
-            <p class="mel-live-ops__panel-intro">{{ ops_readiness.intro|default('What is ready, what attendees can see, and what still needs setup.'|t) }}</p>
-          </div>
-          <div class="mel-live-ops__timeline-feed" role="list">
-            {% for item in ops_readiness_items %}
-              {% set sev = item.severity|default('info') %}
-              {% set chip_mod =
-                sev == 'success' ? 'success' :
-                (sev == 'warning' or sev == 'error') ? 'warn' :
-                (sev == 'neutral' ? 'calm' : 'info')
-              %}
-              <article class="mel-live-ops__timeline-card" role="listitem">
-                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ sev == 'success' ? '✓' : '•' }}</div>
-                <div class="mel-live-ops__timeline-body">
-                  <div class="mel-live-ops__timeline-headline">
-                    <span class="mel-live-ops__timeline-name">{{ item.label|default('') }}</span>
-                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
-                  </div>
-                  {% if item.message|default('') is not empty %}
-                    <p class="mel-live-ops__muted">{{ item.message }}</p>
-                  {% endif %}
-                </div>
-              </article>
-            {% endfor %}
-          </div>
-        </section>
-      {% endif %}
-
-      {% set lifecycle_guidance = model.lifecycle_guidance|default({}) %}
-      {% set lifecycle_guidance_items = lifecycle_guidance.items|default([]) %}
-      {% if lifecycle_guidance_items is iterable and lifecycle_guidance_items|length > 0 %}
-        <section class="mel-live-ops__panel" aria-labelledby="mel-ws-lifecycle-guidance-heading">
-          <div class="mel-live-ops__timeline-head">
-            <h2 id="mel-ws-lifecycle-guidance-heading" class="mel-live-ops__panel-title">{{ lifecycle_guidance.heading|default('Lifecycle guidance'|t) }}</h2>
-            <p class="mel-live-ops__panel-intro">{{ lifecycle_guidance.intro|default('Contextual notes that explain this event state without adding new rules or alerts.'|t) }}</p>
-          </div>
-          <div class="mel-live-ops__timeline-feed" role="list">
-            {% for item in lifecycle_guidance_items %}
-              {% set sev = item.severity|default('info') %}
-              {% set chip_mod =
-                sev == 'success' ? 'success' :
-                (sev == 'warning' or sev == 'error') ? 'warn' :
-                (sev == 'neutral' ? 'calm' : 'info')
-              %}
-              <article class="mel-live-ops__timeline-card" role="listitem">
-                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{{ sev == 'success' ? '✓' : '•' }}</div>
-                <div class="mel-live-ops__timeline-body">
-                  <div class="mel-live-ops__timeline-headline">
-                    <span class="mel-live-ops__timeline-name">{{ item.stage|default('') }}</span>
-                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
-                  </div>
-                  {% if item.message|default('') is not empty %}
-                    <p class="mel-live-ops__muted">{{ item.message }}</p>
-                  {% endif %}
-                </div>
-              </article>
-            {% endfor %}
-          </div>
-        </section>
-      {% endif %}
-
-      <section class="mel-live-ops__panel" aria-labelledby="mel-ws-readiness-heading">
-        <div class="mel-live-ops__timeline-head">
-          <h2 id="mel-ws-readiness-heading" class="mel-live-ops__panel-title">{{ 'Readiness'|t }}</h2>
-          <p class="mel-live-ops__panel-intro">
-            {{ '@pct% complete'|t({'@pct': model.readiness.score|default(0)}) }}
+      <div class="mel-event-mission-control__above-fold">
+        <section class="mel-event-mission-control__focus mel-live-ops__panel" aria-labelledby="mel-ws-todays-focus-heading">
+          <h2 id="mel-ws-todays-focus-heading" class="mel-event-mission-control__focus-title mel-live-ops__panel-title">{{ "Today's focus"|t }}</h2>
+          <p class="mel-event-mission-control__focus-message mel-event-mission-control__focus-message--{{ focus_sev|e('html_attr') }}">
+            <span class="visually-hidden">{{ 'Status:'|t }} </span>
+            {{ focus.message|default('') }}
           </p>
-        </div>
-        {% if model.readiness.items is iterable and model.readiness.items|length > 0 %}
-          <div class="mel-live-ops__timeline-feed" role="list">
-            {% for item in model.readiness.items %}
-              {% set ic = item.complete|default(false) %}
-              {% set isev = item.severity|default('neutral') %}
-              {% set chip_mod = ic ? 'success' : ((isev == 'warning') ? 'warn' : 'info') %}
-              {% set status_label %}
-                {% if ic %}
-                  {{ 'Complete'|t }}
-                {% else %}
-                  {{ 'Action required'|t }}
-                {% endif %}
-              {% endset %}
-              <article class="mel-live-ops__timeline-card" role="listitem">
-                <div class="mel-live-ops__timeline-avatar" aria-hidden="true">{% if ic %}✓{% else %}!{% endif %}</div>
-                <div class="mel-live-ops__timeline-body">
-                  {% if item.url is not null and not ic %}
-                    <a class="mel-live-ops__readiness-link" href="{{ item.url }}">
-                      <span class="mel-live-ops__timeline-name">{{ item.label|default('') }}</span>
-                      <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ status_label }}</span>
-                    </a>
-                  {% else %}
-                    <div class="mel-live-ops__timeline-headline">
-                      <span class="mel-live-ops__timeline-name">{{ item.label|default('') }}</span>
-                      <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ status_label }}</span>
-                    </div>
-                  {% endif %}
-                </div>
-              </article>
-            {% endfor %}
-          </div>
-        {% endif %}
-      </section>
+          {% set focus_actions = focus.actions|default([]) %}
+          {% if focus_actions is iterable and focus_actions|length > 0 %}
+            <ul class="mel-event-mission-control__focus-actions">
+              {% for action in focus_actions %}
+                <li>
+                  <a class="mel-btn{% if action.primary|default(false) %} mel-btn--primary{% else %} mel-btn--secondary{% endif %}" href="{{ action.url }}">{{ action.label }}</a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </section>
 
-      {% if model.metrics is iterable and model.metrics is not empty %}
-        <section class="mel-live-ops__metrics" aria-labelledby="mel-ws-metrics-heading">
-          <h2 id="mel-ws-metrics-heading" class="visually-hidden">{{ 'Summary metrics'|t }}</h2>
-          <div class="mel-live-ops__metric-board" role="list">
-            {% set stat_mods = ['total', 'in', 'ready', 'capacity'] %}
-            {% for m in model.metrics %}
-              {% set ms = m.severity|default('neutral') %}
-              {% set stat_mod = stat_mods[loop.index0 % stat_mods|length] %}
-              {% if m.url is not null %}
-                <a href="{{ m.url }}" class="mel-live-ops__stat-card mel-live-ops__stat-card--{{ stat_mod }}" role="listitem">
-              {% else %}
-                <article class="mel-live-ops__stat-card mel-live-ops__stat-card--{{ stat_mod }}" role="listitem">
-              {% endif %}
-                <span class="mel-live-ops__stat-icon" aria-hidden="true"></span>
-                <span class="mel-live-ops__stat-label">{{ m.label|default('') }}</span>
-                <span class="mel-live-ops__stat-value">{{ m.value|default('—') }}</span>
-                {% if m.context|default('') is not empty %}
-                  <span class="mel-live-ops__stat-note">{{ m.context }}</span>
+        {% set snapshot_metrics = sales.metrics|default([]) %}
+        {% if snapshot_metrics is iterable and snapshot_metrics|length > 0 %}
+          <section class="mel-event-mission-control__sales mel-live-ops__panel" aria-labelledby="mel-ws-sales-snapshot-heading">
+            <h2 id="mel-ws-sales-snapshot-heading" class="mel-live-ops__panel-title">{{ 'Sales snapshot'|t }}</h2>
+            <div class="mel-event-mission-control__sales-grid" role="list">
+              {% for m in snapshot_metrics %}
+                {% if m.url is not null %}
+                  <a href="{{ m.url }}" class="mel-event-mission-control__sales-card" role="listitem">
+                {% else %}
+                  <article class="mel-event-mission-control__sales-card" role="listitem">
                 {% endif %}
-              {% if m.url is not null %}
-                </a>
-              {% else %}
-                </article>
-              {% endif %}
-            {% endfor %}
+                  <span class="mel-event-mission-control__sales-label">{{ m.label|default('') }}</span>
+                  <span class="mel-event-mission-control__sales-value">{{ m.value|default('—') }}</span>
+                {% if m.url is not null %}
+                  </a>
+                {% else %}
+                  </article>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      </div>
+
+      {% if extras_configured_panel %}
+        <section class="mel-event-mission-control__configured-extras mel-live-ops__panel" aria-labelledby="mel-ws-configured-extras-heading">
+          <h2 id="mel-ws-configured-extras-heading" class="visually-hidden">{{ 'Merch & add-ons configuration'|t }}</h2>
+          {{ extras_configured_panel }}
+        </section>
+      {% endif %}
+
+      {% if ticket_sales_panel %}
+        <details class="mel-event-mission-control__ticket-sales mel-live-ops__panel">
+          <summary class="mel-event-mission-control__ticket-sales-summary">
+            <span class="mel-event-mission-control__ticket-sales-title">{{ 'Ticket sales'|t }}</span>
+            <span class="mel-event-mission-control__ticket-sales-hint mel-live-ops__muted">{{ 'Attendance capacity by ticket type'|t }}</span>
+          </summary>
+          <div class="mel-event-mission-control__ticket-sales-body">
+            {{ ticket_sales_panel }}
+          </div>
+        </details>
+      {% endif %}
+
+      {% if extras_sales_panel %}
+        <details class="mel-event-mission-control__extras-sales mel-live-ops__panel">
+          <summary class="mel-event-mission-control__extras-sales-summary">
+            <span class="mel-event-mission-control__extras-sales-title">{{ 'Merch & add-on sales'|t }}</span>
+            <span class="mel-event-mission-control__extras-sales-hint mel-live-ops__muted">{{ 'Operational extras by category — tickets excluded'|t }}</span>
+          </summary>
+          <div class="mel-event-mission-control__extras-sales-body">
+            {{ extras_sales_panel }}
+          </div>
+        </details>
+      {% endif %}
+
+      {% set grid_sales = grid.sales|default([]) %}
+      {% set grid_setup = grid.setup|default([]) %}
+      {% set grid_growth = grid.growth|default([]) %}
+      {% if grid_sales|length > 0 or grid_setup|length > 0 or grid_growth|length > 0 %}
+        <section class="mel-event-mission-control__actions mel-live-ops__panel" aria-labelledby="mel-ws-shortcuts-heading">
+          <h2 id="mel-ws-shortcuts-heading" class="mel-live-ops__panel-title">{{ 'Manage this event'|t }}</h2>
+          <div class="mel-event-mission-control__action-groups">
+            {% if grid_sales|length > 0 %}
+              <div class="mel-event-mission-control__action-group">
+                <h3 class="mel-event-mission-control__action-group-title">{{ 'Sales'|t }}</h3>
+                <div class="mel-event-mission-control__action-grid">
+                  {% for link in grid_sales %}
+                    <a class="mel-event-mission-control__action-tile" href="{{ link.url }}"><span>{{ link.label }}</span></a>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if grid_setup|length > 0 %}
+              <div class="mel-event-mission-control__action-group">
+                <h3 class="mel-event-mission-control__action-group-title">{{ 'Setup'|t }}</h3>
+                <div class="mel-event-mission-control__action-grid">
+                  {% for link in grid_setup %}
+                    <a class="mel-event-mission-control__action-tile" href="{{ link.url }}"><span>{{ link.label }}</span></a>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if grid_growth|length > 0 %}
+              <div class="mel-event-mission-control__action-group">
+                <h3 class="mel-event-mission-control__action-group-title">{{ 'Growth'|t }}</h3>
+                <div class="mel-event-mission-control__action-grid">
+                  {% for link in grid_growth %}
+                    <a class="mel-event-mission-control__action-tile" href="{{ link.url }}"><span>{{ link.label }}</span></a>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
           </div>
         </section>
+      {% endif %}
+
+      {% set readiness_groups = readiness_sum.groups|default([]) %}
+      {% if readiness_groups is iterable and readiness_groups|length > 0 %}
+        <section class="mel-event-mission-control__readiness mel-live-ops__panel" aria-labelledby="mel-ws-operational-readiness-heading">
+          <div class="mel-event-mission-control__section-head">
+            <div>
+              <h2 id="mel-ws-operational-readiness-heading" class="mel-live-ops__panel-title">{{ model.operational_readiness.heading|default('Operational readiness'|t) }}</h2>
+              {% if readiness_sum.all_ready|default(false) %}
+                <p class="mel-live-ops__panel-intro">{{ 'Everything looks ready for this event.'|t }}</p>
+              {% else %}
+                <p class="mel-live-ops__panel-intro">{{ '@count areas need attention'|t({'@count': readiness_sum.issue_count|default(0)}) }}</p>
+              {% endif %}
+            </div>
+            {% if readiness_sum.all_ready|default(false) %}
+              <span class="mel-live-ops__chip mel-live-ops__chip--success">{{ 'All ready'|t }}</span>
+            {% endif %}
+          </div>
+
+          <div class="mel-event-mission-control__readiness-groups">
+            {% for group in readiness_groups %}
+              {% set g_status = group.status|default('ready') %}
+              {% set g_chip = g_status == 'ready' ? 'success' : 'warn' %}
+              <details class="mel-event-mission-control__readiness-group"{% if group.expand|default(false) %} open{% endif %}>
+                <summary class="mel-event-mission-control__readiness-summary">
+                  <span class="mel-event-mission-control__readiness-label">{{ group.label|default('') }}</span>
+                  <span class="mel-live-ops__chip mel-live-ops__chip--{{ g_chip }}">{{ g_status == 'ready' ? ('Ready'|t) : ('Needs attention'|t) }}</span>
+                </summary>
+                {% if group.items is iterable and group.items|length > 0 %}
+                  <ul class="mel-event-mission-control__readiness-items">
+                    {% for item in group.items %}
+                      {% set isev = item.severity|default('info') %}
+                      {% set chip_mod =
+                        isev == 'success' ? 'success' :
+                        (isev == 'warning' or isev == 'error') ? 'warn' :
+                        (isev == 'neutral' ? 'calm' : 'info')
+                      %}
+                      <li class="mel-event-mission-control__readiness-item">
+                        <span class="mel-event-mission-control__readiness-item-label">{{ item.label|default('') }}</span>
+                        {% if item.message|default('') is not empty %}
+                          <span class="mel-event-mission-control__readiness-item-message mel-live-ops__muted">{{ item.message }}</span>
+                        {% endif %}
+                        <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ item.complete|default(false) ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </details>
+            {% endfor %}
+          </div>
+
+          {% set detail_items = readiness_sum.detail_items|default([]) %}
+          {% if detail_items is iterable and detail_items|length > 0 %}
+            <details class="mel-event-mission-control__readiness-all">
+              <summary>{{ 'Show all readiness checks'|t }}</summary>
+              <ul class="mel-event-mission-control__readiness-items mel-event-mission-control__readiness-items--detail">
+                {% for item in detail_items %}
+                  {% set ic = item.complete|default(false) %}
+                  {% set isev = item.severity|default('neutral') %}
+                  {% set chip_mod = ic ? 'success' : ((isev == 'warning') ? 'warn' : 'info') %}
+                  <li class="mel-event-mission-control__readiness-item">
+                    {% if item.url is not null and not ic %}
+                      <a class="mel-event-mission-control__readiness-item-link" href="{{ item.url }}">
+                        <span>{{ item.label|default('') }}</span>
+                        <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ ic ? ('Complete'|t) : ('Action required'|t) }}</span>
+                      </a>
+                    {% else %}
+                      <span class="mel-event-mission-control__readiness-item-label">{{ item.label|default('') }}</span>
+                      <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ ic ? ('Complete'|t) : ('Action required'|t) }}</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </details>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      {% if lifecycle_guidance_items is iterable and lifecycle_guidance_items|length > 0 %}
+        <details class="mel-event-mission-control__guidance mel-live-ops__panel">
+          <summary class="mel-event-mission-control__guidance-summary">
+            <span class="mel-event-mission-control__guidance-title">{{ 'Event guidance'|t }}</span>
+            <span class="mel-event-mission-control__guidance-copy mel-live-ops__muted">{{ 'Recommendations to help this event perform well.'|t }}</span>
+          </summary>
+          <div class="mel-event-mission-control__guidance-body" aria-labelledby="mel-ws-lifecycle-guidance-heading">
+            <h2 id="mel-ws-lifecycle-guidance-heading" class="visually-hidden">{{ lifecycle_guidance.heading|default('Lifecycle guidance'|t) }}</h2>
+            <ul class="mel-event-mission-control__guidance-list">
+              {% for item in lifecycle_guidance_items %}
+                {% set sev = item.severity|default('info') %}
+                {% set chip_mod =
+                  sev == 'success' ? 'success' :
+                  (sev == 'warning' or sev == 'error') ? 'warn' :
+                  (sev == 'neutral' ? 'calm' : 'info')
+                %}
+                <li class="mel-event-mission-control__guidance-item">
+                  <span class="mel-event-mission-control__guidance-stage">{{ item.stage|default('') }}</span>
+                  {% if item.message|default('') is not empty %}
+                    <p class="mel-live-ops__muted">{{ item.message }}</p>
+                  {% endif %}
+                  <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </details>
       {% endif %}
 
       {% if model.tabs is iterable and model.tabs is not empty %}
@@ -266,39 +317,20 @@
           </nav>
         </div>
       {% endif %}
-
-      <section class="mel-live-ops__panel" aria-labelledby="mel-ws-shortcuts-heading">
-        <h2 id="mel-ws-shortcuts-heading" class="mel-live-ops__panel-title">{{ 'Manage this event'|t }}</h2>
-        <p class="mel-live-ops__panel-intro">{{ 'Quick links to ticketing, attendees, check-in, publishing, and reports for this event.'|t }}</p>
-        <div class="mel-live-ops__shortcut-grid">
-          {% if model.actions.rsvps is not null %}
-            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.rsvps }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View RSVPs'|t }}</span></a>
-          {% endif %}
-          {% if model.actions.orders is not null %}
-            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.orders }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View orders'|t }}</span></a>
-          {% endif %}
-          {% if model.actions.addon_orders is not null %}
-            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.addon_orders }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View add-on orders'|t }}</span></a>
-          {% endif %}
-          {% if model.actions.attendees is not null %}
-            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.attendees }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View attendees'|t }}</span></a>
-          {% endif %}
-          {% if model.actions.checkin is not null %}
-            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.checkin }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'Check in guests'|t }}</span></a>
-          {% endif %}
-          {% if model.actions.analytics is not null %}
-            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.analytics }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'View analytics'|t }}</span></a>
-          {% endif %}
-          {% if model.actions.settings is not null %}
-            <a class="mel-live-ops__shortcut-tile" href="{{ model.actions.settings }}"><span class="mel-live-ops__shortcut-tile-label">{{ 'Event settings'|t }}</span></a>
-          {% endif %}
-        </div>
-      </section>
     </div>
   {% elseif header_stats is not empty %}
     {% include '@myeventlane_vendor_theme/mel-event/mel-event-header.html.twig' %}
   {% else %}
-    {% include '@myeventlane_vendor_theme/components/workspace/workspace-header.html.twig' %}
+    <div class="mel-event-management-shell">
+      {% if manage_event_back.url is defined and manage_event_back.url %}
+        <nav class="mel-event-manage-back mel-event-management-shell__back" aria-label="{{ 'Event navigation'|t }}">
+          <a href="{{ manage_event_back.url }}" class="mel-event-manage-back__link mel-btn mel-btn--ghost">{{ manage_event_back.label|default('Back to Manage event'|t) }}</a>
+        </nav>
+      {% endif %}
+      <div class="mel-event-management-shell__header">
+        {% include '@myeventlane_vendor_theme/components/workspace/workspace-header.html.twig' %}
+      </div>
+    </div>
   {% endif %}
 
   {% if not has_ws_model and tabs %}
@@ -317,7 +349,7 @@
         </aside>
       {% endif %}
 
-      <main class="mel-workspace__content mel-workspace-console-content">
+      <main class="mel-workspace__content mel-workspace-console-content{% if not has_ws_model %} mel-workspace__content--event-management{% endif %}">
         {% if not has_ws_model and workspace_event_boost and workspace_event_boost.performance is defined and workspace_event_boost.performance.ui is defined and workspace_event_boost.performance.ui.show %}
           {% include '@myeventlane_vendor_theme/components/mel-boost-insights-panel.html.twig' with {
             performance: workspace_event_boost.performance

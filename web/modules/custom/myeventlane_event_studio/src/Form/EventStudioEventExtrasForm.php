@@ -11,7 +11,9 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\PlatformFeeSettings;
 use Drupal\myeventlane_commerce\Service\EventExtrasBookPlacementResolver;
+use Drupal\myeventlane_commerce\Service\OperationalExtraVisualPresenter;
 use Drupal\myeventlane_event_studio\Service\EventStudioEventExtrasBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioExtrasProductEditorBuilder;
 use Drupal\myeventlane_event_studio\Service\VendorOperationalProductCreationManager;
@@ -48,6 +50,8 @@ final class EventStudioEventExtrasForm extends FormBase {
 
   protected ?DomainDetector $domainDetector = NULL;
 
+  protected ?PlatformFeeSettings $platformFeeSettings = NULL;
+
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     EventVendorAccessChecker $event_vendor_access_checker,
@@ -77,6 +81,9 @@ final class EventStudioEventExtrasForm extends FormBase {
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
     $form->domainDetector = $container->get('myeventlane_core.domain_detector');
+    if ($container->has('myeventlane_core.platform_fee_settings')) {
+      $form->platformFeeSettings = $container->get('myeventlane_core.platform_fee_settings');
+    }
     return $form;
   }
 
@@ -185,7 +192,7 @@ final class EventStudioEventExtrasForm extends FormBase {
           '#items' => [
             $this->t('Merch and add-ons are sold through the same checkout.'),
             $this->t('They do not count as event tickets.'),
-            $this->t('Fulfilment and stock controls are still being improved.'),
+            $this->t('Fulfilment tracking is still being improved.'),
           ],
         ],
       ],
@@ -194,6 +201,34 @@ final class EventStudioEventExtrasForm extends FormBase {
         '#tag' => 'p',
         '#value' => $this->t('Tickets stay separate. Extras do not create admission tickets.'),
         '#attributes' => ['class' => ['mel-text--muted', 'mel-event-extras-studio__ticket-note']],
+      ],
+      'ticket_sales_link' => [
+        '#type' => 'link',
+        '#title' => $this->t('View ticket sales in Manage event'),
+        '#url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()]),
+        '#attributes' => [
+          'class' => ['mel-event-extras-studio__ticket-sales-link', 'mel-text--muted'],
+        ],
+        '#access' => $mode === 'list',
+      ],
+      'fee_copy' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->platformFeeSettings?->buildExtrasStudioFeeCopy()
+          ?? $this->t('Merch and add-ons use the same checkout. The MyEventLane site fee for extras is shown in platform settings.'),
+        '#attributes' => [
+          'class' => ['mel-event-extras-studio__fee-copy', 'mel-text--muted'],
+        ],
+        '#access' => $mode === 'list',
+      ],
+      'operational_documents_note' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('After sales begin, you’ll be able to generate packing slips, parking slips, and labels from Manage event.'),
+        '#attributes' => [
+          'class' => ['mel-event-extras-studio__operational-docs-note', 'mel-text--muted'],
+        ],
+        '#access' => $mode === 'list',
       ],
     ];
 
@@ -234,6 +269,22 @@ final class EventStudioEventExtrasForm extends FormBase {
     $list = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-extras-studio__list']],
+      'heading' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-extras-studio__extras-stock-heading', 'mel-es-card']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Merch & add-ons stock'),
+          '#attributes' => ['class' => ['mel-es-card__title']],
+        ],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Product stock for operational extras. This is separate from ticket attendance capacity.'),
+          '#attributes' => ['class' => ['mel-text--muted']],
+        ],
+      ],
     ];
 
     $list['tabs'] = $this->buildListFilterTabs($event, $filter);
@@ -568,6 +619,9 @@ final class EventStudioEventExtrasForm extends FormBase {
     if (($trigger['#type'] ?? '') !== 'submit') {
       return;
     }
+    if (array_key_exists('#limit_validation_errors', $trigger)) {
+      return;
+    }
     $input = $this->collectInput($form_state);
     $status = (string) ($input['product_status'] ?? '');
     if ($status !== '' && !array_key_exists($status, $this->productCreationManager->productStatusOptions())) {
@@ -584,6 +638,67 @@ final class EventStudioEventExtrasForm extends FormBase {
 
   public function submitAddAnother(array &$form, FormStateInterface $form_state): void {
     $this->saveExtra($form_state, TRUE);
+  }
+
+  public function submitAddProductOption(array &$form, FormStateInterface $form_state): void {
+    $this->appendProductOptionPreset($form_state, []);
+    $form_state->setRebuild(TRUE);
+  }
+
+  public function submitPresetTshirtSizes(array &$form, FormStateInterface $form_state): void {
+    $this->appendProductOptionPreset($form_state, ['S', 'M', 'L', 'XL'], TRUE);
+    $form_state->setRebuild(TRUE);
+  }
+
+  public function submitPresetFullSizes(array &$form, FormStateInterface $form_state): void {
+    $this->appendProductOptionPreset($form_state, array_values(OperationalExtraVisualPresenter::SIZE_LABELS), TRUE);
+    $form_state->setRebuild(TRUE);
+  }
+
+  public function submitPresetOneOption(array &$form, FormStateInterface $form_state): void {
+    $this->appendProductOptionPreset($form_state, [(string) $this->t('One option')], TRUE);
+    $form_state->setRebuild(TRUE);
+  }
+
+  public function submitPresetParkingPass(array &$form, FormStateInterface $form_state): void {
+    $this->appendProductOptionPreset($form_state, [(string) $this->t('Parking pass')], TRUE);
+    $form_state->setRebuild(TRUE);
+  }
+
+  public function submitPresetMealPackage(array &$form, FormStateInterface $form_state): void {
+    $this->appendProductOptionPreset($form_state, [(string) $this->t('Meal package')], TRUE);
+    $form_state->setRebuild(TRUE);
+  }
+
+  /**
+   * @param list<string> $labels
+   */
+  private function appendProductOptionPreset(FormStateInterface $form_state, array $labels, bool $replace = FALSE): void {
+    $editor = $form_state->getValue('editor');
+    $pricing = is_array($editor) && is_array($editor['pricing'] ?? NULL) ? $editor['pricing'] : [];
+    $defaults = [
+      'price_amount' => $pricing['price_amount'] ?? '',
+      'sku' => $pricing['sku'] ?? '',
+    ];
+    $rows = [];
+    if (!$replace && is_array($editor['product_options']['rows'] ?? NULL)) {
+      foreach ($editor['product_options']['rows'] as $row) {
+        if (is_array($row)) {
+          $rows[] = $row;
+        }
+      }
+    }
+    if ($labels === []) {
+      $rows[] = $this->productCreationManager->emptyProductOptionRow($defaults);
+    }
+    else {
+      foreach ($labels as $label) {
+        $row = $this->productCreationManager->emptyProductOptionRow($defaults);
+        $row['option_label'] = $label;
+        $rows[] = $row;
+      }
+    }
+    $form_state->set('mel_product_options', $rows);
   }
 
   public function submitSaveBookingPlacement(array &$form, FormStateInterface $form_state): void {
@@ -685,19 +800,12 @@ final class EventStudioEventExtrasForm extends FormBase {
     if (!is_array($editor)) {
       return [];
     }
-    $basics = is_array($editor['basics'] ?? NULL) ? $editor['basics'] : [];
-    $pricing = is_array($editor['pricing'] ?? NULL) ? $editor['pricing'] : [];
-    $quantity = is_array($editor['quantity'] ?? NULL) ? $editor['quantity'] : [];
-    $variants = is_array($editor['variants'] ?? NULL) ? $editor['variants'] : [];
-    $collection = is_array($editor['collection'] ?? NULL) ? $editor['collection'] : [];
-    $visibility = is_array($editor['visibility'] ?? NULL) ? $editor['visibility'] : [];
-
-    $sizes = [];
-    foreach ((array) ($variants['sizes'] ?? []) as $key => $on) {
-      if (!empty($on)) {
-        $sizes[] = (string) $key;
-      }
-    }
+    $basics = $this->editorSlice($editor, 'basics');
+    $pricing = $this->editorSlice($editor, 'pricing');
+    $collection = $this->editorSlice($editor, 'collection');
+    $visibility = $this->editorSlice($editor, 'visibility');
+    $product_options_wrap = $this->editorSlice($editor, 'product_options');
+    $product_options = is_array($product_options_wrap['rows'] ?? NULL) ? $product_options_wrap['rows'] : [];
 
     $extra_type = (string) ($editor['extra_type'] ?? '');
     if ($extra_type === '' && isset($basics['extra_type'])) {
@@ -718,11 +826,51 @@ final class EventStudioEventExtrasForm extends FormBase {
       'pickup_note' => (string) ($collection['pickup_note'] ?? ''),
       'price_amount' => $pricing['price_amount'] ?? NULL,
       'sku' => (string) ($pricing['sku'] ?? ''),
-      'capacity_note' => (string) ($quantity['capacity_note'] ?? ''),
-      'sizes' => $sizes,
+      'capacity_note' => (string) ($product_options_wrap['capacity_note'] ?? ''),
+      'product_options' => $product_options,
+      'sizes' => [],
       'show_on_booking' => !empty($visibility['show_on_booking']),
       'image_media_ids' => $image_media_ids,
     ];
+  }
+
+  /**
+   * @param array<string, mixed> $editor
+   *
+   * @return array<string, mixed>
+   */
+  private function editorSlice(array $editor, string $key): array {
+    if (is_array($editor[$key] ?? NULL)) {
+      return $editor[$key];
+    }
+    $accordion = is_array($editor['accordion'] ?? NULL) ? $editor['accordion'] : [];
+    foreach ($accordion as $panel) {
+      if (!is_array($panel)) {
+        continue;
+      }
+      if (is_array($panel[$key] ?? NULL)) {
+        return $panel[$key];
+      }
+      if ($key === 'basics' && is_array($panel['basics']['basics'] ?? NULL)) {
+        return $panel['basics']['basics'];
+      }
+      if ($key === 'pricing' && is_array($panel['basics']['pricing'] ?? NULL)) {
+        return $panel['basics']['pricing'];
+      }
+      if ($key === 'media' && is_array($panel['photos']['media'] ?? NULL)) {
+        return $panel['photos']['media'];
+      }
+      if ($key === 'product_options' && is_array($panel['product_options']['product_options'] ?? NULL)) {
+        return $panel['product_options']['product_options'];
+      }
+      if ($key === 'collection' && is_array($panel['collection_documents']['collection'] ?? NULL)) {
+        return $panel['collection_documents']['collection'];
+      }
+      if ($key === 'visibility' && is_array($panel['collection_documents']['visibility'] ?? NULL)) {
+        return $panel['collection_documents']['visibility'];
+      }
+    }
+    return [];
   }
 
   private function getRouteEvent(?NodeInterface $node = NULL): NodeInterface {

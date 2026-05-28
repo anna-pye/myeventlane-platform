@@ -35,6 +35,8 @@ Top-level contract flag: `mel_operational_product: true`.
 
 Persisted under `field_mel_op_capabilities` as part of the operational capabilities document. Vendors link **operational** products to an event (`linked_products`), assign **roles** (`merch_pickup`, `operational_bundle`, `hospitality`, `timed_collection`, `parking`), and optional **bundle_group** labels for composition. `OperationalMerchandiseManager::normalizeEventMerchandiseAuthoring()` validates product IDs, enforces operational bundles, requires `field_event` alignment to the event, and merges normalized `product_payload` from the product field. Vendors may also **create** new operational products from Event Studio on explicit save via the [Vendor Product Creation Wizard](vendor-product-creation-wizard.md) (Commerce entities only through `VendorOperationalProductCreationManager`).
 
+**Stock (Phase 4F+):** operational variation stock is stored on `field_mel_stock_quantity`, `field_mel_limit_per_order`, and `field_mel_show_remaining`. Event Studio saves per-variation stock; booking add-to-cart enforces configured quantities without decrementing inventory. See [operational-extras-stock-fields.md](./operational-extras-stock-fields.md).
+
 ## Purchase composition
 
 `OperationalPurchaseCompositionManager` builds `mel_operational_purchase_composition` documents: grouped **merchandise**, **hospitality**, **timed_collection**, **bundles**, and **parking** rows from **Commerce order items** (or event preview from authoring). It attaches read-only **governance** summaries via `OperationalMerchandiseGovernanceManager` (severity, degraded rows, continuity conflicts). **No** checkout flow mutation and **no** bypass of Commerce order items.
