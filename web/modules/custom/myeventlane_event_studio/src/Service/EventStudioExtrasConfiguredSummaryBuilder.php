@@ -89,6 +89,38 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
    */
   public function buildPanelRenderArray(NodeInterface $event, int $weight = -5): array {
     $panel = $this->buildPanel($event);
+    return $this->buildConfiguredSummaryRenderArray($panel, $event, $weight);
+  }
+
+  /**
+   * Right-rail summary for the Merch & add-ons Studio section (list mode).
+   *
+   * @return array<string, mixed>
+   */
+  public function buildStudioAsideRenderArray(NodeInterface $event): array {
+    $panel = $this->buildPanel($event);
+    $panel['hide_manage_cta'] = TRUE;
+    $panel['studio_context'] = TRUE;
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-event-extras-studio__aside']],
+      'summary' => $this->buildConfiguredSummaryRenderArray($panel, $event, 0),
+      'booking_preview' => $this->buildListBookingPreviewRenderArray($event),
+      'next_steps' => $this->buildExtrasNextStepsCard($event, $panel),
+      '#cache' => [
+        'tags' => $panel['cache_tags'] ?? $event->getCacheTags(),
+        'contexts' => ['user'],
+      ],
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $panel
+   *
+   * @return array<string, mixed>
+   */
+  private function buildConfiguredSummaryRenderArray(array $panel, NodeInterface $event, int $weight): array {
     return [
       '#theme' => 'mel_event_studio_extras_configured_summary',
       '#panel' => $panel,
@@ -98,6 +130,144 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
         'contexts' => ['user'],
       ],
     ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  public function buildListBookingPreviewRenderArray(NodeInterface $event): array {
+    $cards = $this->extrasBuilder->loadExtrasForEvent($event);
+    $featured = $this->selectListPreviewCard($cards);
+
+    if ($featured === NULL) {
+      return [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => [
+            'mel-es-card',
+            'mel-event-extras-studio__booking-preview',
+            'mel-event-extras-studio__booking-preview--empty',
+          ],
+        ],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Booking preview'),
+          '#attributes' => ['class' => ['mel-es-card__title']],
+        ],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Add a merch item or add-on to see how guests may see it on your booking page.'),
+          '#attributes' => ['class' => ['mel-text--muted']],
+        ],
+      ];
+    }
+
+    $preview = is_array($featured['preview'] ?? NULL) ? $featured['preview'] : [];
+    $preview_meta_parts = array_filter([
+      (string) ($featured['variant_count_label'] ?? ''),
+      (string) ($featured['price_label'] ?? ''),
+      (string) ($featured['stock_label'] ?? ''),
+    ]);
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-es-card', 'mel-event-extras-studio__booking-preview']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Booking preview'),
+        '#attributes' => ['class' => ['mel-es-card__title']],
+      ],
+      'hint' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Sample of how a configured extra may appear to guests.'),
+        '#attributes' => ['class' => ['mel-text--muted', 'mel-event-extras-studio__booking-preview-hint']],
+      ],
+      'preview' => [
+        '#theme' => 'mel_event_studio_extra_preview',
+        '#preview' => $preview,
+        '#preview_meta_line' => implode(' · ', $preview_meta_parts),
+        '#stock_label' => (string) ($featured['stock_label'] ?? ''),
+        '#visibility_label' => (string) ($featured['booking_visibility_label'] ?? ''),
+        '#hidden_notice' => empty($featured['show_on_booking'])
+          ? (string) $this->t('This product is not visible on the booking page yet.')
+          : '',
+      ],
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $panel
+   *
+   * @return array<string, mixed>
+   */
+  private function buildExtrasNextStepsCard(NodeInterface $event, array $panel): array {
+    $event_id = (int) $event->id();
+    $items = [];
+
+    if (empty($panel['has_products'])) {
+      $items[] = [
+        '#type' => 'link',
+        '#title' => $this->t('Add your first merch or add-on'),
+        '#url' => Url::fromRoute('myeventlane_event_studio.workspace_extras', ['node' => $event_id], [
+          'query' => ['add' => 'merchandise'],
+        ]),
+      ];
+      $items[] = (string) $this->t('Choose Active status and show on booking when you are ready to sell.');
+    }
+    else {
+      $items[] = (string) $this->t('Review stock and booking visibility for each product.');
+      $items[] = [
+        '#type' => 'link',
+        '#title' => $this->t('Preview booking page'),
+        '#url' => Url::fromRoute(
+          $event->isPublished() ? 'myeventlane_commerce.event_book' : 'entity.node.canonical',
+          ['node' => $event_id],
+        ),
+      ];
+    }
+
+    $items[] = [
+      '#type' => 'link',
+      '#title' => $this->t('Continue to publish'),
+      '#url' => Url::fromRoute('myeventlane_event_studio.edit_publish', ['node' => $event_id]),
+    ];
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-event-studio-next-steps', 'mel-event-extras-studio__next-steps']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Suggested next steps'),
+        '#attributes' => ['class' => ['mel-event-studio-next-steps__title']],
+      ],
+      'items' => [
+        '#theme' => 'item_list',
+        '#items' => $items,
+        '#attributes' => ['class' => ['mel-event-studio-next-steps__list']],
+      ],
+    ];
+  }
+
+  /**
+   * @param list<array<string, mixed>> $cards
+   *
+   * @return array<string, mixed>|null
+   */
+  private function selectListPreviewCard(array $cards): ?array {
+    if ($cards === []) {
+      return NULL;
+    }
+    foreach ($cards as $card) {
+      if (!empty($card['show_on_booking'])) {
+        return $card;
+      }
+    }
+    return $cards[0];
   }
 
   /**

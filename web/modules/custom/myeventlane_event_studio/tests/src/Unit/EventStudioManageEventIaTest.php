@@ -132,11 +132,17 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
   public function testConfiguredExtrasSummaryBuilderExists(): void {
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioExtrasConfiguredSummaryBuilder.php');
     $template = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-extras-configured-summary.html.twig');
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/EventStudioEventExtrasForm.php');
     $this->assertIsString($builder);
     $this->assertIsString($template);
+    $this->assertIsString($form);
     $this->assertStringContainsString('has_products', $builder);
     $this->assertStringContainsString('empty_state', $builder);
     $this->assertStringContainsString('Add merch or extras', $builder);
+    $this->assertStringContainsString('buildStudioAsideRenderArray', $builder);
+    $this->assertStringContainsString('mel-event-extras-studio__layout', $form);
+    $this->assertStringContainsString('buildStudioAsideRenderArray', $form);
+    $this->assertStringContainsString('hide_manage_cta', $template);
     $this->assertStringContainsString('empty.title', $template);
   }
 
