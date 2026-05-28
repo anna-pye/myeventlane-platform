@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Module unit tests (no kernel). From repo root:
+     vendor/bin/phpunit -c web/modules/custom/myeventlane_event_studio
+     Full Drupal bootstrap suite: cd web && ../vendor/bin/phpunit -c phpunit-event-studio.xml -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="tests/bootstrap-unit.php"
+         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd">
+  <testsuites>
+    <testsuite name="myeventlane_event_studio_unit">
+      <directory>tests/src/Unit</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>
