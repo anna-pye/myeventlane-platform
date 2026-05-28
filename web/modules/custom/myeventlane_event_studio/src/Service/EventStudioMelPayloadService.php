@@ -24,6 +24,182 @@ final class EventStudioMelPayloadService {
   ) {}
 
   /**
+   * Normalizes hero fid + alt from `mel` or baseline fragments.
+   *
+   * Supports legacy `managed_file` values (`mel[field_event_image]` fid list),
+   * optional `mel[field_event_image_alt]`, and image / image_widget_crop widgets
+   * (`mel[field_event_image][0][fids]`, `…[0][alt]`).
+   *
+   * @param array<string, mixed> $fragment
+   *   Partial or full mel array containing `field_event_image` / `field_event_image_alt`.
+   *
+   * @return array{fid: int, alt: string}
+   */
+  public static function normalizeHeroFromMelFragment(array $fragment): array {
+    $explicit_alt = trim((string) ($fragment['field_event_image_alt'] ?? ''));
+    $fid = 0;
+    $delta_alt = '';
+
+    $raw = $fragment['field_event_image'] ?? NULL;
+    if (is_numeric($raw)) {
+      $fid = (int) $raw;
+    }
+    elseif (is_array($raw) && $raw !== []) {
+      $delta = self::imageWidgetDeltaFromRaw($raw);
+      $fid = self::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL);
+      if ($fid < 1 && isset($delta['target_id'])) {
+        $fid = max(0, (int) $delta['target_id']);
+      }
+      if (isset($delta['alt'])) {
+        $delta_alt = trim((string) $delta['alt']);
+      }
+
+      if ($fid < 1) {
+        foreach ($raw as $item) {
+          if (is_array($item)) {
+            if (isset($item['target_id']) && is_numeric($item['target_id'])) {
+              $tid = (int) $item['target_id'];
+              if ($tid > 0) {
+                $fid = $tid;
+                if ($delta_alt === '' && isset($item['alt'])) {
+                  $delta_alt = trim((string) $item['alt']);
+                }
+                break;
+              }
+            }
+            if (isset($item['fids']) && is_array($item['fids'])) {
+              foreach ($item['fids'] as $maybe_fid) {
+                if (is_numeric($maybe_fid)) {
+                  $tid = (int) $maybe_fid;
+                  if ($tid > 0) {
+                    $fid = $tid;
+                    if ($delta_alt === '' && isset($item['alt'])) {
+                      $delta_alt = trim((string) $item['alt']);
+                    }
+                    break 2;
+                  }
+                }
+              }
+            }
+          }
+          elseif (is_numeric($item)) {
+            $tid = (int) $item;
+            if ($tid > 0) {
+              $fid = $tid;
+              break;
+            }
+          }
+        }
+        if ($fid < 1) {
+          $first = reset($raw);
+          if (is_numeric($first)) {
+            $fid = (int) $first;
+          }
+        }
+      }
+    }
+
+    $alt = $explicit_alt !== '' ? $explicit_alt : $delta_alt;
+
+    return [
+      'fid' => max(0, $fid),
+      'alt' => $alt,
+    ];
+  }
+
+  /**
+   * Unwraps an image field widget value to its first delta array.
+   *
+   * @param array<string, mixed> $raw
+   *
+   * @return array<string, mixed>
+   */
+  public static function imageWidgetDeltaFromRaw(array $raw): array {
+    if (isset($raw['widget']) && is_array($raw['widget'])) {
+      $raw = $raw['widget'];
+    }
+    if (isset($raw[0]) && is_array($raw[0])) {
+      return $raw[0];
+    }
+
+    return $raw;
+  }
+
+  /**
+   * Builds a `field_event_image` item from a mel fragment (branding widget save).
+   *
+   * @param array<string, mixed> $fragment
+   *
+   * @return array<string, mixed>|null
+   *   NULL when no file is selected.
+   */
+  public static function buildHeroFieldItemFromMelFragment(array $fragment): ?array {
+    $hero = self::normalizeHeroFromMelFragment($fragment);
+    if ($hero['fid'] < 1) {
+      return NULL;
+    }
+
+    $raw = $fragment['field_event_image'] ?? [];
+    if (!is_array($raw)) {
+      $raw = [];
+    }
+    $delta = self::imageWidgetDeltaFromRaw($raw);
+
+    $item = [
+      'target_id' => $hero['fid'],
+      'alt' => $hero['alt'],
+      'title' => trim((string) ($delta['title'] ?? '')),
+    ];
+
+    if (isset($delta['focal_point']) && trim((string) $delta['focal_point']) !== '') {
+      $item['focal_point'] = trim((string) $delta['focal_point']);
+    }
+
+    foreach (['width', 'height'] as $key) {
+      if (isset($delta[$key]) && $delta[$key] !== '' && $delta[$key] !== NULL) {
+        $item[$key] = $delta[$key];
+      }
+    }
+
+    return $item;
+  }
+
+  /**
+   * @return int
+   *   First positive file id from a managed_file / image widget fids value.
+   */
+  private static function firstPositiveIntFromFidsValue(mixed $fids): int {
+    if ($fids === NULL || $fids === '') {
+      return 0;
+    }
+    if (is_array($fids)) {
+      foreach ($fids as $value) {
+        $candidate = (int) $value;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+      return 0;
+    }
+    if (is_string($fids)) {
+      $parts = preg_split('/\s+/', trim($fids));
+      if (!is_array($parts)) {
+        return 0;
+      }
+      foreach ($parts as $part) {
+        if ($part === '') {
+          continue;
+        }
+        $candidate = (int) $part;
+        if ($candidate > 0) {
+          return $candidate;
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
    * @return array<string, mixed>
    */
   public function buildFromFormState(FormStateInterface $form_state, EntityTypeManagerInterface $entityTypeManager): array {
