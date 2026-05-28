@@ -2856,9 +2856,9 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   margin-inline: auto;
 }
 
-// Desktop + tablet: main column stacks hero + content; sidebar aligns to hero top (col 2).
-.mel-event-page--classic.mel-event--v2 .mel-event-full__primary,
-.mel-event-page--immersive.mel-event--v2 .mel-event-full__primary {
+// Desktop + tablet: full-width hero, then main + sidebar (avoids row-1 height = max(hero, sidebar) gap).
+.mel-event-page--classic.mel-event--v2 .mel-event-full__layout,
+.mel-event-page--immersive.mel-event--v2 .mel-event-full__layout {
   display: grid;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
@@ -2877,6 +2877,26 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
     gap: 32px;
     align-items: start;
   }
+
+  @media (width >= 768px) {
+    .mel-event-full__main--hero {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .mel-event-full__main--content {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .mel-event-full__sidebar {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: start;
+      position: sticky;
+      top: var(--mel-sticky-offset, 5.5rem);
+    }
+  }
 }
 
 .mel-event-full__main,
@@ -2886,20 +2906,6 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   flex-direction: column;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
-
-  @media (width >= 1100px) {
-    grid-column: 1;
-  }
-}
-
-@media (width >= 1100px) {
-  .mel-event-full__main--hero {
-    grid-row: 1;
-  }
-
-  .mel-event-full__main--content {
-    grid-row: 2;
-  }
 }
 
 .mel-event-full__sidebar {
@@ -2907,14 +2913,6 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   flex-direction: column;
   gap: var(--mel-full-stack-gap, 20px);
   min-width: 0;
-
-  @media (width >= 1100px) {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: start;
-    position: sticky;
-    top: var(--mel-sticky-offset, 5.5rem);
-  }
 }
 
 .mel-event-full .mel-event-sidebar-rail {
@@ -3259,7 +3257,7 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   border-top: 0;
 }
 
-// Help links — after main content in DOM; desktop grid places in right column below sidebar.
+// Help links — after main content in DOM; desktop grid stacks in right column below sidebar.
 .mel-event-full__support.mel-event-support-zone {
   margin-top: 0;
   padding: 12px 16px;
@@ -3269,7 +3267,7 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   box-shadow: none;
   color: var(--mel-full-text-secondary, #5b6670);
 
-  @media (width >= 1100px) {
+  @media (width >= 768px) {
     grid-column: 2;
     grid-row: 2;
     align-self: start;

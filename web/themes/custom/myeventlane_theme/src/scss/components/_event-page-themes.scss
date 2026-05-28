@@ -713,7 +713,7 @@ main.mel-main:has(.mel-event-page--immersive.mel-event--v2) {
     }
   }
 
-  .mel-event-layout__main:not(.mel-event-full__primary),
+  .mel-event-layout__main:not(.mel-event-full__main),
   .mel-event-layout__sidebar:not(.mel-event-full__sidebar) {
     display: flex;
     flex-direction: column;

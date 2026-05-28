@@ -26,8 +26,8 @@
   --mel-editorial-muted-leading: 1.5;
 }
 
-// Main column: one vertical cadence (replaces stacked mel-mt-5 jumps). Event-full primary owns layout.
-.mel-event--v2 .mel-event-layout__main:not(.mel-event-full__primary) {
+// Main column: one vertical cadence (replaces stacked mel-mt-5 jumps). Event-full layout owns grid.
+.mel-event--v2 .mel-event-layout__main:not(.mel-event-full__main) {
   display: flex;
   flex-direction: column;
   gap: var(--mel-editorial-section-gap);
