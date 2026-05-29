@@ -12,6 +12,7 @@
   <testsuites>
     <testsuite name="myeventlane_event_studio_unit_light">
       <file>tests/src/Unit/EntityAutocompleteMelNormalizerTest.php</file>
+      <file>tests/src/Unit/EventStudioMelDefaultsProviderContractTest.php</file>
       <file>tests/src/Unit/EventStudioExtrasProductEditorTest.php</file>
       <file>tests/src/Unit/EventStudioMerchAddonStudioTest.php</file>
       <file>tests/src/Unit/QuestionFieldTypeRegistryTest.php</file>

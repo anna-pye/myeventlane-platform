@@ -12,6 +12,7 @@ services:
       - '@myeventlane_event_studio.autosave'
       - '@plugin.manager.myeventlane_event_studio_section'
       - '@myeventlane_event_studio.section_renderer'
+      - '@myeventlane_event_studio.empty_state_builder'
       - '@myeventlane_core.domain_detector'
     tags:
       - { name: controller.service_arguments }
@@ -119,11 +120,20 @@ services:
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_event_studio'
 
+  myeventlane_event_studio.mel_defaults_provider:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioMelDefaultsProvider
+    arguments:
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@myeventlane_event_studio.entity_autocomplete_mel_normalizer'
+      - '@form_builder'
+      - '@current_user'
+      - '@string_translation'
+
   myeventlane_event_studio.wizard_mel_baseline:
     class: Drupal\myeventlane_event_studio\Service\EventStudioWizardMelBaseline
     arguments:
-      - '@form_builder'
-      - '@myeventlane_event_studio.entity_autocomplete_mel_normalizer'
+      - '@myeventlane_event_studio.mel_defaults_provider'
 
   myeventlane_event_studio.ticket_link_suggestion:
     class: Drupal\myeventlane_event_studio\Service\EventStudioTicketLinkSuggestionService
