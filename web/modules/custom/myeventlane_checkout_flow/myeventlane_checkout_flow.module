@@ -427,7 +427,6 @@ function myeventlane_checkout_flow_mel_observability_page_payload_alter(
   array &$payload,
   MelWorkflowContext $context,
   array $merged_signals,
-  array $evaluations,
 ): void {
   if (!isset($payload['traces']) || !is_array($payload['traces'])) {
     return;
