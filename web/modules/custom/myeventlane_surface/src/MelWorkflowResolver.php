@@ -45,7 +45,12 @@ final class MelWorkflowResolver {
     $vendor_state = $this->appendVendorSignals($surface, $signals);
     $this->appendCustomerSignals($surface, $signals);
 
-    $this->moduleHandler->alter('mel_workflow_signals', $signals, $this->currentUser, $route_name, $path);
+    // ModuleHandler::alter() accepts only two context arguments after $signals.
+    $workflow_context = [
+      'route_name' => $route_name,
+      'path' => $path,
+    ];
+    $this->moduleHandler->alter('mel_workflow_signals', $signals, $this->currentUser, $workflow_context);
 
     return new MelWorkflowContext(
       surface: $surface,

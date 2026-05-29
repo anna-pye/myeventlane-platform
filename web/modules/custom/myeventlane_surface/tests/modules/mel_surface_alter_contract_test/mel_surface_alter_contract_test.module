@@ -7,7 +7,22 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_surface\MelWorkflowContext;
+
+/**
+ * Implements hook_mel_workflow_signals_alter().
+ */
+function mel_surface_alter_contract_test_mel_workflow_signals_alter(
+  array &$signals,
+  AccountInterface $account,
+  array &$workflow_context,
+): void {
+  \Drupal::state()->set(
+    'mel_surface_alter_contract_test.workflow_context',
+    $workflow_context,
+  );
+}
 
 /**
  * Implements hook_mel_observability_page_payload_alter().

@@ -4,35 +4,7 @@
  * @file
  * MEL surface governance — Drupal remains infrastructure beneath product shells.
  *
- * Hooks:
- * - hook_mel_workflow_signals_alter(): Adjust normalized workflow signals used
- *   for UX orchestration (never as an access bypass). Parameters:
- *   array &$signals, \Drupal\Core\Session\AccountInterface $account,
- *   string $route_name, string $path.
- * - hook_mel_state_domain_facts_alter(): Provide domain facts keyed by
- *   MELStateRegistry signal contracts (interpretation only). Parameters:
- *   array &$facts, \Drupal\myeventlane_surface\MelWorkflowContext $context.
- * - hook_mel_experience_applicable_alter(): Adjust resolved applicable
- *   experience definitions (continuity contracts only). Parameters:
- *   array &$experiences, \Drupal\myeventlane_surface\MelWorkflowContext $context,
- *   array $merged_signals.
- * - hook_mel_experience_memory_alter(): Request-scoped continuation memory
- *   (non-sensitive keys only). Parameters: array &$memory,
- *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals.
- * - hook_mel_experience_attachments_alter(): Final page continuity payload.
- *   Parameters: array &$attachments, \Drupal\myeventlane_surface\MelWorkflowContext $context,
- *   array $merged_signals.
- * - hook_mel_intelligence_page_payload_alter(): Final intelligence orchestration payload
- *   (recommendations, prioritisation trace, insights). Parameters: array &$payload,
- *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals.
- * - hook_mel_operational_policy_interpretation_alter(): Operational policy interpretation
- *   payload (suppression, trust thresholds, explainability). Parameters: array &$interpretation,
- *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals,
- *   array $evaluations (state value strings keyed by state id).
- * - hook_mel_observability_page_payload_alter(): Final MELObservabilitySystem payload (traces,
- *   registry index, telemetry boundary reference). Parameters: array &$payload,
- *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals,
- *   array $evaluations (state value strings keyed by state id).
+ * Alter hook contracts: @see myeventlane_surface.api.php
  */
 
 declare(strict_types=1);

@@ -38,11 +38,26 @@ final class MelSurfaceAlterContractKernelTest extends MelSurfaceGovernanceKernel
   protected function setUp(): void {
     parent::setUp();
     \Drupal::state()->deleteMultiple([
+      'mel_surface_alter_contract_test.workflow_context',
       'mel_surface_alter_contract_test.observability_merged_keys',
       'mel_surface_alter_contract_test.observability_state_evaluations',
       'mel_surface_alter_contract_test.operational_policy_merged_keys',
       'mel_surface_alter_contract_test.operational_policy_state_evaluations',
     ]);
+  }
+
+  public function testWorkflowSignalsAlterDeliversRouteAndPathContextBag(): void {
+    $this->loginAnonymous();
+    $this->pushRouteRequest('/checkout/review', 'commerce_checkout.review', new Route('/checkout/review'));
+
+    $this->container->get('myeventlane_surface.workflow_resolver')->buildContext();
+
+    $workflow_context = \Drupal::state()->get('mel_surface_alter_contract_test.workflow_context');
+    $this->assertIsArray($workflow_context);
+    $this->assertSame('commerce_checkout.review', $workflow_context['route_name'] ?? NULL);
+    $this->assertSame('/checkout/review', $workflow_context['path'] ?? NULL);
+
+    $this->popRequest();
   }
 
   public function testOperationalPolicyAlterDeliversStateEvaluationsInMergedSignals(): void {
