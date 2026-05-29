@@ -222,11 +222,13 @@ abstract class EventStudioBaseForm extends FormBase {
       '#default_value' => (string) (int) $node->getRevisionId(),
     ];
 
-    $form['wizard_nav'] = [
-      '#theme' => 'mel_event_studio_wizard_nav',
-      '#node' => $node,
-      '#current_step' => $this->getCurrentStepId(),
-    ];
+    if (!_myeventlane_event_studio_is_workspace_route()) {
+      $form['wizard_nav'] = [
+        '#theme' => 'mel_event_studio_wizard_nav',
+        '#node' => $node,
+        '#current_step' => $this->getCurrentStepId(),
+      ];
+    }
 
     $melDefaults = $this->wizardMelBaseline->getBaselineMel($node);
     $draft = $this->autosaveService->getDraft($node, $this->getCurrentStepId());
