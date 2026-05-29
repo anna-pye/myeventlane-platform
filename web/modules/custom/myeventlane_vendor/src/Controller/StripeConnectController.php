@@ -156,6 +156,10 @@ final class StripeConnectController extends ControllerBase {
     return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
   }
 
+  private function redirectToVendorSettings(): RedirectResponse {
+    return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.settings')->toString());
+  }
+
   /**
    * Validates query account_id against the store’s Connect account; returns usable id.
    */
@@ -436,9 +440,13 @@ final class StripeConnectController extends ControllerBase {
   }
 
   /**
-   * Login link to the vendor’s Express Stripe Dashboard.
+   * Opens Stripe management for the vendor’s connected account.
+   *
+   * Express accounts use a Stripe LoginLink; Standard accounts redirect to the
+   * vendor Stripe Dashboard (LoginLink is Express-only). Incomplete accounts
+   * resume Connect onboarding.
    */
-  public function manage(): RedirectResponse {
+  public function manage(): RedirectResponse|TrustedRedirectResponse {
     $logger = $this->loggerChannelFactory->get('myeventlane_vendor');
     $currentUser = $this->currentUser();
 
@@ -469,17 +477,45 @@ final class StripeConnectController extends ControllerBase {
     }
 
     try {
-      $loginLink = $this->stripeService->createLoginLinkIfEligible($accountId);
-      if ($loginLink === NULL) {
-        $eligibility = $this->stripeService->validateAccountDashboardEligibility($accountId);
-        $reason = (string) ($eligibility['reason'] ?? 'Unknown');
-        $logger->notice('Stripe manage: ineligible for login link, account @acct, reason @reason', [
-          '@acct' => StripeService::maskAccountId($accountId),
-          '@reason' => $reason,
+      $resolution = $this->stripeService->resolveStripeManageDestination($accountId);
+      $destination = (string) ($resolution['destination'] ?? StripeService::MANAGE_DEST_UNSUPPORTED);
+      $accountType = isset($resolution['account_type']) && is_string($resolution['account_type'])
+        ? $resolution['account_type']
+        : 'unknown';
+      $reason = (string) ($resolution['reason'] ?? '');
+
+      if ($destination === StripeService::MANAGE_DEST_ONBOARDING) {
+        $logger->notice('Stripe manage: resume onboarding, store @sid, uid @uid, type @type, reason @reason', [
+          '@sid' => (string) $store->id(),
+          '@uid' => (string) $currentUser->id(),
+          '@type' => $accountType,
+          '@reason' => $reason !== '' ? $reason : 'incomplete',
         ]);
         $this->messenger()->addWarning($this->t('Stripe onboarding is not complete enough to open the dashboard yet. Continue setup in Connect.'));
         return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
       }
+
+      if ($destination === StripeService::MANAGE_DEST_UNSUPPORTED) {
+        $logger->warning('Stripe manage: unsupported destination, store @sid, uid @uid, type @type, reason @reason', [
+          '@sid' => (string) $store->id(),
+          '@uid' => (string) $currentUser->id(),
+          '@type' => $accountType,
+          '@reason' => $reason !== '' ? $reason : 'unknown',
+        ]);
+        $this->messenger()->addError($this->t('We could not open Stripe management. We could not confirm which Stripe dashboard this account uses. Please try again or contact support.'));
+        return $this->redirectToVendorSettings();
+      }
+
+      if ($destination === StripeService::MANAGE_DEST_STRIPE_DASHBOARD) {
+        $url = StripeService::VENDOR_STRIPE_DASHBOARD_URL;
+        $response = new TrustedRedirectResponse($url);
+        $response->setTrustedTargetUrl($url);
+        $this->applyOffsiteStripeRedirectHeaders($response);
+        return $response;
+      }
+
+      // Express: LoginLink to the Express Dashboard.
+      $loginLink = $this->stripeService->createLoginLink($accountId);
 
       if (empty($loginLink->url)) {
         $this->messenger()->addError($this->t('Failed to generate a Stripe link. Please try again.'));
@@ -488,8 +524,8 @@ final class StripeConnectController extends ControllerBase {
 
       $url = (string) $loginLink->url;
       if (!str_starts_with($url, 'https://connect.stripe.com') && !str_starts_with($url, 'https://dashboard.stripe.com')) {
-        $logger->error('Stripe manage: unexpected host for login link, account @acct', [
-          '@acct' => StripeService::maskAccountId($accountId),
+        $logger->error('Stripe manage: unexpected host for login link, store @sid', [
+          '@sid' => (string) $store->id(),
         ]);
         $this->messenger()->addError($this->t('Invalid Stripe link. Please try again or contact support.'));
         return $this->redirectToDashboard();
@@ -505,20 +541,23 @@ final class StripeConnectController extends ControllerBase {
         $this->logConnectApiError($e, $vendor, $store, $accountId);
       }
       else {
-        $logger->error('Stripe manage API: uid @uid, type @t', [
+        $logger->error('Stripe manage API: uid @uid, store @sid, type @t', [
           '@uid' => (string) $currentUser->id(),
+          '@sid' => (string) $store->id(),
           '@t' => (string) ($e->getStripeCode() ?? $e->getCode()),
         ]);
       }
-      $this->messenger()->addError($this->t('We could not open your Stripe account. Try again in a few minutes, or open Stripe from the Connect link if setup is still in progress.'));
-      return $this->redirectToDashboard();
+      $this->messenger()->addError($this->t('We could not open Stripe management. We could not confirm which Stripe dashboard this account uses. Please try again or contact support.'));
+      return $this->redirectToVendorSettings();
     }
     catch (\Exception $e) {
-      $logger->error('Stripe manage: @m', [
+      $logger->error('Stripe manage: store @sid, uid @uid, @m', [
+        '@sid' => (string) $store->id(),
+        '@uid' => (string) $currentUser->id(),
         '@m' => $e->getMessage(),
       ]);
-      $this->messenger()->addError($this->t('Failed to open Stripe. Please try again or contact support.'));
-      return $this->redirectToDashboard();
+      $this->messenger()->addError($this->t('We could not open Stripe management. We could not confirm which Stripe dashboard this account uses. Please try again or contact support.'));
+      return $this->redirectToVendorSettings();
     }
   }
 
