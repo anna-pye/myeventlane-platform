@@ -234,7 +234,25 @@ final class EventStudioMelPayloadService {
 
     $field_location = $choice === 'saved' ? [] : ($mel['field_location'] ?? '');
 
-    $ticket_type = (string) ($mel['field_event_type'] ?? 'rsvp');
+    $eventNode = NULL;
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    if ($nid > 0) {
+      $loaded = $entityTypeManager->getStorage('node')->load($nid);
+      if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
+        $eventNode = $loaded;
+      }
+    }
+
+    $ticket_type = trim((string) ($mel['field_event_type'] ?? ''));
+    if ($ticket_type === ''
+        && $eventNode instanceof NodeInterface
+        && $eventNode->hasField('field_event_type')
+        && !$eventNode->get('field_event_type')->isEmpty()) {
+      $ticket_type = (string) $eventNode->get('field_event_type')->value;
+    }
+    if ($ticket_type === '') {
+      $ticket_type = 'rsvp';
+    }
     $capacity_raw = $mel['rsvp_capacity'] ?? '';
     $capacity = NULL;
     if ($ticket_type === 'rsvp') {
@@ -303,15 +321,6 @@ final class EventStudioMelPayloadService {
       'field_event_visibility' => trim((string) ($mel['field_event_visibility'] ?? '')),
       'event_passcode' => trim((string) ($mel['event_passcode'] ?? '')),
     ];
-
-    $eventNode = NULL;
-    $nid = (int) ($form_state->getValue('nid') ?? 0);
-    if ($nid > 0) {
-      $loaded = $entityTypeManager->getStorage('node')->load($nid);
-      if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
-        $eventNode = $loaded;
-      }
-    }
 
     if ($this->operationalCapabilityStudioManager !== NULL
       && (isset($mel['operational_capabilities']) || isset($mel['mel_operational_capabilities']))) {

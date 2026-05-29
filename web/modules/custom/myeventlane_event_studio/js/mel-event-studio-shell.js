@@ -200,12 +200,37 @@
     setText(strip, '[data-mel-readiness-completed-count]', Drupal.t('@count complete', { '@count': (readiness.completed || []).length }));
   }
 
+  function syncTopbarState(shell, stateText) {
+    const meta = shell.querySelector('.mel-event-studio-topbar__meta');
+    if (!meta) {
+      return;
+    }
+    let stateEl = meta.querySelector('[data-mel-publish-state]');
+    if (stateText) {
+      if (!stateEl) {
+        stateEl = document.createElement('span');
+        stateEl.className = 'mel-event-studio-topbar__state';
+        stateEl.setAttribute('data-mel-publish-state', '');
+        const badge = meta.querySelector('[data-mel-publish-status]');
+        if (badge) {
+          badge.insertAdjacentElement('afterend', stateEl);
+        }
+        else {
+          meta.prepend(stateEl);
+        }
+      }
+      stateEl.textContent = stateText;
+      return;
+    }
+    stateEl?.remove();
+  }
+
   function updateTopbar(shell, result) {
     if (!result || !result.topbar) {
       return;
     }
     setText(shell, '[data-mel-publish-status]', result.topbar.status || '');
-    setText(shell, '[data-mel-publish-state]', result.topbar.state || '');
+    syncTopbarState(shell, result.topbar.state || '');
     setText(shell, '[data-mel-publish-last-saved]', result.topbar.lastSaved || '');
     const buttons = shell.querySelectorAll('[data-mel-publish-action], [data-mel-card-publish-action], [data-mel-unpublish-action]');
     if (result.changed !== undefined && result.changed !== null) {

@@ -167,14 +167,20 @@ final class EventStudioController extends ControllerBase {
       throw new AccessDeniedHttpException();
     }
 
-    $this->logger->notice('Vendor Event Studio workspace: event_id=@eid section=@section uid=@uid', [
-      '@eid' => (string) $node->id(),
-      '@section' => $section,
-      '@uid' => (string) $account->id(),
-    ]);
-
     $readiness = $this->eventReadiness->evaluate($node, $account);
     $sectionMetadata = $this->sectionManager->sectionMetadata($sectionPlugin);
+    $sectionContent = $this->sectionRenderer->build($sectionPlugin, $node);
+    $request = $this->requestStack->getCurrentRequest();
+    $routeName = $request !== NULL ? (string) ($request->attributes->get('_route') ?? '') : '';
+
+    $this->logger->debug('Event Studio workspace render: route=@route event_id=@eid section=@section plugin=@plugin render_target=@target section_content_keys=@keys', [
+      '@route' => $routeName,
+      '@eid' => (string) $node->id(),
+      '@section' => $section,
+      '@plugin' => (string) $sectionPlugin->getPluginId(),
+      '@target' => $sectionPlugin->renderTarget(),
+      '@keys' => is_array($sectionContent) ? implode(',', array_keys($sectionContent)) : gettype($sectionContent),
+    ]);
 
     return [
       '#theme' => 'mel_event_studio_workspace',
@@ -184,7 +190,7 @@ final class EventStudioController extends ControllerBase {
       '#current_section' => $section,
       '#current_section_label' => $this->sectionManager->sectionTitle($section),
       '#current_section_metadata' => $sectionMetadata,
-      '#section_content' => $this->sectionRenderer->build($sectionPlugin, $node),
+      '#section_content' => $sectionContent,
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
       '#readiness' => $this->buildReadinessSummary($readiness),
       '#attached' => [
@@ -238,9 +244,9 @@ final class EventStudioController extends ControllerBase {
    * @return array<string, mixed>
    */
   private function buildTopbar(NodeInterface $node, EventReadinessResult $readiness, string $section): array {
-    $state = $node->isPublished()
-      ? $this->t('Published')
-      : $this->operationalState($readiness);
+    $operational_state = $this->operationalState($readiness);
+    // Published events use the status badge only; readiness text is draft-oriented.
+    $state = ($node->isPublished() && $readiness->ready) ? '' : $operational_state;
 
     return [
       'title' => $node->label(),

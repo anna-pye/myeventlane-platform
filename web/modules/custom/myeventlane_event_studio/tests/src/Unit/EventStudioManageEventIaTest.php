@@ -80,12 +80,18 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
   public function testStudioTopBarManageEventLinkPointsToVendorWorkspace(): void {
     $topbar = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-topbar.html.twig');
     $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
+    $shellCss = file_get_contents(dirname(__DIR__, 3) . '/css/mel-event-studio-shell.css');
     $this->assertIsString($topbar);
     $this->assertIsString($controller);
+    $this->assertIsString($shellCss);
     $this->assertStringContainsString('show_manage_event_link', $topbar);
     $this->assertStringContainsString('Manage event', $topbar);
     $this->assertStringContainsString('manage_event_url', $topbar);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $controller);
+    $this->assertStringContainsString('mel-event-studio-topbar__primary', $topbar);
+    $this->assertStringContainsString('{% if topbar.state %}', $topbar);
+    $this->assertStringContainsString('display: flex', $shellCss);
+    $this->assertStringNotContainsString('grid-template-columns: minmax(0, 1fr) auto auto', $shellCss);
   }
 
   public function testVendorEventWorkspaceRendersTodaysFocusRegion(): void {

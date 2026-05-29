@@ -16,6 +16,10 @@ SITE_URI="${SITE_URI:-https://staging.myeventlane.com.au}"
 ARTIFACT_PATH="${ARTIFACT_PATH:-}"
 RUN_UPDB="${RUN_UPDB:-0}"
 RUN_CIM="${RUN_CIM:-0}"
+# Retain this many non-current release directories after each deploy (Capistrano-style).
+MEL_KEEP_RELEASES="${MEL_KEEP_RELEASES:-3}"
+# Minimum free space (MB) on APP_PATH filesystem before copying a new release.
+MEL_MIN_FREE_DISK_MB="${MEL_MIN_FREE_DISK_MB:-2048}"
 
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
 RELEASE_PATH="$APP_PATH/releases/$TIMESTAMP"
@@ -103,12 +107,134 @@ mel_verify_drush_bootstrap() {
   return 0
 }
 
+mel_disk_available_mb() {
+  df -Pm "$1" | awk 'NR==2 {print $4}'
+}
+
+mel_report_disk_usage() {
+  echo "Filesystem usage for $APP_PATH:"
+  df -h "$APP_PATH" || true
+  if [ -d "$APP_PATH/releases" ]; then
+    echo "Release directories (newest first):"
+    ls -1dt "$APP_PATH/releases"/*/ 2>/dev/null | head -10 || true
+  fi
+}
+
+mel_check_disk_space() {
+  local avail_mb min_mb="${MEL_MIN_FREE_DISK_MB}"
+  avail_mb="$(mel_disk_available_mb "$APP_PATH")"
+  echo "Disk space: ${avail_mb}MB available on $(df -Pm "$APP_PATH" | awk 'NR==2 {print $1" ("$6")"}') (minimum ${min_mb}MB required for deploy)."
+  if [ "$avail_mb" -lt "$min_mb" ]; then
+    echo "ERROR: Insufficient disk space for deploy (No space left on device)." >&2
+    mel_report_disk_usage >&2
+    echo "Free space on the staging host (remove old releases, logs, or backups) and redeploy." >&2
+    return 1
+  fi
+}
+
+# Strip sites/default symlinks (shared files, settings, etc.) before rm so we never
+# touch live shared paths and so web-server-owned targets are not involved.
+mel_prepare_release_for_removal() {
+  local release_dir="$1"
+  local default_dir="$release_dir/web/sites/default"
+  local entry known
+
+  [ -d "$default_dir" ] || return 0
+
+  for known in files settings.php services.yml config; do
+    if [ -L "$default_dir/$known" ]; then
+      rm -f "$default_dir/$known" || true
+    fi
+  done
+
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    rm -f "$entry" || true
+  done < <(find "$default_dir" -maxdepth 1 -type l 2>/dev/null || true)
+
+  chmod -R u+w "$release_dir" 2>/dev/null || true
+}
+
+# Best-effort release removal. Pruning must not abort deploy: old trees often
+# contain www-data-owned files under sites/default from prior live releases.
+mel_remove_release_dir() {
+  local release_dir="$1"
+  local name
+  name="$(basename "$release_dir")"
+
+  mel_prepare_release_for_removal "$release_dir"
+
+  set +e
+  rm -rf "$release_dir" 2>/dev/null
+  local rc=$?
+  set -e
+
+  if [ "$rc" -eq 0 ] && [ ! -e "$release_dir" ]; then
+    return 0
+  fi
+
+  echo "  WARNING: could not fully remove release $name (permission denied on some paths)." >&2
+  echo "  On the staging host, remove leftovers manually or fix ownership under:" >&2
+  echo "    $release_dir/web/sites/default" >&2
+  return 0
+}
+
+mel_prune_old_releases() {
+  local keep="${MEL_KEEP_RELEASES}"
+  local releases_dir="$APP_PATH/releases"
+  local protected="" dir name candidates=() count i prune_failed=0
+
+  [ -d "$releases_dir" ] || return 0
+
+  if [ -e "$CURRENT_PATH" ]; then
+    protected="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
+  fi
+
+  echo "Pruning old releases (retain ${keep} non-current; current is never removed)..."
+
+  while IFS= read -r dir; do
+    [ -n "$dir" ] || continue
+    [ -d "$dir" ] || continue
+    if [ -n "$protected" ] && [ "$dir" = "$protected" ]; then
+      name="$(basename "$dir")"
+      echo "  Keeping (current): $name"
+      continue
+    fi
+    candidates+=("$dir")
+  done < <(find "$releases_dir" -mindepth 1 -maxdepth 1 -type d | sort -r)
+
+  count="${#candidates[@]}"
+  if [ "$count" -le "$keep" ]; then
+    echo "  ${count} release(s) eligible for pruning; nothing to remove (limit ${keep})."
+    return 0
+  fi
+
+  for ((i=keep; i<count; i++)); do
+    name="$(basename "${candidates[$i]}")"
+    echo "  Removing old release: $name"
+    if [ -e "${candidates[$i]}" ]; then
+      mel_remove_release_dir "${candidates[$i]}"
+      if [ -e "${candidates[$i]}" ]; then
+        prune_failed=1
+      fi
+    fi
+  done
+
+  if [ "$prune_failed" = "1" ]; then
+    echo "  NOTICE: Some old releases could not be pruned (non-fatal). Disk preflight will still run." >&2
+  fi
+}
+
 mel_deploy_cleanup() {
   if [ "${DEPLOY_SUCCEEDED:-0}" = "1" ]; then
     return 0
   fi
   echo "" >&2
   echo "DEPLOY FAILED — cleanup: restoring previous release (if any) and clearing maintenance mode..." >&2
+  if [ -n "${RELEASE_PATH:-}" ] && [ -d "$RELEASE_PATH" ]; then
+    echo "  Removing failed partial release: $RELEASE_PATH" >&2
+    mel_remove_release_dir "$RELEASE_PATH"
+  fi
   if [ "${MEL_CURRENT_SWITCHED:-0}" = "1" ] && [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -d "$MEL_PREVIOUS_CURRENT" ]; then
     echo "  Rolling back current symlink to: $MEL_PREVIOUS_CURRENT" >&2
     ln -sfn "$MEL_PREVIOUS_CURRENT" "$CURRENT_PATH" || true
@@ -129,6 +255,10 @@ echo "Deploying release: $TIMESTAMP"
 mkdir -p "$APP_PATH/releases"
 mkdir -p "$SHARED_PATH/files"
 
+mel_report_disk_usage
+mel_prune_old_releases
+mel_check_disk_space
+
 # ---- CRITICAL FIX: validate directory, not file ----
 if [ -z "$ARTIFACT_PATH" ] || [ ! -d "$ARTIFACT_PATH" ]; then
   echo "Artifact directory not found"
@@ -138,7 +268,11 @@ fi
 mkdir -p "$RELEASE_PATH"
 
 echo "Copying artifact contents..."
-cp -a "$ARTIFACT_PATH"/. "$RELEASE_PATH"/
+if ! cp -a "$ARTIFACT_PATH"/. "$RELEASE_PATH"/; then
+  echo "ERROR: Failed to copy artifact to $RELEASE_PATH (often 'No space left on device')." >&2
+  mel_report_disk_usage >&2
+  exit 1
+fi
 
 # ---- SAFETY CHECK (prevents bad deploys) ----
 [ -f "$RELEASE_PATH/web/index.php" ] || {

@@ -90,6 +90,21 @@ jobs:
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
             "echo CONNECTED"
 
+      - name: Preflight staging disk space
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -euo pipefail
+             APP_PATH="$HOME/staging"
+             echo "Staging disk usage before deploy:"
+             df -h "$APP_PATH" || df -h "$HOME"
+             if [ -d "$APP_PATH/releases" ]; then
+               echo "Existing releases:"
+               ls -1dt "$APP_PATH/releases"/*/ 2>/dev/null | head -10 || true
+             fi'
+
       - name: Upload artifact to staging server
         shell: bash
         run: |
