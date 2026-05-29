@@ -25,6 +25,7 @@ services:
       - '@entity_type.manager'
       - '@request_stack'
       - '@myeventlane_core.domain_detector'
+      - '@myeventlane_vendor.paid_publish_stripe_gate'
 
   myeventlane_event_studio.vendor_mel_ticket_type_edit_redirect_subscriber:
     class: Drupal\myeventlane_event_studio\EventSubscriber\VendorMelTicketTypeEditRedirectSubscriber
