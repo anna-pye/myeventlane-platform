@@ -12,7 +12,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
  * Merges workflow signals with domain facts and evaluates interpretation contracts.
  *
  * Domain facts MUST be contributed by owning modules via hook_mel_state_domain_facts_alter()
- * (see myeventlane_surface.module). This resolver may apply thin aliases from existing
+ * (see myeventlane_surface.api.php). This resolver may apply thin aliases from existing
  * workflow signals to canonical keys — interpretation glue only, not new business rules.
  */
 final class MelStateResolver {

@@ -107,7 +107,9 @@ final class MelOperationalPolicyManager {
       }
 
       try {
-        $this->moduleHandler->alter('mel_operational_policy_interpretation', $interpretation, $context, $merged, $evaluations);
+        // ModuleHandler::alter() accepts only two context arguments after $interpretation.
+        $merged['state_evaluations'] = $evaluations;
+        $this->moduleHandler->alter('mel_operational_policy_interpretation', $interpretation, $context, $merged);
       }
       catch (\Throwable $e) {
         // Alter hooks must never suppress canonical interpretation; log and continue.

@@ -20,6 +20,7 @@
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelGovernanceDebugKernelTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelOperationalPolicyKernelTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelSurfaceRouteGovernanceKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelSurfaceAlterContractKernelTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelIntelligenceDeterminismKernelTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Unit/MelGovernancePresentationSanitizerTest.php</file>
       <file>modules/custom/myeventlane_checkout_flow/tests/src/Unit/MelCheckoutAttendeeRequirementResolverTest.php</file>

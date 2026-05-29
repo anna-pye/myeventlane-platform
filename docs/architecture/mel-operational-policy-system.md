@@ -93,7 +93,9 @@ Lifecycle policies activate from **MelStateSystem** evaluations (`draft`, `cart_
 
 ## Hooks
 
-- `hook_mel_operational_policy_interpretation_alter(&$interpretation, $context, $merged_signals, $evaluations)`
+Canonical contracts: `web/modules/custom/myeventlane_surface/myeventlane_surface.api.php`.
+
+`hook_mel_operational_policy_interpretation_alter(array &$interpretation, MelWorkflowContext $context, array &$merged_signals)` — state evaluations are in `$merged_signals['state_evaluations']` (state id => `MelStateEvaluation::value` string), not a separate hook parameter. See `MelOperationalPolicyManager::buildPageInterpretation()`.
 
 ## Assumptions
 

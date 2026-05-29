@@ -1,0 +1,55 @@
+<?php
+
+/**
+ * @file
+ * Test hooks that record alter-hook delivery for contract kernel tests.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_surface\MelWorkflowContext;
+
+/**
+ * Implements hook_mel_workflow_signals_alter().
+ */
+function mel_surface_alter_contract_test_mel_workflow_signals_alter(
+  array &$signals,
+  AccountInterface $account,
+  array &$workflow_context,
+): void {
+  \Drupal::state()->set(
+    'mel_surface_alter_contract_test.workflow_context',
+    $workflow_context,
+  );
+}
+
+/**
+ * Implements hook_mel_observability_page_payload_alter().
+ */
+function mel_surface_alter_contract_test_mel_observability_page_payload_alter(
+  array &$payload,
+  MelWorkflowContext $context,
+  array $merged_signals,
+): void {
+  \Drupal::state()->set('mel_surface_alter_contract_test.observability_merged_keys', array_keys($merged_signals));
+  \Drupal::state()->set(
+    'mel_surface_alter_contract_test.observability_state_evaluations',
+    $merged_signals['state_evaluations'] ?? NULL,
+  );
+}
+
+/**
+ * Implements hook_mel_operational_policy_interpretation_alter().
+ */
+function mel_surface_alter_contract_test_mel_operational_policy_interpretation_alter(
+  array &$interpretation,
+  MelWorkflowContext $context,
+  array $merged_signals,
+): void {
+  \Drupal::state()->set('mel_surface_alter_contract_test.operational_policy_merged_keys', array_keys($merged_signals));
+  \Drupal::state()->set(
+    'mel_surface_alter_contract_test.operational_policy_state_evaluations',
+    $merged_signals['state_evaluations'] ?? NULL,
+  );
+}

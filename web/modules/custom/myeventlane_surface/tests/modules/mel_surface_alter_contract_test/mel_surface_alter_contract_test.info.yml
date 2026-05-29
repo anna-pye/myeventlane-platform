@@ -1,0 +1,8 @@
+name: 'MEL surface alter contract test'
+type: module
+description: 'Captures MEL surface alter hook arguments for kernel contract tests.'
+core_version_requirement: ^11
+package: Testing
+hidden: true
+dependencies:
+  - myeventlane_surface:myeventlane_surface

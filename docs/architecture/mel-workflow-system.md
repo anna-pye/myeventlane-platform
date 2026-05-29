@@ -93,7 +93,11 @@ All IDs are defined in `MelWorkflowRegistry::all()`:
 
 ## 11. Extension API
 
-`hook_mel_workflow_signals_alter(&$signals, AccountInterface $account, string $route_name, string $path)` — document in `myeventlane_surface.module`.
+Canonical hook contracts: `web/modules/custom/myeventlane_surface/myeventlane_surface.api.php`.
+
+Drupal 11 `ModuleHandler::alter()` delivers at most **three** arguments to hook implementations (`$data`, `$context1`, `$context2`). Route and path are passed in a context bag on the second context argument:
+
+`hook_mel_workflow_signals_alter(array &$signals, AccountInterface $account, array &$workflow_context)` where `$workflow_context` contains `route_name` and `path` keys (see `MelWorkflowResolver::buildContext()`).
 
 ## 12. File-by-file summary
 

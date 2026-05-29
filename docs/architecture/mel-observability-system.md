@@ -99,7 +99,7 @@ Traces are **sorted** by `deterministic_key` (lexical) for stable ordering. Keys
 
 - Every trace row: `observability_id`, `code`, `message` (translated), `deterministic_key`.
 - Payload `explainability.framework` states deterministic, categorical derivation.
-- `hook_mel_observability_page_payload_alter()` allows owning modules to trim or annotate without adding surveillance.
+- `hook_mel_observability_page_payload_alter()` allows owning modules to trim or annotate without adding surveillance. Canonical signature and delivery rules: `web/modules/custom/myeventlane_surface/myeventlane_surface.api.php`. Hook implementations receive `$payload`, `MelWorkflowContext $context`, and `$merged_signals`; state evaluations are in `$merged_signals['state_evaluations']` (not a fourth argument). See `MelObservabilityManager::buildPagePayload()`.
 
 ## 9. Accessibility report
 
