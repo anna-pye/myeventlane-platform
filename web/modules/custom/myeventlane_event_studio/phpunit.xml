@@ -15,6 +15,7 @@
       <file>tests/src/Unit/EventStudioMelDefaultsProviderContractTest.php</file>
       <file>tests/src/Unit/EventStudioExtrasProductEditorTest.php</file>
       <file>tests/src/Unit/EventStudioMerchAddonStudioTest.php</file>
+      <file>tests/src/Unit/EventStudioWorkspaceLibraryAttachmentTest.php</file>
       <file>tests/src/Unit/QuestionFieldTypeRegistryTest.php</file>
       <file>tests/src/Unit/VendorOperationalProductCreationManagerTest.php</file>
     </testsuite>

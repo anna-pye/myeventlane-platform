@@ -1,5 +1,5 @@
 mel_event_studio:
-  version: 1.21
+  version: 1.22
   css:
     theme:
       css/mel-event-studio.css: {}
@@ -13,6 +13,15 @@ mel_event_studio:
     - core/once
     - focal_point/drupal.focal_point
     - myeventlane_location/address_autocomplete
+    - myeventlane_event_studio/mel_event_studio_ai_assist
+
+mel_event_studio_ai_assist:
+  version: 1.0
+  js:
+    js/mel-event-studio-ai-assist.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
 
 mel_operational_capability_studio:
   version: 1.0
