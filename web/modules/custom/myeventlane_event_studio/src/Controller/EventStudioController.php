@@ -11,7 +11,9 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
+use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
+use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -40,6 +42,7 @@ final class EventStudioController extends ControllerBase {
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly EventStudioSectionManager $sectionManager,
     private readonly EventStudioSectionRenderer $sectionRenderer,
+    private readonly EventStudioEmptyStateBuilder $emptyStateBuilder,
     private readonly DomainDetector $domainDetector,
   ) {
     $this->entityTypeManager = $entity_type_manager;
@@ -57,6 +60,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('plugin.manager.myeventlane_event_studio_section'),
       $container->get('myeventlane_event_studio.section_renderer'),
+      $container->get('myeventlane_event_studio.empty_state_builder'),
       $container->get('myeventlane_core.domain_detector'),
     );
   }
@@ -169,7 +173,7 @@ final class EventStudioController extends ControllerBase {
 
     $readiness = $this->eventReadiness->evaluate($node, $account);
     $sectionMetadata = $this->sectionManager->sectionMetadata($sectionPlugin);
-    $sectionContent = $this->sectionRenderer->build($sectionPlugin, $node);
+    $sectionContent = $this->buildWorkspaceSectionContent($sectionPlugin, $node);
     $request = $this->requestStack->getCurrentRequest();
     $routeName = $request !== NULL ? (string) ($request->attributes->get('_route') ?? '') : '';
 
@@ -224,6 +228,29 @@ final class EventStudioController extends ControllerBase {
         'contexts' => ['route', 'user', 'user.permissions'],
       ],
     ];
+  }
+
+  /**
+   * Builds section body content, degrading to a governed empty state on failure.
+   *
+   * @return array<string, mixed>
+   */
+  private function buildWorkspaceSectionContent(
+    EventStudioSectionInterface $sectionPlugin,
+    NodeInterface $node,
+  ): array {
+    try {
+      return $this->sectionRenderer->build($sectionPlugin, $node);
+    }
+    catch (\Throwable $exception) {
+      $this->logger->error('Event Studio section render failed for event @eid section @section target @target: @message', [
+        '@eid' => (string) $node->id(),
+        '@section' => (string) $sectionPlugin->getPluginId(),
+        '@target' => $sectionPlugin->renderTarget(),
+        '@message' => $exception->getMessage(),
+      ]);
+      return $this->emptyStateBuilder->unavailableSection($sectionPlugin->title());
+    }
   }
 
   public function workspaceTitle(NodeInterface $node): string {
