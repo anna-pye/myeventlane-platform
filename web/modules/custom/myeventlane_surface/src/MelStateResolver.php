@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_surface;
 use Drupal\myeventlane_core\MelStateEvaluation;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 
 /**
  * Merges workflow signals with domain facts and evaluates interpretation contracts.
@@ -20,6 +21,7 @@ final class MelStateResolver {
   public function __construct(
     private readonly MelWorkflowResolver $workflowResolver,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly LoggerChannelInterface $logger,
   ) {}
 
   /**
@@ -36,7 +38,14 @@ final class MelStateResolver {
    */
   public function mergeDomainSignals(MelWorkflowContext $context): array {
     $facts = [];
-    $this->moduleHandler->alter('mel_state_domain_facts', $facts, $context);
+    try {
+      $this->moduleHandler->alter('mel_state_domain_facts', $facts, $context);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('mel_state_domain_facts alter failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
 
     $merged = array_merge($context->signals, $facts);
     return $this->applyInterpretationAliases($merged);

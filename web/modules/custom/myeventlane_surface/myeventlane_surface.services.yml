@@ -212,6 +212,7 @@ services:
       - '@module_handler'
       - '@myeventlane_onboarding.manager'
       - '@path.matcher'
+      - '@logger.channel.myeventlane_surface'
 
   myeventlane_surface.workflow_progress_helper:
     class: Drupal\myeventlane_surface\MelWorkflowProgressHelper
@@ -424,6 +425,7 @@ services:
     arguments:
       - '@myeventlane_surface.workflow_resolver'
       - '@module_handler'
+      - '@logger.channel.myeventlane_surface'
 
   myeventlane_surface.state_lifecycle_helper:
     class: Drupal\myeventlane_surface\MelLifecycleHelper
