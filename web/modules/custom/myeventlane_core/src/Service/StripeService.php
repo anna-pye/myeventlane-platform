@@ -28,6 +28,31 @@ use Stripe\StripeClient;
 final class StripeService {
 
   /**
+   * Vendor-facing Stripe Dashboard URL for Standard Connect accounts.
+   */
+  public const VENDOR_STRIPE_DASHBOARD_URL = 'https://dashboard.stripe.com';
+
+  /**
+   * Manage route destination: Express LoginLink (Express Dashboard).
+   */
+  public const MANAGE_DEST_LOGIN_LINK = 'login_link';
+
+  /**
+   * Manage route destination: vendor Stripe Dashboard (Standard accounts).
+   */
+  public const MANAGE_DEST_STRIPE_DASHBOARD = 'stripe_dashboard';
+
+  /**
+   * Manage route destination: resume Connect onboarding.
+   */
+  public const MANAGE_DEST_ONBOARDING = 'onboarding';
+
+  /**
+   * Manage route destination: fail closed (unknown/custom/unrecoverable).
+   */
+  public const MANAGE_DEST_UNSUPPORTED = 'unsupported';
+
+  /**
    * Constructs a StripeService.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
@@ -520,8 +545,14 @@ final class StripeService {
    * @param string $accountId
    *   The Stripe Connect account ID (acct_xxx).
    *
-   * @return array{eligible: bool, account: Account|null, reason: string|null}
-   *   Array with eligibility status, account object (if eligible), and reason (if not eligible).
+   * @return array{
+   *   eligible: bool,
+   *   account: Account|null,
+   *   reason: string|null,
+   *   account_type: string|null
+   * }
+   *   Array with eligibility status, account object (if eligible), reason (if not eligible),
+   *   and Connect account type when known.
    */
   public function validateAccountDashboardEligibility(string $accountId): array {
     $client = $this->getPlatformClient();
@@ -536,8 +567,11 @@ final class StripeService {
           'eligible' => FALSE,
           'account' => NULL,
           'reason' => 'Account not found',
+          'account_type' => NULL,
         ];
       }
+
+      $accountType = $this->normalizeConnectAccountType($account);
 
       // Validate: account.deleted !== true.
       if (isset($account->deleted) && $account->deleted === TRUE) {
@@ -545,6 +579,7 @@ final class StripeService {
           'eligible' => FALSE,
           'account' => $account,
           'reason' => 'Account has been deleted',
+          'account_type' => $accountType,
         ];
       }
 
@@ -554,6 +589,7 @@ final class StripeService {
           'eligible' => FALSE,
           'account' => $account,
           'reason' => 'Account details not yet submitted',
+          'account_type' => $accountType,
         ];
       }
 
@@ -563,6 +599,7 @@ final class StripeService {
           'eligible' => FALSE,
           'account' => $account,
           'reason' => 'Account charges not yet enabled',
+          'account_type' => $accountType,
         ];
       }
 
@@ -571,22 +608,87 @@ final class StripeService {
         'eligible' => TRUE,
         'account' => $account,
         'reason' => NULL,
+        'account_type' => $accountType,
       ];
     }
     catch (ApiErrorException $e) {
       $this->logStripeApiError($e);
       // Account retrieval failed - log error and return not eligible.
       $this->safeLog('error', 'Failed to retrieve Stripe account @id for eligibility check: @message', [
-        '@id' => $accountId,
+        '@id' => self::maskAccountId($accountId),
         '@message' => $e->getMessage(),
       ]);
 
       return [
         'eligible' => FALSE,
         'account' => NULL,
-        'reason' => 'Failed to retrieve account: ' . $e->getMessage(),
+        'reason' => 'Failed to retrieve account',
+        'account_type' => NULL,
       ];
     }
+  }
+
+  /**
+   * Resolves how /stripe/manage should route for a Connect account.
+   *
+   * Uses a single eligibility retrieve; Express uses LoginLink, Standard uses
+   * the vendor Stripe Dashboard, incomplete accounts resume onboarding.
+   *
+   * @param string $accountId
+   *   The Stripe Connect account ID (acct_xxx).
+   *
+   * @return array{destination: string, account_type: string|null, reason: string|null}
+   *   Destination constant, account type when known, and eligibility reason.
+   */
+  public function resolveStripeManageDestination(string $accountId): array {
+    $eligibility = $this->validateAccountDashboardEligibility($accountId);
+
+    return [
+      'destination' => self::resolveManageDestinationFromEligibility($eligibility),
+      'account_type' => $eligibility['account_type'] ?? NULL,
+      'reason' => $eligibility['reason'] ?? NULL,
+    ];
+  }
+
+  /**
+   * Maps eligibility to a manage-route destination (testable, no API calls).
+   *
+   * @param array{
+   *   eligible: bool,
+   *   account: Account|null,
+   *   reason: string|null,
+   *   account_type?: string|null
+   * } $eligibility
+   *   Result from validateAccountDashboardEligibility().
+   *
+   * @return string
+   *   One of the MANAGE_DEST_* constants.
+   */
+  public static function resolveManageDestinationFromEligibility(array $eligibility): string {
+    if (empty($eligibility['eligible'])) {
+      $reason = (string) ($eligibility['reason'] ?? '');
+      if ($reason === 'Account details not yet submitted' || $reason === 'Account charges not yet enabled') {
+        return self::MANAGE_DEST_ONBOARDING;
+      }
+      return self::MANAGE_DEST_UNSUPPORTED;
+    }
+
+    $type = strtolower((string) ($eligibility['account_type'] ?? ''));
+    return match ($type) {
+      'express' => self::MANAGE_DEST_LOGIN_LINK,
+      'standard' => self::MANAGE_DEST_STRIPE_DASHBOARD,
+      default => self::MANAGE_DEST_UNSUPPORTED,
+    };
+  }
+
+  /**
+   * Normalizes Stripe Connect account type from a retrieved Account.
+   */
+  private function normalizeConnectAccountType(Account $account): ?string {
+    if (!isset($account->type) || !is_string($account->type) || $account->type === '') {
+      return NULL;
+    }
+    return strtolower($account->type);
   }
 
   /**
@@ -609,6 +711,11 @@ final class StripeService {
     $eligibility = $this->validateAccountDashboardEligibility($accountId);
 
     if (!$eligibility['eligible']) {
+      return NULL;
+    }
+
+    // LoginLink is Express-only; Standard accounts use the vendor Dashboard URL.
+    if (($eligibility['account_type'] ?? '') !== 'express') {
       return NULL;
     }
 

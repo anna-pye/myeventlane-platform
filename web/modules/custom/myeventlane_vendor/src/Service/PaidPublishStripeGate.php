@@ -75,7 +75,7 @@ final class PaidPublishStripeGate {
   }
 
   private function blockedMessage(): string {
-    return (string) $this->t('Connect Stripe before publishing paid tickets. Stripe must be ready to accept charges before this event can go live.');
+    return (string) $this->t('To sell tickets, finish your Stripe setup so payouts can reach your bank.');
   }
 
   /**

@@ -12,6 +12,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
@@ -29,6 +30,7 @@ final class EventStudioPreprocess {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RequestStack $requestStack,
     private readonly DomainDetector $domainDetector,
+    private readonly PaidPublishStripeGate $paidPublishStripeGate,
   ) {}
 
   /**
@@ -103,13 +105,12 @@ final class EventStudioPreprocess {
     }
 
     if ($node instanceof NodeInterface && $node->bundle() === 'event' && $vendor_ids !== []) {
-      $flags = $state !== NULL ? $state->getFlags() : [];
       $event_type = '';
       if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
         $event_type = (string) $node->get('field_event_type')->value;
       }
       $is_paid = in_array($event_type, ['paid', 'both'], TRUE);
-      if ($is_paid && empty($flags['stripe_connected'])) {
+      if ($is_paid && $this->paidPublishStripeGate->validatePaidPublishAllowed($this->currentUser, (int) $node->id()) !== NULL) {
         $variables['mel_publish_blocked'] = TRUE;
         $variables['mel_publish_stripe_gate'] = TRUE;
       }
