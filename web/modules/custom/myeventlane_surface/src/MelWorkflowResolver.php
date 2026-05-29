@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_surface;
 use Drupal\myeventlane_core\MelSurfaceId;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -30,6 +31,7 @@ final class MelWorkflowResolver {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly OnboardingManager $onboardingManager,
     private readonly PathMatcherInterface $pathMatcher,
+    private readonly LoggerChannelInterface $logger,
   ) {}
 
   /**
@@ -50,7 +52,14 @@ final class MelWorkflowResolver {
       'route_name' => $route_name,
       'path' => $path,
     ];
-    $this->moduleHandler->alter('mel_workflow_signals', $signals, $this->currentUser, $workflow_context);
+    try {
+      $this->moduleHandler->alter('mel_workflow_signals', $signals, $this->currentUser, $workflow_context);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('mel_workflow_signals alter failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
 
     return new MelWorkflowContext(
       surface: $surface,

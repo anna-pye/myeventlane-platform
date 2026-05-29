@@ -38,12 +38,48 @@ final class MelSurfaceAlterContractKernelTest extends MelSurfaceGovernanceKernel
   protected function setUp(): void {
     parent::setUp();
     \Drupal::state()->deleteMultiple([
+      'mel_surface_alter_contract_test.throw_workflow_alter',
+      'mel_surface_alter_contract_test.throw_state_domain_facts_alter',
+      'mel_surface_alter_contract_test.workflow_alter_reached',
+      'mel_surface_alter_contract_test.state_alter_reached',
       'mel_surface_alter_contract_test.workflow_context',
       'mel_surface_alter_contract_test.observability_merged_keys',
       'mel_surface_alter_contract_test.observability_state_evaluations',
       'mel_surface_alter_contract_test.operational_policy_merged_keys',
       'mel_surface_alter_contract_test.operational_policy_state_evaluations',
     ]);
+  }
+
+  public function testWorkflowAlterFailureDoesNotBreakBuildContext(): void {
+    \Drupal::state()->set('mel_surface_alter_contract_test.throw_workflow_alter', TRUE);
+    $this->loginAnonymous();
+    $this->pushRouteRequest('/checkout/review', 'commerce_checkout.review', new Route('/checkout/review'));
+
+    $context = $this->container->get('myeventlane_surface.workflow_resolver')->buildContext();
+
+    $this->assertTrue((bool) \Drupal::state()->get('mel_surface_alter_contract_test.workflow_alter_reached'));
+    $this->assertSame('commerce_checkout.review', $context->routeName);
+    $this->assertSame('/checkout/review', $context->path);
+    $this->assertIsArray($context->signals);
+    $this->assertArrayHasKey('route.checkout_sensitive', $context->signals);
+
+    $this->popRequest();
+  }
+
+  public function testStateDomainFactsAlterFailureDoesNotBreakMergeDomainSignals(): void {
+    \Drupal::state()->set('mel_surface_alter_contract_test.throw_state_domain_facts_alter', TRUE);
+    $this->loginAnonymous();
+    $this->pushRouteRequest('/checkout/review', 'commerce_checkout.review', new Route('/checkout/review'));
+
+    $workflow_resolver = $this->container->get('myeventlane_surface.workflow_resolver');
+    $context = $workflow_resolver->buildContext();
+    $merged = $this->container->get('myeventlane_surface.state_resolver')->mergeDomainSignals($context);
+
+    $this->assertTrue((bool) \Drupal::state()->get('mel_surface_alter_contract_test.state_alter_reached'));
+    $this->assertIsArray($merged);
+    $this->assertArrayHasKey('route.checkout_sensitive', $merged);
+
+    $this->popRequest();
   }
 
   public function testWorkflowSignalsAlterDeliversRouteAndPathContextBag(): void {

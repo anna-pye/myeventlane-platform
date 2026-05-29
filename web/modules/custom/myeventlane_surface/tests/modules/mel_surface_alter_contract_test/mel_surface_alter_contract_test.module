@@ -18,10 +18,27 @@ function mel_surface_alter_contract_test_mel_workflow_signals_alter(
   AccountInterface $account,
   array &$workflow_context,
 ): void {
+  if (\Drupal::state()->get('mel_surface_alter_contract_test.throw_workflow_alter')) {
+    \Drupal::state()->set('mel_surface_alter_contract_test.workflow_alter_reached', TRUE);
+    throw new \RuntimeException('mel_surface_alter_contract_test forced workflow alter failure');
+  }
   \Drupal::state()->set(
     'mel_surface_alter_contract_test.workflow_context',
     $workflow_context,
   );
+}
+
+/**
+ * Implements hook_mel_state_domain_facts_alter().
+ */
+function mel_surface_alter_contract_test_mel_state_domain_facts_alter(
+  array &$facts,
+  MelWorkflowContext $context,
+): void {
+  if (\Drupal::state()->get('mel_surface_alter_contract_test.throw_state_domain_facts_alter')) {
+    \Drupal::state()->set('mel_surface_alter_contract_test.state_alter_reached', TRUE);
+    throw new \RuntimeException('mel_surface_alter_contract_test forced state domain facts alter failure');
+  }
 }
 
 /**
