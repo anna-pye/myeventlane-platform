@@ -31,8 +31,8 @@
  *   array $evaluations (state value strings keyed by state id).
  * - hook_mel_observability_page_payload_alter(): Final MELObservabilitySystem payload (traces,
  *   registry index, telemetry boundary reference). Parameters: array &$payload,
- *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals,
- *   array $evaluations (state value strings keyed by state id).
+ *   \Drupal\myeventlane_surface\MelWorkflowContext $context, array $merged_signals
+ *   (state evaluations under merged_signals['state_evaluations'] when needed).
  */
 
 declare(strict_types=1);
