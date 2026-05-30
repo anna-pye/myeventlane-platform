@@ -12,7 +12,6 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
-use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
 use Drupal\myeventlane_vendor\Form\EventTicketManagerForm;
 use Drupal\node\NodeInterface;
 
@@ -24,8 +23,6 @@ use Drupal\node\NodeInterface;
 final class EventStudioMelDefaultsProvider {
 
   use StringTranslationTrait;
-
-  private const ATTENDEE_QUESTION_LIMIT = 5;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -244,10 +241,6 @@ final class EventStudioMelDefaultsProvider {
     if ($event->hasField('field_contact_phone') && !$event->get('field_contact_phone')->isEmpty()) {
       $field_contact_phone_default = (string) ($event->get('field_contact_phone')->value ?? '');
     }
-
-    $needs_ticket_product = $type_default === 'paid'
-      && $event->hasField('field_product_target')
-      && $event->get('field_product_target')->isEmpty();
 
     $venue_default = $this->entityAutocompleteMelNormalizer->normalizeSingle($venue_default, 'myeventlane_venue', 'mel.venue_saved');
     $product_default = $this->entityAutocompleteMelNormalizer->normalizeSingle($product_default, 'commerce_product', 'mel.field_product_target');
@@ -521,8 +514,6 @@ final class EventStudioMelDefaultsProvider {
     ];
 
     $attendee_questions_json_default = $this->encodeAttendeeQuestionsJsonForEvent($event);
-    $vendor_question_library_options = $this->buildVendorQuestionLibraryOptions();
-    $has_vendor_question_library = $vendor_question_library_options !== [];
     $mel['attendee_questions_editor'] = [
       '#type' => 'container',
       'checkout_workspace_cta' => [
@@ -547,15 +538,15 @@ final class EventStudioMelDefaultsProvider {
         '#type' => 'container',
         'library' => [
           '#type' => 'select',
-          '#options' => $vendor_question_library_options,
+          '#options' => [],
           '#empty_option' => $this->t('- Choose a saved question -'),
           '#empty_value' => '',
-          '#access' => $has_vendor_question_library,
+          '#access' => FALSE,
         ],
         'library_add' => [
           '#type' => 'button',
           '#value' => $this->t('Add from library'),
-          '#access' => $has_vendor_question_library,
+          '#access' => FALSE,
         ],
       ],
       'guidance' => [
@@ -638,7 +629,7 @@ final class EventStudioMelDefaultsProvider {
       ],
       'body' => [
         '#type' => 'container',
-        '#markup' => $this->buildTicketSummaryMarkup($type_default, $capacity_default, $collect_default, $external_default, $needs_ticket_product),
+        '#markup' => '',
       ],
     ];
 
@@ -846,81 +837,6 @@ final class EventStudioMelDefaultsProvider {
     catch (\JsonException) {
       return '[]';
     }
-  }
-
-  /**
-   * @return array<string, string>
-   */
-  private function buildVendorQuestionLibraryOptions(): array {
-    if (!$this->entityTypeManager->hasDefinition('vendor_question')) {
-      return [];
-    }
-    if (!$this->currentUser->hasPermission('view vendor question library')) {
-      return [];
-    }
-    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadByProperties([
-      'uid' => $this->currentUser->id(),
-    ]);
-    $vendor = reset($vendors);
-    if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
-      return [];
-    }
-    $store = $vendor->get('field_vendor_store')->entity;
-    if ($store === NULL) {
-      return [];
-    }
-    $ids = $this->entityTypeManager->getStorage('vendor_question')->getQuery()
-      ->condition('field_store', $store->id())
-      ->condition('status', 1)
-      ->accessCheck(TRUE)
-      ->sort('label', 'ASC')
-      ->execute();
-    if ($ids === []) {
-      return [];
-    }
-    $out = [];
-    foreach ($ids as $id) {
-      $id = (int) $id;
-      $q = $this->entityTypeManager->getStorage('vendor_question')->load($id);
-      if ($q instanceof VendorQuestionInterface) {
-        $out[(string) $id] = $q->getLabel();
-      }
-    }
-    return $out;
-  }
-
-  private function buildTicketSummaryMarkup(
-    string $type,
-    string $capacity_display,
-    bool $collect,
-    string $external,
-    bool $needs_ticket_product,
-  ): string {
-    $type_label = match ($type) {
-      'paid' => (string) $this->t('Paid tickets'),
-      'external' => (string) $this->t('External link'),
-      default => (string) $this->t('RSVP (free)'),
-    };
-    $cap = $type === 'rsvp'
-      ? ($capacity_display !== '' ? $capacity_display : (string) $this->t('Unlimited'))
-      : '—';
-    $collect_label = ($type === 'rsvp' || $type === 'paid')
-      ? ($collect ? (string) $this->t('Yes') : (string) $this->t('No'))
-      : '—';
-    $ext = $type === 'external'
-      ? ($external !== '' ? (string) $this->t('Set') : (string) $this->t('Not set'))
-      : '—';
-    $paid_note = ($type === 'paid' && $needs_ticket_product)
-      ? '<li class="mel-ticket-summary__warn">' . (string) $this->t('Ticket product still needed — link one above or add it from the event Tickets tab.') . '</li>'
-      : '';
-
-    return '<ul class="mel-ticket-summary__list">'
-      . '<li><span class="mel-ticket-summary__k">' . $this->t('Current type') . '</span> ' . $type_label . '</li>'
-      . '<li><span class="mel-ticket-summary__k">' . $this->t('Capacity') . '</span> ' . $cap . '</li>'
-      . '<li><span class="mel-ticket-summary__k">' . $this->t('Extra attendee details') . '</span> ' . $collect_label . '</li>'
-      . '<li><span class="mel-ticket-summary__k">' . $this->t('External URL') . '</span> ' . $ext . '</li>'
-      . $paid_note
-      . '</ul>';
   }
 
 }
