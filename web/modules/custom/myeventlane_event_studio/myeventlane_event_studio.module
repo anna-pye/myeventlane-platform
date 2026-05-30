@@ -315,15 +315,20 @@ function myeventlane_event_studio_preprocess_radios(array &$variables): void {
  */
 function _myeventlane_event_studio_is_event_studio_route(?string $route_name = NULL): bool {
   $route_name ??= \Drupal::routeMatch()->getRouteName();
-  $routes = [
-    'myeventlane_event_studio.create',
-    'myeventlane_event_studio.edit',
-    'myeventlane_event_studio.edit_basic',
-    'myeventlane_event_studio.edit_datetime',
-    'myeventlane_event_studio.edit_tickets',
-    'myeventlane_event_studio.edit_description',
-    'myeventlane_event_studio.edit_preview',
-    'myeventlane_event_studio.edit_publish',
+  $routes = array_merge(
+    _myeventlane_event_studio_legacy_wizard_route_names(),
+    _myeventlane_event_studio_workspace_route_names(),
+  );
+  return in_array($route_name, $routes, TRUE);
+}
+
+/**
+ * Route names for the canonical Event Studio workspace shell.
+ *
+ * @return list<string>
+ */
+function _myeventlane_event_studio_workspace_route_names(): array {
+  return [
     'myeventlane_event_studio.workspace',
     'myeventlane_event_studio.workspace_information',
     'myeventlane_event_studio.workspace_branding',
@@ -334,6 +339,7 @@ function _myeventlane_event_studio_is_event_studio_route(?string $route_name = N
     'myeventlane_event_studio.workspace_extras',
     'myeventlane_event_studio.workspace_merchandise',
     'myeventlane_event_studio.workspace_addons',
+    'myeventlane_event_studio.workspace_add_ons',
     'myeventlane_event_studio.workspace_promotions',
     'myeventlane_event_studio.workspace_attendees',
     'myeventlane_event_studio.workspace_fulfilment',
@@ -341,7 +347,41 @@ function _myeventlane_event_studio_is_event_studio_route(?string $route_name = N
     'myeventlane_event_studio.workspace_analytics',
     'myeventlane_event_studio.workspace_settings',
   ];
-  return in_array($route_name, $routes, TRUE);
+}
+
+/**
+ * Returns TRUE when the HTTP route is an Event Studio workspace section.
+ */
+function _myeventlane_event_studio_is_workspace_route(?string $route_name = NULL): bool {
+  $route_name ??= \Drupal::routeMatch()->getRouteName();
+  return in_array($route_name, _myeventlane_event_studio_workspace_route_names(), TRUE);
+}
+
+/**
+ * Route names for legacy wizard step forms (non-workspace).
+ *
+ * @return list<string>
+ */
+function _myeventlane_event_studio_legacy_wizard_route_names(): array {
+  return [
+    'myeventlane_event_studio.create',
+    'myeventlane_event_studio.edit',
+    'myeventlane_event_studio.edit_basic',
+    'myeventlane_event_studio.edit_datetime',
+    'myeventlane_event_studio.edit_tickets',
+    'myeventlane_event_studio.edit_description',
+    'myeventlane_event_studio.edit_preview',
+    'myeventlane_event_studio.edit_publish',
+  ];
+}
+
+/**
+ * Section ids that render inline AI assist on workspace forms.
+ *
+ * @return list<string>
+ */
+function _myeventlane_event_studio_workspace_ai_assist_section_ids(): array {
+  return ['information', 'content'];
 }
 
 /**

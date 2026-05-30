@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\myeventlane_event_studio\Unit;
+
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Workspace vs legacy Event Studio library attachment contracts.
+ *
+ * @group myeventlane_event_studio
+ */
+final class EventStudioWorkspaceLibraryAttachmentTest extends TestCase {
+
+  private string $moduleRoot;
+
+  protected function setUp(): void {
+    parent::setUp();
+    $this->moduleRoot = dirname(__DIR__, 3);
+  }
+
+  public function testWorkspaceRouteHelperExistsAndListsCoreSections(): void {
+    $module = file_get_contents($this->moduleRoot . '/myeventlane_event_studio.module');
+    $this->assertIsString($module);
+    $this->assertStringContainsString('function _myeventlane_event_studio_is_workspace_route', $module);
+    $this->assertStringContainsString("'myeventlane_event_studio.workspace_information'", $module);
+    $this->assertStringContainsString("'myeventlane_event_studio.workspace_tickets'", $module);
+    $this->assertStringContainsString("'myeventlane_event_studio.workspace_settings'", $module);
+    $this->assertStringContainsString("'myeventlane_event_studio.workspace_add_ons'", $module);
+  }
+
+  public function testBaseFormSkipsLegacyBundleOnWorkspaceRoutes(): void {
+    $baseForm = file_get_contents($this->moduleRoot . '/src/Form/EventStudioBaseForm.php');
+    $this->assertIsString($baseForm);
+    $this->assertStringContainsString('_myeventlane_event_studio_is_workspace_route()', $baseForm);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_event_studio_ai_assist', $baseForm);
+    $this->assertStringContainsString('_myeventlane_event_studio_workspace_ai_assist_section_ids()', $baseForm);
+    $this->assertMatchesRegularExpression(
+      '/if\s*\(_myeventlane_event_studio_is_workspace_route\(\)\)\s*\{[\s\S]*else\s*\{[\s\S]*myeventlane_event_studio\/mel_event_studio/s',
+      $baseForm,
+    );
+  }
+
+  public function testCheckoutQuestionsFormSkipsLegacyBundleOnWorkspace(): void {
+    $form = file_get_contents($this->moduleRoot . '/src/Form/EventCheckoutQuestionsForm.php');
+    $this->assertIsString($form);
+    $this->assertStringContainsString('_myeventlane_event_studio_is_workspace_route()', $form);
+    $this->assertStringContainsString('if (!_myeventlane_event_studio_is_workspace_route())', $form);
+  }
+
+  public function testWorkspaceControllerStillAttachesShellOnly(): void {
+    $controller = file_get_contents($this->moduleRoot . '/src/Controller/EventStudioController.php');
+    $this->assertIsString($controller);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_event_studio_shell_only', $controller);
+    $this->assertDoesNotMatchRegularExpression(
+      "/['\"]library['\"]\s*=>\s*\[['\"]myeventlane_event_studio\/mel_event_studio['\"]\]/",
+      $controller,
+    );
+  }
+
+  public function testLegacyPreviewRouteStillAttachesFullBundle(): void {
+    $controller = file_get_contents($this->moduleRoot . '/src/Controller/EventStudioPreviewController.php');
+    $this->assertIsString($controller);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_event_studio', $controller);
+  }
+
+  public function testAiAssistLibraryIsStandalone(): void {
+    $libraries = file_get_contents($this->moduleRoot . '/myeventlane_event_studio.libraries.yml');
+    $this->assertIsString($libraries);
+    $this->assertStringContainsString('mel_event_studio_ai_assist:', $libraries);
+    $this->assertStringContainsString('js/mel-event-studio-ai-assist.js', $libraries);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_event_studio_ai_assist', $libraries);
+    $this->assertFileExists($this->moduleRoot . '/js/mel-event-studio-ai-assist.js');
+  }
+
+  public function testBrandingAndTicketPreviewLibrariesUnchanged(): void {
+    $branding = file_get_contents($this->moduleRoot . '/src/Form/EventBrandingForm.php');
+    $preview = file_get_contents($this->moduleRoot . '/src/Service/EventTicketPreviewBuilder.php');
+    $this->assertIsString($branding);
+    $this->assertIsString($preview);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_branding_hero_tools', $branding);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_ticket_preview', $preview);
+  }
+
+}

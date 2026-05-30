@@ -275,7 +275,14 @@ abstract class EventStudioBaseForm extends FormBase {
       '#submit' => ['::submitContinue'],
     ];
 
-    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio';
+    if (_myeventlane_event_studio_is_workspace_route()) {
+      if (in_array($this->getCurrentStepId(), _myeventlane_event_studio_workspace_ai_assist_section_ids(), TRUE)) {
+        $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_ai_assist';
+      }
+    }
+    else {
+      $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio';
+    }
 
     return $form;
   }

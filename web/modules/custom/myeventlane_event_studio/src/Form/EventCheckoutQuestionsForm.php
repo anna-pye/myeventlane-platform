@@ -75,7 +75,9 @@ final class EventCheckoutQuestionsForm extends FormBase {
     $form['#attributes']['class'][] = 'mel-event-studio-questions--table';
     $form['#attributes']['data-mel-event-studio-form'] = '1';
     $form['#attributes']['data-mel-event-studio-section'] = 'questions';
-    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio';
+    if (!_myeventlane_event_studio_is_workspace_route()) {
+      $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio';
+    }
 
     $form['event_id'] = [
       '#type' => 'hidden',
