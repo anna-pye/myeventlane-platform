@@ -214,6 +214,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       $this->messenger()->addWarning($this->t('The previous cover image file is no longer available. Upload a new image, or use “Remove cover image” and save to clear the broken reference.'));
     }
 
+    $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_workspace';
     $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_hero_tools';
 
     $form['mel']['branding_hero_shell'] = [
@@ -270,6 +271,15 @@ final class EventBrandingForm extends EventStudioBaseForm {
         $this->brandingHeroFocalAugmenter->attachAfterBuild($form['mel']['field_event_image'], $formNode, $focal_override);
       }
     }
+
+    $form['mel']['field_event_image_alt'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Image alt text'),
+      '#description' => $this->t('Short description for screen readers and SEO. Required when a cover image is present.'),
+      '#default_value' => $this->resolveHeroAltDefault($node, $melDefaults),
+      '#weight' => 6,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
 
     $form['mel']['branding_hero_tools'] = [
       '#type' => 'container',
@@ -552,6 +562,28 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#markup' => Markup::create('</div></div></section>'),
       '#weight' => 17,
     ];
+  }
+
+  /**
+   * Default alt text for the dedicated MEL field (entity, baseline, or draft mel).
+   *
+   * @param array<string, mixed> $melDefaults
+   */
+  private function resolveHeroAltDefault(NodeInterface $node, array $melDefaults): string {
+    if (array_key_exists('field_event_image_alt', $melDefaults)) {
+      return trim((string) ($melDefaults['field_event_image_alt'] ?? ''));
+    }
+    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($melDefaults);
+    if ($hero['alt'] !== '') {
+      return $hero['alt'];
+    }
+    if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+      $item = $node->get('field_event_image')->first();
+      if ($item !== NULL) {
+        return trim((string) ($item->alt ?? ''));
+      }
+    }
+    return '';
   }
 
   /**
