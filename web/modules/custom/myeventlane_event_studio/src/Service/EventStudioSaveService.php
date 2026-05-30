@@ -586,11 +586,11 @@ final class EventStudioSaveService {
     }
 
     if ($node->hasField('field_collect_per_ticket')) {
-      if (in_array($event_type, ['paid', 'rsvp'], TRUE) && (array_key_exists('collect_per_ticket', $payload) || array_key_exists('collect_attendee_questions', $payload))) {
+      if (in_array($event_type, ['paid', 'rsvp', 'both'], TRUE) && (array_key_exists('collect_per_ticket', $payload) || array_key_exists('collect_attendee_questions', $payload))) {
         $collectPerTicket = !empty($payload['collect_per_ticket']) || !empty($payload['collect_attendee_questions']);
         $node->set('field_collect_per_ticket', $collectPerTicket);
       }
-      elseif (!in_array($event_type, ['paid', 'rsvp'], TRUE)) {
+      elseif (!in_array($event_type, ['paid', 'rsvp', 'both'], TRUE)) {
         $node->set('field_collect_per_ticket', FALSE);
       }
     }
