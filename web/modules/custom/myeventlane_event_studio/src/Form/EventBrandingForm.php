@@ -97,6 +97,13 @@ final class EventBrandingForm extends EventStudioBaseForm {
   }
 
   /**
+   * Branding save persists hero media to the node for public/book pages.
+   */
+  protected function isDraftWizardSave(): bool {
+    return FALSE;
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function persistWizardMel(FormStateInterface $form_state, bool $draft): ?array {
@@ -178,6 +185,19 @@ final class EventBrandingForm extends EventStudioBaseForm {
         $this->t('Custom colour palettes are a Pro feature.')
       );
     }
+
+    $mel_for_hero = $mel;
+    $user_mel = $form_state->getUserInput()['mel'] ?? NULL;
+    if (is_array($user_mel)) {
+      $mel_for_hero = array_replace_recursive($mel_for_hero, $user_mel);
+    }
+    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_for_hero);
+    if ($hero['fid'] > 0 && $hero['alt'] === '') {
+      $form_state->setErrorByName(
+        'mel][field_event_image_alt',
+        $this->t('Alt text is required for the cover image.')
+      );
+    }
   }
 
   /**
@@ -216,8 +236,20 @@ final class EventBrandingForm extends EventStudioBaseForm {
 
     $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_workspace';
     $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_hero_tools';
+    $form['mel']['#attributes']['class'][] = 'mel-event-branding-studio';
 
-    $form['mel']['branding_hero_shell'] = [
+    $form['mel']['branding_layout_open'] = [
+      '#type' => 'markup',
+      '#markup' => Markup::create(
+        '<div class="mel-event-branding-studio__layout"><div class="mel-event-branding-studio__main">'
+      ),
+      '#weight' => -21,
+    ];
+
+    /** @var array<string, mixed> $main */
+    $main = &$form['mel'];
+
+    $main['branding_hero_shell'] = [
       '#type' => 'markup',
       '#markup' => Markup::create(
         '<section class="mel-es-field-group mel-es-field-group--branding" aria-labelledby="mel-es-branding-title">'
@@ -272,7 +304,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       }
     }
 
-    $form['mel']['field_event_image_alt'] = [
+    $main['field_event_image_alt'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Image alt text'),
       '#description' => $this->t('Short description for screen readers and SEO. Required when a cover image is present.'),
@@ -281,7 +313,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#attributes' => ['class' => ['mel-input']],
     ];
 
-    $form['mel']['branding_hero_tools'] = [
+    $main['branding_hero_tools'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-es-branding-hero-tools']],
       '#weight' => 10,
@@ -438,6 +470,8 @@ final class EventBrandingForm extends EventStudioBaseForm {
    * @param array<string, mixed> $melDefaults
    */
   private function buildPageStyleFields(array &$form, NodeInterface $node, array $melDefaults): void {
+    /** @var array<string, mixed> $main */
+    $main = &$form['mel'];
     $can_customize = $this->eventStyleAccess->canCustomizeEventPage($this->currentUser);
     $colour_labels = $this->eventPageStyleResolver->colourOptions();
 
@@ -458,7 +492,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $style_default = $this->eventPageStyleResolver->sanitizeStyle((string) $style_default);
     $colour_default = $this->eventPageStyleResolver->sanitizeColour((string) $colour_default);
 
-    $form['mel']['page_style_shell'] = [
+    $main['page_style_shell'] = [
       '#type' => 'markup',
       '#markup' => Markup::create(
         '<section class="mel-es-field-group mel-es-field-group--page-style" aria-labelledby="mel-es-page-style-title">'
@@ -471,15 +505,12 @@ final class EventBrandingForm extends EventStudioBaseForm {
       '#weight' => 15,
     ];
 
-    $form['mel']['branding_preview'] = $this->eventBrandingPreviewBuilder->build($node);
-    $form['mel']['branding_preview']['#weight'] = 16;
-
     $style_options = [
       EventPageStyleResolver::STYLE_CLASSIC => $this->t('Classic MyEventLane'),
       EventPageStyleResolver::STYLE_IMMERSIVE => $this->t('Immersive'),
     ];
 
-    $form['mel']['field_mel_page_style'] = [
+    $main['field_mel_page_style'] = [
       '#type' => 'radios',
       '#title' => $this->t('Page style'),
       '#weight' => 20,
@@ -498,7 +529,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     ];
 
     foreach (array_keys($style_options) as $style_key) {
-      $form['mel']['field_mel_page_style'][$style_key]['#wrapper_attributes'] = [
+      $main['field_mel_page_style'][$style_key]['#wrapper_attributes'] = [
         'class' => [
           'mel-page-style-card',
           'mel-page-style-card--' . $style_key,
@@ -507,12 +538,12 @@ final class EventBrandingForm extends EventStudioBaseForm {
     }
 
     if (!$can_customize) {
-      $form['mel']['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#disabled'] = TRUE;
-      $form['mel']['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#attributes']['class'][] = 'mel-option-card--locked';
+      $main['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#disabled'] = TRUE;
+      $main['field_mel_page_style'][EventPageStyleResolver::STYLE_IMMERSIVE]['#attributes']['class'][] = 'mel-option-card--locked';
     }
 
     if (!$can_customize) {
-      $form['mel']['page_style_upgrade'] = [
+      $main['page_style_upgrade'] = [
         '#type' => 'html_tag',
         '#tag' => 'p',
         '#value' => Html::escape((string) $this->t('Upgrade to Pro to customise your event page.')),
@@ -520,7 +551,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
           'class' => ['mel-page-style-upgrade', 'mel-es-field-group__reassurance'],
           'role' => 'note',
         ],
-        '#weight' => 16,
+        '#weight' => 21,
       ];
     }
 
@@ -529,7 +560,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
       $colour_options[$key] = $this->t($label);
     }
 
-    $form['mel']['field_mel_theme_colour'] = [
+    $main['field_mel_theme_colour'] = [
       '#type' => 'radios',
       '#title' => $this->t('Colour mood'),
       '#title_display' => 'invisible',
@@ -550,17 +581,32 @@ final class EventBrandingForm extends EventStudioBaseForm {
 
     foreach (array_keys($colour_options) as $colour_key) {
       if ($colour_key !== EventPageStyleResolver::COLOUR_CORAL && !$can_customize) {
-        $form['mel']['field_mel_theme_colour'][$colour_key]['#disabled'] = TRUE;
-        $form['mel']['field_mel_theme_colour'][$colour_key]['#attributes']['class'][] = 'mel-option-card--locked';
+        $main['field_mel_theme_colour'][$colour_key]['#disabled'] = TRUE;
+        $main['field_mel_theme_colour'][$colour_key]['#attributes']['class'][] = 'mel-option-card--locked';
       }
-      $form['mel']['field_mel_theme_colour'][$colour_key]['#wrapper_attributes']['class'][] = 'mel-page-style-colour-card';
-      $form['mel']['field_mel_theme_colour'][$colour_key]['#wrapper_attributes']['class'][] = 'mel-page-style-colour-card--' . $colour_key;
+      $main['field_mel_theme_colour'][$colour_key]['#wrapper_attributes']['class'][] = 'mel-page-style-colour-card';
+      $main['field_mel_theme_colour'][$colour_key]['#wrapper_attributes']['class'][] = 'mel-page-style-colour-card--' . $colour_key;
     }
 
-    $form['mel']['page_style_close'] = [
+    $main['page_style_close'] = [
       '#type' => 'markup',
-      '#markup' => Markup::create('</div></div></section>'),
-      '#weight' => 17,
+      '#markup' => Markup::create('</div></section>'),
+      '#weight' => 23,
+    ];
+
+    $main['branding_aside_open'] = [
+      '#type' => 'markup',
+      '#markup' => Markup::create('</div><div class="mel-event-branding-studio__aside">'),
+      '#weight' => 24,
+    ];
+
+    $main['branding_preview'] = $this->eventBrandingPreviewBuilder->build($node);
+    $main['branding_preview']['#weight'] = 25;
+
+    $main['branding_layout_close'] = [
+      '#type' => 'markup',
+      '#markup' => Markup::create('</div></div>'),
+      '#weight' => 26,
     ];
   }
 

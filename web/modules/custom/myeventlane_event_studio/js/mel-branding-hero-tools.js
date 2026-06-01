@@ -12,6 +12,8 @@
     { value: "82,50" },
   ];
 
+  const CROP_ATTENTION_CLASS = "mel-es-branding-crop-wrapper--attention";
+
   /**
    * @returns {string}
    */
@@ -111,9 +113,33 @@
    */
   function findWidgetPreviewImage(root) {
     const thumb = root.querySelector(
-      ".image-widget .preview img, .image-widget .preview .thumbnail img, .focal-point-wrapper + img, .image-widget img",
+      ".image-widget .preview img, .image-widget .preview .thumbnail img, .focal-point-wrapper + img, .image-widget img[data-drupal-selector*='-preview'], .image-widget img",
     );
     return thumb instanceof HTMLImageElement ? thumb : null;
+  }
+
+  /**
+   * Narrow preview target for MutationObserver — never the full image widget.
+   *
+   * @param {HTMLElement} root
+   * @returns {HTMLElement|null}
+   */
+  function findHeroPreviewObserveTarget(root) {
+    const widget = root.querySelector(".image-widget");
+    if (!widget) {
+      return null;
+    }
+    const previewContainer = widget.querySelector(".preview");
+    if (previewContainer instanceof HTMLElement) {
+      return previewContainer;
+    }
+    const previewImage = widget.querySelector(
+      "img[data-drupal-selector*='-preview']",
+    );
+    if (previewImage instanceof HTMLImageElement) {
+      return previewImage;
+    }
+    return null;
   }
 
   /**
@@ -139,7 +165,6 @@
       return;
     }
     const src = resolveFramingImageSrc(root);
-    const { x, y } = parseFocal(focalValue);
     let img = frame.querySelector("img.mel-es-branding-hero-framing__img");
     if (!src) {
       frame.hidden = true;
@@ -160,7 +185,8 @@
     if (img.getAttribute("src") !== src) {
       img.src = src;
     }
-    img.style.objectPosition = `${x}% ${y}%`;
+    // Framing preview uses mel_event_hero_featured (event_hero crop baked in).
+    img.style.objectPosition = "50% 50%";
   }
 
   /**
@@ -171,6 +197,218 @@
   function notifyFocalPointModule(field) {
     $(field).trigger("change");
     $(document).trigger("drupalFocalPointSet");
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {HTMLElement|null}
+   */
+  function findCropWrapper(root) {
+    return root.querySelector(
+      ".image-data__crop-wrapper, details[data-drupal-selector*='crop-wrapper']",
+    );
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {HTMLInputElement|null}
+   */
+  function findCropAppliedInput(root) {
+    const input = root.querySelector(
+      'input[name*="field_event_image"][name*="crop_applied"]',
+    );
+    return input instanceof HTMLInputElement ? input : null;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {boolean}
+   */
+  function hasUploadedHeroFile(root) {
+    const fids = root.querySelector(
+      'input[name*="field_event_image"][name*="[fids]"]',
+    );
+    return !!(fids && String(fids.value || "").trim() !== "");
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {boolean}
+   */
+  function isCropApplied(root) {
+    const applied = findCropAppliedInput(root);
+    if (applied) {
+      return String(applied.value) === "1";
+    }
+    const wrapper = findCropWrapper(root);
+    return !(wrapper && wrapper.classList.contains("error"));
+  }
+
+  /**
+   * Whether image_widget_crop has marked the hero crop wrapper invalid.
+   *
+   * @param {HTMLElement} root
+   * @returns {boolean}
+   */
+  function hasCropValidationError(root) {
+    const wrapper = findCropWrapper(root);
+    return !!(wrapper && wrapper.classList.contains("error"));
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {boolean}
+   */
+  function cropNeedsAttention(root) {
+    if (!hasUploadedHeroFile(root)) {
+      return false;
+    }
+    const wrapper = findCropWrapper(root);
+    if (wrapper && wrapper.classList.contains("error")) {
+      return true;
+    }
+    return !isCropApplied(root);
+  }
+
+  /**
+   * @param {HTMLElement} root
+   */
+  function syncCropRequiredNotice(root) {
+    const notice = root.querySelector(".mel-es-branding-crop-notice");
+    const wrapper = findCropWrapper(root);
+    const needsAttention = cropNeedsAttention(root);
+    const hasError = !!(wrapper && wrapper.classList.contains("error"));
+
+    if (notice) {
+      const shouldHide = !needsAttention;
+      if (notice.hidden !== shouldHide) {
+        notice.hidden = shouldHide;
+      }
+      if (notice.classList.contains("is-error") !== hasError) {
+        notice.classList.toggle("is-error", hasError);
+      }
+    }
+
+    if (wrapper instanceof HTMLDetailsElement) {
+      if (hasError || needsAttention) {
+        if (!wrapper.open) {
+          wrapper.open = true;
+        }
+        if (!wrapper.classList.contains(CROP_ATTENTION_CLASS)) {
+          wrapper.classList.add(CROP_ATTENTION_CLASS);
+        }
+      }
+      else if (wrapper.classList.contains(CROP_ATTENTION_CLASS)) {
+        wrapper.classList.remove(CROP_ATTENTION_CLASS);
+      }
+    }
+    else if (wrapper && wrapper.classList.contains(CROP_ATTENTION_CLASS)) {
+      wrapper.classList.remove(CROP_ATTENTION_CLASS);
+    }
+
+    if (needsAttention) {
+      const message = hasError
+        ? Drupal.t(
+            "Cover crop is required — apply the 16:9 crop, then save branding.",
+          )
+        : Drupal.t(
+            "Apply the 16:9 crop under your cover image before saving branding.",
+          );
+      const status = root.querySelector("#mel-es-branding-focal-status");
+      if (status && status.textContent !== message) {
+        setFocalStatus(root, message);
+      }
+    }
+  }
+
+  /**
+   * True when the user clicked the branding Save submit (not upload/remove/AJAX).
+   *
+   * @param {SubmitEvent} event
+   * @returns {boolean}
+   */
+  function isSaveBrandingSubmit(event) {
+    const submitter = event.submitter;
+    if (!(submitter instanceof HTMLElement)) {
+      return false;
+    }
+    if (submitter.id === "edit-continue") {
+      return true;
+    }
+    if (
+      submitter.matches('input[type="submit"], button[type="submit"]')
+      && /save branding/i.test(String(submitter.value || submitter.textContent || ""))
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   */
+  function scrollToBrandingFormIssue(root) {
+    const cropIssue = root.querySelector(
+      ".image-data__crop-wrapper.error, .mel-es-branding-crop-wrapper--attention, .mel-es-branding-crop-notice:not([hidden])",
+    );
+    if (cropIssue) {
+      cropIssue.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const workspace = root.closest(".mel-event-studio--workspace");
+    const errBox =
+      (workspace && workspace.querySelector(".messages--error")) ||
+      document.querySelector(".mel-event-studio .messages--error");
+    if (errBox) {
+      errBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  /**
+   * @param {HTMLElement} root
+   */
+  function observeCropWidget(root) {
+    if (root.dataset.melCropObserved === "1") {
+      return;
+    }
+    const wrapper = findCropWrapper(root);
+    if (!wrapper || typeof MutationObserver === "undefined") {
+      return;
+    }
+    root.dataset.melCropObserved = "1";
+    const observer = new MutationObserver((records) => {
+      let shouldSync = false;
+      for (let i = 0; i < records.length; i += 1) {
+        const record = records[i];
+        if (record.type === "childList") {
+          shouldSync = true;
+          break;
+        }
+        if (
+          record.type === "attributes"
+          && record.attributeName === "class"
+          && record.target === wrapper
+        ) {
+          shouldSync = true;
+          break;
+        }
+      }
+      if (shouldSync) {
+        syncCropRequiredNotice(root);
+      }
+    });
+    observer.observe(wrapper, {
+      attributes: true,
+      attributeFilter: ["class"],
+      childList: true,
+      subtree: true,
+    });
+    const applied = findCropAppliedInput(root);
+    if (applied) {
+      applied.addEventListener("change", () => {
+        syncCropRequiredNotice(root);
+      });
+    }
   }
 
   /**
@@ -208,6 +446,8 @@
       custom.disabled = !enable;
       custom.setAttribute("aria-disabled", enable ? "false" : "true");
     }
+
+    syncCropRequiredNotice(root);
   }
 
   /**
@@ -244,23 +484,40 @@
     if (root.dataset.melHeroPreviewObserved === "1") {
       return;
     }
-    const preview = root.querySelector(".image-widget .preview, .image-widget");
-    if (!preview || typeof MutationObserver === "undefined") {
+    const target = findHeroPreviewObserveTarget(root);
+    if (!target || typeof MutationObserver === "undefined") {
       return;
     }
     root.dataset.melHeroPreviewObserved = "1";
     const observer = new MutationObserver(() => {
       syncHeroToolStrip(root);
-      const field = findFocalField(root);
-      if (field) {
-        onFocalChanged(root, field, false);
-      }
     });
-    observer.observe(preview, {
+    if (target instanceof HTMLImageElement) {
+      observer.observe(target, {
+        attributes: true,
+        attributeFilter: ["src"],
+      });
+      return;
+    }
+    observer.observe(target, {
       attributes: true,
+      attributeFilter: ["src", "hidden"],
       childList: true,
       subtree: true,
     });
+  }
+
+  /**
+   * Rebind observers after AJAX replaces managed-file markup.
+   *
+   * @param {HTMLElement} root
+   */
+  function refreshBrandingHeroObservers(root) {
+    delete root.dataset.melCropObserved;
+    delete root.dataset.melHeroPreviewObserved;
+    syncHeroToolStrip(root);
+    observeWidgetPreview(root);
+    observeCropWidget(root);
   }
 
   if (!Drupal.melBrandingHeroToolsAjaxBound) {
@@ -269,8 +526,7 @@
       document
         .querySelectorAll(".mel-es-field-group--branding")
         .forEach((root) => {
-          syncHeroToolStrip(root);
-          observeWidgetPreview(root);
+          refreshBrandingHeroObservers(root);
         });
     });
     $(document).on("drupalFocalPointSet.melBrandingHeroTools", () => {
@@ -291,6 +547,33 @@
         (root) => {
           syncHeroToolStrip(root);
           observeWidgetPreview(root);
+          observeCropWidget(root);
+
+          if (
+            hasCropValidationError(root) &&
+            root.dataset.melCropErrorScrolled !== "1"
+          ) {
+            root.dataset.melCropErrorScrolled = "1";
+            scrollToBrandingFormIssue(root);
+          }
+
+          const form = root.closest("form");
+          if (form && !form.dataset.melBrandingSaveCropBound) {
+            form.dataset.melBrandingSaveCropBound = "1";
+            form.addEventListener(
+              "submit",
+              (event) => {
+                if (!isSaveBrandingSubmit(event)) {
+                  return;
+                }
+                if (cropNeedsAttention(root) || hasCropValidationError(root)) {
+                  syncCropRequiredNotice(root);
+                  scrollToBrandingFormIssue(root);
+                }
+              },
+              true,
+            );
+          }
 
           const focal = findFocalField(root);
           if (focal) {
