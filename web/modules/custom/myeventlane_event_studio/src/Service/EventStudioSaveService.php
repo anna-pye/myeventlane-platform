@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Field\WidgetInterface;
+use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\crop\Entity\Crop;
+use Drupal\crop\CropInterface;
 use Drupal\file\FileInterface;
+use Drupal\focal_point\FocalPointManagerInterface;
 use Drupal\myeventlane_event\Service\EventPasscodeAccess;
 use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
@@ -25,6 +31,7 @@ use Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Canonical orchestrator for vendor-originated event node edits from Event Studio.
@@ -45,6 +52,8 @@ final class EventStudioSaveService {
 
   private const BRANDING_HERO_WARN_HEIGHT_LT = 720;
 
+  private const BRANDING_HERO_CROP_TYPE = 'event_hero';
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly VenueManager $venueManager,
@@ -57,10 +66,12 @@ final class EventStudioSaveService {
     private readonly ImageFactory $imageFactory,
     private readonly TranslationInterface $stringTranslation,
     private readonly FileSystemInterface $fileSystem,
+    private readonly FocalPointManagerInterface $focalPointManager,
     private readonly ?OperationalCapabilityStudioManager $operationalCapabilityStudioManager = NULL,
     private readonly ?EventPageStyleResolver $eventPageStyleResolver = NULL,
     private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
     private readonly ?EventStudioQuestionTemplateManager $questionTemplateManager = NULL,
+    private readonly ?RequestStack $requestStack = NULL,
   ) {}
 
   /**
@@ -931,7 +942,7 @@ final class EventStudioSaveService {
     if (!$file instanceof FileInterface) {
       return TRUE;
     }
-    return !$this->heroFileIsRenderable($file);
+    return !$this->isHeroFileRenderable($file);
   }
 
   /**
@@ -956,10 +967,6 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => ['Hero image editor is not available.'], 'warnings' => []];
     }
 
-    $mel_values = $form_state->getValue('mel') ?? [];
-    if (!is_array($mel_values)) {
-      $mel_values = [];
-    }
     $mel_structure = $form_state->getCompleteForm()['mel'] ?? $mel_subform;
     if (!is_array($mel_structure) || !isset($mel_structure['field_event_image'])) {
       return ['node' => NULL, 'errors' => ['Hero image field is missing from the form.'], 'warnings' => []];
@@ -971,8 +978,36 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => ['Hero image widget is not configured.'], 'warnings' => []];
     }
 
+    $this->syncBrandingHeroSubmittedValues($form_state);
+
+    $mel_values = $form_state->getValue('mel') ?? [];
+    if (!is_array($mel_values)) {
+      $mel_values = [];
+    }
+
+    $synced_hero_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
+    $user_input = $form_state->getUserInput();
+    $input_fragment = is_array($user_input['mel'] ?? NULL)
+      ? ($user_input['mel']['field_event_image'] ?? NULL)
+      : NULL;
+    $values_fragment = $mel_values['field_event_image'] ?? NULL;
+    $this->logger->info('Branding hero sync for node @nid: input=@input values=@values resolved_fid=@fid', [
+      '@nid' => (string) $node->id(),
+      '@input' => $this->brandingHeroSyncSnapshot($input_fragment),
+      '@values' => $this->brandingHeroSyncSnapshot($values_fragment),
+      '@fid' => (string) $synced_hero_fid,
+    ]);
+
     $items = $node->get('field_event_image');
-    $widget->extractFormValues($items, $mel_structure, $form_state);
+    try {
+      $widget->extractFormValues($items, $mel_structure, $form_state);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Branding save: extractFormValues failed for node @nid, using mel fragment fallback: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
 
     $fid = 0;
     $alt = '';
@@ -982,12 +1017,12 @@ final class EventStudioSaveService {
       $alt = trim((string) ($value['alt'] ?? ''));
     }
 
+    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values);
     if ($fid < 1) {
-      $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values);
       $fid = $hero['fid'];
-      if ($alt === '' && $hero['alt'] !== '') {
-        $alt = $hero['alt'];
-      }
+    }
+    if ($alt === '' && $hero['alt'] !== '') {
+      $alt = $hero['alt'];
     }
 
     $warnings = [];
@@ -1000,12 +1035,19 @@ final class EventStudioSaveService {
         return ['node' => NULL, 'errors' => ['Alt text is required for the cover image.'], 'warnings' => []];
       }
       $file = $this->entityTypeManager->getStorage('file')->load($fid);
-      if (!$file instanceof FileInterface || !$this->heroFileIsRenderable($file)) {
-        $this->logger->warning('Branding save: clearing missing or unreadable hero file @fid on node @nid.', [
+      if (!$file instanceof FileInterface) {
+        $this->logger->warning('Branding save: missing hero file @fid on node @nid.', [
           '@fid' => (string) $fid,
           '@nid' => (string) $node->id(),
         ]);
-        $node->set('field_event_image', []);
+        return ['node' => NULL, 'errors' => ['The uploaded image could not be loaded. Try uploading again.'], 'warnings' => []];
+      }
+      if (!$this->isHeroFileRenderable($file)) {
+        $this->logger->warning('Branding save: hero file @fid is not renderable for node @nid.', [
+          '@fid' => (string) $fid,
+          '@nid' => (string) $node->id(),
+        ]);
+        return ['node' => NULL, 'errors' => [$this->brokenHeroImageErrorMessage()], 'warnings' => []];
       }
       else {
         if ($file->isTemporary()) {
@@ -1026,7 +1068,7 @@ final class EventStudioSaveService {
         }
         $from_mel = EventStudioMelPayloadService::buildHeroFieldItemFromMelFragment($mel_values);
         if ($from_mel !== NULL) {
-          foreach (['focal_point', 'width', 'height', 'title'] as $key) {
+          foreach (['alt', 'focal_point', 'width', 'height', 'title'] as $key) {
             if (!array_key_exists($key, $from_mel)) {
               continue;
             }
@@ -1035,6 +1077,9 @@ final class EventStudioSaveService {
               $row[$key] = $candidate;
             }
           }
+        }
+        elseif ($alt !== '') {
+          $row['alt'] = $alt;
         }
         $node->set('field_event_image', [
           $this->enrichBrandingHeroFieldItem($row, $file),
@@ -1048,7 +1093,10 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => $gallery_errors, 'warnings' => []];
     }
 
-    $style_errors = $this->applyBrandingPageStyleFields($node, $mel_values);
+    $style_errors = $this->applyBrandingPageStyleFields(
+      $node,
+      $this->resolveBrandingStyleMelForPersistence($mel_subform, $form_state),
+    );
     if ($style_errors !== []) {
       return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
     }
@@ -1058,9 +1106,12 @@ final class EventStudioSaveService {
       $node->save();
     }
     catch (\Throwable $e) {
-      $this->logger->error('Branding hero save failed for node @nid: @m', [
+      $this->logger->error('Branding hero save failed for node @nid class @class file @file line @line: @message', [
         '@nid' => (string) $node->id(),
-        '@m' => $e->getMessage(),
+        '@class' => $e::class,
+        '@file' => $e->getFile(),
+        '@line' => (string) $e->getLine(),
+        '@message' => $e->getMessage(),
       ]);
       return ['node' => NULL, 'errors' => ['Could not save branding.'], 'warnings' => []];
     }
@@ -1094,20 +1145,446 @@ final class EventStudioSaveService {
       return [];
     }
 
+    $mel_form = $this->normalizeBrandingMelFormStructure($mel_structure);
+    $before_ids = $this->brandingGalleryMediaIdsFromField($node->get('field_mel_event_gallery')->getValue());
+
     try {
+      $this->syncBrandingGallerySubmittedValues($form_state);
+
       $items = $node->get('field_mel_event_gallery');
-      $widget->extractFormValues($items, $mel_structure, $form_state);
-      $node->set('field_mel_event_gallery', $items->getValue());
+      $submitted_ids = $widget instanceof MediaLibraryWidget
+        ? $this->extractBrandingGalleryTargetIdsFromSubmittedMel($form_state, $widget, $mel_form)
+        : NULL;
+
+      if ($submitted_ids !== NULL) {
+        $items->setValue(array_map(
+          static fn(int $media_id): array => ['target_id' => $media_id],
+          $submitted_ids,
+        ));
+      }
+      else {
+        $widget->extractFormValues($items, $mel_form, $form_state);
+      }
+
+      $final_value = $items->getValue();
+      $final_ids = $this->brandingGalleryMediaIdsFromField($final_value);
+      $node->set('field_mel_event_gallery', $final_value);
+
+      $this->logger->info('Branding gallery save for node @nid: before=@before submitted=@submitted final=@final', [
+        '@nid' => (string) $node->id(),
+        '@before' => implode(',', array_map('strval', $before_ids)) ?: 'none',
+        '@submitted' => $submitted_ids === NULL ? 'n/a' : (implode(',', array_map('strval', $submitted_ids)) ?: 'none'),
+        '@final' => implode(',', array_map('strval', $final_ids)) ?: 'none',
+      ]);
     }
     catch (\Throwable $e) {
-      $this->logger->error('Branding gallery save failed for node @nid: @m', [
+      $this->logger->error('Branding gallery save failed for node @nid class @class file @file line @line: @message', [
         '@nid' => (string) $node->id(),
-        '@m' => $e->getMessage(),
+        '@class' => $e::class,
+        '@file' => $e->getFile(),
+        '@line' => (string) $e->getLine(),
+        '@message' => $e->getMessage(),
       ]);
       return ['Could not save event gallery.'];
     }
 
     return [];
+  }
+
+  /**
+   * Ensures the mel subform fragment has #parents for field widget extraction.
+   *
+   * @param array<string, mixed> $mel_structure
+   *
+   * @return array<string, mixed>
+   */
+  private function normalizeBrandingMelFormStructure(array $mel_structure): array {
+    if (!isset($mel_structure['#parents']) || !is_array($mel_structure['#parents'])) {
+      $mel_structure['#parents'] = ['mel'];
+    }
+    return $mel_structure;
+  }
+
+  /**
+   * Copies hero widget values from raw user input when Form API values are stale.
+   *
+   * image_widget_crop AJAX handlers can leave fids / crop / focal point in user input
+   * only; WidgetBase reads form_state values during extractFormValues().
+   */
+  private function syncBrandingHeroSubmittedValues(FormStateInterface $form_state): void {
+    $user_input = $form_state->getUserInput();
+    if (!is_array($user_input)) {
+      $user_input = [];
+    }
+    $mel_input = $user_input['mel'] ?? NULL;
+    if (!is_array($mel_input)) {
+      $mel_input = [];
+    }
+    $from_input = $mel_input['field_event_image'] ?? NULL;
+    if (!is_array($from_input) || !$this->brandingHeroMelFragmentHasAuthoritativeInput($from_input)) {
+      $from_request = $this->brandingHeroMelFieldFragmentFromRequest();
+      if ($from_request === NULL) {
+        return;
+      }
+      $from_input = $from_request;
+      $mel_input['field_event_image'] = $from_input;
+      if (!array_key_exists('field_event_image_alt', $mel_input)) {
+        $request_mel = $this->brandingHeroRequestMelFragment();
+        if (is_array($request_mel) && array_key_exists('field_event_image_alt', $request_mel)) {
+          $mel_input['field_event_image_alt'] = $request_mel['field_event_image_alt'];
+        }
+      }
+      $user_input['mel'] = $mel_input;
+      $form_state->setUserInput($user_input);
+    }
+    elseif ($this->brandingHeroFidFromMelFieldFragment($from_input) < 1) {
+      $from_request = $this->brandingHeroMelFieldFragmentFromRequest();
+      if ($from_request !== NULL) {
+        $from_input = $from_request;
+        $mel_input['field_event_image'] = $from_input;
+        if (!array_key_exists('field_event_image_alt', $mel_input)) {
+          $request_mel = $this->brandingHeroRequestMelFragment();
+          if (is_array($request_mel) && array_key_exists('field_event_image_alt', $request_mel)) {
+            $mel_input['field_event_image_alt'] = $request_mel['field_event_image_alt'];
+          }
+        }
+        $user_input['mel'] = $mel_input;
+        $form_state->setUserInput($user_input);
+      }
+    }
+
+    $values = $form_state->getValues();
+    if (!is_array($values)) {
+      return;
+    }
+    $mel_values = $values['mel'] ?? NULL;
+    $current = is_array($mel_values) ? ($mel_values['field_event_image'] ?? NULL) : NULL;
+    if (!is_array($current)) {
+      $mel_values = is_array($mel_values) ? $mel_values : [];
+      $mel_values['field_event_image'] = $from_input;
+      $this->applyBrandingHeroAltToMelValues($mel_input, $mel_values);
+      $values['mel'] = $mel_values;
+      $form_state->setValues($values);
+      return;
+    }
+
+    $input_fid = $this->brandingHeroFidFromMelFieldFragment($from_input);
+    $current_fid = $this->brandingHeroFidFromMelFieldFragment($current);
+    if ($input_fid !== $current_fid) {
+      $merged = $this->mergeBrandingHeroMelFieldFragment($current, $from_input);
+      $mel_values['field_event_image'] = $merged;
+      $this->applyBrandingHeroAltToMelValues($mel_input, $mel_values);
+      $values['mel'] = $mel_values;
+      $form_state->setValues($values);
+      return;
+    }
+
+    if (!$this->brandingHeroMelFragmentHasAuthoritativeInput($current)) {
+      $mel_values['field_event_image'] = array_merge($current, $from_input);
+      $this->applyBrandingHeroAltToMelValues($mel_input, $mel_values);
+      $values['mel'] = $mel_values;
+      $form_state->setValues($values);
+      return;
+    }
+
+    if ($this->brandingHeroMelFragmentNeedsSupplementalInputSync($current, $from_input)) {
+      $merged = $this->mergeBrandingHeroMelFieldFragment($current, $from_input);
+      $mel_values['field_event_image'] = $merged;
+      $this->applyBrandingHeroAltToMelValues($mel_input, $mel_values);
+      $values['mel'] = $mel_values;
+      $form_state->setValues($values);
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $mel_input
+   * @param array<string, mixed> $mel_values
+   */
+  private function applyBrandingHeroAltToMelValues(array $mel_input, array &$mel_values): void {
+    if (!array_key_exists('field_event_image_alt', $mel_input)) {
+      return;
+    }
+    $alt = trim((string) ($mel_input['field_event_image_alt'] ?? ''));
+    if ($alt !== '') {
+      $mel_values['field_event_image_alt'] = $alt;
+    }
+  }
+
+  /**
+   * @return array<string, mixed>|null
+   */
+  private function brandingHeroMelFieldFragmentFromRequest(): ?array {
+    $request_mel = $this->brandingHeroRequestMelFragment();
+    if (!is_array($request_mel)) {
+      return NULL;
+    }
+    $fragment = $request_mel['field_event_image'] ?? NULL;
+    if (!is_array($fragment) || !$this->brandingHeroMelFragmentHasAuthoritativeInput($fragment)) {
+      return NULL;
+    }
+    return $fragment;
+  }
+
+  /**
+   * @return array<string, mixed>|null
+   */
+  private function brandingHeroRequestMelFragment(): ?array {
+    if (!$this->requestStack instanceof RequestStack) {
+      return NULL;
+    }
+    $request = $this->requestStack->getCurrentRequest();
+    if ($request === NULL) {
+      return NULL;
+    }
+    $mel = $request->request->all()['mel'] ?? NULL;
+    return is_array($mel) ? $mel : NULL;
+  }
+
+  /**
+   * @param array<string, mixed> $field_fragment
+   */
+  private function brandingHeroMelFragmentHasAuthoritativeInput(array $field_fragment): bool {
+    $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($field_fragment);
+    return array_key_exists('fids', $delta)
+      || array_key_exists('focal_point', $delta)
+      || array_key_exists('image_crop', $delta);
+  }
+
+  /**
+   * @param array<string, mixed> $field_fragment
+   */
+  private function brandingHeroFidFromMelFieldFragment(array $field_fragment): int {
+    return EventStudioMelPayloadService::normalizeHeroFromMelFragment([
+      'field_event_image' => $field_fragment,
+    ])['fid'];
+  }
+
+  /**
+   * @param array<string, mixed> $current
+   * @param array<string, mixed> $from_input
+   */
+  private function brandingHeroMelFragmentNeedsSupplementalInputSync(array $current, array $from_input): bool {
+    $input_delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($from_input);
+    $current_delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($current);
+
+    if (isset($input_delta['focal_point'])) {
+      $input_focal = trim((string) $input_delta['focal_point']);
+      $current_focal = trim((string) ($current_delta['focal_point'] ?? ''));
+      if ($input_focal !== '' && $input_focal !== $current_focal) {
+        return TRUE;
+      }
+    }
+
+    $input_crop_applied = $this->brandingHeroCropAppliedFromDelta($input_delta);
+    $current_crop_applied = $this->brandingHeroCropAppliedFromDelta($current_delta);
+    if ($input_crop_applied !== $current_crop_applied) {
+      return TRUE;
+    }
+
+    return $input_crop_applied === 1 && !isset($current_delta['image_crop']);
+  }
+
+  /**
+   * @param array<string, mixed> $delta
+   */
+  private function brandingHeroCropAppliedFromDelta(array $delta): int {
+    $crop_values = $delta['image_crop']['crop_wrapper']['event_hero']['crop_container']['values'] ?? NULL;
+    if (!is_array($crop_values)) {
+      return 0;
+    }
+    return (int) ($crop_values['crop_applied'] ?? 0);
+  }
+
+  /**
+   * @param array<string, mixed> $current
+   * @param array<string, mixed> $from_input
+   *
+   * @return array<string, mixed>
+   */
+  private function mergeBrandingHeroMelFieldFragment(array $current, array $from_input): array {
+    if (isset($current['widget']) && is_array($current['widget'])) {
+      $input_widget = $from_input['widget'] ?? NULL;
+      if (!is_array($input_widget) && isset($from_input[0]) && is_array($from_input[0])) {
+        $input_widget = [0 => $from_input[0]];
+      }
+      if (is_array($input_widget)) {
+        foreach ($input_widget as $delta_key => $input_delta) {
+          if (!is_numeric($delta_key) || !is_array($input_delta)) {
+            continue;
+          }
+          $existing = $current['widget'][$delta_key] ?? [];
+          $current['widget'][$delta_key] = array_replace_recursive(
+            is_array($existing) ? $existing : [],
+            $input_delta,
+          );
+        }
+      }
+      return $current;
+    }
+
+    $input_deltas = $from_input;
+    if (isset($from_input['widget']) && is_array($from_input['widget'])) {
+      $input_deltas = $from_input['widget'];
+    }
+
+    foreach ($input_deltas as $delta_key => $input_delta) {
+      if (!is_numeric($delta_key) || !is_array($input_delta)) {
+        continue;
+      }
+      $existing = $current[$delta_key] ?? [];
+      $current[$delta_key] = array_replace_recursive(
+        is_array($existing) ? $existing : [],
+        $input_delta,
+      );
+    }
+
+    return $current;
+  }
+
+  /**
+   * @param mixed $fragment
+   */
+  private function brandingHeroSyncSnapshot(mixed $fragment): string {
+    if (!is_array($fragment) || $fragment === []) {
+      return 'empty';
+    }
+    $fid = $this->brandingHeroFidFromMelFieldFragment($fragment);
+    $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($fragment);
+    $crop = $this->brandingHeroCropAppliedFromDelta($delta);
+    $focal = trim((string) ($delta['focal_point'] ?? ''));
+    return sprintf(
+      'fid=%d,crop=%d,focal=%s',
+      $fid,
+      $crop,
+      $focal !== '' ? $focal : 'none',
+    );
+  }
+
+  /**
+   * Copies media-library selection from raw user input when Form API values are stale.
+   *
+   * MediaLibraryWidget AJAX handlers can leave selection in user input only; WidgetBase
+   * reads form_state values during extractFormValues().
+   */
+  private function syncBrandingGallerySubmittedValues(FormStateInterface $form_state): void {
+    $path = ['mel', 'field_mel_event_gallery'];
+    $from_input = NestedArray::getValue($form_state->getUserInput(), $path);
+    if (!is_array($from_input) || !array_key_exists('selection', $from_input)) {
+      return;
+    }
+
+    $values = $form_state->getValues();
+    $current = NestedArray::getValue($values, $path);
+    if (!is_array($current)) {
+      NestedArray::setValue($values, $path, $from_input);
+      $form_state->setValues($values);
+      return;
+    }
+
+    $input_ids = $this->brandingGalleryMediaIdsFromField($from_input['selection'] ?? []);
+    $current_ids = $this->brandingGalleryMediaIdsFromField($current['selection'] ?? []);
+    if ($input_ids !== $current_ids) {
+      $current['selection'] = $from_input['selection'];
+      NestedArray::setValue($values, $path, $current);
+      $form_state->setValues($values);
+      return;
+    }
+
+    if (!array_key_exists('selection', $current)) {
+      NestedArray::setValue($values, $path, array_merge($current, $from_input));
+      $form_state->setValues($values);
+    }
+  }
+
+  /**
+   * @param array<int, array<string, mixed>> $field_value
+   *
+   * @return list<int>
+   */
+  private function brandingGalleryMediaIdsFromField(array $field_value): array {
+    $ids = [];
+    foreach ($field_value as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $media_id = (int) ($row['target_id'] ?? 0);
+      if ($media_id > 0) {
+        $ids[] = $media_id;
+      }
+    }
+    return $ids;
+  }
+
+  /**
+   * Reads ordered gallery media IDs from submitted mel values.
+   *
+   * @param array<string, mixed> $mel_form
+   *
+   * @return list<int>|null
+   *   Null when no submitted gallery fragment was found.
+   */
+  private function extractBrandingGalleryTargetIdsFromSubmittedMel(
+    FormStateInterface $form_state,
+    MediaLibraryWidget $widget,
+    array $mel_form,
+  ): ?array {
+    $path = ['mel', 'field_mel_event_gallery'];
+    $fragment = NestedArray::getValue($form_state->getUserInput(), $path);
+    if (!is_array($fragment) || !array_key_exists('selection', $fragment)) {
+      $fragment = NestedArray::getValue($form_state->getValues(), $path);
+    }
+    if (!is_array($fragment)) {
+      $parents = $mel_form['#parents'] ?? ['mel'];
+      $widget_state = WidgetBase::getWidgetState($parents, 'field_mel_event_gallery', $form_state);
+      if (isset($widget_state['items']) && is_array($widget_state['items'])) {
+        $fragment = ['selection' => $widget_state['items']];
+      }
+    }
+    if (!is_array($fragment)) {
+      return NULL;
+    }
+    if (!array_key_exists('selection', $fragment)) {
+      return [];
+    }
+
+    $massaged = $widget->massageFormValues($fragment, $mel_form, $form_state);
+    $ids = [];
+    foreach ($massaged as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $media_id = (int) ($row['target_id'] ?? 0);
+      if ($media_id > 0) {
+        $ids[] = $media_id;
+      }
+    }
+    return $ids;
+  }
+
+  /**
+   * Builds the style/colour mel fragment for persistence.
+   *
+   * Uses the merged wizard payload from {@see EventBrandingForm::persistWizardMel()}
+   * and overlays scalar POST keys when Form API values are stale.
+   *
+   * @param array<string, mixed> $mel_subform
+   *
+   * @return array<string, mixed>
+   */
+  private function resolveBrandingStyleMelForPersistence(array $mel_subform, FormStateInterface $form_state): array {
+    $style_mel = $mel_subform;
+    $user_mel = $form_state->getUserInput()['mel'] ?? NULL;
+    if (!is_array($user_mel)) {
+      return $style_mel;
+    }
+
+    foreach (['field_mel_page_style', 'field_mel_theme_colour'] as $key) {
+      if (array_key_exists($key, $user_mel) && is_scalar($user_mel[$key])) {
+        $style_mel[$key] = (string) $user_mel[$key];
+      }
+    }
+
+    return $style_mel;
   }
 
   /**
@@ -1167,9 +1644,6 @@ final class EventStudioSaveService {
    * @return array<string, mixed>
    */
   private function enrichBrandingHeroFieldItem(array $field_item, FileInterface $file): array {
-    if (empty($field_item['focal_point'])) {
-      $field_item['focal_point'] = '50,50';
-    }
     if (empty($field_item['width']) || empty($field_item['height'])) {
       $image = $this->imageFactory->get($file->getFileUri());
       if ($image->isValid()) {
@@ -1177,13 +1651,73 @@ final class EventStudioSaveService {
         $field_item['height'] = $image->getHeight();
       }
     }
+
+    $synced_focal = $this->deriveBrandingHeroFocalFromEventHeroCrop($file, $field_item);
+    if ($synced_focal !== NULL) {
+      $field_item['focal_point'] = $synced_focal;
+    }
+    elseif (empty($field_item['focal_point'])) {
+      $field_item['focal_point'] = '50,50';
+    }
+
     return $field_item;
+  }
+
+  /**
+   * Maps the branding event_hero crop centre to focal_point percentages.
+   *
+ * Public event and book heroes use mel_event_hero_featured (event_hero crop). The
+ * studio crop widget edits event_hero; focal_point_entity_update() still runs
+   * on node save when the field item carries focal_point + dimensions.
+   */
+  private function deriveBrandingHeroFocalFromEventHeroCrop(FileInterface $file, array $field_item): ?string {
+    $uri = $file->getFileUri();
+    if ($uri === '') {
+      return NULL;
+    }
+
+    $crop = Crop::findCrop($uri, self::BRANDING_HERO_CROP_TYPE);
+    if (!$crop instanceof CropInterface) {
+      return NULL;
+    }
+
+    $width = (int) ($field_item['width'] ?? 0);
+    $height = (int) ($field_item['height'] ?? 0);
+    if ($width < 1 || $height < 1) {
+      $image = $this->imageFactory->get($uri);
+      if (!$image->isValid()) {
+        $this->logger->warning('Branding save: cannot derive focal point from event_hero crop for file @fid — unreadable image.', [
+          '@fid' => (string) $file->id(),
+        ]);
+        return NULL;
+      }
+      $width = $image->getWidth();
+      $height = $image->getHeight();
+    }
+
+    $center = $crop->position();
+    $relative = $this->focalPointManager->absoluteToRelative(
+      (int) $center['x'],
+      (int) $center['y'],
+      $width,
+      $height,
+    );
+    $value = ((int) $relative['x']) . ',' . ((int) $relative['y']);
+    if (!$this->focalPointManager->validateFocalPoint($value)) {
+      $this->logger->warning('Branding save: event_hero crop centre for file @fid did not produce a valid focal point (@value).', [
+        '@fid' => (string) $file->id(),
+        '@value' => $value,
+      ]);
+      return NULL;
+    }
+
+    return $value;
   }
 
   /**
    * Whether a file entity URI exists and is a readable image for crop widgets.
    */
-  private function heroFileIsRenderable(FileInterface $file): bool {
+  public function isHeroFileRenderable(FileInterface $file): bool {
     $uri = $file->getFileUri();
     if ($uri === '') {
       return FALSE;
@@ -1197,6 +1731,15 @@ final class EventStudioSaveService {
       return FALSE;
     }
     return TRUE;
+  }
+
+  /**
+   * User-facing error when a cover file entity exists but cannot be read.
+   */
+  private function brokenHeroImageErrorMessage(): string {
+    return (string) $this->stringTranslation->translate(
+      'The cover image file is missing or unreadable. Upload a new image or remove the cover image.'
+    );
   }
 
   /**
@@ -1220,6 +1763,13 @@ final class EventStudioSaveService {
     if (!$file instanceof FileInterface) {
       $this->logger->warning('Studio save: missing file @fid for event image', ['@fid' => (string) $fid]);
       return ['The uploaded image could not be loaded. Try uploading again.'];
+    }
+    if (!$this->isHeroFileRenderable($file)) {
+      $this->logger->warning('Studio save: hero file @fid is not renderable (missing on disk or not an image) for node @nid.', [
+        '@fid' => (string) $fid,
+        '@nid' => (string) $node->id(),
+      ]);
+      return [$this->brokenHeroImageErrorMessage()];
     }
     if ($alt === '' && !$draft) {
       return ['Alt text is required for the cover image.'];

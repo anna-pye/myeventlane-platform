@@ -2,10 +2,10 @@ uuid: 14cf33ec-dd08-4fec-a713-ef8586e2d88f
 langcode: en
 status: true
 dependencies: {  }
-label: 'Event hero (1200×630)'
+label: 'Event hero (16:9)'
 id: event_hero
-description: 'Fixed framing for event cover images in Event Studio branding (listings and social previews).'
-aspect_ratio: '1200:630'
+description: '16:9 hero crop for event cover images in Event Studio branding, public event pages, and booking pages.'
+aspect_ratio: '1600:900'
 soft_limit_width: null
 soft_limit_height: null
 hard_limit_width: null

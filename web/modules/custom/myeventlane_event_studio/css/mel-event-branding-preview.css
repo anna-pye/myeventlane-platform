@@ -8,10 +8,11 @@
   --mel-branding-preview-bg: #fff9f5;
   --mel-branding-preview-surface: #ffffff;
   --mel-branding-preview-text: #1f2933;
-  --mel-branding-preview-muted: #6b7280;
-  --mel-branding-preview-border: #e9e3de;
-  margin: 0 0 20px;
+  --mel-branding-preview-muted: #64748b;
+  --mel-branding-preview-border: rgba(0, 0, 0, 0.06);
+  margin: 0;
   padding: 0;
+  min-width: 0;
 }
 
 .mel-event-branding-preview__header {
@@ -27,17 +28,17 @@
 
 .mel-event-branding-preview__lede {
   margin: 0 0 10px;
-  font-size: 0.9375rem;
-  line-height: 1.45;
-  color: var(--mel-color-text-secondary, #4b5563);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--mel-branding-preview-muted);
 }
 
 .mel-event-branding-preview__helpers {
   margin: 0 0 10px;
   padding-left: 1.125rem;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--mel-color-text-secondary, #4b5563);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--mel-branding-preview-muted);
 }
 
 .mel-event-branding-preview__helpers li + li {
@@ -70,12 +71,13 @@
 }
 
 .mel-event-branding-preview__canvas {
-  border-radius: 24px;
+  border-radius: 28px;
   overflow: hidden;
-  border: 1px solid var(--mel-branding-preview-border);
+  border: 10px solid #fff;
+  outline: 1px solid var(--mel-branding-preview-border);
   background: var(--mel-branding-preview-bg);
   color: var(--mel-branding-preview-text);
-  box-shadow: 0 18px 45px rgba(41, 50, 65, 0.08);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
 }
 
 .mel-event-branding-preview__hero {

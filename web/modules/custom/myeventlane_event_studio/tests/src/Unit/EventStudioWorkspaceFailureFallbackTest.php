@@ -71,6 +71,8 @@ final class EventStudioWorkspaceFailureFallbackTest extends UnitTestCase {
     $this->assertStringContainsString("'#theme' => 'mel_event_studio_workspace'", $source);
     $this->assertStringContainsString('unavailableSection($sectionPlugin->title())', $source);
     $this->assertStringContainsString('catch (\Throwable $exception)', $source);
+    $this->assertStringContainsString('catch (FormAjaxException $exception)', $source);
+    $this->assertStringContainsString('catch (EnforcedResponseException $exception)', $source);
   }
 
   /**
@@ -88,7 +90,7 @@ final class EventStudioWorkspaceFailureFallbackTest extends UnitTestCase {
       ->with(
         $this->stringContains('Event Studio section render failed'),
         $this->callback(static function (array $context) use ($sectionId, $renderTarget): bool {
-          return isset($context['@eid'], $context['@section'], $context['@target'], $context['@message'])
+          return isset($context['@eid'], $context['@section'], $context['@target'], $context['@message'], $context['@class'], $context['@file'], $context['@line'])
             && $context['@section'] === $sectionId
             && $context['@target'] === $renderTarget
             && $context['@message'] === 'Simulated section render failure';

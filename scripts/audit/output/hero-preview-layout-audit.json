@@ -1,0 +1,176 @@
+{
+  "beforeScroll": {
+    "scrollY": 3063,
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "imgAfterScroll": {
+      "top": 469,
+      "bottom": 469,
+      "height": 0
+    },
+    "heroRect": {
+      "top": 469,
+      "bottom": 817,
+      "height": 348
+    },
+    "chain": [
+      {
+        "selector": "img.mel-event-branding-preview__hero-img",
+        "position": "absolute",
+        "top": "0px",
+        "bottom": "0px",
+        "transform": "none",
+        "height": "0px",
+        "overflow": "clip",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 3532,
+          "bottom": 3532,
+          "height": 0,
+          "width": 618
+        }
+      },
+      {
+        "selector": "div.mel-event-branding-preview__hero",
+        "position": "relative",
+        "top": "0px",
+        "bottom": "0px",
+        "transform": "none",
+        "height": "347.625px",
+        "overflow": "hidden",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 3532,
+          "bottom": 3880,
+          "height": 348,
+          "width": 618
+        }
+      },
+      {
+        "selector": "div.mel-event-branding-preview__canvas",
+        "position": "static",
+        "top": "auto",
+        "bottom": "auto",
+        "transform": "none",
+        "height": "563.875px",
+        "overflow": "hidden",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 3531,
+          "bottom": 4095,
+          "height": 564,
+          "width": 620
+        }
+      },
+      {
+        "selector": "section.mel-event-branding-preview.mel-event-branding-preview--classic.mel-event-page--classic.mel-event-page--colour-coral",
+        "position": "static",
+        "top": "auto",
+        "bottom": "auto",
+        "transform": "none",
+        "height": "794.219px",
+        "overflow": "visible",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 3301,
+          "bottom": 4095,
+          "height": 794,
+          "width": 620
+        }
+      }
+    ]
+  },
+  "afterScroll": {
+    "scrollY": 3237,
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "imgAfterScroll": {
+      "top": 295,
+      "bottom": 643,
+      "height": 348
+    },
+    "heroRect": {
+      "top": 295,
+      "bottom": 643,
+      "height": 348
+    },
+    "chain": [
+      {
+        "selector": "img.mel-event-branding-preview__hero-img",
+        "position": "absolute",
+        "top": "0px",
+        "bottom": "0px",
+        "transform": "none",
+        "height": "347.625px",
+        "overflow": "clip",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 469,
+          "bottom": 817,
+          "height": 348,
+          "width": 618
+        }
+      },
+      {
+        "selector": "div.mel-event-branding-preview__hero",
+        "position": "relative",
+        "top": "0px",
+        "bottom": "0px",
+        "transform": "none",
+        "height": "347.625px",
+        "overflow": "hidden",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 469,
+          "bottom": 817,
+          "height": 348,
+          "width": 618
+        }
+      },
+      {
+        "selector": "div.mel-event-branding-preview__canvas",
+        "position": "static",
+        "top": "auto",
+        "bottom": "auto",
+        "transform": "none",
+        "height": "610.531px",
+        "overflow": "hidden",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 468,
+          "bottom": 1079,
+          "height": 611,
+          "width": 620
+        }
+      },
+      {
+        "selector": "section.mel-event-branding-preview.mel-event-branding-preview--classic.mel-event-page--classic.mel-event-page--colour-coral",
+        "position": "static",
+        "top": "auto",
+        "bottom": "auto",
+        "transform": "none",
+        "height": "840.875px",
+        "overflow": "visible",
+        "marginTop": "0px",
+        "display": "block",
+        "rect": {
+          "top": 238,
+          "bottom": 1079,
+          "height": 841,
+          "width": 620
+        }
+      }
+    ]
+  }
+}
