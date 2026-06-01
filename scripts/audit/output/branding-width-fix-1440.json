@@ -1,0 +1,44 @@
+{
+  "before": {
+    "sectionBody": 682.1,
+    "layout": 634.1,
+    "main": 322.1,
+    "aside": 280,
+    "ratio": 1.15
+  },
+  "after": {
+    "section": {
+      "renderedWidth": 718,
+      "computedWidth": "718px",
+      "maxWidth": "none",
+      "percentOfParent": 100
+    },
+    "sectionBody": {
+      "renderedWidth": 718,
+      "computedWidth": "718px",
+      "maxWidth": "none",
+      "percentOfParent": 100
+    },
+    "layout": {
+      "renderedWidth": 670,
+      "computedWidth": "670px",
+      "maxWidth": "100%",
+      "percentOfParent": 100,
+      "gridTemplateColumns": "358px 280px"
+    },
+    "main": {
+      "renderedWidth": 358,
+      "computedWidth": "358px",
+      "maxWidth": "100%",
+      "percentOfParent": 53.4
+    },
+    "aside": {
+      "renderedWidth": 280,
+      "computedWidth": "280px",
+      "maxWidth": "100%",
+      "percentOfParent": 41.8
+    },
+    "mainAsideRatio": 1.28
+  },
+  "screenshot": "/Users/anna/myeventlane/scripts/audit/output/branding-layout-after-1440-width-fix.png"
+}

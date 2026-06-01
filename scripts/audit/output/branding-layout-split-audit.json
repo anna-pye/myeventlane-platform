@@ -1,0 +1,69 @@
+{
+  "url": "https://myeventlane.ddev.site/vendor/events/1381/studio/branding",
+  "viewports": {
+    "375": {
+      "screenshot": "scripts/audit/output/branding-layout-after-375.png",
+      "hasBody": true,
+      "hasLayout": true,
+      "hasMain": true,
+      "hasAside": true,
+      "bodyWidthPct": 95,
+      "mainWidth": 325,
+      "asideWidth": 325,
+      "mainAsideRatio": 1,
+      "layoutDisplay": "block",
+      "layoutGridCols": "none",
+      "horizontalScroll": true,
+      "scrollWidth": 411,
+      "clientWidth": 375
+    },
+    "768": {
+      "screenshot": "scripts/audit/output/branding-layout-after-768.png",
+      "hasBody": true,
+      "hasLayout": true,
+      "hasMain": true,
+      "hasAside": true,
+      "bodyWidthPct": 95,
+      "mainWidth": 405,
+      "asideWidth": 405,
+      "mainAsideRatio": 1,
+      "layoutDisplay": "block",
+      "layoutGridCols": "none",
+      "horizontalScroll": false,
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    "1024": {
+      "screenshot": "scripts/audit/output/branding-layout-after-1024.png",
+      "hasBody": true,
+      "hasLayout": true,
+      "hasMain": true,
+      "hasAside": true,
+      "bodyWidthPct": 95,
+      "mainWidth": 270,
+      "asideWidth": 270,
+      "mainAsideRatio": 1,
+      "layoutDisplay": "block",
+      "layoutGridCols": "minmax(0px, 7fr) minmax(280px, 3fr)",
+      "horizontalScroll": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024
+    },
+    "1440": {
+      "screenshot": "scripts/audit/output/branding-layout-after-1440.png",
+      "hasBody": true,
+      "hasLayout": true,
+      "hasMain": true,
+      "hasAside": true,
+      "bodyWidthPct": 95,
+      "mainWidth": 322,
+      "asideWidth": 280,
+      "mainAsideRatio": 1.15,
+      "layoutDisplay": "grid",
+      "layoutGridCols": "322.094px 280px",
+      "horizontalScroll": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    }
+  }
+}

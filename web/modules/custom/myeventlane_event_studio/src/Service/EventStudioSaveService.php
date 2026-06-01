@@ -1035,12 +1035,19 @@ final class EventStudioSaveService {
         return ['node' => NULL, 'errors' => ['Alt text is required for the cover image.'], 'warnings' => []];
       }
       $file = $this->entityTypeManager->getStorage('file')->load($fid);
-      if (!$file instanceof FileInterface || !$this->isHeroFileRenderable($file)) {
-        $this->logger->warning('Branding save: clearing missing or unreadable hero file @fid on node @nid.', [
+      if (!$file instanceof FileInterface) {
+        $this->logger->warning('Branding save: missing hero file @fid on node @nid.', [
           '@fid' => (string) $fid,
           '@nid' => (string) $node->id(),
         ]);
-        $node->set('field_event_image', []);
+        return ['node' => NULL, 'errors' => ['The uploaded image could not be loaded. Try uploading again.'], 'warnings' => []];
+      }
+      if (!$this->isHeroFileRenderable($file)) {
+        $this->logger->warning('Branding save: hero file @fid is not renderable for node @nid.', [
+          '@fid' => (string) $fid,
+          '@nid' => (string) $node->id(),
+        ]);
+        return ['node' => NULL, 'errors' => [$this->brokenHeroImageErrorMessage()], 'warnings' => []];
       }
       else {
         if ($file->isTemporary()) {
@@ -1727,6 +1734,15 @@ final class EventStudioSaveService {
   }
 
   /**
+   * User-facing error when a cover file entity exists but cannot be read.
+   */
+  private function brokenHeroImageErrorMessage(): string {
+    return (string) $this->stringTranslation->translate(
+      'The cover image file is missing or unreadable. Upload a new image or remove the cover image.'
+    );
+  }
+
+  /**
    * @param array<string, mixed> $payload
    *
    * @return list<string>
@@ -1753,8 +1769,7 @@ final class EventStudioSaveService {
         '@fid' => (string) $fid,
         '@nid' => (string) $node->id(),
       ]);
-      $node->set('field_event_image', []);
-      return [];
+      return [$this->brokenHeroImageErrorMessage()];
     }
     if ($alt === '' && !$draft) {
       return ['Alt text is required for the cover image.'];
