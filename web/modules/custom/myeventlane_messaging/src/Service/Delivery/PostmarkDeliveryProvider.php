@@ -45,6 +45,8 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
    * {@inheritdoc}
    */
   public function send(array $params): bool {
+    $this->lastMessageId = NULL;
+
     $config = $this->configFactory->get('myeventlane_messaging.settings');
     $serverToken = $config->get('postmark.server_token');
 

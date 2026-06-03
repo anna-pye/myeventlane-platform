@@ -18,11 +18,14 @@ final class DeliveryProviderManager {
    *
    * @param \Drupal\myeventlane_messaging\Service\Delivery\DrupalMailProvider $drupalMailProvider
    *   The default Drupal mail provider.
+   * @param \Drupal\myeventlane_messaging\Service\Delivery\PostmarkDeliveryProvider $postmarkProvider
+   *   The Postmark delivery provider (registered; selection deferred to later phase).
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The config factory (for future vendor provider selection).
    */
   public function __construct(
     private readonly DrupalMailProvider $drupalMailProvider,
+    private readonly PostmarkDeliveryProvider $postmarkProvider,
     private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
