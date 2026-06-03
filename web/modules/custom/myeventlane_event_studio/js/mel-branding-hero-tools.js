@@ -27,6 +27,24 @@
 
   /**
    * @param {HTMLElement} root
+   * @returns {string}
+   */
+  function currentHeroFid(root) {
+    const fids = root.querySelector(
+      'input[name*="field_event_image"][name*="[fids]"]',
+    );
+    if (!fids) {
+      return "";
+    }
+    const raw = String(fids.value || "").trim();
+    if (!raw) {
+      return "";
+    }
+    return raw.split(/\s+/)[0];
+  }
+
+  /**
+   * @param {HTMLElement} root
    * @returns {HTMLInputElement|null}
    */
   function findFocalField(root) {
@@ -148,11 +166,27 @@
    */
   function resolveFramingImageSrc(root) {
     const fromSettings = brandingHeroSourceUrl();
-    if (fromSettings) {
+    const settings = drupalSettings.myeventlane_event_studio;
+    const settingsFid =
+      settings &&
+      settings.brandingHero &&
+      settings.brandingHero.fileId !== undefined
+        ? String(settings.brandingHero.fileId)
+        : "";
+    const activeFid = currentHeroFid(root);
+    if (
+      fromSettings &&
+      activeFid &&
+      settingsFid &&
+      activeFid === settingsFid
+    ) {
       return fromSettings;
     }
     const source = findWidgetPreviewImage(root);
-    return source && source.getAttribute("src") ? source.src : "";
+    if (source && source.getAttribute("src")) {
+      return source.src;
+    }
+    return fromSettings || "";
   }
 
   /**

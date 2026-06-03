@@ -20,6 +20,8 @@ use Drupal\crop\Entity\Crop;
 use Drupal\crop\CropInterface;
 use Drupal\file\FileInterface;
 use Drupal\focal_point\FocalPointManagerInterface;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\image\ImageStyleInterface;
 use Drupal\myeventlane_event\Service\EventPasscodeAccess;
 use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
@@ -1034,6 +1036,8 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => ['Hero image widget is not configured.'], 'warnings' => []];
     }
 
+    $previous_hero_fid = $this->brandingHeroFidFromNode($node);
+
     $this->syncBrandingHeroSubmittedValues($form_state);
 
     $mel_values = $form_state->getValue('mel') ?? [];
@@ -1065,6 +1069,14 @@ final class EventStudioSaveService {
       ]);
     }
 
+    $synced_hero_fid_after_extract = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
+    if ($synced_hero_fid_after_extract > 0 && $synced_hero_fid_after_extract !== $previous_hero_fid) {
+      $replacement = $this->entityTypeManager->getStorage('file')->load($synced_hero_fid_after_extract);
+      if ($replacement instanceof FileInterface) {
+        $this->pruneInvalidEventHeroCrop($replacement, (string) $node->id());
+      }
+    }
+
     $fid = 0;
     $alt = '';
     if (!$items->isEmpty()) {
@@ -1082,6 +1094,7 @@ final class EventStudioSaveService {
     }
 
     $warnings = [];
+    $saved_hero_file = NULL;
 
     if ($fid < 1) {
       $node->set('field_event_image', []);
@@ -1141,6 +1154,7 @@ final class EventStudioSaveService {
           $this->enrichBrandingHeroFieldItem($row, $file),
         ]);
         $warnings = $this->buildBrandingHeroDimensionWarnings($file);
+        $saved_hero_file = $file;
       }
     }
 
@@ -1171,6 +1185,8 @@ final class EventStudioSaveService {
       ]);
       return ['node' => NULL, 'errors' => ['Could not save branding.'], 'warnings' => []];
     }
+
+    $this->flushBrandingHeroImageStylesAfterSave($saved_hero_file, $previous_hero_fid, (string) $node->id());
 
     return ['node' => $node, 'errors' => [], 'warnings' => $warnings];
   }
@@ -1327,6 +1343,7 @@ final class EventStudioSaveService {
     $input_fid = $this->brandingHeroFidFromMelFieldFragment($from_input);
     $current_fid = $this->brandingHeroFidFromMelFieldFragment($current);
     if ($input_fid !== $current_fid) {
+      $current = $this->stripBrandingHeroCropFromMelFragment($current);
       $merged = $this->mergeBrandingHeroMelFieldFragment($current, $from_input);
       $mel_values['field_event_image'] = $merged;
       $this->applyBrandingHeroAltToMelValues($mel_input, $mel_values);
@@ -1469,6 +1486,9 @@ final class EventStudioSaveService {
             continue;
           }
           $existing = $current['widget'][$delta_key] ?? [];
+          if (is_array($existing)) {
+            $existing = $this->stripBrandingHeroCropWhenFidChanges($existing, $input_delta);
+          }
           $current['widget'][$delta_key] = array_replace_recursive(
             is_array($existing) ? $existing : [],
             $input_delta,
@@ -1488,6 +1508,9 @@ final class EventStudioSaveService {
         continue;
       }
       $existing = $current[$delta_key] ?? [];
+      if (is_array($existing)) {
+        $existing = $this->stripBrandingHeroCropWhenFidChanges($existing, $input_delta);
+      }
       $current[$delta_key] = array_replace_recursive(
         is_array($existing) ? $existing : [],
         $input_delta,
@@ -1495,6 +1518,173 @@ final class EventStudioSaveService {
     }
 
     return $current;
+  }
+
+  /**
+   * Drops stale image_widget_crop data when the managed file id changes.
+   *
+   * @param array<string, mixed> $existing
+   * @param array<string, mixed> $input_delta
+   *
+   * @return array<string, mixed>
+   */
+  private function stripBrandingHeroCropWhenFidChanges(array $existing, array $input_delta): array {
+    $input_fid = EventStudioMelPayloadService::firstPositiveIntFromFidsValue($input_delta['fids'] ?? NULL);
+    $existing_fid = EventStudioMelPayloadService::firstPositiveIntFromFidsValue($existing['fids'] ?? NULL);
+    if ($input_fid > 0 && $existing_fid > 0 && $input_fid !== $existing_fid) {
+      unset($existing['image_crop']);
+    }
+
+    return $existing;
+  }
+
+  /**
+   * Removes crop widget values from a mel hero fragment (file replacement).
+   *
+   * @param array<string, mixed> $field_fragment
+   *
+   * @return array<string, mixed>
+   */
+  private function stripBrandingHeroCropFromMelFragment(array $field_fragment): array {
+    if (isset($field_fragment['widget']) && is_array($field_fragment['widget'])) {
+      foreach (array_keys($field_fragment['widget']) as $delta_key) {
+        if (!is_numeric($delta_key) || !is_array($field_fragment['widget'][$delta_key])) {
+          continue;
+        }
+        unset($field_fragment['widget'][$delta_key]['image_crop']);
+      }
+      return $field_fragment;
+    }
+
+    if (isset($field_fragment[0]) && is_array($field_fragment[0])) {
+      unset($field_fragment[0]['image_crop']);
+      return $field_fragment;
+    }
+
+    unset($field_fragment['image_crop']);
+    return $field_fragment;
+  }
+
+  /**
+   * Returns the hero file id currently stored on the event node.
+   */
+  private function brandingHeroFidFromNode(NodeInterface $node): int {
+    if (!$node->hasField('field_event_image') || $node->get('field_event_image')->isEmpty()) {
+      return 0;
+    }
+    return max(0, (int) ($node->get('field_event_image')->target_id ?? 0));
+  }
+
+  /**
+   * Deletes an event_hero crop that no longer fits the underlying image dimensions.
+   */
+  private function pruneInvalidEventHeroCrop(FileInterface $file, string $node_id): void {
+    $uri = $file->getFileUri();
+    if ($uri === '') {
+      return;
+    }
+
+    $crop = Crop::findCrop($uri, self::BRANDING_HERO_CROP_TYPE);
+    if (!$crop instanceof CropInterface) {
+      return;
+    }
+
+    $image = $this->imageFactory->get($uri);
+    if (!$image->isValid()) {
+      return;
+    }
+
+    $image_width = $image->getWidth();
+    $image_height = $image->getHeight();
+    $crop_width = (int) ($crop->get('width')->value ?? 0);
+    $crop_height = (int) ($crop->get('height')->value ?? 0);
+    $crop_x = (int) ($crop->get('x')->value ?? 0);
+    $crop_y = (int) ($crop->get('y')->value ?? 0);
+
+    $valid = $crop_width > 0
+      && $crop_height > 0
+      && $crop_x >= 0
+      && $crop_y >= 0
+      && ($crop_x + $crop_width) <= $image_width
+      && ($crop_y + $crop_height) <= $image_height;
+
+    if ($valid) {
+      return;
+    }
+
+    try {
+      $crop->delete();
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Branding save: could not delete invalid event_hero crop for file @fid on node @nid: @message', [
+        '@fid' => (string) $file->id(),
+        '@nid' => $node_id,
+        '@message' => $e->getMessage(),
+      ]);
+      return;
+    }
+
+    $this->logger->warning('Branding save: removed invalid event_hero crop for file @fid on node @nid (image @iw×@ih, crop @x,@y @cw×@ch).', [
+      '@fid' => (string) $file->id(),
+      '@nid' => $node_id,
+      '@iw' => (string) $image_width,
+      '@ih' => (string) $image_height,
+      '@x' => (string) $crop_x,
+      '@y' => (string) $crop_y,
+      '@cw' => (string) $crop_width,
+      '@ch' => (string) $crop_height,
+    ]);
+  }
+
+  /**
+   * Flushes public hero derivatives after a branding save so replaced images refresh.
+   */
+  private function flushBrandingHeroImageStylesAfterSave(?FileInterface $saved_file, int $previous_fid, string $node_id): void {
+    if ($saved_file instanceof FileInterface) {
+      $this->flushBrandingHeroImageStyleForFile($saved_file, $node_id);
+    }
+
+    if ($previous_fid < 1) {
+      return;
+    }
+
+    $saved_fid = $saved_file instanceof FileInterface ? (int) $saved_file->id() : 0;
+    if ($saved_fid === $previous_fid) {
+      return;
+    }
+
+    $previous = $this->entityTypeManager->getStorage('file')->load($previous_fid);
+    if ($previous instanceof FileInterface) {
+      $this->flushBrandingHeroImageStyleForFile($previous, $node_id);
+    }
+  }
+
+  /**
+   * Flushes MEL hero image style derivatives for one file URI.
+   */
+  private function flushBrandingHeroImageStyleForFile(FileInterface $file, string $node_id): void {
+    $uri = $file->getFileUri();
+    if ($uri === '') {
+      return;
+    }
+
+    foreach (['mel_event_hero_featured', 'mel_crop_event_hero'] as $style_id) {
+      $style = ImageStyle::load($style_id);
+      if (!$style instanceof ImageStyleInterface) {
+        continue;
+      }
+      try {
+        $style->flush($uri);
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Branding save: could not flush @style for file @fid on node @nid: @message', [
+          '@style' => $style_id,
+          '@fid' => (string) $file->id(),
+          '@nid' => $node_id,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
   }
 
   /**
