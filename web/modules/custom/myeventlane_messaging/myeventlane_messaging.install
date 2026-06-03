@@ -97,11 +97,26 @@ function myeventlane_messaging_schema() {
         'default' => 0,
         'description' => 'Unix timestamp when message was sent (0 if not sent).',
       ],
+      'provider' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Delivery provider key (e.g. postmark).',
+      ],
+      'provider_message_id' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Provider-assigned message identifier for webhook correlation.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
       'context_hash_recipient_template' => ['context_hash', 'recipient', 'template'],
       'status_created' => ['status', 'created'],
+      'provider_message_id' => ['provider_message_id'],
     ],
   ];
 
@@ -254,5 +269,42 @@ function myeventlane_messaging_update_10004(): void {
   $cfg = \Drupal::configFactory()->getEditable('myeventlane_messaging.template.order_invoice');
   if ($cfg->isNew()) {
     _myeventlane_messaging_import_shipped_template_file($module_path, 'order_invoice');
+  }
+}
+
+/**
+ * Add provider tracking columns and index to myeventlane_message.
+ */
+function myeventlane_messaging_update_10005(): void {
+  $schema = \Drupal::database()->schema();
+  $table = 'myeventlane_message';
+
+  if (!$schema->tableExists($table)) {
+    return;
+  }
+
+  if (!$schema->fieldExists($table, 'provider')) {
+    $schema->addField($table, 'provider', [
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'Delivery provider key (e.g. postmark).',
+    ]);
+  }
+
+  if (!$schema->fieldExists($table, 'provider_message_id')) {
+    $schema->addField($table, 'provider_message_id', [
+      'type' => 'varchar',
+      'length' => 64,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'Provider-assigned message identifier for webhook correlation.',
+    ]);
+  }
+
+  if (!$schema->indexExists($table, 'provider_message_id')) {
+    $full = myeventlane_messaging_schema();
+    $schema->addIndex($table, 'provider_message_id', ['provider_message_id'], $full[$table]);
   }
 }
