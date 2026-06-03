@@ -1,0 +1,21 @@
+uuid: 03f70159-14d5-467b-ba22-b9791622387f
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_donation_label
+field_name: field_donation_label
+entity_type: node
+type: string
+settings:
+  max_length: 255
+  case_sensitive: false
+  is_ascii: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

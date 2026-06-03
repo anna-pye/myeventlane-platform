@@ -1,0 +1,23 @@
+uuid: 30cd508e-cc98-400f-a0de-4b77de8c14cf
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_donation_suggested_amount
+    - node.type.event
+id: node.event.field_donation_suggested_amount
+field_name: field_donation_suggested_amount
+entity_type: node
+bundle: event
+label: 'Suggested donation'
+description: 'Optional suggested donation amount for RSVP booking.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0.0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: decimal

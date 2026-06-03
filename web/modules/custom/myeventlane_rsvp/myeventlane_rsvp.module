@@ -145,6 +145,7 @@ function myeventlane_rsvp_theme($existing, $type, $theme, $path): array {
         'donation_pending' => FALSE,
         'can_add_post_rsvp_contribution' => FALSE,
         'cancel_url' => NULL,
+        'mel_continuity' => NULL,
       ],
       'template' => 'mel-rsvp-thankyou',
       'path' => $path . '/templates',

@@ -4,6 +4,7 @@
 // Styles for RSVP forms and ticket selection.
 
 @use 'sass:color';
+@use '../abstracts/mixins';
 @use '../tokens/colors';
 @use '../tokens/typography';
 @use '../tokens/spacing';
@@ -782,12 +783,420 @@
 }
 
 .mel-step-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #999;
-  margin-bottom: 6px;
+  display: block;
+  margin-bottom: spacing.mel-space(3);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-bold;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: #7c83fd;
+}
+
+// RSVP book page — guided onboarding cards inside mel-rsvp-book-panel.
+.mel-rsvp-book-panel {
+  .mel-rsvp-form,
+  .mel-rsvp-public-form,
+  .mel-rsvp--onboarding {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    margin: 0;
+  }
+
+  .mel-rsvp__shell {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(3);
+  }
+
+  .mel-rsvp__content {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(3);
+  }
+
+  // Progress indicator — pure CSS via :has() + :focus-within.
+  .mel-rsvp-progress {
+    margin: 0;
+  }
+
+  .mel-rsvp-progress__track {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: spacing.mel-space(1);
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0.6875rem;
+      left: 12.5%;
+      right: 12.5%;
+      height: 2px;
+      background: colors.$mel-color-border;
+      z-index: 0;
+    }
+  }
+
+  .mel-rsvp-progress__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: spacing.mel-space(1);
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .mel-rsvp-progress__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: radii.$mel-radius-full;
+    border: 2px solid colors.$mel-color-border;
+    background: colors.$mel-color-surface;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .mel-rsvp-progress__label {
+    font-size: typography.mel-font-size(xs);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text-muted;
+    line-height: 1.2;
+  }
+
+  .mel-rsvp-progress__step--1 .mel-rsvp-progress__dot {
+    border-color: colors.$mel-color-accent;
+    background: colors.$mel-color-accent;
+    box-shadow: 0 0 0 3px rgba(colors.$mel-color-accent, 0.2);
+  }
+
+  .mel-rsvp-progress__step--1 .mel-rsvp-progress__label {
+    color: colors.$mel-color-accent;
+    font-weight: typography.$mel-font-bold;
+  }
+
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--about:focus-within) .mel-rsvp-progress__step--1 .mel-rsvp-progress__dot,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--access:focus-within) .mel-rsvp-progress__step--1 .mel-rsvp-progress__dot,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--confirm:focus-within) .mel-rsvp-progress__step--1 .mel-rsvp-progress__dot {
+    border-color: colors.$mel-color-primary;
+    background: colors.$mel-color-primary;
+    box-shadow: none;
+  }
+
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--about:focus-within) .mel-rsvp-progress__step--2 .mel-rsvp-progress__dot,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--access:focus-within) .mel-rsvp-progress__step--3 .mel-rsvp-progress__dot,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--confirm:focus-within) .mel-rsvp-progress__step--4 .mel-rsvp-progress__dot {
+    border-color: colors.$mel-color-accent;
+    background: colors.$mel-color-accent;
+    box-shadow: 0 0 0 3px rgba(colors.$mel-color-accent, 0.2);
+  }
+
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--about:focus-within) .mel-rsvp-progress__step--2 .mel-rsvp-progress__label,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--access:focus-within) .mel-rsvp-progress__step--3 .mel-rsvp-progress__label,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--confirm:focus-within) .mel-rsvp-progress__step--4 .mel-rsvp-progress__label {
+    color: colors.$mel-color-accent;
+    font-weight: typography.$mel-font-bold;
+  }
+
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--access:focus-within) .mel-rsvp-progress__step--2 .mel-rsvp-progress__dot,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--confirm:focus-within) .mel-rsvp-progress__step--2 .mel-rsvp-progress__dot,
+  .mel-rsvp__shell:has(.mel-rsvp-onboarding-card--confirm:focus-within) .mel-rsvp-progress__step--3 .mel-rsvp-progress__dot {
+    border-color: colors.$mel-color-primary;
+    background: colors.$mel-color-primary;
+    box-shadow: none;
+  }
+
+  // Hide duplicate PHP step labels / titles — Twig owns card hierarchy.
+  .mel-step-label,
+  .mel-rsvp-onboarding-card--going .mel-card__title,
+  .mel-rsvp-onboarding-card--confirm .mel-legal__intro,
+  .mel-rsvp-onboarding-card--access > .mel-rsvp-onboarding-card__body > .form-item > label,
+  .mel-rsvp-onboarding-card--access .fieldset-legend,
+  .mel-rsvp-onboarding-card--about .mel-attendee-card[data-index='0'] h4 {
+    @include mixins.visually-hidden;
+  }
+
+  .mel-rsvp-onboarding-card {
+    padding: spacing.mel-space(4);
+    border: 1px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-md;
+    background: colors.$mel-color-surface;
+    box-shadow: shadows.$mel-shadow-1;
+  }
+
+  .mel-rsvp-onboarding-card--highlight {
+    border-color: rgba(colors.$mel-color-accent, 0.45);
+    background: rgba(colors.$mel-color-accent, 0.04);
+    box-shadow: 0 0 0 1px rgba(colors.$mel-color-accent, 0.12), shadows.$mel-shadow-1;
+  }
+
+  .mel-rsvp-onboarding-card__header {
+    display: flex;
+    align-items: flex-start;
+    gap: spacing.mel-space(3);
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  .mel-rsvp-onboarding-card__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    border-radius: radii.$mel-radius-full;
+    background: colors.$mel-color-accent;
+    color: colors.$mel-color-on-primary;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-bold;
+    line-height: 1;
+  }
+
+  .mel-rsvp-onboarding-card--going .mel-rsvp-onboarding-card__num {
+    background: colors.$mel-color-primary;
+  }
+
+  .mel-rsvp-onboarding-card--confirm .mel-rsvp-onboarding-card__num {
+    background: colors.$mel-color-success;
+  }
+
+  .mel-rsvp-onboarding-card__title {
+    margin: 0;
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    line-height: 1.25;
+  }
+
+  .mel-rsvp-onboarding-card__lede {
+    margin: spacing.mel-space(1) 0 0;
+    font-size: typography.mel-font-size(sm);
+    line-height: 1.45;
+    color: colors.$mel-color-text-muted;
+  }
+
+  .mel-rsvp-onboarding-card__subtitle {
+    margin: 0 0 spacing.mel-space(2);
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-rsvp-onboarding-card__subsection {
+    margin-bottom: spacing.mel-space(3);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    & + & {
+      padding-top: spacing.mel-space(3);
+      border-top: 1px solid colors.$mel-color-border;
+    }
+  }
+
+  .mel-rsvp-onboarding-card__body {
+    min-width: 0;
+  }
+
+  .mel-rsvp-onboarding-card__extra {
+    margin-top: spacing.mel-space(3);
+    padding-top: spacing.mel-space(3);
+    border-top: 1px solid colors.$mel-color-border;
+  }
+
+  .mel-rsvp-onboarding-card--access:not(:has(.form-checkboxes, .mel-chip-group)) {
+    display: none;
+  }
+
+  .mel-card--intent,
+  .mel-card--intent-choices,
+  .mel-card--details,
+  .mel-card--optional,
+  .mel-card--legal,
+  .mel-card--accessibility {
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+    margin: 0;
+  }
+
+  .mel-intent__sub {
+    margin: 0;
+    font-size: typography.mel-font-size(base);
+    color: colors.$mel-color-text-muted;
+    line-height: 1.5;
+  }
+
+  .form-item label,
+  .fieldset__label {
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    font-size: typography.mel-font-size(sm);
+  }
+
+  .form-item .description {
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    margin-top: spacing.mel-space(1);
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='tel'],
+  select,
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+    border-radius: radii.$mel-radius-md;
+    border: 1px solid colors.$mel-color-border;
+    background: colors.$mel-color-bg;
+    font-size: typography.mel-font-size(base);
+    color: colors.$mel-color-text;
+
+    &:focus {
+      outline: 2px solid rgba(colors.$mel-color-accent, 0.35);
+      border-color: colors.$mel-color-accent;
+      background: colors.$mel-color-surface;
+    }
+  }
+
+  textarea {
+    min-height: 7rem;
+    resize: vertical;
+  }
+
+  .mel-attendee-card {
+    padding: spacing.mel-space(3);
+    margin-top: spacing.mel-space(2);
+    border: 1px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-md;
+    background: colors.$mel-color-bg;
+  }
+
+  .mel-attendee-card .form-item {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  @include breakpoints.mel-break(sm) {
+    .mel-attendee-card .form-item {
+      display: inline-block;
+      width: calc(50% - #{spacing.mel-space(2)});
+      vertical-align: top;
+      margin-right: spacing.mel-space(2);
+    }
+  }
+
+  .mel-rsvp-confirm-panel {
+    margin-top: spacing.mel-space(1);
+    padding: spacing.mel-space(4);
+    border: 2px solid rgba(colors.$mel-color-primary, 0.2);
+    border-radius: radii.$mel-radius-md;
+    background: rgba(colors.$mel-color-primary, 0.06);
+  }
+
+  .mel-rsvp-confirm-panel__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(2);
+  }
+
+  .mel-rsvp-confirm-panel__item {
+    position: relative;
+    padding-left: 1.5rem;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    line-height: 1.4;
+
+    &::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: colors.$mel-color-primary;
+      font-weight: typography.$mel-font-bold;
+    }
+  }
+
+  .mel-rsvp__cta--fixed {
+    margin-top: spacing.mel-space(3);
+    padding-top: spacing.mel-space(3);
+  }
+
+  .mel-rsvp__cta--fixed .mel-cta-helper {
+    display: none;
+  }
+
+  .mel-rsvp__cta--fixed .form-actions {
+    margin: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .mel-rsvp__cta--fixed .button,
+  .mel-rsvp__cta--fixed .form-submit,
+  .mel-rsvp__cta--fixed input[type='submit'] {
+    min-height: 44px;
+    min-width: 14rem;
+    padding-inline: spacing.mel-space(6);
+    border-radius: radii.$mel-radius-full;
+    background: colors.$mel-color-primary;
+    border-color: colors.$mel-color-primary;
+    font-weight: typography.$mel-font-bold;
+    font-size: typography.mel-font-size(base);
+    box-shadow: shadows.$mel-shadow-1;
+
+    &:hover {
+      background: colors.$mel-color-primary-hover;
+      border-color: colors.$mel-color-primary-hover;
+    }
+  }
+}
+
+@include breakpoints.mel-break(md) {
+  .mel-rsvp-book-panel .mel-rsvp__cta--fixed {
+    position: sticky;
+    bottom: spacing.mel-space(3);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, colors.$mel-color-surface 28%);
+  }
+}
+
+@include breakpoints.mel-break(md, max) {
+  .mel-rsvp-book-panel .mel-rsvp__cta--fixed {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin: 0;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+    padding-bottom: calc(#{spacing.mel-space(3)} + env(safe-area-inset-bottom, 0));
+    background: colors.$mel-color-surface;
+    border-top: 1px solid colors.$mel-color-border;
+    box-shadow: 0 -8px 24px rgba(colors.$mel-color-navy, 0.08);
+  }
+
+  .mel-rsvp-book-panel .mel-rsvp__cta--fixed .form-actions {
+    justify-content: stretch;
+  }
+
+  .mel-rsvp-book-panel .mel-rsvp__cta--fixed .button,
+  .mel-rsvp-book-panel .mel-rsvp__cta--fixed .form-submit,
+  .mel-rsvp-book-panel .mel-rsvp__cta--fixed input[type='submit'] {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .mel-rsvp-legal .mel-legal__label {

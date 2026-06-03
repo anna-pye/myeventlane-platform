@@ -2819,7 +2819,7 @@ main.mel-main:has(.mel-event-full):not(:has(.mel-event-page--immersive.mel-event
   --mel-full-text-secondary: #5b6670;
   --mel-full-text-muted: #7c8791;
   --mel-full-border: #e9e3de;
-  --mel-full-coral: #f26d5b;
+  --mel-full-coral: var(--mel-event-accent, #f26d5b);
   --mel-full-lavender: #7c83fd;
   --mel-full-radius-lg: 24px;
   --mel-full-radius-md: 16px;

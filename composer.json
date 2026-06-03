@@ -54,7 +54,7 @@
     "drupal/migrate_tools": "^6.1",
     "drupal/mimemail": "^2.0",
     "drupal/paragraphs": "^1.19",
-    "drupal/pathauto": "^1.14",
+    "drupal/pathauto": "^1.15",
     "drupal/radix": "^6.0",
     "drupal/search_api": "^1.40",
     "drupal/search_api_db": "^1.40",

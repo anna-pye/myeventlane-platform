@@ -1,0 +1,23 @@
+uuid: 1837044d-f171-4682-af44-e0a28ee5bfb1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_enable_donations
+    - node.type.event
+id: node.event.field_enable_donations
+field_name: field_enable_donations
+entity_type: node
+bundle: event
+label: 'Enable optional donations'
+description: 'When enabled, RSVP attendees may add an optional donation at booking.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: Enabled
+  off_label: Disabled
+field_type: boolean

@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_order.commerce_order_item_type.rsvp_donation
+    - field.storage.commerce_order_item.field_rsvp_submission
+  module:
+    - myeventlane_rsvp
+id: commerce_order_item.rsvp_donation.field_rsvp_submission
+field_name: field_rsvp_submission
+entity_type: commerce_order_item
+bundle: rsvp_donation
+label: 'RSVP submission'
+description: 'Links this donation line item to the RSVP submission that created it.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:rsvp_submission'
+  handler_settings:
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+field_type: entity_reference

@@ -7,6 +7,8 @@ namespace Drupal\myeventlane_event_studio\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\EnforcedResponseException;
+use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
@@ -242,11 +244,17 @@ final class EventStudioController extends ControllerBase {
     try {
       return $this->sectionRenderer->build($sectionPlugin, $node);
     }
+    catch (EnforcedResponseException | FormAjaxException $exception) {
+      throw $exception;
+    }
     catch (\Throwable $exception) {
-      $this->logger->error('Event Studio section render failed for event @eid section @section target @target: @message', [
+      $this->logger->error('Event Studio section render failed for event @eid section @section target @target (@class at @file:@line): @message', [
         '@eid' => (string) $node->id(),
         '@section' => (string) $sectionPlugin->getPluginId(),
         '@target' => $sectionPlugin->renderTarget(),
+        '@class' => $exception::class,
+        '@file' => $exception->getFile(),
+        '@line' => (string) $exception->getLine(),
         '@message' => $exception->getMessage(),
       ]);
       return $this->emptyStateBuilder->unavailableSection($sectionPlugin->title());

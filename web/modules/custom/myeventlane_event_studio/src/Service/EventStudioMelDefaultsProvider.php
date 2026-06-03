@@ -30,6 +30,7 @@ final class EventStudioMelDefaultsProvider {
     private readonly EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer,
     private readonly FormBuilderInterface $formBuilder,
     private readonly AccountProxyInterface $currentUser,
+    private readonly EventHighlightHelper $eventHighlightHelper,
     TranslationInterface $stringTranslation,
   ) {
     $this->stringTranslation = $stringTranslation;
@@ -303,7 +304,7 @@ final class EventStudioMelDefaultsProvider {
       '#default_value' => $field_event_intro_default,
     ];
 
-    $highlights_json = $this->encodeEventHighlightsJsonForEvent($event);
+    $highlights_json = $this->eventHighlightHelper->encodeItemsStateJsonForNode($event);
     $mel['event_highlights'] = [
       '#type' => 'container',
       'heading' => [
@@ -727,36 +728,6 @@ final class EventStudioMelDefaultsProvider {
       }
     }
     return $out;
-  }
-
-  private function encodeEventHighlightsJsonForEvent(NodeInterface $event): string {
-    if (!$event->hasField('field_event_highlights') || $event->get('field_event_highlights')->isEmpty()) {
-      return '[]';
-    }
-    $rows = [];
-    foreach ($event->get('field_event_highlights')->referencedEntities() as $p) {
-      if ($p->bundle() !== 'event_highlight') {
-        continue;
-      }
-      $text = '';
-      if ($p->hasField('field_highlight_text') && !$p->get('field_highlight_text')->isEmpty()) {
-        $text = trim((string) $p->get('field_highlight_text')->value);
-      }
-      $icon = '';
-      if ($p->hasField('field_highlight_icon') && !$p->get('field_highlight_icon')->isEmpty()) {
-        $icon = trim((string) $p->get('field_highlight_icon')->value);
-      }
-      $rows[] = [
-        'text' => $text,
-        'icon' => $icon,
-      ];
-    }
-    try {
-      return json_encode($rows, JSON_THROW_ON_ERROR);
-    }
-    catch (\JsonException) {
-      return '[]';
-    }
   }
 
   private function encodeAttendeeQuestionsJsonForEvent(NodeInterface $event): string {

@@ -107,6 +107,12 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_event_studio.highlights_form_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventHighlightsFormBuilder
+    arguments:
+      - '@myeventlane_event_studio.highlight_helper'
+      - '@string_translation'
+
   myeventlane_event_studio.mel_payload:
     class: Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService
     arguments:
@@ -128,6 +134,7 @@ services:
       - '@myeventlane_event_studio.entity_autocomplete_mel_normalizer'
       - '@form_builder'
       - '@current_user'
+      - '@myeventlane_event_studio.highlight_helper'
       - '@string_translation'
 
   myeventlane_event_studio.wizard_mel_baseline:

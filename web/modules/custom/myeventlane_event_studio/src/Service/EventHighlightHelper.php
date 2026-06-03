@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\node\NodeInterface;
+use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\field\Entity\FieldStorageConfig;
 
 /**
@@ -183,6 +185,39 @@ final class EventHighlightHelper {
     }
 
     return array_slice($out, 0, $limit);
+  }
+
+  /**
+   * Encodes paragraph highlights for the Event Studio JS builder (hidden JSON field).
+   */
+  public function encodeItemsStateJsonForNode(NodeInterface $event): string {
+    if (!$event->hasField('field_event_highlights') || $event->get('field_event_highlights')->isEmpty()) {
+      return '[]';
+    }
+    $rows = [];
+    foreach ($event->get('field_event_highlights')->referencedEntities() as $paragraph) {
+      if (!$paragraph instanceof Paragraph || $paragraph->bundle() !== 'event_highlight') {
+        continue;
+      }
+      $text = '';
+      if ($paragraph->hasField('field_highlight_text') && !$paragraph->get('field_highlight_text')->isEmpty()) {
+        $text = trim((string) $paragraph->get('field_highlight_text')->value);
+      }
+      $icon = '';
+      if ($paragraph->hasField('field_highlight_icon') && !$paragraph->get('field_highlight_icon')->isEmpty()) {
+        $icon = trim((string) $paragraph->get('field_highlight_icon')->value);
+      }
+      $rows[] = [
+        'text' => $text,
+        'icon' => $icon,
+      ];
+    }
+    try {
+      return json_encode($rows, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException) {
+      return '[]';
+    }
   }
 
   /**

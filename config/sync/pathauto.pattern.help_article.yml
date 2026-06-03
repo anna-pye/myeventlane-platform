@@ -7,7 +7,7 @@ dependencies:
 id: help_article
 label: 'Help article paths'
 type: 'canonical_entities:node'
-pattern: 'help/[node:title]'
+pattern: '/help/[node:title]'
 selection_criteria:
   5d9e3b21-ac4e-502f-b7d3-9e5f607b8c13:
     id: 'entity_bundle:node'

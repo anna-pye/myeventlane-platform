@@ -23,6 +23,7 @@
       <p class="mel-meta">{{ line }}</p>
     {% endfor %}
 
+    {% set donation_checkout_href = donation_checkout_url|default(checkout_url)|default(mc.donation_band.checkout_url|default('')) %}
     {% if mc.donation_band is defined and mc.donation_band %}
       {% if mc.donation_band.type == 'pending' %}
         <section class="mel-donation-cta mel-donation-cta--pending" aria-labelledby="mel-rsvp-donation-pending-title">
@@ -33,13 +34,15 @@
             <div class="mel-donation-progress__bar"></div>
             <div class="mel-donation-progress__label">{{ mc.donation_band.progress_label }}</div>
           </div>
-          {% if donation_checkout_url %}
+          {% if donation_checkout_href %}
             <div class="mel-donation-cta__actions">
-              <a href="{{ donation_checkout_url }}" class="mel-btn mel-btn--primary">
-                {{ mc.donation_band.contribution_button_label|default('') }}
+              <a href="{{ donation_checkout_href }}" class="mel-btn mel-btn--primary">
+                {{ mc.donation_band.contribution_button_label|default('Complete your contribution'|t) }}
               </a>
             </div>
             <p class="mel-donation-cta__reassurance">{{ mc.donation_band.reassurance }}</p>
+          {% elseif donation > 0 and donation_pending %}
+            <p class="mel-donation-cta__reassurance">{{ 'Your RSVP is confirmed. Donation checkout is temporarily unavailable — refresh this page or contact the organiser.'|t }}</p>
           {% endif %}
         </section>
       {% elseif mc.donation_band.type == 'complete' %}

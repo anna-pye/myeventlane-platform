@@ -323,17 +323,19 @@ final class RsvpPublicForm extends FormBase {
       '#weight' => 30,
     ];
 
-    $form['accessibility'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Accessibility needs (optional)'),
-      '#options' => $this->getAccessibilityOptions(),
-      '#required' => FALSE,
-      '#parents' => ['accessibility_needs'],
-      '#attributes' => ['class' => ['mel-chip-group', 'mel-chip-group--tags']],
-      '#wrapper_attributes' => ['class' => ['mel-card', 'mel-card--accessibility']],
-      '#weight' => 31,
-      '#access' => $attendeeDetailsEnabled,
-    ];
+    $accessibilityOptions = $this->getEventAccessibilityOptions($event);
+    if ($accessibilityOptions !== []) {
+      $form['accessibility'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Accessibility needs (optional)'),
+        '#options' => $accessibilityOptions,
+        '#required' => FALSE,
+        '#parents' => ['accessibility_needs'],
+        '#attributes' => ['class' => ['mel-chip-group', 'mel-chip-group--tags']],
+        '#wrapper_attributes' => ['class' => ['mel-card', 'mel-card--accessibility']],
+        '#weight' => 31,
+      ];
+    }
 
     // Single legal section for terms + marketing consent.
     $form['legal'] = [
@@ -759,12 +761,23 @@ final class RsvpPublicForm extends FormBase {
     }
   }
 
-  protected function getAccessibilityOptions(): array {
-    return [
-      'auslan' => $this->t('Auslan Interpreter'),
-      'sensory' => $this->t('Sensory-friendly event'),
-      'wheelchair' => $this->t('Wheelchair Access'),
-    ];
+  /**
+   * RSVP accessibility choices limited to the event's configured features.
+   *
+   * @return array<int|string, string>
+   *   Taxonomy term ID => label.
+   */
+  protected function getEventAccessibilityOptions(NodeInterface $event): array {
+    if (!$event->hasField('field_accessibility') || $event->get('field_accessibility')->isEmpty()) {
+      return [];
+    }
+
+    $options = [];
+    foreach ($event->get('field_accessibility')->referencedEntities() as $term) {
+      $options[$term->id()] = $term->label();
+    }
+
+    return $options;
   }
 
   /**

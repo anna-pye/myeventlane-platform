@@ -1,0 +1,21 @@
+uuid: df3652eb-12ec-4a36-82a7-314d1b609112
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_donation_options
+    - node.type.event
+id: node.event.field_donation_options
+field_name: field_donation_options
+entity_type: node
+bundle: event
+label: 'Donation options (JSON)'
+description: 'JSON array of preset donation amounts shown on RSVP booking.'
+required: false
+translatable: false
+default_value:
+  -
+    value: '[5,10,25,50]'
+default_value_callback: ''
+settings: {  }
+field_type: string_long
