@@ -622,7 +622,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['field_event_image'] = [
       '#type' => 'managed_file',
       '#title' => $this->t('Cover image'),
-      '#description' => $this->t('Events perform better with a visual. PNG, JPG, WebP; max 5 MB. Recommended 1200×630.'),
+      '#description' => $this->t('Events perform better with a visual. PNG, JPG, WebP; max 5 MB. Recommended 1600×900 (16:9).'),
       '#upload_location' => 'public://events',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png gif jpg jpeg webp'],

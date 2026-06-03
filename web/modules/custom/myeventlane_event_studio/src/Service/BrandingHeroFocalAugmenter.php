@@ -14,12 +14,15 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\crop\Entity\Crop;
 use Drupal\file\FileInterface;
 use Drupal\focal_point\FocalPointManagerInterface;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\image\ImageStyleInterface;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Adds focal point controls to the branding image_widget_crop hero field.
  *
- * Public event and book heroes use the focal_point crop (see mel_event_hero_featured).
+ * Public event and book heroes use the event_hero crop (see mel_event_hero_featured).
  * The studio branding form uses image_widget_crop for the fixed event_hero crop; this
  * augmenter wires the focal_point form element and indicator expected by focal_point
  * JS and mel-branding-hero-tools.js without replacing the crop widget.
@@ -36,6 +39,8 @@ final class BrandingHeroFocalAugmenter {
     private readonly ImageFactory $imageFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly EventStudioSaveService $eventStudioSaveService,
+    private readonly LoggerInterface $logger,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -141,6 +146,7 @@ final class BrandingHeroFocalAugmenter {
   private function suppressWidgetAltField(array &$delta): void {
     if (isset($delta['alt']) && is_array($delta['alt'])) {
       $delta['alt']['#access'] = FALSE;
+      $delta['alt']['#required'] = FALSE;
     }
   }
 
@@ -229,7 +235,9 @@ final class BrandingHeroFocalAugmenter {
   }
 
   /**
-   * Exposes the original hero file URL for the 16:9 framing preview (public parity).
+   * Exposes the mel_event_hero_featured URL for the 16:9 framing preview.
+   *
+   * Uses the same image style and event_hero crop as public event and book pages.
    *
    * @param array<string, mixed> $delta
    */
@@ -238,13 +246,44 @@ final class BrandingHeroFocalAugmenter {
     if (!$file instanceof FileInterface) {
       return;
     }
+    if (!$this->eventStudioSaveService->isHeroFileRenderable($file)) {
+      $this->logger->warning('Branding hero tools: file @fid on node @nid is not renderable; omitting framing preview URL.', [
+        '@fid' => (string) $file->id(),
+        '@nid' => (string) $node->id(),
+      ]);
+      return;
+    }
     $uri = $file->getFileUri();
     if ($uri === '') {
       return;
     }
+    $preview_url = $this->buildBrandingHeroFeaturedUrl($uri);
+    if ($preview_url === NULL) {
+      return;
+    }
     $delta['#attached']['drupalSettings']['myeventlane_event_studio']['brandingHero'] = [
-      'sourceUrl' => $this->fileUrlGenerator->generateString($uri),
+      'sourceUrl' => $preview_url,
     ];
+  }
+
+  /**
+   * Builds the featured hero style URL used on public event and book pages.
+   */
+  private function buildBrandingHeroFeaturedUrl(string $uri): ?string {
+    $style = ImageStyle::load('mel_event_hero_featured');
+    if (!$style instanceof ImageStyleInterface) {
+      return NULL;
+    }
+    try {
+      return $style->buildUrl($uri);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Branding hero tools: could not build mel_event_hero_featured URL for @uri: @message', [
+        '@uri' => $uri,
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
   }
 
   /**
@@ -289,28 +328,20 @@ final class BrandingHeroFocalAugmenter {
   private function resolveHeroFile(NodeInterface $node, array $delta = []): ?FileInterface {
     if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
       $file = $node->get('field_event_image')->entity;
-      if ($file instanceof FileInterface) {
+      if ($file instanceof FileInterface && $this->eventStudioSaveService->isHeroFileRenderable($file)) {
         return $file;
       }
     }
 
-    $fid = 0;
-    if (isset($delta['fids']['#value'])) {
-      $fid = (int) $delta['fids']['#value'];
-    }
-    elseif (isset($delta['fids']) && is_numeric($delta['fids'])) {
-      $fid = (int) $delta['fids'];
-    }
-    elseif (isset($delta['target_id']['#value'])) {
-      $fid = (int) $delta['target_id']['#value'];
-    }
-    elseif (isset($delta['target_id']) && is_numeric($delta['target_id'])) {
-      $fid = (int) $delta['target_id'];
-    }
+    $fid = EventStudioMelPayloadService::firstPositiveIntFromFidsValue(
+      $delta['fids']['#value'] ?? $delta['fids'] ?? $delta['target_id']['#value'] ?? $delta['target_id'] ?? NULL
+    );
 
     if ($fid > 0) {
       $file = $this->entityTypeManager->getStorage('file')->load($fid);
-      return $file instanceof FileInterface ? $file : NULL;
+      if ($file instanceof FileInterface && $this->eventStudioSaveService->isHeroFileRenderable($file)) {
+        return $file;
+      }
     }
 
     return NULL;
