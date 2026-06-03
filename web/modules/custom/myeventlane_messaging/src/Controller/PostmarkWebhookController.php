@@ -29,10 +29,12 @@ final class PostmarkWebhookController extends ControllerBase {
    *   The preference storage.
    */
   public function __construct(
-    private readonly ConfigFactoryInterface $configFactory,
+    ConfigFactoryInterface $config_factory,
     private readonly MessageStorage $messageStorage,
     private readonly MessagePreferenceStorage $preferenceStorage,
-  ) {}
+  ) {
+    $this->configFactory = $config_factory;
+  }
 
   /**
    * {@inheritdoc}
@@ -153,21 +155,12 @@ final class PostmarkWebhookController extends ControllerBase {
       return FALSE;
     }
 
-    // Postmark webhooks can include signature validation.
-    // For now, we'll use a simple shared secret check.
-    // In production, implement proper HMAC signature validation.
-    $authHeader = $request->headers->get('Authorization');
-    if ($authHeader && str_contains($authHeader, $secret)) {
-      return TRUE;
+    $providedSecret = $request->headers->get('X-Webhook-Secret');
+    if ($providedSecret === NULL || $providedSecret === '') {
+      return FALSE;
     }
 
-    // Also check for secret in custom header.
-    $customHeader = $request->headers->get('X-Webhook-Secret');
-    if ($customHeader && hash_equals($secret, $customHeader)) {
-      return TRUE;
-    }
-
-    return FALSE;
+    return hash_equals($secret, $providedSecret);
   }
 
 }
