@@ -30,6 +30,23 @@ final class EventStudioWorkspaceLibraryAttachmentTest extends TestCase {
     $this->assertStringContainsString("'myeventlane_event_studio.workspace_add_ons'", $module);
   }
 
+  public function testBaseFormSkipsWizardNavOnWorkspaceRoutes(): void {
+    $baseForm = file_get_contents($this->moduleRoot . '/src/Form/EventStudioBaseForm.php');
+    $this->assertIsString($baseForm);
+    $this->assertStringContainsString('_myeventlane_event_studio_is_workspace_route()', $baseForm);
+    $this->assertMatchesRegularExpression(
+      '/if\s*\(!_myeventlane_event_studio_is_workspace_route\(\)\)\s*\{[\s\S]*mel_event_studio_wizard_nav/s',
+      $baseForm,
+    );
+  }
+
+  public function testCheckoutQuestionsFormDoesNotRenderWizardNav(): void {
+    $form = file_get_contents($this->moduleRoot . '/src/Form/EventCheckoutQuestionsForm.php');
+    $this->assertIsString($form);
+    $this->assertStringNotContainsString('mel_event_studio_wizard_nav', $form);
+    $this->assertStringNotContainsString('EventStudioBaseForm', $form);
+  }
+
   public function testBaseFormSkipsLegacyBundleOnWorkspaceRoutes(): void {
     $baseForm = file_get_contents($this->moduleRoot . '/src/Form/EventStudioBaseForm.php');
     $this->assertIsString($baseForm);
