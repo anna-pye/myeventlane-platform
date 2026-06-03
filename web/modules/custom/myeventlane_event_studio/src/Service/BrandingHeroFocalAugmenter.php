@@ -263,6 +263,7 @@ final class BrandingHeroFocalAugmenter {
     }
     $delta['#attached']['drupalSettings']['myeventlane_event_studio']['brandingHero'] = [
       'sourceUrl' => $preview_url,
+      'fileId' => (int) $file->id(),
     ];
   }
 
@@ -326,19 +327,19 @@ final class BrandingHeroFocalAugmenter {
    * @param array<string, mixed> $delta
    */
   private function resolveHeroFile(NodeInterface $node, array $delta = []): ?FileInterface {
-    if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
-      $file = $node->get('field_event_image')->entity;
-      if ($file instanceof FileInterface && $this->eventStudioSaveService->isHeroFileRenderable($file)) {
-        return $file;
-      }
-    }
-
-    $fid = EventStudioMelPayloadService::firstPositiveIntFromFidsValue(
+    $widget_fid = EventStudioMelPayloadService::firstPositiveIntFromFidsValue(
       $delta['fids']['#value'] ?? $delta['fids'] ?? $delta['target_id']['#value'] ?? $delta['target_id'] ?? NULL
     );
 
-    if ($fid > 0) {
-      $file = $this->entityTypeManager->getStorage('file')->load($fid);
+    if ($widget_fid > 0) {
+      $widget_file = $this->entityTypeManager->getStorage('file')->load($widget_fid);
+      if ($widget_file instanceof FileInterface && $this->eventStudioSaveService->isHeroFileRenderable($widget_file)) {
+        return $widget_file;
+      }
+    }
+
+    if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+      $file = $node->get('field_event_image')->entity;
       if ($file instanceof FileInterface && $this->eventStudioSaveService->isHeroFileRenderable($file)) {
         return $file;
       }
