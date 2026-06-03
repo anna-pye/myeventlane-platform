@@ -31,6 +31,22 @@ myeventlane_messaging.settings:
     max_messages_per_run:
       type: integer
       label: 'Max messages per cron run'
+    delivery_provider:
+      type: string
+      label: 'Delivery provider (drupal_mail or postmark)'
+    postmark:
+      type: mapping
+      label: 'Postmark settings'
+      mapping:
+        server_token:
+          type: string
+          label: 'Server token (set via MEL_POSTMARK_SERVER_TOKEN in production)'
+        webhook_secret:
+          type: string
+          label: 'Webhook secret (set via MEL_POSTMARK_WEBHOOK_SECRET in production)'
+        message_stream:
+          type: string
+          label: 'Postmark message stream'
 
 # Template configs: myeventlane_messaging.template.*
 myeventlane_messaging.template.*:

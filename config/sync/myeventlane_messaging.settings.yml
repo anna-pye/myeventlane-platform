@@ -6,3 +6,9 @@ event_reminder_hours: 24
 cart_abandoned_enabled: true
 cart_abandoned_hours: 2
 batch_size: 50
+max_messages_per_run: 200
+delivery_provider: drupal_mail
+postmark:
+  server_token: ''
+  webhook_secret: ''
+  message_stream: outbound
