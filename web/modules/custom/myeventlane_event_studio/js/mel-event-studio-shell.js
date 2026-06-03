@@ -84,6 +84,13 @@
     form.appendChild(input);
   }
 
+  function bookingModeSupportsDonationSync(bookingForm) {
+    const modeInput = bookingForm.querySelector('[name="mel[field_event_type]"]:checked')
+      || bookingForm.querySelector('[name="mel[field_event_type]"]');
+    const mode = modeInput?.value ?? '';
+    return mode === 'rsvp';
+  }
+
   function supportsAutosaveForm(form) {
     const capabilities = studioSettings().currentSectionCapabilities || {};
     return isWritableForm(form) && capabilities.supports_autosave !== false;
@@ -470,7 +477,7 @@
         operationalForm.addEventListener('submit', () => {
           const stack = operationalForm.closest('.mel-event-studio-section__form-stack');
           const bookingForm = stack?.querySelector('form[data-mel-event-studio-form="1"]');
-          if (!bookingForm) {
+          if (!bookingForm || !bookingModeSupportsDonationSync(bookingForm)) {
             return;
           }
           operationalForm.querySelectorAll('[data-mel-donation-sync]').forEach((element) => element.remove());
