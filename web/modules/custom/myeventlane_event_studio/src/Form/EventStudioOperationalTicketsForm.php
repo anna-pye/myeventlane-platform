@@ -804,6 +804,10 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       return;
     }
 
+    if (!$this->eventSupportsRsvpDonationSettings($event)) {
+      return;
+    }
+
     $donationMel = $this->extractDonationMelFromRequest();
     if ($donationMel === []) {
       $draft = $this->autosaveService->getDraft($event, 'tickets');
@@ -826,6 +830,16 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     if ($result['node'] instanceof NodeInterface) {
       $this->messenger()->addStatus($this->t('Donation settings saved.'));
     }
+  }
+
+  /**
+   * RSVP-only donation settings must not be overwritten on non-RSVP booking modes.
+   */
+  private function eventSupportsRsvpDonationSettings(NodeInterface $event): bool {
+    if (!$event->hasField('field_event_type') || $event->get('field_event_type')->isEmpty()) {
+      return TRUE;
+    }
+    return (string) $event->get('field_event_type')->value === 'rsvp';
   }
 
   /**

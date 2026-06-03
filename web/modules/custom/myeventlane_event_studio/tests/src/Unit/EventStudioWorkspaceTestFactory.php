@@ -6,7 +6,9 @@ namespace Drupal\Tests\myeventlane_event_studio\Unit;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Form\FormState;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -78,6 +80,35 @@ final class EventStudioWorkspaceTestFactory {
     $formBuilder = $createMock(FormBuilderInterface::class);
     $formBuilder->method('getForm')
       ->willThrowException(new RuntimeException('Simulated section render failure'));
+
+    /** @var \Drupal\myeventlane_event_studio\Support\MelSupportResolverInterface $supportResolver */
+    $supportResolver = $createMock(MelSupportResolverInterface::class);
+    $supportResolver->method('buildCard')->willReturn(NULL);
+
+    /** @var \Drupal\Core\Session\AccountProxyInterface $currentUser */
+    $currentUser = $createMock(AccountProxyInterface::class);
+
+    $renderer = new EventStudioSectionRenderer(
+      $formBuilder,
+      self::readinessService($translator, $createMock),
+      new EventStudioEmptyStateBuilder($translator),
+      $currentUser,
+      new TestLoggerChannel(),
+      $translator,
+      $supportResolver,
+    );
+    $renderer->setStringTranslation($translator);
+    return $renderer;
+  }
+
+  /**
+   * @param callable(class-string): object $createMock
+   */
+  public static function formAjaxThrowingSectionRenderer(TranslationInterface $translator, callable $createMock): EventStudioSectionRenderer {
+    /** @var \Drupal\Core\Form\FormBuilderInterface $formBuilder */
+    $formBuilder = $createMock(FormBuilderInterface::class);
+    $formBuilder->method('getForm')
+      ->willThrowException(new FormAjaxException([], new FormState()));
 
     /** @var \Drupal\myeventlane_event_studio\Support\MelSupportResolverInterface $supportResolver */
     $supportResolver = $createMock(MelSupportResolverInterface::class);

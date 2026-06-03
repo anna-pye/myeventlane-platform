@@ -337,6 +337,7 @@ final class DemoContentSettingsForm extends ConfigFormBase {
       $form['confirm'] = [
         '#type' => 'details',
         '#title' => $this->t('Confirmation'),
+        '#tree' => TRUE,
         '#open' => TRUE,
       ];
       $form['confirm']['confirm_text'] = [

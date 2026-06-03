@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_event_studio\Unit;
 
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_event_studio\Controller\EventStudioController;
@@ -60,6 +61,40 @@ final class EventStudioWorkspaceFailureFallbackTest extends UnitTestCase {
     );
 
     $this->assertUnavailableSectionFallback($content, 'Tickets');
+  }
+
+  /**
+   * @covers ::buildWorkspaceSectionContent
+   */
+  public function testWorkspaceSectionContentReThrowsFormAjaxException(): void {
+    $translator = $this->translator();
+    $createMock = fn (string $class): object => $this->createMock($class);
+    $node = $this->eventNode();
+    $sectionPlugin = $this->sectionPlugin('branding', 'form:Drupal\myeventlane_event_studio\Form\EventBrandingForm', 'Branding');
+
+    $logger = $this->createMock(LoggerInterface::class);
+    $logger->expects($this->never())->method('error');
+
+    $controller = new EventStudioController(
+      $this->createMock(EntityTypeManagerInterface::class),
+      (new ReflectionClass(VendorEventStudioCreateService::class))->newInstanceWithoutConstructor(),
+      $logger,
+      new \Symfony\Component\HttpFoundation\RequestStack(),
+      new EventVendorAccessChecker(),
+      $this->createMock(DateFormatterInterface::class),
+      EventStudioWorkspaceTestFactory::readinessService($translator, $createMock),
+      EventStudioWorkspaceTestFactory::autosaveService($createMock),
+      (new ReflectionClass(EventStudioSectionManager::class))->newInstanceWithoutConstructor(),
+      EventStudioWorkspaceTestFactory::formAjaxThrowingSectionRenderer($translator, $createMock),
+      new EventStudioEmptyStateBuilder($translator),
+      EventStudioWorkspaceTestFactory::domainDetector($createMock),
+    );
+
+    $method = new ReflectionMethod(EventStudioController::class, 'buildWorkspaceSectionContent');
+    $method->setAccessible(TRUE);
+
+    $this->expectException(FormAjaxException::class);
+    $method->invoke($controller, $sectionPlugin, $node);
   }
 
   /**

@@ -72,7 +72,6 @@ final class RsvpThankYouController {
     $donation_checkout_url = NULL;
     $donation_completed = FALSE;
     $donation_pending = FALSE;
-    $can_add_post_rsvp_contribution = FALSE;
 
     if ($order_id > 0) {
       $order = $this->entityTypeManager
@@ -171,6 +170,14 @@ final class RsvpThankYouController {
         }
       }
     }
+
+    $event_url = $event->toUrl()->toString();
+    $can_add_post_rsvp_contribution = $this->isEventDonationsEnabled($event)
+      && $donation <= 0.0
+      && !$donation_pending
+      && !$donation_completed
+      && $event_url !== '';
+
     if ($donation <= 0.0 && !$can_add_post_rsvp_contribution) {
       $logger->notice('Post-confirmation donation creation path is not available for RSVP thank-you upsell.');
     }
@@ -184,7 +191,7 @@ final class RsvpThankYouController {
 
     $mel_continuity = $this->customerContinuityPresenter->buildRsvpThankYouPresentation(
       $event,
-      $event->toUrl()->toString(),
+      $event_url,
       $donation_pending,
       $donation_completed,
       $donation,
@@ -204,7 +211,7 @@ final class RsvpThankYouController {
       '#attendee_email' => $attendee_email,
       '#donation' => $donation,
       '#guests' => $guests,
-      '#event_url' => $event->toUrl()->toString(),
+      '#event_url' => $event_url,
       '#checkout_url' => $donation_checkout_url ?? '',
       '#is_payment_pending' => $donation_pending,
       '#donation_order_id' => $donation_order_id,
@@ -477,6 +484,15 @@ final class RsvpThankYouController {
     }
 
     return $this->selectPreferredDonationOrder($orders);
+  }
+
+  /**
+   * Whether the event exposes optional RSVP donations (field_enable_donations).
+   */
+  private function isEventDonationsEnabled(NodeInterface $event): bool {
+    return $event->hasField('field_enable_donations')
+      && !$event->get('field_enable_donations')->isEmpty()
+      && (bool) $event->get('field_enable_donations')->value;
   }
 
 }
