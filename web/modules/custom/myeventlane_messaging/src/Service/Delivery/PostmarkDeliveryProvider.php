@@ -67,12 +67,17 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
       return FALSE;
     }
 
+    $messageStream = $config->get('postmark.message_stream');
+    if (!is_string($messageStream) || $messageStream === '') {
+      $messageStream = 'outbound';
+    }
+
     $payload = [
       'From' => !empty($fromName) ? "{$fromName} <{$fromEmail}>" : $fromEmail,
       'To' => $to,
       'Subject' => $subject,
       'HtmlBody' => $htmlBody,
-      'MessageStream' => 'outbound',
+      'MessageStream' => $messageStream,
     ];
 
     if (!empty($replyTo)) {
@@ -147,12 +152,9 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
   private ?string $lastMessageId = NULL;
 
   /**
-   * Gets the last provider message ID.
-   *
-   * @return string|null
-   *   Provider message ID from last send() call.
+   * {@inheritdoc}
    */
-  public function getLastMessageId(): ?string {
+  public function getLastProviderMessageId(): ?string {
     return $this->lastMessageId;
   }
 

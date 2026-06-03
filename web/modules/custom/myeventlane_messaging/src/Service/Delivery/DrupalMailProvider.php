@@ -95,4 +95,11 @@ final class DrupalMailProvider implements DeliveryProviderInterface {
     return FALSE;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getLastProviderMessageId(): ?string {
+    return NULL;
+  }
+
 }

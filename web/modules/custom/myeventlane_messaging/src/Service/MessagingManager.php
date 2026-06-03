@@ -459,10 +459,16 @@ final class MessagingManager {
 
     $this->messageStorage->incrementAttempts($messageId);
     if ($sent) {
-      $this->messageStorage->update($messageId, [
+      $updates = [
         'status' => 'sent',
         'sent' => (int) time(),
-      ]);
+        'provider' => $provider->id(),
+      ];
+      $providerMessageId = $provider->getLastProviderMessageId();
+      if ($providerMessageId !== NULL && $providerMessageId !== '') {
+        $updates['provider_message_id'] = $providerMessageId;
+      }
+      $this->messageStorage->update($messageId, $updates);
       $this->logger->info('Sent message @type to @to. message_id=@id', [
         '@type' => $type,
         '@to' => $to,
