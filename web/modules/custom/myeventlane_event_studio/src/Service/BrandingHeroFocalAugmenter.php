@@ -14,12 +14,15 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\crop\Entity\Crop;
 use Drupal\file\FileInterface;
 use Drupal\focal_point\FocalPointManagerInterface;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\image\ImageStyleInterface;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Adds focal point controls to the branding image_widget_crop hero field.
  *
- * Public event and book heroes use the focal_point crop (see mel_event_hero_featured).
+ * Public event and book heroes use the event_hero crop (see mel_event_hero_featured).
  * The studio branding form uses image_widget_crop for the fixed event_hero crop; this
  * augmenter wires the focal_point form element and indicator expected by focal_point
  * JS and mel-branding-hero-tools.js without replacing the crop widget.
@@ -36,6 +39,8 @@ final class BrandingHeroFocalAugmenter {
     private readonly ImageFactory $imageFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly EventStudioSaveService $eventStudioSaveService,
+    private readonly LoggerInterface $logger,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -51,13 +56,37 @@ final class BrandingHeroFocalAugmenter {
     if ($focal_override !== NULL && trim($focal_override) !== '') {
       $field_element['#mel_branding_focal_override'] = trim($focal_override);
     }
-    // Callable must be serializable — closures break media_library AJAX (form cache).
+    // Callable must be serializable — instance [$this, …] breaks form cache (AJAX/crop/media).
     $field_element['#mel_branding_node_id'] = (int) $node->id();
-    $field_element['#after_build'][] = [$this, 'afterBuildFieldFromElement'];
+    $field_element['#after_build'][] = [self::class, 'formAfterBuildFieldFromElement'];
   }
 
   /**
-   * Form API #after_build callback (serializable; loads node from #mel_branding_node_id).
+   * Serializable #after_build entry point (form cache / AJAX safe).
+   *
+   * @param array<string, mixed> $element
+   *
+   * @return array<string, mixed>
+   */
+  public static function formAfterBuildFieldFromElement(array $element, FormStateInterface $form_state): array {
+    $augmenter = \Drupal::service('myeventlane_event_studio.branding_hero_focal_augmenter');
+    assert($augmenter instanceof self);
+    return $augmenter->afterBuildFieldFromElement($element, $form_state);
+  }
+
+  /**
+   * Serializable #element_validate entry point (form cache / AJAX safe).
+   *
+   * @param array<string, mixed> $element
+   */
+  public static function formValidateFocalPointElement(array &$element, FormStateInterface $form_state): void {
+    $augmenter = \Drupal::service('myeventlane_event_studio.branding_hero_focal_augmenter');
+    assert($augmenter instanceof self);
+    $augmenter->validateFocalPointElement($element, $form_state);
+  }
+
+  /**
+   * Form API #after_build callback (loads node from #mel_branding_node_id).
    *
    * @param array<string, mixed> $element
    *   The field_event_image element.
@@ -103,9 +132,22 @@ final class BrandingHeroFocalAugmenter {
         ? (string) $element['#mel_branding_focal_override']
         : NULL;
       $this->augmentWidgetDelta($element['widget'][$delta_key], $node, $override);
+      $this->suppressWidgetAltField($element['widget'][$delta_key]);
     }
 
     return $element;
+  }
+
+  /**
+   * Hides the crop widget alt field; branding uses mel[field_event_image_alt].
+   *
+   * @param array<string, mixed> $delta
+   */
+  private function suppressWidgetAltField(array &$delta): void {
+    if (isset($delta['alt']) && is_array($delta['alt'])) {
+      $delta['alt']['#access'] = FALSE;
+      $delta['alt']['#required'] = FALSE;
+    }
   }
 
   /**
@@ -114,16 +156,24 @@ final class BrandingHeroFocalAugmenter {
    * @param array<string, mixed> $delta
    */
   private function augmentWidgetDelta(array &$delta, NodeInterface $node, ?string $focal_override = NULL): void {
-    // #parents from the already-processed widget delta; used as base for
-    // elements injected here (after doBuildForm has finished).
+    // #parents and #array_parents from the processed widget delta (after
+    // doBuildForm). FormErrorHandler requires #array_parents on every child.
     $delta_parents = $delta['#parents'] ?? [];
+    if (!is_array($delta_parents)) {
+      $delta_parents = [];
+    }
+    $delta_array_parents = $delta['#array_parents'] ?? NULL;
+    if (!is_array($delta_array_parents)) {
+      return;
+    }
 
     if (isset($delta['focal_point']) && is_array($delta['focal_point'])) {
-      $delta['focal_point']['#element_validate'] = [[$this, 'validateFocalPointElement']];
+      $delta['focal_point']['#element_validate'] = [[self::class, 'formValidateFocalPointElement']];
       if (!empty($delta['focal_point']['#description']) && !isset($delta['focal_point']['#description_display'])) {
         $delta['focal_point']['#description_display'] = 'after';
       }
       $this->attachBrandingHeroPreviewSettings($delta, $node, $delta);
+      $this->suppressWidgetAltField($delta);
       return;
     }
 
@@ -138,8 +188,9 @@ final class BrandingHeroFocalAugmenter {
       '#description' => $this->t('Focus area for the public event and book page hero (16:9). Saved when you save branding.'),
       '#description_display' => 'after',
       '#default_value' => $focal_value,
-      '#element_validate' => [[$this, 'validateFocalPointElement']],
+      '#element_validate' => [[self::class, 'formValidateFocalPointElement']],
       '#parents' => array_merge($delta_parents, ['focal_point']),
+      '#array_parents' => array_merge($delta_array_parents, ['focal_point']),
       '#attributes' => [
         'class' => ['focal-point', $selector],
         'data-selector' => $selector,
@@ -156,21 +207,26 @@ final class BrandingHeroFocalAugmenter {
     ];
 
     if (isset($delta['preview']) && is_array($delta['preview'])) {
-      $preview_weight = $delta['preview']['#weight'] ?? 0;
-      unset($delta['preview']['#weight']);
+      $thumbnail = $delta['preview'];
+      $preview_weight = $thumbnail['#weight'] ?? 0;
+      unset($thumbnail['#weight']);
+      $thumbnail['#parents'] = array_merge($delta_parents, ['preview', 'thumbnail']);
+      $thumbnail['#array_parents'] = array_merge($delta_array_parents, ['preview', 'thumbnail']);
       $delta['preview'] = [
         '#parents' => array_merge($delta_parents, ['preview']),
+        '#array_parents' => array_merge($delta_array_parents, ['preview']),
         'indicator' => [
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#parents' => array_merge($delta_parents, ['preview', 'indicator']),
+          '#array_parents' => array_merge($delta_array_parents, ['preview', 'indicator']),
           '#attributes' => [
             'class' => ['focal-point-indicator'],
             'data-selector' => $selector,
             'data-delta' => 0,
           ],
         ],
-        'thumbnail' => $delta['preview'],
+        'thumbnail' => $thumbnail,
         '#weight' => $preview_weight,
       ];
     }
@@ -179,7 +235,9 @@ final class BrandingHeroFocalAugmenter {
   }
 
   /**
-   * Exposes the original hero file URL for the 16:9 framing preview (public parity).
+   * Exposes the mel_event_hero_featured URL for the 16:9 framing preview.
+   *
+   * Uses the same image style and event_hero crop as public event and book pages.
    *
    * @param array<string, mixed> $delta
    */
@@ -188,13 +246,44 @@ final class BrandingHeroFocalAugmenter {
     if (!$file instanceof FileInterface) {
       return;
     }
+    if (!$this->eventStudioSaveService->isHeroFileRenderable($file)) {
+      $this->logger->warning('Branding hero tools: file @fid on node @nid is not renderable; omitting framing preview URL.', [
+        '@fid' => (string) $file->id(),
+        '@nid' => (string) $node->id(),
+      ]);
+      return;
+    }
     $uri = $file->getFileUri();
     if ($uri === '') {
       return;
     }
+    $preview_url = $this->buildBrandingHeroFeaturedUrl($uri);
+    if ($preview_url === NULL) {
+      return;
+    }
     $delta['#attached']['drupalSettings']['myeventlane_event_studio']['brandingHero'] = [
-      'sourceUrl' => $this->fileUrlGenerator->generateString($uri),
+      'sourceUrl' => $preview_url,
     ];
+  }
+
+  /**
+   * Builds the featured hero style URL used on public event and book pages.
+   */
+  private function buildBrandingHeroFeaturedUrl(string $uri): ?string {
+    $style = ImageStyle::load('mel_event_hero_featured');
+    if (!$style instanceof ImageStyleInterface) {
+      return NULL;
+    }
+    try {
+      return $style->buildUrl($uri);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Branding hero tools: could not build mel_event_hero_featured URL for @uri: @message', [
+        '@uri' => $uri,
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
   }
 
   /**
@@ -239,28 +328,20 @@ final class BrandingHeroFocalAugmenter {
   private function resolveHeroFile(NodeInterface $node, array $delta = []): ?FileInterface {
     if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
       $file = $node->get('field_event_image')->entity;
-      if ($file instanceof FileInterface) {
+      if ($file instanceof FileInterface && $this->eventStudioSaveService->isHeroFileRenderable($file)) {
         return $file;
       }
     }
 
-    $fid = 0;
-    if (isset($delta['fids']['#value'])) {
-      $fid = (int) $delta['fids']['#value'];
-    }
-    elseif (isset($delta['fids']) && is_numeric($delta['fids'])) {
-      $fid = (int) $delta['fids'];
-    }
-    elseif (isset($delta['target_id']['#value'])) {
-      $fid = (int) $delta['target_id']['#value'];
-    }
-    elseif (isset($delta['target_id']) && is_numeric($delta['target_id'])) {
-      $fid = (int) $delta['target_id'];
-    }
+    $fid = EventStudioMelPayloadService::firstPositiveIntFromFidsValue(
+      $delta['fids']['#value'] ?? $delta['fids'] ?? $delta['target_id']['#value'] ?? $delta['target_id'] ?? NULL
+    );
 
     if ($fid > 0) {
       $file = $this->entityTypeManager->getStorage('file')->load($fid);
-      return $file instanceof FileInterface ? $file : NULL;
+      if ($file instanceof FileInterface && $this->eventStudioSaveService->isHeroFileRenderable($file)) {
+        return $file;
+      }
     }
 
     return NULL;

@@ -26,6 +26,7 @@ use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventStudioAiAssistBuilder;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
+use Drupal\myeventlane_event_studio\Service\EventHighlightsFormBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioGovernanceComponentBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
@@ -66,6 +67,8 @@ final class EventStudioForm extends FormBase {
    * Allowed icons and highlight row normalization for Event Studio.
    */
   protected EventHighlightHelper $eventHighlightHelper;
+
+  protected EventHighlightsFormBuilder $eventHighlightsFormBuilder;
 
   protected TicketTypeManager $ticketTypeManager;
 
@@ -113,6 +116,7 @@ final class EventStudioForm extends FormBase {
       ? $container->get('myeventlane_location.provider_manager')
       : NULL;
     $instance->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
+    $instance->eventHighlightsFormBuilder = $container->get('myeventlane_event_studio.highlights_form_builder');
     $instance->ticketTypeManager = $container->get('myeventlane_event.ticket_type_manager');
     $instance->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
     $instance->eventTicketReconciliation = $container->get('myeventlane_vendor.event_ticket_reconciliation');
@@ -145,7 +149,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder, $this->readinessHelper, $this->aiAssistBuilder)
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventHighlightsFormBuilder, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder, $this->readinessHelper, $this->aiAssistBuilder)
       && isset($this->melPlatformSupportWizardForm)) {
       return;
     }
@@ -170,6 +174,9 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->eventHighlightHelper)) {
       $this->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
+    }
+    if (!isset($this->eventHighlightsFormBuilder)) {
+      $this->eventHighlightsFormBuilder = $container->get('myeventlane_event_studio.highlights_form_builder');
     }
     if (!isset($this->ticketTypeManager)) {
       $this->ticketTypeManager = $container->get('myeventlane_event.ticket_type_manager');
@@ -609,83 +616,13 @@ final class EventStudioForm extends FormBase {
     $this->aiAssistBuilder->attachToElement($form['mel']['body'], $event, 'body', 'content');
     $this->aiAssistBuilder->attachToElement($form['mel']['field_event_intro'], $event, 'field_event_intro', 'content');
 
-    $highlights_json = $this->encodeEventHighlightsJsonForEvent($event);
-    $form['mel']['event_highlights'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-section--card', 'mel-event-highlights-editor']],
-      'heading' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('What makes your event special?'),
-        '#attributes' => ['class' => ['mel-section__title']],
-      ],
-      'hint' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Add up to 6 highlights that help people decide to attend.'),
-        '#attributes' => ['class' => ['mel-section__hint']],
-      ],
-      'errors' => [
-        '#type' => 'container',
-        '#attributes' => [
-          'id' => 'mel-highlights-editor-errors',
-          'class' => ['mel-highlights-editor__errors', 'messages', 'messages--error'],
-          'role' => 'alert',
-          'aria-live' => 'polite',
-          'hidden' => 'hidden',
-          'data-mel-highlights-errors' => '1',
-          'tabindex' => '-1',
-        ],
-        'text' => [
-          '#markup' => '<p class="mel-highlights-editor__errors-text"></p>',
-        ],
-      ],
-      'items_state' => [
-        '#type' => 'hidden',
-        '#default_value' => $highlights_json,
-        '#attributes' => [
-          'id' => 'mel-event-highlights-json',
-          'data-mel-highlights-state' => '1',
-        ],
-      ],
-      'builder' => [
-        '#type' => 'container',
-        '#attributes' => [
-          'class' => ['mel-highlights-builder'],
-          'data-mel-highlights-builder' => '1',
-        ],
-        'table' => [
-          '#type' => 'table',
-          '#header' => [
-            $this->t('Icon'),
-            $this->t('Highlight'),
-            $this->t('Order'),
-            $this->t('Actions'),
-          ],
-          '#rows' => [],
-          '#empty' => $this->t('No highlights yet.'),
-          '#attributes' => [
-            'class' => ['mel-highlights-builder-table'],
-            'data-mel-highlights-table' => '1',
-          ],
-        ],
-        'add' => [
-          '#type' => 'button',
-          '#value' => $this->t('Add highlight'),
-          '#attributes' => [
-            'class' => ['mel-btn', 'mel-btn--secondary', 'mel-btn--touch', 'button'],
-            'type' => 'button',
-            'id' => 'mel-add-event-highlight',
-            'aria-label' => (string) $this->t('Add highlight row'),
-          ],
-        ],
-      ],
-    ];
+    $highlights_json = $this->eventHighlightHelper->encodeItemsStateJsonForNode($event);
+    $form['mel']['event_highlights'] = $this->eventHighlightsFormBuilder->buildEditorElement($highlights_json);
 
     $form['mel']['field_event_image'] = [
       '#type' => 'managed_file',
       '#title' => $this->t('Cover image'),
-      '#description' => $this->t('Events perform better with a visual. PNG, JPG, WebP; max 5 MB. Recommended 1200×630.'),
+      '#description' => $this->t('Events perform better with a visual. PNG, JPG, WebP; max 5 MB. Recommended 1600×900 (16:9).'),
       '#upload_location' => 'public://events',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png gif jpg jpeg webp'],
@@ -1345,6 +1282,7 @@ final class EventStudioForm extends FormBase {
       ];
     }
 
+    $highlight_settings = $this->eventHighlightsFormBuilder->getDrupalSettings();
     $form['#attached']['drupalSettings']['melEventStudio'] = [
       'initial' => [
         'published' => $event->isPublished(),
@@ -1354,13 +1292,9 @@ final class EventStudioForm extends FormBase {
         'ticketType' => $type_default,
         'venueMode' => $venue_mode_default,
       ],
-      'highlightIconOptions' => $this->eventHighlightHelper->getIconOptionsForJs(),
-      'highlightIconPicker' => $this->eventHighlightHelper->getHighlightIconPickerItems(),
-      'highlightErrors' => [
-        'max' => (string) $this->t('You can add at most 6 highlights.'),
-        'iconNoText' => (string) $this->t('Add text for each highlight that has an icon.'),
-        'json' => (string) $this->t('Highlights data could not be read. Reset the list or reload the page.'),
-      ],
+      'highlightIconOptions' => $highlight_settings['highlightIconOptions'],
+      'highlightIconPicker' => $highlight_settings['highlightIconPicker'],
+      'highlightErrors' => $highlight_settings['highlightErrors'],
       'strings' => [
         'draft' => (string) $this->t('Draft'),
         'live' => (string) $this->t('Live'),
@@ -1509,34 +1443,8 @@ final class EventStudioForm extends FormBase {
     }
 
     $mel = $form_state->getValue('mel');
-    if (is_array($mel) && isset($mel['event_highlights']) && is_array($mel['event_highlights'])) {
-      $raw = '';
-      if (isset($mel['event_highlights']['items_state'])) {
-        $raw = (string) $mel['event_highlights']['items_state'];
-      }
-      $decoded = [];
-      if ($raw !== '') {
-        try {
-          $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-        }
-        catch (\JsonException) {
-          $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Highlights data could not be read. Please refresh and try again.'));
-          return;
-        }
-      }
-      if (!is_array($decoded)) {
-        $decoded = [];
-      }
-
-      $this->ensureInjectedServices();
-      $analysis = $this->eventHighlightHelper->analyzeDecodedHighlights($decoded);
-      if ($analysis['icon_without_text']) {
-        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
-        return;
-      }
-      if ($analysis['persistable_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
-        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('You can add at most 6 highlights.'));
-      }
+    if (is_array($mel)) {
+      $this->eventHighlightsFormBuilder->validateMelHighlights($mel, $form_state);
     }
 
     $mel = $form_state->getValue('mel');
@@ -1704,39 +1612,6 @@ final class EventStudioForm extends FormBase {
         }
         $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()], $canonical_options));
       }
-    }
-  }
-
-  /**
-   * Encodes paragraph highlights for the Event Studio JS builder (JSON in hidden field).
-   */
-  private function encodeEventHighlightsJsonForEvent(NodeInterface $event): string {
-    if (!$event->hasField('field_event_highlights') || $event->get('field_event_highlights')->isEmpty()) {
-      return '[]';
-    }
-    $rows = [];
-    foreach ($event->get('field_event_highlights')->referencedEntities() as $p) {
-      if ($p->bundle() !== 'event_highlight') {
-        continue;
-      }
-      $text = '';
-      if ($p->hasField('field_highlight_text') && !$p->get('field_highlight_text')->isEmpty()) {
-        $text = trim((string) $p->get('field_highlight_text')->value);
-      }
-      $icon = '';
-      if ($p->hasField('field_highlight_icon') && !$p->get('field_highlight_icon')->isEmpty()) {
-        $icon = trim((string) $p->get('field_highlight_icon')->value);
-      }
-      $rows[] = [
-        'text' => $text,
-        'icon' => $icon,
-      ];
-    }
-    try {
-      return json_encode($rows, JSON_THROW_ON_ERROR);
-    }
-    catch (\JsonException) {
-      return '[]';
     }
   }
 

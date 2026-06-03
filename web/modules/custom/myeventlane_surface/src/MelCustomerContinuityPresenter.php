@@ -75,6 +75,7 @@ final class MelCustomerContinuityPresenter {
         'progress_label' => $this->readinessHelper->customerRsvpDonationProgressLabel(),
         'reassurance' => $this->readinessHelper->customerRsvpDonationReassuranceLine(),
         'contribution_button_label' => $this->readinessHelper->customerContinuityCompleteContributionCta($amount_display),
+        'checkout_url' => $donation_checkout_url ?? '',
       ];
     }
     elseif ($donation > 0 && $donation_completed) {
@@ -95,7 +96,18 @@ final class MelCustomerContinuityPresenter {
 
     /** @var list<array<string, string|bool>> $actions */
     $actions = [];
-    $donation_section_primary = $donation > 0 && $donation_pending && $donation_checkout_url;
+    $donation_checkout = $donation_checkout_url !== NULL && $donation_checkout_url !== '';
+    $donation_section_primary = $donation > 0 && $donation_pending && $donation_checkout;
+
+    if ($donation_section_primary) {
+      $actions[] = [
+        'key' => 'complete_donation',
+        'label' => $this->readinessHelper->customerContinuityCompleteContributionCta($amount_display),
+        'url' => $donation_checkout_url,
+        'variant' => 'primary',
+        'download' => FALSE,
+      ];
+    }
 
     if ($event_url !== '') {
       $actions[] = [

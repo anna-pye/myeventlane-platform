@@ -122,6 +122,10 @@ final class RsvpDonationService {
       $orderItem->set('field_target_event', ['target_id' => (int) $event->id()]);
     }
 
+    if ($orderItem->hasField('field_rsvp_submission')) {
+      $orderItem->set('field_rsvp_submission', ['target_id' => (int) $submission->id()]);
+    }
+
     if ($orderItem->hasField('field_attendee_data')) {
       $metadata = [
         'donation_type' => 'rsvp',

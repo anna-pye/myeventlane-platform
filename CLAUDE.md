@@ -228,6 +228,20 @@ audit/mel-short-description
 chore/mel-short-description
 ```
 
+## Investigation Discipline
+
+Use a three-stage workflow:
+
+1. Investigation
+2. Decision
+3. Implementation
+
+Do not repeat repository-wide audits once root cause has been confirmed.
+
+Reuse evidence already collected.
+
+Implementation prompts should assume findings are authoritative unless contradicted by new evidence.
+
 ## Output style
 
 Be concise and technical.

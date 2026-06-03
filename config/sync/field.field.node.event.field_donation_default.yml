@@ -1,0 +1,23 @@
+uuid: 054179e9-a55a-400e-a88d-8f821c4e1cc9
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_donation_default
+    - node.type.event
+id: node.event.field_donation_default
+field_name: field_donation_default
+entity_type: node
+bundle: event
+label: 'Default donation'
+description: 'Default donation amount pre-selected on RSVP booking.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0.0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: decimal

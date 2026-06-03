@@ -96,8 +96,16 @@ final class EventStudioWorkspaceLibraryAttachmentTest extends TestCase {
     $preview = file_get_contents($this->moduleRoot . '/src/Service/EventTicketPreviewBuilder.php');
     $this->assertIsString($branding);
     $this->assertIsString($preview);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_branding_workspace', $branding);
     $this->assertStringContainsString('myeventlane_event_studio/mel_branding_hero_tools', $branding);
+    $this->assertStringNotContainsString('myeventlane_event_studio/mel_event_studio', $branding);
     $this->assertStringContainsString('myeventlane_event_studio/mel_ticket_preview', $preview);
+
+    $libraries = file_get_contents($this->moduleRoot . '/myeventlane_event_studio.libraries.yml');
+    $this->assertIsString($libraries);
+    $this->assertStringContainsString('mel_branding_workspace:', $libraries);
+    $this->assertStringContainsString('css/mel-event-studio-branding.css', $libraries);
+    $this->assertFileExists($this->moduleRoot . '/css/mel-event-studio-branding.css');
   }
 
 }

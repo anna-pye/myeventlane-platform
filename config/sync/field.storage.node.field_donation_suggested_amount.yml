@@ -1,0 +1,20 @@
+uuid: f6282ecb-4d93-4210-aa3c-a8489b7b9194
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_donation_suggested_amount
+field_name: field_donation_suggested_amount
+entity_type: node
+type: decimal
+settings:
+  precision: 10
+  scale: 2
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

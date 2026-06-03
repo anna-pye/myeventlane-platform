@@ -1,0 +1,21 @@
+uuid: 563d31a5-0d21-4805-aae2-4b049097507a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_donation_label
+    - node.type.event
+id: node.event.field_donation_label
+field_name: field_donation_label
+entity_type: node
+bundle: event
+label: 'Donation label'
+description: 'Heading shown on the RSVP donation block.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 'Support this event'
+default_value_callback: ''
+settings: {  }
+field_type: string

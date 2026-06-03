@@ -312,8 +312,10 @@ final class EntityAutocompleteMelNormalizer {
     }
     $ids = [];
     $entities = [];
+    $had_entity_input = FALSE;
     foreach ($value as $item) {
       if ($item instanceof EntityInterface) {
+        $had_entity_input = TRUE;
         if ($item->getEntityTypeId() === $entity_type_id) {
           $entities[] = $item;
         }
@@ -325,9 +327,22 @@ final class EntityAutocompleteMelNormalizer {
       }
       if (is_array($item) && isset($item['target_id']) && is_numeric($item['target_id'])) {
         $ids[] = (int) $item['target_id'];
+        continue;
+      }
+      if (is_string($item) && $item !== '') {
+        foreach ($this->extractTagIdsFromString($item) as $id) {
+          $ids[] = $id;
+        }
       }
     }
-    return array_values([...$entities, ...$this->loadTagIds($ids, $entity_type_id)]);
+    $unique_ids = array_values(array_unique(array_filter($ids)));
+    if ($had_entity_input) {
+      return array_values([...$entities, ...$this->loadTagIds($unique_ids, $entity_type_id)]);
+    }
+    if ($unique_ids === []) {
+      return [];
+    }
+    return array_values(array_map(static fn(int $id): array => ['target_id' => $id], $unique_ids));
   }
 
   /**

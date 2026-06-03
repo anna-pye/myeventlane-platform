@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_rsvp\EventSubscriber;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\commerce_order\Event\OrderEvents;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_rsvp\Service\RsvpMailer;
 use Drupal\node\NodeInterface;
@@ -73,31 +75,16 @@ final class RsvpDonationConfirmationSubscriber implements EventSubscriberInterfa
       if ($item->bundle() !== 'rsvp_donation') {
         continue;
       }
-      if (!$item->hasField('field_attendee_data') || $item->get('field_attendee_data')->isEmpty()) {
-        $this->logger->warning('RSVP donation order @id item @item_id: missing field_attendee_data, skipping confirmation', [
-          '@id' => $order->id(),
-          '@item_id' => $item->id(),
-        ]);
-        continue;
-      }
-      $raw = (string) $item->get('field_attendee_data')->value;
-      $data = json_decode($raw, TRUE);
-      $sid = isset($data['rsvp_submission_id']) ? (int) $data['rsvp_submission_id'] : 0;
-      $eventId = isset($data['event_id']) ? (int) $data['event_id'] : NULL;
-      if ($sid <= 0 || !$eventId) {
-        $this->logger->warning('RSVP donation order @id item @item_id: missing rsvp_submission_id or event_id in field_attendee_data', [
-          '@id' => $order->id(),
-          '@item_id' => $item->id(),
-        ]);
+
+      $context = $this->resolveDonationItemContext($item, $order);
+      if ($context === NULL) {
         continue;
       }
 
-      $submission = $this->entityTypeManager->getStorage('rsvp_submission')->load($sid);
-      if (!$submission || !$submission->hasField('status')) {
-        continue;
-      }
-      $eventNode = $this->entityTypeManager->getStorage('node')->load($eventId);
-      if (!$eventNode instanceof NodeInterface) {
+      $submission = $context['submission'];
+      $eventNode = $context['event'];
+
+      if (!$submission->hasField('status')) {
         continue;
       }
 
@@ -113,18 +100,86 @@ final class RsvpDonationConfirmationSubscriber implements EventSubscriberInterfa
         $this->mailer->sendConfirmation($submission, $eventNode);
         $this->logger->info('RSVP confirmation queued for donation order @order_id, submission @sid', [
           '@order_id' => $order->id(),
-          '@sid' => $sid,
+          '@sid' => $submission->id(),
         ]);
       }
       catch (\Throwable $e) {
         $this->logger->warning('RSVP confirmation queue failed after donation checkout: @msg', [
           '@msg' => $e->getMessage(),
           'order_id' => $order->id(),
-          'submission_id' => $sid,
+          'submission_id' => $submission->id(),
         ]);
       }
       break;
     }
+  }
+
+  /**
+   * Resolves RSVP submission and event from a donation order item.
+   *
+   * @return array{submission: EntityInterface, event: NodeInterface}|null
+   */
+  private function resolveDonationItemContext(OrderItemInterface $item, OrderInterface $order): ?array {
+    $submission_id = 0;
+    $event_id = NULL;
+
+    if ($item->hasField('field_rsvp_submission') && !$item->get('field_rsvp_submission')->isEmpty()) {
+      $submission_id = (int) $item->get('field_rsvp_submission')->target_id;
+    }
+    elseif ($item->hasField('field_attendee_data') && !$item->get('field_attendee_data')->isEmpty()) {
+      $raw = (string) $item->get('field_attendee_data')->value;
+      $data = json_decode($raw, TRUE);
+      $submission_id = isset($data['rsvp_submission_id']) ? (int) $data['rsvp_submission_id'] : 0;
+      $event_id = isset($data['event_id']) ? (int) $data['event_id'] : NULL;
+    }
+    else {
+      $this->logger->warning('RSVP donation order @id item @item_id: missing field_rsvp_submission and field_attendee_data, skipping confirmation', [
+        '@id' => $order->id(),
+        '@item_id' => $item->id(),
+      ]);
+      return NULL;
+    }
+
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      $event_id = (int) $item->get('field_target_event')->target_id;
+    }
+
+    if ($submission_id <= 0) {
+      $this->logger->warning('RSVP donation order @id item @item_id: could not resolve RSVP submission id', [
+        '@id' => $order->id(),
+        '@item_id' => $item->id(),
+      ]);
+      return NULL;
+    }
+
+    $submission = $this->entityTypeManager->getStorage('rsvp_submission')->load($submission_id);
+    if (!$submission instanceof EntityInterface) {
+      return NULL;
+    }
+
+    if ($event_id === NULL || $event_id <= 0) {
+      if ($submission->hasField('event_id') && !$submission->get('event_id')->isEmpty()) {
+        $event_id = (int) $submission->get('event_id')->target_id;
+      }
+    }
+
+    if ($event_id === NULL || $event_id <= 0) {
+      $this->logger->warning('RSVP donation order @id item @item_id: could not resolve event id', [
+        '@id' => $order->id(),
+        '@item_id' => $item->id(),
+      ]);
+      return NULL;
+    }
+
+    $eventNode = $this->entityTypeManager->getStorage('node')->load($event_id);
+    if (!$eventNode instanceof NodeInterface) {
+      return NULL;
+    }
+
+    return [
+      'submission' => $submission,
+      'event' => $eventNode,
+    ];
   }
 
 }

@@ -1,12 +1,14 @@
-# AGENTS.md — MyEventLane / MEL AI Agent Rules
+## Investigation Discipline
 
-This file defines safe operating rules for AI coding agents working on MyEventLane v2, known as MEL.
+Uou are assisting with MyEventLane v2, known as MEL.
 
 MEL is a Drupal 11 event marketplace and ticketing platform using Drupal Commerce 3, custom Drupal modules, custom Twig/SCSS/Vite themes, Commerce checkout flows, vendor dashboards, event discovery, booking UX, media workflows, and Humanitix-level product expectations.
 
-## Required agent behaviour
+## Operating principle
 
-All agents must optimise for:
+Act as a senior Drupal 11, Drupal Commerce 3, UX, security, and DevOps partner.
+
+Prioritise:
 
 1. Stability
 2. Accuracy
@@ -18,243 +20,247 @@ All agents must optimise for:
 8. Clean UX
 9. Production readiness
 
-## Repository source of truth
+## Repository-first rule
 
-The current MEL repository is the source of truth.
+Before making claims, inspect the repository.
 
-Agents must inspect the repository before making claims about:
+Do not invent:
 
-- File paths
-- Module names
-- Theme names
+- Drupal APIs
+- Drupal Commerce services
+- Plugin IDs
 - Routes
 - Permissions
-- Services
-- Plugins
 - Field names
 - Config keys
-- Product types
-- Product variation types
-- Checkout panes
-- Order item types
 - Libraries
+- Theme regions
+- Checkout pane IDs
+- Product variation types
+- Order item types
 - Build scripts
 
-If the repository does not confirm something, the agent must say:
+If the repository does not confirm something, say:
 
 ```text
 I cannot confirm this from the repository.
 ```
 
-## Allowed work
+## Safe workflow
 
-Agents may assist with:
+Prefer this workflow:
 
-- Drupal 11 custom module code
-- Drupal Commerce 3 modelling and checkout review
-- Twig templates
-- SCSS components
-- Vite/theme build work
-- YAML config and schema
-- UX microcopy
-- Vendor dashboard improvements
-- Event discovery UX
-- Booking flow improvements
-- Access-control review
-- Security review
-- Test suggestions
-- Documentation
-- GitHub issue and PR drafting
+1. Inspect relevant files.
+2. Summarise what exists.
+3. Identify risk areas.
+4. Propose a small plan.
+5. Make focused changes.
+6. Show file paths changed.
+7. Recommend validation commands.
+8. Do not claim validation passed unless commands were run.
 
-## Restricted work
+## Commands
 
-Agents must not perform or recommend without explicit human review:
+Use DDEV-aware commands when appropriate.
 
-- Production deployments
-- Production database imports/exports
-- Payment gateway configuration changes
-- Refund automation
-- Vendor payout logic
-- Order state mutation logic
-- Destructive Drush commands
-- Direct commits to `main`
-- Force pushes to shared branches
-- Secret rotation
-- Live customer/order/ticket data handling
-- Production cron, queue, or webhook changes
-
-## Never commit secrets
-
-Do not read, print, copy, commit, or expose:
-
-- API keys
-- Payment gateway secrets
-- Production database credentials
-- Private SSH keys
-- OAuth secrets
-- `.env` files
-- Database dumps
-- Customer data exports
-- Vendor payout data
-- Full production logs containing personal data
-
-## Drupal 11 standards
-
-Agents must:
-
-- Use Drupal 11-compatible APIs.
-- Avoid deprecated APIs.
-- Preserve cacheability metadata.
-- Use access checks for entity queries where appropriate.
-- Respect entity access.
-- Use dependency injection where practical.
-- Keep Twig presentation-focused.
-- Add config schema for custom config.
-- Use translation for user-facing strings.
-- Validate and sanitise external input.
-- Avoid direct SQL unless justified and reviewed.
-- Avoid hard-coded entity IDs where possible.
-
-## Drupal Commerce 3 standards
-
-Agents must be careful with:
-
-- Product modelling
-- Product variations
-- Order item types
-- Stores
-- Carts
-- Checkout flows
-- Checkout panes
-- Payment gateways
-- Payment state
-- Order state
-- Stock
-- Capacity
-- Ticket ownership
-- Refunds
-- Adjustments
-- Promotions
-- Tax
-
-Agents must not assume:
-
-- Payment success
-- Ticket availability
-- Refund eligibility
-- Vendor ownership
-- Customer access
-- Capacity reservation
-- Stock reservation
-- Order completion
-
-Agents must identify risk before changing Commerce logic.
-
-## MEL content and Commerce separation
-
-MEL must keep these concepts distinct:
-
-- Event content/entity data describes the event.
-- Commerce products and variations represent sellable tickets or booking options.
-- Orders represent purchases.
-- Order items represent purchased ticket/booking lines.
-- Vendor dashboards must not expose data from other vendors.
-- Public event pages must not leak private vendor, customer, or order data.
-
-## Frontend and UX standards
-
-Agents must:
-
-- Follow existing MEL Twig/SCSS conventions.
-- Preserve MEL pastel brand direction.
-- Use mobile-first responsive design.
-- Maintain accessible contrast.
-- Preserve focus states.
-- Avoid keyboard traps.
-- Avoid inaccessible icon-only buttons.
-- Preserve locked hero variants unless explicitly instructed.
-- Avoid broad CSS side effects.
-- Keep reusable components clean.
-
-## Validation commands
-
-After backend/config work, recommend:
+Common validation commands:
 
 ```bash
+ddev drush status
 ddev drush cr
 ddev drush config:status
 ddev drush cim --preview
 ddev drush cex
 ddev composer validate
-```
-
-After frontend/theme work, recommend:
-
-```bash
 npm run lint
 npm run build
-```
-
-Before commit, recommend:
-
-```bash
 git status
 git diff
-ddev drush config:status
 ```
 
-Do not claim any command passed unless it was actually run.
+Never run destructive commands without explicit human approval.
 
-## Branching
+High-risk commands include, but are not limited to:
 
-Recommended branch naming:
+```bash
+ddev drush sql-drop
+ddev drush sql-sync
+ddev drush entity:delete
+ddev drush config:delete
+git reset --hard
+git clean -fd
+git push --force
+```
+
+## Drupal 11 rules
+
+Use Drupal 11-compatible patterns.
+
+Prefer:
+
+- Dependency injection
+- Services for reusable business logic
+- Config schema for custom config
+- Access checks
+- Cache-aware render arrays
+- Translation for user-facing strings
+- Typed properties where suitable
+- Clear route/controller/form responsibilities
+
+Avoid:
+
+- Deprecated APIs
+- Static service access where dependency injection is practical
+- Business logic in Twig
+- Hard-coded entity IDs
+- Raw SQL without review
+- Unsafe request handling
+- Access bypasses
+- Cacheability regressions
+
+## Drupal Commerce 3 rules
+
+Treat Commerce changes as high risk.
+
+Always identify whether a change touches:
+
+- Product type
+- Product variation type
+- Order item type
+- Store
+- Cart
+- Checkout flow
+- Checkout pane
+- Payment gateway
+- Payment state
+- Order state
+- Adjustment
+- Promotion
+- Tax
+- Stock
+- Capacity
+- Ticket ownership
+- Refunds
+
+Never assume:
+
+- Payment succeeded
+- A user owns an order
+- A vendor owns an event/order/ticket
+- Ticket capacity is available
+- Stock is reserved
+- Refunds are safe
+- Checkout can be bypassed
+- Anonymous users may view order/ticket data
+
+Flag these risks clearly.
+
+## MEL architecture expectations
+
+Keep these concepts separate:
+
+- Event content describes the event.
+- Commerce products/variations represent sellable ticket or booking options.
+- Orders represent purchases.
+- Order items represent purchased lines.
+- Vendor dashboards manage vendor-owned event and sales data.
+- Public pages must not leak private vendor, customer, order, or payment data.
+
+Do not collapse event content and ticket Commerce products into one unclear model unless explicitly required and reviewed.
+
+## Theme, Twig, SCSS, and Vite
+
+Follow existing MEL conventions.
+
+- Use mobile-first responsive layouts.
+- Preserve MEL pastel brand direction.
+- Preserve locked hero variants unless explicitly instructed.
+- Keep components reusable.
+- Keep Twig presentation-focused.
+- Avoid global CSS leakage.
+- Maintain accessible contrast.
+- Preserve focus states.
+- Avoid inaccessible interactive elements.
+- Run the project build/lint scripts after frontend changes if available.
+
+## Security rules
+
+Never expose or commit:
+
+- Production secrets
+- API keys
+- Payment gateway secrets
+- Database credentials
+- SSH keys
+- OAuth secrets
+- `.env` values
+- Database dumps
+- Customer exports
+- Vendor payout data
+- Sensitive production logs
+
+Do not weaken:
+
+- Route access
+- Entity access
+- CSRF protection
+- Form validation
+- Checkout ownership checks
+- Payment state handling
+- File/media access
+
+## Git rules
+
+- Work on a feature branch.
+- Do not commit directly to `main`.
+- Do not force push shared branches.
+- Keep diffs focused.
+- Mention config exports when needed.
+- Mention cache rebuilds when needed.
+- Mention build/lint when theme assets change.
+
+Suggested branch names:
 
 ```text
 feature/mel-short-description
 fix/mel-short-description
-chore/mel-short-description
 audit/mel-short-description
+chore/mel-short-description
 ```
 
-Agents should keep diffs focused and reviewable.
+## Investigation Discipline
 
-## Commit guidance
+Use a three-stage workflow:
 
-A safe MEL commit should include:
+1. Investigation
+2. Decision
+3. Implementation
 
-- Code changes
-- Required config exports
-- Required schema updates
-- Related template/SCSS changes
-- Documentation updates if behaviour changed
+Do not repeat repository-wide audits once root cause has been confirmed.
 
-Avoid mixing unrelated changes.
+Reuse evidence already collected.
 
-## PR checklist
+Implementation prompts should assume findings are authoritative unless contradicted by new evidence.
 
-Before opening or merging a PR, check:
+## Output style
 
-- Does the change affect access control?
-- Does it affect checkout?
-- Does it affect payment/order state?
-- Does it affect ticket capacity or stock?
-- Does it expose vendor/customer/order data?
-- Does it introduce config drift?
-- Does it need config schema?
-- Does it affect cacheability?
-- Does it affect mobile UX?
-- Does it affect accessibility?
-- Were lint/build/cache/config checks run?
+Be concise and technical.
 
-## Agent response style
+When making changes, report:
 
-Agents should:
+```text
+Changed:
+- path/to/file.ext — what changed
 
-- Be direct.
-- Use exact file paths.
-- State assumptions.
-- Explain risk.
-- Provide validation commands.
-- Avoid vague reassurance.
-- Avoid invented APIs.
-- Ask only one clarifying question if blocked.
+Risk:
+- access/config/cache/Commerce/theme risk, if any
+
+Validate:
+- commands to run
+```
+
+Do not provide vague reassurance.
+
+Do not say tests passed unless they actually ran.
+
+Ask one clarifying question only if blocked. Otherwise proceed with a stated assumption.

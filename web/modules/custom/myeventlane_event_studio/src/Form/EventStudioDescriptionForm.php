@@ -44,10 +44,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
    * {@inheritdoc}
    */
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
-    $items_state = '[]';
-    if (isset($melDefaults['event_highlights']) && is_array($melDefaults['event_highlights'])) {
-      $items_state = $melDefaults['event_highlights']['items_state'] ?? '[]';
-    }
+    $highlights_json = $this->eventHighlightsFormBuilder->resolveItemsStateJson($node, $melDefaults);
 
     $form['mel']['body'] = [
       '#type' => 'textarea',
@@ -65,17 +62,49 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#suffix' => '</div></section>',
     ];
 
-    $form['mel']['event_highlights'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-section--card', 'mel-event-highlights-editor']],
-      'items_state' => [
-        '#type' => 'hidden',
-        '#default_value' => is_string($items_state) ? $items_state : '[]',
-        '#attributes' => [
-          'id' => 'mel-event-highlights-json',
-          'data-mel-highlights-state' => '1',
-        ],
+    $form['mel']['event_highlights'] = $this->eventHighlightsFormBuilder->buildEditorElement($highlights_json);
+
+    $form['mel']['field_accessibility'] = [
+      '#type' => 'entity_autocomplete',
+      '#title' => $this->t('Accessibility features'),
+      '#target_type' => 'taxonomy_term',
+      '#tags' => TRUE,
+      '#selection_handler' => 'default',
+      '#selection_settings' => [
+        'target_bundles' => ['accessibility' => 'accessibility'],
       ],
+      '#default_value' => $melDefaults['field_accessibility'] ?? [],
+      '#attributes' => ['class' => ['mel-input']],
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--accessibility" aria-labelledby="mel-es-accessibility-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-accessibility-title">' . $this->t('Accessibility') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Help guests understand access, entry, and support before they arrive.') . '</p></header><div class="mel-es-field-group__body">',
+    ];
+
+    $form['mel']['field_accessibility_contact'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Accessibility contact'),
+      '#default_value' => $melDefaults['field_accessibility_contact'] ?? '',
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility_directions'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Accessible directions'),
+      '#default_value' => $melDefaults['field_accessibility_directions'] ?? '',
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility_entry'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Entry and access'),
+      '#default_value' => $melDefaults['field_accessibility_entry'] ?? '',
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility_parking'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Accessible parking'),
+      '#default_value' => $melDefaults['field_accessibility_parking'] ?? '',
+      '#attributes' => ['class' => ['mel-input']],
+      '#suffix' => '</div></section>',
     ];
 
     $form['mel']['field_tags'] = [
@@ -137,7 +166,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_age_policy'] ?? 'all_ages',
       '#attributes' => ['class' => ['mel-input']],
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--policies" aria-labelledby="mel-es-policies-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-policies-title">' . $this->t('Guest policies') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Set age, refund, and access expectations in one readable group.') . '</p></header><div class="mel-es-field-group__body">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--policies" aria-labelledby="mel-es-policies-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-policies-title">' . $this->t('Guest policies') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Set age and refund expectations in one readable group.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_age_policy_note'] = [
@@ -165,49 +194,19 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#empty_value' => '',
       '#default_value' => $melDefaults['field_refund_policy'] ?? '',
       '#attributes' => ['class' => ['mel-input']],
-    ];
-
-    $form['mel']['field_accessibility'] = [
-      '#type' => 'entity_autocomplete',
-      '#title' => $this->t('Accessibility features'),
-      '#target_type' => 'taxonomy_term',
-      '#tags' => TRUE,
-      '#selection_handler' => 'default',
-      '#selection_settings' => [
-        'target_bundles' => ['accessibility' => 'accessibility'],
-      ],
-      '#default_value' => $melDefaults['field_accessibility'] ?? [],
-      '#attributes' => ['class' => ['mel-input']],
-    ];
-
-    $form['mel']['field_accessibility_contact'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Accessibility contact'),
-      '#default_value' => $melDefaults['field_accessibility_contact'] ?? '',
-      '#attributes' => ['class' => ['mel-input']],
-    ];
-
-    $form['mel']['field_accessibility_directions'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Accessible directions'),
-      '#default_value' => $melDefaults['field_accessibility_directions'] ?? '',
-      '#attributes' => ['class' => ['mel-input']],
-    ];
-
-    $form['mel']['field_accessibility_entry'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Entry and access'),
-      '#default_value' => $melDefaults['field_accessibility_entry'] ?? '',
-      '#attributes' => ['class' => ['mel-input']],
-    ];
-
-    $form['mel']['field_accessibility_parking'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Accessible parking'),
-      '#default_value' => $melDefaults['field_accessibility_parking'] ?? '',
-      '#attributes' => ['class' => ['mel-input']],
       '#suffix' => '</div></section>',
     ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    parent::validateForm($form, $form_state);
+    $mel = $form_state->getValue('mel');
+    if (is_array($mel)) {
+      $this->eventHighlightsFormBuilder->validateMelHighlights($mel, $form_state);
+    }
   }
 
 }

@@ -1,0 +1,856 @@
+/**
+ * @file
+ * Event Studio workspace branding — hero tools, crop/focal UI, page style cards.
+ *
+ * Attached via mel_branding_workspace on workspace branding only (not mel_event_studio).
+ *
+ * Tokens mirror MEL _variables.scss: primary #f26d5b, accent #6e7ef2,
+ * highlight #f5c04c, bg-offwhite #fef5ec, radius-medium 16px, radius-small 12px.
+ */
+
+.mel-event-branding-studio {
+  --mel-brand-primary: #f26d5b;
+  --mel-brand-accent: #6e7ef2;
+  --mel-brand-highlight: #f5c04c;
+  --mel-brand-bg-offwhite: #fef5ec;
+  --mel-brand-radius-medium: 16px;
+  --mel-brand-radius-small: 12px;
+  --mel-brand-muted: #64748b;
+  --mel-brand-card-border: rgba(0, 0, 0, 0.06);
+  --mel-brand-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: none;
+  margin-inline: auto;
+  padding: 0.5rem 0 1.5rem;
+  min-width: 0;
+}
+
+.mel-event-studio-section__body {
+  width: 100%;
+  max-width: none;
+}
+
+/* Override shell 760px content lane — branding uses full section width. */
+.mel-event-studio .mel-event-studio-section__body > .mel-event-branding-studio,
+.mel-event-studio--workspace[data-current-section-id='branding'] .mel-event-studio-section__body > * {
+  width: 100%;
+  max-width: none;
+}
+
+.mel-event-studio--workspace[data-current-section-id='branding'] .mel-event-branding-studio__layout,
+.mel-event-studio--workspace[data-current-section-id='branding'] .mel-event-branding-studio__main,
+.mel-event-studio--workspace[data-current-section-id='branding'] .mel-event-branding-studio__aside {
+  max-width: 100%;
+}
+
+.mel-event-branding-studio__layout {
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-event-branding-studio__main,
+.mel-event-branding-studio__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mel-event-branding-studio__aside .mel-event-branding-preview {
+  margin: 0;
+}
+
+@media (min-width: 64rem) {
+  .mel-event-branding-studio__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .mel-event-branding-studio__main {
+    min-width: 0;
+  }
+
+  .mel-event-branding-studio__aside {
+    min-width: 0;
+    position: sticky;
+    top: 6rem;
+    align-self: start;
+  }
+}
+
+@media (max-width: 63.99rem) {
+  .mel-event-branding-studio__layout {
+    display: block;
+  }
+
+  .mel-event-branding-studio__aside {
+    position: static;
+    margin-top: 1.5rem;
+  }
+}
+
+/* Fall back to stacked when the layout lane is too narrow for 280px preview + editor. */
+@container (max-width: 35rem) {
+  .mel-event-branding-studio__layout {
+    display: block;
+  }
+
+  .mel-event-branding-studio__aside {
+    position: static;
+    margin-top: 1.5rem;
+  }
+}
+
+@media (max-width: 24.375rem) {
+  .mel-event-branding-studio__layout {
+    gap: 1.5rem;
+  }
+}
+
+/* Creator studio field groups — left column cards. */
+.mel-event-studio .mel-event-branding-studio .mel-es-field-group {
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--mel-brand-card-border);
+  border-radius: var(--mel-brand-radius-medium);
+  background: #fff;
+  box-shadow: var(--mel-brand-card-shadow);
+}
+
+.mel-event-studio .mel-event-branding-studio .mel-es-field-group__header {
+  margin: 0 0 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mel-event-studio .mel-event-branding-studio .mel-es-field-group__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mel-event-studio .mel-event-branding-studio .mel-es-field-group__hint,
+.mel-event-studio .mel-event-branding-studio .mel-es-field-group__reassurance,
+.mel-event-branding-studio .description,
+.mel-event-branding-studio .mel-text--muted {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--mel-brand-muted);
+}
+
+.mel-event-studio .mel-event-branding-studio .mel-es-field-group__body {
+  gap: 1.25rem;
+}
+
+/* Upload card — hero image managed file widget. */
+.mel-event-branding-studio .mel-es-field-group--branding .mel-identity-media__fields > .form-item:first-child,
+.mel-event-branding-studio .mel-es-field-group--branding .field--name-field-event-image {
+  padding: 1.5rem;
+  border: 1px solid var(--mel-brand-card-border);
+  border-radius: var(--mel-brand-radius-medium);
+  background: #fff;
+  box-shadow: var(--mel-brand-card-shadow);
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .form-managed-file,
+.mel-event-branding-studio .mel-es-field-group--branding .managed-file {
+  gap: 0.85rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .form-managed-file .button,
+.mel-event-branding-studio .mel-es-field-group--branding .managed-file .button,
+.mel-event-branding-studio .mel-es-field-group--branding .form-managed-file input[type='file']::file-selector-button {
+  min-height: 2.75rem;
+  padding: 0 1.125rem;
+  border: 0;
+  border-radius: var(--mel-brand-radius-small);
+  background: var(--mel-brand-primary);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .form-managed-file .button:hover,
+.mel-event-branding-studio .mel-es-field-group--branding .managed-file .button:hover,
+.mel-event-branding-studio .mel-es-field-group--branding .form-managed-file input[type='file']::file-selector-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(242, 109, 91, 0.28);
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .form-managed-file .button:focus-visible,
+.mel-event-branding-studio .mel-es-field-group--branding .managed-file .button:focus-visible {
+  outline: 2px solid var(--mel-brand-accent);
+  outline-offset: 2px;
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .image-widget .preview {
+  border-radius: var(--mel-brand-radius-small);
+  overflow: hidden;
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .image-widget .preview img {
+  border-radius: var(--mel-brand-radius-small);
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .file--image {
+  font-size: 0.8125rem;
+  color: var(--mel-brand-muted);
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .form-item-field-event-image-alt .mel-input,
+.mel-event-branding-studio .mel-es-field-group--branding input.mel-input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--mel-brand-radius-small);
+  background: #fff;
+  font-size: 1rem;
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .form-item-field-event-image-alt .mel-input:focus-visible {
+  outline: 2px solid var(--mel-brand-accent);
+  outline-offset: 1px;
+  border-color: var(--mel-brand-accent);
+}
+
+/* Branding hero: focal, framing preview, remove (EventBrandingForm). */
+.mel-es-branding-hero-tools {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.mel-es-branding-crop-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 176, 59, 0.45);
+  background: rgba(255, 248, 230, 0.95);
+  color: var(--mel-studio-text);
+}
+
+.mel-es-branding-crop-notice.is-error {
+  border-color: rgba(214, 69, 69, 0.55);
+  background: rgba(255, 241, 241, 0.98);
+}
+
+.mel-es-branding-crop-notice__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.mel-es-branding-crop-notice__text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--mel-studio-muted);
+}
+
+.mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.mel-es-branding-crop-wrapper--attention,
+.mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.error {
+  border: 2px solid rgba(214, 69, 69, 0.55);
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: rgba(255, 241, 241, 0.45);
+}
+
+.mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.error summary,
+.mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.mel-es-branding-crop-wrapper--attention summary {
+  font-weight: 700;
+  color: #b42318;
+}
+
+.mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.error .messages--error,
+.mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.error .form-item--error-message {
+  font-weight: 600;
+}
+
+.mel-es-branding-hero-framing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--mel-brand-card-border, rgba(0, 0, 0, 0.06));
+  border-left: 4px solid var(--mel-brand-accent, #6e7ef2);
+  border-radius: var(--mel-brand-radius-small, 12px);
+  background: #fff;
+  box-shadow: var(--mel-brand-card-shadow, 0 4px 12px rgba(0, 0, 0, 0.04));
+}
+
+.mel-es-branding-hero-framing__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mel-studio-text, #0f172a);
+}
+
+.mel-es-branding-hero-framing__frame {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(36, 48, 58, 0.14);
+  box-shadow: 0 10px 28px rgba(41, 50, 65, 0.12);
+  background: #1a2330;
+}
+
+.mel-es-branding-hero-framing__frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.35) 38%,
+    rgba(0, 0, 0, 0.08) 68%,
+    transparent 100%
+  );
+}
+
+.mel-es-branding-hero-framing__img {
+  position: relative;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+.mel-es-branding-hero-framing__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.mel-es-branding-hero-quality {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mel-es-branding-hero-quality__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mel-studio-text);
+}
+
+.mel-es-branding-hero-quality__list {
+  margin: 0;
+  padding-inline-start: 1.15rem;
+  font-size: 0.8125rem;
+  color: var(--mel-studio-muted);
+  line-height: 1.45;
+}
+
+.mel-es-branding-hero-quality__list li + li {
+  margin-top: 0.2rem;
+}
+
+.mel-es-branding-hero-focal-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mel-es-branding-hero-focal-presets__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mel-studio-text);
+}
+
+.mel-es-branding-hero-focal-presets__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-es-branding-focal-preset {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0 1.125rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--mel-studio-text, #0f172a);
+  font-weight: 700;
+  box-shadow: var(--mel-brand-card-shadow, 0 4px 12px rgba(0, 0, 0, 0.04));
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.mel-es-branding-focal-preset:hover {
+  transform: translateY(-1px);
+}
+
+.mel-es-branding-focal-preset.is-active,
+.mel-es-branding-focal-preset[aria-pressed="true"] {
+  border-color: var(--mel-brand-accent, #6e7ef2);
+  background: var(--mel-brand-accent, #6e7ef2);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(110, 126, 242, 0.32);
+}
+
+.mel-es-branding-focal-preset:focus-visible {
+  outline: 2px solid var(--mel-brand-accent, #6e7ef2);
+  outline-offset: 2px;
+}
+
+.mel-es-branding-hero-focal-status {
+  margin: 0;
+  min-height: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--mel-studio-muted);
+  line-height: 1.4;
+}
+
+.mel-es-field-group--branding .js-mel-branding-hero-remove:not(:disabled) {
+  align-self: flex-start;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 640px) {
+  .mel-es-branding-hero-tools {
+    padding: 0.85rem;
+    gap: 0.85rem;
+  }
+
+  .mel-es-branding-hero-framing__frame {
+    max-width: none;
+  }
+
+  .mel-es-branding-hero-focal-presets__buttons {
+    gap: 0.45rem;
+  }
+}
+
+/* Branding: focal_point augment on image_widget_crop — click preview to set focus. */
+.mel-event-studio .mel-es-field-group--branding .focal-point-wrapper {
+  pointer-events: auto;
+}
+
+.mel-event-studio .mel-es-field-group--branding .focal-point-wrapper .focal-point {
+  max-width: 8rem;
+}
+
+.mel-event-studio .mel-es-field-group--branding .focal-point-indicator,
+.mel-event-studio .mel-es-field-group--branding .image-widget .preview img,
+.mel-event-studio .mel-es-field-group--branding .focal-point-wrapper + img {
+  pointer-events: auto;
+}
+
+.mel-event-studio .mel-es-field-group--branding .image-widget .preview,
+.mel-event-studio .mel-es-field-group--branding .focal-point-wrapper {
+  cursor: crosshair;
+}
+
+.mel-event-studio .mel-es-field-group--branding .focal-point-indicator {
+  z-index: 2;
+}
+
+/* Event gallery (media library) — separate from hero branding block */
+.mel-event-branding-studio .mel-es-field-group--gallery {
+  margin-top: 0;
+}
+
+.mel-event-branding-studio .mel-es-field-group__body--gallery .media-library-widget {
+  margin-top: 0.5rem;
+  padding: 1.25rem;
+  border: 1px dashed rgba(110, 126, 242, 0.28);
+  border-radius: var(--mel-brand-radius-medium);
+  background: linear-gradient(180deg, #fff 0%, rgba(254, 245, 236, 0.45) 100%);
+}
+
+.mel-event-branding-studio .mel-es-field-group--gallery .media-library-item,
+.mel-event-branding-studio .mel-es-field-group--gallery .media-library-item__preview img {
+  border-radius: var(--mel-brand-radius-small);
+}
+
+.mel-event-branding-studio .mel-es-field-group--gallery .media-library-selection,
+.mel-event-branding-studio .mel-es-field-group--gallery .js-media-library-open-button {
+  margin-top: 0.75rem;
+}
+
+.mel-event-branding-studio .mel-es-field-group--gallery .media-library-item--grid,
+.mel-event-branding-studio .mel-es-field-group--gallery .media-library-selection .media-library-item {
+  margin: 0;
+}
+
+.mel-event-branding-studio .mel-es-field-group--gallery .media-library-item--grid,
+.mel-event-branding-studio .mel-es-field-group--gallery .field-media-library-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mel-event-branding-studio .mel-es-field-group--gallery .description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--mel-brand-muted);
+}
+
+/* Event page style (Classic / Immersive) + colour presets */
+.mel-event-branding-studio .mel-es-field-group--branding .image-data__crop-wrapper,
+.mel-event-branding-studio .mel-es-field-group--branding details.image-data__crop-wrapper {
+  padding: 1.25rem;
+  border: 1px solid var(--mel-brand-card-border);
+  border-radius: var(--mel-brand-radius-medium);
+  background: #fff;
+  box-shadow: var(--mel-brand-card-shadow);
+}
+
+.mel-event-branding-studio .mel-es-field-group--branding .image-data__crop-wrapper summary {
+  font-weight: 700;
+}
+
+.mel-event-branding-studio .mel-es-field-group--page-style {
+  margin-top: 0;
+}
+
+.mel-event-studio .mel-page-style-radios.mel-option-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+@media (min-width: 640px) {
+  .mel-event-studio .mel-page-style-radios.mel-option-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-event-studio .mel-page-style-card.mel-option-card {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.mel-event-studio .mel-page-style-card .form-radio {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.mel-event-studio .mel-page-style-card .mel-option-card__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 11.5rem;
+  padding: 0.85rem 1rem 1rem;
+  padding-top: 5.75rem;
+  border-inline-start: none;
+  box-sizing: border-box;
+}
+
+.mel-event-studio .mel-page-style-card .mel-option-card__content::before {
+  content: '';
+  position: absolute;
+  top: 0.85rem;
+  left: 1rem;
+  right: 1rem;
+  height: 4.25rem;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 48, 58, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.mel-event-studio .mel-page-style-card--classic .mel-option-card__content::before {
+  background:
+    linear-gradient(180deg, rgba(31, 41, 51, 0.12) 0%, rgba(31, 41, 51, 0.45) 100%),
+    linear-gradient(135deg, #ffe8e0 0%, #f26d5b 48%, #fff8f4 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Mini layout mock: content card + coral CTA (Classic). */
+.mel-event-studio .mel-page-style-card--classic .mel-option-card__content::after {
+  content: '';
+  position: absolute;
+  top: 2.35rem;
+  left: 1.35rem;
+  width: 42%;
+  height: 2rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 6px rgba(41, 50, 65, 0.12);
+  pointer-events: none;
+}
+
+.mel-event-studio .mel-page-style-card--immersive .mel-option-card__content::before {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(13, 17, 23, 0.88) 100%),
+    linear-gradient(145deg, #1a2330 0%, #0d1117 42%, #5b63e8 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 24px rgba(91, 99, 232, 0.25);
+}
+
+/* Mini layout mock: sidebar + accent glow (Immersive). */
+.mel-event-studio .mel-page-style-card--immersive .mel-option-card__content::after {
+  content: '';
+  position: absolute;
+  top: 2.4rem;
+  right: 1.2rem;
+  width: 28%;
+  height: 2.35rem;
+  border-radius: 6px;
+  background: rgba(35, 45, 61, 0.95);
+  border: 1px solid rgba(124, 131, 253, 0.45);
+  box-shadow: 0 0 14px rgba(124, 131, 253, 0.35);
+  pointer-events: none;
+}
+
+.mel-event-studio .mel-page-style-card .mel-option-card__badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.mel-event-studio .mel-page-style-card--classic .mel-option-card__badge {
+  background: rgba(242, 109, 91, 0.14);
+  color: #c94f3f;
+}
+
+.mel-event-studio .mel-page-style-card--immersive .mel-option-card__badge {
+  background: linear-gradient(135deg, rgba(124, 131, 253, 0.28) 0%, rgba(91, 99, 232, 0.18) 100%);
+  color: #e8eaff;
+  box-shadow: 0 0 12px rgba(124, 131, 253, 0.35);
+}
+
+.mel-event-studio .mel-page-style-card input:checked + .mel-option-card__content {
+  border: 2px solid #5b63e8;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(91, 99, 232, 0.14);
+}
+
+.mel-event-studio .mel-page-style-card input:focus-visible + .mel-option-card__content {
+  outline: 2px solid #5b63e8;
+  outline-offset: 2px;
+}
+
+.mel-event-studio .mel-option-card--locked {
+  opacity: 0.82;
+}
+
+.mel-event-studio .mel-option-card--locked .mel-option-card__label::after {
+  content: none;
+}
+
+.mel-event-studio .mel-option-card--locked .mel-option-card__content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+}
+
+.mel-event-studio .mel-page-style-upgrade {
+  margin: 0.65rem 0 0;
+  font-size: 0.875rem;
+}
+
+.mel-event-studio .mel-page-style-colour-block {
+  margin-top: 1.35rem;
+}
+
+.mel-event-studio .mel-page-style-colour-block__title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.mel-event-studio .mel-page-style-colour-block__hint {
+  margin: 0 0 0.85rem;
+}
+
+.mel-event-studio .mel-page-style-colours.mel-option-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .mel-event-studio .mel-page-style-colours.mel-option-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .mel-event-studio .mel-page-style-colours.mel-option-cards {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.mel-event-studio .mel-page-style-colour-card.mel-option-card {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.mel-event-studio .mel-page-style-colour-card .form-radio {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.mel-event-studio .mel-page-style-colour-card .mel-option-card__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 7.25rem;
+  padding: 0.65rem 0.65rem 0.75rem;
+  padding-top: 3.35rem;
+  border-inline-start: none;
+  text-align: left;
+}
+
+.mel-event-studio .mel-page-style-colour-card .mel-option-card__content::before {
+  content: '';
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  right: 0.65rem;
+  height: 2.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 48, 58, 0.12);
+  box-shadow: 0 6px 16px rgba(41, 50, 65, 0.12);
+}
+
+.mel-event-studio .mel-page-style-colour-card--coral .mel-option-card__content::before {
+  background: linear-gradient(135deg, #fff5f0 0%, #f26d5b 45%, #ff8a75 85%, #ffd4c8 100%);
+  box-shadow: 0 6px 18px rgba(242, 109, 91, 0.35);
+}
+
+.mel-event-studio .mel-page-style-colour-card--purple .mel-option-card__content::before {
+  background: linear-gradient(135deg, #f0edff 0%, #7c83fd 48%, #a78bfa 100%);
+  box-shadow: 0 6px 18px rgba(124, 131, 253, 0.35);
+}
+
+.mel-event-studio .mel-page-style-colour-card--mint .mel-option-card__content::before {
+  background: linear-gradient(135deg, #e6fffa 0%, #14b8a6 50%, #5eead4 100%);
+  box-shadow: 0 6px 18px rgba(20, 184, 166, 0.32);
+}
+
+.mel-event-studio .mel-page-style-colour-card--gold .mel-option-card__content::before {
+  background: linear-gradient(135deg, #fff8eb 0%, #f5a04c 50%, #fcd34d 100%);
+  box-shadow: 0 6px 18px rgba(245, 160, 76, 0.34);
+}
+
+.mel-event-studio .mel-page-style-colour-card--blue .mel-option-card__content::before {
+  background: linear-gradient(135deg, #eff6ff 0%, #3b82f6 50%, #60a5fa 100%);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.32);
+}
+
+.mel-event-studio .mel-page-style-colour-card input:checked + .mel-option-card__content {
+  border: 2px solid #5b63e8;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 3px rgba(91, 99, 232, 0.18),
+    0 0 20px rgba(91, 99, 232, 0.12),
+    0 10px 22px rgba(41, 50, 65, 0.1);
+}
+
+.mel-event-studio .mel-page-style-colour-card input:checked + .mel-option-card__content::before {
+  box-shadow:
+    0 8px 22px rgba(41, 50, 65, 0.2),
+    0 0 16px rgba(91, 99, 232, 0.2),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.mel-event-studio .mel-page-style-colour-card .mel-option-card__label strong {
+  font-size: 0.8125rem;
+}
+
+.mel-event-studio .mel-page-style-colour-card.form-item--error {
+  border-color: #ef4444;
+}
+
+@media (max-width: 767px) {
+  .mel-es-branding-hero-focal-presets__buttons .button,
+  .mel-es-branding-focal-preset {
+    min-height: 2.75rem;
+    padding-inline: 1.125rem;
+  }
+
+  .mel-event-studio .mel-page-style-card .mel-option-card__content,
+  .mel-event-studio .mel-page-style-colour-card .mel-option-card__content {
+    min-height: auto;
+  }
+
+  .mel-event-branding-studio {
+    padding-inline: 0;
+  }
+
+  .mel-event-branding-studio .mel-es-field-group--branding .mel-identity-media__fields > .form-item:first-child {
+    padding: 1.125rem;
+  }
+}
+
+/* Workspace section shell — off-white creator canvas on branding tab only. */
+.mel-event-studio--workspace[data-current-section-id='branding'] .mel-event-studio-section__body {
+  align-items: stretch;
+  background: #fef5ec;
+  border-radius: 16px;
+}
+
+.mel-event-studio--workspace[data-current-section-id='branding'] .mel-event-studio-section.mel-es-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace[data-current-section-id='branding'] .mel-event-studio-section__header {
+  padding-bottom: 0.5rem;
+}
