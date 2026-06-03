@@ -32,6 +32,56 @@ final class MessagingSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('myeventlane_messaging.settings');
 
+    $form['delivery'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Delivery provider'),
+      '#open' => TRUE,
+    ];
+
+    $form['delivery']['delivery_provider'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Email delivery provider'),
+      '#description' => $this->t('Select the provider used to send email. Postmark requires server credentials configured via environment variables.'),
+      '#options' => [
+        'drupal_mail' => $this->t('Drupal Mail'),
+        'postmark' => $this->t('Postmark'),
+      ],
+      '#default_value' => $config->get('delivery_provider') ?? 'drupal_mail',
+      '#required' => TRUE,
+    ];
+
+    $form['delivery']['postmark'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Postmark settings'),
+      '#open' => TRUE,
+      '#states' => [
+        'visible' => [
+          ':input[name="delivery_provider"]' => ['value' => 'postmark'],
+        ],
+      ],
+    ];
+
+    $form['delivery']['postmark']['postmark_message_stream'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Message stream'),
+      '#description' => $this->t('Postmark message stream identifier (default: outbound).'),
+      '#default_value' => $config->get('postmark.message_stream') ?? 'outbound',
+      '#maxlength' => 64,
+      '#required' => TRUE,
+    ];
+
+    $form['delivery']['postmark']['postmark_server_token_status'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Server token'),
+      '#markup' => $this->secretStatusMarkup('MEL_POSTMARK_SERVER_TOKEN', (string) ($config->get('postmark.server_token') ?? '')),
+    ];
+
+    $form['delivery']['postmark']['postmark_webhook_secret_status'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Webhook secret'),
+      '#markup' => $this->secretStatusMarkup('MEL_POSTMARK_WEBHOOK_SECRET', (string) ($config->get('postmark.webhook_secret') ?? '')),
+    ];
+
     $form['sender'] = [
       '#type' => 'details',
       '#title' => $this->t('Sender settings'),
@@ -149,9 +199,46 @@ final class MessagingSettingsForm extends ConfigFormBase {
       ->set('cart_abandoned_hours', $form_state->getValue('cart_abandoned_hours'))
       ->set('batch_size', $form_state->getValue('batch_size'))
       ->set('max_messages_per_run', $form_state->getValue('max_messages_per_run'))
+      ->set('delivery_provider', $form_state->getValue('delivery_provider'))
+      ->set('postmark.message_stream', $form_state->getValue('postmark_message_stream'))
       ->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Builds status markup for an env-backed secret field.
+   *
+   * @param string $envName
+   *   Environment variable name (e.g. MEL_POSTMARK_SERVER_TOKEN).
+   * @param string $effectiveValue
+   *   Effective config value after settings.php overrides.
+   */
+  private function secretStatusMarkup(string $envName, string $effectiveValue): string {
+    if ($this->getEnvValue($envName) !== '') {
+      return (string) $this->t('Configured via environment variable (@env).', ['@env' => $envName]);
+    }
+    if ($effectiveValue !== '') {
+      return (string) $this->t('Configured.');
+    }
+    return (string) $this->t('Not configured. Set @env in the web PHP process environment.', ['@env' => $envName]);
+  }
+
+  /**
+   * Reads a non-empty environment variable value.
+   */
+  private function getEnvValue(string $name): string {
+    $value = getenv($name);
+    if (is_string($value) && $value !== '') {
+      return $value;
+    }
+    if (isset($_ENV[$name]) && is_string($_ENV[$name]) && $_ENV[$name] !== '') {
+      return $_ENV[$name];
+    }
+    if (isset($_SERVER[$name]) && is_string($_SERVER[$name]) && $_SERVER[$name] !== '') {
+      return $_SERVER[$name];
+    }
+    return '';
   }
 
 }

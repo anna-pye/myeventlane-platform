@@ -180,3 +180,29 @@ $mel_stripe_webhook = $melGetEnv('MEL_STRIPE_WEBHOOK_SECRET');
 if ($mel_stripe_webhook !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['webhook_signing_secret'] = $mel_stripe_webhook;
 }
+
+// ---------------------------------------------------------------------------
+// Postmark (MyEventLane Messaging): secrets from the environment.
+//
+// PostmarkDeliveryProvider reads postmark.server_token; PostmarkWebhookController
+// reads postmark.webhook_secret. Do not commit tokens in config/sync; set env vars
+// on the host (same pattern as Stripe above).
+//
+//   MEL_POSTMARK_SERVER_TOKEN   — Postmark Server API token
+//   MEL_POSTMARK_WEBHOOK_SECRET — Postmark webhook signing secret
+//
+// DDEV: set these in a gitignored .ddev/config.local.yaml, for example
+//   web_environment:
+//     - MEL_POSTMARK_SERVER_TOKEN=…
+//     - MEL_POSTMARK_WEBHOOK_SECRET=…
+// then ddev restart.
+// ---------------------------------------------------------------------------
+$mel_postmark_server_token = $melGetEnv('MEL_POSTMARK_SERVER_TOKEN');
+if ($mel_postmark_server_token !== '') {
+  $config['myeventlane_messaging.settings']['postmark']['server_token'] = $mel_postmark_server_token;
+}
+
+$mel_postmark_webhook_secret = $melGetEnv('MEL_POSTMARK_WEBHOOK_SECRET');
+if ($mel_postmark_webhook_secret !== '') {
+  $config['myeventlane_messaging.settings']['postmark']['webhook_secret'] = $mel_postmark_webhook_secret;
+}

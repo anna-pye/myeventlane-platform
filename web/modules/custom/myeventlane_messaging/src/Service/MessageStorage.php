@@ -26,7 +26,7 @@ final class MessageStorage {
    *
    * @param array $row
    *   Keys: template, channel, recipient, langcode, context (array), context_hash,
-   *   scheduled_for, status, attempts, created, sent.
+   *   scheduled_for, status, attempts, created, sent, provider, provider_message_id.
    *
    * @return string
    *   The message UUID.
@@ -53,6 +53,8 @@ final class MessageStorage {
         'attempts' => (int) ($row['attempts'] ?? 0),
         'created' => (int) ($row['created'] ?? 0),
         'sent' => (int) ($row['sent'] ?? 0),
+        'provider' => $row['provider'] ?? '',
+        'provider_message_id' => $row['provider_message_id'] ?? '',
       ])
       ->execute();
 
@@ -118,6 +120,32 @@ final class MessageStorage {
   }
 
   /**
+   * Finds a message by provider-assigned message ID.
+   *
+   * @param string $messageId
+   *   Provider message identifier (e.g. Postmark MessageID).
+   *
+   * @return object|null
+   *   StdClass with all columns; context as unserialized array. NULL if not found.
+   */
+  public function findByProviderMessageId(string $messageId): ?object {
+    if ($messageId === '') {
+      return NULL;
+    }
+    $r = $this->connection->select('myeventlane_message', 'm')
+      ->fields('m')
+      ->condition('m.provider_message_id', $messageId)
+      ->execute()
+      ->fetchObject();
+
+    if (!$r) {
+      return NULL;
+    }
+    $r->context = $r->context ? unserialize($r->context, ['allowed_classes' => FALSE]) : [];
+    return $r;
+  }
+
+  /**
    * Sent order_confirmation rows for a commerce order (recipient + serialized order_id).
    *
    * @return object[]
@@ -152,13 +180,13 @@ final class MessageStorage {
    * @param string $id
    *   Message UUID.
    * @param array $updates
-   *   Keys: status, attempts, sent.
+   *   Keys: status, attempts, sent, provider, provider_message_id.
    *
    * @return int
    *   Number of rows updated.
    */
   public function update(string $id, array $updates): int {
-    $allowed = ['status', 'attempts', 'sent'];
+    $allowed = ['status', 'attempts', 'sent', 'provider', 'provider_message_id'];
     $fields = array_intersect_key($updates, array_flip($allowed));
     if (empty($fields)) {
       return 0;
