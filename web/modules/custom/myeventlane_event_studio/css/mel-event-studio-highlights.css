@@ -1,0 +1,157 @@
+/**
+ * Event Studio highlights builder (workspace content + legacy monolith).
+ */
+
+.mel-event-highlights-editor {
+  margin-bottom: 1.25rem;
+}
+
+.mel-section--card.mel-event-highlights-editor {
+  padding: 1rem 1.15rem;
+  border-radius: var(--mel-radius-medium, 16px);
+  border: 1px solid var(--mel-studio-border);
+  background: var(--mel-studio-card);
+}
+
+.mel-section--card .mel-section__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.mel-section--card .mel-section__hint {
+  margin: 0 0 0.75rem;
+  color: var(--mel-studio-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.mel-highlights-editor__errors {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.mel-highlights-editor__errors[hidden] {
+  display: none !important;
+}
+
+.mel-highlights-editor__errors:focus {
+  outline: none;
+}
+
+.mel-highlights-editor__errors:focus-visible {
+  outline: 2px solid var(--mel-studio-focus);
+  outline-offset: 2px;
+}
+
+.mel-highlights-editor__errors-text {
+  margin: 0;
+}
+
+.mel-highlights-builder {
+  margin: 0.75rem 0 0;
+  padding: 1rem 1rem 1.15rem;
+  border-radius: var(--mel-radius-medium, 16px);
+  border: 1px solid var(--mel-studio-border);
+  background: var(--mel-studio-card);
+}
+
+.mel-highlights-builder-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.mel-highlights-builder-table th,
+.mel-highlights-builder-table td {
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--mel-studio-border);
+}
+
+.mel-highlights-builder-table th {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mel-studio-muted);
+}
+
+.mel-highlights-builder-table .mel-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.mel-highlights-builder-table textarea.mel-highlight-text {
+  min-height: 3.25rem;
+  resize: vertical;
+}
+
+.mel-highlight-order {
+  white-space: nowrap;
+}
+
+.mel-highlight-order .mel-btn {
+  margin-right: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+.mel-highlights-builder-table td:last-child {
+  width: 5.5rem;
+  white-space: nowrap;
+}
+
+.mel-highlights-builder .mel-highlight-remove {
+  font-size: 0.8125rem;
+}
+
+.mel-highlights-builder-table .mel-highlight-icon-cell {
+  min-width: 11rem;
+  vertical-align: middle;
+}
+
+.mel-highlights-builder-table select.mel-highlight-icon {
+  width: 100%;
+  max-width: 100%;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  font-family:
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji',
+    system-ui,
+    sans-serif;
+}
+
+.mel-btn--touch {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+}
+
+.mel-highlight-move:focus-visible,
+.mel-highlight-remove:focus-visible {
+  outline: 2px solid var(--mel-studio-focus);
+  outline-offset: 2px;
+}
+
+.mel-highlight-move:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .mel-highlights-builder-table {
+    display: block;
+    overflow-x: auto;
+  }
+}

@@ -75,6 +75,15 @@
     return true;
   }
 
+  function appendMelDonationHidden(form, key, value) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = `mel[${key}]`;
+    input.value = value ?? '';
+    input.setAttribute('data-mel-donation-sync', '1');
+    form.appendChild(input);
+  }
+
   function supportsAutosaveForm(form) {
     const capabilities = studioSettings().currentSectionCapabilities || {};
     return isWritableForm(form) && capabilities.supports_autosave !== false;
@@ -455,6 +464,26 @@
           event.preventDefault();
           event.returnValue = '';
         });
+      });
+
+      once('mel-operational-tickets-donation-sync', 'form.mel-event-studio-operational-tickets', context).forEach((operationalForm) => {
+        operationalForm.addEventListener('submit', () => {
+          const stack = operationalForm.closest('.mel-event-studio-section__form-stack');
+          const bookingForm = stack?.querySelector('form[data-mel-event-studio-form="1"]');
+          if (!bookingForm) {
+            return;
+          }
+          operationalForm.querySelectorAll('[data-mel-donation-sync]').forEach((element) => element.remove());
+          ['donation_amount', 'donation_options', 'donation_label'].forEach((key) => {
+            const input = bookingForm.querySelector(`[name="mel[${key}]"]`);
+            if (!input) {
+              return;
+            }
+            appendMelDonationHidden(operationalForm, key, input.value);
+          });
+          const enable = bookingForm.querySelector('[name="mel[enable_donations]"]');
+          appendMelDonationHidden(operationalForm, 'enable_donations', enable && enable.checked ? '1' : '0');
+        }, true);
       });
 
       once('mel-event-studio-shell-publish', '[data-mel-publish-action]', context).forEach((button) => {

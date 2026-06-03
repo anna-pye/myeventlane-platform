@@ -13,6 +13,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventStudioAiAssistBuilder;
+use Drupal\myeventlane_event_studio\Service\EventHighlightsFormBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioWizardMelBaseline;
@@ -41,6 +42,7 @@ abstract class EventStudioBaseForm extends FormBase {
     protected EventVendorAccessChecker $eventVendorAccessChecker,
     protected EventStudioAutosaveService $autosaveService,
     protected EventStudioAiAssistBuilder $aiAssistBuilder,
+    protected EventHighlightsFormBuilder $eventHighlightsFormBuilder,
     RequestStack $request_stack,
     protected LoggerInterface $logger,
     protected ?LocationProviderManager $eventStudioLocationProvider = NULL,
@@ -63,12 +65,91 @@ abstract class EventStudioBaseForm extends FormBase {
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('myeventlane_event_studio.ai_assist_builder'),
+      $container->get('myeventlane_event_studio.highlights_form_builder'),
       $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
       $container->has('myeventlane_location.provider_manager')
         ? $container->get('myeventlane_location.provider_manager')
         : NULL,
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __wakeup(): void {
+    parent::__wakeup();
+    $this->ensureInjectedServices();
+  }
+
+  /**
+   * Ensures services are present after form cache unserialization.
+   *
+   * Cached form state restores the form object via serialize/unserialize.
+   * DependencySerializationTrait usually reattaches services, but typed
+   * constructor-injected properties can still be uninitialized on some paths.
+   */
+  protected function ensureInjectedServices(): void {
+    if (isset(
+      $this->entityFieldManager,
+      $this->entityTypeManager,
+      $this->currentUser,
+      $this->saveService,
+      $this->melPayloadService,
+      $this->wizardMelBaseline,
+      $this->entityAutocompleteMelNormalizer,
+      $this->eventVendorAccessChecker,
+      $this->autosaveService,
+      $this->aiAssistBuilder,
+      $this->eventHighlightsFormBuilder,
+      $this->requestStack,
+      $this->logger,
+    )) {
+      return;
+    }
+    $container = \Drupal::getContainer();
+    if (!isset($this->entityFieldManager)) {
+      $this->entityFieldManager = $container->get('entity_field.manager');
+    }
+    if (!isset($this->entityTypeManager)) {
+      $this->entityTypeManager = $container->get('entity_type.manager');
+    }
+    if (!isset($this->currentUser)) {
+      $this->currentUser = $container->get('current_user');
+    }
+    if (!isset($this->saveService)) {
+      $this->saveService = $container->get('myeventlane_event_studio.save');
+    }
+    if (!isset($this->melPayloadService)) {
+      $this->melPayloadService = $container->get('myeventlane_event_studio.mel_payload');
+    }
+    if (!isset($this->wizardMelBaseline)) {
+      $this->wizardMelBaseline = $container->get('myeventlane_event_studio.wizard_mel_baseline');
+    }
+    if (!isset($this->entityAutocompleteMelNormalizer)) {
+      $this->entityAutocompleteMelNormalizer = $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer');
+    }
+    if (!isset($this->eventVendorAccessChecker)) {
+      $this->eventVendorAccessChecker = $container->get('myeventlane_vendor.event_access_checker');
+    }
+    if (!isset($this->autosaveService)) {
+      $this->autosaveService = $container->get('myeventlane_event_studio.autosave');
+    }
+    if (!isset($this->aiAssistBuilder)) {
+      $this->aiAssistBuilder = $container->get('myeventlane_event_studio.ai_assist_builder');
+    }
+    if (!isset($this->eventHighlightsFormBuilder)) {
+      $this->eventHighlightsFormBuilder = $container->get('myeventlane_event_studio.highlights_form_builder');
+    }
+    if (!isset($this->requestStack)) {
+      $this->requestStack = $container->get('request_stack');
+    }
+    if (!isset($this->logger)) {
+      $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
+    }
+    if (!isset($this->eventStudioLocationProvider) && $container->has('myeventlane_location.provider_manager')) {
+      $this->eventStudioLocationProvider = $container->get('myeventlane_location.provider_manager');
+    }
   }
 
   /**
@@ -101,8 +182,9 @@ abstract class EventStudioBaseForm extends FormBase {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
-    if (!$this->currentUser->hasPermission('administer nodes')
-      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $this->currentUser)) {
+    $account = $this->currentUser();
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
       throw new AccessDeniedHttpException();
     }
   }
@@ -280,6 +362,9 @@ abstract class EventStudioBaseForm extends FormBase {
     if (_myeventlane_event_studio_is_workspace_route()) {
       if (in_array($this->getCurrentStepId(), _myeventlane_event_studio_workspace_ai_assist_section_ids(), TRUE)) {
         $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_ai_assist';
+      }
+      if ($this->getCurrentStepId() === 'content') {
+        $this->eventHighlightsFormBuilder->attachLibraryAndSettings($form);
       }
     }
     else {

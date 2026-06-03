@@ -13,6 +13,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
+use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -24,6 +25,18 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Operational Event Studio ticket table backed by mel_ticket_type entities.
  */
 final class EventStudioOperationalTicketsForm extends FormBase {
+
+  /**
+   * Mel keys submitted with Save tickets for RSVP donation settings.
+   *
+   * @var list<string>
+   */
+  private const DONATION_MEL_KEYS = [
+    'enable_donations',
+    'donation_amount',
+    'donation_options',
+    'donation_label',
+  ];
 
   /**
    * Injected services must be protected (not private readonly) so form cache
@@ -39,6 +52,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
 
   protected EventStudioAutosaveService $autosaveService;
 
+  protected EventStudioSaveService $saveService;
+
   protected LoggerInterface $logger;
 
   public function __construct(
@@ -47,6 +62,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     EventVendorAccessChecker $event_vendor_access_checker,
     TicketTierLifecycleService $ticket_tier_lifecycle,
     EventStudioAutosaveService $autosave_service,
+    EventStudioSaveService $save_service,
     LoggerInterface $logger,
   ) {
     $this->entityTypeManager = $entity_type_manager;
@@ -54,18 +70,22 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $this->eventVendorAccessChecker = $event_vendor_access_checker;
     $this->ticketTierLifecycle = $ticket_tier_lifecycle;
     $this->autosaveService = $autosave_service;
+    $this->saveService = $save_service;
     $this->logger = $logger;
   }
 
   public static function create(ContainerInterface $container): static {
-    return new static(
+    $form = new static(
       $container->get('entity_type.manager'),
       $container->get('current_user'),
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('myeventlane_event.ticket_tier_lifecycle'),
       $container->get('myeventlane_event_studio.autosave'),
+      $container->get('myeventlane_event_studio.save'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
     );
+    $form->setRequestStack($container->get('request_stack'));
+    return $form;
   }
 
   /**
@@ -83,7 +103,15 @@ final class EventStudioOperationalTicketsForm extends FormBase {
    * properties or untracked services can otherwise stay uninitialized.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->currentUser, $this->eventVendorAccessChecker, $this->ticketTierLifecycle, $this->autosaveService, $this->logger)) {
+    if (isset(
+      $this->entityTypeManager,
+      $this->currentUser,
+      $this->eventVendorAccessChecker,
+      $this->ticketTierLifecycle,
+      $this->autosaveService,
+      $this->saveService,
+      $this->logger,
+    )) {
       return;
     }
     $container = \Drupal::getContainer();
@@ -101,6 +129,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
     if (!isset($this->autosaveService)) {
       $this->autosaveService = $container->get('myeventlane_event_studio.autosave');
+    }
+    if (!isset($this->saveService)) {
+      $this->saveService = $container->get('myeventlane_event_studio.save');
     }
     if (!isset($this->logger)) {
       $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
@@ -350,6 +381,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $this->messenger()->addError($this->t('Tickets could not be saved. Check the rows and try again.'));
       return;
     }
+
+    $this->persistDonationSettingsFromWorkspace($event);
 
     $this->messenger()->addStatus($this->t('Tickets saved and synced.'));
     $form_state->setRebuild(TRUE);
@@ -761,6 +794,69 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $this->currentUser)) {
       throw new AccessDeniedHttpException();
     }
+  }
+
+  /**
+   * Persists RSVP donation settings (donation fields only).
+   */
+  private function persistDonationSettingsFromWorkspace(NodeInterface $event): void {
+    if (!$event->hasField('field_enable_donations')) {
+      return;
+    }
+
+    $donationMel = $this->extractDonationMelFromRequest();
+    if ($donationMel === []) {
+      $draft = $this->autosaveService->getDraft($event, 'tickets');
+      $draftMel = is_array($draft['mel'] ?? NULL) ? $draft['mel'] : [];
+      $donationMel = array_intersect_key($draftMel, array_flip(self::DONATION_MEL_KEYS));
+    }
+    if ($donationMel === []) {
+      return;
+    }
+
+    $payload = $this->buildDonationPayloadFromMel($donationMel);
+    $result = $this->saveService->saveDonationSettings($event, $payload, $this->currentUser());
+    if ($result['errors'] !== []) {
+      foreach ($result['errors'] as $message) {
+        $this->messenger()->addError($message);
+      }
+      return;
+    }
+
+    if ($result['node'] instanceof NodeInterface) {
+      $this->messenger()->addStatus($this->t('Donation settings saved.'));
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $mel
+   *
+   * @return array<string, mixed>
+   */
+  private function buildDonationPayloadFromMel(array $mel): array {
+    $enabled = !empty($mel['enable_donations']) && (string) ($mel['enable_donations'] ?? '') !== '0';
+    return [
+      'enable_donations' => $enabled,
+      'donation_enabled' => $enabled,
+      'donation_amount' => ($mel['donation_amount'] ?? '') !== '' ? (string) $mel['donation_amount'] : NULL,
+      'donation_options' => trim((string) ($mel['donation_options'] ?? '')),
+      'donation_label' => trim((string) ($mel['donation_label'] ?? 'Support this event')) ?: 'Support this event',
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function extractDonationMelFromRequest(): array {
+    $request = $this->getRequest();
+    if ($request === NULL) {
+      return [];
+    }
+    $mel = $request->request->all('mel');
+    if (!is_array($mel)) {
+      return [];
+    }
+    return array_intersect_key($mel, array_flip(self::DONATION_MEL_KEYS));
   }
 
 }

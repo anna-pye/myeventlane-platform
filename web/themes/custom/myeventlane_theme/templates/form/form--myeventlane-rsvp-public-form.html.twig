@@ -1,15 +1,9 @@
 {#
 /**
  * @file
- * Public RSVP form — structured conversion path (event book / RSVP block).
+ * Public RSVP form — guided onboarding journey (event book page).
  *
- * Use `element` (the form root render array). Do not render the root as `form`
- * inside <form> — that can re-invoke the form theme and nest <form> tags.
- *
- * Order: (1) You’re going → (2) Who is coming → (3) Guest details → (4) Confirm.
- * Alter-added elements (e.g. mel_help_rsvp_after) are printed explicitly.
- * Do not add a trailing element|without() catch-all — it can re-render leftover
- * keys and duplicate fields (breaks POST / submit).
+ * Renders explicit element.KEY sections only. Do not render root as `form`.
  */
 #}
 <form{{ attributes }}>
@@ -19,52 +13,130 @@
     {{ element.form_id }}
     {{ element.event_id }}
 
-    <div class="mel-rsvp">
+    <div class="mel-rsvp mel-rsvp--onboarding">
       <div class="mel-rsvp__shell">
-        <div class="mel-rsvp__card">
-          <div class="mel-rsvp__content">
-            {% if element.mel_help_rsvp_after is defined %}
-              <div class="mel-rsvp__help mel-rsvp__help--top" role="note">
-                {{ element.mel_help_rsvp_after }}
-              </div>
-            {% endif %}
-
-            <section class="mel-rsvp__step mel-rsvp__step--intent">
-              {{ element.intent }}
-            </section>
-
-            <section class="mel-rsvp__step mel-rsvp__step--who">
-              {{ element.people }}
-            </section>
-
-            <section class="mel-rsvp__step mel-rsvp__step--details">
-              {{ element.details }}
-            </section>
-
-            {% if element.donation is defined %}
-              <section class="mel-rsvp__step mel-rsvp__step--donation">
-                {{ element.donation }}
-              </section>
-            {% endif %}
-
-            {{ element.optional }}
-
-            {% if element.accessibility is defined %}
-              {{ element.accessibility }}
-            {% endif %}
-
-            <section class="mel-rsvp__step mel-rsvp__step--confirm">
-              {{ element.legal }}
-            </section>
-
-            <div class="mel-rsvp__cta">
-              {{ element.actions }}
-            </div>
+        {% if element.mel_help_rsvp_after is defined %}
+          <div class="mel-rsvp__help mel-rsvp__help--top" role="note">
+            {{ element.mel_help_rsvp_after }}
           </div>
+        {% endif %}
+
+        <nav class="mel-rsvp-progress" aria-label="{{ 'RSVP progress'|t }}">
+          <ol class="mel-rsvp-progress__track">
+            <li class="mel-rsvp-progress__step mel-rsvp-progress__step--1">
+              <span class="mel-rsvp-progress__dot" aria-hidden="true"></span>
+              <span class="mel-rsvp-progress__label">{{ 'Attending'|t }}</span>
+            </li>
+            <li class="mel-rsvp-progress__step mel-rsvp-progress__step--2">
+              <span class="mel-rsvp-progress__dot" aria-hidden="true"></span>
+              <span class="mel-rsvp-progress__label">{{ 'Details'|t }}</span>
+            </li>
+            <li class="mel-rsvp-progress__step mel-rsvp-progress__step--3">
+              <span class="mel-rsvp-progress__dot" aria-hidden="true"></span>
+              <span class="mel-rsvp-progress__label">{{ 'Support'|t }}</span>
+            </li>
+            <li class="mel-rsvp-progress__step mel-rsvp-progress__step--4">
+              <span class="mel-rsvp-progress__dot" aria-hidden="true"></span>
+              <span class="mel-rsvp-progress__label">{{ 'Confirm'|t }}</span>
+            </li>
+          </ol>
+        </nav>
+
+        <div class="mel-rsvp__content">
+          <section class="mel-rsvp-onboarding-card mel-rsvp-onboarding-card--going" aria-labelledby="mel-rsvp-step-going">
+            <header class="mel-rsvp-onboarding-card__header">
+              <span class="mel-rsvp-onboarding-card__num" aria-hidden="true">1</span>
+              <div class="mel-rsvp-onboarding-card__titles">
+                <h2 class="mel-rsvp-onboarding-card__title" id="mel-rsvp-step-going">{{ "You're attending"|t }}</h2>
+                <p class="mel-rsvp-onboarding-card__lede">{{ 'Confirm you are joining this event.'|t }}</p>
+              </div>
+            </header>
+            <div class="mel-rsvp-onboarding-card__body">
+              {{ element.intent }}
+            </div>
+          </section>
+
+          <section class="mel-rsvp-onboarding-card mel-rsvp-onboarding-card--about" aria-labelledby="mel-rsvp-step-about">
+            <header class="mel-rsvp-onboarding-card__header">
+              <span class="mel-rsvp-onboarding-card__num" aria-hidden="true">2</span>
+              <div class="mel-rsvp-onboarding-card__titles">
+                <h2 class="mel-rsvp-onboarding-card__title" id="mel-rsvp-step-about">{{ 'Tell us about yourself'|t }}</h2>
+                <p class="mel-rsvp-onboarding-card__lede">{{ 'Tell us who will attend this event.'|t }}</p>
+              </div>
+            </header>
+            <div class="mel-rsvp-onboarding-card__body">
+              <div class="mel-rsvp-onboarding-card__subsection">
+                <h3 class="mel-rsvp-onboarding-card__subtitle">{{ 'Who is coming'|t }}</h3>
+                {{ element.people }}
+              </div>
+              <div class="mel-rsvp-onboarding-card__subsection mel-rsvp-ticket-holder">
+                <h3 class="mel-rsvp-onboarding-card__subtitle">{{ 'Ticket holder'|t }}</h3>
+                {% if element.details.phone is defined %}
+                  {{ element.details.phone }}
+                {% endif %}
+                {% if element.details.quantity is defined %}
+                  {{ element.details.quantity }}
+                {% endif %}
+                {% if element.details.mel_rsvp_event_questions is defined %}
+                  {{ element.details.mel_rsvp_event_questions }}
+                {% endif %}
+                {% if element.details.attendees is defined %}
+                  {{ element.details.attendees }}
+                {% endif %}
+                {% if element.donation is defined %}
+                  <div class="mel-rsvp-onboarding-card__extra">
+                    {{ element.donation }}
+                  </div>
+                {% endif %}
+                {% if element.optional is defined %}
+                  <div class="mel-rsvp-onboarding-card__extra">
+                    {{ element.optional }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </section>
+
+          {% if element.accessibility is defined %}
+            <section class="mel-rsvp-onboarding-card mel-rsvp-onboarding-card--access mel-rsvp-onboarding-card--highlight" aria-labelledby="mel-rsvp-step-access">
+              <header class="mel-rsvp-onboarding-card__header">
+                <span class="mel-rsvp-onboarding-card__num" aria-hidden="true">3</span>
+                <div class="mel-rsvp-onboarding-card__titles">
+                  <h2 class="mel-rsvp-onboarding-card__title" id="mel-rsvp-step-access">{{ 'Accessibility support'|t }}</h2>
+                  <p class="mel-rsvp-onboarding-card__lede">{{ 'Let the organiser know what would help you participate comfortably.'|t }}</p>
+                </div>
+              </header>
+              <div class="mel-rsvp-onboarding-card__body">
+                {{ element.accessibility }}
+              </div>
+            </section>
+          {% endif %}
+
+          <section class="mel-rsvp-onboarding-card mel-rsvp-onboarding-card--confirm" aria-labelledby="mel-rsvp-step-confirm">
+            <header class="mel-rsvp-onboarding-card__header">
+              <span class="mel-rsvp-onboarding-card__num" aria-hidden="true">4</span>
+              <div class="mel-rsvp-onboarding-card__titles">
+                <h2 class="mel-rsvp-onboarding-card__title" id="mel-rsvp-step-confirm">{{ 'Confirm your place'|t }}</h2>
+                <p class="mel-rsvp-onboarding-card__lede">{{ 'Review and agree before you reserve your spot.'|t }}</p>
+              </div>
+            </header>
+            <div class="mel-rsvp-onboarding-card__body">
+              {{ element.legal }}
+            </div>
+          </section>
         </div>
 
-        <div class="mel-rsvp__fineprint" aria-hidden="true">
-          {{ 'We respect your privacy. Your details are used only for event administration.'|t }}
+        <div class="mel-rsvp-confirm-panel" role="note" aria-label="{{ 'Before you reserve'|t }}">
+          <ul class="mel-rsvp-confirm-panel__list">
+            <li class="mel-rsvp-confirm-panel__item">{{ 'No payment required'|t }}</li>
+            <li class="mel-rsvp-confirm-panel__item">{{ 'Instant confirmation'|t }}</li>
+            <li class="mel-rsvp-confirm-panel__item">{{ 'Takes less than one minute'|t }}</li>
+            <li class="mel-rsvp-confirm-panel__item">{{ 'Your details stay private'|t }}</li>
+          </ul>
+        </div>
+
+        <div class="mel-rsvp__cta mel-rsvp__cta--fixed">
+          {{ element.actions }}
         </div>
       </div>
     </div>

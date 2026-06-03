@@ -144,6 +144,17 @@ final class RsvpThankYouController {
       $donation_completed = FALSE;
       $donation_pending = FALSE;
     }
+    elseif ($donation > 0.0 && !$donation_completed && $donation_order_id !== NULL) {
+      $pending_order = $this->entityTypeManager
+        ->getStorage('commerce_order')
+        ->load($donation_order_id);
+      if ($pending_order instanceof OrderInterface && $pending_order->bundle() === 'rsvp_donation') {
+        $donation_pending = $this->isDonationOrderPending($pending_order);
+        if ($donation_pending && ($donation_checkout_url === NULL || $donation_checkout_url === '')) {
+          $donation_checkout_url = $this->buildDonationCheckoutUrl($pending_order);
+        }
+      }
+    }
 
     if ($donation_completed && $submission instanceof EntityInterface && $submission->hasField('status')) {
       $current = (string) $submission->get('status')->value;
@@ -202,7 +213,7 @@ final class RsvpThankYouController {
       '#donation_pending' => $donation_pending,
       '#can_add_post_rsvp_contribution' => $can_add_post_rsvp_contribution,
       '#cancel_url' => $cancel_url,
-      'mel_continuity' => $mel_continuity,
+      '#mel_continuity' => $mel_continuity,
       '#attached' => [
         'library' => [
           'myeventlane_rsvp/rsvp-thankyou',
@@ -321,12 +332,111 @@ final class RsvpThankYouController {
       return NULL;
     }
 
+    $logger = $this->loggerFactory->get('myeventlane_rsvp');
+    $field_storage = $this->entityTypeManager
+      ->getStorage('field_storage_config')
+      ->load('commerce_order_item.field_rsvp_submission');
+
+    if ($field_storage) {
+      $orders = $this->findDonationOrdersForSubmissionReference($submission_id, $event_id);
+      if ($orders !== []) {
+        return $this->selectPreferredDonationOrder($orders);
+      }
+      return NULL;
+    }
+
+    $logger->warning(
+      'RSVP donation recovery: commerce_order_item.field_rsvp_submission is missing; attempting legacy field_attendee_data lookup.'
+    );
+
+    return $this->findLatestDonationOrderForSubmissionLegacy($submission_id, $event_id);
+  }
+
+  /**
+   * Finds rsvp_donation orders linked to a submission via field_rsvp_submission.
+   *
+   * @return list<\Drupal\commerce_order\Entity\OrderInterface>
+   */
+  private function findDonationOrdersForSubmissionReference(int $submission_id, int $event_id): array {
+    $item_storage = $this->entityTypeManager->getStorage('commerce_order_item');
+    $item_ids = $item_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'rsvp_donation')
+      ->condition('field_rsvp_submission', $submission_id)
+      ->sort('changed', 'DESC')
+      ->execute();
+
+    if ($item_ids === []) {
+      return [];
+    }
+
+    /** @var list<\Drupal\commerce_order\Entity\OrderInterface> $orders */
+    $orders = [];
+    $seen_order_ids = [];
+    foreach ($item_storage->loadMultiple($item_ids) as $item) {
+      if (!$item instanceof OrderItemInterface) {
+        continue;
+      }
+      if (!$this->donationOrderItemMatchesEvent($item, $event_id)) {
+        continue;
+      }
+      $order = $item->getOrder();
+      if (!$order instanceof OrderInterface || $order->bundle() !== 'rsvp_donation') {
+        continue;
+      }
+      $order_id = (int) $order->id();
+      if (isset($seen_order_ids[$order_id])) {
+        continue;
+      }
+      $seen_order_ids[$order_id] = TRUE;
+      $orders[] = $order;
+    }
+
+    return $orders;
+  }
+
+  /**
+   * Prefers a draft/pending donation order so the user can complete payment.
+   */
+  private function selectPreferredDonationOrder(array $orders): ?OrderInterface {
+    if ($orders === []) {
+      return NULL;
+    }
+
+    foreach ($orders as $order) {
+      if ($this->isDonationOrderPending($order)) {
+        return $order;
+      }
+    }
+
+    foreach ($orders as $order) {
+      if ($this->isDonationOrderCompleted($order)) {
+        return $order;
+      }
+    }
+
+    return $orders[0];
+  }
+
+  private function donationOrderItemMatchesEvent(OrderItemInterface $item, int $event_id): bool {
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      return (int) $item->get('field_target_event')->target_id === $event_id;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Legacy recovery via JSON in field_attendee_data when field_rsvp_submission is absent.
+   */
+  private function findLatestDonationOrderForSubmissionLegacy(int $submission_id, int $event_id): ?OrderInterface {
+    $logger = $this->loggerFactory->get('myeventlane_rsvp');
     $field_storage = $this->entityTypeManager
       ->getStorage('field_storage_config')
       ->load('commerce_order_item.field_attendee_data');
     if (!$field_storage) {
-      $this->loggerFactory->get('myeventlane_rsvp')->warning(
-        'RSVP donation recovery skipped: commerce_order_item.field_attendee_data is missing.'
+      $logger->warning(
+        'RSVP donation recovery failed: commerce_order_item.field_rsvp_submission and field_attendee_data are both missing.'
       );
       return NULL;
     }
@@ -344,8 +454,9 @@ final class RsvpThankYouController {
       return NULL;
     }
 
-    $items = $item_storage->loadMultiple($ids);
-    foreach ($items as $item) {
+    $orders = [];
+    $seen_order_ids = [];
+    foreach ($item_storage->loadMultiple($ids) as $item) {
       if (!$item instanceof OrderItemInterface) {
         continue;
       }
@@ -357,10 +468,15 @@ final class RsvpThankYouController {
       if ($context['event_id'] !== NULL && (int) $context['event_id'] !== $event_id) {
         continue;
       }
-      return $order;
+      $order_id = (int) $order->id();
+      if (isset($seen_order_ids[$order_id])) {
+        continue;
+      }
+      $seen_order_ids[$order_id] = TRUE;
+      $orders[] = $order;
     }
 
-    return NULL;
+    return $this->selectPreferredDonationOrder($orders);
   }
 
 }

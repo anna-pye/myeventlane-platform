@@ -9,8 +9,181 @@
 {% set extras_in_sidebar = addons_available and (extras_sidebar_selection|default(false) or extras_book_placement|default('main_before_access') == 'sidebar') %}
 {% set extras_in_main = addons_available and (extras_inline_before_access_code|default(false) or not extras_in_sidebar) %}
 {% set mel_book_paid = event_mode == 'paid' %}
-<article class="mel-book-page mel-booking-v2 mel-event-book mel-event--v2{% if event_page_classes is defined and event_page_classes %} {{ event_page_classes|join(' ') }}{% else %} mel-event-page--classic mel-event-page--colour-coral{% endif %}" data-event-mode="{{ event_mode }}">
+{% set mel_book_rsvp = event_mode == 'rsvp' %}
+<article class="mel-book-page mel-booking-v2 mel-event-book mel-event--v2{% if event_page_classes is defined and event_page_classes %} {{ event_page_classes|join(' ') }}{% else %} mel-event-page--classic mel-event-page--colour-coral{% endif %}{% if mel_book_rsvp %} mel-book-page--rsvp{% endif %}" data-event-mode="{{ event_mode }}">
   <div class="mel-book-page__shell mel-container">
+    {% if mel_book_rsvp %}
+      <div class="mel-rsvp-book-stage">
+        {% if event_back_url %}
+          <nav class="mel-rsvp-book-stage__nav" aria-label="{{ 'Event navigation'|t }}">
+            <a class="mel-rsvp-book-stage__back" href="{{ event_back_url }}">
+              <span aria-hidden="true">←</span>
+              {{ event_back_label|default('Back to event'|t) }}
+            </a>
+          </nav>
+        {% endif %}
+
+        <div class="mel-rsvp-book-trustbar" role="note" aria-label="{{ 'Booking reassurance'|t }}">
+          <span class="mel-rsvp-book-trustbar__item">
+            <span class="mel-rsvp-book-trustbar__icon mel-rsvp-book-trustbar__icon--shield" aria-hidden="true"></span>
+            {{ 'No payment required'|t }}
+          </span>
+          <span class="mel-rsvp-book-trustbar__item">
+            <span class="mel-rsvp-book-trustbar__icon mel-rsvp-book-trustbar__icon--email" aria-hidden="true"></span>
+            {{ "You'll receive confirmation by email"|t }}
+          </span>
+          <span class="mel-rsvp-book-trustbar__item">
+            <span class="mel-rsvp-book-trustbar__icon mel-rsvp-book-trustbar__icon--lock" aria-hidden="true"></span>
+            {{ 'Your RSVP details are used for event administration only'|t }}
+          </span>
+        </div>
+
+        <header class="mel-rsvp-book-hero" aria-labelledby="mel-rsvp-book-title">
+          <p class="mel-rsvp-book-hero__kicker">{{ 'Free RSVP'|t }}</p>
+          <h1 class="mel-rsvp-book-hero__title" id="mel-rsvp-book-title">{{ label }}</h1>
+          {% if event_summary_excerpt %}
+            <p class="mel-rsvp-book-hero__summary">{{ event_summary_excerpt }}</p>
+          {% endif %}
+          {% if mel_signal_remaining_spots is defined and mel_signal_remaining_spots is not null and mel_signal_remaining_spots > 0 %}
+            <p class="mel-rsvp-book-hero__capacity{% if mel_signal_remaining_spots <= 10 %} mel-rsvp-book-hero__capacity--urgent{% endif %}">
+              <span class="mel-rsvp-book-hero__capacity-icon" aria-hidden="true"></span>
+              {% trans %}
+                1 place remaining
+              {% plural mel_signal_remaining_spots %}
+                @count places remaining
+              {% endtrans %}
+            </p>
+          {% endif %}
+        </header>
+      </div>
+
+      <div class="mel-rsvp-book-panel">
+        <aside class="mel-rsvp-book-sidebar" aria-label="{{ 'Event details and RSVP reassurance'|t }}">
+          <div class="mel-rsvp-book-sidebar__inner">
+            <section class="mel-rsvp-book-preview mel-card" aria-labelledby="mel-rsvp-preview-title">
+              <h2 class="visually-hidden" id="mel-rsvp-preview-title">{{ 'Event preview'|t }}</h2>
+              {% if hero_image or hero_url %}
+                <div class="mel-rsvp-book-preview__media" aria-hidden="true">
+                  {% if hero_image %}
+                    {{ hero_image }}
+                  {% else %}
+                    <img class="mel-rsvp-book-preview__img" src="{{ hero_url }}" alt="" width="320" height="180" loading="lazy" decoding="async" />
+                  {% endif %}
+                </div>
+              {% endif %}
+            </section>
+
+            <section class="mel-rsvp-book-why mel-card" aria-labelledby="mel-rsvp-why-title">
+              <h2 class="mel-rsvp-book-why__title" id="mel-rsvp-why-title">{{ 'Why RSVP?'|t }}</h2>
+              <ul class="mel-rsvp-book-why__list">
+                <li class="mel-rsvp-book-why__item">
+                  <span class="mel-rsvp-book-why__icon mel-rsvp-book-why__icon--free" aria-hidden="true"></span>
+                  {{ 'Free'|t }}
+                </li>
+                <li class="mel-rsvp-book-why__item">
+                  <span class="mel-rsvp-book-why__icon mel-rsvp-book-why__icon--confirm" aria-hidden="true"></span>
+                  {{ 'Instant confirmation'|t }}
+                </li>
+                <li class="mel-rsvp-book-why__item">
+                  <span class="mel-rsvp-book-why__icon mel-rsvp-book-why__icon--clock" aria-hidden="true"></span>
+                  {{ 'Takes less than one minute'|t }}
+                </li>
+                <li class="mel-rsvp-book-why__item">
+                  <span class="mel-rsvp-book-why__icon mel-rsvp-book-why__icon--secure" aria-hidden="true"></span>
+                  {{ 'Secure'|t }}
+                </li>
+              </ul>
+            </section>
+
+            {% set mel_summary_has_start = event is defined and event.hasField('field_event_start') and not event.field_event_start.isEmpty %}
+            {% set mel_summary_has_venue = hero_venue %}
+            {% set mel_summary_has_remaining = mel_signal_remaining_spots is defined and mel_signal_remaining_spots is not null and mel_signal_remaining_spots > 0 %}
+            {% if mel_summary_has_start or mel_summary_has_venue or mel_summary_has_remaining %}
+              <section class="mel-rsvp-book-summary mel-card" aria-labelledby="mel-rsvp-summary-title">
+                <h2 class="mel-rsvp-book-summary__title" id="mel-rsvp-summary-title">{{ 'Event summary'|t }}</h2>
+                <dl class="mel-rsvp-book-summary__list">
+                  {% if mel_summary_has_start %}
+                    {% set mel_summary_start = event.field_event_start.value %}
+                    <div class="mel-rsvp-book-summary__row">
+                      <dt class="mel-rsvp-book-summary__label">
+                        <span class="mel-rsvp-book-summary__icon" aria-hidden="true">📅</span>
+                        {{ 'Date'|t }}
+                      </dt>
+                      <dd class="mel-rsvp-book-summary__value">{{ mel_summary_start|date('l j F Y') }}</dd>
+                    </div>
+                    <div class="mel-rsvp-book-summary__row">
+                      <dt class="mel-rsvp-book-summary__label">
+                        <span class="mel-rsvp-book-summary__icon" aria-hidden="true">🕒</span>
+                        {{ 'Time'|t }}
+                      </dt>
+                      <dd class="mel-rsvp-book-summary__value">
+                        {{ mel_summary_start|date('g:ia') }}
+                        {% if event.hasField('field_event_end') and not event.field_event_end.isEmpty %}
+                          {% set mel_summary_end = event.field_event_end.value %}
+                          {% if mel_summary_end %}
+                            – {{ mel_summary_end|date('g:ia') }}
+                          {% endif %}
+                        {% endif %}
+                      </dd>
+                    </div>
+                  {% endif %}
+                  {% if mel_summary_has_venue %}
+                    <div class="mel-rsvp-book-summary__row">
+                      <dt class="mel-rsvp-book-summary__label">
+                        <span class="mel-rsvp-book-summary__icon" aria-hidden="true">📍</span>
+                        {{ 'Venue'|t }}
+                      </dt>
+                      <dd class="mel-rsvp-book-summary__value">{{ hero_venue }}</dd>
+                    </div>
+                  {% endif %}
+                  {% if mel_summary_has_remaining %}
+                    <div class="mel-rsvp-book-summary__row">
+                      <dt class="mel-rsvp-book-summary__label">
+                        <span class="mel-rsvp-book-summary__icon" aria-hidden="true">👥</span>
+                        {{ 'Remaining places'|t }}
+                      </dt>
+                      <dd class="mel-rsvp-book-summary__value">
+                        {% trans %}
+                          1 place remaining
+                        {% plural mel_signal_remaining_spots %}
+                          @count places remaining
+                        {% endtrans %}
+                      </dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              </section>
+            {% endif %}
+
+            {% set mel_event_has_accessibility = event is defined and event.hasField('field_accessibility') and not event.field_accessibility.isEmpty %}
+            <section class="mel-rsvp-book-help mel-card" aria-labelledby="mel-rsvp-help-title">
+              <h2 class="mel-rsvp-book-help__title" id="mel-rsvp-help-title">{{ 'Need help?'|t }}</h2>
+              {% if mel_event_has_accessibility %}
+                <p class="mel-rsvp-book-help__copy">{{ 'Accessibility support is available for this event — tell us what would help you participate comfortably.'|t }}</p>
+              {% else %}
+                <p class="mel-rsvp-book-help__copy">{{ 'Questions about your RSVP? We are here to help.'|t }}</p>
+              {% endif %}
+              <p class="mel-rsvp-book-help__link">
+                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Contact support'|t }}</a>
+              </p>
+            </section>
+          </div>
+        </aside>
+
+        <div class="mel-rsvp-book-form">
+          {% if rsvp_form is not empty %}
+            {{ rsvp_form }}
+          {% elseif matrix_form is not empty %}
+            {{ matrix_form }}
+          {% else %}
+            <div class="mel-alert mel-alert--info" role="status">
+              <p class="mel-alert__title">{{ 'Booking is temporarily unavailable'|t }}</p>
+              <p>{{ 'Please refresh the page. If this continues, return to the event page or contact the organiser.'|t }}</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
     <header class="mel-book-header mel-card" aria-labelledby="mel-booking-event-title">
       {% if event_back_url %}
         <nav class="mel-book-header__nav" aria-label="{{ 'Event navigation'|t }}">
@@ -53,7 +226,9 @@
         </div>
       </div>
     </header>
+    {% endif %}
 
+    {% if not mel_book_rsvp %}
     <div class="mel-event-info-strip mel-card" role="note" aria-label="{{ 'Booking reassurance'|t }}">
       {% if event_mode == 'paid' %}
         <span class="mel-event-info-strip__item">{{ 'Secure checkout'|t }}</span>
@@ -70,8 +245,9 @@
         <span class="mel-event-info-strip__item">{{ 'Hosted on MyEventLane'|t }}</span>
       {% endif %}
     </div>
+    {% endif %}
 
-    {% if not addons_available and mel_customer_operational_experience %}
+    {% if not mel_book_rsvp and not addons_available and mel_customer_operational_experience %}
       <div class="mel-booking-operational-experience">
         {{ mel_customer_operational_experience }}
       </div>
@@ -89,6 +265,7 @@
       </div>
     {% endif %}
 
+    {% if not mel_book_rsvp %}
     <div class="mel-book-layout mel-booking-container{% if not mel_book_paid %} mel-book-layout--single mel-event-layout--booking-single{% endif %}">
       <main class="mel-book-main mel-event-layout__main">
         <div class="mel-ticket-panel mel-book-panel mel-card mel-event-book__form" aria-labelledby="mel-ticket-panel-title">
@@ -165,46 +342,6 @@
             {% endif %}
           </div>
         </div>
-
-        {% if not mel_book_paid and event_mode == 'rsvp' %}
-          <div class="mel-book-support mel-book-support--rsvp">
-            <div class="mel-book-trust mel-book-panel mel-card" role="region" aria-label="{{ 'RSVP privacy and reassurance'|t }}">
-              <h3 class="mel-book-trust__title">{{ 'Your RSVP is secure'|t }}</h3>
-              <ul class="mel-book-trust__list" role="list">
-                <li class="mel-book-trust__item">
-                  <span class="mel-book-trust__icon" aria-hidden="true">✓</span>
-                  <span class="mel-book-trust__text">{{ 'No payment required'|t }}</span>
-                </li>
-                <li class="mel-book-trust__item">
-                  <span class="mel-book-trust__icon" aria-hidden="true">◎</span>
-                  <span class="mel-book-trust__text">{{ 'Your RSVP details are used for event administration only'|t }}</span>
-                </li>
-                <li class="mel-book-trust__item">
-                  <span class="mel-book-trust__icon" aria-hidden="true">✉</span>
-                  <span class="mel-book-trust__text">{{ "You'll receive confirmation by email"|t }}</span>
-                </li>
-                {% if mel_signal_trust_label %}
-                  <li class="mel-book-trust__item">
-                    <span class="mel-book-trust__icon" aria-hidden="true">◎</span>
-                    <span class="mel-book-trust__text">{{ mel_signal_trust_label }}</span>
-                  </li>
-                {% endif %}
-              </ul>
-              <p class="mel-book-trust__support">
-                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Need help? Contact support'|t }}</a>
-              </p>
-            </div>
-
-            <div class="mel-book-next-steps mel-book-panel mel-card" role="region" aria-labelledby="mel-book-next-steps-title-rsvp">
-              <h3 class="mel-book-next-steps__title" id="mel-book-next-steps-title-rsvp">{{ 'What happens next'|t }}</h3>
-              <ol class="mel-book-next-steps__list">
-                <li class="mel-book-next-steps__item">{{ 'Complete your details and submit your RSVP.'|t }}</li>
-                <li class="mel-book-next-steps__item">{{ 'Your RSVP helps the organiser plan the event.'|t }}</li>
-                <li class="mel-book-next-steps__item">{{ "You'll receive a confirmation email with your RSVP details."|t }}</li>
-              </ol>
-            </div>
-          </div>
-        {% endif %}
       </main>
 
       {% if mel_book_paid %}
@@ -297,5 +434,6 @@
         </aside>
       {% endif %}
     </div>
+    {% endif %}
   </div>
 </article>

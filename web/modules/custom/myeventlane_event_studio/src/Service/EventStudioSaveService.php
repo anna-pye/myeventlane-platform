@@ -83,6 +83,8 @@ final class EventStudioSaveService {
    * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>}
    */
   public function save(array $payload, ?NodeInterface $node, AccountInterface $account, bool $draft = FALSE): array {
+    $payload = $this->resolvePayloadTitle($payload, $node);
+
     $effectiveEventType = isset($payload['field_event_type'])
       ? (string) $payload['field_event_type']
       : ($node instanceof NodeInterface && $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
@@ -120,7 +122,7 @@ final class EventStudioSaveService {
     if ($node === NULL) {
       $node = $storage->create([
         'type' => 'event',
-        'title' => trim((string) ($payload['title'] ?? 'Untitled event')),
+        'title' => trim((string) ($payload['title'] ?? '')) ?: 'Untitled event',
         'uid' => (int) $account->id(),
         'status' => $draft ? 0 : ($willPublish ? 1 : 0),
       ]);
@@ -129,7 +131,7 @@ final class EventStudioSaveService {
       if ($node->bundle() !== 'event') {
         return ['node' => NULL, 'errors' => ['Invalid event.']];
       }
-      $node->setTitle(trim((string) ($payload['title'] ?? $node->label())));
+      $node->setTitle((string) ($payload['title'] ?? $node->label()));
       if (!$draft) {
         $node->setPublished((bool) ($payload['status'] ?? TRUE));
       }
@@ -191,51 +193,7 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => $ticket_errors];
     }
 
-    $donationEnabled = !empty($payload['enable_donations']) || !empty($payload['donation_enabled']);
-    if ($node->hasField('field_enable_donations')) {
-      $node->set('field_enable_donations', $donationEnabled);
-    }
-    if ($node->hasField('field_rsvp_donation_enabled')) {
-      $node->set('field_rsvp_donation_enabled', $donationEnabled);
-    }
-    if ($node->hasField('field_donation_suggested_amount')) {
-      $amount = $payload['donation_amount'] ?? NULL;
-      if ($amount === '' || $amount === NULL) {
-        $node->set('field_donation_suggested_amount', NULL);
-      }
-      else {
-        $node->set('field_donation_suggested_amount', (string) $amount);
-      }
-    }
-    if ($node->hasField('field_donation_default')) {
-      $amount = $payload['donation_amount'] ?? NULL;
-      if ($amount === '' || $amount === NULL) {
-        $node->set('field_donation_default', NULL);
-      }
-      else {
-        $node->set('field_donation_default', (string) $amount);
-      }
-    }
-    if ($node->hasField('field_donation_options')) {
-      $rawOptions = trim((string) ($payload['donation_options'] ?? ''));
-      if ($rawOptions === '') {
-        $node->set('field_donation_options', NULL);
-      }
-      else {
-        $parts = array_values(array_filter(array_map('trim', explode(',', $rawOptions)), static fn($v) => $v !== ''));
-        $normalized = [];
-        foreach ($parts as $part) {
-          if (is_numeric($part) && (float) $part > 0) {
-            $normalized[] = (float) $part;
-          }
-        }
-        $node->set('field_donation_options', $normalized === [] ? NULL : json_encode($normalized));
-      }
-    }
-    if ($node->hasField('field_donation_label')) {
-      $label = trim((string) ($payload['donation_label'] ?? 'Support this event'));
-      $node->set('field_donation_label', $label !== '' ? $label : 'Support this event');
-    }
+    $this->applyDonationPayload($node, $payload);
 
     $choice = (string) ($payload['venue_choice'] ?? 'one_off');
     $location_values = NULL;
@@ -358,6 +316,104 @@ final class EventStudioSaveService {
     }
 
     return ['node' => $node, 'errors' => []];
+  }
+
+  /**
+   * Persists RSVP donation configuration fields only (no full wizard save).
+   *
+   * Used by Event Studio operational ticket save so donation settings do not run
+   * attendee questions, venue, or title handling from save().
+   *
+   * @param array<string, mixed> $payload
+   *   enable_donations|donation_enabled, donation_amount, donation_options,
+   *   donation_label.
+   *
+   * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>}
+   */
+  public function saveDonationSettings(NodeInterface $node, array $payload, AccountInterface $account): array {
+    if ($node->bundle() !== 'event') {
+      return ['node' => NULL, 'errors' => ['Invalid event.']];
+    }
+
+    $nid = (int) $node->id();
+    if ($nid < 1) {
+      return ['node' => NULL, 'errors' => ['Invalid event.']];
+    }
+
+    $loaded = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
+      return ['node' => NULL, 'errors' => ['Invalid event.']];
+    }
+
+    $this->applyDonationPayload($loaded, $payload);
+
+    try {
+      EventNodeRevisionSave::prepare($loaded, 'Event Studio donation settings save.');
+      if ($loaded->getEntityType()->isRevisionable()) {
+        $loaded->setRevisionUserId((int) $account->id());
+      }
+      $loaded->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio donation settings save failed for event @nid: @message', [
+        '@nid' => (string) $nid,
+        '@message' => $e->getMessage(),
+      ]);
+      return ['node' => NULL, 'errors' => ['Donation settings could not be saved. Try again.']];
+    }
+
+    return ['node' => $loaded, 'errors' => []];
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applyDonationPayload(NodeInterface $node, array $payload): void {
+    $donationEnabled = !empty($payload['enable_donations']) || !empty($payload['donation_enabled']);
+    if ($node->hasField('field_enable_donations')) {
+      $node->set('field_enable_donations', $donationEnabled);
+    }
+    if ($node->hasField('field_rsvp_donation_enabled')) {
+      $node->set('field_rsvp_donation_enabled', $donationEnabled);
+    }
+    if ($node->hasField('field_donation_suggested_amount')) {
+      $amount = $payload['donation_amount'] ?? NULL;
+      if ($amount === '' || $amount === NULL) {
+        $node->set('field_donation_suggested_amount', NULL);
+      }
+      else {
+        $node->set('field_donation_suggested_amount', (string) $amount);
+      }
+    }
+    if ($node->hasField('field_donation_default')) {
+      $amount = $payload['donation_amount'] ?? NULL;
+      if ($amount === '' || $amount === NULL) {
+        $node->set('field_donation_default', NULL);
+      }
+      else {
+        $node->set('field_donation_default', (string) $amount);
+      }
+    }
+    if ($node->hasField('field_donation_options')) {
+      $rawOptions = trim((string) ($payload['donation_options'] ?? ''));
+      if ($rawOptions === '') {
+        $node->set('field_donation_options', NULL);
+      }
+      else {
+        $parts = array_values(array_filter(array_map('trim', explode(',', $rawOptions)), static fn($v) => $v !== ''));
+        $normalized = [];
+        foreach ($parts as $part) {
+          if (is_numeric($part) && (float) $part > 0) {
+            $normalized[] = (float) $part;
+          }
+        }
+        $node->set('field_donation_options', $normalized === [] ? NULL : json_encode($normalized));
+      }
+    }
+    if ($node->hasField('field_donation_label')) {
+      $label = trim((string) ($payload['donation_label'] ?? 'Support this event'));
+      $node->set('field_donation_label', $label !== '' ? $label : 'Support this event');
+    }
   }
 
   /**
@@ -1965,6 +2021,24 @@ final class EventStudioSaveService {
       return ['Could not save operational capabilities.'];
     }
     return [];
+  }
+
+  /**
+   * Ensures section-scoped saves do not clear an existing event title.
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return array<string, mixed>
+   */
+  private function resolvePayloadTitle(array $payload, ?NodeInterface $node): array {
+    $title = isset($payload['title']) ? trim((string) $payload['title']) : '';
+    if ($title === '' && $node instanceof NodeInterface) {
+      $payload['title'] = $node->label();
+    }
+    elseif ($title !== '') {
+      $payload['title'] = $title;
+    }
+    return $payload;
   }
 
 }

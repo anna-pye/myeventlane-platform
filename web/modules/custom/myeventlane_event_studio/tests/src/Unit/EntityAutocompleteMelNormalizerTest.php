@@ -135,6 +135,42 @@ final class EntityAutocompleteMelNormalizerTest extends TestCase {
   }
 
   /**
+   * @covers ::normalizeValuesForForm
+   */
+  public function testNormalizeValuesForFormAcceptsIndexedArrayOfAutocompleteLabels(): void {
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->expects($this->never())->method('getStorage');
+
+    $logger = $this->createMock(LoggerInterface::class);
+    $logger->expects($this->never())->method('warning');
+
+    $normalizer = new EntityAutocompleteMelNormalizer($entityTypeManager, $logger);
+    $form = [
+      'field_accessibility' => [
+        '#type' => 'entity_autocomplete',
+        '#target_type' => 'taxonomy_term',
+        '#tags' => TRUE,
+      ],
+    ];
+
+    $normalized = $normalizer->normalizeValuesForForm($form, [
+      'field_accessibility' => [
+        'Wheelchair Access (1)',
+        'Auslan Interpreter (2)',
+      ],
+    ], [
+      'section' => 'content',
+      'event_id' => 1661,
+      'uid' => 1,
+    ]);
+
+    $this->assertSame([
+      ['target_id' => 1],
+      ['target_id' => 2],
+    ], $normalized['field_accessibility']);
+  }
+
+  /**
    * @covers ::normalizeDefaultValuesForForm
    */
   public function testNormalizeDefaultValuesForFormDropsMalformedAutocompleteDefaultsWithOperationalContext(): void {

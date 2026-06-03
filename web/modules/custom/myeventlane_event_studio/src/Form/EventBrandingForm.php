@@ -34,7 +34,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
    */
   public static function create(ContainerInterface $container): static {
     $instance = parent::create($container);
-    $instance->ensureInjectedServices($container);
+    $instance->ensureInjectedServices();
     return $instance;
   }
 
@@ -43,20 +43,20 @@ final class EventBrandingForm extends EventStudioBaseForm {
    */
   public function __wakeup(): void {
     parent::__wakeup();
-    $this->ensureInjectedServices();
   }
 
   /**
-   * Ensures services are present after form cache unserialization.
+   * Ensures base and branding services are present after form cache restore.
    *
    * Cached form state restores the form object in build_info. Properties assigned
    * after parent::create() are not re-initialized unless restored here.
    */
-  private function ensureInjectedServices(?ContainerInterface $container = NULL): void {
+  protected function ensureInjectedServices(): void {
+    parent::ensureInjectedServices();
     if (isset($this->eventStyleAccess, $this->eventPageStyleResolver, $this->brandingHeroFocalAugmenter, $this->eventBrandingPreviewBuilder)) {
       return;
     }
-    $container ??= \Drupal::getContainer();
+    $container = \Drupal::getContainer();
     if (!isset($this->eventStyleAccess)) {
       $this->eventStyleAccess = $container->get('myeventlane_event_studio.event_style_access');
     }
