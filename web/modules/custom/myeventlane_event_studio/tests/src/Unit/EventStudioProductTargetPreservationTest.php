@@ -13,6 +13,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
+use Drupal\focal_point\FocalPointManagerInterface;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Service\QuestionFieldTypeRegistry;
 use Drupal\myeventlane_venue\Service\VenueManager;
@@ -216,6 +217,7 @@ final class EventStudioProductTargetPreservationTest extends UnitTestCase {
       $this->createMock(ImageFactory::class),
       $this->createMock(TranslationInterface::class),
       $this->createMock(\Drupal\Core\File\FileSystemInterface::class),
+      $this->createMock(FocalPointManagerInterface::class),
     );
   }
 

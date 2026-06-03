@@ -244,11 +244,14 @@ final class EventStudioController extends ControllerBase {
     try {
       return $this->sectionRenderer->build($sectionPlugin, $node);
     }
-    catch (EnforcedResponseException | FormAjaxException $exception) {
+    catch (FormAjaxException $exception) {
+      throw $exception;
+    }
+    catch (EnforcedResponseException $exception) {
       throw $exception;
     }
     catch (\Throwable $exception) {
-      $this->logger->error('Event Studio section render failed for event @eid section @section target @target (@class at @file:@line): @message', [
+      $this->logger->error('Event Studio section render failed for event @eid section @section target @target class @class file @file line @line: @message', [
         '@eid' => (string) $node->id(),
         '@section' => (string) $sectionPlugin->getPluginId(),
         '@target' => $sectionPlugin->renderTarget(),

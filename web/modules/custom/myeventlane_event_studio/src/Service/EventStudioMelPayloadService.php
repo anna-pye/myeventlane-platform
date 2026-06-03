@@ -168,7 +168,7 @@ final class EventStudioMelPayloadService {
    * @return int
    *   First positive file id from a managed_file / image widget fids value.
    */
-  private static function firstPositiveIntFromFidsValue(mixed $fids): int {
+  public static function firstPositiveIntFromFidsValue(mixed $fids): int {
     if ($fids === NULL || $fids === '') {
       return 0;
     }
