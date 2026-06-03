@@ -344,8 +344,6 @@ services:
       - '@image.factory'
       - '@entity_type.manager'
       - '@file_url_generator'
-      - '@myeventlane_event_studio.save'
-      - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
 
   myeventlane_event_studio.event_branding_preview_builder:
@@ -356,8 +354,6 @@ services:
       - '@file_url_generator'
       - '@current_user'
       - '@string_translation'
-      - '@myeventlane_event_studio.save'
-      - '@logger.channel.myeventlane_event_studio'
       - '@myeventlane_core.domain_detector'
 
   myeventlane_event_studio.event_ticket_preview_builder:
@@ -394,12 +390,10 @@ services:
       - '@image.factory'
       - '@string_translation'
       - '@file_system'
-      - '@focal_point.manager'
       - '@myeventlane_event_studio.operational_capability_studio_manager'
       - '@myeventlane_event_studio.event_page_style_resolver'
       - '@myeventlane_event.passcode_access'
       - '@myeventlane_event_studio.question_template_manager'
-      - '@request_stack'
 
   myeventlane_event_studio.readiness:
     class: Drupal\myeventlane_event_studio\Service\EventReadinessService

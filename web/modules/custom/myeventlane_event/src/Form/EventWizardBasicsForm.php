@@ -112,7 +112,7 @@ final class EventWizardBasicsForm extends EventWizardBaseForm {
           ],
         ],
         '#accept' => 'image/*',
-        '#description' => $this->t('Recommended size: 1600×900 pixels (16:9).'),
+        '#description' => $this->t('Recommended size: 1200×630 pixels.'),
         '#weight' => 0,
         '#process' => [
           [\Drupal\file\Element\ManagedFile::class, 'processManagedFile'],

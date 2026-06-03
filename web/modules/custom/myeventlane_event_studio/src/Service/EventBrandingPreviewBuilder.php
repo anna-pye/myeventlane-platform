@@ -15,7 +15,6 @@ use Drupal\image\ImageStyleInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\EventMediaPresenter;
 use Drupal\node\NodeInterface;
-use Psr\Log\LoggerInterface;
 
 /**
  * Builds a customer-safe public event page preview for Event Studio branding.
@@ -47,8 +46,6 @@ final class EventBrandingPreviewBuilder {
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly AccountProxyInterface $currentUser,
     TranslationInterface $string_translation,
-    private readonly EventStudioSaveService $eventStudioSaveService,
-    private readonly LoggerInterface $logger,
     private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->stringTranslation = $string_translation;
@@ -182,14 +179,6 @@ final class EventBrandingPreviewBuilder {
 
     $file = $event->get('field_event_image')->entity;
     if (!$file instanceof FileInterface) {
-      return NULL;
-    }
-
-    if (!$this->eventStudioSaveService->isHeroFileRenderable($file)) {
-      $this->logger->warning('Branding preview: hero file @fid on node @nid is not renderable; omitting preview URL.', [
-        '@fid' => (string) $file->id(),
-        '@nid' => (string) $event->id(),
-      ]);
       return NULL;
     }
 

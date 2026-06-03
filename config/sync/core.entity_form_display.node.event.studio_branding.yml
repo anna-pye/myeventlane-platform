@@ -57,7 +57,8 @@ dependencies:
     - field.field.node.event.field_venue_address
     - field.field.node.event.field_venue_name
     - field.field.node.event.field_waitlist_capacity
-    - image.style.mel_crop_event_hero
+    - image.style.crop_thumbnail
+    - image.style.thumbnail
     - node.type.event
   module:
     - crop
@@ -75,8 +76,8 @@ content:
     region: content
     settings:
       progress_indicator: throbber
-      preview_image_style: mel_crop_event_hero
-      crop_preview_image_style: mel_crop_event_hero
+      preview_image_style: thumbnail
+      crop_preview_image_style: crop_thumbnail
       crop_list:
         - event_hero
       crop_types_required:

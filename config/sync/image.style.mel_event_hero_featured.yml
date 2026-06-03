@@ -3,24 +3,17 @@ langcode: en
 status: true
 dependencies:
   config:
-    - crop.type.event_hero
+    - crop.type.focal_point
   module:
-    - crop
-    - image
+    - focal_point
 name: mel_event_hero_featured
 label: 'MEL event hero (featured — event + book pages)'
 effects:
   4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b:
     uuid: 4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b
-    id: crop_crop
+    id: focal_point_scale_and_crop
     weight: 0
-    data:
-      crop_type: event_hero
-  5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c:
-    uuid: 5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c
-    id: image_scale
-    weight: 1
     data:
       width: 1600
       height: 900
-      upscale: false
+      crop_type: focal_point
