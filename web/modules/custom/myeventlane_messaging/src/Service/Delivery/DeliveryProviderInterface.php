@@ -26,4 +26,11 @@ interface DeliveryProviderInterface {
    */
   public function id(): string;
 
+  /**
+   * Provider-assigned message ID from the last successful send(), if any.
+   *
+   * Used to correlate delivery webhooks (e.g. Postmark MessageID).
+   */
+  public function getLastProviderMessageId(): ?string;
+
 }
