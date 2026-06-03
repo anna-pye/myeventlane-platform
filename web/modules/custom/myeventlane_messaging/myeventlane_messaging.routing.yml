@@ -1,3 +1,21 @@
+# Postmark delivery webhook — public endpoint, secret-verified in controller.
+myeventlane_messaging.postmark_webhook_delivery:
+  path: '/webhooks/postmark/delivery'
+  defaults:
+    _controller: '\Drupal\myeventlane_messaging\Controller\PostmarkWebhookController::delivery'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+
+# Postmark bounce webhook — public endpoint, secret-verified in controller.
+myeventlane_messaging.postmark_webhook_bounce:
+  path: '/webhooks/postmark/bounce'
+  defaults:
+    _controller: '\Drupal\myeventlane_messaging\Controller\PostmarkWebhookController::bounce'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+
 # Unsubscribe endpoint for email preferences.
 myeventlane_messaging.unsubscribe:
   path: '/email/unsubscribe/{uid}/{ts}/{h}'
