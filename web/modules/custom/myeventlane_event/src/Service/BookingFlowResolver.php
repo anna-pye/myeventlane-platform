@@ -491,7 +491,8 @@ final class BookingFlowResolver {
     }
 
     try {
-      $variations = $this->ticketAvailability->filterPurchasableVariations($event, $product);
+      $context = $this->ticketAvailability->buildDefaultCustomerAccessContext($event);
+      $variations = $this->ticketAvailability->filterPurchasableVariations($event, $product, $context);
     }
     catch (\Throwable $e) {
       $this->logger->error('Could not resolve paid booking availability for event @event_id: @message', [
