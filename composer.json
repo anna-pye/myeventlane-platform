@@ -24,7 +24,7 @@
     "drupal/bootstrap5": "^4.0",
     "drupal/bootstrap5_admin": "^1.1",
     "drupal/classy": "^2.0",
-    "drupal/commerce": "^3.0@beta",
+    "drupal/commerce": "^3.3.6",
     "drupal/commerce_paypal": "^2.0",
     "drupal/commerce_recurring": "^1.0@RC",
     "drupal/commerce_shipping": "^3.0",
