@@ -491,7 +491,7 @@ final class BookingFlowResolver {
     }
 
     try {
-      $context = $this->ticketAvailability->buildDefaultCustomerAccessContext($event);
+      $context = $this->ticketAvailability->buildPublicAccessContext($event);
       $variations = $this->ticketAvailability->filterPurchasableVariations($event, $product, $context);
     }
     catch (\Throwable $e) {
