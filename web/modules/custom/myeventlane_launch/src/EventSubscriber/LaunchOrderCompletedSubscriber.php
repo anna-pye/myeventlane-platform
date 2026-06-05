@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_launch\EventSubscriber;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Event\OrderEvent;
+use Drupal\commerce_order\Event\OrderEvents;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier;
 use Drupal\myeventlane_launch\Service\CheckoutIdempotencyGuard;
@@ -20,6 +22,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * Does not send customer email; checkout analytics and ticket issuance checks
  * only. Order confirmation email is queued by myeventlane_messaging.
+ *
+ * Ticket issuance monitoring runs on ORDER_PAID after TicketIssuer, not on
+ * order placement (attendee roster rows are created later on place).
  */
 final class LaunchOrderCompletedSubscriber implements EventSubscriberInterface {
 
@@ -39,6 +44,7 @@ final class LaunchOrderCompletedSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents(): array {
     return [
       'commerce_order.place.post_transition' => ['onOrderPlace', -50],
+      OrderEvents::ORDER_PAID => ['onOrderPaid', -50],
     ];
   }
 
@@ -78,12 +84,22 @@ final class LaunchOrderCompletedSubscriber implements EventSubscriberInterface {
         'reason' => 'event_bridge_failure',
       ], $e);
     }
-
-    $this->checkTicketIssuance($entity);
   }
 
   /**
-   * Detects likely ticket issuance failures after checkout.
+   * Validates ticket issuance after payment (TicketIssuer on ORDER_PAID).
+   */
+  public function onOrderPaid(OrderEvent $event): void {
+    $order = $event->getOrder();
+    if (!$order instanceof OrderInterface) {
+      return;
+    }
+
+    $this->checkTicketIssuance($order);
+  }
+
+  /**
+   * Detects likely ticket issuance failures after ORDER_PAID.
    */
   private function checkTicketIssuance(OrderInterface $order): void {
     $orderItemIds = [];
@@ -98,21 +114,26 @@ final class LaunchOrderCompletedSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $attendeeCount = (int) $this->entityTypeManager
-      ->getStorage('event_attendee')
+    $orderId = (int) $order->id();
+    if ($orderId < 1 || !$this->entityTypeManager->hasDefinition('myeventlane_ticket')) {
+      return;
+    }
+
+    $ticketCount = (int) $this->entityTypeManager
+      ->getStorage('myeventlane_ticket')
       ->getQuery()
       ->accessCheck(FALSE)
-      ->condition('order_item', $orderItemIds, 'IN')
+      ->condition('order_id', $orderId)
       ->count()
       ->execute();
 
-    if ($attendeeCount === 0) {
+    if ($ticketCount === 0) {
       $this->monitoringService->monitorTicketIssuanceFailure([
-        'order_id' => (int) $order->id(),
+        'order_id' => $orderId,
         'order_item_ids' => $orderItemIds,
       ]);
-      $this->logger->error('Ticket issuance check failed for order {order_id}: no attendee records found.', [
-        'order_id' => (int) $order->id(),
+      $this->logger->error('Ticket issuance check failed for order {order_id}: no myeventlane_ticket records found.', [
+        'order_id' => $orderId,
       ]);
     }
   }

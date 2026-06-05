@@ -1,0 +1,19 @@
+_core:
+  default_config_hash: 9bVDfWSa_In6VzTXmy04jJ_3ZQobihKjO9isuuUCPaw
+protect_all_forms: false
+unprotected_forms:
+  - user_login_form
+  - search_form
+  - search_block_form
+  - views_exposed_form
+  - honeypot_settings_form
+log: true
+element_name: url
+time_limit: 0
+expire: 300
+form_settings:
+  user_register_form: true
+  contact_message_feedback_form: true
+  myeventlane_rsvp_public_form: true
+  myeventlane_event_passcode_form: true
+  myeventlane_waitlist_signup_form: true

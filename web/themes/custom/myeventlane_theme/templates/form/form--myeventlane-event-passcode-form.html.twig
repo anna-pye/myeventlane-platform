@@ -51,6 +51,13 @@
         </div>
       </div>
     </div>
+
+    {% if element.url is defined %}
+      {{ element.url }}
+    {% endif %}
+    {% if element.honeypot_time is defined %}
+      {{ element.honeypot_time }}
+    {% endif %}
   {% else %}
     {{ children }}
   {% endif %}
