@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_boost\Service;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -28,6 +29,11 @@ final class BoostImpressionAttributionService {
   private const IMPRESSION_DEDUPE_TTL = 86400;
 
   /**
+   * Lock timeout while claiming an impression dedupe slot.
+   */
+  private const IMPRESSION_LOCK_TIMEOUT = 5.0;
+
+  /**
    * Constructs a BoostImpressionAttributionService.
    */
   public function __construct(
@@ -36,6 +42,7 @@ final class BoostImpressionAttributionService {
     private readonly BoostImpressionTracker $impressionTracker,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CacheBackendInterface $cache,
+    private readonly LockBackendInterface $lock,
     private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
   ) {}
@@ -117,16 +124,26 @@ final class BoostImpressionAttributionService {
       return FALSE;
     }
 
-    if ($this->isDuplicateImpression($orderItemId, $placement, $request)) {
+    $lockName = $this->buildImpressionDedupeKey($orderItemId, $placement, $request);
+    if (!$this->lock->acquire($lockName, self::IMPRESSION_LOCK_TIMEOUT)) {
       return TRUE;
     }
 
-    if (!$this->impressionTracker->recordImpression($orderItemId, $eventId, $placement)) {
-      return FALSE;
-    }
+    try {
+      if ($this->isDuplicateImpression($orderItemId, $placement, $request)) {
+        return TRUE;
+      }
 
-    $this->rememberImpression($orderItemId, $placement, $request);
-    return TRUE;
+      if (!$this->impressionTracker->recordImpression($orderItemId, $eventId, $placement)) {
+        return FALSE;
+      }
+
+      $this->rememberImpression($orderItemId, $placement, $request);
+      return TRUE;
+    }
+    finally {
+      $this->lock->release($lockName);
+    }
   }
 
   /**
@@ -178,8 +195,12 @@ final class BoostImpressionAttributionService {
     );
   }
 
-  private function buildImpressionCacheId(int $orderItemId, string $placement, Request $request): string {
+  private function buildImpressionDedupeKey(int $orderItemId, string $placement, Request $request): string {
     return 'myeventlane_boost:impression:' . $orderItemId . ':' . $placement . ':' . $this->buildClientFingerprint($request);
+  }
+
+  private function buildImpressionCacheId(int $orderItemId, string $placement, Request $request): string {
+    return $this->buildImpressionDedupeKey($orderItemId, $placement, $request);
   }
 
   private function buildClientFingerprint(Request $request): string {
