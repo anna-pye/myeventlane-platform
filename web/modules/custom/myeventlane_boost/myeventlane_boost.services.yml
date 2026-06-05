@@ -114,6 +114,8 @@ services:
     arguments:
       - '@current_route_match'
       - '@?myeventlane_core.event_category_url'
+      - '@router'
+      - '@request_stack'
 
   myeventlane_boost.impression_attribution:
     class: Drupal\myeventlane_boost\Service\BoostImpressionAttributionService
@@ -122,6 +124,8 @@ services:
       - '@myeventlane_boost.placement_resolver'
       - '@myeventlane_boost.impression_tracker'
       - '@entity_type.manager'
+      - '@cache.default'
+      - '@request_stack'
       - '@logger.channel.myeventlane_boost'
 
   # Boost click tracker.

@@ -45,7 +45,7 @@ final class BoostImpressionController extends ControllerBase {
     $eventId = (int) ($payload['event_id'] ?? 0);
     $placement = trim((string) ($payload['placement'] ?? ''));
 
-    $recorded = $this->attributionService->recordValidatedImpression($orderItemId, $eventId, $placement);
+    $recorded = $this->attributionService->recordValidatedImpression($orderItemId, $eventId, $placement, $request);
     if (!$recorded) {
       return new JsonResponse(['status' => 'error', 'message' => 'not_recorded'], 400);
     }
