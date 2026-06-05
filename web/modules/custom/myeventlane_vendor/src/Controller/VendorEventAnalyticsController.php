@@ -355,7 +355,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
    */
   private function buildCommerceAnalytics(NodeInterface $event, array $overview, array $ticket_tier_rollup): array {
     $sales = is_array($overview['sales'] ?? NULL) ? $overview['sales'] : [];
-    $ticket_revenue = (string) ($sales['gross'] ?? '$0.00');
+    $ticket_revenue = $this->formatTicketRevenueFromTierRollup($ticket_tier_rollup);
     $ticket_qty = (int) ($sales['tickets_sold'] ?? 0);
     if ($ticket_qty === 0) {
       $ticket_qty = (int) ($ticket_tier_rollup['total_sold'] ?? 0);
@@ -501,7 +501,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       ];
     }
 
-    $items_sold = $this->computeTotalItemsSold($sales, $commerce);
+    $items_sold = $this->computeTotalItemsSold($sales);
     if ($items_sold > 0) {
       $kpis[] = [
         'label' => (string) $this->t('Total items sold'),
@@ -552,7 +552,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       ];
     }
 
-    $ticket_revenue = $this->computeTicketOnlyRevenue($overview, $commerce);
+    $ticket_revenue = $this->computeTicketOnlyRevenue($commerce);
     $tickets_sold = (int) ($ticket_tier_rollup['total_sold'] ?? 0);
     $best_ticket_type = $this->findBestSellingTicketFromTiers($ticketRows);
     $kpis = [];
@@ -699,39 +699,23 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
   }
 
   /**
-   * Computes ticket-only revenue (excludes merchandise and add-ons when known).
+   * Ticket-only revenue from tier rollup (excludes merchandise and add-ons).
    *
-   * @param array<string, mixed> $overview
    * @param array<string, mixed> $commerce
    */
-  private function computeTicketOnlyRevenue(array $overview, array $commerce): string {
-    $sales = is_array($overview['sales'] ?? NULL) ? $overview['sales'] : [];
-    $gross = (string) ($sales['gross'] ?? '$0.00');
-    if (!$this->formattedAmountIsPositive($gross)) {
-      return '$0.00';
-    }
-
-    $ticket_amount = $this->parseFormattedAmount($gross);
-    $extras_amount = $this->parseFormattedAmount((string) ($commerce['extras_revenue'] ?? '—'));
-    if ($extras_amount > 0 && $ticket_amount >= $extras_amount) {
-      $ticket_amount = max(0.0, $ticket_amount - $extras_amount);
-    }
-
-    if ($ticket_amount <= 0.0) {
-      return '$0.00';
-    }
-
-    return $this->formatAmountLikeReference($gross, $ticket_amount);
+  private function computeTicketOnlyRevenue(array $commerce): string {
+    $ticket_revenue = (string) ($commerce['ticket_revenue'] ?? '$0.00');
+    return $this->formattedAmountIsPositive($ticket_revenue) ? $ticket_revenue : '$0.00';
   }
 
   /**
-   * Total sold units across tickets and extras.
+   * Total sold units across all vendor-revenue-eligible order lines.
    *
    * @param array<string, mixed> $sales
-   * @param array<string, mixed> $commerce
    */
-  private function computeTotalItemsSold(array $sales, array $commerce): int {
-    return (int) ($sales['tickets_sold'] ?? 0) + (int) ($commerce['extras_items_sold'] ?? 0);
+  private function computeTotalItemsSold(array $sales): int {
+    // tickets_sold already counts tickets, merchandise, and add-ons (see TicketSalesService).
+    return (int) ($sales['tickets_sold'] ?? 0);
   }
 
   /**
@@ -1011,11 +995,11 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
 
     if (count($recs) < 3 && $isTickets && $capacity_pct !== NULL && $capacity_pct >= 80.0) {
       $remaining_pct = max(0, 100 - $capacity_pct);
-      if ($remaining_pct <= 20) {
-        $recs[] = (string) $this->t('Only @pct% of tickets remain.', ['@pct' => (string) round($remaining_pct)]);
+      if ($capacity_pct >= 95.0 || $remaining_pct <= 5) {
+        $recs[] = (string) $this->t('Tickets are nearly sold out — consider adding another tier or increasing capacity.');
       }
       else {
-        $recs[] = (string) $this->t('Tickets are nearly sold out — consider adding another tier or increasing capacity.');
+        $recs[] = (string) $this->t('Only @pct% of tickets remain.', ['@pct' => (string) round($remaining_pct)]);
       }
     }
 
@@ -1045,10 +1029,6 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
 
     if ($isTickets) {
       $ticket_amount = $this->parseFormattedAmount((string) ($commerce['ticket_revenue'] ?? '—'));
-      $extras_amount = $this->parseFormattedAmount((string) ($commerce['extras_revenue'] ?? '—'));
-      if ($ticket_amount > 0 && $extras_amount > 0 && $ticket_amount >= $extras_amount) {
-        $ticket_amount = max(0.0, $ticket_amount - $extras_amount);
-      }
       if ($ticket_amount > 0) {
         $labels[] = (string) $this->t('Tickets');
         $data[] = $ticket_amount;
@@ -1095,6 +1075,34 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         ],
       ],
     ];
+  }
+
+  /**
+   * Formats ticket-tier rollup revenue for analytics KPIs and charts.
+   *
+   * Uses completed ticket-backed order item totals (TicketVariationSoldService),
+   * not overview gross minus extras (which mixes total vs adjusted prices).
+   *
+   * @param array<string, mixed> $ticket_tier_rollup
+   */
+  private function formatTicketRevenueFromTierRollup(array $ticket_tier_rollup): string {
+    $gross = $ticket_tier_rollup['gross_revenue'] ?? NULL;
+    if (!is_array($gross) || !isset($gross['number'], $gross['currency_code'])) {
+      return '$0.00';
+    }
+
+    $amount = (float) $gross['number'];
+    if ($amount <= 0.0) {
+      return '$0.00';
+    }
+
+    $currency = strtoupper((string) $gross['currency_code']);
+    $formatted = number_format($amount, 2, '.', ',');
+    if ($currency === 'AUD') {
+      return '$' . $formatted;
+    }
+
+    return $currency . ' ' . $formatted;
   }
 
   /**
