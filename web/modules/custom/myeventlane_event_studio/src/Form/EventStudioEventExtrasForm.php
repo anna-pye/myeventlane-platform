@@ -316,18 +316,18 @@ final class EventStudioEventExtrasForm extends FormBase {
         'heading' => [
           '#type' => 'html_tag',
           '#tag' => 'h3',
-          '#value' => $this->t('Add merch or extras to this event'),
+          '#value' => $this->t('No extras yet'),
           '#attributes' => ['class' => ['mel-es-card__title']],
         ],
         'copy' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Sell event extras like parking, meal packages, T-shirts, or VIP upgrades alongside your tickets.'),
+          '#value' => $this->t('Increase revenue by offering merchandise, parking, meal packages or VIP experiences.'),
           '#attributes' => ['class' => ['mel-text--muted']],
         ],
         'cta' => [
           '#type' => 'link',
-          '#title' => $this->t('Add merch or add-on'),
+          '#title' => $this->t('Add your first extra'),
           '#url' => Url::fromRoute('myeventlane_event_studio.workspace_extras', ['node' => $event->id()], [
             'query' => ['add' => 'merchandise'],
           ]),
