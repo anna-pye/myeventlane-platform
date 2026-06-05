@@ -44,6 +44,9 @@
 {% set boost_metrics = overview.boost_metrics|default({}) %}
 {% set has_sales_chart = charts.sales|default([])|length > 0 %}
 {% set has_rsvp_chart = charts.rsvps|default([])|length > 0 %}
+{% set has_ticket_mix_chart = has_ticket_mix_chart|default(false) %}
+{% set capacity_total = ticket_tier_rollup.total_remaining is not null ? (ticket_tier_rollup.total_sold|default(0) + ticket_tier_rollup.total_remaining) : 0 %}
+{% set capacity_pct = capacity_total > 0 ? ((ticket_tier_rollup.total_sold|default(0) / capacity_total) * 100)|round(1) : null %}
 {% set att_total = attendees.total|default(0) %}
 {% set att_in = attendees.checked_in|default(0) %}
 {% set check_pct = att_total > 0 ? ((att_in / att_total) * 100)|round(1) : 0 %}
@@ -126,6 +129,24 @@
         {% if ticket_tier_rollup.conversion_note %}
           <p class="mel-text--muted mel-analytics__conversion-note">{{ ticket_tier_rollup.conversion_note }}</p>
         {% endif %}
+        {% if capacity_pct is not null %}
+          <div class="mel-analytics__capacity-card" role="group" aria-labelledby="mel-analytics-capacity-title">
+            <h3 id="mel-analytics-capacity-title" class="mel-analytics__capacity-title">{{ 'Capacity sold'|t }}</h3>
+            <p class="mel-analytics__capacity-value">{{ capacity_pct }}%</p>
+            <div class="mel-analytics__capacity-bar" aria-hidden="true">
+              <div class="mel-analytics__capacity-bar-fill" style="width: {{ capacity_pct > 100 ? 100 : capacity_pct }}%;"></div>
+            </div>
+            <p class="mel-analytics__capacity-meta">
+              {{ ticket_tier_rollup.total_sold|default(0) }} {{ 'sold'|t }} · {{ ticket_tier_rollup.total_remaining }} {{ 'remaining'|t }}
+            </p>
+          </div>
+        {% elseif ticket_tier_rollup.tier_row_count|default(0) > 0 %}
+          <div class="mel-analytics__capacity-card mel-analytics__capacity-card--unlimited" role="group" aria-labelledby="mel-analytics-capacity-unlimited-title">
+            <h3 id="mel-analytics-capacity-unlimited-title" class="mel-analytics__capacity-title">{{ 'Capacity sold'|t }}</h3>
+            <p class="mel-analytics__capacity-value">{{ ticket_tier_rollup.total_sold|default(0) }}</p>
+            <p class="mel-analytics__capacity-meta">{{ 'Sold so far — capacity is unlimited or mixed across tiers.'|t }}</p>
+          </div>
+        {% endif %}
     </section>
   {% endif %}
 
@@ -133,8 +154,8 @@
     <div class="mel-chart-card">
       <h3 class="mel-chart-card__title">{{ 'Sales over time'|t }}</h3>
       {% if has_sales_chart %}
-        <div class="mel-chart-card__canvas" data-mel-chart>
-          <canvas data-chart-id="event-sales" height="200"></canvas>
+        <div class="mel-chart-card__canvas mel-chart-card__canvas--tall" data-chart-id="event-sales" role="img" aria-label="{{ 'Sales over time chart'|t }}">
+          <canvas height="200"></canvas>
         </div>
       {% else %}
         <div class="mel-empty-state mel-empty-state--chart">
@@ -146,8 +167,8 @@
     <div class="mel-chart-card">
       <h3 class="mel-chart-card__title">{{ 'RSVPs over time'|t }}</h3>
       {% if has_rsvp_chart %}
-        <div class="mel-chart-card__canvas" data-mel-chart>
-          <canvas data-chart-id="event-rsvps" height="200"></canvas>
+        <div class="mel-chart-card__canvas mel-chart-card__canvas--tall" data-chart-id="event-rsvps" role="img" aria-label="{{ 'RSVPs over time chart'|t }}">
+          <canvas height="200"></canvas>
         </div>
       {% else %}
         <div class="mel-empty-state mel-empty-state--chart">
@@ -165,6 +186,13 @@
     </div>
     <div class="mel-card__body">
       {% if overview.tickets|length > 0 %}
+        {% if has_ticket_mix_chart %}
+          <div class="mel-analytics__ticket-mix-chart">
+            <div class="mel-chart-card__canvas mel-chart-card__canvas--donut" data-chart-id="event-ticket-mix" role="img" aria-label="{{ 'Ticket mix chart'|t }}">
+              <canvas height="220"></canvas>
+            </div>
+          </div>
+        {% endif %}
         {% for ticket in overview.tickets %}
           {% set sold = ticket.sold|default(0) %}
           {% set avail = ticket.available %}

@@ -16,6 +16,7 @@ use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
@@ -887,6 +888,17 @@ function myeventlane_event_entity_view_alter(array &$build, EntityInterface $ent
       '@message' => $e->getMessage(),
     ]);
   }
+
+  if ($entity->isPublished()) {
+    try {
+      myeventlane_event_attach_boost_impression_to_build($build, $entity, $display->getMode());
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_event')->error('Boost impression metadata: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
 }
 
 /**
@@ -1229,6 +1241,15 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     $bookingAvailability
   );
 
+  try {
+    myeventlane_event_apply_boost_impression_metadata($variables, $node, $view_mode);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_event')->error('Boost impression card metadata: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+
   // Hide obvious placeholder strings on public event teasers and summaries.
   $public_visibility_modes = [
     'full',
@@ -1490,6 +1511,97 @@ function myeventlane_event_finalize_event_ui(
     $out['image_badge_type'] = 'apricot';
   }
   return $out;
+}
+
+/**
+ * Attaches cache-safe Boost impression metadata to an event card build.
+ */
+function myeventlane_event_attach_boost_impression_to_build(
+  array &$build,
+  NodeInterface $node,
+  string $viewMode,
+): void {
+  if (!in_array($viewMode, myeventlane_event_get_event_card_view_modes(), TRUE)) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_boost.impression_attribution')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution */
+  $attribution = \Drupal::service('myeventlane_boost.impression_attribution');
+  $metadata = $attribution->buildCardMetadata($node);
+  if (!is_array($metadata)) {
+    return;
+  }
+
+  $build['#boost_impression'] = $metadata;
+  $build['#attached']['library'][] = 'myeventlane_boost/impression';
+  if (!isset($build['#cache'])) {
+    $build['#cache'] = [];
+  }
+  if (!is_array($build['#cache'])) {
+    $build['#cache'] = [];
+  }
+  $contexts = $build['#cache']['contexts'] ?? [];
+  if (!is_array($contexts)) {
+    $contexts = [];
+  }
+  $build['#cache']['contexts'] = array_values(array_unique(array_merge(
+    $contexts,
+    ['route.name', 'url.path'],
+  )));
+}
+
+/**
+ * Applies Boost impression tracking attributes to node preprocess variables.
+ */
+function myeventlane_event_apply_boost_impression_metadata(
+  array &$variables,
+  NodeInterface $node,
+  string $viewMode,
+): void {
+  if (!in_array($viewMode, myeventlane_event_get_event_card_view_modes(), TRUE)) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_boost.impression_attribution')) {
+    return;
+  }
+
+  $elements = is_array($variables['elements'] ?? NULL) ? $variables['elements'] : [];
+  $metadata = $elements['#boost_impression'] ?? NULL;
+  if (!is_array($metadata)) {
+    /** @var \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution */
+    $attribution = \Drupal::service('myeventlane_boost.impression_attribution');
+    $metadata = $attribution->buildCardMetadata($node);
+  }
+  if (!is_array($metadata)) {
+    return;
+  }
+
+  $variables['mel_boost_impression'] = $metadata;
+  if (!isset($variables['attributes']) || !$variables['attributes'] instanceof Attribute) {
+    $variables['attributes'] = new Attribute();
+  }
+  $variables['attributes']->setAttribute('data-mel-boost-impression', '1');
+  $variables['attributes']->setAttribute('data-boost-order-item-id', (string) $metadata['order_item_id']);
+  $variables['attributes']->setAttribute('data-boost-event-id', (string) $metadata['event_id']);
+  $variables['attributes']->setAttribute('data-boost-placement', $metadata['placement']);
+  $variables['event_id'] = $metadata['event_id'];
+
+  if (!isset($variables['#attached'])) {
+    $variables['#attached'] = [];
+  }
+  $variables['#attached']['library'][] = 'myeventlane_boost/impression';
+
+  if (!isset($variables['#cache'])) {
+    $variables['#cache'] = [];
+  }
+  $contexts = (array) ($variables['#cache']['contexts'] ?? []);
+  $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
+    $contexts,
+    ['route.name', 'url.path'],
+  )));
 }
 
 /**

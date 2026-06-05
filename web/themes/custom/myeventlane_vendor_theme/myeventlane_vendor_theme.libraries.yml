@@ -44,11 +44,11 @@ mel_event_card_remove:
     - core/drupal
     - core/once
 
-# Chart.js library (CDN)
+# Chart.js is bundled in dist/main.js via dynamic import (src/js/main.js).
 chartjs:
-  version: 4.4.1
-  js:
-    https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js: { type: external, minified: true }
+  version: 1.x
+  dependencies:
+    - myeventlane_vendor_theme/global-styling
 
 # Event form with tabs and validation
 event-form:
@@ -62,7 +62,7 @@ event-form:
 analytics:
   dependencies:
     - myeventlane_vendor_theme/global-styling
-    - myeventlane_vendor_theme/chartjs
+    - core/drupalSettings
 
 # Event overview (Mission Control) — charts + layout tokens
 event_overview:

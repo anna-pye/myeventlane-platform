@@ -109,6 +109,21 @@ services:
       - '@datetime.time'
       - '@logger.channel.myeventlane_boost'
 
+  myeventlane_boost.placement_resolver:
+    class: Drupal\myeventlane_boost\Service\BoostPlacementResolver
+    arguments:
+      - '@current_route_match'
+      - '@?myeventlane_core.event_category_url'
+
+  myeventlane_boost.impression_attribution:
+    class: Drupal\myeventlane_boost\Service\BoostImpressionAttributionService
+    arguments:
+      - '@myeventlane_boost.entitlement_manager'
+      - '@myeventlane_boost.placement_resolver'
+      - '@myeventlane_boost.impression_tracker'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_boost'
+
   # Boost click tracker.
   myeventlane_boost.click_tracker:
     class: Drupal\myeventlane_boost\Service\BoostClickTracker

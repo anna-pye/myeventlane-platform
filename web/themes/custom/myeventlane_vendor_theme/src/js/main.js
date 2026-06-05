@@ -177,20 +177,58 @@ import './vendor-alert';
   };
 
   /**
+   * Lazy-load Chart.js from the local npm bundle (no CDN).
+   *
+   * @return {Promise<typeof import('chart.js').Chart>}
+   */
+  const loadChartJs = (() => {
+    /** @type {Promise<any>|null} */
+    let pending = null;
+    return () => {
+      if (typeof Chart !== 'undefined') {
+        return Promise.resolve(Chart);
+      }
+      if (!pending) {
+        pending = import('chart.js/auto').then((module) => {
+          const chart = module.default ?? module.Chart;
+          window.Chart = chart;
+          return chart;
+        });
+      }
+      return pending;
+    };
+  })();
+
+  /**
    * Dashboard charts initialization (Chart.js).
    */
   Drupal.behaviors.melDashboardCharts = {
     attach: function (context) {
-      const chartContainers = once('mel-chart', '[data-chart-id]', context);
-      if (!chartContainers || chartContainers.length === 0) {
+      const chartTargets = once('mel-chart', '[data-chart-id]', context);
+      if (!chartTargets || chartTargets.length === 0) {
         return;
       }
 
-      // Check if Chart.js is loaded (only when charts exist on the page).
-      if (typeof Chart === 'undefined') {
-        console.warn('Chart.js not loaded (charts will not render).');
-        return;
-      }
+      loadChartJs().then((ChartLib) => {
+        if (!ChartLib) {
+          console.warn('Chart.js not loaded (charts will not render).');
+          return;
+        }
+
+        initCharts(chartTargets, ChartLib);
+      }).catch((error) => {
+        console.error('Chart.js failed to load.', error);
+      });
+    }
+  };
+
+  /**
+   * Initializes Chart.js instances for vendor chart targets.
+   *
+   * @param {HTMLElement[]} chartTargets
+   * @param {any} ChartLib
+   */
+  function initCharts(chartTargets, ChartLib) {
 
       // Chart color palette from design tokens
       const colors = {
@@ -231,12 +269,20 @@ import './vendor-alert';
         }
       };
 
-      chartContainers.forEach((container) => {
+      chartTargets.forEach((container) => {
         const chartId = container.dataset.chartId;
-        const canvas = container.querySelector('canvas');
+        if (!chartId) {
+          return;
+        }
+
+        const canvas = container instanceof HTMLCanvasElement
+          ? container
+          : container.querySelector('canvas');
         const chartData = drupalSettings?.vendorCharts?.[chartId];
 
-        if (!canvas || !chartData) return;
+        if (!canvas || !chartData) {
+          return;
+        }
 
         // Merge options
         const options = { ...defaultOptions, ...chartData.options };
@@ -249,7 +295,7 @@ import './vendor-alert';
         }
 
         // Create chart
-        new Chart(canvas, {
+        new ChartLib(canvas, {
           type: chartData.type || 'line',
           data: {
             labels: chartData.labels || [],
@@ -265,8 +311,7 @@ import './vendor-alert';
           options
         });
       });
-    }
-  };
+  }
 
   /**
    * Accessible tooltips (ARIA-describedby, role=tooltip).

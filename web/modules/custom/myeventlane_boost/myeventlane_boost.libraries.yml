@@ -8,3 +8,12 @@ boost:
   dependencies:
     - core/drupal
     - core/once
+
+impression:
+  version: 1.x
+  js:
+    js/boost-impression.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

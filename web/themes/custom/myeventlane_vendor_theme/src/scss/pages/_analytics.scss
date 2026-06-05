@@ -29,6 +29,82 @@
   margin-top: 0;
 }
 
+.mel-chart-card {
+  padding: $mel-spacing-lg;
+}
+
+.mel-chart-card__title {
+  margin: 0 0 $mel-spacing-md;
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-semibold;
+}
+
+.mel-chart-card__canvas--tall {
+  position: relative;
+  min-height: 220px;
+  height: 220px;
+}
+
+.mel-chart-card__canvas--donut {
+  position: relative;
+  min-height: 240px;
+  height: 240px;
+  max-width: 320px;
+  margin: 0 auto $mel-spacing-lg;
+}
+
+.mel-analytics__ticket-mix-chart {
+  margin-bottom: $mel-spacing-lg;
+}
+
+.mel-analytics__capacity-card {
+  margin-top: $mel-spacing-lg;
+  padding: $mel-spacing-lg;
+  border-radius: $radius-card;
+  border: 1px solid $border-color-light;
+  background: $bg-secondary;
+}
+
+.mel-analytics__capacity-title {
+  margin: 0 0 $mel-spacing-sm;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-analytics__capacity-value {
+  margin: 0;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  font-variant-numeric: tabular-nums;
+  color: $text-primary;
+  line-height: $line-height-tight;
+}
+
+.mel-analytics__capacity-bar {
+  margin-top: $mel-spacing-md;
+  height: 12px;
+  border-radius: $radius-full;
+  background: $bg-tertiary;
+  overflow: hidden;
+}
+
+.mel-analytics__capacity-bar-fill {
+  height: 100%;
+  border-radius: $radius-full;
+  background: $primary;
+  min-width: 0;
+  transition: width 0.3s ease;
+}
+
+.mel-analytics__capacity-meta {
+  margin: $mel-spacing-sm 0 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
 // ============================================================================
 // ANALYTICS HEADER
 // ============================================================================

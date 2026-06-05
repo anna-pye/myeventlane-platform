@@ -241,6 +241,75 @@ final class BoostEntitlementManager {
   }
 
   /**
+   * Returns the primary active entitlement for an event.
+   *
+   * When multiple entitlements overlap, returns the active row with the latest
+   * end timestamp (aligned with getActiveEndTimestampForEvent()).
+   */
+  public function getPrimaryActiveEntitlementForEvent(int $eventNid): ?BoostEntitlementInterface {
+    if ($eventNid <= 0) {
+      return NULL;
+    }
+
+    $now = $this->time->getRequestTime();
+    $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $eventNid)
+      ->condition('status', BoostEntitlementInterface::STATUS_ACTIVE)
+      ->condition('starts', $now, '<=')
+      ->condition('ends', $now, '>')
+      ->sort('ends', 'DESC')
+      ->range(0, 1)
+      ->execute();
+
+    if (empty($ids)) {
+      return NULL;
+    }
+
+    $entity = $storage->load(reset($ids));
+    return $entity instanceof BoostEntitlementInterface ? $entity : NULL;
+  }
+
+  /**
+   * Loads a non-revoked entitlement by source order item ID.
+   */
+  public function getEntitlementByOrderItemId(int $orderItemId): ?BoostEntitlementInterface {
+    if ($orderItemId <= 0) {
+      return NULL;
+    }
+
+    $ids = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('order_item_id', $orderItemId)
+      ->condition('status', BoostEntitlementInterface::STATUS_REVOKED, '<>')
+      ->range(0, 1)
+      ->execute();
+
+    if (empty($ids)) {
+      return NULL;
+    }
+
+    $entity = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement')->load(reset($ids));
+    return $entity instanceof BoostEntitlementInterface ? $entity : NULL;
+  }
+
+  /**
+   * Checks whether an entitlement is active for the current request time.
+   */
+  public function isEntitlementCurrentlyActive(BoostEntitlementInterface $entitlement): bool {
+    if ((string) $entitlement->get('status')->value !== BoostEntitlementInterface::STATUS_ACTIVE) {
+      return FALSE;
+    }
+
+    $now = $this->time->getRequestTime();
+    $starts = (int) ($entitlement->get('starts')->value ?? 0);
+    $ends = (int) ($entitlement->get('ends')->value ?? 0);
+    return $starts <= $now && $ends > $now;
+  }
+
+  /**
    * Returns the latest active end timestamp for an event.
    */
   public function getActiveEndTimestampForEvent(int $eventNid): ?int {

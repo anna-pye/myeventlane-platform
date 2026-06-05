@@ -13,6 +13,9 @@
     "lint:js": "eslint 'src/js/**/*.js'",
     "lint": "npm run lint:scss && npm run lint:js"
   },
+  "dependencies": {
+    "chart.js": "^4.4.4"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.22",
     "eslint": "^8.54.0",
