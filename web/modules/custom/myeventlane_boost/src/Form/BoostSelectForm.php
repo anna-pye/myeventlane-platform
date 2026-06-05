@@ -380,7 +380,8 @@ final class BoostSelectForm extends FormBase {
       $this->logger->notice('Boost form submission started');
 
       $account = $this->currentUser();
-      if (!$this->stripeChecker->isConnected($account)) {
+      if (!$account->hasPermission('administer myeventlane')
+        && !$this->stripeChecker->isConnected($account)) {
         $this->messenger()->addWarning($this->t('Connect Stripe to continue boosting this event.'));
         $nid = (int) $form_state->getValue('event_nid');
         if ($nid > 0) {

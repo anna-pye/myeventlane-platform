@@ -6,6 +6,25 @@
  */
 
 /**
+ * Implements hook_search_api_query_alter().
+ *
+ * Applies promoted-event tie-breaking for tagged event discovery queries.
+ */
+function myeventlane_search_search_api_query_alter(\Drupal\search_api\Query\QueryInterface $query): void {
+  if (!$query->hasTag('myeventlane_event_discovery')) {
+    return;
+  }
+
+  $index = $query->getIndex();
+  if ($index->id() !== 'mel_content' || !array_key_exists('field_promoted', $index->getFields())) {
+    return;
+  }
+
+  $query->sort('search_api_relevance', \Drupal\search_api\Query\QueryInterface::SORT_DESC);
+  $query->sort('field_promoted', \Drupal\search_api\Query\QueryInterface::SORT_DESC);
+}
+
+/**
  * Implements hook_theme().
  */
 function myeventlane_search_theme($existing, $type, $theme, $path): array {

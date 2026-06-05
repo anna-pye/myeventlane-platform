@@ -160,6 +160,7 @@ final class SearchController extends ControllerBase {
   private function runContentQuery(IndexInterface $index, string $keys): array {
     $now = (int) $this->time->getRequestTime();
     $query = $index->query();
+    $query->addTag('myeventlane_event_discovery');
     $query->setFulltextFields(self::CONTENT_MAIN_FULLTEXT_FIELDS);
     $query->keys($keys);
     $or = $query->createConditionGroup('OR');
@@ -207,6 +208,7 @@ final class SearchController extends ControllerBase {
   private function buildVenueItems(IndexInterface $index, string $keys): array {
     $now = (int) $this->time->getRequestTime();
     $query = $index->query();
+    $query->addTag('myeventlane_event_discovery');
     $query->setFulltextFields(self::CONTENT_VENUE_FULLTEXT_FIELDS);
     $query->keys($keys);
     $query->addCondition('type', 'event');

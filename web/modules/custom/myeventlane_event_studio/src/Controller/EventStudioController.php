@@ -239,7 +239,7 @@ final class EventStudioController extends ControllerBase {
       ],
       '#cache' => [
         'tags' => $node->getCacheTags(),
-        'contexts' => ['route', 'user', 'user.permissions'],
+        'contexts' => ['route', 'user', 'user.permissions', 'url.query_args:mel_celebrate'],
       ],
     ];
   }
