@@ -35,8 +35,21 @@ final class BoostPlacementResolver {
    * Resolves the placement identifier for the current page request.
    */
   public function resolveCurrentPlacement(): string {
+    $routeName = (string) ($this->routeMatch->getRouteName() ?? '');
+
+    // Chip AJAX renders cards on the filter route; attribute to the category page.
+    if ($routeName === 'myeventlane_core.event_filter') {
+      $request = $this->requestStack->getCurrentRequest();
+      if ($request instanceof Request) {
+        $chipPlacement = $this->resolvePlacementFromChipFilterRequest($request);
+        if ($chipPlacement !== NULL && $this->isValidPlacement($chipPlacement)) {
+          return $chipPlacement;
+        }
+      }
+    }
+
     return $this->resolvePlacementFromRoute(
-      (string) ($this->routeMatch->getRouteName() ?? ''),
+      $routeName,
       $this->extractRouteParameters($this->routeMatch),
     );
   }
@@ -118,6 +131,35 @@ final class BoostPlacementResolver {
     }
 
     return 'listing';
+  }
+
+  /**
+   * Resolves placement for category chip AJAX card renders.
+   *
+   * Cards are built on myeventlane_core.event_filter, but beacons validate against
+   * the browser Referer (the category listing page). Prefer Referer, then the
+   * category query param sent by mel-chips.js.
+   */
+  private function resolvePlacementFromChipFilterRequest(Request $request): ?string {
+    $referer = $request->headers->get('Referer');
+    if (is_string($referer) && $referer !== '') {
+      $fromReferer = $this->resolvePlacementFromReferer($referer);
+      if ($fromReferer !== NULL && $this->isValidPlacement($fromReferer)) {
+        return $fromReferer;
+      }
+    }
+
+    $category = $request->query->get('category');
+    if ($category === NULL || $category === '' || $this->categoryUrlService === NULL) {
+      return NULL;
+    }
+
+    $term = $this->categoryUrlService->resolveTerm($category);
+    if (!$term instanceof TermInterface) {
+      return NULL;
+    }
+
+    return 'category_' . $this->sanitizePlacementSegment($this->categoryUrlService->getSlug($term));
   }
 
   /**
