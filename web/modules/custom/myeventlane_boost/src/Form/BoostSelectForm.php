@@ -15,6 +15,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_boost\Service\StripeChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -56,6 +57,7 @@ final class BoostSelectForm extends FormBase {
     private readonly CartManagerInterface $cartManager,
     private readonly CartProviderInterface $cartProvider,
     private readonly AccessManagerInterface $accessManager,
+    private readonly StripeChecker $stripeChecker,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -69,6 +71,7 @@ final class BoostSelectForm extends FormBase {
       $container->get('commerce_cart.cart_manager'),
       $container->get('commerce_cart.cart_provider'),
       $container->get('access_manager'),
+      $container->get('myeventlane_boost.stripe_checker'),
       $container->get('logger.channel.myeventlane_boost'),
     );
   }
@@ -375,6 +378,19 @@ final class BoostSelectForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     try {
       $this->logger->notice('Boost form submission started');
+
+      $account = $this->currentUser();
+      if (!$this->stripeChecker->isConnected($account)) {
+        $this->messenger()->addWarning($this->t('Connect Stripe to continue boosting this event.'));
+        $nid = (int) $form_state->getValue('event_nid');
+        if ($nid > 0) {
+          $form_state->setRedirect('myeventlane_boost.boost_page', ['node' => $nid]);
+        }
+        else {
+          $form_state->setRebuild();
+        }
+        return;
+      }
 
       $nid = (int) $form_state->getValue('event_nid');
       $variationId = (int) $form_state->getValue('choices');

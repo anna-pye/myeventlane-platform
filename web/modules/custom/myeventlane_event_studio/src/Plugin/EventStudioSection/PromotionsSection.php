@@ -11,7 +11,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
  */
 #[EventStudioSection(
   id: 'promotions',
-  title: 'Promotions',
+  title: 'Visibility & updates',
   group: 'Manage Event',
   routeName: 'myeventlane_event_studio.workspace_promotions',
   section_state: 'active',

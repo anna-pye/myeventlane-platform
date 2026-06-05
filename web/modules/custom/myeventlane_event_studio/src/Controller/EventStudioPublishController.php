@@ -10,6 +10,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
+use Drupal\myeventlane_event_studio\EventStudioPreprocess;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
@@ -39,6 +40,7 @@ final class EventStudioPublishController {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
+    private readonly EventStudioPreprocess $eventStudioPreprocess,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -278,6 +280,13 @@ final class EventStudioPublishController {
         'query' => ['restore_draft' => '1'],
       ])->toString();
       $payload['restoreSection'] = $restoreSection;
+    }
+
+    if ($ok && $state === 'published' && $node->isPublished()) {
+      $handoff = $this->eventStudioPreprocess->buildPublishSuccessHandoff($node);
+      if ($handoff !== NULL) {
+        $payload['handoff'] = $handoff;
+      }
     }
 
     return new JsonResponse($payload, $status);

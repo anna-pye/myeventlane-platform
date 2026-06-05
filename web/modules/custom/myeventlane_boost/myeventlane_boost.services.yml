@@ -56,7 +56,6 @@ services:
   myeventlane_boost.access:
     class: Drupal\myeventlane_boost\Access\BoostRouteAccess
     arguments:
-      - '@myeventlane_boost.stripe_checker'
       - '@logger.channel.myeventlane_boost'
       - '@myeventlane_vendor.access.vendor_console'
 

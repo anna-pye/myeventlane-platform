@@ -11,6 +11,7 @@ use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_event_studio\EventStudioPreprocess;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
@@ -46,6 +47,7 @@ final class EventStudioController extends ControllerBase {
     private readonly EventStudioSectionRenderer $sectionRenderer,
     private readonly EventStudioEmptyStateBuilder $emptyStateBuilder,
     private readonly DomainDetector $domainDetector,
+    private readonly EventStudioPreprocess $eventStudioPreprocess,
   ) {
     $this->entityTypeManager = $entity_type_manager;
   }
@@ -64,6 +66,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.section_renderer'),
       $container->get('myeventlane_event_studio.empty_state_builder'),
       $container->get('myeventlane_core.domain_detector'),
+      $container->get('myeventlane_event_studio.preprocess'),
     );
   }
 
@@ -179,6 +182,13 @@ final class EventStudioController extends ControllerBase {
     $request = $this->requestStack->getCurrentRequest();
     $routeName = $request !== NULL ? (string) ($request->attributes->get('_route') ?? '') : '';
 
+    $publish_handoff = NULL;
+    if ($request !== NULL
+      && (string) $request->query->get('mel_celebrate') === '1'
+      && $node->isPublished()) {
+      $publish_handoff = $this->eventStudioPreprocess->buildPublishSuccessHandoff($node);
+    }
+
     $this->logger->debug('Event Studio workspace render: route=@route event_id=@eid section=@section plugin=@plugin render_target=@target section_content_keys=@keys', [
       '@route' => $routeName,
       '@eid' => (string) $node->id(),
@@ -199,6 +209,7 @@ final class EventStudioController extends ControllerBase {
       '#section_content' => $sectionContent,
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
       '#readiness' => $this->buildReadinessSummary($readiness),
+      '#publish_handoff' => $publish_handoff,
       '#attached' => [
         'library' => ['myeventlane_event_studio/mel_event_studio_shell_only'],
         'drupalSettings' => [
@@ -222,6 +233,7 @@ final class EventStudioController extends ControllerBase {
             'nodeChanged' => $node->getChangedTime(),
             'nodeRevisionId' => (int) $node->getRevisionId(),
             'published' => $node->isPublished(),
+            'publishHandoff' => $publish_handoff,
           ],
         ],
       ],

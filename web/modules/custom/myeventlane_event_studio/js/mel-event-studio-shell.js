@@ -286,6 +286,16 @@
     if (!feedback) {
       return;
     }
+    const errorPanel = feedback.querySelector('[data-mel-publish-error]');
+    const successPanel = feedback.querySelector('[data-mel-publish-success]');
+    if (successPanel) {
+      successPanel.hidden = true;
+    }
+    if (errorPanel) {
+      errorPanel.hidden = false;
+    }
+    feedback.classList.remove('is-success');
+
     const list = feedback.querySelector('[data-mel-publish-feedback-list]');
     const heading = feedback.querySelector('[data-mel-publish-feedback-title]');
     const restore = feedback.querySelector('[data-mel-publish-restore]');
@@ -317,10 +327,119 @@
     }
   }
 
+  function renderPublishSuccessFeedback(shell, handoff) {
+    const feedback = shell.querySelector('[data-mel-publish-feedback]');
+    if (!feedback || !handoff) {
+      return;
+    }
+
+    const errorPanel = feedback.querySelector('[data-mel-publish-error]');
+    const successPanel = feedback.querySelector('[data-mel-publish-success]');
+    if (errorPanel) {
+      errorPanel.hidden = true;
+    }
+    if (!successPanel) {
+      renderPublishFeedback(shell, handoff.message || Drupal.t('Published successfully'), []);
+      return;
+    }
+
+    const setText = (selector, value) => {
+      const el = successPanel.querySelector(selector);
+      if (el && value) {
+        el.textContent = value;
+      }
+    };
+
+    setText('[data-mel-publish-success-title]', handoff.title);
+    setText('[data-mel-publish-success-message]', handoff.message);
+    setText('[data-mel-publish-success-growth-title]', handoff.growth_title);
+    setText('[data-mel-publish-success-growth-body]', handoff.growth_body);
+
+    const growthBlock = successPanel.querySelector('[data-mel-publish-success-growth]');
+    const growLink = successPanel.querySelector('[data-mel-publish-success-grow]');
+    const boostLink = successPanel.querySelector('[data-mel-publish-success-boost]');
+    const viewRow = successPanel.querySelector('[data-mel-publish-success-view-row]');
+    const viewLink = successPanel.querySelector('[data-mel-publish-success-view]');
+    const socialRow = successPanel.querySelector('[data-mel-publish-success-social]');
+
+    if (growthBlock) {
+      growthBlock.hidden = false;
+    }
+    if (growLink) {
+      if (handoff.grow_url) {
+        growLink.href = handoff.grow_url;
+        growLink.hidden = false;
+      }
+      else {
+        growLink.hidden = true;
+        growLink.removeAttribute('href');
+      }
+    }
+    if (boostLink) {
+      if (handoff.boost_url) {
+        boostLink.href = handoff.boost_url;
+        boostLink.hidden = false;
+      }
+      else {
+        boostLink.hidden = true;
+        boostLink.removeAttribute('href');
+      }
+    }
+    if (viewLink && viewRow) {
+      if (handoff.view_url) {
+        viewLink.href = handoff.view_url;
+        viewRow.hidden = false;
+      }
+      else {
+        viewRow.hidden = true;
+        viewLink.removeAttribute('href');
+      }
+    }
+    if (socialRow) {
+      socialRow.textContent = '';
+      const share = handoff.share || {};
+      const shareLinks = [
+        ['facebook', Drupal.t('Facebook')],
+        ['linkedin', Drupal.t('LinkedIn')],
+        ['twitter', Drupal.t('X')],
+      ];
+      shareLinks.forEach(([key, label]) => {
+        if (!share[key]) {
+          return;
+        }
+        const link = document.createElement('a');
+        link.className = 'mel-btn mel-btn--secondary';
+        link.href = share[key];
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = label;
+        socialRow.appendChild(link);
+      });
+      socialRow.hidden = socialRow.childElementCount === 0;
+    }
+
+    successPanel.hidden = false;
+    feedback.classList.add('is-success');
+    feedback.hidden = false;
+    if (typeof feedback.focus === 'function') {
+      feedback.setAttribute('tabindex', '-1');
+      feedback.focus({ preventScroll: true });
+    }
+  }
+
   function hidePublishFeedback(shell) {
     const feedback = shell.querySelector('[data-mel-publish-feedback]');
     if (feedback) {
       feedback.hidden = true;
+      feedback.classList.remove('is-success');
+      const errorPanel = feedback.querySelector('[data-mel-publish-error]');
+      const successPanel = feedback.querySelector('[data-mel-publish-success]');
+      if (errorPanel) {
+        errorPanel.hidden = true;
+      }
+      if (successPanel) {
+        successPanel.hidden = true;
+      }
     }
   }
 
@@ -328,6 +447,10 @@
     attach(context) {
       once('mel-event-studio-mobile-priority', '[data-mel-studio-shell]', context).forEach((shell) => {
         applyMobilePriorities(shell);
+        const handoff = studioSettings().publishHandoff;
+        if (handoff) {
+          renderPublishSuccessFeedback(shell, handoff);
+        }
       });
 
       once('mel-event-studio-sidebar-toggle', '[data-mel-studio-sidebar-toggle]', context).forEach((button) => {
@@ -539,7 +662,12 @@
               setPublishButtonState(button, 'cannot_publish');
               return;
             }
-            renderPublishFeedback(shell, result.message || Drupal.t('Published successfully'), []);
+            if (result.handoff) {
+              renderPublishSuccessFeedback(shell, result.handoff);
+            }
+            else {
+              renderPublishFeedback(shell, result.message || Drupal.t('Published successfully'), []);
+            }
             setPublishButtonState(button, 'published');
             updatePublishPanels(shell, true);
             updateFormMetadata(shell, result);
@@ -606,7 +734,12 @@
               button.textContent = originalLabel || Drupal.t('Publish now');
               return;
             }
-            renderPublishFeedback(shell, result.message || Drupal.t('Published successfully'), []);
+            if (result.handoff) {
+              renderPublishSuccessFeedback(shell, result.handoff);
+            }
+            else {
+              renderPublishFeedback(shell, result.message || Drupal.t('Published successfully'), []);
+            }
             updatePublishPanels(shell, true);
             updateFormMetadata(shell, result);
             button.disabled = false;

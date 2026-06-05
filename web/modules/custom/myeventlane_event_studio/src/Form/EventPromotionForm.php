@@ -29,11 +29,11 @@ final class EventPromotionForm extends EventStudioBaseForm {
   }
 
   protected function getContinueButtonLabel() {
-    return $this->t('Save promotions');
+    return $this->t('Continue');
   }
 
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
-    $this->messenger()->addStatus($this->t('Promotion settings saved.'));
+    $this->messenger()->addStatus($this->t('Saved.'));
     $form_state->setRedirect('myeventlane_event_studio.workspace_promotions', ['node' => $saved->id()]);
   }
 
@@ -42,7 +42,9 @@ final class EventPromotionForm extends EventStudioBaseForm {
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
       'copy' => [
-        '#markup' => '<p>' . $this->t('Promotion tools now live inside Event Studio. Existing communications services remain the source of truth; this section intentionally does not create a parallel promotion system.') . '</p>',
+        '#markup' => '<p>' . $this->t('After you publish, Boost and Featured help more people discover your event on MyEventLane. Set those up from the Boost section.') . '</p>'
+        . '<p>' . $this->t('Attendee Messaging is separate. Use it to send essential updates—such as time changes or cancellations—to people who already booked or RSVPed.') . '</p>'
+        . '<p>' . $this->t('This section is informational only. Nothing is configured here.') . '</p>',
       ],
     ];
   }

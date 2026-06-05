@@ -15,6 +15,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_boost\Service\StripeChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -63,6 +64,7 @@ final class BoostPurchaseForm extends FormBase {
     private readonly CartManagerInterface $cartManager,
     private readonly CartProviderInterface $cartProvider,
     private readonly AccessManagerInterface $accessManager,
+    private readonly StripeChecker $stripeChecker,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -76,6 +78,7 @@ final class BoostPurchaseForm extends FormBase {
       $container->get('commerce_cart.cart_manager'),
       $container->get('commerce_cart.cart_provider'),
       $container->get('access_manager'),
+      $container->get('myeventlane_boost.stripe_checker'),
       $container->get('logger.channel.myeventlane_boost'),
     );
   }
@@ -219,6 +222,17 @@ final class BoostPurchaseForm extends FormBase {
     $vid = (int) $form_state->getValue('variation_id');
     $nid = (int) $form_state->getValue('event_id');
     $uid = (int) $this->currentUser()->id();
+
+    if (!$this->stripeChecker->isConnected($this->currentUser())) {
+      $this->messenger()->addWarning($this->t('Connect Stripe to continue boosting this event.'));
+      if ($nid > 0) {
+        $form_state->setRedirect('myeventlane_boost.boost_page', ['node' => $nid]);
+      }
+      else {
+        $form_state->setRebuild(TRUE);
+      }
+      return;
+    }
 
     $this->logger->notice('Selected variation @vid for event @nid by user @uid', [
       '@vid' => $vid,

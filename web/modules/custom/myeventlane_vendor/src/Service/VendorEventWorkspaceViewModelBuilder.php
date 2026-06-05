@@ -708,7 +708,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'actions' => $this->pickFocusActions([
           ['label' => (string) $this->t('Edit event'), 'url' => $actions['edit'] ?? NULL, 'primary' => TRUE],
           ['label' => (string) $this->t('Preview public event'), 'url' => $actions['preview'] ?? NULL, 'primary' => FALSE],
-          ['label' => (string) $this->t('Promote event'), 'url' => $actions['promote'] ?? NULL, 'primary' => FALSE],
+          ['label' => (string) $this->t('Attendee Messaging'), 'url' => $actions['promote'] ?? NULL, 'primary' => FALSE],
         ]),
       ];
     }
@@ -730,7 +730,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'message' => (string) $this->t('Your event is live. Share it to start collecting bookings.'),
         'severity' => 'success',
         'actions' => $this->pickFocusActions([
-          ['label' => (string) $this->t('Promote event'), 'url' => $actions['promote'] ?? NULL, 'primary' => TRUE],
+          ['label' => (string) $this->t('Attendee Messaging'), 'url' => $actions['promote'] ?? NULL, 'primary' => TRUE],
           ['label' => (string) $this->t('Preview public event'), 'url' => $actions['preview'] ?? NULL, 'primary' => FALSE],
           ['label' => (string) $this->t('Edit tickets'), 'url' => $actions['edit_tickets'] ?? $actions['advanced_tickets'] ?? NULL, 'primary' => FALSE],
         ]),
@@ -853,7 +853,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         ['label' => (string) $this->t('Merch & add-ons'), 'url' => $actions['extras'] ?? NULL],
       ]),
       'growth' => $this->pickGridActions([
-        ['label' => (string) $this->t('Promote event'), 'url' => $actions['promote'] ?? NULL],
+        ['label' => (string) $this->t('Attendee Messaging'), 'url' => $actions['promote'] ?? NULL],
         ['label' => (string) $this->t('View analytics'), 'url' => $actions['analytics'] ?? NULL],
       ]),
     ];
