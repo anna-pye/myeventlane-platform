@@ -233,7 +233,7 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       'myeventlane_event_attendees.waitlist_manage',
       'myeventlane_vendor.console.event_rsvps' => 'myeventlane_event_studio.workspace_attendees',
       'myeventlane_vendor.manage_event.promote',
-      'myeventlane_vendor.console.event_promotion' => 'myeventlane_event_studio.workspace_promotions',
+      'myeventlane_vendor.console.event_promotion' => 'myeventlane_event_studio.workspace_messaging',
       'myeventlane_vendor.console.event_orders',
       'myeventlane_vendor.console.event_order_view' => 'myeventlane_event_studio.workspace_orders',
       'myeventlane_vendor.console.event_analytics' => 'myeventlane_event_studio.workspace_analytics',

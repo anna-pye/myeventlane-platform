@@ -169,12 +169,25 @@ myeventlane_event_studio.workspace_add_ons:
       node:
         type: entity:node
 
-myeventlane_event_studio.workspace_promotions:
-  path: '/vendor/events/{node}/studio/promotions'
+myeventlane_event_studio.workspace_messaging:
+  path: '/vendor/events/{node}/studio/messaging'
   defaults:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspace'
     _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::workspaceTitle'
-    section: 'promotions'
+    section: 'messaging'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+# Legacy alias: preserves bookmarked /studio/promotions URLs (renamed to messaging).
+myeventlane_event_studio.workspace_promotions:
+  path: '/vendor/events/{node}/studio/promotions'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectToMessagingWorkspace'
   requirements:
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     node: \d+

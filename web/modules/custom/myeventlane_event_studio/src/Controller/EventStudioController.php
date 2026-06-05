@@ -151,6 +151,26 @@ final class EventStudioController extends ControllerBase {
   }
 
   /**
+   * Preserves bookmarked promotions URLs while routing to the renamed Messaging section.
+   */
+  public function redirectToMessagingWorkspace(NodeInterface $node): RedirectResponse {
+    if ($node->bundle() !== 'event') {
+      throw new NotFoundHttpException();
+    }
+    $account = $this->currentUser();
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      throw new AccessDeniedHttpException();
+    }
+    $request = $this->requestStack->getCurrentRequest();
+    $options = [];
+    if ($request !== NULL && $request->query->count() > 0) {
+      $options['query'] = $request->query->all();
+    }
+    return new RedirectResponse(Url::fromRoute('myeventlane_event_studio.workspace_messaging', ['node' => $node->id()], $options)->toString());
+  }
+
+  /**
    * Builds the canonical operational Event Studio shell.
    *
    * @return array<string, mixed>
