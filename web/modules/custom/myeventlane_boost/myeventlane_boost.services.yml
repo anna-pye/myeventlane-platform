@@ -125,6 +125,7 @@ services:
       - '@myeventlane_boost.impression_tracker'
       - '@entity_type.manager'
       - '@cache.default'
+      - '@lock'
       - '@request_stack'
       - '@logger.channel.myeventlane_boost'
 
