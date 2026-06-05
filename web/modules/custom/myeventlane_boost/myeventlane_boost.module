@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Cron\BoostExpiryCron;
 use Drupal\myeventlane_boost\Cron\BoostExpiryReminderCron;
 
@@ -146,6 +147,17 @@ function myeventlane_boost_mail(string $key, array &$message, array $params): vo
 
   // Set HTML content type for all boost emails.
   $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Exposes the impression beacon endpoint to client-side tracking behaviour.
+ */
+function myeventlane_boost_page_attachments(array &$attachments): void {
+  $attachments['#attached']['drupalSettings']['melBoostImpression'] = [
+    'impressionUrl' => Url::fromRoute('myeventlane_boost.impression')->toString(),
+  ];
 }
 
 /**

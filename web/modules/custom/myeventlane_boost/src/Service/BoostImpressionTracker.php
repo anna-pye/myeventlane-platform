@@ -64,7 +64,9 @@ final class BoostImpressionTracker {
           'placement' => $placement,
         ])
         ->insertFields([
+          'boost_order_item_id' => $boost_order_item_id,
           'event_id' => $event_id,
+          'placement' => $placement,
           'impressions' => 1,
           'created' => $now,
           'changed' => $now,

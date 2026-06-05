@@ -64,7 +64,6 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       throw new AccessDeniedHttpException('Pro subscription is required.');
     }
     $tabs = $this->eventTabsService->getTabs($event, 'analytics');
-    $charts = $this->metricsAggregator->getEventCharts($event);
     $overview = $this->metricsAggregator->getEventOverview($event);
 
     $ticketRows = array_values(array_filter(
@@ -73,6 +72,8 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     ));
     $ticket_tier_rollup = $this->ticketTierAnalytics->buildEventTierRollup($event, $ticketRows);
     $ticket_tier_rollup['tier_row_count'] = count($ticketRows);
+
+    $charts = $this->metricsAggregator->getEventCharts($event);
 
     $chart_data = [
       'event-sales' => [
@@ -100,6 +101,44 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         ],
       ],
     ];
+
+    $ticket_mix_labels = [];
+    $ticket_mix_sold = [];
+    foreach ($overview['tickets'] ?? [] as $ticket) {
+      if (!is_array($ticket)) {
+        continue;
+      }
+      $sold = (int) ($ticket['sold'] ?? 0);
+      if ($sold <= 0) {
+        continue;
+      }
+      $label = trim((string) ($ticket['label'] ?? ''));
+      if ($label === '') {
+        continue;
+      }
+      $ticket_mix_labels[] = $label;
+      $ticket_mix_sold[] = $sold;
+    }
+    if ($ticket_mix_labels !== []) {
+      $chart_data['event-ticket-mix'] = [
+        'type' => 'doughnut',
+        'labels' => $ticket_mix_labels,
+        'datasets' => [
+          [
+            'label' => (string) $this->t('Tickets sold'),
+            'data' => $ticket_mix_sold,
+            'backgroundColor' => [
+              '#6C7EF2',
+              '#F26D5B',
+              '#5CC98B',
+              '#FFD46F',
+              '#8b5cf6',
+              '#06b6d4',
+            ],
+          ],
+        ],
+      ];
+    }
 
     $boost_page_url = NULL;
     try {
@@ -157,6 +196,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#export_pdf_url' => $export_pdf_url,
         '#export_excel_url' => $export_excel_url,
         '#commerce_analytics' => $commerce_analytics,
+        '#has_ticket_mix_chart' => isset($chart_data['event-ticket-mix']),
       ],
       '#attached' => [
         'library' => [

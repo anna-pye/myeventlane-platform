@@ -149,6 +149,15 @@ myeventlane_boost.performance_guide_pdf:
   options:
     _maintenance_access: FALSE
 
+# Client-side Boost card impression beacon.
+myeventlane_boost.impression:
+  path: '/mel/boost/impression'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\BoostImpressionController::record'
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
+
 # Admin settings page.
 myeventlane_boost.settings:
   path: '/admin/config/myeventlane/boost'

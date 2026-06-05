@@ -1362,6 +1362,8 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'edit_event_url' => NULL,
         'export_pdf_url' => NULL,
         'export_excel_url' => NULL,
+        'commerce_analytics' => [],
+        'has_ticket_mix_chart' => FALSE,
       ],
       'template' => 'event/analytics',
     ],
