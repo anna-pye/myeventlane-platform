@@ -51,6 +51,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'section_content' => NULL,
         'topbar' => [],
         'readiness' => [],
+        'publish_handoff' => NULL,
       ],
       'template' => 'mel-event-studio-workspace',
     ],

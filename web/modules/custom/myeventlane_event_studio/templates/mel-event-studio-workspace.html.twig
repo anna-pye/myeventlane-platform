@@ -31,9 +31,27 @@
   </section>
 
   <section class="mel-event-studio-publish-feedback" aria-live="polite" aria-atomic="true" data-mel-publish-feedback hidden>
-    <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-feedback-title>{{ 'Cannot publish yet'|t }}</h2>
-    <ul class="mel-event-studio-publish-feedback__list" data-mel-publish-feedback-list></ul>
-    <a class="mel-event-studio-publish-feedback__restore" href="#" data-mel-publish-restore hidden>{{ 'Restore draft'|t }}</a>
+    <div class="mel-event-studio-publish-feedback__error" data-mel-publish-error hidden>
+      <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-feedback-title>{{ 'Cannot publish yet'|t }}</h2>
+      <ul class="mel-event-studio-publish-feedback__list" data-mel-publish-feedback-list></ul>
+      <a class="mel-event-studio-publish-feedback__restore" href="#" data-mel-publish-restore hidden>{{ 'Restore draft'|t }}</a>
+    </div>
+    <div class="mel-event-studio-publish-feedback__success" data-mel-publish-success hidden>
+      <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-success-title></h2>
+      <p class="mel-event-studio-publish-feedback__status" data-mel-publish-success-message></p>
+      <div class="mel-event-studio-publish-feedback__growth" data-mel-publish-success-growth hidden>
+        <p class="mel-event-studio-publish-feedback__growth-title" data-mel-publish-success-growth-title></p>
+        <p class="mel-event-studio-publish-feedback__growth-body" data-mel-publish-success-growth-body></p>
+        <div class="mel-event-studio-publish-feedback__actions">
+          <a class="mel-btn mel-btn--primary mel-event-studio-publish-feedback__grow" href="#" data-mel-publish-success-grow hidden>{{ 'Grow My Event'|t }}</a>
+          <a class="mel-event-studio-publish-feedback__boost-link" href="#" data-mel-publish-success-boost hidden>{{ 'Boost Event'|t }}</a>
+        </div>
+      </div>
+      <div class="mel-event-studio-publish-feedback__row" data-mel-publish-success-view-row hidden>
+        <a class="mel-btn mel-btn--secondary" href="#" target="_blank" rel="noopener noreferrer" data-mel-publish-success-view>{{ 'View event'|t }}</a>
+      </div>
+      <div class="mel-event-studio-publish-feedback__row mel-event-studio-publish-feedback__social" data-mel-publish-success-social hidden role="group" aria-label="{{ 'Share on social'|t }}"></div>
+    </div>
   </section>
 
   <button

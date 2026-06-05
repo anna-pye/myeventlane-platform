@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor_comms\Service;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\node\NodeInterface;
 
 /**
@@ -19,9 +20,12 @@ final class EventRecipientResolver {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\myeventlane_commerce\Service\OrderItemClassifier $orderItemClassifier
+   *   Canonical Commerce order item classifier.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -60,14 +64,22 @@ final class EventRecipientResolver {
         continue;
       }
 
-      // Get order.
-      try {
-        $order = $orderItem->getOrder();
-        if (!$order instanceof OrderInterface) {
-          continue;
-        }
+      if (!$this->orderItemClassifier->isVendorRevenueEligible($orderItem)) {
+        continue;
       }
-      catch (\Exception $e) {
+
+      if ($orderItem->get('order_id')->isEmpty()) {
+        continue;
+      }
+
+      $order_id = (int) $orderItem->getOrderId();
+      if ($order_id <= 0) {
+        continue;
+      }
+
+      /** @var \Drupal\commerce_order\Entity\OrderInterface|null $order */
+      $order = $this->entityTypeManager->getStorage('commerce_order')->load($order_id);
+      if (!$order instanceof OrderInterface) {
         continue;
       }
 

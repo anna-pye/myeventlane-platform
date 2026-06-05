@@ -702,9 +702,9 @@ myeventlane_vendor.console.event_promotion:
   path: '/vendor/events/{event}/promotion'
   defaults:
     _form: '\Drupal\myeventlane_vendor_comms\Form\VendorEventCommsForm'
-    _title: 'Promotion'
+    _title: 'Attendee Messaging'
   requirements:
-    _entity_access: 'node.view'
+    _entity_access: 'event.view'
     _custom_access: '\Drupal\myeventlane_vendor_comms\Controller\VendorCommsController::checkAccess'
     event: '\d+'
   options:
@@ -719,9 +719,9 @@ myeventlane_vendor_comms.branding:
   path: '/vendor/events/{event}/promotion/branding'
   defaults:
     _form: '\Drupal\myeventlane_messaging\Form\EventBrandOverrideForm'
-    _title: 'Promotion branding'
+    _title: 'Message branding'
   requirements:
-    _entity_access: 'node.view'
+    _entity_access: 'event.view'
     _custom_access: '\Drupal\myeventlane_vendor_comms\Controller\VendorCommsController::checkAccess'
     event: '\d+'
   options:

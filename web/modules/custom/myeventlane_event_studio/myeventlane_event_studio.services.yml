@@ -14,6 +14,7 @@ services:
       - '@myeventlane_event_studio.section_renderer'
       - '@myeventlane_event_studio.empty_state_builder'
       - '@myeventlane_core.domain_detector'
+      - '@myeventlane_event_studio.preprocess'
     tags:
       - { name: controller.service_arguments }
 
@@ -27,6 +28,7 @@ services:
       - '@request_stack'
       - '@myeventlane_core.domain_detector'
       - '@myeventlane_vendor.paid_publish_stripe_gate'
+      - '@string_translation'
 
   myeventlane_event_studio.vendor_mel_ticket_type_edit_redirect_subscriber:
     class: Drupal\myeventlane_event_studio\EventSubscriber\VendorMelTicketTypeEditRedirectSubscriber
@@ -468,6 +470,7 @@ services:
       - '@date.formatter'
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
+      - '@myeventlane_event_studio.preprocess'
     tags:
       - { name: controller.service_arguments }
 

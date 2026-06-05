@@ -2658,10 +2658,108 @@
   box-shadow: 0 10px 28px rgba(244, 63, 94, 0.08);
 }
 
+.mel-event-studio-publish-feedback.is-success {
+  border-color: rgba(56, 65, 99, 0.12);
+  background: linear-gradient(110deg, rgba(255, 237, 230, 0.95) 0%, #eef2ff 100%);
+  box-shadow: 0 10px 28px rgba(56, 65, 99, 0.08);
+}
+
 .mel-event-studio-publish-feedback__title {
   margin: 0 0 8px;
   color: #9f1239;
   font-size: 1rem;
+}
+
+.mel-event-studio-publish-feedback.is-success .mel-event-studio-publish-feedback__title {
+  color: #384163;
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.mel-event-studio-publish-feedback__status {
+  margin: 0 0 0.75rem;
+  color: #475569;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.mel-event-studio-publish-feedback__growth {
+  margin: 0 0 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(56, 65, 99, 0.12);
+}
+
+.mel-event-studio-publish-feedback__growth-title {
+  margin: 0 0 0.35rem;
+  font-weight: 650;
+  color: #384163;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.mel-event-studio-publish-feedback__growth-body {
+  margin: 0 0 0.75rem;
+  color: #475569;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.mel-event-studio-publish-feedback__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+}
+
+.mel-event-studio-publish-feedback__grow {
+  min-height: 2.75rem;
+}
+
+.mel-event-studio-publish-feedback__boost-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.15rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #e06c5c;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.mel-event-studio-publish-feedback__boost-link:hover,
+.mel-event-studio-publish-feedback__boost-link:focus-visible {
+  color: #c85a4b;
+}
+
+.mel-event-studio-publish-feedback__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.mel-event-studio-publish-feedback__social .mel-btn {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 640px) {
+  .mel-event-studio-publish-feedback__social {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mel-event-studio-publish-feedback__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mel-event-studio-publish-feedback__grow,
+  .mel-event-studio-publish-feedback__row .mel-btn {
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 .mel-event-studio-publish-feedback__list {
@@ -4940,6 +5038,13 @@
   font-size: 1rem;
   line-height: 1.45;
   color: var(--mel-color-text, #24303a);
+}
+
+.mel-event-studio .mel-event-studio-guided-intro__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--mel-color-text-muted, #5c6770);
 }
 
 /* Sticky save footer — keeps Drupal form actions visible while scrolling. */

@@ -199,7 +199,7 @@ final class VendorEventTabsService {
     if ($this->routeExists('myeventlane_vendor.console.event_promotion')) {
       $rows[] = [
         'key' => 'promotion',
-        'label' => (string) $t->translate('Promotion'),
+        'label' => (string) $t->translate('Attendee Messaging'),
         'route' => 'myeventlane_vendor.console.event_promotion',
         'params' => ['event' => $id],
         'disabled' => FALSE,

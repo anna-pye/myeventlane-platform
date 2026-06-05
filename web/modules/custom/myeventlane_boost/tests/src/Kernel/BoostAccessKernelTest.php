@@ -180,9 +180,9 @@ final class BoostAccessKernelTest extends KernelTestBase {
   }
 
   /**
-   * Tests owner with permission but without Stripe is forbidden.
+   * Tests owner with permission but without Stripe can view the Boost page.
    */
-  public function testOwnerWithPermissionWithoutStripeForbidden(): void {
+  public function testOwnerWithPermissionWithoutStripeAllowed(): void {
     $event = Node::create([
       'type' => 'event',
       'title' => 'Published Event Owner Missing Stripe',
@@ -192,7 +192,7 @@ final class BoostAccessKernelTest extends KernelTestBase {
     $event->save();
 
     $result = $this->accessChecker()->access($event, $this->otherVendorWithPermission);
-    $this->assertTrue($result->isForbidden());
+    $this->assertTrue($result->isAllowed());
     $this->assertAccessResultCacheability($result);
   }
 

@@ -214,7 +214,7 @@ final class BoostController extends ControllerBase {
     $cancelLink['#attributes']['class'][] = 'boost-cancel';
 
     $body = $showStripeCta
-      ? $this->buildStripeConnectCta()
+      ? $this->buildStripeConnectCta($node, $vendor_workspace)
       : $this->formBuilder->getForm(BoostSelectForm::class, $node, $boostPerformance);
 
     // Theme variables must use # prefix; bare keys are treated as child render elements.
@@ -303,15 +303,30 @@ final class BoostController extends ControllerBase {
   /**
    * Builds the Stripe connection CTA for boost page.
    *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event being boosted.
+   * @param bool $vendor_workspace
+   *   Whether the page is rendered inside the vendor event workspace.
+   *
    * @return array
    *   A render array with CTA content.
    */
-  private function buildStripeConnectCta(): array {
+  private function buildStripeConnectCta(NodeInterface $event, bool $vendor_workspace): array {
+    $returnDestination = '/vendor/boost';
+    try {
+      $returnDestination = $vendor_workspace
+        ? Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $event->id()])->toString()
+        : Url::fromRoute('myeventlane_boost.boost_page', ['node' => $event->id()])->toString();
+    }
+    catch (\Throwable) {
+      // Fallback path retained when route is not available.
+    }
+
     $connectUrl = '/vendor/payouts';
 
     try {
       $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-        'query' => ['destination' => '/vendor/boost'],
+        'query' => ['destination' => $returnDestination],
       ])->toString();
     }
     catch (\Exception) {
@@ -319,7 +334,7 @@ final class BoostController extends ControllerBase {
     }
 
     $connectLink = Link::fromTextAndUrl(
-      $this->t('Connect Stripe to Boost'),
+      $this->t('Connect Stripe to continue'),
       Url::fromUri('internal:' . $connectUrl)
     )->toRenderable();
     $connectLink['#attributes']['class'][] = 'button';
@@ -335,13 +350,19 @@ final class BoostController extends ControllerBase {
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h2',
-        '#value' => $this->t('Connect Stripe to Boost'),
+        '#value' => $this->t('Connect Stripe to purchase Boost'),
         '#attributes' => ['class' => ['boost-stripe-cta__title']],
+      ],
+      'intro' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Boost helps more people discover your event across MyEventLane.'),
+        '#attributes' => ['class' => ['boost-stripe-cta__intro']],
       ],
       'text' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('You need a connected Stripe account before purchasing a boost for your event.'),
+        '#value' => $this->t('Connect Stripe to finish your payout setup. When you are ready, return here to choose a Boost package.'),
         '#attributes' => ['class' => ['boost-stripe-cta__text']],
       ],
       'action' => $connectLink,

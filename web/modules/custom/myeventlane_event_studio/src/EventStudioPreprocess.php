@@ -8,6 +8,8 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\OnboardingManager;
@@ -23,6 +25,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 final class EventStudioPreprocess {
 
+  use StringTranslationTrait;
+
   public function __construct(
     private readonly AccountInterface $currentUser,
     private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
@@ -31,7 +35,10 @@ final class EventStudioPreprocess {
     private readonly RequestStack $requestStack,
     private readonly DomainDetector $domainDetector,
     private readonly PaidPublishStripeGate $paidPublishStripeGate,
-  ) {}
+    TranslationInterface $stringTranslation,
+  ) {
+    $this->stringTranslation = $stringTranslation;
+  }
 
   /**
    * Adds contextual action URLs for the mel_event_studio theme hook.
@@ -161,6 +168,9 @@ final class EventStudioPreprocess {
     $variables['mel_publish_celebrate_share'] = [];
     $variables['mel_publish_celebrate_calendar_url'] = NULL;
     $variables['mel_publish_celebrate_node_id'] = NULL;
+    $variables['mel_publish_celebrate_grow_url'] = NULL;
+    $variables['mel_publish_celebrate_boost_url'] = NULL;
+    $variables['mel_publish_celebrate_promote_url'] = NULL;
 
     $celebrate_requested = FALSE;
     if ($request !== NULL && (string) $request->query->get('mel_celebrate') === '1') {
@@ -172,53 +182,105 @@ final class EventStudioPreprocess {
       && !$node->isNew()
       && $node->bundle() === 'event'
       && $node->isPublished()) {
-      $variables['mel_publish_celebrate'] = TRUE;
+      $handoff = $this->buildPublishSuccessHandoff($node);
+      if ($handoff !== NULL) {
+        $variables['mel_publish_celebrate'] = TRUE;
+        $variables['mel_publish_celebrate_share_url_absolute'] = $handoff['view_url'];
+        $variables['mel_publish_celebrate_dismiss_url'] = Url::fromRoute('myeventlane_event_studio.edit', ['node' => (int) $node->id()])->toString();
+        $variables['mel_publish_celebrate_share'] = $handoff['share'];
+        $variables['mel_publish_celebrate_calendar_url'] = $handoff['calendar_url'];
+        $variables['mel_publish_celebrate_node_id'] = (int) $node->id();
+        $variables['mel_publish_celebrate_promote_url'] = $handoff['promote_url'];
+        $variables['mel_publish_celebrate_boost_url'] = $handoff['boost_url'];
+        $variables['mel_publish_celebrate_grow_url'] = $handoff['grow_url'];
+      }
+    }
 
-      $canonical_path = Url::fromRoute(
+  }
+
+  /**
+   * Builds workspace publish-success handoff URLs and copy for a live event.
+   *
+   * @return array<string, mixed>|null
+   *   Handoff payload, or NULL when the event is not a published event node.
+   */
+  public function buildPublishSuccessHandoff(NodeInterface $node): ?array {
+    if ($node->isNew() || $node->bundle() !== 'event' || !$node->isPublished()) {
+      return NULL;
+    }
+
+    $event_id = (int) $node->id();
+    $canonical_path = Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString();
+    $canonical_absolute = $this->domainDetector->publicUrl($canonical_path);
+    if (!str_starts_with($canonical_absolute, 'http')) {
+      $canonical_absolute = Url::fromRoute(
         'entity.node.canonical',
-        ['node' => (int) $node->id()],
+        ['node' => $event_id],
+        ['absolute' => TRUE],
       )->toString();
-      $canonical_absolute = $this->domainDetector->publicUrl($canonical_path);
-      if (!str_starts_with($canonical_absolute, 'http')) {
-        $canonical_absolute = Url::fromRoute(
-          'entity.node.canonical',
-          ['node' => (int) $node->id()],
+    }
+
+    $snippet = Unicode::truncate($node->label(), 220, TRUE, TRUE);
+    $tweet_q = UrlHelper::buildQuery([
+      'url' => $canonical_absolute,
+      'text' => $snippet,
+    ]);
+
+    $promote_url = $this->celebrateRouteUrl('myeventlane_vendor.console.event_promotion', ['event' => $event_id]);
+    $boost_url = $this->celebrateRouteUrl('myeventlane_boost.vendor_event_boost', ['event' => $event_id]);
+    $grow_url = $boost_url ?? $promote_url;
+
+    $calendar_url = NULL;
+    if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
+      try {
+        $calendar_url = Url::fromRoute(
+          'myeventlane_event.calendar_ics',
+          ['node' => $event_id],
           ['absolute' => TRUE],
         )->toString();
       }
+      catch (\Throwable) {
+        $calendar_url = NULL;
+      }
+    }
 
-      $variables['mel_publish_celebrate_share_url_absolute'] = $canonical_absolute;
-      $variables['mel_publish_celebrate_dismiss_url'] = Url::fromRoute('myeventlane_event_studio.edit', ['node' => (int) $node->id()])->toString();
-
-      $snippet = Unicode::truncate($node->label(), 220, TRUE, TRUE);
-      $tweet_q = UrlHelper::buildQuery([
-        'url' => $canonical_absolute,
-        'text' => $snippet,
-      ]);
-
-      $variables['mel_publish_celebrate_share'] = [
+    return [
+      'title' => (string) $this->t('🎉 Your event is now live'),
+      'message' => (string) $this->t('Published successfully'),
+      'growth_title' => (string) $this->t('Ready for more attendees?'),
+      'growth_body' => (string) $this->t('Boost or feature your event to reach more people on MyEventLane.'),
+      'grow_url' => $grow_url,
+      'boost_url' => ($boost_url !== NULL && $boost_url !== $grow_url) ? $boost_url : NULL,
+      'promote_url' => $promote_url,
+      'view_url' => $canonical_absolute,
+      'share' => [
         'facebook' => 'https://www.facebook.com/sharer/sharer.php?' . UrlHelper::buildQuery(['u' => $canonical_absolute]),
         'linkedin' => 'https://www.linkedin.com/sharing/share-offsite/?' . UrlHelper::buildQuery(['url' => $canonical_absolute]),
         'twitter' => 'https://twitter.com/intent/tweet?' . $tweet_q,
-      ];
+      ],
+      'calendar_url' => $calendar_url,
+    ];
+  }
 
-      $has_calendar = $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty();
-      if ($has_calendar) {
-        try {
-          $variables['mel_publish_celebrate_calendar_url'] = Url::fromRoute(
-            'myeventlane_event.calendar_ics',
-            ['node' => (int) $node->id()],
-            ['absolute' => TRUE],
-          )->toString();
-        }
-        catch (\Throwable) {
-          $variables['mel_publish_celebrate_calendar_url'] = NULL;
-        }
+  /**
+   * Resolves a vendor growth URL when the route exists and is accessible.
+   *
+   * @param string $route
+   *   Route name.
+   * @param array<string, scalar> $parameters
+   *   Route parameters.
+   */
+  private function celebrateRouteUrl(string $route, array $parameters): ?string {
+    try {
+      $url = Url::fromRoute($route, $parameters);
+      if (!$url->access($this->currentUser)) {
+        return NULL;
       }
-
-      $variables['mel_publish_celebrate_node_id'] = (int) $node->id();
+      return $url->toString();
     }
-
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
 }

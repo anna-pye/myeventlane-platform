@@ -3,6 +3,7 @@ services:
     class: Drupal\myeventlane_vendor_comms\Service\EventRecipientResolver
     arguments:
       - '@entity_type.manager'
+      - '@myeventlane_commerce.order_item_classifier'
 
   myeventlane_vendor_comms.rate_limiter:
     class: Drupal\myeventlane_vendor_comms\Service\CommsRateLimiter

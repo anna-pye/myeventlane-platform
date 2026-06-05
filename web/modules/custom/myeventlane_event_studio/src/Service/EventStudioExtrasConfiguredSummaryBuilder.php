@@ -284,8 +284,8 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
       'manage_url' => $this->manageExtrasUrl($event_id),
       'manage_label' => (string) $this->t('Add merch & add-ons'),
       'empty_state' => [
-        'title' => (string) $this->t('Add merch or extras to this event'),
-        'copy' => (string) $this->t('Sell T-shirts, parking, meal packages, drink tokens, or VIP extras alongside your tickets.'),
+        'title' => (string) $this->t('No extras yet'),
+        'copy' => (string) $this->t('Increase revenue by offering merchandise, parking, meal packages or VIP experiences.'),
         'note' => (string) $this->t('Extras use the same checkout, but they do not count as admission tickets.'),
       ],
       'cache_tags' => $event->getCacheTags(),

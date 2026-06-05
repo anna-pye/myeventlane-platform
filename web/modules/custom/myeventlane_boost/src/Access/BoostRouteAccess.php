@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_boost\Access;
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\myeventlane_boost\Service\StripeChecker;
 use Drupal\myeventlane_vendor\Access\VendorConsoleAccess;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -21,7 +19,9 @@ use Psr\Log\LoggerInterface;
  * - Admin override.
  * - Owner + purchase permission (public /event/{node}/boost).
  * - Published event requirement.
- * - Stripe connected requirement.
+ *
+ * Stripe Connect is required at purchase/checkout only (see BoostController
+ * and boost purchase forms), not for viewing the Boost value page.
  *
  * Vendor workspace route additionally requires VendorConsoleAccess and allows
  * vendor team members linked via field_event_vendor (same as event console).
@@ -41,36 +41,17 @@ final class BoostRouteAccess {
   private const CACHE_CONTEXTS = ['user', 'user.permissions'];
 
   /**
-   * The stripe checker.
-   */
-  private StripeChecker $stripeChecker;
-
-  /**
-   * The module logger.
-   */
-  private LoggerInterface $logger;
-
-  /**
    * Constructs BoostRouteAccess.
    *
-   * @param \Drupal\myeventlane_boost\Service\StripeChecker|\Drupal\Core\Entity\EntityTypeManagerInterface $stripeChecker
-   *   The stripe checker service, or legacy entity type manager in stale
-   *   container builds.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    * @param \Drupal\myeventlane_vendor\Access\VendorConsoleAccess $vendorConsoleAccess
    *   The VendorConsole access service.
    */
   public function __construct(
-    StripeChecker|EntityTypeManagerInterface $stripeChecker,
-    LoggerInterface $logger,
+    private readonly LoggerInterface $logger,
     private readonly VendorConsoleAccess $vendorConsoleAccess,
-  ) {
-    $this->logger = $logger;
-    $this->stripeChecker = $stripeChecker instanceof StripeChecker
-      ? $stripeChecker
-      : new StripeChecker($stripeChecker, $logger);
-  }
+  ) {}
 
   /**
    * Checks access to boost route.
@@ -143,16 +124,6 @@ final class BoostRouteAccess {
         ->addCacheableDependency($node);
     }
 
-    // Must have Stripe connected (non-admin path).
-    if (!$this->stripeChecker->isConnected($account)) {
-      $this->logger->debug('Boost access denied: Stripe is not connected for user @uid', [
-        '@uid' => $account->id(),
-      ]);
-      return AccessResult::forbidden('Connect Stripe before purchasing boosts.')
-        ->addCacheContexts(self::CACHE_CONTEXTS)
-        ->addCacheableDependency($node);
-    }
-
     return AccessResult::allowed()
       ->addCacheContexts(self::CACHE_CONTEXTS)
       ->addCacheableDependency($node);
@@ -206,12 +177,6 @@ final class BoostRouteAccess {
 
     if (!$event->isPublished()) {
       return AccessResult::forbidden('Event must be published to boost.')
-        ->addCacheContexts(self::CACHE_CONTEXTS)
-        ->addCacheableDependency($event);
-    }
-
-    if (!$this->stripeChecker->isConnected($account)) {
-      return AccessResult::forbidden('Connect Stripe before purchasing boosts.')
         ->addCacheContexts(self::CACHE_CONTEXTS)
         ->addCacheableDependency($event);
     }
