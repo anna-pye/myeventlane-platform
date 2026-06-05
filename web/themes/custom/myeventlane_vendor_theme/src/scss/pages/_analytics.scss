@@ -25,6 +25,305 @@
   }
 }
 
+.mel-analytics--dashboard {
+  gap: $mel-spacing-lg;
+}
+
+// ============================================================================
+// Vendor Growth Dashboard — three distinct sales businesses
+// ============================================================================
+
+.mel-analytics--growth {
+  gap: $mel-spacing-lg;
+}
+
+.mel-analytics__business {
+  margin: 0;
+}
+
+.mel-analytics__business--all-sales {
+  border-left: 4px solid #2563eb;
+}
+
+.mel-analytics__business--tickets {
+  border-left: 4px solid #6C7EF2;
+}
+
+.mel-analytics__business--merchandise {
+  border-left: 4px solid #5CC98B;
+}
+
+.mel-analytics__business--boost {
+  border-left: 4px solid #f59e0b;
+}
+
+.mel-analytics__business--rsvp {
+  border-left: 4px solid #10b981;
+}
+
+// Compact KPI cards — content-proportional (not live-ops 6-column stretch).
+// Applied across the full analytics page, including collapsed detail panels.
+.mel-analytics--growth {
+  .mel-live-ops__metric-board {
+    margin-top: $mel-spacing-md;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $mel-spacing-sm;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(auto-fill, minmax(7.5rem, max-content));
+      justify-content: start;
+      gap: $mel-spacing-md;
+    }
+  }
+
+  .mel-live-ops__stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-1;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: $mel-spacing-sm $mel-spacing-md;
+    box-sizing: border-box;
+
+    @include respond-to(md) {
+      width: fit-content;
+      min-width: 7.5rem;
+      max-width: 11.5rem;
+    }
+  }
+
+  .mel-live-ops__stat-icon {
+    inline-size: 28px;
+    block-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .mel-live-ops__stat-label {
+    margin: 0;
+    font-size: $font-size-xs;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+
+  .mel-live-ops__stat-value {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    word-break: break-word;
+  }
+
+  .mel-analytics__details-section .mel-live-ops__metric-board {
+    margin-top: 0;
+  }
+}
+
+.mel-analytics__business-charts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-md;
+  margin-top: $mel-spacing-lg;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-analytics__business-charts--single {
+  @include respond-to(md) {
+    grid-template-columns: minmax(0, 320px);
+  }
+}
+
+.mel-analytics__product-breakdown {
+  margin-top: $mel-spacing-lg;
+}
+
+.mel-analytics__product-breakdown-title {
+  margin: 0 0 $mel-spacing-md;
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+// ============================================================================
+// Phase A — KPI strip (legacy fallback)
+// ============================================================================
+
+.mel-analytics__kpi-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $mel-spacing-sm;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: $mel-spacing-md;
+  }
+}
+
+.mel-analytics__kpi-pill {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: $mel-spacing-sm;
+  min-height: 44px;
+  padding: $mel-spacing-md;
+  border-radius: $radius-card;
+  border: 1px solid $border-color-light;
+  background: $bg-primary;
+  box-shadow: $shadow-xs;
+}
+
+.mel-analytics__kpi-pill-label {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mel-analytics__kpi-pill-value {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  font-variant-numeric: tabular-nums;
+  color: $text-primary;
+  line-height: $line-height-tight;
+}
+
+// ============================================================================
+// Phase B — Boost panel
+// ============================================================================
+
+.mel-analytics__boost-panel {
+  margin-top: 0;
+}
+
+.mel-analytics__boost-status {
+  margin: 0 0 $mel-spacing-md;
+  font-size: $font-size-body;
+  color: $text-secondary;
+}
+
+.mel-analytics__boost-cta .mel-btn {
+  min-height: 44px;
+}
+
+// ============================================================================
+// Phase C — Revenue breakdown split layout
+// ============================================================================
+
+.mel-analytics__revenue-breakdown {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-lg;
+  align-items: start;
+
+  @include respond-to(lg) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 280px);
+  }
+}
+
+.mel-analytics__revenue-breakdown-chart {
+  display: flex;
+  justify-content: center;
+}
+
+// ============================================================================
+// Phase D — Dashboard chart grid
+// ============================================================================
+
+.mel-analytics__chart-grid-section {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-md;
+}
+
+.mel-analytics__chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-md;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-analytics__chart-widget {
+  margin: 0;
+}
+
+.mel-chart-card__canvas--widget {
+  position: relative;
+  min-height: 180px;
+  height: 180px;
+}
+
+// ============================================================================
+// Phase E — Recommendations
+// ============================================================================
+
+.mel-analytics__recommendations {
+  padding: $mel-spacing-lg;
+  border-radius: $radius-card;
+  border: 1px solid $border-color-light;
+  background: $bg-secondary;
+}
+
+.mel-analytics__recommendations-list {
+  list-style: none;
+  margin: $mel-spacing-md 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-sm;
+}
+
+.mel-analytics__recommendations-item {
+  position: relative;
+  padding: $mel-spacing-md $mel-spacing-md $mel-spacing-md $mel-spacing-xl;
+  border-radius: $radius-md;
+  background: $bg-primary;
+  border: 1px solid $border-color-light;
+  font-size: $font-size-body;
+  color: $text-primary;
+  line-height: $line-height-relaxed;
+
+  &::before {
+    content: '→';
+    position: absolute;
+    left: $mel-spacing-md;
+    color: $primary;
+    font-weight: $font-weight-bold;
+  }
+}
+
+// ============================================================================
+// Phase F — Collapsed details
+// ============================================================================
+
+.mel-analytics__details-section {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-md;
+}
+
+.mel-analytics__details-section .mel-card--collapse {
+  margin: 0;
+}
+
+.mel-analytics__details-section .mel-details__summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.mel-analytics__support {
+  margin-top: $mel-spacing-sm;
+}
+
 .mel-analytics .mel-live-ops__split--analytics-charts {
   margin-top: 0;
 }
@@ -55,6 +354,48 @@
 
 .mel-analytics__ticket-mix-chart {
   margin-bottom: $mel-spacing-lg;
+}
+
+.mel-analytics__extras-mix-chart {
+  margin-top: $mel-spacing-lg;
+}
+
+.mel-analytics__revenue-overview {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-sm;
+  padding: $mel-spacing-md 0 0;
+}
+
+.mel-analytics__revenue-overview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $mel-spacing-md;
+  min-height: 44px;
+  padding: $mel-spacing-sm $mel-spacing-md;
+  border-radius: $radius-card;
+  background: $bg-secondary;
+  border: 1px solid $border-color-light;
+}
+
+.mel-analytics__revenue-overview-row--total {
+  margin-top: $mel-spacing-sm;
+  background: $bg-primary;
+  border-color: $border-color;
+  font-weight: $font-weight-semibold;
+}
+
+.mel-analytics__revenue-overview-label {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.mel-analytics__revenue-overview-value {
+  font-size: $font-size-body;
+  font-weight: $font-weight-semibold;
+  font-variant-numeric: tabular-nums;
+  color: $text-primary;
 }
 
 .mel-analytics__capacity-card {
@@ -228,7 +569,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: $spacing-6;
-  
+
   @include respond-to(lg) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -246,7 +587,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: $spacing-6;
-  
+
   @include respond-to(lg) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -266,7 +607,7 @@
   justify-content: space-between;
   padding: $spacing-3 0;
   border-bottom: 1px solid $border-color-light;
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -286,7 +627,7 @@
   justify-content: center;
   background: $bg-secondary;
   border-radius: $radius-md;
-  
+
   img {
     width: 20px;
     height: 20px;
@@ -396,7 +737,7 @@
   gap: $spacing-4;
   padding: $spacing-3 0;
   border-bottom: 1px solid $border-color-light;
-  
+
   &:last-child {
     border-bottom: none;
   }

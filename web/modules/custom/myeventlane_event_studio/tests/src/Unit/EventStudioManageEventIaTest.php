@@ -178,8 +178,14 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('buildCommerceAnalytics', $controller);
     $this->assertStringContainsString('extras_revenue', $controller);
     $this->assertStringContainsString('commerce_analytics', $twig);
-    $this->assertStringContainsString('Ticket revenue', $twig);
-    $this->assertStringContainsString('Merch/add-on revenue', $twig);
+    $this->assertStringContainsString('All sales', $twig);
+    $this->assertStringContainsString('Ticket sales', $twig);
+    $this->assertStringContainsString('Merchandise & add-ons', $twig);
+    $this->assertStringContainsString('Products sold', $twig);
+    $this->assertStringContainsString('extras_product_rows', $controller);
+    $this->assertStringContainsString('What to do next', $twig);
+    $this->assertStringContainsString('all_sales_section', $twig);
+    $this->assertStringContainsString('extras_revenue', $twig);
   }
 
   public function testEventManagementShellOnSubRoutes(): void {

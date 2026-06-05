@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -75,14 +76,15 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
 
     $charts = $this->metricsAggregator->getEventCharts($event);
 
+    $sales_series = $charts['sales'] ?? [];
     $chart_data = [
       'event-sales' => [
         'type' => 'line',
-        'labels' => array_column($charts['sales'] ?? [], 'date'),
+        'labels' => array_column($sales_series, 'date'),
         'datasets' => [
           [
-            'label' => 'Sales',
-            'data' => array_column($charts['sales'] ?? [], 'amount'),
+            'label' => 'Revenue',
+            'data' => array_column($sales_series, 'amount'),
             'borderColor' => '#2563eb',
             'backgroundColor' => 'rgba(37, 99, 235, 0.12)',
           ],
@@ -102,23 +104,26 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       ],
     ];
 
-    $ticket_mix_labels = [];
-    $ticket_mix_sold = [];
-    foreach ($overview['tickets'] ?? [] as $ticket) {
-      if (!is_array($ticket)) {
-        continue;
-      }
-      $sold = (int) ($ticket['sold'] ?? 0);
-      if ($sold <= 0) {
-        continue;
-      }
-      $label = trim((string) ($ticket['label'] ?? ''));
-      if ($label === '') {
-        continue;
-      }
-      $ticket_mix_labels[] = $label;
-      $ticket_mix_sold[] = $sold;
+    $ticket_mix = $this->buildTicketTierMix($ticketRows);
+    $ticket_mix_labels = $ticket_mix['labels'];
+    $ticket_mix_sold = $ticket_mix['sold'];
+
+    $ticket_daily_units = $this->buildTicketOnlyDailyUnitsSeries($event, $ticketRows);
+    if (array_sum(array_column($ticket_daily_units, 'tickets')) > 0) {
+      $chart_data['event-ticket-units-trend'] = [
+        'type' => 'line',
+        'labels' => array_column($ticket_daily_units, 'date'),
+        'datasets' => [
+          [
+            'label' => (string) $this->t('Tickets sold'),
+            'data' => array_column($ticket_daily_units, 'tickets'),
+            'borderColor' => '#6C7EF2',
+            'backgroundColor' => 'rgba(108, 126, 242, 0.12)',
+          ],
+        ],
+      ];
     }
+
     if ($ticket_mix_labels !== []) {
       $chart_data['event-ticket-mix'] = [
         'type' => 'doughnut',
@@ -169,7 +174,124 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     $export_pdf_url = $this->exportUrlIfAccessible($event, 'myeventlane_analytics.export_pdf');
     $export_excel_url = $this->exportUrlIfAccessible($event, 'myeventlane_analytics.export_excel');
 
+    $is_tickets_enabled = $this->eventTabsService->isTicketsEnabled($event);
+    $is_rsvp_enabled = $this->eventTabsService->isRsvpEnabled($event);
     $commerce_analytics = $this->buildCommerceAnalytics($event, $overview, $ticket_tier_rollup);
+
+    foreach ($commerce_analytics['extras_mix'] ?? [] as $slice) {
+      if (!is_array($slice)) {
+        continue;
+      }
+      $amount = (float) ($slice['amount'] ?? 0);
+      $label = trim((string) ($slice['label'] ?? ''));
+      if ($amount <= 0 || $label === '') {
+        continue;
+      }
+      if (!isset($chart_data['event-extras-mix'])) {
+        $chart_data['event-extras-mix'] = [
+          'type' => 'doughnut',
+          'labels' => [],
+          'datasets' => [
+            [
+              'label' => (string) $this->t('Extras revenue'),
+              'data' => [],
+              'backgroundColor' => [
+                '#6C7EF2',
+                '#F26D5B',
+                '#5CC98B',
+                '#FFD46F',
+                '#8b5cf6',
+                '#06b6d4',
+              ],
+            ],
+          ],
+        ];
+      }
+      $chart_data['event-extras-mix']['labels'][] = $label;
+      $chart_data['event-extras-mix']['datasets'][0]['data'][] = $amount;
+    }
+
+    $revenue_breakdown_chart = $this->buildRevenueBreakdownChart($overview, $commerce_analytics, $is_tickets_enabled);
+    if ($revenue_breakdown_chart !== NULL) {
+      $chart_data['event-revenue-breakdown'] = $revenue_breakdown_chart;
+    }
+
+    $boost_metrics = is_array($overview['boost_metrics'] ?? NULL) ? $overview['boost_metrics'] : [];
+    $boost = is_array($overview['boost'] ?? NULL) ? $overview['boost'] : [];
+    $boost_chart = $boost_metrics['chart_data'] ?? NULL;
+    if (is_array($boost_chart)) {
+      $chart_data['boost-impressions-clicks'] = [
+        'type' => 'line',
+        'labels' => $boost_chart['impressions_vs_clicks']['labels'] ?? [],
+        'datasets' => [
+          [
+            'label' => 'Impressions',
+            'data' => $boost_chart['impressions_vs_clicks']['impressions'] ?? [],
+            'borderColor' => '#6366f1',
+            'backgroundColor' => 'rgba(99, 102, 241, 0.12)',
+          ],
+          [
+            'label' => 'Clicks',
+            'data' => $boost_chart['impressions_vs_clicks']['clicks'] ?? [],
+            'borderColor' => '#f59e0b',
+            'backgroundColor' => 'rgba(245, 158, 11, 0.12)',
+          ],
+        ],
+      ];
+      $chart_data['boost-ctr-placement'] = [
+        'type' => 'bar',
+        'labels' => $boost_chart['ctr_by_placement']['labels'] ?? [],
+        'datasets' => [
+          [
+            'label' => 'CTR %',
+            'data' => $boost_chart['ctr_by_placement']['data'] ?? [],
+            'backgroundColor' => 'rgba(16, 185, 129, 0.6)',
+          ],
+        ],
+      ];
+    }
+
+    $capacity_total = $ticket_tier_rollup['total_remaining'] !== NULL
+      ? ((int) ($ticket_tier_rollup['total_sold'] ?? 0) + (int) $ticket_tier_rollup['total_remaining'])
+      : 0;
+    $capacity_pct = $capacity_total > 0
+      ? round(((int) ($ticket_tier_rollup['total_sold'] ?? 0) / $capacity_total) * 100, 1)
+      : NULL;
+
+    $donations = is_array($overview['donations'] ?? NULL) ? $overview['donations'] : [];
+    $all_sales_section = $this->buildAllSalesSection(
+      $overview,
+      $commerce_analytics,
+      $is_tickets_enabled,
+      $is_rsvp_enabled,
+      $donations,
+    );
+    $ticket_tier_breakdown = $this->buildTicketTierBreakdownDisplay($ticketRows);
+    $ticket_sales_section = $this->buildTicketSalesSection(
+      $overview,
+      $commerce_analytics,
+      $is_tickets_enabled,
+      $ticket_tier_rollup,
+      $ticketRows,
+    );
+    $merchandise_section = $this->buildMerchandiseSection($commerce_analytics);
+    $rsvp_health_section = $this->buildRsvpHealthSection($overview, $is_rsvp_enabled, $all_sales_section['show']);
+
+    $recommendations = $this->buildRecommendations(
+      $overview,
+      $commerce_analytics,
+      $is_tickets_enabled,
+      $boost,
+      $boost_page_url,
+      $capacity_pct,
+      $public_event_url,
+      $ticketRows,
+    );
+
+    $boost_impressions = (int) ($boost_metrics['impressions'] ?? 0);
+    $boost_clicks = (int) ($boost_metrics['clicks'] ?? 0);
+    $has_boost_metrics = !empty($boost['active'])
+      && ($boost_impressions > 0 || $boost_clicks > 0 || ($boost_metrics['spend'] ?? '$0.00') !== '$0.00');
 
     return $this->buildVendorPage('mel_event_workspace', [
       'event' => $event,
@@ -189,6 +311,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#charts' => $charts,
         '#overview' => $overview,
         '#ticket_tier_rollup' => $ticket_tier_rollup,
+        '#ticket_tier_breakdown' => $ticket_tier_breakdown,
         '#boost_page_url' => $boost_page_url,
         '#public_event_url' => $public_event_url,
         '#workspace_back_url' => $workspace_back_url,
@@ -196,7 +319,20 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#export_pdf_url' => $export_pdf_url,
         '#export_excel_url' => $export_excel_url,
         '#commerce_analytics' => $commerce_analytics,
+        '#all_sales_section' => $all_sales_section,
+        '#ticket_sales_section' => $ticket_sales_section,
+        '#merchandise_section' => $merchandise_section,
+        '#rsvp_health_section' => $rsvp_health_section,
+        '#recommendations' => $recommendations,
+        '#has_all_sales_trend_chart' => isset($chart_data['event-sales']) && array_sum(array_column($sales_series, 'amount')) > 0,
         '#has_ticket_mix_chart' => isset($chart_data['event-ticket-mix']),
+        '#has_ticket_trend_chart' => isset($chart_data['event-ticket-units-trend']),
+        '#has_extras_mix_chart' => isset($chart_data['event-extras-mix']),
+        '#has_revenue_breakdown_chart' => isset($chart_data['event-revenue-breakdown']),
+        '#has_boost_metrics' => $has_boost_metrics,
+        '#has_boost_trend_chart' => isset($chart_data['boost-impressions-clicks']),
+        '#is_tickets_enabled' => $is_tickets_enabled,
+        '#is_rsvp_enabled' => $is_rsvp_enabled,
       ],
       '#attached' => [
         'library' => [
@@ -229,15 +365,61 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     $extras_items = 0;
     $orders_with_extras = 0;
     $top_extras_category = '—';
+    $extras_mix = [];
+    $merchandise_revenue_display = '—';
+    $addon_revenue_display = '—';
+    $extras_catalog_exists = FALSE;
+    $extras_product_rows = [];
 
     if ($this->extrasSalesSummaryBuilder) {
       try {
         $extras_panel = $this->extrasSalesSummaryBuilder->buildExtrasSalesPanel($event);
         $summary = is_array($extras_panel['summary'] ?? NULL) ? $extras_panel['summary'] : [];
+        $rows = is_array($extras_panel['rows'] ?? NULL) ? $extras_panel['rows'] : [];
+        $extras_product_rows = is_array($extras_panel['product_rows'] ?? NULL) ? $extras_panel['product_rows'] : [];
         $extras_revenue = (string) ($summary['total_revenue'] ?? '—');
         $extras_items = (int) ($summary['total_items_sold'] ?? 0);
         $orders_with_extras = (int) ($summary['orders_with_extras'] ?? 0);
         $top_extras_category = (string) ($summary['top_category'] ?? '—');
+
+        $merchandise_amount = 0.0;
+        $addon_amount = 0.0;
+
+        foreach ($rows as $row) {
+          if (!is_array($row)) {
+            continue;
+          }
+          if (!empty($row['has_catalog'])) {
+            $extras_catalog_exists = TRUE;
+          }
+
+          $row_key = (string) ($row['key'] ?? '');
+          $row_revenue = (string) ($row['revenue'] ?? '—');
+          $row_amount = $this->parseFormattedAmount($row_revenue);
+          if ($row_amount <= 0) {
+            continue;
+          }
+
+          $extras_mix[] = [
+            'label' => (string) ($row['label'] ?? $row_key),
+            'amount' => $row_amount,
+          ];
+
+          if ($row_key === 'merchandise') {
+            $merchandise_amount = $row_amount;
+            $merchandise_revenue_display = $row_revenue;
+          }
+          else {
+            $addon_amount += $row_amount;
+          }
+        }
+
+        if ($addon_amount > 0) {
+          $addon_revenue_display = $this->formatAmountLikeReference($extras_revenue, $addon_amount);
+        }
+        elseif ($merchandise_amount <= 0 && $this->formattedAmountIsPositive($extras_revenue)) {
+          $addon_revenue_display = $extras_revenue;
+        }
       }
       catch (\Throwable $e) {
         $this->loggerFactory->get('myeventlane_vendor')->warning('Analytics extras summary failed for event @nid: @message', [
@@ -258,6 +440,11 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       }
     }
 
+    $show_extras_section = $extras_items > 0
+      || $orders_with_extras > 0
+      || $this->formattedAmountIsPositive($extras_revenue)
+      || $extras_catalog_exists;
+
     return [
       'ticket_revenue' => $ticket_revenue,
       'ticket_quantity_sold' => $ticket_qty,
@@ -266,8 +453,686 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       'extras_items_sold' => $extras_items,
       'orders_with_extras' => $orders_with_extras,
       'top_extras_category' => $top_extras_category,
+      'merchandise_revenue_display' => $merchandise_revenue_display,
+      'addon_revenue_display' => $addon_revenue_display,
+      'show_extras_section' => $show_extras_section,
+      'extras_mix' => $extras_mix,
+      'extras_product_rows' => array_values(array_filter(
+        $extras_product_rows,
+        static fn ($row): bool => is_array($row) && (int) ($row['items_sold'] ?? 0) > 0,
+      )),
       'booking_activity_note' => (string) ($ticket_tier_rollup['conversion_note'] ?? ''),
     ];
+  }
+
+  /**
+   * CEO view — overall event sales health (never mixes ticket and merch KPIs).
+   *
+   * @param array<string, mixed> $overview
+   * @param array<string, mixed> $commerce
+   * @param array<string, mixed> $donations
+   *
+   * @return array{show: bool, kpis: list<array{label: string, value: string}>}
+   */
+  private function buildAllSalesSection(
+    array $overview,
+    array $commerce,
+    bool $isTickets,
+    bool $isRsvp,
+    array $donations,
+  ): array {
+    $sales = is_array($overview['sales'] ?? NULL) ? $overview['sales'] : [];
+    $rsvps = is_array($overview['rsvps'] ?? NULL) ? $overview['rsvps'] : [];
+    $kpis = [];
+
+    $gross = (string) ($sales['gross'] ?? '$0.00');
+    if ($this->formattedAmountIsPositive($gross)) {
+      $kpis[] = [
+        'label' => (string) $this->t('Total revenue'),
+        'value' => $gross,
+      ];
+    }
+
+    $orders_count = (int) ($sales['orders_count'] ?? 0);
+    if ($orders_count > 0) {
+      $kpis[] = [
+        'label' => (string) $this->t('Total orders'),
+        'value' => (string) $orders_count,
+      ];
+    }
+
+    $items_sold = $this->computeTotalItemsSold($sales, $commerce);
+    if ($items_sold > 0) {
+      $kpis[] = [
+        'label' => (string) $this->t('Total items sold'),
+        'value' => (string) $items_sold,
+      ];
+    }
+
+    if ($isRsvp) {
+      $confirmed = (int) ($rsvps['confirmed'] ?? 0);
+      if ($confirmed > 0) {
+        $kpis[] = [
+          'label' => (string) $this->t('RSVPs'),
+          'value' => (string) $confirmed,
+        ];
+      }
+    }
+
+    $show = $kpis !== []
+      || (int) ($donations['count'] ?? 0) > 0
+      || ($isTickets && (int) ($commerce['ticket_quantity_sold'] ?? 0) > 0);
+
+    return [
+      'show' => $show,
+      'kpis' => $kpis,
+    ];
+  }
+
+  /**
+   * Ticket performance view — ticket revenue only, never mixed with merch.
+   *
+   * @param array<string, mixed> $overview
+   * @param array<string, mixed> $commerce
+   *
+   * @return array{show: bool, kpis: list<array{label: string, value: string}>, best_ticket_type: string|null}
+   */
+  private function buildTicketSalesSection(
+    array $overview,
+    array $commerce,
+    bool $isTickets,
+    array $ticket_tier_rollup,
+    array $ticketRows,
+  ): array {
+    if (!$isTickets) {
+      return [
+        'show' => FALSE,
+        'kpis' => [],
+        'best_ticket_type' => NULL,
+      ];
+    }
+
+    $ticket_revenue = $this->computeTicketOnlyRevenue($overview, $commerce);
+    $tickets_sold = (int) ($ticket_tier_rollup['total_sold'] ?? 0);
+    $best_ticket_type = $this->findBestSellingTicketFromTiers($ticketRows);
+    $kpis = [];
+
+    if ($this->formattedAmountIsPositive($ticket_revenue)) {
+      $kpis[] = [
+        'label' => (string) $this->t('Ticket revenue'),
+        'value' => $ticket_revenue,
+      ];
+    }
+
+    if ($tickets_sold > 0) {
+      $kpis[] = [
+        'label' => (string) $this->t('Tickets sold'),
+        'value' => (string) $tickets_sold,
+      ];
+    }
+
+    if ($best_ticket_type !== NULL) {
+      $kpis[] = [
+        'label' => (string) $this->t('Best performing ticket'),
+        'value' => $best_ticket_type,
+      ];
+    }
+
+    return [
+      'show' => $kpis !== [],
+      'kpis' => $kpis,
+      'best_ticket_type' => $best_ticket_type,
+    ];
+  }
+
+  /**
+   * Ancillary revenue view — merchandise and add-ons only.
+   *
+   * @param array<string, mixed> $commerce
+   *
+   * @return array{show: bool, kpis: list<array{label: string, value: string}>, product_rows: list<array{label: string, category: string, items_sold: int, revenue: string}>}
+   */
+  private function buildMerchandiseSection(array $commerce): array {
+    $has_merch_revenue = $this->formattedAmountIsPositive((string) ($commerce['merchandise_revenue_display'] ?? '—'));
+    $has_addon_revenue = $this->formattedAmountIsPositive((string) ($commerce['addon_revenue_display'] ?? '—'));
+    $has_extras_revenue = $this->formattedAmountIsPositive((string) ($commerce['extras_revenue'] ?? '—'));
+    $extras_items = (int) ($commerce['extras_items_sold'] ?? 0);
+    $orders_with_extras = (int) ($commerce['orders_with_extras'] ?? 0);
+    $top_extra = (string) ($commerce['top_extras_category'] ?? '—');
+    $product_rows = is_array($commerce['extras_product_rows'] ?? NULL) ? $commerce['extras_product_rows'] : [];
+
+    $show = $extras_items > 0
+      || $orders_with_extras > 0
+      || $has_merch_revenue
+      || $has_addon_revenue
+      || $has_extras_revenue
+      || $product_rows !== [];
+
+    if (!$show) {
+      return [
+        'show' => FALSE,
+        'kpis' => [],
+        'product_rows' => [],
+      ];
+    }
+
+    $kpis = [];
+    if ($has_merch_revenue) {
+      $kpis[] = [
+        'label' => (string) $this->t('Merchandise revenue'),
+        'value' => (string) $commerce['merchandise_revenue_display'],
+      ];
+    }
+    if ($has_addon_revenue) {
+      $kpis[] = [
+        'label' => (string) $this->t('Add-on revenue'),
+        'value' => (string) $commerce['addon_revenue_display'],
+      ];
+    }
+    if ($orders_with_extras > 0) {
+      $kpis[] = [
+        'label' => (string) $this->t('Orders with extras'),
+        'value' => (string) $orders_with_extras,
+      ];
+    }
+    if ($top_extra !== '—' && $top_extra !== '') {
+      $kpis[] = [
+        'label' => (string) $this->t('Best performing extra'),
+        'value' => $top_extra,
+      ];
+    }
+
+    return [
+      'show' => $kpis !== [] || $product_rows !== [],
+      'kpis' => $kpis,
+      'product_rows' => $product_rows,
+    ];
+  }
+
+  /**
+   * RSVP-only event health when there is no paid sales section.
+   *
+   * @param array<string, mixed> $overview
+   *
+   * @return array{show: bool, kpis: list<array{label: string, value: string}>}
+   */
+  private function buildRsvpHealthSection(array $overview, bool $isRsvp, bool $allSalesVisible): array {
+    if (!$isRsvp || $allSalesVisible) {
+      return [
+        'show' => FALSE,
+        'kpis' => [],
+      ];
+    }
+
+    $rsvps = is_array($overview['rsvps'] ?? NULL) ? $overview['rsvps'] : [];
+    $attendees = is_array($overview['attendees'] ?? NULL) ? $overview['attendees'] : [];
+    $kpis = [];
+
+    $confirmed = (int) ($rsvps['confirmed'] ?? 0);
+    if ($confirmed > 0) {
+      $kpis[] = [
+        'label' => (string) $this->t('RSVPs'),
+        'value' => (string) $confirmed,
+      ];
+    }
+
+    $waitlisted = (int) ($rsvps['waitlisted'] ?? 0);
+    if ($waitlisted > 0) {
+      $kpis[] = [
+        'label' => (string) $this->t('Waitlist'),
+        'value' => (string) $waitlisted,
+      ];
+    }
+
+    $checkins = (int) ($rsvps['checkins'] ?? $attendees['checked_in'] ?? 0);
+    if ($checkins > 0) {
+      $kpis[] = [
+        'label' => (string) $this->t('Check-ins'),
+        'value' => (string) $checkins,
+      ];
+    }
+
+    return [
+      'show' => $kpis !== [],
+      'kpis' => $kpis,
+    ];
+  }
+
+  /**
+   * Computes ticket-only revenue (excludes merchandise and add-ons when known).
+   *
+   * @param array<string, mixed> $overview
+   * @param array<string, mixed> $commerce
+   */
+  private function computeTicketOnlyRevenue(array $overview, array $commerce): string {
+    $sales = is_array($overview['sales'] ?? NULL) ? $overview['sales'] : [];
+    $gross = (string) ($sales['gross'] ?? '$0.00');
+    if (!$this->formattedAmountIsPositive($gross)) {
+      return '$0.00';
+    }
+
+    $ticket_amount = $this->parseFormattedAmount($gross);
+    $extras_amount = $this->parseFormattedAmount((string) ($commerce['extras_revenue'] ?? '—'));
+    if ($extras_amount > 0 && $ticket_amount >= $extras_amount) {
+      $ticket_amount = max(0.0, $ticket_amount - $extras_amount);
+    }
+
+    if ($ticket_amount <= 0.0) {
+      return '$0.00';
+    }
+
+    return $this->formatAmountLikeReference($gross, $ticket_amount);
+  }
+
+  /**
+   * Total sold units across tickets and extras.
+   *
+   * @param array<string, mixed> $sales
+   * @param array<string, mixed> $commerce
+   */
+  private function computeTotalItemsSold(array $sales, array $commerce): int {
+    return (int) ($sales['tickets_sold'] ?? 0) + (int) ($commerce['extras_items_sold'] ?? 0);
+  }
+
+  /**
+   * Ticket-type mix from mel_ticket tiers only (excludes merch and add-ons).
+   *
+   * @param list<TicketTypeInterface> $ticketRows
+   *
+   * @return array{labels: list<string>, sold: list<int>}
+   */
+  private function buildTicketTierMix(array $ticketRows): array {
+    $labels = [];
+    $sold = [];
+
+    foreach ($ticketRows as $tier) {
+      if (!$tier instanceof TicketTypeInterface) {
+        continue;
+      }
+      $metrics = $this->ticketTierAnalytics->buildTierMetrics($tier);
+      $count = (int) ($metrics['sold'] ?? 0);
+      if ($count <= 0) {
+        continue;
+      }
+      $label = trim((string) $tier->label());
+      if ($label === '') {
+        continue;
+      }
+      $labels[] = $label;
+      $sold[] = $count;
+    }
+
+    return [
+      'labels' => $labels,
+      'sold' => $sold,
+    ];
+  }
+
+  /**
+   * Ticket tier rows for the collapsed breakdown (ticket-only, not Commerce extras).
+   *
+   * @param list<TicketTypeInterface> $ticketRows
+   *
+   * @return list<array{label: string, sold: int, available: int|string, revenue: string}>
+   */
+  private function buildTicketTierBreakdownDisplay(array $ticketRows): array {
+    $rows = [];
+
+    foreach ($ticketRows as $tier) {
+      if (!$tier instanceof TicketTypeInterface) {
+        continue;
+      }
+      $metrics = $this->ticketTierAnalytics->buildTierMetrics($tier);
+      $sold = (int) ($metrics['sold'] ?? 0);
+      if ($sold <= 0) {
+        continue;
+      }
+      $label = trim((string) $tier->label());
+      if ($label === '') {
+        continue;
+      }
+
+      $revenue = '—';
+      if (is_array($metrics['revenue'] ?? NULL)) {
+        $revenue = ($metrics['revenue']['currency_code'] ?? '')
+          . ' '
+          . number_format((float) ($metrics['revenue']['number'] ?? 0), 2);
+        $revenue = trim($revenue);
+      }
+
+      $remaining = $metrics['remaining'] ?? NULL;
+      $available = $remaining === NULL ? 'Unlimited' : $remaining;
+
+      $rows[] = [
+        'label' => $label,
+        'sold' => $sold,
+        'available' => $available,
+        'revenue' => $revenue !== '' ? $revenue : '—',
+      ];
+    }
+
+    return $rows;
+  }
+
+  /**
+   * Daily ticket units sold (ticket-tier variations only).
+   *
+   * @param list<TicketTypeInterface> $ticketRows
+   *
+   * @return list<array{date: string, tickets: int}>
+   */
+  private function buildTicketOnlyDailyUnitsSeries(NodeInterface $event, array $ticketRows): array {
+    $variationIds = $this->collectTicketVariationIds($ticketRows);
+    if ($variationIds === []) {
+      return [];
+    }
+
+    $days = [];
+    for ($i = 13; $i >= 0; $i--) {
+      $date = date('Y-m-d', strtotime("-{$i} days"));
+      $days[$date] = 0;
+    }
+
+    try {
+      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+      $orderItems = $orderItemStorage->loadByProperties([
+        'field_target_event' => (int) $event->id(),
+      ]);
+      $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
+
+      foreach ($orderItems as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
+        }
+
+        $purchased = $item->getPurchasedEntity();
+        if (!$purchased || !in_array((int) $purchased->id(), $variationIds, TRUE)) {
+          continue;
+        }
+
+        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
+          continue;
+        }
+
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
+        $order = $orderStorage->load($order_id);
+        if (!$order || $order->getState()->getId() !== 'completed') {
+          continue;
+        }
+
+        $completedTime = $order->getCompletedTime() ?? $order->getChangedTime();
+        $date = date('Y-m-d', (int) $completedTime);
+        if (!isset($days[$date])) {
+          continue;
+        }
+
+        $days[$date] += (int) $item->getQuantity();
+      }
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Analytics ticket daily series failed for event @nid: @message', [
+        '@nid' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    $series = [];
+    foreach ($days as $date => $tickets) {
+      $series[] = [
+        'date' => date('M j', strtotime($date)),
+        'tickets' => $tickets,
+      ];
+    }
+
+    return $series;
+  }
+
+  /**
+   * Commerce variation IDs mapped to ticket tiers for this event.
+   *
+   * @param list<TicketTypeInterface> $ticketRows
+   *
+   * @return list<int>
+   */
+  private function collectTicketVariationIds(array $ticketRows): array {
+    $ids = [];
+    foreach ($ticketRows as $tier) {
+      if (!$tier instanceof TicketTypeInterface) {
+        continue;
+      }
+      if ($tier->get('commerce_variation')->isEmpty()) {
+        continue;
+      }
+      $variationId = (int) $tier->get('commerce_variation')->target_id;
+      if ($variationId > 0) {
+        $ids[$variationId] = $variationId;
+      }
+    }
+    return array_values($ids);
+  }
+
+  /**
+   * Finds the ticket tier label with the highest sold count.
+   *
+   * @param list<TicketTypeInterface> $ticketRows
+   */
+  private function findBestSellingTicketFromTiers(array $ticketRows): ?string {
+    $best_label = NULL;
+    $best_sold = 0;
+
+    foreach ($ticketRows as $tier) {
+      if (!$tier instanceof TicketTypeInterface) {
+        continue;
+      }
+      $metrics = $this->ticketTierAnalytics->buildTierMetrics($tier);
+      $sold = (int) ($metrics['sold'] ?? 0);
+      if ($sold <= $best_sold) {
+        continue;
+      }
+      $label = trim((string) $tier->label());
+      if ($label === '') {
+        continue;
+      }
+      $best_sold = $sold;
+      $best_label = $label;
+    }
+
+    return $best_label;
+  }
+
+  /**
+   * Total tickets sold across configured tiers.
+   *
+   * @param list<TicketTypeInterface> $ticketRows
+   */
+  private function countTicketsSoldFromTiers(array $ticketRows): int {
+    $total = 0;
+    foreach ($ticketRows as $tier) {
+      if (!$tier instanceof TicketTypeInterface) {
+        continue;
+      }
+      $metrics = $this->ticketTierAnalytics->buildTierMetrics($tier);
+      $total += (int) ($metrics['sold'] ?? 0);
+    }
+    return $total;
+  }
+
+  /**
+   * Rules-based next-step recommendations (max 3, no new services).
+   *
+   * @param array<string, mixed> $overview
+   * @param array<string, mixed> $commerce
+   * @param array<string, mixed> $boost
+   *
+   * @return list<string>
+   */
+  private function buildRecommendations(
+    array $overview,
+    array $commerce,
+    bool $isTickets,
+    array $boost,
+    ?string $boost_page_url,
+    ?float $capacity_pct,
+    ?string $public_event_url,
+    array $ticketRows,
+  ): array {
+    $recs = [];
+    $boost_metrics = is_array($overview['boost_metrics'] ?? NULL) ? $overview['boost_metrics'] : [];
+
+    foreach ($boost_metrics['recommendations'] ?? [] as $rec) {
+      if (!is_string($rec) || $rec === '') {
+        continue;
+      }
+      $recs[] = $rec;
+    }
+
+    if (count($recs) < 3 && $isTickets) {
+      $best_ticket = $this->findBestSellingTicketFromTiers($ticketRows);
+      if ($best_ticket !== NULL) {
+        $recs[] = (string) $this->t('@ticket tickets are selling fastest.', ['@ticket' => $best_ticket]);
+      }
+    }
+
+    if (count($recs) < 3 && !empty($boost['active'])) {
+      $ctr = (float) ($boost_metrics['ctr'] ?? 0);
+      $impressions = (int) ($boost_metrics['impressions'] ?? 0);
+      if ($impressions >= 100 && $ctr < 0.01) {
+        $recs[] = (string) $this->t('Your event is boosted but CTR is low — consider updating the hero image.');
+      }
+    }
+
+    if (count($recs) < 3 && !empty($commerce['show_extras_section']) && (int) ($commerce['extras_items_sold'] ?? 0) > 0) {
+      $recs[] = (string) $this->t('Merchandise is selling well — consider adding another item.');
+    }
+
+    if (count($recs) < 3 && $isTickets && $capacity_pct !== NULL && $capacity_pct >= 80.0) {
+      $remaining_pct = max(0, 100 - $capacity_pct);
+      if ($remaining_pct <= 20) {
+        $recs[] = (string) $this->t('Only @pct% of tickets remain.', ['@pct' => (string) round($remaining_pct)]);
+      }
+      else {
+        $recs[] = (string) $this->t('Tickets are nearly sold out — consider adding another tier or increasing capacity.');
+      }
+    }
+
+    if (count($recs) < 3 && empty($boost['active']) && $boost_page_url !== NULL) {
+      $recs[] = (string) $this->t('Consider boosting your event to increase visibility.');
+    }
+
+    if (count($recs) < 3 && $isTickets && $this->countTicketsSoldFromTiers($ticketRows) === 0 && $public_event_url !== NULL) {
+      $recs[] = (string) $this->t('Share your public event link to start driving ticket sales.');
+    }
+
+    return array_slice(array_values(array_unique($recs)), 0, 3);
+  }
+
+  /**
+   * Builds doughnut chart config for consolidated revenue breakdown.
+   *
+   * @param array<string, mixed> $overview
+   * @param array<string, mixed> $commerce
+   *
+   * @return array<string, mixed>|null
+   */
+  private function buildRevenueBreakdownChart(array $overview, array $commerce, bool $isTickets): ?array {
+    $labels = [];
+    $data = [];
+    $donations = is_array($overview['donations'] ?? NULL) ? $overview['donations'] : [];
+
+    if ($isTickets) {
+      $ticket_amount = $this->parseFormattedAmount((string) ($commerce['ticket_revenue'] ?? '—'));
+      $extras_amount = $this->parseFormattedAmount((string) ($commerce['extras_revenue'] ?? '—'));
+      if ($ticket_amount > 0 && $extras_amount > 0 && $ticket_amount >= $extras_amount) {
+        $ticket_amount = max(0.0, $ticket_amount - $extras_amount);
+      }
+      if ($ticket_amount > 0) {
+        $labels[] = (string) $this->t('Tickets');
+        $data[] = $ticket_amount;
+      }
+    }
+
+    $merch_amount = $this->parseFormattedAmount((string) ($commerce['merchandise_revenue_display'] ?? '—'));
+    if ($merch_amount > 0) {
+      $labels[] = (string) $this->t('Merchandise');
+      $data[] = $merch_amount;
+    }
+
+    $addon_amount = $this->parseFormattedAmount((string) ($commerce['addon_revenue_display'] ?? '—'));
+    if ($addon_amount > 0) {
+      $labels[] = (string) $this->t('Add-ons');
+      $data[] = $addon_amount;
+    }
+
+    $donation_total = (float) ($donations['total'] ?? 0);
+    if ($donation_total > 0) {
+      $labels[] = (string) $this->t('Donations');
+      $data[] = $donation_total;
+    }
+
+    if ($labels === []) {
+      return NULL;
+    }
+
+    return [
+      'type' => 'doughnut',
+      'labels' => $labels,
+      'datasets' => [
+        [
+          'label' => (string) $this->t('Revenue'),
+          'data' => $data,
+          'backgroundColor' => [
+            '#6C7EF2',
+            '#F26D5B',
+            '#5CC98B',
+            '#FFD46F',
+            '#8b5cf6',
+            '#06b6d4',
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Parses a formatted currency string into a float amount.
+   */
+  private function parseFormattedAmount(string $formatted): float {
+    if ($formatted === '—' || $formatted === '') {
+      return 0.0;
+    }
+    $clean = preg_replace('/[^\d.]/', '', $formatted);
+    if ($clean === NULL || $clean === '') {
+      return 0.0;
+    }
+    return (float) $clean;
+  }
+
+  /**
+   * Whether a formatted revenue string represents a positive amount.
+   */
+  private function formattedAmountIsPositive(string $formatted): bool {
+    return $this->parseFormattedAmount($formatted) > 0.0;
+  }
+
+  /**
+   * Formats a numeric amount to match an existing formatted revenue string.
+   */
+  private function formatAmountLikeReference(string $reference, float $amount): string {
+    if ($amount <= 0.0) {
+      return '—';
+    }
+    $formatted = number_format($amount, 2, '.', ',');
+    if (str_starts_with($reference, '$')) {
+      return '$' . $formatted;
+    }
+    if (preg_match('/^([A-Z]{3})\s/', $reference, $matches) === 1) {
+      return $matches[1] . ' ' . $formatted;
+    }
+    return '$' . $formatted;
   }
 
   /**
