@@ -74,6 +74,7 @@ final class EventOperationalExtrasSalesSummaryBuilder {
     $order_ids_with_extras = [];
     $currency_code = NULL;
     $revenue_totals = array_fill_keys(self::DISPLAY_GROUPS, 0.0);
+    $products = [];
 
     foreach ($this->vendorOperationalAddonOrderBuilder->loadQualifyingOrdersForEvent($event) as $order) {
       if (!$this->vendorOperationalAddonOrderBuilder->orderHasOperationalAddons($order, $event_id)) {
@@ -119,6 +120,22 @@ final class EventOperationalExtrasSalesSummaryBuilder {
           $groups[$display_key]['items_sold'] += $qty;
           $groups[$display_key]['order_ids'][(int) $order->id()] = TRUE;
           $order_touched = TRUE;
+
+          $product_id = (int) ($line['product_id'] ?? 0);
+          $product_label = $this->resolveProductLabelFromLine($line, $display_key);
+          $product_key = $product_id > 0 ? 'product:' . $product_id : 'label:' . md5($product_label . ':' . $display_key);
+          if (!isset($products[$product_key])) {
+            $products[$product_key] = [
+              'label' => $product_label,
+              'category' => $this->groupLabel($display_key),
+              'items_sold' => 0,
+              'revenue_amount' => 0.0,
+            ];
+          }
+          $products[$product_key]['items_sold'] += $qty;
+          if ($total_price instanceof Price) {
+            $products[$product_key]['revenue_amount'] += (float) $total_price->getNumber();
+          }
         }
       }
 
@@ -160,6 +177,23 @@ final class EventOperationalExtrasSalesSummaryBuilder {
       ];
     }
 
+    $product_rows = [];
+    foreach ($products as $product) {
+      if ((int) ($product['items_sold'] ?? 0) <= 0 && (float) ($product['revenue_amount'] ?? 0.0) <= 0.0) {
+        continue;
+      }
+      $product_rows[] = [
+        'label' => (string) ($product['label'] ?? ''),
+        'category' => (string) ($product['category'] ?? ''),
+        'items_sold' => (int) ($product['items_sold'] ?? 0),
+        'revenue' => $this->formatAmount((float) ($product['revenue_amount'] ?? 0.0), $currency_code),
+      ];
+    }
+    usort($product_rows, static function (array $a, array $b): int {
+      $sold_cmp = ($b['items_sold'] ?? 0) <=> ($a['items_sold'] ?? 0);
+      return $sold_cmp !== 0 ? $sold_cmp : strcmp((string) ($a['label'] ?? ''), (string) ($b['label'] ?? ''));
+    });
+
     $addon_orders_url = NULL;
     if ($this->routeExists('myeventlane_vendor.console.event_operational_addon_orders')) {
       $addon_orders_url = Url::fromRoute('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $event_id])->toString();
@@ -174,6 +208,7 @@ final class EventOperationalExtrasSalesSummaryBuilder {
         'top_category' => $top_category ?? (string) $this->t('—'),
       ],
       'rows' => $rows,
+      'product_rows' => $product_rows,
       'empty_message' => (string) $this->t('No extras sold yet. Configure merch and add-ons to start tracking sales here.'),
       'helper_copy' => (string) $this->t('Track extras sold through this event. Tickets are counted separately.'),
       'sold_order_states' => VendorOperationalAddonOrderBuilder::QUALIFYING_ORDER_STATES,
@@ -436,6 +471,20 @@ final class EventOperationalExtrasSalesSummaryBuilder {
   }
 
   /**
+   * Customer-safe product label for analytics and vendor dashboards.
+   *
+   * @param array<string, mixed> $line
+   */
+  private function resolveProductLabelFromLine(array $line, string $display_key): string {
+    $presentation = is_array($line['presentation'] ?? NULL) ? $line['presentation'] : [];
+    $summary = trim((string) ($presentation['operational_summary'] ?? ''));
+    if ($summary !== '') {
+      return $summary;
+    }
+    return $this->groupLabel($display_key);
+  }
+
+  /**
    * @param array<string, mixed> $line
    */
   private function resolveOrderItem(array $line, OrderInterface $order): ?OrderItemInterface {
@@ -536,6 +585,7 @@ final class EventOperationalExtrasSalesSummaryBuilder {
         'top_category' => '—',
       ],
       'rows' => $rows,
+      'product_rows' => [],
       'empty_message' => (string) $this->t('No extras sold yet. Configure merch and add-ons to start tracking sales here.'),
       'helper_copy' => (string) $this->t('Track extras sold through this event. Tickets are counted separately.'),
       'sold_order_states' => VendorOperationalAddonOrderBuilder::QUALIFYING_ORDER_STATES,
