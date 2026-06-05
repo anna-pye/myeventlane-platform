@@ -760,7 +760,7 @@ function _myeventlane_vendor_theme_event_studio_routes(): array {
     'myeventlane_event_studio.workspace_merchandise',
     'myeventlane_event_studio.workspace_addons',
     'myeventlane_event_studio.workspace_add_ons',
-    'myeventlane_event_studio.workspace_promotions',
+    'myeventlane_event_studio.workspace_messaging',
     'myeventlane_event_studio.workspace_attendees',
     'myeventlane_event_studio.workspace_fulfilment',
     'myeventlane_event_studio.workspace_orders',

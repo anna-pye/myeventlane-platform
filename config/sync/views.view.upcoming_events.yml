@@ -110,6 +110,19 @@ display:
             format: full_html
           tokenize: false
       sorts:
+        field_promoted_value:
+          id: field_promoted_value
+          table: node__field_promoted
+          field: field_promoted_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: boolean
+          order: DESC
+          expose:
+            label: ''
+            field_identifier: ''
+          exposed: false
         field_event_start_value:
           id: field_event_start_value
           table: node__field_event_start

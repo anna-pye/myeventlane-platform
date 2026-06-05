@@ -8,16 +8,16 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 
 /**
- * Isolated Event Studio form for promotion section convergence.
+ * Isolated Event Studio form for the messaging section (formerly "promotions").
  */
-final class EventPromotionForm extends EventStudioBaseForm {
+final class MessagingForm extends EventStudioBaseForm {
 
   public function getFormId(): string {
-    return 'myeventlane_event_studio_promotion_form';
+    return 'myeventlane_event_studio_messaging_form';
   }
 
   protected function getNextRouteName(): string {
-    return 'myeventlane_event_studio.workspace_promotions';
+    return 'myeventlane_event_studio.workspace_messaging';
   }
 
   protected function getPreviousRouteName(): ?string {
@@ -25,7 +25,7 @@ final class EventPromotionForm extends EventStudioBaseForm {
   }
 
   protected function getCurrentStepId(): string {
-    return 'promotions';
+    return 'messaging';
   }
 
   protected function getContinueButtonLabel() {
@@ -34,7 +34,7 @@ final class EventPromotionForm extends EventStudioBaseForm {
 
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
     $this->messenger()->addStatus($this->t('Saved.'));
-    $form_state->setRedirect('myeventlane_event_studio.workspace_promotions', ['node' => $saved->id()]);
+    $form_state->setRedirect('myeventlane_event_studio.workspace_messaging', ['node' => $saved->id()]);
   }
 
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {

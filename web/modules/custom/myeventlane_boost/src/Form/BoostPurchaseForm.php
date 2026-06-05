@@ -223,7 +223,9 @@ final class BoostPurchaseForm extends FormBase {
     $nid = (int) $form_state->getValue('event_id');
     $uid = (int) $this->currentUser()->id();
 
-    if (!$this->stripeChecker->isConnected($this->currentUser())) {
+    $account = $this->currentUser();
+    if (!$account->hasPermission('administer myeventlane')
+      && !$this->stripeChecker->isConnected($account)) {
       $this->messenger()->addWarning($this->t('Connect Stripe to continue boosting this event.'));
       if ($nid > 0) {
         $form_state->setRedirect('myeventlane_boost.boost_page', ['node' => $nid]);

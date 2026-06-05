@@ -109,6 +109,7 @@ final class SearchAutocompleteController extends ControllerBase {
    */
   private function fetchEvents(IndexInterface $index, string $keys, int $now): array {
     $query = $index->query();
+    $query->addTag('myeventlane_event_discovery');
     $query->setFulltextFields(self::EVENT_FULLTEXT_FIELDS);
     $query->keys($keys);
     $query->addCondition('type', 'event');
@@ -149,6 +150,7 @@ final class SearchAutocompleteController extends ControllerBase {
    */
   private function fetchVenues(IndexInterface $index, string $keys, int $now): array {
     $query = $index->query();
+    $query->addTag('myeventlane_event_discovery');
     $query->setFulltextFields(self::VENUE_FULLTEXT_FIELDS);
     $query->keys($keys);
     $query->addCondition('type', 'event');

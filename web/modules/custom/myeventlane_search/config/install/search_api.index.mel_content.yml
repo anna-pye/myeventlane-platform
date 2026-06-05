@@ -71,6 +71,11 @@ field_settings:
     type: date
     datasource_id: 'entity:node'
     property_path: field_event_end
+  field_promoted:
+    label: Promoted
+    type: boolean
+    datasource_id: 'entity:node'
+    property_path: field_promoted
   rendered_item:
     label: 'Rendered item'
     type: text
@@ -118,6 +123,7 @@ dependencies:
     - field.field.node.event.field_category
     - field.field.node.event.field_event_end
     - field.field.node.event.field_event_start
+    - field.field.node.event.field_promoted
     - field.field.node.event.field_venue_address
     - field.field.node.event.field_venue_name
     - field.field.node.page.body

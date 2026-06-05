@@ -64,12 +64,17 @@ Each section plugin must define:
 | `capacity` | `myeventlane_event_studio.workspace_capacity` | ticket | active |
 | `merchandise` | `myeventlane_event_studio.workspace_merchandise` | commerce product | deferred |
 | `addons` | `myeventlane_event_studio.workspace_addons` | commerce product | deferred |
-| `promotions` | `myeventlane_event_studio.workspace_promotions` | event | active |
+| `messaging` | `myeventlane_event_studio.workspace_messaging` | event | active |
 | `attendees` | `myeventlane_event_studio.workspace_attendees` | operations | readonly |
 | `fulfilment` | `myeventlane_event_studio.workspace_fulfilment` | fulfilment | deferred |
 | `orders` | `myeventlane_event_studio.workspace_orders` | commerce | readonly |
 | `analytics` | `myeventlane_event_studio.workspace_analytics` | analytics | readonly |
 | `settings` | `myeventlane_event_studio.workspace_settings` | event | active |
+
+> The `messaging` section was previously named `promotions`. The legacy path
+> `/vendor/events/{node}/studio/promotions` (route
+> `myeventlane_event_studio.workspace_promotions`) now issues a redirect to
+> `/vendor/events/{node}/studio/messaging` so existing bookmarks keep working.
 
 ## Rendering Rules
 

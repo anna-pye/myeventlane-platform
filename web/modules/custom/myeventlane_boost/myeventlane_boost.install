@@ -387,3 +387,23 @@ function myeventlane_boost_update_10006(): void {
     ->condition('source', '')
     ->execute();
 }
+
+/**
+ * Creates missing canonical aggregate table myeventlane_boost_stats.
+ *
+ * Upgraded environments received Phase 2 tables via update_10001() but never
+ * got myeventlane_boost_stats because hook_schema() only runs on install.
+ * BoostImpressionTracker and BoostClickTracker write here; BoostMetricsService
+ * reads aggregated impressions/clicks from this table.
+ */
+function myeventlane_boost_update_10007(): string {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('myeventlane_boost_stats')) {
+    return 'myeventlane_boost_stats already exists.';
+  }
+
+  $full = myeventlane_boost_schema();
+  $schema->createTable('myeventlane_boost_stats', $full['myeventlane_boost_stats']);
+
+  return 'Created myeventlane_boost_stats table.';
+}
