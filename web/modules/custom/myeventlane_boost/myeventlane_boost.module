@@ -11,6 +11,7 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Cron\BoostExpiryCron;
 use Drupal\myeventlane_boost\Cron\BoostExpiryReminderCron;
+use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
 
 /**
  * Implements hook_theme().
@@ -176,4 +177,51 @@ function myeventlane_boost_cron(): void {
 
   // Nightly rollup: log -> daily aggregates (Phase 2).
   \Drupal::service('myeventlane_boost.daily_rollup')->run();
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function myeventlane_boost_entity_insert(\Drupal\Core\Entity\EntityInterface $entity): void {
+  myeventlane_boost_invalidate_event_impression_cache($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function myeventlane_boost_entity_update(\Drupal\Core\Entity\EntityInterface $entity): void {
+  myeventlane_boost_invalidate_event_impression_cache($entity);
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function myeventlane_boost_entity_delete(\Drupal\Core\Entity\EntityInterface $entity): void {
+  myeventlane_boost_invalidate_event_impression_cache($entity);
+}
+
+/**
+ * Invalidates Boost impression cache tags when entitlements change.
+ */
+function myeventlane_boost_invalidate_event_impression_cache(\Drupal\Core\Entity\EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'myeventlane_boost_entitlement') {
+    return;
+  }
+  if (!$entity instanceof BoostEntitlementInterface) {
+    return;
+  }
+
+  $eventId = (int) ($entity->get('event')->target_id ?? 0);
+  if ($eventId <= 0) {
+    return;
+  }
+
+  $tags = [
+    \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService::EVENT_CACHE_TAG_PREFIX . $eventId,
+  ];
+  if (!$entity->isNew()) {
+    $tags[] = 'myeventlane_boost_entitlement:' . $entity->id();
+  }
+
+  \Drupal::service('cache_tags.invalidator')->invalidateTags($tags);
 }
