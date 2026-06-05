@@ -144,7 +144,7 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertIsString($form);
     $this->assertStringContainsString('has_products', $builder);
     $this->assertStringContainsString('empty_state', $builder);
-    $this->assertStringContainsString('Add merch or extras', $builder);
+    $this->assertStringContainsString('No extras yet', $builder);
     $this->assertStringContainsString('buildStudioAsideRenderArray', $builder);
     $this->assertStringContainsString('mel-event-extras-studio__layout', $form);
     $this->assertStringContainsString('buildStudioAsideRenderArray', $form);

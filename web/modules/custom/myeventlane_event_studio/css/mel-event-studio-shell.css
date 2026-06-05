@@ -4942,6 +4942,13 @@
   color: var(--mel-color-text, #24303a);
 }
 
+.mel-event-studio .mel-event-studio-guided-intro__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--mel-color-text-muted, #5c6770);
+}
+
 /* Sticky save footer — keeps Drupal form actions visible while scrolling. */
 .mel-event-studio .mel-event-studio__footer-actions {
   position: sticky;
