@@ -229,7 +229,7 @@
     <div class="mel-live-ops__timeline-head">
       <h2 id="mel-analytics-boost-title" class="mel-live-ops__panel-title">{{ 'Boost performance'|t }}</h2>
       {% if boost.active|default(false) %}
-        <p class="mel-live-ops__panel-intro">{{ 'Is Boost working? Are you getting visibility and clicks?'|t }}</p>
+        <p class="mel-live-ops__panel-intro">{{ 'Is Boost paying off? Track the orders and revenue placed while your event was boosted.'|t }}</p>
       {% else %}
         <p class="mel-live-ops__panel-intro">{{ 'Boost puts your event in front of more people.'|t }}</p>
       {% endif %}
@@ -237,16 +237,26 @@
     {% if has_boost_metrics %}
       {% set ctr = boost_metrics.ctr|default(0) %}
       {% set ctr_pct = ((ctr * 100)|round(2)) ~ '%' %}
+      {% set sdp = boost_metrics.sales_during_period|default(null) %}
+      {# Organiser outcomes lead; reach signals (impressions/clicks/CTR) follow. #}
+      {% set outcome_items = [{ label: 'Spend'|t, value: boost_metrics.spend|default('$0.00') }] %}
+      {% if sdp %}
+        {% set outcome_items = outcome_items|merge([
+          { label: 'Orders while boosted'|t, value: sdp.count|default(0) },
+          { label: 'Revenue while boosted'|t, value: sdp.revenue|default('$0.00') },
+        ]) %}
+      {% endif %}
       {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
         metric_wrap_section: false,
-        metric_items: [
-          { label: 'Spend'|t, value: boost_metrics.spend|default('$0.00') },
+        metric_items: outcome_items|merge([
           { label: 'Impressions'|t, value: boost_metrics.impressions|default(0) },
           { label: 'Clicks'|t, value: boost_metrics.clicks|default(0) },
           { label: 'CTR'|t, value: ctr_pct },
-        ],
+        ]),
       } only %}
-      {% if boost.expires %}
+      {% if sdp %}
+        <p class="mel-text--muted mel-analytics__boost-footnote">{{ 'Orders and revenue are completed sales placed while your event was boosted — activity during the campaign window, not a guaranteed cause.'|t }}</p>
+      {% elseif boost.expires %}
         <p class="mel-text--muted mel-analytics__boost-footnote">{{ 'Campaign window data shown above is tied to your Boost purchase.'|t }}</p>
       {% endif %}
     {% else %}

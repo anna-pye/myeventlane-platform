@@ -45,6 +45,7 @@ permissions:
   - 'update paragraph content event_highlight'
   - 'use editorial transition create_new_draft'
   - 'use editorial transition publish'
+  - 'use pro financial analytics'
   - 'use vendor ai assistant'
   - 'view boost_upgrade commerce_product'
   - 'view mel_ticket_type entities'
