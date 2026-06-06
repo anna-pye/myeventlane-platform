@@ -77,6 +77,7 @@ services:
       - '@entity_type.manager'
       - '@cache.default'
       - '@logger.channel.myeventlane_domain_events'
+      - '@myeventlane_commerce.order_item_classifier'
 
   myeventlane_domain_events.subscriber.order_placed:
     class: Drupal\myeventlane_domain_events\EventSubscriber\OrderPlacedDomainEventSubscriber

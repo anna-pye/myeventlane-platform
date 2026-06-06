@@ -211,6 +211,110 @@ final class BoostEntitlementManager {
   }
 
   /**
+   * Returns non-revoked entitlement entities for an event.
+   *
+   * Includes active and expired entitlements. Revoked rows are excluded.
+   *
+   * @return \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface[]
+   *   Entitlements sorted by start timestamp ascending.
+   */
+  public function getNonRevokedEntitlementsForEvent(int $eventNid): array {
+    if ($eventNid <= 0) {
+      return [];
+    }
+
+    $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $eventNid)
+      ->condition('status', BoostEntitlementInterface::STATUS_REVOKED, '<>')
+      ->sort('starts', 'ASC')
+      ->execute();
+
+    if (empty($ids)) {
+      return [];
+    }
+
+    /** @var \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface[] $entitlements */
+    $entitlements = $storage->loadMultiple($ids);
+    return array_values(array_filter(
+      $entitlements,
+      static fn ($entitlement): bool => $entitlement instanceof BoostEntitlementInterface,
+    ));
+  }
+
+  /**
+   * Returns the soonest entitlement window transition for card cache max-age.
+   *
+   * Covers future starts (metadata should appear) and active ends (metadata
+   * should disappear). Expired rows are ignored.
+   */
+  public function getImpressionCacheMaxAgeForEvent(int $eventNid): ?int {
+    if ($eventNid <= 0) {
+      return NULL;
+    }
+
+    $now = $this->time->getRequestTime();
+    $min_transition = NULL;
+    foreach ($this->getNonRevokedEntitlementsForEvent($eventNid) as $entitlement) {
+      if ((string) $entitlement->get('status')->value !== BoostEntitlementInterface::STATUS_ACTIVE) {
+        continue;
+      }
+
+      $starts = (int) ($entitlement->get('starts')->value ?? 0);
+      $ends = (int) ($entitlement->get('ends')->value ?? 0);
+      if ($starts <= 0 || $ends <= 0 || $ends <= $starts) {
+        continue;
+      }
+
+      if ($starts > $now) {
+        $transition = $starts - $now;
+      }
+      elseif ($ends > $now) {
+        $transition = $ends - $now;
+      }
+      else {
+        continue;
+      }
+
+      $min_transition = $min_transition === NULL
+        ? $transition
+        : min($min_transition, $transition);
+    }
+
+    if ($min_transition === NULL || $min_transition <= 0) {
+      return NULL;
+    }
+
+    return (int) $min_transition;
+  }
+
+  /**
+   * Returns non-revoked entitlement windows for an event.
+   *
+   * Includes active and expired entitlements. Revoked rows are excluded.
+   *
+   * @return array<int, array{starts: int, ends: int}>
+   *   Windows sorted by start timestamp ascending.
+   */
+  public function getEntitlementWindowsForEvent(int $eventNid): array {
+    $windows = [];
+    foreach ($this->getNonRevokedEntitlementsForEvent($eventNid) as $entitlement) {
+      $starts = (int) ($entitlement->get('starts')->value ?? 0);
+      $ends = (int) ($entitlement->get('ends')->value ?? 0);
+      if ($starts <= 0 || $ends <= 0 || $ends <= $starts) {
+        continue;
+      }
+      $windows[] = [
+        'starts' => $starts,
+        'ends' => $ends,
+      ];
+    }
+
+    return $windows;
+  }
+
+  /**
    * Returns the most recent non-revoked entitlement for an event (including expired).
    *
    * Used for historical boost windows; does not duplicate BoostManager active/expired logic.

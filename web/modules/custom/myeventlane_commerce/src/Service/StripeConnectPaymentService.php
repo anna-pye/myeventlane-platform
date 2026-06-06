@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_core\Service\StripeService;
+use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -16,7 +20,8 @@ use Psr\Log\LoggerInterface;
  *
  * This service ensures correct financial handling:
  * - Ticket revenue → transferred to vendor (minus platform fee)
- * - Donation revenue → retained by platform (not transferred to vendor)
+ * - Organiser donations → transferred to vendor (no application fee)
+ * - Platform donations → retained by platform (not transferred to vendor)
  * - Application fees calculated only on ticket revenue.
  */
 final class StripeConnectPaymentService {
@@ -58,47 +63,23 @@ final class StripeConnectPaymentService {
    *   The Stripe account ID (acct_xxx), or NULL if not found or not needed.
    */
   public function getStripeAccountIdForOrder(OrderInterface $order): ?string {
-    // Get the store from the order.
+    if (!$this->orderRequiresConnect($order)) {
+      return NULL;
+    }
+
+    // Organiser donations may use the platform default store on the order; resolve
+    // the Connect account from field_target_event → event → vendor → store.
+    $accountId = $this->resolveStripeAccountIdFromOrganiserDonations($order);
+    if (!empty($accountId)) {
+      return $accountId;
+    }
+
     $store = $order->getStore();
     if (!$store) {
       return NULL;
     }
 
-    // Check if this is a Boost purchase (should use platform account, not Connect).
-    foreach ($order->getItems() as $item) {
-      if ($item->bundle() === 'boost') {
-        // Boost purchases use platform account, not Connect.
-        return NULL;
-      }
-    }
-
-    // Check if order has paid items that require Connect.
-    $hasPaidItems = FALSE;
-    foreach ($order->getItems() as $item) {
-      $purchasedEntity = $item->getPurchasedEntity();
-      if ($purchasedEntity) {
-        $price = $purchasedEntity->getPrice();
-        if ($price && $price->getNumber() > 0) {
-          $hasPaidItems = TRUE;
-          break;
-        }
-      }
-    }
-
-    // If no paid items, no Connect needed.
-    if (!$hasPaidItems) {
-      return NULL;
-    }
-
-    // Get Stripe account ID from store.
-    if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
-      $accountId = $store->get('field_stripe_account_id')->value;
-      if (!empty($accountId)) {
-        return $accountId;
-      }
-    }
-
-    return NULL;
+    return $this->getStripeAccountIdFromStore($store);
   }
 
   /**
@@ -111,13 +92,22 @@ final class StripeConnectPaymentService {
    *   Validation result with 'valid' boolean and optional 'message'.
    */
   public function validateOrderForConnect(OrderInterface $order): array {
-    // Check if order has paid items.
     $hasPaidItems = FALSE;
     $eventIds = [];
 
     foreach ($order->getItems() as $item) {
-      // Skip Boost items (they use platform account).
       if ($item->bundle() === 'boost') {
+        continue;
+      }
+
+      if ($this->orderItemClassifier->isOrganiserDonation($item)) {
+        $totalPrice = $item->getTotalPrice();
+        if ($totalPrice && $totalPrice->getNumber() > 0) {
+          $hasPaidItems = TRUE;
+          if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+            $eventIds[] = $item->get('field_target_event')->target_id;
+          }
+        }
         continue;
       }
 
@@ -127,7 +117,6 @@ final class StripeConnectPaymentService {
         if ($price && $price->getNumber() > 0) {
           $hasPaidItems = TRUE;
 
-          // Get event ID from order item if available.
           if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
             $eventIds[] = $item->get('field_target_event')->target_id;
           }
@@ -135,7 +124,6 @@ final class StripeConnectPaymentService {
       }
     }
 
-    // If no paid items, validation passes (RSVP/free events).
     if (!$hasPaidItems) {
       return ['valid' => TRUE, 'message' => NULL];
     }
@@ -284,10 +272,41 @@ final class StripeConnectPaymentService {
   }
 
   /**
+   * Calculates organiser donation revenue (for reference/logging).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   *
+   * @return int
+   *   Organiser donation revenue in cents.
+   */
+  public function calculateOrganiserDonationRevenue(OrderInterface $order): int {
+    $donationAmount = 0;
+
+    foreach ($order->getItems() as $item) {
+      if ($this->orderItemClassifier->isOrganiserDonation($item)) {
+        $totalPrice = $item->getTotalPrice();
+        if ($totalPrice) {
+          $donationAmount += (int) round($totalPrice->getNumber() * 100);
+        }
+      }
+    }
+
+    return $donationAmount;
+  }
+
+  /**
+   * Calculates vendor transfer amount in cents (ticket + organiser donations).
+   */
+  public function calculateVendorTransferAmount(OrderInterface $order): int {
+    return $this->calculateTicketRevenue($order) + $this->calculateOrganiserDonationRevenue($order);
+  }
+
+  /**
    * Calculates application fee for an order.
    *
    * IMPORTANT: Application fee is calculated ONLY on ticket revenue,
-   * NOT on donations. Donations are platform revenue and do not incur
+   * NOT on donations. Organiser and platform donations do not incur
    * vendor payout fees.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
@@ -307,6 +326,9 @@ final class StripeConnectPaymentService {
 
     // Calculate fee only on ticket revenue (excludes donations).
     $ticketRevenue = $this->calculateTicketRevenue($order);
+    if ($ticketRevenue <= 0) {
+      return 0;
+    }
 
     return $this->stripeService->calculateApplicationFee($ticketRevenue, $feePercentage, $fixedFeeCents);
   }
@@ -316,16 +338,16 @@ final class StripeConnectPaymentService {
    *
    * STRIPE CONNECT MATH:
    * - Customer pays: total order amount (tickets + donations + fees + tax)
-   * - Platform receives: application_fee_amount + donation revenue
-   * - Vendor receives: ticket revenue - application_fee_amount.
+   * - Platform receives: application_fee_amount + platform donation revenue
+   * - Vendor receives: ticket revenue + organiser donations - application_fee.
    *
    * Example:
    * - Tickets: $100.00
-   * - Donations: $20.00
+   * - Organiser donations: $20.00
    * - Application fee (3% + $0.30 on $100): $3.30
    * - Total charged: $120.00
-   * - Vendor receives: $100.00 - $3.30 = $96.70
-   * - Platform receives: $3.30 (fee) + $20.00 (donation) = $23.30
+   * - Vendor receives: $120.00 - $3.30 = $116.70
+   * - Platform receives: $3.30 (fee)
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -339,59 +361,211 @@ final class StripeConnectPaymentService {
       return [];
     }
 
-    // Calculate ticket revenue (excludes donations).
     $ticketRevenue = $this->calculateTicketRevenue($order);
+    $organiserDonationRevenue = $this->calculateOrganiserDonationRevenue($order);
+    $vendorTransferAmount = $ticketRevenue + $organiserDonationRevenue;
 
-    // If no ticket revenue, no Connect transfer needed.
-    // (Donation-only orders should not use Connect.)
-    if ($ticketRevenue <= 0) {
-      $this->logger->warning(
-        'Order @order_id has no ticket revenue but Connect account ID is set. This may indicate a configuration issue.',
-        ['@order_id' => $order->id()]
-      );
+    if ($vendorTransferAmount <= 0) {
       return [];
     }
 
-    // Calculate application fee on ticket revenue only.
     $applicationFee = $this->calculateApplicationFee($order);
 
-    // Build Connect parameters.
-    // Note: In Stripe Connect destination charges:
-    // - The total PaymentIntent amount includes everything (tickets + donations)
-    // - transfer_data[destination] transfers ticket revenue to vendor
-    // - application_fee_amount is deducted from the transfer
-    // - Donations remain with platform (not transferred)
-    //
-    // Stripe automatically calculates: vendor_receives = ticket_revenue - application_fee
-    // We use transfer_data[amount] to explicitly set the transfer amount to ticket revenue.
     $params = [
       'application_fee_amount' => $applicationFee,
       'transfer_data' => [
         'destination' => $accountId,
-        // Explicitly set transfer amount to ticket revenue.
-        // This ensures vendor receives: ticket_revenue - application_fee
-        // and donations remain with platform.
-        'amount' => $ticketRevenue,
+        'amount' => $vendorTransferAmount,
       ],
       'metadata' => [
         'order_id' => (string) $order->id(),
       ],
     ];
 
-    // Log for debugging.
-    $donationRevenue = $this->calculateDonationRevenue($order);
+    $platformDonationRevenue = $this->calculateDonationRevenue($order) - $organiserDonationRevenue;
     $this->logger->info(
-      'Stripe Connect params for order @order_id: ticket_revenue=@ticket, donation_revenue=@donation, fee=@fee, vendor_receives=@vendor',
+      'Stripe Connect params for order @order_id: ticket_revenue=@ticket, organiser_donation_revenue=@organiser, platform_donation_revenue=@platform, transfer_amount=@transfer, fee=@fee, vendor_receives=@vendor',
       [
         '@order_id' => $order->id(),
         '@ticket' => $ticketRevenue,
-        '@donation' => $donationRevenue,
+        '@organiser' => $organiserDonationRevenue,
+        '@platform' => $platformDonationRevenue,
+        '@transfer' => $vendorTransferAmount,
         '@fee' => $applicationFee,
-        '@vendor' => $ticketRevenue - $applicationFee,
+        '@vendor' => $vendorTransferAmount - $applicationFee,
       ]
     );
 
     return $params;
+  }
+
+  /**
+   * Checks whether an order requires Stripe Connect (tickets or organiser donations).
+   *
+   * Boost-only orders use the platform account. Mixed boost + ticket/donation orders
+   * still require Connect for the vendor-paid portion.
+   */
+  private function orderRequiresConnect(OrderInterface $order): bool {
+    $hasBoost = FALSE;
+    $requiresConnect = FALSE;
+
+    foreach ($order->getItems() as $item) {
+      if ($item->bundle() === 'boost') {
+        $hasBoost = TRUE;
+        continue;
+      }
+
+      if ($this->orderItemClassifier->isPlatformDonation($item)) {
+        continue;
+      }
+
+      if ($this->orderItemClassifier->isOrganiserDonation($item)) {
+        $totalPrice = $item->getTotalPrice();
+        if ($totalPrice && $totalPrice->getNumber() > 0) {
+          $requiresConnect = TRUE;
+        }
+        continue;
+      }
+
+      $purchasedEntity = $item->getPurchasedEntity();
+      if ($purchasedEntity) {
+        $price = $purchasedEntity->getPrice();
+        if ($price && $price->getNumber() > 0) {
+          $requiresConnect = TRUE;
+        }
+      }
+    }
+
+    if ($hasBoost && !$requiresConnect) {
+      return FALSE;
+    }
+
+    return $requiresConnect;
+  }
+
+  /**
+   * Resolves Connect account from organiser donation line items on the order.
+   */
+  private function resolveStripeAccountIdFromOrganiserDonations(OrderInterface $order): ?string {
+    foreach ($order->getItems() as $item) {
+      if (!$this->orderItemClassifier->isOrganiserDonation($item)) {
+        continue;
+      }
+
+      $totalPrice = $item->getTotalPrice();
+      if (!$totalPrice || $totalPrice->getNumber() <= 0) {
+        continue;
+      }
+
+      $accountId = $this->resolveStripeAccountIdFromOrderItemEvent($item);
+      if (!empty($accountId)) {
+        return $accountId;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Resolves Connect account via field_target_event → event → vendor → store.
+   */
+  private function resolveStripeAccountIdFromOrderItemEvent(OrderItemInterface $item): ?string {
+    if (!$item->hasField('field_target_event') || $item->get('field_target_event')->isEmpty()) {
+      return NULL;
+    }
+
+    $event = $item->get('field_target_event')->entity;
+    if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+      $eventId = (int) $item->get('field_target_event')->target_id;
+      if ($eventId <= 0) {
+        return NULL;
+      }
+      $loaded = $this->entityTypeManager->getStorage('node')->load($eventId);
+      if (!$loaded instanceof NodeInterface || $loaded->bundle() !== 'event') {
+        return NULL;
+      }
+      $event = $loaded;
+    }
+
+    $store = $this->resolveOrganiserCommerceStoreFromEvent($event);
+    if (!$store) {
+      return NULL;
+    }
+
+    return $this->getStripeAccountIdFromStore($store);
+  }
+
+  /**
+   * Resolves the organiser Commerce store for an event node.
+   *
+   * field_event_vendor → field_vendor_store first; then event author fallback.
+   */
+  private function resolveOrganiserCommerceStoreFromEvent(NodeInterface $event): ?StoreInterface {
+    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+      $vendor = $event->get('field_event_vendor')->entity;
+      if ($vendor instanceof ContentEntityInterface
+        && $vendor->hasField('field_vendor_store')
+        && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $candidate = $vendor->get('field_vendor_store')->entity;
+        if ($candidate instanceof StoreInterface) {
+          return $candidate;
+        }
+      }
+    }
+
+    $vendorUid = (int) $event->getOwnerId();
+    if ($vendorUid === 0) {
+      return NULL;
+    }
+
+    $store = NULL;
+
+    if ($this->entityTypeManager->hasDefinition('myeventlane_vendor')) {
+      $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+      $vendorIds = $vendorStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('field_owner', $vendorUid)
+        ->range(0, 1)
+        ->execute();
+
+      if ($vendorIds !== []) {
+        $vendorEntity = $vendorStorage->load(reset($vendorIds));
+        if ($vendorEntity instanceof ContentEntityInterface
+          && $vendorEntity->hasField('field_vendor_store')
+          && !$vendorEntity->get('field_vendor_store')->isEmpty()) {
+          $store = $vendorEntity->get('field_vendor_store')->entity;
+        }
+      }
+    }
+
+    if (!$store instanceof StoreInterface) {
+      $storeIds = $this->entityTypeManager->getStorage('commerce_store')->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $vendorUid)
+        ->range(0, 1)
+        ->execute();
+
+      if ($storeIds !== []) {
+        $loaded = $this->entityTypeManager->getStorage('commerce_store')->load(reset($storeIds));
+        $store = $loaded instanceof StoreInterface ? $loaded : NULL;
+      }
+    }
+
+    return $store instanceof StoreInterface ? $store : NULL;
+  }
+
+  /**
+   * Reads field_stripe_account_id from a Commerce store when present.
+   */
+  private function getStripeAccountIdFromStore(StoreInterface $store): ?string {
+    if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+      $accountId = trim((string) $store->get('field_stripe_account_id')->value);
+      if ($accountId !== '') {
+        return $accountId;
+      }
+    }
+
+    return NULL;
   }
 
 }

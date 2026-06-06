@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_domain_events\ProjectionReadModel;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_core\Utility\EntityLoadIds;
 use Psr\Log\LoggerInterface;
 
@@ -23,6 +24,7 @@ final class FinanceReadModel {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CacheBackendInterface $cache,
     private readonly LoggerInterface $logger,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -33,7 +35,8 @@ final class FinanceReadModel {
    *   mel_fee:float,
    *   stripe_fee:float,
    *   net_revenue:float,
-   *   refund_total:float
+   *   refund_total:float,
+   *   organiser_donation_revenue:float
    * }
    *   Finance payload.
    */
@@ -63,7 +66,9 @@ final class FinanceReadModel {
         'stripe_fee' => (float) ($projection['stripe_fee'] ?? 0.0),
         'net_revenue' => (float) ($projection['net_revenue'] ?? 0.0),
         'refund_total' => (float) ($projection['refund_total'] ?? 0.0),
+        'organiser_donation_revenue' => 0.0,
       ];
+      $finance = $this->applyVendorLineItemRevenue($eventId, $finance);
       $this->cache->set(
         $cacheKey,
         $finance,
@@ -75,6 +80,7 @@ final class FinanceReadModel {
 
     // Expected until projector queue catches up.
     $fallback = $this->buildFallbackFinance($vendorId, $eventId);
+    $fallback = $this->applyVendorLineItemRevenue($eventId, $fallback);
     $this->cache->set(
       $cacheKey,
       $fallback,
@@ -94,7 +100,8 @@ final class FinanceReadModel {
    *   mel_fee:float,
    *   stripe_fee:float,
    *   net_revenue:float,
-   *   refund_total:float
+   *   refund_total:float,
+   *   organiser_donation_revenue:float
    * }
    *   Finance payload.
    */
@@ -154,6 +161,7 @@ final class FinanceReadModel {
         'stripe_fee' => $stripeFee,
         'net_revenue' => $netRevenue,
         'refund_total' => $refundTotal,
+        'organiser_donation_revenue' => 0.0,
       ];
     }
     catch (\Throwable $e) {
@@ -230,7 +238,8 @@ final class FinanceReadModel {
    *   mel_fee:float,
    *   stripe_fee:float,
    *   net_revenue:float,
-   *   refund_total:float
+   *   refund_total:float,
+   *   organiser_donation_revenue:float
    * }
    *   Empty finance payload.
    */
@@ -241,8 +250,87 @@ final class FinanceReadModel {
       'stripe_fee' => 0.0,
       'net_revenue' => 0.0,
       'refund_total' => 0.0,
+      'organiser_donation_revenue' => 0.0,
     ];
   }
 
-}
+  /**
+   * Aligns finance totals with vendor line-item revenue (tickets + organiser donations).
+   *
+   * Excludes platform_donation from vendor gross/net.
+   *
+   * @param array<string, float> $finance
+   *   Base finance payload.
+   *
+   * @return array<string, float>
+   *   Finance payload with vendor-aligned gross/net.
+   */
+  private function applyVendorLineItemRevenue(int $eventId, array $finance): array {
+    $ticketRevenue = $this->sumTicketRevenueForEvent($eventId);
+    $organiserDonationRevenue = $this->sumOrganiserDonationRevenueForEvent($eventId);
+    $grossRevenue = round($ticketRevenue + $organiserDonationRevenue, 2);
 
+    $refundTotal = (float) ($finance['refund_total'] ?? 0.0);
+    $melFee = (float) ($finance['mel_fee'] ?? 0.0);
+    $stripeFee = (float) ($finance['stripe_fee'] ?? 0.0);
+    $netRevenue = round(max(0.0, $grossRevenue - $refundTotal - $melFee - $stripeFee), 2);
+
+    $finance['gross_revenue'] = $grossRevenue;
+    $finance['net_revenue'] = $netRevenue;
+    $finance['organiser_donation_revenue'] = round($organiserDonationRevenue, 2);
+
+    return $finance;
+  }
+
+  /**
+   * Sums ticket and vendor-eligible line revenue for an event (excludes all donations).
+   */
+  private function sumTicketRevenueForEvent(int $eventId): float {
+    if (
+      $eventId <= 0
+      || !$this->database->schema()->tableExists('commerce_order_item')
+      || !$this->database->schema()->tableExists('commerce_order')
+      || !$this->database->schema()->tableExists('commerce_order_item__field_target_event')
+    ) {
+      return 0.0;
+    }
+
+    $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
+    $query = $this->database->select('commerce_order_item', 'oi');
+    $query->join('commerce_order', 'o', 'o.order_id = oi.order_id');
+    $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+    $query->addExpression('COALESCE(SUM(oi.unit_price__number * oi.quantity), 0)', 'revenue');
+    $query->condition('o.state', 'completed');
+    $query->condition('lnk.field_target_event_target_id', $eventId);
+    $query->condition('oi.type', $excludedTypes, 'NOT IN');
+
+    return round((float) $query->execute()->fetchField(), 2);
+  }
+
+  /**
+   * Sums organiser donation line revenue for an event.
+   */
+  private function sumOrganiserDonationRevenueForEvent(int $eventId): float {
+    $organiserTypes = $this->orderItemClassifier->getOrganiserDonationTypes();
+    if (
+      $eventId <= 0
+      || $organiserTypes === []
+      || !$this->database->schema()->tableExists('commerce_order_item')
+      || !$this->database->schema()->tableExists('commerce_order')
+      || !$this->database->schema()->tableExists('commerce_order_item__field_target_event')
+    ) {
+      return 0.0;
+    }
+
+    $query = $this->database->select('commerce_order_item', 'oi');
+    $query->join('commerce_order', 'o', 'o.order_id = oi.order_id');
+    $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+    $query->addExpression('COALESCE(SUM(oi.unit_price__number * oi.quantity), 0)', 'revenue');
+    $query->condition('o.state', 'completed');
+    $query->condition('lnk.field_target_event_target_id', $eventId);
+    $query->condition('oi.type', $organiserTypes, 'IN');
+
+    return round((float) $query->execute()->fetchField(), 2);
+  }
+
+}

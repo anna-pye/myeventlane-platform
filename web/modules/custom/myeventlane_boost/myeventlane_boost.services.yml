@@ -84,6 +84,7 @@ services:
       - '@database'
       - '@entity_type.manager'
       - '@myeventlane_boost.manager'
+      - '@myeventlane_boost.entitlement_manager'
       - '@datetime.time'
       - '@string_translation'
 

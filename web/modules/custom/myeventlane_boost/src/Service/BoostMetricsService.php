@@ -14,6 +14,7 @@ use Drupal\myeventlane_boost\BoostManager;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_core\Utility\EntityLoadIds;
+use Drupal\myeventlane_rsvp\Entity\RsvpSubmissionInterface;
 
 /**
  * Aggregates Boost metrics for display in vendor dashboard.
@@ -36,6 +37,8 @@ final class BoostMetricsService {
    *   The entity type manager.
    * @param \Drupal\myeventlane_boost\BoostManager $boostManager
    *   The boost manager.
+   * @param \Drupal\myeventlane_boost\Service\BoostEntitlementManager $entitlementManager
+   *   The boost entitlement manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $stringTranslation
@@ -45,6 +48,7 @@ final class BoostMetricsService {
     private readonly Connection $database,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly BoostManager $boostManager,
+    private readonly BoostEntitlementManager $entitlementManager,
     private readonly TimeInterface $time,
     TranslationInterface $stringTranslation,
   ) {
@@ -65,28 +69,44 @@ final class BoostMetricsService {
    *   - ctr: Click-through rate (float, 0.0-1.0)
    *   - cost_per_click: Cost per click (string, formatted currency or NULL)
    *   - sales_during_period: Sales during boost period (array or NULL)
+   *   - sales_during_boost: Formatted revenue during entitlement windows (string)
+   *   - revenue_during_boost: Raw revenue during entitlement windows (float)
+   *   - orders_during_boost: Completed order count during entitlement windows (int)
+   *   - tickets_during_boost: Ticket quantity during entitlement windows (int)
+   *   - rsvps_during_boost: Non-cancelled RSVP count during entitlement windows (int)
+   *   - donation_revenue_during_boost: RSVP donation revenue during windows (float)
+   *   - average_donation_during_boost: Average RSVP donation during windows (float)
+   *   - donation_revenue_during_boost_formatted: Formatted donation revenue (string)
+   *   - average_donation_during_boost_formatted: Formatted average donation (string)
+   *   - rsvp_donation_count_during_boost: RSVPs with a donation during windows (int)
    *   - placements: Array of placement-level metrics
    */
   public function getEventBoostMetrics(NodeInterface $event): array {
     $eventId = (int) $event->id();
+    $salesDuringBoostMetrics = $this->computeSalesDuringBoostMetrics($event);
+    $rsvpsDuringBoostMetrics = $this->computeRsvpsDuringBoostMetrics($event);
+    $outcomeMetrics = array_merge(
+      $this->normalizeSalesDuringBoostMetrics($salesDuringBoostMetrics),
+      $this->normalizeRsvpsDuringBoostMetrics($rsvpsDuringBoostMetrics),
+    );
 
     // Get all Boost order items for this event.
     $boostOrderItems = $this->getBoostOrderItemsForEvent($eventId);
 
     if (empty($boostOrderItems)) {
-      return [
+      return array_merge([
         'spend' => '$0.00',
         'impressions' => 0,
         'clicks' => 0,
         'ctr' => 0.0,
         'cost_per_click' => NULL,
-        'sales_during_period' => NULL,
+        'sales_during_period' => $this->formatSalesDuringPeriod($salesDuringBoostMetrics),
         'placements' => [],
         'chart_data' => NULL,
         'orders_following_click' => NULL,
         'placement_comparison' => [],
         'recommendations' => [],
-      ];
+      ], $outcomeMetrics);
     }
 
     // Calculate total spend.
@@ -114,8 +134,8 @@ final class BoostMetricsService {
       $costPerClick = $totalSpend / $totalClicks;
     }
 
-    // Get sales during boost period.
-    $salesDuringPeriod = $this->getSalesDuringBoostPeriod($event, $boostOrderItems);
+    // Get sales during boost entitlement windows.
+    $salesDuringPeriod = $this->formatSalesDuringPeriod($salesDuringBoostMetrics);
 
     // Get placement-level breakdown.
     $placements = $this->getPlacementBreakdown($orderItemIds);
@@ -125,7 +145,7 @@ final class BoostMetricsService {
     $placementComparison = $this->getPlacementComparison($orderItemIds, $placements);
     $recommendations = $this->getRecommendations($placements, $placementComparison, $chartData);
 
-    return [
+    return array_merge([
       'spend' => '$' . number_format($totalSpend, 2, '.', ','),
       'impressions' => $totalImpressions,
       'clicks' => $totalClicks,
@@ -137,7 +157,7 @@ final class BoostMetricsService {
       'orders_following_click' => $ordersFollowingClick,
       'placement_comparison' => $placementComparison,
       'recommendations' => $recommendations,
-    ];
+    ], $outcomeMetrics);
   }
 
   /**
@@ -234,78 +254,64 @@ final class BoostMetricsService {
   }
 
   /**
-   * Gets sales during boost period.
+   * Computes sales metrics during entitlement windows.
    *
-   * Only for paid events. Counts completed orders created during boost active window.
-   * Non-causal attribution - just temporal correlation.
+   * Only for paid events. Counts completed orders whose placement timestamp
+   * falls within any non-revoked entitlement window for the event.
+   * Non-causal attribution - temporal correlation only.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
-   * @param \Drupal\commerce_order\Entity\OrderItemInterface[] $boostOrderItems
-   *   Array of Boost order items.
    *
-   * @return array|null
-   *   Sales array with keys: count, revenue (formatted string), or NULL if not applicable.
+   * @return array
+   *   Metrics array with keys:
+   *   - sales_during_boost: formatted revenue string
+   *   - revenue_during_boost: float
+   *   - orders_during_boost: int
+   *   - tickets_during_boost: int
    */
-  private function getSalesDuringBoostPeriod(NodeInterface $event, array $boostOrderItems): ?array {
+  private function computeSalesDuringBoostMetrics(NodeInterface $event): array {
     $eventId = (int) $event->id();
+    $zeros = $this->zeroSalesDuringBoostMetrics();
 
-    // Only for paid events.
     if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
-      return NULL;
+      return $zeros;
     }
 
-    // Get boost active window from event's field_promo_expires.
-    $boostStatus = $this->boostManager->getBoostStatusForEvent($event);
-    if (!$boostStatus['active'] && !$boostStatus['expired']) {
-      // Boost never active or not yet started.
-      return NULL;
+    $windows = $this->entitlementManager->getEntitlementWindowsForEvent($eventId);
+    if ($windows === []) {
+      return $zeros;
     }
 
-    // For Phase 1, use current boost window if active, or historical if expired.
-    // We need to determine the boost start time. Since we don't have field_promo_start,
-    // we'll use the order creation time of the first boost order item as proxy.
-    $boostStartTime = NULL;
-    foreach ($boostOrderItems as $orderItem) {
-      $order = $this->loadParentOrder($orderItem);
-      if ($order) {
-        $orderCreated = $order->getCreatedTime();
-        if ($boostStartTime === NULL || $orderCreated < $boostStartTime) {
-          $boostStartTime = $orderCreated;
-        }
-      }
-    }
-
-    if ($boostStartTime === NULL) {
-      return NULL;
-    }
-
-    $boostEndTime = $boostStatus['end_timestamp'] ?? time();
-
-    // Query order items for this event, then filter by order state and date.
     $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
     $orderItems = $orderItemStorage->loadByProperties([
-      'field_target_event' => $event->id(),
+      'field_target_event' => $eventId,
     ]);
 
-    if (empty($orderItems)) {
+    if ($orderItems === []) {
       return [
-        'count' => 0,
-        'revenue' => '$0.00',
+        'sales_during_boost' => '$0.00',
+        'revenue_during_boost' => 0.0,
+        'orders_during_boost' => 0,
+        'tickets_during_boost' => 0,
       ];
     }
 
-    // Filter to completed orders created during boost window.
     $orders = [];
-    $processedOrderIds = [];
+    $totalRevenue = 0.0;
+    $totalTickets = 0;
 
     foreach ($orderItems as $orderItem) {
       if (!$orderItem instanceof OrderItemInterface) {
         continue;
       }
 
-      // Exclude Boost items themselves.
-      if ($orderItem->bundle() === 'boost') {
+      if ($this->isExcludedTicketSalesItem($orderItem)) {
+        continue;
+      }
+
+      if (!$orderItem->hasField('field_target_event')
+          || (int) ($orderItem->get('field_target_event')->target_id ?? 0) !== $eventId) {
         continue;
       }
 
@@ -314,51 +320,300 @@ final class BoostMetricsService {
         continue;
       }
 
-      // Check if order was created during boost window.
-      $orderCreated = $order->getCreatedTime();
-      if ($orderCreated < $boostStartTime || $orderCreated > $boostEndTime) {
+      $orderTimestamp = $this->getOrderSalesTimestamp($order);
+      if (!$this->isTimestampWithinEntitlementWindows($orderTimestamp, $windows)) {
         continue;
       }
 
-      // Avoid counting same order multiple times if it has multiple items.
       $orderId = (int) $order->id();
-      if (!isset($processedOrderIds[$orderId])) {
-        $orders[$orderId] = $order;
-        $processedOrderIds[$orderId] = TRUE;
+      if (!isset($orders[$orderId])) {
+        $orders[$orderId] = TRUE;
       }
-    }
 
-    $totalRevenue = 0;
-    $orderCount = count($orders);
-
-    foreach ($orders as $order) {
-      // Only count ticket revenue for items targeting this event.
-      // Exclude boost items, donations, etc.
-      foreach ($order->getItems() as $item) {
-        if ($item->bundle() === 'boost'
-            || $item->bundle() === 'checkout_donation'
-            || $item->bundle() === 'platform_donation'
-            || $item->bundle() === 'rsvp_donation') {
-          continue;
-        }
-
-        // Only count items that target this event.
-        if (!$item->hasField('field_target_event')
-            || (int) ($item->get('field_target_event')->target_id ?? 0) !== $eventId) {
-          continue;
-        }
-
-        $totalPrice = $item->getTotalPrice();
-        if ($totalPrice) {
-          $totalRevenue += (float) $totalPrice->getNumber();
-        }
+      $totalTickets += (int) $orderItem->getQuantity();
+      $totalPrice = $orderItem->getTotalPrice();
+      if ($totalPrice) {
+        $totalRevenue += (float) $totalPrice->getNumber();
       }
     }
 
     return [
-      'count' => $orderCount,
-      'revenue' => '$' . number_format($totalRevenue, 2, '.', ','),
+      'sales_during_boost' => '$' . number_format($totalRevenue, 2, '.', ','),
+      'revenue_during_boost' => $totalRevenue,
+      'orders_during_boost' => count($orders),
+      'tickets_during_boost' => $totalTickets,
     ];
+  }
+
+  /**
+   * Computes RSVP metrics during entitlement windows.
+   *
+   * Counts non-cancelled RSVP submissions whose created timestamp falls
+   * within any non-revoked entitlement window. Donation revenue prefers
+   * realised completed rsvp_donation order item amounts linked to each
+   * submission; falls back to the submission donation field when no paid
+   * order item exists.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return array
+   *   Metrics array with RSVP-during-boost keys.
+   */
+  private function computeRsvpsDuringBoostMetrics(NodeInterface $event): array {
+    $eventId = (int) $event->id();
+    $zeros = $this->zeroRsvpsDuringBoostMetrics();
+
+    $windows = $this->entitlementManager->getEntitlementWindowsForEvent($eventId);
+    if ($windows === []) {
+      return $zeros;
+    }
+
+    if (!$this->entityTypeManager->hasDefinition('rsvp_submission')) {
+      return $zeros;
+    }
+
+    try {
+      $storage = $this->entityTypeManager->getStorage('rsvp_submission');
+      $submissionIds = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event_id', $eventId)
+        ->condition('status', 'cancelled', '<>')
+        ->execute();
+
+      if ($submissionIds === []) {
+        return $zeros;
+      }
+
+      /** @var \Drupal\myeventlane_rsvp\Entity\RsvpSubmissionInterface[] $submissions */
+      $submissions = $storage->loadMultiple($submissionIds);
+      $paidDonationsBySubmission = $this->loadCompletedRsvpDonationAmountsBySubmission($eventId);
+
+      $rsvpCount = 0;
+      $donationRevenue = 0.0;
+      $donationCount = 0;
+
+      foreach ($submissions as $submission) {
+        if (!$submission instanceof RsvpSubmissionInterface) {
+          continue;
+        }
+
+        $created = (int) $submission->get('created')->value;
+        if (!$this->isTimestampWithinEntitlementWindows($created, $windows)) {
+          continue;
+        }
+
+        $rsvpCount++;
+        $submissionId = (int) $submission->id();
+        $donationAmount = $paidDonationsBySubmission[$submissionId]
+          ?? (float) ($submission->get('donation')->value ?? 0);
+        if ($donationAmount > 0) {
+          $donationRevenue += $donationAmount;
+          $donationCount++;
+        }
+      }
+
+      $averageDonation = $donationCount > 0 ? round($donationRevenue / $donationCount, 2) : 0.0;
+
+      return [
+        'rsvps_during_boost' => $rsvpCount,
+        'donation_revenue_during_boost' => round($donationRevenue, 2),
+        'average_donation_during_boost' => $averageDonation,
+        'donation_revenue_during_boost_formatted' => '$' . number_format($donationRevenue, 2, '.', ','),
+        'average_donation_during_boost_formatted' => '$' . number_format($averageDonation, 2, '.', ','),
+        'rsvp_donation_count_during_boost' => $donationCount,
+      ];
+    }
+    catch (\Exception $e) {
+      return $zeros;
+    }
+  }
+
+  /**
+   * Loads paid RSVP donation amounts keyed by submission ID.
+   *
+   * Uses completed rsvp_donation order items linked via field_rsvp_submission.
+   *
+   * @return array<int, float>
+   *   Submission ID => donation amount from completed orders.
+   */
+  private function loadCompletedRsvpDonationAmountsBySubmission(int $eventId): array {
+    $amounts = [];
+
+    try {
+      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+      $orderItemIds = $orderItemStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'rsvp_donation')
+        ->condition('field_target_event', $eventId)
+        ->execute();
+
+      if ($orderItemIds === []) {
+        return $amounts;
+      }
+
+      $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
+      foreach ($orderItems as $orderItem) {
+        if (!$orderItem instanceof OrderItemInterface) {
+          continue;
+        }
+
+        if (!$orderItem->hasField('field_rsvp_submission') || $orderItem->get('field_rsvp_submission')->isEmpty()) {
+          continue;
+        }
+
+        $order = $this->loadParentOrder($orderItem);
+        if (!$order || !in_array($order->getState()->getId(), ['completed', 'fulfillment'], TRUE)) {
+          continue;
+        }
+
+        $submissionId = (int) ($orderItem->get('field_rsvp_submission')->target_id ?? 0);
+        if ($submissionId <= 0) {
+          continue;
+        }
+
+        $totalPrice = $orderItem->getTotalPrice();
+        if ($totalPrice) {
+          $amounts[$submissionId] = (float) $totalPrice->getNumber();
+        }
+      }
+    }
+    catch (\Exception $e) {
+      return $amounts;
+    }
+
+    return $amounts;
+  }
+
+  /**
+   * Maps computed sales metrics to the legacy sales_during_period shape.
+   *
+   * @param array $metrics
+   *   Result from computeSalesDuringBoostMetrics().
+   *
+   * @return array
+   *   Legacy array with count and revenue.
+   */
+  private function formatSalesDuringPeriod(array $metrics): array {
+    return [
+      'count' => (int) ($metrics['orders_during_boost'] ?? 0),
+      'revenue' => (string) ($metrics['sales_during_boost'] ?? '$0.00'),
+    ];
+  }
+
+  /**
+   * Normalizes sales-during-boost metrics for the public payload.
+   *
+   * @param array $metrics
+   *   Result from computeSalesDuringBoostMetrics().
+   *
+   * @return array<string, mixed>
+   *   Payload fragment with the four sales-during-boost keys.
+   */
+  private function normalizeSalesDuringBoostMetrics(array $metrics): array {
+    return [
+      'sales_during_boost' => $metrics['sales_during_boost'],
+      'revenue_during_boost' => $metrics['revenue_during_boost'],
+      'orders_during_boost' => $metrics['orders_during_boost'],
+      'tickets_during_boost' => $metrics['tickets_during_boost'],
+    ];
+  }
+
+  /**
+   * Normalizes RSVP-during-boost metrics for the public payload.
+   *
+   * @param array $metrics
+   *   Result from computeRsvpsDuringBoostMetrics().
+   *
+   * @return array<string, mixed>
+   *   Payload fragment with RSVP-during-boost keys.
+   */
+  private function normalizeRsvpsDuringBoostMetrics(array $metrics): array {
+    return [
+      'rsvps_during_boost' => (int) ($metrics['rsvps_during_boost'] ?? 0),
+      'donation_revenue_during_boost' => (float) ($metrics['donation_revenue_during_boost'] ?? 0.0),
+      'average_donation_during_boost' => (float) ($metrics['average_donation_during_boost'] ?? 0.0),
+      'donation_revenue_during_boost_formatted' => (string) ($metrics['donation_revenue_during_boost_formatted'] ?? '$0.00'),
+      'average_donation_during_boost_formatted' => (string) ($metrics['average_donation_during_boost_formatted'] ?? '$0.00'),
+      'rsvp_donation_count_during_boost' => (int) ($metrics['rsvp_donation_count_during_boost'] ?? 0),
+    ];
+  }
+
+  /**
+   * Zero-initialised paid-event boost outcome metrics.
+   *
+   * @return array<string, int|float|string>
+   *   Sales-during-boost keys with zero defaults.
+   */
+  private function zeroSalesDuringBoostMetrics(): array {
+    return [
+      'sales_during_boost' => '$0.00',
+      'revenue_during_boost' => 0.0,
+      'orders_during_boost' => 0,
+      'tickets_during_boost' => 0,
+    ];
+  }
+
+  /**
+   * Zero-initialised RSVP boost outcome metrics.
+   *
+   * @return array<string, int|float|string>
+   *   RSVP-during-boost keys with zero defaults.
+   */
+  private function zeroRsvpsDuringBoostMetrics(): array {
+    return [
+      'rsvps_during_boost' => 0,
+      'donation_revenue_during_boost' => 0.0,
+      'average_donation_during_boost' => 0.0,
+      'donation_revenue_during_boost_formatted' => '$0.00',
+      'average_donation_during_boost_formatted' => '$0.00',
+      'rsvp_donation_count_during_boost' => 0,
+    ];
+  }
+
+  /**
+   * Checks whether a timestamp falls within any entitlement window.
+   *
+   * Windows are inclusive at start and exclusive at end, matching entitlement
+   * active semantics.
+   *
+   * @param int $timestamp
+   *   Unix timestamp to test.
+   * @param array<int, array{starts: int, ends: int}> $windows
+   *   Entitlement windows.
+   */
+  private function isTimestampWithinEntitlementWindows(int $timestamp, array $windows): bool {
+    foreach ($windows as $window) {
+      if ($timestamp >= $window['starts'] && $timestamp < $window['ends']) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Resolves the order timestamp used for sales-during-boost attribution.
+   */
+  private function getOrderSalesTimestamp(OrderInterface $order): int {
+    $completedTime = (int) $order->getCompletedTime();
+    if ($completedTime > 0) {
+      return $completedTime;
+    }
+
+    return (int) $order->getCreatedTime();
+  }
+
+  /**
+   * Determines whether an order item should be excluded from ticket sales totals.
+   */
+  private function isExcludedTicketSalesItem(OrderItemInterface $orderItem): bool {
+    return in_array($orderItem->bundle(), [
+      'boost',
+      'checkout_donation',
+      'platform_donation',
+      'rsvp_donation',
+    ], TRUE);
   }
 
   /**

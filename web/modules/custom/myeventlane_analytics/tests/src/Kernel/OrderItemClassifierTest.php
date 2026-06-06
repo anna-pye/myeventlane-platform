@@ -217,4 +217,42 @@ final class OrderItemClassifierTest extends KernelTestBase {
     $this->assertCount(4, $excluded);
   }
 
+  /**
+   * Tests organiser donation type list.
+   */
+  public function testGetOrganiserDonationTypes(): void {
+    $types = $this->classifier->getOrganiserDonationTypes();
+    $this->assertSame(['checkout_donation', 'rsvp_donation'], $types);
+  }
+
+  /**
+   * Tests platform donation type list.
+   */
+  public function testGetPlatformDonationTypes(): void {
+    $types = $this->classifier->getPlatformDonationTypes();
+    $this->assertSame(['platform_donation'], $types);
+  }
+
+  /**
+   * Tests organiser donation classification.
+   */
+  public function testOrganiserDonationClassification(): void {
+    foreach (['checkout_donation', 'rsvp_donation'] as $type) {
+      $item = $this->createOrderItemWithType($type);
+      $this->assertTrue($this->classifier->isOrganiserDonation($item));
+      $this->assertFalse($this->classifier->isPlatformDonation($item));
+      $this->assertTrue($this->classifier->isDonation($item));
+    }
+  }
+
+  /**
+   * Tests platform donation classification.
+   */
+  public function testPlatformDonationClassification(): void {
+    $item = $this->createOrderItemWithType('platform_donation');
+    $this->assertFalse($this->classifier->isOrganiserDonation($item));
+    $this->assertTrue($this->classifier->isPlatformDonation($item));
+    $this->assertTrue($this->classifier->isDonation($item));
+  }
+
 }

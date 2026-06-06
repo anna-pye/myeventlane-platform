@@ -20,11 +20,12 @@ use Psr\Log\LoggerInterface;
  *
  * Revenue streams (derived from order items, not order total):
  * - vendor_ticket_revenue: Eligible ticket items (excludes donations, Boost).
- * - donation_revenue: checkout_donation, platform_donation, rsvp_donation.
+ * - donation_revenue: platform_donation only (MEL-owned).
  * - boost_revenue: boost order items.
  * - application_fees: Derived from vendor_ticket_revenue * fee rate.
  *
- * Platform revenue = donation_revenue + boost_revenue + application_fees.
+ * Platform revenue = platform donation_revenue + boost_revenue + application_fees.
+ * Organiser donations (checkout_donation, rsvp_donation) are vendor revenue, not platform.
  * Vendor revenue = vendor_ticket_revenue - refunds (not aggregated here).
  *
  * @internal
@@ -139,7 +140,7 @@ final class PlatformSummaryAggregator {
     $ordersFailed = 0;
 
     $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
-    $donationTypes = $this->orderItemClassifier->getDonationTypes();
+    $donationTypes = $this->orderItemClassifier->getPlatformDonationTypes();
 
     if (!$this->database->schema()->tableExists('commerce_order_item')) {
       return $this->emptyDayRow(0, 0, 0, $feeRate, $ordersCompleted, $ordersFailed);
@@ -164,7 +165,7 @@ final class PlatformSummaryAggregator {
     }
     $vendorTicketRevenue = (float) $q_vendor->execute()->fetchField();
 
-    // Donation revenue.
+    // Donation revenue (platform-owned only).
     if (!empty($donationTypes)) {
       $q_donation = $this->database->select($oi_table, 'oi');
       $q_donation->join('commerce_order', 'o', 'o.order_id = oi.order_id');

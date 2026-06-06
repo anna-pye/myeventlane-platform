@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\myeventlane_boost\Service\BoostMetricsService;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_donations\Service\DonationService;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -27,6 +29,13 @@ use Drupal\node\NodeInterface;
 final class MetricsAggregator {
 
   /**
+   * Order states counted as paid for organiser donation analytics.
+   *
+   * Aligns with BoostMetricsService sales-during-boost attribution.
+   */
+  private const PAID_ORDER_STATES = ['completed', 'fulfillment'];
+
+  /**
    * Constructs the aggregator.
    */
   public function __construct(
@@ -36,6 +45,8 @@ final class MetricsAggregator {
     private readonly BoostStatusService $boostStatusService,
     private readonly EventMetricsServiceInterface $eventMetricsService,
     private readonly BoostMetricsService $boostMetricsService,
+    private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ?DonationService $donationService = NULL,
   ) {}
 
@@ -151,7 +162,7 @@ final class MetricsAggregator {
           'expires' => NULL,
         ],
         'tickets' => [],
-        'donations' => ['total' => 0.0, 'count' => 0],
+        'donations' => ['total' => 0.0, 'count' => 0, 'average' => 0.0],
       ];
     }
 
@@ -231,7 +242,17 @@ final class MetricsAggregator {
         'clicks' => 0,
         'ctr' => 0.0,
         'cost_per_click' => NULL,
-        'sales_during_period' => NULL,
+        'sales_during_period' => ['count' => 0, 'revenue' => '$0.00'],
+        'sales_during_boost' => '$0.00',
+        'revenue_during_boost' => 0.0,
+        'orders_during_boost' => 0,
+        'tickets_during_boost' => 0,
+        'rsvps_during_boost' => 0,
+        'donation_revenue_during_boost' => 0.0,
+        'average_donation_during_boost' => 0.0,
+        'donation_revenue_during_boost_formatted' => '$0.00',
+        'average_donation_during_boost_formatted' => '$0.00',
+        'rsvp_donation_count_during_boost' => 0,
         'placements' => [],
       ];
     }
@@ -252,16 +273,8 @@ final class MetricsAggregator {
       $capacityTotal = 0;
     }
 
-    // Orchestrate call to DonationService for RSVP donation stats (when available).
-    $donationStats = ['total' => 0.0, 'count' => 0];
-    if ($this->donationService) {
-      try {
-        $donationStats = $this->donationService->getEventDonationStats($event_id);
-      }
-      catch (\Exception $e) {
-        // Ignore; donations remain zero.
-      }
-    }
+    // Organiser donations (checkout + RSVP); excludes platform_donation.
+    $donationStats = $this->getOrganiserDonationStats($event_id);
 
     return [
       'attendees' => [
@@ -287,6 +300,77 @@ final class MetricsAggregator {
       'boost_metrics' => $boostMetrics,
       'tickets' => $ticketBreakdown,
       'donations' => $donationStats,
+    ];
+  }
+
+  /**
+   * Returns organiser donation stats for an event (checkout + RSVP only).
+   *
+   * @return array{total: float, count: int, average: float}
+   *   Donation totals for vendor-facing analytics.
+   */
+  private function getOrganiserDonationStats(int $eventId): array {
+    if ($eventId <= 0) {
+      return ['total' => 0.0, 'count' => 0, 'average' => 0.0];
+    }
+
+    $organiserTypes = $this->orderItemClassifier->getOrganiserDonationTypes();
+    if ($organiserTypes === []) {
+      return ['total' => 0.0, 'count' => 0, 'average' => 0.0];
+    }
+
+    $total = 0.0;
+    $count = 0;
+
+    try {
+      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+      $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
+      $orderItemIds = $orderItemStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', $organiserTypes, 'IN')
+        ->condition('field_target_event', $eventId)
+        ->execute();
+
+      if ($orderItemIds === []) {
+        return ['total' => 0.0, 'count' => 0, 'average' => 0.0];
+      }
+
+      $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
+      $paidOrderCache = [];
+      foreach ($orderItems as $orderItem) {
+        $orderId = (int) $orderItem->getOrderId();
+        if ($orderId <= 0) {
+          continue;
+        }
+
+        if (!array_key_exists($orderId, $paidOrderCache)) {
+          $order = $orderStorage->load($orderId);
+          $paidOrderCache[$orderId] = $order
+            && in_array($order->getState()->getId(), self::PAID_ORDER_STATES, TRUE);
+        }
+
+        if (!$paidOrderCache[$orderId]) {
+          continue;
+        }
+
+        $totalPrice = $orderItem->getTotalPrice();
+        if ($totalPrice) {
+          $total += (float) $totalPrice->getNumber();
+          $count++;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      return ['total' => 0.0, 'count' => 0, 'average' => 0.0];
+    }
+
+    $total = round($total, 2);
+    $average = $count > 0 ? round($total / $count, 2) : 0.0;
+
+    return [
+      'total' => $total,
+      'count' => $count,
+      'average' => $average,
     ];
   }
 

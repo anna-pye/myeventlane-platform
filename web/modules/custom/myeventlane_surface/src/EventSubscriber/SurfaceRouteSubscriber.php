@@ -80,6 +80,11 @@ final class SurfaceRouteSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    // Staff managing /admin/people must reach core user view/edit routes for any account.
+    if ($this->currentUser->hasPermission('administer users')) {
+      return;
+    }
+
     try {
       $route_parameters = [];
       if ($needs_user_parameter) {
