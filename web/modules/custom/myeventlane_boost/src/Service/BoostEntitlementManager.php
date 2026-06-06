@@ -211,6 +211,49 @@ final class BoostEntitlementManager {
   }
 
   /**
+   * Returns non-revoked entitlement windows for an event.
+   *
+   * Includes active and expired entitlements. Revoked rows are excluded.
+   *
+   * @return array<int, array{starts: int, ends: int}>
+   *   Windows sorted by start timestamp ascending.
+   */
+  public function getEntitlementWindowsForEvent(int $eventNid): array {
+    if ($eventNid <= 0) {
+      return [];
+    }
+
+    $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $eventNid)
+      ->condition('status', BoostEntitlementInterface::STATUS_REVOKED, '<>')
+      ->sort('starts', 'ASC')
+      ->execute();
+
+    if (empty($ids)) {
+      return [];
+    }
+
+    $windows = [];
+    /** @var \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface[] $entitlements */
+    $entitlements = $storage->loadMultiple($ids);
+    foreach ($entitlements as $entitlement) {
+      $starts = (int) ($entitlement->get('starts')->value ?? 0);
+      $ends = (int) ($entitlement->get('ends')->value ?? 0);
+      if ($starts <= 0 || $ends <= 0 || $ends <= $starts) {
+        continue;
+      }
+      $windows[] = [
+        'starts' => $starts,
+        'ends' => $ends,
+      ];
+    }
+
+    return $windows;
+  }
+
+  /**
    * Returns the most recent non-revoked entitlement for an event (including expired).
    *
    * Used for historical boost windows; does not duplicate BoostManager active/expired logic.

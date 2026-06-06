@@ -235,7 +235,17 @@ final class MetricsAggregator {
         'clicks' => 0,
         'ctr' => 0.0,
         'cost_per_click' => NULL,
-        'sales_during_period' => NULL,
+        'sales_during_period' => ['count' => 0, 'revenue' => '$0.00'],
+        'sales_during_boost' => '$0.00',
+        'revenue_during_boost' => 0.0,
+        'orders_during_boost' => 0,
+        'tickets_during_boost' => 0,
+        'rsvps_during_boost' => 0,
+        'donation_revenue_during_boost' => 0.0,
+        'average_donation_during_boost' => 0.0,
+        'donation_revenue_during_boost_formatted' => '$0.00',
+        'average_donation_during_boost_formatted' => '$0.00',
+        'rsvp_donation_count_during_boost' => 0,
         'placements' => [],
       ];
     }
