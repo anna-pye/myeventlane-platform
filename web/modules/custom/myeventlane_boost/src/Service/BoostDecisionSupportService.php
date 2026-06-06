@@ -137,11 +137,7 @@ final class BoostDecisionSupportService {
       $donation_revenue,
     );
 
-    $show = $has_boost_history
-      || $health['show']
-      || $insights !== []
-      || $recommendations !== []
-      || $confidence['show'];
+    $show = $health['show'] || $insights !== [] || ($confidence['show'] && !$health['show']);
 
     return [
       'show' => $show,
