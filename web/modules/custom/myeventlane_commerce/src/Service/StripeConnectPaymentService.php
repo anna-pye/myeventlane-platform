@@ -401,16 +401,17 @@ final class StripeConnectPaymentService {
 
   /**
    * Checks whether an order requires Stripe Connect (tickets or organiser donations).
+   *
+   * Boost-only orders use the platform account. Mixed boost + ticket/donation orders
+   * still require Connect for the vendor-paid portion.
    */
   private function orderRequiresConnect(OrderInterface $order): bool {
-    foreach ($order->getItems() as $item) {
-      if ($item->bundle() === 'boost') {
-        return FALSE;
-      }
-    }
+    $hasBoost = FALSE;
+    $requiresConnect = FALSE;
 
     foreach ($order->getItems() as $item) {
       if ($item->bundle() === 'boost') {
+        $hasBoost = TRUE;
         continue;
       }
 
@@ -421,7 +422,7 @@ final class StripeConnectPaymentService {
       if ($this->orderItemClassifier->isOrganiserDonation($item)) {
         $totalPrice = $item->getTotalPrice();
         if ($totalPrice && $totalPrice->getNumber() > 0) {
-          return TRUE;
+          $requiresConnect = TRUE;
         }
         continue;
       }
@@ -430,12 +431,16 @@ final class StripeConnectPaymentService {
       if ($purchasedEntity) {
         $price = $purchasedEntity->getPrice();
         if ($price && $price->getNumber() > 0) {
-          return TRUE;
+          $requiresConnect = TRUE;
         }
       }
     }
 
-    return FALSE;
+    if ($hasBoost && !$requiresConnect) {
+      return FALSE;
+    }
+
+    return $requiresConnect;
   }
 
   /**

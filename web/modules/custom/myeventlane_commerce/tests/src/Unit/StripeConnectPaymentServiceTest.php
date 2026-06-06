@@ -114,6 +114,35 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
   /**
    * @covers ::getStripeAccountIdForOrder
    */
+  public function testBoostOnlyOrderDoesNotUseConnect(): void {
+    $boost_item = $this->orderItem('boost', '35.00');
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$boost_item]);
+    $order->method('getStore')->willReturn($this->storeWithAccount('acct_should_not_use'));
+
+    $service = $this->service([]);
+    $this->assertNull($service->getStripeAccountIdForOrder($order));
+  }
+
+  /**
+   * @covers ::getStripeAccountIdForOrder
+   */
+  public function testBoostPlusTicketOrderUsesConnect(): void {
+    $boost_item = $this->orderItem('boost', '35.00');
+    $ticket_item = $this->ticketOrderItem('50.00');
+    $store = $this->storeWithAccount('acct_mixed_order');
+
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$boost_item, $ticket_item]);
+    $order->method('getStore')->willReturn($store);
+
+    $service = $this->service([$ticket_item]);
+    $this->assertSame('acct_mixed_order', $service->getStripeAccountIdForOrder($order));
+  }
+
+  /**
+   * @covers ::getStripeAccountIdForOrder
+   */
   public function testGetStripeAccountIdForOrganiserDonationOnlyOrderUsesEventChain(): void {
     $store = $this->storeWithAccount('acct_organiser_donation');
     $event = $this->eventWithVendorStore($store);
@@ -288,6 +317,14 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
       $item->method('hasField')->willReturn(FALSE);
     }
 
+    return $item;
+  }
+
+  private function ticketOrderItem(string $amount): OrderItemInterface {
+    $item = $this->orderItem('default', $amount);
+    $purchasedEntity = $this->createMock(\Drupal\commerce_product\Entity\ProductVariationInterface::class);
+    $purchasedEntity->method('getPrice')->willReturn(new Price($amount, 'AUD'));
+    $item->method('getPurchasedEntity')->willReturn($purchasedEntity);
     return $item;
   }
 
