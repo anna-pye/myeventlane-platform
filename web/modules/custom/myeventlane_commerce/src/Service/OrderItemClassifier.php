@@ -26,6 +26,21 @@ class OrderItemClassifier {
   ];
 
   /**
+   * Order item types that are organiser donations.
+   */
+  private const ORGANISER_DONATION_TYPES = [
+    'checkout_donation',
+    'rsvp_donation',
+  ];
+
+  /**
+   * Order item types that are platform donations.
+   */
+  private const PLATFORM_DONATION_TYPES = [
+    'platform_donation',
+  ];
+
+  /**
    * All order item types excluded from vendor revenue and ticket counts.
    */
   private const EXCLUDED_TYPES = [
@@ -91,6 +106,40 @@ class OrderItemClassifier {
    */
   public function getDonationTypes(): array {
     return self::DONATION_TYPES;
+  }
+
+  /**
+   * Returns organiser donation order item type IDs.
+   *
+   * @return array<string>
+   *   List of organiser donation order item type IDs.
+   */
+  public function getOrganiserDonationTypes(): array {
+    return self::ORGANISER_DONATION_TYPES;
+  }
+
+  /**
+   * Returns platform donation order item type IDs.
+   *
+   * @return array<string>
+   *   List of platform donation order item type IDs.
+   */
+  public function getPlatformDonationTypes(): array {
+    return self::PLATFORM_DONATION_TYPES;
+  }
+
+  /**
+   * Checks if an order item is an organiser donation.
+   */
+  public function isOrganiserDonation(OrderItemInterface $item): bool {
+    return in_array($item->bundle(), self::ORGANISER_DONATION_TYPES, TRUE);
+  }
+
+  /**
+   * Checks if an order item is a platform donation.
+   */
+  public function isPlatformDonation(OrderItemInterface $item): bool {
+    return in_array($item->bundle(), self::PLATFORM_DONATION_TYPES, TRUE);
   }
 
 }

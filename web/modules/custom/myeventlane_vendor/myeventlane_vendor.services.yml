@@ -203,6 +203,8 @@ services:
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_metrics.service'
       - '@myeventlane_boost.metrics'
+      - '@myeventlane_commerce.order_item_classifier'
+      - '@entity_type.manager'
       - '@?myeventlane_donations.service'
 
   myeventlane_vendor.action_queue_builder:

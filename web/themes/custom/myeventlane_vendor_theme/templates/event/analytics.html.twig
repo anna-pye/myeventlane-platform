@@ -66,6 +66,10 @@
 {% set att_in = attendees.checked_in|default(0) %}
 {% set check_pct = att_total > 0 ? ((att_in / att_total) * 100)|round(1) : 0 %}
 {% set donations = overview.donations|default({}) %}
+{% set donation_total = donations.total|default(0) %}
+{% set donation_count = donations.count|default(0) %}
+{% set donation_average = donations.average|default(0) %}
+{% set has_donation_metrics = donation_total > 0 %}
 {% set has_detail_sections = (show_ticket_analytics and ticket_tier_breakdown|length > 0)
   or (show_ticket_analytics and ticket_tier_rollup.tier_row_count|default(0) > 0)
   or (show_ticket_analytics and charts.sales|length > 0)
@@ -221,6 +225,24 @@
           </div>
         </div>
       {% endif %}
+    </section>
+  {% endif %}
+
+  {# Organiser donations — shown only when donation revenue exists #}
+  {% if has_donation_metrics %}
+    <section class="mel-analytics__business mel-analytics__business--donations mel-live-ops__panel" aria-labelledby="mel-analytics-donations-title">
+      <div class="mel-live-ops__timeline-head">
+        <h2 id="mel-analytics-donations-title" class="mel-live-ops__panel-title">{{ 'Donations'|t }}</h2>
+        <p class="mel-live-ops__panel-intro">{{ 'Optional contributions from attendees for this event.'|t }}</p>
+      </div>
+      {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+        metric_wrap_section: false,
+        metric_items: [
+          { label: 'Donation revenue'|t, value: '$' ~ donation_total|number_format(2) },
+          { label: 'Donation count'|t, value: donation_count },
+          { label: 'Average donation'|t, value: '$' ~ donation_average|number_format(2) },
+        ],
+      } only %}
     </section>
   {% endif %}
 

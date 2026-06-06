@@ -71,10 +71,12 @@ final class VendorFinanceSummaryBuilder {
     $melFees = (float) ($finance['mel_fee'] ?? 0.0);
     $stripeFees = (float) ($finance['stripe_fee'] ?? 0.0);
     $netPayout = (float) ($finance['net_revenue'] ?? 0.0);
+    $organiserDonations = (float) ($finance['organiser_donation_revenue'] ?? 0.0);
 
     return [
       'tickets_sold' => $tickets,
       'gross_revenue' => $gross,
+      'organiser_donation_revenue' => $organiserDonations,
       'mel_platform_fee' => $melFees,
       'stripe_processing_fee' => $stripeFees,
       'net_payout' => $netPayout,
@@ -100,6 +102,7 @@ final class VendorFinanceSummaryBuilder {
   private function buildVendorFinanceTotals(int $vendorId, array $eventIds): array {
     $totals = [
       'gross_revenue' => 0.0,
+      'organiser_donation_revenue' => 0.0,
       'mel_fee' => 0.0,
       'stripe_fee' => 0.0,
       'net_revenue' => 0.0,
@@ -112,12 +115,14 @@ final class VendorFinanceSummaryBuilder {
     foreach ($eventIds as $eventId) {
       $eventFinance = $this->financeReadModel->getEventFinance($vendorId, (int) $eventId);
       $totals['gross_revenue'] += (float) ($eventFinance['gross_revenue'] ?? 0.0);
+      $totals['organiser_donation_revenue'] += (float) ($eventFinance['organiser_donation_revenue'] ?? 0.0);
       $totals['mel_fee'] += (float) ($eventFinance['mel_fee'] ?? 0.0);
       $totals['stripe_fee'] += (float) ($eventFinance['stripe_fee'] ?? 0.0);
       $totals['net_revenue'] += (float) ($eventFinance['net_revenue'] ?? 0.0);
     }
 
     $totals['gross_revenue'] = round($totals['gross_revenue'], 2);
+    $totals['organiser_donation_revenue'] = round($totals['organiser_donation_revenue'], 2);
     $totals['mel_fee'] = round($totals['mel_fee'], 2);
     $totals['stripe_fee'] = round($totals['stripe_fee'], 2);
     $totals['net_revenue'] = round($totals['net_revenue'], 2);
