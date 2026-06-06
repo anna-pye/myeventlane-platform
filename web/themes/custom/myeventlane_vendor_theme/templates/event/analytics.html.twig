@@ -249,11 +249,15 @@
 
   {# Boost — marketing performance (never mixed with revenue) #}
   {% set boost_perf = boost_performance_section|default({}) %}
+  {% set boost_decision = boost_decision_support|default({}) %}
   <section class="mel-analytics__business mel-analytics__business--boost mel-live-ops__panel mel-analytics__boost-panel" aria-labelledby="mel-analytics-boost-title">
     <div class="mel-live-ops__timeline-head">
       <h2 id="mel-analytics-boost-title" class="mel-live-ops__panel-title">{{ 'Boost performance'|t }}</h2>
       <p class="mel-live-ops__panel-intro">{{ boost_perf.intro|default('Boost puts your event in front of more people.'|t) }}</p>
     </div>
+    {% include '@myeventlane_vendor_theme/components/mel-boost-decision-support.html.twig' with {
+      boost_decision: boost_decision,
+    } only %}
     {% if boost_perf.show_metrics|default(false) %}
       <div class="mel-analytics__boost-groups">
         {% if boost_perf.reach.show|default(false) and boost_perf.reach.kpis|default([])|length > 0 %}
@@ -372,11 +376,11 @@
 
   {# Recommendations — what to do next (max 3) #}
   {% if next_steps|length > 0 %}
-    <section class="mel-analytics__recommendations" aria-labelledby="mel-analytics-recs-title">
+    <section class="mel-analytics__recommendations mel-analytics__recommendations--actions" aria-labelledby="mel-analytics-recs-title">
       <h2 id="mel-analytics-recs-title" class="mel-live-ops__panel-title">{{ 'What to do next'|t }}</h2>
       <ul class="mel-analytics__recommendations-list">
         {% for step in next_steps %}
-          <li class="mel-analytics__recommendations-item">{{ step }}</li>
+          <li class="mel-analytics__recommendations-item mel-analytics__action-card">{{ step }}</li>
         {% endfor %}
       </ul>
     </section>

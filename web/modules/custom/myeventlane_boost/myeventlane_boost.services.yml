@@ -88,6 +88,12 @@ services:
       - '@datetime.time'
       - '@string_translation'
 
+  # Boost analytics decision support (Stage 3 — no new queries).
+  myeventlane_boost.decision_support:
+    class: Drupal\myeventlane_boost\Service\BoostDecisionSupportService
+    arguments:
+      - '@string_translation'
+
   # Thin façade: lifecycle presentation metrics (composes BoostManager, entitlements, analytics).
   myeventlane_boost.performance:
     class: Drupal\myeventlane_boost\Service\BoostPerformanceService

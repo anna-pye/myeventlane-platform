@@ -18,6 +18,7 @@ use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event_studio\Service\EventStudioCommerceSalesSummaryBuilder;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\node\NodeInterface;
+use Drupal\myeventlane_boost\Service\BoostDecisionSupportService;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
@@ -48,6 +49,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     private readonly ?ProActiveResolver $proActiveResolver = NULL,
     private readonly ?EventStudioCommerceSalesSummaryBuilder $commerceSalesSummaryBuilder = NULL,
     private readonly ?EventOperationalExtrasSalesSummaryBuilder $extrasSalesSummaryBuilder = NULL,
+    private readonly ?BoostDecisionSupportService $boostDecisionSupport = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -285,6 +287,16 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     );
 
     $placement_performance_section = $this->buildPlacementPerformanceSection($boost_metrics);
+
+    $boost_decision_support = $this->buildBoostDecisionSupportSection(
+      $boost_metrics,
+      $boost,
+      $is_tickets_enabled,
+      $is_rsvp_enabled,
+      $placement_performance_section,
+      $boost_page_url,
+    );
+
     if ($placement_performance_section['show'] && $placement_performance_section['cards'] !== []) {
       $chart_data['boost-placement-impressions'] = [
         'type' => 'bar',
@@ -317,7 +329,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $capacity_pct,
       $public_event_url,
       $ticketRows,
-      $placement_performance_section,
+      $boost_decision_support,
     );
 
     $has_boost_metrics = $boost_performance_section['show_metrics'];
@@ -354,6 +366,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#rsvp_health_section' => $rsvp_health_section,
         '#recommendations' => $recommendations,
         '#boost_performance_section' => $boost_performance_section,
+        '#boost_decision_support' => $boost_decision_support,
         '#placement_performance_section' => $placement_performance_section,
         '#has_all_sales_trend_chart' => isset($chart_data['event-sales']) && array_sum(array_column($sales_series, 'amount')) > 0,
         '#has_ticket_mix_chart' => isset($chart_data['event-ticket-mix']),
@@ -1409,83 +1422,55 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
   }
 
   /**
-   * Placement-specific recommendations from sorted placement cards.
+   * Boost decision support section (Stage 3).
    *
-   * @param array{
-   *   show: bool,
-   *   cards: list<array{
-   *     key: string,
-   *     label: string,
-   *     impressions: int,
-   *     clicks: int,
-   *     ctr: float,
-   *   }>,
-   * } $placement_performance_section
-   *
-   * @return list<string>
-   */
-  private function buildPlacementRecommendations(array $placement_performance_section): array {
-    $cards = is_array($placement_performance_section['cards'] ?? NULL)
-      ? $placement_performance_section['cards']
-      : [];
-    if (count($cards) < 2) {
-      return [];
-    }
-
-    $eligible = array_values(array_filter(
-      $cards,
-      static fn (array $card): bool => (int) ($card['impressions'] ?? 0) >= 10,
-    ));
-    if (count($eligible) < 2) {
-      return [];
-    }
-
-    usort($eligible, static fn (array $a, array $b): int => $b['ctr'] <=> $a['ctr']);
-    $strongest = $eligible[0];
-    $weakest = $eligible[count($eligible) - 1];
-    if (($strongest['key'] ?? '') === ($weakest['key'] ?? '')) {
-      return [];
-    }
-
-    $recs = [];
-    $strongest_key = (string) ($strongest['key'] ?? '');
-    $weakest_key = (string) ($weakest['key'] ?? '');
-    $strongest_label = (string) ($strongest['label'] ?? '');
-
-    if (str_starts_with($strongest_key, 'homepage_') || $strongest_key === 'homepage_discover') {
-      $recs[] = (string) $this->t('@placement has your strongest CTR — consider extending Boost.', [
-        '@placement' => $strongest_label,
-      ]);
-    }
-    elseif (str_starts_with($strongest_key, 'category_')) {
-      $recs[] = (string) $this->t('@placement is your strongest placement — promote within that audience.', [
-        '@placement' => $strongest_label,
-      ]);
-    }
-
-    if ($weakest_key === 'search_results') {
-      $recs[] = (string) $this->t('Search Results has your weakest CTR — try improving your event keywords and title.');
-    }
-    elseif (str_starts_with($weakest_key, 'search_')) {
-      $weakest_label = (string) ($weakest['label'] ?? '');
-      $recs[] = (string) $this->t('@placement has your weakest CTR — review how your event appears in search.', [
-        '@placement' => $weakest_label,
-      ]);
-    }
-
-    return $recs;
-  }
-
-  /**
-   * Rules-based next-step recommendations (max 3, no new services).
-   *
-   * @param array<string, mixed> $overview
-   * @param array<string, mixed> $commerce
+   * @param array<string, mixed> $boost_metrics
    * @param array<string, mixed> $boost
    * @param array{
    *   show: bool,
    *   cards: list<array<string, mixed>>,
    * } $placement_performance_section
+   *
+   * @return array<string, mixed>
+   */
+  private function buildBoostDecisionSupportSection(
+    array $boost_metrics,
+    array $boost,
+    bool $isTickets,
+    bool $isRsvp,
+    array $placement_performance_section,
+    ?string $boost_page_url,
+  ): array {
+    if (!$this->boostDecisionSupport) {
+      return [
+        'show' => FALSE,
+        'confidence' => ['show' => FALSE, 'level' => 'low', 'label' => '', 'badge' => 'muted'],
+        'health' => ['show' => FALSE, 'score' => '', 'label' => '', 'explanation' => '', 'badge' => 'muted'],
+        'insights' => [],
+        'recommendations' => [],
+      ];
+    }
+
+    return $this->boostDecisionSupport->build(
+      $boost_metrics,
+      $boost,
+      $isTickets,
+      $isRsvp,
+      $placement_performance_section,
+      $boost_page_url,
+    );
+  }
+
+  /**
+   * Rules-based next-step recommendations (max 3).
+   *
+   * Boost-specific recommendations come from BoostDecisionSupportService.
+   * Operational fallbacks fill remaining slots when fewer than three Boost recs exist.
+   *
+   * @param array<string, mixed> $overview
+   * @param array<string, mixed> $commerce
+   * @param array<string, mixed> $boost
+   * @param array<string, mixed> $boost_decision_support
    *
    * @return list<string>
    */
@@ -1499,51 +1484,11 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     ?float $capacity_pct,
     ?string $public_event_url,
     array $ticketRows,
-    array $placement_performance_section = [],
+    array $boost_decision_support = [],
   ): array {
-    $recs = [];
-    $boost_metrics = is_array($overview['boost_metrics'] ?? NULL) ? $overview['boost_metrics'] : [];
-
-    foreach ($boost_metrics['recommendations'] ?? [] as $rec) {
-      if (!is_string($rec) || $rec === '') {
-        continue;
-      }
-      $recs[] = $rec;
-    }
-
-    if (count($recs) < 3) {
-      foreach ($this->buildPlacementRecommendations($placement_performance_section) as $rec) {
-        if (count($recs) >= 3) {
-          break;
-        }
-        $recs[] = $rec;
-      }
-    }
-
-    if (count($recs) < 3 && !empty($boost['active'])) {
-      $ctr = (float) ($boost_metrics['ctr'] ?? 0);
-      $impressions = (int) ($boost_metrics['impressions'] ?? 0);
-      $clicks = (int) ($boost_metrics['clicks'] ?? 0);
-      $rsvps_during_boost = (int) ($boost_metrics['rsvps_during_boost'] ?? 0);
-      $orders_during_boost = (int) ($boost_metrics['orders_during_boost'] ?? 0);
-      $donation_revenue = (float) ($boost_metrics['donation_revenue_during_boost'] ?? 0.0);
-
-      if ($impressions >= 100 && $ctr < 0.01) {
-        $recs[] = (string) $this->t('Strong Boost reach but low CTR — consider updating your event hero image.');
-      }
-
-      if ($isRsvp && $clicks >= 20 && $rsvps_during_boost < max(3, (int) floor($clicks * 0.05))) {
-        $recs[] = (string) $this->t('Good click volume but few RSVPs during Boost — try improving your event page copy.');
-      }
-
-      if ($isRsvp && $rsvps_during_boost >= 10 && $donation_revenue <= 0.0) {
-        $recs[] = (string) $this->t('RSVPs are strong but donations are low — consider adding a donation prompt on your event page.');
-      }
-
-      if ($isTickets && $clicks >= 20 && $orders_during_boost < max(2, (int) floor($clicks * 0.03))) {
-        $recs[] = (string) $this->t('Good click volume but few orders during Boost — review your ticket pricing and tiers.');
-      }
-    }
+    $recs = is_array($boost_decision_support['recommendations'] ?? NULL)
+      ? $boost_decision_support['recommendations']
+      : [];
 
     if (count($recs) < 3 && $isTickets) {
       $best_ticket = $this->findBestSellingTicketFromTiers($ticketRows);

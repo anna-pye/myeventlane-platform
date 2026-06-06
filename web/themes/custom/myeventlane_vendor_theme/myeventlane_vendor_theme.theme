@@ -1370,6 +1370,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'rsvp_health_section' => [],
         'recommendations' => [],
         'boost_performance_section' => [],
+        'boost_decision_support' => [],
         'placement_performance_section' => [],
         'has_all_sales_trend_chart' => FALSE,
         'has_ticket_mix_chart' => FALSE,

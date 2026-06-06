@@ -205,6 +205,110 @@
   margin-top: 0;
 }
 
+// Stage 3 — Boost decision support (health + insight cards)
+.mel-analytics__boost-decision {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-sm;
+  margin-top: $mel-spacing-md;
+}
+
+.mel-analytics__boost-decision-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-sm;
+}
+
+.mel-analytics__boost-insights-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-sm;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-analytics__boost-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+  min-height: 44px;
+  padding: $mel-spacing-md;
+  border-radius: $radius-card;
+  border: 1px solid $border-color-light;
+  background: $bg-primary;
+  box-shadow: $shadow-xs;
+}
+
+.mel-analytics__boost-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $mel-spacing-sm;
+}
+
+.mel-analytics__boost-card-kicker {
+  margin: 0;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-analytics__boost-card-score {
+  margin: 0;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $text-primary;
+  line-height: $line-height-tight;
+}
+
+.mel-analytics__boost-card-copy {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.45;
+}
+
+.mel-analytics__boost-card--health {
+  border-left: 4px solid $primary;
+}
+
+.mel-analytics__boost-card--excellent,
+.mel-analytics__boost-card--good {
+  border-left-color: #10b981;
+}
+
+.mel-analytics__boost-card--fair {
+  border-left-color: #f59e0b;
+}
+
+.mel-analytics__boost-card--needs_attention {
+  border-left-color: #ef4444;
+}
+
+.mel-analytics__boost-card--insight {
+  border-left: 4px solid #6366f1;
+}
+
+.mel-analytics__boost-card--roi {
+  border-left-color: #2563eb;
+}
+
+.mel-analytics__boost-card--placement {
+  border-left-color: $primary;
+}
+
+.mel-analytics__boost-card--conversion {
+  border-left-color: #10b981;
+}
+
+.mel-analytics__action-card {
+  min-height: 44px;
+}
+
 .mel-analytics__boost-groups {
   display: grid;
   grid-template-columns: 1fr;

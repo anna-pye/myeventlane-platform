@@ -455,6 +455,7 @@ services:
       - '@?myeventlane_pro.active_resolver'
       - '@myeventlane_event_studio.commerce_sales_summary_builder'
       - '@myeventlane_commerce.event_operational_extras_sales_summary_builder'
+      - '@?myeventlane_boost.decision_support'
     tags:
       - { name: controller.service_arguments }
 
