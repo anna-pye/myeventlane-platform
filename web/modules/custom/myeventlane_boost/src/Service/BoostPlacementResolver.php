@@ -120,6 +120,10 @@ final class BoostPlacementResolver {
       return 'category_unknown';
     }
 
+    if (str_starts_with($routeName, 'view.frontpage.')) {
+      return 'homepage_discover';
+    }
+
     if (str_starts_with($routeName, 'view.front_') || str_contains($routeName, 'homepage')) {
       return 'homepage_discover';
     }
