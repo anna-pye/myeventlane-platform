@@ -88,6 +88,14 @@ services:
       - '@datetime.time'
       - '@string_translation'
 
+  # Platform-wide Boost benchmarks (Phase 7A — internal only).
+  myeventlane_boost.benchmark:
+    class: Drupal\myeventlane_boost\Service\BoostBenchmarkService
+    arguments:
+      - '@database'
+      - '@cache.default'
+      - '@myeventlane_boost.placement_resolver'
+
   # Boost analytics decision support (Stage 3 — no new queries).
   myeventlane_boost.decision_support:
     class: Drupal\myeventlane_boost\Service\BoostDecisionSupportService
