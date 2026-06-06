@@ -1,0 +1,58 @@
+{#
+/**
+ * @file
+ * Boost decision support — health, insights, and confidence (Stage 3).
+ *
+ * Variables:
+ * - boost_decision: output of BoostDecisionSupportService::build()
+ */
+#}
+{% if boost_decision.show|default(false) %}
+  <div class="mel-analytics__boost-decision" role="region" aria-label="{{ 'Boost insights'|t }}">
+    {% if boost_decision.health.show|default(false) or boost_decision.confidence.show|default(false) %}
+      <div class="mel-analytics__boost-decision-head">
+        {% if boost_decision.health.show|default(false) %}
+          <article class="mel-analytics__boost-card mel-analytics__boost-card--health mel-analytics__boost-card--{{ boost_decision.health.score|default('fair') }}">
+            <div class="mel-analytics__boost-card-top">
+              <h3 class="mel-analytics__boost-card-kicker">{{ 'Boost health'|t }}</h3>
+              {% if boost_decision.confidence.show|default(false) %}
+                <span class="mel-badge mel-badge--{{ boost_decision.confidence.badge|default('muted') }}">{{ boost_decision.confidence.label }}</span>
+              {% endif %}
+            </div>
+            <p class="mel-analytics__boost-card-score">{{ boost_decision.health.label }}</p>
+            {% if boost_decision.health.explanation|default('') is not empty %}
+              <p class="mel-analytics__boost-card-copy">{{ boost_decision.health.explanation }}</p>
+            {% endif %}
+          </article>
+        {% elseif boost_decision.confidence.show|default(false) %}
+          <div class="mel-analytics__boost-card mel-analytics__boost-card--confidence">
+            <span class="mel-badge mel-badge--{{ boost_decision.confidence.badge|default('muted') }}">{{ boost_decision.confidence.label }}</span>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if boost_decision.insights|default([])|length > 0 %}
+      <div class="mel-analytics__boost-insights-grid">
+        {% for insight in boost_decision.insights %}
+          <article class="mel-analytics__boost-card mel-analytics__boost-card--insight mel-analytics__boost-card--{{ insight.type|default('insight') }}">
+            {% if insight.title|default('') is not empty %}
+              <h3 class="mel-analytics__boost-card-kicker">{{ insight.title }}</h3>
+            {% endif %}
+            {% if insight.body|default('') is not empty %}
+              <p class="mel-analytics__boost-card-score">{{ insight.body }}</p>
+            {% endif %}
+            {% if insight.detail|default('') is not empty %}
+              <p class="mel-analytics__boost-card-copy">{{ insight.detail }}</p>
+            {% endif %}
+            {% if insight.lines|default([])|length > 0 %}
+              {% for line in insight.lines %}
+                <p class="mel-analytics__boost-card-copy">{{ line }}</p>
+              {% endfor %}
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
