@@ -277,10 +277,18 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     $merchandise_section = $this->buildMerchandiseSection($commerce_analytics);
     $rsvp_health_section = $this->buildRsvpHealthSection($overview, $is_rsvp_enabled, $all_sales_section['show']);
 
+    $boost_performance_section = $this->buildBoostPerformanceSection(
+      $boost_metrics,
+      $boost,
+      $is_tickets_enabled,
+      $is_rsvp_enabled,
+    );
+
     $recommendations = $this->buildRecommendations(
       $overview,
       $commerce_analytics,
       $is_tickets_enabled,
+      $is_rsvp_enabled,
       $boost,
       $boost_page_url,
       $capacity_pct,
@@ -288,10 +296,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $ticketRows,
     );
 
-    $boost_impressions = (int) ($boost_metrics['impressions'] ?? 0);
-    $boost_clicks = (int) ($boost_metrics['clicks'] ?? 0);
-    $has_boost_metrics = !empty($boost['active'])
-      && ($boost_impressions > 0 || $boost_clicks > 0 || ($boost_metrics['spend'] ?? '$0.00') !== '$0.00');
+    $has_boost_metrics = $boost_performance_section['show_metrics'];
 
     return $this->buildVendorPage('mel_event_workspace', [
       'event' => $event,
@@ -324,6 +329,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#merchandise_section' => $merchandise_section,
         '#rsvp_health_section' => $rsvp_health_section,
         '#recommendations' => $recommendations,
+        '#boost_performance_section' => $boost_performance_section,
         '#has_all_sales_trend_chart' => isset($chart_data['event-sales']) && array_sum(array_column($sales_series, 'amount')) > 0,
         '#has_ticket_mix_chart' => isset($chart_data['event-ticket-mix']),
         '#has_ticket_trend_chart' => isset($chart_data['event-ticket-units-trend']),
@@ -946,6 +952,272 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
   }
 
   /**
+   * Event-type-aware Boost Performance surface (Reach + Conversion KPI groups).
+   *
+   * @param array<string, mixed> $boost_metrics
+   * @param array<string, mixed> $boost
+   *
+   * @return array{
+   *   event_type: string,
+   *   show_metrics: bool,
+   *   show_cta: bool,
+   *   intro: string,
+   *   reach: array{show: bool, kpis: list<array{label: string, value: string}>},
+   *   conversion: array{
+   *     show: bool,
+   *     paid: array{show: bool, kpis: list<array{label: string, value: string}>},
+   *     rsvp: array{show: bool, kpis: list<array{label: string, value: string}>},
+   *   },
+   *   outcomes: array{
+   *     show: bool,
+   *     paid: array{show: bool, kpis: list<array{label: string, value: string}>},
+   *     rsvp: array{show: bool, kpis: list<array{label: string, value: string}>},
+   *   },
+   *   footnote: string|null,
+   * }
+   */
+  private function buildBoostPerformanceSection(
+    array $boost_metrics,
+    array $boost,
+    bool $isTickets,
+    bool $isRsvp,
+  ): array {
+    $event_type = 'paid';
+    if ($isTickets && $isRsvp) {
+      $event_type = 'hybrid';
+    }
+    elseif ($isRsvp) {
+      $event_type = 'rsvp';
+    }
+
+    $boost_active = !empty($boost['active']);
+    $impressions = (int) ($boost_metrics['impressions'] ?? 0);
+    $clicks = (int) ($boost_metrics['clicks'] ?? 0);
+    $ctr = (float) ($boost_metrics['ctr'] ?? 0.0);
+    $ctr_pct = number_format($ctr * 100, 2) . '%';
+
+    $reach_kpis = [];
+    if ($boost_active || $impressions > 0) {
+      $reach_kpis[] = [
+        'label' => (string) $this->t('Impressions'),
+        'value' => (string) $impressions,
+      ];
+    }
+    if ($boost_active || $clicks > 0) {
+      $reach_kpis[] = [
+        'label' => (string) $this->t('Clicks'),
+        'value' => (string) $clicks,
+      ];
+    }
+    if ($boost_active || $impressions > 0 || $clicks > 0) {
+      $reach_kpis[] = [
+        'label' => (string) $this->t('CTR'),
+        'value' => $ctr_pct,
+      ];
+    }
+
+    $paid_kpis = [];
+    if ($isTickets) {
+      $revenue_during_boost = (float) ($boost_metrics['revenue_during_boost'] ?? 0.0);
+      $orders_during_boost = (int) ($boost_metrics['orders_during_boost'] ?? 0);
+      $tickets_during_boost = (int) ($boost_metrics['tickets_during_boost'] ?? 0);
+
+      if ($revenue_during_boost > 0.0) {
+        $paid_kpis[] = [
+          'label' => (string) $this->t('Revenue during Boost'),
+          'value' => (string) ($boost_metrics['sales_during_boost'] ?? '$0.00'),
+        ];
+      }
+      if ($orders_during_boost > 0) {
+        $paid_kpis[] = [
+          'label' => (string) $this->t('Orders during Boost'),
+          'value' => (string) $orders_during_boost,
+        ];
+      }
+      if ($tickets_during_boost > 0) {
+        $paid_kpis[] = [
+          'label' => (string) $this->t('Tickets during Boost'),
+          'value' => (string) $tickets_during_boost,
+        ];
+      }
+    }
+
+    $rsvp_kpis = [];
+    if ($isRsvp) {
+      $rsvps_during_boost = (int) ($boost_metrics['rsvps_during_boost'] ?? 0);
+      $donation_revenue = (float) ($boost_metrics['donation_revenue_during_boost'] ?? 0.0);
+      $average_donation = (float) ($boost_metrics['average_donation_during_boost'] ?? 0.0);
+
+      if ($rsvps_during_boost > 0) {
+        $rsvp_kpis[] = [
+          'label' => (string) $this->t('RSVPs during Boost'),
+          'value' => (string) $rsvps_during_boost,
+        ];
+      }
+      if ($donation_revenue > 0.0) {
+        $rsvp_kpis[] = [
+          'label' => (string) $this->t('Donation revenue during Boost'),
+          'value' => (string) ($boost_metrics['donation_revenue_during_boost_formatted'] ?? '$0.00'),
+        ];
+      }
+      if ($average_donation > 0.0) {
+        $rsvp_kpis[] = [
+          'label' => (string) $this->t('Average donation during Boost'),
+          'value' => (string) ($boost_metrics['average_donation_during_boost_formatted'] ?? '$0.00'),
+        ];
+      }
+    }
+
+    $outcomes = $this->buildBoostOutcomeMetrics($boost_metrics, $isTickets, $isRsvp);
+
+    $show_metrics = $reach_kpis !== [] || $paid_kpis !== [] || $rsvp_kpis !== [] || $outcomes['show'];
+    $conversion_show = $paid_kpis !== [] || $rsvp_kpis !== [];
+    $outcomes_show = $outcomes['show'];
+
+    $intro = (string) $this->t('Boost puts your event in front of more people.');
+    if ($boost_active) {
+      $intro = match ($event_type) {
+        'rsvp' => (string) $this->t('Was Boost worth it? See how many people discovered your event and RSVP’d while it was boosted.'),
+        'hybrid' => (string) $this->t('Was Boost worth it? See reach and conversions from tickets and RSVPs during your Boost.'),
+        default => (string) $this->t('Was Boost worth it? See how many people discovered your event and bought tickets while it was boosted.'),
+      };
+    }
+
+    $footnote = NULL;
+    if ($conversion_show || $outcomes_show) {
+      $footnote = (string) $this->t('Metrics reflect activity during your Boost windows — timing overlap, not guaranteed cause.');
+    }
+
+    return [
+      'event_type' => $event_type,
+      'show_metrics' => $show_metrics,
+      'show_cta' => !$boost_active && !$show_metrics,
+      'intro' => $intro,
+      'reach' => [
+        'show' => $reach_kpis !== [],
+        'kpis' => $reach_kpis,
+      ],
+      'conversion' => [
+        'show' => $conversion_show,
+        'paid' => [
+          'show' => $paid_kpis !== [],
+          'kpis' => $paid_kpis,
+        ],
+        'rsvp' => [
+          'show' => $rsvp_kpis !== [],
+          'kpis' => $rsvp_kpis,
+        ],
+      ],
+      'outcomes' => $outcomes,
+      'footnote' => $footnote,
+    ];
+  }
+
+  /**
+   * Phase 4 — ROI and conversion-rate metrics from existing Boost aggregates.
+   *
+   * @param array<string, mixed> $boost_metrics
+   *
+   * @return array{
+   *   show: bool,
+   *   paid: array{show: bool, kpis: list<array{label: string, value: string}>},
+   *   rsvp: array{show: bool, kpis: list<array{label: string, value: string}>},
+   * }
+   */
+  private function buildBoostOutcomeMetrics(
+    array $boost_metrics,
+    bool $isTickets,
+    bool $isRsvp,
+  ): array {
+    $clicks = (int) ($boost_metrics['clicks'] ?? 0);
+    $boost_spend = $this->parseFormattedAmount((string) ($boost_metrics['spend'] ?? '$0.00'));
+
+    $paid_kpis = [];
+    if ($isTickets) {
+      $orders_during_boost = (int) ($boost_metrics['orders_during_boost'] ?? 0);
+      $revenue_during_boost = (float) ($boost_metrics['revenue_during_boost'] ?? 0.0);
+      $sales_reference = (string) ($boost_metrics['sales_during_boost'] ?? '$0.00');
+
+      if ($clicks > 0 && $orders_during_boost > 0) {
+        $paid_kpis[] = [
+          'label' => (string) $this->t('Orders from Boost clicks'),
+          'value' => $this->formatBoostConversionRate($orders_during_boost, $clicks),
+        ];
+      }
+      if ($clicks > 0 && $orders_during_boost > 0 && $revenue_during_boost > 0.0) {
+        $paid_kpis[] = [
+          'label' => (string) $this->t('Revenue per Boost click'),
+          'value' => $this->formatAmountLikeReference($sales_reference, $revenue_during_boost / $clicks),
+        ];
+      }
+      if ($boost_spend > 0.0 && $revenue_during_boost > 0.0) {
+        $paid_kpis[] = [
+          'label' => (string) $this->t('Revenue compared with Boost spend'),
+          'value' => $this->formatBoostReturnRatio($revenue_during_boost, $boost_spend),
+        ];
+      }
+    }
+
+    $rsvp_kpis = [];
+    if ($isRsvp) {
+      $rsvps_during_boost = (int) ($boost_metrics['rsvps_during_boost'] ?? 0);
+      $donation_revenue = (float) ($boost_metrics['donation_revenue_during_boost'] ?? 0.0);
+      $donation_reference = (string) ($boost_metrics['donation_revenue_during_boost_formatted'] ?? '$0.00');
+
+      if ($clicks > 0 && $rsvps_during_boost > 0) {
+        $rsvp_kpis[] = [
+          'label' => (string) $this->t('RSVPs from Boost clicks'),
+          'value' => $this->formatBoostConversionRate($rsvps_during_boost, $clicks),
+        ];
+      }
+      if ($rsvps_during_boost > 0 && $donation_revenue > 0.0) {
+        $rsvp_kpis[] = [
+          'label' => (string) $this->t('Donation per RSVP'),
+          'value' => $this->formatAmountLikeReference($donation_reference, $donation_revenue / $rsvps_during_boost),
+        ];
+      }
+      if ($boost_spend > 0.0 && $donation_revenue > 0.0) {
+        $rsvp_kpis[] = [
+          'label' => (string) $this->t('Donations compared with Boost spend'),
+          'value' => $this->formatBoostReturnRatio($donation_revenue, $boost_spend),
+        ];
+      }
+    }
+
+    return [
+      'show' => $paid_kpis !== [] || $rsvp_kpis !== [],
+      'paid' => [
+        'show' => $paid_kpis !== [],
+        'kpis' => $paid_kpis,
+      ],
+      'rsvp' => [
+        'show' => $rsvp_kpis !== [],
+        'kpis' => $rsvp_kpis,
+      ],
+    ];
+  }
+
+  /**
+   * Formats a click-to-outcome conversion rate (never divides by zero).
+   */
+  private function formatBoostConversionRate(int $conversions, int $clicks): string {
+    if ($clicks <= 0 || $conversions <= 0) {
+      return '—';
+    }
+    return number_format(($conversions / $clicks) * 100, 1) . '%';
+  }
+
+  /**
+   * Formats outcome revenue relative to Boost spend as a calm multiplier.
+   */
+  private function formatBoostReturnRatio(float $outcome_revenue, float $boost_spend): string {
+    if ($boost_spend <= 0.0 || $outcome_revenue <= 0.0) {
+      return '—';
+    }
+    return number_format($outcome_revenue / $boost_spend, 1) . '×';
+  }
+
+  /**
    * Rules-based next-step recommendations (max 3, no new services).
    *
    * @param array<string, mixed> $overview
@@ -958,6 +1230,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     array $overview,
     array $commerce,
     bool $isTickets,
+    bool $isRsvp,
     array $boost,
     ?string $boost_page_url,
     ?float $capacity_pct,
@@ -974,18 +1247,35 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $recs[] = $rec;
     }
 
+    if (count($recs) < 3 && !empty($boost['active'])) {
+      $ctr = (float) ($boost_metrics['ctr'] ?? 0);
+      $impressions = (int) ($boost_metrics['impressions'] ?? 0);
+      $clicks = (int) ($boost_metrics['clicks'] ?? 0);
+      $rsvps_during_boost = (int) ($boost_metrics['rsvps_during_boost'] ?? 0);
+      $orders_during_boost = (int) ($boost_metrics['orders_during_boost'] ?? 0);
+      $donation_revenue = (float) ($boost_metrics['donation_revenue_during_boost'] ?? 0.0);
+
+      if ($impressions >= 100 && $ctr < 0.01) {
+        $recs[] = (string) $this->t('Strong Boost reach but low CTR — consider updating your event hero image.');
+      }
+
+      if ($isRsvp && $clicks >= 20 && $rsvps_during_boost < max(3, (int) floor($clicks * 0.05))) {
+        $recs[] = (string) $this->t('Good click volume but few RSVPs during Boost — try improving your event page copy.');
+      }
+
+      if ($isRsvp && $rsvps_during_boost >= 10 && $donation_revenue <= 0.0) {
+        $recs[] = (string) $this->t('RSVPs are strong but donations are low — consider adding a donation prompt on your event page.');
+      }
+
+      if ($isTickets && $clicks >= 20 && $orders_during_boost < max(2, (int) floor($clicks * 0.03))) {
+        $recs[] = (string) $this->t('Good click volume but few orders during Boost — review your ticket pricing and tiers.');
+      }
+    }
+
     if (count($recs) < 3 && $isTickets) {
       $best_ticket = $this->findBestSellingTicketFromTiers($ticketRows);
       if ($best_ticket !== NULL) {
         $recs[] = (string) $this->t('@ticket tickets are selling fastest.', ['@ticket' => $best_ticket]);
-      }
-    }
-
-    if (count($recs) < 3 && !empty($boost['active'])) {
-      $ctr = (float) ($boost_metrics['ctr'] ?? 0);
-      $impressions = (int) ($boost_metrics['impressions'] ?? 0);
-      if ($impressions >= 100 && $ctr < 0.01) {
-        $recs[] = (string) $this->t('Your event is boosted but CTR is low — consider updating the hero image.');
       }
     }
 

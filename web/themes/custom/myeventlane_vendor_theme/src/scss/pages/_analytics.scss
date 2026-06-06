@@ -201,6 +201,61 @@
   margin-top: 0;
 }
 
+.mel-analytics__boost-groups {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-lg;
+  margin-top: $mel-spacing-md;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    align-items: start;
+    gap: $mel-spacing-xl;
+  }
+}
+
+.mel-analytics__boost-group-title {
+  margin: 0 0 $mel-spacing-sm;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-analytics__boost-subgroup-title {
+  margin: $mel-spacing-md 0 $mel-spacing-sm;
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mel-analytics__boost-group--conversion {
+  .mel-live-ops__metric-board + .mel-analytics__boost-subgroup-title {
+    margin-top: $mel-spacing-lg;
+  }
+}
+
+.mel-analytics__boost-group--outcomes {
+  .mel-live-ops__metric-board + .mel-analytics__boost-subgroup-title {
+    margin-top: $mel-spacing-lg;
+  }
+}
+
+.mel-analytics__boost-footnote {
+  margin: $mel-spacing-md 0 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
 .mel-analytics__boost-status {
   margin: 0 0 $mel-spacing-md;
   font-size: $font-size-body;

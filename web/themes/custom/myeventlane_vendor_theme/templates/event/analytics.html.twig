@@ -247,39 +247,72 @@
   {% endif %}
 
   {# Boost — marketing performance (never mixed with revenue) #}
+  {% set boost_perf = boost_performance_section|default({}) %}
   <section class="mel-analytics__business mel-analytics__business--boost mel-live-ops__panel mel-analytics__boost-panel" aria-labelledby="mel-analytics-boost-title">
     <div class="mel-live-ops__timeline-head">
       <h2 id="mel-analytics-boost-title" class="mel-live-ops__panel-title">{{ 'Boost performance'|t }}</h2>
-      {% if boost.active|default(false) %}
-        <p class="mel-live-ops__panel-intro">{{ 'Is Boost paying off? Track the orders and revenue placed while your event was boosted.'|t }}</p>
-      {% else %}
-        <p class="mel-live-ops__panel-intro">{{ 'Boost puts your event in front of more people.'|t }}</p>
-      {% endif %}
+      <p class="mel-live-ops__panel-intro">{{ boost_perf.intro|default('Boost puts your event in front of more people.'|t) }}</p>
     </div>
-    {% if has_boost_metrics %}
-      {% set ctr = boost_metrics.ctr|default(0) %}
-      {% set ctr_pct = ((ctr * 100)|round(2)) ~ '%' %}
-      {% set sdp = boost_metrics.sales_during_period|default(null) %}
-      {# Organiser outcomes lead; reach signals (impressions/clicks/CTR) follow. #}
-      {% set outcome_items = [{ label: 'Spend'|t, value: boost_metrics.spend|default('$0.00') }] %}
-      {% if sdp %}
-        {% set outcome_items = outcome_items|merge([
-          { label: 'Orders while boosted'|t, value: sdp.count|default(0) },
-          { label: 'Revenue while boosted'|t, value: sdp.revenue|default('$0.00') },
-        ]) %}
-      {% endif %}
-      {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
-        metric_wrap_section: false,
-        metric_items: outcome_items|merge([
-          { label: 'Impressions'|t, value: boost_metrics.impressions|default(0) },
-          { label: 'Clicks'|t, value: boost_metrics.clicks|default(0) },
-          { label: 'CTR'|t, value: ctr_pct },
-        ]),
-      } only %}
-      {% if sdp %}
-        <p class="mel-text--muted mel-analytics__boost-footnote">{{ 'Orders and revenue are completed sales placed while your event was boosted — activity during the campaign window, not a guaranteed cause.'|t }}</p>
-      {% elseif boost.expires %}
-        <p class="mel-text--muted mel-analytics__boost-footnote">{{ 'Campaign window data shown above is tied to your Boost purchase.'|t }}</p>
+    {% if boost_perf.show_metrics|default(false) %}
+      <div class="mel-analytics__boost-groups">
+        {% if boost_perf.reach.show|default(false) and boost_perf.reach.kpis|default([])|length > 0 %}
+          <div class="mel-analytics__boost-group mel-analytics__boost-group--reach">
+            <h3 class="mel-analytics__boost-group-title">{{ 'Reach'|t }}</h3>
+            {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+              metric_wrap_section: false,
+              metric_items: boost_perf.reach.kpis,
+            } only %}
+          </div>
+        {% endif %}
+        {% if boost_perf.conversion.show|default(false) %}
+          <div class="mel-analytics__boost-group mel-analytics__boost-group--conversion">
+            <h3 class="mel-analytics__boost-group-title">{{ 'Conversion'|t }}</h3>
+            {% if boost_perf.conversion.paid.show|default(false) and boost_perf.conversion.paid.kpis|default([])|length > 0 %}
+              {% if boost_perf.event_type|default('') == 'hybrid' %}
+                <h4 class="mel-analytics__boost-subgroup-title">{{ 'Ticket sales'|t }}</h4>
+              {% endif %}
+              {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+                metric_wrap_section: false,
+                metric_items: boost_perf.conversion.paid.kpis,
+              } only %}
+            {% endif %}
+            {% if boost_perf.conversion.rsvp.show|default(false) and boost_perf.conversion.rsvp.kpis|default([])|length > 0 %}
+              {% if boost_perf.event_type|default('') == 'hybrid' %}
+                <h4 class="mel-analytics__boost-subgroup-title">{{ 'RSVPs & donations'|t }}</h4>
+              {% endif %}
+              {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+                metric_wrap_section: false,
+                metric_items: boost_perf.conversion.rsvp.kpis,
+              } only %}
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if boost_perf.outcomes.show|default(false) %}
+          <div class="mel-analytics__boost-group mel-analytics__boost-group--outcomes">
+            <h3 class="mel-analytics__boost-group-title">{{ 'Outcomes'|t }}</h3>
+            {% if boost_perf.outcomes.paid.show|default(false) and boost_perf.outcomes.paid.kpis|default([])|length > 0 %}
+              {% if boost_perf.event_type|default('') == 'hybrid' %}
+                <h4 class="mel-analytics__boost-subgroup-title">{{ 'Ticket sales'|t }}</h4>
+              {% endif %}
+              {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+                metric_wrap_section: false,
+                metric_items: boost_perf.outcomes.paid.kpis,
+              } only %}
+            {% endif %}
+            {% if boost_perf.outcomes.rsvp.show|default(false) and boost_perf.outcomes.rsvp.kpis|default([])|length > 0 %}
+              {% if boost_perf.event_type|default('') == 'hybrid' %}
+                <h4 class="mel-analytics__boost-subgroup-title">{{ 'RSVPs & donations'|t }}</h4>
+              {% endif %}
+              {% include '@myeventlane_vendor_theme/components/mel-live-ops-metric-board.html.twig' with {
+                metric_wrap_section: false,
+                metric_items: boost_perf.outcomes.rsvp.kpis,
+              } only %}
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+      {% if boost_perf.footnote|default('') is not empty %}
+        <p class="mel-text--muted mel-analytics__boost-footnote">{{ boost_perf.footnote }}</p>
       {% endif %}
     {% else %}
       <p class="mel-analytics__boost-status">{{ 'Boost status'|t }}: <strong>{{ boost.active|default(false) ? 'Active'|t : 'Not active'|t }}</strong></p>
