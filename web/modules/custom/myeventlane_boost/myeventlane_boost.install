@@ -407,3 +407,132 @@ function myeventlane_boost_update_10007(): string {
 
   return 'Created myeventlane_boost_stats table.';
 }
+
+/**
+ * Re-attribute bare listing Boost stats misrecorded from the homepage route.
+ *
+ * Before view.frontpage.* mapped to homepage_discover, /home (route
+ * view.frontpage.page_1) fell through to the generic listing fallback.
+ * Client-side impression tracking shipped 2026-06-05 09:03:07 UTC.
+ *
+ * Idempotent: only bare placement = 'listing' rows inside the bug window are
+ * touched; a second run finds nothing to migrate.
+ */
+function myeventlane_boost_update_10008(): string {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if (!$schema->tableExists('myeventlane_boost_stats')) {
+    return 'Skipped Boost listing placement migration: myeventlane_boost_stats missing.';
+  }
+
+  // Commit 6dd122b9e — client-side Boost impression tracking (2026-06-05 09:03:07 UTC).
+  $window_start = 1780650187;
+  $daily_window_start = '2026-06-05';
+
+  $listing_rows = $database->select('myeventlane_boost_stats', 's')
+    ->fields('s')
+    ->condition('placement', 'listing')
+    ->condition('created', $window_start, '>=')
+    ->execute()
+    ->fetchAll();
+
+  $stats_merged = 0;
+  $stats_renamed = 0;
+
+  foreach ($listing_rows as $listing_row) {
+    $homepage_row = $database->select('myeventlane_boost_stats', 'h')
+      ->fields('h')
+      ->condition('boost_order_item_id', $listing_row->boost_order_item_id)
+      ->condition('placement', 'homepage_discover')
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
+
+    if ($homepage_row) {
+      $database->update('myeventlane_boost_stats')
+        ->fields([
+          'impressions' => (int) $homepage_row->impressions + (int) $listing_row->impressions,
+          'clicks' => (int) $homepage_row->clicks + (int) $listing_row->clicks,
+          'created' => min((int) $homepage_row->created, (int) $listing_row->created),
+          'changed' => max((int) $homepage_row->changed, (int) $listing_row->changed),
+        ])
+        ->condition('id', $homepage_row->id)
+        ->execute();
+
+      $database->delete('myeventlane_boost_stats')
+        ->condition('id', $listing_row->id)
+        ->execute();
+      $stats_merged++;
+    }
+    else {
+      $database->update('myeventlane_boost_stats')
+        ->fields(['placement' => 'homepage_discover'])
+        ->condition('id', $listing_row->id)
+        ->execute();
+      $stats_renamed++;
+    }
+  }
+
+  $log_updated = 0;
+  if ($schema->tableExists('myeventlane_boost_stats_log')) {
+    $log_updated = (int) $database->update('myeventlane_boost_stats_log')
+      ->fields(['placement' => 'homepage_discover'])
+      ->condition('placement', 'listing')
+      ->condition('occurred_at', $window_start, '>=')
+      ->execute();
+  }
+
+  $daily_merged = 0;
+  $daily_renamed = 0;
+  if ($schema->tableExists('myeventlane_boost_stats_daily')) {
+    $daily_listing_rows = $database->select('myeventlane_boost_stats_daily', 'd')
+      ->fields('d')
+      ->condition('placement', 'listing')
+      ->condition('date', $daily_window_start, '>=')
+      ->execute()
+      ->fetchAll();
+
+    foreach ($daily_listing_rows as $daily_listing_row) {
+      $daily_homepage_row = $database->select('myeventlane_boost_stats_daily', 'h')
+        ->fields('h')
+        ->condition('boost_order_item_id', $daily_listing_row->boost_order_item_id)
+        ->condition('placement', 'homepage_discover')
+        ->condition('date', $daily_listing_row->date)
+        ->range(0, 1)
+        ->execute()
+        ->fetchObject();
+
+      if ($daily_homepage_row) {
+        $database->update('myeventlane_boost_stats_daily')
+          ->fields([
+            'impressions' => (int) $daily_homepage_row->impressions + (int) $daily_listing_row->impressions,
+            'clicks' => (int) $daily_homepage_row->clicks + (int) $daily_listing_row->clicks,
+            'created' => min((int) $daily_homepage_row->created, (int) $daily_listing_row->created),
+          ])
+          ->condition('id', $daily_homepage_row->id)
+          ->execute();
+
+        $database->delete('myeventlane_boost_stats_daily')
+          ->condition('id', $daily_listing_row->id)
+          ->execute();
+        $daily_merged++;
+      }
+      else {
+        $database->update('myeventlane_boost_stats_daily')
+          ->fields(['placement' => 'homepage_discover'])
+          ->condition('id', $daily_listing_row->id)
+          ->execute();
+        $daily_renamed++;
+      }
+    }
+  }
+
+  return (string) t('Boost listing placement migration: @stats_merged aggregate rows merged, @stats_renamed renamed; @log log rows updated; @daily_merged daily rows merged, @daily_renamed daily rows renamed.', [
+    '@stats_merged' => $stats_merged,
+    '@stats_renamed' => $stats_renamed,
+    '@log' => $log_updated,
+    '@daily_merged' => $daily_merged,
+    '@daily_renamed' => $daily_renamed,
+  ]);
+}
