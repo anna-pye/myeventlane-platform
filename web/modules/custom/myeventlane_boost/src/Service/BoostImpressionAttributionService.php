@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_boost\Service;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
 use Drupal\node\NodeInterface;
@@ -41,7 +42,7 @@ final class BoostImpressionAttributionService {
       return NULL;
     }
 
-    $orderItemId = (int) ($entitlement->get('order_item_id')->value ?? 0);
+    $orderItemId = (int) ($entitlement->get('order_item_id')->target_id ?? 0);
     if ($orderItemId <= 0) {
       return NULL;
     }
@@ -56,6 +57,36 @@ final class BoostImpressionAttributionService {
       'event_id' => (int) $event->id(),
       'placement' => $placement,
     ];
+  }
+
+  /**
+   * Builds cache metadata for event card Boost impression attachment.
+   *
+   * @return array{tags?: list<string>, max-age?: int}
+   *   Cache tags and max-age for entitlement state transitions.
+   */
+  public function buildCardCacheMetadata(NodeInterface $event): array {
+    if ($event->bundle() !== 'event' || !$event->isPublished()) {
+      return [];
+    }
+
+    $event_id = (int) $event->id();
+    $tags = [];
+    foreach ($this->entitlementManager->getNonRevokedEntitlementsForEvent($event_id) as $entitlement) {
+      $tags = Cache::mergeTags($tags, $entitlement->getCacheTags());
+    }
+
+    $metadata = [];
+    if ($tags !== []) {
+      $metadata['tags'] = $tags;
+    }
+
+    $max_age = $this->entitlementManager->getImpressionCacheMaxAgeForEvent($event_id);
+    if ($max_age !== NULL) {
+      $metadata['max-age'] = $max_age;
+    }
+
+    return $metadata;
   }
 
   /**

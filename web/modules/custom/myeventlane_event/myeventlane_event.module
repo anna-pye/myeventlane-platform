@@ -1514,6 +1514,53 @@ function myeventlane_event_finalize_event_ui(
 }
 
 /**
+ * Merges Boost entitlement cache metadata into a render array.
+ */
+function myeventlane_event_merge_boost_impression_cache(array &$target, NodeInterface $node): void {
+  if (!\Drupal::hasService('myeventlane_boost.impression_attribution')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution */
+  $attribution = \Drupal::service('myeventlane_boost.impression_attribution');
+  $boost_cache = $attribution->buildCardCacheMetadata($node);
+  if ($boost_cache === []) {
+    return;
+  }
+
+  if (!isset($target['#cache']) || !is_array($target['#cache'])) {
+    $target['#cache'] = [];
+  }
+
+  if (!empty($boost_cache['tags'])) {
+    $target['#cache']['tags'] = Cache::mergeTags(
+      (array) ($target['#cache']['tags'] ?? []),
+      $boost_cache['tags'],
+    );
+  }
+
+  $contexts = (array) ($target['#cache']['contexts'] ?? []);
+  $target['#cache']['contexts'] = array_values(array_unique(array_merge(
+    $contexts,
+    ['route.name', 'url.path'],
+  )));
+
+  if (isset($boost_cache['max-age'])) {
+    $existing_max_age = $target['#cache']['max-age'] ?? Cache::PERMANENT;
+    $boost_max_age = (int) $boost_cache['max-age'];
+    if ($existing_max_age === Cache::PERMANENT) {
+      $target['#cache']['max-age'] = $boost_max_age;
+    }
+    elseif ($boost_max_age === Cache::PERMANENT) {
+      $target['#cache']['max-age'] = $existing_max_age;
+    }
+    else {
+      $target['#cache']['max-age'] = min($existing_max_age, $boost_max_age);
+    }
+  }
+}
+
+/**
  * Attaches cache-safe Boost impression metadata to an event card build.
  */
 function myeventlane_event_attach_boost_impression_to_build(
@@ -1528,6 +1575,8 @@ function myeventlane_event_attach_boost_impression_to_build(
     return;
   }
 
+  myeventlane_event_merge_boost_impression_cache($build, $node);
+
   /** @var \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution */
   $attribution = \Drupal::service('myeventlane_boost.impression_attribution');
   $metadata = $attribution->buildCardMetadata($node);
@@ -1537,20 +1586,6 @@ function myeventlane_event_attach_boost_impression_to_build(
 
   $build['#boost_impression'] = $metadata;
   $build['#attached']['library'][] = 'myeventlane_boost/impression';
-  if (!isset($build['#cache'])) {
-    $build['#cache'] = [];
-  }
-  if (!is_array($build['#cache'])) {
-    $build['#cache'] = [];
-  }
-  $contexts = $build['#cache']['contexts'] ?? [];
-  if (!is_array($contexts)) {
-    $contexts = [];
-  }
-  $build['#cache']['contexts'] = array_values(array_unique(array_merge(
-    $contexts,
-    ['route.name', 'url.path'],
-  )));
 }
 
 /**
@@ -1567,6 +1602,8 @@ function myeventlane_event_apply_boost_impression_metadata(
   if (!\Drupal::hasService('myeventlane_boost.impression_attribution')) {
     return;
   }
+
+  myeventlane_event_merge_boost_impression_cache($variables, $node);
 
   $elements = is_array($variables['elements'] ?? NULL) ? $variables['elements'] : [];
   $metadata = $elements['#boost_impression'] ?? NULL;
@@ -1593,15 +1630,6 @@ function myeventlane_event_apply_boost_impression_metadata(
     $variables['#attached'] = [];
   }
   $variables['#attached']['library'][] = 'myeventlane_boost/impression';
-
-  if (!isset($variables['#cache'])) {
-    $variables['#cache'] = [];
-  }
-  $contexts = (array) ($variables['#cache']['contexts'] ?? []);
-  $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
-    $contexts,
-    ['route.name', 'url.path'],
-  )));
 }
 
 /**
