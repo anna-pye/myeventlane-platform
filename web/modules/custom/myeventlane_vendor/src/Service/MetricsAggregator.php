@@ -29,6 +29,13 @@ use Drupal\node\NodeInterface;
 final class MetricsAggregator {
 
   /**
+   * Order states counted as paid for organiser donation analytics.
+   *
+   * Aligns with BoostMetricsService sales-during-boost attribution.
+   */
+  private const PAID_ORDER_STATES = ['completed', 'fulfillment'];
+
+  /**
    * Constructs the aggregator.
    */
   public function __construct(
@@ -329,19 +336,20 @@ final class MetricsAggregator {
       }
 
       $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
-      $completedOrderCache = [];
+      $paidOrderCache = [];
       foreach ($orderItems as $orderItem) {
         $orderId = (int) $orderItem->getOrderId();
         if ($orderId <= 0) {
           continue;
         }
 
-        if (!array_key_exists($orderId, $completedOrderCache)) {
+        if (!array_key_exists($orderId, $paidOrderCache)) {
           $order = $orderStorage->load($orderId);
-          $completedOrderCache[$orderId] = $order && $order->getState()->getId() === 'completed';
+          $paidOrderCache[$orderId] = $order
+            && in_array($order->getState()->getId(), self::PAID_ORDER_STATES, TRUE);
         }
 
-        if (!$completedOrderCache[$orderId]) {
+        if (!$paidOrderCache[$orderId]) {
           continue;
         }
 

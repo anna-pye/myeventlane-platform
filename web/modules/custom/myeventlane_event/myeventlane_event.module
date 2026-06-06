@@ -1579,8 +1579,6 @@ function myeventlane_event_attach_boost_impression_to_build(
 
   /** @var \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution */
   $attribution = \Drupal::service('myeventlane_boost.impression_attribution');
-  myeventlane_event_merge_boost_impression_cache($build, $node, $attribution);
-
   $metadata = $attribution->buildCardMetadata($node);
   if (!is_array($metadata)) {
     return;
@@ -1605,13 +1603,13 @@ function myeventlane_event_apply_boost_impression_metadata(
     return;
   }
 
-  /** @var \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution */
-  $attribution = \Drupal::service('myeventlane_boost.impression_attribution');
-  myeventlane_event_merge_boost_impression_cache($variables, $node, $attribution);
+  myeventlane_event_merge_boost_impression_cache($variables, $node);
 
   $elements = is_array($variables['elements'] ?? NULL) ? $variables['elements'] : [];
   $metadata = $elements['#boost_impression'] ?? NULL;
   if (!is_array($metadata)) {
+    /** @var \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution */
+    $attribution = \Drupal::service('myeventlane_boost.impression_attribution');
     $metadata = $attribution->buildCardMetadata($node);
   }
   if (!is_array($metadata)) {
@@ -1632,33 +1630,6 @@ function myeventlane_event_apply_boost_impression_metadata(
     $variables['#attached'] = [];
   }
   $variables['#attached']['library'][] = 'myeventlane_boost/impression';
-}
-
-/**
- * Merges Boost entitlement cache tags into a render array.
- */
-function myeventlane_event_merge_boost_impression_cache(
-  array &$build,
-  NodeInterface $node,
-  \Drupal\myeventlane_boost\Service\BoostImpressionAttributionService $attribution,
-): void {
-  $tags = $attribution->buildCardCacheTags($node);
-  if ($tags === []) {
-    return;
-  }
-
-  if (!isset($build['#cache'])) {
-    $build['#cache'] = [];
-  }
-  if (!is_array($build['#cache'])) {
-    $build['#cache'] = [];
-  }
-
-  $existingTags = $build['#cache']['tags'] ?? [];
-  if (!is_array($existingTags)) {
-    $existingTags = [];
-  }
-  $build['#cache']['tags'] = array_values(array_unique(array_merge($existingTags, $tags)));
 }
 
 /**
