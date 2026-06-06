@@ -8,12 +8,13 @@
     if (sentKeys.has(key)) {
       return;
     }
-    sentKeys.add(key);
 
     const impressionUrl = drupalSettings.melBoostImpression?.impressionUrl;
     if (!impressionUrl) {
       return;
     }
+
+    sentKeys.add(key);
 
     const payload = JSON.stringify({
       order_item_id: orderItemId,
