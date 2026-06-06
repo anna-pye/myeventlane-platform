@@ -45,7 +45,7 @@
     "drupal/gin_toolbar": "^3.0",
     "drupal/honeypot": "^2.2",
     "drupal/image_widget_crop": "^3.0",
-    "drupal/inline_entity_form": "^3.0@rc",
+    "drupal/inline_entity_form": "^3.0",
     "drupal/klaro": "^3.0",
     "drupal/mailsystem": "^4.5",
     "drupal/menu_link_attributes": "^1.5",

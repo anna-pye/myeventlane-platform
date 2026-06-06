@@ -20,11 +20,11 @@ final class FinanceReadModel {
   private const FALLBACK_TTL = 60;
 
   /**
-   * Order states counted as paid for organiser donation line-item revenue.
+   * Order states counted as paid for vendor line-item revenue.
    *
    * Aligns with BoostMetricsService and MetricsAggregator donation analytics.
    */
-  private const ORGANISER_DONATION_ORDER_STATES = ['completed', 'fulfillment'];
+  private const PAID_ORDER_STATES = ['completed', 'fulfillment'];
 
   public function __construct(
     private readonly Connection $database,
@@ -277,16 +277,46 @@ final class FinanceReadModel {
     $organiserDonationRevenue = $this->sumOrganiserDonationRevenueForEvent($eventId);
     $grossRevenue = round($ticketRevenue + $organiserDonationRevenue, 2);
 
-    $refundTotal = (float) ($finance['refund_total'] ?? 0.0);
+    // Use event-scoped refunds so multi-event orders do not over-subtract.
+    $refundTotal = $this->sumEventScopedRefundTotal($eventId);
     $melFee = (float) ($finance['mel_fee'] ?? 0.0);
     $stripeFee = (float) ($finance['stripe_fee'] ?? 0.0);
     $netRevenue = round(max(0.0, $grossRevenue - $refundTotal - $melFee - $stripeFee), 2);
 
     $finance['gross_revenue'] = $grossRevenue;
     $finance['net_revenue'] = $netRevenue;
+    $finance['refund_total'] = $refundTotal;
     $finance['organiser_donation_revenue'] = round($organiserDonationRevenue, 2);
 
     return $finance;
+  }
+
+  /**
+   * Sums completed refunds attributed to a single event.
+   *
+   * @param int $eventId
+   *   Event node ID.
+   *
+   * @return float
+   *   Refund total in major currency units.
+   */
+  private function sumEventScopedRefundTotal(int $eventId): float {
+    if (
+      $eventId <= 0
+      || !$this->database->schema()->tableExists('myeventlane_refund_log')
+    ) {
+      return 0.0;
+    }
+
+    $query = $this->database->select('myeventlane_refund_log', 'r');
+    $query->addExpression('COALESCE(SUM(r.amount_cents), 0)', 'sum_cents');
+    $query->condition('r.event_id', $eventId);
+    $query->condition('r.status', 'completed');
+    $query->condition('r.amount_cents', 0, '>');
+
+    $sumCents = (int) $query->execute()->fetchField();
+
+    return round($sumCents / 100, 2);
   }
 
   /**
@@ -307,8 +337,7 @@ final class FinanceReadModel {
     $query->join('commerce_order', 'o', 'o.order_id = oi.order_id');
     $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
     $query->addExpression('COALESCE(SUM(oi.unit_price__number * oi.quantity), 0)', 'revenue');
-    // Ticket revenue follows vendor-commerce-sales-monitoring: completed only.
-    $query->condition('o.state', 'completed');
+    $query->condition('o.state', self::PAID_ORDER_STATES, 'IN');
     $query->condition('lnk.field_target_event_target_id', $eventId);
     $query->condition('oi.type', $excludedTypes, 'NOT IN');
 
@@ -334,7 +363,7 @@ final class FinanceReadModel {
     $query->join('commerce_order', 'o', 'o.order_id = oi.order_id');
     $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
     $query->addExpression('COALESCE(SUM(oi.unit_price__number * oi.quantity), 0)', 'revenue');
-    $query->condition('o.state', self::ORGANISER_DONATION_ORDER_STATES, 'IN');
+    $query->condition('o.state', self::PAID_ORDER_STATES, 'IN');
     $query->condition('lnk.field_target_event_target_id', $eventId);
     $query->condition('oi.type', $organiserTypes, 'IN');
 
