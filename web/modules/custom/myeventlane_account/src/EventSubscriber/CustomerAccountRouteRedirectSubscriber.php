@@ -62,6 +62,10 @@ final class CustomerAccountRouteRedirectSubscriber implements EventSubscriberInt
       return;
     }
 
+    if ($this->currentUser->hasPermission('administer users')) {
+      return;
+    }
+
     if ($route === 'entity.user.edit_form') {
       $url = Url::fromRoute('myeventlane_account.settings', ['user' => $parameterUser->id()])->toString();
       $event->setResponse(new RedirectResponse($url, 301));
