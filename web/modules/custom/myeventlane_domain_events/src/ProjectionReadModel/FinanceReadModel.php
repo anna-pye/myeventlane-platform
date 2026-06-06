@@ -277,8 +277,10 @@ final class FinanceReadModel {
     $organiserDonationRevenue = $this->sumOrganiserDonationRevenueForEvent($eventId);
     $grossRevenue = round($ticketRevenue + $organiserDonationRevenue, 2);
 
-    // Use event-scoped refunds so multi-event orders do not over-subtract.
-    $refundTotal = $this->sumEventScopedRefundTotal($eventId);
+    // Prefer event-scoped refunds when logged; otherwise keep projection/payment fallback.
+    $loggedRefunds = $this->sumEventScopedRefundTotal($eventId);
+    $fallbackRefunds = (float) ($finance['refund_total'] ?? 0.0);
+    $refundTotal = $loggedRefunds > 0.0 ? $loggedRefunds : $fallbackRefunds;
     $melFee = (float) ($finance['mel_fee'] ?? 0.0);
     $stripeFee = (float) ($finance['stripe_fee'] ?? 0.0);
     $netRevenue = round(max(0.0, $grossRevenue - $refundTotal - $melFee - $stripeFee), 2);

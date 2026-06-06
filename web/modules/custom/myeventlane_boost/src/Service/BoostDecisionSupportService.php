@@ -68,6 +68,7 @@ final class BoostDecisionSupportService {
       $impressions,
       $spend,
       $revenue,
+      $donation_revenue,
       $orders,
       $rsvps,
       $isTickets,
@@ -181,6 +182,16 @@ final class BoostDecisionSupportService {
 
     $roi_revenue = $this->resolveRoiRevenue($revenue, $donation_revenue, $isTickets, $isRsvp);
     $candidates = [];
+
+    foreach ($boost_metrics['recommendations'] ?? [] as $metrics_rec) {
+      if (!is_string($metrics_rec) || $metrics_rec === '') {
+        continue;
+      }
+      $candidates[] = [
+        'priority' => 78,
+        'text' => $metrics_rec,
+      ];
+    }
 
     if ($spend > 0.0 && $roi_revenue > $spend * 1.5) {
       $candidates[] = [
@@ -340,6 +351,7 @@ final class BoostDecisionSupportService {
     int $impressions,
     float $spend,
     float $revenue,
+    float $donation_revenue,
     int $orders,
     int $rsvps,
     bool $isTickets,
@@ -359,7 +371,8 @@ final class BoostDecisionSupportService {
 
     $ctr_pct = $ctr * 100.0;
     $has_conversions = ($isTickets && $orders > 0) || ($isRsvp && $rsvps > 0);
-    $revenue_beats_spend = $spend > 0.0 && $revenue > $spend;
+    $roi_revenue = $this->resolveRoiRevenue($revenue, $donation_revenue, $isTickets, $isRsvp);
+    $revenue_beats_spend = $spend > 0.0 && $roi_revenue > $spend;
     $winner = $this->resolvePlacementWinnerCard($placement_performance_section);
 
     if ($impressions >= 20 && $ctr_pct < 1.0 && !$has_conversions) {
@@ -399,7 +412,7 @@ final class BoostDecisionSupportService {
     if ($revenue_beats_spend) {
       $points += 3;
     }
-    elseif ($revenue > 0.0) {
+    elseif ($roi_revenue > 0.0) {
       $points += 1;
     }
 
