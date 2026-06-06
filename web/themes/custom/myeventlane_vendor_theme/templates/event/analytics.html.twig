@@ -2,7 +2,7 @@
 /**
  * Event analytics — Vendor Growth Dashboard (vendor console).
  *
- * Story flow: All Sales → Ticket Sales → Merchandise → Boost → Recommendations → Details
+ * Story flow: All Sales → Ticket Sales → Merchandise → Boost → Placements → Recommendations → Details
  */
 #}
 {% if workspace_back_url or edit_event_url or export_pdf_url or export_excel_url %}
@@ -50,6 +50,7 @@
 {% set has_all_sales_trend_chart = has_all_sales_trend_chart|default(false) %}
 {% set has_boost_metrics = has_boost_metrics|default(false) %}
 {% set has_boost_trend_chart = has_boost_trend_chart|default(false) %}
+{% set has_placement_impressions_chart = has_placement_impressions_chart|default(false) %}
 {% set show_ticket_analytics = is_tickets_enabled|default(false) %}
 {% set show_rsvp_analytics = is_rsvp_enabled|default(false) %}
 {% set commerce = commerce_analytics|default({}) %}
@@ -323,6 +324,51 @@
       {% endif %}
     {% endif %}
   </section>
+
+  {# Placement Performance — where Boost is working best #}
+  {% set placement_perf = placement_performance_section|default({}) %}
+  {% if placement_perf.show|default(false) and placement_perf.cards|default([])|length > 0 %}
+    <section class="mel-analytics__business mel-analytics__business--placements mel-live-ops__panel" aria-labelledby="mel-analytics-placements-title">
+      <div class="mel-live-ops__timeline-head">
+        <h2 id="mel-analytics-placements-title" class="mel-live-ops__panel-title">{{ 'Placement performance'|t }}</h2>
+        <p class="mel-live-ops__panel-intro">{{ 'Where is Boost working best?'|t }}</p>
+      </div>
+      <div class="mel-analytics__placement-grid">
+        {% for card in placement_perf.cards %}
+          <article class="mel-analytics__placement-card">
+            <div class="mel-analytics__placement-card-head">
+              <h3 class="mel-analytics__placement-card-title">{{ card.label }}</h3>
+              <span class="mel-badge mel-badge--{{ card.performance_badge }}">{{ card.performance_label }}</span>
+            </div>
+            <dl class="mel-analytics__placement-stats">
+              <div class="mel-analytics__placement-stat">
+                <dt class="mel-analytics__placement-stat-label">{{ 'Impressions'|t }}</dt>
+                <dd class="mel-analytics__placement-stat-value">{{ card.impressions|number_format(0) }}</dd>
+              </div>
+              <div class="mel-analytics__placement-stat">
+                <dt class="mel-analytics__placement-stat-label">{{ 'Clicks'|t }}</dt>
+                <dd class="mel-analytics__placement-stat-value">{{ card.clicks|number_format(0) }}</dd>
+              </div>
+              <div class="mel-analytics__placement-stat">
+                <dt class="mel-analytics__placement-stat-label">{{ 'CTR'|t }}</dt>
+                <dd class="mel-analytics__placement-stat-value">{{ card.ctr_display }}</dd>
+              </div>
+            </dl>
+          </article>
+        {% endfor %}
+      </div>
+      {% if has_placement_impressions_chart %}
+        <div class="mel-analytics__business-charts mel-analytics__business-charts--single">
+          <div class="mel-analytics__chart-widget mel-chart-card">
+            <h3 class="mel-chart-card__title">{{ 'Impressions by placement'|t }}</h3>
+            <div class="mel-chart-card__canvas mel-chart-card__canvas--widget mel-chart-card__canvas--placement-bar" data-chart-id="boost-placement-impressions" role="img" aria-label="{{ 'Impressions by placement chart'|t }}">
+              <canvas height="180"></canvas>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
 
   {# Recommendations — what to do next (max 3) #}
   {% if next_steps|length > 0 %}

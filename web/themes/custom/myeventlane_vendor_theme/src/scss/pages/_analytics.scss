@@ -57,6 +57,10 @@
   border-left: 4px solid #f59e0b;
 }
 
+.mel-analytics__business--placements {
+  border-left: 4px solid $primary;
+}
+
 .mel-analytics__business--rsvp {
   border-left: 4px solid #10b981;
 }
@@ -264,6 +268,87 @@
 
 .mel-analytics__boost-cta .mel-btn {
   min-height: 44px;
+}
+
+// ============================================================================
+// Placement Performance — compact placement cards
+// ============================================================================
+
+.mel-analytics__placement-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-sm;
+  margin-top: $mel-spacing-md;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $mel-spacing-md;
+  }
+}
+
+.mel-analytics__placement-card {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-sm;
+  min-height: 44px;
+  padding: $mel-spacing-md;
+  border-radius: $radius-card;
+  border: 1px solid $border-color-light;
+  background: $bg-primary;
+  box-shadow: $shadow-xs;
+}
+
+.mel-analytics__placement-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $mel-spacing-sm;
+}
+
+.mel-analytics__placement-card-title {
+  margin: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  line-height: $line-height-tight;
+  text-wrap: balance;
+}
+
+.mel-analytics__placement-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $mel-spacing-sm;
+  margin: 0;
+}
+
+.mel-analytics__placement-stat {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+  min-width: 0;
+}
+
+.mel-analytics__placement-stat-label {
+  margin: 0;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mel-analytics__placement-stat-value {
+  margin: 0;
+  font-size: $font-size-body;
+  font-weight: $font-weight-semibold;
+  font-variant-numeric: tabular-nums;
+  color: $text-primary;
+  line-height: $line-height-tight;
+}
+
+.mel-chart-card__canvas--placement-bar {
+  min-height: 200px;
+  height: auto;
 }
 
 // ============================================================================

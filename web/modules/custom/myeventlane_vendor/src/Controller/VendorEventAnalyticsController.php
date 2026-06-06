@@ -284,6 +284,29 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $is_rsvp_enabled,
     );
 
+    $placement_performance_section = $this->buildPlacementPerformanceSection($boost_metrics);
+    if ($placement_performance_section['show'] && $placement_performance_section['cards'] !== []) {
+      $chart_data['boost-placement-impressions'] = [
+        'type' => 'bar',
+        'labels' => array_column($placement_performance_section['cards'], 'label'),
+        'datasets' => [
+          [
+            'label' => (string) $this->t('Impressions'),
+            'data' => array_column($placement_performance_section['cards'], 'impressions'),
+            'backgroundColor' => 'rgba(99, 102, 241, 0.6)',
+          ],
+        ],
+        'options' => [
+          'indexAxis' => 'y',
+          'plugins' => [
+            'legend' => [
+              'display' => FALSE,
+            ],
+          ],
+        ],
+      ];
+    }
+
     $recommendations = $this->buildRecommendations(
       $overview,
       $commerce_analytics,
@@ -294,6 +317,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $capacity_pct,
       $public_event_url,
       $ticketRows,
+      $placement_performance_section,
     );
 
     $has_boost_metrics = $boost_performance_section['show_metrics'];
@@ -330,6 +354,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#rsvp_health_section' => $rsvp_health_section,
         '#recommendations' => $recommendations,
         '#boost_performance_section' => $boost_performance_section,
+        '#placement_performance_section' => $placement_performance_section,
         '#has_all_sales_trend_chart' => isset($chart_data['event-sales']) && array_sum(array_column($sales_series, 'amount')) > 0,
         '#has_ticket_mix_chart' => isset($chart_data['event-ticket-mix']),
         '#has_ticket_trend_chart' => isset($chart_data['event-ticket-units-trend']),
@@ -337,6 +362,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#has_revenue_breakdown_chart' => isset($chart_data['event-revenue-breakdown']),
         '#has_boost_metrics' => $has_boost_metrics,
         '#has_boost_trend_chart' => isset($chart_data['boost-impressions-clicks']),
+        '#has_placement_impressions_chart' => isset($chart_data['boost-placement-impressions']),
         '#is_tickets_enabled' => $is_tickets_enabled,
         '#is_rsvp_enabled' => $is_rsvp_enabled,
       ],
@@ -1218,11 +1244,248 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
   }
 
   /**
+   * Placement Performance — aggregated placement cards (sorted by reach).
+   *
+   * @param array<string, mixed> $boost_metrics
+   *
+   * @return array{
+   *   show: bool,
+   *   cards: list<array{
+   *     key: string,
+   *     label: string,
+   *     impressions: int,
+   *     clicks: int,
+   *     ctr: float,
+   *     ctr_display: string,
+   *     performance_label: string,
+   *     performance_badge: string,
+   *   }>,
+   * }
+   */
+  private function buildPlacementPerformanceSection(array $boost_metrics): array {
+    $raw_placements = is_array($boost_metrics['placements'] ?? NULL) ? $boost_metrics['placements'] : [];
+    if ($raw_placements === []) {
+      return [
+        'show' => FALSE,
+        'cards' => [],
+      ];
+    }
+
+    $aggregated = [];
+    foreach ($raw_placements as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $key = trim((string) ($row['placement'] ?? ''));
+      if ($key === '') {
+        continue;
+      }
+      $impressions = (int) ($row['impressions'] ?? 0);
+      $clicks = (int) ($row['clicks'] ?? 0);
+      if ($impressions <= 0 && $clicks <= 0) {
+        continue;
+      }
+      if (!isset($aggregated[$key])) {
+        $aggregated[$key] = [
+          'impressions' => 0,
+          'clicks' => 0,
+        ];
+      }
+      $aggregated[$key]['impressions'] += $impressions;
+      $aggregated[$key]['clicks'] += $clicks;
+    }
+
+    if ($aggregated === []) {
+      return [
+        'show' => FALSE,
+        'cards' => [],
+      ];
+    }
+
+    $cards = [];
+    foreach ($aggregated as $key => $metrics) {
+      $impressions = (int) $metrics['impressions'];
+      $clicks = (int) $metrics['clicks'];
+      $ctr = $impressions > 0 ? ($clicks / $impressions) : 0.0;
+      $indicator = $this->getPlacementPerformanceIndicator($ctr);
+      $cards[] = [
+        'key' => $key,
+        'label' => $this->formatBoostPlacementLabel($key),
+        'impressions' => $impressions,
+        'clicks' => $clicks,
+        'ctr' => $ctr,
+        'ctr_display' => number_format($ctr * 100, 1) . '%',
+        'performance_label' => $indicator['label'],
+        'performance_badge' => $indicator['badge'],
+      ];
+    }
+
+    usort($cards, static function (array $a, array $b): int {
+      $impression_cmp = $b['impressions'] <=> $a['impressions'];
+      return $impression_cmp !== 0 ? $impression_cmp : ($b['clicks'] <=> $a['clicks']);
+    });
+
+    return [
+      'show' => TRUE,
+      'cards' => $cards,
+    ];
+  }
+
+  /**
+   * Translates a Boost placement machine key to organiser-facing copy.
+   */
+  private function formatBoostPlacementLabel(string $placement): string {
+    $known = [
+      'homepage_discover' => (string) $this->t('Homepage Discover'),
+      'search_results' => (string) $this->t('Search Results'),
+      'category_music' => (string) $this->t('Music Category'),
+      'category_lgbtq' => (string) $this->t('LGBTQ+ Category'),
+      'listing_featured' => (string) $this->t('Featured Listings'),
+    ];
+    if (isset($known[$placement])) {
+      return $known[$placement];
+    }
+
+    if (str_starts_with($placement, 'category_')) {
+      $slug = substr($placement, strlen('category_'));
+      return (string) $this->t('@category Category', [
+        '@category' => $this->formatBoostPlacementSlug($slug),
+      ]);
+    }
+
+    if (str_starts_with($placement, 'listing_')) {
+      $slug = substr($placement, strlen('listing_'));
+      return (string) $this->t('@listing Listings', [
+        '@listing' => $this->formatBoostPlacementSlug($slug),
+      ]);
+    }
+
+    if (str_starts_with($placement, 'homepage_')) {
+      $slug = substr($placement, strlen('homepage_'));
+      return (string) $this->t('Homepage @section', [
+        '@section' => $this->formatBoostPlacementSlug($slug),
+      ]);
+    }
+
+    return $this->formatBoostPlacementSlug($placement);
+  }
+
+  /**
+   * Title-cases an underscore placement slug segment.
+   */
+  private function formatBoostPlacementSlug(string $slug): string {
+    $slug = trim(str_replace('_', ' ', strtolower($slug)));
+    if ($slug === '') {
+      return (string) $this->t('Placement');
+    }
+    if ($slug === 'lgbtq') {
+      return 'LGBTQ+';
+    }
+    return ucwords($slug);
+  }
+
+  /**
+   * CTR-based performance indicator using existing badge variants.
+   *
+   * @return array{label: string, badge: string}
+   */
+  private function getPlacementPerformanceIndicator(float $ctr): array {
+    if ($ctr >= 0.05) {
+      return [
+        'label' => (string) $this->t('Strong'),
+        'badge' => 'success',
+      ];
+    }
+    if ($ctr >= 0.02) {
+      return [
+        'label' => (string) $this->t('Moderate'),
+        'badge' => 'warning',
+      ];
+    }
+    return [
+      'label' => (string) $this->t('Needs attention'),
+      'badge' => 'danger',
+    ];
+  }
+
+  /**
+   * Placement-specific recommendations from sorted placement cards.
+   *
+   * @param array{
+   *   show: bool,
+   *   cards: list<array{
+   *     key: string,
+   *     label: string,
+   *     impressions: int,
+   *     clicks: int,
+   *     ctr: float,
+   *   }>,
+   * } $placement_performance_section
+   *
+   * @return list<string>
+   */
+  private function buildPlacementRecommendations(array $placement_performance_section): array {
+    $cards = is_array($placement_performance_section['cards'] ?? NULL)
+      ? $placement_performance_section['cards']
+      : [];
+    if (count($cards) < 2) {
+      return [];
+    }
+
+    $eligible = array_values(array_filter(
+      $cards,
+      static fn (array $card): bool => (int) ($card['impressions'] ?? 0) >= 10,
+    ));
+    if (count($eligible) < 2) {
+      return [];
+    }
+
+    usort($eligible, static fn (array $a, array $b): int => $b['ctr'] <=> $a['ctr']);
+    $strongest = $eligible[0];
+    $weakest = $eligible[count($eligible) - 1];
+    if (($strongest['key'] ?? '') === ($weakest['key'] ?? '')) {
+      return [];
+    }
+
+    $recs = [];
+    $strongest_key = (string) ($strongest['key'] ?? '');
+    $weakest_key = (string) ($weakest['key'] ?? '');
+    $strongest_label = (string) ($strongest['label'] ?? '');
+
+    if (str_starts_with($strongest_key, 'homepage_') || $strongest_key === 'homepage_discover') {
+      $recs[] = (string) $this->t('@placement has your strongest CTR — consider extending Boost.', [
+        '@placement' => $strongest_label,
+      ]);
+    }
+    elseif (str_starts_with($strongest_key, 'category_')) {
+      $recs[] = (string) $this->t('@placement is your strongest placement — promote within that audience.', [
+        '@placement' => $strongest_label,
+      ]);
+    }
+
+    if ($weakest_key === 'search_results') {
+      $recs[] = (string) $this->t('Search Results has your weakest CTR — try improving your event keywords and title.');
+    }
+    elseif (str_starts_with($weakest_key, 'search_')) {
+      $weakest_label = (string) ($weakest['label'] ?? '');
+      $recs[] = (string) $this->t('@placement has your weakest CTR — review how your event appears in search.', [
+        '@placement' => $weakest_label,
+      ]);
+    }
+
+    return $recs;
+  }
+
+  /**
    * Rules-based next-step recommendations (max 3, no new services).
    *
    * @param array<string, mixed> $overview
    * @param array<string, mixed> $commerce
    * @param array<string, mixed> $boost
+   * @param array{
+   *   show: bool,
+   *   cards: list<array<string, mixed>>,
+   * } $placement_performance_section
    *
    * @return list<string>
    */
@@ -1236,6 +1499,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     ?float $capacity_pct,
     ?string $public_event_url,
     array $ticketRows,
+    array $placement_performance_section = [],
   ): array {
     $recs = [];
     $boost_metrics = is_array($overview['boost_metrics'] ?? NULL) ? $overview['boost_metrics'] : [];
@@ -1245,6 +1509,15 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         continue;
       }
       $recs[] = $rec;
+    }
+
+    if (count($recs) < 3) {
+      foreach ($this->buildPlacementRecommendations($placement_performance_section) as $rec) {
+        if (count($recs) >= 3) {
+          break;
+        }
+        $recs[] = $rec;
+      }
     }
 
     if (count($recs) < 3 && !empty($boost['active'])) {
