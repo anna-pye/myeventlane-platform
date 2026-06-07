@@ -16,7 +16,7 @@
   min-height: 100vh;
   background: $ml-vendor-bg;
 
-  @include respond-to(lg) {
+  @include respond-to(md) {
     grid-template-columns: $layout-sidebar-nav-width 1fr;
   }
 
@@ -43,7 +43,7 @@
   z-index: 40;
   overflow-y: auto;
 
-  @include respond-to(lg) {
+  @include respond-to(md) {
     position: sticky;
     top: 0;
     height: 100vh;
@@ -458,7 +458,7 @@
   font-size: 1.2rem;
   line-height: 1;
 
-  @include respond-to(lg) {
+  @include respond-to(md) {
     display: none;
   }
 }

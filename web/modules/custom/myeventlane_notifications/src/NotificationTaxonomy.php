@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_notifications;
 
 use Drupal\myeventlane_notifications\Entity\MelNotification;
+use Drupal\myeventlane_notifications\Service\NotificationPreferenceService;
 
 /**
  * Shared classification for in-app notifications and email templates.
@@ -95,7 +96,31 @@ final class NotificationTaxonomy {
         'context' => NotificationContext::BUSINESS,
         'domain' => NotificationDomain::REFUNDS,
       ],
+      'refund_requested_buyer' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::ORDERS,
+      ],
+      'refund_approved_buyer' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::ORDERS,
+      ],
+      'refund_rejected_buyer' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::ORDERS,
+      ],
+      'refund_completed_buyer' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::ORDERS,
+      ],
       'boost_purchased' => [
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::BOOSTS,
+      ],
+      'boost_expiring' => [
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::BOOSTS,
+      ],
+      'boost_completed' => [
         'context' => NotificationContext::BUSINESS,
         'domain' => NotificationDomain::BOOSTS,
       ],
@@ -103,12 +128,50 @@ final class NotificationTaxonomy {
         'context' => NotificationContext::BUSINESS,
         'domain' => NotificationDomain::FOLLOWERS,
       ],
+      'category_follower_gained' => [
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::FOLLOWERS,
+      ],
+      'capacity_reached' => [
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::SALES,
+      ],
+      'low_stock' => [
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::SALES,
+      ],
+      'rsvp_cancelled' => [
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::RSVPS,
+      ],
+      'waitlist_promoted_vendor' => [
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::RSVPS,
+      ],
+      'waitlist_promoted_attendee' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::RSVPS,
+      ],
       'event_approved' => [
         'context' => NotificationContext::BUSINESS,
         'domain' => NotificationDomain::EVENT_UPDATES,
       ],
       default => NULL,
     };
+  }
+
+  /**
+   * Maps myeventlane_messaging template IDs to context/domain/priority.
+   *
+   * @return array{context: string, domain: string, priority: string}
+   */
+  public static function emailTemplateClassification(string $templateId): array {
+    $base = self::fromEmailTemplate($templateId);
+    return [
+      'context' => $base['context'],
+      'domain' => $base['domain'],
+      'priority' => self::priorityForEmailTemplate($templateId),
+    ];
   }
 
   /**
@@ -180,6 +243,26 @@ final class NotificationTaxonomy {
         'context' => NotificationContext::PLATFORM,
         'domain' => NotificationDomain::PLATFORM,
       ],
+    };
+  }
+
+  /**
+   * Priority for email templates (aligned with in-app notification taxonomy).
+   */
+  public static function priorityForEmailTemplate(string $templateId): string {
+    return match ($templateId) {
+      'refund_requested_buyer',
+      'refund_approved_buyer',
+      'refund_rejected_buyer',
+      'refund_completed_buyer',
+      'refund_failed_buyer',
+      'refund_requested_vendor',
+      'refund_approved_vendor',
+      'refund_rejected_vendor',
+      'refund_completed_vendor',
+      'refund_failed_vendor' => MelNotification::PRIORITY_HIGH,
+      'boost_reminder' => MelNotification::PRIORITY_HIGH,
+      default => MelNotification::PRIORITY_NORMAL,
     };
   }
 

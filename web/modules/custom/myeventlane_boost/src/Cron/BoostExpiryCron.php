@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\myeventlane_boost\BoostManager;
 use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
+use Drupal\myeventlane_notifications\Service\BusinessNotificationTriggerService;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -44,6 +45,7 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
     private readonly MailManagerInterface $mailManager,
     private readonly BoostManager $boostManager,
     private readonly BoostEntitlementManager $entitlementManager,
+    private readonly ?BusinessNotificationTriggerService $businessNotificationTrigger = NULL,
   ) {}
 
   /**
@@ -57,6 +59,9 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
       $container->get('plugin.manager.mail'),
       $container->get('myeventlane_boost.manager'),
       $container->get('myeventlane_boost.entitlement_manager'),
+      $container->has('myeventlane_notifications.business_trigger')
+        ? $container->get('myeventlane_notifications.business_trigger')
+        : NULL,
     );
   }
 
@@ -124,6 +129,10 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
       NULL,
       TRUE
     );
+
+    if ($this->businessNotificationTrigger !== NULL && $owner !== NULL) {
+      $this->businessNotificationTrigger->onBoostCompleted($node, (int) $owner->id());
+    }
   }
 
 }

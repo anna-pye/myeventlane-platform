@@ -82,10 +82,10 @@
           <div class="mel-vendor-dashboard__mission-actions" aria-label="{{ 'Organiser actions'|t }}">
             {% if organiser_actions is iterable and organiser_actions|length > 0 %}
               {% for action in organiser_actions %}
-                <a class="mel-btn {{ loop.first ? 'mel-btn--primary' : 'mel-btn--secondary' }}" href="{{ action.url }}">{{ action.label }}</a>
+                {% if action.key|default('') != 'create' %}
+                  <a class="mel-btn {{ loop.first ? 'mel-btn--primary' : 'mel-btn--secondary' }}" href="{{ action.url }}">{{ action.label }}</a>
+                {% endif %}
               {% endfor %}
-            {% elseif empty_state.url is defined and empty_state.url %}
-              <a class="mel-btn mel-btn--primary" href="{{ empty_state.url }}">{{ empty_state.action_label|default('Create event'|t) }}</a>
             {% endif %}
             {% if vendor.settings_url is defined and vendor.settings_url %}
               <a class="mel-btn mel-btn--ghost" href="{{ vendor.settings_url }}">{{ 'Profile & settings'|t }}</a>

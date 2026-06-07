@@ -227,6 +227,14 @@ final class NotificationPreferenceService {
    * @return array{surface: string, suppressed: bool}
    */
   public function applyPreferences(MelNotification $notification, UserInterface $user, string $engineSurface): array {
+    $priority = (string) $notification->get('priority')->value;
+    if ($priority === MelNotification::PRIORITY_CRITICAL) {
+      return [
+        'surface' => $engineSurface,
+        'suppressed' => FALSE,
+      ];
+    }
+
     $category = $this->categoryForNotification($notification);
     $prefs = $this->getPreferences($user);
     $cat = $prefs[$category] ?? self::DEFAULT_PREFS[$category] ?? [

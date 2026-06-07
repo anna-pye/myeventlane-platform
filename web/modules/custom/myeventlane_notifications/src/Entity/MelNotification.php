@@ -60,6 +60,7 @@ final class MelNotification extends ContentEntityBase {
   public const PRIORITY_LOW = 'low';
   public const PRIORITY_NORMAL = 'normal';
   public const PRIORITY_HIGH = 'high';
+  public const PRIORITY_CRITICAL = 'critical';
 
   /**
    * {@inheritdoc}
@@ -156,6 +157,7 @@ final class MelNotification extends ContentEntityBase {
         self::PRIORITY_LOW => 'Low',
         self::PRIORITY_NORMAL => 'Normal',
         self::PRIORITY_HIGH => 'High',
+        self::PRIORITY_CRITICAL => 'Critical',
       ])
       ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', FALSE);
