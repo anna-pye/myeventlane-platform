@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_notifications\EventSubscriber;
 
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\commerce_order\Event\OrderEvents;
+use Drupal\myeventlane_notifications\Service\BusinessNotificationTriggerService;
 use Drupal\myeventlane_notifications\Service\PlatformNotificationTriggerService;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -16,6 +17,7 @@ final class NotificationSubscriber implements EventSubscriberInterface {
 
   public function __construct(
     private readonly PlatformNotificationTriggerService $triggerService,
+    private readonly BusinessNotificationTriggerService $businessTriggerService,
   ) {}
 
   /**
@@ -28,7 +30,9 @@ final class NotificationSubscriber implements EventSubscriberInterface {
   }
 
   public function onOrderPaid(OrderEvent $event): void {
-    $this->triggerService->onOrderPaid($event->getOrder());
+    $order = $event->getOrder();
+    $this->triggerService->onOrderPaid($order);
+    $this->businessTriggerService->onOrderPaidCapacitySignals($order);
   }
 
 }

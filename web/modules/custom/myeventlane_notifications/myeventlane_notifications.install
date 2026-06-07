@@ -337,6 +337,28 @@ function myeventlane_notifications_update_11006(): string {
   return (string) t('Installed MEL context/domain/route notification fields and backfilled existing rows.');
 }
 
+/**
+ * Adds critical priority as an allowed mel_notification priority value.
+ */
+function myeventlane_notifications_update_11007(): string {
+  try {
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $notif_entity = \Drupal::entityTypeManager()->getDefinition('mel_notification');
+    $notif_fields = \Drupal\myeventlane_notifications\Entity\MelNotification::baseFieldDefinitions($notif_entity);
+    $existing = $update_manager->getFieldStorageDefinition('priority', 'mel_notification');
+    if ($existing !== NULL) {
+      $update_manager->updateFieldStorageDefinition($notif_fields['priority']);
+    }
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_notifications')->notice(
+      'Critical priority field storage update skipped (runtime definition applies): @message',
+      ['@message' => $e->getMessage()]
+    );
+  }
+  return (string) t('Added critical priority to MEL notifications.');
+}
+
 function _myeventlane_notifications_delivery_index_spec(array $columns, string $index_name): array {
   $definitions = [
     'recipient_uid_target_id' => [

@@ -178,6 +178,12 @@ final class MessagingManager {
 
     // Normalize context for storage: ensure scalar/array only for serialization.
     $storableContext = $this->normalizeContextForStorage($context);
+    if (class_exists(\Drupal\myeventlane_notifications\NotificationTaxonomy::class)) {
+      $classification = \Drupal\myeventlane_notifications\NotificationTaxonomy::emailTemplateClassification($type);
+      $storableContext['_mel_notification_context'] = $classification['context'];
+      $storableContext['_mel_notification_domain'] = $classification['domain'];
+      $storableContext['_mel_notification_priority'] = $classification['priority'];
+    }
     $storableContext['_attachments'] = $opts['attachments'] ?? [];
     $id = $this->uuid();
 

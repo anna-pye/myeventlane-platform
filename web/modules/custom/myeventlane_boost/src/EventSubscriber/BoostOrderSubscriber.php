@@ -10,6 +10,8 @@ use Drupal\commerce_cart\Event\OrderItemComparisonFieldsEvent;
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\commerce_order\Event\OrderEvents;
 use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
+use Drupal\myeventlane_notifications\Service\BusinessNotificationTriggerService;
+use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -33,6 +35,7 @@ final class BoostOrderSubscriber implements EventSubscriberInterface {
     private readonly BoostEntitlementManager $entitlementManager,
     private readonly LoggerInterface $logger,
     private readonly RequestStack $requestStack,
+    private readonly ?BusinessNotificationTriggerService $businessNotificationTrigger = NULL,
   ) {}
 
   /**
@@ -60,7 +63,17 @@ final class BoostOrderSubscriber implements EventSubscriberInterface {
 
     $this->logger->notice('ORDER_PAID for order @id', ['@id' => $order->id()]);
     foreach ($order->getItems() as $item) {
-      $this->entitlementManager->activateEntitlementFromOrderItem($order, $item);
+      $entitlement = $this->entitlementManager->activateEntitlementFromOrderItem($order, $item);
+      if ($entitlement === NULL || $this->businessNotificationTrigger === NULL) {
+        continue;
+      }
+      if (!$item->hasField('field_target_event') || $item->get('field_target_event')->isEmpty()) {
+        continue;
+      }
+      $event = $item->get('field_target_event')->entity;
+      if ($event instanceof NodeInterface) {
+        $this->businessNotificationTrigger->onBoostPurchased($event, (int) $event->getOwnerId());
+      }
     }
   }
 

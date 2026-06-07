@@ -55,6 +55,7 @@ services:
       - '@myeventlane_boost.entitlement_manager'
       - '@logger.channel.myeventlane_boost'
       - '@request_stack'
+      - '@?myeventlane_notifications.business_trigger'
     tags:
       - { name: event_subscriber }
 
