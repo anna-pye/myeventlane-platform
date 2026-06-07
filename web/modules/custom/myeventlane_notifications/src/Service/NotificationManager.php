@@ -40,9 +40,13 @@ final class NotificationManager {
    *   Keys: type, title, message, audience_type, audience_data (array|string JSON),
    *   channels (list), status (optional), scheduled_at (optional int),
    *   priority (optional), priority_score (optional), suppression_key (optional),
-   *   group_key (optional), action_label (optional), action_uri (optional),
+   *   group_key (optional), action_label (optional), action_uri (optional legacy),
    *   action_context (optional), context (optional), domain (optional),
-   *   route_name (optional), route_parameters (optional array).
+   *   route_name (optional preferred), route_parameters (optional array).
+   *
+   * Deep-linking: always set route_name + route_parameters for new notifications.
+   * action_uri is retained for legacy rows; NotificationViewBuilder falls back to
+   * action_uri when route_name is empty or invalid. See README.md in this module.
    */
   public function createNotification(array $data): MelNotification {
     $audienceData = $data['audience_data'] ?? [];

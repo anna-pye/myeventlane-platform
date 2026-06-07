@@ -104,6 +104,7 @@ final class NotificationFilter {
         self::FILTER_UNREAD,
         self::FILTER_TICKETS,
         self::FILTER_ORDERS,
+        self::FILTER_EVENT_UPDATES,
         self::FILTER_REMINDERS,
       ],
       self::TAB_BUSINESS => [

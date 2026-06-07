@@ -17,6 +17,7 @@ use Drupal\myeventlane_notifications\NotificationPrefsFieldDefinition;
 use Drupal\myeventlane_notifications\Service\NotificationPreferenceService;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
 use Drupal\node\NodeInterface;
+use Drupal\user\UserInterface;
 
 /**
  * Implements hook_preprocess_site_header().
@@ -28,6 +29,27 @@ function myeventlane_notifications_preprocess_site_header(array &$variables): vo
     return;
   }
   $variables['notification_bell'] = \Drupal::service('myeventlane_notifications.bell_presenter')->build(NotificationContext::PERSONAL);
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ *
+ * Registers module preprocess for the theme-owned site_header hook.
+ */
+function myeventlane_notifications_theme_registry_alter(array &$theme_registry): void {
+  if (!isset($theme_registry['site_header'])) {
+    return;
+  }
+  $function = 'myeventlane_notifications_preprocess_site_header';
+  if (!function_exists($function)) {
+    return;
+  }
+  if (!isset($theme_registry['site_header']['preprocess functions'])) {
+    $theme_registry['site_header']['preprocess functions'] = [];
+  }
+  if (!in_array($function, $theme_registry['site_header']['preprocess functions'], TRUE)) {
+    $theme_registry['site_header']['preprocess functions'][] = $function;
+  }
 }
 
 /**
@@ -127,6 +149,14 @@ function myeventlane_notifications_entity_insert(EntityInterface $entity): void 
     \Drupal::service('myeventlane_notifications.trigger')->onRsvpEntityInserted($entity);
     return;
   }
+  if ($entity->getEntityTypeId() === 'myeventlane_vendor_follow') {
+    myeventlane_notifications_on_vendor_follow_insert($entity);
+    return;
+  }
+  if ($entity->getEntityTypeId() === 'flagging') {
+    myeventlane_notifications_on_category_flag_insert($entity);
+    return;
+  }
   if ($entity instanceof NodeInterface && $entity->bundle() === 'event' && $entity->isPublished()) {
     \Drupal::service('myeventlane_notifications.trigger')->onEventPublished($entity);
   }
@@ -138,7 +168,120 @@ function myeventlane_notifications_entity_insert(EntityInterface $entity): void 
 function myeventlane_notifications_entity_update(EntityInterface $entity): void {
   if ($entity instanceof NodeInterface) {
     \Drupal::service('myeventlane_notifications.trigger')->onNodeUpdate($entity);
+    if ($entity->bundle() === 'event') {
+      $original = $entity->original ?? NULL;
+      if ($original instanceof NodeInterface && $entity->isPublished() && $original->isPublished()) {
+        \Drupal::service('myeventlane_notifications.personal_trigger')->onEventUpdated($entity, $original);
+      }
+    }
+    return;
   }
+  if ($entity->getEntityTypeId() === 'event_attendee') {
+    myeventlane_notifications_on_event_attendee_update($entity);
+    return;
+  }
+  if ($entity->getEntityTypeId() === 'myeventlane_ticket') {
+    myeventlane_notifications_on_ticket_assigned($entity);
+  }
+}
+
+/**
+ * Category follow in-app notifications (flag module flagging entity).
+ */
+function myeventlane_notifications_on_category_flag_insert(EntityInterface $flagging): void {
+  if ($flagging->getEntityTypeId() !== 'flagging') {
+    return;
+  }
+  if ((string) ($flagging->get('flag_id')->value ?? '') !== 'follow_category') {
+    return;
+  }
+  if ((string) ($flagging->get('entity_type')->value ?? '') !== 'taxonomy_term') {
+    return;
+  }
+  $termId = (int) ($flagging->get('entity_id')->value ?? 0);
+  $followerUid = (int) $flagging->getOwnerId();
+  if ($termId < 1 || $followerUid < 1) {
+    return;
+  }
+  $follower = \Drupal::entityTypeManager()->getStorage('user')->load($followerUid);
+  if ($follower instanceof UserInterface) {
+    \Drupal::service('myeventlane_notifications.business_trigger')->onCategoryFollowed($termId, $follower);
+  }
+}
+
+/**
+ * Sends organiser-follow notifications when a vendor follow row is created.
+ */
+function myeventlane_notifications_on_vendor_follow_insert(EntityInterface $follow): void {
+  if ($follow->getEntityTypeId() !== 'myeventlane_vendor_follow') {
+    return;
+  }
+  $vendorId = (int) ($follow->get('vendor_id')->target_id ?? 0);
+  $followerUid = (int) ($follow->get('user_id')->target_id ?? 0);
+  if ($vendorId < 1 || $followerUid < 1) {
+    return;
+  }
+  $vendor = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor')->load($vendorId);
+  $follower = \Drupal::entityTypeManager()->getStorage('user')->load($followerUid);
+  if ($vendor instanceof \Drupal\myeventlane_vendor\Entity\Vendor && $follower instanceof UserInterface) {
+    \Drupal::service('myeventlane_notifications.business_trigger')->onOrganiserFollowed($vendor, $follower);
+  }
+}
+
+/**
+ * RSVP cancel and waitlist promotion in-app notifications.
+ */
+function myeventlane_notifications_on_event_attendee_update(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'event_attendee') {
+    return;
+  }
+  $original = $entity->original ?? NULL;
+  if (!$original instanceof EntityInterface) {
+    return;
+  }
+  $oldStatus = (string) ($original->get('status')->value ?? '');
+  $newStatus = (string) ($entity->get('status')->value ?? '');
+  if ($oldStatus === $newStatus) {
+    return;
+  }
+
+  $eventId = (int) ($entity->get('event')->target_id ?? 0);
+  if ($eventId < 1) {
+    return;
+  }
+  $event = \Drupal::entityTypeManager()->getStorage('node')->load($eventId);
+  if (!$event instanceof NodeInterface) {
+    return;
+  }
+
+  $businessTrigger = \Drupal::service('myeventlane_notifications.business_trigger');
+  if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+    $businessTrigger->onRsvpCancelled($entity, $event);
+    return;
+  }
+  if ($newStatus === 'confirmed' && $oldStatus === 'waitlist') {
+    $attendeeUid = (int) ($entity->get('uid')->target_id ?? 0);
+    $businessTrigger->onWaitlistPromotedAttendee($attendeeUid, $event);
+    $businessTrigger->onWaitlistPromotedVendor($event, (int) $entity->id());
+  }
+}
+
+/**
+ * Personal order update when a ticket is assigned to a holder.
+ */
+function myeventlane_notifications_on_ticket_assigned(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'myeventlane_ticket') {
+    return;
+  }
+  if (!class_exists(\Drupal\myeventlane_tickets\Entity\Ticket::class)) {
+    return;
+  }
+  if (!$entity instanceof \Drupal\myeventlane_tickets\Entity\Ticket) {
+    return;
+  }
+  $original = $entity->original ?? NULL;
+  $originalTicket = $original instanceof \Drupal\myeventlane_tickets\Entity\Ticket ? $original : NULL;
+  \Drupal::service('myeventlane_notifications.personal_trigger')->onTicketAssigned($entity, $originalTicket);
 }
 
 /**

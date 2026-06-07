@@ -14,7 +14,7 @@ use Drupal\myeventlane_notifications\NotificationDomain;
 use Drupal\node\NodeInterface;
 
 /**
- * Business-context in-app notifications for refund lifecycle events.
+ * In-app notifications for refund lifecycle events (vendor and buyer).
  */
 final class RefundNotificationTriggerService {
 
@@ -45,6 +45,20 @@ final class RefundNotificationTriggerService {
       'myeventlane_refunds.vendor_refund_requests',
       ['node' => (int) $event->id()],
     );
+
+    $buyerUid = (int) ($requestRow['buyer_uid'] ?? $order->getCustomerId());
+    if ($buyerUid > 0) {
+      $this->queuePersonalRefund(
+        [$buyerUid],
+        (string) $this->translation->translate('Refund requested'),
+        (string) $this->translation->translate('Your refund request for @event is pending review.', ['@event' => $event->label()]),
+        'refund_requested_buyer',
+        'refund_request_buyer:' . $requestId,
+        (string) $this->translation->translate('View order'),
+        'myeventlane_checkout_flow.order_detail',
+        ['commerce_order' => (int) $order->id()],
+      );
+    }
   }
 
   /**
@@ -68,6 +82,20 @@ final class RefundNotificationTriggerService {
       'myeventlane_vendor.console.event_order_view',
       ['event' => (int) $event->id(), 'order' => (int) $order->id()],
     );
+
+    $buyerUid = (int) ($requestRow['buyer_uid'] ?? $order->getCustomerId());
+    if ($buyerUid > 0) {
+      $this->queuePersonalRefund(
+        [$buyerUid],
+        (string) $this->translation->translate('Refund approved'),
+        (string) $this->translation->translate('Your refund for @event was approved.', ['@event' => $event->label()]),
+        'refund_approved_buyer',
+        'refund_approved_buyer:' . $requestId,
+        (string) $this->translation->translate('View order'),
+        'myeventlane_checkout_flow.order_detail',
+        ['commerce_order' => (int) $order->id()],
+      );
+    }
   }
 
   /**
@@ -89,6 +117,20 @@ final class RefundNotificationTriggerService {
       'myeventlane_refunds.vendor_refund_requests',
       ['node' => (int) $event->id()],
     );
+
+    $buyerUid = (int) ($requestRow['buyer_uid'] ?? $order->getCustomerId());
+    if ($buyerUid > 0) {
+      $this->queuePersonalRefund(
+        [$buyerUid],
+        (string) $this->translation->translate('Refund rejected'),
+        (string) $this->translation->translate('Your refund request for @event was declined.', ['@event' => $event->label()]),
+        'refund_rejected_buyer',
+        'refund_rejected_buyer:' . $requestId,
+        (string) $this->translation->translate('View order'),
+        'myeventlane_checkout_flow.order_detail',
+        ['commerce_order' => (int) $order->id()],
+      );
+    }
   }
 
   public function onRefundCompleted(OrderInterface $order, NodeInterface $event, int $vendorUid): void {
@@ -107,6 +149,20 @@ final class RefundNotificationTriggerService {
       'myeventlane_vendor.console.event_order_view',
       ['event' => (int) $event->id(), 'order' => (int) $order->id()],
     );
+
+    $buyerUid = (int) $order->getCustomerId();
+    if ($buyerUid > 0) {
+      $this->queuePersonalRefund(
+        [$buyerUid],
+        (string) $this->translation->translate('Refund completed'),
+        (string) $this->translation->translate('Your refund for @event has been processed.', ['@event' => $event->label()]),
+        'refund_completed_buyer',
+        'refund_completed_buyer:' . $order->id() . ':' . $event->id(),
+        (string) $this->translation->translate('View order'),
+        'myeventlane_checkout_flow.order_detail',
+        ['commerce_order' => (int) $order->id()],
+      );
+    }
   }
 
   /**
@@ -115,6 +171,64 @@ final class RefundNotificationTriggerService {
    */
   private function queueBusinessRefund(
     array $userIds,
+    string $title,
+    string $message,
+    string $actionContext,
+    string $suppressionKey,
+    string $actionLabel,
+    string $routeName,
+    array $routeParameters,
+  ): void {
+    $this->queueRefund(
+      $userIds,
+      NotificationContext::BUSINESS,
+      NotificationDomain::REFUNDS,
+      $title,
+      $message,
+      $actionContext,
+      $suppressionKey,
+      $actionLabel,
+      $routeName,
+      $routeParameters,
+    );
+  }
+
+  /**
+   * @param list<int> $userIds
+   * @param array<string, scalar> $routeParameters
+   */
+  private function queuePersonalRefund(
+    array $userIds,
+    string $title,
+    string $message,
+    string $actionContext,
+    string $suppressionKey,
+    string $actionLabel,
+    string $routeName,
+    array $routeParameters,
+  ): void {
+    $this->queueRefund(
+      $userIds,
+      NotificationContext::PERSONAL,
+      NotificationDomain::ORDERS,
+      $title,
+      $message,
+      $actionContext,
+      $suppressionKey,
+      $actionLabel,
+      $routeName,
+      $routeParameters,
+    );
+  }
+
+  /**
+   * @param list<int> $userIds
+   * @param array<string, scalar> $routeParameters
+   */
+  private function queueRefund(
+    array $userIds,
+    string $context,
+    string $domain,
     string $title,
     string $message,
     string $actionContext,
@@ -139,8 +253,8 @@ final class RefundNotificationTriggerService {
         'priority' => MelNotification::PRIORITY_HIGH,
         'priority_score' => 70,
         'suppression_key' => $suppressionKey,
-        'context' => NotificationContext::BUSINESS,
-        'domain' => NotificationDomain::REFUNDS,
+        'context' => $context,
+        'domain' => $domain,
         'action_label' => $actionLabel,
         'route_name' => $routeName,
         'route_parameters' => $routeParameters,

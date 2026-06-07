@@ -73,7 +73,8 @@ final class NotificationDecisionEngine {
       return NotificationSurface::BELL_INBOX;
     }
 
-    if ((string) $notification->get('priority')->value === MelNotification::PRIORITY_HIGH) {
+    $priority = (string) $notification->get('priority')->value;
+    if ($priority === MelNotification::PRIORITY_HIGH || $priority === MelNotification::PRIORITY_CRITICAL) {
       return NotificationSurface::TOAST_INBOX;
     }
 

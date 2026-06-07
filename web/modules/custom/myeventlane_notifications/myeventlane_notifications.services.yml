@@ -50,6 +50,18 @@ services:
       - '@logger.channel.myeventlane_notifications'
       - '@string_translation'
 
+  myeventlane_notifications.business_trigger:
+    class: Drupal\myeventlane_notifications\Service\BusinessNotificationTriggerService
+    arguments:
+      - '@myeventlane_notifications.notification_manager'
+      - '@entity_type.manager'
+      - '@myeventlane_notifications.audience_resolver'
+      - '@logger.channel.myeventlane_notifications'
+      - '@string_translation'
+      - '@config.factory'
+      - '@?myeventlane_capacity.service'
+      - '@?myeventlane_commerce.operational_variation_stock_resolver'
+
   myeventlane_notifications.preference:
     class: Drupal\myeventlane_notifications\Service\NotificationPreferenceService
     arguments:
@@ -95,5 +107,6 @@ services:
     class: Drupal\myeventlane_notifications\EventSubscriber\NotificationSubscriber
     arguments:
       - '@myeventlane_notifications.trigger'
+      - '@myeventlane_notifications.business_trigger'
     tags:
       - { name: event_subscriber }
