@@ -264,6 +264,79 @@ function myeventlane_notifications_update_11005(): string {
  * @param string $index_name
  *   Index name (must match the $name argument to addIndex()).
  */
+/**
+ * Context-aware notification fields and backfill for existing rows.
+ */
+function myeventlane_notifications_update_11006(): string {
+  try {
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $notif_entity = \Drupal::entityTypeManager()->getDefinition('mel_notification');
+    $notif_fields = \Drupal\myeventlane_notifications\Entity\MelNotification::baseFieldDefinitions($notif_entity);
+
+    foreach (['context', 'domain', 'route_name', 'route_parameters'] as $field_name) {
+      if ($update_manager->getFieldStorageDefinition($field_name, 'mel_notification') === NULL) {
+        $update_manager->installFieldStorageDefinition(
+          $field_name,
+          'mel_notification',
+          'myeventlane_notifications',
+          $notif_fields[$field_name]
+        );
+      }
+    }
+
+    $storage = \Drupal::entityTypeManager()->getStorage('mel_notification');
+    $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+    if ($ids !== []) {
+      /** @var \Drupal\myeventlane_notifications\Entity\MelNotification[] $entities */
+      $entities = $storage->loadMultiple($ids);
+      foreach ($entities as $entity) {
+        $needsSave = FALSE;
+        if (trim((string) $entity->get('context')->value) === '') {
+          $legacy = \Drupal\myeventlane_notifications\NotificationTaxonomy::fromLegacyType(
+            (string) $entity->get('type')->value,
+            (string) $entity->get('action_context')->value
+          );
+          $entity->set('context', $legacy['context']);
+          $entity->set('domain', $legacy['domain']);
+          $needsSave = TRUE;
+        }
+        if ($needsSave) {
+          $entity->save();
+        }
+      }
+    }
+
+    if ($schema = \Drupal::database()->schema()) {
+      $table = 'mel_notification';
+      if ($schema->tableExists($table) && $schema->fieldExists($table, 'context') &&
+        !$schema->indexExists($table, 'mel_notif_context')) {
+        $schema->addIndex($table, 'mel_notif_context', ['context'], [
+          'fields' => [
+            'context' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+          ],
+          'indexes' => ['mel_notif_context' => ['context']],
+        ]);
+      }
+      if ($schema->tableExists($table) && $schema->fieldExists($table, 'domain') &&
+        !$schema->indexExists($table, 'mel_notif_domain')) {
+        $schema->addIndex($table, 'mel_notif_domain', ['domain'], [
+          'fields' => [
+            'domain' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+          ],
+          'indexes' => ['mel_notif_domain' => ['domain']],
+        ]);
+      }
+    }
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_notifications')->error('Context-aware notification schema update failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return (string) t('MEL context-aware notification field update failed (see log).');
+  }
+  return (string) t('Installed MEL context/domain/route notification fields and backfilled existing rows.');
+}
+
 function _myeventlane_notifications_delivery_index_spec(array $columns, string $index_name): array {
   $definitions = [
     'recipient_uid_target_id' => [

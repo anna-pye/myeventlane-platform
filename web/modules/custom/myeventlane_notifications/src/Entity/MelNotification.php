@@ -8,6 +8,8 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\myeventlane_notifications\NotificationContext;
+use Drupal\myeventlane_notifications\NotificationDomain;
 
 /**
  * Defines a platform notification (broadcast or targeted template).
@@ -197,6 +199,47 @@ final class MelNotification extends ContentEntityBase {
       ->setLabel(new TranslatableMarkup('Action context'))
       ->setDescription(new TranslatableMarkup('Optional machine token for analytics/routing (not shown in UI).'))
       ->setSetting('max_length', 128)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $context_values = [];
+    foreach (NotificationContext::allowed() as $key) {
+      $context_values[$key] = $key;
+    }
+
+    $fields['context'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(new TranslatableMarkup('Context'))
+      ->setDescription(new TranslatableMarkup('personal, business, or platform audience surface.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(NotificationContext::PERSONAL)
+      ->setSetting('allowed_values', $context_values)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $domain_values = [];
+    foreach (NotificationDomain::allowed() as $key) {
+      $domain_values[$key] = $key;
+    }
+
+    $fields['domain'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(new TranslatableMarkup('Domain'))
+      ->setDescription(new TranslatableMarkup('What happened (tickets, sales, refunds, etc.).'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(NotificationDomain::PLATFORM)
+      ->setSetting('allowed_values', $domain_values)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['route_name'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Route name'))
+      ->setDescription(new TranslatableMarkup('Drupal route for deep-linking (preferred over action_uri).'))
+      ->setSetting('max_length', 255)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['route_parameters'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Route parameters (JSON)'))
+      ->setDescription(new TranslatableMarkup('JSON object of route parameters for route_name.'))
       ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', FALSE);
 

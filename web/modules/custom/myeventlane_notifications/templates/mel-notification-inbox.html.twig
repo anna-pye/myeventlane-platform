@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Full notifications inbox (filters, grouped list, empty state).
+ * Full notifications inbox (tabs, filters, grouped list, empty state).
  */
 #}
 <div class="mel-notif-inbox mel-container">
@@ -9,7 +9,7 @@
     <div class="mel-notif-inbox__header-row">
       <div>
         <h1 class="mel-notif-inbox__title">{{ 'Notifications'|t }}</h1>
-        <p class="mel-notif-inbox__lede">{{ 'Tickets, events, reminders, and platform updates in one calm place.'|t }}</p>
+        <p class="mel-notif-inbox__lede">{{ 'Personal tickets, business sales, and platform updates — organised by context.'|t }}</p>
       </div>
       {% if settings_url %}
         <a href="{{ settings_url }}" class="mel-notif-inbox__settings">{{ 'Notification settings'|t }}</a>
@@ -17,11 +17,21 @@
     </div>
   </header>
 
+  <nav class="mel-notif-inbox__tabs" aria-label="{{ 'Notification context'|t }}">
+    {% for link in tab_links %}
+      <a href="{{ link.url }}"
+         class="mel-notif-inbox__tab{% if link.active %} is-active{% endif %}"
+         {% if link.active %}aria-current="page"{% endif %}>
+        {{ link.label }}
+      </a>
+    {% endfor %}
+  </nav>
+
   <nav class="mel-notif-inbox__filters" aria-label="{{ 'Filter notifications'|t }}">
     {% for link in filter_links %}
       <a href="{{ link.url }}"
          class="mel-notif-inbox__chip{% if link.active %} is-active{% endif %}"
-         {% if link.active %}aria-current="page"{% endif %}>
+         {% if link.active %}aria-current="true"{% endif %}>
         {{ link.label }}
       </a>
     {% endfor %}
@@ -58,9 +68,12 @@
             {% for item in group.items %}
               {% set row = item.row %}
               <li class="mel-notif-inbox__item{% if row.is_unread %} is-unread{% endif %}">
-                <div class="mel-notif-inbox__accent mel-notif-inbox__accent--{{ row.icon }}" aria-hidden="true"></div>
+                <div class="mel-notif-inbox__accent mel-notif-inbox__accent--{{ row.badge }}" aria-hidden="true"></div>
                 <div class="mel-notif-inbox__body">
-                  <div class="mel-notif-inbox__row-title">{{ row.title }}</div>
+                  <div class="mel-notif-inbox__row-head">
+                    <span class="mel-notif-inbox__badge mel-notif-inbox__badge--{{ row.badge }}" aria-label="{{ row.domain|replace({'_': ' '})|capitalize }}">{{ row.domain|replace({'_': ' '}) }}</span>
+                    <div class="mel-notif-inbox__row-title">{{ row.title }}</div>
+                  </div>
                   {% if row.is_group_summary %}
                     <div class="mel-notif-inbox__preview">{{ row.group_summary_label }}</div>
                   {% else %}
@@ -85,7 +98,7 @@
     {% if pager_info.has_more %}
       {% set next_page = pager_info.page + 1 %}
       <nav class="mel-notif-inbox__pager" aria-label="{{ 'Pagination'|t }}">
-        <a href="{{ path('myeventlane_notifications.inbox', {}, {'query': {'filter': filter, 'page': next_page}}) }}" class="mel-notif-inbox__pager-link">
+        <a href="{{ path('myeventlane_notifications.inbox', {}, {'query': {'tab': tab, 'filter': filter, 'page': next_page}}) }}" class="mel-notif-inbox__pager-link">
           {{ 'Older'|t }}
         </a>
       </nav>

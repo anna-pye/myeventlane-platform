@@ -6,7 +6,10 @@ namespace Drupal\myeventlane_notifications\Service;
 
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
+use Drupal\myeventlane_notifications\NotificationContext;
+use Drupal\myeventlane_notifications\NotificationDomain;
 use Drupal\myeventlane_notifications\NotificationSurface;
+use Drupal\myeventlane_notifications\NotificationTaxonomy;
 use Drupal\user\UserInterface;
 
 /**
@@ -16,6 +19,34 @@ final class NotificationPreferenceService {
 
   public const FIELD_NAME = 'mel_notification_prefs';
 
+  // Personal.
+  public const PERSONAL_TICKET_PURCHASES = 'personal_ticket_purchases';
+
+  public const PERSONAL_ORDER_UPDATES = 'personal_order_updates';
+
+  public const PERSONAL_EVENT_REMINDERS = 'personal_event_reminders';
+
+  // Business.
+  public const BUSINESS_SALES = 'business_sales';
+
+  public const BUSINESS_REFUNDS = 'business_refunds';
+
+  public const BUSINESS_RSVPS = 'business_rsvps';
+
+  public const BUSINESS_FOLLOWERS = 'business_followers';
+
+  public const BUSINESS_EVENT_UPDATES = 'business_event_updates';
+
+  public const BUSINESS_BOOSTS = 'business_boosts';
+
+  // Platform.
+  public const PLATFORM_SECURITY = 'platform_security';
+
+  public const PLATFORM_ACCOUNT = 'platform_account';
+
+  public const PLATFORM_SYSTEM = 'platform_system';
+
+  // Legacy keys (read-only migration).
   public const CATEGORY_TICKETS = 'tickets';
 
   public const CATEGORY_EVENTS = 'events';
@@ -31,11 +62,18 @@ final class NotificationPreferenceService {
    */
   public static function categoryKeys(): array {
     return [
-      self::CATEGORY_TICKETS,
-      self::CATEGORY_EVENTS,
-      self::CATEGORY_REMINDERS,
-      self::CATEGORY_PLATFORM,
-      self::CATEGORY_PROMO,
+      self::PERSONAL_TICKET_PURCHASES,
+      self::PERSONAL_ORDER_UPDATES,
+      self::PERSONAL_EVENT_REMINDERS,
+      self::BUSINESS_SALES,
+      self::BUSINESS_REFUNDS,
+      self::BUSINESS_RSVPS,
+      self::BUSINESS_FOLLOWERS,
+      self::BUSINESS_EVENT_UPDATES,
+      self::BUSINESS_BOOSTS,
+      self::PLATFORM_SECURITY,
+      self::PLATFORM_ACCOUNT,
+      self::PLATFORM_SYSTEM,
     ];
   }
 
@@ -43,24 +81,52 @@ final class NotificationPreferenceService {
    * @var array<string, array{enabled: bool, surface: string}>
    */
   private const DEFAULT_PREFS = [
-    self::CATEGORY_TICKETS => [
+    self::PERSONAL_TICKET_PURCHASES => [
       'enabled' => TRUE,
       'surface' => NotificationSurface::TOAST_INBOX,
     ],
-    self::CATEGORY_EVENTS => [
+    self::PERSONAL_ORDER_UPDATES => [
       'enabled' => TRUE,
       'surface' => NotificationSurface::BELL_INBOX,
     ],
-    self::CATEGORY_REMINDERS => [
+    self::PERSONAL_EVENT_REMINDERS => [
       'enabled' => TRUE,
       'surface' => NotificationSurface::INBOX_ONLY,
     ],
-    self::CATEGORY_PLATFORM => [
+    self::BUSINESS_SALES => [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::TOAST_INBOX,
+    ],
+    self::BUSINESS_REFUNDS => [
       'enabled' => TRUE,
       'surface' => NotificationSurface::BELL_INBOX,
     ],
-    self::CATEGORY_PROMO => [
-      'enabled' => FALSE,
+    self::BUSINESS_RSVPS => [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::BELL_INBOX,
+    ],
+    self::BUSINESS_FOLLOWERS => [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::BELL_INBOX,
+    ],
+    self::BUSINESS_EVENT_UPDATES => [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::BELL_INBOX,
+    ],
+    self::BUSINESS_BOOSTS => [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::BELL_INBOX,
+    ],
+    self::PLATFORM_SECURITY => [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::BELL_INBOX,
+    ],
+    self::PLATFORM_ACCOUNT => [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::BELL_INBOX,
+    ],
+    self::PLATFORM_SYSTEM => [
+      'enabled' => TRUE,
       'surface' => NotificationSurface::INBOX_ONLY,
     ],
   ];
@@ -94,6 +160,14 @@ final class NotificationPreferenceService {
     if (!is_array($decoded)) {
       return $merged;
     }
+
+    $migrated = NotificationTaxonomy::migrateLegacyPreferences($decoded);
+    foreach ($migrated as $key => $entry) {
+      if (isset($merged[$key])) {
+        $merged[$key] = array_merge($merged[$key], $entry);
+      }
+    }
+
     foreach ($merged as $key => $default) {
       if (!isset($decoded[$key]) || !is_array($decoded[$key])) {
         continue;
@@ -130,34 +204,46 @@ final class NotificationPreferenceService {
   }
 
   /**
-   * Maps mel_notification.type to preference category key.
+   * Maps mel_notification context/domain to preference category key.
+   */
+  public function categoryForNotification(MelNotification $notification): string {
+    $context = (string) $notification->get('context')->value;
+    $domain = (string) $notification->get('domain')->value;
+    if ($context === '' || $domain === '') {
+      return $this->categoryForNotificationType((string) $notification->get('type')->value);
+    }
+    return NotificationTaxonomy::preferenceKey($context, $domain);
+  }
+
+  /**
+   * Maps legacy mel_notification.type to preference category key.
    */
   public function categoryForNotificationType(string $type): string {
-    return match ($type) {
-      MelNotification::TYPE_TICKET => self::CATEGORY_TICKETS,
-      MelNotification::TYPE_EVENT => self::CATEGORY_EVENTS,
-      MelNotification::TYPE_REMINDER => self::CATEGORY_REMINDERS,
-      MelNotification::TYPE_PROMO => self::CATEGORY_PROMO,
-      MelNotification::TYPE_SYSTEM => self::CATEGORY_PLATFORM,
-      default => self::CATEGORY_PLATFORM,
-    };
+    $legacy = NotificationTaxonomy::fromLegacyType($type);
+    return NotificationTaxonomy::preferenceKey($legacy['context'], $legacy['domain']);
   }
 
   /**
    * @return array{surface: string, suppressed: bool}
    */
   public function applyPreferences(MelNotification $notification, UserInterface $user, string $engineSurface): array {
-    $type = (string) $notification->get('type')->value;
-    $category = $this->categoryForNotificationType($type);
+    $category = $this->categoryForNotification($notification);
     $prefs = $this->getPreferences($user);
-    $cat = $prefs[$category] ?? self::DEFAULT_PREFS[$category];
+    $cat = $prefs[$category] ?? self::DEFAULT_PREFS[$category] ?? [
+      'enabled' => TRUE,
+      'surface' => NotificationSurface::BELL_INBOX,
+    ];
     $enabled = (bool) ($cat['enabled'] ?? TRUE);
     $userSurface = isset($cat['surface']) && is_string($cat['surface']) && in_array($cat['surface'], NotificationSurface::allowed(), TRUE)
       ? (string) $cat['surface']
       : NULL;
 
+    $domain = (string) $notification->get('domain')->value;
+    $isTicket = $domain === NotificationDomain::TICKETS
+      || (string) $notification->get('type')->value === MelNotification::TYPE_TICKET;
+
     if (!$enabled) {
-      if ($type === MelNotification::TYPE_TICKET) {
+      if ($isTicket) {
         return [
           'surface' => NotificationSurface::INBOX_ONLY,
           'suppressed' => FALSE,

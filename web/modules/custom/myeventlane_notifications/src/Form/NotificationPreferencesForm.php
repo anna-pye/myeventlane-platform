@@ -53,55 +53,75 @@ final class NotificationPreferencesForm extends FormBase {
     $form['intro'] = [
       '#type' => 'markup',
       '#markup' => '<p class="mel-notif-prefs__intro">' . $this->t(
-        'Choose what we surface in the header bell, toasts, and your inbox. Ticket confirmations always remain available in your inbox even if you turn off ticket alerts.'
+        'Choose what we surface in the header bell, toasts, and your inbox. Preferences are grouped by personal, business, and platform context.'
       ) . '</p>',
     ];
 
-    $categories = [
-      NotificationPreferenceService::CATEGORY_TICKETS => $this->t('Tickets'),
-      NotificationPreferenceService::CATEGORY_EVENTS => $this->t('Events'),
-      NotificationPreferenceService::CATEGORY_REMINDERS => $this->t('Reminders'),
-      NotificationPreferenceService::CATEGORY_PLATFORM => $this->t('Platform'),
-      NotificationPreferenceService::CATEGORY_PROMO => $this->t('Promotions'),
+    $sections = [
+      'personal' => [
+        '#title' => $this->t('Personal'),
+        'categories' => [
+          NotificationPreferenceService::PERSONAL_TICKET_PURCHASES => $this->t('Ticket purchases'),
+          NotificationPreferenceService::PERSONAL_ORDER_UPDATES => $this->t('Order updates'),
+          NotificationPreferenceService::PERSONAL_EVENT_REMINDERS => $this->t('Event reminders'),
+        ],
+      ],
+      'business' => [
+        '#title' => $this->t('Business'),
+        'categories' => [
+          NotificationPreferenceService::BUSINESS_SALES => $this->t('Sales'),
+          NotificationPreferenceService::BUSINESS_REFUNDS => $this->t('Refunds'),
+          NotificationPreferenceService::BUSINESS_RSVPS => $this->t('RSVPs'),
+          NotificationPreferenceService::BUSINESS_FOLLOWERS => $this->t('Followers'),
+          NotificationPreferenceService::BUSINESS_EVENT_UPDATES => $this->t('Event updates'),
+          NotificationPreferenceService::BUSINESS_BOOSTS => $this->t('Boost activity'),
+        ],
+      ],
+      'platform' => [
+        '#title' => $this->t('Platform'),
+        'categories' => [
+          NotificationPreferenceService::PLATFORM_SECURITY => $this->t('Security'),
+          NotificationPreferenceService::PLATFORM_ACCOUNT => $this->t('Account'),
+          NotificationPreferenceService::PLATFORM_SYSTEM => $this->t('System alerts'),
+        ],
+      ],
     ];
 
-    // #tree is required so each category gets distinct #parents (e.g.
-    // category → tickets → surface). Without it, Drupal flattens #parents to
-    // ['surface'] / ['enabled'] for every section, merging all radios into one
-    // group and colliding checkbox values so preferences cannot save correctly.
     $form['category'] = [
       '#type' => 'container',
       '#tree' => TRUE,
     ];
 
-    foreach ($categories as $key => $label) {
-      $form['category'][$key] = [
-        '#type' => 'fieldset',
-        '#title' => $label,
-        '#attributes' => ['class' => ['mel-notif-prefs__fieldset']],
+    foreach ($sections as $sectionKey => $section) {
+      $form['category'][$sectionKey] = [
+        '#type' => 'details',
+        '#title' => $section['#title'],
+        '#open' => TRUE,
+        '#attributes' => ['class' => ['mel-notif-prefs__section']],
       ];
-      $form['category'][$key]['enabled'] = [
-        '#type' => 'checkbox',
-        '#title' => $this->t('Enable notifications in this category'),
-        '#default_value' => !empty($prefs[$key]['enabled']),
-      ];
-      $form['category'][$key]['surface'] = [
-        '#type' => 'radios',
-        '#title' => $this->t('How they appear when enabled'),
-        '#options' => $surface_options,
-        '#default_value' => $prefs[$key]['surface'] ?? NotificationSurface::INBOX_ONLY,
-        '#states' => [
-          'visible' => [
-            ':input[name="category[' . $key . '][enabled]"]' => ['checked' => TRUE],
+      foreach ($section['categories'] as $key => $label) {
+        $form['category'][$sectionKey][$key] = [
+          '#type' => 'fieldset',
+          '#title' => $label,
+          '#attributes' => ['class' => ['mel-notif-prefs__fieldset']],
+        ];
+        $form['category'][$sectionKey][$key]['enabled'] = [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Enable notifications in this category'),
+          '#default_value' => !empty($prefs[$key]['enabled']),
+        ];
+        $form['category'][$sectionKey][$key]['surface'] = [
+          '#type' => 'radios',
+          '#title' => $this->t('How they appear when enabled'),
+          '#options' => $surface_options,
+          '#default_value' => $prefs[$key]['surface'] ?? NotificationSurface::INBOX_ONLY,
+          '#states' => [
+            'visible' => [
+              ':input[name="category[' . $sectionKey . '][' . $key . '][enabled]"]' => ['checked' => TRUE],
+            ],
           ],
-        ],
-      ];
-      $form['category'][$key]['help'] = [
-        '#type' => 'markup',
-        '#markup' => '<p class="description">' . $this->t(
-          'Toast appears briefly on screen. Bell shows a badge and dropdown preview. Inbox keeps everything on the notifications page.'
-        ) . '</p>',
-      ];
+        ];
+      }
     }
 
     $form['actions'] = ['#type' => 'actions'];
@@ -130,9 +150,22 @@ final class NotificationPreferencesForm extends FormBase {
     }
 
     $out = [];
+    $categoryValues = $form_state->getValue('category');
+    if (!is_array($categoryValues)) {
+      $categoryValues = [];
+    }
     foreach (NotificationPreferenceService::categoryKeys() as $key) {
-      $enabled = (bool) $form_state->getValue(['category', $key, 'enabled']);
-      $surface = (string) $form_state->getValue(['category', $key, 'surface']);
+      $enabled = TRUE;
+      $surface = NotificationSurface::INBOX_ONLY;
+      foreach (['personal', 'business', 'platform'] as $section) {
+        if (!isset($categoryValues[$section][$key]) || !is_array($categoryValues[$section][$key])) {
+          continue;
+        }
+        $entry = $categoryValues[$section][$key];
+        $enabled = (bool) ($entry['enabled'] ?? TRUE);
+        $surface = (string) ($entry['surface'] ?? NotificationSurface::INBOX_ONLY);
+        break;
+      }
       if (!in_array($surface, NotificationSurface::allowed(), TRUE)) {
         $surface = NotificationSurface::INBOX_ONLY;
       }

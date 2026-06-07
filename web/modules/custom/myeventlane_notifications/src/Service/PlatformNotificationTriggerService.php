@@ -10,8 +10,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
+use Drupal\myeventlane_notifications\NotificationContext;
+use Drupal\myeventlane_notifications\NotificationDomain;
 use Drupal\node\NodeInterface;
 
 /**
@@ -48,13 +49,19 @@ final class PlatformNotificationTriggerService {
     }
 
     $titles = [];
+    $organiserUids = [];
     foreach ($eventIds as $eventId) {
       $node = $this->entityTypeManager->getStorage('node')->load($eventId);
       if ($node instanceof NodeInterface) {
         $titles[] = $node->label();
+        $organiserUid = $this->audienceResolver->resolveEventOrganiserUid($node);
+        if ($organiserUid !== NULL) {
+          $organiserUids[] = $organiserUid;
+        }
       }
     }
     $label = $titles !== [] ? implode(', ', $titles) : $this->shortOrderLabel($order);
+    $primaryEventId = $eventIds[0];
 
     try {
       $notification = $this->notificationManager->createNotification([
@@ -70,8 +77,10 @@ final class PlatformNotificationTriggerService {
         'suppression_key' => 'order_paid:' . $order->id(),
         'group_key' => 'ticket_order:' . $order->id(),
         'action_label' => (string) $this->translation->translate('View tickets'),
-        'action_uri' => '/my-tickets',
+        'route_name' => 'myeventlane_checkout_flow.my_tickets',
         'action_context' => 'checkout_ticket_confirm',
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::TICKETS,
       ]);
       $this->notificationManager->queueNotification($notification);
     }
@@ -83,6 +92,45 @@ final class PlatformNotificationTriggerService {
         '@order' => $order->id(),
         '@message' => $e->getMessage(),
       ]);
+    }
+
+    $organiserUids = array_values(array_unique(array_filter($organiserUids)));
+    foreach ($organiserUids as $organiserUid) {
+      if ($organiserUid === $customerId) {
+        continue;
+      }
+      try {
+        $sale = $this->notificationManager->createNotification([
+          'type' => MelNotification::TYPE_EVENT,
+          'title' => (string) $this->translation->translate('New order received'),
+          'message' => (string) $this->translation->translate('You received a new ticket order for @events.', ['@events' => $label]),
+          'audience_type' => MelNotification::AUDIENCE_USER_IDS,
+          'audience_data' => ['user_ids' => [$organiserUid]],
+          'channels' => ['toast'],
+          'status' => MelNotification::STATUS_DRAFT,
+          'priority' => MelNotification::PRIORITY_NORMAL,
+          'priority_score' => 60,
+          'suppression_key' => 'vendor_sale:' . $order->id() . ':' . $organiserUid,
+          'action_label' => (string) $this->translation->translate('View order'),
+          'route_name' => 'myeventlane_vendor.console.event_order_view',
+          'route_parameters' => [
+            'event' => $primaryEventId,
+            'order' => (int) $order->id(),
+          ],
+          'action_context' => 'vendor_sale',
+          'context' => NotificationContext::BUSINESS,
+          'domain' => NotificationDomain::SALES,
+        ]);
+        $this->notificationManager->queueNotification($sale);
+      }
+      catch (\RuntimeException $e) {
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Failed to queue vendor sale notification for order @order: @message', [
+          '@order' => $order->id(),
+          '@message' => $e->getMessage(),
+        ]);
+      }
     }
   }
 
@@ -110,13 +158,6 @@ final class PlatformNotificationTriggerService {
       return;
     }
 
-    $eventPath = '/node/' . $nid;
-    try {
-      $eventPath = Url::fromRoute('entity.node.canonical', ['node' => $nid], ['absolute' => FALSE])->toString();
-    }
-    catch (\Throwable) {
-    }
-
     try {
       $notification = $this->notificationManager->createNotification([
         'type' => MelNotification::TYPE_EVENT,
@@ -131,8 +172,11 @@ final class PlatformNotificationTriggerService {
         'suppression_key' => 'event_published:' . $nid,
         'group_key' => 'category_event_digest',
         'action_label' => (string) $this->translation->translate('See event'),
-        'action_uri' => $eventPath,
+        'route_name' => 'entity.node.canonical',
+        'route_parameters' => ['node' => $nid],
         'action_context' => 'event_published_follower',
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::EVENT_UPDATES,
       ]);
       $this->notificationManager->queueNotification($notification);
       $this->state->set($stateKey, 1);
@@ -164,13 +208,6 @@ final class PlatformNotificationTriggerService {
 
     $attendeeUid = (int) $submission->get('user_id')->target_id;
 
-    $eventPath = '/node/' . $eventId;
-    try {
-      $eventPath = Url::fromRoute('entity.node.canonical', ['node' => $eventId], ['absolute' => FALSE])->toString();
-    }
-    catch (\Throwable) {
-    }
-
     if ($attendeeUid > 0) {
       try {
         $confirm = $this->notificationManager->createNotification([
@@ -184,8 +221,11 @@ final class PlatformNotificationTriggerService {
           'priority_score' => 55,
           'suppression_key' => 'rsvp_confirm:' . $submission->id(),
           'action_label' => (string) $this->translation->translate('View event'),
-          'action_uri' => $eventPath,
+          'route_name' => 'entity.node.canonical',
+          'route_parameters' => ['node' => $eventId],
           'action_context' => 'rsvp_attendee_confirm',
+          'context' => NotificationContext::PERSONAL,
+          'domain' => NotificationDomain::RSVPS,
         ]);
         $this->notificationManager->queueNotification($confirm);
       }
@@ -216,9 +256,12 @@ final class PlatformNotificationTriggerService {
         'priority' => MelNotification::PRIORITY_NORMAL,
         'priority_score' => 35,
         'suppression_key' => 'rsvp_vendor:' . $submission->id(),
-        'action_label' => (string) $this->translation->translate('Review event'),
-        'action_uri' => $eventPath,
+        'action_label' => (string) $this->translation->translate('View attendees'),
+        'route_name' => 'myeventlane_event_attendees.vendor_list',
+        'route_parameters' => ['node' => $eventId],
         'action_context' => 'rsvp_vendor_alert',
+        'context' => NotificationContext::BUSINESS,
+        'domain' => NotificationDomain::RSVPS,
       ]);
       $this->notificationManager->queueNotification($vendorNote);
     }

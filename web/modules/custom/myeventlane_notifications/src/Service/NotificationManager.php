@@ -12,6 +12,9 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
+use Drupal\myeventlane_notifications\NotificationContext;
+use Drupal\myeventlane_notifications\NotificationDomain;
+use Drupal\myeventlane_notifications\NotificationTaxonomy;
 use Drupal\myeventlane_notifications\Plugin\QueueWorker\NotificationDispatchWorker;
 
 /**
@@ -38,7 +41,8 @@ final class NotificationManager {
    *   channels (list), status (optional), scheduled_at (optional int),
    *   priority (optional), priority_score (optional), suppression_key (optional),
    *   group_key (optional), action_label (optional), action_uri (optional),
-   *   action_context (optional).
+   *   action_context (optional), context (optional), domain (optional),
+   *   route_name (optional), route_parameters (optional array).
    */
   public function createNotification(array $data): MelNotification {
     $audienceData = $data['audience_data'] ?? [];
@@ -65,19 +69,40 @@ final class NotificationManager {
       }
     }
 
+    $type = (string) ($data['type'] ?? MelNotification::TYPE_SYSTEM);
+    $actionContext = trim((string) ($data['action_context'] ?? ''));
+    $legacy = NotificationTaxonomy::fromLegacyType($type, $actionContext);
+
+    $context = trim((string) ($data['context'] ?? $legacy['context']));
+    $domain = trim((string) ($data['domain'] ?? $legacy['domain']));
+    if (!in_array($context, NotificationContext::allowed(), TRUE)) {
+      throw new \InvalidArgumentException('Invalid notification context.');
+    }
+    if (!in_array($domain, NotificationDomain::allowed(), TRUE)) {
+      throw new \InvalidArgumentException('Invalid notification domain.');
+    }
+
+    $routeName = trim((string) ($data['route_name'] ?? ''));
+    $routeParameters = $data['route_parameters'] ?? [];
+    if (!is_array($routeParameters)) {
+      throw new \InvalidArgumentException('route_parameters must be an array.');
+    }
+    $routeParametersJson = $routeParameters === []
+      ? ''
+      : json_encode($routeParameters, JSON_THROW_ON_ERROR);
+
     $actionLabel = trim((string) ($data['action_label'] ?? ''));
     $actionUri = $this->normalizeActionUri($data['action_uri'] ?? '');
-    $actionContext = trim((string) ($data['action_context'] ?? ''));
-    if ($actionLabel !== '' && $actionUri === '') {
-      throw new \InvalidArgumentException('action_label requires a valid action_uri.');
+    if ($actionLabel !== '' && $actionUri === '' && $routeName === '') {
+      throw new \InvalidArgumentException('action_label requires action_uri or route_name.');
     }
-    if ($actionUri !== '' && $actionLabel === '') {
-      throw new \InvalidArgumentException('action_uri requires action_label.');
+    if (($actionUri !== '' || $routeName !== '') && $actionLabel === '') {
+      throw new \InvalidArgumentException('action_uri or route_name requires action_label.');
     }
 
     /** @var \Drupal\myeventlane_notifications\Entity\MelNotification $entity */
     $entity = $this->entityTypeManager->getStorage('mel_notification')->create([
-      'type' => $data['type'],
+      'type' => $type,
       'title' => $data['title'],
       'message' => $data['message'],
       'audience_type' => $data['audience_type'],
@@ -91,6 +116,10 @@ final class NotificationManager {
       'action_label' => $actionLabel,
       'action_uri' => $actionUri,
       'action_context' => $actionContext,
+      'context' => $context,
+      'domain' => $domain,
+      'route_name' => $routeName,
+      'route_parameters' => $routeParametersJson,
     ]);
     foreach ($channels as $channel) {
       $entity->get('channels')->appendItem($channel);

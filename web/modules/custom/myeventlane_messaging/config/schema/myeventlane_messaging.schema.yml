@@ -53,6 +53,12 @@ myeventlane_messaging.template.*:
   type: config_object
   label: 'Messaging template'
   mapping:
+    notification_context:
+      type: string
+      label: 'Notification context (personal, business, platform) — optional override; defaults from NotificationTaxonomy'
+    notification_domain:
+      type: string
+      label: 'Notification domain (tickets, orders, sales, etc.) — optional override'
     enabled:
       type: boolean
       label: 'Template enabled'

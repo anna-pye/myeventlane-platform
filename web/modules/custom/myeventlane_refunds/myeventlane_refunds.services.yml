@@ -61,3 +61,4 @@ services:
       - '@lock'
       - '@module_handler'
       - '@myeventlane_core.domain_detector'
+      - '@?myeventlane_notifications.refund_trigger'

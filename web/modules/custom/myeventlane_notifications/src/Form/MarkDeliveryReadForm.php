@@ -37,13 +37,20 @@ final class MarkDeliveryReadForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, int $delivery_id = 0, string $filter = NotificationFilter::ALL): array {
-    if (!in_array($filter, NotificationFilter::allowed(), TRUE)) {
-      $filter = NotificationFilter::ALL;
+  public function buildForm(array $form, FormStateInterface $form_state, int $delivery_id = 0, string $tab = NotificationFilter::TAB_ALL, string $filter = NotificationFilter::FILTER_ALL): array {
+    if (!in_array($tab, NotificationFilter::allowedTabs(), TRUE)) {
+      $tab = NotificationFilter::TAB_ALL;
+    }
+    if (!in_array($filter, NotificationFilter::allowedFilters(), TRUE)) {
+      $filter = NotificationFilter::FILTER_ALL;
     }
     $form['delivery_id'] = [
       '#type' => 'hidden',
       '#value' => $delivery_id,
+    ];
+    $form['tab'] = [
+      '#type' => 'hidden',
+      '#value' => $tab,
     ];
     $form['filter'] = [
       '#type' => 'hidden',
@@ -64,14 +71,18 @@ final class MarkDeliveryReadForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $uid = (int) $this->currentUser()->id();
     $deliveryId = (int) $form_state->getValue('delivery_id');
+    $tab = (string) $form_state->getValue('tab');
     $filter = (string) $form_state->getValue('filter');
-    if (!in_array($filter, NotificationFilter::allowed(), TRUE)) {
-      $filter = NotificationFilter::ALL;
+    if (!in_array($tab, NotificationFilter::allowedTabs(), TRUE)) {
+      $tab = NotificationFilter::TAB_ALL;
+    }
+    if (!in_array($filter, NotificationFilter::allowedFilters(), TRUE)) {
+      $filter = NotificationFilter::FILTER_ALL;
     }
     if ($uid > 0 && $deliveryId > 0) {
       $this->userInbox->markReadOne($uid, $deliveryId);
     }
-    $form_state->setRedirect('myeventlane_notifications.inbox', [], ['query' => ['filter' => $filter]]);
+    $form_state->setRedirect('myeventlane_notifications.inbox', [], ['query' => ['tab' => $tab, 'filter' => $filter]]);
   }
 
 }

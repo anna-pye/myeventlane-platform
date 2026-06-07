@@ -413,7 +413,7 @@ final class NotificationSystemKernelTest extends KernelTestBase {
 
     /** @var \Drupal\myeventlane_notifications\Service\NotificationUserInboxService $inbox */
     $inbox = $this->container->get('myeventlane_notifications.user_inbox');
-    $ids = $inbox->getInboxDeliveryIds((int) $user->id(), NotificationFilter::TICKETS, 0);
+    $ids = $inbox->getInboxDeliveryIds((int) $user->id(), NotificationFilter::TAB_ALL, NotificationFilter::FILTER_TICKETS, 0);
     $this->assertCount(1, $ids);
   }
 
@@ -615,7 +615,7 @@ final class NotificationSystemKernelTest extends KernelTestBase {
 
     /** @var \Drupal\myeventlane_notifications\Service\NotificationUserInboxService $inbox */
     $inbox = $this->container->get('myeventlane_notifications.user_inbox');
-    $ids = $inbox->getInboxDeliveryIds((int) $user->id(), NotificationFilter::ALL, 0);
+    $ids = $inbox->getInboxDeliveryIds((int) $user->id(), NotificationFilter::TAB_ALL, NotificationFilter::FILTER_ALL, 0);
     $this->assertSame([], $ids);
     $this->assertSame(0, $inbox->countUnread((int) $user->id()));
   }
