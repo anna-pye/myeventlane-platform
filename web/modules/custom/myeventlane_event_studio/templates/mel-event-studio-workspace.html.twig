@@ -39,12 +39,17 @@
     <div class="mel-event-studio-publish-feedback__success" data-mel-publish-success hidden>
       <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-success-title></h2>
       <p class="mel-event-studio-publish-feedback__status" data-mel-publish-success-message></p>
-      <div class="mel-event-studio-publish-feedback__growth" data-mel-publish-success-growth hidden>
-        <p class="mel-event-studio-publish-feedback__growth-title" data-mel-publish-success-growth-title></p>
-        <p class="mel-event-studio-publish-feedback__growth-body" data-mel-publish-success-growth-body></p>
-        <div class="mel-event-studio-publish-feedback__actions">
-          <a class="mel-btn mel-btn--primary mel-event-studio-publish-feedback__grow" href="#" data-mel-publish-success-grow hidden>{{ 'Grow My Event'|t }}</a>
-          <a class="mel-event-studio-publish-feedback__boost-link" href="#" data-mel-publish-success-boost hidden>{{ 'Boost Event'|t }}</a>
+      <div class="mel-publish-boost-cta" data-mel-publish-success-boost-card hidden role="region" aria-labelledby="mel-publish-success-boost-title">
+        <h3 id="mel-publish-success-boost-title" class="mel-publish-boost-cta__title">{{ 'Boost your event visibility'|t }}</h3>
+        <p class="mel-publish-boost-cta__copy">{{ 'Your event is live. Help more people discover it across MyEventLane.'|t }}</p>
+        <ul class="mel-publish-boost-cta__features" aria-label="{{ 'Boost benefits'|t }}">
+          <li>{{ 'Featured discovery placement'|t }}</li>
+          <li>{{ 'Better category visibility'|t }}</li>
+          <li>{{ 'Higher search visibility'|t }}</li>
+        </ul>
+        <div class="mel-publish-boost-cta__actions">
+          <a class="mel-btn mel-btn--primary" href="#" data-mel-publish-success-boost>{{ 'Boost my event'|t }}</a>
+          <button type="button" class="mel-btn mel-btn--ghost" data-mel-publish-boost-dismiss>{{ 'Maybe later'|t }}</button>
         </div>
       </div>
       <div class="mel-event-studio-publish-feedback__row" data-mel-publish-success-view-row hidden>

@@ -5220,6 +5220,15 @@
 
   Drupal.behaviors.melEventStudioCelebrateShare = {
     attach: function (context) {
+      once('mel-publish-boost-dismiss-builder', '[data-mel-publish-boost-dismiss]', context).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var card = btn.closest('[data-mel-publish-boost-cta]');
+          if (card) {
+            card.hidden = true;
+          }
+        });
+      });
+
       once('mel-event-studio-celebrate-copy', '[data-mel-celebrate-copy]', context).forEach(function (btn) {
         btn.addEventListener('click', function (e) {
           e.preventDefault();

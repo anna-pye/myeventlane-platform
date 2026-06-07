@@ -50,27 +50,10 @@
             <p class="mel-publish-celebrate__lede">{{ 'Nice work — your event is published and ready for attendees.'|t }}</p>
           </div>
           <div class="mel-publish-celebrate__actions">
-            {% if mel_publish_celebrate_grow_url %}
-              <section class="mel-publish-celebrate__growth" aria-labelledby="mel-publish-celebrate-growth-title">
-                <h3 id="mel-publish-celebrate-growth-title" class="mel-publish-celebrate__growth-title">{{ 'Ready for more attendees?'|t }}</h3>
-                <p class="mel-publish-celebrate__growth-lede">{{ 'Your event is now live. Promote it to reach more people and increase bookings.'|t }}</p>
-                <div class="mel-publish-celebrate__row mel-publish-celebrate__row--grow-primary">
-                  <a class="mel-btn mel-btn--primary" href="{{ mel_publish_celebrate_grow_url }}">{{ 'Grow My Event'|t }}</a>
-                </div>
-                {% set show_boost_secondary = mel_publish_celebrate_boost_url and mel_publish_celebrate_boost_url != mel_publish_celebrate_grow_url %}
-                {% set show_promote_secondary = mel_publish_celebrate_promote_url and mel_publish_celebrate_promote_url != mel_publish_celebrate_grow_url %}
-                {% if show_boost_secondary or show_promote_secondary %}
-                  <div class="mel-publish-celebrate__row mel-publish-celebrate__row--grow-links" role="list" aria-label="{{ 'Growth options'|t }}">
-                    {% if show_boost_secondary %}
-                      <a class="mel-publish-celebrate__growth-link" href="{{ mel_publish_celebrate_boost_url }}" role="listitem">{{ 'Boost Event'|t }}</a>
-                    {% endif %}
-                    {% if show_promote_secondary %}
-                      <a class="mel-publish-celebrate__growth-link" href="{{ mel_publish_celebrate_promote_url }}" role="listitem">{{ 'Promote Event'|t }}</a>
-                    {% endif %}
-                  </div>
-                {% endif %}
-              </section>
-            {% endif %}
+            {{ include('@myeventlane_event_studio/mel-publish-boost-cta.html.twig', {
+              boost_url: mel_publish_celebrate_boost_url,
+              dismiss_button: true
+            }, with_context = false) }}
             <div class="mel-publish-celebrate__row mel-publish-celebrate__row--split mel-publish-celebrate__row--view">
               <a class="mel-btn mel-btn--secondary" href="{{ mel_publish_celebrate_share_url_absolute }}" target="_blank" rel="noopener noreferrer">{{ 'View event'|t }}</a>
               <button
