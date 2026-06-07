@@ -663,7 +663,7 @@ final class BoostDecisionSupportService {
    *
    * @return array<string, mixed>|null
    */
-  private function resolvePlacementWinnerCard(array $placement_performance_section): ?array {
+  public function resolvePlacementWinnerCard(array $placement_performance_section): ?array {
     $cards = is_array($placement_performance_section['cards'] ?? NULL)
       ? $placement_performance_section['cards']
       : [];
@@ -710,7 +710,7 @@ final class BoostDecisionSupportService {
    *
    * @return array<string, mixed>|null
    */
-  private function resolveWeakestPlacementCard(array $placement_performance_section): ?array {
+  public function resolveWeakestPlacementCard(array $placement_performance_section): ?array {
     $cards = is_array($placement_performance_section['cards'] ?? NULL)
       ? $placement_performance_section['cards']
       : [];
