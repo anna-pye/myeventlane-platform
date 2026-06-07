@@ -352,37 +352,25 @@
 
     setText('[data-mel-publish-success-title]', handoff.title);
     setText('[data-mel-publish-success-message]', handoff.message);
-    setText('[data-mel-publish-success-growth-title]', handoff.growth_title);
-    setText('[data-mel-publish-success-growth-body]', handoff.growth_body);
 
-    const growthBlock = successPanel.querySelector('[data-mel-publish-success-growth]');
-    const growLink = successPanel.querySelector('[data-mel-publish-success-grow]');
+    const boostCard = successPanel.querySelector('[data-mel-publish-success-boost-card]');
     const boostLink = successPanel.querySelector('[data-mel-publish-success-boost]');
     const viewRow = successPanel.querySelector('[data-mel-publish-success-view-row]');
     const viewLink = successPanel.querySelector('[data-mel-publish-success-view]');
     const socialRow = successPanel.querySelector('[data-mel-publish-success-social]');
 
-    if (growthBlock) {
-      growthBlock.hidden = false;
-    }
-    if (growLink) {
-      if (handoff.grow_url) {
-        growLink.href = handoff.grow_url;
-        growLink.hidden = false;
-      }
-      else {
-        growLink.hidden = true;
-        growLink.removeAttribute('href');
-      }
-    }
-    if (boostLink) {
+    if (boostCard) {
       if (handoff.boost_url) {
-        boostLink.href = handoff.boost_url;
-        boostLink.hidden = false;
+        boostCard.hidden = false;
+        if (boostLink) {
+          boostLink.href = handoff.boost_url;
+        }
       }
       else {
-        boostLink.hidden = true;
-        boostLink.removeAttribute('href');
+        boostCard.hidden = true;
+        if (boostLink) {
+          boostLink.removeAttribute('href');
+        }
       }
     }
     if (viewLink && viewRow) {
@@ -443,8 +431,21 @@
     }
   }
 
+  function bindPublishBoostDismiss(context) {
+    once('mel-publish-boost-dismiss', '[data-mel-publish-boost-dismiss]', context).forEach((button) => {
+      button.addEventListener('click', () => {
+        const card = button.closest('[data-mel-publish-success-boost-card], [data-mel-publish-boost-cta]');
+        if (card) {
+          card.hidden = true;
+        }
+      });
+    });
+  }
+
   Drupal.behaviors.melEventStudioShellAutosave = {
     attach(context) {
+      bindPublishBoostDismiss(context);
+
       once('mel-event-studio-mobile-priority', '[data-mel-studio-shell]', context).forEach((shell) => {
         applyMobilePriorities(shell);
         const handoff = studioSettings().publishHandoff;

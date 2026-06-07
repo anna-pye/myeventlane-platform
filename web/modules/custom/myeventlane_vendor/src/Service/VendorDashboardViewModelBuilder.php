@@ -56,6 +56,7 @@ final class VendorDashboardViewModelBuilder {
     private readonly VendorEventRemovalService $vendorEventRemovalService,
     private readonly MelReadinessHelper $readinessHelper,
     private readonly MelDataPresentationManager $dataPresentationManager,
+    private readonly BoostStatusService $boostStatusService,
     private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->stringTranslation = $string_translation;
@@ -579,9 +580,7 @@ final class VendorDashboardViewModelBuilder {
 
     $presentation = $this->presentationAlerts->buildChipSummary($node, $hasProduct, $eventType);
     $presentationIssues = is_array($presentation['items'] ?? NULL) ? $presentation['items'] : [];
-    $isPromoted = $node->hasField('field_promoted')
-      && !$node->get('field_promoted')->isEmpty()
-      && (bool) $node->get('field_promoted')->value;
+    $boost = $this->boostStatusService->getVisibilityPayload($node);
 
     $capacity = (int) ($domain['capacity'] ?? 0);
     $capacityLabel = $capacity > 0
@@ -639,7 +638,8 @@ final class VendorDashboardViewModelBuilder {
       'presentation_issues' => $presentationIssues,
       'attention_reasons' => $this->buildAttentionReasons($status, $eventType, $startTs, $endTs, $presentationIssues),
       'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
-      'is_promoted' => $isPromoted,
+      'boost' => $boost,
+      'is_promoted' => !empty($boost['active']),
       'removal' => $this->vendorEventRemovalService->buildRemovalUiPayload($node, $account),
       'links' => [
         'manage' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_workspace', ['event' => $nid]),
@@ -1118,6 +1118,7 @@ final class VendorDashboardViewModelBuilder {
         'booking_state_label' => (string) ($event['booking_state_label'] ?? ''),
         'metric_label' => (string) ($event['metric_label'] ?? ''),
         'reasons' => array_values($reasons),
+        'boost' => is_array($event['boost'] ?? NULL) ? $event['boost'] : ['active' => FALSE],
         'links' => is_array($event['links'] ?? NULL) ? $event['links'] : [],
       ];
       if (count($rows) >= 6) {
@@ -1149,6 +1150,7 @@ final class VendorDashboardViewModelBuilder {
         'status_label' => (string) ($event['status_label'] ?? ''),
         'booking_state_label' => (string) ($event['booking_state_label'] ?? ''),
         'metric_label' => (string) ($event['metric_label'] ?? ''),
+        'boost' => is_array($event['boost'] ?? NULL) ? $event['boost'] : ['active' => FALSE],
         'links' => is_array($event['links'] ?? NULL) ? $event['links'] : [],
       ];
       if (count($rows) >= 4) {

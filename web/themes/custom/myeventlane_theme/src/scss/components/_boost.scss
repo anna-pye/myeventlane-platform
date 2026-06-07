@@ -1,131 +1,16 @@
 // ==========================================================================
-// Boost purchase page (module: boost-event-page.html.twig + BoostSelectForm)
+// Boost purchase page — workspace overrides (base styles in module boost.css)
 // ==========================================================================
 
 @use '../tokens/colors';
-@use '../tokens/radii';
-@use '../tokens/typography';
+@use '../tokens/breakpoints';
 
-.mel-boost-hero {
-  margin-bottom: 24px;
-
-  h1 {
-    font-size: 28px;
-    font-weight: 700;
-  }
-
-  p {
-    color: colors.$mel-color-text-muted;
-  }
+.mel-boost-page {
+  max-width: 100%;
 }
 
-.mel-boost-hero__performance {
-  margin-top: 12px;
+// Vendor workspace content area: ensure full-width layout.
+.mel-workspace__content .mel-boost-page {
+  width: 100%;
+  min-width: 0;
 }
-
-.mel-boost-hero__perf-title {
-  font-weight: 600;
-  color: colors.$mel-color-text;
-  margin: 0 0 4px;
-}
-
-.mel-boost-hero__perf-intro {
-  margin: 0;
-  color: colors.$mel-color-text-muted;
-}
-
-.mel-boost-hero__fallback {
-  margin-top: 8px;
-  color: colors.$mel-color-text-muted;
-}
-
-.mel-boost-benefits {
-  background: colors.$mel-color-surface-alt;
-  padding: 16px;
-  border-radius: radii.$mel-radius-md;
-  margin-bottom: 20px;
-
-  h3 {
-    margin: 0;
-    font-size: typography.mel-font-size(lg);
-    font-weight: 600;
-  }
-
-  &__intro {
-    margin: 8px 0 0;
-    color: colors.$mel-color-text-muted;
-    line-height: 1.5;
-  }
-
-  &__list {
-    margin-top: 8px;
-    padding-left: 1.25rem;
-
-    li {
-      margin-bottom: 6px;
-      color: colors.$mel-color-text;
-    }
-  }
-}
-
-.mel-boost-audience {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid colors.$mel-color-border;
-
-  &__title {
-    margin: 0;
-    font-size: typography.mel-font-size(base);
-    font-weight: 600;
-    color: colors.$mel-color-text;
-  }
-
-  &__list {
-    margin: 8px 0 0;
-    padding-left: 1.25rem;
-
-    li {
-      margin-bottom: 4px;
-      color: colors.$mel-color-text-muted;
-    }
-  }
-}
-
-.mel-boost-pricing-wrap {
-  margin-top: 0;
-}
-
-.mel-boost-badge {
-  background: colors.$mel-color-accent;
-  color: colors.$mel-color-text-inverse;
-  padding: 4px 10px;
-  border-radius: radii.$mel-radius-pill;
-  font-size: 12px;
-  margin-left: 8px;
-  white-space: nowrap;
-  vertical-align: middle;
-}
-
-.mel-boost-option-content {
-  .mel-boost-option-desc {
-    display: block;
-    font-size: 13px;
-    color: colors.$mel-color-text-muted;
-    margin-top: 4px;
-  }
-}
-
-.mel-boost-micro {
-  font-size: 12px;
-  color: colors.$mel-color-text-muted;
-  margin-top: 8px;
-  margin-bottom: 0;
-}
-
-// Stack primary action + micro copy (cancel stays in page footer row).
-.myeventlane-boost-select-form .boost-footer {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-}
-

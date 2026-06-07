@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Publish-success Boost conversion CTA (Phase 11A).
+ *
+ * Variables:
+ * - boost_url: Vendor Boost purchase URL (card hidden when empty).
+ * - dismiss_button: When TRUE, "Maybe later" dismisses via JS (default TRUE).
+ */
+#}
+{% if boost_url %}
+  <article
+    class="mel-publish-boost-cta"
+    data-mel-publish-boost-cta
+    role="region"
+    aria-labelledby="mel-publish-boost-cta-title"
+  >
+    <h3 id="mel-publish-boost-cta-title" class="mel-publish-boost-cta__title">{{ 'Boost your event visibility'|t }}</h3>
+    <p class="mel-publish-boost-cta__copy">{{ 'Your event is live. Help more people discover it across MyEventLane.'|t }}</p>
+    <ul class="mel-publish-boost-cta__features" aria-label="{{ 'Boost benefits'|t }}">
+      <li>{{ 'Featured discovery placement'|t }}</li>
+      <li>{{ 'Better category visibility'|t }}</li>
+      <li>{{ 'Higher search visibility'|t }}</li>
+    </ul>
+    <div class="mel-publish-boost-cta__actions">
+      <a class="mel-btn mel-btn--primary" href="{{ boost_url }}" data-mel-publish-boost-primary>{{ 'Boost my event'|t }}</a>
+      {% if dismiss_button|default(true) %}
+        <button type="button" class="mel-btn mel-btn--ghost" data-mel-publish-boost-dismiss>{{ 'Maybe later'|t }}</button>
+      {% endif %}
+    </div>
+  </article>
+{% endif %}

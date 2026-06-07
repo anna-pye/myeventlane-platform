@@ -18,7 +18,12 @@ use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event_studio\Service\EventStudioCommerceSalesSummaryBuilder;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\node\NodeInterface;
+use Drupal\myeventlane_boost\Service\BoostActionEngineService;
+use Drupal\myeventlane_boost\Service\BoostBenchmarkService;
 use Drupal\myeventlane_boost\Service\BoostDecisionSupportService;
+use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
+use Drupal\myeventlane_boost\Service\BoostPerformanceLevelService;
+use Drupal\myeventlane_boost\Service\BoostTrendIntelligenceService;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
@@ -50,6 +55,11 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     private readonly ?EventStudioCommerceSalesSummaryBuilder $commerceSalesSummaryBuilder = NULL,
     private readonly ?EventOperationalExtrasSalesSummaryBuilder $extrasSalesSummaryBuilder = NULL,
     private readonly ?BoostDecisionSupportService $boostDecisionSupport = NULL,
+    private readonly ?BoostTrendIntelligenceService $boostTrendIntelligence = NULL,
+    private readonly ?BoostPerformanceLevelService $boostPerformanceLevel = NULL,
+    private readonly ?BoostActionEngineService $boostActionEngine = NULL,
+    private readonly ?BoostBenchmarkService $boostBenchmark = NULL,
+    private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -297,6 +307,38 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $boost_page_url,
     );
 
+    $boost_trend_intelligence = $this->buildBoostTrendIntelligenceSection(
+      $boost_metrics,
+      $is_tickets_enabled,
+      $is_rsvp_enabled,
+    );
+
+    $benchmark_ready = $this->isBoostBenchmarkReady();
+
+    $boost_performance_level = $this->buildBoostPerformanceLevelSection(
+      $boost_decision_support,
+      $boost_trend_intelligence,
+      $benchmark_ready,
+    );
+
+    $boost_action_engine = $this->buildBoostActionEngineSection(
+      $boost_metrics,
+      $boost,
+      $is_tickets_enabled,
+      $is_rsvp_enabled,
+      $placement_performance_section,
+      $edit_event_url,
+      $boost_page_url,
+      $public_event_url,
+    );
+
+    if ($boost_trend_intelligence['show'] && $boost_trend_intelligence['has_chart']) {
+      $miniChart = $this->buildBoostTrendMiniChart($boost_metrics['chart_data'] ?? NULL);
+      if ($miniChart !== NULL) {
+        $chart_data['boost-trend-ctr'] = $miniChart;
+      }
+    }
+
     if ($placement_performance_section['show'] && $placement_performance_section['cards'] !== []) {
       $chart_data['boost-placement-impressions'] = [
         'type' => 'bar',
@@ -329,10 +371,11 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       $capacity_pct,
       $public_event_url,
       $ticketRows,
-      $boost_decision_support,
     );
 
     $has_boost_metrics = $boost_performance_section['show_metrics'];
+
+    $boost_extension_recommendation = $this->boostExtensionRecommendation?->getRecommendation($event);
 
     return $this->buildVendorPage('mel_event_workspace', [
       'event' => $event,
@@ -367,6 +410,10 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#recommendations' => $recommendations,
         '#boost_performance_section' => $boost_performance_section,
         '#boost_decision_support' => $boost_decision_support,
+        '#boost_performance_level' => $boost_performance_level,
+        '#boost_extension_recommendation' => $boost_extension_recommendation,
+        '#boost_action_engine' => $boost_action_engine,
+        '#boost_trend_intelligence' => $boost_trend_intelligence,
         '#placement_performance_section' => $placement_performance_section,
         '#has_all_sales_trend_chart' => isset($chart_data['event-sales']) && array_sum(array_column($sales_series, 'amount')) > 0,
         '#has_ticket_mix_chart' => isset($chart_data['event-ticket-mix']),
@@ -375,6 +422,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#has_revenue_breakdown_chart' => isset($chart_data['event-revenue-breakdown']),
         '#has_boost_metrics' => $has_boost_metrics,
         '#has_boost_trend_chart' => isset($chart_data['boost-impressions-clicks']),
+        '#has_boost_trend_mini_chart' => isset($chart_data['boost-trend-ctr']),
         '#has_placement_impressions_chart' => isset($chart_data['boost-placement-impressions']),
         '#is_tickets_enabled' => $is_tickets_enabled,
         '#is_rsvp_enabled' => $is_rsvp_enabled,
@@ -382,6 +430,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       '#attached' => [
         'library' => [
           'myeventlane_vendor_theme/analytics',
+          'myeventlane_boost/boost_visibility',
         ],
         'drupalSettings' => [
           'vendorCharts' => $chart_data,
@@ -1422,6 +1471,178 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
   }
 
   /**
+   * Boost trend intelligence section (Phase 8).
+   *
+   * @param array<string, mixed> $boost_metrics
+   *
+   * @return array<string, mixed>
+   */
+  private function buildBoostTrendIntelligenceSection(
+    array $boost_metrics,
+    bool $isTickets,
+    bool $isRsvp,
+  ): array {
+    if (!$this->boostTrendIntelligence) {
+      return [
+        'show' => FALSE,
+        'status' => 'insufficient_data',
+        'status_label' => '',
+        'status_badge' => 'muted',
+        'confidence' => ['level' => 'low', 'label' => '', 'badge' => 'muted'],
+        'momentum' => 0,
+        'momentum_label' => '',
+        'summary' => '',
+        'metrics' => [],
+        'has_chart' => FALSE,
+      ];
+    }
+
+    return $this->boostTrendIntelligence->analyze($boost_metrics, $isTickets, $isRsvp);
+  }
+
+  /**
+   * Performance level card (Phase 9).
+   *
+   * @param array<string, mixed> $decisionSupport
+   * @param array<string, mixed> $trendIntelligence
+   *
+   * @return array<string, mixed>
+   */
+  private function buildBoostPerformanceLevelSection(
+    array $decisionSupport,
+    array $trendIntelligence,
+    bool $benchmarkReady,
+  ): array {
+    if (!$this->boostPerformanceLevel) {
+      return [
+        'show' => FALSE,
+        'level' => '',
+        'label' => '',
+        'description' => '',
+        'badge' => 'muted',
+      ];
+    }
+
+    return $this->boostPerformanceLevel->build($decisionSupport, $trendIntelligence, $benchmarkReady);
+  }
+
+  /**
+   * Prioritised Boost actions with CTAs (Phase 10).
+   *
+   * @param array<string, mixed> $boost_metrics
+   * @param array<string, mixed> $boost
+   * @param array{
+   *   show: bool,
+   *   cards: list<array<string, mixed>>,
+   * } $placement_performance_section
+   *
+   * @return array<string, mixed>
+   */
+  private function buildBoostActionEngineSection(
+    array $boost_metrics,
+    array $boost,
+    bool $isTickets,
+    bool $isRsvp,
+    array $placement_performance_section,
+    ?string $edit_event_url,
+    ?string $boost_page_url,
+    ?string $public_event_url,
+  ): array {
+    if (!$this->boostActionEngine) {
+      return [
+        'show' => FALSE,
+        'actions' => [],
+      ];
+    }
+
+    return $this->boostActionEngine->build(
+      $boost_metrics,
+      $boost,
+      $isTickets,
+      $isRsvp,
+      $placement_performance_section,
+      $edit_event_url,
+      $boost_page_url,
+      $public_event_url,
+    );
+  }
+
+  /**
+   * Whether platform Boost benchmarks are ready (internal gate only).
+   */
+  private function isBoostBenchmarkReady(): bool {
+    if (!$this->boostBenchmark) {
+      return FALSE;
+    }
+
+    try {
+      $benchmark = $this->boostBenchmark->getGlobalBenchmark();
+      return !empty($benchmark['ready']);
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Boost benchmark readiness check failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return FALSE;
+    }
+  }
+
+  /**
+   * Compact daily CTR line chart for trend intelligence (existing Chart.js infra).
+   *
+   * @param array<string, mixed>|null $chartData
+   *
+   * @return array<string, mixed>|null
+   */
+  private function buildBoostTrendMiniChart(?array $chartData): ?array {
+    if (!is_array($chartData)) {
+      return NULL;
+    }
+
+    $series = is_array($chartData['impressions_vs_clicks'] ?? NULL)
+      ? $chartData['impressions_vs_clicks']
+      : NULL;
+    if ($series === NULL) {
+      return NULL;
+    }
+
+    $labels = is_array($series['labels'] ?? NULL) ? $series['labels'] : [];
+    $impressions = is_array($series['impressions'] ?? NULL) ? $series['impressions'] : [];
+    $clicks = is_array($series['clicks'] ?? NULL) ? $series['clicks'] : [];
+    if (count($labels) < 3 || count($impressions) < 3 || count($clicks) < 3) {
+      return NULL;
+    }
+
+    $ctrData = [];
+    $count = min(count($labels), count($impressions), count($clicks));
+    for ($i = 0; $i < $count; $i++) {
+      $impression = (int) $impressions[$i];
+      $click = (int) $clicks[$i];
+      $ctrData[] = $impression > 0 ? round(100.0 * $click / $impression, 2) : 0.0;
+    }
+
+    return [
+      'type' => 'line',
+      'labels' => array_slice($labels, 0, $count),
+      'datasets' => [
+        [
+          'label' => (string) $this->t('CTR %'),
+          'data' => $ctrData,
+          'borderColor' => '#10b981',
+          'backgroundColor' => 'rgba(16, 185, 129, 0.12)',
+        ],
+      ],
+      'options' => [
+        'plugins' => [
+          'legend' => [
+            'display' => FALSE,
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
    * Boost decision support section (Stage 3).
    *
    * @param array<string, mixed> $boost_metrics
@@ -1464,13 +1685,11 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
   /**
    * Rules-based next-step recommendations (max 3).
    *
-   * Boost-specific recommendations come from BoostDecisionSupportService.
-   * Operational fallbacks fill remaining slots when fewer than three Boost recs exist.
+   * Operational fallbacks fill remaining slots (Boost actions use Action Engine).
    *
    * @param array<string, mixed> $overview
    * @param array<string, mixed> $commerce
    * @param array<string, mixed> $boost
-   * @param array<string, mixed> $boost_decision_support
    *
    * @return list<string>
    */
@@ -1484,11 +1703,8 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     ?float $capacity_pct,
     ?string $public_event_url,
     array $ticketRows,
-    array $boost_decision_support = [],
   ): array {
-    $recs = is_array($boost_decision_support['recommendations'] ?? NULL)
-      ? $boost_decision_support['recommendations']
-      : [];
+    $recs = [];
 
     if (count($recs) < 3 && $isTickets) {
       $best_ticket = $this->findBestSellingTicketFromTiers($ticketRows);

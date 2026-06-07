@@ -168,9 +168,7 @@ final class EventStudioPreprocess {
     $variables['mel_publish_celebrate_share'] = [];
     $variables['mel_publish_celebrate_calendar_url'] = NULL;
     $variables['mel_publish_celebrate_node_id'] = NULL;
-    $variables['mel_publish_celebrate_grow_url'] = NULL;
     $variables['mel_publish_celebrate_boost_url'] = NULL;
-    $variables['mel_publish_celebrate_promote_url'] = NULL;
 
     $celebrate_requested = FALSE;
     if ($request !== NULL && (string) $request->query->get('mel_celebrate') === '1') {
@@ -190,9 +188,7 @@ final class EventStudioPreprocess {
         $variables['mel_publish_celebrate_share'] = $handoff['share'];
         $variables['mel_publish_celebrate_calendar_url'] = $handoff['calendar_url'];
         $variables['mel_publish_celebrate_node_id'] = (int) $node->id();
-        $variables['mel_publish_celebrate_promote_url'] = $handoff['promote_url'];
         $variables['mel_publish_celebrate_boost_url'] = $handoff['boost_url'];
-        $variables['mel_publish_celebrate_grow_url'] = $handoff['grow_url'];
       }
     }
 
@@ -226,9 +222,7 @@ final class EventStudioPreprocess {
       'text' => $snippet,
     ]);
 
-    $promote_url = $this->celebrateRouteUrl('myeventlane_vendor.console.event_promotion', ['event' => $event_id]);
     $boost_url = $this->celebrateRouteUrl('myeventlane_boost.vendor_event_boost', ['event' => $event_id]);
-    $grow_url = $boost_url ?? $promote_url;
 
     $calendar_url = NULL;
     if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
@@ -247,11 +241,7 @@ final class EventStudioPreprocess {
     return [
       'title' => (string) $this->t('🎉 Your event is now live'),
       'message' => (string) $this->t('Published successfully'),
-      'growth_title' => (string) $this->t('Ready for more attendees?'),
-      'growth_body' => (string) $this->t('Boost or feature your event to reach more people on MyEventLane.'),
-      'grow_url' => $grow_url,
-      'boost_url' => ($boost_url !== NULL && $boost_url !== $grow_url) ? $boost_url : NULL,
-      'promote_url' => $promote_url,
+      'boost_url' => $boost_url,
       'view_url' => $canonical_absolute,
       'share' => [
         'facebook' => 'https://www.facebook.com/sharer/sharer.php?' . UrlHelper::buildQuery(['u' => $canonical_absolute]),

@@ -229,6 +229,55 @@ $mel-focus: #7c83fd;
   gap: sp.$spacing-3;
 }
 
+.mel-vendor-events-v2__card--boosted {
+  border-color: rgba(245, 192, 76, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(245, 192, 76, 0.2),
+    0 4px 18px rgba(245, 192, 76, 0.12);
+}
+
+.mel-vendor-events-v2__boost-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 sp.$spacing-3;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1px solid rgba(245, 192, 76, 0.65);
+  background: rgba(245, 192, 76, 0.22);
+  color: c.$ml-vendor-text-dark;
+}
+
+.mel-vendor-events-v2__boost-meta {
+  margin: calc(-1 * sp.$spacing-2) 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: c.$ml-vendor-slate;
+  line-height: 1.4;
+}
+
+.mel-vendor-events-v2__boost-performance {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: $mel-lavender-strong;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: c.$ml-vendor-navy;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $mel-focus;
+    outline-offset: 2px;
+    border-radius: r.$radius-sm;
+  }
+}
+
 .mel-vendor-events-v2__card-top {
   display: flex;
   gap: sp.$spacing-4;

@@ -17,6 +17,42 @@
     topbar: topbar
   }, with_context = false) }}
 
+  {% if boost is not null and boost.active %}
+    <section class="mel-boost-active-banner" aria-labelledby="mel-boost-active-title">
+      <div class="mel-boost-active-banner__content">
+        <h2 id="mel-boost-active-title" class="mel-boost-active-banner__title">{{ '🚀 Boost Active'|t }}</h2>
+        <p class="mel-boost-active-banner__subtitle">{{ 'Featured across MyEventLane'|t }}</p>
+        {% if boost.days_remaining is not null %}
+          <p class="mel-boost-active-banner__remaining">
+            {% if boost.days_remaining == 1 %}
+              {{ '1 day remaining'|t }}
+            {% else %}
+              {{ '@count days remaining'|t({'@count': boost.days_remaining}) }}
+            {% endif %}
+          </p>
+        {% elseif boost.expires %}
+          <p class="mel-boost-active-banner__remaining">{{ 'Featured until @date'|t({'@date': boost.expires}) }}</p>
+        {% endif %}
+      </div>
+      {% if boost.analytics_url %}
+        <a class="mel-btn mel-btn--secondary mel-boost-active-banner__cta" href="{{ boost.analytics_url }}">{{ 'View Performance'|t }}</a>
+      {% endif %}
+      {% if boost_extension_recommendation %}
+        {% include '@myeventlane_vendor_theme/components/mel-boost-extension-card.html.twig' with {
+          recommendation: boost_extension_recommendation,
+          variant: 'studio',
+        } only %}
+      {% endif %}
+    </section>
+  {% elseif boost_extension_recommendation %}
+    <section class="mel-boost-active-banner mel-boost-active-banner--recommendation-only" aria-labelledby="mel-boost-extension-studio-title">
+      {% include '@myeventlane_vendor_theme/components/mel-boost-extension-card.html.twig' with {
+        recommendation: boost_extension_recommendation,
+        variant: 'studio',
+      } only %}
+    </section>
+  {% endif %}
+
   <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip>
     <div class="mel-event-studio-readiness-strip__summary">
       <strong data-mel-readiness-title>{{ readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t }}</strong>
@@ -39,12 +75,17 @@
     <div class="mel-event-studio-publish-feedback__success" data-mel-publish-success hidden>
       <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-success-title></h2>
       <p class="mel-event-studio-publish-feedback__status" data-mel-publish-success-message></p>
-      <div class="mel-event-studio-publish-feedback__growth" data-mel-publish-success-growth hidden>
-        <p class="mel-event-studio-publish-feedback__growth-title" data-mel-publish-success-growth-title></p>
-        <p class="mel-event-studio-publish-feedback__growth-body" data-mel-publish-success-growth-body></p>
-        <div class="mel-event-studio-publish-feedback__actions">
-          <a class="mel-btn mel-btn--primary mel-event-studio-publish-feedback__grow" href="#" data-mel-publish-success-grow hidden>{{ 'Grow My Event'|t }}</a>
-          <a class="mel-event-studio-publish-feedback__boost-link" href="#" data-mel-publish-success-boost hidden>{{ 'Boost Event'|t }}</a>
+      <div class="mel-publish-boost-cta" data-mel-publish-success-boost-card hidden role="region" aria-labelledby="mel-publish-success-boost-title">
+        <h3 id="mel-publish-success-boost-title" class="mel-publish-boost-cta__title">{{ 'Boost your event visibility'|t }}</h3>
+        <p class="mel-publish-boost-cta__copy">{{ 'Your event is live. Help more people discover it across MyEventLane.'|t }}</p>
+        <ul class="mel-publish-boost-cta__features" aria-label="{{ 'Boost benefits'|t }}">
+          <li>{{ 'Featured discovery placement'|t }}</li>
+          <li>{{ 'Better category visibility'|t }}</li>
+          <li>{{ 'Higher search visibility'|t }}</li>
+        </ul>
+        <div class="mel-publish-boost-cta__actions">
+          <a class="mel-btn mel-btn--primary" href="#" data-mel-publish-success-boost>{{ 'Boost my event'|t }}</a>
+          <button type="button" class="mel-btn mel-btn--ghost" data-mel-publish-boost-dismiss>{{ 'Maybe later'|t }}</button>
         </div>
       </div>
       <div class="mel-event-studio-publish-feedback__row" data-mel-publish-success-view-row hidden>

@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Boost expiry and performance link for vendor dashboard event cards.
+ *
+ * Variables:
+ * - boost: { active, expires, days_remaining }
+ * - links: optional link bag with analytics URL.
+ */
+#}
+{% set boost = boost|default({}) %}
+{% set links = links|default({}) %}
+{% if boost.active %}
+  {% if boost.expires or boost.days_remaining is not null %}
+    <p class="mel-vendor-dashboard__boost-expiry">
+      {% if boost.expires %}
+        {{ 'Featured until @date'|t({'@date': boost.expires}) }}
+      {% elseif boost.days_remaining == 1 %}
+        {{ '1 day remaining'|t }}
+      {% else %}
+        {{ '@count days remaining'|t({'@count': boost.days_remaining}) }}
+      {% endif %}
+    </p>
+  {% endif %}
+  {% if links.analytics is defined and links.analytics %}
+    <a class="mel-vendor-dashboard__boost-performance" href="{{ links.analytics }}">{{ 'View Boost Performance →'|t }}</a>
+  {% endif %}
+{% endif %}

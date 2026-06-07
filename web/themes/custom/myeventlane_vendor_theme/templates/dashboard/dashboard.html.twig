@@ -162,9 +162,10 @@
       <div class="mel-vendor-dashboard__attention-row" role="list">
         {% for ev in attention_events %}
           {% set links = ev.links|default({}) %}
+          {% set boost = ev.boost|default({}) %}
           {% set status = ev.status|default('') %}
           {% set status_chip = status == 'draft' ? 'warn' : 'lavender' %}
-          <article class="mel-vendor-dashboard__attention-card" role="listitem">
+          <article class="mel-vendor-dashboard__attention-card{% if boost.active %} mel-vendor-dashboard__attention-card--boosted{% endif %}" role="listitem">
             <div>
               <h3 class="mel-vendor-dashboard__upcoming-title">{{ ev.title|default('Untitled event'|t) }}</h3>
               {% if ev.date_label is defined and ev.date_label %}
@@ -175,10 +176,17 @@
               {% if ev.status_label is defined and ev.status_label %}
                 <span class="mel-live-ops__chip mel-live-ops__chip--{{ status_chip }}">{{ ev.status_label }}</span>
               {% endif %}
+              {% if boost.active %}
+                <span class="mel-vendor-dashboard__boost-badge mel-vendor-dashboard__boost-badge--inline">{{ '🚀 Boosted'|t }}</span>
+              {% endif %}
               {% for reason in ev.reasons|default([]) %}
                 <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ reason }}</span>
               {% endfor %}
             </div>
+            {% include '@myeventlane_vendor_theme/components/mel-dashboard-event-boost.html.twig' with {
+              boost: boost,
+              links: links,
+            } only %}
             {% if ev.booking_state_label is defined and ev.booking_state_label %}
               <p class="mel-vendor-dashboard__upcoming-meta">{{ ev.booking_state_label }}</p>
             {% endif %}
@@ -232,9 +240,10 @@
       <div class="mel-vendor-dashboard__upcoming-row" role="list">
         {% for ev in upcoming_events %}
           {% set links = ev.links|default({}) %}
+          {% set boost = ev.boost|default({}) %}
           {% set status = ev.status|default('upcoming') %}
           {% set status_chip = status == 'draft' ? 'warn' : 'lavender' %}
-          <article class="mel-vendor-dashboard__upcoming-card" role="listitem">
+          <article class="mel-vendor-dashboard__upcoming-card{% if boost.active %} mel-vendor-dashboard__upcoming-card--boosted{% endif %}" role="listitem">
             <div>
               <h3 class="mel-vendor-dashboard__upcoming-title">{{ ev.title|default('Untitled event'|t) }}</h3>
               {% if ev.date_label is defined and ev.date_label %}
@@ -245,10 +254,17 @@
               {% if ev.status_label is defined and ev.status_label %}
                 <span class="mel-live-ops__chip mel-live-ops__chip--{{ status_chip }}">{{ ev.status_label }}</span>
               {% endif %}
+              {% if boost.active %}
+                <span class="mel-vendor-dashboard__boost-badge mel-vendor-dashboard__boost-badge--inline">{{ '🚀 Boosted'|t }}</span>
+              {% endif %}
               {% if ev.booking_state_label is defined and ev.booking_state_label %}
                 <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ ev.booking_state_label }}</span>
               {% endif %}
             </div>
+            {% include '@myeventlane_vendor_theme/components/mel-dashboard-event-boost.html.twig' with {
+              boost: boost,
+              links: links,
+            } only %}
             {% if ev.metric_label is defined and ev.metric_label %}
               <p class="mel-vendor-dashboard__upcoming-meta">{{ ev.metric_label }}</p>
             {% endif %}
@@ -341,9 +357,10 @@
           <div class="mel-vendor-dashboard__event-grid">
             {% for ev in model_events|slice(0, 6) %}
               {% set links = ev.links|default({}) %}
+              {% set boost = ev.boost|default({}) %}
               {% set et = ev.event_type|default('unknown') %}
               {% set type_label = et == 'paid' ? 'Paid tickets'|t : (et == 'rsvp' ? 'RSVP'|t : (et == 'both' ? 'Tickets & RSVP'|t : 'Setup needed'|t)) %}
-              <article class="mel-live-ops__attendee-row mel-vendor-dashboard__event-row">
+              <article class="mel-live-ops__attendee-row mel-vendor-dashboard__event-row{% if boost.active %} mel-vendor-dashboard__event-row--boosted{% endif %}">
                 <div class="mel-live-ops__attendee-meta">
                   <div class="mel-live-ops__attendee-ident">
                     {% set img = ev.image|default({}) %}
@@ -368,8 +385,15 @@
                         {% if ev.status_label is defined and ev.status_label %}
                           <span class="mel-live-ops__chip mel-live-ops__chip--lavender">{{ ev.status_label }}</span>
                         {% endif %}
+                        {% if boost.active %}
+                          <span class="mel-vendor-dashboard__boost-badge mel-vendor-dashboard__boost-badge--inline">{{ '🚀 Boosted'|t }}</span>
+                        {% endif %}
                         <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ type_label }}</span>
                       </div>
+                      {% include '@myeventlane_vendor_theme/components/mel-dashboard-event-boost.html.twig' with {
+                        boost: boost,
+                        links: links,
+                      } only %}
                       {% if ev.metric_label is defined and ev.metric_label %}
                         <p class="mel-live-ops__attendee-ticket">{{ ev.metric_label }}</p>
                       {% endif %}

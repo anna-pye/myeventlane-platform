@@ -1,3 +1,21 @@
+boost_purchase_success:
+  version: 1.0
+  css:
+    component:
+      css/boost.css: {}
+  js:
+    js/boost-purchase-success.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
+boost_visibility:
+  version: 1.0
+  css:
+    component:
+      css/boost.css: {}
+
 boost:
   version: 1.x
   css:

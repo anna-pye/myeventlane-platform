@@ -33,6 +33,21 @@ services:
       - '@datetime.time'
       - '@logger.channel.myeventlane_boost'
 
+  myeventlane_boost.purchase_success_resolver:
+    class: Drupal\myeventlane_boost\Service\BoostPurchaseSuccessResolver
+    arguments:
+      - '@myeventlane_boost.entitlement_manager'
+
+  myeventlane_boost.checkout_redirect_subscriber:
+    class: Drupal\myeventlane_boost\EventSubscriber\BoostCheckoutRedirectSubscriber
+    arguments:
+      - '@current_route_match'
+      - '@entity_type.manager'
+      - '@myeventlane_boost.purchase_success_resolver'
+      - '@logger.channel.myeventlane_boost'
+    tags:
+      - { name: event_subscriber }
+
   # Order/checkout event subscriber for applying boosts on payment.
   myeventlane_boost.order_subscriber:
     class: Drupal\myeventlane_boost\EventSubscriber\BoostOrderSubscriber
@@ -100,6 +115,39 @@ services:
   myeventlane_boost.decision_support:
     class: Drupal\myeventlane_boost\Service\BoostDecisionSupportService
     arguments:
+      - '@string_translation'
+
+  # Event-scoped Boost trend intelligence (Phase 8 — daily rollup chart data only).
+  myeventlane_boost.trend_intelligence:
+    class: Drupal\myeventlane_boost\Service\BoostTrendIntelligenceService
+    arguments:
+      - '@string_translation'
+
+  # Organiser-facing Boost performance level (Phase 9 — composes decision + trend).
+  myeventlane_boost.performance_level:
+    class: Drupal\myeventlane_boost\Service\BoostPerformanceLevelService
+    arguments:
+      - '@string_translation'
+
+  # Prioritised Boost actions with CTAs (Phase 10 — reuses decision support signals).
+  myeventlane_boost.action_engine:
+    class: Drupal\myeventlane_boost\Service\BoostActionEngineService
+    arguments:
+      - '@myeventlane_boost.decision_support'
+      - '@string_translation'
+
+  # Contextual Boost extension / restart recommendations (Phase 11C).
+  myeventlane_boost.extension_recommendation:
+    class: Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService
+    arguments:
+      - '@myeventlane_vendor.service.boost_status'
+      - '@myeventlane_boost.manager'
+      - '@myeventlane_boost.performance_level'
+      - '@myeventlane_boost.decision_support'
+      - '@myeventlane_boost.trend_intelligence'
+      - '@myeventlane_boost.metrics'
+      - '@myeventlane_event_state.resolver'
+      - '@datetime.time'
       - '@string_translation'
 
   # Thin façade: lifecycle presentation metrics (composes BoostManager, entitlements, analytics).

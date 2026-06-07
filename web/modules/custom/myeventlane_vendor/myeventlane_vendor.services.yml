@@ -193,6 +193,8 @@ services:
     arguments:
       - '@myeventlane_boost.manager'
       - '@entity_type.manager'
+      - '@date.formatter'
+      - '@datetime.time'
 
   myeventlane_vendor.service.metrics_aggregator:
     class: Drupal\myeventlane_vendor\Service\MetricsAggregator
@@ -255,6 +257,8 @@ services:
       - '@logger.factory'
       - '@myeventlane_vendor.vendor_event_removal'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_vendor.service.boost_status'
+      - '@myeventlane_boost.extension_recommendation'
 
   myeventlane_vendor.dashboard_view_model_builder:
     class: Drupal\myeventlane_vendor\Service\VendorDashboardViewModelBuilder
@@ -277,6 +281,7 @@ services:
       - '@myeventlane_vendor.vendor_event_removal'
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_surface.data_presentation_manager'
+      - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_core.domain_detector'
 
   myeventlane_vendor.service.event_tabs:
@@ -456,6 +461,11 @@ services:
       - '@myeventlane_event_studio.commerce_sales_summary_builder'
       - '@myeventlane_commerce.event_operational_extras_sales_summary_builder'
       - '@?myeventlane_boost.decision_support'
+      - '@?myeventlane_boost.trend_intelligence'
+      - '@?myeventlane_boost.performance_level'
+      - '@?myeventlane_boost.action_engine'
+      - '@?myeventlane_boost.benchmark'
+      - '@?myeventlane_boost.extension_recommendation'
     tags:
       - { name: controller.service_arguments }
 

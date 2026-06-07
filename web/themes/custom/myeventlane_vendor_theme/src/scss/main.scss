@@ -70,6 +70,7 @@
   @include meta.load-css('components/auth');
   @include meta.load-css('components/vendor-order-view');
   @include meta.load-css('components/boost-metrics');
+  @include meta.load-css('components/boost-extension-card');
   @include meta.load-css('components/mel-event-settings');
   @include meta.load-css('components/mel-event-overview');
   @include meta.load-css('components/insights');

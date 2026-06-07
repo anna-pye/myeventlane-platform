@@ -104,8 +104,10 @@
     <div class="mel-vendor-events-v2__grid">
       {% for ev in events %}
         {% set links = ev.links|default({}) %}
+        {% set boost = ev.boost|default({}) %}
+        {% set boost_extension_recommendation = ev.boost_extension_recommendation|default(null) %}
         {% set sev = ev.status_severity|default('neutral') %}
-        <article class="mel-vendor-events-v2__card">
+        <article class="mel-vendor-events-v2__card{% if boost.active %} mel-vendor-events-v2__card--boosted{% endif %}">
           <div class="mel-vendor-events-v2__card-top">
             {% set img = ev.image|default({}) %}
             {% set img_url = img.url|default('') %}
@@ -123,6 +125,9 @@
             <div class="mel-vendor-events-v2__card-body">
               <div class="mel-vendor-events-v2__card-header">
                 <span class="mel-vendor-events-v2__status mel-vendor-events-v2__status--{{ sev|e('html_attr') }}">{{ ev.status_label|default('') }}</span>
+                {% if boost.active %}
+                  <span class="mel-vendor-events-v2__boost-badge">{{ '🚀 Boosted'|t }}</span>
+                {% endif %}
                 {% if ev.needs_attention and ev.attention_label %}
                   <span class="mel-vendor-events-v2__attention">{{ ev.attention_label }}</span>
                 {% endif %}
@@ -140,6 +145,26 @@
                 </div>
               {% endif %}
               <h2 class="mel-vendor-events-v2__card-title">{{ ev.title|default('') }}</h2>
+              {% if boost.active %}
+                <p class="mel-vendor-events-v2__boost-meta">
+                  {% if boost.expires %}
+                    {{ 'Featured until @date'|t({'@date': boost.expires}) }}
+                  {% elseif boost.days_remaining is not null %}
+                    {% if boost.days_remaining == 1 %}
+                      {{ '1 day remaining'|t }}
+                    {% else %}
+                      {{ '@count days remaining'|t({'@count': boost.days_remaining}) }}
+                    {% endif %}
+                  {% endif %}
+                </p>
+              {% endif %}
+              {% if boost_extension_recommendation %}
+                {% include '@myeventlane_vendor_theme/components/mel-boost-extension-card.html.twig' with {
+                  recommendation: boost_extension_recommendation,
+                  variant: 'compact',
+                  boost: boost,
+                } only %}
+              {% endif %}
               <div class="mel-vendor-events-v2__meta">
                 {% if ev.date_label %}
                   <span class="mel-vendor-events-v2__meta-line">{{ ev.date_label }}</span>
@@ -159,6 +184,9 @@
                   <span class="mel-vendor-events-v2__metric">{{ ev.capacity_label }}</span>
                 {% endif %}
               </div>
+              {% if boost.active and links.analytics is defined and links.analytics %}
+                <a class="mel-vendor-events-v2__boost-performance" href="{{ links.analytics }}">{{ 'View Boost Performance →'|t }}</a>
+              {% endif %}
             </div>
           </div>
           <div class="mel-vendor-events-v2__card-actions">

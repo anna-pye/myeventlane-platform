@@ -1,0 +1,131 @@
+/**
+ * @file
+ * Boost extension / restart recommendation card (Phase 11C).
+ */
+
+@use '../tokens/colors' as c;
+@use '../tokens/radii' as r;
+@use '../tokens/spacing' as sp;
+
+$mel-coral: #f26d5b;
+$mel-coral-hover: #e55c49;
+$mel-lavender-soft: #e8eaff;
+$mel-lavender-border: rgba(124, 131, 253, 0.35);
+
+.mel-boost-extension-card {
+  font-family: 'Nunito', sans-serif;
+  color: c.$ml-vendor-text-dark;
+}
+
+.mel-boost-extension-card--card,
+.mel-boost-extension-card--studio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-4;
+  padding: sp.$spacing-4 sp.$spacing-5;
+  border: 1px solid $mel-lavender-border;
+  border-radius: 16px;
+  background: $mel-lavender-soft;
+}
+
+.mel-boost-extension-card--studio {
+  width: 100%;
+  margin-top: sp.$spacing-3;
+  padding-top: sp.$spacing-4;
+  border-top: 1px solid $mel-lavender-border;
+  border-radius: 0 0 16px 16px;
+  background: rgba(232, 234, 255, 0.65);
+}
+
+.mel-boost-active-banner--recommendation-only {
+  background: $mel-lavender-soft;
+  border-color: $mel-lavender-border;
+}
+
+.mel-boost-extension-card--card {
+  margin-bottom: sp.$spacing-5;
+}
+
+.mel-boost-extension-card__content {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.mel-boost-extension-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.mel-boost-extension-card__body {
+  margin: sp.$spacing-2 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: c.$ml-vendor-slate;
+}
+
+.mel-boost-extension-card__cta {
+  min-height: 44px;
+  min-width: 44px;
+  padding-inline: sp.$spacing-5;
+  border-radius: 16px;
+  background: $mel-coral;
+  border-color: $mel-coral;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover,
+  &:focus-visible {
+    background: $mel-coral-hover;
+    border-color: $mel-coral-hover;
+    color: #fff;
+    text-decoration: none;
+  }
+}
+
+.mel-boost-extension-card--compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sp.$spacing-2 sp.$spacing-3;
+  margin-top: sp.$spacing-2;
+  max-width: 100%;
+}
+
+.mel-boost-extension-card__compact-text {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: c.$ml-vendor-text-dark;
+}
+
+.mel-boost-extension-card--compact .mel-boost-extension-card__cta {
+  min-height: 44px;
+  padding: 0 sp.$spacing-4;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .mel-boost-extension-card--card,
+  .mel-boost-extension-card--studio {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mel-boost-extension-card__cta {
+    width: 100%;
+  }
+
+  .mel-boost-extension-card--compact {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
