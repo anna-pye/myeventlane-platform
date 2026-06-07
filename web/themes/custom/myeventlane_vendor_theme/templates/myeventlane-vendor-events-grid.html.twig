@@ -24,13 +24,7 @@
         <p class="mel-vendor-events-v2__subtitle">{{ model.subtitle }}</p>
       {% endif %}
     </div>
-    <div class="mel-vendor-events-v2__actions">
-      {% if primary.url is defined and primary.url %}
-        <a class="mel-btn mel-btn--primary mel-vendor-events-v2__cta" href="{{ primary.url }}">{{ primary.label|default('Create event'|t) }}</a>
-      {% elseif primary.label is defined and primary.label %}
-        <span class="mel-btn mel-btn--primary mel-vendor-events-v2__cta mel-btn--disabled" aria-disabled="true">{{ primary.label }}</span>
-      {% endif %}
-    </div>
+    {# Primary Create Event CTA lives in the vendor shell header (shell_primary_action). #}
   </header>
 
   <section class="mel-vendor-events-v2__summary" aria-label="{{ 'Event counts'|t }}">
@@ -230,11 +224,7 @@
       {% if empty_state.message %}
         <p class="mel-vendor-events-v2__empty-message">{{ empty_state.message }}</p>
       {% endif %}
-      {% if empty_state.url is defined and empty_state.url and empty_state.action_label %}
-        <a class="mel-btn mel-btn--primary" href="{{ empty_state.url }}">{{ empty_state.action_label }}</a>
-      {% elseif empty_state.action_label %}
-        <span class="mel-btn mel-btn--primary mel-btn--disabled" aria-disabled="true">{{ empty_state.action_label }}</span>
-      {% endif %}
+      {# Create Event CTA: use shell header primary action when the list is empty. #}
     </div>
   {% endif %}
 </div>

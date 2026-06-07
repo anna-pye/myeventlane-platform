@@ -88,12 +88,10 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   public function buildSidebarGuidance(NodeInterface $event): array {
-    $readiness = $this->eventReadiness->evaluate($event, $this->currentUser);
     $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-sidebar-guidance']],
       'next_steps' => $this->buildNextStepsCard(),
-      'readiness' => $this->buildReadinessCard($readiness, TRUE),
     ];
 
     $support = $this->supportResolver->buildCard($event, 'sidebar');
@@ -228,11 +226,9 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildSettingsSection(NodeInterface $event): array {
-    $readiness = $this->eventReadiness->evaluate($event, $this->currentUser);
     $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-section__form-stack']],
-      'readiness' => $this->buildReadinessCard($readiness),
       'settings' => $this->formBuilder->getForm(EventSettingsForm::class, $event),
     ];
 

@@ -570,22 +570,8 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     ];
   }
   
-  // Create Event only when Event Studio create is allowed (same as shell_primary_action).
-  if ($current_user->isAuthenticated()
-    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_event_studio.create', [])) {
-    try {
-      $variables['page']['quick_actions'][] = [
-        '#type' => 'link',
-        '#title' => t('+ Create Event'),
-        '#url' => \Drupal\Core\Url::fromRoute('myeventlane_event_studio.create'),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--primary', 'mel-header__action-btn'],
-        ],
-      ];
-    }
-    catch (\Throwable) {
-    }
-  }
+  // Create Event is rendered once via shell_primary_action in layout/page.html.twig.
+  // Do not duplicate in quick_actions (legacy header strip).
 
   // --- Vendor Alert Strip (STAGE A: data model, stub logic) ---
   // Exposes $page['vendor_alert'] when an alert applies. Only ONE alert at a time.
@@ -767,6 +753,19 @@ function _myeventlane_vendor_theme_event_studio_routes(): array {
     'myeventlane_event_studio.workspace_analytics',
     'myeventlane_event_studio.workspace_settings',
   ];
+}
+
+/**
+ * Whether the account is staff/support for legacy vendor workspace chrome.
+ *
+ * Mirrors VendorLegacyWizardRedirectSubscriber staff bypass: vendors are
+ * redirected to Event Studio; staff may still use workspace tabs.
+ */
+function _myeventlane_vendor_theme_is_vendor_workspace_staff(\Drupal\Core\Session\AccountInterface $account): bool {
+  if (!$account->isAuthenticated()) {
+    return FALSE;
+  }
+  return $account->hasPermission('administer nodes') || (int) $account->id() === 1;
 }
 
 /**
@@ -1279,6 +1278,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'extras_configured_panel' => NULL,
         'extras_sales_panel' => NULL,
         'manage_event_back' => NULL,
+        'show_workspace_tabs' => TRUE,
       ],
       'template' => 'mel-event/mel-event-workspace',
     ],
@@ -1609,6 +1609,16 @@ function myeventlane_vendor_theme_preprocess_mel_event_workspace(array &$variabl
         '@nid' => (string) $event->id(),
         '@message' => $e->getMessage(),
       ]);
+    }
+  }
+
+  // Vendors use Event Studio navigation; staff retain workspace tab chrome.
+  $account = \Drupal::currentUser();
+  $variables['show_workspace_tabs'] = _myeventlane_vendor_theme_is_vendor_workspace_staff($account);
+  if (!$variables['show_workspace_tabs']) {
+    $variables['tabs'] = [];
+    if (isset($variables['vendor_event_workspace_model']) && is_array($variables['vendor_event_workspace_model'])) {
+      unset($variables['vendor_event_workspace_model']['tabs']);
     }
   }
 }

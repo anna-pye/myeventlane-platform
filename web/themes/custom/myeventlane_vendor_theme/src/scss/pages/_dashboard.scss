@@ -506,16 +506,17 @@
   }
 }
 
-.mel-workspace-page {
+// Legacy vendor-console workspace shell: main + right rail (vendor-console-page.html.twig).
+// Mobile-first — full-width stack below lg; sidebar rail only at desktop.
+.mel-console-page__layout--workspace {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 24px;
-  min-height: 600px;
-  background: #ffffff;
-}
+  min-width: 0;
+  width: 100%;
 
-@include respond-to(lg) {
-  .mel-workspace-page {
-    grid-template-columns: 1fr;
+  @include respond-to(lg) {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
   }
 }
