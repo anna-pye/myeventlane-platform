@@ -289,6 +289,30 @@ final class BusinessNotificationTriggerService {
     );
   }
 
+  public function onEventApproved(NodeInterface $event): void {
+    if ($event->bundle() !== 'event') {
+      return;
+    }
+    $vendorUid = $this->audienceResolver->resolveEventOrganiserUid($event);
+    if ($vendorUid === NULL) {
+      return;
+    }
+    $this->queueNotification(
+      [$vendorUid],
+      NotificationContext::BUSINESS,
+      NotificationDomain::EVENT_UPDATES,
+      MelNotification::PRIORITY_HIGH,
+      65,
+      (string) $this->translation->translate('Event approved'),
+      (string) $this->translation->translate('Your event @event has been approved.', ['@event' => $event->label()]),
+      'event_approved',
+      'event_approved:' . $event->id(),
+      (string) $this->translation->translate('Open event'),
+      'myeventlane_vendor.console.event_editor',
+      ['event' => (int) $event->id()],
+    );
+  }
+
   public function onWaitlistPromotedAttendee(int $attendeeUid, NodeInterface $event): void {
     if ($attendeeUid < 1) {
       return;

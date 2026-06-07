@@ -9,6 +9,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
+use Drupal\myeventlane_notifications\Service\BusinessNotificationTriggerService;
 use Drupal\node\NodeInterface;
 use Drupal\workspaces\WorkspaceManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -27,6 +28,7 @@ final class AdminApproveDeployEventForm extends FormBase {
     private readonly WorkspaceManagerInterface $workspaceManager,
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
+    private readonly ?BusinessNotificationTriggerService $businessNotificationTrigger = NULL,
   ) {}
 
   /**
@@ -38,6 +40,9 @@ final class AdminApproveDeployEventForm extends FormBase {
       $container->get('workspaces.manager'),
       $container->get('myeventlane_messaging.manager'),
       $container->get('logger.channel.myeventlane_admin_dashboard'),
+      $container->has('myeventlane_notifications.business_trigger')
+        ? $container->get('myeventlane_notifications.business_trigger')
+        : NULL,
     );
   }
 
@@ -118,6 +123,12 @@ final class AdminApproveDeployEventForm extends FormBase {
         '@nid' => $event_id,
       ]);
       $this->queueVendorApprovalNotification($event_id);
+      if ($this->businessNotificationTrigger !== NULL) {
+        $approvedEvent = $this->entityTypeManager->getStorage('node')->load($event_id);
+        if ($approvedEvent instanceof NodeInterface) {
+          $this->businessNotificationTrigger->onEventApproved($approvedEvent);
+        }
+      }
       $this->messenger()->addStatus($this->t('Event approved in Admin Review.'));
     }
     catch (\Throwable $exception) {

@@ -32,6 +32,27 @@ function myeventlane_notifications_preprocess_site_header(array &$variables): vo
 }
 
 /**
+ * Implements hook_theme_registry_alter().
+ *
+ * Registers module preprocess for the theme-owned site_header hook.
+ */
+function myeventlane_notifications_theme_registry_alter(array &$theme_registry): void {
+  if (!isset($theme_registry['site_header'])) {
+    return;
+  }
+  $function = 'myeventlane_notifications_preprocess_site_header';
+  if (!function_exists($function)) {
+    return;
+  }
+  if (!isset($theme_registry['site_header']['preprocess functions'])) {
+    $theme_registry['site_header']['preprocess functions'] = [];
+  }
+  if (!in_array($function, $theme_registry['site_header']['preprocess functions'], TRUE)) {
+    $theme_registry['site_header']['preprocess functions'][] = $function;
+  }
+}
+
+/**
  * Implements hook_preprocess_page().
  *
  * Injects the notification bell for the vendor console theme (no block plugin).
@@ -147,10 +168,20 @@ function myeventlane_notifications_entity_insert(EntityInterface $entity): void 
 function myeventlane_notifications_entity_update(EntityInterface $entity): void {
   if ($entity instanceof NodeInterface) {
     \Drupal::service('myeventlane_notifications.trigger')->onNodeUpdate($entity);
+    if ($entity->bundle() === 'event') {
+      $original = $entity->original ?? NULL;
+      if ($original instanceof NodeInterface && $entity->isPublished() && $original->isPublished()) {
+        \Drupal::service('myeventlane_notifications.personal_trigger')->onEventUpdated($entity, $original);
+      }
+    }
     return;
   }
   if ($entity->getEntityTypeId() === 'event_attendee') {
     myeventlane_notifications_on_event_attendee_update($entity);
+    return;
+  }
+  if ($entity->getEntityTypeId() === 'myeventlane_ticket') {
+    myeventlane_notifications_on_ticket_assigned($entity);
   }
 }
 
@@ -233,6 +264,24 @@ function myeventlane_notifications_on_event_attendee_update(EntityInterface $ent
     $businessTrigger->onWaitlistPromotedAttendee($attendeeUid, $event);
     $businessTrigger->onWaitlistPromotedVendor($event, (int) $entity->id());
   }
+}
+
+/**
+ * Personal order update when a ticket is assigned to a holder.
+ */
+function myeventlane_notifications_on_ticket_assigned(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'myeventlane_ticket') {
+    return;
+  }
+  if (!class_exists(\Drupal\myeventlane_tickets\Entity\Ticket::class)) {
+    return;
+  }
+  if (!$entity instanceof \Drupal\myeventlane_tickets\Entity\Ticket) {
+    return;
+  }
+  $original = $entity->original ?? NULL;
+  $originalTicket = $original instanceof \Drupal\myeventlane_tickets\Entity\Ticket ? $original : NULL;
+  \Drupal::service('myeventlane_notifications.personal_trigger')->onTicketAssigned($entity, $originalTicket);
 }
 
 /**

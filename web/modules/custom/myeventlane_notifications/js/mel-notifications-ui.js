@@ -218,8 +218,15 @@
       badge.removeAttribute('aria-hidden');
     }
     if (data && typeof Drupal !== 'undefined' && Drupal.t) {
-      var label = Drupal.t('@count unread notifications', { '@count': n });
-      if (data.personal !== undefined && data.business !== undefined) {
+      var label;
+      if (data.bell_context === 'business') {
+        label = Drupal.t('@count unread (@business business, @platform platform)', {
+          '@count': n,
+          '@business': data.business || 0,
+          '@platform': data.platform || 0,
+        });
+      }
+      else {
         label = Drupal.t('@count unread (@personal personal, @platform platform)', {
           '@count': n,
           '@personal': data.personal || 0,

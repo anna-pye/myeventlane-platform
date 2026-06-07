@@ -257,14 +257,6 @@ function myeventlane_notifications_update_11005(): string {
 }
 
 /**
- * Builds a table spec fragment for Schema::addIndex() on MySQL (Drupal 11).
- *
- * @param string[] $columns
- *   Indexed column names in order.
- * @param string $index_name
- *   Index name (must match the $name argument to addIndex()).
- */
-/**
  * Context-aware notification fields and backfill for existing rows.
  */
 function myeventlane_notifications_update_11006(): string {
@@ -359,6 +351,26 @@ function myeventlane_notifications_update_11007(): string {
   return (string) t('Added critical priority to MEL notifications.');
 }
 
+/**
+ * Ensures authenticated users can access the customer-facing notification bell.
+ */
+function myeventlane_notifications_update_11008(): string {
+  $role = Role::load('authenticated');
+  if ($role instanceof Role && !$role->hasPermission('access myeventlane notifications')) {
+    $role->grantPermission('access myeventlane notifications');
+    $role->save();
+  }
+  return (string) t('Granted notification bell access to authenticated users.');
+}
+
+/**
+ * Builds a table spec fragment for Schema::addIndex() on MySQL (Drupal 11).
+ *
+ * @param string[] $columns
+ *   Indexed column names in order.
+ * @param string $index_name
+ *   Index name (must match the $name argument to addIndex()).
+ */
 function _myeventlane_notifications_delivery_index_spec(array $columns, string $index_name): array {
   $definitions = [
     'recipient_uid_target_id' => [

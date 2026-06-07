@@ -156,6 +156,34 @@ final class NotificationTaxonomy {
         'context' => NotificationContext::BUSINESS,
         'domain' => NotificationDomain::EVENT_UPDATES,
       ],
+      'event_updated_schedule' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::EVENT_UPDATES,
+      ],
+      'event_updated_venue' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::EVENT_UPDATES,
+      ],
+      'event_updated_schedule_venue' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::EVENT_UPDATES,
+      ],
+      'event_cancelled' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::EVENT_UPDATES,
+      ],
+      'ticket_reassigned' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::ORDERS,
+      ],
+      'event_reminder_24h' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::REMINDERS,
+      ],
+      'event_reminder_1h' => [
+        'context' => NotificationContext::PERSONAL,
+        'domain' => NotificationDomain::REMINDERS,
+      ],
       default => NULL,
     };
   }
@@ -288,6 +316,7 @@ final class NotificationTaxonomy {
       NotificationDomain::TICKETS => NotificationPreferenceService::PERSONAL_TICKET_PURCHASES,
       NotificationDomain::ORDERS => NotificationPreferenceService::PERSONAL_ORDER_UPDATES,
       NotificationDomain::REMINDERS => NotificationPreferenceService::PERSONAL_EVENT_REMINDERS,
+      NotificationDomain::EVENT_UPDATES => NotificationPreferenceService::PERSONAL_ORDER_UPDATES,
       default => NotificationPreferenceService::PERSONAL_ORDER_UPDATES,
     };
   }

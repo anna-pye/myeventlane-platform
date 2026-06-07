@@ -58,6 +58,7 @@ final class NotificationDomain {
         self::TICKETS,
         self::ORDERS,
         self::REMINDERS,
+        self::EVENT_UPDATES,
       ],
       NotificationContext::BUSINESS => [
         self::SALES,

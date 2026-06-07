@@ -923,6 +923,18 @@ final class NotificationSystemKernelTest extends KernelTestBase {
     $this->assertSame(NotificationDomain::FOLLOWERS, $follower['domain']);
   }
 
+  public function testStage2TriggerActionContexts(): void {
+    $eventUpdated = NotificationTaxonomy::fromActionContext('event_updated_schedule');
+    $this->assertSame(NotificationContext::PERSONAL, $eventUpdated['context']);
+    $this->assertSame(NotificationDomain::EVENT_UPDATES, $eventUpdated['domain']);
+
+    $approved = NotificationTaxonomy::fromActionContext('event_approved');
+    $this->assertSame(NotificationContext::BUSINESS, $approved['context']);
+
+    $reminder = NotificationTaxonomy::fromActionContext('event_reminder_1h');
+    $this->assertSame(NotificationDomain::REMINDERS, $reminder['domain']);
+  }
+
   public function testRefundTriggerServiceExists(): void {
     $this->assertTrue($this->container->has('myeventlane_notifications.refund_trigger'));
     $service = $this->container->get('myeventlane_notifications.refund_trigger');

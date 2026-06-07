@@ -160,10 +160,17 @@
 
   &__organiser,
   &__cart,
+  &__notifications,
   &__user {
     display: flex;
     align-items: center;
     min-height: 40px;
+  }
+
+  &__notifications {
+    .mel-notif-bell {
+      display: inline-flex;
+    }
   }
 
   &__organiser {
