@@ -1511,10 +1511,6 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       }
     }
 
-    if (count($recs) < 3 && empty($boost['active']) && $boost_page_url !== NULL) {
-      $recs[] = (string) $this->t('Consider boosting your event to increase visibility.');
-    }
-
     if (count($recs) < 3 && $isTickets && $this->countTicketsSoldFromTiers($ticketRows) === 0 && $public_event_url !== NULL) {
       $recs[] = (string) $this->t('Share your public event link to start driving ticket sales.');
     }

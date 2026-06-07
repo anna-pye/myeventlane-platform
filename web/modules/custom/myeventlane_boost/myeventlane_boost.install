@@ -536,3 +536,95 @@ function myeventlane_boost_update_10008(): string {
     '@daily_renamed' => $daily_renamed,
   ]);
 }
+
+/**
+ * Re-run listing aggregate migration for rows missed by created-only window.
+ *
+ * Update 10008 only selected listing rows with created >= bug window. Rows opened
+ * earlier via BoostClickTracker but receiving misattributed homepage impressions
+ * during the window were skipped. This hook uses stats_log occurred_at to find
+ * those boost_order_item_id values and migrate any remaining listing rows.
+ */
+function myeventlane_boost_update_10009(): string {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if (!$schema->tableExists('myeventlane_boost_stats')) {
+    return 'Skipped Boost listing placement follow-up: myeventlane_boost_stats missing.';
+  }
+
+  $window_start = 1780650187;
+
+  $listing_boost_item_ids = [];
+  if ($schema->tableExists('myeventlane_boost_stats_log')) {
+    $listing_boost_item_ids = $database->select('myeventlane_boost_stats_log', 'l')
+      ->fields('l', ['boost_order_item_id'])
+      ->condition('placement', 'listing')
+      ->condition('occurred_at', $window_start, '>=')
+      ->distinct()
+      ->execute()
+      ->fetchCol();
+    $listing_boost_item_ids = array_values(array_filter(
+      array_map('intval', $listing_boost_item_ids),
+      static fn (int $id): bool => $id > 0,
+    ));
+  }
+
+  $listing_query = $database->select('myeventlane_boost_stats', 's')
+    ->fields('s')
+    ->condition('placement', 'listing');
+
+  if ($listing_boost_item_ids !== []) {
+    $or = $listing_query->orConditionGroup()
+      ->condition('created', $window_start, '>=')
+      ->condition('boost_order_item_id', $listing_boost_item_ids, 'IN');
+    $listing_query->condition($or);
+  }
+  else {
+    $listing_query->condition('created', $window_start, '>=');
+  }
+
+  $listing_rows = $listing_query->execute()->fetchAll();
+
+  $stats_merged = 0;
+  $stats_renamed = 0;
+
+  foreach ($listing_rows as $listing_row) {
+    $homepage_row = $database->select('myeventlane_boost_stats', 'h')
+      ->fields('h')
+      ->condition('boost_order_item_id', $listing_row->boost_order_item_id)
+      ->condition('placement', 'homepage_discover')
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
+
+    if ($homepage_row) {
+      $database->update('myeventlane_boost_stats')
+        ->fields([
+          'impressions' => (int) $homepage_row->impressions + (int) $listing_row->impressions,
+          'clicks' => (int) $homepage_row->clicks + (int) $listing_row->clicks,
+          'created' => min((int) $homepage_row->created, (int) $listing_row->created),
+          'changed' => max((int) $homepage_row->changed, (int) $listing_row->changed),
+        ])
+        ->condition('id', $homepage_row->id)
+        ->execute();
+
+      $database->delete('myeventlane_boost_stats')
+        ->condition('id', $listing_row->id)
+        ->execute();
+      $stats_merged++;
+    }
+    else {
+      $database->update('myeventlane_boost_stats')
+        ->fields(['placement' => 'homepage_discover'])
+        ->condition('id', $listing_row->id)
+        ->execute();
+      $stats_renamed++;
+    }
+  }
+
+  return (string) t('Boost listing placement follow-up: @stats_merged aggregate rows merged, @stats_renamed renamed.', [
+    '@stats_merged' => $stats_merged,
+    '@stats_renamed' => $stats_renamed,
+  ]);
+}

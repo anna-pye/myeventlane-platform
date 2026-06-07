@@ -217,6 +217,52 @@ final class BoostDecisionSupportServiceTest extends UnitTestCase {
   }
 
   /**
+   * RSVP health uses donation revenue when ticket revenue is absent.
+   */
+  public function testRsvpHealthUsesDonationRevenue(): void {
+    $result = $this->service->build(
+      [
+        'spend' => '$40.00',
+        'impressions' => 250,
+        'clicks' => 45,
+        'ctr' => 0.18,
+        'revenue_during_boost' => 0.0,
+        'rsvps_during_boost' => 12,
+        'donation_revenue_during_boost' => 120.0,
+        'donation_revenue_during_boost_formatted' => '$120.00',
+      ],
+      ['active' => TRUE],
+      FALSE,
+      TRUE,
+      ['show' => FALSE, 'cards' => []],
+    );
+
+    $this->assertSame('excellent', $result['health']['score']);
+  }
+
+  /**
+   * BoostMetricsService placement recommendations are merged into decision support.
+   */
+  public function testMetricsRecommendationsMerged(): void {
+    $recs = $this->service->buildRecommendations(
+      [
+        'spend' => '$10.00',
+        'impressions' => 80,
+        'clicks' => 10,
+        'ctr' => 0.125,
+        'recommendations' => ['Category placements outperformed homepage for this event.'],
+      ],
+      ['active' => TRUE],
+      TRUE,
+      FALSE,
+      ['show' => FALSE, 'cards' => []],
+      NULL,
+    );
+
+    $this->assertContains('Category placements outperformed homepage for this event.', $recs);
+  }
+
+  /**
    * Placement winner is hidden when data is insufficient.
    */
   public function testPlacementWinnerHiddenWithInsufficientData(): void {
