@@ -19,10 +19,13 @@ use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
+use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
+use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -48,6 +51,8 @@ final class EventStudioController extends ControllerBase {
     private readonly EventStudioEmptyStateBuilder $emptyStateBuilder,
     private readonly DomainDetector $domainDetector,
     private readonly EventStudioPreprocess $eventStudioPreprocess,
+    private readonly BoostStatusService $boostStatusService,
+    private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
     $this->entityTypeManager = $entity_type_manager;
   }
@@ -67,6 +72,8 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.empty_state_builder'),
       $container->get('myeventlane_core.domain_detector'),
       $container->get('myeventlane_event_studio.preprocess'),
+      $container->get('myeventlane_vendor.service.boost_status'),
+      $container->get('myeventlane_boost.extension_recommendation'),
     );
   }
 
@@ -209,6 +216,13 @@ final class EventStudioController extends ControllerBase {
       $publish_handoff = $this->eventStudioPreprocess->buildPublishSuccessHandoff($node);
     }
 
+    $boost = $this->buildBoostWorkspacePayload($node, $account);
+    $boost_extension_recommendation = $this->boostExtensionRecommendation?->getRecommendation($node);
+    $attached_libraries = ['myeventlane_event_studio/mel_event_studio_shell_only'];
+    if ($boost !== NULL || $boost_extension_recommendation !== NULL) {
+      $attached_libraries[] = 'myeventlane_boost/boost_visibility';
+    }
+
     $this->logger->debug('Event Studio workspace render: route=@route event_id=@eid section=@section plugin=@plugin render_target=@target section_content_keys=@keys', [
       '@route' => $routeName,
       '@eid' => (string) $node->id(),
@@ -229,9 +243,11 @@ final class EventStudioController extends ControllerBase {
       '#section_content' => $sectionContent,
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
       '#readiness' => $this->buildReadinessSummary($readiness),
+      '#boost' => $boost,
+      '#boost_extension_recommendation' => $boost_extension_recommendation,
       '#publish_handoff' => $publish_handoff,
       '#attached' => [
-        'library' => ['myeventlane_event_studio/mel_event_studio_shell_only'],
+        'library' => $attached_libraries,
         'drupalSettings' => [
           'myeventlaneEventStudio' => [
             'autosaveUrl' => Url::fromRoute('myeventlane_event_studio.autosave')->toString(),
@@ -362,6 +378,47 @@ final class EventStudioController extends ControllerBase {
       return (string) $this->t('Needs Attention');
     }
     return (string) $this->t('Ready');
+  }
+
+  /**
+   * Builds boost visibility payload for the workspace shell when active.
+   *
+   * @return array<string, mixed>|null
+   *   Boost card data, or NULL when boost is not active.
+   */
+  private function buildBoostWorkspacePayload(NodeInterface $node, AccountInterface $account): ?array {
+    $visibility = $this->boostStatusService->getVisibilityPayload($node);
+    if (empty($visibility['active'])) {
+      return NULL;
+    }
+
+    $analyticsUrl = $this->safeRouteUrl('myeventlane_event_studio.workspace_analytics', ['node' => $node->id()], $account);
+    if ($analyticsUrl === '') {
+      $analyticsUrl = $this->safeRouteUrl('myeventlane_vendor.console.event_analytics', ['event' => $node->id()], $account);
+    }
+
+    return [
+      'active' => TRUE,
+      'days_remaining' => $visibility['days_remaining'],
+      'expires' => $visibility['expires'],
+      'analytics_url' => $analyticsUrl,
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $parameters
+   */
+  private function safeRouteUrl(string $routeName, array $parameters, AccountInterface $account): string {
+    try {
+      $url = Url::fromRoute($routeName, $parameters);
+      if (!$url->access($account)) {
+        return '';
+      }
+      return $url->toString();
+    }
+    catch (\Throwable) {
+      return '';
+    }
   }
 
 }

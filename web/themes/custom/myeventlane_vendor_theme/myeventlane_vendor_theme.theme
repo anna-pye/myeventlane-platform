@@ -1372,6 +1372,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'boost_performance_section' => [],
         'boost_decision_support' => [],
         'boost_performance_level' => [],
+        'boost_extension_recommendation' => NULL,
         'boost_action_engine' => [],
         'boost_trend_intelligence' => [],
         'placement_performance_section' => [],

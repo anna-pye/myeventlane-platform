@@ -1,0 +1,60 @@
+{#
+/**
+ * @file
+ * Contextual Boost extension / restart recommendation (Phase 11C).
+ *
+ * Variables:
+ * - recommendation: payload from BoostExtensionRecommendationService
+ * - variant: compact|card|studio (default card)
+ * - boost: optional visibility payload for compact expiry copy
+ */
+#}
+{% set rec = recommendation|default(null) %}
+{% if rec and rec.cta_url|default('') %}
+  {% set variant = variant|default('card') %}
+  {% set boost = boost|default({}) %}
+  {% if variant == 'compact' %}
+    <div class="mel-boost-extension-card mel-boost-extension-card--compact">
+      <p class="mel-boost-extension-card__compact-text">
+        {% if rec.type == 'extend' and boost.days_remaining is not null %}
+          {{ '🚀 Boost ends in @count days'|t({'@count': boost.days_remaining}) }}
+        {% else %}
+          {{ rec.title }}
+        {% endif %}
+      </p>
+      <a
+        class="mel-btn mel-btn--primary mel-boost-extension-card__cta"
+        href="{{ rec.cta_url }}"
+        aria-label="{{ rec.cta_label }} — {{ rec.title }}"
+      >{{ rec.cta_label }}</a>
+    </div>
+  {% elseif variant == 'studio' %}
+    <div class="mel-boost-extension-card mel-boost-extension-card--studio">
+      <div class="mel-boost-extension-card__content">
+        <h3 class="mel-boost-extension-card__title">{{ rec.title }}</h3>
+        {% if rec.body %}
+          <p class="mel-boost-extension-card__body">{{ rec.body }}</p>
+        {% endif %}
+      </div>
+      <a
+        class="mel-btn mel-btn--primary mel-boost-extension-card__cta"
+        href="{{ rec.cta_url }}"
+        aria-label="{{ rec.cta_label }} — {{ rec.title }}"
+      >{{ rec.cta_label }}</a>
+    </div>
+  {% else %}
+    <article class="mel-boost-extension-card mel-boost-extension-card--card" aria-labelledby="mel-boost-extension-title">
+      <div class="mel-boost-extension-card__content">
+        <h2 id="mel-boost-extension-title" class="mel-boost-extension-card__title">{{ rec.title }}</h2>
+        {% if rec.body %}
+          <p class="mel-boost-extension-card__body">{{ rec.body }}</p>
+        {% endif %}
+      </div>
+      <a
+        class="mel-btn mel-btn--primary mel-boost-extension-card__cta"
+        href="{{ rec.cta_url }}"
+        aria-label="{{ rec.cta_label }} — {{ rec.title }}"
+      >{{ rec.cta_label }}</a>
+    </article>
+  {% endif %}
+{% endif %}

@@ -43,6 +43,20 @@ function myeventlane_boost_theme(): array {
       'template' => 'boost-event-page',
       'path' => $module_path . '/templates',
     ],
+    'boost_purchase_success' => [
+      'variables' => [
+        'event' => NULL,
+        'order' => NULL,
+        'boost_days' => 0,
+        'plan_label' => '',
+        'expiry_date' => '',
+        'workspace_url' => '',
+        'event_url' => '',
+        'analytics_url' => '',
+      ],
+      'template' => 'boost-purchase-success',
+      'path' => $module_path . '/templates',
+    ],
     'boost_performance_guide_pdf' => [
       'variables' => [
         'content' => [],

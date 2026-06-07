@@ -21,6 +21,7 @@ use Drupal\node\NodeInterface;
 use Drupal\myeventlane_boost\Service\BoostActionEngineService;
 use Drupal\myeventlane_boost\Service\BoostBenchmarkService;
 use Drupal\myeventlane_boost\Service\BoostDecisionSupportService;
+use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
 use Drupal\myeventlane_boost\Service\BoostPerformanceLevelService;
 use Drupal\myeventlane_boost\Service\BoostTrendIntelligenceService;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -58,6 +59,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     private readonly ?BoostPerformanceLevelService $boostPerformanceLevel = NULL,
     private readonly ?BoostActionEngineService $boostActionEngine = NULL,
     private readonly ?BoostBenchmarkService $boostBenchmark = NULL,
+    private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -373,6 +375,8 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
 
     $has_boost_metrics = $boost_performance_section['show_metrics'];
 
+    $boost_extension_recommendation = $this->boostExtensionRecommendation?->getRecommendation($event);
+
     return $this->buildVendorPage('mel_event_workspace', [
       'event' => $event,
       'tabs' => $tabs,
@@ -407,6 +411,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         '#boost_performance_section' => $boost_performance_section,
         '#boost_decision_support' => $boost_decision_support,
         '#boost_performance_level' => $boost_performance_level,
+        '#boost_extension_recommendation' => $boost_extension_recommendation,
         '#boost_action_engine' => $boost_action_engine,
         '#boost_trend_intelligence' => $boost_trend_intelligence,
         '#placement_performance_section' => $placement_performance_section,
@@ -425,6 +430,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       '#attached' => [
         'library' => [
           'myeventlane_vendor_theme/analytics',
+          'myeventlane_boost/boost_visibility',
         ],
         'drupalSettings' => [
           'vendorCharts' => $chart_data,

@@ -258,6 +258,12 @@
       <h2 id="mel-analytics-boost-title" class="mel-live-ops__panel-title">{{ 'Boost performance'|t }}</h2>
       <p class="mel-live-ops__panel-intro">{{ boost_perf.intro|default('Boost puts your event in front of more people.'|t) }}</p>
     </div>
+    {% if boost_extension_recommendation %}
+      {% include '@myeventlane_vendor_theme/components/mel-boost-extension-card.html.twig' with {
+        recommendation: boost_extension_recommendation,
+        variant: 'card',
+      } only %}
+    {% endif %}
     {% include '@myeventlane_vendor_theme/components/mel-boost-performance-level.html.twig' with {
       boost_performance_level: boost_level,
     } only %}

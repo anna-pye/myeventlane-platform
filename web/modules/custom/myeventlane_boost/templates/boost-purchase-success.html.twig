@@ -1,0 +1,72 @@
+{#
+/**
+ * @file
+ * Boost purchase success page after Commerce checkout.
+ *
+ * Variables:
+ * - event: Target event node.
+ * - order: Completed boost-only Commerce order.
+ * - boost_days: Purchased boost duration in days.
+ * - plan_label: Purchased boost plan label.
+ * - expiry_date: Formatted boost expiry date when active.
+ * - workspace_url: Vendor Event Studio workspace URL.
+ * - event_url: Public event page URL.
+ * - analytics_url: Vendor analytics URL.
+ */
+#}
+<div
+  class="mel-boost-success"
+  data-mel-boost-success-auto-redirect
+  {% if workspace_url %}data-mel-boost-success-redirect-url="{{ workspace_url|e('html_attr') }}"{% endif %}
+  data-mel-boost-success-redirect-delay="8000"
+  role="region"
+  aria-labelledby="mel-boost-success-title"
+>
+  <article class="mel-boost-success__card">
+    <div class="mel-boost-success__icon" aria-hidden="true">🚀</div>
+    <h1 id="mel-boost-success-title" class="mel-boost-success__title">{{ 'Your event is now being promoted'|t }}</h1>
+    <p class="mel-boost-success__lede">
+      {{ 'Your Boost is active and performance tracking is collecting data.'|t }}
+    </p>
+
+    <dl class="mel-boost-success__details">
+      {% if plan_label %}
+        <div class="mel-boost-success__detail">
+          <dt>{{ 'Plan'|t }}</dt>
+          <dd>{{ plan_label }}</dd>
+        </div>
+      {% endif %}
+      <div class="mel-boost-success__detail">
+        <dt>{{ 'Duration'|t }}</dt>
+        <dd>
+          {% if boost_days == 1 %}
+            {{ '1 day'|t }}
+          {% else %}
+            {{ '@count days'|t({'@count': boost_days}) }}
+          {% endif %}
+        </dd>
+      </div>
+      {% if expiry_date %}
+        <div class="mel-boost-success__detail">
+          <dt>{{ 'Expires'|t }}</dt>
+          <dd>{{ expiry_date }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+
+    <div class="mel-boost-success__actions">
+      {% if event_url %}
+        <a href="{{ event_url }}" class="mel-btn mel-btn--primary">{{ 'View Event'|t }}</a>
+      {% endif %}
+      {% if analytics_url %}
+        <a href="{{ analytics_url }}" class="mel-btn mel-btn--secondary">{{ 'View Analytics'|t }}</a>
+      {% endif %}
+    </div>
+
+    {% if workspace_url %}
+      <p class="mel-boost-success__redirect-note" aria-live="polite">
+        {{ 'Redirecting to your event workspace in 8 seconds…'|t }}
+      </p>
+    {% endif %}
+  </article>
+</div>

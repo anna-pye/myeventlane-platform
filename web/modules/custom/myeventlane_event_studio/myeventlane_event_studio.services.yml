@@ -15,6 +15,7 @@ services:
       - '@myeventlane_event_studio.empty_state_builder'
       - '@myeventlane_core.domain_detector'
       - '@myeventlane_event_studio.preprocess'
+      - '@myeventlane_vendor.service.boost_status'
     tags:
       - { name: controller.service_arguments }
 

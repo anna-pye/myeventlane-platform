@@ -14,6 +14,8 @@
 @use '../tokens/shadows' as *;
 @use '../tokens/typography' as *;
 
+$mel-dash-lavender: #7c83fd;
+
 .mel-vendor-dashboard {
   .mel-live-ops__split {
     margin-top: 0;
@@ -272,6 +274,62 @@
     border-radius: $radius-lg;
     background: $bg-primary;
     scroll-snap-align: start;
+  }
+
+  &__attention-card--boosted,
+  &__upcoming-card--boosted,
+  &__event-row--boosted {
+    border-color: rgba(245, 192, 76, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(245, 192, 76, 0.18),
+      0 4px 16px rgba(245, 192, 76, 0.1);
+  }
+
+  &__boost-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 $spacing-2;
+    border-radius: 999px;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    border: 1px solid rgba(245, 192, 76, 0.65);
+    background: rgba(245, 192, 76, 0.22);
+    color: $text-primary;
+  }
+
+  &__boost-badge--inline {
+    min-height: 24px;
+    padding: 0 $spacing-2;
+  }
+
+  &__boost-expiry {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__boost-performance {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-bold;
+    color: $mel-dash-lavender;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      color: $ml-vendor-navy;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $mel-dash-lavender;
+      outline-offset: 2px;
+      border-radius: $radius-sm;
+    }
   }
 
   &__upcoming-title {

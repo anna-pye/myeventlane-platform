@@ -14,6 +14,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\Component\Datetime\TimeInterface;
@@ -47,6 +48,8 @@ final class VendorEventIndexViewModelBuilder {
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly VendorEventRemovalService $vendorEventRemovalService,
     private readonly MelReadinessHelper $readinessHelper,
+    private readonly BoostStatusService $boostStatusService,
+    private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -270,9 +273,8 @@ final class VendorEventIndexViewModelBuilder {
 
     $attentionLabel = $this->buildAttentionLabel($status, $eventType, $titleEmpty, $missingDate, $presentationItems);
 
-    $isBoosted = $node->hasField('field_promoted')
-      && !$node->get('field_promoted')->isEmpty()
-      && (bool) $node->get('field_promoted')->value;
+    $boost = $this->boostStatusService->getVisibilityPayload($node);
+    $boostExtensionRecommendation = $this->boostExtensionRecommendation?->getRecommendation($node);
 
     return [
       'nid' => $nid,
@@ -291,6 +293,8 @@ final class VendorEventIndexViewModelBuilder {
       'presentation_issues' => $presentationItems,
       'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
       'removal' => $this->vendorEventRemovalService->buildRemovalUiPayload($node, $account),
+      'boost' => $boost,
+      'boost_extension_recommendation' => $boostExtensionRecommendation,
       'links' => [
         'manage' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_workspace', ['event' => $nid], $account),
         'edit' => $this->routeUrlIfAccessible('myeventlane_event_studio.edit', ['node' => $nid], $account),
@@ -300,7 +304,6 @@ final class VendorEventIndexViewModelBuilder {
         'attendees' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account),
         'analytics' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_analytics', ['event' => $nid], $account),
       ],
-      '_is_boosted' => $isBoosted,
       '_changed' => $node->getChangedTime(),
       '_start_ts' => $startTs,
     ];
@@ -482,7 +485,7 @@ final class VendorEventIndexViewModelBuilder {
       'needs_attention' => !empty($row['needs_attention']),
       'rsvp' => in_array(($row['event_type'] ?? ''), ['rsvp', 'both'], TRUE),
       'paid' => in_array(($row['event_type'] ?? ''), ['paid', 'both'], TRUE),
-      'boosted' => $boostFieldExists && !empty($row['_is_boosted']),
+      'boosted' => !empty($row['boost']['active']),
       default => FALSE,
     };
   }
@@ -520,7 +523,7 @@ final class VendorEventIndexViewModelBuilder {
    * @return array<string, mixed>
    */
   private function stripInternalsRow(array $row): array {
-    unset($row['_is_boosted'], $row['_changed'], $row['_start_ts']);
+    unset($row['_changed'], $row['_start_ts']);
     return $row;
   }
 

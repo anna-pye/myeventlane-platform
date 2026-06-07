@@ -124,6 +124,22 @@ myeventlane_boost.wizard.step5:
         bundle:
           - event
 
+# Post-checkout Boost purchase success (boost-only orders).
+myeventlane_boost.vendor_event_boost_success:
+  path: '/vendor/events/{event}/boost/success'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\BoostPurchaseSuccessController::success'
+    _title: 'Boost activated'
+  requirements:
+    _custom_access: 'myeventlane_boost.boost_route_access:accessVendorWorkspace'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 # Bridge route: add boost variation to cart (redirects to checkout flow).
 myeventlane_boost.bridge_add_to_cart:
   path: '/boost/bridge/{node}'

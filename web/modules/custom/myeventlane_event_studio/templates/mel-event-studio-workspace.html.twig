@@ -17,6 +17,42 @@
     topbar: topbar
   }, with_context = false) }}
 
+  {% if boost is not null and boost.active %}
+    <section class="mel-boost-active-banner" aria-labelledby="mel-boost-active-title">
+      <div class="mel-boost-active-banner__content">
+        <h2 id="mel-boost-active-title" class="mel-boost-active-banner__title">{{ '🚀 Boost Active'|t }}</h2>
+        <p class="mel-boost-active-banner__subtitle">{{ 'Featured across MyEventLane'|t }}</p>
+        {% if boost.days_remaining is not null %}
+          <p class="mel-boost-active-banner__remaining">
+            {% if boost.days_remaining == 1 %}
+              {{ '1 day remaining'|t }}
+            {% else %}
+              {{ '@count days remaining'|t({'@count': boost.days_remaining}) }}
+            {% endif %}
+          </p>
+        {% elseif boost.expires %}
+          <p class="mel-boost-active-banner__remaining">{{ 'Featured until @date'|t({'@date': boost.expires}) }}</p>
+        {% endif %}
+      </div>
+      {% if boost.analytics_url %}
+        <a class="mel-btn mel-btn--secondary mel-boost-active-banner__cta" href="{{ boost.analytics_url }}">{{ 'View Performance'|t }}</a>
+      {% endif %}
+      {% if boost_extension_recommendation %}
+        {% include '@myeventlane_vendor_theme/components/mel-boost-extension-card.html.twig' with {
+          recommendation: boost_extension_recommendation,
+          variant: 'studio',
+        } only %}
+      {% endif %}
+    </section>
+  {% elseif boost_extension_recommendation %}
+    <section class="mel-boost-active-banner mel-boost-active-banner--recommendation-only" aria-labelledby="mel-boost-extension-studio-title">
+      {% include '@myeventlane_vendor_theme/components/mel-boost-extension-card.html.twig' with {
+        recommendation: boost_extension_recommendation,
+        variant: 'studio',
+      } only %}
+    </section>
+  {% endif %}
+
   <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip>
     <div class="mel-event-studio-readiness-strip__summary">
       <strong data-mel-readiness-title>{{ readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t }}</strong>
