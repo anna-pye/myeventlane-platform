@@ -62,6 +62,22 @@ services:
       - '@?myeventlane_capacity.service'
       - '@?myeventlane_commerce.operational_variation_stock_resolver'
 
+  myeventlane_notifications.personal_trigger:
+    class: Drupal\myeventlane_notifications\Service\PersonalNotificationTriggerService
+    arguments:
+      - '@myeventlane_notifications.notification_manager'
+      - '@myeventlane_notifications.audience_resolver'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_notifications'
+      - '@string_translation'
+
+  myeventlane_notifications.reminder_trigger:
+    class: Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService
+    arguments:
+      - '@myeventlane_notifications.notification_manager'
+      - '@logger.channel.myeventlane_notifications'
+      - '@string_translation'
+
   myeventlane_notifications.preference:
     class: Drupal\myeventlane_notifications\Service\NotificationPreferenceService
     arguments:

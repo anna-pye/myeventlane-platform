@@ -8,13 +8,17 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_notifications\Controller\NotificationController;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
 use Drupal\myeventlane_notifications\Entity\MelNotificationDelivery;
+use Drupal\myeventlane_notifications\NotificationContext;
+use Drupal\myeventlane_notifications\NotificationDomain;
 use Drupal\myeventlane_notifications\NotificationFilter;
 use Drupal\myeventlane_notifications\NotificationSurface;
+use Drupal\myeventlane_notifications\NotificationTaxonomy;
 use Drupal\myeventlane_notifications\Plugin\QueueWorker\NotificationDispatchWorker;
 use Drupal\myeventlane_notifications\Service\NotificationAnalyticsService;
 use Drupal\myeventlane_notifications\Service\NotificationDecisionEngine;
 use Drupal\myeventlane_notifications\Service\NotificationPreferenceService;
 use Drupal\myeventlane_notifications\Service\NotificationViewBuilder;
+use Drupal\myeventlane_notifications\Service\RefundNotificationTriggerService;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\User;
@@ -737,6 +741,144 @@ final class NotificationSystemKernelTest extends KernelTestBase {
     $this->assertSame(1, $stats['sent']);
     $this->assertSame(0, $stats['read']);
     $this->assertSame(1, $stats['clicked']);
+  }
+
+  public function testCriticalPriorityIsAllowedValue(): void {
+    $this->installEntitySchema('mel_notification');
+    $notifStorage = $this->container->get('entity_type.manager')->getStorage('mel_notification');
+    /** @var \Drupal\myeventlane_notifications\Entity\MelNotification $notification */
+    $notification = $notifStorage->create([
+      'type' => MelNotification::TYPE_SYSTEM,
+      'title' => 'Security alert',
+      'message' => 'Account locked',
+      'audience_type' => MelNotification::AUDIENCE_ALL,
+      'audience_data' => '{}',
+      'status' => MelNotification::STATUS_DRAFT,
+      'priority' => MelNotification::PRIORITY_CRITICAL,
+      'context' => NotificationContext::PLATFORM,
+      'domain' => NotificationDomain::PLATFORM,
+    ]);
+    $notification->get('channels')->appendItem('toast');
+    $notification->save();
+    $this->assertSame(MelNotification::PRIORITY_CRITICAL, (string) $notification->get('priority')->value);
+  }
+
+  public function testPersonalTabExposesEventUpdatesFilter(): void {
+    $filters = NotificationFilter::filtersForTab(NotificationFilter::TAB_PERSONAL);
+    $this->assertContains(NotificationFilter::FILTER_EVENT_UPDATES, $filters);
+  }
+
+  public function testViewBuilderPrefersRouteNameOverActionUri(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('mel_notification');
+    $this->installConfig(['user']);
+
+    $user = User::create([
+      'name' => 'route_test',
+      'mail' => 'route_test@example.com',
+      'status' => 1,
+    ]);
+    $user->save();
+
+    $notifStorage = $this->container->get('entity_type.manager')->getStorage('mel_notification');
+    /** @var \Drupal\myeventlane_notifications\Entity\MelNotification $notification */
+    $notification = $notifStorage->create([
+      'type' => MelNotification::TYPE_SYSTEM,
+      'title' => 'Profile',
+      'message' => 'Update',
+      'audience_type' => MelNotification::AUDIENCE_ALL,
+      'audience_data' => '{}',
+      'status' => MelNotification::STATUS_DRAFT,
+      'action_label' => 'View profile',
+      'action_uri' => '/legacy-should-not-win',
+      'route_name' => 'entity.user.canonical',
+      'route_parameters' => json_encode(['user' => (int) $user->id()], JSON_THROW_ON_ERROR),
+    ]);
+    $notification->get('channels')->appendItem('toast');
+    $notification->save();
+
+    /** @var \Drupal\myeventlane_notifications\Service\NotificationViewBuilder $vb */
+    $vb = $this->container->get('myeventlane_notifications.view_builder');
+    $action = $vb->buildActionFromNotification($notification);
+    $this->assertNotNull($action);
+    $this->assertStringContainsString('/user/' . $user->id(), (string) $action['url']);
+    $this->assertStringNotContainsString('legacy-should-not-win', (string) $action['url']);
+  }
+
+  public function testBuyerRefundActionContextMapsToPersonalOrders(): void {
+    $mapped = NotificationTaxonomy::fromActionContext('refund_completed_buyer');
+    $this->assertSame(NotificationContext::PERSONAL, $mapped['context']);
+    $this->assertSame(NotificationDomain::ORDERS, $mapped['domain']);
+  }
+
+  public function testBellContextFilteringScopesUnreadCounts(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('mel_notification');
+    $this->installEntitySchema('mel_notification_delivery');
+    $this->installConfig(['user']);
+
+    $user = User::create([
+      'name' => 'bell_ctx',
+      'mail' => 'bell_ctx@example.com',
+      'status' => 1,
+    ]);
+    $user->save();
+
+    $notifStorage = $this->container->get('entity_type.manager')->getStorage('mel_notification');
+    $deliveryStorage = $this->container->get('entity_type.manager')->getStorage('mel_notification_delivery');
+    $now = $this->container->get('datetime.time')->getRequestTime();
+
+    foreach ([
+      [NotificationContext::PERSONAL, NotificationDomain::TICKETS, 'Personal ticket'],
+      [NotificationContext::BUSINESS, NotificationDomain::SALES, 'Business sale'],
+    ] as [$context, $domain, $title]) {
+      /** @var \Drupal\myeventlane_notifications\Entity\MelNotification $notification */
+      $notification = $notifStorage->create([
+        'type' => MelNotification::TYPE_SYSTEM,
+        'title' => $title,
+        'message' => 'M',
+        'audience_type' => MelNotification::AUDIENCE_USER_IDS,
+        'audience_data' => json_encode(['user_ids' => [(int) $user->id()]], JSON_THROW_ON_ERROR),
+        'status' => MelNotification::STATUS_SENT,
+        'context' => $context,
+        'domain' => $domain,
+      ]);
+      $notification->get('channels')->appendItem('toast');
+      $notification->save();
+
+      $deliveryStorage->create([
+        'notification_id' => $notification->id(),
+        'recipient_uid' => $user->id(),
+        'status' => MelNotificationDelivery::STATUS_SENT,
+        'delivered_at' => $now,
+        'surface' => NotificationSurface::BELL_INBOX,
+        'suppressed' => FALSE,
+      ])->save();
+    }
+
+    /** @var \Drupal\myeventlane_notifications\Service\NotificationUserInboxService $inbox */
+    $inbox = $this->container->get('myeventlane_notifications.user_inbox');
+    $this->assertSame(1, $inbox->countUnreadForContexts((int) $user->id(), [NotificationContext::PERSONAL]));
+    $this->assertSame(1, $inbox->countUnreadForContexts((int) $user->id(), [NotificationContext::BUSINESS]));
+    $this->assertSame(2, $inbox->countUnread((int) $user->id()));
+  }
+
+  public function testStage2TriggerActionContexts(): void {
+    $eventUpdated = NotificationTaxonomy::fromActionContext('event_updated_schedule');
+    $this->assertSame(NotificationContext::PERSONAL, $eventUpdated['context']);
+    $this->assertSame(NotificationDomain::EVENT_UPDATES, $eventUpdated['domain']);
+
+    $approved = NotificationTaxonomy::fromActionContext('event_approved');
+    $this->assertSame(NotificationContext::BUSINESS, $approved['context']);
+
+    $reminder = NotificationTaxonomy::fromActionContext('event_reminder_1h');
+    $this->assertSame(NotificationDomain::REMINDERS, $reminder['domain']);
+  }
+
+  public function testRefundTriggerServiceExists(): void {
+    $this->assertTrue($this->container->has('myeventlane_notifications.refund_trigger'));
+    $service = $this->container->get('myeventlane_notifications.refund_trigger');
+    $this->assertInstanceOf(RefundNotificationTriggerService::class, $service);
   }
 
 }

@@ -137,6 +137,7 @@ services:
       - '@date.formatter'
       - '@?myeventlane_rsvp.ics_generator'
       - '@myeventlane_core.domain_detector'
+      - '@?myeventlane_notifications.reminder_trigger'
 
   myeventlane_messaging.unsubscribe_controller:
     class: Drupal\myeventlane_messaging\Controller\UnsubscribeController

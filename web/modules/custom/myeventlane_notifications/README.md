@@ -30,7 +30,9 @@ Allowed values: `low`, `normal`, `high`, `critical`.
 | Service ID | Role |
 |---|---|
 | `myeventlane_notifications.trigger` | Order paid, RSVP, event published |
-| `myeventlane_notifications.business_trigger` | Capacity, stock, boost, followers, waitlist |
+| `myeventlane_notifications.business_trigger` | Capacity, stock, boost, followers, waitlist, event approved |
+| `myeventlane_notifications.personal_trigger` | Event updates, ticket assigned |
+| `myeventlane_notifications.reminder_trigger` | In-app 24h / 1h event reminders |
 | `myeventlane_notifications.refund_trigger` | Refund lifecycle (vendor + buyer) |
 
 Optional cross-module wiring uses `@?myeventlane_notifications.business_trigger` so modules stay bootable when notifications is disabled.

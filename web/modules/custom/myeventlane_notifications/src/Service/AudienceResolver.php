@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
+use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 
 /**
@@ -279,6 +280,74 @@ final class AudienceResolver {
   private function loadActiveUser(int $uid): bool {
     $user = $this->entityTypeManager->getStorage('user')->load($uid);
     return $user instanceof UserInterface && $user->isActive();
+  }
+
+  /**
+   * Returns distinct active UIDs for confirmed ticket holders and RSVP attendees.
+   *
+   * @return list<int>
+   */
+  public function resolveEventAttendeeUserIds(NodeInterface $event): array {
+    $eventId = (int) $event->id();
+    if ($eventId < 1) {
+      return [];
+    }
+
+    $uids = [];
+
+    if ($this->moduleHandler->moduleExists('myeventlane_event_attendees')
+      && $this->database->schema()->tableExists('event_attendee')) {
+      $result = $this->database->select('event_attendee', 'ea')
+        ->fields('ea', ['uid_target_id'])
+        ->condition('ea.event_target_id', $eventId)
+        ->condition('ea.uid_target_id', 0, '>')
+        ->condition('ea.status', ['confirmed', 'checked_in'], 'IN')
+        ->execute();
+      foreach ($result as $row) {
+        $uid = (int) ($row->uid_target_id ?? 0);
+        if ($uid > 0 && $this->loadActiveUser($uid)) {
+          $uids[$uid] = $uid;
+        }
+      }
+    }
+
+    if (!$this->moduleHandler->moduleExists('commerce_order')) {
+      return array_values($uids);
+    }
+
+    $orderItemIds = $this->entityTypeManager->getStorage('commerce_order_item')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('field_target_event', $eventId)
+      ->execute();
+    if ($orderItemIds === []) {
+      return array_values($uids);
+    }
+
+    $processedOrders = [];
+    foreach ($this->entityTypeManager->getStorage('commerce_order_item')->loadMultiple($orderItemIds) as $orderItem) {
+      if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
+        continue;
+      }
+      $orderId = (int) $orderItem->getOrderId();
+      if ($orderId < 1 || isset($processedOrders[$orderId])) {
+        continue;
+      }
+      $processedOrders[$orderId] = TRUE;
+      $order = $this->entityTypeManager->getStorage('commerce_order')->load($orderId);
+      if (!$order instanceof \Drupal\commerce_order\Entity\OrderInterface) {
+        continue;
+      }
+      $state = $order->getState()->getId();
+      if (!in_array($state, ['completed', 'placed', 'fulfilled'], TRUE)) {
+        continue;
+      }
+      $customerId = (int) $order->getCustomerId();
+      if ($customerId > 0 && $this->loadActiveUser($customerId)) {
+        $uids[$customerId] = $customerId;
+      }
+    }
+
+    return array_values($uids);
   }
 
   /**

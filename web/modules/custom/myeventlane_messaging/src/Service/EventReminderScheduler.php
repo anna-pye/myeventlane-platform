@@ -12,6 +12,7 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -42,6 +43,8 @@ final class EventReminderScheduler {
    *   Optional ICS generator for calendar attachments.
    * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
    *   The domain detector (for public-domain customer links).
+   * @param \Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService|null $reminderNotificationTrigger
+   *   Optional in-app reminder trigger.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -52,6 +55,7 @@ final class EventReminderScheduler {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly ?object $icsGenerator = NULL,
     private readonly ?DomainDetector $domainDetector = NULL,
+    private readonly ?ReminderNotificationTriggerService $reminderNotificationTrigger = NULL,
   ) {}
 
   /**
@@ -60,8 +64,9 @@ final class EventReminderScheduler {
   public function scan(): void {
     $now = $this->time->getRequestTime();
 
-    $this->scanReminders($now, 7 * 24 * 3600, 'event_reminder_7d', '7 days');
-    $this->scanReminders($now, 24 * 3600, 'event_reminder_24h', '24 hours');
+    $this->scanReminders($now, 7 * 24 * 3600, 'event_reminder_7d', '7 days', NULL);
+    $this->scanReminders($now, 24 * 3600, 'event_reminder_24h', '24 hours', '24h');
+    $this->scanReminders($now, 3600, NULL, '1 hour', '1h');
   }
 
   /**
@@ -71,12 +76,14 @@ final class EventReminderScheduler {
    *   Current timestamp.
    * @param int $reminderOffset
    *   Seconds before event start.
-   * @param string $template
-   *   Template key (event_reminder_7d or event_reminder_24h).
+   * @param string|null $template
+   *   Email template key, or NULL to skip email (in-app only).
    * @param string $timeframe
-   *   Human-readable timeframe for template.
+   *   Human-readable timeframe for template context.
+   * @param string|null $inAppWindow
+   *   When set (24h or 1h), queues matching in-app reminder notifications.
    */
-  private function scanReminders(int $now, int $reminderOffset, string $template, string $timeframe): void {
+  private function scanReminders(int $now, int $reminderOffset, ?string $template, string $timeframe, ?string $inAppWindow): void {
     $windowStart = $now + $reminderOffset - 3600;
     $windowEnd = $now + $reminderOffset + 3600;
 
@@ -152,44 +159,53 @@ final class EventReminderScheduler {
         }
 
         $orderEmail = $order->getEmail();
-        if (empty($orderEmail)) {
+        $queueEmail = $template !== NULL && $template !== '';
+        if ($queueEmail && empty($orderEmail)) {
           continue;
         }
 
-        $context = $this->buildContext($order, $event, $timeframe);
-        $attachments = [];
+        if ($queueEmail) {
+          $context = $this->buildContext($order, $event, $timeframe);
+          $attachments = [];
 
-        if ($this->icsGenerator && method_exists($this->icsGenerator, 'generate')) {
-          try {
-            $icsContent = $this->icsGenerator->generate($event);
-            if ($icsContent) {
-              $filename = 'event-' . $eventId . '-' . preg_replace('/[^a-z0-9]/i', '-', strtolower($event->label())) . '.ics';
-              $attachments[] = [
-                'filename' => $filename,
-                'content' => $icsContent,
-                'mime' => 'text/calendar',
-              ];
+          if ($this->icsGenerator && method_exists($this->icsGenerator, 'generate')) {
+            try {
+              $icsContent = $this->icsGenerator->generate($event);
+              if ($icsContent) {
+                $filename = 'event-' . $eventId . '-' . preg_replace('/[^a-z0-9]/i', '-', strtolower($event->label())) . '.ics';
+                $attachments[] = [
+                  'filename' => $filename,
+                  'content' => $icsContent,
+                  'mime' => 'text/calendar',
+                ];
+              }
+            }
+            catch (\Throwable $e) {
+              $this->logger->warning('ICS generation failed for event @eid: @msg', [
+                '@eid' => $eventId,
+                '@msg' => $e->getMessage(),
+              ]);
             }
           }
-          catch (\Throwable $e) {
-            $this->logger->warning('ICS generation failed for event @eid: @msg', [
-              '@eid' => $eventId,
-              '@msg' => $e->getMessage(),
-            ]);
-          }
+
+          $this->messagingManager->queue($template, (string) $orderEmail, $context, [
+            'langcode' => $order->language()->getId(),
+            'attachments' => $attachments,
+          ]);
         }
 
-        $this->messagingManager->queue($template, $orderEmail, $context, [
-          'langcode' => $order->language()->getId(),
-          'attachments' => $attachments,
-        ]);
+        if ($inAppWindow !== NULL && $this->reminderNotificationTrigger !== NULL) {
+          $this->reminderNotificationTrigger->onOrderEventReminder($order, $event, $inAppWindow);
+        }
 
         $processedOrders[$orderId] = TRUE;
-        $this->logger->info('Scheduled @template reminder for order @order_id, event @event_id', [
-          '@template' => $template,
-          '@order_id' => $orderId,
-          '@event_id' => $eventId,
-        ]);
+        if ($queueEmail) {
+          $this->logger->info('Scheduled @template reminder for order @order_id, event @event_id', [
+            '@template' => $template,
+            '@order_id' => $orderId,
+            '@event_id' => $eventId,
+          ]);
+        }
       }
     }
   }
