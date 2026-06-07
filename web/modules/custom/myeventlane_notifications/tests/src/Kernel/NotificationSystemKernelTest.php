@@ -17,6 +17,7 @@ use Drupal\myeventlane_notifications\Plugin\QueueWorker\NotificationDispatchWork
 use Drupal\myeventlane_notifications\Service\NotificationAnalyticsService;
 use Drupal\myeventlane_notifications\Service\NotificationDecisionEngine;
 use Drupal\myeventlane_notifications\Service\NotificationPreferenceService;
+use Drupal\myeventlane_notifications\Service\NotificationUserInboxService;
 use Drupal\myeventlane_notifications\Service\NotificationViewBuilder;
 use Drupal\myeventlane_notifications\Service\RefundNotificationTriggerService;
 use Drupal\node\Entity\Node;
@@ -763,9 +764,48 @@ final class NotificationSystemKernelTest extends KernelTestBase {
     $this->assertSame(MelNotification::PRIORITY_CRITICAL, (string) $notification->get('priority')->value);
   }
 
+  public function testCriticalPriorityIsNeverPreferenceSuppressed(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('mel_notification');
+    $this->installConfig(['user']);
+
+    $user = User::create([
+      'name' => 'critical_prefs',
+      'mail' => 'critical_prefs@example.com',
+      'status' => 1,
+    ]);
+    $user->set(NotificationPreferenceService::FIELD_NAME, json_encode([
+      NotificationPreferenceService::PLATFORM_SECURITY => ['enabled' => FALSE, 'surface' => 'inbox_only'],
+    ], JSON_THROW_ON_ERROR));
+    $user->save();
+
+    $notifStorage = $this->container->get('entity_type.manager')->getStorage('mel_notification');
+    /** @var \Drupal\myeventlane_notifications\Entity\MelNotification $notification */
+    $notification = $notifStorage->create([
+      'type' => MelNotification::TYPE_SYSTEM,
+      'title' => 'Security',
+      'message' => 'Alert',
+      'audience_type' => MelNotification::AUDIENCE_ALL,
+      'audience_data' => '{}',
+      'status' => MelNotification::STATUS_DRAFT,
+      'priority' => MelNotification::PRIORITY_CRITICAL,
+      'context' => NotificationContext::PLATFORM,
+      'domain' => NotificationDomain::PLATFORM,
+    ]);
+    $notification->get('channels')->appendItem('toast');
+    $notification->save();
+
+    /** @var \Drupal\myeventlane_notifications\Service\NotificationDecisionEngine $engine */
+    $engine = $this->container->get('myeventlane_notifications.decision_engine');
+    $presentation = $engine->resolveDeliveryPresentation($notification, (int) $user->id());
+    $this->assertFalse($presentation['suppressed']);
+    $this->assertSame(NotificationSurface::TOAST_INBOX, $presentation['surface']);
+  }
+
   public function testPersonalTabExposesEventUpdatesFilter(): void {
     $filters = NotificationFilter::filtersForTab(NotificationFilter::TAB_PERSONAL);
     $this->assertContains(NotificationFilter::FILTER_EVENT_UPDATES, $filters);
+    $this->assertSame(1, count(array_filter($filters, static fn(string $f): bool => $f === NotificationFilter::FILTER_EVENT_UPDATES)));
   }
 
   public function testViewBuilderPrefersRouteNameOverActionUri(): void {
@@ -809,6 +849,16 @@ final class NotificationSystemKernelTest extends KernelTestBase {
     $mapped = NotificationTaxonomy::fromActionContext('refund_completed_buyer');
     $this->assertSame(NotificationContext::PERSONAL, $mapped['context']);
     $this->assertSame(NotificationDomain::ORDERS, $mapped['domain']);
+  }
+
+  public function testEmailTemplateClassificationIncludesPriority(): void {
+    $buyer = NotificationTaxonomy::emailTemplateClassification('refund_completed_buyer');
+    $this->assertSame(NotificationContext::PERSONAL, $buyer['context']);
+    $this->assertSame(NotificationDomain::ORDERS, $buyer['domain']);
+    $this->assertSame(MelNotification::PRIORITY_HIGH, $buyer['priority']);
+
+    $order = NotificationTaxonomy::emailTemplateClassification('order_confirmation');
+    $this->assertSame(MelNotification::PRIORITY_NORMAL, $order['priority']);
   }
 
   public function testBellContextFilteringScopesUnreadCounts(): void {
@@ -861,6 +911,16 @@ final class NotificationSystemKernelTest extends KernelTestBase {
     $this->assertSame(1, $inbox->countUnreadForContexts((int) $user->id(), [NotificationContext::PERSONAL]));
     $this->assertSame(1, $inbox->countUnreadForContexts((int) $user->id(), [NotificationContext::BUSINESS]));
     $this->assertSame(2, $inbox->countUnread((int) $user->id()));
+  }
+
+  public function testBoostAndFollowerActionContexts(): void {
+    $boost = NotificationTaxonomy::fromActionContext('boost_purchased');
+    $this->assertSame(NotificationContext::BUSINESS, $boost['context']);
+    $this->assertSame(NotificationDomain::BOOSTS, $boost['domain']);
+
+    $follower = NotificationTaxonomy::fromActionContext('follower_gained');
+    $this->assertSame(NotificationContext::BUSINESS, $follower['context']);
+    $this->assertSame(NotificationDomain::FOLLOWERS, $follower['domain']);
   }
 
   public function testStage2TriggerActionContexts(): void {
