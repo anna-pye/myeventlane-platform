@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Boost action engine — prioritised next steps with CTAs (Phase 10).
+ *
+ * Variables:
+ * - boost_action_engine: output of BoostActionEngineService::build()
+ */
+#}
+{% if boost_action_engine.show|default(false) and boost_action_engine.actions|default([])|length > 0 %}
+  <div class="mel-analytics__boost-actions" role="region" aria-label="{{ 'Recommended actions'|t }}">
+    <h3 class="mel-analytics__boost-actions-title">{{ 'Recommended actions'|t }}</h3>
+    <ol class="mel-analytics__boost-actions-list">
+      {% for action in boost_action_engine.actions %}
+        <li class="mel-analytics__boost-action mel-analytics__boost-card mel-analytics__boost-card--action mel-analytics__boost-card--{{ action.category|default('growth') }}">
+          <div class="mel-analytics__boost-action-head">
+            <span class="mel-analytics__boost-action-category">{{ action.category|replace({'_': ' '})|title }}</span>
+            <h4 class="mel-analytics__boost-action-title">{{ action.title }}</h4>
+          </div>
+          {% if action.description|default('') is not empty %}
+            <p class="mel-analytics__boost-card-copy">{{ action.description }}</p>
+          {% endif %}
+          {% if action.cta_url|default('') is not empty %}
+            <div class="mel-analytics__boost-action-cta">
+              <a class="mel-btn mel-btn--secondary mel-button mel-button--secondary" href="{{ action.cta_url }}"{% if action.cta_url starts with 'http' %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ action.cta_label }}</a>
+            </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+{% endif %}

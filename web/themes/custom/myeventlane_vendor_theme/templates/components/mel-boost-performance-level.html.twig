@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Boost performance level — single organiser-facing status (Phase 9).
+ *
+ * Variables:
+ * - boost_performance_level: output of BoostPerformanceLevelService::build()
+ */
+#}
+{% if boost_performance_level.show|default(false) %}
+  <article class="mel-analytics__boost-level mel-analytics__boost-card mel-analytics__boost-card--level mel-analytics__boost-card--{{ boost_performance_level.level|default('average') }}" role="status" aria-label="{{ 'Performance level'|t }}">
+    <div class="mel-analytics__boost-card-top">
+      <h3 class="mel-analytics__boost-card-kicker">{{ 'Performance level'|t }}</h3>
+      <span class="mel-badge mel-badge--{{ boost_performance_level.badge|default('muted') }}">{{ boost_performance_level.label }}</span>
+    </div>
+    {% if boost_performance_level.description|default('') is not empty %}
+      <p class="mel-analytics__boost-card-copy">{{ boost_performance_level.description }}</p>
+    {% endif %}
+  </article>
+{% endif %}

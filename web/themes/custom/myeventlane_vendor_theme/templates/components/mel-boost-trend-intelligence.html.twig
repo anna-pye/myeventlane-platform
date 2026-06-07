@@ -1,0 +1,45 @@
+{#
+/**
+ * @file
+ * Boost trend intelligence — compact event-scoped trend cards (Phase 8).
+ *
+ * Variables:
+ * - boost_trend: output of BoostTrendIntelligenceService::analyze()
+ */
+#}
+{% if boost_trend.show|default(false) %}
+  <div class="mel-analytics__boost-trend" role="region" aria-label="{{ 'Trend intelligence'|t }}">
+    <div class="mel-analytics__boost-trend-head">
+      <h3 class="mel-analytics__boost-trend-title">{{ 'Trend intelligence'|t }}</h3>
+      <p class="mel-analytics__boost-trend-intro">{{ 'How this event’s Boost is moving over recent days.'|t }}</p>
+    </div>
+    <div class="mel-analytics__boost-trend-grid">
+      <article class="mel-analytics__boost-card mel-analytics__boost-card--trend mel-analytics__boost-card--{{ boost_trend.status|default('stable') }}">
+        <h4 class="mel-analytics__boost-card-kicker">{{ 'Trend status'|t }}</h4>
+        <p class="mel-analytics__boost-card-score">{{ boost_trend.status_label }}</p>
+      </article>
+      <article class="mel-analytics__boost-card mel-analytics__boost-card--confidence">
+        <h4 class="mel-analytics__boost-card-kicker">{{ 'Confidence'|t }}</h4>
+        <p class="mel-analytics__boost-card-score">
+          <span class="mel-badge mel-badge--{{ boost_trend.confidence.badge|default('muted') }}">{{ boost_trend.confidence.label }}</span>
+        </p>
+      </article>
+      <article class="mel-analytics__boost-card mel-analytics__boost-card--momentum">
+        <h4 class="mel-analytics__boost-card-kicker">{{ 'Momentum'|t }}</h4>
+        <p class="mel-analytics__boost-card-score">{{ boost_trend.momentum }}</p>
+        <p class="mel-analytics__boost-card-copy">{{ boost_trend.momentum_label }}</p>
+      </article>
+      <article class="mel-analytics__boost-card mel-analytics__boost-card--summary">
+        <h4 class="mel-analytics__boost-card-kicker">{{ 'Summary'|t }}</h4>
+        <p class="mel-analytics__boost-card-copy">{{ boost_trend.summary }}</p>
+      </article>
+    </div>
+    {% if has_boost_trend_mini_chart|default(false) %}
+      <div class="mel-analytics__boost-trend-chart">
+        <div class="mel-chart-card__canvas mel-chart-card__canvas--widget mel-chart-card__canvas--trend-mini" data-chart-id="boost-trend-ctr" role="img" aria-label="{{ 'Daily CTR trend chart'|t }}">
+          <canvas height="120"></canvas>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
