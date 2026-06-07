@@ -1,52 +1,154 @@
 {#
 /**
  * @file
- * Boost purchase page — layout and copy; pricing form from BoostSelectForm.
+ * Boost purchase page — matches Boost Your Event redesign.
+ *
+ * Variables:
+ * - event: The event node.
+ * - form: BoostSelectForm render array (or Stripe CTA).
+ * - boost_performance: Optional performance payload.
+ * - edit_url: URL to edit event details.
+ * - vendor_workspace: Whether rendered inside vendor event workspace.
  */
 #}
 {{ attach_library('myeventlane_boost/boost') }}
 
-{# Recommendation badge + default selection use catalog-aware logic in BoostSelectForm. #}
 <div{{ attributes }}>
-  <div class="mel-boost-hero">
-    <h1>{{ '🚀 Boost your event visibility'|t }}</h1>
-    <p>{{ 'Get more views. Sell more tickets. Reach the right audience.'|t }}</p>
-
-    {% if boost_performance and boost_performance.ui and boost_performance.ui.title %}
-      <div class="mel-boost-hero__performance">
-        <p class="mel-boost-hero__perf-title">{{ boost_performance.ui.title }}</p>
-        {% if boost_performance.ui.intro %}
-          <p class="mel-boost-hero__perf-intro">{{ boost_performance.ui.intro }}</p>
-        {% endif %}
+  {# Quick action cards #}
+  <div class="mel-boost-page__actions">
+    <article class="mel-boost-page__action-card mel-boost-page__action-card--boost is-active">
+      <div class="mel-boost-page__action-icon" aria-hidden="true">
+        <svg class="icon-rocket" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2.5c-1.2 3.2-2.5 5.4-4.5 7.4-1.4 1.4-3.1 2.3-5 2.8l1.8 1.8 2.2-.5c1.1 1.8 2.4 3.1 4 4l-.5 2.2 1.8 1.8c.5-1.9 1.4-3.6 2.8-5 2-2 4.2-3.3 7.4-4.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M9.5 14.5 5 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="14" cy="10" r="1.5" fill="currentColor"/>
+        </svg>
       </div>
-    {% else %}
-      <p class="mel-boost-hero__fallback">{{ 'Your event is live — let’s get your first bookings'|t }}</p>
+      <div class="mel-boost-page__action-body">
+        <h2 class="mel-boost-page__action-title">{{ 'Boost your event'|t }}</h2>
+        <p class="mel-boost-page__action-text">{{ 'Increase visibility and reach more attendees'|t }}</p>
+      </div>
+      <span class="mel-boost-page__action-btn mel-boost-page__action-btn--primary">{{ 'Boost event'|t }}</span>
+    </article>
+
+    {% if edit_url %}
+      <a href="{{ edit_url }}" class="mel-boost-page__action-card mel-boost-page__action-card--edit">
+        <div class="mel-boost-page__action-icon" aria-hidden="true">
+          <svg class="icon-sparkle" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="mel-boost-page__action-body">
+          <h2 class="mel-boost-page__action-title">{{ 'Expand your event details'|t }}</h2>
+          <p class="mel-boost-page__action-text">{{ 'Add photos, description, and ticket info'|t }}</p>
+        </div>
+        <span class="mel-boost-page__action-btn mel-boost-page__action-btn--secondary">{{ 'Edit details'|t }}</span>
+      </a>
     {% endif %}
   </div>
 
-  <div class="mel-boost-benefits">
-    <h3>{{ "What you'll get"|t }}</h3>
-    <p class="mel-boost-benefits__intro">{{ 'Boost helps more people discover your event across MyEventLane.'|t }}</p>
-    <ul class="mel-boost-benefits__list">
-      <li>{{ '✓ Featured placement in event discovery'|t }}</li>
-      <li>{{ '✓ Higher visibility in relevant categories'|t }}</li>
-      <li>{{ '✓ Priority placement in search results'|t }}</li>
-      <li>{{ '✓ A Boost badge that helps attendees discover promoted events'|t }}</li>
-      <li>{{ '✓ More opportunities for people to find your event'|t }}</li>
-    </ul>
-    <div class="mel-boost-audience">
-      <h4 class="mel-boost-audience__title">{{ 'Boost is especially useful for:'|t }}</h4>
-      <ul class="mel-boost-audience__list">
-        <li>{{ 'Community events'|t }}</li>
-        <li>{{ 'Fundraisers'|t }}</li>
-        <li>{{ 'Workshops'|t }}</li>
-        <li>{{ 'First-time organisers'|t }}</li>
-        <li>{{ 'Events looking to reach new audiences'|t }}</li>
+  {# Hero + benefits #}
+  <section class="mel-boost-page__hero" aria-labelledby="mel-boost-hero-title">
+    <div class="mel-boost-page__hero-content">
+      <h1 id="mel-boost-hero-title" class="mel-boost-page__hero-title">{{ 'Boost your event visibility'|t }}</h1>
+      <p class="mel-boost-page__hero-subtitle">{{ 'Get more views. Sell more tickets. Reach the right audience.'|t }}</p>
+
+      {% if boost_performance and boost_performance.ui and boost_performance.ui.title %}
+        <div class="mel-boost-page__hero-performance">
+          <p class="mel-boost-page__hero-perf-title">{{ boost_performance.ui.title }}</p>
+          {% if boost_performance.ui.intro %}
+            <p class="mel-boost-page__hero-perf-intro">{{ boost_performance.ui.intro }}</p>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="mel-boost-page__hero-fallback">{{ "Your event is live — let's get your first bookings"|t }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mel-boost-page__hero-art" aria-hidden="true">
+      <svg class="icon-rocket mel-boost-page__rocket" width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="100" cy="140" rx="70" ry="12" fill="#E8ECFF"/>
+        <path d="M88 55c-8 18-12 36-10 58l-8 18 14-6c10 8 22 12 36 12l14 6-8-18c2-22-2-40-10-58-4-8-10-14-14-14s-10 6-14 14Z" fill="#F26D5B"/>
+        <path d="M100 38c-2 6-3 12-3 18 0 8 2 16 6 24" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="100" cy="72" r="6" fill="#fff"/>
+        <path d="M72 90 58 108M128 90l14 18" stroke="#6E7EF2" stroke-width="3" stroke-linecap="round"/>
+        <rect x="30" y="100" width="8" height="24" rx="2" fill="#6E7EF2" opacity=".5"/>
+        <rect x="162" y="92" width="8" height="32" rx="2" fill="#F5C04C" opacity=".6"/>
+        <circle cx="42" cy="88" r="3" fill="#F5C04C"/>
+        <circle cx="158" cy="78" r="4" fill="#6E7EF2"/>
+        <circle cx="120" cy="48" r="2" fill="#F26D5B"/>
+      </svg>
+    </div>
+  </section>
+
+  <section class="mel-boost-page__benefits" aria-label="{{ 'Boost benefits'|t }}">
+    <div class="mel-boost-page__benefits-col">
+      <h2 class="mel-boost-page__benefits-title">{{ "What you'll get"|t }}</h2>
+      <p class="mel-boost-page__benefits-intro">{{ 'Boost helps more people discover your event across MyEventLane.'|t }}</p>
+      <ul class="mel-boost-page__benefits-list">
+        <li>
+          <svg class="icon-check" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#6E7EF2"/><path d="m5.5 9 2 2 5-4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {{ 'Featured placement in event discovery'|t }}
+        </li>
+        <li>
+          <svg class="icon-check" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#6E7EF2"/><path d="m5.5 9 2 2 5-4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {{ 'Higher visibility in relevant categories'|t }}
+        </li>
+        <li>
+          <svg class="icon-check" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#6E7EF2"/><path d="m5.5 9 2 2 5-4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {{ 'Priority placement in search results'|t }}
+        </li>
+        <li>
+          <svg class="icon-check" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#6E7EF2"/><path d="m5.5 9 2 2 5-4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {{ 'A Boost badge that helps attendees discover promoted events'|t }}
+        </li>
+        <li>
+          <svg class="icon-check" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="#6E7EF2"/><path d="m5.5 9 2 2 5-4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {{ 'More opportunities for people to find your event'|t }}
+        </li>
       </ul>
     </div>
-  </div>
 
-  <div class="mel-boost-pricing-wrap">
-    {{ form }}
-  </div>
+    <div class="mel-boost-page__benefits-col mel-boost-page__benefits-col--audience">
+      <h2 class="mel-boost-page__benefits-title">{{ 'Boost is especially useful for:'|t }}</h2>
+      <ul class="mel-boost-page__audience-list">
+        <li>
+          <svg class="icon-person" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="5" r="3" fill="#9B8AFB"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#9B8AFB"/></svg>
+          {{ 'Community events'|t }}
+        </li>
+        <li>
+          <svg class="icon-person" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="5" r="3" fill="#9B8AFB"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#9B8AFB"/></svg>
+          {{ 'Fundraisers'|t }}
+        </li>
+        <li>
+          <svg class="icon-person" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="5" r="3" fill="#9B8AFB"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#9B8AFB"/></svg>
+          {{ 'Workshops'|t }}
+        </li>
+        <li>
+          <svg class="icon-person" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="5" r="3" fill="#9B8AFB"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#9B8AFB"/></svg>
+          {{ 'First-time organisers'|t }}
+        </li>
+        <li>
+          <svg class="icon-person" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="5" r="3" fill="#9B8AFB"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#9B8AFB"/></svg>
+          {{ 'Events looking to reach new audiences'|t }}
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  {# Pricing / form #}
+  <section class="mel-boost-page__pricing" aria-labelledby="mel-boost-pricing-title">
+    <div class="mel-boost-page__pricing-header">
+      <h2 id="mel-boost-pricing-title" class="mel-boost-page__pricing-title">{{ 'Choose your Boost'|t }}</h2>
+      <p class="mel-boost-page__pricing-note">
+        <svg class="icon-shield" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 2.5 3.5v4.5c0 3.5 2.3 6.2 5.5 7 3.2-.8 5.5-3.5 5.5-7V3.5L8 1.5Z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="m5.5 8 1.8 1.8L10.5 6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        {{ 'No lock-in. Boost starts immediately.'|t }}
+      </p>
+    </div>
+
+    <div class="mel-boost-page__form-wrap">
+      {{ form }}
+    </div>
+  </section>
 </div>

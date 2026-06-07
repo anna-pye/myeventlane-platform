@@ -106,7 +106,7 @@ final class VendorEventBoostPageTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
 
     // Confirm we're on the Boost purchase page (hero + benefits copy).
-    $this->assertSession()->elementTextContains('css', '.mel-boost-hero h1', 'Boost your event visibility');
+    $this->assertSession()->elementTextContains('css', '.mel-boost-page__hero-title', 'Boost your event visibility');
     $this->assertSession()->pageTextContains("What you'll get");
     $this->assertSession()->pageTextContains('Boost helps more people discover your event across MyEventLane.');
     $this->assertSession()->pageTextContains('Boost is especially useful for:');
@@ -164,7 +164,7 @@ final class VendorEventBoostPageTest extends BrowserTestBase {
 
     $this->drupalGet('/vendor/events/' . $event->id() . '/boost');
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->elementTextContains('css', '.mel-boost-hero h1', 'Boost your event visibility');
+    $this->assertSession()->elementTextContains('css', '.mel-boost-page__hero-title', 'Boost your event visibility');
     $this->assertSession()->pageTextContains('Connect Stripe to purchase Boost');
     $this->assertSession()->pageTextContains('Boost helps more people discover your event across MyEventLane.');
     $this->assertSession()->pageTextContains('Connect Stripe to continue');

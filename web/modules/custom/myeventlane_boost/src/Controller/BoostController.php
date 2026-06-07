@@ -191,27 +191,7 @@ final class BoostController extends ControllerBase {
     $showStripeCta = !$this->currentUser()->hasPermission('administer myeventlane')
       && !$this->checkStripeConnection($this->currentUser());
 
-    if ($vendor_workspace) {
-      try {
-        $cancelUrl = Url::fromRoute('myeventlane_vendor.console.event_overview', ['event' => $node->id()]);
-        $cancelLink = Link::fromTextAndUrl($this->t('Cancel'), $cancelUrl)->toRenderable();
-      }
-      catch (\Throwable) {
-        $cancelLink = Link::fromTextAndUrl(
-          $this->t('Cancel'),
-          $node->toUrl('canonical')
-        )->toRenderable();
-      }
-    }
-    else {
-      $cancelLink = Link::fromTextAndUrl(
-        $this->t('Cancel'),
-        $node->toUrl('canonical')
-      )->toRenderable();
-    }
-    $cancelLink['#attributes']['class'][] = 'button';
-    $cancelLink['#attributes']['class'][] = 'button--ghost';
-    $cancelLink['#attributes']['class'][] = 'boost-cancel';
+    $editUrl = $this->resolveEventEditUrl($node, $vendor_workspace);
 
     $body = $showStripeCta
       ? $this->buildStripeConnectCta($node, $vendor_workspace)
@@ -222,16 +202,9 @@ final class BoostController extends ControllerBase {
       '#theme' => 'boost_event_page',
       '#boost_performance' => $boostPerformance,
       '#event' => $node,
-      '#form' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-boost-page__card']],
-        'body' => $body,
-        'footer' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['boost-footer']],
-          'left' => $cancelLink,
-        ],
-      ],
+      '#edit_url' => $editUrl?->toString(),
+      '#vendor_workspace' => $vendor_workspace,
+      '#form' => $body,
       '#attached' => [
         'library' => ['myeventlane_boost/boost'],
       ],
@@ -346,7 +319,7 @@ final class BoostController extends ControllerBase {
 
     return [
       '#type' => 'container',
-      '#attributes' => ['class' => ['boost-stripe-cta']],
+      '#attributes' => ['class' => ['boost-stripe-cta', 'mel-boost-page__stripe-cta']],
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h2',
@@ -367,6 +340,27 @@ final class BoostController extends ControllerBase {
       ],
       'action' => $connectLink,
     ];
+  }
+
+  /**
+   * Resolves the edit-event URL for the boost page action card.
+   */
+  private function resolveEventEditUrl(NodeInterface $node, bool $vendor_workspace): ?Url {
+    if ($vendor_workspace) {
+      try {
+        return Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $node->id()]);
+      }
+      catch (\Throwable) {
+        // Fall through to generic edit form.
+      }
+    }
+
+    try {
+      return $node->toUrl('edit-form');
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
   /**

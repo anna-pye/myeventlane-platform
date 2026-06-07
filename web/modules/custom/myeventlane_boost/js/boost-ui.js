@@ -4,16 +4,16 @@
   Drupal.behaviors.melBoostSelect = {
     attach: function (context) {
       once('melBoostForm', '.myeventlane-boost-select-form', context).forEach(function (form) {
-        const rows = Array.from(form.querySelectorAll('.boost-row'));
+        const cards = Array.from(form.querySelectorAll('.boost-plan-card'));
         const radios = Array.from(form.querySelectorAll('.mel-boost-radios input[type="radio"]'));
-        const rowContainer = form.querySelector('.boost-list');
+        const cardContainer = form.querySelector('.boost-plan-grid');
 
-        if (!rows.length || !radios.length) {
+        if (!cards.length || !radios.length) {
           return;
         }
 
-        if (rowContainer) {
-          rowContainer.setAttribute('role', 'radiogroup');
+        if (cardContainer) {
+          cardContainer.setAttribute('role', 'radiogroup');
         }
 
         const syncVisualSelection = function () {
@@ -22,13 +22,13 @@
           });
           const selectedValue = checkedRadio ? String(checkedRadio.value) : null;
 
-          rows.forEach(function (row) {
-            const rowVariationId = String(row.getAttribute('data-variation-id') || '');
-            const isSelected = selectedValue !== null && rowVariationId === selectedValue;
+          cards.forEach(function (card) {
+            const cardVariationId = String(card.getAttribute('data-variation-id') || '');
+            const isSelected = selectedValue !== null && cardVariationId === selectedValue;
 
-            row.classList.toggle('is-selected', isSelected);
-            row.setAttribute('aria-checked', isSelected ? 'true' : 'false');
-            row.setAttribute('tabindex', isSelected ? '0' : '-1');
+            card.classList.toggle('is-selected', isSelected);
+            card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+            card.setAttribute('tabindex', isSelected ? '0' : '-1');
           });
         };
 
@@ -63,21 +63,21 @@
           radio.addEventListener('change', syncVisualSelection);
         });
 
-        once('melBoostRow', '.boost-row', form).forEach(function (row) {
-          const variationId = row.getAttribute('data-variation-id');
+        once('melBoostCard', '.boost-plan-card', form).forEach(function (card) {
+          const variationId = card.getAttribute('data-variation-id');
           if (!variationId) {
             return;
           }
 
-          row.setAttribute('role', 'radio');
-          row.setAttribute('aria-checked', 'false');
-          row.setAttribute('tabindex', '-1');
+          card.setAttribute('role', 'radio');
+          card.setAttribute('aria-checked', 'false');
+          card.setAttribute('tabindex', '-1');
 
-          row.addEventListener('click', function () {
+          card.addEventListener('click', function () {
             setSelectedByVariationId(variationId);
           });
 
-          row.addEventListener('keydown', function (event) {
+          card.addEventListener('keydown', function (event) {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               setSelectedByVariationId(variationId);

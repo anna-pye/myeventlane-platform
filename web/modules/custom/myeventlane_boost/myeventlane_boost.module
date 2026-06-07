@@ -36,6 +36,8 @@ function myeventlane_boost_theme(): array {
         'form' => NULL,
         'event' => NULL,
         'boost_performance' => NULL,
+        'edit_url' => NULL,
+        'vendor_workspace' => FALSE,
         'attributes' => NULL,
       ],
       'template' => 'boost-event-page',

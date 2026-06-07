@@ -121,9 +121,6 @@ final class BoostSelectForm extends FormBase {
       }
     }
 
-    $form['#prefix'] = '<div class="boost-card">';
-    $form['#suffix'] = '</div>';
-
     if (empty($pids)) {
       $form['empty'] = ['#markup' => $this->t('No boost options are available right now.')];
       return $form;
@@ -193,45 +190,55 @@ final class BoostSelectForm extends FormBase {
         '@price' => $priceStr,
       ]);
 
+      $subtitle = match ($days) {
+        7 => $this->t('Immediate visibility boost'),
+        10 => $this->t('Sustain momentum'),
+        30 => $this->t('Maximise long-term reach'),
+        default => $this->t('Featured visibility for @d days', ['@d' => $days]),
+      };
+
       $desc = match ($days) {
-        7 => $this->t('Get immediate visibility boost'),
-        10 => $this->t('Sustain momentum across the week'),
-        30 => $this->t('Maximise reach for long-running events'),
+        7 => $this->t('Get featured across discovery and search'),
+        10 => $this->t('Keep momentum going through the week'),
+        30 => $this->t('Maximum exposure for longer events'),
         default => $this->t('Keep your event featured for @d days.', ['@d' => $days]),
       };
 
-      $badge = '';
-      if ($recommendedDays !== NULL && $days === $recommendedDays) {
-        $badge = '<span class="mel-boost-badge">' . $this->t('Recommended') . '</span>';
+      $isRecommended = $recommendedDays !== NULL && $days === $recommendedDays;
+      $cardClasses = ['boost-plan-card'];
+      if ($isRecommended) {
+        $cardClasses[] = 'boost-plan-card--recommended';
       }
-
-      $titleInner = '<div class="mel-boost-option-content"><strong>' . $this->t('@d days', ['@d' => $days]) . '</strong>' . $badge
-        . '<span class="mel-boost-option-desc">' . $desc . '</span></div>';
 
       $rows[$variation->id()] = [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['boost-row'],
+          'class' => $cardClasses,
           'data-variation-id' => $variation->id(),
           'data-option-days' => (string) $days,
           'role' => 'option',
           'tabindex' => '0',
         ],
-        'icon' => [
-          '#markup' => '<div class="boost-row__icon">⚡️</div>',
+        'badge' => $isRecommended ? [
+          '#markup' => '<span class="boost-plan-card__badge">' . $this->t('Recommended') . '</span>',
+        ] : [],
+        'check' => [
+          '#markup' => '<span class="boost-plan-card__check" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="m6 10 2.5 2.5 5.5-5.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>',
         ],
-        'text' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['boost-row__text']],
-          'title' => [
-            '#markup' => '<div class="boost-row__title">' . $titleInner . '</div>',
-          ],
+        'icon' => [
+          '#markup' => '<div class="boost-plan-card__icon" aria-hidden="true"><svg class="icon-bolt" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 2 5 14h6l-1 8 8-12h-6l1-8Z" fill="currentColor"/></svg></div>',
+        ],
+        'days' => [
+          '#markup' => '<h3 class="boost-plan-card__days">' . $this->t('@d days', ['@d' => $days]) . '</h3>',
+        ],
+        'subtitle' => [
+          '#markup' => '<p class="boost-plan-card__subtitle">' . $subtitle . '</p>',
+        ],
+        'desc' => [
+          '#markup' => '<p class="boost-plan-card__desc">' . $desc . '</p>',
         ],
         'price' => [
-          '#markup' => '<div class="boost-row__price">' . $priceStr . '</div>',
-        ],
-        'radio_indicator' => [
-          '#markup' => '<div class="boost-row__radio-indicator" aria-hidden="true" role="presentation"><span class="boost-row__radio-checkmark">✓</span></div>',
+          '#markup' => '<p class="boost-plan-card__price">' . $priceStr . '</p>',
         ],
       ];
     }
@@ -267,11 +274,11 @@ final class BoostSelectForm extends FormBase {
     // Add form class for JavaScript targeting.
     $form['#attributes']['class'][] = 'myeventlane-boost-select-form';
 
-    // Styled list for visual display.
+    // Styled grid for visual display.
     $form['styled_list'] = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['boost-list'],
+        'class' => ['boost-plan-grid'],
         'role' => 'listbox',
         'aria-label' => $this->t('Boost duration options'),
       ],
@@ -282,15 +289,19 @@ final class BoostSelectForm extends FormBase {
 
     $form['actions'] = [
       '#type' => 'actions',
-      '#attributes' => ['class' => ['boost-footer']],
+      '#attributes' => ['class' => ['boost-plan-actions']],
       'submit' => [
         '#type' => 'submit',
         '#value' => $this->t('Boost my event now'),
-        '#attributes' => ['class' => ['button', 'button--primary']],
+        '#attributes' => ['class' => ['button', 'button--primary', 'boost-plan-actions__submit']],
       ],
-      'micro' => [
+      'trust' => [
         '#type' => 'markup',
-        '#markup' => '<p class="mel-boost-micro">' . $this->t('No lock-in. Boost starts immediately.') . '</p>',
+        '#markup' => '<ul class="boost-plan-trust" aria-label="' . $this->t('Boost purchase assurances') . '">'
+          . '<li><svg class="icon-bolt" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6l1-8Z" fill="currentColor"/></svg>' . $this->t('Instant activation') . '</li>'
+          . '<li><svg class="icon-shield" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 2.5 3.5v4.5c0 3.5 2.3 6.2 5.5 7 3.2-.8 5.5-3.5 5.5-7V3.5L8 1.5Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>' . $this->t('Secure payment') . '</li>'
+          . '<li><svg class="icon-chart" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="9" width="3" height="6" rx=".5" fill="currentColor"/><rect x="6" y="5" width="3" height="10" rx=".5" fill="currentColor"/><rect x="11" y="2" width="3" height="13" rx=".5" fill="currentColor"/></svg>' . $this->t('Track performance') . '</li>'
+          . '</ul>',
         '#weight' => 10,
       ],
     ];
