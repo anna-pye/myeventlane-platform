@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_notifications\Service;
 
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_notifications\NotificationContext;
 
 /**
  * Builds the header notification bell render array without the Block plugin API.
@@ -21,17 +22,25 @@ final class NotificationBellPresenter {
   ) {}
 
   /**
+   * @param string $bellContext
+   *   Primary bell context: personal (public site) or business (vendor dashboard).
+   *
    * @return array<string, mixed>
    *   Empty when the user must not see the bell.
    */
-  public function build(): array {
+  public function build(string $bellContext = NotificationContext::PERSONAL): array {
     $account = $this->currentUser->getAccount();
     if (!$account->isAuthenticated() || !$account->hasPermission('access myeventlane notifications')) {
       return [];
     }
 
+    if (!in_array($bellContext, [NotificationContext::PERSONAL, NotificationContext::BUSINESS], TRUE)) {
+      $bellContext = NotificationContext::PERSONAL;
+    }
+
     return [
       '#theme' => 'mel_notification_bell',
+      '#bell_context' => $bellContext,
       '#inbox_url' => $this->urlGenerator->generateFromRoute('myeventlane_notifications.inbox'),
       '#settings_url' => $this->urlGenerator->generateFromRoute('myeventlane_notifications.preferences'),
       '#attached' => [

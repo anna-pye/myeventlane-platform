@@ -4,7 +4,7 @@
  * Notification bell shell; list + badge updated via mel-notifications-ui.js.
  */
 #}
-<div class="mel-notif-bell" data-mel-notif-bell>
+<div class="mel-notif-bell" data-mel-notif-bell data-mel-bell-context="{{ bell_context }}">
   <button type="button"
           class="mel-notif-bell__trigger"
           data-mel-notif-bell-trigger
@@ -18,7 +18,10 @@
         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
       </svg>
     </span>
-    <span class="mel-notif-bell__badge mel-notif-bell__badge--empty" data-mel-notif-bell-badge aria-hidden="true">0</span>
+    <span class="mel-notif-bell__badge mel-notif-bell__badge--empty"
+          data-mel-notif-bell-badge
+          aria-live="polite"
+          aria-label="{{ 'Unread notifications'|t }}">0</span>
   </button>
 
   <div class="mel-notif-bell__panel"

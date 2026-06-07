@@ -22,6 +22,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
+use Drupal\myeventlane_notifications\Service\RefundNotificationTriggerService;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -67,6 +68,8 @@ final class RefundProcessor {
    *   The module handler.
    * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
    *   The domain detector (for public-domain customer links).
+   * @param \Drupal\myeventlane_notifications\Service\RefundNotificationTriggerService|null $refundNotificationTrigger
+   *   Optional in-app refund notifications (when myeventlane_notifications is enabled).
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -85,6 +88,7 @@ final class RefundProcessor {
     private readonly LockBackendInterface $lock,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly DomainDetector $domainDetector,
+    private readonly ?RefundNotificationTriggerService $refundNotificationTrigger = NULL,
   ) {}
 
   /**
@@ -180,6 +184,11 @@ final class RefundProcessor {
       }
     }
 
+    $requestRow = $this->refundRequestStorage->load($requestId);
+    if ($requestRow !== NULL) {
+      $this->refundNotificationTrigger?->onRefundRequested($requestRow, $order, $event);
+    }
+
     return $requestId;
   }
 
@@ -256,6 +265,8 @@ final class RefundProcessor {
       }
     }
 
+    $this->refundNotificationTrigger?->onRefundApproved($req, $order, $event);
+
     return $logId;
   }
 
@@ -310,6 +321,8 @@ final class RefundProcessor {
         $this->messagingManager->sendMessage($id);
       }
     }
+
+    $this->refundNotificationTrigger?->onRefundRejected($req, $order, $event);
   }
 
   /**
@@ -1217,6 +1230,9 @@ final class RefundProcessor {
     if ($refundRequestId) {
       $this->refundRequestStorage->update((int) $refundRequestId, ['status' => RefundRequestStorage::STATUS_COMPLETED]);
     }
+
+    $vendorUid = (int) ($log['vendor_uid'] ?? $event->getOwnerId());
+    $this->refundNotificationTrigger?->onRefundCompleted($order, $event, $vendorUid);
   }
 
   /**

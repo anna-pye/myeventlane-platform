@@ -42,15 +42,36 @@
     return id > 0 && getSessionSeenIds().indexOf(id) !== -1;
   }
 
-  function accentForType(type) {
-    if (type === 'ticket') {
+  function accentForDomain(domain, type) {
+    if (domain === 'tickets') {
       return '#f26d5b';
     }
-    if (type === 'event') {
+    if (domain === 'orders') {
+      return '#e8a54b';
+    }
+    if (domain === 'sales') {
       return '#6b5ce6';
     }
-    if (type === 'reminder') {
+    if (domain === 'refunds') {
+      return '#c45c8a';
+    }
+    if (domain === 'rsvps') {
       return '#3d9a82';
+    }
+    if (domain === 'followers') {
+      return '#5b8def';
+    }
+    if (domain === 'event_updates') {
+      return '#6b5ce6';
+    }
+    if (domain === 'boosts') {
+      return '#f0ad4e';
+    }
+    if (domain === 'reminders') {
+      return '#3d9a82';
+    }
+    if (type === 'ticket') {
+      return '#f26d5b';
     }
     return '#293241';
   }
@@ -117,7 +138,7 @@
     var el = document.createElement('div');
     el.className = 'mel-notification-toast';
     el.dataset.deliveryId = String(item.id);
-    el.style.borderLeft = '4px solid ' + accentForType(item.type);
+    el.style.borderLeft = '4px solid ' + accentForDomain(item.domain || '', item.type);
 
     var title = document.createElement('div');
     title.style.fontWeight = '600';
@@ -178,7 +199,7 @@
       .catch(function () {});
   }
 
-  function updateBadge(badge, count) {
+  function updateBadge(badge, count, data) {
     if (!badge) {
       return;
     }
@@ -191,8 +212,21 @@
     badge.textContent = n > 99 ? '99+' : String(n);
     if (n < 1) {
       badge.classList.add('mel-notif-bell__badge--empty');
+      badge.setAttribute('aria-hidden', 'true');
     } else {
       badge.classList.remove('mel-notif-bell__badge--empty');
+      badge.removeAttribute('aria-hidden');
+    }
+    if (data && typeof Drupal !== 'undefined' && Drupal.t) {
+      var label = Drupal.t('@count unread notifications', { '@count': n });
+      if (data.personal !== undefined && data.business !== undefined) {
+        label = Drupal.t('@count unread (@personal personal, @platform platform)', {
+          '@count': n,
+          '@personal': data.personal || 0,
+          '@platform': data.platform || 0,
+        });
+      }
+      badge.setAttribute('aria-label', label);
     }
   }
 
@@ -215,6 +249,15 @@
       btn.type = 'button';
       btn.className = 'mel-notif-bell__row' + (row.is_unread ? ' is-unread' : '');
       btn.setAttribute('role', 'menuitem');
+      if (row.domain) {
+        btn.style.borderLeft = '3px solid ' + accentForDomain(row.domain, row.type);
+      }
+      if (row.badge) {
+        var badgeEl = document.createElement('span');
+        badgeEl.className = 'mel-notif-bell__row-badge mel-notif-bell__row-badge--' + row.badge;
+        badgeEl.textContent = (row.domain || '').replace(/_/g, ' ');
+        btn.appendChild(badgeEl);
+      }
       var t = document.createElement('div');
       t.className = 'mel-notif-bell__row-title';
       t.textContent = row.title || '';
@@ -329,7 +372,7 @@
           return r.json();
         })
         .then(function (data) {
-          updateBadge(badge, data.unread);
+          updateBadge(badge, data.unread, data);
         })
         .catch(function () {});
     }

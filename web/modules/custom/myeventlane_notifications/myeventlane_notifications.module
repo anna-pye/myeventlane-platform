@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
+use Drupal\myeventlane_notifications\NotificationContext;
 use Drupal\myeventlane_notifications\NotificationPrefsFieldDefinition;
 use Drupal\myeventlane_notifications\Service\NotificationPreferenceService;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
@@ -26,7 +27,7 @@ function myeventlane_notifications_preprocess_site_header(array &$variables): vo
   if (\Drupal::theme()->getActiveTheme()->getName() !== 'myeventlane_theme') {
     return;
   }
-  $variables['notification_bell'] = \Drupal::service('myeventlane_notifications.bell_presenter')->build();
+  $variables['notification_bell'] = \Drupal::service('myeventlane_notifications.bell_presenter')->build(NotificationContext::PERSONAL);
 }
 
 /**
@@ -38,7 +39,7 @@ function myeventlane_notifications_preprocess_page(array &$variables): void {
   if (\Drupal::theme()->getActiveTheme()->getName() !== 'myeventlane_vendor_theme') {
     return;
   }
-  $variables['page']['mel_notification_bell'] = \Drupal::service('myeventlane_notifications.bell_presenter')->build();
+  $variables['page']['mel_notification_bell'] = \Drupal::service('myeventlane_notifications.bell_presenter')->build(NotificationContext::BUSINESS);
 }
 
 /**
@@ -48,6 +49,7 @@ function myeventlane_notifications_theme(array $existing, string $type, string $
   return [
     'mel_notification_bell' => [
       'variables' => [
+        'bell_context' => 'personal',
         'inbox_url' => NULL,
         'settings_url' => NULL,
       ],
@@ -55,7 +57,9 @@ function myeventlane_notifications_theme(array $existing, string $type, string $
     ],
     'mel_notification_inbox' => [
       'variables' => [
+        'tab' => 'all',
         'filter' => 'all',
+        'tab_links' => [],
         'filter_links' => [],
         'groups' => [],
         'empty' => FALSE,
@@ -204,16 +208,21 @@ function myeventlane_notifications_page_attachments(array &$attachments): void {
   $readTemplate = Url::fromRoute('myeventlane_notifications.mark_read', ['delivery' => $placeholder], ['absolute' => TRUE])->toString();
   $readTemplate = str_replace((string) $placeholder, '__DELIVERY__', $readTemplate);
 
+  $bellContext = $theme === 'myeventlane_vendor_theme'
+    ? NotificationContext::BUSINESS
+    : NotificationContext::PERSONAL;
   $library = $theme === 'myeventlane_vendor_theme'
     ? 'myeventlane_vendor_theme/mel_notifications'
     : 'myeventlane_theme/mel_notifications';
   $attachments['#attached']['library'][] = $library;
+  $query = ['bell_context' => $bellContext];
   $attachments['#attached']['drupalSettings']['myeventlaneNotifications'] = [
     'pollSeconds' => 25,
-    'pollUrl' => Url::fromRoute('myeventlane_notifications.unread', [], ['absolute' => TRUE])->toString(),
-    'countUrl' => Url::fromRoute('myeventlane_notifications.unread_count', [], ['absolute' => TRUE])->toString(),
-    'previewUrl' => Url::fromRoute('myeventlane_notifications.preview', [], ['absolute' => TRUE])->toString(),
-    'readAllUrl' => Url::fromRoute('myeventlane_notifications.mark_all_read', [], ['absolute' => TRUE])->toString(),
+    'bellContext' => $bellContext,
+    'pollUrl' => Url::fromRoute('myeventlane_notifications.unread', [], ['absolute' => TRUE, 'query' => $query])->toString(),
+    'countUrl' => Url::fromRoute('myeventlane_notifications.unread_count', [], ['absolute' => TRUE, 'query' => $query])->toString(),
+    'previewUrl' => Url::fromRoute('myeventlane_notifications.preview', [], ['absolute' => TRUE, 'query' => $query])->toString(),
+    'readAllUrl' => Url::fromRoute('myeventlane_notifications.mark_all_read', [], ['absolute' => TRUE, 'query' => $query])->toString(),
     'inboxUrl' => Url::fromRoute('myeventlane_notifications.inbox', [], ['absolute' => TRUE])->toString(),
     'readUrlTemplate' => $readTemplate,
   ];

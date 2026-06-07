@@ -8,11 +8,14 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_notifications\NotificationContext;
+use Drupal\myeventlane_notifications\NotificationFilter;
 use Drupal\myeventlane_notifications\Service\NotificationUserInboxService;
 use Drupal\myeventlane_notifications\Service\NotificationViewBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -42,13 +45,16 @@ final class NotificationController extends ControllerBase {
   /**
    * Returns unread in-app deliveries for the current user (toast polling).
    */
-  public function unread(): CacheableJsonResponse {
+  public function unread(Request $request): CacheableJsonResponse {
     $uid = (int) $this->currentUser()->id();
     if ($uid < 1) {
       throw new AccessDeniedHttpException();
     }
 
-    $ids = $this->userInbox->getUnreadDeliveryIds($uid, self::UNREAD_HARD_LIMIT);
+    $bellContext = $this->bellContextFromRequest($request);
+    $contexts = $this->contextsForBell($bellContext);
+
+    $ids = $this->userInbox->getUnreadDeliveryIds($uid, self::UNREAD_HARD_LIMIT, $contexts);
     $rows = $this->viewBuilder->buildRowsForDeliveries($ids, $uid);
     $payload = [];
     foreach ($rows as $row) {
@@ -59,6 +65,8 @@ final class NotificationController extends ControllerBase {
         'message' => (string) $row['message'],
         'message_preview' => (string) $row['message_preview'],
         'type' => (string) $row['type'],
+        'context' => (string) $row['context'],
+        'domain' => (string) $row['domain'],
         'created' => (int) $row['created'],
         'priority_score' => (int) $row['priority_score'],
         'toast_eligible' => (bool) $row['toast_eligible'],
@@ -78,13 +86,24 @@ final class NotificationController extends ControllerBase {
   /**
    * JSON unread count for the bell badge.
    */
-  public function unreadCount(): CacheableJsonResponse {
+  public function unreadCount(Request $request): CacheableJsonResponse {
     $uid = (int) $this->currentUser()->id();
     if ($uid < 1) {
       throw new AccessDeniedHttpException();
     }
-    $count = $this->userInbox->countUnread($uid);
-    $response = new CacheableJsonResponse(['unread' => $count]);
+
+    $bellContext = $this->bellContextFromRequest($request);
+    $contexts = $this->contextsForBell($bellContext);
+    $breakdown = $this->userInbox->countUnreadBreakdown($uid);
+    $count = $this->userInbox->countUnreadForContexts($uid, $contexts);
+
+    $response = new CacheableJsonResponse([
+      'unread' => $count,
+      'personal' => $breakdown['personal'],
+      'business' => $breakdown['business'],
+      'platform' => $breakdown['platform'],
+      'bell_context' => $bellContext,
+    ]);
     $response->addCacheableDependency($this->currentUser());
     $response->getCacheableMetadata()->setCacheContexts(['user']);
     $response->getCacheableMetadata()->setCacheMaxAge(0);
@@ -94,14 +113,17 @@ final class NotificationController extends ControllerBase {
   /**
    * Bell dropdown preview (recent unread first).
    */
-  public function preview(): CacheableJsonResponse {
+  public function preview(Request $request): CacheableJsonResponse {
     $uid = (int) $this->currentUser()->id();
     if ($uid < 1) {
       throw new AccessDeniedHttpException();
     }
-    $ids = $this->userInbox->getUnreadDeliveryIds($uid, NotificationUserInboxService::BELL_PREVIEW_LIMIT);
+
+    $bellContext = $this->bellContextFromRequest($request);
+    $contexts = $this->contextsForBell($bellContext);
+    $ids = $this->userInbox->getUnreadDeliveryIds($uid, NotificationUserInboxService::BELL_PREVIEW_LIMIT, $contexts);
     $rows = $this->viewBuilder->buildRowsForDeliveries($ids, $uid);
-    $response = new CacheableJsonResponse(['items' => $rows]);
+    $response = new CacheableJsonResponse(['items' => $rows, 'bell_context' => $bellContext]);
     $response->addCacheableDependency($this->currentUser());
     $response->getCacheableMetadata()->setCacheContexts(['user']);
     $response->getCacheableMetadata()->setCacheMaxAge(0);
@@ -172,13 +194,33 @@ final class NotificationController extends ControllerBase {
   /**
    * Marks all deliveries read for the current user.
    */
-  public function markAllRead(): JsonResponse {
+  public function markAllRead(Request $request): JsonResponse {
     $uid = (int) $this->currentUser()->id();
     if ($uid < 1) {
       throw new AccessDeniedHttpException();
     }
-    $updated = $this->userInbox->markAllRead($uid);
+
+    $bellContext = $this->bellContextFromRequest($request);
+    $contexts = $this->contextsForBell($bellContext);
+    $updated = $this->userInbox->markAllRead($uid, $contexts);
     return new JsonResponse(['status' => 'ok', 'updated' => $updated]);
+  }
+
+  private function bellContextFromRequest(Request $request): string {
+    $raw = (string) $request->query->get('bell_context', NotificationContext::PERSONAL);
+    if (!in_array($raw, [NotificationContext::PERSONAL, NotificationContext::BUSINESS], TRUE)) {
+      return NotificationContext::PERSONAL;
+    }
+    return $raw;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function contextsForBell(string $bellContext): array {
+    return $bellContext === NotificationContext::BUSINESS
+      ? NotificationContext::vendorBellContexts()
+      : NotificationContext::publicBellContexts();
   }
 
 }

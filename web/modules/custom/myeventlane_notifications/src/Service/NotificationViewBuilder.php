@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_notifications\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
 use Drupal\myeventlane_notifications\Entity\MelNotificationDelivery;
+use Drupal\myeventlane_notifications\NotificationDomain;
 use Drupal\myeventlane_notifications\NotificationSurface;
 
 /**
@@ -21,6 +23,7 @@ final class NotificationViewBuilder {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly UrlGeneratorInterface $urlGenerator,
+    private readonly RouteProviderInterface $routeProvider,
   ) {}
 
   public function messagePreview(string $message): string {
@@ -50,8 +53,30 @@ final class NotificationViewBuilder {
    */
   public function buildActionFromNotification(MelNotification $notification): ?array {
     $label = trim((string) $notification->get('action_label')->value);
+    if ($label === '') {
+      return NULL;
+    }
+
+    $routeName = trim((string) $notification->get('route_name')->value);
+    if ($routeName !== '') {
+      $params = $this->decodeRouteParameters($notification);
+      try {
+        if (!$this->routeProvider->getRouteByName($routeName)) {
+          return NULL;
+        }
+        $url = Url::fromRoute($routeName, $params);
+        return [
+          'label' => $label,
+          'url' => $url->setAbsolute()->toString(),
+        ];
+      }
+      catch (\Throwable) {
+        // Fall through to action_uri.
+      }
+    }
+
     $uri = trim((string) $notification->get('action_uri')->value);
-    if ($label === '' || $uri === '') {
+    if ($uri === '') {
       return NULL;
     }
     if (!str_starts_with($uri, '/') || str_starts_with($uri, '//')) {
@@ -66,6 +91,32 @@ final class NotificationViewBuilder {
     }
     catch (\Throwable) {
       return NULL;
+    }
+  }
+
+  /**
+   * @return array<string, scalar>
+   */
+  private function decodeRouteParameters(MelNotification $notification): array {
+    $raw = trim((string) $notification->get('route_parameters')->value);
+    if ($raw === '') {
+      return [];
+    }
+    try {
+      $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+      if (!is_array($decoded)) {
+        return [];
+      }
+      $out = [];
+      foreach ($decoded as $key => $value) {
+        if (is_string($key) && (is_string($value) || is_int($value))) {
+          $out[$key] = $value;
+        }
+      }
+      return $out;
+    }
+    catch (\Throwable) {
+      return [];
     }
   }
 
@@ -142,6 +193,8 @@ final class NotificationViewBuilder {
     $action = $this->buildTrackedActionForDelivery($delivery, $notification);
     $delivered = (int) ($delivery->get('delivered_at')->value ?? 0);
     $groupKey = trim((string) $notification->get('group_key')->value);
+    $domain = (string) $notification->get('domain')->value;
+    $context = (string) $notification->get('context')->value;
 
     return [
       'delivery_id' => (int) $delivery->id(),
@@ -150,7 +203,10 @@ final class NotificationViewBuilder {
       'message' => $message,
       'message_preview' => $this->messagePreview($message),
       'type' => (string) $notification->get('type')->value,
-      'icon' => $this->iconForType((string) $notification->get('type')->value),
+      'context' => $context,
+      'domain' => $domain,
+      'icon' => $this->iconForDomain($domain, (string) $notification->get('type')->value),
+      'badge' => $this->badgeForDomain($domain),
       'created' => (int) $notification->get('created')->value,
       'delivered_at' => $delivered,
       'priority_score' => (int) $notification->get('priority_score')->value,
@@ -217,15 +273,17 @@ final class NotificationViewBuilder {
       }
       else {
         $first = $buffer[0];
-        $type = (string) ($first['type'] ?? '');
         $count = count($buffer);
         $out[] = [
           'delivery_id' => (int) ($first['delivery_id'] ?? 0),
           'notification_id' => (int) ($first['notification_id'] ?? 0),
           'title' => (string) ($first['title'] ?? ''),
           'message_preview' => '',
-          'type' => $type,
+          'type' => (string) ($first['type'] ?? ''),
+          'context' => (string) ($first['context'] ?? ''),
+          'domain' => (string) ($first['domain'] ?? ''),
           'icon' => $first['icon'] ?? 'bell',
+          'badge' => $first['badge'] ?? 'bell',
           'created' => (int) ($first['created'] ?? 0),
           'delivered_at' => (int) ($first['delivered_at'] ?? 0),
           'priority_score' => (int) ($first['priority_score'] ?? 0),
@@ -269,6 +327,26 @@ final class NotificationViewBuilder {
     $flush();
 
     return $out;
+  }
+
+  public function iconForDomain(string $domain, string $legacyType = ''): string {
+    return match ($domain) {
+      NotificationDomain::TICKETS => 'ticket',
+      NotificationDomain::ORDERS => 'order',
+      NotificationDomain::SALES => 'sale',
+      NotificationDomain::REFUNDS => 'refund',
+      NotificationDomain::RSVPS => 'rsvp',
+      NotificationDomain::FOLLOWERS => 'follower',
+      NotificationDomain::EVENT_UPDATES => 'event-update',
+      NotificationDomain::BOOSTS => 'boost',
+      NotificationDomain::REMINDERS => 'reminder',
+      NotificationDomain::PLATFORM => 'platform',
+      default => $this->iconForType($legacyType),
+    };
+  }
+
+  public function badgeForDomain(string $domain): string {
+    return $this->iconForDomain($domain);
   }
 
   public function iconForType(string $type): string {

@@ -40,6 +40,15 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@url_generator'
+      - '@router.route_provider'
+
+  myeventlane_notifications.refund_trigger:
+    class: Drupal\myeventlane_notifications\Service\RefundNotificationTriggerService
+    arguments:
+      - '@myeventlane_notifications.notification_manager'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_notifications'
+      - '@string_translation'
 
   myeventlane_notifications.preference:
     class: Drupal\myeventlane_notifications\Service\NotificationPreferenceService

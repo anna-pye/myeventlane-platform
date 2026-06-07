@@ -36,10 +36,17 @@ final class MarkAllReadForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, string $filter = NotificationFilter::ALL): array {
-    if (!in_array($filter, NotificationFilter::allowed(), TRUE)) {
-      $filter = NotificationFilter::ALL;
+  public function buildForm(array $form, FormStateInterface $form_state, string $tab = NotificationFilter::TAB_ALL, string $filter = NotificationFilter::FILTER_ALL): array {
+    if (!in_array($tab, NotificationFilter::allowedTabs(), TRUE)) {
+      $tab = NotificationFilter::TAB_ALL;
     }
+    if (!in_array($filter, NotificationFilter::allowedFilters(), TRUE)) {
+      $filter = NotificationFilter::FILTER_ALL;
+    }
+    $form['tab'] = [
+      '#type' => 'hidden',
+      '#value' => $tab,
+    ];
     $form['filter'] = [
       '#type' => 'hidden',
       '#value' => $filter,
@@ -58,14 +65,19 @@ final class MarkAllReadForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $uid = (int) $this->currentUser()->id();
+    $tab = (string) $form_state->getValue('tab');
     $filter = (string) $form_state->getValue('filter');
-    if (!in_array($filter, NotificationFilter::allowed(), TRUE)) {
-      $filter = NotificationFilter::ALL;
+    if (!in_array($tab, NotificationFilter::allowedTabs(), TRUE)) {
+      $tab = NotificationFilter::TAB_ALL;
+    }
+    if (!in_array($filter, NotificationFilter::allowedFilters(), TRUE)) {
+      $filter = NotificationFilter::FILTER_ALL;
     }
     if ($uid > 0) {
-      $this->userInbox->markAllRead($uid);
+      $contexts = NotificationFilter::contextsForTab($tab);
+      $this->userInbox->markAllRead($uid, $contexts);
     }
-    $form_state->setRedirect('myeventlane_notifications.inbox', [], ['query' => ['filter' => $filter]]);
+    $form_state->setRedirect('myeventlane_notifications.inbox', [], ['query' => ['tab' => $tab, 'filter' => $filter]]);
   }
 
 }
