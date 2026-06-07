@@ -50,6 +50,8 @@
 {% set has_all_sales_trend_chart = has_all_sales_trend_chart|default(false) %}
 {% set has_boost_metrics = has_boost_metrics|default(false) %}
 {% set has_boost_trend_chart = has_boost_trend_chart|default(false) %}
+{% set has_boost_trend_mini_chart = has_boost_trend_mini_chart|default(false) %}
+{% set boost_trend = boost_trend_intelligence|default({}) %}
 {% set has_placement_impressions_chart = has_placement_impressions_chart|default(false) %}
 {% set show_ticket_analytics = is_tickets_enabled|default(false) %}
 {% set show_rsvp_analytics = is_rsvp_enabled|default(false) %}
@@ -249,14 +251,18 @@
 
   {# Boost — marketing performance (never mixed with revenue) #}
   {% set boost_perf = boost_performance_section|default({}) %}
-  {% set boost_decision = boost_decision_support|default({}) %}
+  {% set boost_level = boost_performance_level|default({}) %}
+  {% set boost_actions = boost_action_engine|default({}) %}
   <section class="mel-analytics__business mel-analytics__business--boost mel-live-ops__panel mel-analytics__boost-panel" aria-labelledby="mel-analytics-boost-title">
     <div class="mel-live-ops__timeline-head">
       <h2 id="mel-analytics-boost-title" class="mel-live-ops__panel-title">{{ 'Boost performance'|t }}</h2>
       <p class="mel-live-ops__panel-intro">{{ boost_perf.intro|default('Boost puts your event in front of more people.'|t) }}</p>
     </div>
-    {% include '@myeventlane_vendor_theme/components/mel-boost-decision-support.html.twig' with {
-      boost_decision: boost_decision,
+    {% include '@myeventlane_vendor_theme/components/mel-boost-performance-level.html.twig' with {
+      boost_performance_level: boost_level,
+    } only %}
+    {% include '@myeventlane_vendor_theme/components/mel-boost-action-engine.html.twig' with {
+      boost_action_engine: boost_actions,
     } only %}
     {% if boost_perf.show_metrics|default(false) %}
       <div class="mel-analytics__boost-groups">
@@ -327,6 +333,10 @@
         </div>
       {% endif %}
     {% endif %}
+    {% include '@myeventlane_vendor_theme/components/mel-boost-trend-intelligence.html.twig' with {
+      boost_trend: boost_trend,
+      has_boost_trend_mini_chart: has_boost_trend_mini_chart,
+    } only %}
   </section>
 
   {# Placement Performance — where Boost is working best #}

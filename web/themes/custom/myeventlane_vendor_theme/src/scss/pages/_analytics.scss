@@ -205,6 +205,95 @@
   margin-top: 0;
 }
 
+// Phase 9 — Performance level
+.mel-analytics__boost-level {
+  margin-top: $mel-spacing-md;
+  border-left: 4px solid $primary;
+}
+
+.mel-analytics__boost-card--level.mel-analytics__boost-card--excellent,
+.mel-analytics__boost-card--level.mel-analytics__boost-card--good {
+  border-left-color: #10b981;
+}
+
+.mel-analytics__boost-card--level.mel-analytics__boost-card--average {
+  border-left-color: #f59e0b;
+}
+
+.mel-analytics__boost-card--level.mel-analytics__boost-card--needs_attention {
+  border-left-color: #ef4444;
+}
+
+// Phase 10 — Action engine
+.mel-analytics__boost-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-sm;
+  margin-top: $mel-spacing-md;
+}
+
+.mel-analytics__boost-actions-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-analytics__boost-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-sm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-analytics__boost-action {
+  border-left: 4px solid $primary;
+}
+
+.mel-analytics__boost-card--visibility {
+  border-left-color: #6366f1;
+}
+
+.mel-analytics__boost-card--conversion {
+  border-left-color: #10b981;
+}
+
+.mel-analytics__boost-card--revenue {
+  border-left-color: #2563eb;
+}
+
+.mel-analytics__boost-card--growth {
+  border-left-color: #f59e0b;
+}
+
+.mel-analytics__boost-action-head {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+}
+
+.mel-analytics__boost-action-category {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-analytics__boost-action-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  line-height: $line-height-tight;
+}
+
+.mel-analytics__boost-action-cta {
+  margin-top: $spacing-1;
+}
+
 // Stage 3 — Boost decision support (health + insight cards)
 .mel-analytics__boost-decision {
   display: flex;
@@ -303,6 +392,89 @@
 
 .mel-analytics__boost-card--conversion {
   border-left-color: #10b981;
+}
+
+.mel-analytics__boost-trend {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-sm;
+  margin-top: $mel-spacing-lg;
+  padding-top: $mel-spacing-md;
+  border-top: 1px solid $border-color-light;
+}
+
+.mel-analytics__boost-trend-head {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+}
+
+.mel-analytics__boost-trend-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-analytics__boost-trend-intro {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.45;
+}
+
+.mel-analytics__boost-trend-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $mel-spacing-sm;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.mel-analytics__boost-card--trend {
+  border-left: 4px solid $primary;
+}
+
+.mel-analytics__boost-card--trend.mel-analytics__boost-card--improving {
+  border-left-color: #10b981;
+}
+
+.mel-analytics__boost-card--trend.mel-analytics__boost-card--stable {
+  border-left-color: #f59e0b;
+}
+
+.mel-analytics__boost-card--trend.mel-analytics__boost-card--declining {
+  border-left-color: #ef4444;
+}
+
+.mel-analytics__boost-card--momentum {
+  border-left: 4px solid #6366f1;
+}
+
+.mel-analytics__boost-card--summary {
+  border-left: 4px solid #2563eb;
+
+  @include respond-to(md) {
+    grid-column: 1 / -1;
+  }
+
+  @include respond-to(lg) {
+    grid-column: auto;
+  }
+}
+
+.mel-analytics__boost-trend-chart {
+  margin-top: $spacing-1;
+}
+
+.mel-chart-card__canvas--trend-mini {
+  max-height: 8rem;
 }
 
 .mel-analytics__action-card {
