@@ -389,6 +389,7 @@
 
 // Homepage blocks must not show listing discovery chips or exposed filters.
 .mel-page--home .mel-section--latest,
+.mel-page--home .mel-section--recommended,
 .mel-page--home .mel-section--tonight,
 .mel-page--home .mel-section--discover {
   .mel-events-date-filters,
@@ -418,6 +419,7 @@
 
 .mel-page--home .mel-section--discover .mel-grid.mel-grid--events,
 .mel-page--home .mel-section--latest .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--recommended .mel-grid.mel-grid--events,
 .mel-page--home .mel-section--nearby .mel-grid.mel-grid--events,
 .mel-page--home .mel-section--online .mel-grid.mel-grid--events,
 .mel-page--home .mel-section--tonight .mel-grid.mel-grid--events,
@@ -457,6 +459,7 @@
 // Image-led discovery grids: layout only — card chrome lives in _event-card.scss.
 .mel-page--home .mel-section--discover .mel-event-grid,
 .mel-page--home .mel-section--latest .mel-event-grid,
+.mel-page--home .mel-section--recommended .mel-event-grid,
 .mel-page--home .mel-section--nearby .mel-event-grid,
 .mel-page--home .mel-section--online .mel-event-grid,
 .mel-page--home .mel-section--tonight .mel-event-grid {
@@ -465,6 +468,7 @@
 
 .mel-page--home .mel-section--discover .mel-event-card--compact,
 .mel-page--home .mel-section--latest .mel-event-card--compact,
+.mel-page--home .mel-section--recommended .mel-event-card--compact,
 .mel-page--home .mel-section--nearby .mel-event-card--compact,
 .mel-page--home .mel-section--online .mel-event-card--compact,
 .mel-page--home .mel-section--tonight .mel-event-card--compact {
@@ -478,6 +482,9 @@
 .mel-page--home .mel-section--latest .mel-event-card--standard,
 .mel-page--home .mel-section--latest .mel-event-card--hero,
 .mel-page--home .mel-section--latest .mel-event-card--featured,
+.mel-page--home .mel-section--recommended .mel-event-card--standard,
+.mel-page--home .mel-section--recommended .mel-event-card--hero,
+.mel-page--home .mel-section--recommended .mel-event-card--featured,
 .mel-page--home .mel-section--nearby .mel-event-card--standard,
 .mel-page--home .mel-section--nearby .mel-event-card--hero,
 .mel-page--home .mel-section--nearby .mel-event-card--featured,
