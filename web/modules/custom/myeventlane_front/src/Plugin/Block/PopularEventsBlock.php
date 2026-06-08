@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\myeventlane_analytics\Service\PopularEventsService;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -204,14 +205,19 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
 
       if ($show_going) {
         $going = (int) ($row['going'] ?? 0);
-        $wrapper['going'] = [
-          '#type' => 'html_tag',
-          '#tag' => 'div',
-          '#value' => $this->t('@count going', ['@count' => $going]),
-          '#attributes' => [
-            'class' => ['mel-popular-event__going'],
-          ],
-        ];
+        $event_node = $ordered_nodes[$nid] ?? NULL;
+        if ($event_node instanceof NodeInterface
+          && function_exists('myeventlane_event_should_show_block_going')
+          && myeventlane_event_should_show_block_going($event_node, $going)) {
+          $wrapper['going'] = [
+            '#type' => 'html_tag',
+            '#tag' => 'div',
+            '#value' => $this->t('@count going', ['@count' => $going]),
+            '#attributes' => [
+              'class' => ['mel-popular-event__going'],
+            ],
+          ];
+        }
       }
 
       $items[] = $wrapper;

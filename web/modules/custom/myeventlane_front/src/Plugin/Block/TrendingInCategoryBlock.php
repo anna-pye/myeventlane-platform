@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\myeventlane_analytics\Service\TrendingCategoriesService;
+use Drupal\node\NodeInterface;
 use Drupal\taxonomy\TermInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -218,14 +219,19 @@ final class TrendingInCategoryBlock extends BlockBase implements ContainerFactor
 
       if ($show_going) {
         $going = (int) ($row['going'] ?? 0);
-        $wrapper['going'] = [
-          '#type' => 'html_tag',
-          '#tag' => 'div',
-          '#value' => $this->t('@count going', ['@count' => $going]),
-          '#attributes' => [
-            'class' => ['mel-popular-event__going'],
-          ],
-        ];
+        $event_node = $ordered_nodes[$nid] ?? NULL;
+        if ($event_node instanceof NodeInterface
+          && function_exists('myeventlane_event_should_show_block_going')
+          && myeventlane_event_should_show_block_going($event_node, $going)) {
+          $wrapper['going'] = [
+            '#type' => 'html_tag',
+            '#tag' => 'div',
+            '#value' => $this->t('@count going', ['@count' => $going]),
+            '#attributes' => [
+              'class' => ['mel-popular-event__going'],
+            ],
+          ];
+        }
       }
 
       $items[] = $wrapper;

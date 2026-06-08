@@ -1,0 +1,23 @@
+uuid: 9d21e728-903b-4324-9736-d6ae3da6c520
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_social_proof_visibility
+    - node.type.event
+  module:
+    - options
+id: node.event.field_social_proof_visibility
+field_name: field_social_proof_visibility
+entity_type: node
+bundle: event
+label: 'Social Proof Visibility'
+description: 'Control whether attendee activity and popularity indicators are shown on event listings and event pages.'
+required: false
+translatable: false
+default_value:
+  -
+    value: auto
+default_value_callback: ''
+settings: {  }
+field_type: list_string

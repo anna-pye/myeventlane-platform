@@ -43,7 +43,7 @@
 {% set mel_eds_rsvp = mel_eds['rsvp_state']|default('unset') %}
 {% set mel_eds_has_product = (mel_eds['has_product']|default(0) == 1) or (mel_eds['has_product']|default(false) is same as(true)) %}
 {% set mel_cta_urgency = '' %}
-{% if (event_ui is not defined) or (not (event_ui.is_sold_out|default(false) == true)) %}
+{% if mel_social_proof_mode|default('auto') != 'hide' and ((event_ui is not defined) or (not (event_ui.is_sold_out|default(false) == true))) %}
   {% if mel_eds_rsvp is same as('limited') and mel_eds_cap > 0 and mel_eds_cap < 10 %}
     {% set mel_cta_urgency = 'Only @c spots left'|t({ '@c': mel_eds_cap }) %}
   {% elseif mel_eds_rsvp is same as('limited') and mel_eds_cap > 0 and mel_eds_cap < 20 %}

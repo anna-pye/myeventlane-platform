@@ -131,7 +131,8 @@ final class EventCardViewModel {
       : NULL;
 
     [$cardDay, $cardMonth] = $this->startDayMonth($node);
-    [$lowStock, $attendance] = $this->capacitySignals($node, $cacheability);
+    $socialProofMode = (string) ($context['mel_social_proof_mode'] ?? 'auto');
+    [$lowStock, $attendance] = $this->capacitySignals($node, $cacheability, $socialProofMode);
 
     $badges = [];
     if ($categoryLabel) {
@@ -150,6 +151,7 @@ final class EventCardViewModel {
     }
 
     return [
+      'event_id' => (int) $node->id(),
       'title' => $node->label(),
       'url' => $url,
       'image_url' => $image['url'],
@@ -207,6 +209,7 @@ final class EventCardViewModel {
       'mel_category_label' => $variables['mel_category_label'] ?? NULL,
       'mel_category_url' => $variables['mel_category_url'] ?? NULL,
       'mel_category_slug' => $variables['mel_category_slug'] ?? 'default',
+      'mel_social_proof_mode' => $variables['mel_social_proof_mode'] ?? 'auto',
     ];
 
     $model = $this->build($node, $viewMode, $context);
@@ -248,7 +251,9 @@ final class EventCardViewModel {
     $variables['card_cta_label'] = $model['cta_label'];
     $variables['card_is_low_stock'] = $model['is_low_stock'];
     $variables['card_attendance'] = $model['attendance'];
+    $variables['mel_social_proof_mode'] = $context['mel_social_proof_mode'] ?? 'auto';
     $variables['is_promoted'] = $model['is_promoted'];
+    $variables['event_id'] = $model['event_id'];
 
     $variables['event_flag_event_save'] = $this->buildSaveFlagLink($node);
     if ($variables['event_flag_event_save']) {
@@ -450,7 +455,11 @@ final class EventCardViewModel {
   /**
    * @return array{0: bool, 1: int|null}
    */
-  private function capacitySignals(NodeInterface $node, CacheableMetadata $cacheability): array {
+  private function capacitySignals(NodeInterface $node, CacheableMetadata $cacheability, string $socialProofMode = 'auto'): array {
+    if ($socialProofMode === 'hide') {
+      return [FALSE, NULL];
+    }
+
     $lowStock = FALSE;
     $attendance = NULL;
     if (\Drupal::hasService('myeventlane_capacity.service')) {
@@ -468,7 +477,8 @@ final class EventCardViewModel {
       $readModel = \Drupal::service('myeventlane_domain_events.read_model.event_metrics');
       $metrics = $readModel->getEventMetrics((int) $node->id());
       $going = (int) ($metrics['tickets_sold'] ?? 0) + (int) ($metrics['rsvp_count'] ?? 0);
-      if ($going >= 8) {
+      $attendanceThreshold = $socialProofMode === 'show' ? 1 : 8;
+      if ($going >= $attendanceThreshold) {
         $attendance = $going;
       }
       $cacheability->addCacheTags([sprintf('event_metrics:%d', (int) $node->id())]);
