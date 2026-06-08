@@ -101,24 +101,35 @@
         link.addEventListener('click', () => {
           const settings = drupalSettings.melPublicAnalytics || {};
           const eventId = link.getAttribute('data-event-id');
-          const eventClickToken = settings.csrfToken || csrfToken;
-          if (!settings.eventClickUrl || !eventId || !eventClickToken) {
+          if (!settings.eventClickUrl || !eventId) {
             return;
           }
 
-          const payload = new FormData();
-          payload.append('event_id', eventId);
+          const tokenPromise = settings.csrfToken
+            ? Promise.resolve(settings.csrfToken)
+            : getCsrfToken();
 
-          fetch(settings.eventClickUrl, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: payload,
-            keepalive: true,
-            headers: {
-              'X-CSRF-Token': eventClickToken,
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-          }).catch((error) => console.error(error));
+          tokenPromise
+            .then((eventClickToken) => {
+              if (!eventClickToken) {
+                return;
+              }
+
+              const payload = new FormData();
+              payload.append('event_id', eventId);
+
+              return fetch(settings.eventClickUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: payload,
+                keepalive: true,
+                headers: {
+                  'X-CSRF-Token': eventClickToken,
+                  'X-Requested-With': 'XMLHttpRequest',
+                },
+              });
+            })
+            .catch((error) => console.error(error));
         });
       });
     },

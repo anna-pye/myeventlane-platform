@@ -27,6 +27,12 @@ services:
       - '@datetime.time'
       - '@logger.channel.myeventlane_core'
 
+  myeventlane_core.discovery_analytics_page_attachments:
+    class: Drupal\myeventlane_core\Service\DiscoveryAnalyticsPageAttachments
+    arguments:
+      - '@current_route_match'
+      - '@path.matcher'
+
   myeventlane_core.event_viewer_count:
     class: Drupal\myeventlane_core\Service\EventViewerCountService
     arguments: ['@state', '@datetime.time']

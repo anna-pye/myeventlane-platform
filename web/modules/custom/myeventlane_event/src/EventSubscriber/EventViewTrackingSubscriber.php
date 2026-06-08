@@ -4,26 +4,21 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\EventSubscriber;
 
-use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
-use Drupal\myeventlane_core\Service\AnalyticsService;
-use Drupal\myeventlane_event\Service\PublicEventVisibility;
-use Drupal\node\NodeInterface;
+use Drupal\myeventlane_event\Service\EventPageViewTracker;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Records event page views on canonical event routes.
  *
- * Runs after the passcode gate subscriber so redirects are not counted.
+ * Runs on CONTROLLER (after routing and param conversion) so the event node is
+ * available on the request. REQUEST-phase listeners run before Drupal routing.
  */
 final class EventViewTrackingSubscriber implements EventSubscriberInterface {
 
   public function __construct(
-    private readonly AnalyticsService $analytics,
-    private readonly PublicEventVisibility $publicVisibility,
-    private readonly AccountProxyInterface $currentUser,
+    private readonly EventPageViewTracker $eventPageViewTracker,
   ) {}
 
   /**
@@ -31,37 +26,19 @@ final class EventViewTrackingSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents(): array {
     return [
-      KernelEvents::REQUEST => ['onKernelRequest', 20],
+      KernelEvents::CONTROLLER => ['onKernelController', 0],
     ];
   }
 
   /**
-   * Tracks a view when the event full page is actually served.
+   * Tracks a view when the event full page controller is about to run.
    */
-  public function onKernelRequest(RequestEvent $event): void {
-    if (!$event->isMainRequest() || $event->hasResponse()) {
+  public function onKernelController(ControllerEvent $event): void {
+    if (!$event->isMainRequest()) {
       return;
     }
 
-    $request = $event->getRequest();
-    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
-      return;
-    }
-
-    if ((string) $request->attributes->get('_route', '') !== 'entity.node.canonical') {
-      return;
-    }
-
-    $node = $request->attributes->get('node');
-    if (!$node instanceof NodeInterface || $node->bundle() !== 'event' || !$node->isPublished()) {
-      return;
-    }
-
-    if (!$this->publicVisibility->isDirectlyViewable($node, $this->currentUser, $request)) {
-      return;
-    }
-
-    $this->analytics->track('node', (int) $node->id(), AnalyticsService::EVENT_EVENT_VIEW);
+    $this->eventPageViewTracker->trackFromKernelRequest($event->getRequest());
   }
 
 }

@@ -916,6 +916,8 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     return;
   }
 
+  $variables['mel_social_proof_mode'] = myeventlane_event_get_social_proof_mode($node);
+
   $elements = is_array($variables['elements'] ?? NULL) ? $variables['elements'] : [];
   $recommendation_context = $elements['#recommendation_context'] ?? NULL;
   $variables['recommendation_context'] = is_array($recommendation_context)
@@ -1058,7 +1060,8 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     $variables['mel_event_gallery'] = $variables['mel_event_media']['gallery'];
   }
 
-  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_save_count')) {
+  $social_proof_mode = (string) ($variables['mel_social_proof_mode'] ?? 'auto');
+  if ($view_mode === 'full' && $social_proof_mode !== 'hide' && \Drupal::hasService('myeventlane_core.event_save_count')) {
     /** @var \Drupal\myeventlane_core\Service\EventSaveCountService $save_count_service */
     $save_count_service = \Drupal::service('myeventlane_core.event_save_count');
     $count = $save_count_service->getSaveCount((int) $node->id());
@@ -1080,7 +1083,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       $variables['event_save_count'] = NULL;
     }
   }
-  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_viewer_count')) {
+  if ($view_mode === 'full' && $social_proof_mode !== 'hide' && \Drupal::hasService('myeventlane_core.event_viewer_count')) {
     $variables['event_viewer_count_total'] = 0;
     $variables['event_viewer_count'] = NULL;
     try {
@@ -1089,7 +1092,8 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       $nid = (int) $node->id();
       $viewer_count = $viewer_service->recordViewAndGetCount($nid);
       $variables['event_viewer_count_total'] = $viewer_count;
-      if ($viewer_count > 1) {
+      $viewer_threshold = $social_proof_mode === 'show' ? 0 : 1;
+      if ($viewer_count > $viewer_threshold) {
         $variables['event_viewer_count'] = [
           '#markup' => \Drupal::translation()->formatPlural(
             $viewer_count,
@@ -1112,13 +1116,14 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       ]);
     }
   }
-  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_interest')) {
+  if ($view_mode === 'full' && $social_proof_mode !== 'hide' && \Drupal::hasService('myeventlane_core.event_interest')) {
     /** @var \Drupal\myeventlane_core\Service\EventInterestService $interest_service */
     $interest_service = \Drupal::service('myeventlane_core.event_interest');
     $variables['event_interest'] = $interest_service->getInterestState(
       (int) ($variables['event_save_count_total'] ?? 0),
       (int) ($variables['event_viewer_count_total'] ?? 0),
-      (int) $node->getCreatedTime()
+      (int) $node->getCreatedTime(),
+      $social_proof_mode
     );
   }
   $variables['mel_related_events'] = NULL;
@@ -1387,6 +1392,30 @@ function myeventlane_event_preprocess_myeventlane_vendor_dashboard(array &$varia
 }
 
 /**
+ * Resolves organiser social-proof visibility for an event node.
+ *
+ * @return 'auto'|'show'|'hide'
+ */
+function myeventlane_event_get_social_proof_mode(NodeInterface $node): string {
+  if (!$node->hasField('field_social_proof_visibility') || $node->get('field_social_proof_visibility')->isEmpty()) {
+    return 'auto';
+  }
+  $mode = (string) $node->get('field_social_proof_visibility')->value;
+  return in_array($mode, ['auto', 'show', 'hide'], TRUE) ? $mode : 'auto';
+}
+
+/**
+ * Whether a block-level "@count going" label should render for an event.
+ */
+function myeventlane_event_should_show_block_going(NodeInterface $node, int $going): bool {
+  return match (myeventlane_event_get_social_proof_mode($node)) {
+    'hide' => FALSE,
+    'show' => $going > 0,
+    default => TRUE,
+  };
+}
+
+/**
  * Map event_domain_state + CTA to semantic UI (Twig: labels and types only).
  */
 function myeventlane_event_finalize_event_ui(
@@ -1443,6 +1472,10 @@ function myeventlane_event_finalize_event_ui(
       && $capacity < 20
     ) {
       $out['capacity_hint'] = (string) t('Limited spots remaining');
+    }
+    if (myeventlane_event_get_social_proof_mode($node) === 'hide') {
+      $out['capacity_hint'] = NULL;
+      $out['is_limited'] = FALSE;
     }
     return $out;
   }
@@ -1510,6 +1543,12 @@ function myeventlane_event_finalize_event_ui(
     $out['image_badge_label'] = (string) t('Featured');
     $out['image_badge_type'] = 'apricot';
   }
+
+  if (myeventlane_event_get_social_proof_mode($node) === 'hide') {
+    $out['capacity_hint'] = NULL;
+    $out['is_limited'] = FALSE;
+  }
+
   return $out;
 }
 

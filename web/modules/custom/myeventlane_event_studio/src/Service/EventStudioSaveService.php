@@ -890,6 +890,22 @@ final class EventStudioSaveService {
         $node->set('field_refund_policy', in_array($v, $allowed, TRUE) ? $v : NULL);
       }
     }
+
+    if ($node->hasField('field_social_proof_visibility') && array_key_exists('field_social_proof_visibility', $payload)) {
+      $v = trim((string) $payload['field_social_proof_visibility']);
+      $allowed = $this->listStringValueKeys($node->getFieldDefinition('field_social_proof_visibility'));
+      if ($allowed === []) {
+        $this->logger->warning('Studio save: field_social_proof_visibility allowed values missing; skipping set (nid @nid).', [
+          '@nid' => (string) ($node->id() ?? 'new'),
+        ]);
+      }
+      else {
+        if ($v === '' || !in_array($v, $allowed, TRUE)) {
+          $v = in_array('auto', $allowed, TRUE) ? 'auto' : (string) reset($allowed);
+        }
+        $node->set('field_social_proof_visibility', $v);
+      }
+    }
   }
 
   /**
