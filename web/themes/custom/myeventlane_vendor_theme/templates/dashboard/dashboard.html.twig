@@ -96,6 +96,15 @@
     </div>
   </section>
 
+  {% include '@myeventlane_vendor_theme/components/mel-vendor-analytics-overview.html.twig' with {
+    analytics_cards: analytics_cards|default([]),
+  } only %}
+
+  {% include '@myeventlane_vendor_theme/components/mel-vendor-event-performance.html.twig' with {
+    event_performance: event_performance|default([]),
+    empty_state: empty_state,
+  } only %}
+
   {% if organiser_overview is iterable and organiser_overview|length > 0 %}
     <section class="mel-vendor-dashboard__overview-strip" aria-labelledby="mel-dash-overview-title">
       <div class="mel-vendor-dashboard__section-head">

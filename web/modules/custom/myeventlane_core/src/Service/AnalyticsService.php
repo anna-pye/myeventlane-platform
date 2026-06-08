@@ -31,6 +31,48 @@ final class AnalyticsService {
   ) {}
 
   /**
+   * Counts stored analytics events for an entity.
+   *
+   * @param int|null $start_ts
+   *   Optional inclusive start timestamp filter.
+   * @param int|null $end_ts
+   *   Optional inclusive end timestamp filter.
+   */
+  public function countEvents(string $entity_type, int $entity_id, string $event_type, ?int $start_ts = NULL, ?int $end_ts = NULL): int {
+    if ($entity_type === '' || $entity_id <= 0 || $event_type === '') {
+      return 0;
+    }
+
+    if (!$this->database->schema()->tableExists(self::TABLE)) {
+      return 0;
+    }
+
+    try {
+      $query = $this->database->select(self::TABLE, 'a');
+      $query->addExpression('COUNT(*)', 'cnt');
+      $query->condition('entity_type', $entity_type);
+      $query->condition('entity_id', $entity_id);
+      $query->condition('event_type', $event_type);
+      if ($start_ts !== NULL) {
+        $query->condition('timestamp', $start_ts, '>=');
+      }
+      if ($end_ts !== NULL) {
+        $query->condition('timestamp', $end_ts, '<=');
+      }
+      return (int) $query->execute()->fetchField();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to count analytics events for @type:@id (@event): @message', [
+        '@type' => $entity_type,
+        '@id' => (string) $entity_id,
+        '@event' => $event_type,
+        '@message' => $e->getMessage(),
+      ]);
+      return 0;
+    }
+  }
+
+  /**
    * Tracks a public analytics event.
    */
   public function track(string $entity_type, int $entity_id, string $event_type, ?int $user_id = NULL): bool {
