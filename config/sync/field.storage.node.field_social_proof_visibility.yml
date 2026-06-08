@@ -1,0 +1,30 @@
+uuid: 4a5f3cfb-1524-47b2-a1b5-86707442d1ef
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_social_proof_visibility
+field_name: field_social_proof_visibility
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: auto
+      label: Auto
+    -
+      value: show
+      label: Show
+    -
+      value: hide
+      label: Hide
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
