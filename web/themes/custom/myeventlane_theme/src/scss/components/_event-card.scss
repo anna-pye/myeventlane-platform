@@ -222,6 +222,72 @@
   }
 }
 
+// Calendar date badge — day/month from EventCardViewModel (card_day / card_month).
+.mel-event-card__date-badge {
+  position: absolute;
+  top: mel.$mel-ds-space-sm;
+  left: mel.$mel-ds-space-sm;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: mel.$mel-ds-space-xs mel.$mel-ds-space-sm;
+  border-radius: mel.$mel-ds-radius-sm;
+  background: color-mix(in srgb, #fff 94%, mel.$mel-ds-color-bg 6%);
+  color: mel.$mel-ds-color-text;
+  text-align: center;
+  line-height: 1.1;
+  box-shadow: 0 2px 10px rgba(36, 48, 58, 0.14);
+  pointer-events: none;
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+.mel-event-card__date-badge-day {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.mel-event-card__date-badge-month {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, mel.$mel-ds-color-text 72%, mel.$mel-ds-color-muted 28%);
+}
+
+.mel-event-card:has(.mel-event-card__date-badge) .mel-event-card__image-badge,
+.mel-event-card:has(.mel-event-card__date-badge) .mel-event-card__badge {
+  top: mel.$mel-ds-space-sm;
+  left: auto;
+  right: mel.$mel-ds-space-sm;
+}
+
+.mel-event-card--hero:has(.mel-event-card__date-badge) .mel-event-card__date-badge,
+.mel-event-card--featured:has(.mel-event-card__date-badge) .mel-event-card__date-badge {
+  top: mel.$mel-ds-space-md;
+  right: mel.$mel-ds-space-md;
+  left: auto;
+}
+
+// Elevated price / RSVP label — fixed slot directly under title (non-hero cards).
+.mel-event-card__price-slot {
+  margin: 0 0 mel.$mel-ds-space-xs;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 // Outrank .mel-pill--on-image / .mel-pill (listing + hero) without.
 .mel-event-card__image .mel-pill--on-image.mel-event-card__state-pill--highlight,
 .mel-event-card__media .mel-pill--on-image.mel-event-card__state-pill--highlight,
@@ -993,6 +1059,28 @@
   .mel-event-card__image-badge,
   .mel-event-card__overlay {
     display: none;
+  }
+
+  .mel-event-card__date-badge {
+    top: 8px;
+    left: 8px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px 6px;
+    border-radius: mel.$mel-ds-radius-sm;
+  }
+
+  .mel-event-card__date-badge-day {
+    font-size: 13px;
+  }
+
+  .mel-event-card__date-badge-month {
+    font-size: 10px;
+  }
+
+  .mel-event-card__price-slot {
+    margin-bottom: 2px;
+    font-size: 13px;
   }
 
   .mel-event-card__body,
