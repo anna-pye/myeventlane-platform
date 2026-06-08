@@ -1,11 +1,12 @@
 uuid: e0f3144f-7ab4-48ec-9539-362ac11b15b5
 langcode: en
-status: false
+status: true
 dependencies:
   config:
     - views.view.front_recommended_events
   module:
     - system
+    - user
     - views
   theme:
     - myeventlane_theme
@@ -28,3 +29,10 @@ visibility:
     id: request_path
     negate: false
     pages: '<front>'
+  user_role:
+    id: user_role
+    negate: false
+    context_mapping:
+      user: '@user.current_user_context:current_user'
+    roles:
+      authenticated: authenticated
