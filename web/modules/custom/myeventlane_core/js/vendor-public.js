@@ -67,23 +67,23 @@
             button.classList.toggle('is-following', Boolean(data.following));
             button.setAttribute('aria-pressed', data.following ? 'true' : 'false');
 
-            const followerCount = button.closest('.mel-vendor-card')?.querySelector('[data-mel-follower-count-value]');
-            if (followerCount && typeof data.followers !== 'undefined') {
-              followerCount.textContent = Drupal.formatPlural(
+            if (typeof data.followers !== 'undefined') {
+              const followerLabel = Drupal.formatPlural(
                 Number(data.followers),
                 '1 follower',
                 '@count followers',
               );
-              const followerStat = followerCount.closest('[data-mel-follower-count]');
+              const root = button.closest('.mel-vendor-card') || button.closest('article');
+              const followerStat = root?.querySelector('[data-mel-follower-count]');
               if (followerStat) {
-                followerStat.setAttribute(
-                  'aria-label',
-                  Drupal.formatPlural(
-                    Number(data.followers),
-                    '1 follower',
-                    '@count followers',
-                  ),
-                );
+                const followerValue = followerStat.querySelector('[data-mel-follower-count-value]');
+                if (followerValue) {
+                  followerValue.textContent = followerLabel;
+                }
+                else {
+                  followerStat.textContent = followerLabel;
+                }
+                followerStat.setAttribute('aria-label', followerLabel);
               }
             }
           }

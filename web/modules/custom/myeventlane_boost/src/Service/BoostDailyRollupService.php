@@ -61,7 +61,6 @@ final class BoostDailyRollupService {
     }
 
     $aggregated = [];
-    $processedIds = [];
 
     foreach ($logIds as $row) {
       $boostOrderItemId = (int) ($row->boost_order_item_id ?? 0);
@@ -80,7 +79,6 @@ final class BoostDailyRollupService {
         continue;
       }
 
-      $processedIds[] = $row->id;
       $key = $boostOrderItemId . '|' . $placement . '|' . $date;
       if (!isset($aggregated[$key])) {
         $aggregated[$key] = [
@@ -90,8 +88,10 @@ final class BoostDailyRollupService {
           'date' => $date,
           'impressions' => 0,
           'clicks' => 0,
+          'log_ids' => [],
         ];
       }
+      $aggregated[$key]['log_ids'][] = (int) $row->id;
       if ($row->kind === 'impression') {
         $aggregated[$key]['impressions']++;
       }
@@ -101,6 +101,7 @@ final class BoostDailyRollupService {
     }
 
     $mergedCount = 0;
+    $deletedLogIds = [];
     foreach ($aggregated as $agg) {
       $boostOrderItemId = (int) ($agg['boost_order_item_id'] ?? 0);
       $eventId = (int) ($agg['event_id'] ?? 0);
@@ -122,7 +123,6 @@ final class BoostDailyRollupService {
           ->keys([
             'date' => $date,
             'boost_order_item_id' => $boostOrderItemId,
-            'event_id' => $eventId,
             'placement' => $placement,
           ])
           ->insertFields([
@@ -141,6 +141,9 @@ final class BoostDailyRollupService {
         $merge->expression('clicks', 'clicks + :c', [':c' => (int) $agg['clicks']]);
         $merge->execute();
         $mergedCount++;
+        foreach ($agg['log_ids'] as $logId) {
+          $deletedLogIds[$logId] = $logId;
+        }
       }
       catch (\Exception $e) {
         $this->logger->notice('Boost daily rollup: skipped grouped rollup row after merge failure.', [
@@ -153,14 +156,14 @@ final class BoostDailyRollupService {
       }
     }
 
-    if ($processedIds !== []) {
+    if ($deletedLogIds !== []) {
       $this->database->delete('myeventlane_boost_stats_log')
-        ->condition('id', $processedIds, 'IN')
+        ->condition('id', array_values($deletedLogIds), 'IN')
         ->execute();
     }
 
     $this->logger->info('Boost daily rollup: processed @n log rows into @d daily aggregates.', [
-      '@n' => count($processedIds),
+      '@n' => count($deletedLogIds),
       '@d' => $mergedCount,
     ]);
   }
