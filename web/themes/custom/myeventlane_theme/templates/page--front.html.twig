@@ -54,7 +54,7 @@
       } %}
     {% endif %}
 
-    {% if page.homepage_tonight %}
+    {% if mel_home_show_tonight|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--tonight mel-section--discover',
         section_width_class: 'mel-section--wide',

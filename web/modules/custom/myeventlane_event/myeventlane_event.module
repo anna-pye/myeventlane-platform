@@ -19,6 +19,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
+use Drupal\myeventlane_core\Service\DiscoveryAttributionSources;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\Core\Render\Element;
@@ -1149,7 +1150,9 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           if (!$related instanceof NodeInterface) {
             continue;
           }
-          $builds[] = $view_builder->view($related, 'compact_commerce');
+          $build = $view_builder->view($related, 'compact_commerce');
+          $build['#mel_discovery_source'] = DiscoveryAttributionSources::SOURCE_RELATED_EVENTS;
+          $builds[] = $build;
           $append_tags = Cache::mergeTags($append_tags, $related->getCacheTags());
         }
         $variables['mel_related_events'] = $builds;

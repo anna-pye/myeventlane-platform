@@ -75,6 +75,10 @@ final class DiscoveryAnalyticsPageAttachments {
       return TRUE;
     }
 
+    if ($route_name === 'entity.node.canonical') {
+      return TRUE;
+    }
+
     foreach (self::VIEW_ROUTE_PREFIXES as $prefix) {
       if (str_starts_with($route_name, $prefix)) {
         return TRUE;

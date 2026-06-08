@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_core\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\myeventlane_core\Service\AnalyticsService;
+use Drupal\myeventlane_core\Service\DiscoveryAttributionSources;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,6 +21,7 @@ final class PublicAnalyticsController extends ControllerBase {
    */
   public function __construct(
     private readonly AnalyticsService $analytics,
+    private readonly DiscoveryAttributionSources $discoveryAttributionSources,
   ) {}
 
   /**
@@ -28,6 +30,7 @@ final class PublicAnalyticsController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_core.analytics'),
+      $container->get('myeventlane_core.discovery_attribution_sources'),
     );
   }
 
@@ -40,7 +43,19 @@ final class PublicAnalyticsController extends ControllerBase {
       return new JsonResponse(['status' => 'error'], 400);
     }
 
-    $tracked = $this->analytics->track('node', $event_id, AnalyticsService::EVENT_EVENT_CLICK);
+    $source = trim((string) $request->request->get('source', ''));
+    $source = $source === '' ? NULL : $source;
+    if ($source !== NULL && !$this->discoveryAttributionSources->isAllowed($source)) {
+      return new JsonResponse(['status' => 'error'], 400);
+    }
+
+    $tracked = $this->analytics->track(
+      'node',
+      $event_id,
+      AnalyticsService::EVENT_EVENT_CLICK,
+      NULL,
+      $source,
+    );
     return new JsonResponse(['status' => $tracked ? 'ok' : 'error'], $tracked ? 200 : 500);
   }
 
