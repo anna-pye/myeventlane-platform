@@ -17,6 +17,7 @@ final class AnalyticsService {
   public const EVENT_VENDOR_PAGE_VIEW = 'vendor_page_view';
   public const EVENT_FOLLOW_CLICK = 'follow_click';
   public const EVENT_EVENT_CLICK = 'event_click';
+  public const EVENT_EVENT_VIEW = 'event_view';
 
   private const TABLE = 'myeventlane_public_analytics_event';
 
@@ -69,6 +70,68 @@ final class AnalyticsService {
         '@message' => $e->getMessage(),
       ]);
       return 0;
+    }
+  }
+
+  /**
+   * Counts analytics events for many entities in one query.
+   *
+   * @param list<int> $entity_ids
+   *   Entity IDs to count (invalid IDs are ignored).
+   *
+   * @return array<int, int>
+   *   Map of entity_id => count (missing IDs are omitted).
+   */
+  public function countEventsByEntityIds(
+    string $entity_type,
+    array $entity_ids,
+    string $event_type,
+    ?int $start_ts = NULL,
+    ?int $end_ts = NULL,
+  ): array {
+    if ($entity_type === '' || $event_type === '') {
+      return [];
+    }
+
+    $entity_ids = array_values(array_unique(array_filter(
+      array_map(static fn(mixed $id): int => (int) $id, $entity_ids),
+      static fn(int $id): bool => $id > 0,
+    )));
+    if ($entity_ids === []) {
+      return [];
+    }
+
+    if (!$this->database->schema()->tableExists(self::TABLE)) {
+      return [];
+    }
+
+    try {
+      $query = $this->database->select(self::TABLE, 'a');
+      $query->addField('a', 'entity_id', 'entity_id');
+      $query->addExpression('COUNT(*)', 'cnt');
+      $query->condition('entity_type', $entity_type);
+      $query->condition('entity_id', $entity_ids, 'IN');
+      $query->condition('event_type', $event_type);
+      if ($start_ts !== NULL) {
+        $query->condition('timestamp', $start_ts, '>=');
+      }
+      if ($end_ts !== NULL) {
+        $query->condition('timestamp', $end_ts, '<=');
+      }
+      $query->groupBy('entity_id');
+
+      $counts = [];
+      foreach ($query->execute() as $row) {
+        $counts[(int) $row->entity_id] = (int) $row->cnt;
+      }
+      return $counts;
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to batch-count analytics events (@event): @message', [
+        '@event' => $event_type,
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
     }
   }
 

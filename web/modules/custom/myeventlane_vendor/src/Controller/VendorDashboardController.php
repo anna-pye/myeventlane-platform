@@ -734,6 +734,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $revenueFormatted = $this->formatCurrencyCents((int) ($metrics['revenue_net_cents'] ?? 0), $currency);
     $followConversion = (float) ($metrics['follow_conversion'] ?? 0.0);
     $boostCtr = (float) ($metrics['boost_ctr'] ?? 0.0);
+    $totalEventViews = (int) ($metrics['total_event_views'] ?? 0);
+    $avgTicketConversion = (float) ($metrics['avg_ticket_conversion'] ?? 0.0);
 
     $analytics = [
       'profile_views' => (int) ($metrics['profile_views'] ?? 0),
@@ -746,9 +748,12 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'boost_views' => (int) ($metrics['boost_views'] ?? 0),
       'boost_clicks' => (int) ($metrics['boost_clicks'] ?? 0),
       'boost_ctr' => $boostCtr,
+      'total_event_views' => $totalEventViews,
+      'avg_ticket_conversion' => $avgTicketConversion,
     ];
 
     $last30Days = (string) $this->t('Last 30 days');
+    $allTime = (string) $this->t('All time');
     $completedOrders = (string) $this->t('Completed');
     $paidTickets = (string) $this->t('Paid tickets');
     $confirmedRsvps = (string) $this->t('Confirmed');
@@ -775,6 +780,20 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'value' => number_format($followConversion, 1) . '%',
         'sub' => $last30Days,
         'aria_label' => (string) $this->t('Follow conversion'),
+      ],
+      [
+        'key' => 'total_event_views',
+        'label' => (string) $this->t('Total Event Views'),
+        'value' => number_format($totalEventViews),
+        'sub' => $allTime,
+        'aria_label' => (string) $this->t('Total event views'),
+      ],
+      [
+        'key' => 'avg_ticket_conversion',
+        'label' => (string) $this->t('Avg Ticket Conversion'),
+        'value' => number_format($avgTicketConversion, 1) . '%',
+        'sub' => $allTime,
+        'aria_label' => (string) $this->t('Average ticket conversion'),
       ],
       [
         'key' => 'revenue',

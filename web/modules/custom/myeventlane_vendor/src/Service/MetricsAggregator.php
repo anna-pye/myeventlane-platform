@@ -126,9 +126,10 @@ final class MetricsAggregator {
    *   Linked commerce store.
    *
    * @return array<string, int|float|string>
-   *   Keys: profile_views, followers, follow_conversion, revenue_net_cents,
+   *   Keys: profile_views, followers (all time), follow_conversion (last 30
+   *   days: new follows / profile views), revenue_net_cents,
    *   orders_count, tickets_sold, rsvps_confirmed, currency, boost_views,
-   *   boost_clicks, boost_ctr.
+   *   boost_clicks, boost_ctr, total_event_views, avg_ticket_conversion.
    */
   public function getVendorAnalyticsOverview(int $userId, Vendor $vendor, StoreInterface $store): array {
     $range = $this->vendorKpiService->getDefaultRangeLast30Days();
@@ -145,8 +146,9 @@ final class MetricsAggregator {
     );
 
     $followers = $this->vendorFollowService->countFollowers($vendor);
+    $newFollowers = $this->vendorFollowService->countFollowersInRange($vendor, $start, $end);
     $followConversion = $profileViews > 0
-      ? round($followers / $profileViews * 100, 1)
+      ? round($newFollowers / $profileViews * 100, 1)
       : 0.0;
 
     $kpi = $this->vendorKpiService->getKpisForStore($store, $start, $end, 'AUD');
@@ -155,6 +157,38 @@ final class MetricsAggregator {
       ? $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, TRUE)
       : [];
     $boostRollup = $this->boostMetricsService->getVendorBoostRollup($publishedEventIds);
+
+    $managedEventIds = $userId > 0
+      ? $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, FALSE)
+      : [];
+    $eventViewCounts = $this->analyticsService->countEventsByEntityIds(
+      'node',
+      $managedEventIds,
+      AnalyticsService::EVENT_EVENT_VIEW,
+    );
+    $totalEventViews = array_sum($eventViewCounts);
+
+    $ticketConversionRates = [];
+    foreach ($managedEventIds as $managedEventId) {
+      $managedEventId = (int) $managedEventId;
+      $views = $eventViewCounts[$managedEventId] ?? 0;
+      if ($views <= 0) {
+        continue;
+      }
+
+      try {
+        $salesSummary = $this->ticketSalesService->getSalesSummaryForEventId($managedEventId);
+      }
+      catch (\Throwable) {
+        $salesSummary = [];
+      }
+
+      $ticketsSold = (int) ($salesSummary['tickets_sold'] ?? 0);
+      $ticketConversionRates[] = round($ticketsSold / $views * 100, 1);
+    }
+    $avgTicketConversion = $ticketConversionRates !== []
+      ? round(array_sum($ticketConversionRates) / count($ticketConversionRates), 1)
+      : 0.0;
 
     return [
       'profile_views' => $profileViews,
@@ -168,6 +202,8 @@ final class MetricsAggregator {
       'boost_views' => (int) ($boostRollup['impressions'] ?? 0),
       'boost_clicks' => (int) ($boostRollup['clicks'] ?? 0),
       'boost_ctr' => (float) ($boostRollup['ctr_percent'] ?? 0.0),
+      'total_event_views' => $totalEventViews,
+      'avg_ticket_conversion' => $avgTicketConversion,
     ];
   }
 
@@ -178,7 +214,8 @@ final class MetricsAggregator {
    *   Vendor account user ID.
    *
    * @return list<array<string, int|string>>
-   *   Rows with event_id, title, url, rsvps, tickets_sold, revenue, boost_ctr.
+   *   Rows with event_id, title, url, views, rsvps, tickets_sold, revenue,
+   *   rsvp_conv, ticket_conv, boost_ctr.
    */
   public function getEventPerformanceRows(int $userId): array {
     if ($userId <= 0) {
@@ -192,6 +229,11 @@ final class MetricsAggregator {
 
     $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($eventIds);
     $boostCtrMap = $this->boostMetricsService->getEventBoostCtrByEventIds($eventIds);
+    $viewCounts = $this->analyticsService->countEventsByEntityIds(
+      'node',
+      $eventIds,
+      AnalyticsService::EVENT_EVENT_VIEW,
+    );
 
     $rows = [];
     foreach ($eventIds as $eventId) {
@@ -215,15 +257,20 @@ final class MetricsAggregator {
         $rsvps = 0;
       }
 
+      $views = $viewCounts[$eventId] ?? 0;
+      $ticketsSold = (int) ($salesSummary['tickets_sold'] ?? 0);
       $boost = $boostCtrMap[$eventId] ?? ['ctr_display' => '—'];
 
       $rows[] = [
         'event_id' => $eventId,
         'title' => (string) $node->getTitle(),
         'url' => $this->eventPerformanceUrl($eventId),
+        'views' => $views,
         'rsvps' => $rsvps,
-        'tickets_sold' => (int) ($salesSummary['tickets_sold'] ?? 0),
+        'tickets_sold' => $ticketsSold,
         'revenue' => (string) ($salesSummary['net'] ?? '$0.00'),
+        'rsvp_conv' => $this->formatConversionPercent($rsvps, $views),
+        'ticket_conv' => $this->formatConversionPercent($ticketsSold, $views),
         'boost_ctr' => (string) ($boost['ctr_display'] ?? '—'),
         '_sort_changed' => (int) $node->getChangedTime(),
       ];
@@ -236,6 +283,17 @@ final class MetricsAggregator {
     unset($row);
 
     return $rows;
+  }
+
+  /**
+   * Formats a conversion rate for dashboard display.
+   */
+  private function formatConversionPercent(int $numerator, int $denominator): string {
+    if ($denominator <= 0) {
+      return '—';
+    }
+
+    return number_format(round($numerator / $denominator * 100, 1), 1) . '%';
   }
 
   /**

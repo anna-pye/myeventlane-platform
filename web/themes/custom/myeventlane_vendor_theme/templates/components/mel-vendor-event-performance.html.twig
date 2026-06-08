@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Vendor dashboard event performance table (Stage 2).
+ * Vendor dashboard event performance table (Stage 2 + Stage 3 conversion).
  *
  * No calculations in Twig — all values pre-formatted in PHP.
  */
@@ -16,9 +16,12 @@
         <thead>
           <tr>
             <th scope="col">{{ 'Event'|t }}</th>
+            <th scope="col">{{ 'Views'|t }}</th>
             <th scope="col">{{ 'RSVPs'|t }}</th>
             <th scope="col">{{ 'Tickets Sold'|t }}</th>
             <th scope="col">{{ 'Revenue (All Time)'|t }}</th>
+            <th scope="col">{{ 'RSVP Conv %'|t }}</th>
+            <th scope="col">{{ 'Ticket Conv %'|t }}</th>
             <th scope="col">{{ 'Boost CTR'|t }}</th>
           </tr>
         </thead>
@@ -32,10 +35,13 @@
                   {{ row.title }}
                 {% endif %}
               </th>
-              <td>{{ row.rsvps|default(0) }}</td>
-              <td>{{ row.tickets_sold|default(0) }}</td>
+              <td class="mel-vendor-event-performance__numeric">{{ row.views|default(0) }}</td>
+              <td class="mel-vendor-event-performance__numeric">{{ row.rsvps|default(0) }}</td>
+              <td class="mel-vendor-event-performance__numeric">{{ row.tickets_sold|default(0) }}</td>
               <td>{{ row.revenue|default('$0.00') }}</td>
-              <td>{{ row.boost_ctr|default('—') }}</td>
+              <td class="mel-vendor-event-performance__numeric">{{ row.rsvp_conv|default('—') }}</td>
+              <td class="mel-vendor-event-performance__numeric">{{ row.ticket_conv|default('—') }}</td>
+              <td class="mel-vendor-event-performance__numeric">{{ row.boost_ctr|default('—') }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -54,6 +60,10 @@
           </h3>
           <dl class="mel-vendor-event-performance__card-metrics">
             <div class="mel-vendor-event-performance__card-metric">
+              <dt>{{ 'Views'|t }}</dt>
+              <dd>{{ row.views|default(0) }}</dd>
+            </div>
+            <div class="mel-vendor-event-performance__card-metric">
               <dt>{{ 'RSVPs'|t }}</dt>
               <dd>{{ row.rsvps|default(0) }}</dd>
             </div>
@@ -64,6 +74,14 @@
             <div class="mel-vendor-event-performance__card-metric">
               <dt>{{ 'Revenue (All Time)'|t }}</dt>
               <dd>{{ row.revenue|default('$0.00') }}</dd>
+            </div>
+            <div class="mel-vendor-event-performance__card-metric">
+              <dt>{{ 'RSVP Conv %'|t }}</dt>
+              <dd>{{ row.rsvp_conv|default('—') }}</dd>
+            </div>
+            <div class="mel-vendor-event-performance__card-metric">
+              <dt>{{ 'Ticket Conv %'|t }}</dt>
+              <dd>{{ row.ticket_conv|default('—') }}</dd>
             </div>
             <div class="mel-vendor-event-performance__card-metric">
               <dt>{{ 'Boost CTR'|t }}</dt>

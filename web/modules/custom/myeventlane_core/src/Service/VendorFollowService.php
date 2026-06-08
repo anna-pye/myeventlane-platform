@@ -102,6 +102,30 @@ final class VendorFollowService {
   }
 
   /**
+   * Counts followers gained for a vendor within an inclusive time range.
+   *
+   * @param int $start_ts
+   *   Inclusive start timestamp (follow entity created time).
+   * @param int $end_ts
+   *   Inclusive end timestamp (follow entity created time).
+   */
+  public function countFollowersInRange(Vendor $vendor, int $start_ts, int $end_ts): int {
+    if ($start_ts > $end_ts) {
+      return 0;
+    }
+
+    $query = $this->entityTypeManager
+      ->getStorage('myeventlane_vendor_follow')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('vendor_id', (int) $vendor->id())
+      ->condition('created', $start_ts, '>=')
+      ->condition('created', $end_ts, '<=');
+
+    return (int) $query->count()->execute();
+  }
+
+  /**
    * Loads follow entity IDs for a user/vendor pair.
    *
    * @return int[]
