@@ -9,6 +9,12 @@ use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_donations\Service\DonationService;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\myeventlane_core\Service\AnalyticsService;
+use Drupal\myeventlane_core\Service\VendorFollowService;
+use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\Core\Url;
+use Drupal\myeventlane_vendor_analytics\Service\VendorKpiService;
 use Drupal\node\NodeInterface;
 
 /**
@@ -47,6 +53,10 @@ final class MetricsAggregator {
     private readonly BoostMetricsService $boostMetricsService,
     private readonly OrderItemClassifier $orderItemClassifier,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly AnalyticsService $analyticsService,
+    private readonly VendorFollowService $vendorFollowService,
+    private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
+    private readonly VendorKpiService $vendorKpiService,
     private readonly ?DonationService $donationService = NULL,
   ) {}
 
@@ -99,6 +109,159 @@ final class MetricsAggregator {
         'delta' => NULL,
       ],
     ];
+  }
+
+  /**
+   * Returns vendor dashboard analytics overview metrics (Stage 1).
+   *
+   * Aggregates profile views, followers, commerce KPIs, and Boost reach in
+   * one orchestrated call. All calculations occur here — Twig receives values
+   * only.
+   *
+   * @param int $userId
+   *   Vendor account user ID.
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
+   *   Vendor entity.
+   * @param \Drupal\commerce_store\Entity\StoreInterface $store
+   *   Linked commerce store.
+   *
+   * @return array<string, int|float|string>
+   *   Keys: profile_views, followers, follow_conversion, revenue_net_cents,
+   *   orders_count, tickets_sold, rsvps_confirmed, currency, boost_views,
+   *   boost_clicks, boost_ctr.
+   */
+  public function getVendorAnalyticsOverview(int $userId, Vendor $vendor, StoreInterface $store): array {
+    $range = $this->vendorKpiService->getDefaultRangeLast30Days();
+    $start = (int) $range['start'];
+    $end = (int) $range['end'];
+    $vendorId = (int) $vendor->id();
+
+    $profileViews = $this->analyticsService->countEvents(
+      'myeventlane_vendor',
+      $vendorId,
+      AnalyticsService::EVENT_VENDOR_PAGE_VIEW,
+      $start,
+      $end,
+    );
+
+    $followers = $this->vendorFollowService->countFollowers($vendor);
+    $followConversion = $profileViews > 0
+      ? round($followers / $profileViews * 100, 1)
+      : 0.0;
+
+    $kpi = $this->vendorKpiService->getKpisForStore($store, $start, $end, 'AUD');
+
+    $publishedEventIds = $userId > 0
+      ? $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, TRUE)
+      : [];
+    $boostRollup = $this->boostMetricsService->getVendorBoostRollup($publishedEventIds);
+
+    return [
+      'profile_views' => $profileViews,
+      'followers' => $followers,
+      'follow_conversion' => $followConversion,
+      'revenue_net_cents' => (int) ($kpi['revenue_net_cents'] ?? 0),
+      'orders_count' => (int) ($kpi['orders_count'] ?? 0),
+      'tickets_sold' => (int) ($kpi['tickets_sold'] ?? 0),
+      'rsvps_confirmed' => (int) ($kpi['rsvps_confirmed'] ?? 0),
+      'currency' => (string) ($kpi['currency'] ?? 'AUD'),
+      'boost_views' => (int) ($boostRollup['impressions'] ?? 0),
+      'boost_clicks' => (int) ($boostRollup['clicks'] ?? 0),
+      'boost_ctr' => (float) ($boostRollup['ctr_percent'] ?? 0.0),
+    ];
+  }
+
+  /**
+   * Returns event performance rows for the vendor dashboard table (Stage 2).
+   *
+   * @param int $userId
+   *   Vendor account user ID.
+   *
+   * @return list<array<string, int|string>>
+   *   Rows with event_id, title, url, rsvps, tickets_sold, revenue, boost_ctr.
+   */
+  public function getEventPerformanceRows(int $userId): array {
+    if ($userId <= 0) {
+      return [];
+    }
+
+    $eventIds = $this->userVendorMembershipQuery->getManagedEventNodeIds($userId, FALSE);
+    if ($eventIds === []) {
+      return [];
+    }
+
+    $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($eventIds);
+    $boostCtrMap = $this->boostMetricsService->getEventBoostCtrByEventIds($eventIds);
+
+    $rows = [];
+    foreach ($eventIds as $eventId) {
+      $eventId = (int) $eventId;
+      $node = $nodes[$eventId] ?? NULL;
+      if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
+        continue;
+      }
+
+      try {
+        $salesSummary = $this->ticketSalesService->getSalesSummary($node);
+      }
+      catch (\Throwable) {
+        $salesSummary = [];
+      }
+
+      try {
+        $rsvps = $this->rsvpStatsService->getEventRsvpCount($eventId);
+      }
+      catch (\Throwable) {
+        $rsvps = 0;
+      }
+
+      $boost = $boostCtrMap[$eventId] ?? ['ctr_display' => '—'];
+
+      $rows[] = [
+        'event_id' => $eventId,
+        'title' => (string) $node->getTitle(),
+        'url' => $this->eventPerformanceUrl($eventId),
+        'rsvps' => $rsvps,
+        'tickets_sold' => (int) ($salesSummary['tickets_sold'] ?? 0),
+        'revenue' => (string) ($salesSummary['net'] ?? '$0.00'),
+        'boost_ctr' => (string) ($boost['ctr_display'] ?? '—'),
+        '_sort_changed' => (int) $node->getChangedTime(),
+      ];
+    }
+
+    usort($rows, static fn(array $a, array $b): int => ((int) ($b['_sort_changed'] ?? 0)) <=> ((int) ($a['_sort_changed'] ?? 0)));
+    foreach ($rows as &$row) {
+      unset($row['_sort_changed']);
+    }
+    unset($row);
+
+    return $rows;
+  }
+
+  /**
+   * Resolves the event link for performance table rows.
+   */
+  private function eventPerformanceUrl(int $eventId): string {
+    if ($eventId <= 0) {
+      return '';
+    }
+
+    try {
+      return Url::fromRoute('myeventlane_event_studio.workspace', ['node' => $eventId])->toString();
+    }
+    catch (\Throwable) {
+      try {
+        return Url::fromRoute('myeventlane_event_studio.edit', ['node' => $eventId])->toString();
+      }
+      catch (\Throwable) {
+        try {
+          return Url::fromRoute('entity.node.canonical', ['node' => $eventId])->toString();
+        }
+        catch (\Throwable) {
+          return '';
+        }
+      }
+    }
   }
 
   /**

@@ -1,0 +1,90 @@
+{#
+/**
+ * @file
+ * Vendor dashboard event performance table (Stage 2).
+ *
+ * No calculations in Twig — all values pre-formatted in PHP.
+ */
+#}
+{% set rows = event_performance|default([]) %}
+<section class="mel-vendor-event-performance" aria-labelledby="mel-vendor-event-performance-title">
+  <h2 id="mel-vendor-event-performance-title" class="mel-vendor-event-performance__title">{{ 'Event Performance'|t }}</h2>
+
+  {% if rows is iterable and rows|length > 0 %}
+    <div class="mel-vendor-event-performance__table-wrap">
+      <table class="mel-vendor-event-performance__table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Event'|t }}</th>
+            <th scope="col">{{ 'RSVPs'|t }}</th>
+            <th scope="col">{{ 'Tickets Sold'|t }}</th>
+            <th scope="col">{{ 'Revenue (All Time)'|t }}</th>
+            <th scope="col">{{ 'Boost CTR'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="mel-vendor-event-performance__row">
+              <th scope="row" class="mel-vendor-event-performance__event">
+                {% if row.url %}
+                  <a class="mel-vendor-event-performance__event-link" href="{{ row.url }}">{{ row.title }}</a>
+                {% else %}
+                  {{ row.title }}
+                {% endif %}
+              </th>
+              <td>{{ row.rsvps|default(0) }}</td>
+              <td>{{ row.tickets_sold|default(0) }}</td>
+              <td>{{ row.revenue|default('$0.00') }}</td>
+              <td>{{ row.boost_ctr|default('—') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mel-vendor-event-performance__cards" role="list">
+      {% for row in rows %}
+        <article class="mel-vendor-event-performance__card" role="listitem" aria-label="{{ row.title }}">
+          <h3 class="mel-vendor-event-performance__card-title">
+            {% if row.url %}
+              <a class="mel-vendor-event-performance__event-link" href="{{ row.url }}">{{ row.title }}</a>
+            {% else %}
+              {{ row.title }}
+            {% endif %}
+          </h3>
+          <dl class="mel-vendor-event-performance__card-metrics">
+            <div class="mel-vendor-event-performance__card-metric">
+              <dt>{{ 'RSVPs'|t }}</dt>
+              <dd>{{ row.rsvps|default(0) }}</dd>
+            </div>
+            <div class="mel-vendor-event-performance__card-metric">
+              <dt>{{ 'Tickets'|t }}</dt>
+              <dd>{{ row.tickets_sold|default(0) }}</dd>
+            </div>
+            <div class="mel-vendor-event-performance__card-metric">
+              <dt>{{ 'Revenue (All Time)'|t }}</dt>
+              <dd>{{ row.revenue|default('$0.00') }}</dd>
+            </div>
+            <div class="mel-vendor-event-performance__card-metric">
+              <dt>{{ 'Boost CTR'|t }}</dt>
+              <dd>{{ row.boost_ctr|default('—') }}</dd>
+            </div>
+          </dl>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="mel-empty-state mel-empty-state--compact">
+      <p class="mel-empty-state__text">{{ 'No event performance data available yet. Create your first event to start collecting insights.'|t }}</p>
+      {% if empty_state.url is defined and empty_state.url %}
+        <div class="mel-empty-state__actions">
+          <a href="{{ empty_state.url }}" class="mel-btn mel-btn--primary">{{ empty_state.action_label|default('Create event'|t) }}</a>
+        </div>
+      {% else %}
+        <div class="mel-empty-state__actions">
+          <a href="{{ path('myeventlane_event_studio.create') }}" class="mel-btn mel-btn--primary">{{ 'Create event'|t }}</a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>

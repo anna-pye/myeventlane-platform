@@ -92,6 +92,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected VendorKpiService $vendorKpiService;
 
   /**
+   * Metrics aggregator for dashboard analytics overview.
+   */
+  protected MetricsAggregator $metricsAggregator;
+
+  /**
    * Capacity service (STAGE B, optional).
    */
   protected ?EventCapacityServiceInterface $capacityService;
@@ -200,6 +205,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     BoostStatusService $boost_status,
     TicketSalesService $ticket_sales,
     VendorKpiService $vendor_kpi_service,
+    MetricsAggregator $metrics_aggregator,
     ?VendorMetricsReadModel $vendor_metrics_read_model,
     ?EventCapacityServiceInterface $capacity_service,
     OnboardingManager $onboarding_manager,
@@ -230,6 +236,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->boostStatus = $boost_status;
     $this->ticketSales = $ticket_sales;
     $this->vendorKpiService = $vendor_kpi_service;
+    $this->metricsAggregator = $metrics_aggregator;
     $this->vendorMetricsReadModel = $vendor_metrics_read_model;
     $this->capacityService = $capacity_service;
     $this->onboardingManager = $onboarding_manager;
@@ -268,6 +275,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('myeventlane_vendor_analytics.vendor_kpi'),
+      $container->get('myeventlane_vendor.service.metrics_aggregator'),
       $container->has('myeventlane_domain_events.read_model.vendor_metrics') ? $container->get('myeventlane_domain_events.read_model.vendor_metrics') : NULL,
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
       $container->get('myeventlane_onboarding.manager'),
@@ -432,6 +440,23 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ];
     if ($vendorKpis !== NULL) {
       $pageVars['vendor_kpis'] = $vendorKpis;
+    }
+
+    $analyticsOverview = $this->buildAnalyticsOverview($userId, $vendor, $store);
+    if ($analyticsOverview !== NULL) {
+      $pageVars['analytics'] = $analyticsOverview['analytics'];
+      $pageVars['analytics_cards'] = $analyticsOverview['cards'];
+    }
+
+    try {
+      $pageVars['event_performance'] = $this->metricsAggregator->getEventPerformanceRows($userId);
+    }
+    catch (\Throwable $e) {
+      $this->melDebugLogger->warning('Vendor dashboard event performance failed for uid @uid: @message', [
+        '@uid' => (string) $userId,
+        '@message' => $e->getMessage(),
+      ]);
+      $pageVars['event_performance'] = [];
     }
 
     // Onboarding panel and badge: only when vendor exists and not yet complete.
@@ -681,6 +706,131 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     $target = Url::fromRoute('user.login')->toString();
     return new RedirectResponse($target, 302);
+  }
+
+  /**
+   * Builds vendor analytics overview payload for Stage 1 dashboard cards.
+   *
+   * @return array{analytics: array<string, mixed>, cards: list<array<string, string>>}|null
+   *   Analytics data and formatted cards, or NULL when vendor/store unavailable.
+   */
+  private function buildAnalyticsOverview(int $userId, $vendor, $store): ?array {
+    if (!$vendor || !method_exists($vendor, 'id') || !$store instanceof StoreInterface) {
+      return NULL;
+    }
+
+    try {
+      $metrics = $this->metricsAggregator->getVendorAnalyticsOverview($userId, $vendor, $store);
+    }
+    catch (\Throwable $e) {
+      $this->melDebugLogger->warning('Vendor dashboard analytics overview failed for uid @uid: @message', [
+        '@uid' => (string) $userId,
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+
+    $currency = (string) ($metrics['currency'] ?? 'AUD');
+    $revenueFormatted = $this->formatCurrencyCents((int) ($metrics['revenue_net_cents'] ?? 0), $currency);
+    $followConversion = (float) ($metrics['follow_conversion'] ?? 0.0);
+    $boostCtr = (float) ($metrics['boost_ctr'] ?? 0.0);
+
+    $analytics = [
+      'profile_views' => (int) ($metrics['profile_views'] ?? 0),
+      'followers' => (int) ($metrics['followers'] ?? 0),
+      'follow_conversion' => $followConversion,
+      'revenue' => $revenueFormatted,
+      'orders' => (int) ($metrics['orders_count'] ?? 0),
+      'tickets_sold' => (int) ($metrics['tickets_sold'] ?? 0),
+      'rsvps' => (int) ($metrics['rsvps_confirmed'] ?? 0),
+      'boost_views' => (int) ($metrics['boost_views'] ?? 0),
+      'boost_clicks' => (int) ($metrics['boost_clicks'] ?? 0),
+      'boost_ctr' => $boostCtr,
+    ];
+
+    $last30Days = (string) $this->t('Last 30 days');
+    $completedOrders = (string) $this->t('Completed');
+    $paidTickets = (string) $this->t('Paid tickets');
+    $confirmedRsvps = (string) $this->t('Confirmed');
+    $impressionsToClicks = (string) $this->t('Impressions → Clicks');
+
+    $cards = [
+      [
+        'key' => 'profile_views',
+        'label' => (string) $this->t('Profile Views'),
+        'value' => number_format((int) $analytics['profile_views']),
+        'sub' => $last30Days,
+        'aria_label' => (string) $this->t('Profile views'),
+      ],
+      [
+        'key' => 'followers',
+        'label' => (string) $this->t('Followers'),
+        'value' => number_format((int) $analytics['followers']),
+        'sub' => NULL,
+        'aria_label' => (string) $this->t('Followers'),
+      ],
+      [
+        'key' => 'follow_conversion',
+        'label' => (string) $this->t('Follow Conversion'),
+        'value' => number_format($followConversion, 1) . '%',
+        'sub' => $last30Days,
+        'aria_label' => (string) $this->t('Follow conversion'),
+      ],
+      [
+        'key' => 'revenue',
+        'label' => (string) $this->t('Revenue'),
+        'value' => $revenueFormatted,
+        'sub' => $last30Days,
+        'aria_label' => (string) $this->t('Revenue'),
+      ],
+      [
+        'key' => 'orders',
+        'label' => (string) $this->t('Orders'),
+        'value' => number_format((int) $analytics['orders']),
+        'sub' => $completedOrders,
+        'aria_label' => (string) $this->t('Orders'),
+      ],
+      [
+        'key' => 'tickets_sold',
+        'label' => (string) $this->t('Tickets Sold'),
+        'value' => number_format((int) $analytics['tickets_sold']),
+        'sub' => $paidTickets,
+        'aria_label' => (string) $this->t('Tickets sold'),
+      ],
+      [
+        'key' => 'rsvps',
+        'label' => (string) $this->t('RSVPs'),
+        'value' => number_format((int) $analytics['rsvps']),
+        'sub' => $confirmedRsvps,
+        'aria_label' => (string) $this->t('RSVPs'),
+      ],
+      [
+        'key' => 'boost_views',
+        'label' => (string) $this->t('Boost Views'),
+        'value' => number_format((int) $analytics['boost_views']),
+        'sub' => NULL,
+        'aria_label' => (string) $this->t('Boost views'),
+      ],
+      [
+        'key' => 'boost_clicks',
+        'label' => (string) $this->t('Boost Clicks'),
+        'value' => number_format((int) $analytics['boost_clicks']),
+        'sub' => NULL,
+        'aria_label' => (string) $this->t('Boost clicks'),
+      ],
+      [
+        'key' => 'boost_ctr',
+        'label' => (string) $this->t('Boost CTR'),
+        'value' => number_format($boostCtr, 1) . '%',
+        'sub' => $impressionsToClicks,
+        'aria_label' => (string) $this->t('Boost click-through rate'),
+      ],
+    ];
+
+    return [
+      'analytics' => $analytics,
+      'cards' => $cards,
+    ];
   }
 
   /**

@@ -1,0 +1,88 @@
+/**
+ * @file
+ * Vendor dashboard analytics overview KPI cards.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+$color-primary: $primary;
+$color-accent: $ml-color-accent;
+$radius-medium: $mel-radius-md;
+$spacing-xl: $mel-spacing-xl;
+$font-family-main: $font-family-sans;
+
+.mel-vendor-analytics {
+  display: grid;
+  gap: $spacing-4;
+}
+
+.mel-vendor-analytics__title {
+  margin: 0;
+  font-family: $font-family-main;
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-semibold;
+  color: $ml-vendor-navy;
+}
+
+.mel-vendor-analytics__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-4;
+}
+
+.mel-vendor-analytics__card {
+  display: grid;
+  gap: $spacing-2;
+  min-height: 44px;
+  padding: $spacing-xl;
+  background: #fff;
+  border-radius: $radius-medium;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:focus-within {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+}
+
+.mel-vendor-analytics__label {
+  font-family: $font-family-main;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+}
+
+.mel-vendor-analytics__value {
+  font-family: $font-family-main;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-semibold;
+  color: $ml-vendor-navy;
+  line-height: 1.2;
+}
+
+.mel-vendor-analytics__sub {
+  font-family: $font-family-main;
+  font-size: $font-size-xs;
+  color: $text-muted;
+}
+
+@include respond-to(md) {
+  .mel-vendor-analytics__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@include respond-to(lg) {
+  .mel-vendor-analytics__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

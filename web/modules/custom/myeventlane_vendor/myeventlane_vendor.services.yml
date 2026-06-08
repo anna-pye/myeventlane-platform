@@ -207,6 +207,10 @@ services:
       - '@myeventlane_boost.metrics'
       - '@myeventlane_commerce.order_item_classifier'
       - '@entity_type.manager'
+      - '@myeventlane_core.analytics'
+      - '@myeventlane_core.vendor_follow'
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@myeventlane_vendor_analytics.vendor_kpi'
       - '@?myeventlane_donations.service'
 
   myeventlane_vendor.action_queue_builder:
@@ -331,6 +335,7 @@ services:
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_vendor.service.ticket_sales'
       - '@myeventlane_vendor_analytics.vendor_kpi'
+      - '@myeventlane_vendor.service.metrics_aggregator'
       - '@?myeventlane_domain_events.read_model.vendor_metrics'
       - '@?myeventlane_capacity.service'
       - '@myeventlane_onboarding.manager'

@@ -161,6 +161,183 @@ final class BoostMetricsService {
   }
 
   /**
+   * Aggregates Boost impressions and clicks across managed events.
+   *
+   * Uses myeventlane_boost_stats via existing order-item aggregation.
+   *
+   * @param list<int> $eventIds
+   *   Published event node IDs for the vendor.
+   *
+   * @return array{impressions: int, clicks: int, ctr_percent: float}
+   *   Vendor-level Boost reach metrics.
+   */
+  public function getVendorBoostRollup(array $eventIds): array {
+    $eventIds = array_values(array_filter(array_map('intval', $eventIds), static fn(int $id): bool => $id > 0));
+    if ($eventIds === []) {
+      return [
+        'impressions' => 0,
+        'clicks' => 0,
+        'ctr_percent' => 0.0,
+      ];
+    }
+
+    try {
+      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+      $candidateIds = $orderItemStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'boost')
+        ->condition('field_target_event', $eventIds, 'IN')
+        ->execute();
+
+      if ($candidateIds === []) {
+        return [
+          'impressions' => 0,
+          'clicks' => 0,
+          'ctr_percent' => 0.0,
+        ];
+      }
+
+      $candidateIds = array_values(array_unique(array_map('intval', EntityLoadIds::normalizeForLoadMultiple($candidateIds))));
+      $orderItems = $orderItemStorage->loadMultiple($candidateIds);
+      $orderItemIds = [];
+      foreach ($orderItems as $orderItem) {
+        if (!$orderItem instanceof OrderItemInterface) {
+          continue;
+        }
+        $order = $this->loadParentOrder($orderItem);
+        if (!$order || !in_array($order->getState()->getId(), ['completed', 'fulfillment'], TRUE)) {
+          continue;
+        }
+        $orderItemIds[] = (int) $orderItem->id();
+      }
+    }
+    catch (\Throwable) {
+      return [
+        'impressions' => 0,
+        'clicks' => 0,
+        'ctr_percent' => 0.0,
+      ];
+    }
+
+    $stats = $this->getAggregatedStats($orderItemIds);
+    $impressions = (int) ($stats['total_impressions'] ?? 0);
+    $clicks = (int) ($stats['total_clicks'] ?? 0);
+    $ctrPercent = $impressions > 0 ? round($clicks / $impressions * 100, 1) : 0.0;
+
+    return [
+      'impressions' => $impressions,
+      'clicks' => $clicks,
+      'ctr_percent' => $ctrPercent,
+    ];
+  }
+
+  /**
+   * Returns Boost CTR display values keyed by event node ID.
+   *
+   * @param list<int> $eventIds
+   *   Event node IDs.
+   *
+   * @return array<int, array{impressions: int, clicks: int, ctr_display: string}>
+   *   Per-event Boost CTR (em dash when no impressions).
+   */
+  public function getEventBoostCtrByEventIds(array $eventIds): array {
+    $eventIds = array_values(array_filter(array_map('intval', $eventIds), static fn(int $id): bool => $id > 0));
+    $map = [];
+    foreach ($eventIds as $eventId) {
+      $map[$eventId] = [
+        'impressions' => 0,
+        'clicks' => 0,
+        'ctr_display' => '—',
+      ];
+    }
+    if ($eventIds === []) {
+      return $map;
+    }
+
+    try {
+      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+      $candidateIds = $orderItemStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'boost')
+        ->condition('field_target_event', $eventIds, 'IN')
+        ->execute();
+      if ($candidateIds === []) {
+        return $map;
+      }
+
+      $candidateIds = array_values(array_unique(array_map('intval', EntityLoadIds::normalizeForLoadMultiple($candidateIds))));
+      $orderItems = $orderItemStorage->loadMultiple($candidateIds);
+      $eventOrderItemIds = [];
+      foreach ($orderItems as $orderItem) {
+        if (!$orderItem instanceof OrderItemInterface) {
+          continue;
+        }
+        $order = $this->loadParentOrder($orderItem);
+        if (!$order || !in_array($order->getState()->getId(), ['completed', 'fulfillment'], TRUE)) {
+          continue;
+        }
+        if (!$orderItem->hasField('field_target_event') || $orderItem->get('field_target_event')->isEmpty()) {
+          continue;
+        }
+        $eventId = (int) $orderItem->get('field_target_event')->target_id;
+        if ($eventId <= 0) {
+          continue;
+        }
+        $eventOrderItemIds[$eventId][] = (int) $orderItem->id();
+      }
+
+      if ($eventOrderItemIds === []) {
+        return $map;
+      }
+
+      $allOrderItemIds = [];
+      foreach ($eventOrderItemIds as $ids) {
+        $allOrderItemIds = array_merge($allOrderItemIds, $ids);
+      }
+      $allOrderItemIds = array_values(array_unique($allOrderItemIds));
+      $statsRows = $this->database->select('myeventlane_boost_stats', 's')
+        ->fields('s', ['boost_order_item_id', 'impressions', 'clicks'])
+        ->condition('s.boost_order_item_id', $allOrderItemIds, 'IN')
+        ->execute()
+        ->fetchAll();
+
+      $itemStats = [];
+      foreach ($statsRows as $row) {
+        $itemId = (int) ($row->boost_order_item_id ?? 0);
+        if ($itemId <= 0) {
+          continue;
+        }
+        if (!isset($itemStats[$itemId])) {
+          $itemStats[$itemId] = ['impressions' => 0, 'clicks' => 0];
+        }
+        $itemStats[$itemId]['impressions'] += (int) ($row->impressions ?? 0);
+        $itemStats[$itemId]['clicks'] += (int) ($row->clicks ?? 0);
+      }
+
+      foreach ($eventOrderItemIds as $eventId => $itemIds) {
+        $impressions = 0;
+        $clicks = 0;
+        foreach ($itemIds as $itemId) {
+          $impressions += (int) ($itemStats[$itemId]['impressions'] ?? 0);
+          $clicks += (int) ($itemStats[$itemId]['clicks'] ?? 0);
+        }
+        $map[$eventId] = [
+          'impressions' => $impressions,
+          'clicks' => $clicks,
+          'ctr_display' => $impressions > 0
+            ? number_format(round($clicks / $impressions * 100, 1), 1) . '%'
+            : '—',
+        ];
+      }
+    }
+    catch (\Throwable) {
+      return $map;
+    }
+
+    return $map;
+  }
+
+  /**
    * Gets all Boost order items for an event.
    *
    * @param int $eventId

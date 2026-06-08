@@ -38,6 +38,8 @@
   @include meta.load-css('components/form');
   @include meta.load-css('components/forms');
   @include meta.load-css('components/kpi-cards');
+  @include meta.load-css('components/vendor-analytics-overview');
+  @include meta.load-css('components/mel-vendor-event-performance');
   @include meta.load-css('components/attendees-kpi-bar');
   @include meta.load-css('components/attendees-event-card');
   @include meta.load-css('components/mel-checkin');
