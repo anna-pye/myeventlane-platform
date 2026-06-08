@@ -186,7 +186,9 @@
     if (source && source.getAttribute("src")) {
       return source.src;
     }
-    return fromSettings || "";
+    // Do not fall back to drupalSettings when FIDs differ — that URL is stale
+    // until branding is saved after a cover image change.
+    return "";
   }
 
   /**
