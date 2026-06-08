@@ -207,7 +207,6 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
         $going = (int) ($row['going'] ?? 0);
         $event_node = $ordered_nodes[$nid] ?? NULL;
         if ($event_node instanceof NodeInterface
-          && function_exists('myeventlane_event_should_show_block_going')
           && myeventlane_event_should_show_block_going($event_node, $going)) {
           $wrapper['going'] = [
             '#type' => 'html_tag',
