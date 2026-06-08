@@ -35,6 +35,11 @@ final class BoostImpressionAttributionService {
   private const IMPRESSION_LOCK_TIMEOUT = 5.0;
 
   /**
+   * Surrogate boost_order_item_id base for manual / Pro entitlements without Commerce items.
+   */
+  public const MANUAL_BOOST_OFFSET = 900000000;
+
+  /**
    * Constructs a BoostImpressionAttributionService.
    */
   public function __construct(
@@ -66,7 +71,18 @@ final class BoostImpressionAttributionService {
 
     $orderItemId = (int) ($entitlement->get('order_item_id')->target_id ?? 0);
     if ($orderItemId <= 0) {
-      return NULL;
+      $entitlementId = (int) $entitlement->id();
+      if ($entitlementId <= 0) {
+        return NULL;
+      }
+      $orderItemId = self::MANUAL_BOOST_OFFSET + $entitlementId;
+      $this->logger->notice(
+        'Manual boost entitlement @id attributed using surrogate boost_order_item_id @surrogate.',
+        [
+          '@id' => $entitlementId,
+          '@surrogate' => $orderItemId,
+        ]
+      );
     }
 
     $placement = $this->placementResolver->resolveCurrentPlacement();
@@ -249,7 +265,7 @@ final class BoostImpressionAttributionService {
    * Ensures the order item maps to an active entitlement for the event.
    */
   private function validateActiveEntitlement(int $orderItemId, int $eventId): bool {
-    $entitlement = $this->entitlementManager->getEntitlementByOrderItemId($orderItemId);
+    $entitlement = $this->resolveEntitlementForBoostOrderItemId($orderItemId);
     if (!$entitlement instanceof BoostEntitlementInterface) {
       $this->logger->warning('Rejected Boost impression beacon: entitlement not found.', [
         'order_item_id' => $orderItemId,
@@ -285,6 +301,10 @@ final class BoostImpressionAttributionService {
       return FALSE;
     }
 
+    if ($orderItemId >= self::MANUAL_BOOST_OFFSET) {
+      return TRUE;
+    }
+
     $orderItem = $this->entityTypeManager->getStorage('commerce_order_item')->load($orderItemId);
     if (!$orderItem || $orderItem->bundle() !== 'boost') {
       $this->logger->warning('Rejected Boost impression beacon: invalid boost order item.', [
@@ -309,6 +329,27 @@ final class BoostImpressionAttributionService {
     }
 
     return TRUE;
+  }
+
+  /**
+   * Resolves an entitlement from a Commerce or surrogate boost order item ID.
+   */
+  private function resolveEntitlementForBoostOrderItemId(int $orderItemId): ?BoostEntitlementInterface {
+    if ($orderItemId <= 0) {
+      return NULL;
+    }
+
+    if ($orderItemId >= self::MANUAL_BOOST_OFFSET) {
+      $entitlementId = $orderItemId - self::MANUAL_BOOST_OFFSET;
+      if ($entitlementId <= 0) {
+        return NULL;
+      }
+
+      $entity = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement')->load($entitlementId);
+      return $entity instanceof BoostEntitlementInterface ? $entity : NULL;
+    }
+
+    return $this->entitlementManager->getEntitlementByOrderItemId($orderItemId);
   }
 
 }

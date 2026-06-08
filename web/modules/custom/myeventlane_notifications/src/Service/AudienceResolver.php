@@ -154,10 +154,10 @@ final class AudienceResolver {
     }
 
     $query = $this->database->select('event_attendee', 'ea')
-      ->fields('ea', ['uid_target_id'])
-      ->condition('ea.event_target_id', $eventId)
-      ->condition('ea.uid_target_id', 0, '>')
-      ->orderBy('ea.uid_target_id');
+      ->fields('ea', ['uid'])
+      ->condition('ea.event', $eventId)
+      ->condition('ea.uid', 0, '>')
+      ->orderBy('ea.uid');
 
     $query->distinct();
     return $query;
@@ -298,13 +298,13 @@ final class AudienceResolver {
     if ($this->moduleHandler->moduleExists('myeventlane_event_attendees')
       && $this->database->schema()->tableExists('event_attendee')) {
       $result = $this->database->select('event_attendee', 'ea')
-        ->fields('ea', ['uid_target_id'])
-        ->condition('ea.event_target_id', $eventId)
-        ->condition('ea.uid_target_id', 0, '>')
+        ->fields('ea', ['uid'])
+        ->condition('ea.event', $eventId)
+        ->condition('ea.uid', 0, '>')
         ->condition('ea.status', ['confirmed', 'checked_in'], 'IN')
         ->execute();
       foreach ($result as $row) {
-        $uid = (int) ($row->uid_target_id ?? 0);
+        $uid = (int) ($row->uid ?? 0);
         if ($uid > 0 && $this->loadActiveUser($uid)) {
           $uids[$uid] = $uid;
         }

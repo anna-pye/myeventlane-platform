@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_boost\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -33,6 +34,7 @@ final class BoostClickTracker {
     private readonly Connection $database,
     private readonly TimeInterface $time,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly BoostEntitlementManager $entitlementManager,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -65,34 +67,41 @@ final class BoostClickTracker {
     }
 
     try {
-      // Validate boost order item exists and targets this event.
-      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-      $orderItem = $orderItemStorage->load($boost_order_item_id);
-
-      if (!$orderItem || $orderItem->bundle() !== 'boost') {
-        $this->logger->warning('Invalid boost order item for click tracking', [
-          'boost_order_item_id' => $boost_order_item_id,
-          'event_id' => $event_id,
-        ]);
-        return FALSE;
+      if ($boost_order_item_id >= BoostImpressionAttributionService::MANUAL_BOOST_OFFSET) {
+        if (!$this->validateManualBoostClick($boost_order_item_id, $event_id)) {
+          return FALSE;
+        }
       }
+      else {
+        // Validate boost order item exists and targets this event.
+        $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+        $orderItem = $orderItemStorage->load($boost_order_item_id);
 
-      // Check if order item targets this event.
-      if (!$orderItem->hasField('field_target_event')) {
-        $this->logger->warning('Boost order item missing field_target_event', [
-          'boost_order_item_id' => $boost_order_item_id,
-        ]);
-        return FALSE;
-      }
+        if (!$orderItem || $orderItem->bundle() !== 'boost') {
+          $this->logger->warning('Invalid boost order item for click tracking', [
+            'boost_order_item_id' => $boost_order_item_id,
+            'event_id' => $event_id,
+          ]);
+          return FALSE;
+        }
 
-      $targetEventId = (int) ($orderItem->get('field_target_event')->target_id ?? 0);
-      if ($targetEventId !== $event_id) {
-        $this->logger->warning('Boost order item does not target this event', [
-          'boost_order_item_id' => $boost_order_item_id,
-          'expected_event_id' => $event_id,
-          'actual_event_id' => $targetEventId,
-        ]);
-        return FALSE;
+        // Check if order item targets this event.
+        if (!$orderItem->hasField('field_target_event')) {
+          $this->logger->warning('Boost order item missing field_target_event', [
+            'boost_order_item_id' => $boost_order_item_id,
+          ]);
+          return FALSE;
+        }
+
+        $targetEventId = (int) ($orderItem->get('field_target_event')->target_id ?? 0);
+        if ($targetEventId !== $event_id) {
+          $this->logger->warning('Boost order item does not target this event', [
+            'boost_order_item_id' => $boost_order_item_id,
+            'expected_event_id' => $event_id,
+            'actual_event_id' => $targetEventId,
+          ]);
+          return FALSE;
+        }
       }
 
       $now = $this->time->getRequestTime();
@@ -149,6 +158,43 @@ final class BoostClickTracker {
       ]);
       return FALSE;
     }
+  }
+
+  /**
+   * Validates surrogate boost IDs for manual / Pro entitlements.
+   */
+  private function validateManualBoostClick(int $boostOrderItemId, int $eventId): bool {
+    $entitlementId = $boostOrderItemId - BoostImpressionAttributionService::MANUAL_BOOST_OFFSET;
+    if ($entitlementId <= 0) {
+      return FALSE;
+    }
+
+    $entitlement = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement')->load($entitlementId);
+    if (!$entitlement instanceof BoostEntitlementInterface) {
+      $this->logger->warning('Invalid manual boost entitlement for click tracking', [
+        'boost_order_item_id' => $boostOrderItemId,
+        'entitlement_id' => $entitlementId,
+        'event_id' => $eventId,
+      ]);
+      return FALSE;
+    }
+
+    $entitlementEventId = (int) ($entitlement->get('event')->target_id ?? 0);
+    if ($entitlementEventId !== $eventId) {
+      $this->logger->warning('Manual boost entitlement event mismatch for click tracking', [
+        'boost_order_item_id' => $boostOrderItemId,
+        'entitlement_id' => $entitlementId,
+        'event_id' => $eventId,
+        'entitlement_event_id' => $entitlementEventId,
+      ]);
+      return FALSE;
+    }
+
+    if ((string) $entitlement->get('status')->value !== BoostEntitlementInterface::STATUS_ACTIVE) {
+      return FALSE;
+    }
+
+    return $this->entitlementManager->isEntitlementCurrentlyActive($entitlement);
   }
 
 }
