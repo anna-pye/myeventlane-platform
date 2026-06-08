@@ -121,6 +121,19 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       '#prefix' => '<section class="mel-es-field-group mel-es-field-group--visibility" aria-labelledby="mel-es-content-visibility-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-content-visibility-title">' . $this->t('Visibility') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Tune discovery tags and ticket sales timing without changing checkout logic.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
+    $form['mel']['field_social_proof_visibility'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Social Proof Visibility'),
+      '#description' => $this->t('Control whether attendee activity and popularity indicators are shown on event listings and event pages.'),
+      '#options' => $this->listStringFieldOptions('field_social_proof_visibility') ?: [
+        'auto' => $this->t('Auto'),
+        'show' => $this->t('Show'),
+        'hide' => $this->t('Hide'),
+      ],
+      '#default_value' => $melDefaults['field_social_proof_visibility'] ?? 'auto',
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
     $form['mel']['field_sales_start'] = [
       '#type' => 'datetime',
       '#title' => $this->t('Ticket sales start'),

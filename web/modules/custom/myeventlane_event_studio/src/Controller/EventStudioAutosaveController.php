@@ -369,6 +369,7 @@ final class EventStudioAutosaveController {
       'field_contact_phone' => trim((string) ($mel['field_contact_phone'] ?? $params['field_contact_phone'] ?? '')),
       'field_category' => $this->extractMultipleEntityIds($mel['field_category'] ?? $params['field_category'] ?? ''),
       'field_tags' => $this->extractMultipleEntityIds($mel['field_tags'] ?? $params['field_tags'] ?? ''),
+      'field_social_proof_visibility' => trim((string) ($mel['field_social_proof_visibility'] ?? $params['field_social_proof_visibility'] ?? 'auto')),
       'field_accessibility' => $this->extractMultipleEntityIds($mel['field_accessibility'] ?? $params['field_accessibility'] ?? ''),
       'field_accessibility_contact' => trim((string) ($mel['field_accessibility_contact'] ?? $params['field_accessibility_contact'] ?? '')),
       'field_accessibility_directions' => trim((string) ($mel['field_accessibility_directions'] ?? $params['field_accessibility_directions'] ?? '')),
