@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_account\Controller;
 
+use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
@@ -77,7 +78,7 @@ final class FollowedOrganisersController extends ControllerBase {
         ],
         'drupalSettings' => [
           'melVendorPublic' => [
-            'csrfToken' => $this->csrfToken->get(''),
+            'csrfToken' => $this->csrfToken->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY),
           ],
         ],
       ],

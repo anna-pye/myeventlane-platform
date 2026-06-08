@@ -3,30 +3,30 @@
 
 .mel-vendor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: mel.$mel-ds-space-xl;
 }
 
 .mel-vendor-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 128px;
-  padding: 20px;
+  gap: mel.$mel-ds-space-lg;
+  min-height: 100%;
+  padding: mel.$mel-ds-space-xl;
   background: mel.$mel-ds-color-surface;
   border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
   border-radius: mel.$mel-ds-radius-md;
-  box-shadow: mel.$mel-ds-shadow-soft;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 6%);
   transition:
     transform melmotion.$mel-transition-base,
     border-color melmotion.$mel-transition-base,
     box-shadow melmotion.$mel-transition-base;
 
-  &:focus-within,
-  &:hover {
+  &:hover,
+  &:focus-within {
     border-color: color-mix(in srgb, mel.$mel-ds-color-accent 35%, transparent);
-    box-shadow: var(--mel-shadow-2);
-    transform: translateY(-3px);
+    box-shadow: mel.$mel-ds-shadow-hover;
+    transform: translateY(-2px);
   }
 
   &:focus-within {
@@ -35,125 +35,147 @@
   }
 }
 
-.mel-vendor-card__link {
+.mel-vendor-card__body {
   display: flex;
+  flex: 1;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: mel.$mel-ds-space-md;
   min-width: 0;
-  color: inherit;
-  text-decoration: none;
-
-  &:hover,
-  &:focus-visible {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  &:focus-visible {
-    outline: none;
-  }
+  text-align: center;
 }
 
-.mel-vendor-card__follow {
+.mel-vendor-card__avatar {
+  display: flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: color-mix(in srgb, mel.$mel-ds-color-text 6%, transparent);
+
+  img,
+  .mel-vendor-card__avatar-img {
+    display: block;
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
 }
 
-.mel-vendor-card__follow .mel-follow-button--card {
+.mel-vendor-card__avatar-img--placeholder {
+  object-fit: contain;
+  padding: 12px;
+  background: color-mix(in srgb, mel.$mel-ds-color-accent 10%, mel.$mel-ds-color-surface);
+}
+
+.mel-vendor-card__identity {
+  display: flex;
+  flex-direction: column;
+  gap: mel.$mel-ds-space-xs;
   width: 100%;
 }
 
-@media (min-width: 480px) {
-  .mel-vendor-card {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .mel-vendor-card__link {
-    flex: 1;
-  }
-
-  .mel-vendor-card__follow {
-    align-self: center;
-    max-width: 200px;
-  }
-
-  .mel-vendor-card__follow .mel-follow-button--card {
-    width: auto;
-    min-width: min(100%, 168px);
-  }
-}
-
-.mel-vendor-card__media {
-  flex: 0 0 72px;
-  width: 72px;
-  height: 72px;
-
-  img {
-    display: block;
-    width: 72px;
-    height: 72px;
-    object-fit: cover;
-    border-radius: mel.$mel-ds-radius-sm;
-  }
-}
-
-.mel-vendor-card__placeholder {
-  display: grid;
-  width: 72px;
-  height: 72px;
-  place-items: center;
-  color: mel.$mel-ds-color-surface;
-  font-size: 1.75rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--mel-color-primary), var(--mel-color-secondary));
-  border-radius: mel.$mel-ds-radius-sm;
-}
-
-.mel-vendor-card__content {
-  flex: 1;
-  min-width: 0;
-}
-
 .mel-vendor-card__name {
-  margin: 0 0 6px;
-  overflow: hidden;
-  color: mel.$mel-ds-color-text;
-  font-size: 1.125rem;
-  font-weight: 700;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.mel-vendor-card__tagline,
-.mel-vendor-card__meta {
   margin: 0;
+  color: mel.$mel-ds-color-text;
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-h3;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
-.mel-vendor-card__tagline {
+.mel-vendor-card__name-link {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover,
+  &:focus-visible {
+    color: mel.$mel-ds-color-accent;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.mel-vendor-card__badge {
+  margin: 0;
+  color: mel.$mel-ds-color-muted;
+  font-size: mel.$mel-ds-font-small;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.mel-vendor-card__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: mel.$mel-ds-space-sm;
+  justify-content: center;
+  width: 100%;
+}
+
+.mel-vendor-card__description {
   display: -webkit-box;
+  width: 100%;
+  max-width: 36ch;
+  margin: 0;
   overflow: hidden;
   color: mel.$mel-ds-color-muted;
-  font-size: 0.925rem;
-  line-height: 1.45;
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-body;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
 }
 
-.mel-vendor-card__meta {
-  margin-top: 8px;
+.mel-vendor-card__stats {
+  display: flex;
+  flex-direction: column;
+  gap: mel.$mel-ds-space-xs;
+  width: 100%;
+  margin-top: auto;
 }
 
-.mel-vendor-card__arrow {
-  flex: 0 0 auto;
-  color: mel.$mel-ds-color-muted;
-  font-size: 1.25rem;
-  transition: transform melmotion.$mel-transition-base;
+.mel-vendor-card__stat {
+  margin: 0;
+  color: mel.$mel-ds-color-text;
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-small;
+  line-height: 1.45;
 }
 
-.mel-vendor-card:hover .mel-vendor-card__arrow,
-.mel-vendor-card:focus-within .mel-vendor-card__arrow {
-  transform: translateX(4px);
+.mel-vendor-card__stat--followers {
+  display: inline-flex;
+  gap: mel.$mel-ds-space-xs;
+  align-items: center;
+  justify-content: center;
+}
+
+.mel-vendor-card__stat-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.mel-vendor-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: mel.$mel-ds-space-sm;
+  width: 100%;
+}
+
+.mel-vendor-card__view,
+.mel-vendor-card__actions .mel-follow-button--card {
+  width: 100%;
+  min-height: 44px;
+}
+
+@media (min-width: 768px) {
+  .mel-vendor-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
 }

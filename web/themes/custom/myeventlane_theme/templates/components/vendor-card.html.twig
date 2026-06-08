@@ -7,48 +7,81 @@
  * - url: Public vendor profile URL.
  * - name: Vendor display name.
  * - logo: Styled image render array, or NULL.
- * - tagline: Optional short description.
+ * - description: Optional short description (max 120 chars).
  * - event_count: Optional upcoming event count.
- * - category: Optional category label.
+ * - follower_count: Public follower count.
+ * - categories: Optional category labels (up to 3).
+ * - is_new_organiser: Whether the vendor account is under 30 days old.
  * - vendor_follow: Optional array from VendorCardBuilder (show, is_authenticated, …).
  */
 #}
 {% set vf = vendor_follow|default(null) %}
+{% set followers = vf ? vf.follower_count|default(follower_count|default(0)) : follower_count|default(0) %}
 <article class="mel-vendor-card">
-  <a href="{{ url }}" class="mel-vendor-card__link">
-    <div class="mel-vendor-card__media">
+  <div class="mel-vendor-card__body">
+    <div class="mel-vendor-card__avatar" aria-hidden="false">
       {% if logo %}
         {{ logo }}
       {% else %}
-        <div class="mel-vendor-card__placeholder" aria-hidden="true">
-          {{ name|first|upper }}
-        </div>
+        <img
+          class="mel-vendor-card__avatar-img mel-vendor-card__avatar-img--placeholder"
+          src="{{ directory }}/images/mel/placeholders/mel-placeholder-default.svg"
+          alt="{{ name }}"
+          width="80"
+          height="80"
+          loading="lazy"
+        >
       {% endif %}
     </div>
 
-    <div class="mel-vendor-card__content">
-      <h3 class="mel-vendor-card__name">{{ name }}</h3>
+    <div class="mel-vendor-card__identity">
+      <h3 class="mel-vendor-card__name">
+        <a href="{{ url }}" class="mel-vendor-card__name-link">{{ name }}</a>
+      </h3>
 
-      {% if tagline %}
-        <p class="mel-vendor-card__tagline">{{ tagline }}</p>
+      {% if is_new_organiser %}
+        <p class="mel-vendor-card__badge mel-vendor-card__badge--new">{{ '🆕 New Organiser'|t }}</p>
       {% endif %}
+    </div>
 
+    {% if categories is not empty %}
+      <div class="mel-vendor-card__categories" aria-label="{{ 'Categories'|t }}">
+        {% for category in categories %}
+          <span class="mel-chip mel-chip--sm">{{ category }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if description %}
+      <p class="mel-vendor-card__description">{{ description }}</p>
+    {% endif %}
+
+    <div class="mel-vendor-card__stats" role="group" aria-label="{{ 'Organiser stats'|t }}">
       {% if event_count %}
-        <p class="mel-meta mel-vendor-card__meta">
+        <p class="mel-vendor-card__stat mel-vendor-card__stat--events">
           {{ event_count }} {{ event_count == 1 ? 'upcoming event'|t : 'upcoming events'|t }}
         </p>
       {% endif %}
 
-      {% if category %}
-        <span class="mel-chip">{{ category }}</span>
-      {% endif %}
+      <p
+        class="mel-vendor-card__stat mel-vendor-card__stat--followers"
+        data-mel-follower-count
+        aria-label="{{ followers == 1 ? '1 follower'|t : '@count followers'|t({'@count': followers}) }}"
+      >
+        <span class="mel-vendor-card__stat-icon" aria-hidden="true">💖</span>
+        <span data-mel-follower-count-value>
+          {{ followers }} {{ followers == 1 ? 'follower'|t : 'followers'|t }}
+        </span>
+      </p>
     </div>
+  </div>
 
-    <div class="mel-vendor-card__arrow" aria-hidden="true">→</div>
-  </a>
+  <div class="mel-vendor-card__actions">
+    <a href="{{ url }}" class="mel-btn mel-btn--primary mel-vendor-card__view">
+      {{ 'View Organiser'|t }}
+    </a>
 
-  {% if vf and vf.show %}
-    <div class="mel-vendor-card__follow">
+    {% if vf and vf.show %}
       {% if vf.is_authenticated %}
         {% if vf.is_following %}
           <button
@@ -57,6 +90,7 @@
             data-vendor-id="{{ vf.vendor_id }}"
             data-follow-url="{{ vf.follow_toggle_url }}"
             aria-pressed="true"
+            aria-label="{{ 'Unfollow @name'|t({'@name': name}) }}"
           >
             {{ 'Following ✓'|t }}
           </button>
@@ -67,13 +101,18 @@
             data-vendor-id="{{ vf.vendor_id }}"
             data-follow-url="{{ vf.follow_toggle_url }}"
             aria-pressed="false"
+            aria-label="{{ 'Follow @name'|t({'@name': name}) }}"
           >
             {{ 'Follow organiser'|t }}
           </button>
         {% endif %}
       {% else %}
-        <a class="mel-follow-button mel-follow-button--card" href="{{ vf.follow_login_url }}">{{ 'Log in to follow'|t }}</a>
+        <a
+          class="mel-follow-button mel-follow-button--card"
+          href="{{ vf.follow_login_url }}"
+          aria-label="{{ 'Log in to follow @name'|t({'@name': name}) }}"
+        >{{ 'Log in to follow'|t }}</a>
       {% endif %}
-    </div>
-  {% endif %}
+    {% endif %}
+  </div>
 </article>

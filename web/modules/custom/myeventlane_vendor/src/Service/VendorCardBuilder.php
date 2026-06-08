@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -12,12 +13,19 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\VendorFollowService;
 use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\taxonomy\TermInterface;
 use Psr\Log\LoggerInterface;
 
 /**
  * Builds reusable public vendor card component data.
  */
 final class VendorCardBuilder {
+
+  private const DESCRIPTION_LIMIT = 120;
+
+  private const NEW_ORGANISER_DAYS = 30;
+
+  private const MAX_CATEGORIES = 3;
 
   /**
    * Constructs a VendorCardBuilder object.
@@ -37,15 +45,22 @@ final class VendorCardBuilder {
    *   Component variables for components/vendor-card.html.twig.
    */
   public function build(Vendor $vendor, bool $include_follow_control = FALSE): array {
+    $logo = $this->buildStyledImage($vendor, ['field_logo_image', 'field_vendor_logo'], 'thumbnail');
+    if ($logo !== NULL) {
+      $logo['#attributes']['class'][] = 'mel-vendor-card__avatar-img';
+    }
+
     $build = [
       'url' => Url::fromRoute('entity.myeventlane_vendor.canonical', [
         'myeventlane_vendor' => $vendor->id(),
       ])->toString(),
       'name' => $vendor->label(),
-      'logo' => $this->buildStyledImage($vendor, ['field_logo_image', 'field_vendor_logo'], 'thumbnail'),
-      'tagline' => $this->fieldText($vendor, ['field_tagline', 'field_summary']),
+      'logo' => $logo,
+      'description' => $this->buildDescription($vendor),
       'event_count' => $this->countUpcomingEvents($vendor),
-      'category' => NULL,
+      'follower_count' => $this->vendorFollowService->countFollowers($vendor),
+      'categories' => $this->loadTopCategories($vendor),
+      'is_new_organiser' => $this->isNewOrganiser($vendor),
     ];
 
     if ($include_follow_control) {
@@ -92,6 +107,108 @@ final class VendorCardBuilder {
       'follow_login_url' => $login_url,
       'follower_count' => $this->vendorFollowService->countFollowers($vendor),
     ];
+  }
+
+  /**
+   * Builds a truncated organiser description for directory cards.
+   */
+  private function buildDescription(Vendor $vendor): string {
+    $text = $this->fieldText($vendor, [
+      'field_description',
+      'field_vendor_bio',
+      'field_tagline',
+      'field_summary',
+    ]);
+
+    if ($text === '') {
+      return '';
+    }
+
+    return Unicode::truncate($text, self::DESCRIPTION_LIMIT, TRUE, TRUE);
+  }
+
+  /**
+   * Whether the vendor account is less than 30 days old.
+   */
+  private function isNewOrganiser(Vendor $vendor): bool {
+    if (!$vendor->hasField('created') || $vendor->get('created')->isEmpty()) {
+      return FALSE;
+    }
+
+    $created = (int) $vendor->get('created')->value;
+    if ($created <= 0) {
+      return FALSE;
+    }
+
+    return ($this->time->getRequestTime() - $created) < (self::NEW_ORGANISER_DAYS * 86400);
+  }
+
+  /**
+   * Loads up to three most common categories from published vendor events.
+   *
+   * @return string[]
+   *   Category labels sorted by frequency.
+   */
+  private function loadTopCategories(Vendor $vendor): array {
+    try {
+      $nids = $this->entityTypeManager
+        ->getStorage('node')
+        ->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('type', 'event')
+        ->condition('status', 1)
+        ->condition('field_event_vendor', (int) $vendor->id())
+        ->range(0, 100)
+        ->execute();
+
+      if ($nids === []) {
+        return [];
+      }
+
+      $events = $this->entityTypeManager->getStorage('node')->loadMultiple($nids);
+      $counts = [];
+
+      foreach ($events as $event) {
+        if (!$event->hasField('field_category') || $event->get('field_category')->isEmpty()) {
+          continue;
+        }
+
+        foreach ($event->get('field_category')->referencedEntities() as $term) {
+          if (!$term instanceof TermInterface) {
+            continue;
+          }
+          $tid = (int) $term->id();
+          $counts[$tid] = ($counts[$tid] ?? 0) + 1;
+        }
+      }
+
+      if ($counts === []) {
+        return [];
+      }
+
+      arsort($counts);
+      $topIds = array_slice(array_keys($counts), 0, self::MAX_CATEGORIES);
+      $labels = [];
+
+      foreach ($topIds as $tid) {
+        $term = $this->entityTypeManager->getStorage('taxonomy_term')->load($tid);
+        if ($term instanceof TermInterface) {
+          $label = trim($term->label());
+          if ($label !== '') {
+            $labels[] = $label;
+          }
+        }
+      }
+
+      return $labels;
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Unable to load categories for vendor @vendor_id: @message', [
+        '@vendor_id' => $vendor->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
   }
 
   /**

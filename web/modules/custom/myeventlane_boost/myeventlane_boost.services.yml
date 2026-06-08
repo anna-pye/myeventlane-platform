@@ -200,6 +200,7 @@ services:
       - '@database'
       - '@datetime.time'
       - '@entity_type.manager'
+      - '@myeventlane_boost.entitlement_manager'
       - '@logger.channel.myeventlane_boost'
 
   # Click tracking event subscriber.

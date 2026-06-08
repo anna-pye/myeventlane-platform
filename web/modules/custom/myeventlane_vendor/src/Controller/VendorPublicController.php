@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
-use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
+use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Pager\PagerManagerInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -83,7 +84,7 @@ class VendorPublicController extends ControllerBase {
         'library' => ['myeventlane_core/vendor_public'],
         'drupalSettings' => [
           'melVendorPublic' => [
-            'csrfToken' => $this->csrfToken->get(''),
+            'csrfToken' => $this->csrfToken->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY),
           ],
         ],
       ],

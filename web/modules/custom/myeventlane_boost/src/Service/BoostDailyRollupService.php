@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_boost\Service;
 
-use Drupal\Core\Database\Connection;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\Connection;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -64,14 +64,29 @@ final class BoostDailyRollupService {
     $processedIds = [];
 
     foreach ($logIds as $row) {
+      $boostOrderItemId = (int) ($row->boost_order_item_id ?? 0);
+      $eventId = (int) ($row->event_id ?? 0);
+      $placement = trim((string) ($row->placement ?? ''));
+      $date = gmdate('Y-m-d', (int) ($row->occurred_at ?? 0));
+
+      if (!$this->isValidRollupRow($boostOrderItemId, $eventId, $placement, $date)) {
+        $this->logger->notice('Boost daily rollup: skipped invalid stats log row @id.', [
+          '@id' => (int) ($row->id ?? 0),
+          'boost_order_item_id' => $boostOrderItemId,
+          'event_id' => $eventId,
+          'placement' => $placement,
+          'date' => $date,
+        ]);
+        continue;
+      }
+
       $processedIds[] = $row->id;
-      $date = gmdate('Y-m-d', (int) $row->occurred_at);
-      $key = $row->boost_order_item_id . '|' . $row->placement . '|' . $date;
+      $key = $boostOrderItemId . '|' . $placement . '|' . $date;
       if (!isset($aggregated[$key])) {
         $aggregated[$key] = [
-          'boost_order_item_id' => (int) $row->boost_order_item_id,
-          'event_id' => (int) $row->event_id,
-          'placement' => $row->placement,
+          'boost_order_item_id' => $boostOrderItemId,
+          'event_id' => $eventId,
+          'placement' => $placement,
           'date' => $date,
           'impressions' => 0,
           'clicks' => 0,
@@ -85,34 +100,80 @@ final class BoostDailyRollupService {
       }
     }
 
-    $created = $now;
+    $mergedCount = 0;
     foreach ($aggregated as $agg) {
-      $merge = $this->database->merge('myeventlane_boost_stats_daily')
-        ->keys([
-          'boost_order_item_id' => $agg['boost_order_item_id'],
-          'placement' => $agg['placement'],
-          'date' => $agg['date'],
-        ])
-        ->insertFields([
-          'event_id' => $agg['event_id'],
-          'impressions' => $agg['impressions'],
-          'clicks' => $agg['clicks'],
-          'created' => $created,
-        ])
-        ->updateFields(['event_id' => $agg['event_id']]);
-      $merge->expression('impressions', 'impressions + :i', [':i' => $agg['impressions']]);
-      $merge->expression('clicks', 'clicks + :c', [':c' => $agg['clicks']]);
-      $merge->execute();
+      $boostOrderItemId = (int) ($agg['boost_order_item_id'] ?? 0);
+      $eventId = (int) ($agg['event_id'] ?? 0);
+      $placement = (string) ($agg['placement'] ?? '');
+      $date = (string) ($agg['date'] ?? '');
+
+      if (!$this->isValidRollupRow($boostOrderItemId, $eventId, $placement, $date)) {
+        $this->logger->notice('Boost daily rollup: skipped invalid grouped rollup row.', [
+          'boost_order_item_id' => $boostOrderItemId,
+          'event_id' => $eventId,
+          'placement' => $placement,
+          'date' => $date,
+        ]);
+        continue;
+      }
+
+      try {
+        $merge = $this->database->merge('myeventlane_boost_stats_daily')
+          ->keys([
+            'date' => $date,
+            'boost_order_item_id' => $boostOrderItemId,
+            'event_id' => $eventId,
+            'placement' => $placement,
+          ])
+          ->insertFields([
+            'date' => $date,
+            'boost_order_item_id' => $boostOrderItemId,
+            'event_id' => $eventId,
+            'placement' => $placement,
+            'created' => $now,
+            'impressions' => (int) $agg['impressions'],
+            'clicks' => (int) $agg['clicks'],
+          ])
+          ->updateFields([
+            'event_id' => $eventId,
+          ]);
+        $merge->expression('impressions', 'impressions + :i', [':i' => (int) $agg['impressions']]);
+        $merge->expression('clicks', 'clicks + :c', [':c' => (int) $agg['clicks']]);
+        $merge->execute();
+        $mergedCount++;
+      }
+      catch (\Exception $e) {
+        $this->logger->notice('Boost daily rollup: skipped grouped rollup row after merge failure.', [
+          'boost_order_item_id' => $boostOrderItemId,
+          'event_id' => $eventId,
+          'placement' => $placement,
+          'date' => $date,
+          'error' => $e->getMessage(),
+        ]);
+      }
     }
 
-    $this->database->delete('myeventlane_boost_stats_log')
-      ->condition('id', $processedIds, 'IN')
-      ->execute();
+    if ($processedIds !== []) {
+      $this->database->delete('myeventlane_boost_stats_log')
+        ->condition('id', $processedIds, 'IN')
+        ->execute();
+    }
 
     $this->logger->info('Boost daily rollup: processed @n log rows into @d daily aggregates.', [
       '@n' => count($processedIds),
-      '@d' => count($aggregated),
+      '@d' => $mergedCount,
     ]);
+  }
+
+  /**
+   * Validates required rollup dimensions.
+   */
+  private function isValidRollupRow(int $boostOrderItemId, int $eventId, string $placement, string $date): bool {
+    if ($boostOrderItemId <= 0 || $eventId <= 0 || $placement === '') {
+      return FALSE;
+    }
+
+    return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
   }
 
 }

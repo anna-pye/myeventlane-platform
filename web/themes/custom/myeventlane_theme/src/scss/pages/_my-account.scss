@@ -341,28 +341,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  // Account shell: cards stay stacked so titles + follow controls are never crushed.
-  .mel-vendor-card {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .mel-vendor-card__link {
-    flex: none;
-    width: 100%;
-  }
-
-  .mel-vendor-card__arrow {
-    display: none;
-  }
-
-  .mel-vendor-card__follow {
-    align-self: stretch;
-    max-width: none;
-    width: 100%;
-  }
-
-  .mel-follow-button--card {
+  .mel-vendor-card__actions {
     width: 100%;
   }
 }

@@ -8,8 +8,9 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\AnalyticsService;
@@ -73,7 +74,7 @@ final class VendorDetailController extends ControllerBase {
     $content = $this->buildVisibleContent($myeventlane_vendor);
     $events = $this->buildUpcomingEventCards($myeventlane_vendor);
     $is_authenticated = (int) $this->account->id() > 0;
-    $csrf_token = $this->csrfToken->get('');
+    $csrf_token = $this->csrfToken->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY);
 
     $build = [
       '#theme' => 'entity__myeventlane_vendor__full',
