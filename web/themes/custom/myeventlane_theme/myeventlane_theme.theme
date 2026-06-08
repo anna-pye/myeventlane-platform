@@ -1962,11 +1962,16 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         && isset($variables['page']['homepage_free'])
         && is_array($variables['page']['homepage_free'])
         && count(Element::children($variables['page']['homepage_free'])) > 0;
+      $variables['mel_home_show_recommended'] = $homepageVisibility->viewDisplayHasResults('front_recommended_events', 'block_1')
+        && isset($variables['page']['home_recommended'])
+        && is_array($variables['page']['home_recommended'])
+        && count(Element::children($variables['page']['home_recommended'])) > 0;
     }
     else {
       $variables['mel_home_show_featured'] = FALSE;
       $variables['mel_home_show_blog'] = FALSE;
       $variables['mel_home_show_free_rsvp'] = FALSE;
+      $variables['mel_home_show_recommended'] = FALSE;
     }
   }
 
@@ -2586,7 +2591,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $variables['directory'] = $base_path . $theme_path;
     }
 
-    // Event Intelligence Layer: one calm label per event (placeholder tier; replace with metrics later).
+    // Event Intelligence Layer: placeholder chip (node-id derived); suppressed in show/hide modes.
     $variables['mel_signal'] = NULL;
     $mel_state = (string) ($variables['mel_event_state'] ?? '');
     $event_ui_signal = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : [];
@@ -2594,7 +2599,8 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     $signal_hide = ($mel_state === 'cancelled')
       || ($mel_state === 'sold_out')
       || $signal_sold_out;
-    if (!$signal_hide) {
+    $social_proof_mode = (string) ($variables['mel_social_proof_mode'] ?? 'auto');
+    if (!$signal_hide && $social_proof_mode === 'auto') {
       $mel_signals = [
         (string) t('Popular'),
         (string) t('Trending'),
@@ -2694,7 +2700,8 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     if ($view_mode === 'full' && $node?->bundle() === 'event') {
       _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
       $variables['mel_event_selling_fast'] = FALSE;
-      if (\Drupal::hasService('myeventlane_capacity.service')) {
+      $social_proof_mode = (string) ($variables['mel_social_proof_mode'] ?? 'auto');
+      if ($social_proof_mode !== 'hide' && \Drupal::hasService('myeventlane_capacity.service')) {
         $capacity = \Drupal::service('myeventlane_capacity.service');
         $total_cap = $capacity->getCapacityTotal($node);
         $remaining = $capacity->getRemaining($node);
@@ -2946,6 +2953,7 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
     if ($event_node instanceof NodeInterface && $event_node->access('view')) {
       $canonical = $event_node->toUrl('canonical');
       $variables['mel_event_card_url'] = $canonical->toString();
+      $variables['mel_event_card_event_id'] = (int) $event_node->id();
       if (!isset($variables['#cache'])) {
         $variables['#cache'] = [];
       }
@@ -4636,7 +4644,10 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
     }
   }
 
-  if (\Drupal::hasService('myeventlane_capacity.service')) {
+  $booking_social_proof_mode = function_exists('myeventlane_event_get_social_proof_mode')
+    ? myeventlane_event_get_social_proof_mode($event)
+    : 'auto';
+  if ($booking_social_proof_mode !== 'hide' && \Drupal::hasService('myeventlane_capacity.service')) {
     try {
       /** @var \Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface $capacity */
       $capacity = \Drupal::service('myeventlane_capacity.service');
@@ -4660,6 +4671,7 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
       ]);
     }
   }
+  $variables['mel_social_proof_mode'] = $booking_social_proof_mode;
 
   $categoryText = '';
   if ($event->hasField('field_category') && !$event->get('field_category')->isEmpty()) {

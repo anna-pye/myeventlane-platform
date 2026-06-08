@@ -283,6 +283,7 @@ final class EventStudioMelPayloadService {
       'field_contact_phone' => trim((string) ($mel['field_contact_phone'] ?? '')),
       'field_category' => $this->extractMultipleEntityIds($mel['field_category'] ?? ''),
       'field_tags' => $this->extractMultipleEntityIds($mel['field_tags'] ?? ''),
+      'field_social_proof_visibility' => trim((string) ($mel['field_social_proof_visibility'] ?? 'auto')),
       'field_accessibility' => $this->extractMultipleEntityIds($mel['field_accessibility'] ?? ''),
       'field_accessibility_contact' => trim((string) ($mel['field_accessibility_contact'] ?? '')),
       'field_accessibility_directions' => trim((string) ($mel['field_accessibility_directions'] ?? '')),

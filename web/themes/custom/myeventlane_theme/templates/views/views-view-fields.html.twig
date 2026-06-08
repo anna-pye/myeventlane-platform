@@ -48,7 +48,8 @@
     category_slug: fields.field_category_slug.content|default('')|striptags|trim,
     ticket_type: fields.field_ticket_type.content|default('rsvp')|striptags|trim,
     ticket_label: fields.field_ticket_label.content|default('RSVP')|striptags|trim,
-    accessibility: fields.field_accessibility_icons.content|default([])
+    accessibility: fields.field_accessibility_icons.content|default([]),
+    event_id: mel_event_card_event_id|default(null)
   } only %}
 {% else %}
   {% for field in fields -%}

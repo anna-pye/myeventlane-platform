@@ -181,12 +181,24 @@ services:
     tags:
       - { name: event_subscriber }
 
-  myeventlane_event.event_view_tracking_subscriber:
-    class: Drupal\myeventlane_event\EventSubscriber\EventViewTrackingSubscriber
+  myeventlane_event.event_page_view_tracker:
+    class: Drupal\myeventlane_event\Service\EventPageViewTracker
     arguments:
       - '@myeventlane_core.analytics'
       - '@myeventlane_event.public_visibility'
       - '@current_user'
+
+  myeventlane_event.event_view_tracking_middleware:
+    class: Drupal\myeventlane_event\StackMiddleware\EventViewTrackingMiddleware
+    arguments:
+      - '@myeventlane_event.event_page_view_tracker'
+    tags:
+      - { name: http_middleware, priority: 210 }
+
+  myeventlane_event.event_view_tracking_subscriber:
+    class: Drupal\myeventlane_event\EventSubscriber\EventViewTrackingSubscriber
+    arguments:
+      - '@myeventlane_event.event_page_view_tracker'
     tags:
       - { name: event_subscriber }
 

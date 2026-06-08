@@ -41,7 +41,7 @@
       } %}
     {% endif %}
 
-    {% if page.home_recommended %}
+    {% if mel_home_show_recommended|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--recommended mel-section--discover',
         section_width_class: 'mel-section--wide',

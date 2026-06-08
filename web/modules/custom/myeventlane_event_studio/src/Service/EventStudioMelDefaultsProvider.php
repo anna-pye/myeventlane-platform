@@ -208,6 +208,11 @@ final class EventStudioMelDefaultsProvider {
       $field_refund_policy_default = (string) $event->get('field_refund_policy')->value;
     }
 
+    $field_social_proof_visibility_default = 'auto';
+    if ($event->hasField('field_social_proof_visibility') && !$event->get('field_social_proof_visibility')->isEmpty()) {
+      $field_social_proof_visibility_default = (string) $event->get('field_social_proof_visibility')->value;
+    }
+
     $field_accessibility_default = [];
     if ($event->hasField('field_accessibility') && !$event->get('field_accessibility')->isEmpty()) {
       $field_accessibility_default = $event->get('field_accessibility')->referencedEntities();
@@ -646,6 +651,16 @@ final class EventStudioMelDefaultsProvider {
       '#target_type' => 'taxonomy_term',
       '#tags' => TRUE,
       '#default_value' => $tags_default,
+    ];
+
+    $mel['field_social_proof_visibility'] = [
+      '#type' => 'select',
+      '#options' => $this->listStringFieldOptions('field_social_proof_visibility') ?: [
+        'auto' => 'Auto',
+        'show' => 'Show',
+        'hide' => 'Hide',
+      ],
+      '#default_value' => $field_social_proof_visibility_default,
     ];
 
     $mel['field_accessibility'] = [

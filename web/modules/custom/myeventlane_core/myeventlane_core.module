@@ -303,3 +303,12 @@ function myeventlane_core_metatags_alter(array &$metatags): void {
     $metatags['canonical_url'] = $categoryUrl->getCategoryUrlString($term);
   }
 }
+
+/**
+ * Implements hook_page_attachments().
+ */
+function myeventlane_core_page_attachments(array &$attachments): void {
+  /** @var \Drupal\myeventlane_core\Service\DiscoveryAnalyticsPageAttachments $discovery_analytics */
+  $discovery_analytics = \Drupal::service('myeventlane_core.discovery_analytics_page_attachments');
+  $discovery_analytics->attachIfNeeded($attachments);
+}
