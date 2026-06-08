@@ -181,6 +181,15 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_event.event_view_tracking_subscriber:
+    class: Drupal\myeventlane_event\EventSubscriber\EventViewTrackingSubscriber
+    arguments:
+      - '@myeventlane_core.analytics'
+      - '@myeventlane_event.public_visibility'
+      - '@current_user'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_event.access.event_book:
     class: Drupal\myeventlane_event\Access\EventBookAccessCheck
     arguments:

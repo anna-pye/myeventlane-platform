@@ -56,6 +56,11 @@ $font-family-main: $font-family-sans;
     background: $gray-50;
   }
 
+  .mel-vendor-event-performance__numeric {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
   tbody tr:last-child {
     th,
     td {
