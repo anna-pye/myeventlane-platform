@@ -68,6 +68,15 @@
   {% set _category = { 'label': category, 'url': null } %}
 {% endif %}
 
+{% set _date_day = card_day|default(date_day|default(''))|striptags|trim %}
+{% set _date_month = card_month|default(date_month|default(''))|striptags|trim %}
+{% set _has_date_badge = _date_day != '' and _date_month != '' %}
+
+{% set _price_label = card_price_label|default('')|striptags|trim %}
+{% if _price_label == '' %}
+  {% set _price_label = _status_primary|default('')|striptags|trim %}
+{% endif %}
+
 {% set _state_badge_type = 'highlight' %}
 {# Image pill: event_ui only — is_sold_out > image_badge (boost/Featured from myeventlane_event_finalize_event_ui) > category. #}
 {% set _image_badge_label = null %}
@@ -124,6 +133,13 @@
         />
       {% else %}
         <div class="mel-event-card__placeholder" aria-hidden="true"></div>
+      {% endif %}
+
+      {% if _has_date_badge %}
+        <div class="mel-event-card__date-badge" aria-hidden="true">
+          <span class="mel-event-card__date-badge-day">{{ _date_day }}</span>
+          <span class="mel-event-card__date-badge-month">{{ _date_month }}</span>
+        </div>
       {% endif %}
 
       {% if _variant not in ['compact', 'list'] %}
@@ -192,6 +208,10 @@
       {% else %}
         <h3 class="mel-event-card__title">{{ _title }}</h3>
 
+        {% if _price_label %}
+          <p class="mel-event-card__price mel-event-card__price-slot mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _price_label }}</p>
+        {% endif %}
+
         {% if _time %}
           <p class="mel-event-card__when mel-event-card__date">
             <span class="mel-event-card__meta-text">{{ _time }}</span>
@@ -208,14 +228,9 @@
           {% endif %}
         </div>
 
-        {% if _status_primary or _status_secondary %}
+        {% if _status_secondary %}
           <div class="mel-event-card__status-row mel-event-card__meta">
-            {% if _status_primary %}
-              <p class="mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _status_primary }}</p>
-            {% endif %}
-            {% if _status_secondary %}
-              <p class="mel-event-card__status-secondary">{{ _status_secondary }}</p>
-            {% endif %}
+            <p class="mel-event-card__status-secondary">{{ _status_secondary }}</p>
           </div>
         {% endif %}
         {% if _category and _category.label %}

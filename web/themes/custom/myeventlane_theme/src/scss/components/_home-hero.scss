@@ -226,10 +226,6 @@
 
 .mel-home-hero__art {
   min-width: 0;
-
-  @include breakpoints.mel-break(lg, max) {
-    order: -1;
-  }
 }
 
 .mel-home-hero__art--hide-mobile {
