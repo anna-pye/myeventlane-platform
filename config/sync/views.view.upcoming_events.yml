@@ -1227,6 +1227,7 @@ display:
       display_extenders: {  }
       block_description: 'Homepage: On tonight'
       block_category: MyEventLane
+      block_hide_empty: true
     cache_metadata:
       max-age: -1
       contexts:

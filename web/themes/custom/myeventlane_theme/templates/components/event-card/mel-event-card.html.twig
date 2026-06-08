@@ -119,7 +119,7 @@
       {{ event_flag_event_save }}
     </div>
   {% endif %}
-  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% endif %}>
+  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% if mel_source|default('') %} data-mel-source="{{ mel_source|e('html_attr') }}"{% endif %}{% endif %}>
     <div class="mel-event-card__image mel-event-card__media">
       {% if _img_render %}
         {{ _img_render }}

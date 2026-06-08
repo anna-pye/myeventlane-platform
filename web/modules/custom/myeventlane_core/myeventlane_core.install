@@ -48,11 +48,18 @@ function myeventlane_core_schema(): array {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
+      'source' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Discovery attribution source for event_click rows.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
       'entity_event' => ['entity_type', 'entity_id', 'event_type'],
       'event_type_timestamp' => ['event_type', 'timestamp'],
+      'event_type_source_timestamp' => ['event_type', 'source', 'timestamp'],
       'user_id' => ['user_id'],
     ],
   ];
@@ -854,5 +861,35 @@ function myeventlane_core_update_9119(): void {
       $link->set('link', ['uri' => 'internal:/help']);
       $link->save();
     }
+  }
+}
+
+/**
+ * Adds discovery attribution source to public analytics events.
+ */
+function myeventlane_core_update_9120(): void {
+  $schema = \Drupal::database()->schema();
+  $table = 'myeventlane_public_analytics_event';
+  if (!$schema->tableExists($table)) {
+    return;
+  }
+
+  if (!$schema->fieldExists($table, 'source')) {
+    $schema->addField($table, 'source', [
+      'type' => 'varchar',
+      'length' => 64,
+      'not null' => FALSE,
+      'description' => 'Discovery attribution source for event_click rows.',
+    ]);
+  }
+
+  if (!$schema->indexExists($table, 'event_type_source_timestamp')) {
+    $module_schema = myeventlane_core_schema();
+    $schema->addIndex(
+      $table,
+      'event_type_source_timestamp',
+      ['event_type', 'source', 'timestamp'],
+      $module_schema[$table],
+    );
   }
 }

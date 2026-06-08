@@ -118,6 +118,11 @@
               const payload = new FormData();
               payload.append('event_id', eventId);
 
+              const source = (link.getAttribute('data-mel-source') || '').trim();
+              if (source) {
+                payload.append('source', source);
+              }
+
               return fetch(settings.eventClickUrl, {
                 method: 'POST',
                 credentials: 'same-origin',

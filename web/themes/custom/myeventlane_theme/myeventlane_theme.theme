@@ -1966,12 +1966,17 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         && isset($variables['page']['home_recommended'])
         && is_array($variables['page']['home_recommended'])
         && count(Element::children($variables['page']['home_recommended'])) > 0;
+      $variables['mel_home_show_tonight'] = $homepageVisibility->viewDisplayHasResults('upcoming_events', 'homepage_tonight')
+        && isset($variables['page']['homepage_tonight'])
+        && is_array($variables['page']['homepage_tonight'])
+        && count(Element::children($variables['page']['homepage_tonight'])) > 0;
     }
     else {
       $variables['mel_home_show_featured'] = FALSE;
       $variables['mel_home_show_blog'] = FALSE;
       $variables['mel_home_show_free_rsvp'] = FALSE;
       $variables['mel_home_show_recommended'] = FALSE;
+      $variables['mel_home_show_tonight'] = FALSE;
     }
   }
 
@@ -2691,6 +2696,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $event_card_view_model = \Drupal::service('myeventlane_event.event_card_view_model');
       if ($event_card_view_model->isCardViewMode($view_mode)) {
         $event_card_view_model->applyToNodeVariables($variables, $view_mode);
+        _myeventlane_theme_apply_discovery_attribution_source($variables);
       }
       if ($view_mode === 'event_card_poster') {
         $variables['mel_poster_price_pill'] = _myeventlane_theme_get_event_poster_price_pill($node);
@@ -2721,6 +2727,38 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         $variables['#cache']['contexts'][] = 'user';
       }
     }
+  }
+}
+
+/**
+ * Sets mel_source on event card node templates for discovery attribution.
+ */
+function _myeventlane_theme_apply_discovery_attribution_source(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_core.discovery_attribution_sources')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_core\Service\DiscoveryAttributionSources $attribution_sources */
+  $attribution_sources = \Drupal::service('myeventlane_core.discovery_attribution_sources');
+
+  $source = NULL;
+  $render_source = $variables['elements']['#mel_discovery_source'] ?? NULL;
+  if (is_string($render_source) && $render_source !== '') {
+    $source = $render_source;
+  }
+  elseif (isset($variables['view']) && $variables['view'] instanceof ViewExecutable) {
+    $source = $attribution_sources->forViewDisplay(
+      $variables['view']->id(),
+      $variables['view']->current_display,
+    );
+  }
+
+  if ($source === NULL) {
+    $source = $attribution_sources->forRoute((string) (\Drupal::routeMatch()->getRouteName() ?? ''));
+  }
+
+  if ($source !== NULL && $attribution_sources->isAllowed($source)) {
+    $variables['mel_source'] = $source;
   }
 }
 
@@ -2954,6 +2992,14 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
       $canonical = $event_node->toUrl('canonical');
       $variables['mel_event_card_url'] = $canonical->toString();
       $variables['mel_event_card_event_id'] = (int) $event_node->id();
+      if ($view instanceof ViewExecutable && \Drupal::hasService('myeventlane_core.discovery_attribution_sources')) {
+        /** @var \Drupal\myeventlane_core\Service\DiscoveryAttributionSources $attribution_sources */
+        $attribution_sources = \Drupal::service('myeventlane_core.discovery_attribution_sources');
+        $source = $attribution_sources->forViewDisplay($view->id(), $view->current_display);
+        if ($source !== NULL) {
+          $variables['mel_event_card_source'] = $source;
+        }
+      }
       if (!isset($variables['#cache'])) {
         $variables['#cache'] = [];
       }

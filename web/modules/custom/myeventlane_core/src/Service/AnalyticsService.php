@@ -29,6 +29,7 @@ final class AnalyticsService {
     private readonly AccountInterface $currentUser,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
+    private readonly DiscoveryAttributionSources $discoveryAttributionSources,
   ) {}
 
   /**
@@ -137,10 +138,29 @@ final class AnalyticsService {
 
   /**
    * Tracks a public analytics event.
+   *
+   * @param string|null $source
+   *   Optional discovery attribution source (allowlisted values only).
    */
-  public function track(string $entity_type, int $entity_id, string $event_type, ?int $user_id = NULL): bool {
+  public function track(
+    string $entity_type,
+    int $entity_id,
+    string $event_type,
+    ?int $user_id = NULL,
+    ?string $source = NULL,
+  ): bool {
     if ($entity_type === '' || $entity_id <= 0 || $event_type === '') {
       $this->logger->error('Rejected invalid analytics event: entity_type=@type entity_id=@id event_type=@event', [
+        '@type' => $entity_type,
+        '@id' => $entity_id,
+        '@event' => $event_type,
+      ]);
+      return FALSE;
+    }
+
+    if ($source !== NULL && $source !== '' && !$this->discoveryAttributionSources->isAllowed($source)) {
+      $this->logger->error('Rejected analytics event with invalid source=@source for @type:@id (@event)', [
+        '@source' => $source,
         '@type' => $entity_type,
         '@id' => $entity_id,
         '@event' => $event_type,
@@ -157,14 +177,21 @@ final class AnalyticsService {
 
     try {
       $uid = $user_id ?? ((int) $this->currentUser->id() ?: NULL);
+      $fields = [
+        'entity_type' => $entity_type,
+        'entity_id' => $entity_id,
+        'event_type' => $event_type,
+        'user_id' => $uid,
+        'timestamp' => $this->time->getRequestTime(),
+      ];
+
+      $schema = $this->database->schema();
+      if ($source !== NULL && $source !== '' && $schema->fieldExists(self::TABLE, 'source')) {
+        $fields['source'] = $source;
+      }
+
       $this->database->insert(self::TABLE)
-        ->fields([
-          'entity_type' => $entity_type,
-          'entity_id' => $entity_id,
-          'event_type' => $event_type,
-          'user_id' => $uid,
-          'timestamp' => $this->time->getRequestTime(),
-        ])
+        ->fields($fields)
         ->execute();
       return TRUE;
     }

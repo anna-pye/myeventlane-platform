@@ -19,6 +19,9 @@ services:
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_core'
 
+  myeventlane_core.discovery_attribution_sources:
+    class: Drupal\myeventlane_core\Service\DiscoveryAttributionSources
+
   myeventlane_core.analytics:
     class: Drupal\myeventlane_core\Service\AnalyticsService
     arguments:
@@ -26,6 +29,7 @@ services:
       - '@current_user'
       - '@datetime.time'
       - '@logger.channel.myeventlane_core'
+      - '@myeventlane_core.discovery_attribution_sources'
 
   myeventlane_core.discovery_analytics_page_attachments:
     class: Drupal\myeventlane_core\Service\DiscoveryAnalyticsPageAttachments

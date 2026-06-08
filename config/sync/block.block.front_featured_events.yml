@@ -1,6 +1,6 @@
 uuid: 2cc53d11-d71b-4eed-a198-bacf79ac6acb
 langcode: en
-status: false
+status: true
 dependencies:
   config:
     - views.view.front_featured_events
