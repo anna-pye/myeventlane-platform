@@ -188,10 +188,6 @@ function mel_staging_category_tid(string $name): ?int {
  * Ensures image file exists under mel-staging-validation and returns file ID.
  */
 function mel_staging_ensure_image(string $key, string $url, string $alt, FileSystemInterface $fileSystem): ?int {
-  $fileSystem->prepareDirectory(
-    MEL_STAGING_IMAGE_DIR,
-    FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS,
-  );
   $uri = MEL_STAGING_IMAGE_DIR . '/' . $key . '.jpg';
 
   $existing = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $uri]);
@@ -206,6 +202,8 @@ function mel_staging_ensure_image(string $key, string $url, string $alt, FileSys
     return NULL;
   }
 
+  // saveData() creates the destination directory; avoid prepareDirectory() which
+  // requires a by-reference variable (PHP 8.3 rejects constants/literals).
   $path = $fileSystem->saveData($data, $uri, FileSystemInterface::EXISTS_REPLACE);
   if (!is_string($path) || !file_exists($path)) {
     echo "  ⚠ Could not save image: {$key}\n";
@@ -656,8 +654,10 @@ function mel_staging_cleanup(): void {
     }
   }
 
-  if (is_dir($fileSystem->realpath(MEL_STAGING_IMAGE_DIR) ?: '')) {
-    $fileSystem->deleteRecursive(MEL_STAGING_IMAGE_DIR);
+  $imageDir = MEL_STAGING_IMAGE_DIR;
+  $realImageDir = $fileSystem->realpath($imageDir);
+  if (is_string($realImageDir) && is_dir($realImageDir)) {
+    $fileSystem->deleteRecursive($imageDir);
     echo "  ✓ Deleted staging image directory\n";
   }
 
