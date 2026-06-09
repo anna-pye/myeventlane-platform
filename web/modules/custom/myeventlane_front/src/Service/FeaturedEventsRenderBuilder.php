@@ -24,10 +24,17 @@ final class FeaturedEventsRenderBuilder {
   ) {}
 
   /**
-   * Whether the featured events View display has at least one row.
+   * Whether the spotlight featured events display has at least one row.
    */
   public function hasResults(): bool {
     return $this->displayHasResults(self::DISPLAY_ID);
+  }
+
+  /**
+   * Whether the hero rotator display has at least one row.
+   */
+  public function hasHeroResults(): bool {
+    return $this->displayHasResults(self::HERO_DISPLAY_ID);
   }
 
   /**
