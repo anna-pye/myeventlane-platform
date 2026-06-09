@@ -188,7 +188,14 @@ function mel_staging_category_tid(string $name): ?int {
  * Ensures image file exists under mel-staging-validation and returns file ID.
  */
 function mel_staging_ensure_image(string $key, string $url, string $alt, FileSystemInterface $fileSystem): ?int {
-  $uri = MEL_STAGING_IMAGE_DIR . '/' . $key . '.jpg';
+  // prepareDirectory() requires a variable (by reference); constants fail on PHP 8.3.
+  $directory = MEL_STAGING_IMAGE_DIR;
+  if (!$fileSystem->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+    echo "  ⚠ Could not prepare image directory: {$directory}\n";
+    return NULL;
+  }
+
+  $uri = $directory . '/' . $key . '.jpg';
 
   $existing = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $uri]);
   if ($existing !== []) {
@@ -202,8 +209,6 @@ function mel_staging_ensure_image(string $key, string $url, string $alt, FileSys
     return NULL;
   }
 
-  // saveData() creates the destination directory; avoid prepareDirectory() which
-  // requires a by-reference variable (PHP 8.3 rejects constants/literals).
   $path = $fileSystem->saveData($data, $uri, FileSystemInterface::EXISTS_REPLACE);
   if (!is_string($path) || !file_exists($path)) {
     echo "  ⚠ Could not save image: {$key}\n";
