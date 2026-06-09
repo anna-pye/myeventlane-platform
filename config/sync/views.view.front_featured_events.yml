@@ -3,7 +3,9 @@ langcode: en
 status: true
 dependencies:
   config:
-    - core.entity_view_mode.node.event.teaser_featured
+    - core.entity_view_mode.node.compact_commerce
+    - core.entity_view_mode.node.editorial_magazine
+    - core.entity_view_mode.node.teaser_featured
     - field.storage.node.field_event_start
     - field.storage.node.field_event_state
     - node.type.event
@@ -286,7 +288,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: editorial_magazine
+          view_mode: compact_commerce
       query:
         type: views_query
         options:
@@ -328,9 +330,50 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: editorial_magazine
+          view_mode: teaser_featured
+      defaults:
+        pager: false
+        style: false
+        row: false
       display_extenders: {  }
       block_description: 'Front: Featured Events'
+      block_category: MyEventLane
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_interface'
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }
+  block_hero:
+    id: block_hero
+    display_title: 'Featured Events Hero Rotator'
+    display_plugin: block
+    position: 2
+    display_options:
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 1
+      style:
+        type: default
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: false
+          uses_fields: false
+      row:
+        type: 'entity:node'
+        options:
+          relationship: none
+          view_mode: editorial_magazine
+      defaults:
+        pager: false
+        style: false
+        row: false
+      display_extenders: {  }
+      block_description: 'Front: Featured Events Hero'
       block_category: MyEventLane
     cache_metadata:
       max-age: -1

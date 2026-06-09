@@ -7,6 +7,7 @@
 
 use Drupal\views\ViewExecutable;
 use Drupal\taxonomy\TermInterface;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Twig\Loader\FilesystemLoader;
 
 /**
@@ -25,6 +26,36 @@ function myeventlane_views_twig_loader_alter(FilesystemLoader $loader): void {
   catch (\Throwable $e) {
     // If the theme path cannot be resolved, do nothing.
   }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * homepage_tonight: core datetime filters apply site TZ offset to stored values
+ * and exclude same-calendar-day events. Use storage-string bounds instead.
+ */
+function myeventlane_views_views_query_alter(ViewExecutable $view, QueryPluginBase $query): void {
+  if ($view->id() !== 'upcoming_events' || ($view->current_display ?? '') !== 'homepage_tonight') {
+    return;
+  }
+
+  $alias = $query->ensureTable('node__field_event_start');
+  if (!$alias) {
+    return;
+  }
+
+  $table = $query->getTableInfo('node__field_event_start');
+  $field_alias = ($table['alias'] ?? $alias) . '.field_event_start_value';
+
+  $timezone = new \DateTimeZone(date_default_timezone_get());
+  $now = new \DateTimeImmutable('now', $timezone);
+  $tomorrow = $now->setTime(0, 0, 0)->modify('+1 day');
+
+  $min = $now->format('Y-m-d\TH:i:s');
+  $max = $tomorrow->format('Y-m-d\TH:i:s');
+
+  $query->addWhere(1, $field_alias, $min, '>=');
+  $query->addWhere(1, $field_alias, $max, '<');
 }
 
 /**

@@ -90,21 +90,21 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       $cache_contexts = array_merge($cache_contexts, $cache['contexts'] ?? []);
     }
 
+    $featured_events = NULL;
+    if ($this->featuredEventsRenderBuilder->hasResults()) {
+      $featured_events = $this->featuredEventsRenderBuilder->buildHeroRotator();
+    }
+
     $build = [
       '#theme' => 'myeventlane_home_hero',
       '#pills' => $pills,
-      '#featured_events' => $this->featuredEventsRenderBuilder->build(),
+      '#featured_events' => $featured_events,
       '#hero_image_url' => $hero_image_url,
       '#hero_image_url_mobile' => $hero_image_url_mobile,
       '#hero_hide_on_mobile' => $hero_hide_on_mobile,
       '#hero_alt' => $hero_alt,
       '#search_events_url' => Url::fromRoute('view.upcoming_events.page_events')->toString(),
       '#search_site_url' => Url::fromRoute('mel_search.view')->toString(),
-      '#attached' => [
-        'library' => [
-          'myeventlane_theme/home-hero-rotator',
-        ],
-      ],
       '#cache' => [
         'contexts' => array_unique($cache_contexts),
         'tags' => array_unique($cache_tags),
@@ -112,8 +112,15 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       ],
     ];
 
+    if ($featured_events !== NULL) {
+      $build['#attached']['library'][] = 'myeventlane_theme/home-hero-rotator';
+    }
+
     $cache_meta = CacheableMetadata::createFromRenderArray($build);
     $cache_meta->merge($pills_cache);
+    if ($featured_events !== NULL) {
+      $cache_meta->addCacheableDependency(CacheableMetadata::createFromRenderArray($featured_events));
+    }
     $cache_meta->applyTo($build);
 
     return $build;

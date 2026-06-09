@@ -1954,6 +1954,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         && isset($variables['page']['homepage_featured'])
         && is_array($variables['page']['homepage_featured'])
         && count(Element::children($variables['page']['homepage_featured'])) > 0;
+      $variables['mel_home_show_discover'] = $homepageVisibility->hasDiscoverEvents()
+        && isset($variables['page']['home_discover'])
+        && is_array($variables['page']['home_discover'])
+        && count(Element::children($variables['page']['home_discover'])) > 0;
       $variables['mel_home_show_blog'] = $homepageVisibility->hasPublicBlogPosts()
         && isset($variables['page']['homepage_blog'])
         && is_array($variables['page']['homepage_blog'])
@@ -1973,6 +1977,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     }
     else {
       $variables['mel_home_show_featured'] = FALSE;
+      $variables['mel_home_show_discover'] = FALSE;
       $variables['mel_home_show_blog'] = FALSE;
       $variables['mel_home_show_free_rsvp'] = FALSE;
       $variables['mel_home_show_recommended'] = FALSE;

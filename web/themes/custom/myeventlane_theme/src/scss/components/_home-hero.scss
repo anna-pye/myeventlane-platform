@@ -349,10 +349,10 @@
 
 .mel-home-hero__feature-rotator .mel-featured-home-carousel__item {
   overflow: hidden;
-  border-radius: 0;
+  border-radius: 28px;
 }
 
-// Homepage hero editorial card — clean full-bleed slide (no mockup chrome).
+// Hero Featured Card V4 — image-first editorial slide (scoped; no new card type).
 .mel-home-hero__feature-rotator {
   .mel-featured-carousel__controls,
   .mel-featured-carousel__button,
@@ -370,9 +370,11 @@
     min-height: clamp(320px, 30vw, 400px);
     aspect-ratio: 16 / 9;
     border: 0;
-    border-radius: clamp(20px, 3vw, 28px);
-    background: #1a2230;
-    box-shadow: 0 18px 48px rgba(36, 48, 58, 0.14);
+    border-radius: 28px;
+    background: #10141a;
+    box-shadow:
+      0 12px 24px rgba(20, 28, 40, 0.12),
+      0 28px 60px rgba(20, 28, 40, 0.16);
   }
 
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__link {
@@ -393,19 +395,15 @@
     inset: 0;
     z-index: 2;
     pointer-events: none;
+    // V4: whisper top tint + bottom-third scrim — image occupies ~80–90% visually.
     background:
-      linear-gradient(
-        90deg,
-        rgba(0, 0, 0, 0.72) 0%,
-        rgba(0, 0, 0, 0.42) 42%,
-        rgba(0, 0, 0, 0.12) 72%,
-        transparent 100%
-      ),
+      linear-gradient(180deg, rgba(8, 10, 14, 0.22) 0%, transparent 14%),
       linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.72) 0%,
-        rgba(0, 0, 0, 0.28) 48%,
-        transparent 68%
+        rgba(8, 10, 14, 0.48) 0%,
+        rgba(8, 10, 14, 0.18) 12%,
+        rgba(8, 10, 14, 0.04) 20%,
+        transparent 28%
       );
   }
 
@@ -435,30 +433,48 @@
     min-width: 100%;
     min-height: 100%;
     object-fit: cover;
-    object-position: center;
+    object-position: center center;
   }
 
-  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__image-badge,
-  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__badge,
-  .mel-event-card--editorial.mel-event-card--hero .mel-pill--on-image {
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__date-badge {
+    display: none;
+  }
+
+  // V5: compact featured pill — shrink-wrap only; never stretch across the image.
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__image .mel-event-card__image-badge,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__image .mel-event-card__badge,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__image .mel-pill--on-image {
     position: absolute;
     z-index: 4;
-    top: 20px;
-    left: 20px;
+    top: 16px;
+    left: 16px;
+    right: auto;
     display: inline-flex;
     align-items: center;
-    min-height: 32px;
-    max-width: calc(100% - 80px);
-    padding: 6px 14px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: auto;
+    max-width: max-content;
+    min-width: 0;
+    height: 22px;
+    min-height: 22px;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 999px;
-    background: color-mix(in srgb, mel.$mel-ds-color-primary 88%, #000 12%);
+    background: #f26d5b;
     color: #fff;
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    flex: none;
+    box-shadow: 0 4px 14px rgba(242, 109, 91, 0.28);
+
+    .mel-pill__label {
+      overflow: visible;
+      text-overflow: clip;
+    }
   }
 
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__save,
@@ -466,63 +482,134 @@
   .mel-event-card--editorial.mel-event-card--hero .flag {
     position: absolute;
     z-index: 5;
-    top: 24px;
-    right: 24px;
+    top: 14px;
+    right: 14px;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__save .flag a {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 2px 8px rgba(36, 48, 58, 0.1);
+
+    @supports (backdrop-filter: blur(1px)) {
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__save .flag a::before {
+    font-size: 15px;
   }
 
   .mel-event-card--editorial.mel-event-card--hero .mel-event-hero__glass,
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__body,
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__content {
+    --mel-hero-dock-width: min(52%, 500px);
+    --mel-hero-dock-min-width: min(320px, 100%);
+
     position: absolute;
     z-index: 3;
     top: auto;
-    right: clamp(22px, 3.5vw, 40px);
-    bottom: clamp(22px, 3.5vw, 36px);
-    left: clamp(22px, 3.5vw, 40px);
+    right: clamp(18px, 3vw, 32px);
+    bottom: clamp(18px, 3vw, 28px);
+    left: clamp(18px, 3vw, 32px);
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
     grid-template-areas:
       "title title"
       "meta meta"
-      "price price"
-      "chips cta";
+      "price cta";
     align-items: end;
-    gap: 12px 20px;
+    gap: 4px 16px;
     width: auto;
     max-width: none;
     min-height: 0;
     margin: 0;
     padding: 0;
-    background: transparent;
     border: 0;
+    border-radius: 0;
+    background: transparent;
     box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     color: #fff;
     pointer-events: none;
 
+    // V6: tinted content dock — title + meta only; price and CTA float on image.
+    &::before {
+      content: "";
+      grid-column: 1 / -1;
+      grid-row: 1 / 3;
+      width: max(var(--mel-hero-dock-min-width), var(--mel-hero-dock-width));
+      max-width: 500px;
+      justify-self: start;
+      align-self: stretch;
+      z-index: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      background: rgba(20, 24, 30, 0.18);
+      box-shadow: none;
+      pointer-events: none;
+
+      @supports (backdrop-filter: blur(1px)) {
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+      }
+    }
+
     > * {
+      position: relative;
+      z-index: 1;
       pointer-events: auto;
     }
   }
 
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__title,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__meta,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__price,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__status {
+    padding-inline: clamp(12px, 2vw, 16px);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__title {
+    padding-top: clamp(10px, 1.6vw, 14px);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__meta {
+    padding-bottom: clamp(10px, 1.6vw, 14px);
+  }
+
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__title {
     grid-area: title;
-    max-width: 34ch;
+    width: max(var(--mel-hero-dock-min-width), var(--mel-hero-dock-width));
+    max-width: 500px;
     margin: 0;
     color: #fff;
     font-size: clamp(1.65rem, 2.6vw, 2.35rem);
     line-height: 1.1;
     font-weight: 800;
     letter-spacing: -0.03em;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-    -webkit-line-clamp: unset;
+    text-shadow:
+      0 2px 18px rgba(0, 0, 0, 0.55),
+      0 1px 4px rgba(0, 0, 0, 0.45);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+
+    @include breakpoints.mel-break(lg) {
+      font-size: clamp(1.65rem, 2.85vw, 2.58rem);
+    }
   }
 
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__meta {
     grid-area: meta;
     display: grid;
-    gap: 6px;
+    gap: 2px;
+    width: max(var(--mel-hero-dock-min-width), var(--mel-hero-dock-width));
+    max-width: 500px;
     margin: 0;
     color: rgba(255, 255, 255, 0.92);
     font-size: clamp(0.92rem, 1.1vw, 1.05rem);
@@ -572,8 +659,10 @@
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__price,
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__status {
     grid-area: price;
-    margin: 0;
-    color: mel.$mel-ds-color-primary;
+    max-width: min(52%, 500px);
+    margin: 6px 0 0;
+    padding-bottom: 0;
+    color: #f26d5b;
     font-size: clamp(1.05rem, 1.5vw, 1.25rem);
     font-weight: 800;
     letter-spacing: 0.01em;
@@ -582,12 +671,7 @@
 
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__category-chips,
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__chips {
-    grid-area: chips;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-    margin: 0;
+    display: none;
   }
 
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__category-chip,
@@ -636,19 +720,32 @@
     padding: 0 22px;
     border: 0;
     border-radius: 999px;
-    background: mel.$mel-ds-color-primary;
+    background: #f26d5b;
     color: #fff;
     font-size: 0.95rem;
     font-weight: 800;
     text-align: center;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 16px 30px rgba(242, 109, 91, 0.35);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__cta:hover,
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__cta-chip:hover,
+    .mel-event-card--editorial.mel-event-card--hero .button:hover,
+    .mel-event-card--editorial.mel-event-card--hero a[href].mel-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 36px rgba(242, 109, 91, 0.42);
+    }
   }
 
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__going,
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__count,
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__attendees,
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__tertiary,
-  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__social,
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__social:not(.mel-event-card__hero-proof),
   .mel-event-card--editorial.mel-event-card--hero .mel-event-card__signal,
   .mel-event-card--editorial.mel-event-card--hero [data-mel-attendee-count],
   .mel-event-card--editorial.mel-event-card--hero .mel-card-reason,
@@ -656,28 +753,76 @@
     display: none;
   }
 
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__kicker {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__hero-proof {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 10px 0 0;
+    font-size: clamp(1rem, 2vw, 1.125rem);
+    font-weight: 800;
+    line-height: 1.3;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__hero-proof--community {
+    color: #ffe8e3;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__hero-proof--urgency {
+    color: #fff4cc;
+  }
+
+  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__going-icon {
+    font-size: 0.95em;
+    line-height: 1;
+  }
+
 }
 
 @media (max-width: 767px) {
   .mel-home-hero__feature-rotator {
     .mel-event-card--editorial.mel-event-card--hero {
-      min-height: 380px;
+      min-height: 360px;
       aspect-ratio: auto;
+      border-radius: 28px;
     }
 
     .mel-event-card--editorial.mel-event-card--hero .mel-event-card__body,
     .mel-event-card--editorial.mel-event-card--hero .mel-event-card__content {
-      right: 22px;
-      bottom: 24px;
-      left: 22px;
+      right: 18px;
+      bottom: 18px;
+      left: 18px;
       grid-template-columns: 1fr;
       grid-template-areas:
         "title"
         "meta"
         "price"
-        "chips"
         "cta";
-      gap: 12px;
+      gap: 6px;
+
+      &::before {
+        width: max(var(--mel-hero-dock-min-width), var(--mel-hero-dock-width));
+        max-width: 500px;
+        grid-row: 1 / 3;
+        border-radius: 20px;
+      }
+    }
+
+    .mel-event-card--editorial.mel-event-card--hero .mel-event-card__save .flag a {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
     }
 
     .mel-event-card--editorial.mel-event-card--hero .mel-event-card__title {

@@ -334,7 +334,7 @@ display:
   embed_discover:
     id: embed_discover
     display_title: 'Discover (embed homepage)'
-    display_plugin: embed
+    display_plugin: block
     position: 10
     display_options:
       title: 'Discover (embed homepage)'
@@ -653,11 +653,15 @@ display:
           query_tags: {  }
       defaults:
         query: false
+        use_ajax: false
         pager: false
         row: false
         filters: false
       use_ajax: true
       display_extenders: {  }
+      block_description: 'Homepage: Discover (chips + filters)'
+      block_category: MyEventLane
+      block_hide_empty: true
     cache_metadata:
       max-age: -1
       contexts:

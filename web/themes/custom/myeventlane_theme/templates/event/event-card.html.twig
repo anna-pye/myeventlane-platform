@@ -5,7 +5,6 @@
  */
 #}
 {% set _tt = ticket_type|default('paid')|striptags|trim|lower %}
-{% set _cta_fallback = _tt == 'rsvp' ? 'RSVP free'|t : (_tt == 'external' ? 'View details'|t : 'Get your tickets'|t) %}
 {% set _status_primary = _tt == 'rsvp' ? 'Free RSVP'|t : (_tt == 'external' ? 'External ticketing'|t : (_tt == 'paid' or _tt == 'both' ? 'Paid tickets'|t : '')) %}
 {% set _status_mod = _tt == 'external' ? 'external' : (_tt == 'rsvp' ? 'free' : 'default') %}
 {% set _tl = ticket_label|default('')|striptags|trim %}
@@ -23,7 +22,7 @@
   card_category: (category is defined and category) ? { label: category, url: null } : null,
   category_slug: category_slug|default(''),
   card_type: _tt,
-  card_cta_label: _tl ? _tl : _cta_fallback,
+  card_cta_label: '',
   card_price_label: _price_from_view,
   card_status_primary: _price_from_view != '' ? _price_from_view : _status_primary,
   card_status_modifier: _status_mod,

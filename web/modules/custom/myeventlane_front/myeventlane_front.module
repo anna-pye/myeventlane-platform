@@ -35,3 +35,18 @@ function myeventlane_front_preprocess_myeventlane_home_hero(array &$variables): 
   $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
   $variables['directory'] = base_path() . $theme_path;
 }
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * Homepage hero exclusivity and cross-rail deduplication (front page only).
+ */
+function myeventlane_front_views_query_alter(\Drupal\views\ViewExecutable $view, \Drupal\views\Plugin\views\query\QueryPluginBase $query): void {
+  if (!\Drupal::hasService('myeventlane_front.homepage_merchandising_query_alter')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_front\Service\HomepageMerchandisingQueryAlter $alter */
+  $alter = \Drupal::service('myeventlane_front.homepage_merchandising_query_alter');
+  $alter->alter($view, $query);
+}

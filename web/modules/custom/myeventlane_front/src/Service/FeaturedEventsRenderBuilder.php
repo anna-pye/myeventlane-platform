@@ -9,12 +9,13 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\views\ViewExecutableFactory;
 
 /**
- * Builds the canonical homepage featured events render array.
+ * Builds homepage featured events render arrays.
  */
 final class FeaturedEventsRenderBuilder {
 
   private const VIEW_ID = 'front_featured_events';
   private const DISPLAY_ID = 'block_featured';
+  private const HERO_DISPLAY_ID = 'block_hero';
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -26,6 +27,27 @@ final class FeaturedEventsRenderBuilder {
    * Whether the featured events View display has at least one row.
    */
   public function hasResults(): bool {
+    return $this->displayHasResults(self::DISPLAY_ID);
+  }
+
+  /**
+   * Builds the homepage featured discovery rail (teaser_featured spotlight cards).
+   */
+  public function build(): array {
+    return $this->buildDisplay(self::DISPLAY_ID);
+  }
+
+  /**
+   * Builds the homepage hero featured rotator (editorial_magazine carousel).
+   */
+  public function buildHeroRotator(): array {
+    return $this->buildDisplay(self::HERO_DISPLAY_ID);
+  }
+
+  /**
+   * Whether a View display returns at least one row (after access checks).
+   */
+  private function displayHasResults(string $displayId): bool {
     try {
       $storage = $this->entityTypeManager
         ->getStorage('view')
@@ -36,11 +58,11 @@ final class FeaturedEventsRenderBuilder {
       }
 
       $view = $this->viewExecutableFactory->get($storage);
-      if (!$view->access(self::DISPLAY_ID)) {
+      if (!$view->access($displayId)) {
         return FALSE;
       }
 
-      $view->setDisplay(self::DISPLAY_ID);
+      $view->setDisplay($displayId);
       $view->execute();
 
       return $view->result !== [];
@@ -51,15 +73,11 @@ final class FeaturedEventsRenderBuilder {
   }
 
   /**
-   * Builds the existing featured events View display.
-   *
-   * @return array
-   *   A render array for front_featured_events:block_featured, or an empty
-   *   cacheable render array if the View cannot be built.
+   * Builds a featured events View display render array.
    */
-  public function build(): array {
+  private function buildDisplay(string $displayId): array {
     try {
-      if (!$this->hasResults()) {
+      if (!$this->displayHasResults($displayId)) {
         return $this->emptyBuild();
       }
 
@@ -76,14 +94,15 @@ final class FeaturedEventsRenderBuilder {
       }
 
       $view = $this->viewExecutableFactory->get($storage);
-      if (!$view->access(self::DISPLAY_ID)) {
+      if (!$view->access($displayId)) {
         return $this->emptyBuild();
       }
 
-      return $view->buildRenderable(self::DISPLAY_ID);
+      return $view->buildRenderable($displayId);
     }
     catch (\Throwable $e) {
-      $this->loggerFactory->get('myeventlane_front')->error('Could not build homepage featured events: @message', [
+      $this->loggerFactory->get('myeventlane_front')->error('Could not build homepage featured events (@display): @message', [
+        '@display' => $displayId,
         '@message' => $e->getMessage(),
       ]);
 

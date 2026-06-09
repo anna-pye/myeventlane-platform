@@ -255,6 +255,11 @@
     outline: 3px solid mel.$mel-ds-color-accent;
     outline-offset: 2px;
   }
+
+  // Category chips are hero/overlay-only; compact discovery uses snapshot meta instead.
+  .mel-event-card__category-chips {
+    display: none;
+  }
 }
 
 // Equal-height compact cards in listing grids (homepage, /events, category, search).
@@ -267,46 +272,319 @@
   }
 }
 
-.mel-grid--events .mel-event-card--compact {
+// V7 compact commerce in discovery grids — image-led tiles, snapshot meta, price/CTA footer.
+.mel-grid--events .mel-event-card--compact,
+.mel-event-grid.mel-grid--events .mel-event-card--compact {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
   height: 100%;
+  min-height: 100%;
   align-self: stretch;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 7%, transparent);
+  border-radius: mel.$mel-ds-radius-md;
+  box-shadow: var(--mel-shadow-1, #{mel.$mel-ds-shadow-soft});
+  overflow: hidden;
 
   .mel-event-card__link {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    align-items: stretch;
+    gap: 0;
     height: 100%;
-    min-height: 8.75rem;
+    min-height: 100%;
+  }
+
+  .mel-event-card__image,
+  .mel-event-card__media {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    aspect-ratio: 5 / 6;
+    align-self: auto;
+    flex-shrink: 0;
+    margin: 0;
+    border-radius: mel.$mel-ds-radius-md mel.$mel-ds-radius-md 0 0;
+  }
+
+  .mel-event-card__image img,
+  .mel-event-card__image .mel-event-card__image-element,
+  .mel-event-card__image .mel-event-card__placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    object-fit: cover;
+    object-position: center center;
+  }
+
+  .mel-event-card__date-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: auto;
+    z-index: 4;
+  }
+
+  // Canonical image-badge from Twig (event_ui / field_promoted) — top-left stack.
+  .mel-event-card__image-badge:not(.mel-event__category) {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    top: 8px;
+    left: 8px;
+    right: auto;
+    bottom: auto;
+    z-index: 4;
+    width: auto;
+    max-width: max-content;
+    height: 18px;
+    min-height: 18px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 1;
+  }
+
+  &:has(.mel-event-card__date-badge) .mel-event-card__image-badge:not(.mel-event__category) {
+    top: calc(8px + 40px + 4px);
+    left: 8px;
+    right: auto;
+  }
+
+  .mel-event-card__body,
+  .mel-event-card__content {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    gap: 2px;
   }
 
   .mel-event-card__title {
+    margin: 0 0 4px;
+    font-weight: 700;
     min-height: calc(1.25em * 2);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
 
+  .mel-event-card__snapshot,
   .mel-event-card__when {
-    min-height: 1.35em;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.35;
+    color: mel.$mel-ds-color-muted;
   }
 
-  .mel-event-card__status-row {
-    min-height: 1.35em;
+  .mel-event-card__location {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.35;
+    color: mel.$mel-ds-color-muted;
   }
 
-  // Reserve footer row when attendance / hints are omitted on some cards.
-  .mel-event-card__body:not(:has(.mel-event-card__tertiary--context)) .mel-event-card__cta-row::after {
-    content: '';
+  .mel-event-card__location-slot {
+    margin: 0;
+  }
+
+  .mel-event-card__status-row,
+  .mel-event-card__tertiary--context {
+    margin: 2px 0 0;
+  }
+
+  .mel-event-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 8px;
+    min-height: 44px;
+  }
+
+  .mel-event-card__footer .mel-event-card__price,
+  .mel-event-card__footer .mel-event-card__price-slot {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .mel-event-card__footer .mel-event-card__cta-row {
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+
+  .mel-event-card__footer .mel-event-card__cta-chip {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Poster marketplace — discovery grids (compact + layout: poster).
+.mel-grid--events .mel-event-card--compact.mel-event-card--poster,
+.mel-event-grid.mel-grid--events .mel-event-card--compact.mel-event-card--poster {
+  .mel-event-card__link {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+
+  .mel-event-card__image,
+  .mel-event-card__media {
+    aspect-ratio: 3 / 4;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .mel-event-card__body,
+  .mel-event-card__content {
+    flex: 0 0 auto;
+    padding: 8px 10px 10px;
+    gap: 2px;
+  }
+
+  .mel-event-card__title {
+    margin: 0;
+    min-height: 0;
+    font-size: clamp(1.0625rem, 1.5vw, 1.1875rem);
+    font-weight: 800;
+    line-height: 1.18;
+  }
+
+  .mel-event-card__ticket-type-row {
+    margin: 3px 0 0;
+  }
+
+  .mel-event-card__ticket-type-pill.mel-event-pill--sm {
+    padding: 2px 8px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .mel-event-card__snapshot,
+  .mel-event-card__when {
+    margin: 0;
+  }
+
+  .mel-event-card__location-slot,
+  .mel-event-card__location:not(.mel-event-card__location--poster),
+  .mel-event-card__status-row,
+  .mel-event-card__tertiary--context,
+  .mel-event-card__category-chips,
+  .mel-event-card__footer,
+  .mel-event-card__cta-row {
+    display: none;
+  }
+
+  .mel-event-card__signal-row {
+    margin-top: 2px;
+  }
+
+  .mel-event-card__state-chip {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 12%, mel.$mel-ds-color-surface);
+    color: mel.$mel-ds-color-text;
+    border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+  }
+
+  .mel-event-card__state-chip--community {
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 14%, #fff);
+    color: mel.$mel-ds-color-primary;
+    border-color: color-mix(in srgb, mel.$mel-ds-color-primary 22%, transparent);
+  }
+
+  .mel-event-card__state-chip--free {
+    background: color-mix(in srgb, var(--mel-mint, #b8e6d5) 55%, #fff);
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-event-card__state-chip--tonight {
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 14%, #fff);
+    color: mel.$mel-ds-color-primary;
+  }
+
+  .mel-event-card__state-chip--urgency {
+    background: color-mix(in srgb, var(--mel-butter, #ffe8a3) 70%, #fff);
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-event-card__state-chip--warning,
+  .mel-event-card__state-chip--sold-out {
+    background: color-mix(in srgb, var(--mel-coral, #f26d5b) 16%, #fff);
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-event-card__location--poster {
     display: block;
-    min-height: 1.25em;
+    margin: 1px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: mel.$mel-ds-color-muted;
+
+    .mel-event-card__meta-text {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+      overflow: hidden;
+    }
   }
 
-  .mel-event-card__body:not(:has(.mel-event-card__status-row)) .mel-event-card__location-slot {
-    margin-bottom: 1.35em;
+  .mel-event-card__going-icon {
+    margin-right: 3px;
+    font-size: 0.92em;
+    line-height: 1;
   }
 
-  // Reserve optional reason badge row so mixed grids stay level.
-  .mel-event-card__body:not(:has(.mel-card-reason))::before {
-    content: '';
-    display: block;
-    min-height: 1.75rem;
+  .mel-event-card__going--prominent {
+    display: flex;
+    align-items: center;
+    margin: 2px 0 0;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: mel.$mel-ds-color-primary;
+  }
+
+  .mel-event-card__signal-row--secondary .mel-event-card__state-chip {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: mel.$mel-ds-color-muted;
   }
 }
 

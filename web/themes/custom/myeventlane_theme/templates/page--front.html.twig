@@ -26,41 +26,45 @@
 
   <div class="mel-page mel-page--home">
 
-    {% if mel_home_show_recommended|default(false) %}
+    {% if mel_home_show_featured|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--recommended mel-section--discover',
-        section_width_class: 'mel-section--wide',
-        container_class: 'mel-container mel-container--wide',
-        title: 'Recommended events'|t,
-        subtitle: 'Picked for you while you’re signed in.'|t,
+        section_class: 'mel-section--featured mel-section--community-spotlight mel-section--discover',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--featured mel-section__header--spotlight',
+        title: 'Community spotlight'|t,
+        subtitle: 'Local events and creators worth showing up for'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'Browse marketplace'|t,
+        link_class: 'mel-link',
         content_wrapper_class: 'mel-section__discover-view',
-        content: page.home_recommended
+        content: page.homepage_featured
       } %}
     {% endif %}
 
-    {% if mel_home_show_free_rsvp|default(false) %}
+    {% if mel_home_show_discover|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--free-rsvp mel-section--discover',
-        section_width_class: 'mel-section--wide',
-        container_class: 'mel-container mel-container--wide',
-        title: 'Free & RSVP'|t,
-        subtitle: 'No ticket purchase needed — just turn up or RSVP.'|t,
-        link_url: path('view.upcoming_events.page_free'),
-        link_text: 'See all free events'|t,
+        section_class: 'mel-section--discover mel-section--discover-chips',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--discover',
+        title: 'Discover events'|t,
+        subtitle: 'Filter by what you feel like tonight'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'See all events'|t,
         content_wrapper_class: 'mel-section__discover-view',
-        content: page.homepage_free
+        content: page.home_discover
       } %}
     {% endif %}
 
     {% if mel_home_show_tonight|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--tonight mel-section--discover',
-        section_width_class: 'mel-section--wide',
-        container_class: 'mel-container mel-container--wide',
-        title: 'On tonight'|t,
-        subtitle: 'Last-minute plans and events already warming up.'|t,
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--tonight',
+        title: 'Happening tonight'|t,
+        subtitle: 'Don’t miss these events starting soon'|t,
         link_url: path('view.upcoming_events.page_today'),
         link_text: 'See today'|t,
         content_wrapper_class: 'mel-section__discover-view',
@@ -68,17 +72,48 @@
       } %}
     {% endif %}
 
+    {% if mel_home_show_free_rsvp|default(false) %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--free-rsvp mel-section--discover',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--free-rsvp',
+        title: 'Easy ways to get involved'|t,
+        subtitle: 'Great community events with no ticket fee'|t,
+        link_url: path('view.upcoming_events.page_free'),
+        link_text: 'See all free events'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_free
+      } %}
+    {% endif %}
+
     {% if page.homepage_latest %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--latest mel-section--discover',
-        section_width_class: 'mel-section--wide',
-        container_class: 'mel-container mel-container--wide',
-        title: 'Browse all upcoming events'|t,
-        subtitle: 'See everything coming up — filters and search live on the events page.'|t,
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--latest',
+        title: 'Freshly added'|t,
+        subtitle: 'Recently published on MyEventLane'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'Browse all events'|t,
         content_wrapper_class: 'mel-section__discover-view',
         content: page.homepage_latest
+      } %}
+    {% endif %}
+
+    {% if mel_home_show_recommended|default(false) %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--recommended mel-section--discover mel-section--secondary',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--recommended',
+        title: 'Recommended for you'|t,
+        subtitle: 'Events you may enjoy'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'Browse marketplace'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.home_recommended
       } %}
     {% endif %}
 

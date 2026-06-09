@@ -45,6 +45,13 @@ services:
     arguments:
       - '@myeventlane_event.ticket_type_manager'
 
+  myeventlane_event.boosted_quality_gate:
+    class: Drupal\myeventlane_event\Service\BoostedEventQualityGate
+    arguments:
+      - '@file_system'
+      - '@config.factory'
+      - '@focal_point.manager'
+
   myeventlane_event.ticket_type_route_subscriber:
     class: Drupal\myeventlane_event\Routing\TicketTypeRouteSubscriber
     tags:
@@ -230,3 +237,9 @@ services:
       - '@file_url_generator'
       - '@file_system'
       - '@?flag'
+
+  cache_context.mel_discovery_view_display:
+    class: Drupal\myeventlane_event\Cache\Context\MelDiscoveryViewDisplayCacheContext
+    arguments: ['@request_stack']
+    tags:
+      - { name: cache.context }

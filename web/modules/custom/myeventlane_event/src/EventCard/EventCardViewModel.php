@@ -93,7 +93,6 @@ final class EventCardViewModel {
 
     $presentation = $this->resolvePresentation($viewMode);
     $image = $this->resolveCardImage($node, $viewMode, $cacheability);
-    $whenText = $this->formatStartLabel($node);
     $whereText = $this->locationLabel($node);
 
     $displayPricing = is_array($context['mel_display_pricing'] ?? NULL)
@@ -131,6 +130,13 @@ final class EventCardViewModel {
       : NULL;
 
     [$cardDay, $cardMonth] = $this->startDayMonth($node);
+    $startTimestamp = $this->startTimestamp($node);
+    $whenText = $this->formatStartLabel($node);
+    $hasDateBadge = $cardDay !== NULL && $cardMonth !== NULL;
+    $timeDisplay = ($hasDateBadge && $startTimestamp !== NULL)
+      ? $this->formatTimeLabel($startTimestamp)
+      : ($whenText ?? '');
+    $datetimeIso = $startTimestamp !== NULL ? date('c', $startTimestamp) : NULL;
     $socialProofMode = (string) ($context['mel_social_proof_mode'] ?? 'auto');
     [$lowStock, $attendance] = $this->capacitySignals($node, $cacheability, $socialProofMode);
 
@@ -158,7 +164,8 @@ final class EventCardViewModel {
       'image_render' => $image['render'],
       'image_alt' => $node->label(),
       'date_label' => $whenText ?? '',
-      'time_label' => $whenText ?? '',
+      'time_label' => $timeDisplay,
+      'datetime_iso' => $datetimeIso,
       'venue_label' => $whereText ?? '',
       'price_label' => $badgeText ?? '',
       'availability_label' => trim((string) ($eventUi['status_label'] ?? '')),
@@ -224,7 +231,7 @@ final class EventCardViewModel {
     $variables['mel_card_image_url'] = $model['image_url'];
     $variables['mel_card_is_placeholder'] = $model['image_url'] === NULL || $model['image_url'] === '';
     $variables['mel_card_url'] = $model['url'];
-    $variables['mel_card_when'] = $model['date_label'] ?: NULL;
+    $variables['mel_card_when'] = $model['time_label'] ?: NULL;
     $variables['mel_card_where'] = $model['venue_label'] ?: NULL;
     $variables['mel_card_badge_text'] = $model['price_label'] !== '' ? $model['price_label'] : NULL;
 
@@ -238,7 +245,8 @@ final class EventCardViewModel {
     $variables['card_image_url'] = $model['image_url'];
     $variables['card_image_render'] = $model['image_render'];
     $variables['card_image_alt'] = $model['image_alt'];
-    $variables['card_time_range'] = $model['date_label'] ?: NULL;
+    $variables['card_time_range'] = $model['time_label'] ?: NULL;
+    $variables['card_datetime_iso'] = $model['datetime_iso'] ?? NULL;
     $variables['card_location'] = $model['venue_label'] ?: NULL;
     $variables['card_price_label'] = $model['price_label'];
     $variables['card_category'] = $model['category'];
@@ -276,9 +284,9 @@ final class EventCardViewModel {
   private function resolvePresentation(string $viewMode): array {
     return match ($viewMode) {
       self::VIEW_MODE_EDITORIAL => ['variant' => 'editorial', 'layout' => 'hero'],
-      self::VIEW_MODE_COMPACT, 'event_home_card', 'event_card_compact' => ['variant' => 'compact', 'layout' => ''],
+      self::VIEW_MODE_COMPACT, 'event_home_card', 'event_card_compact' => ['variant' => 'compact', 'layout' => 'poster'],
       self::VIEW_MODE_LIST, 'event_card', 'teaser', 'card', 'teaser_tonight' => ['variant' => 'list', 'layout' => ''],
-      'teaser_featured', 'event_card_poster' => ['variant' => 'featured', 'layout' => 'hero'],
+      'teaser_featured', 'event_card_poster' => ['variant' => 'featured', 'layout' => 'spotlight'],
       default => ['variant' => 'standard', 'layout' => ''],
     };
   }
@@ -321,7 +329,35 @@ final class EventCardViewModel {
     return ['url' => $url, 'render' => $render];
   }
 
-  private function formatStartLabel(NodeInterface $node): ?string {
+  /**
+   * Tonight-rail urgency label for an event start time (homepage Tonight only).
+   */
+  public function resolveTonightUrgencyLabel(NodeInterface $node): ?string {
+    $startTimestamp = $this->startTimestamp($node);
+    if ($startTimestamp === NULL) {
+      return NULL;
+    }
+
+    $now = (int) \Drupal::time()->getRequestTime();
+    $endTimestamp = NULL;
+    if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
+      $endValue = (string) $node->get('field_event_end')->value;
+      if ($endValue !== '' && ($endTs = strtotime($endValue)) !== FALSE) {
+        $endTimestamp = (int) $endTs;
+      }
+    }
+
+    if ($startTimestamp <= $now && ($endTimestamp === NULL || $endTimestamp > $now)) {
+      return (string) t('Happening today');
+    }
+    if ($startTimestamp > $now) {
+      return (string) t('Starts soon');
+    }
+
+    return NULL;
+  }
+
+  private function startTimestamp(NodeInterface $node): ?int {
     if (!$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
       return NULL;
     }
@@ -330,21 +366,27 @@ final class EventCardViewModel {
       return NULL;
     }
     $startTimestamp = strtotime($startValue);
-    return $startTimestamp ? date('D j M, g:ia', $startTimestamp) : NULL;
+    return $startTimestamp !== FALSE ? (int) $startTimestamp : NULL;
+  }
+
+  private function formatTimeLabel(int $startTimestamp): string {
+    return date('g:ia', $startTimestamp);
+  }
+
+  private function formatStartLabel(NodeInterface $node): ?string {
+    $startTimestamp = $this->startTimestamp($node);
+    return $startTimestamp !== NULL ? date('D j M, g:ia', $startTimestamp) : NULL;
   }
 
   /**
    * @return array{0: ?string, 1: ?string}
    */
   private function startDayMonth(NodeInterface $node): array {
-    if (!$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
+    $startTimestamp = $this->startTimestamp($node);
+    if ($startTimestamp === NULL) {
       return [NULL, NULL];
     }
-    $startValue = (string) $node->get('field_event_start')->value;
-    if ($startValue === '' || !($ts = strtotime($startValue))) {
-      return [NULL, NULL];
-    }
-    return [(string) (int) date('j', $ts), date('M', $ts)];
+    return [(string) (int) date('j', $startTimestamp), date('M', $startTimestamp)];
   }
 
   private function locationLabel(NodeInterface $node): ?string {
@@ -426,17 +468,7 @@ final class EventCardViewModel {
     if ($eventUi !== [] && trim((string) ($eventUi['cta_label'] ?? '')) !== '') {
       return trim((string) $eventUi['cta_label']);
     }
-    $ctaLabel = trim((string) ($eventCta['label'] ?? ''));
-    if ($state === 'scheduled' && $ctaType === EventCtaResolver::CTA_PAID) {
-      return (string) t('View details');
-    }
-    if (in_array($state, ['cancelled', 'ended'], TRUE)) {
-      return (string) t('View details');
-    }
-    if ($ctaLabel === '') {
-      return (string) t('View details');
-    }
-    return $ctaLabel;
+    return '';
   }
 
   private function statusModifier(string $state, string $ctaType, string $cardType, string $pricingType): string {

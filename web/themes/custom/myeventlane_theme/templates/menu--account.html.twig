@@ -2,20 +2,24 @@
 /**
  * @file
  * Theme override for the account menu.
- * Wraps in mel-account-dropdown for desktop; single item renders as link.
+ * Wraps in mel-account-dropdown; trigger shows avatar + display name.
  */
 #}
-{% if items|length <= 1 %}
-  {# Single item (e.g. Log in): render as plain link #}
-  {% for item in items %}
-    {{ link(item.title, item.url, item.attributes) }}
-  {% endfor %}
-{% else %}
-  {# Multiple items: wrap in dropdown (hidden until toggle) #}
+{% set avatar = mel_account_avatar|default({}) %}
+{% set is_logged_in = avatar.display_name|default('')|trim != '' %}
+{% set trigger_label = is_logged_in ? avatar.display_name : ('Account'|t) %}
+
+{% if items|length > 0 %}
   <div class="mel-account-dropdown">
-    <button type="button" class="mel-account-toggle" aria-expanded="false" aria-haspopup="true" aria-label="{{ 'Account menu'|t }}">
-      <span class="mel-account-icon" aria-hidden="true">{{ 'Account'|t }}</span>
-      <span class="mel-account-text">{{ items[0].title }}</span>
+    <button type="button" class="mel-account-toggle" aria-expanded="false" aria-haspopup="true" aria-label="{{ is_logged_in ? 'Account menu for @name'|t({'@name': trigger_label}) : 'Account menu'|t }}">
+      <span class="mel-account-avatar{% if not avatar.url and not is_logged_in %} mel-account-avatar--placeholder{% elseif not avatar.url %} mel-account-avatar--initials{% endif %}" aria-hidden="true">
+        {% if avatar.url %}
+          <img src="{{ avatar.url }}" alt="" width="32" height="32" loading="lazy" decoding="async" />
+        {% elseif is_logged_in and avatar.initials|default('')|trim != '' %}
+          <span class="mel-account-avatar__initials">{{ avatar.initials }}</span>
+        {% endif %}
+      </span>
+      <span class="mel-account-text">{{ trigger_label }}</span>
       <span class="mel-dropdown-arrow" aria-hidden="true">▼</span>
     </button>
     <div class="mel-account-menu" aria-hidden="true" role="menu">

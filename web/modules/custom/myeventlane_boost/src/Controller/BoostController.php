@@ -14,6 +14,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Form\BoostSelectForm;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_event\Service\BoostedEventQualityGate;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -39,6 +40,7 @@ final class BoostController extends ControllerBase {
     EntityTypeManagerInterface $entityTypeManager,
     FormBuilderInterface $formBuilder,
     private readonly VendorEventTabsService $eventTabsService,
+    private readonly BoostedEventQualityGate $qualityGate,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->formBuilder = $formBuilder;
@@ -52,6 +54,7 @@ final class BoostController extends ControllerBase {
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
       $container->get('myeventlane_vendor.service.event_tabs'),
+      $container->get('myeventlane_event.boosted_quality_gate'),
     );
   }
 
@@ -174,6 +177,8 @@ final class BoostController extends ControllerBase {
         'node' => $node->id(),
       ]);
     }
+
+    $this->addBoostHeroImageWarning($node);
 
     $boostPerformance = NULL;
     if (\Drupal::hasService('myeventlane_boost.performance')) {
@@ -418,6 +423,23 @@ final class BoostController extends ControllerBase {
     }
 
     return FALSE;
+  }
+
+  /**
+   * Warns vendors when a boosted event lacks a merchandising-ready hero image.
+   */
+  private function addBoostHeroImageWarning(NodeInterface $node): void {
+    if (!$node->hasField('field_promoted') || !(bool) ($node->get('field_promoted')->value ?? FALSE)) {
+      return;
+    }
+
+    if ($this->qualityGate->hasHeroImage($node)) {
+      return;
+    }
+
+    $this->messenger()->addWarning(
+      $this->t('Your event is boosted but does not yet have a hero image. Add a photo to maximise visibility.')
+    );
   }
 
 }

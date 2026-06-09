@@ -2,12 +2,26 @@
 /**
  * @file
  * Discover embed: hidden Views exposed (AJAX) + chip bar + result grid.
+ *
+ * Must retain js-view-dom-id-* on the root wrapper so core views/ajax_view.js
+ * can bind exposed-filter submits (see views-view.html.twig).
  */
 #}
 {{ attach_library('myeventlane_theme/mel-filters') }}
 {{ attach_library('myeventlane_theme/mel-events-discovery') }}
 
-<div class="mel-home-discover js-mel-home-discover" data-mel-view-name="mel_home_events" data-mel-view-display="embed_discover">
+{%
+  set classes = [
+    'view',
+    'view-' ~ id|clean_class,
+    'view-id-' ~ id,
+    'view-display-id-' ~ display_id,
+    'mel-home-discover',
+    'js-mel-home-discover',
+    dom_id ? 'js-view-dom-id-' ~ dom_id,
+  ]
+%}
+<div{{ attributes.addClass(classes) }} data-mel-view-name="mel_home_events" data-mel-view-display="embed_discover">
   <div class="visually-hidden">
     {{ exposed }}
   </div>
@@ -31,6 +45,12 @@
   </div>
 
   {% if rows -%}
-    {{ rows }}
-  {% endif %}
+    <div class="view-content">
+      {{ rows }}
+    </div>
+  {% elseif empty -%}
+    <div class="view-empty mel-empty-state mel-empty-state--governed" role="status">
+      {{ empty }}
+    </div>
+  {% endif -%}
 </div>

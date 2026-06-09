@@ -1,17 +1,51 @@
 {#
 /**
  * @file
- * Featured events — homepage featured card grid.
+ * Community spotlight + boosted carousel — reuses mel-spotlight-editorial SCSS
+ * and mel-card-carousel (Swiper) with teaser_featured spotlight cards.
  */
 #}
 {% if rows %}
-  <div class="mel-featured-carousel mel-featured-home-carousel" data-mel-featured-carousel aria-label="{{ 'Featured events'|t }}">
-    <div class="mel-featured-carousel__track mel-featured-home-carousel__track" tabindex="0">
-      {% for row in rows %}
-        <div class="mel-featured-carousel__item mel-featured-home-carousel__item{% if loop.first %} is-active{% endif %}" data-mel-featured-slide>
-          {{ row.content }}
+  {{ attach_library('myeventlane_theme/global-styling') }}
+  {% if rows|length >= 3 %}
+    <div class="mel-spotlight-editorial">
+      <div class="mel-spotlight-editorial__feature">
+        <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--lead">
+          {{ rows[0].content }}
         </div>
-      {% endfor %}
+      </div>
+      <div class="mel-spotlight-editorial__supporting">
+        <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--support">
+          {{ rows[1].content }}
+        </div>
+        <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--support">
+          {{ rows[2].content }}
+        </div>
+      </div>
     </div>
-  </div>
+  {% endif %}
+
+  {% set carousel_rows = rows|length >= 3 ? rows|slice(3) : rows %}
+  {% if carousel_rows %}
+    {% set carousel_items = [] %}
+    {% for row in carousel_rows %}
+      {% set carousel_items = carousel_items|merge([row.content]) %}
+    {% endfor %}
+    {% if rows|length >= 3 %}
+      <div class="mel-spotlight-carousel__header mel-section__header">
+        <div class="mel-section__intro">
+          <h2 class="mel-section__title">{{ 'Featured experiences'|t }}</h2>
+          <p class="mel-section__subtitle">{{ 'Standout picks from across the community'|t }}</p>
+        </div>
+      </div>
+    {% endif %}
+    <div class="mel-spotlight-carousel">
+      {% include '@myeventlane_theme/components/card-carousel/card-carousel.twig' with {
+        items: carousel_items,
+        carousel_id: 'mel-spotlight-carousel',
+        carousel_modifier: 'mel-card-carousel--spotlight',
+        nav_below: true,
+      } only %}
+    </div>
+  {% endif %}
 {% endif %}

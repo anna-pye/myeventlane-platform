@@ -33,6 +33,7 @@ final class PublicEventDiscoveryQueryAlter {
     ],
     'front_featured_events' => [
       'block_featured',
+      'block_hero',
     ],
     'mel_home_events' => [
       'discover',

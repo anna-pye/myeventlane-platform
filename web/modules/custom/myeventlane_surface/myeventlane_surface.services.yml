@@ -54,6 +54,7 @@ services:
       - '@module_handler'
       - '@logger.channel.myeventlane_surface'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@?myeventlane_wallet.presentation_gate'
 
   myeventlane_surface.operational_policy_registry:
     class: Drupal\myeventlane_surface\MelOperationalPolicyRegistry
