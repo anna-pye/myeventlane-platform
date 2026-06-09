@@ -91,7 +91,7 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
     }
 
     $featured_events = NULL;
-    if ($this->featuredEventsRenderBuilder->hasResults()) {
+    if ($this->featuredEventsRenderBuilder->hasHeroResults()) {
       $featured_events = $this->featuredEventsRenderBuilder->buildHeroRotator();
     }
 
