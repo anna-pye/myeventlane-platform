@@ -1,6 +1,6 @@
 uuid: 48f78fbe-9b7a-4aa4-af00-bf17e5940c2a
 langcode: en
-status: false
+status: true
 dependencies:
   config:
     - views.view.mel_home_events
@@ -14,9 +14,9 @@ theme: myeventlane_theme
 region: home_discover
 weight: 0
 provider: null
-plugin: 'views_block:mel_home_events-discover'
+plugin: 'views_block:mel_home_events-embed_discover'
 settings:
-  id: 'views_block:mel_home_events-discover'
+  id: 'views_block:mel_home_events-embed_discover'
   label: ''
   label_display: '0'
   provider: views

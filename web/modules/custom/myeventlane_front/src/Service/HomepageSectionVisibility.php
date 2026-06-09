@@ -47,6 +47,13 @@ final class HomepageSectionVisibility {
   }
 
   /**
+   * Whether the homepage discover embed display returns at least one row.
+   */
+  public function hasDiscoverEvents(): bool {
+    return $this->viewDisplayHasResults('mel_home_events', 'embed_discover');
+  }
+
+  /**
    * Whether a View display returns at least one row (after access checks).
    */
   public function viewDisplayHasResults(string $viewId, string $displayId): bool {

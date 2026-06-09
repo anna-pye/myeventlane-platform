@@ -83,7 +83,9 @@
   gap: 12px;
 }
 
-.mel-event-card {
+// Vendor dashboard row links only — must not bleed onto public mel-event-card articles.
+.mel-dashboard-events > a.mel-event-card,
+.mel-event-list > a.mel-event-card {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -96,13 +98,16 @@
   transition: all 0.15s ease;
 }
 
-.mel-event-card:hover {
+.mel-dashboard-events > a.mel-event-card:hover,
+.mel-event-list > a.mel-event-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
-.mel-event-card.is-active,
-.mel-event-card.selected {
+.mel-dashboard-events > a.mel-event-card.is-active,
+.mel-dashboard-events > a.mel-event-card.selected,
+.mel-event-list > a.mel-event-card.is-active,
+.mel-event-list > a.mel-event-card.selected {
   border-color: #6b46ff;
   box-shadow: 0 0 0 1px rgba(107, 70, 255, 0.2);
 }

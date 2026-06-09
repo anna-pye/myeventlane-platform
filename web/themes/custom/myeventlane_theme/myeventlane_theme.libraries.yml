@@ -114,6 +114,7 @@ mel-filters:
     js/mel-filters.js: {}
   dependencies:
     - core/drupal
+    - core/jquery
     - core/once
     - core/drupalSettings
     - views/views.ajax

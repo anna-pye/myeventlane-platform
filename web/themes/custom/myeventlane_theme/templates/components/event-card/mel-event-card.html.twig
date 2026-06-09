@@ -1,19 +1,21 @@
 {#
 /**
  * @file
- * Canonical MEL public event card — variants: standard, featured, compact, featured_hero.
+ * Canonical MEL public event card — variants: standard, featured, compact, editorial hero.
  *
- * All variants share one `.mel-event-card` DOM. `featured_hero` normalizes to
- * `--featured` + `--hero` (legacy variant name retained for Views/templates).
+ * Presentation modes (layout param via EventCardViewModel):
+ * - hero: editorial homepage carousel
+ * - spotlight: featured community rail
+ * - poster: discovery marketplace grids
  *
- * Node listings: preprocess supplies card_* (myeventlane_theme_preprocess_node).
- * Views field rows: pass title, url, image, date_full, location, category, ticket_type, etc.
- * Image pill badges use `event_ui` (see myeventlane_event_finalize_event_ui in myeventlane_event).
  * @see myeventlane_event.module — myeventlane_event_preprocess_node() (event_ui for all view modes).
  */
 #}
 {% set _variant_raw = variant|default(mel_event_card_variant|default('standard')) %}
 {% set _layout = layout|default(mel_event_card_layout|default('')) %}
+{% set _is_poster = _layout == 'poster' %}
+{% set _is_spotlight = _layout == 'spotlight' %}
+{% set _discovery_mode = _is_poster or _is_spotlight %}
 {% set _is_hero = _variant_raw in ['featured_hero', 'editorial'] or (_variant_raw == 'featured' and _layout == 'hero') %}
 {% set _variant = _variant_raw in ['featured_hero', 'editorial'] ? 'featured' : _variant_raw %}
 {% set _css_modifier = _variant_raw in ['featured_hero', 'editorial'] ? 'editorial' : (_variant_raw in ['compact', 'list'] ? _variant_raw : _variant) %}
@@ -45,17 +47,6 @@
   {% if _cta == '' and event_ui is defined and (event_ui.cta_label|default(''))|trim|length > 0 %}
     {% set _cta = event_ui.cta_label %}
   {% endif %}
-  {% if _cta == '' %}
-    {% if _type == 'rsvp' %}
-      {% set _cta = 'RSVP free'|t %}
-    {% elseif _type == 'external' %}
-      {% set _cta = 'View details'|t %}
-    {% elseif _is_hero %}
-      {% set _cta = 'Get tickets'|t %}
-    {% else %}
-      {% set _cta = 'Get your tickets'|t %}
-    {% endif %}
-  {% endif %}
 {% endif %}
 
 {% set is_promoted = is_promoted|default(false) %}
@@ -77,10 +68,108 @@
   {% set _price_label = _status_primary|default('')|striptags|trim %}
 {% endif %}
 
+{# Ticket type pill — always visible on discovery cards (poster + spotlight). #}
+{% set _ticket_pill_type = _type %}
+{% set _ticket_pill_label = null %}
+{% if _type == 'paid' and _price_label != '' %}
+  {% set _ticket_pill_label = _price_label %}
+{% elseif _type == 'rsvp' %}
+  {% set _ticket_pill_label = 'Free RSVP'|t %}
+{% endif %}
+{% set _show_ticket_type_pill = _discovery_mode and _ticket_pill_type not in ['none', ''] and not (event_ui is defined and event_ui.is_sold_out|default(false)) %}
+
+{# One signal only for poster discovery (going count wins over commerce state). #}
+{% set _primary_signal = '' %}
+{% set _state_chip_mod = 'default' %}
+{% if _attendance %}
+  {% set _primary_signal = '@count going'|t({'@count': _attendance}) %}
+  {% set _state_chip_mod = 'community' %}
+{% elseif event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
+  {% set _primary_signal = 'Sold out'|t %}
+  {% set _state_chip_mod = 'warning' %}
+{% elseif mel_source|default('') == 'homepage_tonight' and mel_tonight_urgency_label|default('')|trim|length > 0 %}
+  {% set _primary_signal = mel_tonight_urgency_label %}
+  {% set _state_chip_mod = 'tonight' %}
+{% elseif _low_stock %}
+  {% set _primary_signal = 'Selling fast'|t %}
+  {% set _state_chip_mod = 'urgency' %}
+{% elseif event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) %}
+  {% set _primary_signal = event_ui.capacity_hint %}
+  {% set _state_chip_mod = 'urgency' %}
+{% elseif _show_ticket_type_pill %}
+  {# Ticket type pill carries price/type — avoid duplicate state chip. #}
+{% elseif _price_label != '' %}
+  {% set _primary_signal = _price_label %}
+  {% set _state_chip_mod = _status_mod %}
+{% endif %}
+
+{# Hero + discovery social proof (repository signals only — no invented metrics). #}
+{% set _hero_proof = '' %}
+{% set _hero_proof_mod = 'community' %}
+{% if _is_hero %}
+  {% if _attendance %}
+    {% set _hero_proof = '@count going'|t({'@count': _attendance}) %}
+  {% elseif _low_stock %}
+    {% set _hero_proof = 'Selling fast'|t %}
+    {% set _hero_proof_mod = 'urgency' %}
+  {% elseif event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) %}
+    {% set _hero_proof = event_ui.capacity_hint %}
+    {% set _hero_proof_mod = 'urgency' %}
+  {% endif %}
+{% endif %}
+
+{# Secondary signal for poster/spotlight when going count is shown separately. #}
+{% set _secondary_signal = '' %}
+{% set _secondary_mod = 'default' %}
+{% if _attendance and (_is_poster or _is_spotlight) %}
+  {% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
+    {% set _secondary_signal = 'Sold out'|t %}
+    {% set _secondary_mod = 'warning' %}
+  {% elseif _low_stock %}
+    {% set _secondary_signal = 'Selling fast'|t %}
+    {% set _secondary_mod = 'urgency' %}
+  {% elseif event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) %}
+    {% set _secondary_signal = event_ui.capacity_hint %}
+    {% set _secondary_mod = 'urgency' %}
+  {% endif %}
+{% endif %}
+
+{# Spotlight secondary chip (tier 2/3 when going count is shown separately). #}
+{% set _spotlight_chip = '' %}
+{% set _spotlight_chip_mod = 'default' %}
+{% if _is_spotlight %}
+  {% if not _attendance %}
+    {% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
+      {% set _spotlight_chip = 'Sold out'|t %}
+      {% set _spotlight_chip_mod = 'warning' %}
+    {% elseif _low_stock %}
+      {% set _spotlight_chip = 'Selling fast'|t %}
+      {% set _spotlight_chip_mod = 'urgency' %}
+    {% elseif event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) %}
+      {% set _spotlight_chip = event_ui.capacity_hint %}
+      {% set _spotlight_chip_mod = 'urgency' %}
+    {% elseif _price_label != '' and not _show_ticket_type_pill %}
+      {% set _spotlight_chip = _price_label %}
+      {% set _spotlight_chip_mod = _status_mod %}
+    {% endif %}
+  {% elseif _secondary_signal != '' %}
+    {% set _spotlight_chip = _secondary_signal %}
+    {% set _spotlight_chip_mod = _secondary_mod %}
+  {% endif %}
+{% endif %}
+
+{% if _discovery_mode %}
+  {% set _link_aria = _primary_signal != '' ? (_title ~ ' — ' ~ _primary_signal) : _title %}
+{% elseif _is_hero and _hero_proof %}
+  {% set _link_aria = _title ~ ' — ' ~ _hero_proof %}
+{% else %}
+  {% set _link_aria = _title ~ ' — ' ~ _cta %}
+{% endif %}
+
 {% set _state_badge_type = 'highlight' %}
-{# Image pill: event_ui only — is_sold_out > image_badge (boost/Featured from myeventlane_event_finalize_event_ui) > category. #}
+{# Image pill: sold out > boost/Featured > category. Featured on hero + spotlight when promoted. #}
 {% set _image_badge_label = null %}
-{% if _is_hero and is_promoted %}
+{% if (_is_hero or _is_spotlight) and is_promoted %}
   {% set _image_badge_label = 'Featured'|t %}
   {% set _state_badge_type = 'apricot' %}
 {% elseif event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
@@ -90,7 +179,7 @@
   {% set _image_badge_label = event_ui.image_badge_label %}
   {% set _st = event_ui.image_badge_type|default('apricot') %}
   {% set _state_badge_type = _st == 'highlight' ? 'apricot' : _st %}
-{% elseif _category and _category.label %}
+{% elseif _category and _category.label and not _discovery_mode %}
   {% set _image_badge_label = _category.label %}
   {% set _state_badge_type = 'category' %}
 {% endif %}
@@ -109,6 +198,15 @@
   {% set card_classes = card_classes|merge(['mel-event-card--past']) %}
 {% endif %}
 
+{% set _snapshot = '' %}
+{% if _has_date_badge and _time %}
+  {% set _snapshot = _date_day ~ ' ' ~ _date_month ~ ' • ' ~ _time %}
+{% elseif _time %}
+  {% set _snapshot = _time %}
+{% elseif _has_date_badge %}
+  {% set _snapshot = _date_day ~ ' ' ~ _date_month %}
+{% endif %}
+
 {% if attributes is defined and attributes %}
 <article{{ attributes.addClass(card_classes) }}>
 {% else %}
@@ -119,7 +217,12 @@
       {{ event_flag_event_save }}
     </div>
   {% endif %}
-  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% if mel_source|default('') %} data-mel-source="{{ mel_source|e('html_attr') }}"{% endif %}{% endif %}>
+  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _link_aria }}"{% if event_id is defined and event_id %} data-mel-track-event-click data-event-id="{{ event_id }}"{% if mel_source|default('') %} data-mel-source="{{ mel_source|e('html_attr') }}"{% endif %}{% endif %}>
+    {% if _is_spotlight and _has_date_badge %}
+      <div class="mel-event-card__date-bar" aria-hidden="true">
+        <span class="mel-event-card__date-bar-label">{{ _date_day }} {{ _date_month }}</span>
+      </div>
+    {% endif %}
     <div class="mel-event-card__image mel-event-card__media">
       {% if _img_render %}
         {{ _img_render }}
@@ -135,7 +238,7 @@
         <div class="mel-event-card__placeholder" aria-hidden="true"></div>
       {% endif %}
 
-      {% if _has_date_badge %}
+      {% if _has_date_badge and not _is_spotlight %}
         <div class="mel-event-card__date-badge" aria-hidden="true">
           <span class="mel-event-card__date-badge-day">{{ _date_day }}</span>
           <span class="mel-event-card__date-badge-month">{{ _date_month }}</span>
@@ -158,25 +261,29 @@
 
     <div class="mel-event-card__body mel-event-card__content">
       {% if _variant not in ['compact', 'list'] and not _is_hero %}<div class="mel-event-hero__glass">{% endif %}
-      {% if not _is_hero and recommendation_context is defined and recommendation_context.label|default('')|trim|length > 0 %}
+      {% if not _is_hero and not _discovery_mode and recommendation_context is defined and recommendation_context.label|default('')|trim|length > 0 %}
         <div class="mel-card-reason mel-card-reason--{{ recommendation_context.type|default('')|e('html_attr') }}">
           {{ recommendation_context.label }}
         </div>
       {% endif %}
-      {% if not _is_hero and mel_tonight_urgency_label|default('')|trim|length > 0 %}
+      {% if mel_source|default('') == 'homepage_tonight' and mel_tonight_urgency_label|default('')|trim|length > 0 and not _discovery_mode %}
         <p class="mel-card-reason mel-card-reason--tonight" role="status">{{ mel_tonight_urgency_label }}</p>
       {% endif %}
 
       {% if _is_hero %}
-        {% if _mel_cta_semantic == 'primary' and _type not in ['rsvp', 'external'] %}
-          {% set _cta = 'Get tickets'|t %}
+        {% if is_promoted %}
+          <p class="mel-event-card__kicker">{{ 'Featured this week'|t }}</p>
         {% endif %}
         <h2 class="mel-event-card__title">{{ _title }}</h2>
         <div class="mel-event-card__meta">
           {% if _time %}
             <p class="mel-event-card__when mel-event-card__date">
               <span class="mel-event-card__meta-icon mel-event-card__meta-icon--calendar" aria-hidden="true"></span>
-              <span class="mel-event-card__meta-text">{{ _time }}</span>
+              {% if card_datetime_iso|default('') %}
+                <time class="mel-event-card__meta-text" datetime="{{ card_datetime_iso }}">{{ _time }}</time>
+              {% else %}
+                <span class="mel-event-card__meta-text">{{ _time }}</span>
+              {% endif %}
             </p>
           {% endif %}
           {% if _loc %}
@@ -186,7 +293,12 @@
             </p>
           {% endif %}
         </div>
-        {% if _status_primary %}
+        {% if _hero_proof %}
+          <p class="mel-event-card__social mel-event-card__going mel-event-card__hero-proof mel-event-card__hero-proof--{{ _hero_proof_mod|e('html_attr') }}" role="status">
+            {% if _attendance %}<span class="mel-event-card__going-icon" aria-hidden="true">👥</span>{% endif %}
+            <span class="mel-event-card__going-text">{{ _hero_proof }}</span>
+          </p>
+        {% elseif _status_primary and not _attendance %}
           <p class="mel-event-card__price mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _status_primary }}</p>
         {% endif %}
         {% if mel_categories is defined and mel_categories|length > 0 %}
@@ -205,6 +317,136 @@
             <span class="mel-event-card__cta-chip mel-event-card__cta{% if _mel_cta_semantic == 'primary' %} mel-event-card__cta-chip--coral{% elseif _mel_cta_semantic == 'disabled' %} mel-event-card__cta-chip--disabled{% else %} mel-event-card__cta-chip--lavender{% endif %}" aria-hidden="true">{{ _cta }}</span>
           </div>
         {% endif %}
+      {% elseif _is_spotlight %}
+        {# Community spotlight — featured rail: glass panel, title, when, going, state chip. #}
+        <h3 class="mel-event-card__title">{{ _title }}</h3>
+        {% if _show_ticket_type_pill %}
+          <div class="mel-event-card__ticket-type-row">
+            {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
+              type: _ticket_pill_type,
+              label: _ticket_pill_label,
+              size: 'sm',
+              icon: '',
+              class: 'mel-event-card__ticket-type-pill',
+            } only %}
+          </div>
+        {% endif %}
+        {% if _snapshot %}
+          <p class="mel-event-card__when mel-event-card__snapshot mel-event-card__date">
+            {% if card_datetime_iso|default('') %}
+              <time class="mel-event-card__meta-text" datetime="{{ card_datetime_iso }}">{{ _snapshot }}</time>
+            {% else %}
+              <span class="mel-event-card__meta-text">{{ _snapshot }}</span>
+            {% endif %}
+          </p>
+        {% endif %}
+        {% if _attendance %}
+          <p class="mel-event-card__social mel-event-card__going mel-event-card__going--prominent" role="status">
+            <span class="mel-event-card__going-icon" aria-hidden="true">👥</span>
+            <span class="mel-event-card__going-text">{{ '@count going'|t({'@count': _attendance}) }}</span>
+          </p>
+        {% endif %}
+        {% if _spotlight_chip %}
+          <div class="mel-event-card__signal-row mel-event-card__signal-row--secondary">
+            <span class="mel-event-card__state-chip mel-event-card__state-chip--{{ _spotlight_chip_mod|e('html_attr') }} mel-event-card__state-chip--muted"{% if _attendance %} aria-hidden="true"{% else %} role="status"{% endif %}>{{ _spotlight_chip }}</span>
+          </div>
+        {% endif %}
+      {% elseif _variant == 'compact' %}
+        {# Poster discovery — image-first, one signal, no CTA chip. #}
+        <h3 class="mel-event-card__title">{{ _title }}</h3>
+        {% if _show_ticket_type_pill and _is_poster %}
+          <div class="mel-event-card__ticket-type-row">
+            {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
+              type: _ticket_pill_type,
+              label: _ticket_pill_label,
+              size: 'sm',
+              icon: '',
+              class: 'mel-event-card__ticket-type-pill',
+            } only %}
+          </div>
+        {% endif %}
+
+        {% if _snapshot %}
+          <p class="mel-event-card__when mel-event-card__snapshot mel-event-card__date">
+            {% if card_datetime_iso|default('') %}
+              <time class="mel-event-card__meta-text" datetime="{{ card_datetime_iso }}">{{ _snapshot }}</time>
+            {% else %}
+              <span class="mel-event-card__meta-text">{{ _snapshot }}</span>
+            {% endif %}
+          </p>
+        {% endif %}
+
+        {% if _is_poster %}
+          {% if mel_source|default('') == 'homepage_free' and _loc %}
+            <p class="mel-event-card__location mel-event-card__location--poster">
+              <span class="mel-event-card__meta-text">{{ _loc }}</span>
+            </p>
+          {% endif %}
+          {% if _attendance %}
+            <p class="mel-event-card__social mel-event-card__going mel-event-card__going--prominent" role="status">
+              <span class="mel-event-card__going-icon" aria-hidden="true">👥</span>
+              <span class="mel-event-card__going-text">{{ '@count going'|t({'@count': _attendance}) }}</span>
+            </p>
+          {% endif %}
+          {% if not _attendance and _primary_signal %}
+            <div class="mel-event-card__signal-row">
+              <span class="mel-event-card__state-chip mel-event-card__state-chip--{{ _state_chip_mod|e('html_attr') }}" role="status">{{ _primary_signal }}</span>
+            </div>
+          {% elseif _attendance and _secondary_signal != '' %}
+            <div class="mel-event-card__signal-row mel-event-card__signal-row--secondary">
+              <span class="mel-event-card__state-chip mel-event-card__state-chip--{{ _secondary_mod|e('html_attr') }} mel-event-card__state-chip--muted" aria-hidden="true">{{ _secondary_signal }}</span>
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="mel-event-card__location-slot"{% if not _loc %} aria-hidden="true"{% endif %}>
+            {% if _loc %}
+              <p class="mel-event-card__location">
+                <span class="mel-event-card__meta-text">{{ _loc }}</span>
+              </p>
+            {% else %}
+              <p class="mel-event-card__location mel-event-card__location--empty">&nbsp;</p>
+            {% endif %}
+          </div>
+
+          {% if _status_secondary %}
+            <div class="mel-event-card__status-row mel-event-card__meta">
+              <p class="mel-event-card__status-secondary">{{ _status_secondary }}</p>
+            </div>
+          {% endif %}
+
+          {% if (event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0)) or _low_stock or _attendance %}
+            <div class="mel-event-card__tertiary mel-event-card__tertiary--context">
+              {% if event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) %}
+                <p class="mel-event-card__capacity-hint" role="status">{{ event_ui.capacity_hint }}</p>
+              {% endif %}
+              {% if _low_stock %}
+                <p class="mel-event-card__urgency" role="status">{{ 'Selling fast'|t }}</p>
+              {% endif %}
+              {% if _attendance %}
+                <span class="mel-event-card__social mel-event-card__going">{{ '@count going'|t({'@count': _attendance}) }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if _category and _category.label %}
+            <div class="mel-event-card__category-chips" aria-hidden="true">
+              <span class="mel-event-card__category-chip">{{ _category.label }}</span>
+            </div>
+          {% endif %}
+
+          {% if _price_label or _mel_cta_semantic|default('primary') != 'hidden' %}
+            <div class="mel-event-card__footer">
+              {% if _price_label %}
+                <p class="mel-event-card__price mel-event-card__price-slot mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _price_label }}</p>
+              {% endif %}
+              {% if _mel_cta_semantic|default('primary') != 'hidden' %}
+                <div class="mel-event-card__cta-row mel-event-card__actions">
+                  <span class="mel-event-card__cta-chip{% if _mel_cta_semantic == 'primary' %} mel-event-card__cta-chip--coral{% elseif _mel_cta_semantic == 'disabled' %} mel-event-card__cta-chip--disabled{% else %} mel-event-card__cta-chip--lavender{% endif %}" aria-hidden="true">{{ _cta }}</span>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
       {% else %}
         <h3 class="mel-event-card__title">{{ _title }}</h3>
 
@@ -214,7 +456,11 @@
 
         {% if _time %}
           <p class="mel-event-card__when mel-event-card__date">
-            <span class="mel-event-card__meta-text">{{ _time }}</span>
+            {% if card_datetime_iso|default('') %}
+              <time class="mel-event-card__meta-text" datetime="{{ card_datetime_iso }}">{{ _time }}</time>
+            {% else %}
+              <span class="mel-event-card__meta-text">{{ _time }}</span>
+            {% endif %}
           </p>
         {% endif %}
 

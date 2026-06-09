@@ -12,10 +12,17 @@
 
   position: relative;
   padding: 1rem 0;
+  overflow: hidden;
+  touch-action: pan-x pan-y;
 
   .swiper-slide {
     height: auto;
     display: flex;
+    touch-action: pan-x pan-y;
+  }
+
+  .mel-event-card__link {
+    touch-action: pan-x pan-y;
   }
 
   .swiper-button-prev,
@@ -49,6 +56,20 @@
     .swiper-button-prev,
     .swiper-button-next {
       display: none;
+    }
+  }
+}
+
+// Bottom nav variant — arrows stay visible on all breakpoints (homepage spotlight).
+.mel-card-carousel-shell--nav-below {
+  .mel-card-carousel {
+    padding-bottom: 0;
+  }
+
+  .mel-card-carousel__nav {
+    .swiper-button-prev,
+    .swiper-button-next {
+      display: flex;
     }
   }
 }

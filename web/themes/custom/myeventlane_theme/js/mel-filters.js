@@ -214,7 +214,13 @@
     }
     const submit = form.querySelector('input.js-form-submit, button.js-form-submit, [type="submit"]');
     if (submit) {
-      submit.click();
+      // Views AJAX binds via jQuery; native .click() bypasses those handlers.
+      if (typeof jQuery !== 'undefined') {
+        jQuery(submit).trigger('click');
+      }
+      else {
+        submit.click();
+      }
     }
   }
 

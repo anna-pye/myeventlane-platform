@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Service\BoostPurchaseSuccessResolver;
+use Drupal\myeventlane_event\Service\BoostedEventQualityGate;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -28,6 +29,7 @@ final class BoostPurchaseSuccessController extends ControllerBase {
     EntityTypeManagerInterface $entityTypeManager,
     private readonly BoostPurchaseSuccessResolver $purchaseSuccessResolver,
     private readonly BoostStatusService $boostStatusService,
+    private readonly BoostedEventQualityGate $qualityGate,
   ) {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -40,6 +42,7 @@ final class BoostPurchaseSuccessController extends ControllerBase {
       $container->get('entity_type.manager'),
       $container->get('myeventlane_boost.purchase_success_resolver'),
       $container->get('myeventlane_vendor.service.boost_status'),
+      $container->get('myeventlane_event.boosted_quality_gate'),
     );
   }
 
@@ -51,6 +54,12 @@ final class BoostPurchaseSuccessController extends ControllerBase {
     $purchase = $this->purchaseSuccessResolver->resolvePrimaryBoostPurchase($order);
     if ($purchase === NULL) {
       throw new NotFoundHttpException();
+    }
+
+    if (!$this->qualityGate->hasHeroImage($event)) {
+      $this->messenger()->addWarning(
+        $this->t('Your event is boosted but does not yet have a hero image. Add a photo to maximise visibility.')
+      );
     }
 
     $account = $this->currentUser();

@@ -39,6 +39,7 @@ final class DiscoveryAttributionSources {
    */
   private const VIEW_DISPLAY_MAP = [
     'front_featured_events:block_featured' => self::SOURCE_HOMEPAGE_FEATURED,
+    'front_featured_events:block_hero' => self::SOURCE_HOMEPAGE_FEATURED,
     'upcoming_events:homepage_tonight' => self::SOURCE_HOMEPAGE_TONIGHT,
     'mel_home_events:under_20' => self::SOURCE_HOMEPAGE_FREE,
     'front_recommended_events:block_1' => self::SOURCE_HOMEPAGE_RECOMMENDED,

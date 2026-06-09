@@ -26,6 +26,7 @@ use Drupal\Core\Render\Element;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\taxonomy\TermInterface;
+use Drupal\views\ViewExecutable;
 
 /**
  * Implements hook_ENTITY_TYPE_access() for paragraph.
@@ -837,13 +838,17 @@ function myeventlane_event_entity_presave(EntityInterface $entity): void {
  * (service caches per request).
  */
 function myeventlane_event_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display): void {
-  if (!\Drupal::hasService('myeventlane_core.event_recommendation')) {
-    return;
-  }
   if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
     return;
   }
   if (!in_array($display->getMode(), myeventlane_event_get_event_card_view_modes(), TRUE)) {
+    return;
+  }
+
+  myeventlane_event_apply_discovery_source_to_card_build($build);
+  myeventlane_event_apply_tonight_urgency_to_card_build($build, $entity);
+
+  if (!\Drupal::hasService('myeventlane_core.event_recommendation')) {
     return;
   }
   if (array_key_exists('#recommendation_context', $build)) {
@@ -1197,44 +1202,12 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       ]);
     }
   }
-  // Urgency line on the home Tonight rail only: dedicated view mode keeps a
-  // separate node render array from generic teasers (avoids static flags and
-  // render-cache mix-ups).
-  $variables['mel_tonight_urgency_label'] = NULL;
-  if (
-    $view_mode === 'teaser_tonight'
-    && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()
-  ) {
-    $start_value = (string) $node->get('field_event_start')->value;
-    $start_raw = $start_value !== '' ? strtotime($start_value) : FALSE;
-    $start_ts = ($start_raw !== FALSE) ? (int) $start_raw : 0;
-    $now = (int) \Drupal::time()->getRequestTime();
-    $end_ts = NULL;
-    if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
-      $end_value = (string) $node->get('field_event_end')->value;
-      if ($end_value !== '') {
-        $et = strtotime($end_value);
-        if ($et !== FALSE) {
-          $end_ts = (int) $et;
-        }
-      }
-    }
-    if ($start_ts > 0) {
-      if ($start_ts <= $now && ($end_ts === NULL || $end_ts > $now)) {
-        $variables['mel_tonight_urgency_label'] = t('Happening today');
-      }
-      elseif ($start_ts > $now) {
-        $variables['mel_tonight_urgency_label'] = t('Starts soon');
-      }
-    }
-  }
-  if ($variables['mel_tonight_urgency_label'] !== NULL && isset($variables['elements']) && is_array($variables['elements'])) {
-    $variables['elements']['#cache']['max-age'] = 60;
-    $contexts = $variables['elements']['#cache']['contexts'] ?? [];
-    if (!in_array('timezone', $contexts, TRUE)) {
-      $contexts[] = 'timezone';
-    }
-    $variables['elements']['#cache']['contexts'] = $contexts;
+  // Tonight urgency: compact_commerce cards get label at entity build time; teaser_tonight here.
+  $variables['mel_tonight_urgency_label'] = $variables['elements']['#mel_tonight_urgency_label'] ?? NULL;
+  if ($view_mode === 'teaser_tonight' && \Drupal::hasService('myeventlane_event.event_card_view_model')) {
+    /** @var \Drupal\myeventlane_event\EventCard\EventCardViewModel $event_card_view_model */
+    $event_card_view_model = \Drupal::service('myeventlane_event.event_card_view_model');
+    $variables['mel_tonight_urgency_label'] = $event_card_view_model->resolveTonightUrgencyLabel($node);
   }
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
   // Semantic CTA and badges: always set for the event bundle (all view modes: full,
@@ -1419,6 +1392,65 @@ function myeventlane_event_should_show_block_going(NodeInterface $node, int $goi
 }
 
 /**
+ * Canonical discovery-card CTA labels (no passive "View details" on active cards).
+ *
+ * @return array{cta_label: string, cta_type: string}
+ */
+function myeventlane_event_discovery_card_cta(
+  string $ctaType,
+  string $melState,
+  ?string $bookingAvailability,
+  array $eventCta,
+): array {
+  if ($bookingAvailability === BookingFlowResolver::AVAILABILITY_SOLD_OUT || $melState === 'sold_out') {
+    return [
+      'cta_label' => (string) t('Sold out'),
+      'cta_type' => 'disabled',
+    ];
+  }
+  if (in_array($melState, ['ended', 'cancelled'], TRUE)
+    || $bookingAvailability === BookingFlowResolver::AVAILABILITY_ENDED) {
+    return [
+      'cta_label' => (string) t('Event ended'),
+      'cta_type' => 'disabled',
+    ];
+  }
+  if ($bookingAvailability === BookingFlowResolver::AVAILABILITY_NOT_STARTED
+    || ($melState === 'scheduled' && $ctaType === BookingFlowResolver::MODE_PAID)) {
+    return [
+      'cta_label' => (string) t('On sale soon'),
+      'cta_type' => 'disabled',
+    ];
+  }
+  if ($ctaType === BookingFlowResolver::MODE_EXTERNAL) {
+    $isDisabled = ($eventCta['type'] ?? 'disabled') === 'disabled' || !empty($eventCta['disabled']);
+    return [
+      'cta_label' => (string) t('Book externally'),
+      'cta_type' => $isDisabled ? 'disabled' : 'secondary',
+    ];
+  }
+  if ($ctaType === BookingFlowResolver::MODE_PAID
+    && $bookingAvailability === BookingFlowResolver::AVAILABILITY_AVAILABLE) {
+    return [
+      'cta_label' => (string) t('Get tickets'),
+      'cta_type' => 'primary',
+    ];
+  }
+  if ($ctaType === BookingFlowResolver::MODE_RSVP
+    && $bookingAvailability === BookingFlowResolver::AVAILABILITY_AVAILABLE) {
+    return [
+      'cta_label' => (string) t('RSVP free'),
+      'cta_type' => 'primary',
+    ];
+  }
+
+  return [
+    'cta_label' => '',
+    'cta_type' => 'disabled',
+  ];
+}
+
+/**
  * Map event_domain_state + CTA to semantic UI (Twig: labels and types only).
  */
 function myeventlane_event_finalize_event_ui(
@@ -1546,10 +1578,28 @@ function myeventlane_event_finalize_event_ui(
     $out['image_badge_label'] = (string) t('Featured');
     $out['image_badge_type'] = 'apricot';
   }
+  elseif (
+    $out['is_sold_out'] === FALSE
+    && $node->hasField('field_promoted')
+    && !$node->get('field_promoted')->isEmpty()
+    && (bool) $node->get('field_promoted')->value
+    && ($out['image_badge_label'] ?? NULL) === NULL
+  ) {
+    $out['status_label'] = (string) t('Featured');
+    $out['status_type'] = 'highlight';
+    $out['image_badge_label'] = (string) t('Featured');
+    $out['image_badge_type'] = 'apricot';
+  }
 
   if (myeventlane_event_get_social_proof_mode($node) === 'hide') {
     $out['capacity_hint'] = NULL;
     $out['is_limited'] = FALSE;
+  }
+
+  if ($isCardContext && $showCta) {
+    $cardCta = myeventlane_event_discovery_card_cta($ctaType, $melState, $bookingAvailability, $eventCta);
+    $out['cta_label'] = $cardCta['cta_label'];
+    $out['cta_type'] = $cardCta['cta_type'];
   }
 
   return $out;
@@ -1844,6 +1894,94 @@ function myeventlane_event_page_attachments(array &$attachments): void {
       }
     }
   }
+}
+
+/**
+ * Stamps discovery attribution source onto card entity builds during Views row render.
+ */
+function myeventlane_event_apply_discovery_source_to_card_build(array &$build): void {
+  if (array_key_exists('#mel_discovery_source', $build)) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_core.discovery_attribution_sources')) {
+    return;
+  }
+
+  $request = \Drupal::requestStack()->getCurrentRequest();
+  if ($request === NULL) {
+    return;
+  }
+
+  $view_id = $request->attributes->get('mel_active_view_id');
+  $display_id = $request->attributes->get('mel_active_view_display');
+  if (!is_string($view_id) || $view_id === '' || !is_string($display_id) || $display_id === '') {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_core\Service\DiscoveryAttributionSources $attribution */
+  $attribution = \Drupal::service('myeventlane_core.discovery_attribution_sources');
+  $source = $attribution->forViewDisplay($view_id, $display_id);
+  if ($source === NULL) {
+    return;
+  }
+
+  $build['#mel_discovery_source'] = $source;
+  if (!isset($build['#cache']) || !is_array($build['#cache'])) {
+    $build['#cache'] = [];
+  }
+  if (!isset($build['#cache']['contexts']) || !is_array($build['#cache']['contexts'])) {
+    $build['#cache']['contexts'] = [];
+  }
+  if (!in_array('mel_discovery_view_display', $build['#cache']['contexts'], TRUE)) {
+    $build['#cache']['contexts'][] = 'mel_discovery_view_display';
+  }
+}
+
+/**
+ * Stamps Tonight-rail urgency onto card builds when attribution source matches.
+ */
+function myeventlane_event_apply_tonight_urgency_to_card_build(array &$build, NodeInterface $entity): void {
+  if (($build['#mel_discovery_source'] ?? NULL) !== DiscoveryAttributionSources::SOURCE_HOMEPAGE_TONIGHT) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_event.event_card_view_model')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_event\EventCard\EventCardViewModel $event_card_view_model */
+  $event_card_view_model = \Drupal::service('myeventlane_event.event_card_view_model');
+  $label = $event_card_view_model->resolveTonightUrgencyLabel($entity);
+  if ($label === NULL) {
+    return;
+  }
+
+  $build['#mel_tonight_urgency_label'] = $label;
+  if (!isset($build['#cache']) || !is_array($build['#cache'])) {
+    $build['#cache'] = [];
+  }
+  $existing_max_age = $build['#cache']['max-age'] ?? Cache::PERMANENT;
+  $build['#cache']['max-age'] = min((int) $existing_max_age, 60);
+  if (!isset($build['#cache']['contexts']) || !is_array($build['#cache']['contexts'])) {
+    $build['#cache']['contexts'] = [];
+  }
+  if (!in_array('timezone', $build['#cache']['contexts'], TRUE)) {
+    $build['#cache']['contexts'][] = 'timezone';
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ *
+ * Tracks the View display currently rendering so card entity builds receive
+ * accurate discovery attribution (avoids shared ViewExecutable display bleed).
+ */
+function myeventlane_event_views_pre_render(ViewExecutable $view): void {
+  $request = \Drupal::requestStack()->getCurrentRequest();
+  if ($request === NULL) {
+    return;
+  }
+  $request->attributes->set('mel_active_view_id', $view->id());
+  $request->attributes->set('mel_active_view_display', (string) ($view->current_display ?? ''));
 }
 
 /**

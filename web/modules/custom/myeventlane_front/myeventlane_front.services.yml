@@ -12,3 +12,18 @@ services:
       - '@entity_type.manager'
       - '@views.executable'
       - '@myeventlane_front.featured_events_render_builder'
+
+  myeventlane_front.homepage_merchandising:
+    class: Drupal\myeventlane_front\Service\HomepageMerchandising
+    arguments:
+      - '@entity_type.manager'
+      - '@views.executable'
+      - '@datetime.time'
+      - '@path.matcher'
+      - '@myeventlane_event.public_visibility'
+      - '@myeventlane_event.boosted_quality_gate'
+
+  myeventlane_front.homepage_merchandising_query_alter:
+    class: Drupal\myeventlane_front\Service\HomepageMerchandisingQueryAlter
+    arguments:
+      - '@myeventlane_front.homepage_merchandising'

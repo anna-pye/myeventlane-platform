@@ -20,3 +20,5 @@ dependencies:
   - drupal:media
   - drupal:commerce_product
   - drupal:commerce_price
+  - crop:crop
+  - focal_point:focal_point

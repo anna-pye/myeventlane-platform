@@ -1024,6 +1024,260 @@
   }
 }
 
+// --- Spotlight featured rail (community spotlight, not hero) ---
+.mel-event-card--featured.mel-event-card--spotlight {
+  border-radius: mel.$mel-ds-radius-lg;
+
+  .mel-event-card__link {
+    aspect-ratio: 3 / 4;
+    border-radius: inherit;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .mel-event-card__date-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 6px 48px 6px 12px;
+    background: rgba(255, 255, 255, 0.76);
+    border-bottom: 0;
+    pointer-events: none;
+
+    @supports (backdrop-filter: blur(1px)) {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+  }
+
+  .mel-event-card__date-bar-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: mel.$mel-ds-color-text;
+    line-height: 1.2;
+  }
+
+  .mel-event-card__save {
+    top: 0;
+    right: 0;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    padding-right: 4px;
+    z-index: 7;
+  }
+
+  .mel-event-card__save .flag a {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .mel-event-card__image,
+  .mel-event-card__media {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    background: color-mix(in srgb, mel.$mel-ds-color-accent 8%, mel.$mel-ds-color-bg);
+  }
+
+  .mel-event-card__overlay {
+    z-index: 2;
+    background:
+      linear-gradient(0deg, rgba(36, 48, 58, 0.72) 0%, rgba(36, 48, 58, 0.18) 38%, transparent 62%);
+  }
+
+  .mel-event-card__image > img,
+  .mel-event-card__image > .mel-event-card__image-element,
+  .mel-event-card__media > img,
+  .mel-event-card__media > .mel-event-card__image-element {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .mel-event-card__cta-row,
+  .mel-event-card__price,
+  .mel-event-card__price-slot,
+  .mel-event-card__location-slot,
+  .mel-event-card__category-chips,
+  .mel-event-card__status-row,
+  .mel-event-card__capacity-hint,
+  .mel-event-card__urgency {
+    display: none;
+  }
+
+  .mel-event-card__body,
+  .mel-event-card__content {
+    position: absolute;
+    inset: auto 8px 8px;
+    z-index: 4;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
+  .mel-event-hero__glass {
+    border-radius: 14px;
+    padding: 8px 10px;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 8px 24px rgba(36, 48, 58, 0.1);
+
+    @supports (backdrop-filter: blur(1px)) {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+  }
+
+  .mel-event-card__title {
+    font-size: clamp(1rem, 2vw, 1.3125rem);
+    font-weight: 800;
+    line-height: 1.15;
+    -webkit-line-clamp: 2;
+  }
+
+  .mel-event-card__snapshot,
+  .mel-event-card__when {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.3;
+    color: mel.$mel-ds-color-muted;
+  }
+
+  .mel-event-card__going-icon {
+    margin-right: 4px;
+    font-size: 0.95em;
+    line-height: 1;
+  }
+
+  .mel-event-card__going--prominent,
+  .mel-event-card__social.mel-event-card__going {
+    display: flex;
+    align-items: center;
+    margin: 4px 0 0;
+    font-size: clamp(0.9375rem, 1.8vw, 1.0625rem);
+    font-weight: 800;
+    line-height: 1.25;
+    color: mel.$mel-ds-color-primary;
+  }
+
+  .mel-event-card__signal-row {
+    margin-top: 4px;
+  }
+
+  .mel-event-card__ticket-type-row {
+    margin: 6px 0 2px;
+  }
+
+  .mel-event-card__ticket-type-pill {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-weight: 700;
+  }
+
+  .mel-event-card__signal-row--secondary .mel-event-card__state-chip {
+    opacity: 0.88;
+  }
+
+  .mel-event-card__state-chip {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    background: color-mix(in srgb, mel.$mel-ds-color-text 6%, rgba(255, 255, 255, 0.72));
+    color: mel.$mel-ds-color-muted;
+    border: 0;
+  }
+
+  .mel-event-card__state-chip--muted,
+  .mel-event-card__state-chip--free {
+    background: transparent;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: mel.$mel-ds-color-muted;
+  }
+
+  .mel-event-card__state-chip--community {
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 14%, #fff);
+    color: mel.$mel-ds-color-primary;
+    border: 0;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .mel-event-card__state-chip--tonight {
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 12%, #fff);
+    color: mel.$mel-ds-color-primary;
+  }
+
+  .mel-event-card__state-chip--urgency {
+    background: color-mix(in srgb, var(--mel-butter, #ffe8a3) 55%, #fff);
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-event-card__state-chip--warning,
+  .mel-event-card__state-chip--sold-out {
+    background: color-mix(in srgb, var(--mel-coral, #f26d5b) 14%, #fff);
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-event-card__tertiary--context {
+    display: none;
+  }
+}
+
+.mel-grid--featured .mel-event-card--featured.mel-event-card--spotlight,
+.mel-event-grid.mel-grid--featured .mel-event-card--featured.mel-event-card--spotlight {
+  box-shadow: var(--mel-shadow-1, #{mel.$mel-ds-shadow-soft});
+  border-radius: mel.$mel-ds-radius-lg;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+
+  .mel-event-card__link {
+    border-radius: inherit;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: var(--mel-shadow-2, 0 12px 32px rgba(36, 48, 58, 0.14));
+      transform: translateY(-2px);
+    }
+  }
+}
+
 // --- Compact (horizontal) ---
 .mel-event-card--compact {
   background: mel.$mel-ds-color-surface;
@@ -1059,6 +1313,20 @@
   .mel-event-card__image-badge,
   .mel-event-card__overlay {
     display: none;
+  }
+
+  // Status badges (Featured, Sold out, boost) — not category pills on image.
+  .mel-event-card__image-badge.mel-event__category {
+    display: none;
+  }
+
+  .mel-event-card__image-badge:not(.mel-event__category) {
+    display: block;
+    inset: auto auto 8px 8px;
+    max-width: calc(100% - 16px);
+    font-size: 10px;
+    padding: 4px 8px;
+    opacity: 1;
   }
 
   .mel-event-card__date-badge {

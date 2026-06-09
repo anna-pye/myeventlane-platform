@@ -893,3 +893,60 @@ function myeventlane_core_update_9120(): void {
     );
   }
 }
+
+/**
+ * Reorders main navigation toward attendee-first marketplace IA (Option A).
+ *
+ * Target order: Home, Events, Calendar, Discover, Support, Organisers.
+ * - Enables Views menu links for Events + Discover (/events/popular).
+ * - Disables duplicate menu_link_content "Events" when present.
+ * - Renames Vendors → Organisers, fixes organiser link, moves after Support.
+ */
+function myeventlane_core_update_9121(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('menu_link_content');
+
+  // Disable duplicate Events custom link; canonical Events comes from the view.
+  $events_links = $storage->loadByProperties([
+    'menu_name' => 'main',
+    'title' => 'Events',
+  ]);
+  foreach ($events_links as $link) {
+    $uri = (string) ($link->get('link')->uri ?? '');
+    if ($uri === 'internal:/events' || str_ends_with($uri, '/events')) {
+      $link->set('enabled', FALSE);
+      $link->save();
+    }
+  }
+
+  // Organisers: public directory parent (dropdown children added in theme preprocess).
+  $organiser_links = $storage->loadByProperties(['menu_name' => 'main']);
+  foreach ($organiser_links as $link) {
+    $title = strtolower(trim((string) $link->getTitle()));
+    if (!in_array($title, ['vendors', 'organisers'], TRUE)) {
+      continue;
+    }
+    $link->set('title', 'Organisers');
+    $link->set('link', ['uri' => 'internal:/organisers']);
+    $link->set('weight', 4);
+    $link->set('enabled', TRUE);
+    $link->save();
+  }
+
+  $support_links = $storage->loadByProperties([
+    'menu_name' => 'main',
+    'title' => 'Support',
+  ]);
+  foreach ($support_links as $link) {
+    $link->set('weight', 3);
+    $link->save();
+  }
+
+  $home_links = $storage->loadByProperties([
+    'menu_name' => 'main',
+    'title' => 'Home',
+  ]);
+  foreach ($home_links as $link) {
+    $link->set('weight', -10);
+    $link->save();
+  }
+}

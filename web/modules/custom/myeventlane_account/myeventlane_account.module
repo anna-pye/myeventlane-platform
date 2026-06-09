@@ -98,6 +98,62 @@ function myeventlane_account_preprocess_myeventlane_my_account_past_events(array
 }
 
 /**
+ * Builds avatar + label data for account chrome (header dropdown, hub pages).
+ *
+ * Canonical image source: user.user.user_picture (Drupal core field).
+ * Display name: field_display_name via DisplayNameResolver when available.
+ *
+ * @return array{url: string, initials: string, display_name: string, label: \Drupal\Core\StringTranslation\TranslatableMarkup|string}
+ */
+function _myeventlane_account_build_avatar_vars(?string $display_name_override = NULL): array {
+  $account = \Drupal::currentUser();
+  if ($account->isAnonymous()) {
+    return [
+      'url' => '',
+      'initials' => '',
+      'display_name' => '',
+      'label' => t('Account'),
+    ];
+  }
+
+  if ($display_name_override !== NULL && $display_name_override !== '') {
+    $display_name = $display_name_override;
+  }
+  elseif (\Drupal::hasService('myeventlane_core.display_name_resolver')) {
+    $display_name = \Drupal::service('myeventlane_core.display_name_resolver')->getDisplayName($account);
+  }
+  else {
+    $display_name = $account->getDisplayName();
+  }
+
+  $avatar_url = '';
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load($account->id());
+  if ($user && $user->hasField('user_picture') && !$user->get('user_picture')->isEmpty()) {
+    $file = $user->get('user_picture')->entity;
+    if ($file && $file->getFileUri()) {
+      $uri = $file->getFileUri();
+      $file_system = \Drupal::service('file_system');
+      $real_path = $file_system->realpath($uri);
+      if ($real_path && is_readable($real_path)) {
+        $avatar_url = \Drupal::service('file_url_generator')->generateAbsoluteString($uri);
+      }
+    }
+  }
+
+  $initials = _myeventlane_account_get_initials($display_name);
+  if ($initials === '' && $account->getAccountName() !== '') {
+    $initials = _myeventlane_account_get_initials($account->getAccountName());
+  }
+
+  return [
+    'url' => $avatar_url,
+    'initials' => $initials,
+    'display_name' => $display_name,
+    'label' => $display_name,
+  ];
+}
+
+/**
  * Adds logo and avatar variables for My Account header.
  */
 function _myeventlane_account_add_header_vars(array &$variables): void {
@@ -106,29 +162,9 @@ function _myeventlane_account_add_header_vars(array &$variables): void {
   $base_path = \Drupal::request()->getBasePath();
   $variables['logo_url'] = $base_path . '/' . $theme_path . '/images/logo.svg';
 
-  $account = \Drupal::currentUser();
-  if ($account->isAnonymous()) {
-    $variables['avatar_url'] = '';
-    $variables['avatar_initials'] = '';
-    return;
-  }
-
-  $user = \Drupal::entityTypeManager()->getStorage('user')->load($account->id());
-  if (!$user || !$user->hasField('user_picture') || $user->get('user_picture')->isEmpty()) {
-    $variables['avatar_url'] = '';
-    $display_name = $variables['display_name'] ?? ($user ? $user->getDisplayName() : '');
-    $variables['avatar_initials'] = _myeventlane_account_get_initials($display_name);
-    return;
-  }
-
-  $file = $user->get('user_picture')->entity;
-  if ($file && $file->getFileUri()) {
-    $variables['avatar_url'] = \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
-  }
-  else {
-    $variables['avatar_url'] = '';
-  }
-  $variables['avatar_initials'] = _myeventlane_account_get_initials($user->getDisplayName());
+  $avatar = _myeventlane_account_build_avatar_vars($variables['display_name'] ?? NULL);
+  $variables['avatar_url'] = $avatar['url'];
+  $variables['avatar_initials'] = $avatar['initials'];
 }
 
 /**
@@ -137,7 +173,7 @@ function _myeventlane_account_add_header_vars(array &$variables): void {
 function _myeventlane_account_get_initials(string $name): string {
   $name = trim($name);
   if ($name === '') {
-    return '?';
+    return '';
   }
   $words = preg_split('/\s+/', $name, 2);
   if (count($words) === 1) {
@@ -244,13 +280,17 @@ function _myeventlane_account_page_heading(?string $route_name) {
  * Replaces the account menu tree for authenticated users with canonical hub IA.
  */
 function myeventlane_account_preprocess_menu__account(array &$variables): void {
+  if (($variables['menu_name'] ?? '') !== 'account') {
+    return;
+  }
+
+  $variables['mel_account_avatar'] = _myeventlane_account_build_avatar_vars();
+
   $account = \Drupal::currentUser();
   if (!$account->isAuthenticated()) {
     return;
   }
-  if (($variables['menu_name'] ?? '') !== 'account') {
-    return;
-  }
+
   $nav = \Drupal::service('myeventlane_account.account_links')->buildNavigationItems();
   $items = [];
   foreach ($nav as $link) {
