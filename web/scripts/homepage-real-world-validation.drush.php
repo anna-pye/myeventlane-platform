@@ -206,14 +206,31 @@ function mel_staging_ensure_image(string $key, string $url, string $alt, FileSys
     return $file instanceof File ? (int) $file->id() : NULL;
   }
 
-  $data = @file_get_contents($url);
-  if ($data === FALSE) {
-    $data = mel_staging_placeholder_jpeg($alt !== '' ? $alt : $key);
-    if ($data === NULL) {
-      echo "  ⚠ Could not download or generate image: {$key}\n";
-      return NULL;
+  $data = NULL;
+  if (getenv('IS_DDEV_PROJECT') === 'true') {
+    $data = @file_get_contents($url);
+    if ($data === FALSE) {
+      $data = NULL;
     }
-    echo "  · Placeholder image for {$key} (remote download unavailable)\n";
+  }
+
+  if ($data === NULL) {
+    $data = mel_staging_placeholder_jpeg($alt !== '' ? $alt : $key);
+    if ($data !== NULL) {
+      echo "  · Placeholder image for {$key} (generated locally)\n";
+    }
+  }
+
+  if ($data === NULL) {
+    $data = mel_staging_bundled_jpeg();
+    if ($data !== NULL) {
+      echo "  · Bundled placeholder image for {$key}\n";
+    }
+  }
+
+  if ($data === NULL) {
+    echo "  ⚠ Could not download or generate image: {$key}\n";
+    return NULL;
   }
 
   $path = $fileSystem->saveData($data, $uri, FileSystemInterface::EXISTS_REPLACE);
@@ -276,13 +293,31 @@ function mel_staging_placeholder_jpeg(string $label, int $width = 1600, int $hei
   ob_start();
   $written = imagejpeg($image, NULL, 88);
   $data = ob_get_clean();
-  imagedestroy($image);
 
   if (!$written || !is_string($data) || $data === '') {
     return NULL;
   }
 
   return $data;
+}
+
+/**
+ * Returns bundled JPEG bytes when GD is unavailable on the host.
+ */
+function mel_staging_bundled_jpeg(): ?string {
+  $path = __DIR__ . '/assets/mel-staging-placeholder.jpg';
+  if (is_readable($path)) {
+    $data = file_get_contents($path);
+    return is_string($data) && $data !== '' ? $data : NULL;
+  }
+
+  // Minimal valid 1×1 JPEG — no GD or outbound HTTP required.
+  $data = base64_decode(
+    '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAv/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGf/AP/Z',
+    TRUE,
+  );
+
+  return is_string($data) && $data !== '' ? $data : NULL;
 }
 
 /**
@@ -303,30 +338,68 @@ function mel_staging_ensure_focal_point(int $fid, string $focal = '50,50'): void
     return;
   }
 
-  /** @var \Drupal\focal_point\FocalPointManagerInterface $focalManager */
-  $focalManager = \Drupal::service('focal_point.manager');
-  $image = \Drupal::service('image.factory')->get($uri);
-  if (!$image->isValid()) {
-    return;
-  }
-
-  if (!$focalManager->validateFocalPoint($focal)) {
+  if (mel_staging_normalize_focal($focal) === NULL) {
     $focal = '50,50';
   }
 
   [$xPct, $yPct] = array_map('intval', explode(',', $focal));
-  $absolute = $focalManager->relativeToAbsolute(
-    $xPct,
-    $yPct,
-    $image->getWidth(),
-    $image->getHeight(),
-  );
-
   $cropType = (string) \Drupal::config('focal_point.settings')->get('crop_type');
   if ($cropType === '') {
     $cropType = 'focal_point';
   }
 
+  /** @var \Drupal\focal_point\FocalPointManagerInterface $focalManager */
+  $focalManager = \Drupal::service('focal_point.manager');
+  $image = \Drupal::service('image.factory')->get($uri);
+  if ($image->isValid()) {
+    $absolute = $focalManager->relativeToAbsolute(
+      $xPct,
+      $yPct,
+      $image->getWidth(),
+      $image->getHeight(),
+    );
+    mel_staging_save_focal_crop($uri, $fid, $cropType, (int) $absolute['x'], (int) $absolute['y']);
+    return;
+  }
+
+  // Fallback when image toolkit is unavailable (common on constrained CLI hosts).
+  $fileSystem = \Drupal::service('file_system');
+  $real = $fileSystem->realpath($uri);
+  $width = 1600;
+  $height = 900;
+  if (is_string($real)) {
+    $info = @getimagesize($real);
+    if (is_array($info)) {
+      $width = max(1, (int) $info[0]);
+      $height = max(1, (int) $info[1]);
+    }
+  }
+
+  mel_staging_save_focal_crop(
+    $uri,
+    $fid,
+    $cropType,
+    (int) round($width * $xPct / 100),
+    (int) round($height * $yPct / 100),
+  );
+}
+
+/**
+ * Validates and normalizes a focal point string.
+ */
+function mel_staging_normalize_focal(string $focal): ?string {
+  /** @var \Drupal\focal_point\FocalPointManagerInterface $focalManager */
+  $focalManager = \Drupal::service('focal_point.manager');
+  if (!$focalManager->validateFocalPoint($focal)) {
+    return NULL;
+  }
+  return $focal;
+}
+
+/**
+ * Persists focal crop entity for a file URI.
+ */
+function mel_staging_save_focal_crop(string $uri, int $fid, string $cropType, int $x, int $y): void {
   $crop = Crop::findCrop($uri, $cropType);
   if (!$crop instanceof CropInterface) {
     $crop = Crop::create([
@@ -337,7 +410,7 @@ function mel_staging_ensure_focal_point(int $fid, string $focal = '50,50'): void
     ]);
   }
 
-  $crop->setPosition((int) $absolute['x'], (int) $absolute['y']);
+  $crop->setPosition($x, $y);
   $crop->save();
 }
 
