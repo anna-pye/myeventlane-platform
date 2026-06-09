@@ -20,3 +20,7 @@ services:
   myeventlane_wallet.google_wallet_builder:
     class: Drupal\myeventlane_wallet\Service\GoogleWalletBuilder
     arguments: ['@config.factory', '@renderer']
+
+  myeventlane_wallet.presentation_gate:
+    class: Drupal\myeventlane_wallet\Service\WalletPresentationGate
+    arguments: ['@config.factory']

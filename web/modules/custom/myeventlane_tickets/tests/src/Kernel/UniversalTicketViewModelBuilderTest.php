@@ -227,8 +227,8 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
     $this->assertSame('event', $model['vendor']['source']);
     $this->assertSame('myeventlane_tickets.download_pdf_by_code', $model['actions']['pdf']['download']['route']);
     $this->assertStringContainsString('/ticket/MEL-VIEW-0001/pdf', $model['actions']['pdf']['download']['url']);
-    $this->assertSame('myeventlane_wallet.apple', $model['actions']['wallet']['apple']['route']);
-    $this->assertSame('myeventlane_wallet.google', $model['actions']['wallet']['google']['route']);
+    $this->assertNull($model['actions']['wallet']['apple']);
+    $this->assertNull($model['actions']['wallet']['google']);
     $this->assertTrue($model['scanner']['can_scan']);
     $this->assertSame('ready', $model['scanner']['status']);
     $this->assertSame('admit', $model['capabilities']['scanner_mode']);

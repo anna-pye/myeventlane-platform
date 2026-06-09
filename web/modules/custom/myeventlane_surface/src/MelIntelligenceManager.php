@@ -10,6 +10,7 @@ use Drupal\myeventlane_core\MelStateEvaluation;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
 
 /**
  * Canonical orchestration entry point for MEL intelligence (governance only).
@@ -32,6 +33,7 @@ final class MelIntelligenceManager {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LoggerChannelInterface $logger,
     private readonly MelReadinessHelper $readinessHelper,
+    private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
   ) {}
 
   /**
@@ -66,6 +68,7 @@ final class MelIntelligenceManager {
         $evaluations,
         $experience,
       );
+      $applicable = $this->filterWalletPromptWhenUnavailable($applicable);
       $ranked = $this->priorityResolver->rank($context->account, $applicable);
       $adaptive = $this->adaptiveGuidanceHelper->resolveProfiles($context, $merged, $experience);
       $shell = $this->resolveShellProfile($context);
@@ -304,7 +307,26 @@ final class MelIntelligenceManager {
   }
 
   /**
-   * @param array<string, bool|int|string> $merged
+   * @param list<IntelligenceDefinition> $definitions
+   *
+   * @return list<IntelligenceDefinition>
+   */
+  private function filterWalletPromptWhenUnavailable(array $definitions): array {
+    if (!$this->walletPresentationGate instanceof WalletPresentationGate) {
+      return $definitions;
+    }
+    if ($this->walletPresentationGate->shouldEmitWalletPrompt()) {
+      return $definitions;
+    }
+    return array_values(array_filter(
+      $definitions,
+      static fn (IntelligenceDefinition $definition): bool => $definition->id !== 'add_wallet_prompt',
+    ));
+  }
+
+  /**
+   * Builds one intelligence panel item from a resolved definition.
+   *
    * @param array<string, string> $evaluations
    *
    * @return array<string, mixed>

@@ -1,12 +1,28 @@
-# Schema for MyEventLane Wallet module configuration.
-# This file defines the structure of config objects used by this module.
-
-# If the module defines any config objects, add them here.
-# Example:
-# myeventlane_wallet.settings:
-#   type: config_object
-#   label: 'MyEventLane Wallet settings'
-#   mapping:
-#     example_setting:
-#       type: string
-#       label: 'Example setting'
+myeventlane_wallet.settings:
+  type: config_object
+  label: 'MyEventLane Wallet settings'
+  mapping:
+    apple_enabled:
+      type: boolean
+      label: 'Enable Apple Wallet passes'
+    apple_team_id:
+      type: string
+      label: 'Apple Developer Team ID'
+    apple_pass_type_id:
+      type: string
+      label: 'Apple Pass Type ID'
+    apple_organisation_name:
+      type: string
+      label: 'Apple pass organisation name'
+    google_enabled:
+      type: boolean
+      label: 'Enable Google Wallet passes'
+    google_issuer_id:
+      type: string
+      label: 'Google Wallet Issuer ID'
+    show_wallet_buttons:
+      type: boolean
+      label: 'Show wallet buttons on confirmation page'
+    show_wallet_in_email:
+      type: boolean
+      label: 'Include wallet links in confirmation emails'
