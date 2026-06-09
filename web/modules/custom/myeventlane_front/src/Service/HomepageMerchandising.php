@@ -36,6 +36,7 @@ final class HomepageMerchandising {
       'homepage_latest',
     ],
     'mel_home_events' => [
+      'embed_discover',
       'under_20',
     ],
     'front_recommended_events' => [
@@ -52,6 +53,11 @@ final class HomepageMerchandising {
    * @var list<int>|null
    */
   private ?array $spotlightEventIds = NULL;
+
+  /**
+   * @var list<int>|null
+   */
+  private ?array $discoverEventIds = NULL;
 
   /**
    * @var list<int>|null
@@ -108,21 +114,29 @@ final class HomepageMerchandising {
 
     return match ($viewId . ':' . $displayId) {
       'front_featured_events:block_featured' => $hero,
-      'upcoming_events:homepage_tonight' => array_values(array_unique([...$hero, ...$spotlight])),
+      'mel_home_events:embed_discover' => array_values(array_unique([...$hero, ...$spotlight])),
+      'upcoming_events:homepage_tonight' => array_values(array_unique([
+        ...$hero,
+        ...$spotlight,
+        ...$this->getDiscoverEventIds(),
+      ])),
       'mel_home_events:under_20' => array_values(array_unique([
         ...$hero,
         ...$spotlight,
+        ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
       ])),
       'upcoming_events:homepage_latest' => array_values(array_unique([
         ...$hero,
         ...$spotlight,
+        ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
         ...$this->getFreeRsvpEventIds(),
       ])),
       'front_recommended_events:block_1' => array_values(array_unique([
         ...$hero,
         ...$spotlight,
+        ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
         ...$this->getFreeRsvpEventIds(),
         ...$this->getLatestEventIds(),
@@ -201,6 +215,18 @@ final class HomepageMerchandising {
     }
     $this->spotlightEventIds = $promoted;
     return $this->spotlightEventIds;
+  }
+
+  /**
+   * @return list<int>
+   */
+  public function getDiscoverEventIds(): array {
+    if ($this->discoverEventIds !== NULL) {
+      return $this->discoverEventIds;
+    }
+
+    $this->discoverEventIds = $this->executeViewResultNids('mel_home_events', 'embed_discover');
+    return $this->discoverEventIds;
   }
 
   /**
