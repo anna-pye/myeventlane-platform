@@ -186,6 +186,9 @@ function mel_staging_category_tid(string $name): ?int {
 
 /**
  * Ensures image file exists under mel-staging-validation and returns file ID.
+ *
+ * Tries remote URL first (local/DDEV); falls back to GD placeholder when outbound
+ * HTTP is blocked on staging hosts.
  */
 function mel_staging_ensure_image(string $key, string $url, string $alt, FileSystemInterface $fileSystem): ?int {
   // prepareDirectory() requires a variable (by reference); constants fail on PHP 8.3.
@@ -205,8 +208,12 @@ function mel_staging_ensure_image(string $key, string $url, string $alt, FileSys
 
   $data = @file_get_contents($url);
   if ($data === FALSE) {
-    echo "  ⚠ Could not download image: {$key}\n";
-    return NULL;
+    $data = mel_staging_placeholder_jpeg($alt !== '' ? $alt : $key);
+    if ($data === NULL) {
+      echo "  ⚠ Could not download or generate image: {$key}\n";
+      return NULL;
+    }
+    echo "  · Placeholder image for {$key} (remote download unavailable)\n";
   }
 
   $path = $fileSystem->saveData($data, $uri, FileSystemInterface::EXISTS_REPLACE);
@@ -221,6 +228,61 @@ function mel_staging_ensure_image(string $key, string $url, string $alt, FileSys
   ]);
   $file->save();
   return (int) $file->id();
+}
+
+/**
+ * Builds a local JPEG placeholder (no outbound HTTP required).
+ */
+function mel_staging_placeholder_jpeg(string $label, int $width = 1600, int $height = 900): ?string {
+  if (!function_exists('imagecreatetruecolor') || !function_exists('imagejpeg')) {
+    return NULL;
+  }
+
+  $image = imagecreatetruecolor($width, $height);
+  if ($image === FALSE) {
+    return NULL;
+  }
+
+  $hash = crc32($label);
+  $r1 = 180 + ($hash & 0x3f);
+  $g1 = 200 + (($hash >> 6) & 0x2f);
+  $b1 = 230 + (($hash >> 12) & 0x1f);
+  $r2 = 240 + (($hash >> 18) & 0x0f);
+  $g2 = 210 + (($hash >> 24) & 0x2f);
+  $b2 = 220 + (($hash >> 28) & 0x1f);
+  for ($y = 0; $y < $height; $y++) {
+    $ratio = $height > 1 ? $y / ($height - 1) : 0;
+    $r = (int) ($r1 * (1 - $ratio) + $r2 * $ratio);
+    $g = (int) ($g1 * (1 - $ratio) + $g2 * $ratio);
+    $b = (int) ($b1 * (1 - $ratio) + $b2 * $ratio);
+    $line = imagecolorallocate($image, min(255, $r), min(255, $g), min(255, $b));
+    imageline($image, 0, $y, $width, $y, $line);
+  }
+
+  $text = substr($label, 0, 48);
+  $textColor = imagecolorallocate($image, 40, 40, 40);
+  $font = 5;
+  $textWidth = imagefontwidth($font) * strlen($text);
+  $textHeight = imagefontheight($font);
+  imagestring(
+    $image,
+    $font,
+    (int) max(8, ($width - $textWidth) / 2),
+    (int) max(8, ($height - $textHeight) / 2),
+    $text,
+    $textColor,
+  );
+
+  ob_start();
+  $written = imagejpeg($image, NULL, 88);
+  $data = ob_get_clean();
+  imagedestroy($image);
+
+  if (!$written || !is_string($data) || $data === '') {
+    return NULL;
+  }
+
+  return $data;
 }
 
 /**
