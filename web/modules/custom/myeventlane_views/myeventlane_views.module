@@ -49,9 +49,12 @@ function myeventlane_views_views_query_alter(ViewExecutable $view, QueryPluginBa
 
   $timezone = new \DateTimeZone(date_default_timezone_get());
   $now = new \DateTimeImmutable('now', $timezone);
-  $tomorrow = $now->setTime(0, 0, 0)->modify('+1 day');
+  $today = $now->setTime(0, 0, 0);
+  $tomorrow = $today->modify('+1 day');
 
-  $min = $now->format('Y-m-d\TH:i:s');
+  // Include in-progress events that started earlier today (end >= now is set in
+  // Views config). Lower bound is start of today, not current time.
+  $min = $today->format('Y-m-d\TH:i:s');
   $max = $tomorrow->format('Y-m-d\TH:i:s');
 
   $query->addWhere(1, $field_alias, $min, '>=');
