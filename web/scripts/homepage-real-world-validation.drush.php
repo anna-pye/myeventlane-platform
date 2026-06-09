@@ -2,96 +2,197 @@
 
 /**
  * @file
- * Populates realistic homepage validation content (local/staging only).
+ * Idempotent homepage merchandising fixtures for staging and local (DDEV).
  *
- * Usage:
+ * Creates additive MEL-STAGING-* content only. Never modifies existing staging
+ * organisers, events, media, or follower relationships.
+ *
+ * Usage (staging — from release root, e.g. ~/staging/current):
+ *   SITE_URI=https://staging.myeventlane.com.au \
+ *     php -d memory_limit=1024M vendor/bin/drush.php scr \
+ *     web/scripts/homepage-real-world-validation.drush.php --uri="$SITE_URI"
+ *
+ * Alternative host wrapper (if present):
+ *   ~/bin/drush512 scr web/scripts/homepage-real-world-validation.drush.php \
+ *     -l https://staging.myeventlane.com.au
+ *
+ * Usage (local DDEV):
  *   ddev drush scr web/scripts/homepage-real-world-validation.drush.php
  *
- * Does NOT change PHP thresholds or theme code — content + metrics only.
+ * Cleanup (MEL-STAGING-* only):
+ *   … scr web/scripts/homepage-real-world-validation.drush.php -- --cleanup
+ *
+ * Audit after seeding:
+ *   php -d memory_limit=1024M vendor/bin/drush.php scr \
+ *     web/scripts/audit-homepage-gate.drush.php --uri="$SITE_URI"
  */
 
 declare(strict_types=1);
 
+use Drupal\commerce_store\Entity\Store;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\crop\Entity\Crop;
 use Drupal\crop\CropInterface;
 use Drupal\file\Entity\File;
-use Drupal\focal_point\FocalPointManagerInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\user\Entity\User;
+use Drupal\myeventlane_vendor\Entity\Vendor;
 
-const MEL_HWV_MARKER = 'mel_hwv:';
-
-$tz = new DateTimeZone('Australia/Sydney');
-$now = new DateTime('now', $tz);
-
-/** @var \Drupal\Core\Entity\EntityTypeManagerInterface $etm */
-$etm = \Drupal::entityTypeManager();
-/** @var \Drupal\Core\Database\Connection $db */
-$db = \Drupal::database();
-/** @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface $cacheInvalidator */
-$cacheInvalidator = \Drupal::service('cache_tags.invalidator');
-/** @var \Drupal\Core\File\FileSystemInterface $fileSystem */
-$fileSystem = \Drupal::service('file_system');
-
-$owner = User::load(1);
-if (!$owner) {
-  throw new RuntimeException('Owner user uid 1 (anna) not found.');
-}
-
-$categories = [
-  'Arts' => 7,
-  'Community' => 10,
-  'Family' => 12,
-  'Food & Drink' => 9,
-  'LGBTQI+' => 8,
-  'Markets' => 11,
-  'Music' => 4,
-  'Workshop' => 6,
-];
-
-$venues = [
-  ['name' => 'Hyde Park', 'street' => 'Elizabeth Street', 'city' => 'Sydney', 'postcode' => '2000'],
-  ['name' => 'Barangaroo Reserve', 'street' => 'Hickson Road', 'city' => 'Barangaroo', 'postcode' => '2000'],
-  ['name' => 'Carriageworks', 'street' => '245 Wilson Street', 'city' => 'Eveleigh', 'postcode' => '2015'],
-  ['name' => 'Bondi Pavilion', 'street' => 'Queen Elizabeth Drive', 'city' => 'Bondi Beach', 'postcode' => '2026'],
-  ['name' => 'Darling Harbour', 'street' => 'Darling Harbour', 'city' => 'Sydney', 'postcode' => '2000'],
-  ['name' => 'Royal Botanic Garden', 'street' => 'Mrs Macquaries Road', 'city' => 'Sydney', 'postcode' => '2000'],
-  ['name' => 'Newtown Social Club', 'street' => 'King Street', 'city' => 'Newtown', 'postcode' => '2042'],
-  ['name' => 'Enmore Theatre', 'street' => '130 Enmore Road', 'city' => 'Newtown', 'postcode' => '2042'],
-];
-
-$imageSources = [
-  'festival-lights' => 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1600&q=80&auto=format&fit=crop',
-  'pride-picnic' => 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=80&auto=format&fit=crop',
-  'jazz-park' => 'https://images.unsplash.com/photo-1415201364774-f4f7ba45ff78?w=1600&q=80&auto=format&fit=crop',
-  'makers-market' => 'https://images.unsplash.com/photo-1488459716781-31db76582da9?w=1600&q=80&auto=format&fit=crop',
-  'food-trucks' => 'https://images.unsplash.com/photo-1569718212665-3a8278787938?w=1600&q=80&auto=format&fit=crop',
-  'open-mic' => 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1600&q=80&auto=format&fit=crop',
-  'community-choir' => 'https://images.unsplash.com/photo-1511671782779-c97d3d27a0d4?w=1600&q=80&auto=format&fit=crop',
-  'trivia-night' => 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80&auto=format&fit=crop',
-  'salsa-social' => 'https://images.unsplash.com/photo-1504609770536-a67286670445?w=1600&q=80&auto=format&fit=crop',
-  'comedy-club' => 'https://images.unsplash.com/photo-1585699320971-4caf1371049f?w=1600&q=80&auto=format&fit=crop',
-  'drag-bingo' => 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1600&q=80&auto=format&fit=crop',
-  'yoga-park' => 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1600&q=80&auto=format&fit=crop',
-  'sunset-sessions' => 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1600&q=80&auto=format&fit=crop',
-  'outdoor-cinema' => 'https://images.unsplash.com/photo-1489599849927-2ee91cedd3d4?w=1600&q=80&auto=format&fit=crop',
-  'local-creators-market' => 'https://images.unsplash.com/photo-1441986300917-64644bd600d8?w=1600&q=80&auto=format&fit=crop',
-  'volunteer-meetup' => 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1600&q=80&auto=format&fit=crop',
-  'pride-walk' => 'https://images.unsplash.com/photo-1464983953574-0892a716854b?w=1600&q=80&auto=format&fit=crop',
-  'family-fair' => 'https://images.unsplash.com/photo-1509099836629-18eb3605266d?w=1600&q=80&auto=format&fit=crop',
-  'arts-workshop' => 'https://images.unsplash.com/photo-1460661419341-fcc204c948bc?w=1600&q=80&auto=format&fit=crop',
-];
+const MEL_STAGING_PREFIX = 'MEL-STAGING-';
+const MEL_STAGING_MARKER = 'MEL-STAGING-FIXTURE';
+const MEL_STAGING_USER = 'MEL-STAGING-VALIDATION-USER';
+const MEL_STAGING_USER_MAIL = 'mel-staging-validation@myeventlane.invalid';
+const MEL_STAGING_FOLLOWER = 'MEL-STAGING-FOLLOWER-001';
+const MEL_STAGING_FOLLOWER_MAIL = 'mel-staging-follower@myeventlane.invalid';
+const MEL_STAGING_ORGANISER = 'MEL-STAGING-ORGANISER-001';
+const MEL_STAGING_IMAGE_DIR = 'public://mel-staging-validation';
 
 /**
- * Ensures image file exists and returns file ID.
+ * Whether APP_ENV / domain config indicates production.
  */
-function mel_hwv_ensure_image(string $key, string $url, string $alt, FileSystemInterface $fileSystem): ?int {
-  $directory = 'public://homepage-validation';
-  $fileSystem->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
-  $uri = $directory . '/' . $key . '.jpg';
+function mel_staging_is_production(): bool {
+  if (getenv('IS_DDEV_PROJECT') === 'true') {
+    return FALSE;
+  }
+  if (mel_staging_is_staging()) {
+    return FALSE;
+  }
+
+  $app_env = strtolower((string) (getenv('APP_ENV') ?: ''));
+  if (in_array($app_env, ['staging', 'stage', 'local', 'dev', 'development'], TRUE)) {
+    return FALSE;
+  }
+  if (in_array($app_env, ['production', 'prod'], TRUE)) {
+    return TRUE;
+  }
+
+  $public = strtolower((string) \Drupal::config('myeventlane_core.domain_settings')->get('public_domain'));
+  if (in_array($public, ['https://myeventlane.com.au', 'http://myeventlane.com.au'], TRUE)) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Whether the environment is confirmed staging or local.
+ */
+function mel_staging_is_staging(): bool {
+  if (getenv('IS_DDEV_PROJECT') === 'true') {
+    return TRUE;
+  }
+
+  $app_env = strtolower((string) (getenv('APP_ENV') ?: ''));
+  if (in_array($app_env, ['staging', 'stage'], TRUE)) {
+    return TRUE;
+  }
+
+  $public = strtolower((string) \Drupal::config('myeventlane_core.domain_settings')->get('public_domain'));
+  if (str_contains($public, 'ddev.site') || str_contains($public, 'staging.myeventlane.com')) {
+    return TRUE;
+  }
+
+  if (\Drupal::config('system.site')->get('staging_environment')) {
+    return TRUE;
+  }
+
+  $env_staging = getenv('STAGING_ENVIRONMENT');
+  if ($env_staging === '1' || $env_staging === 'true') {
+    return TRUE;
+  }
+
+  $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+  if ($host !== '') {
+    $known = [
+      'staging.myeventlane.com.au',
+      'vendor.staging.myeventlane.com.au',
+      'admin.staging.myeventlane.com.au',
+      'staging.myeventlane.com',
+      'vendor.staging.myeventlane.com',
+      'admin.staging.myeventlane.com',
+    ];
+    if (in_array($host, $known, TRUE)) {
+      return TRUE;
+    }
+    if (str_contains($host, 'staging.myeventlane.com.au') || str_contains($host, 'staging.myeventlane.com')) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Refuses production; requires confirmed staging or DDEV.
+ */
+function mel_staging_assert_allowed(): void {
+  if (mel_staging_is_production()) {
+    throw new RuntimeException('Refusing to run homepage validation fixtures on production.');
+  }
+  if (!mel_staging_is_staging()) {
+    throw new RuntimeException(
+      'Refusing to run: environment is not confirmed staging or local (DDEV). '
+      . 'Set APP_ENV=staging, STAGING_ENVIRONMENT=1, or run via DDEV.'
+    );
+  }
+}
+
+/**
+ * Parses script CLI args (supports `drush scr script.php -- --cleanup`).
+ *
+ * @return list<string>
+ */
+function mel_staging_script_args(): array {
+  $argv = $_SERVER['argv'] ?? [];
+  $args = [];
+  $past_script = FALSE;
+  foreach ($argv as $arg) {
+    if ($past_script) {
+      $args[] = $arg;
+      continue;
+    }
+    if (str_contains((string) $arg, 'homepage-real-world-validation')) {
+      $past_script = TRUE;
+    }
+  }
+  return $args;
+}
+
+/**
+ * Full fixture title from key suffix (e.g. HERO-001).
+ */
+function mel_staging_title(string $key): string {
+  return MEL_STAGING_PREFIX . $key;
+}
+
+/**
+ * Loads taxonomy term ID by name from categories vocabulary.
+ */
+function mel_staging_category_tid(string $name): ?int {
+  static $cache = NULL;
+  if ($cache === NULL) {
+    $cache = [];
+    $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['vid' => 'categories']);
+    foreach ($terms as $term) {
+      if ($term instanceof Term) {
+        $cache[(string) $term->label()] = (int) $term->id();
+      }
+    }
+  }
+  return $cache[$name] ?? NULL;
+}
+
+/**
+ * Ensures image file exists under mel-staging-validation and returns file ID.
+ */
+function mel_staging_ensure_image(string $key, string $url, string $alt, FileSystemInterface $fileSystem): ?int {
+  $fileSystem->prepareDirectory(
+    MEL_STAGING_IMAGE_DIR,
+    FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS,
+  );
+  $uri = MEL_STAGING_IMAGE_DIR . '/' . $key . '.jpg';
 
   $existing = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $uri]);
   if ($existing !== []) {
@@ -105,14 +206,7 @@ function mel_hwv_ensure_image(string $key, string $url, string $alt, FileSystemI
     return NULL;
   }
 
-  $path = $fileSystem->realpath($uri);
-  if ($path === FALSE) {
-    $path = $fileSystem->saveData($data, $uri, FileSystemInterface::EXISTS_REPLACE);
-  }
-  else {
-    file_put_contents($path, $data);
-  }
-
+  $path = $fileSystem->saveData($data, $uri, FileSystemInterface::EXISTS_REPLACE);
   if (!is_string($path) || !file_exists($path)) {
     echo "  ⚠ Could not save image: {$key}\n";
     return NULL;
@@ -129,7 +223,7 @@ function mel_hwv_ensure_image(string $key, string $url, string $alt, FileSystemI
 /**
  * Ensures focal_point crop data exists for merchandising validation.
  */
-function mel_hwv_ensure_focal_point(int $fid, string $focal = '50,50'): void {
+function mel_staging_ensure_focal_point(int $fid, string $focal = '50,50'): void {
   if ($fid < 1) {
     return;
   }
@@ -146,8 +240,7 @@ function mel_hwv_ensure_focal_point(int $fid, string $focal = '50,50'): void {
 
   /** @var \Drupal\focal_point\FocalPointManagerInterface $focalManager */
   $focalManager = \Drupal::service('focal_point.manager');
-  $imageFactory = \Drupal::service('image.factory');
-  $image = $imageFactory->get($uri);
+  $image = \Drupal::service('image.factory')->get($uri);
   if (!$image->isValid()) {
     return;
   }
@@ -184,9 +277,38 @@ function mel_hwv_ensure_focal_point(int $fid, string $focal = '50,50'): void {
 }
 
 /**
- * Upserts attendance metrics (content validation — not business logic).
+ * Removes focal crops so BoostedEventQualityGate treats the hero as ineligible.
  */
-function mel_hwv_set_metrics(int $nid, int $going): void {
+function mel_staging_remove_focal_point(int $fid): void {
+  if ($fid < 1) {
+    return;
+  }
+
+  $file = File::load($fid);
+  if (!$file instanceof File) {
+    return;
+  }
+
+  $uri = $file->getFileUri();
+  if ($uri === '') {
+    return;
+  }
+
+  foreach (['focal_point', 'event_hero', (string) \Drupal::config('focal_point.settings')->get('crop_type')] as $type) {
+    if ($type === '') {
+      continue;
+    }
+    $crop = Crop::findCrop($uri, $type);
+    if ($crop instanceof CropInterface) {
+      $crop->delete();
+    }
+  }
+}
+
+/**
+ * Upserts attendance metrics for social-proof validation.
+ */
+function mel_staging_set_metrics(int $nid, int $going): void {
   $db = \Drupal::database();
   $cacheInvalidator = \Drupal::service('cache_tags.invalidator');
   $rsvp = (int) round($going * 0.55);
@@ -211,36 +333,182 @@ function mel_hwv_set_metrics(int $nid, int $going): void {
   }
   else {
     $db->insert('myeventlane_projection_event_metrics')
-      ->fields($fields + ['event_node_id' => $nid, 'revenue_total' => 0, 'refund_count' => 0, 'checkin_count' => 0])
+      ->fields($fields + [
+        'event_node_id' => $nid,
+        'revenue_total' => 0,
+        'refund_count' => 0,
+        'checkin_count' => 0,
+      ])
       ->execute();
   }
   $cacheInvalidator->invalidateTags([sprintf('event_metrics:%d', $nid)]);
 }
 
 /**
- * Applies common event fields.
+ * Loads or creates a user by deterministic account name.
+ */
+function mel_staging_load_or_create_user(string $name, string $mail): User {
+  $storage = \Drupal::entityTypeManager()->getStorage('user');
+  $existing = $storage->loadByProperties(['name' => $name]);
+  if ($existing !== []) {
+    $user = reset($existing);
+    if ($user instanceof User) {
+      return $user;
+    }
+  }
+
+  $user = User::create([
+    'name' => $name,
+    'mail' => $mail,
+    'status' => 1,
+    'roles' => ['authenticated'],
+  ]);
+  $user->enforceIsNew();
+  $user->save();
+  return $user;
+}
+
+/**
+ * Loads or creates the dedicated staging organiser vendor + store.
+ *
+ * @return array{vendor: \Drupal\myeventlane_vendor\Entity\Vendor, store: \Drupal\commerce_store\Entity\StoreInterface, user: \Drupal\user\Entity\User}
+ */
+function mel_staging_ensure_organiser(): array {
+  $user = mel_staging_load_or_create_user(MEL_STAGING_USER, MEL_STAGING_USER_MAIL);
+  $vendorStorage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
+  $storeStorage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+
+  $vendors = $vendorStorage->loadByProperties(['name' => MEL_STAGING_ORGANISER]);
+  if ($vendors !== []) {
+    $vendor = reset($vendors);
+  }
+  else {
+    $byOwner = $vendorStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', (int) $user->id())
+      ->range(0, 1)
+      ->execute();
+    if ($byOwner !== []) {
+      $vendor = $vendorStorage->load((int) reset($byOwner));
+      if ($vendor instanceof Vendor) {
+        $vendor->set('name', MEL_STAGING_ORGANISER);
+        $vendor->save();
+      }
+    }
+    else {
+      $vendor = Vendor::create([
+        'name' => MEL_STAGING_ORGANISER,
+        'uid' => (int) $user->id(),
+      ]);
+      $vendor->save();
+    }
+  }
+
+  if (!$vendor instanceof Vendor) {
+    throw new RuntimeException('Could not create MEL-STAGING organiser vendor.');
+  }
+
+  $store = NULL;
+  if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+    $store = $vendor->get('field_vendor_store')->entity;
+  }
+
+  if (!$store instanceof Store) {
+    $store = Store::create([
+      'type' => 'online',
+      'uid' => (int) $user->id(),
+      'name' => MEL_STAGING_ORGANISER . ' Store',
+      'mail' => MEL_STAGING_USER_MAIL,
+      'default_currency' => 'AUD',
+      'timezone' => 'Australia/Sydney',
+      'address' => [
+        'country_code' => 'AU',
+        'locality' => 'Sydney',
+        'address_line1' => '1 Staging Lane',
+        'postal_code' => '2000',
+      ],
+      'billing_countries' => ['AU'],
+      'is_default' => FALSE,
+      'status' => TRUE,
+    ]);
+    if ($store->hasField('field_vendor_reference')) {
+      $store->set('field_vendor_reference', $vendor);
+    }
+    $store->save();
+    $vendor->set('field_vendor_store', $store);
+    $vendor->save();
+  }
+
+  return [
+    'vendor' => $vendor,
+    'store' => $store,
+    'user' => $user,
+  ];
+}
+
+/**
+ * Ensures follower user follows the staging organiser (idempotent).
+ */
+function mel_staging_ensure_follow(Vendor $vendor): void {
+  $follower = mel_staging_load_or_create_user(MEL_STAGING_FOLLOWER, MEL_STAGING_FOLLOWER_MAIL);
+  /** @var \Drupal\myeventlane_core\Service\VendorFollowService $followService */
+  $followService = \Drupal::service('myeventlane_core.vendor_follow');
+  if (!$followService->isFollowing($follower, $vendor)) {
+    $followService->follow($follower, $vendor);
+    echo "  ✓ Follow: {$follower->getAccountName()} → " . MEL_STAGING_ORGANISER . "\n";
+  }
+  else {
+    echo "  ✓ Follow already exists: {$follower->getAccountName()} → " . MEL_STAGING_ORGANISER . "\n";
+  }
+}
+
+/**
+ * Loads or creates an event by deterministic MEL-STAGING title.
+ */
+function mel_staging_load_or_create_event(string $key): NodeInterface {
+  $title = mel_staging_title($key);
+  $nids = \Drupal::entityTypeManager()->getStorage('node')->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'event')
+    ->condition('title', $title)
+    ->range(0, 1)
+    ->execute();
+  if ($nids !== []) {
+    $node = Node::load((int) reset($nids));
+    if ($node instanceof NodeInterface) {
+      return $node;
+    }
+  }
+  return Node::create(['type' => 'event', 'status' => 1]);
+}
+
+/**
+ * Applies common event fields for a staging fixture.
  *
  * @param array{name: string, street: string, city: string, postcode: string} $venue
  */
-function mel_hwv_apply_event_fields(
+function mel_staging_apply_event_fields(
   NodeInterface $event,
-  string $title,
+  string $key,
   string $summary,
   string $body,
   array $venue,
   DateTime $start,
   DateTime $end,
   string $type,
-  int $categoryTid,
+  ?int $categoryTid,
   ?int $imageFid,
   bool $promoted,
   ?string $socialProof,
-  int $vendorId = 36,
-  int $storeId = 38,
+  Vendor $vendor,
+  Store $store,
+  User $owner,
+  bool $ensureFocal = TRUE,
 ): void {
+  $title = mel_staging_title($key);
   $event->setTitle($title);
   if ($event->hasField('field_event_summary')) {
-    $event->set('field_event_summary', MEL_HWV_MARKER . ' ' . $summary);
+    $event->set('field_event_summary', MEL_STAGING_MARKER . ':' . $key . ' ' . $summary);
   }
   if ($event->hasField('body')) {
     $event->set('body', ['value' => $body, 'format' => 'basic_html']);
@@ -249,10 +517,10 @@ function mel_hwv_apply_event_fields(
     $event->set('field_event_type', $type);
   }
   if ($event->hasField('field_event_vendor')) {
-    $event->set('field_event_vendor', ['target_id' => $vendorId]);
+    $event->set('field_event_vendor', ['target_id' => (int) $vendor->id()]);
   }
   if ($event->hasField('field_event_store')) {
-    $event->set('field_event_store', ['target_id' => $storeId]);
+    $event->set('field_event_store', ['target_id' => (int) $store->id()]);
   }
   if ($event->hasField('field_event_start')) {
     $event->set('field_event_start', $start->format('Y-m-d\TH:i:s'));
@@ -275,7 +543,7 @@ function mel_hwv_apply_event_fields(
       'postal_code' => $venue['postcode'],
     ]]);
   }
-  if ($event->hasField('field_category')) {
+  if ($categoryTid && $event->hasField('field_category')) {
     $event->set('field_category', ['target_id' => $categoryTid]);
   }
   if ($event->hasField('field_promoted')) {
@@ -302,229 +570,394 @@ function mel_hwv_apply_event_fields(
   }
   if ($imageFid && $event->hasField('field_event_image')) {
     $event->set('field_event_image', ['target_id' => $imageFid, 'alt' => $title]);
-    mel_hwv_ensure_focal_point($imageFid);
+    if ($ensureFocal) {
+      mel_staging_ensure_focal_point($imageFid);
+    }
+    else {
+      mel_staging_remove_focal_point($imageFid);
+    }
   }
   if ($type === 'rsvp' && $event->hasField('field_product_target')) {
     $event->set('field_product_target', []);
   }
   $event->setPublished(TRUE);
-  $event->setOwnerId(1);
+  $event->setOwnerId((int) $owner->id());
 }
 
 /**
- * Loads or creates a validation event by seed key in summary.
+ * Deletes all MEL-STAGING-* fixture content.
  */
-function mel_hwv_load_or_create(string $seedKey): NodeInterface {
-  $nids = \Drupal::entityTypeManager()->getStorage('node')->getQuery()
+function mel_staging_cleanup(): void {
+  echo "MEL-STAGING cleanup — removing fixture content only\n";
+  echo str_repeat('=', 60) . "\n";
+
+  mel_staging_assert_allowed();
+
+  $etm = \Drupal::entityTypeManager();
+  $db = \Drupal::database();
+  $fileSystem = \Drupal::service('file_system');
+
+  $nids = $etm->getStorage('node')->getQuery()
     ->accessCheck(FALSE)
     ->condition('type', 'event')
-    ->condition('field_event_summary', '%' . MEL_HWV_MARKER . ' ' . $seedKey . '%', 'LIKE')
-    ->range(0, 1)
+    ->condition('title', MEL_STAGING_PREFIX . '%', 'LIKE')
     ->execute();
+
   if ($nids !== []) {
-    $node = Node::load((int) reset($nids));
-    if ($node instanceof NodeInterface) {
-      return $node;
+    foreach ($nids as $nid) {
+      $db->delete('myeventlane_projection_event_metrics')
+        ->condition('event_node_id', (int) $nid)
+        ->execute();
+    }
+    $nodes = Node::loadMultiple($nids);
+    $etm->getStorage('node')->delete($nodes);
+    echo '  ✓ Deleted ' . count($nids) . " staging event(s)\n";
+  }
+  else {
+    echo "  · No staging events found\n";
+  }
+
+  $vendors = $etm->getStorage('myeventlane_vendor')->loadByProperties(['name' => MEL_STAGING_ORGANISER]);
+  foreach ($vendors as $vendor) {
+    if (!$vendor instanceof Vendor) {
+      continue;
+    }
+    $followIds = $etm->getStorage('myeventlane_vendor_follow')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('vendor_id', (int) $vendor->id())
+      ->execute();
+    if ($followIds !== []) {
+      $etm->getStorage('myeventlane_vendor_follow')->delete(
+        $etm->getStorage('myeventlane_vendor_follow')->loadMultiple($followIds),
+      );
+      echo '  ✓ Deleted ' . count($followIds) . " follow row(s) for staging organiser\n";
+    }
+
+    $store = NULL;
+    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $store = $vendor->get('field_vendor_store')->entity;
+    }
+    $vendor->delete();
+    echo "  ✓ Deleted staging organiser vendor\n";
+    if ($store instanceof Store) {
+      $store->delete();
+      echo "  ✓ Deleted staging organiser store\n";
     }
   }
-  return Node::create(['type' => 'event', 'uid' => 1, 'status' => 1]);
-}
 
-echo "MEL Homepage Real-World Validation — seeding content\n";
-echo str_repeat('=', 60) . "\n";
-
-// Demote non-validation promoted events.
-$demoteNids = [1661, 1592];
-foreach ($demoteNids as $demoteNid) {
-  $node = Node::load($demoteNid);
-  if ($node instanceof NodeInterface && $node->hasField('field_promoted')) {
-    $node->set('field_promoted', 0);
-    $node->save();
-    echo "Demoted promoted flag on nid {$demoteNid}\n";
+  foreach ([MEL_STAGING_USER, MEL_STAGING_FOLLOWER] as $accountName) {
+    $users = $etm->getStorage('user')->loadByProperties(['name' => $accountName]);
+    if ($users !== []) {
+      $user = reset($users);
+      if ($user instanceof User) {
+        $user->delete();
+        echo "  ✓ Deleted staging user {$accountName}\n";
+      }
+    }
   }
+
+  if (is_dir($fileSystem->realpath(MEL_STAGING_IMAGE_DIR) ?: '')) {
+    $fileSystem->deleteRecursive(MEL_STAGING_IMAGE_DIR);
+    echo "  ✓ Deleted staging image directory\n";
+  }
+
+  \Drupal::service('cache_tags.invalidator')->invalidateTags([
+    'node_list:event',
+    'myeventlane_vendor_follow_list',
+  ]);
+  \Drupal::cache()->delete('homepage_organiser_spotlight');
+
+  echo str_repeat('=', 60) . "\n";
+  echo "Cleanup complete. Run cache rebuild.\n";
 }
 
-$featured = [
-  ['seed' => 'featured-01', 'nid' => 1660, 'title' => 'Community Pride Picnic', 'category' => 'LGBTQI+', 'image' => 'pride-picnic', 'going' => 38, 'type' => 'rsvp', 'days' => 5, 'hour' => 12],
-  ['seed' => 'featured-02', 'nid' => 1681, 'title' => 'Jazz in the Park', 'category' => 'Music', 'image' => 'jazz-park', 'going' => 24, 'type' => 'rsvp', 'days' => 12, 'hour' => 17],
-  ['seed' => 'featured-03', 'nid' => 1662, 'title' => 'Makers Market', 'category' => 'Markets', 'image' => 'makers-market', 'going' => 12, 'type' => 'paid', 'days' => 19, 'hour' => 10],
-  ['seed' => 'featured-04', 'nid' => 1591, 'title' => 'Winter Festival of Lights', 'category' => 'Community', 'image' => 'festival-lights', 'going' => 44, 'type' => 'paid', 'days' => 24, 'hour' => 18],
-  ['seed' => 'featured-05', 'nid' => 1664, 'title' => 'Food Truck Fridays', 'category' => 'Food & Drink', 'image' => 'food-trucks', 'going' => 18, 'type' => 'paid', 'days' => 33, 'hour' => 17],
-  ['seed' => 'featured-06', 'title' => 'Sunset Sessions', 'category' => 'Music', 'image' => 'sunset-sessions', 'going' => 27, 'type' => 'rsvp', 'days' => 38, 'hour' => 18],
-  ['seed' => 'featured-07', 'title' => 'Drag Bingo', 'category' => 'LGBTQI+', 'image' => 'drag-bingo', 'going' => 31, 'type' => 'rsvp', 'days' => 41, 'hour' => 20],
-  ['seed' => 'featured-08', 'title' => 'Outdoor Cinema', 'category' => 'Community', 'image' => 'outdoor-cinema', 'going' => 52, 'type' => 'rsvp', 'days' => 45, 'hour' => 19, 'minute' => 30],
-  ['seed' => 'featured-09', 'title' => 'Community Choir', 'category' => 'Community', 'image' => 'community-choir', 'going' => 16, 'type' => 'rsvp', 'days' => 47, 'hour' => 15],
-  ['seed' => 'featured-10', 'title' => 'Local Creators Market', 'category' => 'Markets', 'image' => 'local-creators-market', 'going' => 21, 'type' => 'paid', 'days' => 50, 'hour' => 11],
+// --- Main ---
+
+$args = mel_staging_script_args();
+if (in_array('--cleanup', $args, TRUE)) {
+  mel_staging_cleanup();
+  return;
+}
+
+mel_staging_assert_allowed();
+
+$tz = new DateTimeZone('Australia/Sydney');
+$now = new DateTime('now', $tz);
+
+/** @var \Drupal\Core\File\FileSystemInterface $fileSystem */
+$fileSystem = \Drupal::service('file_system');
+
+echo "MEL-STAGING homepage validation — seeding additive fixtures\n";
+echo str_repeat('=', 60) . "\n";
+echo 'Environment: ' . (getenv('IS_DDEV_PROJECT') === 'true' ? 'DDEV' : (getenv('APP_ENV') ?: 'staging/local')) . "\n\n";
+
+$organiser = mel_staging_ensure_organiser();
+$vendor = $organiser['vendor'];
+$store = $organiser['store'];
+$owner = $organiser['user'];
+
+echo "Organiser: " . MEL_STAGING_ORGANISER . " (vendor {$vendor->id()}, store {$store->id()})\n\n";
+
+$venues = [
+  ['name' => 'Hyde Park', 'street' => 'Elizabeth Street', 'city' => 'Sydney', 'postcode' => '2000'],
+  ['name' => 'Barangaroo Reserve', 'street' => 'Hickson Road', 'city' => 'Barangaroo', 'postcode' => '2000'],
+  ['name' => 'Carriageworks', 'street' => '245 Wilson Street', 'city' => 'Eveleigh', 'postcode' => '2015'],
+  ['name' => 'Bondi Pavilion', 'street' => 'Queen Elizabeth Drive', 'city' => 'Bondi Beach', 'postcode' => '2026'],
 ];
 
-$tonight = [
-  ['seed' => 'tonight-01', 'title' => 'Open Mic Night', 'category' => 'Music', 'image' => 'open-mic', 'going' => 8, 'hour' => 19],
-  ['seed' => 'tonight-02', 'title' => 'Community Choir', 'category' => 'Community', 'image' => 'community-choir', 'going' => 12, 'hour' => 19, 'minute' => 30],
-  ['seed' => 'tonight-03', 'title' => 'Trivia Night', 'category' => 'Community', 'image' => 'trivia-night', 'going' => 18, 'hour' => 20],
-  ['seed' => 'tonight-04', 'title' => 'Salsa Social', 'category' => 'Music', 'image' => 'salsa-social', 'going' => 24, 'hour' => 20, 'minute' => 30],
-  ['seed' => 'tonight-05', 'title' => 'Comedy Club', 'category' => 'Arts', 'image' => 'comedy-club', 'going' => 39, 'hour' => 21],
-  ['seed' => 'tonight-06', 'title' => 'Drag Bingo', 'category' => 'LGBTQI+', 'image' => 'drag-bingo', 'going' => 31, 'hour' => 21, 'minute' => 30],
-  ['seed' => 'tonight-07', 'title' => 'Poetry Slam', 'category' => 'Arts', 'image' => 'open-mic', 'going' => 14, 'hour' => 18, 'minute' => 30],
-  ['seed' => 'tonight-08', 'title' => 'Board Games Social', 'category' => 'Community', 'image' => 'trivia-night', 'going' => 11, 'hour' => 18],
-  ['seed' => 'tonight-09', 'title' => 'Sunset Yoga', 'category' => 'Workshop', 'image' => 'yoga-park', 'going' => 22, 'hour' => 17, 'minute' => 30],
-  ['seed' => 'tonight-10', 'title' => 'Laneway Live Sets', 'category' => 'Music', 'image' => 'jazz-park', 'going' => 16, 'hour' => 22],
+$images = [
+  'hero' => 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1600&q=80&auto=format&fit=crop',
+  'spotlight' => 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=80&auto=format&fit=crop',
+  'tonight' => 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1600&q=80&auto=format&fit=crop',
+  'discover' => 'https://images.unsplash.com/photo-1488459716781-31db76582da9?w=1600&q=80&auto=format&fit=crop',
+  'rsvp' => 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1600&q=80&auto=format&fit=crop',
+  'latest' => 'https://images.unsplash.com/photo-1460661419341-fcc204c948bc?w=1600&q=80&auto=format&fit=crop',
+  'gate-fail' => 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1600&q=80&auto=format&fit=crop',
 ];
 
-$freeRsvp = [
-  ['seed' => 'free-01', 'title' => 'Community Picnic', 'category' => 'Community', 'image' => 'pride-picnic', 'going' => 3, 'days' => 8],
-  ['seed' => 'free-02', 'title' => 'Yoga in the Park', 'category' => 'Workshop', 'image' => 'yoga-park', 'going' => 8, 'days' => 10],
-  ['seed' => 'free-03', 'title' => 'Sunday Makers Market', 'category' => 'Markets', 'image' => 'makers-market', 'going' => 16, 'days' => 14],
-  ['seed' => 'free-04', 'title' => 'Pride Community Walk', 'category' => 'LGBTQI+', 'image' => 'pride-walk', 'going' => 25, 'days' => 16],
-  ['seed' => 'free-05', 'title' => 'Volunteer Meetup', 'category' => 'Community', 'image' => 'volunteer-meetup', 'going' => 44, 'days' => 20],
-  ['seed' => 'free-06', 'title' => 'Family Fun Fair', 'category' => 'Family', 'image' => 'family-fair', 'going' => 6, 'days' => 22],
-  ['seed' => 'free-07', 'title' => 'Neighbourhood Potluck', 'category' => 'Community', 'image' => 'pride-picnic', 'going' => 9, 'days' => 26],
-  ['seed' => 'free-08', 'title' => 'Beginners Salsa', 'category' => 'Music', 'image' => 'salsa-social', 'going' => 13, 'days' => 28],
-  ['seed' => 'free-09', 'title' => 'Creative Arts Drop-in', 'category' => 'Arts', 'image' => 'arts-workshop', 'going' => 5, 'days' => 30],
-  ['seed' => 'free-10', 'title' => 'Community Garden Day', 'category' => 'Community', 'image' => 'volunteer-meetup', 'going' => 21, 'days' => 35],
-];
+$categoryCommunity = mel_staging_category_tid('Community') ?? mel_staging_category_tid('Music');
+$categoryMusic = mel_staging_category_tid('Music') ?? $categoryCommunity;
+$categoryWorkshop = mel_staging_category_tid('Workshop') ?? $categoryCommunity;
 
-$latest = [
-  ['seed' => 'latest-01', 'title' => 'Watercolour Workshop', 'category' => 'Arts', 'image' => 'arts-workshop', 'going' => 7, 'days' => 40, 'type' => 'rsvp'],
-  ['seed' => 'latest-02', 'title' => 'Night Markets', 'category' => 'Markets', 'image' => 'makers-market', 'going' => 19, 'days' => 42, 'type' => 'rsvp'],
-  ['seed' => 'latest-03', 'title' => 'Queer Film Night', 'category' => 'LGBTQI+', 'image' => 'pride-walk', 'going' => 15, 'days' => 44, 'type' => 'rsvp'],
-  ['seed' => 'latest-04', 'title' => 'Indie Band Showcase', 'category' => 'Music', 'image' => 'open-mic', 'going' => 28, 'days' => 46, 'type' => 'paid'],
-  ['seed' => 'latest-05', 'title' => 'Kids Circus Skills', 'category' => 'Family', 'image' => 'family-fair', 'going' => 11, 'days' => 48, 'type' => 'rsvp'],
-  ['seed' => 'latest-06', 'title' => 'Street Food Festival', 'category' => 'Food & Drink', 'image' => 'food-trucks', 'going' => 33, 'days' => 50, 'type' => 'paid'],
-  ['seed' => 'latest-07', 'title' => 'Community Choir Open Rehearsal', 'category' => 'Community', 'image' => 'community-choir', 'going' => 4, 'days' => 52, 'type' => 'rsvp'],
-  ['seed' => 'latest-08', 'title' => 'Ceramics for Beginners', 'category' => 'Workshop', 'image' => 'arts-workshop', 'going' => 9, 'days' => 54, 'type' => 'rsvp'],
-  ['seed' => 'latest-09', 'title' => 'Harbour Sunset Picnic', 'category' => 'Community', 'image' => 'pride-picnic', 'going' => 26, 'days' => 56, 'type' => 'rsvp'],
-  ['seed' => 'latest-10', 'title' => 'Live Painting Jam', 'category' => 'Arts', 'image' => 'arts-workshop', 'going' => 17, 'days' => 58, 'type' => 'rsvp'],
+/**
+ * @var list<array<string, mixed>> $fixtures
+ */
+$fixtures = [
+  [
+    'key' => 'HERO-001',
+    'section' => 'hero',
+    'summary' => 'Lead promoted hero fixture for rotation validation.',
+    'image' => 'hero',
+    'going' => 44,
+    'type' => 'paid',
+    'promoted' => TRUE,
+    'focal' => TRUE,
+    'category' => $categoryCommunity,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+4 days')->setTime(18, 0);
+      $end = (clone $start)->modify('+3 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'SPOTLIGHT-001',
+    'section' => 'spotlight',
+    'summary' => 'Spotlight carousel fixture (marketplace-ready).',
+    'image' => 'spotlight',
+    'going' => 31,
+    'type' => 'rsvp',
+    'promoted' => TRUE,
+    'focal' => TRUE,
+    'category' => $categoryMusic,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+8 days')->setTime(19, 0);
+      $end = (clone $start)->modify('+2 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'SPOTLIGHT-002',
+    'section' => 'spotlight',
+    'summary' => 'Second spotlight fixture for featured experiences carousel.',
+    'image' => 'spotlight',
+    'going' => 22,
+    'type' => 'rsvp',
+    'promoted' => TRUE,
+    'focal' => TRUE,
+    'category' => $categoryCommunity,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+12 days')->setTime(17, 30);
+      $end = (clone $start)->modify('+3 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'GATE-FAIL-001',
+    'section' => 'quality-gate',
+    'summary' => 'Promoted but missing focal point — ineligible for hero/spotlight.',
+    'image' => 'gate-fail',
+    'going' => 9,
+    'type' => 'rsvp',
+    'promoted' => TRUE,
+    'focal' => FALSE,
+    'category' => $categoryCommunity,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+6 days')->setTime(20, 0);
+      $end = (clone $start)->modify('+2 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'TONIGHT-001',
+    'section' => 'tonight',
+    'summary' => 'Tonight rail fixture (evening start).',
+    'image' => 'tonight',
+    'going' => 18,
+    'type' => 'rsvp',
+    'promoted' => FALSE,
+    'focal' => TRUE,
+    'category' => $categoryMusic,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->setTime(19, 30);
+      if ($start <= $now) {
+        $start->modify('+1 hour');
+      }
+      $end = (clone $start)->modify('+2 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'TONIGHT-002',
+    'section' => 'tonight',
+    'summary' => 'Second tonight rail fixture.',
+    'image' => 'tonight',
+    'going' => 12,
+    'type' => 'rsvp',
+    'promoted' => FALSE,
+    'focal' => TRUE,
+    'category' => $categoryCommunity,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->setTime(20, 30);
+      if ($start <= $now) {
+        $start->modify('+90 minutes');
+      }
+      $end = (clone $start)->modify('+2 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'DISCOVER-001',
+    'section' => 'discover',
+    'summary' => 'Discover rail fixture.',
+    'image' => 'discover',
+    'going' => 16,
+    'type' => 'paid',
+    'promoted' => FALSE,
+    'focal' => TRUE,
+    'category' => $categoryCommunity,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+15 days')->setTime(11, 0);
+      $end = (clone $start)->modify('+4 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'DISCOVER-002',
+    'section' => 'discover',
+    'summary' => 'Second discover rail fixture.',
+    'image' => 'discover',
+    'going' => 8,
+    'type' => 'rsvp',
+    'promoted' => FALSE,
+    'focal' => TRUE,
+    'category' => $categoryMusic,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+18 days')->setTime(14, 0);
+      $end = (clone $start)->modify('+3 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'RSVP-001',
+    'section' => 'free-rsvp',
+    'summary' => 'Free & RSVP (under_20) rail fixture.',
+    'image' => 'rsvp',
+    'going' => 5,
+    'type' => 'rsvp',
+    'promoted' => FALSE,
+    'focal' => TRUE,
+    'category' => $categoryWorkshop,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+10 days')->setTime(10, 0);
+      $end = (clone $start)->modify('+2 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'LATEST-001',
+    'section' => 'latest',
+    'summary' => 'Latest events rail fixture.',
+    'image' => 'latest',
+    'going' => 14,
+    'type' => 'rsvp',
+    'promoted' => FALSE,
+    'focal' => TRUE,
+    'category' => $categoryCommunity,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+22 days')->setTime(15, 0);
+      $end = (clone $start)->modify('+2 hours');
+      return [$start, $end];
+    },
+  ],
+  [
+    'key' => 'RECOMMENDED-001',
+    'section' => 'recommended',
+    'summary' => 'Recommended events rail fixture.',
+    'image' => 'discover',
+    'going' => 20,
+    'type' => 'rsvp',
+    'promoted' => FALSE,
+    'focal' => TRUE,
+    'category' => $categoryMusic,
+    'schedule' => static function (DateTime $now): array {
+      $start = (clone $now)->modify('+25 days')->setTime(16, 0);
+      $end = (clone $start)->modify('+3 hours');
+      return [$start, $end];
+    },
+  ],
 ];
 
 $created = [];
 
-echo "\nPhase 2 — Featured events (10)\n";
-foreach ($featured as $i => $item) {
+foreach ($fixtures as $i => $item) {
   $venue = $venues[$i % count($venues)];
-  $start = clone $now;
-  $start->modify('+' . $item['days'] . ' days');
-  $start->setTime($item['hour'], $item['minute'] ?? 0);
-  $end = clone $start;
-  $end->modify('+3 hours');
+  [$start, $end] = $item['schedule']($now);
+  $imageKey = 'mel-staging-' . $item['image'];
+  $fid = mel_staging_ensure_image(
+    $imageKey,
+    $images[$item['image']],
+    mel_staging_title($item['key']),
+    $fileSystem,
+  );
 
-  $fid = mel_hwv_ensure_image($item['image'], $imageSources[$item['image']], $item['title'], $fileSystem);
-  $existingNid = $item['nid'] ?? NULL;
-  $event = ($existingNid !== NULL ? Node::load($existingNid) : NULL) ?? mel_hwv_load_or_create($item['seed']);
-  mel_hwv_apply_event_fields(
+  $event = mel_staging_load_or_create_event($item['key']);
+  mel_staging_apply_event_fields(
     $event,
-    $item['title'],
-    $item['seed'] . ' ' . $item['title'],
-    '<p>Join locals for <strong>' . $item['title'] . '</strong> — a hand-picked community moment on MyEventLane.</p>',
+    $item['key'],
+    $item['summary'],
+    '<p>Staging validation fixture: <strong>' . mel_staging_title($item['key']) . '</strong></p>',
     $venue,
     $start,
     $end,
     $item['type'],
-    $categories[$item['category']],
+    $item['category'],
     $fid,
-    TRUE,
+    $item['promoted'],
     'show',
+    $vendor,
+    $store,
+    $owner,
+    $item['focal'],
   );
   $event->save();
-  mel_hwv_set_metrics((int) $event->id(), $item['going']);
-  $created[] = ['section' => 'featured', 'nid' => (int) $event->id(), 'title' => $item['title'], 'going' => $item['going']];
-  echo "  ✓ Featured nid {$event->id()}: {$item['title']} ({$item['going']} going)\n";
+  mel_staging_set_metrics((int) $event->id(), $item['going']);
+  $created[] = [
+    'section' => $item['section'],
+    'nid' => (int) $event->id(),
+    'title' => mel_staging_title($item['key']),
+  ];
+  echo "  ✓ {$item['section']} nid {$event->id()}: " . mel_staging_title($item['key']) . "\n";
 }
 
-echo "\nPhase 2 — Tonight events (10)\n";
-foreach ($tonight as $i => $item) {
-  $venue = $venues[$i % count($venues)];
-  $start = clone $now;
-  $start->setTime($item['hour'], $item['minute'] ?? 0);
-  if ($start <= $now) {
-    $start->modify('+1 hour');
-  }
-  $end = clone $start;
-  $end->modify('+2 hours');
+echo "\nFollow relationship validation\n";
+mel_staging_ensure_follow($vendor);
 
-  $fid = mel_hwv_ensure_image($item['image'], $imageSources[$item['image']], $item['title'], $fileSystem);
-  $event = mel_hwv_load_or_create($item['seed']);
-  mel_hwv_apply_event_fields(
-    $event,
-    $item['title'],
-    $item['seed'] . ' ' . $item['title'],
-    '<p>Tonight in Sydney: <strong>' . $item['title'] . '</strong>. Drop in, meet people, stay for one set.</p>',
-    $venue,
-    $start,
-    $end,
-    'rsvp',
-    $categories[$item['category']],
-    $fid,
-    FALSE,
-    'show',
-  );
-  $event->save();
-  mel_hwv_set_metrics((int) $event->id(), $item['going']);
-  $created[] = ['section' => 'tonight', 'nid' => (int) $event->id(), 'title' => $item['title'], 'going' => $item['going']];
-  echo "  ✓ Tonight nid {$event->id()}: {$item['title']} @ {$start->format('H:i')} ({$item['going']} going)\n";
-}
-
-echo "\nPhase 2 — Free RSVP events (10)\n";
-foreach ($freeRsvp as $i => $item) {
-  $venue = $venues[$i % count($venues)];
-  $start = clone $now;
-  $start->modify('+' . $item['days'] . ' days');
-  $start->setTime(11, 0);
-  $end = clone $start;
-  $end->modify('+4 hours');
-
-  $fid = mel_hwv_ensure_image($item['image'], $imageSources[$item['image']], $item['title'], $fileSystem);
-  $event = mel_hwv_load_or_create($item['seed']);
-  mel_hwv_apply_event_fields(
-    $event,
-    $item['title'],
-    $item['seed'] . ' ' . $item['title'],
-    '<p>Free to join — <strong>' . $item['title'] . '</strong>. RSVP so organisers know you are coming.</p>',
-    $venue,
-    $start,
-    $end,
-    'rsvp',
-    $categories[$item['category']],
-    $fid,
-    FALSE,
-    'show',
-  );
-  $event->save();
-  mel_hwv_set_metrics((int) $event->id(), $item['going']);
-  $created[] = ['section' => 'free', 'nid' => (int) $event->id(), 'title' => $item['title'], 'going' => $item['going']];
-  echo "  ✓ Free RSVP nid {$event->id()}: {$item['title']} ({$item['going']} going)\n";
-}
-
-echo "\nPhase 2 — Latest events (10)\n";
-foreach ($latest as $i => $item) {
-  $venue = $venues[$i % count($venues)];
-  $start = clone $now;
-  $start->modify('+' . $item['days'] . ' days');
-  $start->setTime(14, 0);
-  $end = clone $start;
-  $end->modify('+3 hours');
-
-  $fid = mel_hwv_ensure_image($item['image'], $imageSources[$item['image']], $item['title'], $fileSystem);
-  $event = mel_hwv_load_or_create($item['seed']);
-  mel_hwv_apply_event_fields(
-    $event,
-    $item['title'],
-    $item['seed'] . ' ' . $item['title'],
-    '<p>Fresh on MyEventLane: <strong>' . $item['title'] . '</strong>.</p>',
-    $venue,
-    $start,
-    $end,
-    $item['type'],
-    $categories[$item['category']],
-    $fid,
-    FALSE,
-    $item['type'] === 'rsvp' ? 'show' : 'auto',
-  );
-  $event->save();
-  mel_hwv_set_metrics((int) $event->id(), $item['going']);
-  $created[] = ['section' => 'latest', 'nid' => (int) $event->id(), 'title' => $item['title'], 'going' => $item['going']];
-  echo "  ✓ Latest nid {$event->id()}: {$item['title']} ({$item['going']} going)\n";
-}
+\Drupal::service('cache_tags.invalidator')->invalidateTags(['node_list:event']);
+\Drupal::cache()->delete('homepage_organiser_spotlight');
 
 echo "\n" . str_repeat('=', 60) . "\n";
-echo "Seeded " . count($created) . " validation events.\n";
-echo "Run: ddev drush cr\n";
+echo 'Seeded/updated ' . count($created) . " MEL-STAGING fixtures.\n";
+echo "Community Spotlight uses real organisers unless MEL-STAGING-ORGANISER-001 has the most upcoming events.\n";
+echo "\nValidate:\n";
+echo "  php -d memory_limit=1024M vendor/bin/drush.php cr --uri=https://staging.myeventlane.com.au\n";
+echo "  php -d memory_limit=1024M vendor/bin/drush.php scr web/scripts/audit-homepage-gate.drush.php --uri=https://staging.myeventlane.com.au\n";
