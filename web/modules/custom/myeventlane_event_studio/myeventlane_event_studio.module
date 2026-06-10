@@ -51,6 +51,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'section_content' => NULL,
         'topbar' => [],
         'readiness' => [],
+        'homepage_readiness' => NULL,
         'boost' => NULL,
         'boost_extension_recommendation' => NULL,
         'publish_handoff' => NULL,
