@@ -73,9 +73,14 @@
         <div class="mel-shell-layout mel-shell-layout--with-utility">
           <div class="mel-shell-layout__main">
             {% if is_dashboard_route %}
-              <section class="mel-dashboard-page mel-dashboard-page--governed">
+              <section class="mel-dashboard-page mel-dashboard-page--governed mel-vendor-dashboard">
                 {% if mel_surface|default('') == 'vendor' %}
-                  {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
+                  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--governance">
+                    <summary>{{ 'Console guidance and readiness'|t }}</summary>
+                    <div class="mel-vendor-dashboard__details-grid">
+                      {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
+                    </div>
+                  </details>
                 {% endif %}
                 {{ page.content }}
               </section>
@@ -91,9 +96,14 @@
         </div>
       {% else %}
         {% if is_dashboard_route %}
-          <section class="mel-dashboard-page mel-dashboard-page--governed">
+          <section class="mel-dashboard-page mel-dashboard-page--governed mel-vendor-dashboard">
             {% if mel_surface|default('') == 'vendor' %}
-              {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
+              <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--governance">
+                <summary>{{ 'Console guidance and readiness'|t }}</summary>
+                <div class="mel-vendor-dashboard__details-grid">
+                  {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
+                </div>
+              </details>
             {% endif %}
             {{ page.content }}
           </section>
@@ -108,11 +118,13 @@
     <div data-mel-support-root class="mel-vendor-shell__support-mount" aria-live="polite"></div>
 
     {% if is_dashboard_route %}
-      {% include '@myeventlane_vendor_theme/includes/dashboard-mel-support-strip.html.twig' %}
+      <div class="mel-vendor-shell__footer mel-vendor-shell__footer--dashboard">
+        {% include '@myeventlane_vendor_theme/includes/footer-dashboard-light.html.twig' %}
+      </div>
+    {% else %}
+      <div class="mel-vendor-shell__footer">
+        {% include '@myeventlane_vendor_theme/includes/footer-internal.html.twig' %}
+      </div>
     {% endif %}
-
-    <div class="mel-vendor-shell__footer">
-      {% include '@myeventlane_vendor_theme/includes/footer-internal.html.twig' %}
-    </div>
   </div>
 </div>

@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Lightweight dashboard footer — store status and account links only.
+ */
+#}
+{% set footer_context = footer_context|default({
+  store_name: null,
+  payout_balance: '$0.00',
+  environment: 'Production',
+  vendor_console_urls: {}
+}) %}
+<footer class="mel-footer mel-footer--dashboard" role="contentinfo">
+  <div class="mel-footer-dashboard">
+    <div class="mel-footer-dashboard__status">
+      {% if footer_context.store_name %}
+        <strong class="mel-footer-dashboard__store">{{ footer_context.store_name }}</strong>
+      {% endif %}
+      {% if footer_context.environment %}
+        <span class="mel-badge mel-badge--env">{{ footer_context.environment }}</span>
+      {% endif %}
+      <span class="mel-footer-dashboard__balance">{{ 'Payout balance'|t }}: {{ footer_context.payout_balance|default('$0.00') }}</span>
+    </div>
+    <nav class="mel-footer-dashboard__links" aria-label="{{ 'Account links'|t }}">
+      <a class="mel-footer-dashboard__link" href="/user">{{ 'Profile'|t }}</a>
+      {% if footer_context.vendor_console_urls.settings|default('') %}
+        <a class="mel-footer-dashboard__link" href="{{ footer_context.vendor_console_urls.settings }}">{{ 'Settings'|t }}</a>
+      {% endif %}
+      <a class="mel-footer-dashboard__link" href="/user/logout">{{ 'Log out'|t }}</a>
+    </nav>
+  </div>
+</footer>
