@@ -198,6 +198,55 @@
     }
   }
 
+  function ensureReadinessStrip(shell) {
+    let strip = shell.querySelector('[data-mel-readiness-strip]');
+    if (strip) {
+      return strip;
+    }
+    strip = document.createElement('section');
+    strip.className = 'mel-event-studio-readiness-strip needs-attention';
+    strip.setAttribute('aria-label', Drupal.t('Publish readiness'));
+    strip.setAttribute('data-mel-readiness-strip', '');
+    strip.innerHTML = [
+      '<div class="mel-event-studio-readiness-strip__summary">',
+      '<strong data-mel-readiness-title></strong>',
+      '<span data-mel-readiness-state></span>',
+      '</div>',
+      '<div class="mel-event-studio-readiness-strip__counts">',
+      '<span data-mel-readiness-errors-count></span>',
+      '<span data-mel-readiness-warnings-count></span>',
+      '<span data-mel-readiness-recommendations-count></span>',
+      '<span data-mel-readiness-completed-count></span>',
+      '</div>',
+    ].join('');
+    const health = shell.querySelector('[data-mel-event-health]');
+    if (health) {
+      health.insertAdjacentElement('afterend', strip);
+    }
+    else {
+      shell.prepend(strip);
+    }
+    return strip;
+  }
+
+  function ensureHomepageReadinessWrapper(shell) {
+    let wrapper = shell.querySelector('.mel-event-studio-homepage-readiness');
+    if (wrapper) {
+      return wrapper;
+    }
+    wrapper = document.createElement('div');
+    wrapper.className = 'mel-event-studio-homepage-readiness';
+    const strip = shell.querySelector('[data-mel-readiness-strip]');
+    if (strip) {
+      strip.insertAdjacentElement('afterend', wrapper);
+    }
+    else {
+      const health = shell.querySelector('[data-mel-event-health]');
+      (health || shell).insertAdjacentElement('afterend', wrapper);
+    }
+    return wrapper;
+  }
+
   function updateReadiness(shell, readiness) {
     if (!readiness) {
       return;
@@ -207,10 +256,7 @@
     const showStrip = readiness.show_publish_strip !== undefined
       ? !!readiness.show_publish_strip
       : (!published || !readiness.ready || hasBlockers);
-    const strip = shell.querySelector('[data-mel-readiness-strip]');
-    if (!strip) {
-      return;
-    }
+    const strip = ensureReadinessStrip(shell);
     strip.hidden = !showStrip;
     if (!showStrip) {
       return;
@@ -229,12 +275,16 @@
     setText(strip, '[data-mel-readiness-completed-count]', Drupal.t('@count complete', { '@count': (readiness.completed || []).length }));
   }
 
-  function syncHomepageReadinessVisibility(shell, showHomepageReadiness) {
-    const wrapper = shell.querySelector('.mel-event-studio-homepage-readiness');
-    if (!wrapper) {
+  function updateHomepageReadiness(shell, readiness) {
+    if (!readiness || readiness.show_homepage_readiness === undefined) {
       return;
     }
-    wrapper.hidden = showHomepageReadiness === false;
+    const wrapper = ensureHomepageReadinessWrapper(shell);
+    if (readiness.homepage_readiness_html !== undefined) {
+      wrapper.innerHTML = readiness.homepage_readiness_html;
+    }
+    wrapper.hidden = readiness.show_homepage_readiness === false
+      || wrapper.innerHTML.trim() === '';
   }
 
   function updateEventHealth(shell, health) {
@@ -330,8 +380,8 @@
     if (result.event_health) {
       updateEventHealth(shell, result.event_health);
     }
-    if (result.readiness && result.readiness.show_homepage_readiness !== undefined) {
-      syncHomepageReadinessVisibility(shell, result.readiness.show_homepage_readiness);
+    if (result.readiness) {
+      updateHomepageReadiness(shell, result.readiness);
     }
   }
 

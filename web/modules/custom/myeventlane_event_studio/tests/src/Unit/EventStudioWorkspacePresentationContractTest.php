@@ -9,6 +9,7 @@ use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
+use ReflectionClass;
 
 /**
  * Proves workspace surfaces share one presentation source per state.
@@ -27,7 +28,9 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $translator->method('translateString')->willReturnCallback(
       static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
     );
-    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $translator);
+    $homepageReadinessRender = (new ReflectionClass(\Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder::class))
+      ->newInstanceWithoutConstructor();
+    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $homepageReadinessRender, $translator);
   }
 
   public function testStripAndAjaxPayloadShareReadinessSummaryFields(): void {
@@ -118,13 +121,15 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('readinessFacade->evaluate', $publish);
     $this->assertStringContainsString('buildAjaxReadinessPayloadFromBundle', $publish);
     $this->assertStringContainsString('buildEventHealth($readiness_bundle', $publish);
+    $this->assertStringContainsString('homepage_readiness_html', $publish);
     $this->assertStringNotContainsString('buildAjaxReadinessPayload(', $publish);
   }
 
   public function testShellJsSyncsHomepageReadinessVisibility(): void {
     $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($js);
-    $this->assertStringContainsString('syncHomepageReadinessVisibility', $js);
+    $this->assertStringContainsString('updateHomepageReadiness', $js);
+    $this->assertStringContainsString('homepage_readiness_html', $js);
     $this->assertStringContainsString('show_homepage_readiness', $js);
   }
 

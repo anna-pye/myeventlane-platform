@@ -20,7 +20,6 @@ use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
 use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
-use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -54,7 +53,6 @@ final class EventStudioController extends ControllerBase {
     private readonly DomainDetector $domainDetector,
     private readonly EventStudioPreprocess $eventStudioPreprocess,
     private readonly BoostStatusService $boostStatusService,
-    private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
     private readonly EventStudioWorkspacePresentation $workspacePresentation,
     private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
@@ -77,7 +75,6 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_core.domain_detector'),
       $container->get('myeventlane_event_studio.preprocess'),
       $container->get('myeventlane_vendor.service.boost_status'),
-      $container->get('myeventlane_event.featured_readiness_render'),
       $container->get('myeventlane_event_studio.workspace_presentation'),
       $container->get('myeventlane_boost.extension_recommendation'),
     );
@@ -254,7 +251,7 @@ final class EventStudioController extends ControllerBase {
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
       '#event_health' => $event_health,
       '#readiness' => $readiness_summary,
-      '#homepage_readiness' => $this->buildHomepageReadinessCard($node, $readiness_bundle, $section),
+      '#homepage_readiness' => $this->workspacePresentation->buildHomepageReadinessCard($node, $readiness_bundle, $section),
       '#boost' => $boost,
       '#boost_extension_recommendation' => $boost_extension_recommendation,
       '#publish_handoff' => $publish_handoff,
@@ -367,26 +364,6 @@ final class EventStudioController extends ControllerBase {
       'changed' => $node->getChangedTime(),
       'revision_id' => (int) $node->getRevisionId(),
     ];
-  }
-
-  private function buildHomepageReadinessCard(NodeInterface $node, array $readiness_bundle, string $section): ?array {
-    $promotion_ready = (bool) ($readiness_bundle['promotion_ready'] ?? FALSE);
-    $published = $node->isPublished();
-    if (!$this->workspacePresentation->shouldShowHomepageReadinessCard($promotion_ready, $published)) {
-      return NULL;
-    }
-    if ($section !== 'overview' && $promotion_ready) {
-      return NULL;
-    }
-
-    return $this->homepageReadinessRender->buildChecklistCardFromPresentation(
-      $node,
-      is_array($readiness_bundle['promotion'] ?? NULL) ? $readiness_bundle['promotion'] : [],
-      TRUE,
-      !$promotion_ready,
-      FALSE,
-      $published,
-    );
   }
 
   /**
