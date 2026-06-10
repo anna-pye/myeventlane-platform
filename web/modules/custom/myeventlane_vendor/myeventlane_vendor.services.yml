@@ -320,6 +320,7 @@ services:
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_vendor.vendor_event_removal'
       - '@myeventlane_core.domain_detector'
 
   # Vendor console controllers as services for DI.

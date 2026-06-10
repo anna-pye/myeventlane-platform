@@ -2186,6 +2186,117 @@
   min-height: 44px;
 }
 
+.mel-event-studio-topbar__status-action {
+  font-weight: 700;
+  opacity: 0.88;
+  pointer-events: none;
+}
+
+.mel-event-studio--workspace > .mel-event-studio-readiness-strip,
+.mel-event-studio--workspace > .mel-event-studio-homepage-readiness,
+.mel-event-studio--workspace > .mel-boost-active-banner,
+.mel-event-studio--workspace > .mel-event-studio-event-health {
+  margin-bottom: 16px;
+}
+
+.mel-event-studio-event-health {
+  padding: 12px 16px;
+  border: 1px solid #e8e8ef;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.mel-event-studio-event-health__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mel-event-studio-event-health__title {
+  margin: 0;
+  font-family: 'Nunito', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.3;
+  color: #0f172a;
+}
+
+.mel-event-studio-event-health__updated {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.mel-event-studio-event-health__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.mel-event-studio-event-health__item {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.mel-event-studio-event-health__item--ready {
+  background: #f0fdf4;
+}
+
+.mel-event-studio-event-health__item--attention {
+  background: #fff7f7;
+}
+
+.mel-event-studio-event-health__item--active {
+  background: #faf5ff;
+}
+
+.mel-event-studio-event-health__label {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.mel-event-studio-event-health__value {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+}
+
+.mel-event-studio-event-health__detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.mel-event-studio-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 0;
+}
+
+.mel-event-studio-overview .item-list__title {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 750;
+}
+
 .mel-event-studio-topbar__manage-event {
   white-space: nowrap;
 }
@@ -2334,6 +2445,12 @@
 
 .mel-event-studio-sidebar__link.is-active {
   box-shadow: inset 4px 0 0 #f26d5b, 0 8px 18px rgba(242, 109, 91, 0.1);
+  font-weight: 750;
+}
+
+.mel-event-studio-sidebar__link:focus-visible {
+  outline: 2px solid #f26d5b;
+  outline-offset: 2px;
 }
 
 .mel-event-studio-sidebar__guidance,
@@ -2854,6 +2971,10 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .mel-event-studio-event-health__list {
+    grid-template-columns: 1fr;
   }
 
   .mel-event-studio-workspace {

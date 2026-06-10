@@ -28,13 +28,37 @@ final class FeaturedEventReadinessRenderBuilder {
    * @return array<string, mixed>
    */
   public function buildChecklistCard(NodeInterface $event, bool $compact = TRUE, bool $show_spotlight_notice = FALSE): array {
-    $presentation = $this->readinessService->getPresentation($event);
+    return $this->buildChecklistCardFromPresentation(
+      $event,
+      $this->readinessService->getPresentation($event),
+      $compact,
+      $show_spotlight_notice,
+    );
+  }
 
+  /**
+   * Checklist card from an existing presentation payload (avoids duplicate evaluation).
+   *
+   * @param array<string, mixed> $presentation
+   *   Payload from FeaturedEventReadinessService::getPresentation().
+   *
+   * @return array<string, mixed>
+   */
+  public function buildChecklistCardFromPresentation(
+    NodeInterface $event,
+    array $presentation,
+    bool $compact = TRUE,
+    bool $show_spotlight_notice = FALSE,
+    bool $summary_only = FALSE,
+    bool $hide_published_item = FALSE,
+  ): array {
     return [
       '#theme' => 'mel_homepage_readiness_checklist',
       '#presentation' => $presentation,
       '#compact' => $compact,
       '#show_spotlight_notice' => $show_spotlight_notice,
+      '#summary_only' => $summary_only,
+      '#hide_published_item' => $hide_published_item,
       '#cache' => [
         'tags' => $event->getCacheTags(),
         'contexts' => ['languages:language_interface'],
@@ -68,17 +92,26 @@ final class FeaturedEventReadinessRenderBuilder {
       }
     }
 
+    return $this->buildDashboardSummaryFromCounts(count($boosted_events), $ready, $needs_attention);
+  }
+
+  /**
+   * Dashboard summary from precomputed promotion readiness counts.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildDashboardSummaryFromCounts(int $total_boosted, int $ready_count, int $needs_attention_count): array {
     return [
       '#theme' => 'mel_homepage_readiness_dashboard_summary',
       '#heading' => (string) $this->t('Homepage Readiness'),
-      '#total_boosted' => count($boosted_events),
-      '#ready_count' => $ready,
-      '#needs_attention_count' => $needs_attention,
-      '#status_label' => $needs_attention === 0
-        ? (string) $this->t('All boosted events are homepage ready')
-        : (string) $this->t('@ready ready, @attention need attention', [
-          '@ready' => $ready,
-          '@attention' => $needs_attention,
+      '#total_boosted' => $total_boosted,
+      '#ready_count' => $ready_count,
+      '#needs_attention_count' => $needs_attention_count,
+      '#status_label' => $needs_attention_count === 0
+        ? (string) $this->t('All boosted events are ready for homepage promotion')
+        : (string) $this->t('@ready ready for promotion, @attention need attention', [
+          '@ready' => $ready_count,
+          '@attention' => $needs_attention_count,
         ]),
       '#cache' => [
         'max-age' => 0,

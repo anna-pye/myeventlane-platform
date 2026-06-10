@@ -41,6 +41,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MelReadinessHelper $readinessHelper,
+    private readonly VendorEventRemovalService $vendorEventRemovalService,
     private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->stringTranslation = $string_translation;
@@ -239,6 +240,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'event_type' => $eventType,
         'event_type_label' => $eventTypeLabel,
         'public_url' => $publicPreviewUrl,
+        'image' => $this->vendorEventRemovalService->buildEventThumbnailData($event),
       ],
       'readiness' => [
         'score' => $score,
@@ -310,6 +312,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'event_type' => 'unknown',
         'event_type_label' => (string) $this->t('Unknown'),
         'public_url' => NULL,
+        'image' => $this->vendorEventRemovalService->buildEventThumbnailData($event),
       ],
       'readiness' => ['score' => 0, 'items' => []],
       'operational_readiness' => [

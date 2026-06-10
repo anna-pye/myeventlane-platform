@@ -25,18 +25,22 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $this->assertStringContainsString("'@myeventlane_vendor.paid_publish_stripe_gate'", $services);
   }
 
-  public function testReadinessAndSavePathsUsePaidPublishStripeGate(): void {
+  public function testReadinessAndEnforcementPathsUsePaidPublishStripeGate(): void {
     $readiness = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventReadinessService.php');
+    $evaluator = file_get_contents(dirname(__DIR__, 3) . '/src/Service/PublishEligibilityEvaluator.php');
     $save = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSaveService.php');
     $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
 
     $this->assertIsString($readiness);
+    $this->assertIsString($evaluator);
     $this->assertIsString($save);
     $this->assertIsString($publish);
     $this->assertStringContainsString('validatePaidPublishAllowed', $readiness);
     $this->assertStringContainsString("in_array(\$event_type, ['paid', 'both'], TRUE)", $readiness);
-    $this->assertStringContainsString('validatePaidPublishAllowed', $save);
-    $this->assertStringContainsString('$this->eventReadiness->evaluate', $publish);
+    $this->assertStringContainsString('validatePaidPublishAllowed', $evaluator);
+    $this->assertStringContainsString('publishEligibilityEvaluator', $save);
+    $this->assertStringNotContainsString('validatePaidPublishAllowed', $save);
+    $this->assertStringNotContainsString('if (!$readiness->ready)', $publish);
   }
 
   public function testPublishCardUsesStripeGateCopyAndConnectRoute(): void {
@@ -56,11 +60,12 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $this->assertStringContainsString("in_array(\$event_type, ['paid', 'both'], TRUE)", $preprocess);
   }
 
-  public function testDraftSaveSkipsStripeGateOnPublishPath(): void {
+  public function testDraftSaveSkipsPublishEligibilityOnDraftPath(): void {
     $save = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSaveService.php');
 
     $this->assertIsString($save);
-    $this->assertStringContainsString('if (!$draft && $willPublish && in_array($effectiveEventType, [\'paid\', \'both\'], TRUE))', $save);
+    $this->assertStringContainsString('if (!$draft && $willPublish)', $save);
+    $this->assertStringContainsString('publishEligibilityEvaluator->evaluate', $save);
   }
 
 }

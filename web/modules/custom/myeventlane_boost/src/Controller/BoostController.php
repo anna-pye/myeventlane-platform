@@ -15,6 +15,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Form\BoostSelectForm;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
+use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -41,6 +42,7 @@ final class BoostController extends ControllerBase {
     FormBuilderInterface $formBuilder,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
+    private readonly EventReadinessFacade $readinessFacade,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->formBuilder = $formBuilder;
@@ -55,6 +57,7 @@ final class BoostController extends ControllerBase {
       $container->get('form_builder'),
       $container->get('myeventlane_vendor.service.event_tabs'),
       $container->get('myeventlane_event.featured_readiness_render'),
+      $container->get('myeventlane_event_studio.readiness_facade'),
     );
   }
 
@@ -208,11 +211,7 @@ final class BoostController extends ControllerBase {
       '#edit_url' => $editUrl?->toString(),
       '#vendor_workspace' => $vendor_workspace,
       '#form' => $body,
-      '#homepage_readiness' => $this->homepageReadinessRender->buildChecklistCard(
-        $node,
-        TRUE,
-        TRUE,
-      ),
+      '#homepage_readiness' => $this->buildHomepageReadinessCard($node),
       '#attached' => [
         'library' => ['myeventlane_boost/boost'],
       ],
@@ -426,6 +425,21 @@ final class BoostController extends ControllerBase {
     }
 
     return FALSE;
+  }
+
+  /**
+   * Homepage promotion readiness card via the shared readiness facade.
+   *
+   * @return array<string, mixed>
+   */
+  private function buildHomepageReadinessCard(NodeInterface $node): array {
+    $bundle = $this->readinessFacade->evaluate($node, $this->currentUser());
+    return $this->homepageReadinessRender->buildChecklistCardFromPresentation(
+      $node,
+      is_array($bundle['promotion'] ?? NULL) ? $bundle['promotion'] : [],
+      TRUE,
+      TRUE,
+    );
   }
 
 }

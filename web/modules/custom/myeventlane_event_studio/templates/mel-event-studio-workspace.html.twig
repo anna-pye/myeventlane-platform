@@ -7,6 +7,7 @@
 <div
   class="mel-event-studio mel-event-studio--workspace"
   data-mel-studio-shell="1"
+  data-mel-published="{{ topbar.published|default(false) ? '1' : '0' }}"
   data-current-section-id="{{ current_section_metadata.id|default(current_section) }}"
   data-current-section-state="{{ current_section_metadata.section_state|default('active') }}"
   data-current-operational-area="{{ current_section_metadata.operational_area|default('event') }}"
@@ -16,6 +17,31 @@
   {{ include('@myeventlane_event_studio/mel-event-studio-topbar.html.twig', {
     topbar: topbar
   }, with_context = false) }}
+
+  {{ include('@myeventlane_event_studio/mel-event-studio-event-health.html.twig', {
+    event_health: event_health
+  }, with_context = false) }}
+
+  {% if readiness.show_publish_strip|default(true) %}
+    <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip>
+      <div class="mel-event-studio-readiness-strip__summary">
+        <strong data-mel-readiness-title>{{ readiness.strip_title|default(readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t) }}</strong>
+        <span data-mel-readiness-state>{{ readiness.state }}</span>
+      </div>
+      <div class="mel-event-studio-readiness-strip__counts">
+        <span data-mel-readiness-errors-count>{{ readiness.errors|length }} {{ 'blocker(s)'|t }}</span>
+        <span data-mel-readiness-warnings-count>{{ readiness.warnings|length }} {{ 'warning(s)'|t }}</span>
+        <span data-mel-readiness-recommendations-count>{{ readiness.recommendations|default([])|length }} {{ 'idea(s)'|t }}</span>
+        <span data-mel-readiness-completed-count>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if homepage_readiness %}
+    <div class="mel-event-studio-homepage-readiness">
+      {{ homepage_readiness }}
+    </div>
+  {% endif %}
 
   {% if boost is not null and boost.active %}
     <section class="mel-boost-active-banner" aria-labelledby="mel-boost-active-title">
@@ -52,25 +78,6 @@
       } only %}
     </section>
   {% endif %}
-
-  {% if homepage_readiness %}
-    <div class="mel-event-studio-homepage-readiness">
-      {{ homepage_readiness }}
-    </div>
-  {% endif %}
-
-  <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip>
-    <div class="mel-event-studio-readiness-strip__summary">
-      <strong data-mel-readiness-title>{{ readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t }}</strong>
-      <span data-mel-readiness-state>{{ readiness.state }}</span>
-    </div>
-    <div class="mel-event-studio-readiness-strip__counts">
-      <span data-mel-readiness-errors-count>{{ readiness.errors|length }} {{ 'blocker(s)'|t }}</span>
-      <span data-mel-readiness-warnings-count>{{ readiness.warnings|length }} {{ 'warning(s)'|t }}</span>
-      <span data-mel-readiness-recommendations-count>{{ readiness.recommendations|default([])|length }} {{ 'idea(s)'|t }}</span>
-      <span data-mel-readiness-completed-count>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
-    </div>
-  </section>
 
   <section class="mel-event-studio-publish-feedback" aria-live="polite" aria-atomic="true" data-mel-publish-feedback hidden>
     <div class="mel-event-studio-publish-feedback__error" data-mel-publish-error hidden>

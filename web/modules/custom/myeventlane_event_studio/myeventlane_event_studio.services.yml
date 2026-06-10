@@ -8,7 +8,7 @@ services:
       - '@request_stack'
       - '@myeventlane_vendor.event_access_checker'
       - '@date.formatter'
-      - '@myeventlane_event_studio.readiness'
+      - '@myeventlane_event_studio.readiness_facade'
       - '@myeventlane_event_studio.autosave'
       - '@plugin.manager.myeventlane_event_studio_section'
       - '@myeventlane_event_studio.section_renderer'
@@ -17,8 +17,16 @@ services:
       - '@myeventlane_event_studio.preprocess'
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_event.featured_readiness_render'
+      - '@myeventlane_event_studio.workspace_presentation'
+      - '@myeventlane_boost.extension_recommendation'
     tags:
       - { name: controller.service_arguments }
+
+  myeventlane_event_studio.workspace_presentation:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation
+    arguments:
+      - '@date.formatter'
+      - '@string_translation'
 
   myeventlane_event_studio.preprocess:
     class: Drupal\myeventlane_event_studio\EventStudioPreprocess
@@ -385,6 +393,15 @@ services:
       - '@myeventlane_event_studio.event_style_access'
       - '@entity_type.manager'
 
+  myeventlane_event_studio.publish_eligibility:
+    class: Drupal\myeventlane_event_studio\Service\PublishEligibilityEvaluator
+    arguments:
+      - '@myeventlane_vendor.publish_requirements_gate'
+      - '@myeventlane_vendor.paid_publish_stripe_gate'
+      - '@myeventlane_event_studio.readiness'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@string_translation'
+
   myeventlane_event_studio.save:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSaveService
     arguments:
@@ -392,9 +409,7 @@ services:
       - '@myeventlane_venue.manager'
       - '@logger.channel.myeventlane_event_studio'
       - '@myeventlane_event_studio.highlight_helper'
-      - '@myeventlane_vendor.paid_publish_stripe_gate'
-      - '@myeventlane_vendor.publish_requirements_gate'
-      - '@myeventlane_event_studio.readiness'
+      - '@myeventlane_event_studio.publish_eligibility'
       - '@myeventlane_event_studio.question_field_type_registry'
       - '@image.factory'
       - '@string_translation'
@@ -475,6 +490,9 @@ services:
     arguments:
       - '@myeventlane_event_studio.save'
       - '@myeventlane_event_studio.readiness'
+      - '@myeventlane_event_studio.readiness_facade'
+      - '@myeventlane_event_studio.workspace_presentation'
+      - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_event_studio.autosave'
       - '@plugin.manager.myeventlane_event_studio_section'
       - '@myeventlane_vendor.event_access_checker'

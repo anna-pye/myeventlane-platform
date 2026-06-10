@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Consolidated operational event health summary for Event Studio workspace.
+ *
+ * Variables:
+ * - event_health.heading
+ * - event_health.last_updated
+ * - event_health.items (list of key, label, value, detail, tone)
+ */
+#}
+{% set event_health = event_health|default({}) %}
+{% set items = event_health.items|default([]) %}
+<section
+  class="mel-event-studio-event-health"
+  aria-labelledby="mel-event-studio-event-health-title"
+  data-mel-event-health
+  role="region"
+>
+  <div class="mel-event-studio-event-health__header">
+    <h2 id="mel-event-studio-event-health-title" class="mel-event-studio-event-health__title">
+      {{ event_health.heading|default('Event health'|t) }}
+    </h2>
+    {% if event_health.last_updated|default('') %}
+      <p class="mel-event-studio-event-health__updated" data-mel-event-health-updated>
+        {{ event_health.last_updated }}
+      </p>
+    {% endif %}
+  </div>
+  <dl class="mel-event-studio-event-health__list">
+    {% for item in items %}
+      <div class="mel-event-studio-event-health__item mel-event-studio-event-health__item--{{ item.tone|default('muted')|clean_class }}" data-mel-event-health-row="{{ item.key|default('')|e('html_attr') }}">
+        <dt class="mel-event-studio-event-health__label">{{ item.label }}</dt>
+        <dd class="mel-event-studio-event-health__value">
+          <span data-mel-event-health-value="{{ item.key|default('')|e('html_attr') }}">{{ item.value }}</span>
+          {% if item.detail|default('') %}
+            <span class="mel-event-studio-event-health__detail" data-mel-event-health-detail="{{ item.key|default('')|e('html_attr') }}">{{ item.detail }}</span>
+          {% endif %}
+        </dd>
+      </div>
+    {% endfor %}
+  </dl>
+</section>

@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Event card thumbnail (dashboard + events index).
+ *
+ * Variables:
+ * - image: { url, alt, is_placeholder } from buildEventThumbnailData().
+ */
+#}
+{% set img = image|default({}) %}
+{% set img_url = img.url|default('') %}
+{% set img_alt = img.alt|default('') %}
+{% set img_ph = img.is_placeholder|default(false) %}
+{% set size_class = size|default('default') == 'hero' ? ' mel-event-card-thumb--hero' : '' %}
+{% if img_url %}
+  <div class="mel-event-card-thumb{{ size_class }}{% if img_ph %} mel-event-card-thumb--placeholder{% endif %}"{% if not img_ph %} aria-hidden="true"{% endif %}>
+    <img class="mel-event-card-thumb__img" src="{{ img_url }}" alt="{{ img_ph ? '' : img_alt|e('html_attr') }}" loading="lazy" width="{{ size|default('default') == 'hero' ? 96 : 56 }}" height="{{ size|default('default') == 'hero' ? 96 : 56 }}"/>
+  </div>
+{% else %}
+  <div class="mel-event-card-thumb mel-event-card-thumb--fallback{{ size_class }}">
+    <span class="mel-event-card-thumb__fallback-label" role="img" aria-label="{{ 'Event image'|t }}">{{ 'MEL'|t }}</span>
+  </div>
+{% endif %}

@@ -33,6 +33,9 @@
         <div class="mel-live-ops__hero-surface">
           <div class="mel-event-mission-control__hero-layout mel-live-ops__hero-layout">
             <div class="mel-live-ops__hero-primary">
+              <div class="mel-event-mission-control__hero-identity">
+                {% include '@myeventlane_vendor_theme/components/mel-event-card-thumb.html.twig' with { image: model.event.image|default({}), size: 'hero' } only %}
+                <div class="mel-event-mission-control__hero-copy">
               <div class="mel-live-ops__chip-row mel-live-ops__chip-row--compact">
                 <span class="mel-live-ops__chip mel-live-ops__chip--{{ st_chip }}">{{ model.event.status_label|default('') }}</span>
                 {% if model.event.event_type_label|default('') is not empty %}
@@ -46,6 +49,8 @@
                   <span>{{ model.event.date_label }}</span>
                 {% endif %}
               </p>
+                </div>
+              </div>
             </div>
             <div class="mel-live-ops__hero-aside mel-event-mission-control__hero-actions">
               <div class="mel-live-ops__stack">

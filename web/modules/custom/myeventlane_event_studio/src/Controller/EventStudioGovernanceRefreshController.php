@@ -77,15 +77,30 @@ final class EventStudioGovernanceRefreshController {
       }
     }
 
-    $delta_bundle = $this->governanceBuilder->buildDeltaPayload($node, $baseline);
-    $response = new JsonResponse([
-      'ok' => TRUE,
-      'governance_enabled' => $delta_bundle['governance_enabled'],
-      'unchanged' => $delta_bundle['unchanged'],
-      'delta' => $delta_bundle['delta'],
-    ]);
-    $response->headers->set('Cache-Control', 'private, no-store');
-    return $response;
+    try {
+      $delta_bundle = $this->governanceBuilder->buildDeltaPayload($node, $baseline);
+      $response = new JsonResponse([
+        'ok' => TRUE,
+        'governance_enabled' => $delta_bundle['governance_enabled'],
+        'unchanged' => $delta_bundle['unchanged'],
+        'delta' => $delta_bundle['delta'],
+      ]);
+      $response->headers->set('Cache-Control', 'private, no-store');
+      return $response;
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio governance refresh failed nid=@nid uid=@uid: @message', [
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $response = new JsonResponse([
+        'ok' => FALSE,
+        'message' => 'Governance refresh failed. Try again shortly.',
+      ], 500);
+      $response->headers->set('Cache-Control', 'private, no-store');
+      return $response;
+    }
   }
 
 }

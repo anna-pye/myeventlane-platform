@@ -234,6 +234,19 @@ final class VendorDashboardViewModelBuilder {
       return NULL;
     }
 
+    if ($this->homepageVisibilityReport instanceof HomepageVisibilityReportService) {
+      $readiness = $this->homepageVisibilityReport->buildReadinessSummary($boosted_events);
+      $total = (int) ($readiness['total'] ?? 0);
+      $ready_count = (int) ($readiness['ready_count'] ?? 0);
+      if ($total > 0) {
+        return $this->homepageReadinessRender->buildDashboardSummaryFromCounts(
+          $total,
+          $ready_count,
+          max(0, $total - $ready_count),
+        );
+      }
+    }
+
     return $this->homepageReadinessRender->buildDashboardSummary($boosted_events);
   }
 
@@ -1286,6 +1299,7 @@ final class VendorDashboardViewModelBuilder {
         'booking_state_label' => (string) ($event['booking_state_label'] ?? ''),
         'metric_label' => (string) ($event['metric_label'] ?? ''),
         'reasons' => array_values($reasons),
+        'image' => is_array($event['image'] ?? NULL) ? $event['image'] : [],
         'boost' => is_array($event['boost'] ?? NULL) ? $event['boost'] : ['active' => FALSE],
         'links' => is_array($event['links'] ?? NULL) ? $event['links'] : [],
       ];
@@ -1318,6 +1332,7 @@ final class VendorDashboardViewModelBuilder {
         'status_label' => (string) ($event['status_label'] ?? ''),
         'booking_state_label' => (string) ($event['booking_state_label'] ?? ''),
         'metric_label' => (string) ($event['metric_label'] ?? ''),
+        'image' => is_array($event['image'] ?? NULL) ? $event['image'] : [],
         'boost' => is_array($event['boost'] ?? NULL) ? $event['boost'] : ['active' => FALSE],
         'links' => is_array($event['links'] ?? NULL) ? $event['links'] : [],
       ];

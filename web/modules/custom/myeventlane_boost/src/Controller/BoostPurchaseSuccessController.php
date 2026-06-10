@@ -12,6 +12,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Service\BoostPurchaseSuccessResolver;
 use Drupal\myeventlane_event\Service\BoostedEventQualityGate;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
+use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -32,6 +33,7 @@ final class BoostPurchaseSuccessController extends ControllerBase {
     private readonly BoostStatusService $boostStatusService,
     private readonly BoostedEventQualityGate $qualityGate,
     private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
+    private readonly EventReadinessFacade $readinessFacade,
   ) {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -46,6 +48,7 @@ final class BoostPurchaseSuccessController extends ControllerBase {
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_event.boosted_quality_gate'),
       $container->get('myeventlane_event.featured_readiness_render'),
+      $container->get('myeventlane_event_studio.readiness_facade'),
     );
   }
 
@@ -90,11 +93,7 @@ final class BoostPurchaseSuccessController extends ControllerBase {
       '#workspace_url' => $workspace_url,
       '#event_url' => $event_url,
       '#analytics_url' => $analytics_url,
-      '#homepage_readiness' => $this->homepageReadinessRender->buildChecklistCard(
-        $event,
-        TRUE,
-        TRUE,
-      ),
+      '#homepage_readiness' => $this->buildHomepageReadinessCard($event, $account),
       '#attached' => [
         'library' => ['myeventlane_boost/boost_purchase_success'],
         'drupalSettings' => [
@@ -164,6 +163,21 @@ final class BoostPurchaseSuccessController extends ControllerBase {
     catch (\Throwable) {
       return '';
     }
+  }
+
+  /**
+   * Homepage promotion readiness card via the shared readiness facade.
+   *
+   * @return array<string, mixed>
+   */
+  private function buildHomepageReadinessCard(NodeInterface $event, AccountInterface $account): array {
+    $bundle = $this->readinessFacade->evaluate($event, $account);
+    return $this->homepageReadinessRender->buildChecklistCardFromPresentation(
+      $event,
+      is_array($bundle['promotion'] ?? NULL) ? $bundle['promotion'] : [],
+      TRUE,
+      TRUE,
+    );
   }
 
 }

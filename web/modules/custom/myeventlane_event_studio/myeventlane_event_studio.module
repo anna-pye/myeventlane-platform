@@ -50,6 +50,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'current_section_metadata' => [],
         'section_content' => NULL,
         'topbar' => [],
+        'event_health' => [],
         'readiness' => [],
         'homepage_readiness' => NULL,
         'boost' => NULL,

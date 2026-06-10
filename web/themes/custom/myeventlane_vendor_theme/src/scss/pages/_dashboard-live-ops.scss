@@ -795,6 +795,10 @@ $mel-dash-lavender: #7c83fd;
     border: 1px solid rgba($ml-vendor-navy, 0.08);
     border-radius: $radius-lg;
     background: rgba($ml-slate-50, 0.55);
+
+    .mel-event-card-thumb {
+      flex-shrink: 0;
+    }
   }
 
   &__action-queue-item--primary {
@@ -857,6 +861,24 @@ $mel-dash-lavender: #7c83fd;
     border-radius: $radius-lg;
     background: $ml-vendor-bg;
     box-shadow: $shadow-xs;
+  }
+
+  &__summary-card-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-3;
+    min-width: 0;
+
+    .mel-event-card-thumb {
+      flex-shrink: 0;
+    }
+  }
+
+  &__summary-card-body {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   &__summary-card-title {

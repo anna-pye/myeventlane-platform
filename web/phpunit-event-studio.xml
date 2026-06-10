@@ -13,6 +13,7 @@
     <testsuite name="event_studio">
       <directory>modules/custom/myeventlane_event_studio/tests/src</directory>
       <file>modules/custom/myeventlane_commerce/tests/src/Unit/EventExtrasBookPlacementResolverTest.php</file>
+      <file>modules/custom/myeventlane_boost/tests/src/Unit/BoostDisplayReadinessConsolidationTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>
