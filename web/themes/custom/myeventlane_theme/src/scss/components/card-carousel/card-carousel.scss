@@ -4,12 +4,117 @@
 // Pastel arrow buttons, 2 cards on tablet/desktop, ~1.1 on mobile.
 // Uses existing MEL tokens; defines --mel-purple-100/200/900 scoped for arrows.
 
-.mel-card-carousel {
-  // Pastel arrow tokens (scoped; fallbacks if not in :root)
+// Canonical carousel navigation — Community Spotlight source of truth.
+.mel-carousel-nav {
   --mel-purple-100: var(--mel-lilac, #e6d9ff);
   --mel-purple-200: #d6c6ff;
   --mel-purple-900: var(--mel-navy, #293241);
 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.mel-carousel-nav__prev,
+.mel-carousel-nav__next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mel-purple-100);
+  color: var(--mel-purple-900);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-top: 2px solid currentcolor;
+    border-right: 2px solid currentcolor;
+  }
+
+  &:hover {
+    background: var(--mel-purple-200);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mel-color-primary, #f26d5b);
+    outline-offset: 2px;
+  }
+
+  &[hidden],
+  &.swiper-button-disabled {
+    display: none;
+  }
+}
+
+.mel-carousel-nav__prev::after {
+  transform: rotate(-135deg);
+  margin-left: 3px;
+}
+
+.mel-carousel-nav__next::after {
+  transform: rotate(45deg);
+  margin-right: 3px;
+}
+
+.mel-card-carousel-shell--nav-below .mel-carousel-nav,
+.mel-spotlight-rotator .mel-carousel-nav {
+  margin-top: 14px;
+}
+
+.mel-carousel-nav--overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+
+  .mel-carousel-nav__prev,
+  .mel-carousel-nav__next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: auto;
+  }
+
+  .mel-carousel-nav__prev {
+    left: -16px;
+
+    &::after {
+      transform: rotate(-135deg);
+      margin-left: 3px;
+    }
+  }
+
+  .mel-carousel-nav__next {
+    right: -16px;
+
+    &::after {
+      transform: rotate(45deg);
+      margin-right: 3px;
+    }
+  }
+
+  @media (width <= 768px) {
+    .mel-carousel-nav__prev,
+    .mel-carousel-nav__next {
+      display: none;
+    }
+  }
+}
+
+.mel-card-carousel {
   position: relative;
   padding: 1rem 0;
   overflow: hidden;
@@ -24,52 +129,11 @@
   .mel-event-card__link {
     touch-action: pan-x pan-y;
   }
-
-  .swiper-button-prev,
-  .swiper-button-next {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--mel-purple-100);
-    color: var(--mel-purple-900);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-
-    &::after {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    &:hover {
-      background: var(--mel-purple-200);
-    }
-  }
-
-  .swiper-button-prev {
-    left: -16px;
-  }
-
-  .swiper-button-next {
-    right: -16px;
-  }
-
-  @media (width <= 768px) {
-    .swiper-button-prev,
-    .swiper-button-next {
-      display: none;
-    }
-  }
 }
 
 // Bottom nav variant — arrows stay visible on all breakpoints (homepage spotlight).
 .mel-card-carousel-shell--nav-below {
   .mel-card-carousel {
     padding-bottom: 0;
-  }
-
-  .mel-card-carousel__nav {
-    .swiper-button-prev,
-    .swiper-button-next {
-      display: flex;
-    }
   }
 }

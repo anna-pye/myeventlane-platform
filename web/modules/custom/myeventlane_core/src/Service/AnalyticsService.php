@@ -137,6 +137,68 @@ final class AnalyticsService {
   }
 
   /**
+   * Counts event_click rows grouped by discovery attribution source.
+   *
+   * @return array<string, int>
+   *   Map of source => count (empty source rows are omitted).
+   */
+  public function countEventClicksGroupedBySource(
+    string $entity_type,
+    int $entity_id,
+    ?int $start_ts = NULL,
+    ?int $end_ts = NULL,
+  ): array {
+    if ($entity_type === '' || $entity_id <= 0) {
+      return [];
+    }
+
+    if (!$this->database->schema()->tableExists(self::TABLE)) {
+      return [];
+    }
+
+    $schema = $this->database->schema();
+    if (!$schema->fieldExists(self::TABLE, 'source')) {
+      return [];
+    }
+
+    try {
+      $query = $this->database->select(self::TABLE, 'a');
+      $query->addField('a', 'source', 'source');
+      $query->addExpression('COUNT(*)', 'cnt');
+      $query->condition('entity_type', $entity_type);
+      $query->condition('entity_id', $entity_id);
+      $query->condition('event_type', self::EVENT_EVENT_CLICK);
+      $query->isNotNull('source');
+      $query->condition('source', '', '<>');
+      if ($start_ts !== NULL) {
+        $query->condition('timestamp', $start_ts, '>=');
+      }
+      if ($end_ts !== NULL) {
+        $query->condition('timestamp', $end_ts, '<=');
+      }
+      $query->groupBy('source');
+
+      $counts = [];
+      foreach ($query->execute() as $row) {
+        $source = (string) ($row->source ?? '');
+        if ($source === '' || !$this->discoveryAttributionSources->isAllowed($source)) {
+          continue;
+        }
+        $counts[$source] = (int) ($row->cnt ?? 0);
+      }
+      return $counts;
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to group analytics clicks by source for @type:@id: @message', [
+        '@type' => $entity_type,
+        '@id' => (string) $entity_id,
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
+  }
+
+  /**
    * Tracks a public analytics event.
    *
    * @param string|null $source

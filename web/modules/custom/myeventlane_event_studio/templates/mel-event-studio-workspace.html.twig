@@ -53,6 +53,12 @@
     </section>
   {% endif %}
 
+  {% if homepage_readiness %}
+    <div class="mel-event-studio-homepage-readiness">
+      {{ homepage_readiness }}
+    </div>
+  {% endif %}
+
   <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip>
     <div class="mel-event-studio-readiness-strip__summary">
       <strong data-mel-readiness-title>{{ readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t }}</strong>

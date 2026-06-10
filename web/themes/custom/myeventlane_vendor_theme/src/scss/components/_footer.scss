@@ -247,6 +247,75 @@
   }
 }
 
+// ============================================================================
+// Dashboard footer (lightweight — dashboard route only)
+// ============================================================================
+
+.mel-vendor-shell__footer--dashboard {
+  padding: $spacing-3 $spacing-4;
+
+  @include respond-to(md) {
+    padding: $spacing-4 $spacing-8;
+  }
+}
+
+.mel-footer--dashboard {
+  width: 100%;
+}
+
+.mel-footer-dashboard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-3 $spacing-4;
+  max-width: $layout-content-max-width;
+  margin: 0 auto;
+  min-height: 2.75rem;
+}
+
+.mel-footer-dashboard__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-2 $spacing-3;
+  min-width: 0;
+}
+
+.mel-footer-dashboard__store {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-footer-dashboard__balance {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.mel-footer-dashboard__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-2 $spacing-4;
+}
+
+.mel-footer-dashboard__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $primary;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}
+
 
 
 

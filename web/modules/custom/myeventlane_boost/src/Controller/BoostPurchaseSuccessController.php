@@ -11,6 +11,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Service\BoostPurchaseSuccessResolver;
 use Drupal\myeventlane_event\Service\BoostedEventQualityGate;
+use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -30,6 +31,7 @@ final class BoostPurchaseSuccessController extends ControllerBase {
     private readonly BoostPurchaseSuccessResolver $purchaseSuccessResolver,
     private readonly BoostStatusService $boostStatusService,
     private readonly BoostedEventQualityGate $qualityGate,
+    private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
   ) {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -43,6 +45,7 @@ final class BoostPurchaseSuccessController extends ControllerBase {
       $container->get('myeventlane_boost.purchase_success_resolver'),
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_event.boosted_quality_gate'),
+      $container->get('myeventlane_event.featured_readiness_render'),
     );
   }
 
@@ -58,7 +61,12 @@ final class BoostPurchaseSuccessController extends ControllerBase {
 
     if (!$this->qualityGate->hasHeroImage($event)) {
       $this->messenger()->addWarning(
-        $this->t('Your event is boosted but does not yet have a hero image. Add a photo to maximise visibility.')
+        $this->t('Hero image missing. Add a cover photo in Event Studio branding so your boosted event can appear in Community Spotlight.')
+      );
+    }
+    elseif (!$this->qualityGate->hasFocalPoint($event)) {
+      $this->messenger()->addWarning(
+        $this->t('Focal point missing. Set the hero crop in Event Studio branding so your boosted event can appear in Community Spotlight.')
       );
     }
 
@@ -82,6 +90,11 @@ final class BoostPurchaseSuccessController extends ControllerBase {
       '#workspace_url' => $workspace_url,
       '#event_url' => $event_url,
       '#analytics_url' => $analytics_url,
+      '#homepage_readiness' => $this->homepageReadinessRender->buildChecklistCard(
+        $event,
+        TRUE,
+        TRUE,
+      ),
       '#attached' => [
         'library' => ['myeventlane_boost/boost_purchase_success'],
         'drupalSettings' => [

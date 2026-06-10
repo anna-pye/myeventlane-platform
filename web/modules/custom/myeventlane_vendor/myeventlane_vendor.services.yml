@@ -286,7 +286,11 @@ services:
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_surface.data_presentation_manager'
       - '@myeventlane_vendor.service.boost_status'
+      - '@myeventlane_boost.manager'
+      - '@myeventlane_event.featured_readiness_render'
       - '@myeventlane_core.domain_detector'
+      - '@?myeventlane_front.homepage_visibility_report'
+      - '@?myeventlane_boost.metrics'
 
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService

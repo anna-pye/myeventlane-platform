@@ -1,26 +1,46 @@
 {#
 /**
  * @file
- * Vendor dashboard analytics overview KPI cards (Stage 1).
+ * Vendor dashboard analytics summary — grouped cards with duplicate KPI filtering.
  */
 #}
-{% if analytics_cards is defined and analytics_cards is iterable and analytics_cards|length > 0 %}
-<section class="mel-vendor-analytics" aria-labelledby="mel-vendor-analytics-title">
-  <h2 id="mel-vendor-analytics-title" class="mel-vendor-analytics__title">{{ 'Analytics Overview'|t }}</h2>
-  <div class="mel-vendor-analytics__grid" role="list">
-    {% for card in analytics_cards %}
-      <article
-        class="mel-vendor-analytics__card"
-        role="listitem"
-        aria-label="{{ card.aria_label|default(card.label) }}"
-      >
-        <span class="mel-vendor-analytics__label">{{ card.label }}</span>
-        <span class="mel-vendor-analytics__value">{{ card.value }}</span>
-        {% if card.sub is defined and card.sub %}
-          <span class="mel-vendor-analytics__sub">{{ card.sub }}</span>
-        {% endif %}
-      </article>
-    {% endfor %}
-  </div>
-</section>
+{% set cards = analytics_cards|default([]) %}
+{% set hidden_keys = duplicate_keys|default([]) %}
+{% set audience_keys = audience_keys|default(['profile_views', 'total_event_views', 'followers']) %}
+{% set conversion_keys = conversion_keys|default(['follow_conversion', 'avg_ticket_conversion', 'boost_ctr', 'boost_views', 'boost_clicks']) %}
+{% set sales_keys = sales_keys|default(['orders']) %}
+{% set visible_cards = cards|filter(card => card.key|default('') not in hidden_keys) %}
+
+{% if visible_cards|length > 0 %}
+  <section class="mel-vendor-analytics mel-vendor-dashboard__analytics-summary" aria-labelledby="mel-vendor-analytics-title">
+    <h2 id="mel-vendor-analytics-title" class="mel-vendor-analytics__title">{{ 'Analytics summary'|t }}</h2>
+
+    {% macro render_group(title, keys, cards) %}
+      {% set group_cards = cards|filter(card => card.key|default('') in keys) %}
+      {% if group_cards|length > 0 %}
+        <div class="mel-vendor-dashboard__analytics-group">
+          <h3 class="mel-vendor-dashboard__analytics-group-title">{{ title }}</h3>
+          <div class="mel-vendor-analytics__grid" role="list">
+            {% for card in group_cards %}
+              <article
+                class="mel-vendor-analytics__card mel-vendor-dashboard__analytics-card"
+                role="listitem"
+                aria-label="{{ card.aria_label|default(card.label) }}"
+              >
+                <span class="mel-vendor-analytics__label">{{ card.label }}</span>
+                <span class="mel-vendor-analytics__value">{{ card.value }}</span>
+                {% if card.sub is defined and card.sub %}
+                  <span class="mel-vendor-analytics__sub">{{ card.sub }}</span>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endmacro %}
+
+    {{ _self.render_group('Audience'|t, audience_keys, visible_cards) }}
+    {{ _self.render_group('Conversion'|t, conversion_keys, visible_cards) }}
+    {{ _self.render_group('Sales'|t, sales_keys, visible_cards) }}
+  </section>
 {% endif %}

@@ -23,6 +23,22 @@
         <p class="mel-empty-state__text">{{ 'No results found for \'@query\'. Try a different keyword or browse categories.'|t({'@query': query}) }}</p>
         <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Browse all events'|t }}</a>
       </div>
+      {% if fallback.categories|default([])|length > 0 %}
+        <section class="mel-search-results__fallback" aria-labelledby="mel-search-fallback-categories">
+          <h2 id="mel-search-fallback-categories" class="mel-search-results__group-title">{{ 'Suggested categories'|t }}</h2>
+          <ul class="mel-search-results__list">
+            {% for item in fallback.categories %}
+              <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+      {% if featured_events_fallback is not empty %}
+        <section class="mel-search-results__fallback" aria-labelledby="mel-search-fallback-featured">
+          <h2 id="mel-search-fallback-featured" class="mel-search-results__group-title">{{ 'Featured events'|t }}</h2>
+          {{ featured_events_fallback }}
+        </section>
+      {% endif %}
     {% else %}
       {% for group_id, group in groups %}
         {% if group.items|length > 0 %}

@@ -322,21 +322,13 @@
     object-position: center center;
   }
 
-  .mel-event-card__date-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    right: auto;
-    z-index: 4;
-  }
-
   // Canonical image-badge from Twig (event_ui / field_promoted) — top-left stack.
   .mel-event-card__image-badge:not(.mel-event__category) {
     position: absolute;
     display: inline-flex;
     align-items: center;
-    top: 8px;
-    left: 8px;
+    top: 12px;
+    left: 12px;
     right: auto;
     bottom: auto;
     z-index: 4;
@@ -354,9 +346,9 @@
     opacity: 1;
   }
 
-  &:has(.mel-event-card__date-badge) .mel-event-card__image-badge:not(.mel-event__category) {
-    top: calc(8px + 40px + 4px);
-    left: 8px;
+  &:has(.mel-event-card__date-pill) .mel-event-card__image-badge:not(.mel-event__category) {
+    top: calc(12px + 56px + 4px);
+    left: 12px;
     right: auto;
   }
 

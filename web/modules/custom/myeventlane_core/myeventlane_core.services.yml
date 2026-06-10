@@ -22,6 +22,12 @@ services:
   myeventlane_core.discovery_attribution_sources:
     class: Drupal\myeventlane_core\Service\DiscoveryAttributionSources
 
+  myeventlane_core.discovery_surface_analytics:
+    class: Drupal\myeventlane_core\Service\DiscoverySurfaceAnalyticsService
+    arguments:
+      - '@myeventlane_core.analytics'
+      - '@string_translation'
+
   myeventlane_core.analytics:
     class: Drupal\myeventlane_core\Service\AnalyticsService
     arguments:

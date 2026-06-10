@@ -50,3 +50,18 @@ function myeventlane_front_views_query_alter(\Drupal\views\ViewExecutable $view,
   $alter = \Drupal::service('myeventlane_front.homepage_merchandising_query_alter');
   $alter->alter($view, $query);
 }
+
+/**
+ * Implements hook_views_pre_render().
+ *
+ * Applies optional homepage rail diversity without query rewrites.
+ */
+function myeventlane_front_views_pre_render(\Drupal\views\ViewExecutable $view): void {
+  if (!\Drupal::hasService('myeventlane_front.homepage_rail_diversity')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_front\Service\HomepageRailDiversityFilter $filter */
+  $filter = \Drupal::service('myeventlane_front.homepage_rail_diversity');
+  $filter->filter($view);
+}

@@ -19,6 +19,7 @@ use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
+use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
@@ -52,6 +53,7 @@ final class EventStudioController extends ControllerBase {
     private readonly DomainDetector $domainDetector,
     private readonly EventStudioPreprocess $eventStudioPreprocess,
     private readonly BoostStatusService $boostStatusService,
+    private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
     private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
     $this->entityTypeManager = $entity_type_manager;
@@ -73,6 +75,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_core.domain_detector'),
       $container->get('myeventlane_event_studio.preprocess'),
       $container->get('myeventlane_vendor.service.boost_status'),
+      $container->get('myeventlane_event.featured_readiness_render'),
       $container->get('myeventlane_boost.extension_recommendation'),
     );
   }
@@ -243,6 +246,7 @@ final class EventStudioController extends ControllerBase {
       '#section_content' => $sectionContent,
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
       '#readiness' => $this->buildReadinessSummary($readiness),
+      '#homepage_readiness' => $this->homepageReadinessRender->buildChecklistCard($node, TRUE, TRUE),
       '#boost' => $boost,
       '#boost_extension_recommendation' => $boost_extension_recommendation,
       '#publish_handoff' => $publish_handoff,

@@ -436,8 +436,11 @@
     object-position: center center;
   }
 
-  .mel-event-card--editorial.mel-event-card--hero .mel-event-card__date-badge {
-    display: none;
+  .mel-event-card--editorial.mel-event-card--hero:has(.mel-event-card__date-pill) .mel-event-card__image .mel-event-card__image-badge,
+  .mel-event-card--editorial.mel-event-card--hero:has(.mel-event-card__date-pill) .mel-event-card__image .mel-event-card__badge,
+  .mel-event-card--editorial.mel-event-card--hero:has(.mel-event-card__date-pill) .mel-event-card__image .mel-pill--on-image {
+    top: calc(12px + 56px + 4px);
+    left: 12px;
   }
 
   // V5: compact featured pill — shrink-wrap only; never stretch across the image.

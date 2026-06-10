@@ -26,15 +26,13 @@
   </div>
 
   {% if not nav_below %}
-    <button class="swiper-button-prev" aria-label="{{ 'Previous events'|t }}"></button>
-    <button class="swiper-button-next" aria-label="{{ 'Next events'|t }}"></button>
+    {% include '@myeventlane_theme/components/card-carousel/carousel-nav.twig' with {
+      nav_modifier: 'mel-carousel-nav--overlay',
+    } only %}
   {% endif %}
 </div>
 
 {% if nav_below %}
-  <div class="mel-card-carousel__nav" aria-hidden="false">
-    <button class="swiper-button-prev mel-card-carousel__nav-btn" type="button" aria-label="{{ 'Previous events'|t }}"></button>
-    <button class="swiper-button-next mel-card-carousel__nav-btn" type="button" aria-label="{{ 'Next events'|t }}"></button>
-  </div>
+  {% include '@myeventlane_theme/components/card-carousel/carousel-nav.twig' only %}
   </div>
 {% endif %}

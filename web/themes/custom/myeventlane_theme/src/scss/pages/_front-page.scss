@@ -510,6 +510,32 @@
   }
 }
 
+// Community Spotlight — lightweight rotator (one editorial group visible at a time).
+.mel-page--home .mel-spotlight-rotator {
+  min-width: 0;
+  overflow: hidden;
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid mel.$mel-ds-color-primary;
+    outline-offset: 4px;
+    border-radius: mel.$mel-ds-radius-sm;
+  }
+}
+
+.mel-page--home .mel-spotlight-rotator__track {
+  position: relative;
+  min-width: 0;
+}
+
+.mel-page--home .mel-spotlight-rotator__slide {
+  display: none;
+
+  &.is-active {
+    display: block;
+  }
+}
+
 // Community Spotlight — editorial composition: 1 feature (~65%) + 2 supporting (~35%).
 .mel-page--home .mel-spotlight-editorial {
   display: grid;
@@ -557,26 +583,6 @@
       .mel-event-card__link {
         touch-action: pan-x pan-y;
       }
-    }
-
-    .mel-card-carousel__nav {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      margin-top: 14px;
-      padding-bottom: 4px;
-    }
-
-    .swiper-button-prev,
-    .swiper-button-next {
-      position: static;
-      inset: auto;
-      left: auto;
-      right: auto;
-      margin: 0;
-      transform: none;
-      display: flex;
     }
   }
 
@@ -632,22 +638,10 @@
   min-height: clamp(220px, 24vw, 290px);
 }
 
-.mel-page--home .mel-spotlight-editorial__story--lead .mel-event-card__title {
-  font-size: clamp(1.25rem, 2.4vw, 1.625rem);
-  font-weight: 800;
-  line-height: 1.12;
-}
-
 .mel-page--home .mel-spotlight-editorial__story--support .mel-event-card__title {
   font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
   font-weight: 800;
   line-height: 1.18;
-}
-
-.mel-page--home .mel-spotlight-editorial__story--lead .mel-event-card__social.mel-event-card__going,
-.mel-page--home .mel-spotlight-editorial__story--lead .mel-event-card__going--prominent {
-  font-size: clamp(1rem, 1.8vw, 1.125rem);
-  font-weight: 800;
 }
 
 // Poster emotional design — homepage discovery rails.

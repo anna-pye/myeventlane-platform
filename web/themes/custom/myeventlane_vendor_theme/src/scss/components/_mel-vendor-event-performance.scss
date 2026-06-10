@@ -29,7 +29,6 @@ $font-family-main: $font-family-sans;
 }
 
 .mel-vendor-event-performance__table-wrap {
-  display: none;
   overflow-x: auto;
   background: #fff;
   border-radius: $radius-medium;
@@ -81,70 +80,5 @@ $font-family-main: $font-family-sans;
   &:focus-visible {
     color: $color-accent;
     text-decoration: underline;
-  }
-}
-
-.mel-vendor-event-performance__cards {
-  display: grid;
-  gap: $spacing-4;
-}
-
-.mel-vendor-event-performance__card {
-  display: grid;
-  gap: $spacing-3;
-  padding: $spacing-xl;
-  background: #fff;
-  border-radius: $radius-medium;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-}
-
-.mel-vendor-event-performance__card-title {
-  margin: 0;
-  font-family: $font-family-main;
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  color: $ml-vendor-navy;
-}
-
-.mel-vendor-event-performance__card-metrics {
-  display: grid;
-  gap: $spacing-2;
-  margin: 0;
-}
-
-.mel-vendor-event-performance__card-metric {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: $spacing-4;
-  min-height: 44px;
-
-  dt {
-    margin: 0;
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    font-weight: $font-weight-medium;
-  }
-
-  dd {
-    margin: 0;
-    font-size: $font-size-base;
-    font-weight: $font-weight-semibold;
-    color: $ml-vendor-navy;
-  }
-}
-
-@include respond-to(md) {
-  .mel-vendor-event-performance__table-wrap {
-    display: block;
-  }
-
-  .mel-vendor-event-performance__cards {
-    display: none;
   }
 }

@@ -10,3 +10,6 @@ dependencies:
   - drupal:taxonomy
   - drupal:views
   - commerce:commerce_store
+  - myeventlane_core:myeventlane_core
+  - myeventlane_event:myeventlane_event
+  - myeventlane_front:myeventlane_front

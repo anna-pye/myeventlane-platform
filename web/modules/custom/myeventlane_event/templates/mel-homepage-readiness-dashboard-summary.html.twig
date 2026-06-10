@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Vendor dashboard summary for boosted event homepage readiness.
+ */
+#}
+<section
+  class="mel-homepage-readiness mel-homepage-readiness--dashboard{% if needs_attention_count|default(0) == 0 %} is-ready{% else %} needs-attention{% endif %}"
+  aria-labelledby="mel-homepage-readiness-dashboard-title"
+  role="region"
+>
+  <h2 id="mel-homepage-readiness-dashboard-title" class="mel-homepage-readiness__title">
+    {{ heading|default('Homepage Readiness'|t) }}
+  </h2>
+  <dl class="mel-homepage-readiness__stats">
+    <div class="mel-homepage-readiness__stat">
+      <dt>{{ 'Boosted events'|t }}</dt>
+      <dd>{{ total_boosted|default(0) }}</dd>
+    </div>
+    <div class="mel-homepage-readiness__stat">
+      <dt>{{ 'Ready'|t }}</dt>
+      <dd>{{ ready_count|default(0) }}</dd>
+    </div>
+    <div class="mel-homepage-readiness__stat">
+      <dt>{{ 'Needs attention'|t }}</dt>
+      <dd>{{ needs_attention_count|default(0) }}</dd>
+    </div>
+  </dl>
+  {% if status_label|default('') %}
+    <p class="mel-homepage-readiness__status">{{ status_label }}</p>
+  {% endif %}
+</section>

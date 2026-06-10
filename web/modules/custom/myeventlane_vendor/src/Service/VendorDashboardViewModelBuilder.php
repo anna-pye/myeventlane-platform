@@ -14,8 +14,12 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_boost\Service\BoostMetricsService;
+use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
+use Drupal\myeventlane_front\Service\HomepageVisibilityReportService;
 use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\myeventlane_surface\MelDataPresentationManager;
 use Drupal\myeventlane_core\MelReadinessHelper;
@@ -57,7 +61,11 @@ final class VendorDashboardViewModelBuilder {
     private readonly MelReadinessHelper $readinessHelper,
     private readonly MelDataPresentationManager $dataPresentationManager,
     private readonly BoostStatusService $boostStatusService,
+    private readonly BoostManager $boostManager,
+    private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
     private readonly ?DomainDetector $domainDetector = NULL,
+    private readonly ?HomepageVisibilityReportService $homepageVisibilityReport = NULL,
+    private readonly ?BoostMetricsService $boostMetricsService = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -150,6 +158,7 @@ final class VendorDashboardViewModelBuilder {
     $model['upcoming_events'] = $this->buildUpcomingEvents($events);
     $model['activity_items'] = $this->buildActivityItems($events, $readiness);
     $model['hero_shell_hint'] = $this->heroShellHint($model);
+    $model['homepage_visibility'] = $this->buildHomepageVisibilityReport($vendor, $account);
 
     return $model;
   }
@@ -198,7 +207,166 @@ final class VendorDashboardViewModelBuilder {
       ],
       'hero_shell_hint' => $this->readinessHelper->vendorHeroShellLaunchHint(),
       'empty_state' => $this->buildEmptyState($account, TRUE),
+      'homepage_visibility' => NULL,
     ];
+  }
+
+  /**
+   * Render array for the homepage readiness summary panel on the dashboard.
+   *
+   * Kept separate from the view model so nested #theme arrays are not stored
+   * alongside plain visibility DTO rows (which can break Renderer::render()).
+   *
+   * @return array<string, mixed>|null
+   */
+  public function buildHomepageReadinessPanel(?Vendor $vendor, AccountInterface $account): ?array {
+    return $this->buildHomepageReadinessSummary($vendor, $account);
+  }
+
+  /**
+   * Summary card for active boosted events and homepage readiness counts.
+   *
+   * @return array<string, mixed>|null
+   */
+  private function buildHomepageReadinessSummary(?Vendor $vendor, AccountInterface $account): ?array {
+    $boosted_events = $this->loadBoostedEventsForVendor($vendor, $account);
+    if ($boosted_events === []) {
+      return NULL;
+    }
+
+    return $this->homepageReadinessRender->buildDashboardSummary($boosted_events);
+  }
+
+  /**
+   * Read-only homepage placement report for boosted events.
+   *
+   * @return array<string, mixed>|null
+   */
+  private function buildHomepageVisibilityReport(?Vendor $vendor, AccountInterface $account): ?array {
+    if ($this->homepageVisibilityReport === NULL) {
+      return NULL;
+    }
+
+    $boosted_events = $this->loadBoostedEventsForVendor($vendor, $account);
+    if ($boosted_events === []) {
+      return NULL;
+    }
+
+    $rows = $this->homepageVisibilityReport->buildReport($boosted_events);
+    if ($rows === []) {
+      return NULL;
+    }
+
+    $readiness = $this->homepageVisibilityReport->buildReadinessSummary($boosted_events);
+    $boostEngagement = $this->buildHomepageBoostEngagementSummary($boosted_events) ?? [];
+    $surfaceClicks = $this->homepageVisibilityReport->buildSurfaceClickSummary($boosted_events);
+    $anyBoosted = FALSE;
+    foreach ($boosted_events as $event) {
+      if ($event->hasField('field_promoted')
+        && !(bool) $event->get('field_promoted')->isEmpty()
+        && (bool) $event->get('field_promoted')->value) {
+        $anyBoosted = TRUE;
+        break;
+      }
+    }
+
+    return [
+      'heading' => (string) $this->t('Homepage Visibility'),
+      'intro' => (string) $this->t('Where your boosted events appear on the MyEventLane homepage today.'),
+      'summary' => [
+        'surfaces' => $this->homepageVisibilityReport->buildSurfaceSummary($boosted_events),
+        'boost_active' => $anyBoosted,
+        'boost_label' => $anyBoosted
+          ? (string) $this->t('Active')
+          : (string) $this->t('Not active'),
+        'promotion_ready_label' => $readiness['label'],
+        'promotion_ready' => $readiness['ready'],
+        'homepage_impressions' => $boostEngagement['impressions'] ?? NULL,
+        'homepage_clicks' => $boostEngagement['clicks'] ?? NULL,
+        'homepage_impressions_label' => $boostEngagement['impressions_label'] ?? NULL,
+        'homepage_clicks_label' => $boostEngagement['clicks_label'] ?? NULL,
+        'surface_clicks' => $surfaceClicks,
+      ],
+      'rows' => $rows,
+    ];
+  }
+
+  /**
+   * Aggregates homepage boost impressions/clicks for boosted events.
+   *
+   * @param list<NodeInterface> $events
+   *
+   * @return array{
+   *   impressions?: int,
+   *   clicks?: int,
+   *   impressions_label?: string,
+   *   clicks_label?: string,
+   * }|null
+   */
+  private function buildHomepageBoostEngagementSummary(array $events): ?array {
+    if ($this->boostMetricsService === NULL) {
+      return NULL;
+    }
+
+    $impressions = 0;
+    $clicks = 0;
+    foreach ($events as $event) {
+      if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+        continue;
+      }
+      $metrics = $this->boostMetricsService->getEventBoostMetrics($event);
+      foreach ($metrics['placements'] ?? [] as $placement) {
+        $key = (string) ($placement['placement'] ?? '');
+        if ($key === '' || !str_starts_with($key, 'homepage_')) {
+          continue;
+        }
+        $impressions += (int) ($placement['impressions'] ?? 0);
+        $clicks += (int) ($placement['clicks'] ?? 0);
+      }
+    }
+
+    if ($impressions <= 0 && $clicks <= 0) {
+      return NULL;
+    }
+
+    return [
+      'impressions' => $impressions,
+      'clicks' => $clicks,
+      'impressions_label' => (string) $this->formatPlural($impressions, '1 impression', '@count impressions'),
+      'clicks_label' => (string) $this->formatPlural($clicks, '1 click', '@count clicks'),
+    ];
+  }
+
+  /**
+   * @return list<NodeInterface>
+   */
+  private function loadBoostedEventsForVendor(?Vendor $vendor, AccountInterface $account): array {
+    if (!$vendor instanceof Vendor) {
+      return [];
+    }
+
+    $store = NULL;
+    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $candidate = $vendor->get('field_vendor_store')->entity;
+      if ($candidate instanceof StoreInterface) {
+        $store = $candidate;
+      }
+    }
+
+    try {
+      return $this->boostManager->getActiveBoostedEventsForStore($store, [
+        'published_only' => TRUE,
+        'access_check' => TRUE,
+        'limit' => 100,
+      ]);
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Homepage merchandising data failed for uid @uid: @message', [
+        '@uid' => (string) $account->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
   }
 
   /**

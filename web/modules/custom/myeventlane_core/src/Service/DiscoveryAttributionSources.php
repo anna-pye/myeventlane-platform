@@ -19,11 +19,14 @@ final class DiscoveryAttributionSources {
   public const SOURCE_RELATED_EVENTS = 'related_events';
   public const SOURCE_VENDOR_PROFILE = 'vendor_profile';
 
+  public const SOURCE_HOMEPAGE_DISCOVER = 'homepage_discover';
+
   /**
    * @var list<string>
    */
   private const ALLOWED = [
     self::SOURCE_HOMEPAGE_FEATURED,
+    self::SOURCE_HOMEPAGE_DISCOVER,
     self::SOURCE_HOMEPAGE_TONIGHT,
     self::SOURCE_HOMEPAGE_FREE,
     self::SOURCE_HOMEPAGE_RECOMMENDED,
@@ -40,6 +43,7 @@ final class DiscoveryAttributionSources {
   private const VIEW_DISPLAY_MAP = [
     'front_featured_events:block_featured' => self::SOURCE_HOMEPAGE_FEATURED,
     'front_featured_events:block_hero' => self::SOURCE_HOMEPAGE_FEATURED,
+    'mel_home_events:embed_discover' => self::SOURCE_HOMEPAGE_DISCOVER,
     'upcoming_events:homepage_tonight' => self::SOURCE_HOMEPAGE_TONIGHT,
     'mel_home_events:under_20' => self::SOURCE_HOMEPAGE_FREE,
     'front_recommended_events:block_1' => self::SOURCE_HOMEPAGE_RECOMMENDED,
