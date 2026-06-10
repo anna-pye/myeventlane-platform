@@ -82,6 +82,11 @@ final class HomepageMerchandising {
   /**
    * @var list<int>|null
    */
+  private ?array $communitySpotlightEventIds = NULL;
+
+  /**
+   * @var list<int>|null
+   */
   private ?array $moreToDiscoverEventIds = NULL;
 
   /**
@@ -295,6 +300,21 @@ final class HomepageMerchandising {
     $fromView = $this->executeViewResultNids('front_featured_events', 'block_featured');
     $this->featuredBlockEventIds = $fromView !== [] ? $fromView : $this->getSpotlightEventIds();
     return $this->featuredBlockEventIds;
+  }
+
+  /**
+   * Community Spotlight editorial events (block_featured rows 0–2).
+   *
+   * @return list<int>
+   */
+  public function getCommunitySpotlightEventIds(): array {
+    if ($this->communitySpotlightEventIds !== NULL) {
+      return $this->communitySpotlightEventIds;
+    }
+
+    $featured = $this->getFeaturedBlockEventIds();
+    $this->communitySpotlightEventIds = array_values(array_slice($featured, 0, 3));
+    return $this->communitySpotlightEventIds;
   }
 
   /**
