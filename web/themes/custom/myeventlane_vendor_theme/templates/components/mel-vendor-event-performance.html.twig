@@ -1,96 +1,94 @@
 {#
 /**
  * @file
- * Vendor dashboard event performance table (Stage 2 + Stage 3 conversion).
+ * Vendor dashboard event performance — top cards + collapsed full table.
  *
  * No calculations in Twig — all values pre-formatted in PHP.
  */
 #}
 {% set rows = event_performance|default([]) %}
-<section class="mel-vendor-event-performance" aria-labelledby="mel-vendor-event-performance-title">
-  <h2 id="mel-vendor-event-performance-title" class="mel-vendor-event-performance__title">{{ 'Event Performance'|t }}</h2>
+{% set top_rows = top_events|default(rows|slice(0, 3)) %}
+<section class="mel-vendor-event-performance mel-vendor-dashboard__event-performance" aria-labelledby="mel-vendor-event-performance-title">
+  <h2 id="mel-vendor-event-performance-title" class="mel-vendor-event-performance__title">{{ 'Top performing events'|t }}</h2>
 
-  {% if rows is iterable and rows|length > 0 %}
-    <div class="mel-vendor-event-performance__table-wrap">
-      <table class="mel-vendor-event-performance__table">
-        <thead>
-          <tr>
-            <th scope="col">{{ 'Event'|t }}</th>
-            <th scope="col">{{ 'Views'|t }}</th>
-            <th scope="col">{{ 'RSVPs'|t }}</th>
-            <th scope="col">{{ 'Tickets Sold'|t }}</th>
-            <th scope="col">{{ 'Revenue (All Time)'|t }}</th>
-            <th scope="col">{{ 'RSVP Conv %'|t }}</th>
-            <th scope="col">{{ 'Ticket Conv %'|t }}</th>
-            <th scope="col">{{ 'Boost CTR'|t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-            <tr class="mel-vendor-event-performance__row">
-              <th scope="row" class="mel-vendor-event-performance__event">
-                {% if row.url %}
-                  <a class="mel-vendor-event-performance__event-link" href="{{ row.url }}">{{ row.title }}</a>
-                {% else %}
-                  {{ row.title }}
-                {% endif %}
-              </th>
-              <td class="mel-vendor-event-performance__numeric">{{ row.views|default(0) }}</td>
-              <td class="mel-vendor-event-performance__numeric">{{ row.rsvps|default(0) }}</td>
-              <td class="mel-vendor-event-performance__numeric">{{ row.tickets_sold|default(0) }}</td>
-              <td>{{ row.revenue|default('$0.00') }}</td>
-              <td class="mel-vendor-event-performance__numeric">{{ row.rsvp_conv|default('—') }}</td>
-              <td class="mel-vendor-event-performance__numeric">{{ row.ticket_conv|default('—') }}</td>
-              <td class="mel-vendor-event-performance__numeric">{{ row.boost_ctr|default('—') }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="mel-vendor-event-performance__cards" role="list">
-      {% for row in rows %}
-        <article class="mel-vendor-event-performance__card" role="listitem" aria-label="{{ row.title }}">
-          <h3 class="mel-vendor-event-performance__card-title">
-            {% if row.url %}
-              <a class="mel-vendor-event-performance__event-link" href="{{ row.url }}">{{ row.title }}</a>
-            {% else %}
-              {{ row.title }}
+  {% if top_rows is iterable and top_rows|length > 0 %}
+    <div class="mel-vendor-dashboard__analytics-top-events" role="list" aria-label="{{ 'Top performing events'|t }}">
+      {% for row in top_rows %}
+        <article class="mel-vendor-dashboard__analytics-top-event" role="listitem">
+          <header class="mel-vendor-dashboard__analytics-top-event-head">
+            <h3 class="mel-vendor-dashboard__analytics-top-event-title">{{ row.title|default('') }}</h3>
+            {% if row.boost_ctr|default('') != '—' %}
+              <span class="mel-vendor-dashboard__analytics-top-event-boost">{{ 'Boost CTR @rate'|t({'@rate': row.boost_ctr}) }}</span>
             {% endif %}
-          </h3>
-          <dl class="mel-vendor-event-performance__card-metrics">
-            <div class="mel-vendor-event-performance__card-metric">
+          </header>
+          <dl class="mel-vendor-dashboard__analytics-top-event-meta">
+            <div>
               <dt>{{ 'Views'|t }}</dt>
               <dd>{{ row.views|default(0) }}</dd>
             </div>
-            <div class="mel-vendor-event-performance__card-metric">
-              <dt>{{ 'RSVPs'|t }}</dt>
-              <dd>{{ row.rsvps|default(0) }}</dd>
+            <div>
+              <dt>{{ row.tickets_sold|default(0) > 0 ? 'Tickets sold'|t : 'RSVPs'|t }}</dt>
+              <dd>{{ row.tickets_sold|default(0) > 0 ? row.tickets_sold : row.rsvps|default(0) }}</dd>
             </div>
-            <div class="mel-vendor-event-performance__card-metric">
-              <dt>{{ 'Tickets'|t }}</dt>
-              <dd>{{ row.tickets_sold|default(0) }}</dd>
-            </div>
-            <div class="mel-vendor-event-performance__card-metric">
-              <dt>{{ 'Revenue (All Time)'|t }}</dt>
-              <dd>{{ row.revenue|default('$0.00') }}</dd>
-            </div>
-            <div class="mel-vendor-event-performance__card-metric">
-              <dt>{{ 'RSVP Conv %'|t }}</dt>
-              <dd>{{ row.rsvp_conv|default('—') }}</dd>
-            </div>
-            <div class="mel-vendor-event-performance__card-metric">
-              <dt>{{ 'Ticket Conv %'|t }}</dt>
-              <dd>{{ row.ticket_conv|default('—') }}</dd>
-            </div>
-            <div class="mel-vendor-event-performance__card-metric">
-              <dt>{{ 'Boost CTR'|t }}</dt>
-              <dd>{{ row.boost_ctr|default('—') }}</dd>
-            </div>
+            {% if row.revenue|default('$0.00') != '$0.00' %}
+              <div>
+                <dt>{{ 'Revenue'|t }}</dt>
+                <dd>{{ row.revenue }}</dd>
+              </div>
+            {% endif %}
           </dl>
+          {% if row.event_id|default(0) %}
+            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ path('myeventlane_event_studio.workspace_analytics', {'node': row.event_id}) }}">{{ 'View analytics'|t }} →</a>
+          {% elseif row.url %}
+            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ row.url }}">{{ 'View analytics'|t }} →</a>
+          {% endif %}
         </article>
       {% endfor %}
     </div>
+
+    {% if rows|length > 0 %}
+      <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--event-analytics-table">
+        <summary>{{ 'View full event analytics'|t }}</summary>
+        <div class="mel-vendor-dashboard__details-grid mel-vendor-dashboard__details-grid--single">
+          <div class="mel-vendor-event-performance__table-wrap">
+            <table class="mel-vendor-event-performance__table">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'Event'|t }}</th>
+                  <th scope="col">{{ 'Views'|t }}</th>
+                  <th scope="col">{{ 'RSVPs'|t }}</th>
+                  <th scope="col">{{ 'Tickets Sold'|t }}</th>
+                  <th scope="col">{{ 'Revenue (All Time)'|t }}</th>
+                  <th scope="col">{{ 'RSVP Conv %'|t }}</th>
+                  <th scope="col">{{ 'Ticket Conv %'|t }}</th>
+                  <th scope="col">{{ 'Boost CTR'|t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in rows %}
+                  <tr class="mel-vendor-event-performance__row">
+                    <th scope="row" class="mel-vendor-event-performance__event">
+                      {% if row.url %}
+                        <a class="mel-vendor-event-performance__event-link" href="{{ row.url }}">{{ row.title }}</a>
+                      {% else %}
+                        {{ row.title }}
+                      {% endif %}
+                    </th>
+                    <td class="mel-vendor-event-performance__numeric">{{ row.views|default(0) }}</td>
+                    <td class="mel-vendor-event-performance__numeric">{{ row.rsvps|default(0) }}</td>
+                    <td class="mel-vendor-event-performance__numeric">{{ row.tickets_sold|default(0) }}</td>
+                    <td>{{ row.revenue|default('$0.00') }}</td>
+                    <td class="mel-vendor-event-performance__numeric">{{ row.rsvp_conv|default('—') }}</td>
+                    <td class="mel-vendor-event-performance__numeric">{{ row.ticket_conv|default('—') }}</td>
+                    <td class="mel-vendor-event-performance__numeric">{{ row.boost_ctr|default('—') }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+    {% endif %}
   {% else %}
     <div class="mel-empty-state mel-empty-state--compact">
       <p class="mel-empty-state__text">{{ 'No event performance data available yet. Create your first event to start collecting insights.'|t }}</p>

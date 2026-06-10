@@ -396,6 +396,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     $pageVars = [
       'vendor_dashboard_view_model' => $this->dashboardViewModelBuilder->build($this->currentUser),
+      'homepage_readiness' => $this->dashboardViewModelBuilder->buildHomepageReadinessPanel($vendor, $this->currentUser),
       'vendor' => $vendor,
       'vendor_edit_url' => $vendorEditUrl,
       'ai_usage_panel' => $aiUsagePanel,

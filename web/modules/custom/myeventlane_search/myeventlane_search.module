@@ -34,6 +34,7 @@ function myeventlane_search_theme($existing, $type, $theme, $path): array {
         'query' => '',
         'groups' => [],
         'empty' => TRUE,
+        'fallback' => [],
       ],
       'template' => 'myeventlane-search-results',
     ],

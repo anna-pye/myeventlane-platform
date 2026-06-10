@@ -27,3 +27,17 @@ services:
     class: Drupal\myeventlane_front\Service\HomepageMerchandisingQueryAlter
     arguments:
       - '@myeventlane_front.homepage_merchandising'
+
+  myeventlane_front.homepage_rail_diversity:
+    class: Drupal\myeventlane_front\Service\HomepageRailDiversityFilter
+    arguments:
+      - '@myeventlane_front.homepage_merchandising'
+
+  myeventlane_front.homepage_visibility_report:
+    class: Drupal\myeventlane_front\Service\HomepageVisibilityReportService
+    arguments:
+      - '@myeventlane_front.homepage_merchandising'
+      - '@myeventlane_event.featured_readiness'
+      - '@string_translation'
+      - '@?myeventlane_domain_events.read_model.event_metrics'
+      - '@?myeventlane_core.discovery_surface_analytics'

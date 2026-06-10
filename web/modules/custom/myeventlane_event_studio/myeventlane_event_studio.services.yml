@@ -16,6 +16,7 @@ services:
       - '@myeventlane_core.domain_detector'
       - '@myeventlane_event_studio.preprocess'
       - '@myeventlane_vendor.service.boost_status'
+      - '@myeventlane_event.featured_readiness_render'
     tags:
       - { name: controller.service_arguments }
 
@@ -197,6 +198,7 @@ services:
       - '@?myeventlane_surface.observability_diagnostics_access'
       - '@?myeventlane_surface.resolver'
       - '@?myeventlane_surface.governance_presentation_sanitizer'
+      - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
 
   myeventlane_event_studio.governance_component_builder:
@@ -411,6 +413,15 @@ services:
       - '@myeventlane_vendor.publish_requirements_gate'
       - '@myeventlane_vendor.paid_publish_stripe_gate'
       - '@myeventlane_event_studio.question_template_manager'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@string_translation'
+
+  myeventlane_event_studio.readiness_facade:
+    class: Drupal\myeventlane_event_studio\Service\EventReadinessFacade
+    arguments:
+      - '@myeventlane_event_studio.readiness'
+      - '@myeventlane_event.featured_readiness'
+      - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
 
   myeventlane_event_studio.autosave:

@@ -18,10 +18,11 @@ Swiper.use([Navigation, Keyboard]);
  */
 function getNavigationElements(carousel) {
   const shell = carousel.closest('.mel-card-carousel-shell');
-  const root = shell || carousel;
+  const rotator = carousel.closest('[data-mel-spotlight-rotator]');
+  const root = shell || rotator || carousel;
   return {
-    nextEl: root.querySelector('.swiper-button-next'),
-    prevEl: root.querySelector('.swiper-button-prev'),
+    nextEl: root.querySelector('[data-mel-carousel-next]'),
+    prevEl: root.querySelector('[data-mel-carousel-prev]'),
   };
 }
 
@@ -43,10 +44,77 @@ function createCarousel(carousel, options) {
 }
 
 /**
+ * Lightweight Community Spotlight rotator — one editorial group visible at a time.
+ *
+ * @param {Document|Element} context
+ */
+function initSpotlightRotators(context) {
+  const root = context && context.querySelectorAll ? context : document;
+
+  root.querySelectorAll('[data-mel-spotlight-rotator]').forEach((rotator) => {
+    if (rotator.dataset.melSpotlightInit === '1') {
+      return;
+    }
+    rotator.dataset.melSpotlightInit = '1';
+
+    const slides = Array.from(rotator.querySelectorAll('.mel-spotlight-rotator__slide'));
+    const prevBtn = rotator.querySelector('[data-mel-carousel-prev]');
+    const nextBtn = rotator.querySelector('[data-mel-carousel-next]');
+    if (slides.length <= 1) {
+      prevBtn?.setAttribute('hidden', '');
+      nextBtn?.setAttribute('hidden', '');
+      return;
+    }
+
+    let activeIndex = slides.findIndex((slide) => slide.classList.contains('is-active'));
+    if (activeIndex < 0) {
+      activeIndex = 0;
+    }
+
+    const setActive = (index) => {
+      activeIndex = (index + slides.length) % slides.length;
+      slides.forEach((slide, i) => {
+        const isActive = i === activeIndex;
+        slide.classList.toggle('is-active', isActive);
+        slide.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+      });
+    };
+
+    prevBtn?.addEventListener('click', () => setActive(activeIndex - 1));
+    nextBtn?.addEventListener('click', () => setActive(activeIndex + 1));
+
+    rotator.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setActive(activeIndex - 1);
+      }
+      else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setActive(activeIndex + 1);
+      }
+    });
+
+    let touchStartX = 0;
+    rotator.addEventListener('touchstart', (event) => {
+      touchStartX = event.changedTouches[0]?.screenX ?? 0;
+    }, { passive: true });
+    rotator.addEventListener('touchend', (event) => {
+      const touchEndX = event.changedTouches[0]?.screenX ?? 0;
+      const delta = touchEndX - touchStartX;
+      if (Math.abs(delta) >= 40) {
+        setActive(activeIndex + (delta < 0 ? 1 : -1));
+      }
+    }, { passive: true });
+  });
+}
+
+/**
  * @param {Document|Element} context
  */
 function initMelCardCarousels(context) {
   const root = context && context.querySelectorAll ? context : document;
+
+  initSpotlightRotators(root);
 
   root.querySelectorAll('.mel-card-carousel--spotlight').forEach((carousel) => {
     const nav = getNavigationElements(carousel);
@@ -124,8 +192,12 @@ if (typeof Drupal !== 'undefined' && Drupal.behaviors) {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => initMelCardCarousels(document));
+  document.addEventListener('DOMContentLoaded', () => {
+    initSpotlightRotators(document);
+    initMelCardCarousels(document);
+  });
 }
 else {
+  initSpotlightRotators(document);
   initMelCardCarousels(document);
 }

@@ -222,62 +222,61 @@
   }
 }
 
-// Calendar date badge — day/month from EventCardViewModel (card_day / card_month).
-.mel-event-card__date-badge {
+// Canonical floating date pill — single source of truth for all event card variants.
+.mel-event-card__date-pill {
   position: absolute;
-  top: mel.$mel-ds-space-sm;
-  left: mel.$mel-ds-space-sm;
+  top: 12px;
+  left: 12px;
   z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  padding: mel.$mel-ds-space-xs mel.$mel-ds-space-sm;
-  border-radius: mel.$mel-ds-radius-sm;
-  background: color-mix(in srgb, #fff 94%, mel.$mel-ds-color-bg 6%);
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  min-height: 56px;
+  padding: 4px 6px;
+  border-radius: 16px;
+  background: #fff;
   color: mel.$mel-ds-color-text;
   text-align: center;
   line-height: 1.1;
   box-shadow: 0 2px 10px rgba(36, 48, 58, 0.14);
   pointer-events: none;
-
-  @supports (backdrop-filter: blur(1px)) {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
 }
 
-.mel-event-card__date-badge-day {
+.mel-event-card__date-pill-day {
   display: block;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1;
 }
 
-.mel-event-card__date-badge-month {
+.mel-event-card__date-pill-month {
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: color-mix(in srgb, mel.$mel-ds-color-text 72%, mel.$mel-ds-color-muted 28%);
+  line-height: 1;
 }
 
-.mel-event-card:has(.mel-event-card__date-badge) .mel-event-card__image-badge,
-.mel-event-card:has(.mel-event-card__date-badge) .mel-event-card__badge {
-  top: mel.$mel-ds-space-sm;
+.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__image-badge,
+.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__badge {
+  top: 12px;
   left: auto;
-  right: mel.$mel-ds-space-sm;
+  right: 12px;
 }
 
-.mel-event-card--hero:has(.mel-event-card__date-badge) .mel-event-card__date-badge,
-.mel-event-card--featured:has(.mel-event-card__date-badge) .mel-event-card__date-badge {
-  top: mel.$mel-ds-space-md;
-  right: mel.$mel-ds-space-md;
-  left: auto;
+.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__image-badge:not(.mel-event__category),
+.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__image .mel-event-card__image-badge:not(.mel-event__category) {
+  top: calc(12px + 56px + 4px);
+  left: 12px;
+  right: auto;
 }
 
 // Elevated price / RSVP label — fixed slot directly under title (non-hero cards).
@@ -791,6 +790,136 @@
 
 }
 
+// Hero feature-rotator dock — Community Spotlight section (lead, support, More to discover).
+@mixin mel-community-spotlight-hero-dock {
+  .mel-event-card__link {
+    color: #fff;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(8, 10, 14, 0.22) 0%, transparent 14%),
+        linear-gradient(
+          0deg,
+          rgba(8, 10, 14, 0.48) 0%,
+          rgba(8, 10, 14, 0.18) 12%,
+          rgba(8, 10, 14, 0.04) 20%,
+          transparent 28%
+        );
+    }
+  }
+
+  .mel-event-card__overlay {
+    display: none;
+  }
+
+  .mel-event-card__body,
+  .mel-event-card__content {
+    inset: auto 12px 12px;
+    right: auto;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    background: none;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
+  .mel-event-hero__glass {
+    width: 100%;
+    max-width: 100%;
+    padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.6vw, 14px);
+    gap: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: rgba(20, 24, 30, 0.18);
+    box-shadow: none;
+    color: #fff;
+
+    @supports (backdrop-filter: blur(1px)) {
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+  }
+
+  .mel-event-card__title {
+    color: #fff;
+    font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
+    font-weight: 800;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    text-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.45),
+      0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+
+  .mel-event-card__snapshot,
+  .mel-event-card__when,
+  .mel-event-card__date {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: clamp(0.75rem, 1vw, 0.8125rem);
+    font-weight: 600;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.32);
+  }
+
+  .mel-event-card__going--prominent,
+  .mel-event-card__social.mel-event-card__going {
+    color: #ffe8e3;
+    font-size: clamp(0.8125rem, 1.2vw, 0.9375rem);
+    font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+
+  .mel-event-card__state-chip--community {
+    background: color-mix(in srgb, #f26d5b 24%, transparent);
+    color: #ffe8e3;
+  }
+
+  .mel-event-card__state-chip--muted,
+  .mel-event-card__state-chip--urgency,
+  .mel-event-card__state-chip--tonight {
+    color: rgba(255, 255, 255, 0.88);
+    background: color-mix(in srgb, #fff 8%, transparent);
+  }
+
+  .mel-event-card__ticket-type-pill {
+    color: rgba(255, 255, 255, 0.92);
+    background: color-mix(in srgb, #fff 10%, transparent);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .mel-event-card__cta-chip {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: #f26d5b;
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    box-shadow: 0 12px 24px rgba(242, 109, 91, 0.32);
+  }
+
+  .mel-event-card__cta-chip--coral,
+  .mel-event-card__cta-chip--lavender {
+    background: #f26d5b;
+    color: #fff;
+  }
+
+  .mel-event-card__cta-chip--disabled {
+    background: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: none;
+  }
+}
+
 // --- Standard (image-led overlay — homepage grids use compact_commerce instead) ---
 .mel-event-card--standard {
   align-self: start;
@@ -1037,43 +1166,13 @@
     min-height: 0;
   }
 
-  .mel-event-card__date-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 34px;
-    padding: 6px 48px 6px 12px;
-    background: rgba(255, 255, 255, 0.76);
-    border-bottom: 0;
-    pointer-events: none;
-
-    @supports (backdrop-filter: blur(1px)) {
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-  }
-
-  .mel-event-card__date-bar-label {
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: mel.$mel-ds-color-text;
-    line-height: 1.2;
-  }
-
   .mel-event-card__save {
-    top: 0;
-    right: 0;
-    height: 34px;
+    top: 12px;
+    right: 12px;
+    height: auto;
     display: flex;
     align-items: center;
-    padding-right: 4px;
+    padding-right: 0;
     z-index: 7;
   }
 
@@ -1114,7 +1213,6 @@
     object-fit: cover;
   }
 
-  .mel-event-card__cta-row,
   .mel-event-card__price,
   .mel-event-card__price-slot,
   .mel-event-card__location-slot,
@@ -1123,6 +1221,10 @@
   .mel-event-card__capacity-hint,
   .mel-event-card__urgency {
     display: none;
+  }
+
+  .mel-event-card__cta-row {
+    margin-top: 6px;
   }
 
   .mel-event-card__body,
@@ -1138,20 +1240,6 @@
 
     > * {
       pointer-events: auto;
-    }
-  }
-
-  .mel-event-hero__glass {
-    border-radius: 14px;
-    padding: 8px 10px;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.84);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    box-shadow: 0 8px 24px rgba(36, 48, 58, 0.1);
-
-    @supports (backdrop-filter: blur(1px)) {
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
     }
   }
 
@@ -1260,6 +1348,86 @@
   }
 }
 
+// Community Spotlight section — hero dock on all spotlight cards (support + More to discover).
+.mel-page--home .mel-section--community-spotlight .mel-event-card--featured.mel-event-card--spotlight {
+  @include mel-community-spotlight-hero-dock;
+
+  &.mel-event-card--light-bg,
+  &.mel-event-card--dark-bg {
+    .mel-event-hero__glass {
+      background: rgba(20, 24, 30, 0.18);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .mel-event-card__title {
+      color: #fff;
+    }
+
+    .mel-event-card__snapshot,
+    .mel-event-card__when,
+    .mel-event-card__date,
+    .mel-event-card__social {
+      color: rgba(255, 255, 255, 0.92);
+    }
+  }
+}
+
+// Community Spotlight lead — larger hero dock sizing.
+.mel-spotlight-editorial__story--lead .mel-event-card--featured.mel-event-card--spotlight {
+  .mel-event-card__body,
+  .mel-event-card__content {
+    inset: auto clamp(18px, 3vw, 32px) clamp(18px, 3vw, 28px);
+  }
+
+  .mel-event-hero__glass {
+    width: max(min(320px, 100%), min(52%, 500px));
+    max-width: 500px;
+    padding: clamp(10px, 1.6vw, 14px) clamp(12px, 2vw, 16px);
+    gap: 6px;
+    border-radius: 20px;
+  }
+
+  .mel-event-card__title {
+    font-size: clamp(1.65rem, 2.6vw, 2.35rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    text-shadow:
+      0 2px 18px rgba(0, 0, 0, 0.55),
+      0 1px 4px rgba(0, 0, 0, 0.45);
+  }
+
+  .mel-event-card__snapshot,
+  .mel-event-card__when,
+  .mel-event-card__date {
+    font-size: clamp(0.92rem, 1.1vw, 1.05rem);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+  }
+
+  .mel-event-card__going--prominent,
+  .mel-event-card__social.mel-event-card__going {
+    font-size: clamp(1rem, 2vw, 1.125rem);
+  }
+
+  .mel-event-card__cta-chip {
+    min-height: 46px;
+    padding: 0 22px;
+    font-size: 0.95rem;
+    box-shadow: 0 16px 30px rgba(242, 109, 91, 0.35);
+  }
+
+  @media (width <= 767px) {
+    .mel-event-card__body,
+    .mel-event-card__content {
+      inset: auto 18px 18px;
+    }
+
+    .mel-event-card__title {
+      font-size: clamp(1.45rem, 6vw, 1.85rem);
+    }
+  }
+}
+
 .mel-grid--featured .mel-event-card--featured.mel-event-card--spotlight,
 .mel-event-grid.mel-grid--featured .mel-event-card--featured.mel-event-card--spotlight {
   box-shadow: var(--mel-shadow-1, #{mel.$mel-ds-shadow-soft});
@@ -1327,23 +1495,6 @@
     font-size: 10px;
     padding: 4px 8px;
     opacity: 1;
-  }
-
-  .mel-event-card__date-badge {
-    top: 8px;
-    left: 8px;
-    min-width: 40px;
-    min-height: 40px;
-    padding: 4px 6px;
-    border-radius: mel.$mel-ds-radius-sm;
-  }
-
-  .mel-event-card__date-badge-day {
-    font-size: 13px;
-  }
-
-  .mel-event-card__date-badge-month {
-    font-size: 10px;
   }
 
   .mel-event-card__price-slot {

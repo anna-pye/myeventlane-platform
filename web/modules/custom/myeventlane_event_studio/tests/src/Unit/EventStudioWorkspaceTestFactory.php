@@ -68,6 +68,7 @@ final class EventStudioWorkspaceTestFactory {
       (new ReflectionClass(VendorPublishRequirementsGate::class))->newInstanceWithoutConstructor(),
       (new ReflectionClass(PaidPublishStripeGate::class))->newInstanceWithoutConstructor(),
       $questionManager,
+      new TestLoggerChannel(),
       $translator,
     );
   }

@@ -1,41 +1,76 @@
 {#
 /**
  * @file
- * Community spotlight + boosted carousel — reuses mel-spotlight-editorial SCSS
- * and mel-card-carousel (Swiper) with teaser_featured spotlight cards.
+ * Community spotlight + Worth checking out carousel.
+ *
+ * Editorial groups rotate via mel-spotlight-rotator (one group visible at a time).
+ * Lower rail reuses mel-card-carousel (Swiper) for overflow boosted events.
  */
 #}
 {% if rows %}
   {{ attach_library('myeventlane_theme/global-styling') }}
-  {% if rows|length >= 3 %}
-    <div class="mel-spotlight-editorial">
-      <div class="mel-spotlight-editorial__feature">
-        <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--lead">
-          {{ rows[0].content }}
+  {% set row_count = rows|length %}
+
+  {% if row_count >= 1 %}
+    {% if row_count == 1 %}
+      <div class="mel-spotlight-editorial">
+        <div class="mel-spotlight-editorial__feature">
+          <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--lead">
+            {{ rows[0].content }}
+          </div>
         </div>
       </div>
-      <div class="mel-spotlight-editorial__supporting">
-        <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--support">
-          {{ rows[1].content }}
+    {% else %}
+      <section
+        class="mel-spotlight-rotator"
+        data-mel-spotlight-rotator
+        aria-roledescription="{{ 'carousel'|t }}"
+        aria-label="{{ 'Community spotlight'|t }}"
+        tabindex="0"
+      >
+        <div class="mel-spotlight-rotator__track">
+          {% for i in 0..(row_count - 1) %}
+            {% set support_1_index = (i + 1) % row_count %}
+            {% set support_2_index = (i + 2) % row_count %}
+            <div class="mel-spotlight-rotator__slide{% if loop.first %} is-active{% endif %}" aria-hidden="{{ loop.first ? 'false' : 'true' }}">
+              <div class="mel-spotlight-editorial">
+                <div class="mel-spotlight-editorial__feature">
+                  <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--lead">
+                    {{ rows[i].content }}
+                  </div>
+                </div>
+                {% if row_count >= 2 %}
+                  <div class="mel-spotlight-editorial__supporting">
+                    <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--support">
+                      {{ rows[support_1_index].content }}
+                    </div>
+                    {% if row_count >= 3 %}
+                      <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--support">
+                        {{ rows[support_2_index].content }}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
         </div>
-        <div class="mel-spotlight-editorial__story mel-spotlight-editorial__story--support">
-          {{ rows[2].content }}
-        </div>
-      </div>
-    </div>
+        {% include '@myeventlane_theme/components/card-carousel/carousel-nav.twig' only %}
+      </section>
+    {% endif %}
   {% endif %}
 
-  {% set carousel_rows = rows|length >= 3 ? rows|slice(3) : rows %}
+  {% set carousel_rows = row_count >= 3 ? rows|slice(3) : [] %}
   {% if carousel_rows %}
     {% set carousel_items = [] %}
     {% for row in carousel_rows %}
       {% set carousel_items = carousel_items|merge([row.content]) %}
     {% endfor %}
-    {% if rows|length >= 3 %}
+    {% if row_count >= 3 %}
       <div class="mel-spotlight-carousel__header mel-section__header">
         <div class="mel-section__intro">
-          <h2 class="mel-section__title">{{ 'Featured experiences'|t }}</h2>
-          <p class="mel-section__subtitle">{{ 'Standout picks from across the community'|t }}</p>
+          <h2 class="mel-section__title">{{ 'Worth checking out'|t }}</h2>
+          <p class="mel-section__subtitle">{{ 'More events our community is loving'|t }}</p>
         </div>
       </div>
     {% endif %}

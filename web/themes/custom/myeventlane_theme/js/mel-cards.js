@@ -49,8 +49,11 @@
   Drupal.behaviors.melCardBrightness = {
     attach: function (context) {
       once('melCardBrightness', '.mel-event-card', context).forEach(function (card) {
-        // Homepage hero editorial cards always use the dark full-bleed overlay treatment.
-        if (card.closest('.mel-home-hero__feature-rotator')) {
+        // Homepage hero + Community Spotlight — dark full-bleed overlay treatment.
+        if (
+          card.closest('.mel-home-hero__feature-rotator')
+          || card.closest('.mel-section--community-spotlight')
+        ) {
           card.classList.remove('mel-event-card--light-bg');
           card.classList.add('mel-event-card--dark-bg');
           return;

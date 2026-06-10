@@ -43,6 +43,22 @@ final class EventStudioGovernanceComponentControllerTest extends TestCase {
   /**
    * @covers ::render
    */
+  public function testMissingSurfaceServicesReturnDisabledGovernance(): void {
+    $controller = $this->controller(FALSE, authenticated: TRUE);
+    $node = $this->eventNode();
+
+    $response = $controller->render($node, 'state', Request::create('/test', 'POST'));
+    $data = json_decode((string) $response->getContent(), TRUE);
+
+    $this->assertSame(200, $response->getStatusCode());
+    $this->assertTrue($data['ok']);
+    $this->assertFalse($data['governance_enabled']);
+    $this->assertSame('', $data['html']);
+  }
+
+  /**
+   * @covers ::render
+   */
   public function testAnonymousComponentRefreshIsDenied(): void {
     $controller = $this->controller(TRUE);
     $node = $this->eventNode();
@@ -51,10 +67,14 @@ final class EventStudioGovernanceComponentControllerTest extends TestCase {
     $controller->render($node, 'state', Request::create('/test', 'POST'));
   }
 
-  private function controller(bool $anonymous): EventStudioGovernanceComponentController {
+  private function controller(bool $anonymous, bool $authenticated = FALSE): EventStudioGovernanceComponentController {
     $translator = $this->translator();
     $account = $this->createMock(AccountProxyInterface::class);
     $account->method('isAnonymous')->willReturn($anonymous);
+    if ($authenticated) {
+      $account->method('hasPermission')->with('administer nodes')->willReturn(TRUE);
+      $account->method('id')->willReturn('9');
+    }
 
     $governance_builder = new EventStudioGovernanceBuilder(
       NULL,
@@ -67,6 +87,7 @@ final class EventStudioGovernanceComponentControllerTest extends TestCase {
       NULL,
       NULL,
       NULL,
+      $this->createMock(LoggerInterface::class),
       $translator,
     );
 

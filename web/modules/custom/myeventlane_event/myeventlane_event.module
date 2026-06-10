@@ -95,6 +95,24 @@ function myeventlane_event_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-sidebar-carousel',
     ],
+    'mel_homepage_readiness_checklist' => [
+      'variables' => [
+        'presentation' => [],
+        'compact' => TRUE,
+        'show_spotlight_notice' => FALSE,
+      ],
+      'template' => 'mel-homepage-readiness-checklist',
+    ],
+    'mel_homepage_readiness_dashboard_summary' => [
+      'variables' => [
+        'heading' => '',
+        'total_boosted' => 0,
+        'ready_count' => 0,
+        'needs_attention_count' => 0,
+        'status_label' => '',
+      ],
+      'template' => 'mel-homepage-readiness-dashboard-summary',
+    ],
     'myeventlane_event_wizard_step' => [
       'variables' => [
         'title' => NULL,

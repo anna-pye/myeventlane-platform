@@ -50,3 +50,9 @@ door_checkin:
     - core/drupal
     - core/drupalSettings
     - core/once
+
+homepage_readiness:
+  version: 1.0
+  css:
+    component:
+      css/mel-homepage-readiness.css: {}

@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Canonical MEL carousel navigation — matches Community Spotlight controls.
+ *
+ * Variables:
+ * - nav_modifier: Optional BEM modifier class(es) on the nav wrapper.
+ */
+#}
+{% set nav_modifier = nav_modifier|default('') %}
+
+<div class="mel-carousel-nav{% if nav_modifier %} {{ nav_modifier }}{% endif %}">
+  <button type="button" class="mel-carousel-nav__prev" aria-label="{{ 'Previous events'|t }}" data-mel-carousel-prev>
+    <span class="visually-hidden">{{ 'Previous'|t }}</span>
+  </button>
+  <button type="button" class="mel-carousel-nav__next" aria-label="{{ 'Next events'|t }}" data-mel-carousel-next>
+    <span class="visually-hidden">{{ 'Next'|t }}</span>
+  </button>
+</div>

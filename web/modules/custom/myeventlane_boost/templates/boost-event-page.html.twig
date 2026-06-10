@@ -48,7 +48,6 @@
     {% endif %}
   </div>
 
-  {# Hero + benefits #}
   <section class="mel-boost-page__hero" aria-labelledby="mel-boost-hero-title">
     <div class="mel-boost-page__hero-content">
       <h1 id="mel-boost-hero-title" class="mel-boost-page__hero-title">{{ 'Boost your event visibility'|t }}</h1>
@@ -81,6 +80,12 @@
       </svg>
     </div>
   </section>
+
+  {% if homepage_readiness %}
+    <div class="mel-boost-page__readiness">
+      {{ homepage_readiness }}
+    </div>
+  {% endif %}
 
   <section class="mel-boost-page__benefits" aria-label="{{ 'Boost benefits'|t }}">
     <div class="mel-boost-page__benefits-col">

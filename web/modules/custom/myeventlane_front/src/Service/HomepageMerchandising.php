@@ -77,6 +77,21 @@ final class HomepageMerchandising {
   /**
    * @var list<int>|null
    */
+  private ?array $featuredBlockEventIds = NULL;
+
+  /**
+   * @var list<int>|null
+   */
+  private ?array $moreToDiscoverEventIds = NULL;
+
+  /**
+   * @var list<int>|null
+   */
+  private ?array $recommendedEventIds = NULL;
+
+  /**
+   * @var list<int>|null
+   */
   private ?array $ineligiblePromotedEventIds = NULL;
 
   public function __construct(
@@ -263,6 +278,54 @@ final class HomepageMerchandising {
 
     $this->latestEventIds = $this->executeViewResultNids('upcoming_events', 'homepage_latest');
     return $this->latestEventIds;
+  }
+
+  /**
+   * Featured block roster (front_featured_events:block_featured).
+   *
+   * Matches Community Spotlight + More to Discover source ordering.
+   *
+   * @return list<int>
+   */
+  public function getFeaturedBlockEventIds(): array {
+    if ($this->featuredBlockEventIds !== NULL) {
+      return $this->featuredBlockEventIds;
+    }
+
+    $fromView = $this->executeViewResultNids('front_featured_events', 'block_featured');
+    $this->featuredBlockEventIds = $fromView !== [] ? $fromView : $this->getSpotlightEventIds();
+    return $this->featuredBlockEventIds;
+  }
+
+  /**
+   * Overflow carousel events (block_featured rows from index 3).
+   *
+   * @return list<int>
+   */
+  public function getMoreToDiscoverEventIds(): array {
+    if ($this->moreToDiscoverEventIds !== NULL) {
+      return $this->moreToDiscoverEventIds;
+    }
+
+    $featured = $this->getFeaturedBlockEventIds();
+    $this->moreToDiscoverEventIds = count($featured) >= 3
+      ? array_values(array_slice($featured, 3))
+      : [];
+    return $this->moreToDiscoverEventIds;
+  }
+
+  /**
+   * Recommended events rail (front_recommended_events:block_1).
+   *
+   * @return list<int>
+   */
+  public function getRecommendedEventIds(): array {
+    if ($this->recommendedEventIds !== NULL) {
+      return $this->recommendedEventIds;
+    }
+
+    $this->recommendedEventIds = $this->executeViewResultNids('front_recommended_events', 'block_1');
+    return $this->recommendedEventIds;
   }
 
   /**

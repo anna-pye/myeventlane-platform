@@ -81,20 +81,12 @@
             {% set snapshot_modifiers = ['total', 'in', 'ready', 'capacity', 'remain'] %}
             <div class="mel-vendor-dashboard__metric-board mel-live-ops__metric-board" role="list" aria-label="{{ 'Business snapshot'|t }}">
               {% for def in snapshot_defs %}
-                {% set metric_value = '0' %}
                 {% if def.pool == 'overview' %}
-                  {% for item in organiser_overview %}
-                    {% if item.key|default('') == def.key %}
-                      {% set metric_value = item.value|default('0') %}
-                    {% endif %}
-                  {% endfor %}
+                  {% set snapshot_match = organiser_overview|filter(item => item.key|default('') == def.key)|first|default(null) %}
                 {% else %}
-                  {% for item in kpis %}
-                    {% if item.key|default('') == def.key %}
-                      {% set metric_value = item.value|default('0') %}
-                    {% endif %}
-                  {% endfor %}
+                  {% set snapshot_match = kpis|filter(item => item.key|default('') == def.key)|first|default(null) %}
                 {% endif %}
+                {% set metric_value = snapshot_match ? snapshot_match.value|default('0') : '0' %}
                 {% set stat_mod = snapshot_modifiers[loop.index0 % snapshot_modifiers|length] %}
                 <article class="mel-live-ops__stat-card mel-live-ops__stat-card--{{ stat_mod }} mel-vendor-dashboard__metric-card" role="listitem">
                   <span class="mel-live-ops__stat-value">{{ metric_value }}</span>

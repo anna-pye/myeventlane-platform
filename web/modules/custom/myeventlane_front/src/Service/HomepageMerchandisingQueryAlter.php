@@ -17,7 +17,7 @@ final class HomepageMerchandisingQueryAlter {
   ) {}
 
   /**
-   * Alters a View query when on the front page.
+   * Alters a View query for homepage merchandising and media quality gate.
    */
   public function alter(ViewExecutable $view, QueryPluginBase $query): void {
     $viewId = $view->id();
@@ -26,7 +26,9 @@ final class HomepageMerchandisingQueryAlter {
       return;
     }
 
-    if (!$this->merchandising->applies($viewId, $displayId)) {
+    $applyMerchandising = $this->merchandising->applies($viewId, $displayId);
+    $applyQualityGate = $this->merchandising->appliesQualityGate($viewId, $displayId);
+    if (!$applyMerchandising && !$applyQualityGate) {
       return;
     }
 
@@ -34,12 +36,15 @@ final class HomepageMerchandisingQueryAlter {
       return;
     }
 
-    $exclude = $this->merchandising->getExclusionNids($viewId, $displayId);
-    // Exclude promoted events that fail media quality on every homepage rail.
-    $exclude = array_values(array_unique([
-      ...$exclude,
-      ...$this->merchandising->getIneligiblePromotedNids(),
-    ]));
+    $exclude = $applyMerchandising
+      ? $this->merchandising->getExclusionNids($viewId, $displayId)
+      : [];
+    if ($applyMerchandising || $applyQualityGate) {
+      $exclude = array_values(array_unique([
+        ...$exclude,
+        ...$this->merchandising->getIneligiblePromotedNids(),
+      ]));
+    }
     if ($exclude === []) {
       return;
     }

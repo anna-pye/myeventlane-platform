@@ -33,6 +33,7 @@ final class EventCardViewModel {
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly FileSystemInterface $fileSystem,
     private readonly ?FlagServiceInterface $flagService,
+    private readonly EventMerchandisingPresenter $merchandisingPresenter,
   ) {}
 
   /**
@@ -73,6 +74,9 @@ final class EventCardViewModel {
    *   mel_category_label?: string|null,
    *   mel_category_url?: string|null,
    *   mel_category_slug?: string,
+   *   mel_social_proof_mode?: string,
+   *   mel_source?: string|null,
+   *   mel_tonight_urgency_label?: string|null,
    * } $context
    *   Values already resolved in node preprocess (module + theme).
    */
@@ -140,6 +144,21 @@ final class EventCardViewModel {
     $socialProofMode = (string) ($context['mel_social_proof_mode'] ?? 'auto');
     [$lowStock, $attendance] = $this->capacitySignals($node, $cacheability, $socialProofMode);
 
+    $capacityHint = trim(strip_tags((string) ($eventUi['capacity_hint'] ?? '')));
+    $merchandising = $this->merchandisingPresenter->present([
+      'layout' => $presentation['layout'],
+      'variant' => $presentation['variant'],
+      'attendance' => $attendance,
+      'is_sold_out' => !empty($eventUi['is_sold_out']),
+      'is_low_stock' => $lowStock,
+      'capacity_hint' => $capacityHint !== '' ? $capacityHint : NULL,
+      'is_promoted' => $isPromoted,
+      'price_label' => $badgeText,
+      'card_type' => $cardType,
+      'tonight_urgency_label' => $context['mel_tonight_urgency_label'] ?? NULL,
+      'mel_source' => $context['mel_source'] ?? NULL,
+    ]);
+
     $badges = [];
     if ($categoryLabel) {
       $badges[] = ['label' => $categoryLabel, 'type' => 'category'];
@@ -189,6 +208,8 @@ final class EventCardViewModel {
       'is_low_stock' => $lowStock,
       'attendance' => $attendance,
       'is_promoted' => $isPromoted,
+      'merchandising' => $merchandising,
+      'uses_placeholder_image' => $image['url'] === NULL || $image['url'] === '',
       '#cache' => [
         'tags' => $cacheability->getCacheTags(),
         'contexts' => $cacheability->getCacheContexts(),
@@ -217,6 +238,8 @@ final class EventCardViewModel {
       'mel_category_url' => $variables['mel_category_url'] ?? NULL,
       'mel_category_slug' => $variables['mel_category_slug'] ?? 'default',
       'mel_social_proof_mode' => $variables['mel_social_proof_mode'] ?? 'auto',
+      'mel_source' => $variables['mel_source'] ?? NULL,
+      'mel_tonight_urgency_label' => $variables['mel_tonight_urgency_label'] ?? NULL,
     ];
 
     $model = $this->build($node, $viewMode, $context);
@@ -259,6 +282,8 @@ final class EventCardViewModel {
     $variables['card_cta_label'] = $model['cta_label'];
     $variables['card_is_low_stock'] = $model['is_low_stock'];
     $variables['card_attendance'] = $model['attendance'];
+    $variables['card_merchandising'] = $model['merchandising'] ?? [];
+    $variables['card_uses_placeholder_image'] = !empty($model['uses_placeholder_image']);
     $variables['mel_social_proof_mode'] = $context['mel_social_proof_mode'] ?? 'auto';
     $variables['is_promoted'] = $model['is_promoted'];
     $variables['event_id'] = $model['event_id'];

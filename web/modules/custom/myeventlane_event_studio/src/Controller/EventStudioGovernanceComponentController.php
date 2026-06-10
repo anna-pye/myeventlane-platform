@@ -74,28 +74,44 @@ final class EventStudioGovernanceComponentController {
       }
     }
 
-    $governance_bundle = $this->governanceBuilder->buildForEvent($node);
-    if (empty($governance_bundle['enabled'])) {
+    try {
+      $governance_bundle = $this->governanceBuilder->buildForEvent($node);
+      if (empty($governance_bundle['enabled'])) {
+        $response = new JsonResponse([
+          'ok' => TRUE,
+          'governance_enabled' => FALSE,
+          'component' => $component,
+          'html' => '',
+        ]);
+        $response->headers->set('Cache-Control', 'private, no-store');
+        return $response;
+      }
+
+      $build = $this->componentBuilder->buildComponent($governance_bundle, $component);
+      $html = (string) $this->renderer->renderRoot($build);
       $response = new JsonResponse([
         'ok' => TRUE,
-        'governance_enabled' => FALSE,
+        'governance_enabled' => TRUE,
         'component' => $component,
-        'html' => '',
+        'html' => $html,
       ]);
       $response->headers->set('Cache-Control', 'private, no-store');
       return $response;
     }
-
-    $build = $this->componentBuilder->buildComponent($governance_bundle, $component);
-    $html = (string) $this->renderer->renderRoot($build);
-    $response = new JsonResponse([
-      'ok' => TRUE,
-      'governance_enabled' => TRUE,
-      'component' => $component,
-      'html' => $html,
-    ]);
-    $response->headers->set('Cache-Control', 'private, no-store');
-    return $response;
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio governance component refresh failed component=@component nid=@nid uid=@uid: @message', [
+        '@component' => $component,
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $response = new JsonResponse([
+        'ok' => FALSE,
+        'message' => 'Governance refresh failed. Try again shortly.',
+      ], 500);
+      $response->headers->set('Cache-Control', 'private, no-store');
+      return $response;
+    }
   }
 
 }

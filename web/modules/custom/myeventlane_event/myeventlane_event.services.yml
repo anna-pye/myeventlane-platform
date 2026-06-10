@@ -52,6 +52,23 @@ services:
       - '@config.factory'
       - '@focal_point.manager'
 
+  myeventlane_event.featured_readiness:
+    class: Drupal\myeventlane_event\Service\FeaturedEventReadinessService
+    arguments:
+      - '@myeventlane_event.boosted_quality_gate'
+      - '@string_translation'
+
+  myeventlane_event.featured_readiness_render:
+    class: Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder
+    arguments:
+      - '@myeventlane_event.featured_readiness'
+      - '@string_translation'
+
+  myeventlane_event.event_merchandising_presenter:
+    class: Drupal\myeventlane_event\EventCard\EventMerchandisingPresenter
+    arguments:
+      - '@string_translation'
+
   myeventlane_event.ticket_type_route_subscriber:
     class: Drupal\myeventlane_event\Routing\TicketTypeRouteSubscriber
     tags:
@@ -237,6 +254,7 @@ services:
       - '@file_url_generator'
       - '@file_system'
       - '@?flag'
+      - '@myeventlane_event.event_merchandising_presenter'
 
   cache_context.mel_discovery_view_display:
     class: Drupal\myeventlane_event\Cache\Context\MelDiscoveryViewDisplayCacheContext

@@ -21,6 +21,7 @@ use Drupal\myeventlane_core\MelSurfaceId;
 use Drupal\myeventlane_surface\MelWorkflowManager;
 use Drupal\myeventlane_surface\SurfaceResolver;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Single facade: gathers MEL governance payloads for Event Studio (no new orchestration).
@@ -42,6 +43,7 @@ final class EventStudioGovernanceBuilder {
     private readonly ?MelObservabilityDiagnosticsAccess $observabilityDiagnosticsAccess,
     private readonly ?SurfaceResolver $surfaceResolver,
     private readonly ?MelGovernancePresentationSanitizer $governancePresentationSanitizer,
+    private readonly LoggerInterface $logger,
     TranslationInterface $string_translation,
   ) {
     $this->stringTranslation = $string_translation;
@@ -147,15 +149,49 @@ final class EventStudioGovernanceBuilder {
    */
   public function buildForEvent(NodeInterface $event): array {
     if (!$this->isEnabled()) {
-      return [
-        'enabled' => FALSE,
-        'twig' => ['enabled' => FALSE],
-        'js' => ['enabled' => FALSE],
-        '#cache' => [
-          'contexts' => ['user', 'route'],
-          'tags' => $this->nodeCacheTags($event),
-        ],
-      ];
+      return $this->disabledBundle($event);
+    }
+
+    try {
+      return $this->buildEnabledBundle($event);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio governance build failed for event @nid: @message', [
+        '@nid' => (string) ($event->id() ?? 'new'),
+        '@message' => $e->getMessage(),
+      ]);
+      return $this->disabledBundle($event);
+    }
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function disabledBundle(NodeInterface $event): array {
+    return [
+      'enabled' => FALSE,
+      'twig' => ['enabled' => FALSE],
+      'js' => ['enabled' => FALSE],
+      '#cache' => [
+        'contexts' => ['user', 'route'],
+        'tags' => $this->nodeCacheTags($event),
+      ],
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildEnabledBundle(NodeInterface $event): array {
+    if (!$this->workflowManager instanceof MelWorkflowManager
+      || !$this->stateManager instanceof MelStateManager
+      || !$this->operationalPolicyManager instanceof MelOperationalPolicyManager
+      || !$this->experienceManager instanceof MelExperienceManager
+      || !$this->intelligenceManager instanceof MelIntelligenceManager
+      || !$this->observabilityManager instanceof MelObservabilityManager
+      || !$this->surfaceResolver instanceof SurfaceResolver
+      || !$this->governancePresentationSanitizer instanceof MelGovernancePresentationSanitizer) {
+      return $this->disabledBundle($event);
     }
 
     $workflow = $this->workflowManager->buildPageAttachments();

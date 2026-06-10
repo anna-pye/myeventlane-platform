@@ -1293,6 +1293,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         // Required: ThemeManager only forwards #keys listed here (see
         // \Drupal\Core\Theme\ThemeManager::render).
         'vendor_dashboard_view_model' => [],
+        'homepage_readiness' => NULL,
         'is_admin' => FALSE,
         'vendor_store_id' => NULL,
         'event_count' => 0,

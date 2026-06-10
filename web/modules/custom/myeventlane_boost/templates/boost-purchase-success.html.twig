@@ -54,6 +54,12 @@
       {% endif %}
     </dl>
 
+    {% if homepage_readiness %}
+      <div class="mel-boost-success__readiness">
+        {{ homepage_readiness }}
+      </div>
+    {% endif %}
+
     <div class="mel-boost-success__actions">
       {% if event_url %}
         <a href="{{ event_url }}" class="mel-btn mel-btn--primary">{{ 'View Event'|t }}</a>
