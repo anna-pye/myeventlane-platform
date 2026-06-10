@@ -179,6 +179,14 @@
   tbody tr:last-child td {
     border-bottom: none;
   }
+
+  &.mel-table--compact {
+    thead th,
+    tbody td,
+    tbody th {
+      padding: $spacing-2 $spacing-3;
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------
