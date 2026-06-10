@@ -10,9 +10,14 @@ use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_event_studio\Controller\EventStudioController;
+use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
+use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
+use Drupal\myeventlane_event_studio\EventStudioPreprocess;
 use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
+use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
+use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService;
 use Drupal\node\NodeInterface;
@@ -75,19 +80,11 @@ final class EventStudioWorkspaceFailureFallbackTest extends UnitTestCase {
     $logger = $this->createMock(LoggerInterface::class);
     $logger->expects($this->never())->method('error');
 
-    $controller = new EventStudioController(
-      $this->createMock(EntityTypeManagerInterface::class),
-      (new ReflectionClass(VendorEventStudioCreateService::class))->newInstanceWithoutConstructor(),
+    $controller = $this->createWorkspaceController(
+      $translator,
+      $createMock,
       $logger,
-      new \Symfony\Component\HttpFoundation\RequestStack(),
-      new EventVendorAccessChecker(),
-      $this->createMock(DateFormatterInterface::class),
-      EventStudioWorkspaceTestFactory::readinessService($translator, $createMock),
-      EventStudioWorkspaceTestFactory::autosaveService($createMock),
-      (new ReflectionClass(EventStudioSectionManager::class))->newInstanceWithoutConstructor(),
       EventStudioWorkspaceTestFactory::formAjaxThrowingSectionRenderer($translator, $createMock),
-      new EventStudioEmptyStateBuilder($translator),
-      EventStudioWorkspaceTestFactory::domainDetector($createMock),
     );
 
     $method = new ReflectionMethod(EventStudioController::class, 'buildWorkspaceSectionContent');
@@ -132,19 +129,11 @@ final class EventStudioWorkspaceFailureFallbackTest extends UnitTestCase {
         }),
       );
 
-    $controller = new EventStudioController(
-      $this->createMock(EntityTypeManagerInterface::class),
-      (new ReflectionClass(VendorEventStudioCreateService::class))->newInstanceWithoutConstructor(),
+    $controller = $this->createWorkspaceController(
+      $translator,
+      $createMock,
       $logger,
-      new \Symfony\Component\HttpFoundation\RequestStack(),
-      new EventVendorAccessChecker(),
-      $this->createMock(DateFormatterInterface::class),
-      EventStudioWorkspaceTestFactory::readinessService($translator, $createMock),
-      EventStudioWorkspaceTestFactory::autosaveService($createMock),
-      (new ReflectionClass(EventStudioSectionManager::class))->newInstanceWithoutConstructor(),
       EventStudioWorkspaceTestFactory::throwingSectionRenderer($translator, $createMock),
-      new EventStudioEmptyStateBuilder($translator),
-      EventStudioWorkspaceTestFactory::domainDetector($createMock),
     );
 
     $method = new ReflectionMethod(EventStudioController::class, 'buildWorkspaceSectionContent');
@@ -160,6 +149,36 @@ final class EventStudioWorkspaceFailureFallbackTest extends UnitTestCase {
     $this->assertSame('mel_event_studio_empty_state', $content['#theme']);
     $this->assertSame('unavailable', $content['#state']);
     $this->assertSame($sectionTitle, $content['#title']);
+  }
+
+  /**
+   * @param callable(class-string): object $createMock
+   */
+  private function createWorkspaceController(
+    TranslationInterface $translator,
+    callable $createMock,
+    LoggerInterface $logger,
+    EventStudioSectionRenderer $sectionRenderer,
+  ): EventStudioController {
+    return new EventStudioController(
+      $this->createMock(EntityTypeManagerInterface::class),
+      (new ReflectionClass(VendorEventStudioCreateService::class))->newInstanceWithoutConstructor(),
+      $logger,
+      new \Symfony\Component\HttpFoundation\RequestStack(),
+      new EventVendorAccessChecker(),
+      $this->createMock(DateFormatterInterface::class),
+      EventStudioWorkspaceTestFactory::readinessFacade($translator, $createMock),
+      EventStudioWorkspaceTestFactory::autosaveService($createMock),
+      (new ReflectionClass(EventStudioSectionManager::class))->newInstanceWithoutConstructor(),
+      $sectionRenderer,
+      new EventStudioEmptyStateBuilder($translator),
+      EventStudioWorkspaceTestFactory::domainDetector($createMock),
+      (new ReflectionClass(EventStudioPreprocess::class))->newInstanceWithoutConstructor(),
+      (new ReflectionClass(BoostStatusService::class))->newInstanceWithoutConstructor(),
+      (new ReflectionClass(FeaturedEventReadinessRenderBuilder::class))->newInstanceWithoutConstructor(),
+      (new ReflectionClass(EventStudioWorkspacePresentation::class))->newInstanceWithoutConstructor(),
+      NULL,
+    );
   }
 
   private function sectionPlugin(string $sectionId, string $renderTarget, string $title): EventStudioSectionInterface&MockObject {

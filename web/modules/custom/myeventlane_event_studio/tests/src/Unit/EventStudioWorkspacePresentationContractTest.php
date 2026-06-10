@@ -1,0 +1,160 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\myeventlane_event_studio\Unit;
+
+use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
+use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
+use Drupal\node\NodeInterface;
+use Drupal\Tests\UnitTestCase;
+
+/**
+ * Proves workspace surfaces share one presentation source per state.
+ *
+ * @group myeventlane_event_studio
+ */
+final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
+
+  private EventStudioWorkspacePresentation $presentation;
+
+  protected function setUp(): void {
+    parent::setUp();
+    $dateFormatter = $this->createMock(DateFormatterInterface::class);
+    $dateFormatter->method('format')->willReturn('10 Jun 2026 - 16:46');
+    $translator = $this->createMock(\Drupal\Core\StringTranslation\TranslationInterface::class);
+    $translator->method('translateString')->willReturnCallback(
+      static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
+    );
+    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $translator);
+  }
+
+  public function testStripAndAjaxPayloadShareReadinessSummaryFields(): void {
+    $node = $this->node(TRUE, 201);
+    $bundle = $this->bundle(
+      ready: TRUE,
+      promotion_ready: FALSE,
+      warnings: ['Review capacity'],
+    );
+
+    $summary = $this->presentation->buildReadinessSummary($bundle, $node);
+    $ajax = $this->presentation->buildAjaxReadinessPayloadFromBundle($bundle, $node);
+
+    $this->assertSame($summary['show_publish_strip'], $ajax['show_publish_strip']);
+    $this->assertSame($summary['strip_title'], $ajax['strip_title']);
+    $this->assertSame($summary['ready'], $ajax['ready']);
+    $this->assertSame($summary['state'], $ajax['state']);
+    $this->assertSame($summary['errors'], $ajax['errors']);
+    $this->assertSame($summary['warnings'], $ajax['warnings']);
+    $this->assertSame($summary['recommendations'], $ajax['recommendations']);
+  }
+
+  public function testEventHealthPublishRowUsesSamePublishResultAsStrip(): void {
+    $node = $this->node(FALSE, 202);
+    $bundle = $this->bundle(ready: FALSE, promotion_ready: FALSE, errors: ['Add title']);
+
+    $summary = $this->presentation->buildReadinessSummary($bundle, $node);
+    $health = $this->presentation->buildEventHealth($bundle, $node, NULL);
+
+    $this->assertSame('Needs Attention', $summary['state']);
+    $this->assertSame('Draft', $health['items'][0]['value']);
+    $this->assertSame('Needs attention', $health['items'][0]['detail']);
+    $this->assertSame('attention', $health['items'][0]['tone']);
+  }
+
+  public function testEventHealthPromotionUsesFacadePromotionPayload(): void {
+    $node = $this->node(TRUE, 203);
+    $bundle = $this->bundle(ready: TRUE, promotion_ready: TRUE);
+    $bundle['promotion']['status_label'] = 'Ready for homepage promotion';
+
+    $health = $this->presentation->buildEventHealth($bundle, $node, NULL);
+
+    $this->assertSame('Ready for homepage promotion', $health['items'][1]['value']);
+    $this->assertSame('ready', $health['items'][1]['tone']);
+  }
+
+  public function testAjaxPayloadIncludesHomepageVisibilityFlag(): void {
+    $published = $this->node(TRUE, 204);
+    $draft = $this->node(FALSE, 205);
+    $readyBundle = $this->bundle(ready: TRUE, promotion_ready: TRUE);
+    $issueBundle = $this->bundle(ready: TRUE, promotion_ready: FALSE);
+
+    $this->assertFalse(
+      $this->presentation->buildAjaxReadinessPayloadFromBundle($readyBundle, $published)['show_homepage_readiness'],
+    );
+    $this->assertTrue(
+      $this->presentation->buildAjaxReadinessPayloadFromBundle($issueBundle, $published)['show_homepage_readiness'],
+    );
+    $this->assertTrue(
+      $this->presentation->buildAjaxReadinessPayloadFromBundle($readyBundle, $draft)['show_homepage_readiness'],
+    );
+  }
+
+  public function testDegradedPromotionPayloadDoesNotBreakEventHealth(): void {
+    $node = $this->node(TRUE, 206);
+    $bundle = [
+      'publish' => EventReadinessResult::create(completed: ['Ready']),
+      'promotion' => [
+        'ready' => FALSE,
+        'items' => [],
+        'required' => [],
+        'recommended' => [],
+      ],
+      'recommended' => [],
+      'promotion_ready' => FALSE,
+    ];
+
+    $health = $this->presentation->buildEventHealth($bundle, $node, NULL);
+
+    $this->assertCount(3, $health['items']);
+    $this->assertSame('Needs attention before homepage promotion', $health['items'][1]['value']);
+    $this->assertSame('Not active', $health['items'][2]['value']);
+  }
+
+  public function testPublishControllerUsesFacadeBundleForAjaxPayload(): void {
+    $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $this->assertIsString($publish);
+    $this->assertStringContainsString('readinessFacade->evaluate', $publish);
+    $this->assertStringContainsString('buildAjaxReadinessPayloadFromBundle', $publish);
+    $this->assertStringContainsString('buildEventHealth($readiness_bundle', $publish);
+    $this->assertStringNotContainsString('buildAjaxReadinessPayload(', $publish);
+  }
+
+  public function testShellJsSyncsHomepageReadinessVisibility(): void {
+    $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
+    $this->assertIsString($js);
+    $this->assertStringContainsString('syncHomepageReadinessVisibility', $js);
+    $this->assertStringContainsString('show_homepage_readiness', $js);
+  }
+
+  /**
+   * @param list<string> $errors
+   * @param list<string> $warnings
+   *
+   * @return array<string, mixed>
+   */
+  private function bundle(bool $ready, bool $promotion_ready, array $errors = [], array $warnings = []): array {
+    return [
+      'publish' => EventReadinessResult::create($errors, $warnings, completed: $ready ? ['Ready'] : []),
+      'promotion' => [
+        'ready' => $promotion_ready,
+        'status_label' => $promotion_ready
+          ? 'Ready for homepage promotion'
+          : 'Needs attention before homepage promotion',
+        'short_status_label' => $promotion_ready ? 'Ready for homepage promotion' : 'Needs attention',
+      ],
+      'recommended' => ['Add banner image'],
+      'promotion_ready' => $promotion_ready,
+    ];
+  }
+
+  private function node(bool $published, int $nid): NodeInterface {
+    $node = $this->createMock(NodeInterface::class);
+    $node->method('isPublished')->willReturn($published);
+    $node->method('id')->willReturn($nid);
+    $node->method('getChangedTime')->willReturn(1710000000);
+    return $node;
+  }
+
+}

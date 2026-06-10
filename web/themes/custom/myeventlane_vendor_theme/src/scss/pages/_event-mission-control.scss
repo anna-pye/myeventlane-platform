@@ -18,6 +18,20 @@
     align-items: flex-start;
   }
 
+  &__hero-identity {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-4;
+    min-width: 0;
+  }
+
+  &__hero-copy {
+    display: grid;
+    gap: $spacing-2;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
   &__hero-actions .mel-live-ops__stack {
     @include respond-to(md) {
       align-items: flex-end;

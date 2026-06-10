@@ -10,6 +10,21 @@
   padding: 0.875rem 1rem;
 }
 
+.mel-homepage-readiness--summary-only {
+  padding: 0.75rem 1rem;
+}
+
+.mel-homepage-readiness--summary-only .mel-homepage-readiness__title {
+  margin-bottom: 0.25rem;
+  font-size: 0.9375rem;
+}
+
+.mel-homepage-readiness--summary-only .mel-homepage-readiness__intro,
+.mel-homepage-readiness--summary-only .mel-homepage-readiness__status {
+  margin-bottom: 0;
+  font-size: 0.875rem;
+}
+
 .mel-homepage-readiness.is-ready {
   border-color: #bbf7d0;
   background: #f0fdf4;

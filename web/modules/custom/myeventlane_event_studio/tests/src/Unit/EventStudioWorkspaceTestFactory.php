@@ -16,6 +16,8 @@ use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\TicketProductEventOwnershipService;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
+use Drupal\myeventlane_event\Service\FeaturedEventReadinessService;
+use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
@@ -68,6 +70,20 @@ final class EventStudioWorkspaceTestFactory {
       (new ReflectionClass(VendorPublishRequirementsGate::class))->newInstanceWithoutConstructor(),
       (new ReflectionClass(PaidPublishStripeGate::class))->newInstanceWithoutConstructor(),
       $questionManager,
+      new TestLoggerChannel(),
+      $translator,
+    );
+  }
+
+  /**
+   * @param callable(class-string): object $createMock
+   */
+  public static function readinessFacade(TranslationInterface $translator, callable $createMock): EventReadinessFacade {
+    $promotion = (new ReflectionClass(FeaturedEventReadinessService::class))->newInstanceWithoutConstructor();
+
+    return new EventReadinessFacade(
+      self::readinessService($translator, $createMock),
+      $promotion,
       new TestLoggerChannel(),
       $translator,
     );

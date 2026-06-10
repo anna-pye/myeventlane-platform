@@ -233,7 +233,7 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('Blank stock = unlimited. 0 = sold out. Positive numbers are enforced.', $builder);
     $this->assertStringContainsString('Limit per order is optional.', $builder);
     $this->assertStringContainsString('Product options', $builder);
-    $this->assertStringContainsString('Colour options can be added in the option label', $builder);
+    $this->assertStringContainsString('Colour options are coming soon.', $builder);
     $this->assertStringContainsString('buildProductOptionsSection', $builder);
     $this->assertStringContainsString('buildOperationalDocumentsSection', $builder);
     $this->assertStringContainsString('Packing slips, parking slips and labels', $builder);

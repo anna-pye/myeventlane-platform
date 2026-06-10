@@ -12,9 +12,12 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\EventStudioPreprocess;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
+use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
+use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -33,6 +36,9 @@ final class EventStudioPublishController {
   public function __construct(
     private readonly EventStudioSaveService $saveService,
     private readonly EventReadinessService $eventReadiness,
+    private readonly EventReadinessFacade $readinessFacade,
+    private readonly EventStudioWorkspacePresentation $workspacePresentation,
+    private readonly BoostStatusService $boostStatusService,
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly EventStudioSectionManager $sectionManager,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
@@ -110,19 +116,6 @@ final class EventStudioPublishController {
 
     if (!$publishing) {
       return $this->setPublishedState($node, FALSE);
-    }
-
-    $readiness = $this->eventReadiness->evaluate($node, $account);
-    if (!$readiness->ready) {
-      return $this->readinessResponse(
-        FALSE,
-        422,
-        $node,
-        $readiness,
-        (string) $this->t('Cannot publish yet'),
-        'cannot_publish',
-        $readiness->errors,
-      );
     }
 
     return $this->setPublishedState($node, TRUE);
@@ -246,6 +239,14 @@ final class EventStudioPublishController {
     array $messages,
     ?string $restoreSection = NULL,
   ): JsonResponse {
+    $readiness_bundle = $this->readinessFacade->evaluate($node, $this->currentUser);
+    $publish_result = $readiness_bundle['publish'];
+    $boost = $this->buildBoostHealthPayload($node);
+    $ajax_readiness = $this->workspacePresentation->buildAjaxReadinessPayloadFromBundle(
+      $readiness_bundle,
+      $node,
+    );
+
     $payload = [
       'ok' => $ok,
       'state' => $state,
@@ -254,21 +255,15 @@ final class EventStudioPublishController {
       'published' => $node->isPublished(),
       'topbar' => [
         'status' => $node->isPublished() ? (string) $this->t('Published') : (string) $this->t('Draft'),
-        'state' => ($node->isPublished() && $readiness->ready)
+        'state' => ($node->isPublished() && $publish_result->ready)
           ? ''
-          : $this->operationalState($readiness),
+          : $this->workspacePresentation->operationalState($publish_result),
         'lastSaved' => $node->getChangedTime() > 0 ? (string) $this->t('Last saved @time', [
           '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
         ]) : (string) $this->t('Not saved yet'),
       ],
-      'readiness' => [
-        'ready' => $readiness->ready,
-        'errors' => $readiness->errors,
-        'warnings' => $readiness->warnings,
-        'completed' => $readiness->completed,
-        'recommendations' => $readiness->recommendations,
-        'state' => $this->operationalState($readiness),
-      ],
+      'readiness' => $ajax_readiness,
+      'event_health' => $this->workspacePresentation->buildEventHealth($readiness_bundle, $node, $boost),
       'changed' => $node->getChangedTime(),
       'revisionId' => (int) $node->getRevisionId(),
     ];
@@ -292,11 +287,19 @@ final class EventStudioPublishController {
     return new JsonResponse($payload, $status);
   }
 
-  private function operationalState(EventReadinessResult $result): string {
-    if (!$result->ready) {
-      return (string) $this->t('Needs Attention');
+  /**
+   * @return array<string, mixed>|null
+   */
+  private function buildBoostHealthPayload(NodeInterface $node): ?array {
+    $visibility = $this->boostStatusService->getVisibilityPayload($node);
+    if (empty($visibility['active'])) {
+      return NULL;
     }
-    return (string) $this->t('Ready');
+    return [
+      'active' => TRUE,
+      'days_remaining' => $visibility['days_remaining'],
+      'expires' => $visibility['expires'],
+    ];
   }
 
   private function blockedHeading(bool $publishing): string {

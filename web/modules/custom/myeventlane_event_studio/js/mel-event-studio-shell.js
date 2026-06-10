@@ -202,18 +202,74 @@
     if (!readiness) {
       return;
     }
+    const published = shell.dataset.melPublished === '1' || !!studioSettings().published;
+    const hasBlockers = (readiness.errors || []).length > 0 || (readiness.warnings || []).length > 0;
+    const showStrip = readiness.show_publish_strip !== undefined
+      ? !!readiness.show_publish_strip
+      : (!published || !readiness.ready || hasBlockers);
     const strip = shell.querySelector('[data-mel-readiness-strip]');
     if (!strip) {
       return;
     }
+    strip.hidden = !showStrip;
+    if (!showStrip) {
+      return;
+    }
     strip.classList.toggle('is-ready', !!readiness.ready);
     strip.classList.toggle('needs-attention', !readiness.ready);
-    setText(strip, '[data-mel-readiness-title]', readiness.ready ? Drupal.t('Ready to publish') : Drupal.t('Needs attention'));
+    const title = readiness.strip_title
+      || (readiness.ready
+        ? (published ? Drupal.t('Published and ready') : Drupal.t('Ready to publish'))
+        : Drupal.t('Needs attention'));
+    setText(strip, '[data-mel-readiness-title]', title);
     setText(strip, '[data-mel-readiness-state]', readiness.state || '');
     setText(strip, '[data-mel-readiness-errors-count]', Drupal.formatPlural((readiness.errors || []).length, '1 blocker', '@count blocker(s)'));
     setText(strip, '[data-mel-readiness-warnings-count]', Drupal.formatPlural((readiness.warnings || []).length, '1 warning', '@count warning(s)'));
     setText(strip, '[data-mel-readiness-recommendations-count]', Drupal.formatPlural((readiness.recommendations || []).length, '1 idea', '@count idea(s)'));
     setText(strip, '[data-mel-readiness-completed-count]', Drupal.t('@count complete', { '@count': (readiness.completed || []).length }));
+  }
+
+  function syncHomepageReadinessVisibility(shell, showHomepageReadiness) {
+    const wrapper = shell.querySelector('.mel-event-studio-homepage-readiness');
+    if (!wrapper) {
+      return;
+    }
+    wrapper.hidden = showHomepageReadiness === false;
+  }
+
+  function updateEventHealth(shell, health) {
+    if (!health || !Array.isArray(health.items)) {
+      return;
+    }
+    const panel = shell.querySelector('[data-mel-event-health]');
+    if (!panel) {
+      return;
+    }
+    if (health.last_updated) {
+      setText(panel, '[data-mel-event-health-updated]', health.last_updated);
+    }
+    health.items.forEach((item) => {
+      if (!item || !item.key) {
+        return;
+      }
+      setText(panel, `[data-mel-event-health-value="${item.key}"]`, item.value || '');
+      const detailEl = panel.querySelector(`[data-mel-event-health-detail="${item.key}"]`);
+      if (detailEl) {
+        if (item.detail) {
+          detailEl.textContent = item.detail;
+          detailEl.hidden = false;
+        }
+        else {
+          detailEl.textContent = '';
+          detailEl.hidden = true;
+        }
+      }
+      const row = panel.querySelector(`[data-mel-event-health-row="${item.key}"]`);
+      if (row && item.tone) {
+        row.className = `mel-event-studio-event-health__item mel-event-studio-event-health__item--${item.tone}`;
+        row.setAttribute('data-mel-event-health-row', item.key);
+      }
+    });
   }
 
   function syncTopbarState(shell, stateText) {
@@ -245,6 +301,10 @@
     if (!result || !result.topbar) {
       return;
     }
+    if (result.published !== undefined) {
+      studioSettings().published = !!result.published;
+      shell.dataset.melPublished = result.published ? '1' : '0';
+    }
     setText(shell, '[data-mel-publish-status]', result.topbar.status || '');
     syncTopbarState(shell, result.topbar.state || '');
     setText(shell, '[data-mel-publish-last-saved]', result.topbar.lastSaved || '');
@@ -266,6 +326,12 @@
     const button = shell.querySelector('[data-mel-publish-action]');
     if (button) {
       setPublishButtonState(button, result.published ? 'published' : 'idle');
+    }
+    if (result.event_health) {
+      updateEventHealth(shell, result.event_health);
+    }
+    if (result.readiness && result.readiness.show_homepage_readiness !== undefined) {
+      syncHomepageReadinessVisibility(shell, result.readiness.show_homepage_readiness);
     }
   }
 

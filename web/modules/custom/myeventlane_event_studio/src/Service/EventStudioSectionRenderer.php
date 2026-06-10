@@ -106,53 +106,26 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildOverviewSection(NodeInterface $event): array {
-    $build = [
+    return [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-event-studio-overview']],
-      'hero' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-overview__hero']],
-        'kicker' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Your event workspace'),
-          '#attributes' => ['class' => ['mel-event-studio-overview__kicker']],
-        ],
-        'title' => [
-          '#type' => 'html_tag',
-          '#tag' => 'h3',
-          '#value' => $this->t('Your event workspace is ready'),
-          '#attributes' => ['class' => ['mel-event-studio-overview__title']],
-        ],
-        'summary' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Work through one section at a time. MEL keeps the practical setup organised so you can focus on building an event people will want to attend.'),
-          '#attributes' => ['class' => ['mel-event-studio-overview__summary']],
-        ],
+      'intro' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Use the sections below to finish setup. Readiness and boost status stay above so you always know what needs attention next.'),
+        '#attributes' => ['class' => ['mel-event-studio-overview__summary']],
       ],
-      'orientation' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-overview__orientation']],
-        'title' => [
-          '#type' => 'html_tag',
-          '#tag' => 'h4',
-          '#value' => $this->t('What lives here'),
-          '#attributes' => ['class' => ['mel-event-studio-overview__subtitle']],
+      'actions' => [
+        '#theme' => 'item_list',
+        '#title' => $this->t('Suggested next steps'),
+        '#items' => [
+          $this->t('Start with Event information for the public details guests see first.'),
+          $this->t('Confirm RSVP or ticket setup before sharing the page.'),
+          $this->t('Review Branding and Content when you are ready to promote the event.'),
         ],
-        'items' => [
-          '#theme' => 'item_list',
-          '#items' => [
-            $this->t('Start with the public event details guests will see first.'),
-            $this->t('Add tickets, questions, and settings only when they help your event run smoothly.'),
-            $this->t('Readiness checks and suggestions stay beside the work so you always know the next step.'),
-          ],
-          '#attributes' => ['class' => ['mel-event-studio-overview__list']],
-        ],
+        '#attributes' => ['class' => ['mel-event-studio-overview__list']],
       ],
     ];
-
-    return $build;
   }
 
   /**
@@ -173,7 +146,7 @@ final class EventStudioSectionRenderer {
         '#items' => [
           $this->t('Check event information and public copy first.'),
           $this->t('Confirm RSVP or ticket setup before sharing the page.'),
-          $this->t('Use Settings to review readiness and publish from Studio.'),
+          $this->t('Use the readiness strip above when you are ready to publish.'),
         ],
         '#attributes' => ['class' => ['mel-event-studio-next-steps__list']],
       ],

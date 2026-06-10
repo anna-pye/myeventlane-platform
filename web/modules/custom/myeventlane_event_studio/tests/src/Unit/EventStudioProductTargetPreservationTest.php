@@ -11,14 +11,12 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
-use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\focal_point\FocalPointManagerInterface;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_event_studio\Service\PublishEligibilityEvaluator;
 use Drupal\myeventlane_event_studio\Service\QuestionFieldTypeRegistry;
 use Drupal\myeventlane_venue\Service\VenueManager;
-use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
-use Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 use Psr\Log\LoggerInterface;
@@ -48,8 +46,8 @@ final class EventStudioProductTargetPreservationTest extends UnitTestCase {
     ]);
 
     $payload_service = new EventStudioMelPayloadService(
-      $this->createMock(EventHighlightHelper::class),
-      $this->createMock(QuestionFieldTypeRegistry::class),
+      (new \ReflectionClass(EventHighlightHelper::class))->newInstanceWithoutConstructor(),
+      new QuestionFieldTypeRegistry(),
     );
 
     $payload = $payload_service->buildFromFormState($form_state, $entity_type_manager);
@@ -131,7 +129,7 @@ final class EventStudioProductTargetPreservationTest extends UnitTestCase {
       'field_product_target',
       'field_event_type',
     ], TRUE));
-    $event->method('get')->willReturnCallback(static function (string $field) use ($product_field, $event_type_field): FieldItemListInterface {
+    $event->method('get')->willReturnCallback(static function (string $field) use ($product_field, $event_type_field): object {
       return match ($field) {
         'field_product_target' => $product_field,
         'field_event_type' => $event_type_field,
@@ -154,7 +152,7 @@ final class EventStudioProductTargetPreservationTest extends UnitTestCase {
       'field_external_url',
       'field_collect_per_ticket',
     ], TRUE));
-    $event->method('get')->willReturnCallback(function (string $field) use (&$state, $event_type): FieldItemListInterface {
+    $event->method('get')->willReturnCallback(function (string $field) use (&$state, $event_type): object {
       if ($field === 'field_product_target') {
         return $this->createEntityReferenceField($state['product_target_id']);
       }
@@ -181,18 +179,12 @@ final class EventStudioProductTargetPreservationTest extends UnitTestCase {
     return $event;
   }
 
-  private function createEntityReferenceField(?int $target_id): FieldItemListInterface {
-    $field = $this->createMock(FieldItemListInterface::class);
-    $field->method('isEmpty')->willReturn($target_id === NULL);
-    $field->target_id = $target_id;
-    return $field;
+  private function createEntityReferenceField(?int $target_id): object {
+    return new FieldTargetIdStub($target_id ?? 0);
   }
 
-  private function createListField(string $value): FieldItemListInterface {
-    $field = $this->createMock(FieldItemListInterface::class);
-    $field->method('isEmpty')->willReturn($value === '');
-    $field->value = $value;
-    return $field;
+  private function createListField(string $value): object {
+    return new FieldValueStub($value);
   }
 
   private function createEmptyField(): FieldItemListInterface {
@@ -209,11 +201,9 @@ final class EventStudioProductTargetPreservationTest extends UnitTestCase {
       $entity_type_manager,
       $this->createMock(VenueManager::class),
       $this->createMock(LoggerInterface::class),
-      $this->createMock(EventHighlightHelper::class),
-      $this->createMock(PaidPublishStripeGate::class),
-      $this->createMock(VendorPublishRequirementsGate::class),
-      $this->createMock(EventReadinessService::class),
-      $this->createMock(QuestionFieldTypeRegistry::class),
+      (new \ReflectionClass(EventHighlightHelper::class))->newInstanceWithoutConstructor(),
+      (new \ReflectionClass(PublishEligibilityEvaluator::class))->newInstanceWithoutConstructor(),
+      new QuestionFieldTypeRegistry(),
       $this->createMock(ImageFactory::class),
       $this->createMock(TranslationInterface::class),
       $this->createMock(\Drupal\Core\File\FileSystemInterface::class),
@@ -239,6 +229,32 @@ final class EventStudioProductTargetPreservationTest extends UnitTestCase {
     /** @var list<string> $errors */
     $errors = $method->invoke($service, $node, $payload, $event_type, $draft);
     return $errors;
+  }
+
+}
+
+/**
+ * Minimal scalar field stub with value.
+ */
+final class FieldValueStub {
+
+  public function __construct(public readonly string $value) {}
+
+  public function isEmpty(): bool {
+    return $this->value === '';
+  }
+
+}
+
+/**
+ * Minimal entity reference field stub with target_id.
+ */
+final class FieldTargetIdStub {
+
+  public function __construct(public readonly int $target_id) {}
+
+  public function isEmpty(): bool {
+    return $this->target_id < 1;
   }
 
 }

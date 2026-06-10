@@ -17,7 +17,8 @@ use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
-use Drupal\myeventlane_event_studio\Service\EventReadinessService;
+use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
+use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
@@ -45,7 +46,7 @@ final class EventStudioController extends ControllerBase {
     private readonly RequestStack $requestStack,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
     private readonly DateFormatterInterface $dateFormatter,
-    private readonly EventReadinessService $eventReadiness,
+    private readonly EventReadinessFacade $readinessFacade,
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly EventStudioSectionManager $sectionManager,
     private readonly EventStudioSectionRenderer $sectionRenderer,
@@ -54,6 +55,7 @@ final class EventStudioController extends ControllerBase {
     private readonly EventStudioPreprocess $eventStudioPreprocess,
     private readonly BoostStatusService $boostStatusService,
     private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
+    private readonly EventStudioWorkspacePresentation $workspacePresentation,
     private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
     $this->entityTypeManager = $entity_type_manager;
@@ -67,7 +69,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('request_stack'),
       $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('date.formatter'),
-      $container->get('myeventlane_event_studio.readiness'),
+      $container->get('myeventlane_event_studio.readiness_facade'),
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('plugin.manager.myeventlane_event_studio_section'),
       $container->get('myeventlane_event_studio.section_renderer'),
@@ -76,6 +78,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.preprocess'),
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_event.featured_readiness_render'),
+      $container->get('myeventlane_event_studio.workspace_presentation'),
       $container->get('myeventlane_boost.extension_recommendation'),
     );
   }
@@ -206,7 +209,8 @@ final class EventStudioController extends ControllerBase {
       throw new AccessDeniedHttpException();
     }
 
-    $readiness = $this->eventReadiness->evaluate($node, $account);
+    $readiness_bundle = $this->readinessFacade->evaluate($node, $account);
+    $readiness = $readiness_bundle['publish'];
     $sectionMetadata = $this->sectionManager->sectionMetadata($sectionPlugin);
     $sectionContent = $this->buildWorkspaceSectionContent($sectionPlugin, $node);
     $request = $this->requestStack->getCurrentRequest();
@@ -235,6 +239,9 @@ final class EventStudioController extends ControllerBase {
       '@keys' => is_array($sectionContent) ? implode(',', array_keys($sectionContent)) : gettype($sectionContent),
     ]);
 
+    $readiness_summary = $this->workspacePresentation->buildReadinessSummary($readiness_bundle, $node);
+    $event_health = $this->workspacePresentation->buildEventHealth($readiness_bundle, $node, $boost);
+
     return [
       '#theme' => 'mel_event_studio_workspace',
       '#node' => $node,
@@ -245,8 +252,9 @@ final class EventStudioController extends ControllerBase {
       '#current_section_metadata' => $sectionMetadata,
       '#section_content' => $sectionContent,
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
-      '#readiness' => $this->buildReadinessSummary($readiness),
-      '#homepage_readiness' => $this->homepageReadinessRender->buildChecklistCard($node, TRUE, TRUE),
+      '#event_health' => $event_health,
+      '#readiness' => $readiness_summary,
+      '#homepage_readiness' => $this->buildHomepageReadinessCard($node, $readiness_bundle, $section),
       '#boost' => $boost,
       '#boost_extension_recommendation' => $boost_extension_recommendation,
       '#publish_handoff' => $publish_handoff,
@@ -334,7 +342,7 @@ final class EventStudioController extends ControllerBase {
    * @return array<string, mixed>
    */
   private function buildTopbar(NodeInterface $node, EventReadinessResult $readiness, string $section): array {
-    $operational_state = $this->operationalState($readiness);
+    $operational_state = $this->workspacePresentation->operationalState($readiness);
     // Published events use the status badge only; readiness text is draft-oriented.
     $state = ($node->isPublished() && $readiness->ready) ? '' : $operational_state;
 
@@ -342,9 +350,7 @@ final class EventStudioController extends ControllerBase {
       'title' => $node->label(),
       'status' => $node->isPublished() ? $this->t('Published') : $this->t('Draft'),
       'state' => $state,
-      'last_saved' => $node->getChangedTime() > 0 ? $this->t('Last saved @time', [
-        '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
-      ]) : $this->t('Not saved yet'),
+      'show_last_saved' => FALSE,
       'restore_draft' => $this->autosaveService->hasDraft($node, $section),
       'restore_url' => Url::fromRoute($this->sectionManager->sectionRouteName($section), [
         'node' => $node->id(),
@@ -363,25 +369,24 @@ final class EventStudioController extends ControllerBase {
     ];
   }
 
-  /**
-   * @return array{ready: bool, errors: list<string>, warnings: list<string>, completed: list<string>, recommendations: list<string>, state: string}
-   */
-  private function buildReadinessSummary(EventReadinessResult $result): array {
-    return [
-      'ready' => $result->ready,
-      'errors' => $result->errors,
-      'warnings' => $result->warnings,
-      'completed' => $result->completed,
-      'recommendations' => $result->recommendations,
-      'state' => $this->operationalState($result),
-    ];
-  }
-
-  private function operationalState(EventReadinessResult $result): string {
-    if (!$result->ready) {
-      return (string) $this->t('Needs Attention');
+  private function buildHomepageReadinessCard(NodeInterface $node, array $readiness_bundle, string $section): ?array {
+    $promotion_ready = (bool) ($readiness_bundle['promotion_ready'] ?? FALSE);
+    $published = $node->isPublished();
+    if (!$this->workspacePresentation->shouldShowHomepageReadinessCard($promotion_ready, $published)) {
+      return NULL;
     }
-    return (string) $this->t('Ready');
+    if ($section !== 'overview' && $promotion_ready) {
+      return NULL;
+    }
+
+    return $this->homepageReadinessRender->buildChecklistCardFromPresentation(
+      $node,
+      is_array($readiness_bundle['promotion'] ?? NULL) ? $readiness_bundle['promotion'] : [],
+      TRUE,
+      !$promotion_ready,
+      FALSE,
+      $published,
+    );
   }
 
   /**

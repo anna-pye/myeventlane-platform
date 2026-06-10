@@ -100,6 +100,8 @@ function myeventlane_event_theme($existing, $type, $theme, $path) {
         'presentation' => [],
         'compact' => TRUE,
         'show_spotlight_notice' => FALSE,
+        'summary_only' => FALSE,
+        'hide_published_item' => FALSE,
       ],
       'template' => 'mel-homepage-readiness-checklist',
     ],

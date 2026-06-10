@@ -171,6 +171,7 @@
             {% set problem = 'Needs review'|t %}
           {% endif %}
           <li class="mel-vendor-dashboard__action-queue-item{% if loop.first %} mel-vendor-dashboard__action-queue-item--primary{% endif %}" role="listitem">
+            {% include '@myeventlane_vendor_theme/components/mel-event-card-thumb.html.twig' with { image: ev.image|default({}) } only %}
             <div class="mel-vendor-dashboard__action-queue-body">
               <span class="mel-vendor-dashboard__action-queue-title">{{ ev.title|default('Untitled event'|t) }}</span>
               <span class="mel-vendor-dashboard__action-queue-problem">{{ problem }}</span>
@@ -203,16 +204,21 @@
           {% set status_mod = boost.active ? 'boosted' : (event_status == 'draft' ? 'draft' : 'upcoming') %}
           {% set status_text = boost.active ? ('Boosted'|t) : (ev.status_label|default('')) %}
           <article class="mel-vendor-dashboard__summary-card" role="listitem">
-            <h3 class="mel-vendor-dashboard__summary-card-title">{{ ev.title|default('Untitled event'|t) }}</h3>
-            {% if ev.date_label is defined and ev.date_label %}
-              <p class="mel-vendor-dashboard__summary-card-date">{{ ev.date_label }}</p>
-            {% endif %}
-            {% if status_text %}
-              <p class="mel-vendor-dashboard__summary-card-status mel-vendor-dashboard__summary-card-status--{{ status_mod }}">{{ status_text }}</p>
-            {% endif %}
-            {% if links.manage is defined and links.manage %}
-              <a class="mel-live-ops__readiness-link mel-vendor-dashboard__summary-card-action" href="{{ links.manage }}">{{ 'Open'|t }} →</a>
-            {% endif %}
+            <div class="mel-vendor-dashboard__summary-card-layout">
+              {% include '@myeventlane_vendor_theme/components/mel-event-card-thumb.html.twig' with { image: ev.image|default({}) } only %}
+              <div class="mel-vendor-dashboard__summary-card-body">
+                <h3 class="mel-vendor-dashboard__summary-card-title">{{ ev.title|default('Untitled event'|t) }}</h3>
+                {% if ev.date_label is defined and ev.date_label %}
+                  <p class="mel-vendor-dashboard__summary-card-date">{{ ev.date_label }}</p>
+                {% endif %}
+                {% if status_text %}
+                  <p class="mel-vendor-dashboard__summary-card-status mel-vendor-dashboard__summary-card-status--{{ status_mod }}">{{ status_text }}</p>
+                {% endif %}
+                {% if links.manage is defined and links.manage %}
+                  <a class="mel-live-ops__readiness-link mel-vendor-dashboard__summary-card-action" href="{{ links.manage }}">{{ 'Open'|t }} →</a>
+                {% endif %}
+              </div>
+            </div>
           </article>
         {% endfor %}
       </div>

@@ -132,9 +132,12 @@ final class EventBrandingForm extends EventStudioBaseForm {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     $this->ensureInjectedServices();
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    if ($nid > 0) {
+      $this->saveService->prepareBrandingHeroFormStateForValidation($form_state);
+    }
     parent::validateForm($form, $form_state);
 
-    $nid = (int) ($form_state->getValue('nid') ?? 0);
     if ($nid < 1) {
       return;
     }

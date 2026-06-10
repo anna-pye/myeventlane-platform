@@ -28,8 +28,6 @@ use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
-use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
-use Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Psr\Log\LoggerInterface;
@@ -61,9 +59,7 @@ final class EventStudioSaveService {
     private readonly VenueManager $venueManager,
     private readonly LoggerInterface $logger,
     private readonly EventHighlightHelper $eventHighlightHelper,
-    private readonly PaidPublishStripeGate $paidPublishStripeGate,
-    private readonly VendorPublishRequirementsGate $publishRequirementsGate,
-    private readonly EventReadinessService $eventReadiness,
+    private readonly PublishEligibilityEvaluator $publishEligibilityEvaluator,
     private readonly QuestionFieldTypeRegistry $fieldTypeRegistry,
     private readonly ImageFactory $imageFactory,
     private readonly TranslationInterface $stringTranslation,
@@ -87,12 +83,6 @@ final class EventStudioSaveService {
   public function save(array $payload, ?NodeInterface $node, AccountInterface $account, bool $draft = FALSE): array {
     $payload = $this->resolvePayloadTitle($payload, $node);
 
-    $effectiveEventType = isset($payload['field_event_type'])
-      ? (string) $payload['field_event_type']
-      : ($node instanceof NodeInterface && $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
-        ? (string) $node->get('field_event_type')->value
-        : 'rsvp');
-
     $willPublish = FALSE;
     if (!$draft) {
       if ($node === NULL) {
@@ -100,23 +90,6 @@ final class EventStudioSaveService {
       }
       else {
         $willPublish = (bool) ($payload['status'] ?? TRUE);
-      }
-    }
-
-    if (!$draft && $willPublish) {
-      $denials = $this->publishRequirementsGate->getLivePublishDenialReasons($account);
-      if ($denials !== []) {
-        return ['node' => NULL, 'errors' => $denials];
-      }
-    }
-
-    if (!$draft && $willPublish && in_array($effectiveEventType, ['paid', 'both'], TRUE)) {
-      $stripeMsg = $this->paidPublishStripeGate->validatePaidPublishAllowed(
-        $account,
-        $node instanceof NodeInterface ? (int) $node->id() : NULL,
-      );
-      if ($stripeMsg !== NULL) {
-        return ['node' => NULL, 'errors' => [$stripeMsg]];
       }
     }
 
@@ -302,9 +275,9 @@ final class EventStudioSaveService {
     }
 
     if (!$draft && $willPublish) {
-      $readiness = $this->eventReadiness->evaluate($node, $account);
-      if (!$readiness->ready) {
-        return ['node' => NULL, 'errors' => $readiness->errors];
+      $eligibility = $this->publishEligibilityEvaluator->evaluate($node, $account);
+      if (!$eligibility['allowed']) {
+        return ['node' => NULL, 'errors' => $eligibility['messages']];
       }
     }
 
@@ -503,22 +476,9 @@ final class EventStudioSaveService {
       throw new \InvalidArgumentException('Expected event node.');
     }
     if ($published) {
-      $denials = $this->publishRequirementsGate->getLivePublishDenialReasons($account);
-      if ($denials !== []) {
-        throw new \InvalidArgumentException(implode(' ', $denials));
-      }
-      $eventType = $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
-        ? (string) $node->get('field_event_type')->value
-        : 'rsvp';
-      if (in_array($eventType, ['paid', 'both'], TRUE)) {
-        $stripeMsg = $this->paidPublishStripeGate->validatePaidPublishAllowed($account, (int) $node->id());
-        if ($stripeMsg !== NULL) {
-          throw new \InvalidArgumentException($stripeMsg);
-        }
-      }
-      $readiness = $this->eventReadiness->evaluate($node, $account);
-      if (!$readiness->ready) {
-        throw new \InvalidArgumentException(implode(' ', $readiness->errors));
+      $eligibility = $this->publishEligibilityEvaluator->evaluate($node, $account);
+      if (!$eligibility['allowed']) {
+        throw new \InvalidArgumentException(implode(' ', $eligibility['messages']));
       }
     }
     $node->setPublished($published);
@@ -1294,6 +1254,16 @@ final class EventStudioSaveService {
   }
 
   /**
+   * Syncs branding hero widget input before form validation.
+   *
+   * image_widget_crop AJAX can leave crop_applied only in user input; element
+   * validators read form_state values and would falsely reject an applied crop.
+   */
+  public function prepareBrandingHeroFormStateForValidation(FormStateInterface $form_state): void {
+    $this->syncBrandingHeroSubmittedValues($form_state);
+  }
+
+  /**
    * Copies hero widget values from raw user input when Form API values are stale.
    *
    * image_widget_crop AJAX handlers can leave fids / crop / focal point in user input
@@ -1436,7 +1406,8 @@ final class EventStudioSaveService {
     $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($field_fragment);
     return array_key_exists('fids', $delta)
       || array_key_exists('focal_point', $delta)
-      || array_key_exists('image_crop', $delta);
+      || array_key_exists('image_crop', $delta)
+      || $this->brandingHeroCropAppliedFromDelta($delta) === 1;
   }
 
   /**

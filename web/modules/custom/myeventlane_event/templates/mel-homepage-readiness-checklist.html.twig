@@ -7,13 +7,15 @@
  * - presentation: Payload from FeaturedEventReadinessService::getPresentation().
  * - compact: Whether to use compact spacing.
  * - show_spotlight_notice: Show Community Spotlight eligibility note.
+ * - summary_only: Status headline only; hide checklist rows.
+ * - hide_published_item: Omit the published row when publish state is shown elsewhere.
  */
 #}
 {% set presentation = presentation|default({}) %}
 {% set items = presentation.items|default([]) %}
 {% set ready = presentation.ready|default(false) %}
 <section
-  class="mel-homepage-readiness{% if compact %} mel-homepage-readiness--compact{% endif %}{% if ready %} is-ready{% else %} needs-attention{% endif %}"
+  class="mel-homepage-readiness{% if compact %} mel-homepage-readiness--compact{% endif %}{% if summary_only %} mel-homepage-readiness--summary-only{% endif %}{% if ready %} is-ready{% else %} needs-attention{% endif %}"
   aria-labelledby="mel-homepage-readiness-title"
   role="region"
 >
@@ -26,16 +28,20 @@
   <p class="mel-homepage-readiness__status">
     <strong>{{ presentation.status_label|default('') }}</strong>
   </p>
-  <ul class="mel-homepage-readiness__list" aria-label="{{ 'Homepage readiness checklist'|t }}">
-    {% for item in items %}
-      <li class="mel-homepage-readiness__item{% if item.complete %} is-complete{% else %} is-incomplete{% endif %}">
-        <span class="mel-homepage-readiness__mark" aria-hidden="true">{% if item.complete %}✓{% else %}✗{% endif %}</span>
-        <span class="mel-homepage-readiness__label">
-          {{ item.complete ? item.label : item.label_incomplete }}
-        </span>
-      </li>
-    {% endfor %}
-  </ul>
+  {% if not summary_only %}
+    <ul class="mel-homepage-readiness__list" aria-label="{{ 'Homepage readiness checklist'|t }}">
+      {% for item in items %}
+        {% if not (hide_published_item|default(false) and item.item_key|default('') == 'published') %}
+          <li class="mel-homepage-readiness__item{% if item.complete %} is-complete{% else %} is-incomplete{% endif %}">
+            <span class="mel-homepage-readiness__mark" aria-hidden="true">{% if item.complete %}✓{% else %}✗{% endif %}</span>
+            <span class="mel-homepage-readiness__label">
+              {{ item.complete ? item.label : item.label_incomplete }}
+            </span>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  {% endif %}
   {% if show_spotlight_notice and not ready %}
     <p class="mel-homepage-readiness__notice">{{ presentation.spotlight_notice|default('') }}</p>
   {% endif %}
