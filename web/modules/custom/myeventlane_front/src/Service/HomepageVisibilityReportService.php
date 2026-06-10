@@ -46,7 +46,7 @@ final class HomepageVisibilityReportService {
     if (in_array($nid, $this->merchandising->getHeroEventIds(), TRUE)) {
       $surfaces[] = $this->surface('hero', (string) $this->t('Hero'));
     }
-    if (in_array($nid, $this->merchandising->getFeaturedBlockEventIds(), TRUE)) {
+    if (in_array($nid, $this->merchandising->getCommunitySpotlightEventIds(), TRUE)) {
       $surfaces[] = $this->surface('spotlight', (string) $this->t('Community Spotlight'));
     }
     if (in_array($nid, $this->merchandising->getMoreToDiscoverEventIds(), TRUE)) {
