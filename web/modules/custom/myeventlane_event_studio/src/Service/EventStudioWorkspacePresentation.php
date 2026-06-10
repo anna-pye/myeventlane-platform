@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\node\NodeInterface;
 
@@ -21,6 +22,7 @@ final class EventStudioWorkspacePresentation {
 
   public function __construct(
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
     TranslationInterface $stringTranslation,
   ) {
     $this->stringTranslation = $stringTranslation;
@@ -177,6 +179,36 @@ final class EventStudioWorkspacePresentation {
 
   public function shouldShowHomepageReadinessCard(bool $promotion_ready, bool $published): bool {
     return !$promotion_ready || !$published;
+  }
+
+  /**
+   * Homepage readiness card render array for workspace shell and AJAX refresh.
+   *
+   * @param array{
+   *   promotion: array<string, mixed>,
+   *   promotion_ready: bool,
+   * } $readiness_bundle
+   *
+   * @return array<string, mixed>|null
+   */
+  public function buildHomepageReadinessCard(NodeInterface $node, array $readiness_bundle, string $section): ?array {
+    $promotion_ready = (bool) ($readiness_bundle['promotion_ready'] ?? FALSE);
+    $published = $node->isPublished();
+    if (!$this->shouldShowHomepageReadinessCard($promotion_ready, $published)) {
+      return NULL;
+    }
+    if ($section !== 'overview' && $promotion_ready) {
+      return NULL;
+    }
+
+    return $this->homepageReadinessRender->buildChecklistCardFromPresentation(
+      $node,
+      is_array($readiness_bundle['promotion'] ?? NULL) ? $readiness_bundle['promotion'] : [],
+      TRUE,
+      !$promotion_ready,
+      FALSE,
+      $published,
+    );
   }
 
   private function formatLastUpdated(NodeInterface $node): string {

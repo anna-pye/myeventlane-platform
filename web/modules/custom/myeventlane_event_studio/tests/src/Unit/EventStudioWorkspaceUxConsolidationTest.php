@@ -47,7 +47,7 @@ final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
     $this->assertStringContainsString('summary_only', $checklist);
     $this->assertStringContainsString('hide_published_item', $checklist);
     $this->assertStringContainsString('summary_only', $builder);
-    $this->assertStringContainsString('buildHomepageReadinessCard', file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php'));
+    $this->assertStringContainsString('buildHomepageReadinessCard', file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php'));
   }
 
   public function testOverviewSectionUsesShorterOrientationCopy(): void {

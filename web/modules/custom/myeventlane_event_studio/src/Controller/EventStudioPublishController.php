@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Controller;
 
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -44,6 +45,7 @@ final class EventStudioPublishController {
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
     private readonly AccountProxyInterface $currentUser,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly RendererInterface $renderer,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
     private readonly EventStudioPreprocess $eventStudioPreprocess,
@@ -74,6 +76,7 @@ final class EventStudioPublishController {
     }
 
     $data = $this->requestPayload($request);
+    $section = (string) ($data['section'] ?? '');
     $action = (string) ($data['action'] ?? 'publish');
     $publishing = $action !== 'unpublish';
     if (!empty($data['dirty'])) {
@@ -84,6 +87,7 @@ final class EventStudioPublishController {
         $node,
         NULL,
         $this->blockedHeading($publishing),
+        $section,
       );
     }
 
@@ -97,6 +101,7 @@ final class EventStudioPublishController {
         $node,
         NULL,
         $this->blockedHeading($publishing),
+        $section,
       );
     }
 
@@ -111,17 +116,18 @@ final class EventStudioPublishController {
         $node,
         $draftSection,
         $this->blockedHeading($publishing),
+        $section,
       );
     }
 
     if (!$publishing) {
-      return $this->setPublishedState($node, FALSE);
+      return $this->setPublishedState($node, FALSE, $section);
     }
 
-    return $this->setPublishedState($node, TRUE);
+    return $this->setPublishedState($node, TRUE, $section);
   }
 
-  private function setPublishedState(NodeInterface $node, bool $published): JsonResponse {
+  private function setPublishedState(NodeInterface $node, bool $published, string $section = ''): JsonResponse {
     $account = $this->currentUser;
     try {
       $this->saveService->setNodePublishedState(
@@ -147,6 +153,8 @@ final class EventStudioPublishController {
         $this->blockedHeading($published),
         $published ? 'cannot_publish' : 'cannot_unpublish',
         [$e->getMessage()],
+        NULL,
+        $section,
       );
     }
     catch (\Throwable $e) {
@@ -163,6 +171,7 @@ final class EventStudioPublishController {
         $node,
         NULL,
         $this->blockedHeading($published),
+        $section,
       );
     }
 
@@ -175,6 +184,8 @@ final class EventStudioPublishController {
       $published ? (string) $this->t('Published successfully') : (string) $this->t('Unpublished successfully'),
       $published ? 'published' : 'draft',
       [],
+      NULL,
+      $section,
     );
   }
 
@@ -212,7 +223,7 @@ final class EventStudioPublishController {
   /**
    * @param list<string> $messages
    */
-  private function blockedResponse(int $status, string $code, array $messages, NodeInterface $node, ?string $restoreSection = NULL, ?string $message = NULL): JsonResponse {
+  private function blockedResponse(int $status, string $code, array $messages, NodeInterface $node, ?string $restoreSection = NULL, ?string $message = NULL, string $section = ''): JsonResponse {
     $readiness = $this->eventReadiness->evaluate($node, $this->currentUser);
     return $this->readinessResponse(
       FALSE,
@@ -223,6 +234,7 @@ final class EventStudioPublishController {
       $code,
       $messages,
       $restoreSection,
+      $section,
     );
   }
 
@@ -238,6 +250,7 @@ final class EventStudioPublishController {
     string $state,
     array $messages,
     ?string $restoreSection = NULL,
+    string $section = '',
   ): JsonResponse {
     $readiness_bundle = $this->readinessFacade->evaluate($node, $this->currentUser);
     $publish_result = $readiness_bundle['publish'];
@@ -246,6 +259,17 @@ final class EventStudioPublishController {
       $readiness_bundle,
       $node,
     );
+    $homepage_card = $this->workspacePresentation->buildHomepageReadinessCard(
+      $node,
+      $readiness_bundle,
+      $section,
+    );
+    if ($homepage_card !== NULL) {
+      $ajax_readiness['homepage_readiness_html'] = (string) $this->renderer->renderPlain($homepage_card);
+    }
+    else {
+      $ajax_readiness['homepage_readiness_html'] = '';
+    }
 
     $payload = [
       'ok' => $ok,

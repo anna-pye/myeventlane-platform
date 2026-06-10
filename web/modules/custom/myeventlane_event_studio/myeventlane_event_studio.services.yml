@@ -16,7 +16,6 @@ services:
       - '@myeventlane_core.domain_detector'
       - '@myeventlane_event_studio.preprocess'
       - '@myeventlane_vendor.service.boost_status'
-      - '@myeventlane_event.featured_readiness_render'
       - '@myeventlane_event_studio.workspace_presentation'
       - '@myeventlane_boost.extension_recommendation'
     tags:
@@ -26,6 +25,7 @@ services:
     class: Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation
     arguments:
       - '@date.formatter'
+      - '@myeventlane_event.featured_readiness_render'
       - '@string_translation'
 
   myeventlane_event_studio.preprocess:
@@ -498,6 +498,7 @@ services:
       - '@myeventlane_vendor.event_access_checker'
       - '@current_user'
       - '@date.formatter'
+      - '@renderer'
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
       - '@myeventlane_event_studio.preprocess'

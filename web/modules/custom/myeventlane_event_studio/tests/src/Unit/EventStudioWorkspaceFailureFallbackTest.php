@@ -13,7 +13,6 @@ use Drupal\myeventlane_event_studio\Controller\EventStudioController;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\myeventlane_event_studio\EventStudioSectionManager;
 use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSectionInterface;
-use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_event_studio\EventStudioPreprocess;
 use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
@@ -175,7 +174,6 @@ final class EventStudioWorkspaceFailureFallbackTest extends UnitTestCase {
       EventStudioWorkspaceTestFactory::domainDetector($createMock),
       (new ReflectionClass(EventStudioPreprocess::class))->newInstanceWithoutConstructor(),
       (new ReflectionClass(BoostStatusService::class))->newInstanceWithoutConstructor(),
-      (new ReflectionClass(FeaturedEventReadinessRenderBuilder::class))->newInstanceWithoutConstructor(),
       (new ReflectionClass(EventStudioWorkspacePresentation::class))->newInstanceWithoutConstructor(),
       NULL,
     );
