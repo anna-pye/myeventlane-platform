@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Marketplace CTA band rendered above the public footer columns.
+ */
+#}
+<section class="mel-footer-cta" aria-labelledby="mel-footer-cta-title">
+  <div class="mel-footer-cta__inner">
+    <div class="mel-footer-cta__copy">
+      <h2 id="mel-footer-cta-title" class="mel-footer-cta__title">{{ 'Ready to bring people together?'|t }}</h2>
+      <p class="mel-footer-cta__text">{{ 'Create a free RSVP or ticketed event in minutes.'|t }}</p>
+    </div>
+    <div class="mel-footer-cta__actions">
+      <a class="mel-btn mel-btn--cta" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Create event'|t }}</a>
+      <a class="mel-btn mel-btn-secondary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
+    </div>
+  </div>
+</section>

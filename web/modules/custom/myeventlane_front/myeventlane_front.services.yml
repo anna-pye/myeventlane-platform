@@ -41,3 +41,21 @@ services:
       - '@string_translation'
       - '@?myeventlane_domain_events.read_model.event_metrics'
       - '@?myeventlane_core.discovery_surface_analytics'
+
+  myeventlane_front.trust_content_foundation:
+    class: Drupal\myeventlane_front\Service\TrustContentFoundation
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+
+  myeventlane_front.sitemap_builder:
+    class: Drupal\myeventlane_front\Service\SitemapBuilder
+    arguments:
+      - '@menu.link_tree'
+      - '@module_handler'
+      - '@?myeventlane_legal.settings'
+
+  myeventlane_front.route_subscriber:
+    class: Drupal\myeventlane_front\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }

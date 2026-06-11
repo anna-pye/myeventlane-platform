@@ -6,50 +6,18 @@
  *
  * Run: ddev drush scr scripts/create-policy-pages.drush.php
  *
- * Policy content: Uses placeholder boilerplate. Replace via admin UI after run.
+ * Policy content: Launch-ready drafts marked for legal review.
+ * Refunds: canonical public destination is /help/policies/refund-policy.
  * /cookies: Route conflict — CookiePolicyController occupies /cookies.
  *   Cookie Policy node created at /cookie-policy; config set to /cookie-policy.
  */
 
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\myeventlane_legal\Service\LegalPolicyPageContent;
 use Drupal\node\Entity\Node;
 use Drupal\path_alias\Entity\PathAlias;
 
-// Policy definitions: alias => [title, body].
-// Body uses placeholder content; replace via /admin/content after creation.
-$policies = [
-  '/terms' => [
-    'title' => 'Customer Terms of Service',
-    'body' => '<p>These Terms of Service govern your use of MyEventLane. By using our platform, you agree to these terms.</p>'
-      . '<p><strong>Last updated:</strong> ' . date('F j, Y') . '</p>'
-      . '<p><em>Full policy content to be inserted by legal. This is placeholder boilerplate.</em></p>',
-  ],
-  '/vendor-terms' => [
-    'title' => 'Vendor Agreement',
-    'body' => '<p>This Vendor Agreement sets out the terms under which organisers use MyEventLane to list and sell tickets.</p>'
-      . '<p><strong>Last updated:</strong> ' . date('F j, Y') . '</p>'
-      . '<p><em>Full policy content to be inserted by legal. This is placeholder boilerplate.</em></p>',
-  ],
-  '/privacy' => [
-    'title' => 'Privacy Policy',
-    'body' => '<p>MyEventLane respects your privacy. This policy describes how we collect, use, and protect your personal information.</p>'
-      . '<p><strong>Last updated:</strong> ' . date('F j, Y') . '</p>'
-      . '<p><em>Full policy content to be inserted by legal. This is placeholder boilerplate.</em></p>',
-  ],
-  '/refund-policy' => [
-    'title' => 'Refund Policy',
-    'body' => '<p>This Refund Policy explains how refunds are handled for tickets purchased through MyEventLane.</p>'
-      . '<p><strong>Last updated:</strong> ' . date('F j, Y') . '</p>'
-      . '<p><em>Full policy content to be inserted by legal. This is placeholder boilerplate.</em></p>',
-  ],
-  // /cookies is occupied by CookiePolicyController. Use /cookie-policy for the node.
-  '/cookie-policy' => [
-    'title' => 'Cookie Policy',
-    'body' => '<p>This Cookie Policy explains how MyEventLane uses cookies and similar technologies.</p>'
-      . '<p><strong>Last updated:</strong> ' . date('F j, Y') . '</p>'
-      . '<p><em>Full policy content to be inserted by legal. This is placeholder boilerplate.</em></p>',
-  ],
-];
+$policies = LegalPolicyPageContent::getDefinitions(\Drupal::configFactory());
 
 $nodeType = \Drupal::entityTypeManager()->getStorage('node_type')->load('page');
 if (!$nodeType) {
@@ -108,15 +76,28 @@ foreach ($policies as $alias => $info) {
 
 echo "Policy nodes:\n" . implode("\n", $results) . "\n";
 
-// Phase 3: Update legal config.
+// Retire duplicate /refund-policy node if present.
+foreach ($pathAliasStorage->loadByProperties(['alias' => '/refund-policy']) as $pathAlias) {
+  if (preg_match('#^/node/(\d+)$#', $pathAlias->getPath(), $m)) {
+    $legacyNode = $nodeStorage->load($m[1]);
+    if ($legacyNode) {
+      $legacyNode->setUnpublished();
+      $legacyNode->save();
+      echo "UNPUBLISHED legacy refund-policy node nid={$m[1]}\n";
+    }
+  }
+  $pathAlias->delete();
+  echo "Removed /refund-policy path alias.\n";
+}
+
 $config = \Drupal::configFactory()->getEditable('myeventlane_legal.settings');
 $config
   ->set('customer_terms_url', '/terms')
   ->set('vendor_terms_url', '/vendor-terms')
   ->set('privacy_url', '/privacy')
-  ->set('refund_policy_url', '/refund-policy')
+  ->set('refund_policy_url', '/help/policies/refund-policy')
   ->set('cookie_policy_url', '/cookie-policy')
   ->save();
 
-echo "\nLegal config URLs updated to: /terms, /vendor-terms, /privacy, /refund-policy, /cookie-policy\n";
+echo "\nLegal config URLs updated to: /terms, /vendor-terms, /privacy, /help/policies/refund-policy, /cookie-policy\n";
 echo "\nNote: /cookies is served by CookiePolicyController (preferences page). Cookie Policy node is at /cookie-policy.\n";

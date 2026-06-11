@@ -1,5 +1,5 @@
 myeventlane_front.about:
-  path: '/about'
+  path: '/legacy-about'
   defaults:
     _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
     _title: 'About MyEventLane'
@@ -7,7 +7,7 @@ myeventlane_front.about:
     _permission: 'access content'
 
 myeventlane_front.story:
-  path: '/our-story'
+  path: '/legacy-our-story'
   defaults:
     _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
     _title: 'Our story'
@@ -15,7 +15,7 @@ myeventlane_front.story:
     _permission: 'access content'
 
 myeventlane_front.contact:
-  path: '/contact'
+  path: '/legacy-contact'
   defaults:
     _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToHelp'
     _title: 'Contact'
@@ -31,7 +31,7 @@ myeventlane_front.blog:
     _permission: 'access content'
 
 myeventlane_front.privacy:
-  path: '/privacy'
+  path: '/legacy-privacy'
   defaults:
     _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToPolicies'
     _title: 'Privacy policy'
@@ -39,9 +39,25 @@ myeventlane_front.privacy:
     _permission: 'access content'
 
 myeventlane_front.terms:
-  path: '/terms'
+  path: '/legacy-terms'
   defaults:
     _controller: '\Drupal\myeventlane_front\Controller\LegacyAboutController::redirectToPolicies'
     _title: 'Terms'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.refund_policy_redirect:
+  path: '/refund-policy'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\TrustRedirectController::refundPolicy'
+    _title: 'Refund policy'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.sitemap:
+  path: '/sitemap'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\SitemapController::page'
+    _title: 'Sitemap'
   requirements:
     _permission: 'access content'

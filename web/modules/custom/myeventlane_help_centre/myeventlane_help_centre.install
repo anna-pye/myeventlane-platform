@@ -1877,6 +1877,25 @@ function myeventlane_help_centre_update_10035(): string {
 }
 
 /**
+ * Seeds trust foundation help articles (refunds, guidelines, trust and safety).
+ */
+function myeventlane_help_centre_update_10036(): string {
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_help_centre');
+  $file = $module_path . '/config/install/myeventlane_help_centre.help_content.yml';
+  if (is_readable($file)) {
+    $data = \Symfony\Component\Yaml\Yaml::parseFile($file);
+    if (is_array($data) && isset($data['help_articles']) && is_array($data['help_articles'])) {
+      \Drupal::configFactory()->getEditable('myeventlane_help_centre.help_content')
+        ->set('help_articles', $data['help_articles'])
+        ->save();
+    }
+  }
+
+  $count = \Drupal::service('myeventlane_help_centre.seeder')->seedHelpArticles();
+  return sprintf('Trust foundation help articles seeded or updated (%d).', $count);
+}
+
+/**
  * Maps help_audience taxonomy term labels to field_audience list values.
  *
  * Unknown labels are ignored so custom terms do not silently become public.

@@ -11,6 +11,13 @@ declare(strict_types=1);
  */
 function myeventlane_front_theme($existing, $type, $theme, $path): array {
   return [
+    'myeventlane_front_sitemap' => [
+      'variables' => [
+        'sections' => [],
+      ],
+      'template' => 'myeventlane-front-sitemap',
+      'path' => $path . '/templates',
+    ],
     'myeventlane_home_hero' => [
       'variables' => [
         'pills' => NULL,
