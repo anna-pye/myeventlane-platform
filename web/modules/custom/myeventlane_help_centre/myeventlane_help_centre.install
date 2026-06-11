@@ -1886,9 +1886,13 @@ function myeventlane_help_centre_update_10036(): string {
   if (is_readable($file)) {
     $data = \Symfony\Component\Yaml\Yaml::parseFile($file);
     if (is_array($data) && isset($data['help_articles']) && is_array($data['help_articles'])) {
-      \Drupal::configFactory()->getEditable('myeventlane_help_centre.help_content')
-        ->set('help_articles', $data['help_articles'])
-        ->save();
+      $config = \Drupal::configFactory()->getEditable('myeventlane_help_centre.help_content');
+      $existing = $config->get('help_articles');
+      $merged = is_array($existing) ? $existing : [];
+      foreach ($data['help_articles'] as $key => $article) {
+        $merged[$key] = $article;
+      }
+      $config->set('help_articles', $merged)->save();
     }
   }
 

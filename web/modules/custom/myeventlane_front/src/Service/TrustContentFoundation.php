@@ -163,14 +163,25 @@ final class TrustContentFoundation {
   }
 
   /**
-   * Creates or updates a published basic page at the given alias.
+   * Creates or updates a basic page at the given alias.
+   *
+   * New pages are published. Existing publish state is preserved so editorial
+   * unpublish actions are not reversed by update hooks.
    */
   private function upsertPage(string $alias, string $title, string $body): string {
     $node = $this->loadNodeByAlias($alias);
     if ($node instanceof NodeInterface) {
-      $node->setTitle($title);
-      $node->set('body', ['value' => $body, 'format' => 'basic_html']);
-      $node->setPublished();
+      $titleChanged = $node->getTitle() !== $title;
+      $bodyChanged = !$this->bodyFieldMatches($node, $body);
+      if (!$titleChanged && !$bodyChanged) {
+        return sprintf('No changes for page at %s (nid=%d).', $alias, (int) $node->id());
+      }
+      if ($titleChanged) {
+        $node->setTitle($title);
+      }
+      if ($bodyChanged) {
+        $node->set('body', ['value' => $body, 'format' => 'basic_html']);
+      }
       $node->save();
       return sprintf('Updated page at %s (nid=%d).', $alias, (int) $node->id());
     }
@@ -190,6 +201,14 @@ final class TrustContentFoundation {
     ])->save();
 
     return sprintf('Created page at %s (nid=%d).', $alias, (int) $node->id());
+  }
+
+  private function bodyFieldMatches(NodeInterface $node, string $body): bool {
+    if (!$node->hasField('body') || $node->get('body')->isEmpty()) {
+      return $body === '';
+    }
+    return (string) $node->get('body')->value === $body
+      && (string) ($node->get('body')->format ?? 'basic_html') === 'basic_html';
   }
 
   private function loadNodeByAlias(string $alias): ?NodeInterface {
