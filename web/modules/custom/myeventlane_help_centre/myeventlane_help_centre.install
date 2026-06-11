@@ -899,6 +899,7 @@ function myeventlane_help_centre_update_10010(): string {
     'Privacy',
     'Terms',
     'Community guidelines',
+    'Trust & safety',
     'Safety',
     'Accessibility',
     'Moderation',
@@ -1893,6 +1894,15 @@ function myeventlane_help_centre_update_10036(): string {
 
   $count = \Drupal::service('myeventlane_help_centre.seeder')->seedHelpArticles();
   return sprintf('Trust foundation help articles seeded or updated (%d).', $count);
+}
+
+/**
+ * Ensures Trust & safety help_topic term exists and re-seeds trust articles.
+ */
+function myeventlane_help_centre_update_10037(): string {
+  _myeventlane_help_centre_ensure_terms('help_topic', ['Trust & safety']);
+  $count = \Drupal::service('myeventlane_help_centre.seeder')->seedHelpArticles();
+  return sprintf('Ensured Trust & safety help_topic term and re-seeded help articles (%d).', $count);
 }
 
 /**

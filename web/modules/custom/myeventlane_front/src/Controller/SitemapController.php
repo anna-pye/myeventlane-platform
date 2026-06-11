@@ -35,11 +35,8 @@ final class SitemapController extends ControllerBase {
       '#sections' => $this->sitemapBuilder->buildSections(),
       '#cache' => [
         'tags' => [
-          'config:system.menu.footer-find',
-          'config:system.menu.footer-host',
-          'config:system.menu.footer-about',
-          'config:system.menu.footer-community',
           'config:myeventlane_legal.settings',
+          'taxonomy_term_list:categories',
         ],
         'contexts' => ['languages:language_interface'],
         'max-age' => 3600,

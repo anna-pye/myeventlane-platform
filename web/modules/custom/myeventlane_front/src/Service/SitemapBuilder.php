@@ -5,28 +5,16 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_front\Service;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Menu\MenuLinkTreeInterface;
-use Drupal\Core\Menu\MenuTreeParameters;
 use Drupal\Core\Url;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
 
 /**
- * Builds grouped sitemap link sections from deployable menus and routes.
+ * Builds grouped sitemap link sections aligned with the live public footer.
  */
 final class SitemapBuilder {
 
-  /**
-   * @var list<string>
-   */
-  private const FOOTER_MENUS = [
-    'footer-find' => 'Discover',
-    'footer-host' => 'Host',
-    'footer-about' => 'About',
-    'footer-community' => 'Community',
-  ];
-
   public function __construct(
-    private readonly MenuLinkTreeInterface $menuLinkTree,
+    private readonly PublicFooterNavigationBuilder $footerNavigation,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ?LegalSettingsService $legalSettings = NULL,
   ) {}
@@ -36,22 +24,17 @@ final class SitemapBuilder {
    */
   public function buildSections(): array {
     $sections = [];
-
-    foreach (self::FOOTER_MENUS as $menuName => $title) {
-      $links = $this->buildMenuLinks($menuName);
-      if ($links !== []) {
-        $sections[] = [
-          'title' => $title,
-          'links' => $links,
+    foreach ($this->footerNavigation->buildSections() as $section) {
+      $links = [];
+      foreach ($section['links'] as $link) {
+        $links[] = [
+          'title' => (string) $link['title'],
+          'url' => $link['url'],
         ];
       }
-    }
-
-    $supportLinks = $this->buildSupportLinks();
-    if ($supportLinks !== []) {
       $sections[] = [
-        'title' => 'Support and trust',
-        'links' => $supportLinks,
+        'title' => (string) $section['title'],
+        'links' => $links,
       ];
     }
 
@@ -64,79 +47,6 @@ final class SitemapBuilder {
     }
 
     return $sections;
-  }
-
-  /**
-   * @return list<array{title: string, url: string}>
-   */
-  private function buildMenuLinks(string $menuName): array {
-    $parameters = new MenuTreeParameters();
-    $parameters->onlyEnabledLinks();
-    $tree = $this->menuLinkTree->load($menuName, $parameters);
-    $manipulators = [
-      ['callable' => 'menu.default_tree_manipulators:checkAccess'],
-      ['callable' => 'menu.default_tree_manipulators:generateIndexAndSort'],
-    ];
-    $tree = $this->menuLinkTree->transform($tree, $manipulators);
-    $links = [];
-    foreach ($tree as $element) {
-      $link = $element->link;
-      if ($link === NULL) {
-        continue;
-      }
-      $url = $link->getUrlObject();
-      if (!$url->access()) {
-        continue;
-      }
-      $links[] = [
-        'title' => (string) $link->getTitle(),
-        'url' => $url->toString(),
-      ];
-    }
-    return $links;
-  }
-
-  /**
-   * @return list<array{title: string, url: string}>
-   */
-  private function buildSupportLinks(): array {
-    $links = [];
-
-    if ($this->moduleHandler->moduleExists('myeventlane_help_centre')) {
-      $links[] = $this->linkFromRoute('Help Centre', 'myeventlane_help_centre.home');
-      $links[] = $this->linkFromRoute('Policies and trust', 'myeventlane_help_centre.policies_index');
-    }
-
-    $links[] = [
-      'title' => 'Contact us',
-      'url' => Url::fromUri('internal:/contact')->toString(),
-    ];
-
-    $articlePaths = [
-      'Refunds' => '/help/policies/refund-policy',
-      'Community guidelines' => '/help/policies/community-guidelines',
-      'Trust and safety' => '/help/policies/trust-and-safety',
-    ];
-    foreach ($articlePaths as $title => $path) {
-      $links[] = [
-        'title' => $title,
-        'url' => Url::fromUri('internal:' . $path)->toString(),
-      ];
-    }
-
-    if ($this->moduleHandler->moduleExists('myeventlane_public_trust')) {
-      $trustLink = $this->linkFromRoute('Trust and transparency', 'myeventlane_public_trust.page');
-      if ($trustLink !== NULL) {
-        $links[] = $trustLink;
-      }
-    }
-
-    $links[] = [
-      'title' => 'Accessibility',
-      'url' => Url::fromUri('internal:/accessibility')->toString(),
-    ];
-
-    return array_values(array_filter($links));
   }
 
   /**
@@ -166,26 +76,12 @@ final class SitemapBuilder {
       ];
     }
 
-    return $links;
-  }
+    $links[] = [
+      'title' => 'Sitemap',
+      'url' => Url::fromRoute('myeventlane_front.sitemap')->toString(),
+    ];
 
-  /**
-   * @return array{title: string, url: string}|null
-   */
-  private function linkFromRoute(string $title, string $routeName): ?array {
-    try {
-      $url = Url::fromRoute($routeName);
-      if (!$url->access()) {
-        return NULL;
-      }
-      return [
-        'title' => $title,
-        'url' => $url->toString(),
-      ];
-    }
-    catch (\Throwable) {
-      return NULL;
-    }
+    return $links;
   }
 
 }

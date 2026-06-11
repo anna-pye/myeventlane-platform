@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
+use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\TermInterface;
 
 /**
@@ -317,10 +318,27 @@ final class HelpContentSeeder {
     if (!$node->hasField($fieldName) || $termName === '') {
       return;
     }
-    $term = $this->loadTermByName($vocabularyId, $termName);
+    $term = $this->ensureTermByName($vocabularyId, $termName);
     if ($term instanceof TermInterface) {
       $node->set($fieldName, ['target_id' => (int) $term->id()]);
     }
+  }
+
+  private function ensureTermByName(string $vocabularyId, string $termName): ?TermInterface {
+    $term = $this->loadTermByName($vocabularyId, $termName);
+    if ($term instanceof TermInterface) {
+      return $term;
+    }
+    if ($vocabularyId !== 'help_topic') {
+      return NULL;
+    }
+    $term = Term::create([
+      'vid' => $vocabularyId,
+      'name' => $termName,
+    ]);
+    $term->save();
+    $this->logger->notice('Created missing help_topic term: @name', ['@name' => $termName]);
+    return $term;
   }
 
   private function loadTermByName(string $vocabularyId, string $name): ?TermInterface {
