@@ -6,10 +6,10 @@
   <h1>{{ 'Cookie preferences'|t }}</h1>
   <p>{{ 'You can manage your cookie preferences below. Necessary cookies are required for the site to function.'|t }}</p>
   {% if cookie_policy_url %}
-    <p><a href="{{ cookie_policy_url }}" target="_blank" rel="noopener">{{ 'Cookie policy'|t }}</a></p>
+    <p><a href="{{ cookie_policy_url }}">{{ 'Cookie policy'|t }}</a></p>
   {% endif %}
   {% if privacy_url %}
-    <p><a href="{{ privacy_url }}" target="_blank" rel="noopener">{{ 'Privacy policy'|t }}</a></p>
+    <p><a href="{{ privacy_url }}">{{ 'Privacy policy'|t }}</a></p>
   {% endif %}
   <p>
     <a href="#klaro" class="open-consent-manager mel-btn mel-btn-primary">{{ 'Manage cookie preferences'|t }}</a>

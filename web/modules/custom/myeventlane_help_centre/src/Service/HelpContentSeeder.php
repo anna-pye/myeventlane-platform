@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
+use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\TermInterface;
 
 /**
@@ -194,9 +195,7 @@ final class HelpContentSeeder {
         'status' => 1,
       ]);
       $node->setTitle($item['title']);
-      if ($node->isNew()) {
-        $node->set('status', 1);
-      }
+      $this->applyPublishedState($node);
       $this->setTextField($node, 'field_help_seed_key', $seedKey);
       $this->setTextField($node, 'field_help_summary', (string) $item['summary']);
       $this->setBodyField($node, (string) $item['body']);
@@ -211,10 +210,13 @@ final class HelpContentSeeder {
         $this->setDateField($node, 'field_last_reviewed', date('Y-m-d'));
       }
       $this->setAlias($node, (string) $item['alias']);
-      if ($node->isNew() || $node->hasChanges()) {
-        $node->save();
-        $node->isNew() ? $created++ : $updated++;
+      $this->applyPublishedState($node);
+      if ($node->hasField('field_help_status')) {
+        $this->setTextField($node, 'field_help_status', 'published');
       }
+      $isNew = $node->isNew();
+      $node->save();
+      $isNew ? $created++ : $updated++;
     }
 
     $this->logger->notice('Help Centre articles seeded. Created @created, updated @updated.', [
@@ -316,10 +318,27 @@ final class HelpContentSeeder {
     if (!$node->hasField($fieldName) || $termName === '') {
       return;
     }
-    $term = $this->loadTermByName($vocabularyId, $termName);
+    $term = $this->ensureTermByName($vocabularyId, $termName);
     if ($term instanceof TermInterface) {
       $node->set($fieldName, ['target_id' => (int) $term->id()]);
     }
+  }
+
+  private function ensureTermByName(string $vocabularyId, string $termName): ?TermInterface {
+    $term = $this->loadTermByName($vocabularyId, $termName);
+    if ($term instanceof TermInterface) {
+      return $term;
+    }
+    if ($vocabularyId !== 'help_topic') {
+      return NULL;
+    }
+    $term = Term::create([
+      'vid' => $vocabularyId,
+      'name' => $termName,
+    ]);
+    $term->save();
+    $this->logger->notice('Created missing help_topic term: @name', ['@name' => $termName]);
+    return $term;
   }
 
   private function loadTermByName(string $vocabularyId, string $name): ?TermInterface {
@@ -334,6 +353,16 @@ final class HelpContentSeeder {
     }
     $term = reset($terms);
     return $term instanceof TermInterface ? $term : NULL;
+  }
+
+  /**
+   * Ensures seeded help articles are publicly visible under content moderation.
+   */
+  private function applyPublishedState(NodeInterface $node): void {
+    $node->setPublished();
+    if ($node->hasField('moderation_state')) {
+      $node->set('moderation_state', 'published');
+    }
   }
 
 }

@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for MyEventLane Front trust content foundation.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Seeds trust foundation basic pages (about, story, contact, accessibility).
+ */
+function myeventlane_front_update_8001(): string {
+  /** @var \Drupal\myeventlane_front\Service\TrustContentFoundation $foundation */
+  $foundation = \Drupal::service('myeventlane_front.trust_content_foundation');
+  $messages = $foundation->seedTrustPages();
+  return implode(' ', $messages);
+}
+
+/**
+ * Seeds public pricing page and refreshes trust pages for support email.
+ */
+function myeventlane_front_update_8002(): string {
+  /** @var \Drupal\myeventlane_front\Service\TrustContentFoundation $foundation */
+  $foundation = \Drupal::service('myeventlane_front.trust_content_foundation');
+  $messages = array_merge($foundation->seedTrustPages(), $foundation->seedPricingPage());
+  return implode(' ', $messages);
+}

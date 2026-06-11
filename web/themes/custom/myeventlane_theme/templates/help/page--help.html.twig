@@ -2,23 +2,23 @@
 /**
  * @file
  * Theme override for the /help page family.
+ *
+ * Extends the standard MEL public page shell (header + footer) and wraps
+ * Help Centre content in the existing help page styles.
  */
 #}
-<div class="mel-help-page">
-  {% if page.breadcrumb %}
-    <div class="mel-help-page__breadcrumb">
-      {{ page.breadcrumb }}
-    </div>
-  {% endif %}
+{% extends "page.html.twig" %}
 
-  {% if page.highlighted %}
-    <div class="mel-help-page__highlighted">
-      {{ page.highlighted }}
-    </div>
-  {% endif %}
+{% block content %}
+  <div class="mel-help-page">
+    {% if page.breadcrumb %}
+      <div class="mel-help-page__breadcrumb">
+        {{ page.breadcrumb }}
+      </div>
+    {% endif %}
 
-  <main class="mel-help-page__content" role="main">
-    <a id="main-content" tabindex="-1"></a>
-    {{ page.content }}
-  </main>
-</div>
+    <div class="mel-help-page__content">
+      {{ page.content }}
+    </div>
+  </div>
+{% endblock %}

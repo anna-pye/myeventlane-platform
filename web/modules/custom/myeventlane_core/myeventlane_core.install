@@ -950,3 +950,14 @@ function myeventlane_core_update_9121(): void {
     $link->save();
   }
 }
+
+/**
+ * Sets default platform support email when not configured.
+ */
+function myeventlane_core_update_9122(): void {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_core.settings');
+  $email = trim((string) ($config->get('support_email') ?? ''));
+  if ($email === '') {
+    $config->set('support_email', 'support@myeventlane.com.au')->save();
+  }
+}

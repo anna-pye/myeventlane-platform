@@ -114,31 +114,45 @@ help_articles:
     featured: false
   refund_policy:
     seed_key: refund_policy
-    title: 'Refund policy'
-    summary: 'How refunds are handled, assessed, and paid back on MyEventLane.'
-    body: '<p>Refunds depend on the organiser policy and event circumstances. Approved refunds are returned to the original payment method and timing may vary by bank.</p>'
+    title: 'Refunds on MyEventLane'
+    summary: 'How ticket refunds work on MyEventLane, what organisers decide, and what the platform supports.'
+    body: '<h2>Refunds on MyEventLane</h2><p>MyEventLane connects event organisers with people who want to attend. <strong>Refund decisions are made by the event organiser</strong>, based on their event policy and the circumstances of each request.</p><h3>MyEventLane&rsquo;s role</h3><p>We provide the tools for ticketing, payments, and refund processing. We do not automatically refund every ticket &mdash; that depends on the organiser&rsquo;s policy and whether a refund is approved.</p><p>When a refund is approved:</p><ul><li>It is usually returned to the <strong>original payment method</strong></li><li>Timing can vary depending on your bank or card provider</li><li>You will receive confirmation when the refund is processed</li></ul><h3>Ticket refund process</h3><ol><li>Open your booking from your confirmation email or MyEventLane account.</li><li>Check the organiser&rsquo;s refund policy on the event page.</li><li>Submit a refund request through the appropriate channel shown on your booking.</li><li>If approved, the refund is processed back to your original payment method.</li></ol><p>If an event is <strong>cancelled or significantly changed</strong>, the organiser should communicate next steps. Contact them first; use platform support if you cannot reach them.</p><h3>RSVP (free) events</h3><p>RSVP events do not involve a ticket payment through MyEventLane. If you can no longer attend, update or cancel your RSVP if the event allows it, or contact the organiser directly.</p><h3>What we cannot promise</h3><p>We cannot guarantee that every refund request will be approved. That is the organiser&rsquo;s decision. MyEventLane does not provide legal advice about consumer rights.</p><p><a href="/contact">Need help?</a> Start at the <a href="/help">Help Centre</a> or contact support.</p>'
     audience:
       - General
-    topic: Privacy
+    topic: Refunds
     article_type: Policy
-    keywords: 'refund rules, policy, cancelled event'
+    keywords: 'refund rules, policy, cancelled event, rsvp refund'
     cta_label: 'Contact support'
-    cta_link: /help
+    cta_link: /contact
     alias: /help/policies/refund-policy
     featured: true
   community_guidelines:
     seed_key: community_guidelines
     title: 'Community guidelines'
-    summary: 'Our expectations for respectful behaviour across the platform.'
-    body: '<p>MyEventLane is community-first. We expect respectful conduct, clear communication, and safe participation from attendees, organisers, and vendors.</p>'
+    summary: 'How we expect people to behave on MyEventLane — respect, inclusion, and organiser responsibilities.'
+    body: '<h2>Community Guidelines</h2><p>MyEventLane is a community-first marketplace for events. These guidelines set clear expectations for everyone using the platform.</p><h3>Respectful behaviour</h3><ul><li>Communicate clearly and politely</li><li>Honour bookings and RSVPs &mdash; cancel if you cannot attend when possible</li><li>Do not abuse, threaten, or intimidate others</li><li>Do not spam listings, messages, or reviews</li></ul><h3>Inclusion</h3><p>We welcome diverse communities, cultures, and accessibility needs. Event listings should accurately describe access information where organisers know it. Attendees should respect how others participate in events.</p><p>Discrimination, hate speech, and exclusionary conduct are not acceptable on MyEventLane.</p><h3>Harassment</h3><p>Harassment includes unwanted contact, bullying, sexual harassment, and targeted abuse. We take reports seriously and may remove content or restrict accounts.</p><p>If you experience harassment at an event, seek safety first, then report through the organiser and platform channels.</p><h3>Event organiser expectations</h3><p>Organisers should provide accurate event details, communicate changes promptly, handle refund requests fairly, and comply with applicable laws and venue requirements. Organisers are responsible for their events.</p><h3>When we step in</h3><p>We may review listings, messages, or accounts that breach these guidelines or put others at risk. Actions can include warnings, content removal, or account restrictions.</p><p>Read more in <a href="/help/policies/trust-and-safety">Trust &amp; Safety</a> or visit the <a href="/help">Help Centre</a>.</p>'
     audience:
       - General
     topic: 'Community guidelines'
     article_type: Policy
-    keywords: 'community rules, safety, respectful behaviour'
-    cta_label: 'Read policies'
-    cta_link: /help/policies
+    keywords: 'community rules, safety, respectful behaviour, inclusion'
+    cta_label: 'Trust and safety'
+    cta_link: /help/policies/trust-and-safety
     alias: /help/policies/community-guidelines
+    featured: true
+  trust_and_safety:
+    seed_key: trust_and_safety
+    title: 'Trust and safety'
+    summary: 'Community expectations, reporting concerns, fraud awareness, and safe participation on MyEventLane.'
+    body: '<h2>Trust &amp; Safety</h2><p>MyEventLane is built for real-world community events. We expect everyone &mdash; attendees, organisers, and vendors &mdash; to participate safely and respectfully.</p><h3>Community expectations</h3><ul><li>Be honest in event listings and communications</li><li>Treat others with respect, including staff and volunteers</li><li>Follow venue rules and local laws</li><li>Do not use the platform to harass, scam, or mislead people</li></ul><h3>Reporting concerns</h3><p>If something on MyEventLane does not feel right:</p><ol><li><strong>Event or listing issue</strong> &mdash; use report options on the event page where available, or contact the organiser.</li><li><strong>Platform or account issue</strong> &mdash; visit the <a href="/help">Help Centre</a> or <a href="/contact">contact support</a>.</li><li><strong>Urgent safety risk</strong> &mdash; contact local emergency services first; then tell us so we can review the listing.</li></ol><h3>Fraud prevention</h3><ul><li>Pay for tickets <strong>through MyEventLane checkout</strong></li><li>Check event details, organiser information, and refund policy before you buy</li><li>Be cautious of pressure to pay outside the platform</li><li>Never share passwords or full payment card details in messages</li></ul><p>Stripe processes payments on MyEventLane; organisers connect their own payout accounts.</p><h3>Safe participation</h3><ul><li>Share only information needed to book or RSVP</li><li>Keep your account secure with a strong password</li><li>Meet in public, well-lit places for pickup or collection events where possible</li><li>Look after personal belongings at events</li></ul><p>For platform transparency metrics, see <a href="/trust">Trust &amp; transparency</a>.</p>'
+    audience:
+      - General
+    topic: 'Trust & safety'
+    article_type: Policy
+    keywords: 'trust, safety, fraud, reporting, community'
+    cta_label: 'Community guidelines'
+    cta_link: /help/policies/community-guidelines
+    alias: /help/policies/trust-and-safety
     featured: true
 support_panels:
   buy_tickets:

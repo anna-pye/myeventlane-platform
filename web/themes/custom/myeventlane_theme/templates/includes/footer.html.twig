@@ -1,8 +1,7 @@
 {#
 /**
  * @file
- * Main site footer.
- * Menu-backed discovery footer for public marketplace pages.
+ * Launch-ready marketplace footer: CTA band, trust strip, four columns, legal bar.
  */
 #}
 
@@ -11,87 +10,65 @@
 
   <div class="mel-footer__container">
 
+    {% if mel_footer_show_cta_band|default(false) %}
+      {% include '@myeventlane_theme/includes/mel-footer-cta-band.html.twig' %}
+    {% endif %}
+
+    {% if mel_footer_trust_items %}
+      <div class="mel-footer__trust-strip" role="list" aria-label="{{ 'Platform trust signals'|t }}">
+        {% for item in mel_footer_trust_items %}
+          <span class="mel-footer__trust-item mel-trust-badge" role="listitem">
+            <span class="mel-trust-badge__icon" aria-hidden="true">✓</span>
+            <span>{{ item.label }}</span>
+          </span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% include '@myeventlane_theme/includes/mel-footer-brand-block.html.twig' %}
+
     <nav class="mel-footer__nav" aria-label="{{ 'Footer navigation'|t }}">
-
-      <div class="mel-footer__col">
-        <h4>{{ 'Find events'|t }}</h4>
-        <ul class="menu mel-footer__links">
-          <li><a href="{{ path('view.upcoming_events.page_events') }}">{{ 'All events'|t }}</a></li>
-          <li><a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Nearby events'|t }}</a></li>
-          <li><a href="{{ path('view.upcoming_events.page_today') }}">{{ 'Today'|t }}</a></li>
-          <li><a href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a></li>
-          <li><a href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free & RSVP'|t }}</a></li>
-        </ul>
-        {% if mel_footer_categories %}
-          <ul class="mel-footer__dynamic">
-            {% for item in mel_footer_categories %}
-              <li><a href="{{ item.url }}">{{ item.title }}</a></li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-      </div>
-
-      <div class="mel-footer__col">
-        <h4>{{ 'Host events'|t }}</h4>
-        <ul class="menu mel-footer__links">
-          <li><a href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Create event'|t }}</a></li>
-          <li><a href="{{ path('myeventlane_help_centre.organisers_index') }}">{{ 'How to create an event'|t }}</a></li>
-          <li><a href="{{ path('myeventlane_help_centre.organisers_index') }}">{{ 'Set up tickets and RSVPs'|t }}</a></li>
-          <li><a href="{{ path('myeventlane_help_centre.vendors_index') }}">{{ 'Managing your events'|t }}</a></li>
-          <li><a href="{{ path('myeventlane_vendor.organisers') }}">{{ 'Event organisers'|t }}</a></li>
-        </ul>
-        {% if mel_is_organiser %}
-          <ul class="mel-footer__dynamic">
-            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">{{ 'Vendor dashboard'|t }}</a></li>
-            <li><a href="{{ path('myeventlane_vendor.console.settings') }}">{{ 'Vendor settings'|t }}</a></li>
-          </ul>
-        {% endif %}
-      </div>
-
-      <div class="mel-footer__col">
-        <h4>{{ 'About MyEventLane'|t }}</h4>
-        <ul class="menu mel-footer__links">
-          <li><a href="{{ path('myeventlane_front.about') }}">{{ 'About MyEventLane'|t }}</a></li>
-          <li><a href="{{ path('myeventlane_front.story') }}">{{ 'MyEventLane Story'|t }}</a></li>
-          <li><a href="{{ path('view.mel_blog.page_blog') }}">{{ 'Blog'|t }}</a></li>
-          <li><a href="{{ path('myeventlane_public_trust.page') }}">{{ 'Trust & transparency'|t }}</a></li>
-        </ul>
-        <div class="mel-footer__trust">
-          <span>{{ 'Community-first platform'|t }}</span>
-          <span>{{ 'Secure payments via Stripe'|t }}</span>
-          <span>{{ 'Australian-owned'|t }}</span>
+      {% for section in mel_footer_sections|default([]) %}
+        <div class="mel-footer__col mel-footer__accordion" id="mel-footer-section-{{ section.id }}">
+          <button
+            type="button"
+            class="mel-footer__accordion-toggle"
+            aria-expanded="false"
+            aria-controls="mel-footer-panel-{{ section.id }}"
+          >
+            {{ section.title }}
+          </button>
+          <h2 class="mel-footer__col-heading">{{ section.title }}</h2>
+          <div class="mel-footer__accordion-panel" id="mel-footer-panel-{{ section.id }}">
+            <ul class="menu mel-footer__links">
+              {% for link in section.links %}
+                <li>
+                  <a
+                    href="{{ link.url }}"
+                    {% if link.external|default(false) %}target="_blank" rel="noopener noreferrer"{% endif %}
+                  >
+                    {{ link.title }}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
         </div>
-      </div>
-
-      <div class="mel-footer__col">
-        <h4>{{ 'Community'|t }}</h4>
-        {{ drupal_menu('footer-community') }}
-      </div>
-
+      {% endfor %}
     </nav>
 
   </div>
 
-  {# Dark Footer Base Section #}
   <div class="mel-footer__base">
     <div class="mel-footer__base-inner">
 
-      <div class="mel-footer__brand">
-        <img src="{{ base_path }}{{ directory }}/images/logo.svg" alt="MyEventLane">
-      </div>
-
-      <div class="mel-footer__meta">
+      <nav class="mel-footer__meta" aria-label="{{ 'Legal links'|t }}">
         <span>© {{ "now"|date("Y") }} MyEventLane</span>
         <a href="/privacy">{{ 'Privacy'|t }}</a>
         <a href="/terms">{{ 'Terms'|t }}</a>
         <a href="{{ path('myeventlane_legal.cookies') }}">{{ 'Cookies'|t }}</a>
-      </div>
-
-      <div class="mel-footer__action">
-        <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-footer__create-link">
-          {{ 'Create event'|t }}
-        </a>
-      </div>
+        <a href="{{ path('myeventlane_front.sitemap') }}">{{ 'Sitemap'|t }}</a>
+      </nav>
 
     </div>
   </div>

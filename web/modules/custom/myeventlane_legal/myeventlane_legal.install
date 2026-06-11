@@ -246,33 +246,14 @@ function _myeventlane_legal_create_policy_pages(): void {
   if (!$node_type) {
     return;
   }
-  $date = date('F j, Y');
-  $placeholder = '<p><em>Full policy content to be inserted by legal.</em></p>';
-  $policies = [
-    '/terms' => [
-      'Customer Terms of Service',
-      '<p>These Terms of Service govern your use of MyEventLane.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
-    ],
-    '/vendor-terms' => [
-      'Vendor Agreement',
-      '<p>This Vendor Agreement sets out the terms under which organisers use MyEventLane.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
-    ],
-    '/privacy' => [
-      'Privacy Policy',
-      '<p>MyEventLane respects your privacy. This policy describes how we collect, use, and protect your information.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
-    ],
-    '/refund-policy' => [
-      'Refund Policy',
-      '<p>This Refund Policy explains how refunds are handled for tickets purchased through MyEventLane.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
-    ],
-    '/cookie-policy' => [
-      'Cookie Policy',
-      '<p>This Cookie Policy explains how MyEventLane uses cookies and similar technologies.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
-    ],
-  ];
+  $policies = \Drupal\myeventlane_legal\Service\LegalPolicyPageContent::getDefinitions(
+    \Drupal::configFactory()
+  );
   $pa_storage = \Drupal::entityTypeManager()->getStorage('path_alias');
   $node_storage = \Drupal::entityTypeManager()->getStorage('node');
-  foreach ($policies as $alias => [$title, $body]) {
+  foreach ($policies as $alias => $definition) {
+    $title = $definition['title'];
+    $body = $definition['body'];
     $node = NULL;
     foreach ($pa_storage->loadByProperties(['alias' => $alias]) as $pa) {
       if (preg_match('#^/node/(\d+)$#', $pa->getPath(), $m)) {
@@ -418,4 +399,51 @@ function myeventlane_legal_update_9007(): string {
   }
   drupal_flush_all_caches();
   return 'Added event_id field to legal_consent_event for RSVP event context.';
+}
+
+/**
+ * Trust foundation: policy structures, refund consolidation, legal URL alignment.
+ */
+function myeventlane_legal_update_9008(): string {
+  _myeventlane_legal_create_policy_pages();
+  _myeventlane_legal_retire_refund_policy_page();
+
+  $config = \Drupal::configFactory()->getEditable('myeventlane_legal.settings');
+  $config
+    ->set('customer_terms_url', '/terms')
+    ->set('vendor_terms_url', '/vendor-terms')
+    ->set('privacy_url', '/privacy')
+    ->set('refund_policy_url', '/help/policies/refund-policy')
+    ->set('cookie_policy_url', '/cookie-policy')
+    ->save();
+
+  drupal_flush_all_caches();
+  return 'Updated legal policy page structures, retired /refund-policy node alias, and aligned legal config URLs.';
+}
+
+/**
+ * Removes the duplicate /refund-policy basic page so the redirect route can serve.
+ */
+function _myeventlane_legal_retire_refund_policy_page(): void {
+  $pa_storage = \Drupal::entityTypeManager()->getStorage('path_alias');
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  foreach ($pa_storage->loadByProperties(['alias' => '/refund-policy']) as $pathAlias) {
+    if (preg_match('#^/node/(\d+)$#', $pathAlias->getPath(), $matches)) {
+      $node = $node_storage->load($matches[1]);
+      if ($node instanceof \Drupal\node\NodeInterface) {
+        $node->setUnpublished();
+        $node->save();
+      }
+    }
+    $pathAlias->delete();
+  }
+}
+
+/**
+ * Expands launch-ready privacy, terms, and cookie policy page content.
+ */
+function myeventlane_legal_update_9009(): string {
+  _myeventlane_legal_create_policy_pages();
+  drupal_flush_all_caches();
+  return 'Expanded launch-ready privacy, terms, and cookie policy page content.';
 }

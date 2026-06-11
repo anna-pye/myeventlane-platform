@@ -41,3 +41,27 @@ services:
       - '@string_translation'
       - '@?myeventlane_domain_events.read_model.event_metrics'
       - '@?myeventlane_core.discovery_surface_analytics'
+
+  myeventlane_front.trust_content_foundation:
+    class: Drupal\myeventlane_front\Service\TrustContentFoundation
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+
+  myeventlane_front.public_footer_navigation:
+    class: Drupal\myeventlane_front\Service\PublicFooterNavigationBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_core.event_category_url'
+
+  myeventlane_front.sitemap_builder:
+    class: Drupal\myeventlane_front\Service\SitemapBuilder
+    arguments:
+      - '@myeventlane_front.public_footer_navigation'
+      - '@module_handler'
+      - '@?myeventlane_legal.settings'
+
+  myeventlane_front.route_subscriber:
+    class: Drupal\myeventlane_front\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }

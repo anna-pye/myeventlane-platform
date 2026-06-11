@@ -33,19 +33,19 @@ final class CookiePolicyController extends ControllerBase {
    * Renders the cookie policy page.
    */
   public function page(): array {
-    $cookieUrl = $this->legalSettings->getCookiePolicyUrl();
+    $cookiePolicyUrl = $this->legalSettings->getCookiePolicyUrl();
     $privacyUrl = $this->legalSettings->getPrivacyUrl();
 
     $build = [
       '#theme' => 'myeventlane_legal_cookie_policy',
-      '#cookie_policy_url' => $cookieUrl,
+      '#cookie_policy_url' => $cookiePolicyUrl,
       '#privacy_url' => $privacyUrl,
       '#attached' => [
         'library' => ['myeventlane_legal/cookie_consent'],
         'drupalSettings' => [
           'myeventlane_legal' => [
             'preferences_url' => '/cookies/preferences',
-            'cookie_policy_url' => '/cookies',
+            'cookie_policy_url' => $cookiePolicyUrl,
           ],
         ],
       ],

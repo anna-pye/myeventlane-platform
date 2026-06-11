@@ -17,6 +17,9 @@ myeventlane_core.settings:
     fee_payer:
       type: string
       label: 'Who pays platform fee: buyer or organizer_absorbs'
+    support_email:
+      type: string
+      label: 'Platform support email address'
     checkout_rate_limit_per_minute:
       type: integer
       label: 'Checkout rate limit: max requests per minute per IP (0 = disabled)'

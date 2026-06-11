@@ -1,14 +1,20 @@
 /**
  * @file
- * Footer accordion for internal (vendor/admin) footer on mobile.
+ * Footer accordion for public and internal footers on mobile.
  */
-(function () {
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.mel-footer__accordion-toggle').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        btn.parentElement.classList.toggle('is-open');
-        btn.setAttribute('aria-expanded', btn.parentElement.classList.contains('is-open'));
+(function (Drupal, once) {
+  Drupal.behaviors.melFooterAccordion = {
+    attach(context) {
+      once('mel-footer-accordion', '.mel-footer .mel-footer__accordion-toggle', context).forEach((button) => {
+        button.addEventListener('click', () => {
+          const section = button.closest('.mel-footer__accordion');
+          if (!section) {
+            return;
+          }
+          const isOpen = section.classList.toggle('is-open');
+          button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
       });
-    });
-  });
-})();
+    },
+  };
+})(Drupal, once);

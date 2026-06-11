@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Public HTML sitemap grouped by footer menu sections.
+ */
+#}
+<div class="mel-container mel-sitemap">
+  <h1>{{ 'Sitemap'|t }}</h1>
+  {% for section in sections %}
+    <section class="mel-sitemap__section">
+      <h2>{{ section.title }}</h2>
+      {% if section.links %}
+        <ul class="mel-sitemap__links">
+          {% for link in section.links %}
+            <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  {% endfor %}
+</div>
