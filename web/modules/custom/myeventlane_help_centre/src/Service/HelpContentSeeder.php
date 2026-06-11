@@ -77,14 +77,18 @@ final class HelpContentSeeder {
     return $this->seedLandingPageNodes($definitions);
   }
 
-  public function seedHelpArticles(): int {
+  /**
+   * @param list<string>|null $seedKeys
+   *   Optional allow-list of seed_key values. When set, only those articles run.
+   */
+  public function seedHelpArticles(?array $seedKeys = NULL): int {
     $yaml = $this->helpContentRepository->getHelpArticleSeeds();
     if ($yaml === []) {
       $this->logger->warning('No YAML help article seeds found; nothing to seed.');
       return 0;
     }
 
-    $rows = $this->normalizeYamlSeedsToArticleRows($yaml);
+    $rows = $this->normalizeYamlSeedsToArticleRows($yaml, $seedKeys);
     if ($rows === []) {
       $this->logger->warning('YAML help article seeds were invalid; nothing to seed.');
       return 0;
@@ -98,7 +102,11 @@ final class HelpContentSeeder {
    *
    * @return array<int, array<string, mixed>>
    */
-  private function normalizeYamlSeedsToArticleRows(array $helpArticles): array {
+  /**
+   * @param list<string>|null $seedKeys
+   */
+  private function normalizeYamlSeedsToArticleRows(array $helpArticles, ?array $seedKeys = NULL): array {
+    $allowed = $seedKeys !== NULL ? array_fill_keys($seedKeys, TRUE) : NULL;
     $out = [];
     foreach ($helpArticles as $key => $row) {
       if (!is_array($row)) {
@@ -106,6 +114,9 @@ final class HelpContentSeeder {
       }
       $seedKey = trim((string) ($row['seed_key'] ?? $key ?? ''));
       if ($seedKey === '') {
+        continue;
+      }
+      if ($allowed !== NULL && !isset($allowed[$seedKey])) {
         continue;
       }
       $title = trim((string) ($row['title'] ?? ''));
@@ -170,7 +181,6 @@ final class HelpContentSeeder {
   }
 
   private function seedArticleNodes(array $definitions): int {
-    $storage = $this->entityTypeManager->getStorage('node');
     $created = 0;
     $updated = 0;
 
@@ -179,22 +189,16 @@ final class HelpContentSeeder {
       if ($seedKey === '') {
         continue;
       }
-      $existing = $storage->loadByProperties([
-        'type' => 'help_article',
-        'field_help_seed_key' => $seedKey,
-      ]);
-      if ($existing === []) {
-        $existing = $storage->loadByProperties([
-          'type' => 'help_article',
-          'title' => $item['title'],
-        ]);
+      $existing = $this->loadSeededArticle($seedKey, (string) $item['title']);
+      $isNew = $existing === NULL;
+      if (!$isNew && !$this->nodeNeedsSeedUpdate($existing, $item)) {
+        continue;
       }
-      $isNew = $existing === [];
       $node = $isNew ? Node::create([
         'type' => 'help_article',
         'title' => $item['title'],
         'status' => 1,
-      ]) : reset($existing);
+      ]) : $existing;
       $node->setTitle($item['title']);
       $this->setTextField($node, 'field_help_seed_key', $seedKey);
       $this->setTextField($node, 'field_help_summary', (string) $item['summary']);
@@ -219,10 +223,8 @@ final class HelpContentSeeder {
         $created++;
         continue;
       }
-      if ($this->nodeSeedContentChanged($node)) {
-        $node->save();
-        $updated++;
-      }
+      $node->save();
+      $updated++;
     }
 
     $this->logger->notice('Help Centre articles seeded. Created @created, updated @updated.', [
@@ -362,40 +364,153 @@ final class HelpContentSeeder {
   }
 
   /**
-   * Whether seed-managed fields differ from the stored node.
+   * Loads an existing help article by seed key, then title fallback.
    */
-  private function nodeSeedContentChanged(NodeInterface $node): bool {
-    if ($node->isNew()) {
-      return TRUE;
-    }
-    if (!$node->original instanceof NodeInterface) {
-      return TRUE;
-    }
-    if ($node->getTitle() !== $node->original->getTitle()) {
-      return TRUE;
-    }
-    foreach ([
-      'field_help_seed_key',
-      'field_help_summary',
-      'body',
-      'field_audience',
-      'field_help_topic',
-      'field_help_article_type',
-      'field_help_keywords',
-      'field_featured_help',
-      'field_help_cta_label',
-      'field_help_cta_link',
-      'field_last_reviewed',
-      'path',
-    ] as $fieldName) {
-      if (!$node->hasField($fieldName)) {
-        continue;
+  private function loadSeededArticle(string $seedKey, string $title): ?NodeInterface {
+    $storage = $this->entityTypeManager->getStorage('node');
+    if ($this->hasHelpSeedKeyField()) {
+      $existing = $storage->loadByProperties([
+        'type' => 'help_article',
+        'field_help_seed_key' => $seedKey,
+      ]);
+      if ($existing !== []) {
+        $node = reset($existing);
+        return $node instanceof NodeInterface ? $node : NULL;
       }
-      if (!$node->get($fieldName)->equals($node->original->get($fieldName))) {
-        return TRUE;
-      }
+    }
+    $existing = $storage->loadByProperties([
+      'type' => 'help_article',
+      'title' => $title,
+    ]);
+    if ($existing === []) {
+      return NULL;
+    }
+    $node = reset($existing);
+    return $node instanceof NodeInterface ? $node : NULL;
+  }
+
+  /**
+   * Whether seed-managed fields differ from the stored node.
+   *
+   * Compares current field values directly because Drupal 11 does not keep a
+   * populated $node->original snapshot on routine entity loads.
+   */
+  private function nodeNeedsSeedUpdate(NodeInterface $node, array $item): bool {
+    if ($node->getTitle() !== (string) $item['title']) {
+      return TRUE;
+    }
+    if ($this->getTextFieldValue($node, 'field_help_seed_key') !== (string) $item['seed_key']) {
+      return TRUE;
+    }
+    if ($this->getTextFieldValue($node, 'field_help_summary') !== (string) $item['summary']) {
+      return TRUE;
+    }
+    if (!$this->bodyFieldMatches($node, (string) $item['body'])) {
+      return TRUE;
+    }
+    if (!$this->audienceFieldMatches($node, (array) $item['audience'])) {
+      return TRUE;
+    }
+    if ($this->getTermName($node, 'field_help_topic') !== (string) $item['topic']) {
+      return TRUE;
+    }
+    if ($this->getTermName($node, 'field_help_article_type') !== (string) $item['article_type']) {
+      return TRUE;
+    }
+    if ($this->getTextFieldValue($node, 'field_help_keywords') !== (string) $item['keywords']) {
+      return TRUE;
+    }
+    if ((bool) $this->getBoolFieldValue($node, 'field_featured_help') !== (bool) ($item['featured'] ?? FALSE)) {
+      return TRUE;
+    }
+    if ($this->getTextFieldValue($node, 'field_help_cta_label') !== (string) $item['cta_label']) {
+      return TRUE;
+    }
+    if (!$this->linkFieldMatches($node, 'field_help_cta_link', (string) $item['cta_link'])) {
+      return TRUE;
+    }
+    if ($this->getNodeAlias($node) !== (string) $item['alias']) {
+      return TRUE;
+    }
+    if ($node->hasField('field_last_reviewed') && $node->get('field_last_reviewed')->isEmpty()) {
+      return TRUE;
     }
     return FALSE;
+  }
+
+  private function hasHelpSeedKeyField(): bool {
+    $fieldStorage = $this->entityTypeManager->getStorage('field_storage_config');
+    return $fieldStorage->load('node.field_help_seed_key') !== NULL;
+  }
+
+  private function getTextFieldValue(NodeInterface $node, string $fieldName): string {
+    if (!$node->hasField($fieldName) || $node->get($fieldName)->isEmpty()) {
+      return '';
+    }
+    return (string) $node->get($fieldName)->value;
+  }
+
+  private function getBoolFieldValue(NodeInterface $node, string $fieldName): bool {
+    if (!$node->hasField($fieldName) || $node->get($fieldName)->isEmpty()) {
+      return FALSE;
+    }
+    return (bool) $node->get($fieldName)->value;
+  }
+
+  private function bodyFieldMatches(NodeInterface $node, string $body): bool {
+    if (!$node->hasField('body') || $node->get('body')->isEmpty()) {
+      return $body === '';
+    }
+    return (string) $node->get('body')->value === $body
+      && (string) ($node->get('body')->format ?? 'basic_html') === 'basic_html';
+  }
+
+  private function audienceFieldMatches(NodeInterface $node, array $names): bool {
+    $expected = [];
+    foreach ($names as $name) {
+      $mapped = $this->mapSeedAudienceNameToCanonical($name);
+      if ($mapped !== NULL) {
+        $expected[$mapped] = $mapped;
+      }
+    }
+    if (!$node->hasField('field_audience')) {
+      return $expected === [];
+    }
+    $actual = [];
+    foreach ($node->get('field_audience')->getValue() as $row) {
+      if (!empty($row['value'])) {
+        $actual[(string) $row['value']] = (string) $row['value'];
+      }
+    }
+    ksort($expected);
+    ksort($actual);
+    return $expected === $actual;
+  }
+
+  private function getTermName(NodeInterface $node, string $fieldName): string {
+    if (!$node->hasField($fieldName) || $node->get($fieldName)->isEmpty()) {
+      return '';
+    }
+    $term = $node->get($fieldName)->entity;
+    return $term instanceof TermInterface ? $term->getName() : '';
+  }
+
+  private function linkFieldMatches(NodeInterface $node, string $fieldName, string $uri): bool {
+    if ($uri === '') {
+      return !$node->hasField($fieldName) || $node->get($fieldName)->isEmpty();
+    }
+    if (!$node->hasField($fieldName) || $node->get($fieldName)->isEmpty()) {
+      return FALSE;
+    }
+    $expected = str_starts_with($uri, 'http') ? $uri : 'internal:' . $uri;
+    return (string) $node->get($fieldName)->uri === $expected;
+  }
+
+  private function getNodeAlias(NodeInterface $node): string {
+    if (!$node->hasField('path') || $node->get('path')->isEmpty()) {
+      return '';
+    }
+    return (string) $node->get('path')->alias;
   }
 
   /**
