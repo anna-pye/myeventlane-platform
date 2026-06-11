@@ -1695,31 +1695,12 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['directory'] = base_path() . $theme_path;
   }
 
-  // Footer: list every category without count queries on each page request.
-  $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
-  $tree = $term_storage->loadTree('categories', 0, 10, TRUE);
-  $categories = [];
-  foreach ($tree as $term) {
-    if ($term instanceof TermInterface && $term->hasField('status') && !$term->isPublished()) {
-      continue;
-    }
-
-    $count = \Drupal::entityQuery('node')
-      ->condition('type', 'event')
-      ->condition('status', 1)
-      ->condition('field_category', $term->id())
-      ->accessCheck(FALSE)
-      ->count()
-      ->execute();
-    if ($count > 3) {
-      $categories[] = [
-        'title' => $term->label(),
-        'url' => _myeventlane_theme_get_category_url($term),
-      ];
-    }
-  }
-  $variables['mel_footer_categories'] = $categories;
+  // Footer navigation (single preprocess source; avoids duplicate menus + legacy routes).
+  $variables['mel_footer_sections'] = _myeventlane_theme_build_footer_sections();
+  $variables['mel_footer_trust_items'] = _myeventlane_theme_build_footer_trust_items();
+  $variables['mel_footer_show_cta_band'] = empty($variables['is_front']);
   $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');
+  $variables['#attached']['library'][] = 'myeventlane_theme/footer-internal';
 
   // Internal footer context (layout/footer-internal.html.twig).
   try {
@@ -2198,6 +2179,9 @@ function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): arra
  * Hides guide/blog section shell when no published articles exist.
  */
 function myeventlane_theme_preprocess_page__front(array &$variables): void {
+  // Homepage host CTA already covers organiser acquisition; suppress footer duplicate.
+  $variables['mel_footer_show_cta_band'] = FALSE;
+
   if (!isset($variables['page']['homepage_blog'])) {
     return;
   }
@@ -3355,6 +3339,160 @@ function _myeventlane_theme_get_category_url(TermInterface $term): string {
   /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
   $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
   return $categoryUrl->getCategoryUrlString($term);
+}
+
+/**
+ * Builds curated category links for the public footer Discover column.
+ *
+ * @return list<array{title: string, url: string}>
+ */
+function _myeventlane_theme_build_footer_category_links(): array {
+  $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $names = ['Arts', 'Community', 'Markets', 'Music', 'LGBTQI+'];
+  $links = [];
+  foreach ($names as $name) {
+    $terms = $term_storage->loadByProperties([
+      'vid' => 'categories',
+      'name' => $name,
+    ]);
+    if ($terms === []) {
+      continue;
+    }
+    $term = reset($terms);
+    if (!$term instanceof TermInterface) {
+      continue;
+    }
+    if ($term->hasField('status') && !$term->isPublished()) {
+      continue;
+    }
+    $links[] = [
+      'title' => $term->label(),
+      'url' => _myeventlane_theme_get_category_url($term),
+    ];
+  }
+  return $links;
+}
+
+/**
+ * Builds a footer link from an internal path.
+ *
+ * @return array{title: \Drupal\Core\StringTranslation\TranslatableMarkup, url: string}
+ */
+function _myeventlane_theme_footer_internal_link(string $title, string $path): array {
+  return [
+    'title' => t($title),
+    'url' => Url::fromUri('internal:' . $path)->toString(),
+  ];
+}
+
+/**
+ * Builds a footer link from a route when available.
+ *
+ * @return array{title: \Drupal\Core\StringTranslation\TranslatableMarkup, url: string}|null
+ */
+function _myeventlane_theme_footer_route_link(string $title, string $route_name, array $parameters = []): ?array {
+  try {
+    return [
+      'title' => t($title),
+      'url' => Url::fromRoute($route_name, $parameters)->toString(),
+    ];
+  }
+  catch (\Throwable) {
+    return NULL;
+  }
+}
+
+/**
+ * Builds the launch footer navigation sections (single source of truth).
+ *
+ * @return list<array{id: string, title: \Drupal\Core\StringTranslation\TranslatableMarkup, links: list<array{title: \Drupal\Core\StringTranslation\TranslatableMarkup, url: string}>}>
+ */
+function _myeventlane_theme_build_footer_sections(): array {
+  $discover_links = array_values(array_filter([
+    _myeventlane_theme_footer_route_link('All events', 'view.upcoming_events.page_events'),
+    _myeventlane_theme_footer_route_link('Today', 'view.upcoming_events.page_today'),
+    _myeventlane_theme_footer_route_link('This weekend', 'view.upcoming_events.page_this_weekend'),
+    _myeventlane_theme_footer_route_link('Free events', 'view.upcoming_events.page_free'),
+    _myeventlane_theme_footer_route_link('Featured events', 'view.upcoming_events.page_popular'),
+  ]));
+  $discover_links = array_merge($discover_links, _myeventlane_theme_build_footer_category_links());
+
+  $organiser_links = array_values(array_filter([
+    _myeventlane_theme_footer_route_link('Create event', 'myeventlane_vendor.create_event_gateway'),
+    _myeventlane_theme_footer_internal_link('Pricing & fees', '/pricing'),
+    _myeventlane_theme_footer_internal_link('How it works', '/help/organisers'),
+    _myeventlane_theme_footer_internal_link('Ticketing & RSVPs', '/help/organisers/choosing-rsvp-or-paid-tickets'),
+    _myeventlane_theme_footer_internal_link('Manage attendees', '/help/organisers/managing-your-event-dashboard'),
+    _myeventlane_theme_footer_route_link('Vendor dashboard', 'myeventlane_vendor.console.dashboard'),
+  ]));
+
+  $support_links = array_values(array_filter([
+    _myeventlane_theme_footer_route_link('Help centre', 'myeventlane_help_centre.home'),
+    _myeventlane_theme_footer_internal_link('Contact us', '/contact'),
+    _myeventlane_theme_footer_internal_link('Refunds', '/help/policies/refund-policy'),
+    _myeventlane_theme_footer_internal_link('Trust & safety', '/help/policies/trust-and-safety'),
+    _myeventlane_theme_footer_internal_link('Community guidelines', '/help/policies/community-guidelines'),
+    _myeventlane_theme_footer_route_link('Trust & transparency', 'myeventlane_public_trust.page'),
+    _myeventlane_theme_footer_internal_link('Accessibility', '/accessibility'),
+  ]));
+
+  $about_links = array_values(array_filter([
+    _myeventlane_theme_footer_internal_link('About', '/about'),
+    _myeventlane_theme_footer_internal_link('Our story', '/our-story'),
+    _myeventlane_theme_footer_route_link('Blog', 'view.mel_blog.page_blog'),
+    [
+      'title' => t('Instagram'),
+      'url' => 'https://www.instagram.com/myeventlane',
+      'external' => TRUE,
+    ],
+    [
+      'title' => t('Facebook'),
+      'url' => 'https://www.facebook.com/myeventlane',
+      'external' => TRUE,
+    ],
+    [
+      'title' => t('LinkedIn'),
+      'url' => 'https://www.linkedin.com/company/myeventlane',
+      'external' => TRUE,
+    ],
+  ]));
+
+  return [
+    [
+      'id' => 'discover',
+      'title' => t('Discover events'),
+      'links' => $discover_links,
+    ],
+    [
+      'id' => 'organisers',
+      'title' => t('For organisers'),
+      'links' => $organiser_links,
+    ],
+    [
+      'id' => 'support',
+      'title' => t('Support & trust'),
+      'links' => $support_links,
+    ],
+    [
+      'id' => 'about',
+      'title' => t('About MyEventLane'),
+      'links' => $about_links,
+    ],
+  ];
+}
+
+/**
+ * Compact trust strip items above footer columns.
+ *
+ * @return list<array{label: \Drupal\Core\StringTranslation\TranslatableMarkup}>
+ */
+function _myeventlane_theme_build_footer_trust_items(): array {
+  return [
+    ['label' => t('Community-first platform')],
+    ['label' => t('Secure payments via Stripe')],
+    ['label' => t('Australian-owned')],
+    ['label' => t('Low organiser fees')],
+  ];
 }
 
 /**

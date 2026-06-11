@@ -194,9 +194,7 @@ final class HelpContentSeeder {
         'status' => 1,
       ]);
       $node->setTitle($item['title']);
-      if ($node->isNew()) {
-        $node->set('status', 1);
-      }
+      $this->applyPublishedState($node);
       $this->setTextField($node, 'field_help_seed_key', $seedKey);
       $this->setTextField($node, 'field_help_summary', (string) $item['summary']);
       $this->setBodyField($node, (string) $item['body']);
@@ -211,10 +209,13 @@ final class HelpContentSeeder {
         $this->setDateField($node, 'field_last_reviewed', date('Y-m-d'));
       }
       $this->setAlias($node, (string) $item['alias']);
-      if ($node->isNew() || $node->hasChanges()) {
-        $node->save();
-        $node->isNew() ? $created++ : $updated++;
+      $this->applyPublishedState($node);
+      if ($node->hasField('field_help_status')) {
+        $this->setTextField($node, 'field_help_status', 'published');
       }
+      $isNew = $node->isNew();
+      $node->save();
+      $isNew ? $created++ : $updated++;
     }
 
     $this->logger->notice('Help Centre articles seeded. Created @created, updated @updated.', [
@@ -334,6 +335,16 @@ final class HelpContentSeeder {
     }
     $term = reset($terms);
     return $term instanceof TermInterface ? $term : NULL;
+  }
+
+  /**
+   * Ensures seeded help articles are publicly visible under content moderation.
+   */
+  private function applyPublishedState(NodeInterface $node): void {
+    $node->setPublished();
+    if ($node->hasField('moderation_state')) {
+      $node->set('moderation_state', 'published');
+    }
   }
 
 }

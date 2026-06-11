@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Compact MyEventLane brand recognition block above footer navigation.
+ *
+ * Uses the theme logo.svg (single footer logo — not duplicated in legal bar).
+ */
+#}
+<section class="mel-footer-brand" aria-labelledby="mel-footer-brand-title">
+  <div class="mel-footer-brand__inner">
+    <img
+      class="mel-footer-brand__logo"
+      src="{{ base_path }}{{ directory }}/images/logo.svg"
+      alt="{{ 'MyEventLane'|t }}"
+      width="180"
+      height="48"
+      loading="lazy"
+      decoding="async"
+    >
+    <div class="mel-footer-brand__copy">
+      <p id="mel-footer-brand-title" class="mel-footer-brand__lead">
+        {{ 'Bringing communities together through events, experiences and local connection.'|t }}
+      </p>
+      <p class="mel-footer-brand__tagline">
+        {{ 'Australian-owned community-first event marketplace.'|t }}
+      </p>
+    </div>
+  </div>
+</section>

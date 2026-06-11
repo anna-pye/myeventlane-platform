@@ -89,9 +89,32 @@ function myeventlane_legal_entity_presave(\Drupal\Core\Entity\EntityInterface $e
  * when consent has not been given.
  */
 function myeventlane_legal_page_attachments(array &$attachments): void {
+  $legalSettings = \Drupal::service('myeventlane_legal.settings');
   $attachments['#attached']['library'][] = 'myeventlane_legal/cookie_consent';
   $attachments['#attached']['drupalSettings']['myeventlane_legal'] = [
     'preferences_url' => '/cookies/preferences',
-    'cookie_policy_url' => '/cookies',
+    'cookie_policy_url' => $legalSettings->getCookiePolicyUrl() ?: '/cookie-policy',
+  ];
+}
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_legal_theme($existing, $type, $theme, $path): array {
+  return [
+    'myeventlane_legal_cookie_policy' => [
+      'variables' => [
+        'cookie_policy_url' => '',
+        'privacy_url' => '',
+      ],
+      'template' => 'cookie-policy',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_legal_cookie_banner' => [
+      'variables' => [
+        'cookie_policy_url' => '',
+        'privacy_url' => '',
+      ],
+    ],
   ];
 }

@@ -8,4 +8,4 @@ cookie_consent:
   drupalSettings:
     myeventlane_legal:
       preferences_url: /cookies/preferences
-      cookie_policy_url: /cookies
+      cookie_policy_url: /cookie-policy
