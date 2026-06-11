@@ -189,13 +189,13 @@ final class HelpContentSeeder {
           'title' => $item['title'],
         ]);
       }
-      $node = $existing !== [] ? reset($existing) : Node::create([
+      $isNew = $existing === [];
+      $node = $isNew ? Node::create([
         'type' => 'help_article',
         'title' => $item['title'],
         'status' => 1,
-      ]);
+      ]) : reset($existing);
       $node->setTitle($item['title']);
-      $this->applyPublishedState($node);
       $this->setTextField($node, 'field_help_seed_key', $seedKey);
       $this->setTextField($node, 'field_help_summary', (string) $item['summary']);
       $this->setBodyField($node, (string) $item['body']);
@@ -206,17 +206,23 @@ final class HelpContentSeeder {
       $this->setBoolField($node, 'field_featured_help', (bool) ($item['featured'] ?? FALSE));
       $this->setTextField($node, 'field_help_cta_label', (string) $item['cta_label']);
       $this->setLinkField($node, 'field_help_cta_link', (string) $item['cta_link']);
-      if ($node->isNew() || ($node->hasField('field_last_reviewed') && $node->get('field_last_reviewed')->isEmpty())) {
+      if ($isNew || ($node->hasField('field_last_reviewed') && $node->get('field_last_reviewed')->isEmpty())) {
         $this->setDateField($node, 'field_last_reviewed', date('Y-m-d'));
       }
       $this->setAlias($node, (string) $item['alias']);
-      $this->applyPublishedState($node);
-      if ($node->hasField('field_help_status')) {
-        $this->setTextField($node, 'field_help_status', 'published');
+      if ($isNew) {
+        $this->applyPublishedState($node);
+        if ($node->hasField('field_help_status')) {
+          $this->setTextField($node, 'field_help_status', 'published');
+        }
+        $node->save();
+        $created++;
+        continue;
       }
-      $isNew = $node->isNew();
-      $node->save();
-      $isNew ? $created++ : $updated++;
+      if ($this->nodeSeedContentChanged($node)) {
+        $node->save();
+        $updated++;
+      }
     }
 
     $this->logger->notice('Help Centre articles seeded. Created @created, updated @updated.', [
@@ -356,7 +362,44 @@ final class HelpContentSeeder {
   }
 
   /**
-   * Ensures seeded help articles are publicly visible under content moderation.
+   * Whether seed-managed fields differ from the stored node.
+   */
+  private function nodeSeedContentChanged(NodeInterface $node): bool {
+    if ($node->isNew()) {
+      return TRUE;
+    }
+    if (!$node->original instanceof NodeInterface) {
+      return TRUE;
+    }
+    if ($node->getTitle() !== $node->original->getTitle()) {
+      return TRUE;
+    }
+    foreach ([
+      'field_help_seed_key',
+      'field_help_summary',
+      'body',
+      'field_audience',
+      'field_help_topic',
+      'field_help_article_type',
+      'field_help_keywords',
+      'field_featured_help',
+      'field_help_cta_label',
+      'field_help_cta_link',
+      'field_last_reviewed',
+      'path',
+    ] as $fieldName) {
+      if (!$node->hasField($fieldName)) {
+        continue;
+      }
+      if (!$node->get($fieldName)->equals($node->original->get($fieldName))) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Ensures newly seeded help articles are publicly visible under moderation.
    */
   private function applyPublishedState(NodeInterface $node): void {
     $node->setPublished();
