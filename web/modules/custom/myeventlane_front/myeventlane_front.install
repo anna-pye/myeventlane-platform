@@ -69,17 +69,19 @@ function myeventlane_front_update_8007(): string {
 }
 
 /**
- * Re-runs organiser hub playbook seeding after failed or skipped 8005/8007.
- */
-function myeventlane_front_update_8009(): string {
-  return _myeventlane_front_run_playbook_seeding();
-}
-
-/**
  * Re-applies first-event organiser audience when earlier hooks skipped.
  */
 function myeventlane_front_update_8008(): string {
   return _myeventlane_front_apply_first_event_organiser_audience();
+}
+
+/**
+ * Re-runs organiser hub playbook seeding after failed or skipped 8005/8007.
+ */
+function myeventlane_front_update_8009(): string {
+  $messages = [_myeventlane_front_run_playbook_seeding()];
+  $messages[] = _myeventlane_front_apply_first_event_organiser_audience();
+  return implode(' ', $messages);
 }
 
 /**

@@ -40,9 +40,13 @@ final class BlogAudienceFilterTest extends TestCase {
     $this->assertStringContainsString('function myeventlane_front_update_8008(): string', $source);
     $this->assertStringContainsString('function myeventlane_front_update_8009(): string', $source);
     $update8007Start = strpos($source, 'function myeventlane_front_update_8007(): string');
-    $audienceHelperCall = strpos($source, '_myeventlane_front_apply_first_event_organiser_audience()', $update8007Start);
+    $update8009Start = strpos($source, 'function myeventlane_front_update_8009(): string');
+    $audienceAfter8007 = strpos($source, '_myeventlane_front_apply_first_event_organiser_audience()', $update8007Start);
+    $audienceAfter8009 = strpos($source, '_myeventlane_front_apply_first_event_organiser_audience()', $update8009Start);
     $this->assertNotFalse($update8007Start);
-    $this->assertNotFalse($audienceHelperCall);
+    $this->assertNotFalse($update8009Start);
+    $this->assertNotFalse($audienceAfter8007);
+    $this->assertNotFalse($audienceAfter8009);
   }
 
 }
