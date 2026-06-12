@@ -32,4 +32,17 @@ final class BlogAudienceFilterTest extends TestCase {
     $this->assertStringNotContainsString('$isPlaybook ? $this->resourceDownloads->build($node)', $source);
   }
 
+  public function testFirstEventAudienceRunsAfterPlaybookReseed(): void {
+    $source = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_front.install');
+    $this->assertIsString($source);
+    $this->assertStringContainsString('function _myeventlane_front_run_playbook_seeding(): string', $source);
+    $this->assertStringContainsString('function _myeventlane_front_apply_first_event_organiser_audience(): string', $source);
+    $this->assertStringContainsString('function myeventlane_front_update_8008(): string', $source);
+    $this->assertStringContainsString('function myeventlane_front_update_8009(): string', $source);
+    $update8007Start = strpos($source, 'function myeventlane_front_update_8007(): string');
+    $audienceHelperCall = strpos($source, '_myeventlane_front_apply_first_event_organiser_audience()', $update8007Start);
+    $this->assertNotFalse($update8007Start);
+    $this->assertNotFalse($audienceHelperCall);
+  }
+
 }

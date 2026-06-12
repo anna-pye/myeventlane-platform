@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_front\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\taxonomy\TermInterface;
@@ -16,8 +15,6 @@ use Drupal\taxonomy\TermInterface;
  * Seeds organiser hub playbook article stubs from exported config.
  */
 final class OrganiserHubContentSeeder {
-
-  use StringTranslationTrait;
 
   /**
    * @var list<string>
@@ -41,7 +38,7 @@ final class OrganiserHubContentSeeder {
     $missing = $this->getMissingRequirements();
     if ($missing !== []) {
       return [
-        (string) $this->t(
+        (string) t(
           'Skipped organiser hub playbook seeding. Missing: @items. Import configuration, then re-run database updates.',
           ['@items' => implode(', ', $missing)],
         ),
@@ -51,7 +48,7 @@ final class OrganiserHubContentSeeder {
     $config = $this->configFactory->get('myeventlane_front.organiser_hub_seeds');
     $playbooks = $config->get('playbooks') ?? [];
     if (!is_array($playbooks) || $playbooks === []) {
-      return [(string) $this->t('No organiser hub playbook seeds found.')];
+      return [(string) t('No organiser hub playbook seeds found.')];
     }
 
     $messages = [];
@@ -76,7 +73,7 @@ final class OrganiserHubContentSeeder {
           '@key' => (string) $key,
           '@message' => $exception->getMessage(),
         ]);
-        $messages[] = (string) $this->t('Failed to seed playbook @title: @error', [
+        $messages[] = (string) t('Failed to seed playbook @title: @error', [
           '@title' => $title,
           '@error' => $exception->getMessage(),
         ]);
@@ -84,7 +81,7 @@ final class OrganiserHubContentSeeder {
     }
 
     if ($messages === []) {
-      return [(string) $this->t('No organiser hub playbook content was seeded.')];
+      return [(string) t('No organiser hub playbook content was seeded.')];
     }
 
     return $messages;
@@ -123,7 +120,7 @@ final class OrganiserHubContentSeeder {
     if ($node->hasField('body') && $node->get('body')->isEmpty()) {
       $node->set('body', [
         'value' => '<p>' . htmlspecialchars((string) ($definition['excerpt'] ?? $title), ENT_QUOTES) . '</p>',
-        'format' => 'basic_html',
+        'format' => $this->resolveBodyFormat(),
       ]);
     }
     $node->save();
@@ -134,8 +131,8 @@ final class OrganiserHubContentSeeder {
     ]);
 
     return $created
-      ? (string) $this->t('Created playbook draft: @title', ['@title' => $title])
-      : (string) $this->t('Updated playbook draft: @title', ['@title' => $title]);
+      ? (string) t('Created playbook draft: @title', ['@title' => $title])
+      : (string) t('Updated playbook draft: @title', ['@title' => $title]);
   }
 
   /**
@@ -156,6 +153,16 @@ final class OrganiserHubContentSeeder {
       $missing[] = 'myeventlane_front.organiser_hub_seeds config';
     }
     return $missing;
+  }
+
+  private function resolveBodyFormat(): string {
+    $storage = $this->entityTypeManager->getStorage('filter_format');
+    foreach (['basic_html', 'restricted_html', 'plain_text'] as $candidate) {
+      if ($storage->load($candidate) !== NULL) {
+        return $candidate;
+      }
+    }
+    return 'plain_text';
   }
 
   private function loadCategoryTerm(string $suffix): ?TermInterface {

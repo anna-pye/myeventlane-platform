@@ -49,26 +49,71 @@ function myeventlane_front_update_8004(): string {
  * Seeds organiser hub playbook draft content from config.
  */
 function myeventlane_front_update_8005(): string {
-  /** @var \Drupal\myeventlane_front\Service\OrganiserHubContentSeeder $seeder */
-  $seeder = \Drupal::service('myeventlane_front.organiser_hub_content_seeder');
-  $messages = $seeder->seedPlaybooks();
-  return $messages === [] ? (string) t('No organiser hub playbook update messages returned.') : implode(' ', $messages);
-}
-
-/**
- * Re-runs organiser hub playbook seeding after config/field dependencies exist.
- */
-function myeventlane_front_update_8007(): string {
-  /** @var \Drupal\myeventlane_front\Service\OrganiserHubContentSeeder $seeder */
-  $seeder = \Drupal::service('myeventlane_front.organiser_hub_content_seeder');
-  $messages = $seeder->seedPlaybooks();
-  return $messages === [] ? (string) t('No organiser hub playbook update messages returned.') : implode(' ', $messages);
+  return _myeventlane_front_run_playbook_seeding();
 }
 
 /**
  * Marks the first-event guide as organiser audience for CTA targeting.
  */
 function myeventlane_front_update_8006(): string {
+  return _myeventlane_front_apply_first_event_organiser_audience();
+}
+
+/**
+ * Re-runs organiser hub playbook seeding after config/field dependencies exist.
+ */
+function myeventlane_front_update_8007(): string {
+  $messages = [_myeventlane_front_run_playbook_seeding()];
+  $messages[] = _myeventlane_front_apply_first_event_organiser_audience();
+  return implode(' ', $messages);
+}
+
+/**
+ * Re-runs organiser hub playbook seeding after failed or skipped 8005/8007.
+ */
+function myeventlane_front_update_8009(): string {
+  return _myeventlane_front_run_playbook_seeding();
+}
+
+/**
+ * Re-applies first-event organiser audience when earlier hooks skipped.
+ */
+function myeventlane_front_update_8008(): string {
+  return _myeventlane_front_apply_first_event_organiser_audience();
+}
+
+/**
+ * Runs organiser hub playbook seeding with defensive guards for update batches.
+ */
+function _myeventlane_front_run_playbook_seeding(): string {
+  try {
+    if (!\Drupal::moduleHandler()->moduleExists('myeventlane_front')) {
+      return (string) t('Skipped organiser hub playbook seeding: myeventlane_front is unavailable.');
+    }
+    if (!\Drupal::hasService('myeventlane_front.organiser_hub_content_seeder')) {
+      return (string) t('Skipped organiser hub playbook seeding: seeder service unavailable. Run drush cr after deploy.');
+    }
+    /** @var \Drupal\myeventlane_front\Service\OrganiserHubContentSeeder $seeder */
+    $seeder = \Drupal::service('myeventlane_front.organiser_hub_content_seeder');
+    $messages = $seeder->seedPlaybooks();
+    return $messages === []
+      ? (string) t('No organiser hub playbook update messages returned.')
+      : implode(' ', $messages);
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_front')->error('Organiser hub playbook seeding failed: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+    return (string) t('Organiser hub playbook seeding failed: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+  }
+}
+
+/**
+ * Sets organiser audience on the first-event guide article (idempotent).
+ */
+function _myeventlane_front_apply_first_event_organiser_audience(): string {
   if (\Drupal::entityTypeManager()->getStorage('field_storage_config')->load('node.field_blog_audience') === NULL) {
     return (string) t('Skipped first-event audience update: field_blog_audience is not installed.');
   }
@@ -86,6 +131,9 @@ function myeventlane_front_update_8006(): string {
   $node = $storage->load(reset($nids));
   if ($node === NULL || !$node->hasField('field_blog_audience')) {
     return (string) t('Blog audience field unavailable.');
+  }
+  if ($node->get('field_blog_audience')->value === 'organiser') {
+    return (string) t('First-event blog article already has organiser audience.');
   }
   $node->set('field_blog_audience', 'organiser');
   $node->save();
