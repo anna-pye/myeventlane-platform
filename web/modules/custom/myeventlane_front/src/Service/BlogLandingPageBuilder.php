@@ -214,9 +214,18 @@ final class BlogLandingPageBuilder {
     if ($audience === 'both') {
       $query->condition('field_blog_audience', 'both');
     }
+    elseif ($audience === 'attendee') {
+      $or = $query->orConditionGroup()
+        ->condition('field_blog_audience', 'attendee')
+        ->condition('field_blog_audience', 'both');
+      if ($this->entityTypeManager->getStorage('field_storage_config')->load('node.field_blog_audience') !== NULL) {
+        $or->notExists('field_blog_audience.value');
+      }
+      $query->condition($or);
+    }
     else {
       $or = $query->orConditionGroup()
-        ->condition('field_blog_audience', $audience)
+        ->condition('field_blog_audience', 'organiser')
         ->condition('field_blog_audience', 'both');
       $query->condition($or);
     }

@@ -48,7 +48,7 @@ final class PlaybookQueryService {
       ->condition('status', 1)
       ->condition('field_playbook', 1);
     if ($this->entityTypeManager->getStorage('field_storage_config')->load('node.field_featured_playbook') !== NULL) {
-      $query->sort('field_featured_playbook', 'DESC');
+      $query->condition('field_featured_playbook', 1);
     }
     $nids = $query
       ->sort('field_publish_date', 'DESC')

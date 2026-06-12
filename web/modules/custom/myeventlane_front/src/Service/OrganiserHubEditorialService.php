@@ -83,14 +83,16 @@ final class OrganiserHubEditorialService {
       }
       $tid = (int) $term->id();
       $baseQuery = $nodeStorage->getQuery()
-        ->accessCheck(FALSE)
+        ->accessCheck(TRUE)
         ->condition('type', 'blog_post')
+        ->condition('status', 1)
         ->condition('field_organiser_category', $tid);
 
       $articleCount = (int) $baseQuery->count()->execute();
       $playbookCount = (int) $nodeStorage->getQuery()
-        ->accessCheck(FALSE)
+        ->accessCheck(TRUE)
         ->condition('type', 'blog_post')
+        ->condition('status', 1)
         ->condition('field_organiser_category', $tid)
         ->condition('field_playbook', 1)
         ->count()
@@ -98,7 +100,7 @@ final class OrganiserHubEditorialService {
 
       $downloadCount = 0;
       $nids = $nodeStorage->getQuery()
-        ->accessCheck(FALSE)
+        ->accessCheck(TRUE)
         ->condition('type', 'blog_post')
         ->condition('status', 1)
         ->condition('field_organiser_category', $tid)

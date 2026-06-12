@@ -73,15 +73,9 @@ final class BlogStructuredDataBuilder {
       $data['description'] = $description;
     }
 
-    $owner = $node->getOwner();
-    if ($owner instanceof UserInterface && !$owner->isAnonymous()) {
-      $authorName = trim($owner->getDisplayName());
-      if ($authorName !== '') {
-        $data['author'] = [
-          '@type' => 'Person',
-          'name' => $authorName,
-        ];
-      }
+    $author = $this->buildSchemaAuthor($node);
+    if ($author !== NULL) {
+      $data['author'] = $author;
     }
 
     $minutes = $this->estimateReadingMinutes($node);
@@ -136,6 +130,62 @@ final class BlogStructuredDataBuilder {
 
   private function formatIso(int $timestamp): string {
     return $this->dateFormatter->format($timestamp, 'custom', 'c');
+  }
+
+  /**
+   * Mirrors blog article byline rules for schema.org author metadata.
+   *
+   * @return array<string, string>|null
+   */
+  private function buildSchemaAuthor(NodeInterface $node): ?array {
+    $type = 'staff';
+    if ($node->hasField('field_blog_author_type') && !$node->get('field_blog_author_type')->isEmpty()) {
+      $type = (string) $node->get('field_blog_author_type')->value;
+    }
+
+    return match ($type) {
+      'myeventlane' => [
+        '@type' => 'Organization',
+        'name' => 'MyEventLane',
+      ],
+      'guest' => $this->buildGuestSchemaAuthor($node),
+      default => $this->buildStaffSchemaAuthor($node),
+    };
+  }
+
+  /**
+   * @return array<string, string>|null
+   */
+  private function buildGuestSchemaAuthor(NodeInterface $node): ?array {
+    if (!$node->hasField('field_blog_author_name') || $node->get('field_blog_author_name')->isEmpty()) {
+      return NULL;
+    }
+    $name = trim((string) $node->get('field_blog_author_name')->value);
+    if ($name === '') {
+      return NULL;
+    }
+    return [
+      '@type' => 'Person',
+      'name' => $name,
+    ];
+  }
+
+  /**
+   * @return array<string, string>|null
+   */
+  private function buildStaffSchemaAuthor(NodeInterface $node): ?array {
+    $owner = $node->getOwner();
+    if (!$owner instanceof UserInterface) {
+      return NULL;
+    }
+    $name = trim($owner->getDisplayName());
+    if ($name === '') {
+      return NULL;
+    }
+    return [
+      '@type' => 'Person',
+      'name' => $name,
+    ];
   }
 
   private function estimateReadingMinutes(NodeInterface $node): ?int {

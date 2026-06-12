@@ -23,4 +23,14 @@ final class PlaybookQueryServiceTest extends TestCase {
     $this->assertSame(6, $reflection->getConstant('MAX_FEATURED'));
   }
 
+  /**
+   * Documents that featured playbooks must be explicitly flagged, not merely sorted.
+   */
+  public function testFeaturedPlaybookQueryRequiresFeaturedFlag(): void {
+    $source = file_get_contents(dirname(__DIR__, 3) . '/src/Service/PlaybookQueryService.php');
+    $this->assertIsString($source);
+    $this->assertStringContainsString("->condition('field_featured_playbook', 1)", $source);
+    $this->assertStringNotContainsString("->sort('field_featured_playbook', 'DESC')", $source);
+  }
+
 }
