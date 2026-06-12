@@ -75,7 +75,7 @@ final class BlogArticlePresentationService {
     }
 
     $isPlaybook = $node->hasField('field_playbook') && (bool) $node->get('field_playbook')->value;
-    $resourceDownloads = $isPlaybook ? $this->resourceDownloads->build($node) : [];
+    $resourceDownloads = $this->resourceDownloads->build($node);
     $createEventUrl = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
 
     return [
