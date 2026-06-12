@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_sponsorship
+vid: organiser_hub_categories
+name: Sponsorship
+description: 'Secure partners and sponsorship for your event.'
+weight: 4
+parent: {  }

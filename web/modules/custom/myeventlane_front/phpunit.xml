@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="tests/bootstrap-unit.php"
+         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd">
+  <testsuites>
+    <testsuite name="myeventlane_front_unit">
+      <file>tests/src/Unit/BlogAudienceCountTest.php</file>
+      <file>tests/src/Unit/BlogAuthorTest.php</file>
+      <file>tests/src/Unit/BlogCardBadgeTest.php</file>
+      <file>tests/src/Unit/BlogCtaTest.php</file>
+      <file>tests/src/Unit/BlogReadingTimeTest.php</file>
+      <file>tests/src/Unit/BlogStructuredDataAuthorTest.php</file>
+      <file>tests/src/Unit/OrganiserHubCoverageTest.php</file>
+      <file>tests/src/Unit/PlaybookQueryServiceTest.php</file>
+    </testsuite>
+  </testsuites>
+</phpunit>

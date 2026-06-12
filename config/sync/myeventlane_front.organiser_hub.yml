@@ -1,0 +1,40 @@
+sections:
+  planning_event:
+    title: 'Planning an Event'
+    weight: 0
+    terms:
+      - planning
+      - budgeting
+  marketing_event:
+    title: 'Marketing an Event'
+    weight: 1
+    terms:
+      - marketing
+      - sponsorship
+  running_event:
+    title: 'Running an Event'
+    weight: 2
+    terms:
+      - operations
+      - volunteers
+      - accessibility
+  growing_event:
+    title: 'Growing an Event'
+    weight: 3
+    terms:
+      - growth
+  templates_downloads:
+    title: 'Templates & Downloads'
+    weight: 4
+    terms:
+      - templates_downloads
+feature_links:
+  -
+    title: 'Create your event'
+    url: /create-event
+  -
+    title: 'Organiser Help Centre'
+    url: /help/organisers
+  -
+    title: 'Browse events'
+    url: /events

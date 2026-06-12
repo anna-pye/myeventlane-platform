@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_marketing
+vid: organiser_hub_categories
+name: Marketing
+description: 'Promote your event and reach the right audience.'
+weight: 1
+parent: {  }

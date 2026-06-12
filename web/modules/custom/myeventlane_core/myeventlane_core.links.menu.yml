@@ -57,7 +57,7 @@ myeventlane_core.footer_find_events.popular:
 
 myeventlane_core.footer_find_events.blog:
   title: 'Blog & guides'
-  route_name: view.mel_blog.page_blog
+  route_name: myeventlane_front.blog_landing
   menu_name: footer-find
   weight: 5
 
@@ -97,35 +97,41 @@ myeventlane_core.footer_about.about:
   menu_name: footer-about
   weight: 0
 
+myeventlane_core.footer_about.blog:
+  title: 'Blog'
+  route_name: myeventlane_front.blog_landing
+  menu_name: footer-about
+  weight: 1
+
+myeventlane_core.footer_about.organiser_hub:
+  title: 'Organiser Hub'
+  route_name: myeventlane_front.organiser_hub
+  menu_name: footer-about
+  weight: 2
+
 myeventlane_core.footer_about.story:
   title: 'Our story'
   url: 'internal:/our-story'
   menu_name: footer-about
-  weight: 1
-
-myeventlane_core.footer_about.blog:
-  title: 'Blog'
-  route_name: view.mel_blog.page_blog
-  menu_name: footer-about
-  weight: 2
+  weight: 3
 
 myeventlane_core.footer_about.contact:
   title: 'Contact'
   url: 'internal:/contact'
   menu_name: footer-about
-  weight: 3
+  weight: 4
 
 myeventlane_core.footer_about.privacy:
   title: 'Privacy policy'
   url: 'internal:/privacy'
   menu_name: footer-about
-  weight: 4
+  weight: 5
 
 myeventlane_core.footer_about.terms:
   title: 'Terms'
   url: 'internal:/terms'
   menu_name: footer-about
-  weight: 5
+  weight: 6
 
 myeventlane_core.footer_community.instagram:
   title: 'Instagram'

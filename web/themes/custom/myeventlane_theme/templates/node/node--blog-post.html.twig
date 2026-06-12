@@ -1,0 +1,216 @@
+{#
+/**
+ * @file
+ * Full-page template for public blog articles (blog_post).
+ */
+#}
+<article{{ attributes.addClass('node', 'node--type-blog-post', 'mel-blog-article', mel_blog_is_playbook ? 'mel-blog-article--playbook') }}>
+  {{ title_prefix }}
+  {% if not page %}
+    <h2{{ title_attributes.addClass('mel-blog-article__title') }}>
+      <a href="{{ url }}" rel="bookmark">{{ label }}</a>
+    </h2>
+  {% else %}
+    <header class="mel-blog-article__hero">
+      <div class="mel-blog-article__hero-copy mel-container">
+        {% if mel_blog_category %}
+          <p class="mel-blog-article__category">
+            {% if mel_blog_category.url %}
+              <a href="{{ mel_blog_category.url }}">{{ mel_blog_category.title }}</a>
+            {% else %}
+              {{ mel_blog_category.title }}
+            {% endif %}
+          </p>
+        {% elseif mel_blog_is_playbook %}
+          <p class="mel-blog-article__category">{{ 'Organiser playbook'|t }}</p>
+        {% endif %}
+
+        <h1{{ title_attributes.addClass('mel-blog-article__title') }}>{{ label }}</h1>
+
+        {% if mel_blog_excerpt %}
+          <p class="mel-blog-article__summary">{{ mel_blog_excerpt }}</p>
+        {% endif %}
+
+        {% if mel_blog_author or mel_blog_published_date or mel_blog_reading_time %}
+          <div class="mel-blog-article__meta" aria-label="{{ 'Article details'|t }}">
+            {% if mel_blog_author %}
+              <span class="mel-blog-article__meta-item">
+                {{ 'By'|t }}
+                {% if mel_blog_author.url %}
+                  <a href="{{ mel_blog_author.url }}">{{ mel_blog_author.name }}</a>
+                {% else %}
+                  {{ mel_blog_author.name }}
+                {% endif %}
+              </span>
+            {% endif %}
+            {% if mel_blog_published_date %}
+              <span class="mel-blog-article__meta-item">{{ mel_blog_published_date }}</span>
+            {% endif %}
+            {% if mel_blog_reading_time %}
+              <span class="mel-blog-article__meta-item">{{ mel_blog_reading_time.label }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if mel_blog_tags %}
+          <ul class="mel-blog-article__tags" role="list" aria-label="{{ 'Article tags'|t }}">
+            {% for tag in mel_blog_tags %}
+              <li>
+                <a class="mel-blog-article__tag" href="{{ tag.url }}">{{ tag.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      {% if mel_blog_hero %}
+        <figure class="mel-blog-article__hero-media mel-container">
+          {{ mel_blog_hero }}
+        </figure>
+      {% endif %}
+    </header>
+  {% endif %}
+  {{ title_suffix }}
+
+  {% if page %}
+    <div class="mel-blog-article__body mel-container">
+      <div{{ content_attributes.addClass('mel-blog-article__prose') }}>
+        {{ content|without(
+          'links',
+          'field_blog_hero_image',
+          'field_excerpt',
+          'field_tags',
+          'field_organiser_category',
+          'field_playbook',
+          'field_resource_downloads',
+          'field_resource_links',
+          'search_api_excerpt'
+        ) }}
+      </div>
+    </div>
+  {% else %}
+    <div{{ content_attributes.addClass('mel-blog-article__content') }}>
+      {{ content }}
+    </div>
+  {% endif %}
+
+  {% if page and mel_blog_is_playbook and mel_blog_resource_downloads %}
+    <section id="mel-blog-downloads" class="mel-blog-article__downloads mel-container" aria-labelledby="mel-blog-downloads-title">
+      <h2 id="mel-blog-downloads-title" class="mel-blog-article__section-title">{{ 'Downloads included'|t }}</h2>
+      <ul class="mel-blog-article__download-cards" role="list">
+        {% for download in mel_blog_resource_downloads %}
+          <li class="mel-blog-article__download-item">
+            <a
+              class="mel-card mel-card--governed mel-card--clickable mel-blog-article__download-card"
+              href="{{ download.url }}"
+              {% if download.is_external %}target="_blank" rel="noopener noreferrer"{% else %}download{% endif %}
+            >
+              <div class="mel-card__header">
+                <h3 class="mel-card__title">{{ download.title }}</h3>
+              </div>
+              <div class="mel-card__body">
+                <p class="mel-card__meta">{{ download.kind }}</p>
+              </div>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if page and mel_blog_journey %}
+    <section class="mel-blog-article__journey mel-container" aria-labelledby="mel-blog-journey-title">
+      <h2 id="mel-blog-journey-title" class="mel-blog-article__section-title">{{ 'Your organiser journey'|t }}</h2>
+      <ol class="mel-blog-article__journey-steps">
+        {% for step in mel_blog_journey.steps %}
+          <li class="mel-blog-article__journey-step mel-blog-article__journey-step--{{ step.status }}">
+            <span class="mel-blog-article__journey-label">{{ step.label }}</span>
+            {% if step.anchor %}
+              <a class="mel-link" href="{{ step.anchor }}">{{ 'Get templates'|t }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
+
+  {% if page and mel_blog_cta %}
+    <aside class="mel-blog-article__cta mel-container" aria-labelledby="mel-blog-cta-title">
+      <div class="mel-blog-article__cta-card mel-card mel-card--highlight">
+        <div class="mel-card__body">
+          <h2 id="mel-blog-cta-title" class="mel-card__title">{{ mel_blog_cta.title }}</h2>
+          {% if mel_blog_cta.body %}
+            <p class="mel-blog-article__cta-body">{{ mel_blog_cta.body }}</p>
+          {% endif %}
+          <div class="mel-blog-article__cta-actions">
+            <a class="mel-btn mel-btn--cta" href="{{ mel_blog_cta.url }}">{{ mel_blog_cta.button }}</a>
+            {% if mel_blog_cta.secondary %}
+              <a class="mel-btn mel-btn--secondary" href="{{ mel_blog_cta.secondary.url }}">{{ mel_blog_cta.secondary.button }}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </aside>
+  {% endif %}
+
+  {% if page and (mel_blog_related_articles or mel_blog_related_help or mel_blog_feature_links or mel_blog_share_links) %}
+    <footer class="mel-blog-article__footer mel-container">
+      {% if mel_blog_related_articles %}
+        <section class="mel-blog-article__related" aria-labelledby="mel-blog-related-articles-title">
+          <h2 id="mel-blog-related-articles-title" class="mel-blog-article__section-title">{{ 'Related reading'|t }}</h2>
+          <ul class="mel-blog-card-grid mel-blog-article__related-grid" role="list">
+            {% for article in mel_blog_related_articles %}
+              <li class="mel-blog-article__related-item">{{ article }}</li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+
+      {% if mel_blog_related_help or mel_blog_feature_links %}
+        <section class="mel-blog-article__resources" aria-labelledby="mel-blog-resources-title">
+          <h2 id="mel-blog-resources-title" class="mel-blog-article__section-title">{{ 'Related resources'|t }}</h2>
+          {% if mel_blog_related_help %}
+            <div class="mel-blog-article__resource-group">
+              <h3 class="mel-blog-article__resource-heading">{{ 'Help Centre'|t }}</h3>
+              <ul class="mel-blog-article__resource-links" role="list">
+                {% for link in mel_blog_related_help %}
+                  <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          {% if mel_blog_feature_links %}
+            <div class="mel-blog-article__resource-group">
+              <h3 class="mel-blog-article__resource-heading">{{ 'Explore MyEventLane'|t }}</h3>
+              <ul class="mel-blog-article__resource-links" role="list">
+                {% for link in mel_blog_feature_links %}
+                  <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      {% if mel_blog_share_links %}
+        <section class="mel-blog-article__share" aria-labelledby="mel-blog-share-title">
+          <h2 id="mel-blog-share-title" class="mel-blog-article__section-title">{{ 'Share this article'|t }}</h2>
+          <ul class="mel-blog-article__share-links" role="list">
+            {% for link in mel_blog_share_links %}
+              <li>
+                <a
+                  class="mel-blog-article__share-link mel-blog-article__share-link--{{ link.id }}"
+                  href="{{ link.url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ link.title }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+    </footer>
+  {% endif %}
+</article>

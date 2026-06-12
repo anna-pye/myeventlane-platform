@@ -71,10 +71,11 @@ final class PublicFooterNavigationBuilder {
 
     $about_links = [
       $this->internalLink('About', '/about'),
-      $this->internalLink('Our story', '/our-story'),
       ...array_values(array_filter([
-        $this->routeLink('Blog', 'view.mel_blog.page_blog'),
+        $this->routeLink('Blog', 'myeventlane_front.blog_landing'),
+        $this->routeLink('Organiser Hub', 'myeventlane_front.organiser_hub'),
       ])),
+      $this->internalLink('Our story', '/our-story'),
       [
         'title' => $this->t('Instagram'),
         'url' => 'https://www.instagram.com/myeventlane',

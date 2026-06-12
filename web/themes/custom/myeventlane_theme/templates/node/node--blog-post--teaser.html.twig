@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * Teaser card for blog_post listings, landing sections, and related reading.
+ */
+#}
+<article{{ attributes.addClass('mel-blog-card') }}>
+  <a href="{{ url }}" class="mel-card mel-card--governed mel-card--clickable mel-blog-card__link" rel="bookmark">
+    <div class="mel-card__media mel-blog-card__media">
+      {% if content.field_blog_hero_image %}
+        {{ content.field_blog_hero_image }}
+      {% else %}
+        <div class="mel-card__media--placeholder mel-blog-card__placeholder" aria-hidden="true"></div>
+      {% endif %}
+    </div>
+    <div class="mel-card__body">
+      {% if mel_blog_badge %}
+        <p class="mel-blog-card__badge">{{ mel_blog_badge }}</p>
+      {% endif %}
+      <h3 class="mel-card__title">{{ label }}</h3>
+      {% set excerpt = content.field_excerpt|render|striptags|trim %}
+      {% if excerpt %}
+        <p class="mel-blog-card__excerpt">{{ excerpt }}</p>
+      {% endif %}
+      {% if mel_blog_reading_time %}
+        <p class="mel-blog-card__meta">{{ mel_blog_reading_time.label }}</p>
+      {% endif %}
+    </div>
+  </a>
+</article>

@@ -26,3 +26,53 @@ function myeventlane_front_update_8002(): string {
   $messages = array_merge($foundation->seedTrustPages(), $foundation->seedPricingPage());
   return implode(' ', $messages);
 }
+
+/**
+ * Seeds Organiser Hub taxonomy terms (content entities) from exported config.
+ */
+function myeventlane_front_update_8003(): string {
+  /** @var \Drupal\myeventlane_front\Service\OrganiserHubTermProvisioner $provisioner */
+  $provisioner = \Drupal::service('myeventlane_front.organiser_hub_term_provisioner');
+  return implode(' ', $provisioner->provision());
+}
+
+/**
+ * Re-runs Organiser Hub term provisioning after config suffix fix.
+ */
+function myeventlane_front_update_8004(): string {
+  /** @var \Drupal\myeventlane_front\Service\OrganiserHubTermProvisioner $provisioner */
+  $provisioner = \Drupal::service('myeventlane_front.organiser_hub_term_provisioner');
+  return implode(' ', $provisioner->provision());
+}
+
+/**
+ * Seeds organiser hub playbook draft content from config.
+ */
+function myeventlane_front_update_8005(): string {
+  /** @var \Drupal\myeventlane_front\Service\OrganiserHubContentSeeder $seeder */
+  $seeder = \Drupal::service('myeventlane_front.organiser_hub_content_seeder');
+  return implode(' ', $seeder->seedPlaybooks());
+}
+
+/**
+ * Marks the first-event guide as organiser audience for CTA targeting.
+ */
+function myeventlane_front_update_8006(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $nids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'blog_post')
+    ->condition('title', 'How to Create Your First Event on MyEventLane')
+    ->range(0, 1)
+    ->execute();
+  if (!is_array($nids) || $nids === []) {
+    return (string) t('No matching first-event blog article found.');
+  }
+  $node = $storage->load(reset($nids));
+  if ($node === NULL || !$node->hasField('field_blog_audience')) {
+    return (string) t('Blog audience field unavailable.');
+  }
+  $node->set('field_blog_audience', 'organiser');
+  $node->save();
+  return (string) t('Set organiser audience on first-event blog article.');
+}

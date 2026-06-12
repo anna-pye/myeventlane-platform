@@ -1,0 +1,132 @@
+{#
+/**
+ * @file
+ * Public blog landing page at /blog.
+ */
+#}
+{% set hero = page.hero|default({}) %}
+{% set featured = page.featured|default([]) %}
+{% set audiences = page.audiences|default([]) %}
+{% set topics = page.topics|default([]) %}
+{% set latest = page.latest|default([]) %}
+{% set filters = page.filters|default({}) %}
+
+<div class="mel-blog-landing">
+  <section class="mel-blog-landing__hero" aria-labelledby="mel-blog-landing-hero-title">
+    <div class="mel-container mel-blog-landing__hero-inner">
+      <div class="mel-blog-landing__hero-copy">
+        <h1 id="mel-blog-landing-hero-title" class="mel-blog-landing__hero-title">{{ hero.title }}</h1>
+        {% if hero.subtitle %}
+          <p class="mel-blog-landing__hero-subtitle">{{ hero.subtitle }}</p>
+        {% endif %}
+        <div class="mel-blog-landing__hero-actions">
+          {% if hero.primary_cta %}
+            <a class="mel-btn mel-btn--cta" href="{{ hero.primary_cta.url }}">{{ hero.primary_cta.title }}</a>
+          {% endif %}
+          {% if hero.secondary_cta %}
+            <a class="mel-btn mel-btn--secondary" href="{{ hero.secondary_cta.url }}">{{ hero.secondary_cta.title }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mel-container mel-blog-landing__body">
+    {% if featured %}
+      <section class="mel-blog-landing__section" aria-labelledby="mel-blog-landing-featured-title">
+        <h2 id="mel-blog-landing-featured-title" class="mel-blog-landing__section-title">{{ 'Latest stories'|t }}</h2>
+        <ul class="mel-blog-card-grid mel-blog-landing__card-grid" role="list">
+          {% for card in featured %}
+            <li>{{ card }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if audiences %}
+      <section class="mel-blog-landing__section" aria-labelledby="mel-blog-landing-audiences-title">
+        <h2 id="mel-blog-landing-audiences-title" class="mel-blog-landing__section-title">{{ 'Browse by audience'|t }}</h2>
+        <ul class="mel-blog-landing__topic-grid" role="list">
+          {% for audience in audiences %}
+            <li>
+              <a class="mel-card mel-card--governed mel-card--clickable mel-blog-landing__topic-card mel-blog-landing__topic-card--{{ audience.slug }}" href="{{ audience.url }}">
+                <div class="mel-card__body">
+                  <span class="mel-blog-landing__topic-icon" aria-hidden="true">{{ audience.title|first|upper }}</span>
+                  <h3 class="mel-card__title">{{ audience.title }}</h3>
+                  <p class="mel-card__meta">{{ audience.count_label }}</p>
+                </div>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if topics %}
+      <section class="mel-blog-landing__section" aria-labelledby="mel-blog-landing-topics-title">
+        <h2 id="mel-blog-landing-topics-title" class="mel-blog-landing__section-title">{{ 'Browse by topic'|t }}</h2>
+        <ul class="mel-blog-landing__topic-grid" role="list">
+          {% for topic in topics %}
+            <li>
+              <a class="mel-card mel-card--governed mel-card--clickable mel-blog-landing__topic-card mel-blog-landing__topic-card--{{ topic.slug }}" href="{{ topic.url }}">
+                <div class="mel-card__body">
+                  <span class="mel-blog-landing__topic-icon" aria-hidden="true">{{ topic.title|first|upper }}</span>
+                  <h3 class="mel-card__title">{{ topic.title }}</h3>
+                  <p class="mel-card__meta">{{ topic.count_label }}</p>
+                </div>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if latest %}
+      <section class="mel-blog-landing__section" aria-labelledby="mel-blog-landing-latest-title">
+        <h2 id="mel-blog-landing-latest-title" class="mel-blog-landing__section-title">{{ 'All articles'|t }}</h2>
+        <ul class="mel-blog-card-grid mel-blog-landing__card-grid" role="list">
+          {% for card in latest %}
+            <li>{{ card }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if filters.action %}
+      <details class="mel-blog-landing__filters">
+        <summary class="mel-blog-landing__filters-summary">{{ 'Filter articles'|t }}</summary>
+        <form class="mel-blog-landing__filters-form" action="{{ filters.action }}" method="get">
+          {% if filters.audiences %}
+            <label class="mel-blog-landing__filters-label" for="mel-blog-filter-audience">{{ 'Audience'|t }}</label>
+            <select id="mel-blog-filter-audience" name="audience" class="mel-blog-landing__filters-select">
+              <option value="">{{ 'All audiences'|t }}</option>
+              {% for audience in filters.audiences %}
+                <option value="{{ audience.value }}">{{ audience.title }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+          {% if filters.categories %}
+            <label class="mel-blog-landing__filters-label" for="mel-blog-filter-category">{{ 'Category'|t }}</label>
+            <select id="mel-blog-filter-category" name="category" class="mel-blog-landing__filters-select">
+              <option value="">{{ 'All categories'|t }}</option>
+              {% for category in filters.categories %}
+                <option value="{{ category.tid }}">{{ category.title }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+          {% if filters.tags %}
+            <label class="mel-blog-landing__filters-label" for="mel-blog-filter-tags">{{ 'Tags'|t }}</label>
+            <select id="mel-blog-filter-tags" name="tags[]" class="mel-blog-landing__filters-select" multiple>
+              {% for tag in filters.tags %}
+                <option value="{{ tag.tid }}">{{ tag.title }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+          <label class="mel-blog-landing__filters-label" for="mel-blog-filter-search">{{ 'Search'|t }}</label>
+          <input id="mel-blog-filter-search" class="mel-blog-landing__filters-input" type="search" name="search" />
+          <button class="mel-btn mel-btn--secondary" type="submit">{{ 'Apply filters'|t }}</button>
+        </form>
+      </details>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,25 @@
+uuid: 8a4f1c2e-9b3d-4e7a-a1f6-2d8c5b9e0f34
+langcode: en
+status: true
+dependencies:
+  config:
+    - crop.type.focal_point
+  module:
+    - focal_point
+name: mel_blog_card
+label: 'MEL blog card'
+effects:
+  1a2b3c4d-5e6f-7890-abcd-ef1234567890:
+    uuid: 1a2b3c4d-5e6f-7890-abcd-ef1234567890
+    id: focal_point_scale_and_crop
+    weight: 0
+    data:
+      width: 600
+      height: 338
+      crop_type: focal_point
+  2b3c4d5e-6f70-8901-bcde-f12345678901:
+    uuid: 2b3c4d5e-6f70-8901-bcde-f12345678901
+    id: image_convert_avif
+    weight: 1
+    data:
+      extension: webp

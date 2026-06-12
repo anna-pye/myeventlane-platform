@@ -1,0 +1,9 @@
+uuid: 4f8a2c1d-9e3b-4a71-b5d6-1029384756ab
+langcode: en
+status: true
+dependencies: {  }
+name: 'Organiser Hub categories'
+vid: organiser_hub_categories
+description: 'Categories for organiser guides and resources on the Organiser Hub.'
+weight: 0
+new_revision: false

@@ -4,15 +4,25 @@ status: true
 dependencies:
   config:
     - field.field.node.blog_post.body
+    - field.field.node.blog_post.field_blog_audience
+    - field.field.node.blog_post.field_blog_author_name
+    - field.field.node.blog_post.field_blog_author_type
     - field.field.node.blog_post.field_blog_hero_image
     - field.field.node.blog_post.field_excerpt
     - field.field.node.blog_post.field_publish_date
     - field.field.node.blog_post.field_seo_description
+    - field.field.node.blog_post.field_organiser_category
+    - field.field.node.blog_post.field_featured_playbook
+    - field.field.node.blog_post.field_playbook
+    - field.field.node.blog_post.field_resource_downloads
+    - field.field.node.blog_post.field_resource_links
     - field.field.node.blog_post.field_tags
     - node.type.blog_post
   module:
     - content_moderation
     - datetime
+    - link
+    - media_library
     - path
     - text
 id: node.blog_post.default
@@ -36,15 +46,33 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
-  field_blog_hero_image:
-    type: entity_reference_autocomplete
+  field_blog_audience:
+    type: options_select
     weight: 1
     region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_blog_author_name:
+    type: string_textfield
+    weight: 3
+    region: content
     settings:
-      match_operator: CONTAINS
-      match_limit: 10
       size: 60
       placeholder: ''
+    third_party_settings: {  }
+  field_blog_author_type:
+    type: options_select
+    weight: 2
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_blog_hero_image:
+    type: media_library_widget
+    weight: 3
+    region: content
+    settings:
+      media_types:
+        image: image
     third_party_settings: {  }
   field_excerpt:
     type: string_textarea
@@ -54,15 +82,55 @@ content:
       rows: 3
       placeholder: ''
     third_party_settings: {  }
+  field_featured_playbook:
+    type: boolean_checkbox
+    weight: 7
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_organiser_category:
+    type: entity_reference_autocomplete
+    weight: 5
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_playbook:
+    type: boolean_checkbox
+    weight: 6
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
   field_publish_date:
     type: datetime_default
     weight: 4
     region: content
     settings: {  }
     third_party_settings: {  }
+  field_resource_downloads:
+    type: media_library_widget
+    weight: 8
+    region: content
+    settings:
+      media_types:
+        document: document
+    third_party_settings: {  }
+  field_resource_links:
+    type: link_default
+    weight: 9
+    region: content
+    settings:
+      placeholder_url: 'https://www.canva.com/'
+      placeholder_title: 'Event budget template'
+    third_party_settings: {  }
   field_seo_description:
     type: string_textarea
-    weight: 6
+    weight: 10
     region: content
     settings:
       rows: 3
@@ -70,7 +138,7 @@ content:
     third_party_settings: {  }
   field_tags:
     type: entity_reference_autocomplete_tags
-    weight: 5
+    weight: 7
     region: content
     settings:
       match_operator: CONTAINS

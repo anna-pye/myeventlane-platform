@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_operations
+vid: organiser_hub_categories
+name: Operations
+description: 'Run your event smoothly on the day.'
+weight: 2
+parent: {  }

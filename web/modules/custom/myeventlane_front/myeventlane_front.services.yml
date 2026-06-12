@@ -65,3 +65,75 @@ services:
     class: Drupal\myeventlane_front\Routing\RouteSubscriber
     tags:
       - { name: event_subscriber }
+
+  myeventlane_front.organiser_hub_term_provisioner:
+    class: Drupal\myeventlane_front\Service\OrganiserHubTermProvisioner
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+
+  myeventlane_front.organiser_hub_landing:
+    class: Drupal\myeventlane_front\Service\OrganiserHubLandingBuilder
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+
+  myeventlane_front.blog_related_content:
+    class: Drupal\myeventlane_front\Service\BlogRelatedContentService
+    arguments:
+      - '@entity_type.manager'
+      - '@cache.default'
+
+  myeventlane_front.playbook_query:
+    class: Drupal\myeventlane_front\Service\PlaybookQueryService
+    arguments:
+      - '@entity_type.manager'
+      - '@cache.default'
+
+  myeventlane_front.blog_resource_downloads:
+    class: Drupal\myeventlane_front\Service\BlogResourceDownloadBuilder
+    arguments:
+      - '@file_url_generator'
+
+  myeventlane_front.blog_landing_page:
+    class: Drupal\myeventlane_front\Service\BlogLandingPageBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@cache.default'
+
+  myeventlane_front.blog_article_presentation:
+    class: Drupal\myeventlane_front\Service\BlogArticlePresentationService
+    arguments:
+      - '@date.formatter'
+      - '@entity_type.manager'
+      - '@myeventlane_front.blog_related_content'
+      - '@myeventlane_front.blog_resource_downloads'
+      - '@config.factory'
+
+  myeventlane_front.blog_structured_data:
+    class: Drupal\myeventlane_front\Service\BlogStructuredDataBuilder
+    arguments:
+      - '@date.formatter'
+
+  myeventlane_front.organiser_hub_editorial:
+    class: Drupal\myeventlane_front\Service\OrganiserHubEditorialService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_front.blog_related_content'
+      - '@myeventlane_front.blog_resource_downloads'
+
+  myeventlane_front.organiser_hub_page:
+    class: Drupal\myeventlane_front\Service\OrganiserHubPageBuilder
+    arguments:
+      - '@myeventlane_front.playbook_query'
+      - '@myeventlane_front.organiser_hub_editorial'
+      - '@myeventlane_front.blog_resource_downloads'
+      - '@entity_type.manager'
+      - '@cache.default'
+
+  myeventlane_front.organiser_hub_content_seeder:
+    class: Drupal\myeventlane_front\Service\OrganiserHubContentSeeder
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@logger.factory'

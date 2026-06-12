@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_accessibility
+vid: organiser_hub_categories
+name: Accessibility
+description: 'Make your event welcoming and accessible for everyone.'
+weight: 5
+parent: {  }

@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_growth
+vid: organiser_hub_categories
+name: Growth
+description: 'Grow attendance, retention, and repeat audiences.'
+weight: 7
+parent: {  }

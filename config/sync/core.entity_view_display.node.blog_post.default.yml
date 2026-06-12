@@ -4,10 +4,18 @@ status: true
 dependencies:
   config:
     - field.field.node.blog_post.body
+    - field.field.node.blog_post.field_blog_audience
+    - field.field.node.blog_post.field_blog_author_name
+    - field.field.node.blog_post.field_blog_author_type
     - field.field.node.blog_post.field_blog_hero_image
     - field.field.node.blog_post.field_excerpt
     - field.field.node.blog_post.field_publish_date
     - field.field.node.blog_post.field_seo_description
+    - field.field.node.blog_post.field_organiser_category
+    - field.field.node.blog_post.field_featured_playbook
+    - field.field.node.blog_post.field_playbook
+    - field.field.node.blog_post.field_resource_downloads
+    - field.field.node.blog_post.field_resource_links
     - field.field.node.blog_post.field_tags
     - node.type.blog_post
   module:
@@ -55,7 +63,15 @@ content:
     weight: 100
     region: content
 hidden:
+  field_blog_audience: true
+  field_blog_author_name: true
+  field_blog_author_type: true
+  field_featured_playbook: true
+  field_organiser_category: true
+  field_playbook: true
   field_publish_date: true
+  field_resource_downloads: true
+  field_resource_links: true
   field_seo_description: true
   langcode: true
   search_api_excerpt: true

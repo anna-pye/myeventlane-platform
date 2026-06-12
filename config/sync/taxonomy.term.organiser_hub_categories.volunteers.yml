@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_volunteers
+vid: organiser_hub_categories
+name: Volunteers
+description: 'Recruit, brief, and support volunteer teams.'
+weight: 3
+parent: {  }

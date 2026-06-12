@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_planning
+vid: organiser_hub_categories
+name: Planning
+description: 'Plan timelines, goals, and logistics before you publish.'
+weight: 0
+parent: {  }

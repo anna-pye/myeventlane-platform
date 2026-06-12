@@ -1,0 +1,23 @@
+uuid: 2b3c4d5e-6f70-4891-bc23-56789abcdef1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_playbook
+    - node.type.blog_post
+id: node.blog_post.field_playbook
+field_name: field_playbook
+entity_type: node
+bundle: blog_post
+label: Playbook
+description: 'Flagship organiser playbook. Featured on the Organiser Hub and enables download journey blocks.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

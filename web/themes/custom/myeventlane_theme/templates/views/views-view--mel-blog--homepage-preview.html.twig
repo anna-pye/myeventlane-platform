@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * Homepage blog preview — single grid only (no landing card-grid wrapper).
+ *
+ * Avoids nesting mel-blog-preview-grid inside mel-blog-landing__card-grid, which
+ * collapses cards into narrow columns on the front page.
+ */
+#}
+{%
+  set classes = [
+    'view',
+    'view-' ~ id|clean_class,
+    'view-id-' ~ id,
+    'view-display-id-' ~ display_id,
+    'mel-blog-home-preview',
+    dom_id ? 'js-view-dom-id-' ~ dom_id,
+  ]
+%}
+<div{{ attributes.addClass(classes) }}>
+  {{ title_prefix }}
+  {{ title_suffix }}
+
+  {% if rows %}
+    {{ rows }}
+  {% elseif empty %}
+    <div class="view-empty mel-empty-state mel-empty-state--governed" role="status">
+      {{ empty }}
+    </div>
+  {% endif %}
+
+  {{ pager }}
+</div>

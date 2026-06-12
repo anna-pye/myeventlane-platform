@@ -1,0 +1,60 @@
+myeventlane_front.organiser_hub:
+  type: config_object
+  label: 'Organiser Hub landing configuration'
+  mapping:
+    sections:
+      type: mapping
+      label: 'Hub sections'
+      mapping:
+        '*':
+          type: mapping
+          label: 'Section'
+          mapping:
+            title:
+              type: label
+              label: 'Section title'
+            weight:
+              type: integer
+              label: 'Section weight'
+            terms:
+              type: sequence
+              label: 'Category term config IDs'
+              sequence:
+                type: string
+    feature_links:
+      type: sequence
+      label: 'MEL feature links for article footers'
+      sequence:
+        type: mapping
+        mapping:
+          title:
+            type: label
+            label: 'Link title'
+          url:
+            type: string
+            label: 'Internal path or URL'
+
+myeventlane_front.organiser_hub_seeds:
+  type: config_object
+  label: 'Organiser Hub content seeds'
+  mapping:
+    playbooks:
+      type: mapping
+      label: Playbooks
+      mapping:
+        '*':
+          type: mapping
+          label: Playbook
+          mapping:
+            title:
+              type: label
+              label: Title
+            category:
+              type: string
+              label: 'Category config suffix'
+            featured:
+              type: boolean
+              label: Featured
+            excerpt:
+              type: text
+              label: Excerpt

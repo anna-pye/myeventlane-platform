@@ -228,6 +228,10 @@
 @use 'pages/contact';
 @use 'pages/discovery';
 @use 'pages/vendor';
+@use 'pages/organiser-hub';
+@use 'pages/organiser-hub-landing';
+@use 'pages/blog-article';
+@use 'pages/blog-landing';
 
 // Event page Classic/Immersive themes — load after pages/event so Mockup 1 rules win cascade.
 @use 'components/event-page-themes';
