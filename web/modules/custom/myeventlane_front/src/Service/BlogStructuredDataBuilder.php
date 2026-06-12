@@ -101,7 +101,7 @@ final class BlogStructuredDataBuilder {
         '@type' => 'ListItem',
         'position' => 2,
         'name' => 'Guides',
-        'item' => Url::fromRoute('view.mel_blog.page_blog', [], ['absolute' => TRUE])->toString(),
+        'item' => Url::fromRoute('myeventlane_front.blog_landing', [], ['absolute' => TRUE])->toString(),
       ],
       [
         '@type' => 'ListItem',

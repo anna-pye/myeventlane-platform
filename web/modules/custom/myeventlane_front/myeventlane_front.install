@@ -51,13 +51,28 @@ function myeventlane_front_update_8004(): string {
 function myeventlane_front_update_8005(): string {
   /** @var \Drupal\myeventlane_front\Service\OrganiserHubContentSeeder $seeder */
   $seeder = \Drupal::service('myeventlane_front.organiser_hub_content_seeder');
-  return implode(' ', $seeder->seedPlaybooks());
+  $messages = $seeder->seedPlaybooks();
+  return $messages === [] ? (string) t('No organiser hub playbook update messages returned.') : implode(' ', $messages);
+}
+
+/**
+ * Re-runs organiser hub playbook seeding after config/field dependencies exist.
+ */
+function myeventlane_front_update_8007(): string {
+  /** @var \Drupal\myeventlane_front\Service\OrganiserHubContentSeeder $seeder */
+  $seeder = \Drupal::service('myeventlane_front.organiser_hub_content_seeder');
+  $messages = $seeder->seedPlaybooks();
+  return $messages === [] ? (string) t('No organiser hub playbook update messages returned.') : implode(' ', $messages);
 }
 
 /**
  * Marks the first-event guide as organiser audience for CTA targeting.
  */
 function myeventlane_front_update_8006(): string {
+  if (\Drupal::entityTypeManager()->getStorage('field_storage_config')->load('node.field_blog_audience') === NULL) {
+    return (string) t('Skipped first-event audience update: field_blog_audience is not installed.');
+  }
+
   $storage = \Drupal::entityTypeManager()->getStorage('node');
   $nids = $storage->getQuery()
     ->accessCheck(FALSE)

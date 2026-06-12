@@ -94,9 +94,11 @@
     </div>
   {% endif %}
 
-  {% if page and mel_blog_is_playbook and mel_blog_resource_downloads %}
+  {% if page and mel_blog_resource_downloads %}
     <section id="mel-blog-downloads" class="mel-blog-article__downloads mel-container" aria-labelledby="mel-blog-downloads-title">
-      <h2 id="mel-blog-downloads-title" class="mel-blog-article__section-title">{{ 'Downloads included'|t }}</h2>
+      <h2 id="mel-blog-downloads-title" class="mel-blog-article__section-title">
+        {{ mel_blog_is_playbook ? 'Downloads included'|t : 'Resources'|t }}
+      </h2>
       <ul class="mel-blog-article__download-cards" role="list">
         {% for download in mel_blog_resource_downloads %}
           <li class="mel-blog-article__download-item">

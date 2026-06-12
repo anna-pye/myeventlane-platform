@@ -6,6 +6,7 @@
   <testsuites>
     <testsuite name="myeventlane_front_unit">
       <file>tests/src/Unit/BlogAudienceCountTest.php</file>
+      <file>tests/src/Unit/BlogAudienceFilterTest.php</file>
       <file>tests/src/Unit/BlogAuthorTest.php</file>
       <file>tests/src/Unit/BlogCardBadgeTest.php</file>
       <file>tests/src/Unit/BlogCtaTest.php</file>

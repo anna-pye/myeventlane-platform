@@ -73,6 +73,12 @@ function myeventlane_front_preprocess_myeventlane_home_hero(array &$variables): 
  * Homepage hero exclusivity and cross-rail deduplication (front page only).
  */
 function myeventlane_front_views_query_alter(\Drupal\views\ViewExecutable $view, \Drupal\views\Plugin\views\query\QueryPluginBase $query): void {
+  if (\Drupal::hasService('myeventlane_front.blog_audience_filter')) {
+    /** @var \Drupal\myeventlane_front\Service\BlogAudienceFilterService $blogAudience */
+    $blogAudience = \Drupal::service('myeventlane_front.blog_audience_filter');
+    $blogAudience->alterMelBlogView($view, $query);
+  }
+
   if (!\Drupal::hasService('myeventlane_front.homepage_merchandising_query_alter')) {
     return;
   }

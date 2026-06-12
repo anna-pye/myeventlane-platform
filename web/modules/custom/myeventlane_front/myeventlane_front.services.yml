@@ -95,10 +95,16 @@ services:
     arguments:
       - '@file_url_generator'
 
+  myeventlane_front.blog_audience_filter:
+    class: Drupal\myeventlane_front\Service\BlogAudienceFilterService
+    arguments:
+      - '@entity_type.manager'
+
   myeventlane_front.blog_landing_page:
     class: Drupal\myeventlane_front\Service\BlogLandingPageBuilder
     arguments:
       - '@entity_type.manager'
+      - '@myeventlane_front.blog_audience_filter'
       - '@cache.default'
 
   myeventlane_front.blog_article_presentation:
