@@ -2,37 +2,37 @@ _core:
   default_config_hash: FHr6psQnRtYvXa9wwVyQsT3ytUtv2w9OvbvbdMDq4a0
 langcode: en
 consentModal:
-  title: 'Use of personal data and cookies'
-  description: "Please choose the services and 3rd party applications we would like to use.\r\n"
+  title: 'Cookie preferences'
+  description: "Choose which optional services you're happy for us to use. Essential cookies always stay on so MyEventLane works properly.\r\n"
   privacyPolicy:
     name: 'Privacy Policy'
-    text: "To learn more, please read our {privacyPolicy}.\r\n"
+    text: "Read our {privacyPolicy} for more detail.\r\n"
     url: 'internal:/privacy'
 consentNotice:
-  title: 'Use of personal data and cookies'
-  changeDescription: 'There were changes since your last visit, please update your consent.'
-  description: "We use cookies and process personal data for the following purposes: {purposes}.\r\n"
-  learnMore: Customize
+  title: 'Cookies on MyEventLane'
+  changeDescription: 'We have updated our cookie choices since your last visit. Please review your preferences.'
+  description: "We use cookies to keep things running smoothly and, with your permission, to understand how the site is used: {purposes}.\r\n"
+  learnMore: Preferences
 ok: Accept
-save: Save
+save: 'Save selection'
 decline: Decline
 close: Close
-acceptAll: 'Accept all'
-acceptSelected: 'Accept selected'
+acceptAll: 'Allow all'
+acceptSelected: 'Save selection'
 service:
   disableAll:
-    title: 'Toggle all services'
-    description: 'Use this switch to enable/disable all services.'
+    title: 'All optional services'
+    description: 'Turn all optional services on or off.'
   optOut:
     title: (opt-out)
-    description: 'This service is loaded by default (opt-out possible).'
+    description: 'This service is on by default. You can opt out if you prefer.'
   required:
-    title: '(always required)'
-    description: 'This service is always required.'
+    title: '(always on)'
+    description: 'Required for the site to work.'
   purposes: Purposes
   purpose: Purpose
 contextualConsent:
   acceptAlways: Always
-  acceptOnce: 'Yes (this time)'
-  description: 'Load external content supplied by {title}?'
-poweredBy: 'Powered by Klaro!'
+  acceptOnce: 'Yes, this time'
+  description: 'Load content from {title}?'
+poweredBy: ''

@@ -1,156 +1,781 @@
 // ==========================================================================
-// Klaro! (drupal/klaro) consent manager styling.
-// Markup: .klaro, .cookie-notice, .cookie-modal, .cm-btn, etc.
-// MyEventLane pastel brand + WCAG AA.
+// Klaro! (drupal/klaro) — MEL compact bottom-sheet consent tray.
+// DOM: .cookie-modal, .cm-modal.cm-klaro, .cm-body, .cm-purposes, .cm-btn, etc.
+// Theme class appended by KlaroHelper::processDrupalSettings().
 // ==========================================================================
 
+@use 'sass:color';
 @use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/spacing';
+@use '../tokens/typography';
+@use '../tokens/zindex';
 
-.klaro {
-  /* Ensure it floats above dialogs/overlays but below admin toolbars if present */
+$mel-klaro-scope: '.klaro.klaro-theme-myeventlane_theme, .klaro.klaro-theme-myeventlane_vendor_theme';
+$mel-sheet-inset: spacing.mel-space(5);
+$mel-sheet-max-width: 1280px;
+$mel-sheet-overlay: color.change(colors.$mel-color-navy, $alpha: 0.06);
+$mel-tray-control-min-height: 4.5rem;
+$mel-tray-control-min-width: 13.75rem;
+$mel-tray-control-max-width: 16.25rem;
+$mel-tray-toggle-width: 2.75rem;
+$mel-tray-segment-bg: color.change(colors.$mel-color-surface, $alpha: 0.6);
+$mel-tray-segment-border: color.change(colors.$mel-color-navy, $alpha: 0.06);
+$mel-tray-desc-max-width: 40rem;
+
+#{$mel-klaro-scope} {
   position: relative;
-  z-index: 600;
-  font-family: inherit;
-  color: inherit;
+  z-index: zindex.mel-z(modal);
+  font-family: typography.$mel-font-family;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text;
 
-  /* MyEventLane primary (lavender) */
+  // Bridge Klaro CSS variables to MEL tokens.
   --klaro-primary-color: #{colors.$mel-color-primary};
-  --klaro-link-color: #{colors.$mel-color-primary};
-  --klaro-link-color-hover: #{colors.$mel-color-primary-hover};
-  --klaro-button-bg: rgba(108, 126, 242, 0.95);
-  --klaro-button-text-color: #{colors.$mel-color-text};
-  --klaro-button-border: 1px solid rgba(0, 0, 0, 0.08);
-  --klaro-button-border-radius: 999px;
-  --klaro-button-padding: 0.7rem 1.05rem;
-  --klaro-button-font-weight: 600;
-  --klaro-button-bg-hover: rgba(108, 126, 242, 1);
-  --klaro-button-text-color-hover: #{colors.$mel-color-text};
-  --klaro-button-border-hover: 1px solid rgba(0, 0, 0, 0.08);
+  --klaro-link-color: #{colors.$mel-color-accent};
+  --klaro-link-color-hover: #{colors.$mel-color-accent-hover};
+  --klaro-button-bg: #{colors.$mel-color-primary};
+  --klaro-button-text-color: #{colors.$mel-color-on-primary};
+  --klaro-button-border: 1px solid #{color.adjust(colors.$mel-color-primary, $lightness: -8%)};
+  --klaro-button-border-radius: #{radii.$mel-radius-full};
+  --klaro-button-padding: #{spacing.mel-space(2)} #{spacing.mel-space(4)};
+  --klaro-button-font-weight: #{typography.$mel-font-semibold};
+  --klaro-button-bg-hover: #{colors.$mel-color-primary-hover};
+  --klaro-button-text-color-hover: #{colors.$mel-color-on-primary};
+  --klaro-button-border-hover: 1px solid #{color.adjust(colors.$mel-color-primary-hover, $lightness: -8%)};
+  --klaro-button-focus-outline: #{colors.$mel-focus-ring-width} solid #{colors.$mel-color-primary};
+  --klaro-button-focus-outline-offset: #{colors.$mel-focus-ring-offset};
   --klaro-slider-bg: #{colors.$mel-color-grey-light};
-  --klaro-slider-bg-active: #{colors.$mel-color-primary};
-  --klaro-slider-bg-required: #{colors.$mel-color-primary};
+  --klaro-slider-bg-active: #{colors.$mel-color-accent};
+  --klaro-slider-bg-required: #{colors.$mel-color-accent};
+  --border-radius: #{radii.$mel-radius-md};
+
+  // Reset Klaro default vertical rhythm inside the tray.
+  .cookie-modal,
+  .cookie-notice {
+    p,
+    h1,
+    h2,
+    ul,
+    li {
+      margin-top: 0;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Consent manager — bottom sheet tray
+  // -------------------------------------------------------------------------
+
+  .cookie-modal {
+    position: fixed;
+    inset: 0;
+    z-index: zindex.mel-z(modal);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    overflow: hidden;
+    pointer-events: none;
+    padding:
+      0
+      $mel-sheet-inset
+      calc(#{$mel-sheet-inset} + env(safe-area-inset-bottom, 0px));
+
+    .cm-bg {
+      position: fixed;
+      inset: 0;
+      background: $mel-sheet-overlay;
+      pointer-events: auto;
+    }
+
+    .cm-modal.cm-klaro {
+      position: relative;
+      z-index: zindex.mel-z(modal) + 1;
+      top: auto;
+      left: auto;
+      right: auto;
+      bottom: auto;
+      transform: none;
+      width: 100%;
+      max-width: $mel-sheet-max-width;
+      margin: 0;
+      overflow: visible;
+      pointer-events: auto;
+      background: colors.$mel-glass-bg-strong;
+      backdrop-filter: blur(16px);
+      color: colors.$mel-color-text;
+      border: 1px solid colors.$mel-color-border;
+      border-radius: radii.$mel-radius-lg;
+      box-shadow: shadows.$mel-shadow-glass;
+      padding: spacing.mel-space(4) spacing.mel-space(5);
+      padding-right: spacing.mel-space(8);
+      transition:
+        opacity var(--mel-motion-base, 200ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+        transform var(--mel-motion-base, 200ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1));
+    }
+
+    .cm-header {
+      border: 0;
+      padding: 0;
+
+      h1.title {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: spacing.mel-space(2);
+        font-size: typography.mel-font-size(md);
+        font-weight: typography.$mel-font-semibold;
+        line-height: typography.$mel-leading-snug;
+        color: colors.$mel-color-text;
+        margin: 0;
+
+        &::before {
+          content: '';
+          flex-shrink: 0;
+          width: 1.5rem;
+          height: 1.5rem;
+          border-radius: radii.$mel-radius-full;
+          background: color.change(colors.$mel-color-pastel-pink, $alpha: 0.85);
+          box-shadow: inset 0 0 0 1px color.change(colors.$mel-color-primary, $alpha: 0.1);
+        }
+      }
+    }
+
+    .cm-body {
+      background: transparent;
+      padding: 0;
+      overflow: visible;
+
+      > p {
+        font-size: typography.mel-font-size(sm);
+        line-height: typography.$mel-leading-normal;
+        color: colors.$mel-color-text-muted;
+        margin: spacing.mel-space(1) 0 0;
+        max-width: $mel-tray-desc-max-width;
+      }
+
+      p,
+      h1,
+      h2,
+      ul,
+      li,
+      strong {
+        color: colors.$mel-color-text;
+      }
+    }
+
+    .cm-footer {
+      border: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    .cm-footer-buttons {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: spacing.mel-space(3);
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .cm-powered-by {
+      display: none;
+    }
+
+    .klaro-close,
+    .hide {
+      position: absolute;
+      top: spacing.mel-space(2);
+      right: spacing.mel-space(2);
+      z-index: 2;
+      width: 2.25rem;
+      height: 2.25rem;
+      min-height: 2.25rem;
+      min-width: 2.25rem;
+      padding: 0;
+      margin: 0;
+      opacity: 0.65;
+      transition: opacity var(--mel-motion-fast, 150ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1));
+
+      &:hover,
+      &:focus-visible {
+        opacity: 1;
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Purpose controls — stacked settings-style segments (matches Klaro DOM)
+  //
+  // Klaro purpose item structure (group_by_purpose):
+  //   li.cm-purpose
+  //     input.cm-list-input
+  //     label.cm-list-label
+  //       span.cm-list-title
+  //       span.cm-required | span.cm-opt-out
+  //       span.cm-switch > .slider
+  //     div[id$="-description"] > p.cm-list-description
+  //     div.cm-services > div.cm-caret > a … N services
+  // -------------------------------------------------------------------------
+
+  .cookie-modal .cm-body {
+    ul.cm-services,
+    ul.cm-purposes {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: spacing.mel-space(2);
+    }
+
+    // Top-level purpose tray controls (Fragment children sit directly on li).
+    > ul.cm-purposes > li.cm-purpose {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'header'
+        'services';
+      gap: spacing.mel-space(1);
+      align-items: stretch;
+      width: 100%;
+      min-width: $mel-tray-control-min-width;
+      max-width: $mel-tray-control-max-width;
+      min-height: $mel-tray-control-min-height;
+      height: auto;
+      margin: 0;
+      padding: spacing.mel-space(3) spacing.mel-space(4);
+      background: $mel-tray-segment-bg;
+      border: 1px solid $mel-tray-segment-border;
+      border-radius: radii.$mel-radius-md;
+      box-shadow: none;
+      overflow: visible;
+    }
+
+    // Flat service list: segment chrome on li, layout grid on inner wrapper div.
+    > ul.cm-services > li.cm-service {
+      width: 100%;
+      min-width: $mel-tray-control-min-width;
+      max-width: $mel-tray-control-max-width;
+      min-height: $mel-tray-control-min-height;
+      height: auto;
+      margin: 0;
+      padding: spacing.mel-space(3) spacing.mel-space(4);
+      background: $mel-tray-segment-bg;
+      border: 1px solid $mel-tray-segment-border;
+      border-radius: radii.$mel-radius-md;
+      box-shadow: none;
+      overflow: visible;
+    }
+
+    > ul.cm-purposes > li.cm-purpose.cm-toggle-all {
+      background: $mel-tray-segment-bg;
+    }
+
+    // Flat service list wraps controls in an inner div.
+    > ul.cm-services > li.cm-service > div {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'header'
+        'services';
+      gap: spacing.mel-space(1);
+    }
+
+    // Checkbox overlays the switch column (same grid area as label header).
+    > ul.cm-purposes > li.cm-purpose > .cm-list-input,
+    > ul.cm-services > li.cm-service > div > .cm-list-input {
+      grid-area: header;
+      justify-self: end;
+      align-self: center;
+      position: relative;
+      top: auto;
+      left: auto;
+      width: $mel-tray-toggle-width;
+      height: 1.375rem;
+      margin: 0;
+      opacity: 0;
+      z-index: 2;
+      cursor: pointer;
+    }
+
+    > ul.cm-purposes > li.cm-purpose > label.cm-list-label,
+    > ul.cm-services > li.cm-service > div > label.cm-list-label {
+      grid-area: header;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      column-gap: spacing.mel-space(2);
+      row-gap: 0.125rem;
+      align-items: center;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      position: static;
+      inset: auto;
+      pointer-events: auto;
+      cursor: pointer;
+
+      span.cm-list-title {
+        grid-column: 1;
+        grid-row: 1;
+        display: block;
+        font-size: typography.mel-font-size(sm);
+        font-weight: typography.$mel-font-semibold;
+        line-height: typography.$mel-leading-snug;
+        color: colors.$mel-color-text;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+
+      span.cm-opt-out,
+      span.cm-required {
+        grid-column: 1;
+        grid-row: 2;
+        display: block;
+        color: colors.$mel-color-text-light;
+        font-size: typography.mel-font-size(xs);
+        font-weight: typography.$mel-font-regular;
+        line-height: typography.$mel-leading-snug;
+        padding: 0;
+        margin: 0;
+      }
+
+      span.cm-switch {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: center;
+        justify-self: end;
+        position: static;
+        top: auto;
+        left: auto;
+        transform: none;
+        flex-shrink: 0;
+      }
+    }
+
+    // Per-purpose description is redundant in the compact tray.
+    > ul.cm-purposes > li.cm-purpose > [id$='-description'],
+    > ul.cm-services > li.cm-service > div > [id$='-description'] {
+      display: none;
+    }
+
+    // Service count / expand caret — always below the title row, never inline.
+    > ul.cm-purposes > li.cm-purpose > .cm-services,
+    > ul.cm-services > li.cm-service > div > .cm-services {
+      grid-area: services;
+      position: relative;
+      margin: 0;
+      padding: 0;
+
+      .cm-caret {
+        display: block;
+        margin: 0;
+        font-size: typography.mel-font-size(xs);
+        line-height: typography.$mel-leading-snug;
+        color: colors.$mel-color-text-muted;
+
+        a {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          color: inherit;
+          text-decoration: none;
+          white-space: normal;
+        }
+      }
+
+      .cm-content {
+        display: none;
+
+        &.expanded {
+          position: absolute;
+          z-index: 3;
+          top: calc(100% + #{spacing.mel-space(1)});
+          right: 0;
+          left: auto;
+          min-width: 12rem;
+          display: block;
+          max-height: 10rem;
+          overflow: auto;
+          padding: spacing.mel-space(2);
+          background: colors.$mel-color-surface;
+          border: 1px solid colors.$mel-color-border;
+          border-radius: radii.$mel-radius-sm;
+          box-shadow: shadows.$mel-shadow-sm;
+        }
+      }
+    }
+
+    // Nested service rows inside an expanded purpose — plain list, not tray segments.
+    .cm-services .cm-content {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+
+      li.cm-service {
+        display: block;
+        min-width: 0;
+        max-width: none;
+        min-height: 0;
+        padding: spacing.mel-space(1) 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Simple notice — bottom sheet variant (non-manager flows)
+  // -------------------------------------------------------------------------
+
+  .cookie-notice:not(.cookie-modal-notice) {
+    position: fixed;
+    left: $mel-sheet-inset;
+    right: $mel-sheet-inset;
+    bottom: calc(#{$mel-sheet-inset} + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    max-width: $mel-sheet-max-width;
+    margin: 0 auto;
+    z-index: zindex.mel-z(modal);
+    background: colors.$mel-glass-bg-strong;
+    color: colors.$mel-color-text;
+    border: 1px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: shadows.$mel-shadow-glass;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+
+    .cn-body {
+      margin: 0;
+      padding: 0;
+    }
+
+    h2 {
+      font-size: typography.mel-font-size(md);
+      font-weight: typography.$mel-font-semibold;
+      line-height: typography.$mel-leading-snug;
+      margin: 0 0 spacing.mel-space(1);
+      color: colors.$mel-color-text;
+    }
+
+    p {
+      font-size: typography.mel-font-size(xs);
+      line-height: typography.$mel-leading-normal;
+      margin: 0 0 spacing.mel-space(2);
+      color: colors.$mel-color-text-muted;
+    }
+
+    .cn-buttons,
+    .cn-ok {
+      display: flex;
+      flex-wrap: wrap;
+      gap: spacing.mel-space(2);
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: spacing.mel-space(2);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Contextual consent (embedded media)
+  // -------------------------------------------------------------------------
+
+  .context-notice {
+    background: colors.$mel-color-surface;
+    color: colors.$mel-color-text;
+    border: 1px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-md;
+    box-shadow: shadows.$mel-shadow-md;
+    padding: spacing.mel-space(3);
+
+    p {
+      color: colors.$mel-color-text-muted;
+      font-size: typography.mel-font-size(sm);
+      line-height: typography.$mel-leading-normal;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Buttons — primary / secondary / tertiary via Klaro classes
+  // -------------------------------------------------------------------------
+
+  button.cm-btn,
+  .cm-btn,
+  a.cm-link.cn-learn-more {
+    border-radius: radii.$mel-radius-full;
+    padding: spacing.mel-space(2) spacing.mel-space(4);
+    font-family: typography.$mel-font-family;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    line-height: 1;
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background-color var(--mel-motion-fast, 150ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+      border-color var(--mel-motion-fast, 150ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+      color var(--mel-motion-fast, 150ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+      transform var(--mel-motion-fast, 150ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+      box-shadow var(--mel-motion-fast, 150ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .cm-btn-success,
+  .cm-btn.cm-btn-success,
+  .cm-btn-accept-all {
+    color: colors.$mel-color-on-primary;
+    background: linear-gradient(
+      135deg,
+      colors.$mel-color-primary 0%,
+      color.adjust(colors.$mel-color-primary, $lightness: -6%) 100%
+    );
+    border: 1px solid color.adjust(colors.$mel-color-primary, $lightness: -8%);
+    box-shadow: none;
+
+    &:hover {
+      background: colors.$mel-color-primary-hover;
+      border-color: color.adjust(colors.$mel-color-primary-hover, $lightness: -8%);
+      color: colors.$mel-color-on-primary;
+    }
+  }
+
+  .cm-btn-success-var,
+  .cm-btn.cm-btn-success-var,
+  .cm-btn-info,
+  .cm-btn.cm-btn-info,
+  &.learn-more-as-button .cookie-notice:not(.cookie-modal-notice) a.cm-link.cn-learn-more {
+    color: colors.$mel-color-text;
+    background: colors.$mel-color-surface;
+    border: 1px solid colors.$mel-color-border;
+    box-shadow: none;
+
+    &:hover {
+      background: colors.$mel-color-pastel-sky;
+      border-color: color.mix(colors.$mel-color-accent, colors.$mel-color-border, 40%);
+      color: colors.$mel-color-text;
+    }
+  }
+
+  .cm-btn-decline,
+  .cm-btn.cm-btn-decline {
+    color: colors.$mel-color-text-muted;
+    background: transparent;
+    border: 1px solid transparent;
+    box-shadow: none;
+
+    &:hover {
+      color: colors.$mel-color-text;
+      background: color.change(colors.$mel-color-grey-light, $alpha: 0.8);
+      border-color: colors.$mel-color-border;
+    }
+  }
+
+  .cm-btn.cm-btn-close,
+  .klaro-close {
+    background: transparent;
+    color: colors.$mel-color-text-muted;
+    border: 0;
+    border-radius: radii.$mel-radius-full;
+  }
+
+  // -------------------------------------------------------------------------
+  // Toggles
+  // -------------------------------------------------------------------------
+
+  .slider,
+  .cm-list-input + .cm-list-label .slider {
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 1.375rem;
+    min-height: 1.375rem;
+    box-shadow: none;
+    transition: background-color var(--mel-motion-fast, 150ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .cm-list-input {
+    width: 2.75rem;
+    height: 1.375rem;
+  }
+
+  .cm-list-input:checked + .cm-list-label .slider {
+    background-color: colors.$mel-color-accent;
+  }
+
+  .cm-list-input.required:checked + .cm-list-label .slider,
+  .cm-list-input.only-required + .cm-list-label .slider {
+    background-color: colors.$mel-color-accent;
+    opacity: 0.85;
+  }
+
+  // -------------------------------------------------------------------------
+  // Links and focus
+  // -------------------------------------------------------------------------
+
+  a {
+    color: colors.$mel-color-accent;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: colors.$mel-color-accent-hover;
+    }
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  .cm-list-input:focus + .cm-list-label .slider {
+    @include colors.mel-focus-ring;
+  }
 }
 
-/* Banner and modal containers */
-.klaro .cookie-notice,
-.klaro .cookie-modal .cm-modal,
-.klaro .context-notice {
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  max-width: 960px;
-  margin-left: auto;
-  margin-right: auto;
+// ---------------------------------------------------------------------------
+// Desktop — toolbar tray (content 2fr | segments | actions)
+// ---------------------------------------------------------------------------
+
+@media (width >= 768px) {
+  #{$mel-klaro-scope} .cookie-modal .cm-modal.cm-klaro {
+    display: grid;
+    grid-template-columns: minmax(26.25rem, 2fr) auto auto;
+    grid-template-rows: auto auto;
+    column-gap: spacing.mel-space(5);
+    row-gap: spacing.mel-space(1);
+    align-items: center;
+    max-height: none;
+    padding: spacing.mel-space(4) spacing.mel-space(5);
+    padding-right: spacing.mel-space(8);
+
+    .cm-header {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: end;
+    }
+
+    .cm-body {
+      display: contents;
+
+      > p {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: start;
+        margin: 0;
+        max-width: $mel-tray-desc-max-width;
+      }
+
+      ul.cm-services,
+      ul.cm-purposes {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        flex-flow: row nowrap;
+        align-items: center;
+        align-self: center;
+        gap: spacing.mel-space(2);
+        min-width: 0;
+      }
+
+      li.cm-purpose,
+      li.cm-service {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: $mel-tray-control-min-width;
+        max-width: $mel-tray-control-max-width;
+        position: relative;
+      }
+    }
+
+    .cm-footer {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+      align-self: center;
+      justify-self: end;
+    }
+
+    .cm-footer-buttons {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: flex-end;
+      align-items: center;
+      gap: spacing.mel-space(3);
+    }
+  }
 }
 
-/* Modal body */
-.klaro .cookie-modal .cm-body,
-.klaro .cm-modal .cm-body {
-  background: #ffffff;
-  overflow-y: auto;
+// ---------------------------------------------------------------------------
+// Mobile — stacked bottom sheet
+// ---------------------------------------------------------------------------
+
+@media (width <= 767px) {
+  #{$mel-klaro-scope} {
+    .cookie-modal {
+      padding:
+        0
+        spacing.mel-space(3)
+        calc(#{spacing.mel-space(3)} + env(safe-area-inset-bottom, 0px));
+    }
+
+    .cookie-modal .cm-modal.cm-klaro {
+      display: flex;
+      flex-direction: column;
+      gap: spacing.mel-space(3);
+      padding: spacing.mel-space(3);
+      max-height: calc(100vh - #{spacing.mel-space(6)} - env(safe-area-inset-bottom, 0px));
+      overflow: auto;
+      border-radius: radii.$mel-radius-md;
+    }
+
+    .cookie-modal .cm-body {
+      ul.cm-services,
+      ul.cm-purposes {
+        flex-direction: column;
+      }
+
+      > ul.cm-purposes > li.cm-purpose,
+      > ul.cm-services > li.cm-service {
+        max-width: none;
+        width: 100%;
+        min-height: $mel-tray-control-min-height;
+        position: relative;
+      }
+
+      .cm-services .cm-content.expanded {
+        position: static;
+        min-width: 0;
+        max-height: none;
+        margin-top: spacing.mel-space(1);
+        box-shadow: none;
+      }
+    }
+
+    .cookie-notice:not(.cookie-modal-notice) {
+      left: spacing.mel-space(3);
+      right: spacing.mel-space(3);
+      bottom: calc(#{spacing.mel-space(3)} + env(safe-area-inset-bottom, 0px));
+      padding: spacing.mel-space(3);
+    }
+
+    .cookie-modal .cm-footer-buttons,
+    .cookie-notice:not(.cookie-modal-notice) .cn-buttons,
+    .cookie-notice:not(.cookie-modal-notice) .cn-ok {
+      flex-direction: column;
+      align-items: stretch;
+
+      .cm-btn,
+      a.cm-link.cn-learn-more {
+        width: 100%;
+      }
+    }
+  }
 }
 
-/* List styling */
-.klaro .cm-services,
-.klaro .cm-purposes,
-.klaro .cookie-modal ul,
-.klaro .context-notice ul {
-  list-style: none;
-  margin: 0;
-  padding: 0.5rem 1rem;
-}
-
-/* Headings and text */
-.klaro .cookie-notice h2,
-.klaro .cookie-modal h2,
-.klaro .context-notice h2,
-.klaro .cm-modal h1.title {
-  font-size: 1.125rem;
-  line-height: 1.3;
-  margin: 0 0 0.5rem 0;
-}
-
-.klaro .cookie-notice p,
-.klaro .cookie-modal p,
-.klaro .context-notice p {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin: 0.5rem 0;
-}
-
-/* Buttons */
-.klaro button.cm-btn,
-.klaro .cm-btn,
-.klaro a.cm-link {
-  border-radius: 999px;
-  padding: 0.7rem 1.05rem;
-  font-weight: 600;
-  line-height: 1;
-  min-height: 44px; /* touch target */
-}
-
-/* Accept / primary */
-.klaro .cm-btn-success,
-.klaro .cm-btn.cm-btn-success {
-  background: rgba(108, 126, 242, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: #{colors.$mel-color-text};
-}
-
-/* Decline / secondary */
-.klaro .cm-btn-decline,
-.klaro .cm-btn.cm-btn-decline {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  color: inherit;
-}
-
-/* Settings / info button */
-.klaro .cm-btn-info,
-.klaro .cm-btn.cm-btn-info {
-  background: rgba(255, 255, 255, 0.95);
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  color: #{colors.$mel-color-navy};
-}
-
-/* Links */
-.klaro a {
-  text-decoration: underline;
+// Vendor body removes link underlines globally; restore within Klaro for readability.
+body.mel-vendor #{$mel-klaro-scope} a:not(.cm-btn) {
+  text-decoration: underline !important;
   text-underline-offset: 2px;
-}
-
-/* Focus visibility (WCAG AA) */
-.klaro a:focus-visible,
-.klaro button:focus-visible,
-.klaro input:focus-visible {
-  outline: 3px solid rgba(108, 126, 242, 0.9);
-  outline-offset: 3px;
-}
-
-/* Service toggles */
-.klaro .cm-service,
-.klaro .cm-purpose,
-.klaro .cm-list-item {
-  padding: 0.5rem 0;
-}
-
-.klaro .slider,
-.klaro .cm-list-input + .cm-list-label .slider {
-  min-width: 44px;
-  min-height: 24px;
-}
-
-/* Mobile layout */
-@media (width <= 480px) {
-  .klaro .cookie-notice,
-  .klaro .cookie-modal .cm-modal,
-  .klaro .context-notice {
-    border-radius: 14px;
-    margin: 0 12px;
-  }
-
-  .klaro button.cm-btn,
-  .klaro .cm-btn {
-    width: 100%;
-  }
 }
