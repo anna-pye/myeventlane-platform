@@ -171,7 +171,8 @@
 }
 
 // Discover rail: unwrap Views wrappers so `.mel-grid` lays out cards.
-.mel-section__discover-view {
+.mel-section__discover-view,
+.mel-section__blog-view {
   width: 100%;
   max-width: 100%;
 

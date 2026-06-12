@@ -1,0 +1,15 @@
+uuid: 9e3f7a6c-bd8e-4fc6-e021-65728d9102fa
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.blog_post
+id: node__blog_post
+label: 'Content: Blog post'
+tags:
+  title: '[node:title] | [site:name]'
+  description: '[node:field_seo_description]'
+  canonical_url: '[node:url]'
+  og_type: article
+  og_title: '[node:title]'
+  og_description: '[node:field_seo_description]'

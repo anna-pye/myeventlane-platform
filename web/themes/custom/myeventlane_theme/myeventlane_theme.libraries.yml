@@ -84,6 +84,14 @@ help_search:
 
 # Listing headers (taxonomy/search/filtered views).
 # Reuses the front "above-the-cards" CSS without loading front-only JS.
+organiser-hub-landing:
+  dependencies:
+    - myeventlane_theme/global-styling
+
+blog-landing:
+  dependencies:
+    - myeventlane_theme/global-styling
+
 mel-listing-header:
   css:
     theme:

@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Blog view — results first, exposed filters rendered by landing wrapper.
+ */
+#}
+{%
+  set classes = [
+    'view',
+    'view-' ~ id|clean_class,
+    'view-id-' ~ id,
+    'view-display-id-' ~ display_id,
+    'mel-blog-landing__view',
+    dom_id ? 'js-view-dom-id-' ~ dom_id,
+  ]
+%}
+<div{{ attributes.addClass(classes) }}>
+  {{ title_prefix }}
+  {{ title_suffix }}
+
+  {% if rows %}
+    <div class="mel-blog-card-grid mel-blog-landing__card-grid view-content" role="list">
+      {{ rows }}
+    </div>
+  {% elseif empty %}
+    <div class="view-empty mel-empty-state mel-empty-state--governed" role="status">
+      {{ empty }}
+    </div>
+  {% endif %}
+
+  {{ pager }}
+</div>

@@ -6,11 +6,35 @@
 
 declare(strict_types=1);
 
+use Drupal\node\NodeInterface;
+
 /**
  * Implements hook_theme().
  */
 function myeventlane_front_theme($existing, $type, $theme, $path): array {
   return [
+    'myeventlane_organiser_hub' => [
+      'variables' => [
+        'page' => [],
+      ],
+      'template' => 'myeventlane-organiser-hub',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_blog_landing' => [
+      'variables' => [
+        'page' => [],
+      ],
+      'template' => 'myeventlane-blog-landing',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_blog_filtered' => [
+      'variables' => [
+        'view' => NULL,
+        'filters' => [],
+      ],
+      'template' => 'myeventlane-blog-filtered',
+      'path' => $path . '/templates',
+    ],
     'myeventlane_front_sitemap' => [
       'variables' => [
         'sections' => [],
@@ -71,4 +95,90 @@ function myeventlane_front_views_pre_render(\Drupal\views\ViewExecutable $view):
   /** @var \Drupal\myeventlane_front\Service\HomepageRailDiversityFilter $filter */
   $filter = \Drupal::service('myeventlane_front.homepage_rail_diversity');
   $filter->filter($view);
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function myeventlane_front_preprocess_node(array &$variables): void {
+  $node = $variables['node'] ?? NULL;
+  $viewMode = (string) ($variables['view_mode'] ?? '');
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'blog_post') {
+    return;
+  }
+
+  if ($viewMode === 'teaser') {
+    if (!\Drupal::hasService('myeventlane_front.organiser_hub_editorial')) {
+      return;
+    }
+    /** @var \Drupal\myeventlane_front\Service\OrganiserHubEditorialService $editorial */
+    $editorial = \Drupal::service('myeventlane_front.organiser_hub_editorial');
+    $badge = $editorial->buildBlogCardBadge($node);
+    if ($badge !== NULL) {
+      $variables['mel_blog_badge'] = $badge;
+    }
+    $readingTime = $editorial->estimateReadingTime($node);
+    if ($readingTime !== NULL) {
+      $variables['mel_blog_reading_time'] = $readingTime;
+    }
+    return;
+  }
+
+  if ($viewMode !== 'full') {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_front.blog_article_presentation')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_front\Service\BlogArticlePresentationService $presentation */
+  $presentation = \Drupal::service('myeventlane_front.blog_article_presentation');
+  $built = $presentation->build($node);
+  foreach ($built as $key => $value) {
+    if ($key === '#cache' || !is_string($key) || !(str_starts_with($key, 'mel_blog_') || $key === 'mel_blog_is_playbook')) {
+      continue;
+    }
+    $variables[$key] = $value;
+  }
+  if (isset($built['#cache']) && is_array($built['#cache'])) {
+    $variables['#cache']['tags'] = array_values(array_unique(array_merge(
+      $variables['#cache']['tags'] ?? [],
+      $built['#cache']['tags'] ?? [],
+    )));
+    $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
+      $variables['#cache']['contexts'] ?? [],
+      $built['#cache']['contexts'] ?? [],
+    )));
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function myeventlane_front_page_attachments(array &$attachments): void {
+  $routeMatch = \Drupal::routeMatch();
+  $node = $routeMatch->getParameter('node');
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'blog_post' || !$node->isPublished()) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_front.blog_structured_data')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_front\Service\BlogStructuredDataBuilder $builder */
+  $builder = \Drupal::service('myeventlane_front.blog_structured_data');
+  foreach ($builder->build($node) as $index => $schema) {
+    $encoded = json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($encoded)) {
+      continue;
+    }
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'script',
+        '#attributes' => ['type' => 'application/ld+json'],
+        '#value' => $encoded,
+      ],
+      'myeventlane_front_blog_schema_' . $node->id() . '_' . $index,
+    ];
+  }
 }

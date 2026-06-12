@@ -1,0 +1,29 @@
+uuid: 8d2e605b-bc7f-4eb5-d910-54617c8091ef
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_organiser_category
+    - node.type.blog_post
+    - taxonomy.vocabulary.organiser_hub_categories
+id: node.blog_post.field_organiser_category
+field_name: field_organiser_category
+entity_type: node
+bundle: blog_post
+label: 'Organiser category'
+description: 'Primary Organiser Hub category for this guide.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      organiser_hub_categories: organiser_hub_categories
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

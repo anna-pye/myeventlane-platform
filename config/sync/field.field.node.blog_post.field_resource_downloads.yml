@@ -1,0 +1,31 @@
+uuid: 1a2b3c4d-5e6f-7890-abcd-ef1234567890
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_resource_downloads
+    - media.type.document
+    - node.type.blog_post
+  module:
+    - media
+id: node.blog_post.field_resource_downloads
+field_name: field_resource_downloads
+entity_type: node
+bundle: blog_post
+label: 'Resource downloads'
+description: 'Reusable document media files (PDF, XLSX, DOCX) attached to this guide.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      document: document
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+    auto_create_bundle: document
+field_type: entity_reference

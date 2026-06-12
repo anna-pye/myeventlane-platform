@@ -1,0 +1,19 @@
+uuid: 6b0c4e3f-9a5d-4c93-b7f8-32495a6879cd
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.field_organiser_hub_section
+    - taxonomy.vocabulary.organiser_hub_categories
+id: taxonomy_term.organiser_hub_categories.field_organiser_hub_section
+field_name: field_organiser_hub_section
+entity_type: taxonomy_term
+bundle: organiser_hub_categories
+label: 'Hub section'
+description: 'Groups this category under a section on the Organiser Hub landing page.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

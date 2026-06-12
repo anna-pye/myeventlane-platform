@@ -61,3 +61,26 @@ myeventlane_front.sitemap:
     _title: 'Sitemap'
   requirements:
     _permission: 'access content'
+
+myeventlane_front.blog_landing:
+  path: '/blog'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\BlogLandingController::page'
+    _title: 'Blog'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.organiser_hub:
+  path: '/resources'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\OrganiserHubController::page'
+    _title: 'Organiser Hub'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_front.sitemap_xml:
+  path: '/sitemap.xml'
+  defaults:
+    _controller: '\Drupal\myeventlane_front\Controller\XmlSitemapController::page'
+  requirements:
+    _permission: 'access content'

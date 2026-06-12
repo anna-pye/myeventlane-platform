@@ -840,43 +840,18 @@
 }
 
 // ---------------------------------------------------------------------------
-// Blog preview - editorial, lightweight, no homepage exposed filters.
+// Blog preview — reuses .mel-blog-card-grid from blog landing styles.
 // ---------------------------------------------------------------------------
-
-.mel-page--home .mel-blog-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-
-  @media (width <= 900px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (width <= 640px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.mel-page--home .mel-blog-preview-grid__item {
-  min-width: 0;
-}
 
 .mel-page--home .mel-section--blog .views-exposed-form,
 .mel-page--home .mel-section--blog form.views-exposed-form {
   display: none;
 }
 
-.mel-page--home .mel-section--blog article,
+.mel-page--home .mel-blog-preview-grid__item,
 .mel-page--home .mel-blog-preview-grid__item > * {
   height: 100%;
-}
-
-.mel-page--home .mel-section--blog .node {
-  padding: 18px;
-  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: 0 12px 36px rgba(55, 45, 82, 0.08);
+  min-width: 0;
 }
 
 // ---------------------------------------------------------------------------

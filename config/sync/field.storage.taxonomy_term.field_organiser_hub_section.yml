@@ -1,0 +1,36 @@
+uuid: 5a9b3d2e-8f4c-4b82-a6e7-2138495768bc
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - taxonomy
+id: taxonomy_term.field_organiser_hub_section
+field_name: field_organiser_hub_section
+entity_type: taxonomy_term
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: planning_event
+      label: 'Planning an Event'
+    -
+      value: marketing_event
+      label: 'Marketing an Event'
+    -
+      value: running_event
+      label: 'Running an Event'
+    -
+      value: growing_event
+      label: 'Growing an Event'
+    -
+      value: templates_downloads
+      label: 'Templates & Downloads'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

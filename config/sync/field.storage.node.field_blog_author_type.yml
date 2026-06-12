@@ -1,0 +1,30 @@
+uuid: 8c4a1f2e-9b3d-4e71-a5c6-2f8d9e0b1a3c
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_blog_author_type
+field_name: field_blog_author_type
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: myeventlane
+      label: MyEventLane
+    -
+      value: staff
+      label: Staff
+    -
+      value: guest
+      label: Guest
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

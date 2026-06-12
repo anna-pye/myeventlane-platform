@@ -1,0 +1,30 @@
+uuid: 4e8f2a1c-9d3b-4f72-b6e5-3a9d0c1e2b4f
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_blog_audience
+field_name: field_blog_audience
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: attendee
+      label: Attendee
+    -
+      value: organiser
+      label: Organiser
+    -
+      value: both
+      label: Both
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

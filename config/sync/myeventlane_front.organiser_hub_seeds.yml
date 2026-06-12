@@ -1,0 +1,26 @@
+playbooks:
+  community_event:
+    title: 'Community Event Playbook'
+    category: planning
+    featured: true
+    excerpt: 'Plan welcoming community events with confidence — from first idea to opening night.'
+  fundraiser:
+    title: 'Fundraiser Playbook'
+    category: budgeting
+    featured: true
+    excerpt: 'Build a sustainable fundraiser with clear budgets, sponsorship, and supporter journeys.'
+  workshop:
+    title: 'Workshop Playbook'
+    category: operations
+    featured: true
+    excerpt: 'Run engaging workshops with smooth operations, volunteers, and attendee care.'
+  market:
+    title: 'Market Playbook'
+    category: marketing
+    featured: true
+    excerpt: 'Promote market-style events and help stallholders, vendors, and visitors find you.'
+  pride_event:
+    title: 'Pride Event Playbook'
+    category: growth
+    featured: true
+    excerpt: 'Grow inclusive pride events with accessibility, partnerships, and community momentum.'

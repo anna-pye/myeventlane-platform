@@ -1,0 +1,161 @@
+{#
+/**
+ * @file
+ * Premium Organiser Hub landing page at /resources.
+ */
+#}
+{% set hero = page.hero|default({}) %}
+{% set featured = page.featured_playbooks|default([]) %}
+{% set topics = page.topics|default([]) %}
+{% set downloads = page.downloads|default([]) %}
+{% set latest = page.latest_guides|default([]) %}
+{% set filters = page.filters|default({}) %}
+{% set footer_cta = page.footer_cta|default({}) %}
+
+<div class="mel-organiser-hub-landing">
+  <section class="mel-organiser-hub-landing__hero" aria-labelledby="mel-organiser-hub-hero-title">
+    <div class="mel-container mel-organiser-hub-landing__hero-inner">
+      <div class="mel-organiser-hub-landing__hero-copy">
+        <h1 id="mel-organiser-hub-hero-title" class="mel-organiser-hub-landing__hero-title">{{ hero.title }}</h1>
+        {% if hero.subtitle %}
+          <p class="mel-organiser-hub-landing__hero-subtitle">{{ hero.subtitle }}</p>
+        {% endif %}
+        <div class="mel-organiser-hub-landing__hero-actions">
+          {% if hero.primary_cta %}
+            <a class="mel-btn mel-btn--cta" href="{{ hero.primary_cta.url }}">{{ hero.primary_cta.title }}</a>
+          {% endif %}
+          {% if hero.secondary_cta %}
+            <a class="mel-btn mel-btn--secondary" href="{{ hero.secondary_cta.url }}">{{ hero.secondary_cta.title }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mel-container mel-organiser-hub-landing__body">
+    {% if featured %}
+      <section id="mel-organiser-hub-playbooks" class="mel-organiser-hub-landing__section" aria-labelledby="mel-organiser-hub-playbooks-title">
+        <h2 id="mel-organiser-hub-playbooks-title" class="mel-organiser-hub-landing__section-title">{{ 'Featured playbooks'|t }}</h2>
+        <ul class="mel-organiser-hub-landing__card-grid" role="list">
+          {% for card in featured %}
+            <li>
+              <a class="mel-card mel-card--governed mel-card--clickable mel-organiser-hub-landing__guide-card" href="{{ card.url }}">
+                <div class="mel-card__header">
+                  {% if card.is_playbook %}
+                    <p class="mel-organiser-hub-landing__badge">{{ 'Playbook'|t }}</p>
+                  {% endif %}
+                  <h3 class="mel-card__title">{{ card.title }}</h3>
+                </div>
+                <div class="mel-card__body">
+                  {% if card.excerpt %}
+                    <p class="mel-card__meta">{{ card.excerpt }}</p>
+                  {% endif %}
+                  <p class="mel-organiser-hub-landing__guide-meta">
+                    {% if card.reading_time %}<span>{{ card.reading_time }}</span>{% endif %}
+                    {% if card.download_count %}<span>{{ card.download_label }}</span>{% endif %}
+                  </p>
+                </div>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if topics %}
+      <section class="mel-organiser-hub-landing__section" aria-labelledby="mel-organiser-hub-topics-title">
+        <h2 id="mel-organiser-hub-topics-title" class="mel-organiser-hub-landing__section-title">{{ 'Browse by topic'|t }}</h2>
+        <ul class="mel-organiser-hub-landing__topic-grid" role="list">
+          {% for topic in topics %}
+            <li>
+              <a class="mel-card mel-card--governed mel-card--clickable mel-organiser-hub-landing__topic-card mel-organiser-hub-landing__topic-card--{{ topic.slug }}" href="{{ topic.url }}">
+                <div class="mel-card__body">
+                  <span class="mel-organiser-hub-landing__topic-icon" aria-hidden="true">{{ topic.title|first|upper }}</span>
+                  <h3 class="mel-card__title">{{ topic.title }}</h3>
+                  <p class="mel-card__meta">{{ topic.count_label }}</p>
+                </div>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if downloads %}
+      <section class="mel-organiser-hub-landing__section" aria-labelledby="mel-organiser-hub-downloads-title">
+        <h2 id="mel-organiser-hub-downloads-title" class="mel-organiser-hub-landing__section-title">{{ 'Downloadable resources'|t }}</h2>
+        <ul class="mel-organiser-hub-landing__card-grid" role="list">
+          {% for download in downloads %}
+            <li>
+              <a
+                class="mel-card mel-card--governed mel-card--clickable mel-organiser-hub-landing__download-card"
+                href="{{ download.url }}"
+                {% if download.is_external %}target="_blank" rel="noopener noreferrer"{% else %}download{% endif %}
+              >
+                <div class="mel-card__header">
+                  <h3 class="mel-card__title">{{ download.title }}</h3>
+                </div>
+                <div class="mel-card__body">
+                  <p class="mel-card__meta">{{ download.kind }}{% if download.source_title %} · {{ download.source_title }}{% endif %}</p>
+                </div>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if latest %}
+      <section class="mel-organiser-hub-landing__section" aria-labelledby="mel-organiser-hub-latest-title">
+        <h2 id="mel-organiser-hub-latest-title" class="mel-organiser-hub-landing__section-title">{{ 'Latest guides'|t }}</h2>
+        <ul class="mel-organiser-hub-landing__card-grid" role="list">
+          {% for card in latest %}
+            <li>
+              <a class="mel-card mel-card--governed mel-card--clickable mel-organiser-hub-landing__guide-card" href="{{ card.url }}">
+                <div class="mel-card__header">
+                  {% if card.is_playbook %}
+                    <p class="mel-organiser-hub-landing__badge">{{ 'Playbook'|t }}</p>
+                  {% endif %}
+                  <h3 class="mel-card__title">{{ card.title }}</h3>
+                </div>
+                {% if card.excerpt %}
+                  <div class="mel-card__body">
+                    <p class="mel-card__meta">{{ card.excerpt }}</p>
+                  </div>
+                {% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if filters.categories %}
+      <details class="mel-organiser-hub-landing__filters">
+        <summary class="mel-organiser-hub-landing__filters-summary">{{ 'Filter guides'|t }}</summary>
+        <form class="mel-organiser-hub-landing__filters-form" action="{{ filters.action }}" method="get">
+          <label class="mel-organiser-hub-landing__filters-label" for="mel-organiser-hub-filter-category">{{ 'Topic'|t }}</label>
+          <select id="mel-organiser-hub-filter-category" name="category" class="mel-organiser-hub-landing__filters-select">
+            <option value="">{{ 'All topics'|t }}</option>
+            {% for category in filters.categories %}
+              <option value="{{ category.tid }}">{{ category.title }}</option>
+            {% endfor %}
+          </select>
+          <button class="mel-btn mel-btn--secondary" type="submit">{{ 'Apply filters'|t }}</button>
+        </form>
+      </details>
+    {% endif %}
+
+    {% if footer_cta.url %}
+      <section class="mel-organiser-hub-landing__footer-cta mel-card mel-card--highlight" aria-labelledby="mel-organiser-hub-footer-cta-title">
+        <div class="mel-card__body">
+          <h2 id="mel-organiser-hub-footer-cta-title" class="mel-card__title">{{ footer_cta.title }}</h2>
+          {% if footer_cta.body %}
+            <p>{{ footer_cta.body }}</p>
+          {% endif %}
+          <a class="mel-btn mel-btn--cta" href="{{ footer_cta.url }}">{{ footer_cta.button }}</a>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</div>

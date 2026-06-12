@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+id: organiser_hub_categories_templates_downloads
+vid: organiser_hub_categories
+name: 'Templates & Downloads'
+description: 'Practical templates and downloadable resources.'
+weight: 8
+parent: {  }

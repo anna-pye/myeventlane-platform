@@ -1,0 +1,69 @@
+@use '../tokens/spacing';
+@use '../tokens/breakpoints';
+
+.mel-organiser-hub {
+  padding-block: spacing.mel-space(6);
+}
+
+.mel-organiser-hub__header {
+  margin-bottom: spacing.mel-space(6);
+}
+
+.mel-organiser-hub__title {
+  margin: 0 0 spacing.mel-space(3);
+}
+
+.mel-organiser-hub__intro {
+  margin: 0 0 spacing.mel-space(3);
+  max-width: 42rem;
+}
+
+.mel-organiser-hub__playbooks {
+  margin-bottom: spacing.mel-space(6);
+}
+
+.mel-organiser-hub__playbook-grid {
+  display: grid;
+  gap: spacing.mel-space(4);
+}
+
+.mel-organiser-hub__playbook-item > * {
+  height: 100%;
+}
+
+.mel-organiser-hub__sections {
+  display: grid;
+  gap: spacing.mel-space(6);
+}
+
+.mel-organiser-hub__cards {
+  display: grid;
+  gap: spacing.mel-space(4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-organiser-hub__card-item {
+  margin: 0;
+}
+
+.mel-organiser-hub__card {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+}
+
+@include breakpoints.mel-break(md) {
+  .mel-organiser-hub__playbook-grid,
+  .mel-organiser-hub__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@include breakpoints.mel-break(lg) {
+  .mel-organiser-hub__playbook-grid,
+  .mel-organiser-hub__cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

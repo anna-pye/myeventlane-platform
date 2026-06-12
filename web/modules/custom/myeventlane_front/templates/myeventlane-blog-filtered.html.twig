@@ -1,0 +1,58 @@
+{#
+/**
+ * @file
+ * Filtered blog listing at /blog with query parameters.
+ */
+#}
+{% set filters = filters|default({}) %}
+
+<div class="mel-blog-landing mel-blog-landing--filtered">
+  <section class="mel-blog-landing__hero mel-blog-landing__hero--compact" aria-labelledby="mel-blog-filtered-title">
+    <div class="mel-container mel-blog-landing__hero-inner">
+      <div class="mel-blog-landing__hero-copy">
+        <h1 id="mel-blog-filtered-title" class="mel-blog-landing__hero-title">{{ 'Blog'|t }}</h1>
+        <p class="mel-blog-landing__hero-subtitle">{{ 'Filtered articles from MyEventLane.'|t }}</p>
+        <div class="mel-blog-landing__hero-actions">
+          <a class="mel-btn mel-btn--secondary" href="{{ path('myeventlane_front.blog_landing') }}">{{ 'Back to blog home'|t }}</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mel-container mel-blog-landing__body">
+    {% if view %}
+      <div class="mel-blog-landing__results">
+        {{ view }}
+      </div>
+    {% endif %}
+
+    {% if filters.action %}
+      <details class="mel-blog-landing__filters">
+        <summary class="mel-blog-landing__filters-summary">{{ 'Filter articles'|t }}</summary>
+        <form class="mel-blog-landing__filters-form" action="{{ filters.action }}" method="get">
+          {% if filters.audiences %}
+            <label class="mel-blog-landing__filters-label" for="mel-blog-filtered-audience">{{ 'Audience'|t }}</label>
+            <select id="mel-blog-filtered-audience" name="audience" class="mel-blog-landing__filters-select">
+              <option value="">{{ 'All audiences'|t }}</option>
+              {% for audience in filters.audiences %}
+                <option value="{{ audience.value }}">{{ audience.title }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+          {% if filters.categories %}
+            <label class="mel-blog-landing__filters-label" for="mel-blog-filtered-category">{{ 'Category'|t }}</label>
+            <select id="mel-blog-filtered-category" name="category" class="mel-blog-landing__filters-select">
+              <option value="">{{ 'All categories'|t }}</option>
+              {% for category in filters.categories %}
+                <option value="{{ category.tid }}">{{ category.title }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+          <label class="mel-blog-landing__filters-label" for="mel-blog-filtered-search">{{ 'Search'|t }}</label>
+          <input id="mel-blog-filtered-search" class="mel-blog-landing__filters-input" type="search" name="search" />
+          <button class="mel-btn mel-btn--secondary" type="submit">{{ 'Apply filters'|t }}</button>
+        </form>
+      </details>
+    {% endif %}
+  </div>
+</div>

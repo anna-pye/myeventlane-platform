@@ -5,11 +5,11 @@
  */
 #}
 {% if rows %}
-  <div class="mel-blog-preview-grid">
+  <ul class="mel-blog-card-grid mel-blog-preview-grid" role="list">
     {% for row in rows %}
-      <div class="mel-blog-preview-grid__item">
+      <li class="mel-blog-preview-grid__item">
         {{ row.content }}
-      </div>
+      </li>
     {% endfor %}
-  </div>
+  </ul>
 {% endif %}

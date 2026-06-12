@@ -4,8 +4,11 @@ status: true
 dependencies:
   config:
     - core.entity_view_mode.node.teaser
+    - field.storage.node.field_blog_audience
+    - field.storage.node.field_organiser_category
     - field.storage.node.field_publish_date
     - node.type.blog_post
+    - taxonomy.vocabulary.organiser_hub_categories
     - taxonomy.vocabulary.tags
   module:
     - datetime
@@ -135,6 +138,35 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        field_organiser_category_target_id:
+          id: field_organiser_category_target_id
+          table: node__field_organiser_category
+          field: field_organiser_category_target_id
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_organiser_category
+          plugin_id: taxonomy_index_tid
+          value: {  }
+          group: 1
+          exposed: true
+          expose:
+            operator_id: field_organiser_category_target_id_op
+            label: Category
+            description: ''
+            use_operator: false
+            operator: field_organiser_category_target_id_op
+            identifier: category
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+          vid: organiser_hub_categories
+          type: select
+          hierarchy: false
+          limit: true
+          error_message: true
         tid:
           id: tid
           table: taxonomy_index
@@ -162,6 +194,30 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+        field_blog_audience_value:
+          id: field_blog_audience_value
+          table: node__field_blog_audience
+          field: field_blog_audience_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_blog_audience
+          plugin_id: list_field
+          value: {  }
+          group: 1
+          exposed: true
+          expose:
+            operator_id: field_blog_audience_value_op
+            label: Audience
+            description: ''
+            use_operator: false
+            operator: field_blog_audience_value_op
+            identifier: audience
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
       filter_groups:
         operator: AND
         groups:
@@ -255,7 +311,7 @@ display:
     position: 1
     display_options:
       display_extenders: {  }
-      path: blog
+      path: blog/list
       menu:
         type: none
         title: ''
