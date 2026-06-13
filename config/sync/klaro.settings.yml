@@ -1,7 +1,7 @@
 _core:
   default_config_hash: OE3ByQ7OzSlI54C2RfXPanzIytXm5DBLVA467r3020U
 langcode: en
-dialog_mode: manager
+dialog_mode: notice
 auto_decorate_final_html: false
 auto_decorate_js_alter: true
 auto_decorate_page_attachments: true
@@ -32,7 +32,7 @@ library:
   hide_decline_all: false
   hide_learn_more: false
   learn_more_as_button: true
-  additional_class: ''
+  additional_class: mel-klaro
   disable_powered_by: true
   html_texts: false
-  auto_focus: true
+  auto_focus: false
