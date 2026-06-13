@@ -82,7 +82,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $form['#attributes']['class'][] = 'mel-vendor-events-form';
-    $form['#create_event_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
+    $form['#create_event_url'] = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/mel_vendor_events';
 
     $executable = $this->loadVendorEventsViewExecutable();
@@ -125,7 +125,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
         'action' => [
           '#type' => 'link',
           '#title' => $this->t('Create event'),
-          '#url' => Url::fromRoute('myeventlane_event_studio.create'),
+          '#url' => Url::fromRoute('myeventlane_vendor.create_event_gateway'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
         ],
       ];

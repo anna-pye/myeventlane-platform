@@ -105,7 +105,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
 
     if ($auto_redirect) {
       return new RedirectResponse(
-        Url::fromRoute('myeventlane_event_studio.create')->toString()
+        Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString()
       );
     }
 
@@ -114,7 +114,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
       '#attached' => [
         'library' => ['myeventlane_vendor/onboarding'],
       ],
-      '#create_event_url' => Url::fromRoute('myeventlane_event_studio.create')->toString(),
+      '#create_event_url' => Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString(),
       '#dashboard_url' => Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
     ];
   }

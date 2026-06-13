@@ -1060,10 +1060,10 @@ final class VendorDashboardViewModelBuilder {
     $actionLabel = $copy['empty_action_label'];
     $url = NULL;
 
-    if ($noEvents && $this->routeExists('myeventlane_event_studio.create')) {
+    if ($noEvents && $this->routeExists('myeventlane_vendor.create_event_gateway')) {
       try {
-        if ($this->accessManager->checkNamedRoute('myeventlane_event_studio.create', [], $account, TRUE)->isAllowed()) {
-          $url = $this->safeUrlFromRoute('myeventlane_event_studio.create');
+        if ($this->accessManager->checkNamedRoute('myeventlane_vendor.create_event_gateway', [], $account, TRUE)->isAllowed()) {
+          $url = $this->safeUrlFromRoute('myeventlane_vendor.create_event_gateway');
         }
       }
       catch (\Throwable) {
@@ -1238,7 +1238,7 @@ final class VendorDashboardViewModelBuilder {
       $actions,
       'create',
       (string) $this->t('Create event'),
-      $this->safeUrlFromRouteIfAccessible('myeventlane_event_studio.create', [], $account),
+      $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.create_event_gateway', [], $account),
     );
     $this->appendOrganiserAction(
       $actions,

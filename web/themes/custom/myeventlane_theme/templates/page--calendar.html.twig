@@ -3,40 +3,68 @@
  * @file
  * Calendar page template.
  *
- * Policy:
- * - No inline script/style tags.
- * - No CDN JS/CSS in Twig.
- *
- * Calendar UI should be provided by placed blocks/views and theme assets.
- * When no published events with dates exist, show an intentional empty state
- * (preprocess sets calendar_events in myeventlane_theme.theme).
+ * FullCalendar output comes from view.events_calendar.page_calendar.
+ * Empty state uses calendar_events from preprocess_page__calendar.
  */
 #}
-
 {% extends "page.html.twig" %}
 
 {% block content %}
-  <div class="mel-container">
-    {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
-      title: 'Events calendar'|t,
-      show_search: false,
-      show_categories: false
+  <div class="mel-container mel-calendar-page">
+    {% include '@myeventlane_theme/components/mel-calendar-hero.html.twig' with {
+      hero_image_url: mel_hero_image_url|default(null),
+      hero_image_url_mobile: mel_hero_image_url_mobile|default(null),
+      hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false),
+      create_event_url: create_event_url|default(null)
     } only %}
 
     {% if calendar_events is defined and calendar_events is empty %}
       <div class="mel-empty mel-empty--calendar" role="status">
-        <h2 class="mel-empty__title">{{ 'Nothing on the calendar yet'|t }}</h2>
-        <p class="mel-empty__text">{{ 'When events are published with dates, they appear here. Browse the marketplace for what’s on near you.'|t }}</p>
-        <p class="mel-empty__text mel-empty__text--secondary">{{ 'Try exploring featured events or browsing by category from the homepage.'|t }}</p>
-        <p class="mel-empty__actions">
-          <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
-          <a class="mel-link mel-empty__link-home" href="{{ path('<front>') }}">{{ 'Featured on homepage'|t }}</a>
-        </p>
+        {% if mel_hero_image_url %}
+          <div class="mel-empty__illustration" aria-hidden="true">
+            <picture>
+              {% if mel_hero_image_url_mobile %}
+                <source media="(max-width: 767px)" srcset="{{ mel_hero_image_url_mobile }}">
+              {% endif %}
+              <img
+                src="{{ mel_hero_image_url }}"
+                alt=""
+                width="320"
+                height="240"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+          </div>
+        {% endif %}
+        <h2 class="mel-empty__title">{{ 'No events scheduled yet.'|t }}</h2>
+        <p class="mel-empty__text">{{ 'Explore upcoming events or create your own.'|t }}</p>
+        <div class="mel-empty__actions">
+          <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse Events'|t }}</a>
+          <a class="mel-btn mel-btn--secondary" href="{{ create_event_url|default(path('myeventlane_vendor.create_event_gateway')) }}">{{ 'Create Event'|t }}</a>
+        </div>
       </div>
     {% else %}
-      <div class="mel-content mel-content--calendar">
-        {{ page.content }}
+      <div class="mel-calendar-card">
+        <div class="mel-content mel-content--calendar">
+          {{ page.content }}
+        </div>
       </div>
+
+      {% if mel_calendar_this_week_rail|default([]) is not empty %}
+        {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+          section_class: 'mel-section--calendar-rail mel-section--discover',
+          section_width_class: '',
+          container_class: 'mel-container',
+          header_extra_class: 'mel-section__header--calendar-rail',
+          title: 'Upcoming this week'|t,
+          subtitle: 'Events starting soon — browse cards or explore the full marketplace.'|t,
+          link_url: path('view.upcoming_events.page_events'),
+          link_text: 'Browse all events'|t,
+          content_wrapper_class: 'mel-section__discover-view mel-calendar-rail__grid',
+          content: mel_calendar_this_week_rail
+        } %}
+      {% endif %}
     {% endif %}
   </div>
 {% endblock %}

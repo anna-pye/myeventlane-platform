@@ -2171,7 +2171,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     return [
       [
         'label' => 'Create Event',
-        'url' => Url::fromRoute('myeventlane_event_studio.create')->toString(),
+        'url' => Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString(),
         'icon' => 'plus',
         'style' => 'primary',
       ],
@@ -2539,7 +2539,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'type' => 'info',
         'title' => (string) $this->t('Ready for your first launch'),
         'message' => (string) $this->t('Create your first event and we will guide you through publishing.'),
-        'url' => $this->safeRouteUrl('myeventlane_event_studio.create'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.create_event_gateway'),
         'link_label' => (string) $this->t('Create event'),
       ];
     }
