@@ -287,7 +287,7 @@ final class GrowthInsightService {
             'info',
             'Your draft is nearly ready',
             'Publish when you are ready to start building momentum.',
-            'myeventlane_event_studio.create',
+            'myeventlane_vendor.create_event_gateway',
             [],
             'organiser',
             TRUE,

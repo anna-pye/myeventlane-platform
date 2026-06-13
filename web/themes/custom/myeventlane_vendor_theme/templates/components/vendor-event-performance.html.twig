@@ -61,6 +61,6 @@
 {% else %}
   <div class="mel-empty-state mel-empty-state--compact">
     <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
-    <a href="{{ path('myeventlane_event_studio.create') }}" class="mel-btn mel-btn--cta">{{ 'Create Event'|t }}</a>
+    <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--cta">{{ 'Create Event'|t }}</a>
   </div>
 {% endif %}

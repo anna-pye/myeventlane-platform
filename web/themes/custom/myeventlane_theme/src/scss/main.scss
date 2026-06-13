@@ -232,6 +232,7 @@
 @use 'pages/organiser-hub-landing';
 @use 'pages/blog-article';
 @use 'pages/blog-landing';
+@use 'pages/calendar';
 
 // Event page Classic/Immersive themes — load after pages/event so Mockup 1 rules win cascade.
 @use 'components/event-page-themes';

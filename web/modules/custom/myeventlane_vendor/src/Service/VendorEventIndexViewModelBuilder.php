@@ -94,7 +94,7 @@ final class VendorEventIndexViewModelBuilder {
     $filteredInternal = $this->sortRowsInternal($filteredInternal, $sortParam);
     $filtered = $this->stripInternals($filteredInternal);
 
-    $primaryUrl = $this->routeUrlIfAccessible('myeventlane_event_studio.create', [], $account);
+    $primaryUrl = $this->routeUrlIfAccessible('myeventlane_vendor.create_event_gateway', [], $account);
 
     return [
       'title' => (string) $this->t('Events'),

@@ -78,7 +78,7 @@ function _myeventlane_vendor_theme_vendor_console_footer_urls(): array {
     'events' => 'myeventlane_vendor.console.events',
     'analytics' => 'myeventlane_analytics.dashboard',
     'payouts' => 'myeventlane_vendor.console.payouts',
-    'create_event' => 'myeventlane_event_studio.create',
+    'create_event' => 'myeventlane_vendor.create_event_gateway',
     'settings' => 'myeventlane_vendor.console.settings',
     'support' => 'myeventlane_escalations_portal.vendor_list',
   ];
