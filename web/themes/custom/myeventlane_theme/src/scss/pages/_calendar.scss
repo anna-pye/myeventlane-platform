@@ -1,0 +1,426 @@
+// ==========================================================================
+// Public Events Calendar page (/calendar) — presentation only
+// ==========================================================================
+// FullCalendar engine + Views data source unchanged; styles scoped to
+// .mel-calendar-page so other .mel-calendar (add-to-calendar) UI is untouched.
+
+@use '../base/mel-ds-tokens' as mel;
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/spacing';
+@use '../tokens/typography';
+@use '../tokens/breakpoints';
+
+.mel-calendar-page {
+  padding-bottom: spacing.mel-space(8);
+}
+
+// ---------------------------------------------------------------------------
+// Hero
+// ---------------------------------------------------------------------------
+
+.mel-calendar-hero {
+  margin: spacing.mel-space(4) 0 spacing.mel-space(6);
+  padding: spacing.mel-space(6) spacing.mel-space(4);
+  border-radius: radii.$mel-radius-lg;
+  background:
+    radial-gradient(circle at 14% 22%, color-mix(in srgb, colors.$mel-color-primary 16%, transparent), transparent 42%),
+    radial-gradient(circle at 88% 18%, color-mix(in srgb, colors.$mel-color-accent 18%, transparent), transparent 38%),
+    linear-gradient(135deg, colors.$mel-color-bg 0%, colors.$mel-color-pastel-lavender 100%);
+}
+
+.mel-calendar-hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: spacing.mel-space(6);
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @include breakpoints.mel-break(md) {
+    grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+    gap: spacing.mel-space(7);
+  }
+}
+
+.mel-calendar-hero__content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  text-align: center;
+
+  @include breakpoints.mel-break(md) {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+.mel-calendar-hero__title {
+  margin: 0;
+  font-family: mel.$mel-ds-font-main;
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: colors.$mel-color-text;
+}
+
+.mel-calendar-hero__lede {
+  margin: spacing.mel-space(3) 0 0;
+  max-width: 36rem;
+  font-size: typography.mel-font-size(lg);
+  line-height: 1.55;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-calendar-hero__actions {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(3);
+  width: 100%;
+  margin-top: spacing.mel-space(5);
+
+  @include breakpoints.mel-break(sm) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: auto;
+  }
+}
+
+.mel-calendar-hero__cta {
+  width: 100%;
+  min-height: 44px;
+
+  @include breakpoints.mel-break(sm) {
+    width: auto;
+  }
+}
+
+.mel-calendar-hero__art {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.mel-calendar-hero__art--hide-mobile {
+  @include breakpoints.mel-break(md, max) {
+    display: none;
+  }
+}
+
+.mel-calendar-hero__img {
+  display: block;
+  width: min(100%, 420px);
+  height: auto;
+  border-radius: radii.$mel-radius-lg;
+  box-shadow: shadows.$mel-shadow-2;
+}
+
+.mel-calendar-hero__img--placeholder {
+  width: min(100%, 320px);
+  aspect-ratio: 4 / 3;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.55), transparent 24%),
+    linear-gradient(145deg, color-mix(in srgb, colors.$mel-color-accent 28%, #fff), color-mix(in srgb, colors.$mel-color-primary 22%, #fff));
+}
+
+// Category discovery strip (existing taxonomy pills; links to browse, not calendar filter).
+.mel-calendar-page .mel-page-header {
+  margin-bottom: spacing.mel-space(5);
+  padding: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Calendar card container
+// ---------------------------------------------------------------------------
+
+.mel-calendar-card {
+  padding: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-lg;
+  background: colors.$mel-color-surface;
+  box-shadow: shadows.$mel-shadow-1;
+  overflow: hidden;
+
+  @include breakpoints.mel-break(md) {
+    padding: spacing.mel-space(6);
+  }
+}
+
+.mel-calendar-page .mel-content--calendar {
+  min-width: 0;
+}
+
+// ---------------------------------------------------------------------------
+// FullCalendar toolbar + controls (presentation only)
+// ---------------------------------------------------------------------------
+
+.mel-calendar-page {
+  .fc-toolbar {
+    flex-wrap: wrap;
+    gap: spacing.mel-space(3);
+    margin-bottom: spacing.mel-space(5);
+  }
+
+  .fc-toolbar.fc-header-toolbar {
+    margin-bottom: spacing.mel-space(5);
+  }
+
+  .fc-toolbar h2,
+  .fc-center h2 {
+    flex: 1 1 100%;
+    order: -1;
+    margin: 0 0 spacing.mel-space(2);
+    font-family: mel.$mel-ds-font-main;
+    font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: colors.$mel-color-text;
+    text-align: center;
+
+    @include breakpoints.mel-break(md) {
+      flex: 1 1 auto;
+      order: 0;
+      margin: 0;
+      text-align: center;
+    }
+  }
+
+  .fc-left,
+  .fc-right,
+  .fc-center {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: spacing.mel-space(2);
+  }
+
+  .fc-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: spacing.mel-space(2) spacing.mel-space(4);
+    border-radius: radii.$mel-radius-sm;
+    border: 1px solid colors.$mel-color-border;
+    background: colors.$mel-color-surface;
+    color: colors.$mel-color-text;
+    font-family: mel.$mel-ds-font-main;
+    font-size: typography.mel-font-size(base);
+    font-weight: typography.$mel-font-semibold;
+    box-shadow: none;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: colors.$mel-color-surface-alt;
+      color: colors.$mel-color-text;
+    }
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
+    }
+  }
+
+  .fc-button-primary:not(:disabled).fc-button-active,
+  .fc-button-primary:not(:disabled):active {
+    background: colors.$mel-color-primary;
+    border-color: colors.$mel-color-primary;
+    color: colors.$mel-color-text-inverse;
+  }
+
+  // Today control — MEL primary pill.
+  .fc-today-button {
+    background: colors.$mel-color-primary;
+    border-color: colors.$mel-color-primary;
+    color: colors.$mel-color-text-inverse;
+    border-radius: radii.$mel-radius-sm;
+
+    &:hover {
+      background: colors.$mel-color-primary-hover;
+      border-color: colors.$mel-color-primary-hover;
+      color: colors.$mel-color-text-inverse;
+    }
+
+    &:disabled {
+      opacity: 0.55;
+    }
+  }
+
+  .fc-button-group > .fc-button {
+    min-height: 44px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Today date cell
+// ---------------------------------------------------------------------------
+
+.mel-calendar-page {
+  .fc-unthemed td.fc-today {
+    background: color-mix(in srgb, colors.$mel-color-primary 8%, colors.$mel-color-surface);
+  }
+
+  .fc-day-top.fc-today .fc-day-number,
+  .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 2px;
+    border-radius: radii.$mel-radius-sm;
+    background: colors.$mel-color-primary;
+    color: colors.$mel-color-text-inverse;
+    font-weight: typography.$mel-font-bold;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Event bars — category colours from drupalSettings (inline); structure only
+// ---------------------------------------------------------------------------
+
+.mel-calendar-page {
+  .fc-event,
+  .fc-event-dot {
+    border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+    box-shadow: none;
+    // background/border come from FullCalendar inline styles (MEL palette).
+  }
+
+  .fc-event,
+  .fc-event:hover,
+  .fc-event:focus-visible {
+    text-decoration: none;
+  }
+
+  .fc-event .fc-title,
+  .fc-event .fc-time,
+  .fc-list-item-title a {
+    font-weight: typography.$mel-font-semibold;
+  }
+
+  .fc-list-item-title a {
+    color: inherit;
+  }
+
+  .fc-day-grid-event {
+    margin-top: 2px;
+    padding: 2px 6px;
+  }
+
+  .fc-day-grid-event .fc-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .fc-list-item:hover td {
+    background: color-mix(in srgb, colors.$mel-color-pastel-lavender 35%, colors.$mel-color-surface);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+.mel-calendar-page .mel-empty--calendar {
+  padding: spacing.mel-space(8) spacing.mel-space(4);
+  margin-top: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-lg;
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+  box-shadow: shadows.$mel-shadow-1;
+  text-align: center;
+
+  .mel-empty__illustration {
+    margin: 0 auto spacing.mel-space(5);
+    max-width: 280px;
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin: 0 auto;
+      border-radius: radii.$mel-radius-md;
+    }
+  }
+
+  .mel-empty__title {
+    margin: 0 0 spacing.mel-space(3);
+    font-size: typography.mel-font-size(2xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-empty__text {
+    margin: 0 auto;
+    max-width: 32rem;
+    font-size: typography.mel-font-size(base);
+    line-height: typography.$mel-leading-relaxed;
+    color: colors.$mel-color-text-muted;
+  }
+
+  .mel-empty__actions {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(3);
+    justify-content: center;
+    align-items: stretch;
+    margin-top: spacing.mel-space(6);
+    max-width: 360px;
+    margin-inline: auto;
+
+    @include breakpoints.mel-break(sm) {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      max-width: none;
+    }
+
+    .mel-btn {
+      width: 100%;
+      min-height: 44px;
+
+      @include breakpoints.mel-break(sm) {
+        width: auto;
+      }
+    }
+  }
+}
+
+// Prevent horizontal scroll on narrow viewports.
+.mel-calendar-page .fc-view-container,
+.mel-calendar-page .fc-scroller {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+// ---------------------------------------------------------------------------
+// Upcoming this week rail (event cards below calendar)
+// ---------------------------------------------------------------------------
+
+.mel-calendar-page .mel-section--calendar-rail {
+  margin-top: spacing.mel-space(8);
+  padding-top: spacing.mel-space(2);
+}
+
+.mel-calendar-page .mel-calendar-rail__grid {
+  .mel-event-grid.mel-grid--events {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: spacing.mel-space(4);
+
+    @include breakpoints.mel-break(md) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: spacing.mel-space(5);
+    }
+  }
+
+  .mel-event-card {
+    height: 100%;
+  }
+}

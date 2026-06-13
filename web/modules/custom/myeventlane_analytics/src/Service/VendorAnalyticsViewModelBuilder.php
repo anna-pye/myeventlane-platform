@@ -410,10 +410,10 @@ final class VendorAnalyticsViewModelBuilder {
     $actionLabel = $copy['action_label'];
     $url = NULL;
 
-    if ($this->routeExists('myeventlane_event_studio.create')) {
+    if ($this->routeExists('myeventlane_vendor.create_event_gateway')) {
       try {
-        if ($this->accessManager->checkNamedRoute('myeventlane_event_studio.create', [], $account, TRUE)->isAllowed()) {
-          $url = $this->safeUrlFromRoute('myeventlane_event_studio.create');
+        if ($this->accessManager->checkNamedRoute('myeventlane_vendor.create_event_gateway', [], $account, TRUE)->isAllowed()) {
+          $url = $this->safeUrlFromRoute('myeventlane_vendor.create_event_gateway');
         }
       }
       catch (\Throwable) {

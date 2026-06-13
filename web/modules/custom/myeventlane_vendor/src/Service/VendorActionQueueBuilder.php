@@ -188,7 +188,7 @@ final class VendorActionQueueBuilder {
         'title' => $copy['title'],
         'message' => $copy['message'],
         'action_label' => $copy['action_label'],
-        'url' => $this->routeUrlIfAccessible('myeventlane_event_studio.create', [], $account),
+        'url' => $this->routeUrlIfAccessible('myeventlane_vendor.create_event_gateway', [], $account),
         'context' => [
           'type' => 'events',
           'entity_id' => NULL,

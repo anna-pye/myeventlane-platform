@@ -375,7 +375,7 @@ final class VendorDashboardController extends ControllerBase {
     $quickLinks = [
       [
         'title' => $this->t('Create Event'),
-        'url' => Url::fromRoute('myeventlane_event_studio.create')->toString(),
+        'url' => Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString(),
         'icon' => 'add',
       ],
     ];

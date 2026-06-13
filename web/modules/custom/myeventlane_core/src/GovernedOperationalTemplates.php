@@ -317,7 +317,7 @@ final class GovernedOperationalTemplates {
    */
   private function optionalStudioCreateLink(string $title): ?array {
     try {
-      $url = Url::fromRoute('myeventlane_event_studio.create');
+      $url = Url::fromRoute('myeventlane_vendor.create_event_gateway');
     }
     catch (\Throwable) {
       return NULL;

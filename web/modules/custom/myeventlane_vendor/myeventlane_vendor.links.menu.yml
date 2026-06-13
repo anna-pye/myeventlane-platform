@@ -32,7 +32,7 @@ myeventlane_vendor.menu_account.events:
   weight: -49
 myeventlane_vendor.menu_account.create_event:
   title: 'Create event'
-  route_name: myeventlane_event_studio.create
+  route_name: myeventlane_vendor.create_event_gateway
   menu_name: account
   weight: -48
 myeventlane_vendor.menu_account.settings:

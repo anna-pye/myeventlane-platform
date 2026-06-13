@@ -32,7 +32,9 @@ use Drupal\node\NodeInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_core\VendorConsoleTrust;
+use Drupal\myeventlane_shared\Service\ColorService;
 use Drupal\views\ResultRow;
+use Drupal\views\Views;
 
 /**
  * Public marketing create-event URL via onboarding gateway (/create-event).
@@ -58,7 +60,7 @@ function _myeventlane_theme_vendor_console_footer_urls(): array {
     'events' => 'myeventlane_vendor.console.events',
     'analytics' => 'myeventlane_analytics.dashboard',
     'payouts' => 'myeventlane_vendor.console.payouts',
-    'create_event' => 'myeventlane_event_studio.create',
+    'create_event' => 'myeventlane_vendor.create_event_gateway',
     'settings' => 'myeventlane_vendor.console.settings',
     'support' => 'myeventlane_escalations_portal.vendor_list',
   ];
@@ -2294,6 +2296,171 @@ function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
   }
 
   $variables['calendar_events'] = $events;
+  $variables['mel_calendar_this_week_rail'] = _myeventlane_theme_build_calendar_this_week_rail();
+}
+
+/**
+ * Builds the calendar page "Upcoming this week" event card rail.
+ *
+ * Uses upcoming_events:embed_calendar_this_week (7-day window, 3 cards).
+ *
+ * @return array
+ *   Render array, or empty when the view is unavailable or has no results.
+ */
+function _myeventlane_theme_build_calendar_this_week_rail(): array {
+  $view = Views::getView('upcoming_events');
+  if ($view === NULL) {
+    return [];
+  }
+  $view->setDisplay('embed_calendar_this_week');
+  $view->preExecute();
+  $view->execute();
+  if (empty($view->result)) {
+    return [];
+  }
+  $build = $view->buildRenderable('embed_calendar_this_week');
+  $build['#cache']['contexts'] = array_values(array_unique(array_merge(
+    $build['#cache']['contexts'] ?? [],
+    ['languages:language_interface', 'timezone']
+  )));
+  return $build;
+}
+
+/**
+ * Implements hook_preprocess_views_view_fullcalendar().
+ *
+ * Applies MEL category palette to FullCalendar events via drupalSettings.
+ *
+ * fullcalendar_view injects backgroundColor/borderColor inline when
+ * color_taxonomies is configured; MEL leaves that map empty in sync config,
+ * so events otherwise fall back to FullCalendar default blue (#3788d8).
+ */
+function myeventlane_theme_preprocess_views_view_fullcalendar(array &$variables): void {
+  if (($variables['view_id'] ?? '') !== 'events_calendar') {
+    return;
+  }
+
+  $view_index = $variables['view_index'] ?? 0;
+  $settings = $variables['#attached']['drupalSettings']['fullCalendarView'][$view_index] ?? NULL;
+  if (!is_array($settings) || empty($settings['calendar_options'])) {
+    return;
+  }
+
+  $options = json_decode($settings['calendar_options'], TRUE);
+  if (!is_array($options) || empty($options['events']) || !is_array($options['events'])) {
+    return;
+  }
+
+  /** @var \Drupal\views\ViewExecutable|null $view */
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof ViewExecutable) {
+    return;
+  }
+
+  $style_options = $view->getDisplay()->getOption('style')['options'] ?? [];
+  $tax_field = $style_options['tax_field'] ?? 'field_category';
+
+  $color_service = \Drupal::hasService('myeventlane_shared.color_service')
+    ? \Drupal::service('myeventlane_shared.color_service')
+    : new ColorService();
+
+  $entity_colors = _myeventlane_theme_calendar_entity_colors($view, $tax_field, $color_service);
+
+  foreach ($options['events'] as &$event) {
+    if (!is_array($event)) {
+      continue;
+    }
+    $entity_id = $event['eid'] ?? NULL;
+    if ($entity_id === NULL || !isset($entity_colors[$entity_id])) {
+      $palette = _myeventlane_theme_calendar_default_event_colors($color_service);
+    }
+    else {
+      $palette = $entity_colors[$entity_id];
+    }
+    $event['backgroundColor'] = $palette['background'];
+    $event['borderColor'] = $palette['border'];
+    $event['textColor'] = $palette['text'];
+  }
+  unset($event);
+
+  $variables['#attached']['drupalSettings']['fullCalendarView'][$view_index]['calendar_options'] = json_encode($options);
+}
+
+/**
+ * Builds entity ID => MEL calendar colour palette from view results.
+ *
+ * @return array<int|string, array{background: string, border: string, text: string}>
+ *   Palette keyed by node ID.
+ */
+function _myeventlane_theme_calendar_entity_colors(ViewExecutable $view, string $tax_field, ColorService $color_service): array {
+  $colors = [];
+  foreach ($view->result as $row) {
+    if (!$row instanceof ResultRow || !isset($row->_entity)) {
+      continue;
+    }
+    $entity = $row->_entity;
+    if (!$entity instanceof NodeInterface) {
+      continue;
+    }
+    $label = '';
+    if ($entity->hasField($tax_field) && !$entity->get($tax_field)->isEmpty()) {
+      $term = $entity->get($tax_field)->entity;
+      if ($term instanceof TermInterface) {
+        $label = $term->label();
+      }
+    }
+    $colors[$entity->id()] = _myeventlane_theme_calendar_palette_for_category($label, $color_service);
+  }
+  return $colors;
+}
+
+/**
+ * Resolves MEL-branded background/border/text colours for a category label.
+ *
+ * @return array{background: string, border: string, text: string}
+ */
+function _myeventlane_theme_calendar_palette_for_category(string $category_label, ColorService $color_service): array {
+  $background = $color_service->getColorForTerm($category_label);
+  if ($background === NULL) {
+    return _myeventlane_theme_calendar_default_event_colors($color_service);
+  }
+  return [
+    'background' => $background,
+    'border' => _myeventlane_theme_calendar_border_color($background),
+    'text' => '#24303a',
+  ];
+}
+
+/**
+ * Default event colours when category is unknown (MEL lavender, not FC blue).
+ *
+ * @return array{background: string, border: string, text: string}
+ */
+function _myeventlane_theme_calendar_default_event_colors(ColorService $color_service): array {
+  $background = $color_service->getFallbackColor();
+  // Prefer MEL pastel lavender over grey when fallback is the shared default.
+  if ($background === '#cccccc') {
+    $background = '#E6D9FF';
+  }
+  return [
+    'background' => $background,
+    'border' => _myeventlane_theme_calendar_border_color($background),
+    'text' => '#24303a',
+  ];
+}
+
+/**
+ * Darkens a hex colour slightly for event borders.
+ */
+function _myeventlane_theme_calendar_border_color(string $hex): string {
+  $hex = ltrim($hex, '#');
+  if (strlen($hex) !== 6 || !ctype_xdigit($hex)) {
+    return $hex;
+  }
+  $r = max(0, (int) round(hexdec(substr($hex, 0, 2)) * 0.78));
+  $g = max(0, (int) round(hexdec(substr($hex, 2, 2)) * 0.78));
+  $b = max(0, (int) round(hexdec(substr($hex, 4, 2)) * 0.78));
+  return sprintf('#%02x%02x%02x', $r, $g, $b);
 }
 
 /**

@@ -685,6 +685,198 @@ display:
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }
+  embed_calendar_this_week:
+    id: embed_calendar_this_week
+    display_title: 'Calendar: Upcoming this week'
+    display_plugin: block
+    position: 10
+    display_options:
+      title: 'Upcoming this week'
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 3
+      empty:
+        area:
+          id: area
+          table: views
+          field: area
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: text
+          empty: true
+          content:
+            value: ''
+            format: full_html
+          tokenize: false
+      filters:
+        status:
+          id: status
+          table: node_field_data
+          field: status
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
+          value: '1'
+          group: 1
+          expose:
+            operator: ''
+        type:
+          id: type
+          table: node_field_data
+          field: type
+          entity_type: node
+          entity_field: type
+          plugin_id: bundle
+          value:
+            event: event
+          group: 1
+          expose:
+            operator: ''
+        field_event_state_value:
+          id: field_event_state_value
+          table: node__field_event_state
+          field: field_event_state_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_state
+          plugin_id: list_field
+          operator: not
+          value:
+            draft: draft
+            cancelled: cancelled
+            archived: archived
+          group: 1
+          exposed: false
+        title_not_empty:
+          id: title_not_empty
+          table: node_field_data
+          field: title
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: title
+          plugin_id: string
+          operator: 'not empty'
+          value: ''
+          group: 1
+          exposed: false
+        field_event_start_not_empty:
+          id: field_event_start_not_empty
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          operator: 'not empty'
+          value:
+            min: ''
+            max: ''
+            value: ''
+            type: date
+          group: 1
+          exposed: false
+        field_event_start_value:
+          id: field_event_start_value
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 1
+          exposed: false
+        field_event_start_value_2:
+          id: field_event_start_value_2
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          operator: '<='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+            offset: '+7 days'
+          group: 1
+          exposed: false
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 2
+          exposed: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
+      row:
+        type: 'entity:node'
+        options:
+          view_mode: compact_commerce
+      defaults:
+        empty: false
+        pager: false
+        row: false
+        filters: false
+      display_extenders: {  }
+      block_description: 'Calendar: Upcoming this week'
+      block_category: MyEventLane
+      block_hide_empty: true
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }
   homepage_latest:
     id: homepage_latest
     display_title: 'Homepage latest'

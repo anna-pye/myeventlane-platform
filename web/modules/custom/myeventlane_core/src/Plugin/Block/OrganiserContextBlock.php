@@ -175,7 +175,7 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
       ],
       [
         'title' => $this->t('Create event'),
-        'url' => Url::fromRoute('myeventlane_event_studio.create'),
+        'url' => Url::fromRoute('myeventlane_vendor.create_event_gateway'),
       ],
       [
         'title' => $this->t('Settings'),
