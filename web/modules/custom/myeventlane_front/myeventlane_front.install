@@ -53,10 +53,10 @@ function myeventlane_front_update_8005(): string {
 }
 
 /**
- * Marks the first-event guide as organiser audience for CTA targeting.
+ * Deferred: first-event organiser audience runs in 8007 after playbook seeding.
  */
 function myeventlane_front_update_8006(): string {
-  return _myeventlane_front_apply_first_event_organiser_audience();
+  return (string) t('Deferred first-event organiser audience to update 8007 (runs after playbook seeding).');
 }
 
 /**
