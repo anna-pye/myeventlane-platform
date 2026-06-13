@@ -130,7 +130,7 @@ final class EventStudioController extends ControllerBase {
       '@eid' => (string) $node->id(),
       '@uid' => (string) $this->currentUser()->id(),
     ]);
-    return new RedirectResponse(Url::fromRoute('myeventlane_event_studio.workspace', ['node' => $node->id()])->toString());
+    return new RedirectResponse(Url::fromRoute('myeventlane_event_studio.workspace_information', ['node' => $node->id()])->toString());
   }
 
   public function redirectEventToTicketsWorkspace(NodeInterface $event): RedirectResponse {

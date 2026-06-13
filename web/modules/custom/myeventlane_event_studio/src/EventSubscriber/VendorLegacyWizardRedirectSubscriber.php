@@ -202,7 +202,7 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       'myeventlane_event.wizard.details',
       'myeventlane_event.wizard.review',
       'myeventlane_vendor.manage_event.content' => 'myeventlane_event_studio.workspace_content',
-      'myeventlane_vendor.manage_event.edit' => 'myeventlane_event_studio.edit',
+      'myeventlane_vendor.manage_event.edit' => 'myeventlane_event_studio.workspace_information',
       'myeventlane_vendor.manage_event.design',
       'myeventlane_vendor_comms.branding' => 'myeventlane_event_studio.workspace_branding',
       'myeventlane_vendor.manage_event.checkout_questions' => 'myeventlane_event_studio.workspace_questions',
