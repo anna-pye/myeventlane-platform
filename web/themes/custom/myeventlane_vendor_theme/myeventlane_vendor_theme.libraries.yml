@@ -75,17 +75,13 @@ event_mission_control:
   dependencies:
     - myeventlane_vendor_theme/global-styling
 
-# Vendor workspace UI shell (Event Studio grid + studio chrome).
+# Vendor workspace UI shell CSS (Event Studio grid chrome).
 # Built by Vite from src/scss/workspace.scss — same pipeline as global (main.css).
 vendor-workspace:
   css:
     theme:
       dist/workspace.css: {}
-  js:
-    js/vendor-studio.js: {}
   dependencies:
-    - core/drupal
-    - core/once
     - myeventlane_vendor_theme/global-styling
 
 # Vendor Event Wizard

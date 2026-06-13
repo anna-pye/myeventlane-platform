@@ -107,13 +107,6 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-ai-assist',
     ],
-    'mel_event_studio_wizard_preview' => [
-      'variables' => [
-        'node' => NULL,
-        'preview_url' => NULL,
-      ],
-      'template' => 'mel-event-studio-wizard-preview',
-    ],
     'mel_event_studio_operational_capabilities' => [
       'variables' => [
         'cards' => [],
@@ -363,7 +356,7 @@ function _myeventlane_event_studio_is_workspace_route(?string $route_name = NULL
 }
 
 /**
- * Route names for legacy wizard step forms (non-workspace).
+ * Route names for legacy create/edit entry aliases (non-workspace).
  *
  * @return list<string>
  */
@@ -371,12 +364,6 @@ function _myeventlane_event_studio_legacy_wizard_route_names(): array {
   return [
     'myeventlane_event_studio.create',
     'myeventlane_event_studio.edit',
-    'myeventlane_event_studio.edit_basic',
-    'myeventlane_event_studio.edit_datetime',
-    'myeventlane_event_studio.edit_tickets',
-    'myeventlane_event_studio.edit_description',
-    'myeventlane_event_studio.edit_preview',
-    'myeventlane_event_studio.edit_publish',
   ];
 }
 

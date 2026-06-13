@@ -603,7 +603,7 @@ final class EventStudioEventExtrasForm extends FormBase {
       'publish' => [
         '#type' => 'link',
         '#title' => $this->t('Continue to publish'),
-        '#url' => Url::fromRoute('myeventlane_event_studio.edit_publish', ['node' => $event->id()]),
+        '#url' => Url::fromRoute('myeventlane_event_studio.workspace_settings', ['node' => $event->id()]),
         '#attributes' => ['class' => ['button', 'button--primary', 'mel-event-extras-studio__cta']],
       ],
     ];

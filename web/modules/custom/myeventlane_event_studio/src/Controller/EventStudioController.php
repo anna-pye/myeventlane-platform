@@ -181,6 +181,54 @@ final class EventStudioController extends ControllerBase {
   }
 
   /**
+   * Preserves bookmarked legacy edit/basic and edit/datetime URLs.
+   */
+  public function redirectLegacyEditToInformation(NodeInterface $node): RedirectResponse {
+    return $this->redirectLegacyEditStep($node, 'myeventlane_event_studio.workspace_information');
+  }
+
+  /**
+   * Preserves bookmarked legacy edit/tickets URLs.
+   */
+  public function redirectLegacyEditToTickets(NodeInterface $node): RedirectResponse {
+    return $this->redirectLegacyEditStep($node, 'myeventlane_event_studio.workspace_tickets');
+  }
+
+  /**
+   * Preserves bookmarked legacy edit/description and edit/preview URLs.
+   */
+  public function redirectLegacyEditToContent(NodeInterface $node): RedirectResponse {
+    return $this->redirectLegacyEditStep($node, 'myeventlane_event_studio.workspace_content');
+  }
+
+  /**
+   * Preserves bookmarked legacy edit/publish URLs.
+   */
+  public function redirectLegacyEditToSettings(NodeInterface $node): RedirectResponse {
+    return $this->redirectLegacyEditStep($node, 'myeventlane_event_studio.workspace_settings');
+  }
+
+  /**
+   * @param non-empty-string $target_route
+   */
+  private function redirectLegacyEditStep(NodeInterface $node, string $target_route): RedirectResponse {
+    if ($node->bundle() !== 'event') {
+      throw new NotFoundHttpException();
+    }
+    $account = $this->currentUser();
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      throw new AccessDeniedHttpException();
+    }
+    $request = $this->requestStack->getCurrentRequest();
+    $options = [];
+    if ($request !== NULL && $request->query->count() > 0) {
+      $options['query'] = $request->query->all();
+    }
+    return new RedirectResponse(Url::fromRoute($target_route, ['node' => $node->id()], $options)->toString(), 302);
+  }
+
+  /**
    * Builds the canonical operational Event Studio shell.
    *
    * @return array<string, mixed>
@@ -342,6 +390,8 @@ final class EventStudioController extends ControllerBase {
     $operational_state = $this->workspacePresentation->operationalState($readiness);
     // Published events use the status badge only; readiness text is draft-oriented.
     $state = ($node->isPublished() && $readiness->ready) ? '' : $operational_state;
+    $account = $this->currentUser();
+    $isStaff = $account->hasPermission('administer nodes') || (int) $account->id() === 1;
 
     return [
       'title' => $node->label(),
@@ -359,8 +409,10 @@ final class EventStudioController extends ControllerBase {
       'published' => $node->isPublished(),
       'can_publish' => $readiness->ready,
       'current_section' => $section,
-      'show_manage_event_link' => TRUE,
-      'manage_event_url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $node->id()])->toString(),
+      'show_manage_event_link' => $isStaff,
+      'manage_event_url' => $isStaff
+        ? Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $node->id()])->toString()
+        : '',
       'changed' => $node->getChangedTime(),
       'revision_id' => (int) $node->getRevisionId(),
     ];

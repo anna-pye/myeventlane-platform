@@ -38,20 +38,6 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
   ];
 
   /**
-   * Route-based step forms under /vendor/events/{node}/edit/... (superseded by unified studio).
-   *
-   * @var list<string>
-   */
-  private const STUDIO_LEGACY_STEP_ROUTES = [
-    'myeventlane_event_studio.edit_basic',
-    'myeventlane_event_studio.edit_datetime',
-    'myeventlane_event_studio.edit_tickets',
-    'myeventlane_event_studio.edit_description',
-    'myeventlane_event_studio.edit_preview',
-    'myeventlane_event_studio.edit_publish',
-  ];
-
-  /**
    * Remaining vendor operational edit surfaces that now terminate in Studio.
    *
    * @var list<string>
@@ -69,7 +55,6 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     'myeventlane_vendor.manage_event.advanced',
     'myeventlane_vendor.console.event_workspace',
     'myeventlane_vendor.console.event_overview',
-    'myeventlane_vendor.console.event_editor',
     'myeventlane_vendor.console.event_orders',
     'myeventlane_vendor.console.event_order_view',
     'myeventlane_vendor.console.event_tickets',
@@ -159,7 +144,7 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
 
   private function redirectResponseForLegacyRequest(Request $request): ?RedirectResponse {
     $route = (string) ($request->attributes->get('_route') ?? '');
-    $redirect_routes = array_merge(self::WIZARD_STEP_ROUTES, self::STUDIO_LEGACY_STEP_ROUTES, self::VENDOR_LEGACY_OPERATION_ROUTES);
+    $redirect_routes = array_merge(self::WIZARD_STEP_ROUTES, self::VENDOR_LEGACY_OPERATION_ROUTES);
     if (!in_array($route, $redirect_routes, TRUE)) {
       return NULL;
     }
@@ -195,13 +180,10 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
   private function sectionRouteForLegacyRoute(string $route): string {
     return match ($route) {
       'myeventlane_event.wizard.basics',
-      'myeventlane_event.wizard.when_where',
-      'myeventlane_event_studio.edit_basic',
-      'myeventlane_event_studio.edit_datetime' => 'myeventlane_event_studio.workspace_information',
+      'myeventlane_event.wizard.when_where' => 'myeventlane_event_studio.workspace_information',
       'myeventlane_vendor.console.event_workspace',
       'myeventlane_vendor.console.event_overview' => 'myeventlane_event_studio.workspace',
       'myeventlane_event.wizard.tickets',
-      'myeventlane_event_studio.edit_tickets',
       'myeventlane_vendor.manage_event.tickets',
       'myeventlane_vendor.console.event_tickets',
       'myeventlane_tickets.event_tickets_types',
@@ -219,11 +201,8 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       'myeventlane_tickets.event_ticket_type_edit' => 'myeventlane_event_studio.workspace_tickets',
       'myeventlane_event.wizard.details',
       'myeventlane_event.wizard.review',
-      'myeventlane_event_studio.edit_description',
-      'myeventlane_event_studio.edit_preview',
       'myeventlane_vendor.manage_event.content' => 'myeventlane_event_studio.workspace_content',
-      'myeventlane_vendor.manage_event.edit',
-      'myeventlane_vendor.console.event_editor' => 'myeventlane_event_studio.workspace_information',
+      'myeventlane_vendor.manage_event.edit' => 'myeventlane_event_studio.edit',
       'myeventlane_vendor.manage_event.design',
       'myeventlane_vendor_comms.branding' => 'myeventlane_event_studio.workspace_branding',
       'myeventlane_vendor.manage_event.checkout_questions' => 'myeventlane_event_studio.workspace_questions',
@@ -239,7 +218,6 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       'myeventlane_vendor.console.event_analytics' => 'myeventlane_event_studio.workspace_analytics',
       'myeventlane_event.wizard.publish',
       'myeventlane_event.wizard.success',
-      'myeventlane_event_studio.edit_publish',
       'myeventlane_vendor.manage_event.payments',
       'myeventlane_vendor.manage_event.comms',
       'myeventlane_vendor.manage_event.advanced',

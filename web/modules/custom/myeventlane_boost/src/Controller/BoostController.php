@@ -355,7 +355,7 @@ final class BoostController extends ControllerBase {
   private function resolveEventEditUrl(NodeInterface $node, bool $vendor_workspace): ?Url {
     if ($vendor_workspace) {
       try {
-        return Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $node->id()]);
+        return Url::fromRoute('myeventlane_event_studio.edit', ['node' => $node->id()]);
       }
       catch (\Throwable) {
         // Fall through to generic edit form.
