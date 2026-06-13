@@ -86,7 +86,6 @@
   @include meta.load-css('components/help-assistant');
   @include meta.load-css('components/refund');
   @include meta.load-css('components/ai-panels');
-  @include meta.load-css('components/klaro-consent');
 
   // Shared partials from the public theme (SCSS only — no public CSS library).
   @include meta.load-css('@mel-theme/components/vendor-events');
@@ -114,6 +113,9 @@
   @include meta.load-css('pages/settings');
   @include meta.load-css('pages/vendor-console-stack');
 }
+
+// Klaro renders at document root (#klaro), outside .mel-vendor — reuse public theme styles.
+@include meta.load-css('@mel-theme/components/klaro-consent');
 
 // No underline on vendor console links (wins over component hover rules).
 body.mel-vendor a:any-link,
