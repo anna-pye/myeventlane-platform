@@ -87,11 +87,25 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('show_manage_event_link', $topbar);
     $this->assertStringContainsString('Manage event', $topbar);
     $this->assertStringContainsString('manage_event_url', $topbar);
+    $this->assertStringContainsString("hasPermission('administer nodes')", $controller);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $controller);
     $this->assertStringContainsString('mel-event-studio-topbar__primary', $topbar);
     $this->assertStringContainsString('{% if topbar.state %}', $topbar);
     $this->assertStringContainsString('display: flex', $shellCss);
     $this->assertStringNotContainsString('grid-template-columns: minmax(0, 1fr) auto auto', $shellCss);
+  }
+
+  public function testVendorManageLinksPointToEventStudioWorkspace(): void {
+    $card = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/node--event--vendor-card.html.twig');
+    $indexBuilder = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorEventIndexViewModelBuilder.php');
+    $dashboardBuilder = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorDashboardViewModelBuilder.php');
+    $this->assertIsString($card);
+    $this->assertIsString($indexBuilder);
+    $this->assertIsString($dashboardBuilder);
+    $this->assertStringContainsString('myeventlane_event_studio.workspace', $card);
+    $this->assertStringNotContainsString('myeventlane_vendor.console.event_overview', $card);
+    $this->assertStringContainsString("'manage' => \$this->routeUrlIfAccessible('myeventlane_event_studio.workspace'", $indexBuilder);
+    $this->assertStringContainsString("'manage' => \$this->safeUrlFromRoute('myeventlane_event_studio.workspace'", $dashboardBuilder);
   }
 
   public function testVendorEventWorkspaceRendersTodaysFocusRegion(): void {
@@ -252,6 +266,26 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('stock_label', $preview);
     $this->assertStringContainsString('visibility_label', $preview);
     $this->assertStringContainsString('Preview only. Customers see this on the booking page.', $builder);
+  }
+
+  public function testStaffShellRetiredInFavorOfEventStudioRedirects(): void {
+    $routing = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/myeventlane_vendor.routing.yml');
+    $this->assertIsString($routing);
+    $this->assertStringContainsString('VendorStudioRedirectController::studio', $routing);
+    $this->assertStringContainsString('VendorStudioRedirectController::eventEditor', $routing);
+    $this->assertStringNotContainsString('VendorStudioController', $routing);
+    $this->assertStringNotContainsString('VendorStudioSchemaController', $routing);
+    $this->assertStringNotContainsString('studio.event_data', $routing);
+    $this->assertStringNotContainsString('studio_event_schema', $routing);
+
+    $libraries = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/myeventlane_vendor_theme.libraries.yml');
+    $this->assertIsString($libraries);
+    $this->assertStringNotContainsString('vendor-studio.js', $libraries);
+
+    $theme = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/myeventlane_vendor_theme.theme');
+    $this->assertIsString($theme);
+    $this->assertStringNotContainsString("'studio' =>", $theme);
+    $this->assertStringContainsString("'route' => 'myeventlane_event_studio.create'", $theme);
   }
 
   public function testExtrasProductEditorUsesSingleColumnLayoutAndStickyFooter(): void {

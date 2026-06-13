@@ -76,10 +76,18 @@ final class EventStudioWorkspaceLibraryAttachmentTest extends TestCase {
     );
   }
 
-  public function testLegacyPreviewRouteStillAttachesFullBundle(): void {
-    $controller = file_get_contents($this->moduleRoot . '/src/Controller/EventStudioPreviewController.php');
+  public function testLegacyEditRoutesRedirectToWorkspaceSections(): void {
+    $routing = file_get_contents($this->moduleRoot . '/myeventlane_event_studio.routing.yml');
+    $controller = file_get_contents($this->moduleRoot . '/src/Controller/EventStudioController.php');
+    $this->assertIsString($routing);
     $this->assertIsString($controller);
-    $this->assertStringContainsString('myeventlane_event_studio/mel_event_studio', $controller);
+    $this->assertStringContainsString('redirectLegacyEditToInformation', $routing);
+    $this->assertStringContainsString('redirectLegacyEditToTickets', $routing);
+    $this->assertStringContainsString('redirectLegacyEditToContent', $routing);
+    $this->assertStringContainsString('redirectLegacyEditToSettings', $routing);
+    $this->assertStringNotContainsString('EventStudioBasicForm', $routing);
+    $this->assertStringNotContainsString('EventStudioPreviewController', $routing);
+    $this->assertStringContainsString('public function redirectLegacyEditToSettings(', $controller);
   }
 
   public function testAiAssistLibraryIsStandalone(): void {

@@ -308,8 +308,8 @@ final class BusinessNotificationTriggerService {
       'event_approved',
       'event_approved:' . $event->id(),
       (string) $this->translation->translate('Open event'),
-      'myeventlane_vendor.console.event_editor',
-      ['event' => (int) $event->id()],
+      'myeventlane_event_studio.workspace',
+      ['node' => (int) $event->id()],
     );
   }
 

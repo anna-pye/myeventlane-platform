@@ -234,7 +234,7 @@ final class EventStudioExtrasConfiguredSummaryBuilder {
     $items[] = [
       '#type' => 'link',
       '#title' => $this->t('Continue to publish'),
-      '#url' => Url::fromRoute('myeventlane_event_studio.edit_publish', ['node' => $event_id]),
+      '#url' => Url::fromRoute('myeventlane_event_studio.workspace_settings', ['node' => $event_id]),
     ];
 
     return [

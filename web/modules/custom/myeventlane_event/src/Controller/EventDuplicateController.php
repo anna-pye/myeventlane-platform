@@ -104,7 +104,7 @@ final class EventDuplicateController extends VendorConsoleBaseController impleme
       ]);
       $this->messenger->addError($this->t('Could not duplicate event. Please try again.'));
       return new RedirectResponse(
-        Url::fromRoute('myeventlane_vendor.console.event_overview', ['event' => (int) $node->id()])->toString(),
+        Url::fromRoute('myeventlane_event_studio.workspace', ['node' => (int) $node->id()])->toString(),
         302
       );
     }

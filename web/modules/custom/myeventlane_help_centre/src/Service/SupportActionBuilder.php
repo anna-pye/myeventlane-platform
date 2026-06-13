@@ -226,7 +226,7 @@ final class SupportActionBuilder {
         $node = $this->loadEventNode($eid);
         if ($node instanceof NodeInterface && $node->access('view', $account)) {
           if ($status === 'draft') {
-            $this->tryAddRoute($actions, 'ws_event_finish', 'myeventlane_vendor.console.event_editor', ['event' => $node->id()], $account, [
+            $this->tryAddRoute($actions, 'ws_event_finish', 'myeventlane_event_studio.edit', ['node' => $node->id()], $account, [
               'label' => (string) $this->t('Finish your event'),
               'audience' => 'vendor',
               'style' => 'primary',

@@ -296,7 +296,7 @@ final class VendorEventIndexViewModelBuilder {
       'boost' => $boost,
       'boost_extension_recommendation' => $boostExtensionRecommendation,
       'links' => [
-        'manage' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_workspace', ['event' => $nid], $account),
+        'manage' => $this->routeUrlIfAccessible('myeventlane_event_studio.workspace', ['node' => $nid], $account),
         'edit' => $this->routeUrlIfAccessible('myeventlane_event_studio.edit', ['node' => $nid], $account),
         'tickets' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_tickets', ['event' => $nid], $account),
         'rsvps' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_rsvps', ['event' => $nid], $account),

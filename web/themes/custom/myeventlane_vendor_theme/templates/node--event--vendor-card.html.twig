@@ -26,7 +26,7 @@
   <div class="mel-card__body">
     <div class="mel-card__top">
       <h3 class="mel-card__title">
-        <a href="{{ path('myeventlane_vendor.console.event_overview', {'event': node.id}) }}">{{ label }}</a>
+        <a href="{{ path('myeventlane_event_studio.workspace', {'node': node.id}) }}">{{ label }}</a>
       </h3>
       {% if content.field_event_state is defined and content.field_event_state|render|trim is not empty %}
         <span class="mel-status{% if mel_event_state_key %} mel-status--{{ mel_event_state_key }}{% endif %}">{{ content.field_event_state }}</span>
@@ -43,7 +43,7 @@
     </div>
 
     <div class="mel-card__actions mel-card__actions--vendor-console">
-      <a href="{{ path('myeventlane_vendor.console.event_overview', {'event': node.id}) }}" class="mel-btn mel-btn--primary mel-btn--sm">{{ 'Manage'|t }}</a>
+      <a href="{{ path('myeventlane_event_studio.workspace', {'node': node.id}) }}" class="mel-btn mel-btn--primary mel-btn--sm">{{ 'Manage'|t }}</a>
       <a href="{{ path('myeventlane_event_studio.edit', {'node': node.id}) }}" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'Edit'|t }}</a>
       {% if mel_event_tickets_url is defined and mel_event_tickets_url %}
         <a href="{{ mel_event_tickets_url }}" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'Tickets'|t }}</a>

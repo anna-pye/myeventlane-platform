@@ -23,7 +23,7 @@
          class="mel-btn mel-btn-secondary">
         {{ 'Export CSV'|t }}
       </a>
-      <a href="{{ path('myeventlane_vendor.console.event_overview', {'event': event.id()}) }}" 
+      <a href="{{ path('myeventlane_event_studio.workspace', {'node': event.id()}) }}" 
          class="mel-btn mel-btn-ghost">
         {{ 'Back to Event'|t }}
       </a>

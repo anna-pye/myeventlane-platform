@@ -266,10 +266,11 @@ myeventlane_event_studio.workspace_settings:
       node:
         type: entity:node
 
+# Legacy per-section edit URLs — redirect-only aliases into workspace sections (Phase 1B).
 myeventlane_event_studio.edit_basic:
   path: '/vendor/events/{node}/edit/basic'
   defaults:
-    _form: '\Drupal\myeventlane_event_studio\Form\EventStudioBasicForm'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToInformation'
     _title: 'Basic info'
   requirements:
     _entity_access: 'node.update'
@@ -282,7 +283,7 @@ myeventlane_event_studio.edit_basic:
 myeventlane_event_studio.edit_datetime:
   path: '/vendor/events/{node}/edit/datetime'
   defaults:
-    _form: '\Drupal\myeventlane_event_studio\Form\EventStudioDateForm'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToInformation'
     _title: 'Date & location'
   requirements:
     _entity_access: 'node.update'
@@ -295,7 +296,7 @@ myeventlane_event_studio.edit_datetime:
 myeventlane_event_studio.edit_tickets:
   path: '/vendor/events/{node}/edit/tickets'
   defaults:
-    _form: '\Drupal\myeventlane_event_studio\Form\EventStudioTicketsForm'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToTickets'
     _title: 'Tickets'
   requirements:
     _entity_access: 'node.update'
@@ -308,7 +309,7 @@ myeventlane_event_studio.edit_tickets:
 myeventlane_event_studio.edit_description:
   path: '/vendor/events/{node}/edit/description'
   defaults:
-    _form: '\Drupal\myeventlane_event_studio\Form\EventStudioDescriptionForm'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToContent'
     _title: 'Description'
   requirements:
     _entity_access: 'node.update'
@@ -321,8 +322,8 @@ myeventlane_event_studio.edit_description:
 myeventlane_event_studio.edit_preview:
   path: '/vendor/events/{node}/edit/preview'
   defaults:
-    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioPreviewController::build'
-    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioPreviewController::title'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToContent'
+    _title: 'Preview'
   requirements:
     _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
@@ -334,7 +335,7 @@ myeventlane_event_studio.edit_preview:
 myeventlane_event_studio.edit_publish:
   path: '/vendor/events/{node}/edit/publish'
   defaults:
-    _form: '\Drupal\myeventlane_event_studio\Form\EventStudioPublishForm'
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToSettings'
     _title: 'Publish'
   requirements:
     _entity_access: 'node.update'

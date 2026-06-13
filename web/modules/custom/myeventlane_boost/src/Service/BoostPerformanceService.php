@@ -730,7 +730,7 @@ final class BoostPerformanceService {
     try {
       $out['boost'] = $this->urlGenerator->generateFromRoute('myeventlane_boost.vendor_event_boost', ['event' => $eventId]);
       $out['analytics'] = $this->urlGenerator->generateFromRoute('myeventlane_vendor.console.event_analytics', ['event' => $eventId]);
-      $out['overview'] = $this->urlGenerator->generateFromRoute('myeventlane_vendor.console.event_overview', ['event' => $eventId]);
+      $out['overview'] = $this->urlGenerator->generateFromRoute('myeventlane_event_studio.workspace', ['node' => $eventId]);
       $out['edit'] = $this->urlGenerator->generateFromRoute('myeventlane_event_studio.edit', ['node' => $eventId]);
     }
     catch (\Throwable $e) {

@@ -322,7 +322,7 @@ myeventlane_vendor.console.dashboard:
 myeventlane_vendor.console.studio:
   path: '/vendor/studio'
   defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::studio'
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioRedirectController::studio'
     _title: 'Event Editor'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
@@ -332,7 +332,7 @@ myeventlane_vendor.console.studio:
 myeventlane_vendor.console.event_editor:
   path: '/vendor/events/{event}/editor'
   defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::eventEditor'
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioRedirectController::eventEditor'
     _title: 'Event Editor'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
@@ -344,150 +344,6 @@ myeventlane_vendor.console.event_editor:
         type: entity:node
         bundle:
           - event
-
-myeventlane_vendor.studio_event_schema:
-  path: '/vendor/studio/schema/event'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioSchemaController::eventSchema'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-  methods: [GET]
-
-myeventlane_vendor.console.studio.event_data:
-  path: '/vendor/studio/event/{event}/data'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::eventData'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [GET]
-
-myeventlane_vendor.studio_event_save:
-  path: '/vendor/studio/event/{event}/save'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveEvent'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
-
-myeventlane_vendor.console.studio.event_overview_save:
-  path: '/vendor/studio/event/{event}/overview'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveOverview'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
-
-myeventlane_vendor.console.studio.event_tickets_save:
-  path: '/vendor/studio/event/{event}/tickets'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveTickets'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
-
-myeventlane_vendor.console.studio.event_attendees_save:
-  path: '/vendor/studio/event/{event}/attendees'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveAttendees'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
-
-myeventlane_vendor.console.studio.event_promotion_save:
-  path: '/vendor/studio/event/{event}/promotion'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::savePromotion'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
-
-myeventlane_vendor.console.studio.event_settings_save:
-  path: '/vendor/studio/event/{event}/settings'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveSettings'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
-
-myeventlane_vendor.console.studio.event_publish:
-  path: '/vendor/studio/event/{event}/publish'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::publishEvent'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
-
-myeventlane_vendor.console.studio.submit_review:
-  path: '/vendor/studio/event/{event}/submit-review'
-  defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::submitReview'
-    _title: 'Submit Event for Review'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-  methods: [POST]
 
 myeventlane_vendor.console.boost_vendor_export:
   path: '/vendor/dashboard/boost/export'
