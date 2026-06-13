@@ -2302,7 +2302,7 @@ function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
 /**
  * Builds the calendar page "Upcoming this week" event card rail.
  *
- * Uses upcoming_events:embed_calendar_this_week (7-day window, 3 cards).
+ * Uses upcoming_events:embed_calendar_this_week (overlaps next 7 days, 3 cards).
  *
  * @return array
  *   Render array, or empty when the view is unavailable or has no results.
