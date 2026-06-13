@@ -80,7 +80,7 @@ final class VendorStudioRedirectController extends VendorConsoleBaseController i
       throw new AccessDeniedHttpException('Only event nodes can be edited in Event Studio.');
     }
 
-    $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
+    $url = Url::fromRoute('myeventlane_event_studio.workspace_information', ['node' => $event->id()])->toString();
     return new RedirectResponse($url, 302);
   }
 
