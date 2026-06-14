@@ -402,7 +402,7 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@media (min-width: 960px) {
+@include breakpoints.mel-break(lg) {
   .mel-book-page .mel-event-book__form-body .mel-booking__cta--panel {
     position: static;
     bottom: auto;
@@ -441,7 +441,7 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@media (max-width: 959px) {
+@include breakpoints.mel-break(lg, max) {
   .mel-book-page {
     padding-bottom: calc(#{spacing.mel-space(7)} + env(safe-area-inset-bottom, 0));
   }
@@ -524,7 +524,7 @@ $mel-book-max: 72.5rem; // ~1160px
   min-height: 44px;
 }
 
-@media (min-width: 960px) {
+@include breakpoints.mel-break(lg) {
   .mel-book-page[data-event-mode='rsvp'] .mel-rsvp-submit--book-sticky .mel-mobile-booking-bar--rsvp {
     display: none;
   }
@@ -543,19 +543,32 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@media (max-width: 959px) {
+@include breakpoints.mel-break(lg, max) {
   .mel-book-layout {
     display: flex;
     flex-direction: column;
   }
 
-  .mel-book-main {
-    order: 1;
-  }
+  // Summary above ticket matrix; trust/next steps follow selection (display: contents).
+  .mel-book-layout:not(.mel-book-layout--single):not(.mel-book-layout--rsvp) {
+    .mel-book-sidebar,
+    .mel-book-sidebar__inner {
+      display: contents;
+    }
 
-  .mel-book-sidebar {
-    order: 2;
-    margin-top: 0;
+    .mel-book-summary[data-mel-booking-summary] {
+      order: 1;
+    }
+
+    .mel-book-main {
+      order: 2;
+    }
+
+    .mel-book-trust,
+    .mel-book-next-steps,
+    .mel-booking-extras {
+      order: 3;
+    }
   }
 
   .mel-book-header__inner {
@@ -635,13 +648,13 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@media (min-width: 960px) {
+@include breakpoints.mel-break(lg) {
   .mel-book-page.mel-event-page--immersive .mel-event-book__form-body .mel-booking__cta--panel {
     border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
   }
 }
 
-@media (max-width: 959px) {
+@include breakpoints.mel-break(lg, max) {
   .mel-book-page.mel-event-page--immersive .mel-event-book__form-body .mel-booking__cta--panel {
     background: color-mix(in srgb, var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78)) 94%, transparent);
     border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));

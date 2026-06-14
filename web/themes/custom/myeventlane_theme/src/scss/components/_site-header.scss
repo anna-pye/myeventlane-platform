@@ -6,7 +6,9 @@
 //
 // Duplicated chrome on staging is usually from Layout Builder / block regions
 // (e.g. branding + menu blocks in content) — page.html.twig only renders
-// {{ site_header }} once. Desktop nav is hidden below 900px; drawer below.
+// {{ site_header }} once. Desktop nav hidden at mel-break(md, max); drawer below.
+
+@use '../tokens/breakpoints';
 
 .site-header {
   position: relative;
@@ -55,7 +57,7 @@
     align-items: center;
     gap: 16px;
 
-    @media (width <= 900px) {
+    @include breakpoints.mel-break(md, max) {
       display: none;
     }
 
@@ -114,7 +116,7 @@
     display: flex;
     align-items: center;
 
-    @media (width <= 900px) {
+    @include breakpoints.mel-break(md, max) {
       display: none;
     }
   }
@@ -174,7 +176,7 @@
   }
 
   &__organiser {
-    @media (width <= 900px) {
+    @include breakpoints.mel-break(md, max) {
       display: none;
     }
   }
@@ -250,7 +252,7 @@
   &__burger {
     display: none;
 
-    @media (width <= 900px) {
+    @include breakpoints.mel-break(md, max) {
       display: flex;
       align-items: center;
     }

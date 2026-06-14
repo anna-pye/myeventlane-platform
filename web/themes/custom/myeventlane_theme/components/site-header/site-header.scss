@@ -1,3 +1,5 @@
+@use '../../src/scss/tokens/breakpoints';
+
 .site-header {
   background: #fff;
   border-bottom: 1px solid var(--mel-border);
@@ -42,7 +44,7 @@
     align-items: center;
     gap: 16px;
 
-    @media (max-width: 900px) {
+    @include breakpoints.mel-break(md, max) {
       display: none;
     }
 
@@ -74,7 +76,7 @@
   }
 
   &__organiser {
-    @media (max-width: 900px) {
+    @include breakpoints.mel-break(md, max) {
       display: none;
     }
   }
@@ -88,7 +90,7 @@
   &__burger {
     display: none;
 
-    @media (max-width: 900px) {
+    @include breakpoints.mel-break(md, max) {
       display: flex;
       align-items: center;
     }
