@@ -1759,6 +1759,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     'view.upcoming_events.page_today',
     'view.upcoming_events.page_this_weekend',
     'view.upcoming_events.page_free',
+    'view.upcoming_events.page_popular',
     'mel_search.view',
   ];
   if (in_array($route, $listing_routes, TRUE) && empty($variables['mel_header_categories'])) {
@@ -1799,6 +1800,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     'view.upcoming_events.page_this_weekend' => 'page_this_weekend',
     'view.upcoming_events.page_today' => 'page_today',
     'view.upcoming_events.page_category' => 'page_category',
+    'view.upcoming_events.page_popular' => 'page_popular',
   ];
   if (isset($browse_display_map[$route])) {
     $variables['mel_browse_active_display'] = $browse_display_map[$route];

@@ -26,6 +26,10 @@
     href="{{ path('view.upcoming_events.page_free') }}"
     class="mel-filter-chip{% if d == 'page_free' %} mel-filter-chip--active{% endif %}"
   >{{ 'Free & RSVP'|t }}</a>
+  <a
+    href="{{ path('view.upcoming_events.page_popular') }}"
+    class="mel-filter-chip{% if d == 'page_popular' %} mel-filter-chip--active{% endif %}"
+  >{{ 'Popular'|t }}</a>
   {% if mel_show_filter_reset and d == 'page_events' %}
     <a
       href="{{ path('view.upcoming_events.page_events') }}"

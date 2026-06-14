@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Theme override for view.upcoming_events page_free.
+ *
+ * @see includes/mel-browse-events-page-shell.html.twig
+ */
+#}
+{% include '@myeventlane_theme/includes/mel-browse-events-page-shell.html.twig' with {
+  mel_browse_heading: 'Free events and RSVP gatherings'|t,
+  mel_browse_lede: 'Community experiences with no ticket cost — easy ways to join in.'|t,
+  mel_browse_prompt: 'Browse all events or see what’s on this weekend.'|t,
+} %}

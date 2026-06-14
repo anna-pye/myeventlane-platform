@@ -23,6 +23,10 @@
         <p class="mel-empty-state__text">{{ 'No results for \'@query\'. Try another keyword, browse categories, or explore events on the homepage.'|t({'@query': query}) }}</p>
         <p class="mel-empty-state__cta">
           <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Explore events'|t }}</a>
+          <a href="{{ path('view.upcoming_events.page_this_weekend') }}" class="mel-link">{{ 'This weekend'|t }}</a>
+          <span aria-hidden="true"> · </span>
+          <a href="{{ path('view.upcoming_events.page_free') }}" class="mel-link">{{ 'Free events'|t }}</a>
+          <span aria-hidden="true"> · </span>
           <a href="{{ path('<front>') }}" class="mel-link">{{ 'Back to discovery'|t }}</a>
         </p>
       </div>

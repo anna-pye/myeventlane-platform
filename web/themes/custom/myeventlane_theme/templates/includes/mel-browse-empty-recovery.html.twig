@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Shared discovery recovery links for browse empty states.
+ *
+ * Variables:
+ * - title: Empty state heading (required).
+ * - text: Supporting copy (required).
+ * - modifier: Optional BEM modifier (default: browse).
+ */
+#}
+{% set _modifier = modifier|default('browse') %}
+<div class="mel-empty mel-empty--{{ _modifier }}" role="status">
+  <h3 class="mel-empty__title">{{ title }}</h3>
+  <p class="mel-empty__text">{{ text }}</p>
+  <p class="mel-empty__next">
+    <a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse all events'|t }}</a>
+    <span aria-hidden="true"> · </span>
+    <a href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
+    <span aria-hidden="true"> · </span>
+    <a href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free events'|t }}</a>
+    <span aria-hidden="true"> · </span>
+    <a href="{{ path('<front>') }}">{{ 'Community spotlight'|t }}</a>
+  </p>
+</div>

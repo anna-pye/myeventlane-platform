@@ -34,6 +34,32 @@
       <div class="view-content">
         {{ rows }}
       </div>
+    {% elseif display_id in mel_discovery_displays and not mel_chip_listing_fragment|default(false) %}
+      {% set mel_empty_copy = {
+        'page_today': {
+          title: 'Nothing on today yet'|t,
+          text: 'Browse upcoming events across MyEventLane — new listings land throughout the day.'|t,
+        },
+        'page_this_weekend': {
+          title: 'Nothing this weekend yet'|t,
+          text: 'Check back soon or explore all upcoming events and free gatherings.'|t,
+        },
+        'page_free': {
+          title: 'No free events right now'|t,
+          text: 'Try browsing all events or see what’s on this weekend.'|t,
+        },
+        'page_popular': {
+          title: 'No popular events yet'|t,
+          text: 'Browse upcoming events while organisers boost new experiences.'|t,
+        },
+      } %}
+      {% if mel_empty_copy[display_id] is defined %}
+        {% include '@myeventlane_theme/includes/mel-browse-empty-recovery.html.twig' with mel_empty_copy[display_id] %}
+      {% else %}
+        <div class="view-empty">
+          {{ empty }}
+        </div>
+      {% endif %}
     {% elseif empty %}
       <div class="view-empty">
         {{ empty }}

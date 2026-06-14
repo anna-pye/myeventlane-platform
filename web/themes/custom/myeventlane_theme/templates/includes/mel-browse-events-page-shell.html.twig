@@ -18,16 +18,19 @@
     <div class="mel-browse">
       <div class="mel-container mel-container--wide">
         <header class="mel-browse-header">
-          <h1>{{ 'Find your next favourite experience.'|t }}</h1>
-          <p class="mel-browse-header__lede">{{ 'Discover workshops, gigs, markets, festivals, and community moments worth leaving the house for.'|t }}</p>
-          <p class="mel-browse-header__prompt">{{ 'Search or pick a time — see what’s on soon.'|t }}</p>
+          <h1>{{ mel_browse_heading|default('Find your next favourite experience.'|t) }}</h1>
+          <p class="mel-browse-header__lede">{{ mel_browse_lede|default('Discover workshops, gigs, markets, festivals, and community moments worth leaving the house for.'|t) }}</p>
+          {% if mel_browse_prompt|default('Search or pick a time — see what’s on soon.'|t) %}
+            <p class="mel-browse-header__prompt">{{ mel_browse_prompt|default('Search or pick a time — see what’s on soon.'|t) }}</p>
+          {% endif %}
         </header>
 
         <nav class="mel-browse-quicklinks" aria-label="{{ 'Browse events'|t }}">
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_events' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse all'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_free' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free events'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_this_weekend' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_today' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_today') }}">{{ 'Today'|t }}</a>
+          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_this_weekend' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
+          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_free' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free events'|t }}</a>
+          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_popular' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_popular') }}">{{ 'Popular'|t }}</a>
         </nav>
 
         {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {

@@ -81,7 +81,9 @@
       <p class="mel-empty-state__text">{{ 'Check back soon, browse other categories, or explore community spotlight on the homepage.'|t }}</p>
       <p class="mel-empty-state__cta">
         <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Explore all events'|t }}</a>
-        <a href="/events/nearby" class="mel-link">{{ 'Nearby events'|t }}</a>
+        <a href="{{ path('view.upcoming_events.page_this_weekend') }}" class="mel-link">{{ 'This weekend'|t }}</a>
+        <span aria-hidden="true"> · </span>
+        <a href="{{ path('view.upcoming_events.page_free') }}" class="mel-link">{{ 'Free events'|t }}</a>
         <span aria-hidden="true"> · </span>
         <a href="{{ path('<front>') }}" class="mel-link">{{ 'Community spotlight'|t }}</a>
       </p>
