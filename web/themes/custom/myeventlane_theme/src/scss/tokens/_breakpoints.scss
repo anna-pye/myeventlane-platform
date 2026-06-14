@@ -5,12 +5,33 @@
 
 @use 'sass:map';
 
+// ==========================================================================
+// Canonical breakpoint tokens (MEL Style Guide)
+// ==========================================================================
+// Design baseline: 390px mobile-first.
+// These variables are the target system for new work and vendor respond-to().
+
+$breakpoint-xs: 390px;
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+$breakpoint-2xl: 1536px;
+
+// ==========================================================================
+// Legacy alias layer (Phase 2B — no visual change)
+// ==========================================================================
+// Public theme mel-break(sm) historically compiled at 480px (Phase 2A audit).
+// Keep map values until Phase 2C migrates hardcoded / mel-break(sm) call sites.
+
+$mel-breakpoint-sm-legacy: 480px;
+
 $mel-breakpoints: (
   xs: 0,
-  sm: 480px,
-  md: 768px,
-  lg: 1024px,
-  xl: 1280px
+  sm: $mel-breakpoint-sm-legacy,
+  md: $breakpoint-md,
+  lg: $breakpoint-lg,
+  xl: $breakpoint-xl,
 );
 
 // Desktop nav / mobile drawer: width >= md (768px). Keep header.js in sync.
@@ -18,7 +39,7 @@ $mel-breakpoint-md: map.get($mel-breakpoints, md);
 
 @mixin mel-break($size, $direction: min) {
   $breakpoint: map.get($mel-breakpoints, $size);
-  
+
   @if $direction == max {
     // Subtract 1px to avoid overlap.
     $upper-bound: $breakpoint - 1px;
@@ -29,5 +50,47 @@ $mel-breakpoint-md: map.get($mel-breakpoints, md);
     @media (width >= $breakpoint) {
       @content;
     }
+  }
+}
+
+// ==========================================================================
+// Vendor theme mixins (canonical tokens)
+// ==========================================================================
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (min-width: $breakpoint-xs) { @content; }
+  } @else if $breakpoint == sm {
+    @media (min-width: $breakpoint-sm) { @content; }
+  } @else if $breakpoint == md {
+    @media (min-width: $breakpoint-md) { @content; }
+  } @else if $breakpoint == lg {
+    @media (min-width: $breakpoint-lg) { @content; }
+  } @else if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl) { @content; }
+  } @else if $breakpoint == 2xl {
+    @media (min-width: $breakpoint-2xl) { @content; }
+  }
+}
+
+@mixin respond-down($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: #{$breakpoint-xs - 1px}) { @content; }
+  } @else if $breakpoint == sm {
+    @media (max-width: #{$breakpoint-sm - 1px}) { @content; }
+  } @else if $breakpoint == md {
+    @media (max-width: #{$breakpoint-md - 1px}) { @content; }
+  } @else if $breakpoint == lg {
+    @media (max-width: #{$breakpoint-lg - 1px}) { @content; }
+  } @else if $breakpoint == xl {
+    @media (max-width: #{$breakpoint-xl - 1px}) { @content; }
+  } @else if $breakpoint == 2xl {
+    @media (max-width: #{$breakpoint-2xl - 1px}) { @content; }
+  }
+}
+
+@mixin container-query($min-width) {
+  @container (min-width: #{$min-width}) {
+    @content;
   }
 }

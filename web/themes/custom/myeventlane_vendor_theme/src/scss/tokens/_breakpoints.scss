@@ -2,58 +2,8 @@
  * @file
  * Breakpoint tokens for MyEventLane Vendor Theme.
  *
- * Mobile-first responsive breakpoints.
+ * Re-exports the canonical public theme breakpoint system.
+ * @see web/themes/custom/myeventlane_theme/src/scss/tokens/_breakpoints.scss
  */
 
-// ============================================================================
-// BREAKPOINT VALUES
-// ============================================================================
-
-$breakpoint-sm: 640px;
-$breakpoint-md: 768px;
-$breakpoint-lg: 1024px;
-$breakpoint-xl: 1280px;
-$breakpoint-2xl: 1536px;
-
-// ============================================================================
-// RESPONSIVE MIXINS
-// ============================================================================
-
-@mixin respond-to($breakpoint) {
-  @if $breakpoint == sm {
-    @media (min-width: $breakpoint-sm) { @content; }
-  } @else if $breakpoint == md {
-    @media (min-width: $breakpoint-md) { @content; }
-  } @else if $breakpoint == lg {
-    @media (min-width: $breakpoint-lg) { @content; }
-  } @else if $breakpoint == xl {
-    @media (min-width: $breakpoint-xl) { @content; }
-  } @else if $breakpoint == 2xl {
-    @media (min-width: $breakpoint-2xl) { @content; }
-  }
-}
-
-@mixin respond-down($breakpoint) {
-  @if $breakpoint == sm {
-    @media (max-width: #{$breakpoint-sm - 1px}) { @content; }
-  } @else if $breakpoint == md {
-    @media (max-width: #{$breakpoint-md - 1px}) { @content; }
-  } @else if $breakpoint == lg {
-    @media (max-width: #{$breakpoint-lg - 1px}) { @content; }
-  } @else if $breakpoint == xl {
-    @media (max-width: #{$breakpoint-xl - 1px}) { @content; }
-  } @else if $breakpoint == 2xl {
-    @media (max-width: #{$breakpoint-2xl - 1px}) { @content; }
-  }
-}
-
-// ============================================================================
-// CONTAINER QUERY SUPPORT (future-ready)
-// ============================================================================
-
-@mixin container-query($min-width) {
-  @container (min-width: #{$min-width}) {
-    @content;
-  }
-}
-
+@forward '../../../../myeventlane_theme/src/scss/tokens/breakpoints';

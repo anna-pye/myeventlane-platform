@@ -89,8 +89,6 @@
 
   // Shared partials from the public theme (SCSS only — no public CSS library).
   @include meta.load-css('@mel-theme/components/vendor-events');
-  @include meta.load-css('@mel-theme/components/vendor-studio-editor');
-  @include meta.load-css('@mel-theme/components/studio-inspector');
   @include meta.load-css('@mel-theme/components/help-centre');
   // Event Studio layout (preview + insights grid, full-width form) — shared with public theme.
   @include meta.load-css('@mel-theme/components/event-studio');
