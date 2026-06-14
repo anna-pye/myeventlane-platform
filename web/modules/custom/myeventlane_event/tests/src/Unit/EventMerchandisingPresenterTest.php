@@ -67,6 +67,8 @@ final class EventMerchandisingPresenterTest extends UnitTestCase {
     ]);
 
     self::assertSame('sold_out', $result['primary']['signal_key'] ?? '');
+    self::assertSame('Sold out', $result['image_badge_label']);
+    self::assertSame('warning', $result['image_badge_modifier']);
     self::assertFalse($result['show_ticket_type_pill']);
   }
 
@@ -122,7 +124,7 @@ final class EventMerchandisingPresenterTest extends UnitTestCase {
   /**
    * @covers ::present
    */
-  public function testFeaturedBadgeWhenPromotedOnSpotlight(): void {
+  public function testSpotlightBadgeWhenPromotedOnSpotlight(): void {
     $presenter = $this->createPresenter();
     $result = $presenter->present([
       'layout' => 'spotlight',
@@ -130,7 +132,38 @@ final class EventMerchandisingPresenterTest extends UnitTestCase {
       'card_type' => 'rsvp',
     ]);
 
-    self::assertNotEmpty($result['image_badge_label']);
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertSame('apricot', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSoldOutOutranksSpotlightOnPromotedPoster(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => 'poster',
+      'is_promoted' => TRUE,
+      'is_sold_out' => TRUE,
+      'card_type' => 'paid',
+    ]);
+
+    self::assertSame('Sold out', $result['image_badge_label']);
+    self::assertSame('warning', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSpotlightBadgeWhenPromotedOnPoster(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => 'poster',
+      'is_promoted' => TRUE,
+      'card_type' => 'rsvp',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
     self::assertSame('apricot', $result['image_badge_modifier']);
   }
 
