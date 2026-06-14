@@ -40,13 +40,15 @@
     {% else %}
       <div class="mel-empty mel-empty--browse" role="status">
         <h3 class="mel-empty__title">{{ 'No events found'|t }}</h3>
-        <p class="mel-empty__text">{{ 'Try adjusting your filters or browse a different category.'|t }}</p>
+        <p class="mel-empty__text">{{ 'Try a different filter, browse categories, or explore community spotlight on the homepage.'|t }}</p>
         <p class="mel-empty__next">
           <a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Clear filters (all events)'|t }}</a>
           <span aria-hidden="true"> · </span>
           <a href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
           <span aria-hidden="true"> · </span>
-          <a href="{{ path('<front>') }}">{{ 'Featured on homepage'|t }}</a>
+          <a href="/events/nearby">{{ 'Nearby events'|t }}</a>
+          <span aria-hidden="true"> · </span>
+          <a href="{{ path('<front>') }}">{{ 'Community spotlight'|t }}</a>
         </p>
       </div>
     {% endif %}

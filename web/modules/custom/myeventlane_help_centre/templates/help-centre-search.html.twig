@@ -42,7 +42,18 @@
   </form>
 
   {% if results is empty %}
-    <p class="help-centre-search__empty">{{ 'No matching help content found.'|t }}</p>
+    {% if search.query|default('') %}
+      <div class="help-centre-search__empty" role="status">
+        <p>{{ 'No matching help for your search. Try different words, browse help topics, or discover events on MyEventLane.'|t }}</p>
+        <p>
+          <a href="{{ path('myeventlane_help_centre.home') }}">{{ 'Browse help topics'|t }}</a>
+          <span aria-hidden="true"> · </span>
+          <a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Explore events'|t }}</a>
+        </p>
+      </div>
+    {% else %}
+      <p class="help-centre-search__empty">{{ 'Enter a search term to find help articles and FAQs.'|t }}</p>
+    {% endif %}
   {% else %}
     <ul class="help-centre-search__results">
       {% for item in results %}
