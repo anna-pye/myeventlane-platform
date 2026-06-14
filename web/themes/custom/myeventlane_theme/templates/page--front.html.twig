@@ -124,8 +124,8 @@
         container_class: 'mel-container mel-container--wide',
         title: 'Nearby events'|t,
         subtitle: 'Discover more of your city, close to home.'|t,
-        link_url: '/events/nearby',
-        link_text: 'Explore nearby'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'Browse events'|t,
         content_wrapper_class: 'mel-section__discover-view',
         content: page.homepage_nearby
       } %}
@@ -138,8 +138,8 @@
         container_class: 'mel-container mel-container--wide',
         title: 'Online events'|t,
         subtitle: 'Join from wherever you are.'|t,
-        link_url: '/events/online',
-        link_text: 'See online events'|t,
+        link_url: path('view.upcoming_events.page_free'),
+        link_text: 'See free events'|t,
         content_wrapper_class: 'mel-section__discover-view',
         content: page.homepage_online
       } %}

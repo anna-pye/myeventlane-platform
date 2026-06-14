@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Theme override for view.upcoming_events page_this_weekend.
+ *
+ * @see includes/mel-browse-events-page-shell.html.twig
+ */
+#}
+{% include '@myeventlane_theme/includes/mel-browse-events-page-shell.html.twig' with {
+  mel_browse_heading: 'Events this weekend'|t,
+  mel_browse_lede: 'Plan your Saturday and Sunday — markets, gigs, workshops, and community moments.'|t,
+  mel_browse_prompt: 'Try another time or explore everything coming up.'|t,
+} %}
