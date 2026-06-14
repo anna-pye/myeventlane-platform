@@ -155,6 +155,69 @@ final class EventMerchandisingPresenterTest extends UnitTestCase {
   /**
    * @covers ::present
    */
+  public function testHiddenGemBadgeWhenFlagged(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => 'poster',
+      'is_hidden_gem' => TRUE,
+      'card_type' => 'rsvp',
+    ]);
+
+    self::assertSame('Hidden Gem', $result['image_badge_label']);
+    self::assertSame('discovery-gold', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testHiddenGemBadgeOnStandardListLayout(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => '',
+      'variant' => 'list',
+      'is_hidden_gem' => TRUE,
+      'card_type' => 'paid',
+    ]);
+
+    self::assertSame('Hidden Gem', $result['image_badge_label']);
+    self::assertSame('discovery-gold', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSoldOutOutranksHiddenGem(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => 'poster',
+      'is_hidden_gem' => TRUE,
+      'is_sold_out' => TRUE,
+      'card_type' => 'paid',
+    ]);
+
+    self::assertSame('Sold out', $result['image_badge_label']);
+    self::assertSame('warning', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSpotlightOutranksHiddenGemOnPoster(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => 'poster',
+      'is_hidden_gem' => TRUE,
+      'is_promoted' => TRUE,
+      'card_type' => 'rsvp',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertSame('apricot', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
   public function testSpotlightBadgeWhenPromotedOnPoster(): void {
     $presenter = $this->createPresenter();
     $result = $presenter->present([

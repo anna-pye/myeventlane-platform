@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Theme override for view.upcoming_events page_hidden_gems.
+ *
+ * @see includes/mel-browse-events-page-shell.html.twig
+ */
+#}
+{% include '@myeventlane_theme/includes/mel-browse-events-page-shell.html.twig' with {
+  mel_browse_heading: 'Hidden Gems'|t,
+  mel_browse_lede: 'High-value local experiences you might not have found yet.'|t,
+  mel_browse_prompt: 'Browse all events or see what’s on this weekend.'|t,
+} %}

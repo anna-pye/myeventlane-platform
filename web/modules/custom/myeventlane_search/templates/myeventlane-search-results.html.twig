@@ -15,21 +15,23 @@
     {% endfor %}
 
     {% if total_items == 0 %}
-      <div class="mel-empty-state mel-empty-state--listing mel-search-empty">
-        <div class="mel-empty-state__image">
-          <img src="{{ directory|default('') }}/images/mel/empty/mel-empty-events.png" alt="" role="presentation" width="240" height="240" loading="lazy" onerror="this.style.display='none'">
-        </div>
-        <h3 class="mel-empty-state__title">{{ 'No results found'|t }}</h3>
-        <p class="mel-empty-state__text">{{ 'No results for \'@query\'. Try another keyword, browse categories, or explore events on the homepage.'|t({'@query': query}) }}</p>
-        <p class="mel-empty-state__cta">
-          <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Explore events'|t }}</a>
-          <a href="{{ path('view.upcoming_events.page_this_weekend') }}" class="mel-link">{{ 'This weekend'|t }}</a>
-          <span aria-hidden="true"> · </span>
-          <a href="{{ path('view.upcoming_events.page_free') }}" class="mel-link">{{ 'Free events'|t }}</a>
-          <span aria-hidden="true"> · </span>
-          <a href="{{ path('<front>') }}" class="mel-link">{{ 'Back to discovery'|t }}</a>
-        </p>
-      </div>
+      {% include '@myeventlane_theme/includes/mel-browse-empty-recovery.html.twig' with {
+        title: 'No results found'|t,
+        text: 'No results for \'@query\'. Try another keyword or explore these paths instead.'|t({'@query': query}),
+        modifier: 'search',
+      } %}
+      {% if featured_events_fallback is not empty %}
+        <section class="mel-search-results__fallback" aria-labelledby="mel-search-fallback-featured">
+          <h2 id="mel-search-fallback-featured" class="mel-search-results__group-title">{{ 'Discover events'|t }}</h2>
+          {{ featured_events_fallback }}
+        </section>
+      {% endif %}
+      {% if hidden_gems_fallback is not empty %}
+        <section class="mel-search-results__fallback" aria-labelledby="mel-search-fallback-hidden-gems">
+          <h2 id="mel-search-fallback-hidden-gems" class="mel-search-results__group-title">{{ 'Hidden Gems'|t }}</h2>
+          {{ hidden_gems_fallback }}
+        </section>
+      {% endif %}
       {% if fallback.categories|default([])|length > 0 %}
         <section class="mel-search-results__fallback" aria-labelledby="mel-search-fallback-categories">
           <h2 id="mel-search-fallback-categories" class="mel-search-results__group-title">{{ 'Suggested categories'|t }}</h2>
@@ -38,12 +40,6 @@
               <li><a href="{{ item.url }}">{{ item.title }}</a></li>
             {% endfor %}
           </ul>
-        </section>
-      {% endif %}
-      {% if featured_events_fallback is not empty %}
-        <section class="mel-search-results__fallback" aria-labelledby="mel-search-fallback-featured">
-          <h2 id="mel-search-fallback-featured" class="mel-search-results__group-title">{{ 'Discover events'|t }}</h2>
-          {{ featured_events_fallback }}
         </section>
       {% endif %}
     {% else %}

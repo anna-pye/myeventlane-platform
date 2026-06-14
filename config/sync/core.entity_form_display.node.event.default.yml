@@ -22,6 +22,7 @@ dependencies:
     - field.field.node.event.field_external_url
     - field.field.node.event.field_event_setup_complete
     - field.field.node.event.field_featured
+    - field.field.node.event.field_hidden_gem
     - field.field.node.event.field_location
     - field.field.node.event.field_mel_sup_amt
     - field.field.node.event.field_mel_sup_chk
@@ -187,6 +188,13 @@ content:
   field_featured:
     type: boolean_checkbox
     weight: 16
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_hidden_gem:
+    type: boolean_checkbox
+    weight: 17
     region: content
     settings:
       display_label: true

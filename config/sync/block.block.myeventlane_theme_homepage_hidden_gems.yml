@@ -1,0 +1,30 @@
+uuid: 4a2b8c1d-5e6f-4a7b-9c0d-1e2f3a4b5c6d
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.upcoming_events
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_homepage_hidden_gems
+theme: myeventlane_theme
+region: homepage_hidden_gems
+weight: 0
+provider: null
+plugin: 'views_block:upcoming_events-homepage_hidden_gems'
+settings:
+  id: 'views_block:upcoming_events-homepage_hidden_gems'
+  label: 'Homepage hidden gems events'
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

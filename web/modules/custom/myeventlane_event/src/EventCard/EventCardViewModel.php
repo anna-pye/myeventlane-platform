@@ -126,6 +126,9 @@ final class EventCardViewModel {
     $domainState = is_array($context['event_domain_state'] ?? NULL) ? $context['event_domain_state'] : [];
     $isPromoted = !empty($domainState['is_boosted'])
       || ($node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value);
+    $isHiddenGem = $node->hasField('field_hidden_gem')
+      && !$node->get('field_hidden_gem')->isEmpty()
+      && (bool) $node->get('field_hidden_gem')->value;
 
     $categoryLabel = $context['mel_category_label'] ?? NULL;
     $categoryUrl = $context['mel_category_url'] ?? NULL;
@@ -153,6 +156,7 @@ final class EventCardViewModel {
       'is_low_stock' => $lowStock,
       'capacity_hint' => $capacityHint !== '' ? $capacityHint : NULL,
       'is_promoted' => $isPromoted,
+      'is_hidden_gem' => $isHiddenGem,
       'price_label' => $badgeText,
       'card_type' => $cardType,
       'tonight_urgency_label' => $context['mel_tonight_urgency_label'] ?? NULL,

@@ -137,6 +137,8 @@ final class MelCustomerContinuityPresenter {
       ];
     }
 
+    $actions = array_merge($actions, $this->buildPostBookingDiscoveryActions(FALSE));
+
     if ($cancel_url !== '') {
       $actions[] = [
         'key' => 'cancel_rsvp',
@@ -246,8 +248,55 @@ final class MelCustomerContinuityPresenter {
       'primary_action' => $primary_action,
       'calendar' => $calendar,
       'view_event' => $view_event,
+      'continuity_actions' => $this->buildPostBookingDiscoveryActions(TRUE),
       'donation_total_formatted' => $donation_total_formatted,
     ];
+  }
+
+  /**
+   * Post-booking discovery bridge — shared RSVP thank-you + checkout completion.
+   *
+   * @return list<array<string, string|bool>>
+   */
+  private function buildPostBookingDiscoveryActions(bool $browse_more_label): array {
+    /** @var list<array<string, string|bool>> $actions */
+    $actions = [];
+
+    try {
+      $hidden_gems_url = Url::fromRoute('view.upcoming_events.page_hidden_gems')->toString();
+    }
+    catch (\Throwable) {
+      $hidden_gems_url = '';
+    }
+    if ($hidden_gems_url !== '') {
+      $actions[] = [
+        'key' => 'explore_hidden_gems',
+        'label' => $this->readinessHelper->customerContinuityExploreHiddenGemsCta(),
+        'url' => $hidden_gems_url,
+        'variant' => 'secondary',
+        'download' => FALSE,
+      ];
+    }
+
+    try {
+      $browse_url = Url::fromRoute('view.upcoming_events.page_events')->toString();
+    }
+    catch (\Throwable) {
+      $browse_url = '';
+    }
+    if ($browse_url !== '') {
+      $actions[] = [
+        'key' => 'browse_events',
+        'label' => $browse_more_label
+          ? $this->readinessHelper->customerContinuityBrowseMoreEventsCta()
+          : $this->readinessHelper->customerPrimaryBrowseEventsCta(),
+        'url' => $browse_url,
+        'variant' => 'secondary',
+        'download' => FALSE,
+      ];
+    }
+
+    return $actions;
   }
 
   /**

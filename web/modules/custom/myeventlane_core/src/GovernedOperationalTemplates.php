@@ -46,7 +46,7 @@ final class GovernedOperationalTemplates {
       'what_happened' => $s['what_happened'],
       'why_empty' => $s['why_empty'],
       'next_action' => $s['next_action'],
-      'cta' => $this->browseEventsPrimaryLink(),
+      'cta' => $this->postBookingDiscoveryRecoveryCtas(),
     ]);
   }
 
@@ -296,7 +296,7 @@ final class GovernedOperationalTemplates {
   /**
    * @return array<string, mixed>
    */
-  private function browseEventsPrimaryLink(string $route = 'view.upcoming_events.page_events', ?string $title = NULL): array {
+  private function browseEventsPrimaryLink(string $route = 'view.upcoming_events.page_events', ?string $title = NULL, string $variant = 'primary'): array {
     $label = $title ?? (string) $this->readiness->customerPrimaryBrowseEventsCta();
     try {
       $url = Url::fromRoute($route);
@@ -304,11 +304,34 @@ final class GovernedOperationalTemplates {
     catch (\Throwable) {
       $url = Url::fromRoute('<front>');
     }
+    $btn_class = $variant === 'secondary' ? 'mel-btn--secondary' : 'mel-btn--primary';
     return [
       '#type' => 'link',
       '#title' => $label,
       '#url' => $url,
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+      '#attributes' => ['class' => ['mel-btn', $btn_class]],
+    ];
+  }
+
+  /**
+   * Discovery recovery CTAs aligned with mel-browse-empty-recovery routes.
+   *
+   * @return array<string, mixed>
+   */
+  private function postBookingDiscoveryRecoveryCtas(): array {
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-empty-state__cta', 'mel-empty-state__cta--discovery']],
+      'hidden_gems' => $this->browseEventsPrimaryLink(
+        'view.upcoming_events.page_hidden_gems',
+        (string) $this->readiness->customerContinuityExploreHiddenGemsCta(),
+        'primary',
+      ),
+      'browse' => $this->browseEventsPrimaryLink(
+        'view.upcoming_events.page_events',
+        (string) $this->readiness->customerPrimaryBrowseEventsCta(),
+        'secondary',
+      ),
     ];
   }
 

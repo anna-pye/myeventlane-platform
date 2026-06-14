@@ -136,9 +136,11 @@ final class SearchController extends ControllerBase {
       $total_items += count($group['items']);
     }
     $featured_events_fallback = [];
+    $hidden_gems_fallback = [];
     if ($total_items === 0) {
       $fallback = $this->buildEmptyStateFallback();
       $featured_events_fallback = $this->buildFeaturedEventsFallback();
+      $hidden_gems_fallback = $this->buildHiddenGemsFallback();
     }
 
     $build = [
@@ -151,6 +153,9 @@ final class SearchController extends ControllerBase {
     if ($featured_events_fallback !== []) {
       // Render child — do not nest View builds inside #fallback theme variables.
       $build['featured_events_fallback'] = $featured_events_fallback;
+    }
+    if ($hidden_gems_fallback !== []) {
+      $build['hidden_gems_fallback'] = $hidden_gems_fallback;
     }
 
     return $build;
@@ -480,6 +485,15 @@ final class SearchController extends ControllerBase {
    */
   private function buildFeaturedEventsFallback(): array {
     return $this->featuredEventsRenderBuilder->build();
+  }
+
+  /**
+   * Hidden Gems View for zero-result search fallback (after featured, before categories).
+   *
+   * @return array<string, mixed>
+   */
+  private function buildHiddenGemsFallback(): array {
+    return $this->featuredEventsRenderBuilder->buildHiddenGemsDiscoveryFallback();
   }
 
   /**

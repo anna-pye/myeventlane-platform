@@ -1760,6 +1760,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     'view.upcoming_events.page_this_weekend',
     'view.upcoming_events.page_free',
     'view.upcoming_events.page_popular',
+    'view.upcoming_events.page_hidden_gems',
     'mel_search.view',
   ];
   if (in_array($route, $listing_routes, TRUE) && empty($variables['mel_header_categories'])) {
@@ -1801,6 +1802,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     'view.upcoming_events.page_today' => 'page_today',
     'view.upcoming_events.page_category' => 'page_category',
     'view.upcoming_events.page_popular' => 'page_popular',
+    'view.upcoming_events.page_hidden_gems' => 'page_hidden_gems',
   ];
   if (isset($browse_display_map[$route])) {
     $variables['mel_browse_active_display'] = $browse_display_map[$route];
@@ -1959,6 +1961,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         && isset($variables['page']['homepage_tonight'])
         && is_array($variables['page']['homepage_tonight'])
         && count(Element::children($variables['page']['homepage_tonight'])) > 0;
+      $variables['mel_home_show_hidden_gems'] = $homepageVisibility->hasHiddenGemEvents()
+        && isset($variables['page']['homepage_hidden_gems'])
+        && is_array($variables['page']['homepage_hidden_gems'])
+        && count(Element::children($variables['page']['homepage_hidden_gems'])) > 0;
     }
     else {
       $variables['mel_home_show_featured'] = FALSE;
@@ -1967,6 +1973,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       $variables['mel_home_show_free_rsvp'] = FALSE;
       $variables['mel_home_show_recommended'] = FALSE;
       $variables['mel_home_show_tonight'] = FALSE;
+      $variables['mel_home_show_hidden_gems'] = FALSE;
     }
   }
 
@@ -3283,7 +3290,7 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
 
   if (
     $view->id() === 'upcoming_events'
-    && in_array($view->current_display, ['page_category', 'page_today', 'page_this_weekend', 'page_free'], TRUE)
+    && in_array($view->current_display, ['page_category', 'page_today', 'page_this_weekend', 'page_free', 'page_hidden_gems'], TRUE)
   ) {
     $args = $view->args ?? [];
     if ($view->current_display === 'page_category' && !empty($args[0])) {
@@ -3311,7 +3318,7 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
     }
   }
 
-  if ($view->id() === 'upcoming_events' && in_array($view->current_display, ['page_events', 'page_category', 'page_today', 'page_this_weekend', 'page_free'], TRUE)) {
+  if ($view->id() === 'upcoming_events' && in_array($view->current_display, ['page_events', 'page_category', 'page_today', 'page_this_weekend', 'page_free', 'page_hidden_gems'], TRUE)) {
     $request = \Drupal::request();
     $query_all = $request->query->all();
     $active = FALSE;

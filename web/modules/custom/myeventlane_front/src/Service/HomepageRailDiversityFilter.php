@@ -21,7 +21,7 @@ final class HomepageRailDiversityFilter {
    */
   private const DIVERSITY_DISPLAYS = [
     'mel_home_events' => ['embed_discover', 'under_20'],
-    'upcoming_events' => ['homepage_tonight', 'homepage_latest'],
+    'upcoming_events' => ['homepage_tonight', 'homepage_hidden_gems', 'homepage_latest'],
     'front_recommended_events' => ['block_1'],
   ];
 

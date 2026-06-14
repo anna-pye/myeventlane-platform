@@ -33,6 +33,7 @@ final class HomepageMerchandising {
     ],
     'upcoming_events' => [
       'homepage_tonight',
+      'homepage_hidden_gems',
       'homepage_latest',
     ],
     'mel_home_events' => [
@@ -92,6 +93,11 @@ final class HomepageMerchandising {
   /**
    * @var list<int>|null
    */
+  private ?array $hiddenGemEventIds = NULL;
+
+  /**
+   * @var list<int>|null
+   */
   private ?array $recommendedEventIds = NULL;
 
   /**
@@ -140,17 +146,25 @@ final class HomepageMerchandising {
         ...$spotlight,
         ...$this->getDiscoverEventIds(),
       ])),
+      'upcoming_events:homepage_hidden_gems' => array_values(array_unique([
+        ...$hero,
+        ...$spotlight,
+        ...$this->getDiscoverEventIds(),
+        ...$this->getTonightEventIds(),
+      ])),
       'mel_home_events:under_20' => array_values(array_unique([
         ...$hero,
         ...$spotlight,
         ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
+        ...$this->getHiddenGemEventIds(),
       ])),
       'upcoming_events:homepage_latest' => array_values(array_unique([
         ...$hero,
         ...$spotlight,
         ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
+        ...$this->getHiddenGemEventIds(),
         ...$this->getFreeRsvpEventIds(),
       ])),
       'front_recommended_events:block_1' => array_values(array_unique([
@@ -158,6 +172,7 @@ final class HomepageMerchandising {
         ...$spotlight,
         ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
+        ...$this->getHiddenGemEventIds(),
         ...$this->getFreeRsvpEventIds(),
         ...$this->getLatestEventIds(),
       ])),
@@ -259,6 +274,20 @@ final class HomepageMerchandising {
 
     $this->tonightEventIds = $this->executeViewResultNids('upcoming_events', 'homepage_tonight');
     return $this->tonightEventIds;
+  }
+
+  /**
+   * Hidden Gems editorial rail (upcoming_events:homepage_hidden_gems).
+   *
+   * @return list<int>
+   */
+  public function getHiddenGemEventIds(): array {
+    if ($this->hiddenGemEventIds !== NULL) {
+      return $this->hiddenGemEventIds;
+    }
+
+    $this->hiddenGemEventIds = $this->executeViewResultNids('upcoming_events', 'homepage_hidden_gems');
+    return $this->hiddenGemEventIds;
   }
 
   /**

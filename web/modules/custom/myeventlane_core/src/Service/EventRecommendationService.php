@@ -147,10 +147,18 @@ final class EventRecommendationService {
       }
     }
 
+    if ($event->hasField('field_hidden_gem')
+      && !$event->get('field_hidden_gem')->isEmpty()
+      && (bool) $event->get('field_hidden_gem')->value) {
+      $context['type'] = 'hidden-gem';
+      $context['label'] = (string) $t->translate('Worth discovering');
+      return $context;
+    }
+
     $save_count = $prefetchedSaveCount ?? $this->getSaveCountCached((int) $event->id());
     if ($save_count > 10) {
       $context['type'] = 'trending';
-      $context['label'] = (string) $t->translate('Trending right now');
+      $context['label'] = (string) $t->translate('Popular with the community');
       return $context;
     }
 
@@ -319,6 +327,11 @@ final class EventRecommendationService {
       }
       if ($this->routeMatch->getRouteName() === 'view.upcoming_events.page_category') {
         $score += 10;
+      }
+      if ($event->hasField('field_hidden_gem')
+        && !$event->get('field_hidden_gem')->isEmpty()
+        && (bool) $event->get('field_hidden_gem')->value) {
+        $score += 8;
       }
 
       $intent_weight = 1;

@@ -385,7 +385,7 @@ final class MelReadinessHelper {
   }
 
   public function customerCheckoutCompletionHeadline(): string {
-    return (string) $this->t('Booking complete');
+    return (string) $this->t("Great choice. You're all set.");
   }
 
   /**
@@ -700,7 +700,7 @@ final class MelReadinessHelper {
   // --- Customer-facing confirmation & lifecycle (MELStateSystem vocabulary) ----
 
   public function customerRsvpConfirmationHeadline(): string {
-    return (string) $this->t("You're going");
+    return (string) $this->t("You're in. See you there.");
   }
 
   /**
@@ -795,6 +795,14 @@ final class MelReadinessHelper {
     return (string) $this->t('Add a contribution');
   }
 
+  public function customerContinuityExploreHiddenGemsCta(): string {
+    return (string) $this->t('Explore Hidden Gems');
+  }
+
+  public function customerContinuityBrowseMoreEventsCta(): string {
+    return (string) $this->t('Browse more events');
+  }
+
   /**
    * Governed Commerce order state wording for customer self-service (not raw workflow ids).
    *
@@ -828,7 +836,7 @@ final class MelReadinessHelper {
       'heading' => (string) $this->t('No ticket orders to show'),
       'what_happened' => (string) $this->t('We are not showing any completed ticket purchases on this account yet.'),
       'why_empty' => (string) $this->t('Orders appear here when you are signed in as the same user who completed checkout, or when guest checkout used this email address.'),
-      'next_action' => (string) $this->t('Browse events to find something you would like to attend.'),
+      'next_action' => (string) $this->t('Explore Hidden Gems or browse discoverable events while you wait for your first booking.'),
     ];
   }
 
@@ -1067,8 +1075,8 @@ final class MelReadinessHelper {
   public function intelligenceRecommendationCopy(string $definition_id, MelSurfaceId $surface): array {
     return match ($definition_id) {
       'recommended_events' => [
-        'headline' => (string) $this->t('Events picked for you'),
-        'action' => (string) $this->t('Explore personalised picks inspired by how you browse MyEventLane.'),
+        'headline' => (string) $this->t('Worth exploring next'),
+        'action' => (string) $this->t('Discover more events popular with the community on MyEventLane.'),
       ],
       'continue_saved_event' => [
         'headline' => (string) $this->t('Pick up where you left off'),
