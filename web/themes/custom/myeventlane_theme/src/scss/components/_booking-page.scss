@@ -11,6 +11,8 @@
 @use '../tokens/breakpoints';
 
 $mel-book-max: 72.5rem; // ~1160px
+// Paid book two-column / in-panel CTA — keep at 960px (not lg 1024px).
+$mel-book-layout-min: 960px;
 
 .mel-page:has(.mel-book-page.mel-event-page--classic) {
   background-color: #fff9f5;
@@ -402,7 +404,7 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@include breakpoints.mel-break(lg) {
+@media (width >= $mel-book-layout-min) {
   .mel-book-page .mel-event-book__form-body .mel-booking__cta--panel {
     position: static;
     bottom: auto;
@@ -441,7 +443,7 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@include breakpoints.mel-break(lg, max) {
+@media (width <= #{$mel-book-layout-min - 1px}) {
   .mel-book-page {
     padding-bottom: calc(#{spacing.mel-space(7)} + env(safe-area-inset-bottom, 0));
   }
@@ -524,7 +526,7 @@ $mel-book-max: 72.5rem; // ~1160px
   min-height: 44px;
 }
 
-@include breakpoints.mel-break(lg) {
+@media (width >= $mel-book-layout-min) {
   .mel-book-page[data-event-mode='rsvp'] .mel-rsvp-submit--book-sticky .mel-mobile-booking-bar--rsvp {
     display: none;
   }
@@ -543,7 +545,7 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@include breakpoints.mel-break(lg, max) {
+@media (width <= #{$mel-book-layout-min - 1px}) {
   .mel-book-layout {
     display: flex;
     flex-direction: column;
@@ -566,7 +568,8 @@ $mel-book-max: 72.5rem; // ~1160px
 
     .mel-book-trust,
     .mel-book-next-steps,
-    .mel-booking-extras {
+    .mel-booking-extras,
+    .mel-addon-teaser {
       order: 3;
     }
   }
@@ -648,13 +651,13 @@ $mel-book-max: 72.5rem; // ~1160px
   }
 }
 
-@include breakpoints.mel-break(lg) {
+@media (width >= $mel-book-layout-min) {
   .mel-book-page.mel-event-page--immersive .mel-event-book__form-body .mel-booking__cta--panel {
     border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
   }
 }
 
-@include breakpoints.mel-break(lg, max) {
+@media (width <= #{$mel-book-layout-min - 1px}) {
   .mel-book-page.mel-event-page--immersive .mel-event-book__form-body .mel-booking__cta--panel {
     background: color-mix(in srgb, var(--mel-event-surface-raised, rgba(34, 44, 60, 0.78)) 94%, transparent);
     border-top-color: var(--mel-event-divider, rgba(255, 255, 255, 0.1));
