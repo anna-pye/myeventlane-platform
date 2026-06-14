@@ -128,7 +128,7 @@ final class MelSupportSettingsBuilder {
       'actions_heading' => (string) $this->t('Suggested next steps'),
       'intro_hub' => (string) $this->t('Use these shortcuts to find answers faster or reach our team.'),
       'intro_compact' => (string) $this->t('Quick links to help and support.'),
-      'articles_jump' => (string) $this->t('Browse featured articles below'),
+      'articles_jump' => (string) $this->t('Browse popular articles below'),
       'contact_support' => (string) $this->t('Contact support'),
       'open_assistant' => (string) $this->t('Open Help Assistant'),
       'help_centre' => (string) $this->t('Help Centre'),

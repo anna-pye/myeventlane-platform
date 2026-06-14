@@ -39,8 +39,8 @@
             {% for event in category.new_events %}
               <article class="mel-event-card">
                 {% if event.is_boosted %}
-                  <div class="mel-category-event-card__featured" aria-label="{{ 'Featured'|t }}">
-                    {{ 'Featured'|t }}
+                  <div class="mel-category-event-card__featured" aria-label="{{ 'Spotlight'|t }}">
+                    {{ 'Spotlight'|t }}
                   </div>
                 {% endif %}
                 <div class="mel-event-card-body{% if event.thumbnail_url %} mel-event-card-body--with-thumb{% endif %}">

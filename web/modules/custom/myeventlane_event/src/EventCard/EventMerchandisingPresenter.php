@@ -107,7 +107,7 @@ final class EventMerchandisingPresenter {
     $imageBadgeLabel = NULL;
     $imageBadgeModifier = 'apricot';
     if (($isHero || $isSpotlight) && $isPromoted) {
-      $imageBadgeLabel = (string) $this->t('Featured');
+      $imageBadgeLabel = (string) $this->t('Spotlight');
     }
     elseif ($isSoldOut) {
       $imageBadgeLabel = (string) $this->t('Sold out');
