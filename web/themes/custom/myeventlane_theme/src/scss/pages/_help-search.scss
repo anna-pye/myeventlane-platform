@@ -257,6 +257,23 @@
   font-size: typography.mel-font-size(md);
 }
 
+.mel-help-empty__next {
+  margin: spacing.mel-space(4) 0 0;
+  font-size: typography.mel-font-size(md);
+  color: colors.$mel-color-text-muted;
+
+  a {
+    color: colors.$mel-color-accent;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+}
+
 .mel-chip-group {
   display: flex;
   flex-wrap: wrap;

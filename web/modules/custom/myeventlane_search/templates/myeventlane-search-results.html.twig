@@ -22,6 +22,13 @@
         <h3 class="mel-empty-state__title">{{ 'No results found'|t }}</h3>
         <p class="mel-empty-state__text">{{ 'No results found for \'@query\'. Try a different keyword or browse categories.'|t({'@query': query}) }}</p>
         <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Browse all events'|t }}</a>
+        <nav class="mel-search-empty-suggestions mel-empty__next" aria-label="{{ 'Explore events'|t }}">
+          <a href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
+          <span aria-hidden="true"> · </span>
+          <a href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free events'|t }}</a>
+          <span aria-hidden="true"> · </span>
+          <a href="{{ path('<front>') }}">{{ 'Return to homepage'|t }}</a>
+        </nav>
       </div>
       {% if fallback.categories|default([])|length > 0 %}
         <section class="mel-search-results__fallback" aria-labelledby="mel-search-fallback-categories">

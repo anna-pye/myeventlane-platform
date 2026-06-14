@@ -47,6 +47,13 @@
         <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Tickets' } }) }}">{{ 'Tickets'|t }}</a>
         <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Payouts' } }) }}">{{ 'Payouts'|t }}</a>
       </div>
+      <p class="mel-help-empty__next">
+        <a href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre home'|t }}</a>
+        <span aria-hidden="true"> · </span>
+        <a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
+        <span aria-hidden="true"> · </span>
+        <a href="{{ path('<front>') }}">{{ 'Return to homepage'|t }}</a>
+      </p>
     </div>
   {% endif %}
 
