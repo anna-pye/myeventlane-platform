@@ -74,7 +74,7 @@
     <div class="mel-home-hero__art{% if hero_hide_on_mobile|default(false) %} mel-home-hero__art--hide-mobile{% endif %}">
       <div class="mel-home-hero__art-frame{% if featured_events %} mel-home-hero__art-frame--rotator{% endif %}">
         {% if featured_events %}
-          <div class="mel-home-hero__feature-rotator" data-mel-home-hero-rotator aria-label="{{ 'Featured event highlights'|t }}">
+          <div class="mel-home-hero__feature-rotator" data-mel-home-hero-rotator aria-label="{{ 'Community spotlight highlights'|t }}">
             {{ featured_events }}
           </div>
         {% elseif hero_image_url %}
