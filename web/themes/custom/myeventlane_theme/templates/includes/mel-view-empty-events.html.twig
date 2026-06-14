@@ -8,9 +8,9 @@
 #}
 {% include '@myeventlane_theme/components/empty-state.html.twig' with {
   title: title|default('Nothing here yet'|t),
-  text: text|default('Check back soon or explore more events across MyEventLane.'|t),
+  text: text|default('Try a category, nearby events, or community spotlight on the homepage.'|t),
   cta_primary_url: cta_primary_url|default('/events'),
   cta_primary_label: cta_primary_label|default('Explore events'|t),
-  cta_secondary_url: cta_secondary_url|default(''),
-  cta_secondary_label: cta_secondary_label|default(''),
+  cta_secondary_url: cta_secondary_url|default(path('<front>')),
+  cta_secondary_label: cta_secondary_label|default('Back to discovery'|t),
 } %}

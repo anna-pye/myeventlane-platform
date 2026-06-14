@@ -14,10 +14,10 @@
 {% else %}
   {% include '@myeventlane_theme/components/empty-state.html.twig' with {
     title: 'No upcoming events yet'|t,
-    text: 'Check back soon or explore the marketplace for more events.'|t,
+    text: 'Check back soon or explore categories and community spotlight on the homepage.'|t,
     cta_primary_url: '/events',
     cta_primary_label: 'Explore events'|t,
-    cta_secondary_url: '/create-event',
-    cta_secondary_label: 'Create event'|t
+    cta_secondary_url: path('<front>'),
+    cta_secondary_label: 'Back to discovery'|t
   } %}
 {% endif %}
