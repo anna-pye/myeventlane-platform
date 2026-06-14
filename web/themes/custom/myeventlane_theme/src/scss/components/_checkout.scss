@@ -3278,10 +3278,61 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   color: colors.$mel-color-text;
 }
 
-@media (width <= 768px) {
+@include breakpoints.mel-break(md, max) {
+  .mel-checkout-shell .mel-checkout--v2-shell {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .mel-checkout--v2-shell .mel-checkout__grid--sidebar-flow {
+    min-width: 0;
+
+    .mel-checkout__summary.mel-checkout-summary--v2 {
+      order: -1;
+      min-width: 0;
+    }
+
+    .mel-checkout__main {
+      min-width: 0;
+      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  .mel-checkout--v2-shell .mel-card-surface,
+  .mel-checkout--v2-shell .mel-checkout-section {
+    min-width: 0;
+  }
+
+  // O16 — order summary table: readable without page-level horizontal scroll.
+  .mel-checkout-summary--v2 .mel-checkout-order-summary__table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .mel-checkout-summary--v2 .mel-checkout-order-summary__table td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .mel-checkout-summary--v2 .mel-checkout-order-summary__table td[class*='views-field-total-price'] {
+    width: 30%;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  // Stripe / payment pane containment on narrow viewports.
   .mel-commerce-checkout .mel-checkout--v2-shell .mel-checkout-section--payment {
     margin-bottom: spacing.mel-space(4);
     padding-bottom: spacing.mel-space(2);
+    min-width: 0;
+    overflow-x: clip;
+
+    .commerce-payment-form,
+    [id*='stripe-payment-element'],
+    .payment-method {
+      max-width: 100%;
+      min-width: 0;
+    }
   }
 
   .mel-checkout-sticky--v2 {

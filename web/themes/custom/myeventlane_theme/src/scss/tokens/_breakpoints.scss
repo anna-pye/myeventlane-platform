@@ -1,3 +1,8 @@
+// Canonical public breakpoint map (myeventlane_theme).
+// Vendor theme sm (640px) is not unified yet — public Phase 1 uses md for nav/layout.
+// Style-guide 390px baseline: no dedicated token yet (product sign-off pending).
+// Deprecate ad-hoc 900px public header cuts — use mel-break(md, max) instead.
+
 @use 'sass:map';
 
 $mel-breakpoints: (
@@ -7,6 +12,9 @@ $mel-breakpoints: (
   lg: 1024px,
   xl: 1280px
 );
+
+// Desktop nav / mobile drawer: width >= md (768px). Keep header.js in sync.
+$mel-breakpoint-md: map.get($mel-breakpoints, md);
 
 @mixin mel-break($size, $direction: min) {
   $breakpoint: map.get($mel-breakpoints, $size);
