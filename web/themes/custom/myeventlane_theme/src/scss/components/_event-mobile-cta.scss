@@ -24,6 +24,7 @@
   backdrop-filter: blur(20px);
   border-top: 2px solid var(--mel-peach);
   padding: space.mel-space(4);
+  padding-bottom: calc(#{space.mel-space(4)} + env(safe-area-inset-bottom, 0));
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   display: none;
@@ -73,7 +74,7 @@
 
 .mel-event--detail {
   @include mel-break(lg, max) {
-    padding-bottom: 100px; // Space for sticky CTA
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0));
   }
 }
 

@@ -217,8 +217,9 @@ export function initMobileNav() {
     }
   });
 
-  // Close on resize to desktop
-  const mediaQuery = window.matchMedia('(min-width: 768px)');
+  // Close on resize to desktop — keep aligned with tokens/_breakpoints.scss md (768px).
+  const MEL_BREAKPOINT_MD_MIN = 768;
+  const mediaQuery = window.matchMedia(`(min-width: ${MEL_BREAKPOINT_MD_MIN}px)`);
   if (mediaQuery.addEventListener) {
     mediaQuery.addEventListener('change', function(e) {
       if (e.matches && mobileNavState.checkbox.checked) {
