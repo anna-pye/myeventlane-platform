@@ -315,6 +315,16 @@
   border-radius: 16px;
 }
 
+.mel-event-card__image .mel-pill--on-image.mel-event-card__state-pill--discovery-gold,
+.mel-event-card__media .mel-pill--on-image.mel-event-card__state-pill--discovery-gold,
+.mel-event-card--hero .mel-pill--on-image.mel-event-card__state-pill--discovery-gold,
+.mel-event-hero--featured-style .mel-pill--on-image.mel-event-card__state-pill--discovery-gold {
+  background: color-mix(in srgb, mel.$mel-ds-color-discovery-gold 58%, #fff 42%);
+  color: mel.$mel-ds-color-text;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-discovery-gold 36%, transparent);
+  border-radius: 16px;
+}
+
 // Category on image: single apricot pill (overrides .mel-pill--on-image defaults).
 .mel-event-card__image .mel-event__category.mel-pill--on-image,
 .mel-event-card__media .mel-event__category.mel-pill--on-image {

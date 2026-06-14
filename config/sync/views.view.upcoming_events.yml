@@ -7,12 +7,14 @@ dependencies:
     - core.entity_view_mode.node.teaser
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promoted
+    - field.field.node.event.field_hidden_gem
     - field.storage.node.field_category
     - field.storage.node.field_event_end
     - field.storage.node.field_event_state
     - field.storage.node.field_event_type
     - field.storage.node.field_product_target
     - field.storage.node.field_promoted
+    - field.storage.node.field_hidden_gem
     - node.type.event
     - system.menu.main
     - taxonomy.vocabulary.categories
@@ -26,7 +28,7 @@ dependencies:
 id: upcoming_events
 label: 'Upcoming Events'
 module: views
-description: 'Canonical public discovery: /events, category, today, weekend, free. Block uses same filters; homepage sidebar block.'
+description: 'Canonical public discovery: /events, category, today, weekend, free, hidden gems. Block uses same filters; homepage sidebar block.'
 tag: ''
 base_table: node_field_data
 base_field: nid
@@ -848,6 +850,293 @@ display:
         filters: false
       display_extenders: {  }
       block_description: 'Calendar: Upcoming this week'
+      block_category: MyEventLane
+      block_hide_empty: true
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }
+  homepage_hidden_gems:
+    id: homepage_hidden_gems
+    display_title: 'Homepage hidden gems'
+    display_plugin: block
+    position: 10
+    display_options:
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 6
+      sorts:
+        field_event_start_value:
+          id: field_event_start_value
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: datetime
+          order: ASC
+          expose:
+            label: ''
+            field_identifier: ''
+          exposed: false
+          granularity: second
+      filters:
+        status:
+          id: status
+          table: node_field_data
+          field: status
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
+          value: '1'
+          group: 1
+          expose:
+            operator: ''
+        type:
+          id: type
+          table: node_field_data
+          field: type
+          entity_type: node
+          entity_field: type
+          plugin_id: bundle
+          value:
+            event: event
+          group: 1
+          expose:
+            operator: ''
+        field_event_state_value:
+          id: field_event_state_value
+          table: node__field_event_state
+          field: field_event_state_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_state
+          plugin_id: list_field
+          operator: not
+          value:
+            draft: draft
+            cancelled: cancelled
+            archived: archived
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+            reduce: false
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
+        title_not_empty:
+          id: title_not_empty
+          table: node_field_data
+          field: title
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: title
+          plugin_id: string
+          operator: 'not empty'
+          value: ''
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: false
+        field_event_start_not_empty:
+          id: field_event_start_not_empty
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          operator: 'not empty'
+          value:
+            min: ''
+            max: ''
+            value: ''
+            type: date
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        field_event_start_value:
+          id: field_event_start_value
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 2
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
+        field_hidden_gem_value:
+          id: field_hidden_gem_value
+          table: node__field_hidden_gem
+          field: field_hidden_gem_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_hidden_gem
+          plugin_id: boolean
+          operator: '='
+          value: '1'
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
+      row:
+        type: 'entity:node'
+        options:
+          view_mode: compact_commerce
+      defaults:
+        empty: true
+        pager: false
+        row: false
+        sorts: false
+        filters: false
+      display_extenders: {  }
+      block_description: 'Homepage: Hidden Gems'
       block_category: MyEventLane
       block_hide_empty: true
     cache_metadata:
@@ -2297,6 +2586,315 @@ display:
         filters: false
       display_extenders: {  }
       path: events/free
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }
+  page_hidden_gems:
+    id: page_hidden_gems
+    display_title: 'Hidden Gems'
+    display_plugin: page
+    position: 4
+    display_options:
+      title: 'Hidden Gems'
+      pager:
+        type: full
+        options:
+          offset: 0
+          pagination_heading_level: h4
+          items_per_page: 12
+          total_pages: 0
+          id: 0
+          tags:
+            next: ››
+            previous: ‹‹
+            first: '« First'
+            last: 'Last »'
+          expose:
+            items_per_page: false
+            items_per_page_label: 'Items per page'
+            items_per_page_options: '5, 10, 25, 50'
+            items_per_page_options_all: false
+            items_per_page_options_all_label: '- All -'
+            offset: false
+            offset_label: Offset
+          quantity: 9
+      filters:
+        status:
+          id: status
+          table: node_field_data
+          field: status
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
+          value: '1'
+          group: 1
+          expose:
+            operator: ''
+        type:
+          id: type
+          table: node_field_data
+          field: type
+          entity_type: node
+          entity_field: type
+          plugin_id: bundle
+          value:
+            event: event
+          group: 1
+          expose:
+            operator: ''
+        field_event_state_value:
+          id: field_event_state_value
+          table: node__field_event_state
+          field: field_event_state_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_state
+          plugin_id: list_field
+          operator: not
+          value:
+            draft: draft
+            cancelled: cancelled
+            archived: archived
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+            reduce: false
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
+        title_not_empty:
+          id: title_not_empty
+          table: node_field_data
+          field: title
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: title
+          plugin_id: string
+          operator: 'not empty'
+          value: ''
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: false
+        field_event_start_not_empty:
+          id: field_event_start_not_empty
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          operator: 'not empty'
+          value:
+            min: ''
+            max: ''
+            value: ''
+            type: date
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        field_event_start_value:
+          id: field_event_start_value
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 2
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
+        field_hidden_gem_value:
+          id: field_hidden_gem_value
+          table: node__field_hidden_gem
+          field: field_hidden_gem_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_hidden_gem
+          plugin_id: boolean
+          operator: '='
+          value: '1'
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: false
+        field_category_target_id:
+          id: field_category_target_id
+          table: node__field_category
+          field: field_category_target_id
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_category
+          plugin_id: taxonomy_index_tid
+          value: {  }
+          group: 1
+          exposed: true
+          expose:
+            operator_id: ''
+            label: Category
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: category
+            required: false
+            remember: false
+            multiple: true
+            remember_roles:
+              anonymous: anonymous
+              authenticated: authenticated
+          is_grouped: false
+          vid: categories
+          type: select
+          hierarchy: false
+          limit: true
+          error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
+      row:
+        type: 'entity:node'
+        options:
+          view_mode: compact_commerce
+      defaults:
+        title: false
+        pager: false
+        row: false
+        filters: false
+      display_extenders: {  }
+      path: events/hidden-gems
     cache_metadata:
       max-age: -1
       contexts:

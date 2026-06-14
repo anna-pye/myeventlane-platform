@@ -34,12 +34,15 @@ final class MelReadinessHelperCustomerTest extends UnitTestCase {
    * @covers ::customerCategoryFollowWeeklyQuietSlots
    * @covers ::customerMyEventsDashboardUpcomingEmptySlots
    * @covers ::customerPrimaryBrowseEventsCta
+   * @covers ::customerContinuityExploreHiddenGemsCta
+   * @covers ::customerContinuityBrowseMoreEventsCta
    */
   public function testOperationalEmptySlotsAreNonEmptyStrings(): void {
     $h = $this->helper();
     $tickets = $h->customerMyTicketsOverviewEmptySlots();
     $this->assertNotSame('', $tickets['heading']);
     $this->assertNotSame('', $tickets['what_happened']);
+    $this->assertNotSame('', $tickets['next_action']);
     $categories = $h->customerCategoryFollowEmptySlots();
     $this->assertNotSame('', $categories['heading']);
     $quiet = $h->customerCategoryFollowWeeklyQuietSlots();
@@ -49,6 +52,8 @@ final class MelReadinessHelperCustomerTest extends UnitTestCase {
     $this->assertNotSame('', $my_events['heading']);
     $this->assertNotSame('', $my_events['why_empty']);
     $this->assertNotSame('', $h->customerPrimaryBrowseEventsCta());
+    $this->assertNotSame('', $h->customerContinuityExploreHiddenGemsCta());
+    $this->assertNotSame('', $h->customerContinuityBrowseMoreEventsCta());
   }
 
   /**

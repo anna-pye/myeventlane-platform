@@ -5,6 +5,7 @@ dependencies:
   config:
     - core.entity_view_mode.node.compact_commerce
     - field.field.node.event.field_category
+    - field.field.node.event.field_hidden_gem
     - field.field.node.event.field_event_image
     - field.field.node.event.field_event_start
     - field.field.node.event.field_venue_name
@@ -77,6 +78,11 @@ hidden:
   field_collect_per_ticket: true
   field_contact_email: true
   field_contact_phone: true
+  field_donation_default: true
+  field_donation_label: true
+  field_donation_options: true
+  field_donation_suggested_amount: true
+  field_enable_donations: true
   field_event_capacity_total: true
   field_event_end: true
   field_event_geo: true
@@ -93,6 +99,7 @@ hidden:
   field_event_visibility: true
   field_external_url: true
   field_featured: true
+  field_hidden_gem: true
   field_is_series_template: true
   field_location: true
   field_location_latitude: true
@@ -119,6 +126,7 @@ hidden:
   field_series_parent: true
   field_series_rrule: true
   field_series_timezone: true
+  field_social_proof_visibility: true
   field_tags: true
   field_ticket_types: true
   field_venue: true

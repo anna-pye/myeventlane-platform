@@ -113,6 +113,12 @@
       {% set _discovery_reason = 'Starts soon'|t %}
     {% endif %}
     {% set _discovery_reason_type = 'tonight' %}
+  {% elseif _mel_src in ['homepage_hidden_gems', 'browse_hidden_gems'] %}
+    {% set _discovery_reason = 'Worth discovering'|t %}
+    {% set _discovery_reason_type = 'hidden-gem' %}
+  {% elseif _mel_src == 'related_events' and recommendation_context is defined and recommendation_context.label|default('')|trim|length > 0 %}
+    {% set _discovery_reason = recommendation_context.label %}
+    {% set _discovery_reason_type = recommendation_context.type|default('discover') %}
   {% endif %}
 {% elseif _discovery_mode and _type in ['rsvp'] and (_price_label in ['Free', 'Free RSVP'] or _status_mod == 'free') %}
   {% set _discovery_reason = 'Free to attend'|t %}

@@ -1251,6 +1251,8 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     ]);
   }
 
+  myeventlane_event_apply_full_page_discovery_badge($variables, $node);
+
   // Hide obvious placeholder strings on public event teasers and summaries.
   $public_visibility_modes = [
     'full',
@@ -1623,6 +1625,51 @@ function myeventlane_event_finalize_event_ui(
   }
 
   return $out;
+}
+
+/**
+ * Applies a single discovery hero badge on full event pages via merchandising.
+ */
+function myeventlane_event_apply_full_page_discovery_badge(array &$variables, NodeInterface $node): void {
+  if (($variables['view_mode'] ?? '') !== 'full') {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_event.event_merchandising_presenter')) {
+    return;
+  }
+
+  $event_ui = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : [];
+  if (!empty($event_ui['is_sold_out'])) {
+    return;
+  }
+
+  $domain = is_array($variables['event_domain_state'] ?? NULL) ? $variables['event_domain_state'] : [];
+  $is_hidden_gem = $node->hasField('field_hidden_gem')
+    && !$node->get('field_hidden_gem')->isEmpty()
+    && (bool) $node->get('field_hidden_gem')->value;
+  $is_promoted = !empty($domain['is_boosted'])
+    || ($node->hasField('field_promoted')
+      && !$node->get('field_promoted')->isEmpty()
+      && (bool) $node->get('field_promoted')->value);
+
+  /** @var \Drupal\myeventlane_event\EventCard\EventMerchandisingPresenter $presenter */
+  $presenter = \Drupal::service('myeventlane_event.event_merchandising_presenter');
+  $merchandising = $presenter->present([
+    'layout' => 'hero',
+    'is_hidden_gem' => $is_hidden_gem,
+    'is_promoted' => $is_promoted,
+    'is_sold_out' => FALSE,
+  ]);
+
+  $label = trim((string) ($merchandising['image_badge_label'] ?? ''));
+  if ($label === '') {
+    return;
+  }
+
+  $variables['mel_hero_discovery_badge'] = [
+    'label' => $label,
+    'modifier' => (string) ($merchandising['image_badge_modifier'] ?? 'apricot'),
+  ];
 }
 
 /**

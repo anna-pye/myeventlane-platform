@@ -204,6 +204,12 @@
           {{ mcc.view_event.label }}
         </a>
       {% endif %}
+
+      {% for action in mcc.continuity_actions|default([]) %}
+        <a href="{{ action.url }}" class="mel-confirmation-button mel-confirmation-button--secondary" data-mel-continuity-key="{{ action.key }}">
+          {{ action.label }}
+        </a>
+      {% endfor %}
     </div>
   </div>
 </div>

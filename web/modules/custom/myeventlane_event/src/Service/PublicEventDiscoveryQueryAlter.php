@@ -28,8 +28,10 @@ final class PublicEventDiscoveryQueryAlter {
       'page_this_weekend',
       'page_popular',
       'page_category',
+      'page_hidden_gems',
       'homepage_latest',
       'homepage_tonight',
+      'homepage_hidden_gems',
     ],
     'front_featured_events' => [
       'block_featured',

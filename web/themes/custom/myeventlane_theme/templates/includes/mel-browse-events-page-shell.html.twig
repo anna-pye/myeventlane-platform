@@ -31,6 +31,7 @@
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_this_weekend' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_free' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free events'|t }}</a>
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_popular' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_popular') }}">{{ 'Popular'|t }}</a>
+          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_hidden_gems' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_hidden_gems') }}">{{ 'Hidden Gems'|t }}</a>
         </nav>
 
         {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {

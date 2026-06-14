@@ -68,6 +68,8 @@
   --mel-mint: color-mix(in srgb, var(--mel-color-accent) 12%, #fff);
   --mel-sky: color-mix(in srgb, var(--mel-color-accent) 8%, #fff);
   --mel-butter: color-mix(in srgb, var(--mel-color-primary) 14%, #fff);
+  --mel-color-discovery-gold: #ffc83d;
+  --mel-discovery-gold: var(--mel-color-discovery-gold);
   --mel-focus: var(--mel-color-primary);
 
   --mel-radius-1: var(--mel-radius-sm);

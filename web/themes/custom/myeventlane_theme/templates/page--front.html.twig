@@ -72,6 +72,21 @@
       } %}
     {% endif %}
 
+    {% if mel_home_show_hidden_gems|default(false) %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--hidden-gems mel-section--discover',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--hidden-gems',
+        title: 'Hidden Gems Near You'|t,
+        subtitle: 'The Guide has found a few experiences worth discovering.'|t,
+        link_url: path('view.upcoming_events.page_hidden_gems'),
+        link_text: 'See all Hidden Gems'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_hidden_gems
+      } %}
+    {% endif %}
+
     {% if mel_home_show_free_rsvp|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--free-rsvp mel-section--discover',
@@ -108,8 +123,8 @@
         section_width_class: '',
         container_class: 'mel-container',
         header_extra_class: 'mel-section__header--recommended',
-        title: 'Picked for you'|t,
-        subtitle: 'Curated from what’s happening nearby'|t,
+        title: 'Worth exploring next'|t,
+        subtitle: 'Events popular with the community right now.'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'See all events'|t,
         content_wrapper_class: 'mel-section__discover-view',

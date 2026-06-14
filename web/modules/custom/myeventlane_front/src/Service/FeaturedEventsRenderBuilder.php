@@ -16,6 +16,8 @@ final class FeaturedEventsRenderBuilder {
   private const VIEW_ID = 'front_featured_events';
   private const DISPLAY_ID = 'block_featured';
   private const HERO_DISPLAY_ID = 'block_hero';
+  private const HIDDEN_GEMS_VIEW_ID = 'upcoming_events';
+  private const HIDDEN_GEMS_DISPLAY_ID = 'homepage_hidden_gems';
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -42,6 +44,13 @@ final class FeaturedEventsRenderBuilder {
    */
   public function build(): array {
     return $this->buildDisplay(self::DISPLAY_ID);
+  }
+
+  /**
+   * Builds Hidden Gems discovery cards for zero-result search recovery.
+   */
+  public function buildHiddenGemsDiscoveryFallback(): array {
+    return $this->buildViewDisplay(self::HIDDEN_GEMS_VIEW_ID, self::HIDDEN_GEMS_DISPLAY_ID);
   }
 
   /**
@@ -83,49 +92,85 @@ final class FeaturedEventsRenderBuilder {
    * Builds a featured events View display render array.
    */
   private function buildDisplay(string $displayId): array {
+    return $this->buildViewDisplay(self::VIEW_ID, $displayId);
+  }
+
+  /**
+   * Builds a View display render array when the display has results.
+   */
+  private function buildViewDisplay(string $viewId, string $displayId): array {
     try {
-      if (!$this->displayHasResults($displayId)) {
-        return $this->emptyBuild();
+      if (!$this->viewDisplayHasResults($viewId, $displayId)) {
+        return $this->emptyBuild($viewId);
       }
 
       $storage = $this->entityTypeManager
         ->getStorage('view')
-        ->load(self::VIEW_ID);
+        ->load($viewId);
 
       if ($storage === NULL) {
-        $this->loggerFactory->get('myeventlane_front')->error('Homepage featured View "@view" was not found.', [
-          '@view' => self::VIEW_ID,
+        $this->loggerFactory->get('myeventlane_front')->error('View "@view" was not found.', [
+          '@view' => $viewId,
         ]);
 
-        return $this->emptyBuild();
+        return $this->emptyBuild($viewId);
       }
 
       $view = $this->viewExecutableFactory->get($storage);
       if (!$view->access($displayId)) {
-        return $this->emptyBuild();
+        return $this->emptyBuild($viewId);
       }
 
       return $view->buildRenderable($displayId);
     }
     catch (\Throwable $e) {
-      $this->loggerFactory->get('myeventlane_front')->error('Could not build homepage featured events (@display): @message', [
+      $this->loggerFactory->get('myeventlane_front')->error('Could not build View @view (@display): @message', [
+        '@view' => $viewId,
         '@display' => $displayId,
         '@message' => $e->getMessage(),
       ]);
 
-      return $this->emptyBuild();
+      return $this->emptyBuild($viewId);
+    }
+  }
+
+  /**
+   * Whether a View display returns at least one row (after access checks).
+   */
+  private function viewDisplayHasResults(string $viewId, string $displayId): bool {
+    try {
+      $storage = $this->entityTypeManager
+        ->getStorage('view')
+        ->load($viewId);
+
+      if ($storage === NULL) {
+        return FALSE;
+      }
+
+      $view = $this->viewExecutableFactory->get($storage);
+      if (!$view->access($displayId)) {
+        return FALSE;
+      }
+
+      $view->setDisplay($displayId);
+      $view->execute();
+
+      return $view->result !== [];
+    }
+    catch (\Throwable) {
+      return FALSE;
     }
   }
 
   /**
    * Returns cacheable empty output for failure or denied access.
    */
-  private function emptyBuild(): array {
+  private function emptyBuild(string $viewId = self::VIEW_ID): array {
     return [
       '#markup' => '',
       '#cache' => [
         'contexts' => ['user.permissions'],
-        'tags' => ['config:views.view.' . self::VIEW_ID],
+        'tags' => ['config:views.view.' . $viewId],
       ],
     ];
   }

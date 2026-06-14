@@ -37,6 +37,7 @@ final class EventMerchandisingPresenter {
    *   is_low_stock?: bool,
    *   capacity_hint?: string|null,
    *   is_promoted?: bool,
+   *   is_hidden_gem?: bool,
    *   price_label?: string|null,
    *   card_type?: string,
    *   tonight_urgency_label?: string|null,
@@ -72,6 +73,7 @@ final class EventMerchandisingPresenter {
     $capacityHint = trim(strip_tags((string) ($context['capacity_hint'] ?? '')));
     $capacityHint = $capacityHint !== '' ? $capacityHint : NULL;
     $isPromoted = !empty($context['is_promoted']);
+    $isHiddenGem = !empty($context['is_hidden_gem']);
     $priceLabel = trim(strip_tags((string) ($context['price_label'] ?? '')));
     $priceLabel = $priceLabel !== '' ? $priceLabel : NULL;
     $cardType = (string) ($context['card_type'] ?? 'none');
@@ -112,6 +114,10 @@ final class EventMerchandisingPresenter {
     }
     elseif (($isHero || $isDiscovery) && $isPromoted) {
       $imageBadgeLabel = (string) $this->t('Spotlight');
+    }
+    elseif ($isHiddenGem) {
+      $imageBadgeLabel = (string) $this->t('Hidden Gem');
+      $imageBadgeModifier = 'discovery-gold';
     }
 
     $ticketPill = $this->resolveTicketPill($cardType, $priceLabel, $isSoldOut);

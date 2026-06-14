@@ -54,6 +54,13 @@ final class HomepageSectionVisibility {
   }
 
   /**
+   * Whether the homepage Hidden Gems display returns at least one row.
+   */
+  public function hasHiddenGemEvents(): bool {
+    return $this->viewDisplayHasResults('upcoming_events', 'homepage_hidden_gems');
+  }
+
+  /**
    * Whether a View display returns at least one row (after access checks).
    */
   public function viewDisplayHasResults(string $viewId, string $displayId): bool {

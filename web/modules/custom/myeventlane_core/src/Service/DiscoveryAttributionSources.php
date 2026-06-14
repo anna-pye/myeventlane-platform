@@ -20,6 +20,8 @@ final class DiscoveryAttributionSources {
   public const SOURCE_VENDOR_PROFILE = 'vendor_profile';
 
   public const SOURCE_HOMEPAGE_DISCOVER = 'homepage_discover';
+  public const SOURCE_HOMEPAGE_HIDDEN_GEMS = 'homepage_hidden_gems';
+  public const SOURCE_BROWSE_HIDDEN_GEMS = 'browse_hidden_gems';
 
   /**
    * @var list<string>
@@ -31,6 +33,8 @@ final class DiscoveryAttributionSources {
     self::SOURCE_HOMEPAGE_FREE,
     self::SOURCE_HOMEPAGE_RECOMMENDED,
     self::SOURCE_HOMEPAGE_UPCOMING,
+    self::SOURCE_HOMEPAGE_HIDDEN_GEMS,
+    self::SOURCE_BROWSE_HIDDEN_GEMS,
     self::SOURCE_SEARCH,
     self::SOURCE_CATEGORY,
     self::SOURCE_RELATED_EVENTS,
@@ -48,6 +52,8 @@ final class DiscoveryAttributionSources {
     'mel_home_events:under_20' => self::SOURCE_HOMEPAGE_FREE,
     'front_recommended_events:block_1' => self::SOURCE_HOMEPAGE_RECOMMENDED,
     'upcoming_events:homepage_latest' => self::SOURCE_HOMEPAGE_UPCOMING,
+    'upcoming_events:homepage_hidden_gems' => self::SOURCE_HOMEPAGE_HIDDEN_GEMS,
+    'upcoming_events:page_hidden_gems' => self::SOURCE_BROWSE_HIDDEN_GEMS,
     'upcoming_events:page_category' => self::SOURCE_CATEGORY,
   ];
 
