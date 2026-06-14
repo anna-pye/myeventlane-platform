@@ -1512,9 +1512,9 @@ function myeventlane_event_finalize_event_ui(
     $out['cta_label'] = '';
     $out['cta_type'] = 'disabled';
     if ($isBoosted) {
-      $out['status_label'] = (string) t('Featured');
+      $out['status_label'] = (string) t('Spotlight');
       $out['status_type'] = 'highlight';
-      $out['image_badge_label'] = (string) t('Featured');
+      $out['image_badge_label'] = (string) t('Spotlight');
       $out['image_badge_type'] = 'apricot';
     }
     if (!$isSoldOut && $rsvpState === 'limited') {
@@ -1593,9 +1593,9 @@ function myeventlane_event_finalize_event_ui(
     && $isBoosted
     && ($out['image_badge_label'] ?? NULL) === NULL
   ) {
-    $out['status_label'] = (string) t('Featured');
+    $out['status_label'] = (string) t('Spotlight');
     $out['status_type'] = 'highlight';
-    $out['image_badge_label'] = (string) t('Featured');
+    $out['image_badge_label'] = (string) t('Spotlight');
     $out['image_badge_type'] = 'apricot';
   }
   elseif (
@@ -1605,9 +1605,9 @@ function myeventlane_event_finalize_event_ui(
     && (bool) $node->get('field_promoted')->value
     && ($out['image_badge_label'] ?? NULL) === NULL
   ) {
-    $out['status_label'] = (string) t('Featured');
+    $out['status_label'] = (string) t('Spotlight');
     $out['status_type'] = 'highlight';
-    $out['image_badge_label'] = (string) t('Featured');
+    $out['image_badge_label'] = (string) t('Spotlight');
     $out['image_badge_type'] = 'apricot';
   }
 

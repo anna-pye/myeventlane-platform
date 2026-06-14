@@ -122,7 +122,7 @@ final class EventMerchandisingPresenterTest extends UnitTestCase {
   /**
    * @covers ::present
    */
-  public function testFeaturedBadgeWhenPromotedOnSpotlight(): void {
+  public function testSpotlightBadgeWhenPromotedOnSpotlight(): void {
     $presenter = $this->createPresenter();
     $result = $presenter->present([
       'layout' => 'spotlight',
@@ -130,7 +130,22 @@ final class EventMerchandisingPresenterTest extends UnitTestCase {
       'card_type' => 'rsvp',
     ]);
 
-    self::assertNotEmpty($result['image_badge_label']);
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertSame('apricot', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSpotlightBadgeWhenPromotedOnPoster(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => 'poster',
+      'is_promoted' => TRUE,
+      'card_type' => 'rsvp',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
     self::assertSame('apricot', $result['image_badge_modifier']);
   }
 
