@@ -58,7 +58,7 @@ final class PublishEligibilityEvaluatorTest extends UnitTestCase {
     $this->assertStringNotContainsString('paidPublishStripeGate', $save);
     $this->assertStringNotContainsString('$this->eventReadiness->evaluate', $save);
     $this->assertStringNotContainsString('if (!$readiness->ready)', $publish);
-    $this->assertStringContainsString('return $this->setPublishedState($node, TRUE);', $publish);
+    $this->assertStringContainsString('return $this->setPublishedState($node, TRUE, $section);', $publish);
     $this->assertStringContainsString('myeventlane_event_studio.publish_eligibility', $services);
   }
 

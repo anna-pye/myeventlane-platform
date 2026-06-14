@@ -57,12 +57,16 @@ final class EventStudioReadinessStabilityTest extends UnitTestCase {
   public function testEventStudioControllerUsesReadinessFacade(): void {
     $services = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.services.yml');
     $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
+    $presentation = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php');
 
     $this->assertIsString($services);
     $this->assertIsString($controller);
+    $this->assertIsString($presentation);
     $this->assertStringContainsString('myeventlane_event_studio.readiness_facade', $services);
     $this->assertStringContainsString('EventReadinessFacade', $controller);
-    $this->assertStringContainsString('buildChecklistCardFromPresentation', $controller);
+    $this->assertStringContainsString('workspacePresentation', $controller);
+    $this->assertStringContainsString('buildHomepageReadinessCard', $controller);
+    $this->assertStringContainsString('buildChecklistCardFromPresentation', $presentation);
   }
 
   public function testReadinessFacadeServiceIsRegistered(): void {
