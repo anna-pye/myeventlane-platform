@@ -405,6 +405,23 @@
   justify-content: center;
   gap: spacing.mel-space(2);
   margin-top: spacing.mel-space(4);
+
+  &.mel-empty__next {
+    display: block;
+    font-size: typography.mel-font-size(md);
+    color: colors.$mel-color-text-muted;
+
+    a {
+      color: colors.$mel-color-accent;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+
+      &:hover {
+        text-decoration-thickness: 2px;
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

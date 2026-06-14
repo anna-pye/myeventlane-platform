@@ -89,6 +89,36 @@
 {% set _ticket_pill_label = _merch.ticket_pill_label|default(null) %}
 {% set _show_ticket_type_pill = _merch.show_ticket_type_pill|default(false) and _discovery_mode and not (event_ui is defined and event_ui.is_sold_out|default(false)) %}
 
+{# Rail-attributed discovery reason — presentation only (mel_source / merchandising). #}
+{% set _mel_src = mel_source|default(mel_event_card_source|default('')) %}
+{% set _discovery_reason = '' %}
+{% set _discovery_reason_type = '' %}
+{% if _discovery_mode and _mel_src %}
+  {% if _mel_src == 'homepage_featured' %}
+    {% set _discovery_reason = 'Community favourite'|t %}
+    {% set _discovery_reason_type = 'spotlight' %}
+  {% elseif _mel_src == 'homepage_upcoming' %}
+    {% set _discovery_reason = 'Recently added'|t %}
+    {% set _discovery_reason_type = 'recent' %}
+  {% elseif _mel_src in ['homepage_recommended', 'homepage_discover'] %}
+    {% set _discovery_reason = 'Worth checking out'|t %}
+    {% set _discovery_reason_type = 'discover' %}
+  {% elseif _mel_src == 'homepage_free' %}
+    {% set _discovery_reason = 'Free to attend'|t %}
+    {% set _discovery_reason_type = 'free' %}
+  {% elseif _mel_src == 'homepage_tonight' %}
+    {% if mel_tonight_urgency_label|default('')|trim|length > 0 %}
+      {% set _discovery_reason = mel_tonight_urgency_label %}
+    {% else %}
+      {% set _discovery_reason = 'Starts soon'|t %}
+    {% endif %}
+    {% set _discovery_reason_type = 'tonight' %}
+  {% endif %}
+{% elseif _discovery_mode and _type in ['rsvp'] and (_price_label in ['Free', 'Free RSVP'] or _status_mod == 'free') %}
+  {% set _discovery_reason = 'Free to attend'|t %}
+  {% set _discovery_reason_type = 'free' %}
+{% endif %}
+
 {% set _state_badge_type = 'highlight' %}
 {% set _image_badge_label = null %}
 {% if _merch.image_badge_label|default('')|trim|length > 0 %}
@@ -237,6 +267,9 @@
         {% endif %}
       {% elseif _is_spotlight %}
         {# Community spotlight — featured rail: glass panel, title, when, going, state chip. #}
+        {% if _discovery_reason %}
+          <p class="mel-card-reason mel-card-reason--{{ _discovery_reason_type|e('html_attr') }}" role="status">{{ _discovery_reason }}</p>
+        {% endif %}
         <h3 class="mel-event-card__title">{{ _title }}</h3>
         {% if _snapshot %}
           <p class="mel-event-card__when mel-event-card__snapshot mel-event-card__date">
@@ -283,6 +316,9 @@
         {% endif %}
 
         {% if _is_poster %}
+          {% if _discovery_reason %}
+            <p class="mel-card-reason mel-card-reason--{{ _discovery_reason_type|e('html_attr') }}" role="status">{{ _discovery_reason }}</p>
+          {% endif %}
           {% if mel_source|default('') == 'homepage_free' and _loc %}
             <p class="mel-event-card__location mel-event-card__location--poster">
               <span class="mel-event-card__meta-text">{{ _loc }}</span>
