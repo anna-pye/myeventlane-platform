@@ -16,6 +16,16 @@ use Drupal\views\ViewExecutable;
  */
 final class HomepageMerchandisingQueryAlter {
 
+  /**
+   * Cached Community Favourites nids keyed by lookback days (per request).
+   *
+   * Views invokes query alter for both the paged result query and the pager
+   * total query; memoize so getPopularEventRows() runs once per request.
+   *
+   * @var array<int, list<int>>
+   */
+  private array $communityFavouritesNidsByDays = [];
+
   public function __construct(
     private readonly HomepageMerchandising $merchandising,
     private readonly PopularEventsService $popularEvents,
@@ -74,15 +84,7 @@ final class HomepageMerchandisingQueryAlter {
 
     $alias = $query->getTableInfo('node_field_data')['alias'] ?? 'node_field_data';
     // Default 7-day lookback (same as homepage Community Favourites rail).
-    $rows = $this->popularEvents->getPopularEventRows(7);
-
-    $nids = [];
-    foreach ($rows as $row) {
-      $nid = (int) ($row['nid'] ?? 0);
-      if ($nid > 0) {
-        $nids[] = $nid;
-      }
-    }
+    $nids = $this->getCommunityFavouritesNids(7);
 
     if ($nids === []) {
       $query->addWhere(1, $alias . '.nid', 0);
@@ -104,6 +106,31 @@ final class HomepageMerchandisingQueryAlter {
       $rank[$nid] = $index;
     }
     $view->mel_community_favourites_rank = $rank;
+  }
+
+  /**
+   * Returns engagement-ranked nids for Community Favourites browse.
+   *
+   * @return list<int>
+   *   Ranked event nids from PopularEventsService for the lookback window.
+   */
+  private function getCommunityFavouritesNids(int $days): array {
+    if (isset($this->communityFavouritesNidsByDays[$days])) {
+      return $this->communityFavouritesNidsByDays[$days];
+    }
+
+    $rows = $this->popularEvents->getPopularEventRows($days);
+
+    $nids = [];
+    foreach ($rows as $row) {
+      $nid = (int) ($row['nid'] ?? 0);
+      if ($nid > 0) {
+        $nids[] = $nid;
+      }
+    }
+
+    $this->communityFavouritesNidsByDays[$days] = $nids;
+    return $nids;
   }
 
 }
