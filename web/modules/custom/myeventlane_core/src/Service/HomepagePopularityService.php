@@ -10,7 +10,15 @@ use Drupal\myeventlane_boost\BoostManager;
 use Drupal\node\NodeInterface;
 
 /**
- * Service for calculating event popularity rankings.
+ * Legacy popularity rankings service (deprecated).
+ *
+ * @deprecated in myeventlane:CF-2C.1
+ *   Canonical popularity engine:
+ *   \Drupal\myeventlane_analytics\Service\PopularEventsService
+ *   (service id: myeventlane_analytics.popular_events).
+ *   See docs/audits/popularity-ownership-map.md.
+ *   Retained temporarily for backwards compatibility; no active consumers.
+ *   Do not inject for new code.
  *
  * Ranking logic: RSVP count + ticket sales + views (if available)
  * Excludes: actively boosted/promoted events (uses canonical BoostManager)
