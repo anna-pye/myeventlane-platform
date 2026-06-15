@@ -2,6 +2,10 @@
 /**
  * @file
  * MEL homepage — region-driven discovery.
+ *
+ * Homepage discovery section titles/subtitles are marketing-specific copy.
+ * They intentionally differ from browse-route canonical copy in
+ * mel-browse-events-page-shell.html.twig and page--view--upcoming-events--page-*.html.twig.
  */
 #}
 {% extends "page.html.twig" %}
@@ -95,7 +99,7 @@
         header_extra_class: 'mel-section__header--community-favourites',
         title: 'Community Favourites'|t,
         subtitle: 'Experiences people are joining — from real tickets and RSVPs this week.'|t,
-        link_url: path('view.upcoming_events.page_events'),
+        link_url: path('view.upcoming_events.page_popular'),
         link_text: 'See all events'|t,
         content_wrapper_class: 'mel-section__discover-view',
         content: page.homepage_community_favourites
