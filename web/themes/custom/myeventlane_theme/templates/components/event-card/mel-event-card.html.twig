@@ -136,10 +136,6 @@
 {% elseif event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
   {% set _image_badge_label = 'Sold out'|t %}
   {% set _state_badge_type = 'warning' %}
-{% elseif event_ui is defined and event_ui.image_badge_label|default('')|trim|length > 0 %}
-  {% set _image_badge_label = event_ui.image_badge_label %}
-  {% set _st = event_ui.image_badge_type|default('apricot') %}
-  {% set _state_badge_type = _st == 'highlight' ? 'apricot' : _st %}
 {% elseif _category and _category.label and not _discovery_mode %}
   {% set _image_badge_label = _category.label %}
   {% set _state_badge_type = 'category' %}
