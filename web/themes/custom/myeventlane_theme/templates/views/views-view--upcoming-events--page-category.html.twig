@@ -1,7 +1,9 @@
 {#
 /**
  * @file
- * upcoming_events — page_category: discovery copy + chip bar + grid.
+ * upcoming_events — page_category: chips, grid, and empty state.
+ *
+ * H1 and discovery lede/subtitle: page--events--category.html.twig
  */
 #}
 {% if not mel_chip_listing_fragment|default(false) %}
@@ -23,13 +25,6 @@
 {% else %}
 <div class="mel-discovery mel-discovery--category">
   {% if term %}
-    <p class="mel-category-discovery__lede">
-      {{ "Find something you'll love"|t }}
-    </p>
-    <p class="mel-discovery-subtitle">
-      {{ 'Discover events in @name'|t({'@name': term.label}) }}
-    </p>
-
     {% if mel_category_follow_flag|default(null) or mel_category_follow_login_url|default(null) %}
       <div class="mel-category-follow-region mel-category-follow-region--discovery">
         {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {

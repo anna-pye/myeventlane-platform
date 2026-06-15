@@ -1,8 +1,12 @@
 {#
 /**
  * @file
- * upcoming_events — shared wrapper for page_today, page_this_weekend, page_free
- * (displays without a more specific template).
+ * upcoming_events — shared wrapper for page_today, page_this_weekend, page_free,
+ * page_popular, page_hidden_gems (displays without a more specific view template).
+ *
+ * Canonical runtime owner for empty-state copy on these displays (mel_empty_copy below).
+ * page_events empty state: views-view--upcoming-events--page-events.html.twig
+ * page_category empty state: views-view--upcoming-events--page-category.html.twig
  */
 #}
 {#

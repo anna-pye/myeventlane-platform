@@ -1948,20 +1948,6 @@ display:
             offset: false
             offset_label: Offset
           quantity: 9
-      empty:
-        area:
-          id: area
-          table: views
-          field: area
-          relationship: none
-          group_type: group
-          admin_label: ''
-          plugin_id: text
-          empty: true
-          content:
-            value: '<div class="mel-empty mel-empty--browse" role="status"><p>No events found — try adjusting your filters.</p></div>'
-            format: full_html
-          tokenize: false
       filters:
         status:
           id: status
@@ -2934,20 +2920,6 @@ display:
             offset: false
             offset_label: Offset
           quantity: 9
-      empty:
-        area:
-          id: area
-          table: views
-          field: area
-          relationship: none
-          group_type: group
-          admin_label: ''
-          plugin_id: text
-          empty: true
-          content:
-            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">No Community Favourites yet</h3><p class="mel-empty-state__what">When people start joining events this week, the most popular experiences will show up here.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Browse all events</a></p></div>'
-            format: full_html
-          tokenize: false
       filters:
         status:
           id: status
@@ -3254,7 +3226,7 @@ display:
       path: events/popular
       menu:
         type: normal
-        title: Discover
+        title: Community Favourites
         description: 'Events people are joining this week'
         weight: 2
         enabled: true

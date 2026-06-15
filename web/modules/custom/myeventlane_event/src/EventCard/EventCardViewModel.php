@@ -163,17 +163,6 @@ final class EventCardViewModel {
       'mel_source' => $context['mel_source'] ?? NULL,
     ]);
 
-    $badges = [];
-    if ($categoryLabel) {
-      $badges[] = ['label' => $categoryLabel, 'type' => 'category'];
-    }
-    if (!empty($merchandising['image_badge_label'])) {
-      $badges[] = [
-        'label' => (string) $merchandising['image_badge_label'],
-        'type' => (string) ($merchandising['image_badge_modifier'] ?? 'apricot'),
-      ];
-    }
-
     $isSaved = $this->isSavedByCurrentUser($node);
     if ($isSaved) {
       $cacheability->addCacheContexts(['user']);
@@ -193,12 +182,10 @@ final class EventCardViewModel {
       'price_label' => $badgeText ?? '',
       'availability_label' => trim((string) ($eventUi['status_label'] ?? '')),
       'availability_state' => (string) ($eventUi['status_type'] ?? ''),
-      'badges' => $badges,
       'cta_label' => $ctaLabel,
       'cta_url' => $url,
       'is_sold_out' => !empty($eventUi['is_sold_out']),
       'is_free' => $pricingType === BookingFlowResolver::MODE_RSVP,
-      'is_featured' => $isPromoted || !empty($merchandising['image_badge_label']),
       'is_saved' => $isSaved,
       'variant' => $presentation['variant'],
       'layout' => $presentation['layout'],

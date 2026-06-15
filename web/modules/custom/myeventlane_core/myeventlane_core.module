@@ -286,6 +286,37 @@ function myeventlane_core_views_pre_view(ViewExecutable $view, string $display_i
  */
 function myeventlane_core_metatags_alter(array &$metatags): void {
   $route = \Drupal::routeMatch()->getRouteName();
+
+  $discovery_copy = [
+    'view.upcoming_events.page_events' => [
+      'title' => (string) t('Find your next favourite experience.'),
+      'description' => (string) t('Discover workshops, gigs, markets, festivals, and community moments worth leaving the house for.'),
+    ],
+    'view.upcoming_events.page_popular' => [
+      'title' => (string) t('Community Favourites'),
+      'description' => (string) t('Experiences people are joining — ranked by real tickets and RSVPs this week.'),
+    ],
+    'view.upcoming_events.page_free' => [
+      'title' => (string) t('Free events and RSVP gatherings'),
+      'description' => (string) t('Community experiences with no ticket cost — easy ways to join in.'),
+    ],
+    'view.upcoming_events.page_today' => [
+      'title' => (string) t('Events happening today'),
+      'description' => (string) t('See what’s on across MyEventLane — new listings land throughout the day.'),
+    ],
+    'view.upcoming_events.page_this_weekend' => [
+      'title' => (string) t('Events this weekend'),
+      'description' => (string) t('Plan your Saturday and Sunday — markets, gigs, workshops, and community moments.'),
+    ],
+  ];
+
+  if (isset($discovery_copy[$route])) {
+    $copy = $discovery_copy[$route];
+    $metatags['title'] = $copy['title'] . ' | [site:name]';
+    $metatags['description'] = $copy['description'];
+    return;
+  }
+
   if ($route !== 'view.upcoming_events.page_category') {
     return;
   }
@@ -301,6 +332,8 @@ function myeventlane_core_metatags_alter(array &$metatags): void {
     /** @var \Drupal\myeventlane_core\Service\EventCategoryUrlService $categoryUrl */
     $categoryUrl = \Drupal::service('myeventlane_core.event_category_url');
     $metatags['canonical_url'] = $categoryUrl->getCategoryUrlString($term);
+    $metatags['title'] = $term->label() . ' | [site:name]';
+    $metatags['description'] = (string) t("Find something you'll love");
   }
 }
 
