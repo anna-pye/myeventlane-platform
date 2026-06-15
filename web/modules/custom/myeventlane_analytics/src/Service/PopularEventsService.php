@@ -20,7 +20,7 @@ use Drupal\node\NodeInterface;
  *
  * Data sources (locked by decisions):
  * - Tickets sold (paid): Commerce orders/order items, SUM(quantity), last N days.
- * - RSVPs: rsvp_submission storage (entity tables), last N days.
+ * - RSVPs: rsvp_submission base table (confirmed), last N days.
  *
  * Hard rules:
  * - Exclude Boost purchases/spend: order_item.type <> 'boost'
@@ -309,66 +309,54 @@ final class PopularEventsService {
   }
 
   /**
-   * RSVPs: count rsvp_submission records per event over last N seconds.
+   * RSVPs: count confirmed rsvp_submission rows per event over last N seconds.
    *
-   * Important: we do NOT guess the event reference field name.
-   * We introspect rsvp_submission__* field tables and select the first column
-   * that looks like a node entity reference target_id.
+   * Uses the canonical rsvp_submission base table (event_id column), aligned
+   * with RsvpStatsService. Legacy myeventlane_rsvp rows are merged when present.
    *
    * @return array<int, int>
    *   [nid => rsvps]
    */
   private function getRsvpsByEvent(int $since_ts): array {
-    // Core entity tables we expect for content entities.
-    if (!$this->schema->tableExists('rsvp_submission_field_data')) {
-      $this->logger->warning('PopularEventsService: rsvp_submission_field_data missing; RSVP source disabled.');
+    $out = $this->getRsvpsFromSubmissionTable($since_ts);
+
+    if ($this->schema->tableExists('myeventlane_rsvp')) {
+      foreach ($this->getRsvpsFromLegacyTable($since_ts) as $nid => $count) {
+        $out[$nid] = ($out[$nid] ?? 0) + $count;
+      }
+    }
+
+    return $out;
+  }
+
+  /**
+   * Confirmed RSVPs from the rsvp_submission content entity base table.
+   *
+   * @return array<int, int>
+   *   [nid => rsvps]
+   */
+  private function getRsvpsFromSubmissionTable(int $since_ts): array {
+    if (!$this->schema->tableExists('rsvp_submission')) {
       return [];
     }
 
-    // Find all field tables for this entity.
-    // Example typical: rsvp_submission__field_event with column field_event_target_id.
-    $field_tables = $this->schema->findTables('rsvp_submission__%');
-    if (empty($field_tables)) {
-      $this->logger->warning('PopularEventsService: no rsvp_submission__* field tables found; RSVP source disabled.');
-      return [];
-    }
-
-    // Identify an event reference field table + its *_target_id column.
-    $candidate = $this->detectRsvpEventReference($field_tables);
-    if ($candidate === NULL) {
-      $this->logger->warning('PopularEventsService: could not detect RSVP event reference field; RSVP source disabled.');
-      return [];
-    }
-
-    $table = $candidate['table'];
-    $target_id_col = $candidate['target_id_col'];
-
-    // Ensure node_field_data exists for published check.
     if (!$this->schema->tableExists('node_field_data')) {
-      $this->logger->warning('PopularEventsService: node_field_data missing; RSVP source disabled.');
       return [];
     }
 
-    $query = $this->database->select('rsvp_submission_field_data', 'rsfd');
-    $query->innerJoin($table, 'rse', 'rse.entity_id = rsfd.id');
-    $query->innerJoin('node_field_data', 'n', "n.nid = rse.$target_id_col AND n.type = :event_type AND n.status = 1", [
+    $query = $this->database->select('rsvp_submission', 'rs');
+    $query->innerJoin('node_field_data', 'n', 'n.nid = rs.event_id AND n.type = :event_type AND n.status = 1', [
       ':event_type' => 'event',
     ]);
-
-    // Time window.
-    if ($this->schema->fieldExists('rsvp_submission_field_data', 'created')) {
-      $query->condition('rsfd.created', $since_ts, '>=');
+    $query->condition('rs.status', 'confirmed');
+    $query->condition('rs.event_id', 0, '>');
+    if ($this->schema->fieldExists('rsvp_submission', 'created')) {
+      $query->condition('rs.created', $since_ts, '>=');
     }
 
-    // Status filter: we only apply if the column exists (no guessing).
-    // You can tighten this later if you confirm the exact status model.
-    if ($this->schema->fieldExists('rsvp_submission_field_data', 'status')) {
-      $query->condition('rsfd.status', 'confirmed');
-    }
-
-    $query->addExpression('COUNT(rsfd.id)', 'rsvps');
-    $query->addField('rse', $target_id_col, 'nid');
-    $query->groupBy("rse.$target_id_col");
+    $query->addExpression('COUNT(rs.id)', 'rsvps');
+    $query->addField('rs', 'event_id', 'nid');
+    $query->groupBy('rs.event_id');
 
     $result = $query->execute()->fetchAllAssoc('nid');
 
@@ -380,61 +368,51 @@ final class PopularEventsService {
       }
       $out[$nid] = (int) ($row->rsvps ?? 0);
     }
+
     return $out;
   }
 
   /**
-   * Detects the RSVP event entity-reference field table + target id column.
+   * Legacy RSVP rows from myeventlane_rsvp (active only).
    *
-   * @param array<string, string> $field_tables
-   *   Tables returned by Schema::findTables(), keyed by full table name.
-   *
-   * @return array{table:string, target_id_col:string}|null
-   *   Selected table and target id column.
+   * @return array<int, int>
+   *   [nid => rsvps]
    */
-  private function detectRsvpEventReference(array $field_tables): ?array {
-    foreach (array_keys($field_tables) as $table) {
-      // Must be a real table.
-      if (!$this->schema->tableExists($table)) {
-        continue;
-      }
-      $fields = $this->schema->fieldNames($table);
-      if (empty($fields)) {
-        continue;
-      }
-
-      // Pick the first column that looks like a node entity reference:
-      // *_target_id is the canonical pattern for entity reference fields.
-      foreach ($fields as $field_name) {
-        if (!is_string($field_name)) {
-          continue;
-        }
-        if (!str_ends_with($field_name, '_target_id')) {
-          continue;
-        }
-
-        // Heuristic: ignore user references etc by preferring "event" in table name.
-        // If no "event" table exists, we'll still accept the first target_id column.
-        if (str_contains($table, 'event')) {
-          return ['table' => $table, 'target_id_col' => $field_name];
-        }
-      }
+  private function getRsvpsFromLegacyTable(int $since_ts): array {
+    if (!$this->schema->tableExists('myeventlane_rsvp')) {
+      return [];
     }
 
-    // Second pass: accept any target_id column if we didn't find an "event" one.
-    foreach (array_keys($field_tables) as $table) {
-      if (!$this->schema->tableExists($table)) {
-        continue;
-      }
-      $fields = $this->schema->fieldNames($table);
-      foreach ($fields as $field_name) {
-        if (is_string($field_name) && str_ends_with($field_name, '_target_id')) {
-          return ['table' => $table, 'target_id_col' => $field_name];
-        }
-      }
+    if (!$this->schema->tableExists('node_field_data')) {
+      return [];
     }
 
-    return NULL;
+    $query = $this->database->select('myeventlane_rsvp', 'r');
+    $query->innerJoin('node_field_data', 'n', 'n.nid = r.event_nid AND n.type = :event_type AND n.status = 1', [
+      ':event_type' => 'event',
+    ]);
+    $query->condition('r.status', 'active');
+    $query->condition('r.event_nid', 0, '>');
+    if ($this->schema->fieldExists('myeventlane_rsvp', 'created')) {
+      $query->condition('r.created', $since_ts, '>=');
+    }
+
+    $query->addExpression('COUNT(r.id)', 'rsvps');
+    $query->addField('r', 'event_nid', 'nid');
+    $query->groupBy('r.event_nid');
+
+    $result = $query->execute()->fetchAllAssoc('nid');
+
+    $out = [];
+    foreach ($result as $nid => $row) {
+      $nid = is_numeric($nid) ? (int) $nid : 0;
+      if ($nid < 1) {
+        continue;
+      }
+      $out[$nid] = (int) ($row->rsvps ?? 0);
+    }
+
+    return $out;
   }
 
   /**
