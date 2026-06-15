@@ -115,7 +115,10 @@ function myeventlane_views_views_pre_render(ViewExecutable $view): void {
   }
   // Sort upcoming_events and mel_home_events: featured first, preserve
   // start-date order within ties (same as public discovery).
-  elseif (in_array($view->id(), ['upcoming_events', 'mel_home_events'], TRUE) && !empty($view->result)) {
+  // page_popular uses PopularEventsService rank via query alter — skip promoted reorder.
+  elseif (in_array($view->id(), ['upcoming_events', 'mel_home_events'], TRUE)
+    && !empty($view->result)
+    && !($view->id() === 'upcoming_events' && ($view->current_display ?? '') === 'page_popular')) {
     usort($view->result, function ($a, $b) {
       $promo_a = 0;
       $promo_b = 0;

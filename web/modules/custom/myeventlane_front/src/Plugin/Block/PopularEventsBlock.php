@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\myeventlane_analytics\Service\PopularEventsService;
+use Drupal\myeventlane_core\Service\DiscoveryAttributionSources;
 use Drupal\myeventlane_front\Service\HomepageMerchandising;
 use Drupal\myeventlane_front\Service\HomepageRailDiversityFilter;
 use Drupal\node\NodeInterface;
@@ -240,6 +241,7 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       }
 
       $card = $view_builder->view($ordered_nodes[$nid], $view_mode_to_use);
+      $card['#mel_discovery_source'] = DiscoveryAttributionSources::SOURCE_HOMEPAGE_COMMUNITY_FAVOURITES;
 
       // Render-only wrapper adds "X going" without changing card templates.
       $wrapper = [

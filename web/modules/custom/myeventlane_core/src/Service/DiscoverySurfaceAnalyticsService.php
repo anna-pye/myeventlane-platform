@@ -26,6 +26,8 @@ final class DiscoverySurfaceAnalyticsService {
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_FREE => 'free',
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_RECOMMENDED => 'recommended',
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_UPCOMING => 'latest',
+    DiscoveryAttributionSources::SOURCE_HOMEPAGE_COMMUNITY_FAVOURITES => 'community_favourites',
+    DiscoveryAttributionSources::SOURCE_BROWSE_COMMUNITY_FAVOURITES => 'community_favourites',
   ];
 
   /**
@@ -40,6 +42,7 @@ final class DiscoverySurfaceAnalyticsService {
     'tonight' => 'Happening Tonight',
     'free' => 'Free & RSVP',
     'latest' => 'Freshly Added',
+    'community_favourites' => 'Community Favourites',
   ];
 
   public function __construct(
@@ -143,6 +146,7 @@ final class DiscoverySurfaceAnalyticsService {
       'tonight',
       'free',
       'latest',
+      'community_favourites',
     ];
 
     $rows = [];
