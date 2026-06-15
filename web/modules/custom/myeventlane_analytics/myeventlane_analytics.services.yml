@@ -78,6 +78,8 @@ services:
       - '@datetime.time'
       - '@logger.factory'
       - '@myeventlane_analytics.order_item_classifier'
+      - '@entity_type.manager'
+      - '@myeventlane_event.public_visibility'
 
   myeventlane_analytics.trending_categories:
     class: Drupal\myeventlane_analytics\Service\TrendingCategoriesService

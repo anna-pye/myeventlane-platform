@@ -364,6 +364,28 @@ final class HomepageMerchandising {
   }
 
   /**
+   * NIDs to exclude from Community Favourites (higher-priority homepage rails).
+   *
+   * Mirrors the cascade applied before homepage_latest, without latest itself.
+   *
+   * @return list<int>
+   */
+  public function getCommunityFavouritesExclusionNids(): array {
+    if (!$this->pathMatcher->isFrontPage()) {
+      return [];
+    }
+
+    return array_values(array_unique([
+      ...$this->getHeroEventIds(),
+      ...$this->getSpotlightEventIds(),
+      ...$this->getDiscoverEventIds(),
+      ...$this->getTonightEventIds(),
+      ...$this->getHiddenGemEventIds(),
+      ...$this->getFreeRsvpEventIds(),
+    ]));
+  }
+
+  /**
    * Recommended events rail (front_recommended_events:block_1).
    *
    * @return list<int>

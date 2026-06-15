@@ -8,8 +8,11 @@ use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\myeventlane_analytics\Service\PopularEventsService;
+use Drupal\myeventlane_front\Service\HomepageMerchandising;
+use Drupal\myeventlane_front\Service\HomepageRailDiversityFilter;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -34,16 +37,37 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
    */
   private EntityTypeManagerInterface $entityTypeManager;
 
+  /**
+   * @var \Drupal\myeventlane_front\Service\HomepageMerchandising
+   */
+  private HomepageMerchandising $merchandising;
+
+  /**
+   * @var \Drupal\myeventlane_front\Service\HomepageRailDiversityFilter
+   */
+  private HomepageRailDiversityFilter $diversityFilter;
+
+  /**
+   * @var \Drupal\Core\Path\PathMatcherInterface
+   */
+  private PathMatcherInterface $pathMatcher;
+
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
     PopularEventsService $popular,
-    EntityTypeManagerInterface $entity_type_manager
+    EntityTypeManagerInterface $entity_type_manager,
+    HomepageMerchandising $merchandising,
+    HomepageRailDiversityFilter $diversity_filter,
+    PathMatcherInterface $path_matcher,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->popular = $popular;
     $this->entityTypeManager = $entity_type_manager;
+    $this->merchandising = $merchandising;
+    $this->diversityFilter = $diversity_filter;
+    $this->pathMatcher = $path_matcher;
   }
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): self {
@@ -52,7 +76,10 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       $plugin_id,
       $plugin_definition,
       $container->get('myeventlane_analytics.popular_events'),
-      $container->get('entity_type.manager')
+      $container->get('entity_type.manager'),
+      $container->get('myeventlane_front.homepage_merchandising'),
+      $container->get('myeventlane_front.homepage_rail_diversity'),
+      $container->get('path.matcher'),
     );
   }
 
@@ -129,8 +156,12 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
     $view_mode = (string) ($this->configuration['view_mode'] ?? 'compact_commerce');
     $title = (string) ($this->configuration['title'] ?? 'Popular this week');
     $show_going = (bool) ($this->configuration['show_going'] ?? TRUE);
+    $onHomepage = $this->pathMatcher->isFrontPage();
 
-    $rows = $this->popular->getPopularEventIds($days, $limit);
+    // Over-fetch on homepage so merchandising/diversity filters can still fill the rail.
+    $fetchLimit = $onHomepage ? min(max($limit * 3, $limit), 24) : $limit;
+
+    $rows = $this->popular->getPopularEventIds($days, $fetchLimit);
     if (empty($rows)) {
       return [
         '#markup' => '',
@@ -176,6 +207,24 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       if (isset($nodes[$nid])) {
         $ordered_nodes[$nid] = $nodes[$nid];
       }
+    }
+
+    if ($onHomepage) {
+      $rows = $this->applyHomepageMerchandising($rows, $ordered_nodes);
+      $rows = $this->applyHomepageDiversity($rows, $ordered_nodes, $limit);
+    }
+    else {
+      $rows = array_slice($rows, 0, $limit);
+    }
+
+    if ($rows === []) {
+      return [
+        '#markup' => '',
+        '#cache' => [
+          'max-age' => 900,
+          'contexts' => ['languages:language_interface'],
+        ],
+      ];
     }
 
     // Fallback if the provided view mode doesn't exist.
@@ -259,5 +308,67 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
     return $build;
   }
 
-}
+  /**
+   * Removes events already shown in higher-priority homepage rails.
+   *
+   * @param array<int, array<string, mixed>> $rows
+   * @param array<int, \Drupal\node\NodeInterface> $ordered_nodes
+   *
+   * @return array<int, array<string, mixed>>
+   */
+  private function applyHomepageMerchandising(array $rows, array $ordered_nodes): array {
+    $exclude = array_flip($this->merchandising->getCommunityFavouritesExclusionNids());
+    if ($exclude === []) {
+      return $rows;
+    }
 
+    $filtered = [];
+    foreach ($rows as $row) {
+      $nid = (int) ($row['nid'] ?? 0);
+      if ($nid < 1 || !isset($ordered_nodes[$nid]) || isset($exclude[$nid])) {
+        continue;
+      }
+      $filtered[] = $row;
+    }
+
+    return $filtered;
+  }
+
+  /**
+   * Applies homepage rail diversity to the popularity-ordered rows.
+   *
+   * @param array<int, array<string, mixed>> $rows
+   * @param array<int, \Drupal\node\NodeInterface> $ordered_nodes
+   *
+   * @return array<int, array<string, mixed>>
+   */
+  private function applyHomepageDiversity(array $rows, array $ordered_nodes, int $limit): array {
+    $rowsByNid = [];
+    $nodesForDiversity = [];
+
+    foreach ($rows as $row) {
+      $nid = (int) ($row['nid'] ?? 0);
+      if ($nid < 1 || !isset($ordered_nodes[$nid])) {
+        continue;
+      }
+      $rowsByNid[$nid] = $row;
+      $nodesForDiversity[] = $ordered_nodes[$nid];
+    }
+
+    if ($nodesForDiversity === []) {
+      return [];
+    }
+
+    $diverseNodes = $this->diversityFilter->filterEventNodes($nodesForDiversity, $limit);
+    $filteredRows = [];
+    foreach ($diverseNodes as $node) {
+      $nid = (int) $node->id();
+      if (isset($rowsByNid[$nid])) {
+        $filteredRows[] = $rowsByNid[$nid];
+      }
+    }
+
+    return $filteredRows;
+  }
+
+}

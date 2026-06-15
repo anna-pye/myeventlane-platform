@@ -7,7 +7,10 @@ namespace Drupal\myeventlane_analytics\Service;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Schema;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
+use Drupal\node\NodeInterface;
 
 /**
  * Computes "Popular this week" events using real engagement.
@@ -22,8 +25,8 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
  * Hard rules:
  * - Exclude Boost purchases/spend: order_item.type <> 'boost'
  * - Only published events (node_field_data.status = 1)
+ * - Only publicly listable upcoming events (PublicEventVisibility)
  * - No N+1: single query per source, merged in PHP.
- * - Do not hide past events; optionally deprioritise past events at sort time.
  */
 final class PopularEventsService {
 
@@ -57,17 +60,31 @@ final class PopularEventsService {
    */
   private OrderItemClassifier $orderItemClassifier;
 
+  /**
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  private EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * @var \Drupal\myeventlane_event\Service\PublicEventVisibility
+   */
+  private PublicEventVisibility $publicEventVisibility;
+
   public function __construct(
     Connection $database,
     TimeInterface $time,
     LoggerChannelFactoryInterface $logger_factory,
     OrderItemClassifier $orderItemClassifier,
+    EntityTypeManagerInterface $entity_type_manager,
+    PublicEventVisibility $public_event_visibility,
   ) {
     $this->database = $database;
     $this->time = $time;
     $this->schema = $database->schema();
     $this->logger = $logger_factory->get('myeventlane_analytics');
     $this->orderItemClassifier = $orderItemClassifier;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->publicEventVisibility = $public_event_visibility;
   }
 
   /**
@@ -134,7 +151,7 @@ final class PopularEventsService {
       // Spec: Deterministic score formula.
       $score = ($tickets_sold * 3) + ($rsvp_count * 1);
 
-      // Past handling: do not hide; only used for sort tie-breaking.
+      // Past handling: retained for sort stability among listable rows.
       $start_ts = (int) ($starts[$nid] ?? 0);
       $is_past = ($start_ts > 0) ? ($start_ts < $this->time->getRequestTime()) : FALSE;
 
@@ -166,7 +183,38 @@ final class PopularEventsService {
       return $b['nid'] <=> $a['nid'];
     });
 
-    return $rows;
+    return $this->filterPubliclyListableRows($rows);
+  }
+
+  /**
+   * Restricts rows to canonical public discovery eligibility.
+   *
+   * @param array<int, array{nid:int, score:int, tickets_sold:int, rsvps:int, going:int, is_past:bool}> $rows
+   *
+   * @return array<int, array{nid:int, score:int, tickets_sold:int, rsvps:int, going:int, is_past:bool}>
+   */
+  private function filterPubliclyListableRows(array $rows): array {
+    if ($rows === []) {
+      return [];
+    }
+
+    $nids = array_values(array_unique(array_map(static fn (array $row): int => (int) ($row['nid'] ?? 0), $rows)));
+    $nids = array_values(array_filter($nids, static fn (int $nid): bool => $nid > 0));
+    if ($nids === []) {
+      return [];
+    }
+
+    $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($nids);
+
+    return array_values(array_filter($rows, function (array $row) use ($nodes): bool {
+      $nid = (int) ($row['nid'] ?? 0);
+      if ($nid < 1) {
+        return FALSE;
+      }
+      $node = $nodes[$nid] ?? NULL;
+      return $node instanceof NodeInterface
+        && $this->publicEventVisibility->isPubliclyListable($node);
+    }));
   }
 
   /**
@@ -434,4 +482,3 @@ final class PopularEventsService {
   }
 
 }
-

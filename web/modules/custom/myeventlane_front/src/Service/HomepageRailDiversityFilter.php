@@ -45,6 +45,47 @@ final class HomepageRailDiversityFilter {
   }
 
   /**
+   * Applies diversity filtering to an ordered event node list (non-Views rails).
+   *
+   * @param list<\Drupal\node\NodeInterface> $nodes
+   *   Events in rank order.
+   * @param int $targetCount
+   *   Desired result count; backfills from deferred rows when diversity is thin.
+   *
+   * @return list<\Drupal\node\NodeInterface>
+   */
+  public function filterEventNodes(array $nodes, int $targetCount): array {
+    $targetCount = max(1, $targetCount);
+    if ($nodes === []) {
+      return [];
+    }
+    if (count($nodes) <= 1) {
+      return array_slice($nodes, 0, $targetCount);
+    }
+
+    $preferred = [];
+    $deferred = [];
+
+    foreach ($nodes as $node) {
+      if ($this->passesDiversityForNode($node, $preferred)) {
+        $preferred[] = $node;
+      }
+      else {
+        $deferred[] = $node;
+      }
+    }
+
+    foreach ($deferred as $node) {
+      if (count($preferred) >= $targetCount) {
+        break;
+      }
+      $preferred[] = $node;
+    }
+
+    return array_slice($preferred, 0, $targetCount);
+  }
+
+  /**
    * Filters view results to improve category/venue/organiser spread.
    *
    * Prefers diverse rows first but backfills so rails keep their query count.
@@ -91,6 +132,27 @@ final class HomepageRailDiversityFilter {
       return TRUE;
     }
 
+    $preferredNodes = [];
+    foreach ($preferred as $preferredRow) {
+      $preferredEntity = $preferredRow->_entity ?? NULL;
+      if ($preferredEntity instanceof NodeInterface) {
+        $preferredNodes[] = $preferredEntity;
+      }
+    }
+
+    return $this->passesDiversityForNode($entity, $preferredNodes);
+  }
+
+  /**
+   * Whether an event can join the preferred set without repeating organiser/category/venue.
+   *
+   * @param list<\Drupal\node\NodeInterface> $preferred
+   */
+  private function passesDiversityForNode(NodeInterface $entity, array $preferred): bool {
+    if ($entity->bundle() !== 'event') {
+      return TRUE;
+    }
+
     $organiserKey = (string) (int) $entity->getOwnerId();
     $categoryKey = $this->categoryKey($entity);
     $venueKey = $this->venueKey($entity);
@@ -99,8 +161,7 @@ final class HomepageRailDiversityFilter {
     $seenCategories = [];
     $seenVenues = [];
 
-    foreach ($preferred as $preferredRow) {
-      $preferredEntity = $preferredRow->_entity ?? NULL;
+    foreach ($preferred as $preferredEntity) {
       if (!$preferredEntity instanceof NodeInterface || $preferredEntity->bundle() !== 'event') {
         continue;
       }
