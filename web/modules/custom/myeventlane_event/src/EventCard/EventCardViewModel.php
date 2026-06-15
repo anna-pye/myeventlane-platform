@@ -167,10 +167,10 @@ final class EventCardViewModel {
     if ($categoryLabel) {
       $badges[] = ['label' => $categoryLabel, 'type' => 'category'];
     }
-    if (!empty($eventUi['image_badge_label'])) {
+    if (!empty($merchandising['image_badge_label'])) {
       $badges[] = [
-        'label' => (string) $eventUi['image_badge_label'],
-        'type' => (string) ($eventUi['image_badge_type'] ?? 'apricot'),
+        'label' => (string) $merchandising['image_badge_label'],
+        'type' => (string) ($merchandising['image_badge_modifier'] ?? 'apricot'),
       ];
     }
 
@@ -198,7 +198,7 @@ final class EventCardViewModel {
       'cta_url' => $url,
       'is_sold_out' => !empty($eventUi['is_sold_out']),
       'is_free' => $pricingType === BookingFlowResolver::MODE_RSVP,
-      'is_featured' => $isPromoted || !empty($eventUi['image_badge_label']),
+      'is_featured' => $isPromoted || !empty($merchandising['image_badge_label']),
       'is_saved' => $isSaved,
       'variant' => $presentation['variant'],
       'layout' => $presentation['layout'],
