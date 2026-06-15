@@ -6,6 +6,7 @@ core_version_requirement: ^11
 lifecycle: stable
 
 dependencies:
+  - myeventlane_rsvp:myeventlane_rsvp
   - myeventlane_event:myeventlane_event
   - myeventlane_surface:myeventlane_surface
   - myeventlane_core:myeventlane_core
