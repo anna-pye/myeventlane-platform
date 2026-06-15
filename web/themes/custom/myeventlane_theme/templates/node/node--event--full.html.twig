@@ -100,16 +100,16 @@
         {% endif %}
       </div>
       <div class="mel-event-hero__overlay" aria-hidden="true"></div>
-      {% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
-        <div class="mel-event-hero__chip">
-          <span class="mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--warning" role="status">
-            <span class="mel-pill__label">{{ 'Sold out'|t }}</span>
-          </span>
-        </div>
-      {% elseif mel_hero_discovery_badge is defined and mel_hero_discovery_badge.label|default('')|trim %}
+      {% if mel_hero_discovery_badge is defined and mel_hero_discovery_badge.label|default('')|trim %}
         <div class="mel-event-hero__chip">
           <span class="mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ mel_hero_discovery_badge.modifier|default('apricot') }}" role="status">
             <span class="mel-pill__label">{{ mel_hero_discovery_badge.label }}</span>
+          </span>
+        </div>
+      {% elseif event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
+        <div class="mel-event-hero__chip">
+          <span class="mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--warning" role="status">
+            <span class="mel-pill__label">{{ 'Sold out'|t }}</span>
           </span>
         </div>
       {% elseif mel_category_label %}

@@ -25,7 +25,10 @@ final class EventMerchandisingPresenter {
   /**
    * Builds merchandising presentation for a card context.
    *
-   * Priority (one body signal): Sold out → Going → Tonight urgency →
+   * Image badge priority (one badge): Sold out → Spotlight (promoted) →
+   * Hidden Gem. Spotlight applies on all card layouts when promoted.
+   *
+   * Body signal priority (one signal): Sold out → Going → Tonight urgency →
    * Selling fast → Limited spots. Price appears only when no body signal
    * competes (via optional ticket pill on paid discovery cards).
    *
@@ -112,7 +115,7 @@ final class EventMerchandisingPresenter {
       $imageBadgeLabel = (string) $this->t('Sold out');
       $imageBadgeModifier = 'warning';
     }
-    elseif (($isHero || $isDiscovery) && $isPromoted) {
+    elseif ($isPromoted) {
       $imageBadgeLabel = (string) $this->t('Spotlight');
     }
     elseif ($isHiddenGem) {

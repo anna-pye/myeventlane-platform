@@ -1660,9 +1660,7 @@ function myeventlane_event_apply_full_page_discovery_badge(array &$variables, No
   }
 
   $event_ui = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : [];
-  if (!empty($event_ui['is_sold_out'])) {
-    return;
-  }
+  $is_sold_out = !empty($event_ui['is_sold_out']);
 
   $domain = is_array($variables['event_domain_state'] ?? NULL) ? $variables['event_domain_state'] : [];
   $is_hidden_gem = $node->hasField('field_hidden_gem')
@@ -1679,7 +1677,7 @@ function myeventlane_event_apply_full_page_discovery_badge(array &$variables, No
     'layout' => 'hero',
     'is_hidden_gem' => $is_hidden_gem,
     'is_promoted' => $is_promoted,
-    'is_sold_out' => FALSE,
+    'is_sold_out' => $is_sold_out,
   ]);
 
   $label = trim((string) ($merchandising['image_badge_label'] ?? ''));

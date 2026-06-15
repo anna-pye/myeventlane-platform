@@ -230,6 +230,106 @@ final class EventMerchandisingPresenterTest extends UnitTestCase {
     self::assertSame('apricot', $result['image_badge_modifier']);
   }
 
+  /**
+   * @covers ::present
+   */
+  public function testSpotlightBadgeWhenPromotedOnListLayout(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => '',
+      'variant' => 'list',
+      'is_promoted' => TRUE,
+      'card_type' => 'paid',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertSame('apricot', $result['image_badge_modifier']);
+    self::assertNull($result['secondary']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSpotlightBadgeWhenPromotedOnTeaserLayout(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => '',
+      'variant' => 'list',
+      'is_promoted' => TRUE,
+      'card_type' => 'rsvp',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertSame('apricot', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSpotlightBadgeWhenPromotedOnStandardCardLayout(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => '',
+      'variant' => 'standard',
+      'is_promoted' => TRUE,
+      'card_type' => 'paid',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertSame('apricot', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSoldOutOutranksSpotlightOnPromotedListLayout(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => '',
+      'variant' => 'list',
+      'is_promoted' => TRUE,
+      'is_sold_out' => TRUE,
+      'card_type' => 'paid',
+    ]);
+
+    self::assertSame('Sold out', $result['image_badge_label']);
+    self::assertSame('warning', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSpotlightOutranksHiddenGemOnListLayout(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => '',
+      'variant' => 'list',
+      'is_hidden_gem' => TRUE,
+      'is_promoted' => TRUE,
+      'card_type' => 'rsvp',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertSame('apricot', $result['image_badge_modifier']);
+  }
+
+  /**
+   * @covers ::present
+   */
+  public function testSingleImageBadgeWhenPromotedAndHiddenGemOnListLayout(): void {
+    $presenter = $this->createPresenter();
+    $result = $presenter->present([
+      'layout' => '',
+      'variant' => 'list',
+      'is_hidden_gem' => TRUE,
+      'is_promoted' => TRUE,
+      'card_type' => 'paid',
+    ]);
+
+    self::assertSame('Spotlight', $result['image_badge_label']);
+    self::assertNotSame('Hidden Gem', $result['image_badge_label']);
+  }
+
   private function createPresenter(): EventMerchandisingPresenter {
     return new EventMerchandisingPresenter($this->getStringTranslationStub());
   }
