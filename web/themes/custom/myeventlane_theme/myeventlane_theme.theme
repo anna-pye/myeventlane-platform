@@ -1965,6 +1965,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         && isset($variables['page']['homepage_hidden_gems'])
         && is_array($variables['page']['homepage_hidden_gems'])
         && count(Element::children($variables['page']['homepage_hidden_gems'])) > 0;
+      $variables['mel_home_show_community_favourites'] = $homepageVisibility->hasCommunityFavouritesEvents()
+        && isset($variables['page']['homepage_community_favourites'])
+        && is_array($variables['page']['homepage_community_favourites'])
+        && count(Element::children($variables['page']['homepage_community_favourites'])) > 0;
     }
     else {
       $variables['mel_home_show_featured'] = FALSE;
@@ -1974,6 +1978,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       $variables['mel_home_show_recommended'] = FALSE;
       $variables['mel_home_show_tonight'] = FALSE;
       $variables['mel_home_show_hidden_gems'] = FALSE;
+      $variables['mel_home_show_community_favourites'] = FALSE;
     }
   }
 

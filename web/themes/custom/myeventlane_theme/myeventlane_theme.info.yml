@@ -21,6 +21,7 @@ regions:
   homepage_latest: 'Homepage Latest'
   homepage_tonight: 'Homepage Tonight'
   homepage_hidden_gems: 'Homepage Hidden Gems'
+  homepage_community_favourites: 'Homepage Community Favourites'
   homepage_free: 'Homepage Free & RSVP'
   homepage_nearby: 'Homepage Nearby'
   homepage_online: 'Homepage Online'

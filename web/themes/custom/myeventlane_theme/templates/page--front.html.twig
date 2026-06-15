@@ -87,6 +87,21 @@
       } %}
     {% endif %}
 
+    {% if mel_home_show_community_favourites|default(false) %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--community-favourites mel-section--discover',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--community-favourites',
+        title: 'Community Favourites'|t,
+        subtitle: 'Experiences people are joining — from real tickets and RSVPs this week.'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'See all events'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_community_favourites
+      } %}
+    {% endif %}
+
     {% if mel_home_show_free_rsvp|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--free-rsvp mel-section--discover',

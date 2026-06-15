@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_front\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Path\PathMatcherInterface;
+use Drupal\myeventlane_analytics\Service\PopularEventsService;
 use Drupal\views\ViewExecutableFactory;
 
 /**
@@ -18,6 +20,9 @@ final class HomepageSectionVisibility {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ViewExecutableFactory $viewExecutableFactory,
     private readonly FeaturedEventsRenderBuilder $featuredEventsRenderBuilder,
+    private readonly PopularEventsService $popularEvents,
+    private readonly HomepageMerchandising $homepageMerchandising,
+    private readonly PathMatcherInterface $pathMatcher,
   ) {}
 
   /**
@@ -58,6 +63,25 @@ final class HomepageSectionVisibility {
    */
   public function hasHiddenGemEvents(): bool {
     return $this->viewDisplayHasResults('upcoming_events', 'homepage_hidden_gems');
+  }
+
+  /**
+   * Whether the Community Favourites rail would render cards on the homepage.
+   *
+   * Uses the post-dedup candidate pool so empty section shells are not shown
+   * when every popular event already appears in a higher-priority rail.
+   */
+  public function hasCommunityFavouritesEvents(): bool {
+    try {
+      if ($this->pathMatcher->isFrontPage()) {
+        return $this->homepageMerchandising->getCommunityFavouritesEventIds() !== [];
+      }
+
+      return $this->popularEvents->getPopularEventIds(7, 1) !== [];
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
   }
 
   /**
