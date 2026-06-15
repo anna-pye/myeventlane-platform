@@ -1,0 +1,4 @@
+administer hidden gem flag:
+  title: 'Administer Hidden Gem editorial flag'
+  description: 'Set the staff Hidden Gem editorial flag (field_hidden_gem) on events. Drives the Hidden Gems discovery programme and is independent of Boost or paid promotion.'
+  restrict access: true

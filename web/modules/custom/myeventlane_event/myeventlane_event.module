@@ -13,6 +13,8 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -66,6 +68,25 @@ function myeventlane_event_paragraph_access(ParagraphInterface $entity, string $
   }
 
   return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_entity_field_access().
+ *
+ * Protects the Hidden Gem editorial flag (field_hidden_gem) so only staff with
+ * the dedicated permission may edit it. The flag drives the Hidden Gems
+ * discovery programme and must stay independent of vendor input, Boost, or paid
+ * promotion. Administrators (is_admin roles) hold the permission implicitly.
+ * View access is intentionally left unchanged — the badge is public.
+ */
+function myeventlane_event_entity_field_access(string $operation, FieldDefinitionInterface $field_definition, AccountInterface $account, ?FieldItemListInterface $items = NULL): AccessResult {
+  if ($operation !== 'edit' || $field_definition->getName() !== 'field_hidden_gem') {
+    return AccessResult::neutral();
+  }
+
+  return AccessResult::forbiddenIf(!$account->hasPermission('administer hidden gem flag'))
+    ->cachePerPermissions()
+    ->setReason('Editing the Hidden Gem editorial flag requires the "administer hidden gem flag" permission.');
 }
 
 /**
