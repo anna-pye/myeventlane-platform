@@ -12,6 +12,9 @@ services:
       - '@entity_type.manager'
       - '@views.executable'
       - '@myeventlane_front.featured_events_render_builder'
+      - '@myeventlane_analytics.popular_events'
+      - '@myeventlane_front.homepage_merchandising'
+      - '@path.matcher'
 
   myeventlane_front.homepage_merchandising:
     class: Drupal\myeventlane_front\Service\HomepageMerchandising
@@ -22,6 +25,7 @@ services:
       - '@path.matcher'
       - '@myeventlane_event.public_visibility'
       - '@myeventlane_event.boosted_quality_gate'
+      - '@myeventlane_analytics.popular_events'
 
   myeventlane_front.homepage_merchandising_query_alter:
     class: Drupal\myeventlane_front\Service\HomepageMerchandisingQueryAlter

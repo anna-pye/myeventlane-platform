@@ -1,0 +1,30 @@
+uuid: 7c3d9a1e-4f82-4b6c-9d0e-1a2b3c4d5e6f
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_front
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_homepage_community_favourites
+theme: myeventlane_theme
+region: homepage_community_favourites
+weight: 0
+provider: null
+plugin: myeventlane_popular_events_block
+settings:
+  id: myeventlane_popular_events_block
+  label: 'Community Favourites'
+  label_display: '0'
+  provider: myeventlane_front
+  days: 7
+  limit: 8
+  view_mode: compact_commerce
+  title: ''
+  show_going: true
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

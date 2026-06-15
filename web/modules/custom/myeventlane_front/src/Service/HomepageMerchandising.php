@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_front\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Path\PathMatcherInterface;
+use Drupal\myeventlane_analytics\Service\PopularEventsService;
 use Drupal\myeventlane_event\Service\BoostedEventQualityGate;
 use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
@@ -103,6 +104,11 @@ final class HomepageMerchandising {
   /**
    * @var list<int>|null
    */
+  private ?array $communityFavouritesEventIds = NULL;
+
+  /**
+   * @var list<int>|null
+   */
   private ?array $ineligiblePromotedEventIds = NULL;
 
   public function __construct(
@@ -112,6 +118,7 @@ final class HomepageMerchandising {
     private readonly PathMatcherInterface $pathMatcher,
     private readonly PublicEventVisibility $publicVisibility,
     private readonly BoostedEventQualityGate $qualityGate,
+    private readonly PopularEventsService $popularEvents,
   ) {}
 
   /**
@@ -158,6 +165,7 @@ final class HomepageMerchandising {
         ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
         ...$this->getHiddenGemEventIds(),
+        ...$this->getCommunityFavouritesEventIds(),
       ])),
       'upcoming_events:homepage_latest' => array_values(array_unique([
         ...$hero,
@@ -165,6 +173,7 @@ final class HomepageMerchandising {
         ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
         ...$this->getHiddenGemEventIds(),
+        ...$this->getCommunityFavouritesEventIds(),
         ...$this->getFreeRsvpEventIds(),
       ])),
       'front_recommended_events:block_1' => array_values(array_unique([
@@ -173,6 +182,7 @@ final class HomepageMerchandising {
         ...$this->getDiscoverEventIds(),
         ...$this->getTonightEventIds(),
         ...$this->getHiddenGemEventIds(),
+        ...$this->getCommunityFavouritesEventIds(),
         ...$this->getFreeRsvpEventIds(),
         ...$this->getLatestEventIds(),
       ])),
@@ -366,7 +376,7 @@ final class HomepageMerchandising {
   /**
    * NIDs to exclude from Community Favourites (higher-priority homepage rails).
    *
-   * Mirrors the cascade applied before homepage_latest, without latest itself.
+   * CF sits after Hidden Gems and before Free & RSVP on the homepage.
    *
    * @return list<int>
    */
@@ -381,8 +391,45 @@ final class HomepageMerchandising {
       ...$this->getDiscoverEventIds(),
       ...$this->getTonightEventIds(),
       ...$this->getHiddenGemEventIds(),
-      ...$this->getFreeRsvpEventIds(),
     ]));
+  }
+
+  /**
+   * Resolved Community Favourites candidate pool for downstream dedup cascade.
+   *
+   * Uses the popularity engine pool after higher-priority homepage exclusions.
+   * Over-fetches so diversity filtering in the block cannot cause duplicate cards
+   * on lower homepage rails.
+   *
+   * @return list<int>
+   */
+  public function getCommunityFavouritesEventIds(): array {
+    if ($this->communityFavouritesEventIds !== NULL) {
+      return $this->communityFavouritesEventIds;
+    }
+
+    if (!$this->pathMatcher->isFrontPage()) {
+      $this->communityFavouritesEventIds = [];
+      return $this->communityFavouritesEventIds;
+    }
+
+    $rows = $this->popularEvents->getPopularEventIds(7, 24);
+    if ($rows === []) {
+      $this->communityFavouritesEventIds = [];
+      return $this->communityFavouritesEventIds;
+    }
+
+    $exclude = array_flip($this->getCommunityFavouritesExclusionNids());
+    $nids = [];
+    foreach ($rows as $row) {
+      $nid = (int) ($row['nid'] ?? 0);
+      if ($nid > 0 && !isset($exclude[$nid])) {
+        $nids[] = $nid;
+      }
+    }
+
+    $this->communityFavouritesEventIds = $nids;
+    return $this->communityFavouritesEventIds;
   }
 
   /**
