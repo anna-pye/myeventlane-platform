@@ -22,6 +22,8 @@ final class DiscoveryAttributionSources {
   public const SOURCE_HOMEPAGE_DISCOVER = 'homepage_discover';
   public const SOURCE_HOMEPAGE_HIDDEN_GEMS = 'homepage_hidden_gems';
   public const SOURCE_BROWSE_HIDDEN_GEMS = 'browse_hidden_gems';
+  public const SOURCE_HOMEPAGE_COMMUNITY_FAVOURITES = 'homepage_community_favourites';
+  public const SOURCE_BROWSE_COMMUNITY_FAVOURITES = 'browse_community_favourites';
 
   /**
    * @var list<string>
@@ -35,6 +37,8 @@ final class DiscoveryAttributionSources {
     self::SOURCE_HOMEPAGE_UPCOMING,
     self::SOURCE_HOMEPAGE_HIDDEN_GEMS,
     self::SOURCE_BROWSE_HIDDEN_GEMS,
+    self::SOURCE_HOMEPAGE_COMMUNITY_FAVOURITES,
+    self::SOURCE_BROWSE_COMMUNITY_FAVOURITES,
     self::SOURCE_SEARCH,
     self::SOURCE_CATEGORY,
     self::SOURCE_RELATED_EVENTS,
@@ -54,6 +58,7 @@ final class DiscoveryAttributionSources {
     'upcoming_events:homepage_latest' => self::SOURCE_HOMEPAGE_UPCOMING,
     'upcoming_events:homepage_hidden_gems' => self::SOURCE_HOMEPAGE_HIDDEN_GEMS,
     'upcoming_events:page_hidden_gems' => self::SOURCE_BROWSE_HIDDEN_GEMS,
+    'upcoming_events:page_popular' => self::SOURCE_BROWSE_COMMUNITY_FAVOURITES,
     'upcoming_events:page_category' => self::SOURCE_CATEGORY,
   ];
 

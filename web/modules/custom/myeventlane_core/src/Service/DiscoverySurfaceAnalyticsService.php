@@ -23,9 +23,14 @@ final class DiscoverySurfaceAnalyticsService {
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_FEATURED => 'spotlight',
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_DISCOVER => 'discover',
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_TONIGHT => 'tonight',
+    DiscoveryAttributionSources::SOURCE_HOMEPAGE_HIDDEN_GEMS => 'hidden_gems',
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_FREE => 'free',
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_RECOMMENDED => 'recommended',
     DiscoveryAttributionSources::SOURCE_HOMEPAGE_UPCOMING => 'latest',
+    DiscoveryAttributionSources::SOURCE_HOMEPAGE_COMMUNITY_FAVOURITES => 'community_favourites',
+    DiscoveryAttributionSources::SOURCE_BROWSE_COMMUNITY_FAVOURITES => 'community_favourites',
+    DiscoveryAttributionSources::SOURCE_BROWSE_HIDDEN_GEMS => 'hidden_gems_browse',
+    DiscoveryAttributionSources::SOURCE_RELATED_EVENTS => 'related_events',
   ];
 
   /**
@@ -38,8 +43,12 @@ final class DiscoverySurfaceAnalyticsService {
     'recommended' => 'Recommended',
     'discover' => 'Discover Events',
     'tonight' => 'Happening Tonight',
+    'hidden_gems' => 'Hidden Gems',
     'free' => 'Free & RSVP',
     'latest' => 'Freshly Added',
+    'community_favourites' => 'Community Favourites',
+    'hidden_gems_browse' => 'Hidden Gems Browse',
+    'related_events' => 'Related Events',
   ];
 
   public function __construct(
@@ -141,8 +150,12 @@ final class DiscoverySurfaceAnalyticsService {
       'recommended',
       'discover',
       'tonight',
+      'hidden_gems',
       'free',
       'latest',
+      'community_favourites',
+      'hidden_gems_browse',
+      'related_events',
     ];
 
     $rows = [];

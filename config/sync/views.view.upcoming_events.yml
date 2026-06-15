@@ -2907,10 +2907,11 @@ display:
       tags: {  }
   page_popular:
     id: page_popular
-    display_title: 'Popular events'
+    display_title: 'Community Favourites'
     display_plugin: page
     position: 9
     display_options:
+      title: 'Community Favourites'
       pager:
         type: full
         options:
@@ -2944,7 +2945,7 @@ display:
           plugin_id: text
           empty: true
           content:
-            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">No popular events yet</h3><p class="mel-empty-state__what">Browse upcoming events while organisers boost new experiences.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Explore events</a></p></div>'
+            value: '<div class="mel-empty-state mel-empty-state--governed"><h3 class="mel-empty-state__heading">No Community Favourites yet</h3><p class="mel-empty-state__what">When people start joining events this week, the most popular experiences will show up here.</p><p class="mel-empty-state__cta"><a class="mel-btn mel-btn--cta" href="/events">Browse all events</a></p></div>'
             format: full_html
           tokenize: false
       filters:
@@ -3234,46 +3235,6 @@ display:
           hierarchy: false
           limit: true
           error_message: true
-        field_promoted_value:
-          id: field_promoted_value
-          table: node__field_promoted
-          field: field_promoted_value
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_promoted
-          plugin_id: boolean
-          operator: '='
-          value: '1'
-          group: 1
-          exposed: false
-          expose:
-            operator_id: ''
-            label: ''
-            description: ''
-            use_operator: false
-            operator: ''
-            operator_limit_selection: false
-            operator_list: {  }
-            identifier: ''
-            required: false
-            remember: false
-            multiple: false
-            remember_roles:
-              authenticated: authenticated
-          is_grouped: false
-          group_info:
-            label: ''
-            description: ''
-            identifier: ''
-            optional: true
-            widget: select
-            multiple: false
-            remember: false
-            default_group: All
-            default_group_multiple: {  }
-            group_items: {  }
       filter_groups:
         operator: AND
         groups:
@@ -3288,13 +3249,13 @@ display:
         pager: false
         row: false
         filters: false
-      display_description: 'Boosted and popular public event discovery route.'
+      display_description: 'Community Favourites browse — engagement-ranked public event discovery.'
       display_extenders: {  }
       path: events/popular
       menu:
         type: normal
         title: Discover
-        description: 'Discover boosted and popular events'
+        description: 'Events people are joining this week'
         weight: 2
         enabled: true
         menu_name: main

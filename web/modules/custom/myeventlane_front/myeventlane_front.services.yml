@@ -31,6 +31,7 @@ services:
     class: Drupal\myeventlane_front\Service\HomepageMerchandisingQueryAlter
     arguments:
       - '@myeventlane_front.homepage_merchandising'
+      - '@myeventlane_analytics.popular_events'
 
   myeventlane_front.homepage_rail_diversity:
     class: Drupal\myeventlane_front\Service\HomepageRailDiversityFilter

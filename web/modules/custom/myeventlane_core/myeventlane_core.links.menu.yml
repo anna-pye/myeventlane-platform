@@ -50,7 +50,7 @@ myeventlane_core.footer_find_events.free:
   weight: 3
 
 myeventlane_core.footer_find_events.popular:
-  title: 'Popular events'
+  title: 'Community Favourites'
   route_name: view.upcoming_events.page_popular
   menu_name: footer-find
   weight: 4

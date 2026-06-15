@@ -1515,8 +1515,6 @@ function myeventlane_event_finalize_event_ui(
       'is_limited' => FALSE,
       'show_cta' => TRUE,
       'capacity_hint' => NULL,
-      'image_badge_label' => NULL,
-      'image_badge_type' => NULL,
     ];
   };
 
@@ -1537,8 +1535,6 @@ function myeventlane_event_finalize_event_ui(
     if ($isBoosted) {
       $out['status_label'] = (string) t('Spotlight');
       $out['status_type'] = 'highlight';
-      $out['image_badge_label'] = (string) t('Spotlight');
-      $out['image_badge_type'] = 'apricot';
     }
     if (!$isSoldOut && $rsvpState === 'limited') {
       $out['is_limited'] = TRUE;
@@ -1563,8 +1559,6 @@ function myeventlane_event_finalize_event_ui(
     $out['is_sold_out'] = TRUE;
     $out['status_label'] = (string) t('Sold out');
     $out['status_type'] = 'warning';
-    $out['image_badge_label'] = (string) t('Sold out');
-    $out['image_badge_type'] = 'warning';
     $out['cta_label'] = (string) ($eventCta['label'] ?? '');
     $out['cta_type'] = 'secondary';
   }
@@ -1611,27 +1605,18 @@ function myeventlane_event_finalize_event_ui(
   ) {
     $out['capacity_hint'] = (string) t('Limited spots remaining');
   }
-  if (
-    $out['is_sold_out'] === FALSE
-    && $isBoosted
-    && ($out['image_badge_label'] ?? NULL) === NULL
-  ) {
+  if ($out['is_sold_out'] === FALSE && $isBoosted) {
     $out['status_label'] = (string) t('Spotlight');
     $out['status_type'] = 'highlight';
-    $out['image_badge_label'] = (string) t('Spotlight');
-    $out['image_badge_type'] = 'apricot';
   }
   elseif (
     $out['is_sold_out'] === FALSE
     && $node->hasField('field_promoted')
     && !$node->get('field_promoted')->isEmpty()
     && (bool) $node->get('field_promoted')->value
-    && ($out['image_badge_label'] ?? NULL) === NULL
   ) {
     $out['status_label'] = (string) t('Spotlight');
     $out['status_type'] = 'highlight';
-    $out['image_badge_label'] = (string) t('Spotlight');
-    $out['image_badge_type'] = 'apricot';
   }
 
   if (myeventlane_event_get_social_proof_mode($node) === 'hide') {
@@ -1660,9 +1645,7 @@ function myeventlane_event_apply_full_page_discovery_badge(array &$variables, No
   }
 
   $event_ui = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : [];
-  if (!empty($event_ui['is_sold_out'])) {
-    return;
-  }
+  $is_sold_out = !empty($event_ui['is_sold_out']);
 
   $domain = is_array($variables['event_domain_state'] ?? NULL) ? $variables['event_domain_state'] : [];
   $is_hidden_gem = $node->hasField('field_hidden_gem')
@@ -1679,7 +1662,7 @@ function myeventlane_event_apply_full_page_discovery_badge(array &$variables, No
     'layout' => 'hero',
     'is_hidden_gem' => $is_hidden_gem,
     'is_promoted' => $is_promoted,
-    'is_sold_out' => FALSE,
+    'is_sold_out' => $is_sold_out,
   ]);
 
   $label = trim((string) ($merchandising['image_badge_label'] ?? ''));

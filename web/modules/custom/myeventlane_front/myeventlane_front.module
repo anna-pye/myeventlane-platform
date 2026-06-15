@@ -94,6 +94,19 @@ function myeventlane_front_views_query_alter(\Drupal\views\ViewExecutable $view,
  * Applies optional homepage rail diversity without query rewrites.
  */
 function myeventlane_front_views_pre_render(\Drupal\views\ViewExecutable $view): void {
+  if ($view->id() === 'upcoming_events'
+    && ($view->current_display ?? '') === 'page_popular'
+    && !empty($view->result)
+    && !empty($view->mel_community_favourites_rank)
+    && is_array($view->mel_community_favourites_rank)) {
+    $rank = $view->mel_community_favourites_rank;
+    usort($view->result, static function ($a, $b) use ($rank): int {
+      $id_a = isset($a->_entity) ? (int) $a->_entity->id() : PHP_INT_MAX;
+      $id_b = isset($b->_entity) ? (int) $b->_entity->id() : PHP_INT_MAX;
+      return ($rank[$id_a] ?? PHP_INT_MAX) <=> ($rank[$id_b] ?? PHP_INT_MAX);
+    });
+  }
+
   if (!\Drupal::hasService('myeventlane_front.homepage_rail_diversity')) {
     return;
   }
