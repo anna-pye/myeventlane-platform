@@ -12,6 +12,7 @@ use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\myeventlane_analytics\Service\PopularEventsService;
 use Drupal\myeventlane_core\Service\DiscoveryAttributionSources;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_front\Service\HomepageMerchandising;
 use Drupal\myeventlane_front\Service\HomepageRailDiversityFilter;
 use Drupal\node\NodeInterface;
@@ -53,6 +54,11 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
    */
   private PathMatcherInterface $pathMatcher;
 
+  /**
+   * @var \Drupal\myeventlane_event\Service\PublicEventVisibility
+   */
+  private PublicEventVisibility $publicVisibility;
+
   public function __construct(
     array $configuration,
     $plugin_id,
@@ -62,6 +68,7 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
     HomepageMerchandising $merchandising,
     HomepageRailDiversityFilter $diversity_filter,
     PathMatcherInterface $path_matcher,
+    PublicEventVisibility $public_visibility,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->popular = $popular;
@@ -69,6 +76,7 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
     $this->merchandising = $merchandising;
     $this->diversityFilter = $diversity_filter;
     $this->pathMatcher = $path_matcher;
+    $this->publicVisibility = $public_visibility;
   }
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): self {
@@ -81,6 +89,7 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       $container->get('myeventlane_front.homepage_merchandising'),
       $container->get('myeventlane_front.homepage_rail_diversity'),
       $container->get('path.matcher'),
+      $container->get('myeventlane_event.public_visibility'),
     );
   }
 
@@ -209,6 +218,22 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
         $ordered_nodes[$nid] = $nodes[$nid];
       }
     }
+
+    // CF-7D: Lifecycle/visibility eligibility. The rail must not surface past,
+    // ended, cancelled, archived, unlisted, or otherwise non-public events.
+    // Reuse the canonical owner (PublicEventVisibility::isPubliclyListable, which
+    // composes EventStateResolver lifecycle + public-visibility checks) rather
+    // than introducing a new eligibility system. Applied to the over-fetched set
+    // before merchandising/diversity/limit, so ranking order and fetch limits are
+    // preserved and the rail still fills from eligible events.
+    $ordered_nodes = array_filter(
+      $ordered_nodes,
+      fn (NodeInterface $node): bool => $this->publicVisibility->isPubliclyListable($node)
+    );
+    $rows = array_values(array_filter(
+      $rows,
+      fn ($row): bool => is_array($row) && isset($ordered_nodes[(int) ($row['nid'] ?? 0)])
+    ));
 
     if ($onHomepage) {
       $rows = $this->applyHomepageMerchandising($rows, $ordered_nodes);
