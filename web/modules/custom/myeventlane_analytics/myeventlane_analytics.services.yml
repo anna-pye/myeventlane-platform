@@ -41,11 +41,6 @@ services:
       - '@myeventlane_surface.state_readiness_helper'
       - '@logger.factory'
 
-  # Trending score service.
-  myeventlane_analytics.trending_score:
-    class: Drupal\myeventlane_analytics\Service\TrendingScoreService
-    arguments: ['@database', '@datetime.time', '@entity_type.manager', '@myeventlane_boost.manager']
-
   # Logger channel for analytics module.
   logger.channel.myeventlane_analytics:
     parent: logger.channel_base

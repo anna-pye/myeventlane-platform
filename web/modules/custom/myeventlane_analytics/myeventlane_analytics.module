@@ -38,11 +38,5 @@ function myeventlane_analytics_theme(): array {
       ],
       'template' => 'analytics-event',
     ],
-    'myeventlane_trending_events' => [
-      'variables' => [
-        'events' => [],
-      ],
-      'template' => 'myeventlane-trending-events',
-    ],
   ];
 }

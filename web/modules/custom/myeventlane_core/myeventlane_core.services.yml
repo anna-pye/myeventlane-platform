@@ -284,13 +284,6 @@ services:
       - '@current_user'
       - '@database'
 
-  myeventlane_core.homepage_popularity:
-    class: Drupal\myeventlane_core\Service\HomepagePopularityService
-    arguments:
-      - '@database'
-      - '@entity_type.manager'
-      - '@?myeventlane_boost.manager'
-
   myeventlane_core.homepage_organiser:
     class: Drupal\myeventlane_core\Service\HomepageOrganiserService
     arguments:
