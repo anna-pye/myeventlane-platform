@@ -2766,24 +2766,12 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $variables['directory'] = $base_path . $theme_path;
     }
 
-    // Event Intelligence Layer: placeholder chip (node-id derived); suppressed in show/hide modes.
-    $variables['mel_signal'] = NULL;
-    $mel_state = (string) ($variables['mel_event_state'] ?? '');
-    $event_ui_signal = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : [];
-    $signal_sold_out = !empty($event_ui_signal['is_sold_out']);
-    $signal_hide = ($mel_state === 'cancelled')
-      || ($mel_state === 'sold_out')
-      || $signal_sold_out;
-    $social_proof_mode = (string) ($variables['mel_social_proof_mode'] ?? 'auto');
-    if (!$signal_hide && $social_proof_mode === 'auto') {
-      $mel_signals = [
-        (string) t('Popular'),
-        (string) t('Trending'),
-        (string) t('Just added'),
-      ];
-      $mel_signal_idx = (int) $node->id() % count($mel_signals);
-      $variables['mel_signal'] = $mel_signals[$mel_signal_idx];
-    }
+    // CF-6B: removed the node-id-derived placeholder "mel_signal" chip
+    // (Popular/Trending/Just added). It was fake — not ranking-, engagement-,
+    // attribution-, or analytics-backed. EventMerchandisingPresenter is the sole
+    // discovery signal/badge owner. See docs/audits/discovery-signal-ownership-map.md.
+    // NOTE: the real booking signals ($variables['mel_signal_*']) are unrelated
+    // and set later in this file — they are intentionally retained.
 
     // 1. Compute event image URL if it exists.
     $event_image_url = NULL;
