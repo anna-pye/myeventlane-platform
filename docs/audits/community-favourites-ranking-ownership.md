@@ -138,3 +138,73 @@ STALE / NON-CF popularity rankers (removable, separate task)
 | `rg` ranking consumers | all CF surfaces resolve to `PopularEventsService` (evidence above) |
 
 **No code, config, Views, routes, ranking, or analytics modified. Audit only.** CF-7B (stale-ranker removal) can proceed from this evidence without re-auditing ranking ownership.
+
+---
+
+# CF-7B — Ranking Architecture Cleanup (Implementation Outcome)
+
+**Date:** 2026-06-16 · **Branch:** `feature/community-favourites-ranking-cleanup`
+
+Removed the stale, unreachable ranking infrastructure identified in Q6 — **pure deletion, zero behaviour change** to Community Favourites, merchandising, attribution, analytics, Views, routes, or cards.
+
+## Reachability matrix (Phase 1 — proven before removal)
+
+| Candidate | Routes | Services consuming | DI / `\Drupal::service` | Twig / `#theme` | Tests | Config | Cron/Subscriber/Hook | Reachable |
+|---|---|---|---|---|---|---|---|---|
+| `HomepagePopularityService` | 0 | 0 | 0 (only its own `services.yml:287`) | 0 | 0 | 0 | 0 | **No** |
+| `TrendingScoreService` | 0 | only `TrendingEventsController` (also removed) | only that controller | 0 | 0 | 0 | 0 | **No** |
+| `TrendingEventsController` | **0 (no route anywhere)** | 0 | 0 | renders `myeventlane_trending_events` (also removed) | 0 | 0 | 0 | **No** |
+| `myeventlane-trending-events.html.twig` | — | — | — | only `#theme` consumer was the removed controller | 0 | 0 | hook_theme entry (also removed) | **No** |
+
+The Trending trio is a **closed unreachable subgraph** (controller has no route; it is the sole consumer of both the score service and the template theme hook). `HomepagePopularityService` is an independent orphan.
+
+## Removed components (Phase 2)
+
+| Removed | Type |
+|---|---|
+| `myeventlane_core/src/Service/HomepagePopularityService.php` | service class (orphan duplicate ranker) |
+| `myeventlane_analytics/src/Service/TrendingScoreService.php` | service class |
+| `myeventlane_analytics/src/Controller/TrendingEventsController.php` | controller (unrouted) |
+| `myeventlane_analytics/templates/myeventlane-trending-events.html.twig` | template |
+| `myeventlane_core.services.yml` → `myeventlane_core.homepage_popularity` | service registration |
+| `myeventlane_analytics.services.yml` → `myeventlane_analytics.trending_score` | service registration |
+| `myeventlane_analytics.module` → `myeventlane_trending_events` hook_theme entry | theme registration |
+
+**Diff: 7 files, 0 insertions, 473 deletions.** Post-removal dangling-reference scan: **0** references in code/config.
+
+## Final ownership map (post-CF-7B) — unchanged & protected (Phase 3)
+
+| Concern | Owner | Status |
+|---|---|---|
+| Community Favourites ranking | `PopularEventsService` | untouched |
+| Homepage/browse ranking bridge | `HomepageMerchandisingQueryAlter` | untouched |
+| Homepage merchandising/rails | `HomepageMerchandising` | untouched |
+| Attribution | `DiscoveryAttributionSources` | untouched |
+| Analytics | `DiscoverySurfaceAnalyticsService`, `PublicAnalyticsController` | untouched |
+
+Verified: none of the protected files appear in the changeset; `ddev drush cr` recompiled the container successfully (proves no live code depended on the removed services).
+
+## Before → After
+
+```
+BEFORE (3 popularity rankers)
+  PopularEventsService ........ ACTIVE (all CF surfaces)
+  HomepagePopularityService ... ORPHAN (no callers)
+  TrendingScoreService ........ ORPHAN → TrendingEventsController (NO ROUTE) → trending template
+
+AFTER (1 ranker)
+  PopularEventsService ........ ACTIVE — sole popularity/CF ranker
+  (orphans removed)
+```
+
+## Lifecycle protection (Phase 4)
+No published / cancelled / archived / past-event filtering, readiness, visibility, or state code was modified. The removed `HomepagePopularityService` contained its **own orphaned** eligibility checks; deleting dead code does not alter any active lifecycle path. The active lifecycle-filtering gap remains owned by **CF-7C — Lifecycle Eligibility Audit** (unchanged).
+
+## Known remaining debt
+- **CF-7C** — Lifecycle eligibility (cancelled/archived/past events qualify in `PopularEventsService`; filtering gap, untouched here).
+- **CF-6C** — Signal CSS ownership (orphaned `.mel-event__signal*` selectors from CF-6B).
+
+## Risk & validation
+- **Risk: Low** — pure deletion of code with proven zero runtime reachability; container rebuild and analytics Kernel test confirm no breakage.
+- `git diff --stat`: 7 files, −473. · `php -l`: clean. · `ddev drush cr`: success. · `ddev drush config:status`: no differences. · `composer validate`: valid. · `npm run mel:lint`: pass. · `npm run mel:build`: both themes built. · `OrderItemClassifierTest` (analytics Kernel): **OK, 8 tests / 119 assertions**.
+- **Ownership impact: none** — Community Favourites ranking ownership unchanged (`PopularEventsService`).
