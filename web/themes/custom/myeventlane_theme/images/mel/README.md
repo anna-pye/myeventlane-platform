@@ -10,6 +10,7 @@
 
 | Page | Path |
 |------|------|
+| **Homepage** (/) | `images/mel/hero/mel-hero-home-community.jpg` (preferred), `mel-hero-home.png`, `mel-hero-mobile.png` |
 | **Events** (/events) | `images/mel/hero/mel-hero-events.png` |
 | **Search** (/search) | `images/mel/hero/mel-hero-search.png` |
 

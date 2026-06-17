@@ -4,7 +4,8 @@
  * Homepage / marketing section wrapper — width + container from caller variables.
  *
  * Variables: section_class, section_width_class, container_class, title, subtitle,
- * link_url, link_text, content, content_wrapper_class, header_extra_class, link_class.
+ * link_url, link_text, content, content_wrapper_class, header_extra_class, link_class,
+ * title_icon (optional: guides).
  */
 #}
 <section class="mel-section {{ section_class }} {{ section_width_class|default('') }}">
@@ -13,7 +14,15 @@
       <div class="mel-section__header {{ header_extra_class|default('') }}">
         <div class="mel-section__intro">
           {% if title %}
-            <h2 class="mel-section__title">{{ title }}</h2>
+            <h2 class="mel-section__title{% if title_icon|default('') %} mel-section__title--with-icon{% endif %}">
+              {% if title_icon|default('') == 'guides' %}
+                <svg class="mel-icon mel-section__title-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+                  <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H11v18H6.5A1.5 1.5 0 0 1 5 19.5v-15ZM13 3h4.5A1.5 1.5 0 0 1 19 4.5v15a1.5 1.5 0 0 1-1.5 1.5H13V3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  <path d="M11 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              {% endif %}
+              <span class="mel-section__title-text">{{ title }}</span>
+            </h2>
           {% endif %}
 
           {% if subtitle %}

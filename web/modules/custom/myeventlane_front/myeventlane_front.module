@@ -60,11 +60,64 @@ function myeventlane_front_theme($existing, $type, $theme, $path): array {
 }
 
 /**
+ * Resolves theme-packaged homepage hero image URLs.
+ *
+ * @return array{desktop: ?string, mobile: ?string, alt: string}
+ *   Desktop/mobile absolute URLs and default alt text.
+ */
+function _myeventlane_front_home_hero_theme_urls(): array {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  $base = base_path();
+  $desktop = NULL;
+  $mobile = NULL;
+
+  $desktop_candidates = [
+    $theme_path . '/images/mel/hero/mel-hero-home-community.jpg',
+    $theme_path . '/images/mel/hero/mel-hero-home.png',
+  ];
+  foreach ($desktop_candidates as $relative) {
+    if (file_exists(DRUPAL_ROOT . '/' . $relative)) {
+      $desktop = $base . $relative;
+      break;
+    }
+  }
+
+  $mobile_candidates = [
+    $theme_path . '/images/mel/hero/mel-hero-mobile.png',
+    $theme_path . '/images/mel/hero/mel-hero-home-community.jpg',
+  ];
+  foreach ($mobile_candidates as $relative) {
+    if (file_exists(DRUPAL_ROOT . '/' . $relative)) {
+      $mobile = $base . $relative;
+      break;
+    }
+  }
+  if ($mobile === NULL && $desktop !== NULL) {
+    $mobile = $desktop;
+  }
+
+  return [
+    'desktop' => $desktop,
+    'mobile' => $mobile,
+    'alt' => (string) t('Community festival with live music, markets, and families enjoying local events.'),
+  ];
+}
+
+/**
  * Implements hook_preprocess_HOOK().
  */
 function myeventlane_front_preprocess_myeventlane_home_hero(array &$variables): void {
   $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
   $variables['directory'] = base_path() . $theme_path;
+
+  if (empty($variables['hero_image_url'])) {
+    $theme_hero = _myeventlane_front_home_hero_theme_urls();
+    $variables['hero_image_url'] = $theme_hero['desktop'];
+    $variables['hero_image_url_mobile'] = $theme_hero['mobile'];
+    if ($variables['hero_alt'] === '' || $variables['hero_alt'] === NULL) {
+      $variables['hero_alt'] = $theme_hero['alt'];
+    }
+  }
 }
 
 /**

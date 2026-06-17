@@ -272,14 +272,17 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       $wrapper = [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['mel-popular-event'],
+          'class' => $onHomepage
+            ? ['mel-popular-event', 'mel-popular-event--compact-row']
+            : ['mel-popular-event'],
           'data-nid' => (string) $nid,
           'data-score' => (string) ((int) $row['score']),
         ],
         'card' => $card,
       ];
 
-      if ($show_going) {
+      // Homepage compact rows surface going inside the card; skip duplicate sibling label.
+      if ($show_going && !$onHomepage) {
         $going = (int) ($row['going'] ?? 0);
         $event_node = $ordered_nodes[$nid] ?? NULL;
         if ($event_node instanceof NodeInterface
@@ -327,7 +330,9 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
     $build['list'] = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['mel-popular-events-block__grid', 'mel-event-grid'],
+        'class' => $onHomepage
+          ? ['mel-popular-events-block__grid', 'mel-popular-events-block__grid--compact', 'mel-event-grid']
+          : ['mel-popular-events-block__grid', 'mel-event-grid'],
       ],
       'items' => $items,
     ];
