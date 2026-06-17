@@ -124,8 +124,9 @@
   }
 
   .mel-pill {
-    min-height: 44px;
+    min-height: 36px;
     align-items: center;
+    gap: 8px;
     text-decoration: none;
 
     &:hover,

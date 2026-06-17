@@ -193,11 +193,31 @@
   letter-spacing: normal;
 }
 
-.mel-event-card__image-badge,
-.mel-event-card__badge {
+// Top-left metadata stack: date pill + discovery/state badges (Spotlight, Hidden Gem, Sold out).
+.mel-event-card__badge-stack {
   position: absolute;
   top: 12px;
   left: 12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+}
+
+.mel-event-card__badge-stack .mel-event-card__image-badge,
+.mel-event-card__badge-stack .mel-event-card__badge {
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  max-width: 100%;
+}
+
+.mel-event-card__image-badge,
+.mel-event-card__badge {
   z-index: 3;
   max-width: calc(100% - 24px);
   opacity: 0.9;
@@ -222,12 +242,10 @@
   }
 }
 
-// Canonical floating date pill — single source of truth for all event card variants.
+// Canonical floating date pill — lives inside .mel-event-card__badge-stack.
 .mel-event-card__date-pill {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 4;
+  position: static;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -263,20 +281,6 @@
   text-transform: uppercase;
   color: color-mix(in srgb, mel.$mel-ds-color-text 72%, mel.$mel-ds-color-muted 28%);
   line-height: 1;
-}
-
-.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__image-badge,
-.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__badge {
-  top: 12px;
-  left: auto;
-  right: 12px;
-}
-
-.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__image-badge:not(.mel-event__category),
-.mel-event-card:has(.mel-event-card__date-pill) .mel-event-card__image .mel-event-card__image-badge:not(.mel-event__category) {
-  top: calc(12px + 56px + 4px);
-  left: 12px;
-  right: auto;
 }
 
 // Elevated price / RSVP label — fixed slot directly under title (non-hero cards).
@@ -1560,18 +1564,41 @@
     display: none;
   }
 
-  // Status badges (Featured, Sold out, boost) — not category pills on image.
+  // Status badges (Spotlight, Sold out, Hidden Gem) — not category pills on image.
   .mel-event-card__image-badge.mel-event__category {
     display: none;
   }
 
-  .mel-event-card__image-badge:not(.mel-event__category) {
-    display: block;
-    inset: auto auto 8px 8px;
+  .mel-event-card__badge-stack {
+    top: auto;
+    bottom: 8px;
+    left: 8px;
     max-width: calc(100% - 16px);
+    gap: 3px;
+  }
+
+  .mel-event-card__badge-stack .mel-event-card__image-badge:not(.mel-event__category) {
+    display: block;
+    max-width: 100%;
     font-size: 10px;
     padding: 4px 8px;
     opacity: 1;
+  }
+
+  .mel-event-card__badge-stack .mel-event-card__date-pill {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  .mel-event-card__badge-stack .mel-event-card__date-pill-day {
+    font-size: 16px;
+  }
+
+  .mel-event-card__badge-stack .mel-event-card__date-pill-month {
+    font-size: 9px;
   }
 
   .mel-event-card__price-slot {
@@ -1845,13 +1872,16 @@
       linear-gradient(145deg, color-mix(in srgb, mel.$mel-ds-color-primary 28%, #fff) 0%, color-mix(in srgb, mel.$mel-ds-color-accent 22%, #fff) 100%);
   }
 
-  .mel-event-card__image-badge,
-  .mel-event-card__badge {
+  .mel-event-card__badge-stack {
     top: 16px;
     left: 16px;
-    z-index: 3;
-    transform: none;
     max-width: calc(100% - 32px);
+  }
+
+  .mel-event-card__badge-stack .mel-event-card__image-badge,
+  .mel-event-card__badge-stack .mel-event-card__badge {
+    transform: none;
+    max-width: 100%;
   }
 
   .mel-event-card__body,

@@ -59,6 +59,13 @@
             class="mel-pill mel-pill--cat-{{ c.slug|default('default') }}{% if is_active %} is-active{% endif %}"
             {% if is_active %}aria-current="page"{% endif %}
           >
+            <span class="mel-pill__category-icon" aria-hidden="true">
+              {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
+                icon: c.icon|default('calendar'),
+                class: 'mel-pill__category-glyph',
+                size: 16
+              } only %}
+            </span>
             {{ c.label }}
           </a>
         {% endfor %}

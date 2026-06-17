@@ -73,6 +73,38 @@
   }
 }
 
+// Compact SVG category icons (shared mel-event-ui-icons mapping).
+.mel-category-pill__icon,
+.mel-pill__category-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: colors.$mel-color-accent;
+}
+
+.mel-category-pill__glyph,
+.mel-pill__category-glyph {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.mel-category-pills .mel-pill__category-icon {
+  color: inherit;
+  opacity: 0.92;
+}
+
+.mel-category-pill__icon {
+  color: colors.$mel-color-accent;
+}
+
+a.mel-category-pill.is-active .mel-category-pill__icon {
+  color: inherit;
+  opacity: 0.95;
+}
+
 .mel-pill__label {
   white-space: nowrap;
 }
@@ -98,14 +130,16 @@
   border-color: rgba(0, 0, 0, 0.06);
 }
 .mel-category-pills .mel-pill--cat-music { background: var(--mel-coral); color: #fff; }
-.mel-category-pills .mel-pill--cat-movie { background: var(--mel-blue); color: #fff; }
+.mel-category-pills .mel-pill--cat-movie,
+.mel-category-pills .mel-pill--cat-movies { background: var(--mel-blue); color: #fff; }
 .mel-category-pills .mel-pill--cat-workshop,
 .mel-category-pills .mel-pill--cat-workshops { background: var(--mel-lilac); color: var(--mel-navy); }
 .mel-category-pills .mel-pill--cat-arts { background: var(--mel-peach); color: var(--mel-navy); }
 .mel-category-pills .mel-pill--cat-lgbtqia,
 .mel-category-pills .mel-pill--cat-lgbtqi { background: var(--mel-mint); color: var(--mel-navy); }
 .mel-category-pills .mel-pill--cat-food,
-.mel-category-pills .mel-pill--cat-food-drink { background: var(--mel-orange); color: #fff; }
+.mel-category-pills .mel-pill--cat-food-drink,
+.mel-category-pills .mel-pill--cat-food-and-drink { background: var(--mel-orange); color: #fff; }
 .mel-category-pills .mel-pill--cat-community { background: var(--mel-sky); color: var(--mel-navy); }
 .mel-category-pills .mel-pill--cat-markets { background: var(--mel-butter); color: var(--mel-navy); }
 .mel-category-pills .mel-pill--cat-family { background: var(--mel-coral); color: #fff; }
@@ -135,8 +169,8 @@ a.mel-category-pill {
   display: inline-flex;
   align-items: center;
   gap: spacing.mel-space(2);
-  min-height: 44px;
-  padding: 0.35rem 1rem;
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
   border-radius: radii.$mel-radius-full;
   font-weight: typography.$mel-font-semibold;
   font-size: typography.mel-font-size(sm);

@@ -99,6 +99,10 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
         $hero_alt = $theme_hero['alt'];
       }
     }
+    elseif ($hero_image_url_mobile === NULL || $hero_image_url_mobile === '') {
+      // When Page Visuals supplies desktop only, reuse it on mobile (avoid legacy mascot art).
+      $hero_image_url_mobile = $hero_image_url;
+    }
 
     $featured_events = NULL;
     if ($hero_image_url === NULL && $this->featuredEventsRenderBuilder->hasHeroResults()) {
