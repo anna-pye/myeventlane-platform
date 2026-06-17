@@ -30,6 +30,21 @@
 
   <div class="mel-page mel-page--home">
 
+    {% if mel_home_show_discover|default(false) %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--discover mel-section--discover-chips',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--discover',
+        title: 'Discover events'|t,
+        subtitle: 'Discover more of your city — filter by mood or moment'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'See all events'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.home_discover
+      } %}
+    {% endif %}
+
     {% if mel_home_show_featured|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--featured mel-section--community-spotlight mel-section--discover',
@@ -46,18 +61,33 @@
       } %}
     {% endif %}
 
-    {% if mel_home_show_discover|default(false) %}
+    {% if mel_home_show_recommended|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--discover mel-section--discover-chips',
+        section_class: 'mel-section--recommended mel-section--discover',
         section_width_class: '',
         container_class: 'mel-container',
-        header_extra_class: 'mel-section__header--discover',
-        title: 'Discover events'|t,
-        subtitle: 'Discover more of your city — filter by mood or moment'|t,
+        header_extra_class: 'mel-section__header--recommended',
+        title: 'Worth exploring next'|t,
+        subtitle: 'Events popular with the community right now.'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'See all events'|t,
         content_wrapper_class: 'mel-section__discover-view',
-        content: page.home_discover
+        content: page.home_recommended
+      } %}
+    {% endif %}
+
+    {% if page.homepage_latest %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--latest mel-section--discover',
+        section_width_class: '',
+        container_class: 'mel-container',
+        header_extra_class: 'mel-section__header--latest',
+        title: 'New this week'|t,
+        subtitle: 'Recently added experiences on MyEventLane'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'Browse all events'|t,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: page.homepage_latest
       } %}
     {% endif %}
 
@@ -118,36 +148,6 @@
         link_text: 'See all free events'|t,
         content_wrapper_class: 'mel-section__discover-view',
         content: page.homepage_free
-      } %}
-    {% endif %}
-
-    {% if page.homepage_latest %}
-      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--latest mel-section--discover',
-        section_width_class: '',
-        container_class: 'mel-container',
-        header_extra_class: 'mel-section__header--latest',
-        title: 'New this week'|t,
-        subtitle: 'Recently added experiences on MyEventLane'|t,
-        link_url: path('view.upcoming_events.page_events'),
-        link_text: 'Browse all events'|t,
-        content_wrapper_class: 'mel-section__discover-view',
-        content: page.homepage_latest
-      } %}
-    {% endif %}
-
-    {% if mel_home_show_recommended|default(false) %}
-      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--recommended mel-section--discover mel-section--secondary',
-        section_width_class: '',
-        container_class: 'mel-container',
-        header_extra_class: 'mel-section__header--recommended',
-        title: 'Worth exploring next'|t,
-        subtitle: 'Events popular with the community right now.'|t,
-        link_url: path('view.upcoming_events.page_events'),
-        link_text: 'See all events'|t,
-        content_wrapper_class: 'mel-section__discover-view',
-        content: page.home_recommended
       } %}
     {% endif %}
 

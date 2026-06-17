@@ -5,8 +5,8 @@ features:
   favicon: 1
 logo:
   use_default: 0
-  path: 'public://new-mel-logo.png'
+  path: 'public://new-mel-logo_2.png'
 favicon:
   use_default: 0
-  path: 'public://new-fal.png'
+  path: 'public://new-fal_2.png'
   mimetype: image/png
