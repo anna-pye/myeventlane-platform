@@ -1,8 +1,5 @@
-parameters:
-  twig.config:
-    debug: true
-    auto_reload: true
-    cache: false
-services:
-  cache.backend.null:
-    class: Drupal\Core\Cache\NullBackendFactory
+# Site-specific service overrides for all environments.
+#
+# Twig debug must not live here — it is loaded via development.services.yml on
+# DDEV only (see settings.mel_shared_session.php).
+services: {}

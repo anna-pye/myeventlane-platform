@@ -56,6 +56,7 @@ $mel_trusted_staging_prod = [
 
 if (getenv('IS_DDEV_PROJECT') === 'true') {
   $settings['trusted_host_patterns'] = $mel_trusted_ddev;
+  $settings['container_yamls'][] = dirname(__DIR__) . '/development.services.yml';
 }
 else {
   $settings['trusted_host_patterns'] = array_values(array_unique(array_merge(
