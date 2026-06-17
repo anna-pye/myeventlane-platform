@@ -17,8 +17,13 @@ use Drupal\views\ViewExecutableFactory;
  * Resolves homepage hero, spotlight, and cross-rail deduplication sets.
  *
  * Hero = top promoted upcoming event (same sort as front_featured_events).
- * Spotlight = all other promoted upcoming events.
- * Lower rails exclude higher-priority sections (cascade).
+ * Spotlight = Community Spotlight roster (front_featured_events:block_featured).
+ * Lower rails exclude higher-priority sections (cascade):
+ * Hero → Tonight → Hidden Gems → Discover → Community Spotlight →
+ * Community Favourites → Upcoming Highlights → Free RSVP → More Events To Explore.
+ *
+ * Downstream exclusions use getFeaturedBlockEventIds() for the spotlight roster,
+ * not getSpotlightEventIds(), so demoted spotlight does not over-exclude.
  */
 final class HomepageMerchandising {
 
@@ -142,50 +147,14 @@ final class HomepageMerchandising {
       return [];
     }
 
-    $hero = $this->getHeroEventIds();
-    $spotlight = $this->getSpotlightEventIds();
-
     return match ($viewId . ':' . $displayId) {
-      'front_featured_events:block_featured' => $hero,
-      'mel_home_events:embed_discover' => array_values(array_unique([...$hero, ...$spotlight])),
-      'upcoming_events:homepage_tonight' => array_values(array_unique([
-        ...$hero,
-        ...$spotlight,
-        ...$this->getDiscoverEventIds(),
-      ])),
-      'upcoming_events:homepage_hidden_gems' => array_values(array_unique([
-        ...$hero,
-        ...$spotlight,
-        ...$this->getDiscoverEventIds(),
-        ...$this->getTonightEventIds(),
-      ])),
-      'mel_home_events:under_20' => array_values(array_unique([
-        ...$hero,
-        ...$spotlight,
-        ...$this->getDiscoverEventIds(),
-        ...$this->getTonightEventIds(),
-        ...$this->getHiddenGemEventIds(),
-        ...$this->getCommunityFavouritesEventIds(),
-      ])),
-      'upcoming_events:homepage_latest' => array_values(array_unique([
-        ...$hero,
-        ...$spotlight,
-        ...$this->getDiscoverEventIds(),
-        ...$this->getTonightEventIds(),
-        ...$this->getHiddenGemEventIds(),
-        ...$this->getCommunityFavouritesEventIds(),
-        ...$this->getFreeRsvpEventIds(),
-      ])),
-      'front_recommended_events:block_1' => array_values(array_unique([
-        ...$hero,
-        ...$spotlight,
-        ...$this->getDiscoverEventIds(),
-        ...$this->getTonightEventIds(),
-        ...$this->getHiddenGemEventIds(),
-        ...$this->getCommunityFavouritesEventIds(),
-        ...$this->getFreeRsvpEventIds(),
-        ...$this->getLatestEventIds(),
-      ])),
+      'upcoming_events:homepage_tonight' => $this->getCascadeThroughHero(),
+      'upcoming_events:homepage_hidden_gems' => $this->getCascadeThroughTonight(),
+      'mel_home_events:embed_discover' => $this->getCascadeThroughHiddenGems(),
+      'front_featured_events:block_featured' => $this->getCascadeThroughDiscover(),
+      'upcoming_events:homepage_latest' => $this->getCascadeThroughCommunityFavourites(),
+      'mel_home_events:under_20' => $this->getCascadeThroughLatest(),
+      'front_recommended_events:block_1' => $this->getCascadeThroughFreeRsvp(),
       default => [],
     };
   }
@@ -376,7 +345,9 @@ final class HomepageMerchandising {
   /**
    * NIDs to exclude from Community Favourites (higher-priority homepage rails).
    *
-   * CF sits after Hidden Gems and before Free & RSVP on the homepage.
+   * CF sits after Community Spotlight and before Upcoming Highlights.
+   * Uses getFeaturedBlockEventIds() (via getCascadeThroughSpotlight()) so
+   * demoted spotlight does not over-exclude the popularity pool.
    *
    * @return list<int>
    */
@@ -385,13 +356,7 @@ final class HomepageMerchandising {
       return [];
     }
 
-    return array_values(array_unique([
-      ...$this->getHeroEventIds(),
-      ...$this->getSpotlightEventIds(),
-      ...$this->getDiscoverEventIds(),
-      ...$this->getTonightEventIds(),
-      ...$this->getHiddenGemEventIds(),
-    ]));
+    return $this->getCascadeThroughSpotlight();
   }
 
   /**
@@ -511,6 +476,99 @@ final class HomepageMerchandising {
     });
 
     return array_values($nids);
+  }
+
+  /**
+   * Cascade exclusions through Hero.
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughHero(): array {
+    return $this->getHeroEventIds();
+  }
+
+  /**
+   * Cascade exclusions through Tonight.
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughTonight(): array {
+    return array_values(array_unique([
+      ...$this->getHeroEventIds(),
+      ...$this->getTonightEventIds(),
+    ]));
+  }
+
+  /**
+   * Cascade exclusions through Hidden Gems.
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughHiddenGems(): array {
+    return array_values(array_unique([
+      ...$this->getCascadeThroughTonight(),
+      ...$this->getHiddenGemEventIds(),
+    ]));
+  }
+
+  /**
+   * Cascade exclusions through Discover.
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughDiscover(): array {
+    return array_values(array_unique([
+      ...$this->getCascadeThroughHiddenGems(),
+      ...$this->getDiscoverEventIds(),
+    ]));
+  }
+
+  /**
+   * Cascade exclusions through Community Spotlight (rendered featured block).
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughSpotlight(): array {
+    return array_values(array_unique([
+      ...$this->getCascadeThroughDiscover(),
+      ...$this->getFeaturedBlockEventIds(),
+    ]));
+  }
+
+  /**
+   * Cascade exclusions through Community Favourites.
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughCommunityFavourites(): array {
+    return array_values(array_unique([
+      ...$this->getCascadeThroughSpotlight(),
+      ...$this->getCommunityFavouritesEventIds(),
+    ]));
+  }
+
+  /**
+   * Cascade exclusions through Upcoming Highlights.
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughLatest(): array {
+    return array_values(array_unique([
+      ...$this->getCascadeThroughCommunityFavourites(),
+      ...$this->getLatestEventIds(),
+    ]));
+  }
+
+  /**
+   * Cascade exclusions through Free RSVP.
+   *
+   * @return list<int>
+   */
+  private function getCascadeThroughFreeRsvp(): array {
+    return array_values(array_unique([
+      ...$this->getCascadeThroughLatest(),
+      ...$this->getFreeRsvpEventIds(),
+    ]));
   }
 
   /**
