@@ -9,20 +9,19 @@
 .mel-home-hero {
   position: relative;
   overflow: hidden;
-  padding: clamp(2rem, 5vw, 4.75rem) 24px clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(2.25rem, 6vw, 5.25rem) clamp(20px, 4vw, 32px) clamp(2rem, 5vw, 3.5rem);
   background:
-    radial-gradient(circle at 12% 18%, color-mix(in srgb, mel.$mel-ds-color-primary 20%, transparent), transparent 34rem),
-    radial-gradient(circle at 88% 10%, rgba(255, 210, 147, 0.36), transparent 28rem),
-    radial-gradient(circle at 72% 84%, rgba(186, 230, 210, 0.34), transparent 30rem),
-    linear-gradient(135deg, #fff7f2 0%, #f7f1ff 52%, #eefaf4 100%);
+    radial-gradient(circle at 10% 14%, color-mix(in srgb, mel.$mel-ds-color-primary 12%, transparent), transparent 32rem),
+    radial-gradient(circle at 90% 8%, color-mix(in srgb, mel.$mel-ds-color-accent 10%, transparent), transparent 28rem),
+    linear-gradient(180deg, #fffdfb 0%, #faf8ff 48%, #f8fbf9 100%);
 
   &::before {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(rgba(41, 50, 65, 0.08) 1px, transparent 1px);
-    background-size: 18px 18px;
-    mask-image: linear-gradient(90deg, #000 0%, transparent 76%);
+    background-image: radial-gradient(rgba(41, 50, 65, 0.04) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(90deg, #000 0%, transparent 68%);
     pointer-events: none;
   }
 }
@@ -32,14 +31,14 @@
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 28px;
-  width: min(100%, 1240px);
+  gap: clamp(32px, 5vw, 56px);
+  width: min(100%, 1200px);
   margin: 0 auto;
 
   @include breakpoints.mel-break(lg) {
-    grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
     align-items: center;
-    gap: 48px;
+    gap: clamp(48px, 6vw, 72px);
   }
 }
 
@@ -60,45 +59,53 @@
 }
 
 .mel-home-hero__title {
-  max-width: 11ch;
+  max-width: 12ch;
   margin: 0;
   color: mel.$mel-ds-color-text;
   font-family: mel.$mel-ds-font-main;
-  font-size: clamp(2.75rem, 8vw, 5.6rem);
+  font-size: clamp(2.5rem, 7.5vw, 5rem);
   font-weight: 850;
-  letter-spacing: -0.055em;
-  line-height: 0.94;
+  letter-spacing: -0.05em;
+  line-height: 0.96;
 }
 
 .mel-home-hero__text {
-  max-width: 42rem;
-  margin: 18px 0 0;
-  color: color-mix(in srgb, mel.$mel-ds-color-text 74%, #fff 26%);
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  line-height: 1.58;
+  max-width: 38rem;
+  margin: clamp(16px, 2.5vw, 22px) 0 0;
+  color: color-mix(in srgb, mel.$mel-ds-color-text 68%, mel.$mel-ds-color-muted 32%);
+  font-size: clamp(1.0625rem, 2.1vw, 1.25rem);
+  line-height: 1.55;
+}
+
+.mel-home-hero__search-shell {
+  width: min(100%, 760px);
+  margin-top: clamp(24px, 4vw, 36px);
 }
 
 .mel-home-hero__search {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(100%, 720px);
-  margin-top: 24px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.68);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 18px 54px rgba(98, 81, 130, 0.14);
+  width: 100%;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 6%, #fff 94%);
+  border-radius: clamp(20px, 3vw, 28px);
+  background: color-mix(in srgb, #fff 88%, mel.$mel-ds-color-bg 12%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 20px 48px rgba(74, 63, 104, 0.1);
 
   @supports (backdrop-filter: blur(1px)) {
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   @include breakpoints.mel-break(sm) {
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     gap: 8px;
+    padding: 8px;
+    border-radius: 999px;
   }
 }
 
@@ -110,9 +117,51 @@
   flex: 1 1 auto;
 
   @include breakpoints.mel-break(sm) {
-    grid-template-columns: minmax(0, 1.1fr) auto minmax(0, 0.9fr);
+    grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 0.85fr);
     align-items: center;
     gap: 0;
+  }
+}
+
+.mel-home-hero__search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.mel-home-hero__search-icon {
+  display: none;
+
+  @include breakpoints.mel-break(sm) {
+    position: absolute;
+    left: 14px;
+    z-index: 1;
+    display: block;
+    width: 18px;
+    height: 18px;
+    background-color: color-mix(in srgb, mel.$mel-ds-color-muted 70%, mel.$mel-ds-color-text 30%);
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    pointer-events: none;
+  }
+}
+
+.mel-home-hero__search-icon--query {
+  @include breakpoints.mel-break(sm) {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E");
+  }
+}
+
+.mel-home-hero__search-icon--location {
+  @include breakpoints.mel-break(sm) {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25'%3E%3Cpath d='M12 21s7-4.35 7-10a7 7 0 1 0-14 0c0 5.65 7 10 7 10z'/%3E%3Ccircle cx='12' cy='11' r='2.5'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25'%3E%3Cpath d='M12 21s7-4.35 7-10a7 7 0 1 0-14 0c0 5.65 7 10 7 10z'/%3E%3Ccircle cx='12' cy='11' r='2.5'/%3E%3C/svg%3E");
   }
 }
 
@@ -129,17 +178,24 @@
 }
 
 .mel-home-hero__search-input {
+  width: 100%;
   min-width: 0;
-  min-height: 48px;
+  min-height: 52px;
   padding: 0 18px;
   border: 0;
-  border-radius: 999px;
+  border-radius: clamp(14px, 2vw, 999px);
   background: transparent;
   color: mel.$mel-ds-color-text;
   font: inherit;
+  font-size: clamp(1rem, 2vw, 1.0625rem);
+
+  @include breakpoints.mel-break(sm) {
+    min-height: 56px;
+    padding-left: 42px;
+  }
 
   &::placeholder {
-    color: mel.$mel-ds-color-muted;
+    color: color-mix(in srgb, mel.$mel-ds-color-muted 88%, mel.$mel-ds-color-text 12%);
   }
 
   &:focus {
@@ -147,22 +203,41 @@
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, mel.$mel-ds-color-primary 28%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, mel.$mel-ds-color-primary 24%, transparent);
   }
 }
 
 .mel-home-hero__search-submit {
   flex: 0 0 auto;
-  min-height: 48px;
-  padding: 0 22px;
+  min-height: 52px;
+  padding: 0 clamp(22px, 4vw, 28px);
   border: 0;
-  border-radius: 999px;
+  border-radius: clamp(14px, 2vw, 999px);
   background: mel.$mel-ds-color-primary;
   color: #fff;
   cursor: pointer;
   font-weight: 800;
+  font-size: clamp(1rem, 2vw, 1.0625rem);
   white-space: nowrap;
-  box-shadow: 0 10px 28px color-mix(in srgb, mel.$mel-ds-color-primary 32%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, mel.$mel-ds-color-primary 28%, transparent);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  @include breakpoints.mel-break(sm) {
+    min-height: 56px;
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 36px color-mix(in srgb, mel.$mel-ds-color-primary 34%, transparent);
+    }
+  }
 
   &:focus-visible {
     outline: none;
@@ -176,8 +251,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 18px;
-  margin-top: 18px;
+  gap: 14px 20px;
+  margin-top: clamp(20px, 3vw, 28px);
 }
 
 .mel-home-hero__secondary {
@@ -187,7 +262,7 @@
 
 .mel-home-hero__pills {
   width: min(100%, 760px);
-  margin-top: 22px;
+  margin-top: clamp(24px, 3vw, 32px);
 }
 
 .mel-home-hero__pills .mel-category-pills,
@@ -237,14 +312,14 @@
 .mel-home-hero__art-frame {
   position: relative;
   min-height: clamp(220px, 34vw, 420px);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: clamp(24px, 4vw, 38px);
+  border: 1px solid color-mix(in srgb, #fff 72%, mel.$mel-ds-color-text 28%);
+  border-radius: clamp(28px, 4vw, 40px);
   overflow: hidden;
   background:
-    linear-gradient(145deg, rgba(242, 109, 91, 0.22), rgba(124, 131, 253, 0.24));
+    linear-gradient(145deg, color-mix(in srgb, mel.$mel-ds-color-primary 14%, #fff), color-mix(in srgb, mel.$mel-ds-color-accent 12%, #fff));
   box-shadow:
-    0 22px 64px rgba(54, 45, 77, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    0 24px 56px rgba(54, 45, 77, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 
   picture {
     display: block;
