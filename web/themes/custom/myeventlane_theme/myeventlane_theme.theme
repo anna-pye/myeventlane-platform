@@ -2063,23 +2063,36 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     }
   }
   
-  // Homepage: Use journey hero images, fallback to mel-hero-home.png.
+  // Homepage: community hero artwork, then legacy fallbacks.
   // Homepage never uses category banners.
   if ($is_front_page) {
+    $community_relative = $theme_path . '/images/mel/hero/mel-hero-home-community.jpg';
+    $community_path = DRUPAL_ROOT . '/' . $community_relative;
     $journey_desktop_relative = $theme_path . '/images/mel/hero/mel-hero-journey-desktop.png';
     $journey_desktop_path = DRUPAL_ROOT . '/' . $journey_desktop_relative;
     $journey_mobile_relative = $theme_path . '/images/mel/hero/mel-hero-journey-mobile.png';
     $journey_mobile_path = DRUPAL_ROOT . '/' . $journey_mobile_relative;
     $home_relative = $theme_path . '/images/mel/hero/mel-hero-home.png';
     $home_path = DRUPAL_ROOT . '/' . $home_relative;
+    $mobile_relative = $theme_path . '/images/mel/hero/mel-hero-mobile.png';
+    $mobile_path = DRUPAL_ROOT . '/' . $mobile_relative;
 
-    if (file_exists($journey_desktop_path)) {
+    if (file_exists($community_path)) {
+      $hero_desktop_url = $base_url . $community_relative;
+    }
+    elseif (file_exists($journey_desktop_path)) {
       $hero_desktop_url = $base_url . $journey_desktop_relative;
     }
     elseif (file_exists($home_path)) {
       $hero_desktop_url = $base_url . $home_relative;
     }
-    if (file_exists($journey_mobile_path)) {
+    if (file_exists($mobile_path)) {
+      $hero_mobile_url = $base_url . $mobile_relative;
+    }
+    elseif (file_exists($community_path)) {
+      $hero_mobile_url = $base_url . $community_relative;
+    }
+    elseif (file_exists($journey_mobile_path)) {
       $hero_mobile_url = $base_url . $journey_mobile_relative;
     }
     elseif ($hero_desktop_url) {
@@ -3552,6 +3565,30 @@ function _myeventlane_theme_get_active_category_term(): ?TermInterface {
 }
 
 /**
+ * Maps category slug to mel-event-ui-icons icon id for hero category cards.
+ */
+function _myeventlane_theme_category_hero_icon(string $slug): string {
+  $map = [
+    'community' => 'users',
+    'music' => 'music',
+    'lgbtqia' => 'heart',
+    'lgbtqi' => 'heart',
+    'arts' => 'palette',
+    'markets' => 'store',
+    'workshop' => 'pencil',
+    'workshops' => 'pencil',
+    'family' => 'users',
+    'food' => 'utensils',
+    'food-drink' => 'utensils',
+    'movie' => 'film',
+    'sport' => 'activity',
+    'sports' => 'activity',
+  ];
+
+  return $map[$slug] ?? 'calendar';
+}
+
+/**
  * Helper function to get category slug from taxonomy term.
  *
  * @param \Drupal\taxonomy\TermInterface|null $term
@@ -3696,13 +3733,16 @@ function myeventlane_theme_preprocess_myeventlane_category_pills(array &$variabl
       if ($term instanceof TermInterface) {
         $slug = _myeventlane_theme_get_category_slug($term);
         $variables['categories'][$key]['slug'] = $slug;
+        $variables['categories'][$key]['icon'] = _myeventlane_theme_category_hero_icon($slug);
       }
       else {
         $variables['categories'][$key]['slug'] = 'default';
+        $variables['categories'][$key]['icon'] = 'calendar';
       }
     }
     else {
       $variables['categories'][$key]['slug'] = 'default';
+      $variables['categories'][$key]['icon'] = 'calendar';
     }
   }
 }

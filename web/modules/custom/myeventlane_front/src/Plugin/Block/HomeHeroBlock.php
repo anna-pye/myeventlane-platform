@@ -65,6 +65,7 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
     try {
       $instance = $this->blockManager->createInstance('myeventlane_category_pills', []);
       $pills = $instance->build();
+      $pills['#hero_icons'] = TRUE;
       $pills['#cache']['contexts'][] = 'url.path';
       $pills_cache = CacheableMetadata::createFromRenderArray($pills);
     }
@@ -90,8 +91,17 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       $cache_contexts = array_merge($cache_contexts, $cache['contexts'] ?? []);
     }
 
+    if ($hero_image_url === NULL) {
+      $theme_hero = _myeventlane_front_home_hero_theme_urls();
+      $hero_image_url = $theme_hero['desktop'];
+      $hero_image_url_mobile = $theme_hero['mobile'];
+      if ($hero_alt === '') {
+        $hero_alt = $theme_hero['alt'];
+      }
+    }
+
     $featured_events = NULL;
-    if ($this->featuredEventsRenderBuilder->hasHeroResults()) {
+    if ($hero_image_url === NULL && $this->featuredEventsRenderBuilder->hasHeroResults()) {
       $featured_events = $this->featuredEventsRenderBuilder->buildHeroRotator();
     }
 

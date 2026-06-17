@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Home hero block.
+ * Home hero block — full-bleed community artwork with discovery overlay.
  *
  * Variables:
  * - hero_image_url: Optional URL from Page Visuals Manager (desktop).
@@ -15,13 +15,58 @@
 #}
 
 <section class="mel-home-hero" aria-labelledby="mel-home-hero-title">
-  <div class="mel-home-hero__inner">
-    <div class="mel-home-hero__content">
-      <p class="mel-home-hero__eyebrow">{{ 'MyEventLane'|t }}</p>
-      <h1 id="mel-home-hero-title" class="mel-home-hero__title">{{ 'What could you discover this weekend?'|t }}</h1>
-      <p class="mel-home-hero__text">
-        {{ 'Local events, markets, and community gatherings — all in one place.'|t }}
-      </p>
+  <div class="mel-home-hero__banner{% if hero_hide_on_mobile|default(false) %} mel-home-hero__banner--hide-mobile-art{% endif %}">
+  {% if hero_image_url %}
+    <div class="mel-home-hero__media" aria-hidden="true">
+      {% if hero_image_url_mobile|default(null) and not hero_hide_on_mobile|default(false) %}
+        <picture>
+          <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
+          <img
+            class="mel-home-hero__media-img"
+            src="{{ hero_image_url }}"
+            alt=""
+            width="1024"
+            height="682"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+        </picture>
+      {% else %}
+        <img
+          class="mel-home-hero__media-img"
+          src="{{ hero_image_url }}"
+          alt=""
+          width="1024"
+          height="682"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        />
+      {% endif %}
+    </div>
+  {% elseif featured_events %}
+    <div class="mel-home-hero__media mel-home-hero__media--rotator" aria-hidden="true">
+      <div class="mel-home-hero__feature-rotator" data-mel-home-hero-rotator aria-label="{{ 'Community spotlight highlights'|t }}">
+        {{ featured_events }}
+      </div>
+    </div>
+  {% else %}
+    <div class="mel-home-hero__media mel-home-hero__media--placeholder" aria-hidden="true"></div>
+  {% endif %}
+
+    <div class="mel-home-hero__scrim" aria-hidden="true"></div>
+
+    <div class="mel-home-hero__banner-inner mel-container mel-container--wide">
+      <div class="mel-home-hero__copy">
+        <h1 id="mel-home-hero-title" class="mel-home-hero__title">
+          {{ 'Discover events. Connect people. Celebrate'|t }}
+          <span class="mel-home-hero__accent">{{ 'community.'|t }}</span>
+        </h1>
+        <p class="mel-home-hero__text">
+          {{ 'Find events, join activities, and create memories in your community.'|t }}
+        </p>
+      </div>
 
       <div class="mel-home-hero__search-shell">
         <form
@@ -41,7 +86,7 @@
                 class="mel-home-hero__search-input mel-home-hero__search-input--query"
                 name="search"
                 type="search"
-                placeholder="{{ 'Search events, organisers, or places'|t }}"
+                placeholder="{{ 'Search events, locations or categories'|t }}"
                 autocomplete="off"
               />
             </div>
@@ -54,64 +99,41 @@
                 class="mel-home-hero__search-input mel-home-hero__search-input--location"
                 name="location"
                 type="text"
-                placeholder="{{ 'Suburb or city'|t }}"
+                placeholder="{{ 'Near me'|t }}"
                 autocomplete="address-level2"
               />
             </div>
           </div>
           <button type="submit" class="mel-home-hero__search-submit">
-            <span class="mel-home-hero__search-submit-label">{{ 'Search'|t }}</span>
+            <span class="mel-home-hero__search-submit-label">{{ 'Search Events'|t }}</span>
           </button>
         </form>
       </div>
-
-      <div class="mel-home-hero__actions" role="group" aria-label="{{ 'Homepage actions'|t }}">
-        <a class="mel-btn mel-btn--primary mel-home-hero__primary" href="{{ path('view.upcoming_events.page_events') }}">
-          {{ 'Explore events'|t }}
-        </a>
-        <a class="mel-link mel-home-hero__secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">
-          {{ 'Create event'|t }}
-        </a>
-      </div>
-
-      {% if pills %}
-        <div class="mel-home-hero__pills" aria-label="{{ 'Popular categories'|t }}">
-          {{ pills }}
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="mel-home-hero__art{% if hero_hide_on_mobile|default(false) %} mel-home-hero__art--hide-mobile{% endif %}">
-      <div class="mel-home-hero__art-frame{% if featured_events %} mel-home-hero__art-frame--rotator{% endif %}">
-        {% if featured_events %}
-          <div class="mel-home-hero__feature-rotator" data-mel-home-hero-rotator aria-label="{{ 'Community spotlight highlights'|t }}">
-            {{ featured_events }}
-          </div>
-        {% elseif hero_image_url %}
-          {% if hero_image_url_mobile|default(null) and not hero_hide_on_mobile|default(false) %}
-            <picture aria-hidden="true">
-              <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
-              <img
-                class="mel-home-hero__art-img"
-                src="{{ hero_image_url }}"
-                alt=""
-                loading="eager"
-                decoding="async"
-              />
-            </picture>
-          {% else %}
-            <img
-              class="mel-home-hero__art-img"
-              src="{{ hero_image_url }}"
-              alt=""
-              loading="eager"
-              decoding="async"
-            />
-          {% endif %}
-        {% else %}
-          <div class="mel-home-hero__art-img mel-home-hero__art-img--placeholder" aria-hidden="true"></div>
-        {% endif %}
-      </div>
     </div>
   </div>
+
+  {% if pills %}
+    <div class="mel-home-hero__categories-bar">
+      <div class="mel-home-hero__categories-inner mel-container mel-container--wide">
+        <nav class="mel-home-hero__categories" aria-label="{{ 'Browse by category'|t }}">
+          <a class="mel-home-hero__category-card mel-home-hero__category-card--all" href="{{ path('view.upcoming_events.page_events') }}">
+            <span class="mel-home-hero__category-icon mel-home-hero__category-icon--all" aria-hidden="true">
+              {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
+                icon: 'calendar',
+                class: 'mel-home-hero__category-glyph',
+                size: 24
+              } only %}
+            </span>
+            <span class="mel-home-hero__category-label">{{ 'All Events'|t }}</span>
+          </a>
+          <div class="mel-home-hero__categories-scroll">
+            {{ pills }}
+          </div>
+          <a class="mel-home-hero__view-all" href="{{ path('view.upcoming_events.page_events') }}">
+            {{ 'View all'|t }}<span aria-hidden="true"> ›</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  {% endif %}
 </section>

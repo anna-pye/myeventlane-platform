@@ -15,11 +15,11 @@
 // Editorial homepage rhythm — generous whitespace between primary rails.
 .mel-page--home > .mel-section--discover-chips {
   padding-top: clamp(32px, 5vw, 48px);
-  padding-bottom: clamp(24px, 4vw, 40px);
+  padding-bottom: clamp(16px, 3vw, 28px);
 }
 
 .mel-page--home > .mel-section--featured {
-  padding-top: clamp(8px, 2vw, 16px);
+  padding-top: clamp(4px, 1.5vw, 12px);
   padding-bottom: clamp(32px, 5vw, 56px);
 }
 
@@ -37,8 +37,8 @@
 .mel-page--home > .mel-section--hidden-gems,
 .mel-page--home > .mel-section--community-favourites,
 .mel-page--home > .mel-section--free-rsvp {
-  padding-top: clamp(12px, 2.5vw, 24px);
-  padding-bottom: clamp(24px, 4vw, 40px);
+  padding-top: clamp(8px, 2vw, 18px);
+  padding-bottom: clamp(20px, 3.5vw, 32px);
 }
 
 .mel-page--home .mel-section {
@@ -126,26 +126,52 @@
   border-radius: 999px;
 }
 
-// Homepage discover chip bar — softer pills, thumb-friendly scroll.
+// Homepage discover chip bar — single pill-container group, thumb-friendly scroll.
+.mel-page--home .mel-section--discover-chips .mel-filter-chip-group {
+  margin: 0 0 clamp(14px, 2.5vw, 22px);
+  padding: 6px;
+  border-radius: mel.$mel-ds-radius-lg;
+  background: mel.$mel-ds-color-surface;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+  box-shadow: mel.$mel-ds-shadow-soft;
+}
+
 .mel-page--home .mel-section--discover-chips .mel-filter-chip-row {
-  gap: 12px;
-  margin: 0 0 clamp(18px, 3vw, 28px);
-  padding: 4px 2px 8px;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 4px;
 }
 
 .mel-page--home .mel-section--discover-chips .mel-filter-chip {
   min-height: 44px;
-  padding: 10px 18px;
-  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 6%, transparent);
+  padding: 10px 16px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: color-mix(in srgb, #fff 90%, mel.$mel-ds-color-bg 10%);
-  box-shadow: 0 8px 20px rgba(74, 63, 104, 0.06);
+  background: mel.$mel-ds-color-surface;
+  box-shadow: none;
   font-weight: 600;
+  color: mel.$mel-ds-color-text;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in srgb, mel.$mel-ds-color-accent 12%, mel.$mel-ds-color-surface);
+      transform: none;
+    }
+  }
 }
 
 .mel-page--home .mel-section--discover-chips .mel-filter-chip--active {
-  border-color: transparent;
-  box-shadow: 0 10px 24px rgba(242, 109, 91, 0.22);
+  background: mel.$mel-ds-color-primary;
+  border-color: mel.$mel-ds-color-primary;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(242, 109, 91, 0.24);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in srgb, mel.$mel-ds-color-primary 92%, #000 8%);
+      color: #fff;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -526,8 +552,7 @@
 .mel-page--home .mel-section--free-rsvp .mel-grid.mel-grid--events,
 .mel-page--home .mel-section--free .mel-grid.mel-grid--events,
 .mel-page--home .mel-section--time .mel-grid.mel-grid--events,
-.mel-page--home .mel-section--hidden-gems .mel-grid.mel-grid--events,
-.mel-page--home .mel-section--community-favourites .mel-grid.mel-grid--events {
+.mel-page--home .mel-section--hidden-gems .mel-grid.mel-grid--events {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(16px, 2.5vw, 22px);
@@ -540,6 +565,225 @@
   @media (width <= 640px) {
     grid-template-columns: 1fr;
     gap: 14px;
+  }
+}
+
+.mel-page--home .mel-section--community-favourites .mel-section__header {
+  margin-bottom: clamp(14px, 2.5vw, 22px);
+}
+
+// Community Favourites — compact horizontal cards (image | content | CTA).
+.mel-page--home .mel-section--community-favourites {
+  .mel-popular-events-block__grid--compact {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(10px, 2vw, 14px);
+    align-items: stretch;
+
+    @media (width >= 768px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .mel-popular-event--compact-row {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-radius: mel.$mel-ds-radius-md;
+    background: mel.$mel-ds-color-surface;
+    border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+    box-shadow: mel.$mel-ds-shadow-soft;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .mel-popular-event--compact-row .mel-popular-event__going {
+    display: none;
+  }
+
+  .mel-popular-event--compact-row .mel-event-card {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mel-popular-event--compact-row .mel-event-card--compact.mel-event-card--poster {
+    background: transparent;
+    box-shadow: none;
+    position: relative;
+
+    .mel-event-card__save {
+      top: 8px;
+      right: 8px;
+    }
+
+    .mel-event-card__link {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 0;
+      min-height: 96px;
+      aspect-ratio: auto;
+      border-radius: 0;
+      overflow: hidden;
+      background: transparent;
+      box-shadow: none;
+      padding-right: 0;
+      position: relative;
+    }
+
+    .mel-event-card__image,
+    .mel-event-card__media {
+      flex: 0 0 clamp(88px, 22vw, 112px);
+      align-self: stretch;
+      width: clamp(88px, 22vw, 112px);
+      min-width: clamp(88px, 22vw, 112px);
+      max-width: clamp(88px, 22vw, 112px);
+      aspect-ratio: auto;
+      height: auto;
+      min-height: 96px;
+      border-radius: mel.$mel-ds-radius-md 0 0 mel.$mel-ds-radius-md;
+    }
+
+    .mel-event-card__image > img,
+    .mel-event-card__image > .mel-event-card__image-element {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      object-fit: cover;
+    }
+
+    .mel-event-card__overlay {
+      display: none;
+    }
+
+    .mel-event-card__body,
+    .mel-event-card__content {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+      min-width: 0;
+      padding: 10px 112px 10px 12px;
+      position: static;
+      inset: auto;
+    }
+
+    .mel-event-card__title {
+      margin: 0;
+      min-height: 0;
+      font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
+      font-weight: 800;
+      line-height: 1.2;
+      -webkit-line-clamp: 2;
+    }
+
+    .mel-event-card__snapshot,
+    .mel-event-card__when {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.35;
+      color: color-mix(in srgb, mel.$mel-ds-color-muted 88%, mel.$mel-ds-color-text 12%);
+    }
+
+    .mel-card-reason {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .mel-event-card__signal-row {
+      margin: 0;
+    }
+
+    .mel-event-card__state-chip {
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      background: color-mix(in srgb, mel.$mel-ds-color-primary 12%, mel.$mel-ds-color-surface);
+      color: mel.$mel-ds-color-primary;
+    }
+
+    .mel-event-card__cta-row,
+    .mel-event-card__actions {
+      display: flex !important;
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    .mel-event-card__cta-chip {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .mel-event-card__ticket-type-row,
+    .mel-event-card__location--poster,
+    .mel-event-card__footer {
+      display: none;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+
+      &:hover .mel-event-card__link {
+        transform: none;
+        box-shadow: none;
+      }
+    }
+  }
+
+  @media (width <= 640px) {
+    .mel-popular-event--compact-row .mel-event-card--compact.mel-event-card--poster {
+      .mel-event-card__link {
+        min-height: 88px;
+      }
+
+      .mel-event-card__image,
+      .mel-event-card__media {
+        flex-basis: clamp(80px, 24vw, 96px);
+        width: clamp(80px, 24vw, 96px);
+        min-width: clamp(80px, 24vw, 96px);
+        max-width: clamp(80px, 24vw, 96px);
+        min-height: 88px;
+      }
+
+      .mel-event-card__body,
+      .mel-event-card__content {
+        padding-right: 96px;
+        padding-left: 10px;
+      }
+
+      .mel-event-card__cta-row,
+      .mel-event-card__actions {
+        right: 10px;
+      }
+
+      .mel-event-card__cta-chip {
+        padding: 0 10px;
+        font-size: 12px;
+      }
+    }
   }
 }
 
@@ -830,18 +1074,225 @@
 }
 
 // ---------------------------------------------------------------------------
-// Blog preview — reuses .mel-blog-card-grid from blog landing styles.
+// Blog guides — editorial resource surface (distinct from event discovery).
 // ---------------------------------------------------------------------------
+
+.mel-page--home > .mel-section--blog {
+  padding-top: clamp(20px, 3.5vw, 32px);
+  padding-bottom: clamp(28px, 4vw, 48px);
+}
+
+.mel-page--home .mel-section--blog .mel-section--blog__surface {
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-accent 20%, transparent);
+  border-radius: mel.$mel-ds-radius-lg;
+  background: color-mix(in srgb, mel.$mel-ds-color-accent 10%, mel.$mel-ds-color-surface);
+  box-shadow: mel.$mel-ds-shadow-soft;
+}
+
+.mel-page--home .mel-section--blog .mel-section__title--with-icon {
+  display: flex;
+  align-items: center;
+  gap: mel.$mel-ds-space-sm;
+}
+
+.mel-page--home .mel-section--blog .mel-section__title-icon {
+  flex-shrink: 0;
+  padding: 6px;
+  border-radius: mel.$mel-ds-radius-sm;
+  background: color-mix(in srgb, mel.$mel-ds-color-accent 16%, mel.$mel-ds-color-surface);
+  color: mel.$mel-ds-color-accent;
+}
+
+.mel-page--home .mel-section--blog .mel-section__title-text {
+  min-width: 0;
+}
+
+.mel-page--home .mel-section--blog .mel-section__link--guides {
+  color: mel.$mel-ds-color-accent;
+  font-weight: 700;
+  text-decoration: none;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: color-mix(in srgb, mel.$mel-ds-color-accent 82%, #000 18%);
+      text-decoration: underline;
+    }
+  }
+
+  &:focus-visible {
+    outline-color: color-mix(in srgb, mel.$mel-ds-color-accent 36%, transparent);
+  }
+}
 
 .mel-page--home .mel-section--blog .views-exposed-form,
 .mel-page--home .mel-section--blog form.views-exposed-form {
   display: none;
 }
 
+.mel-page--home .mel-section--blog .mel-blog-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: mel.$mel-ds-space-md;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  @include breakpoints.mel-break(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: mel.$mel-ds-space-lg;
+  }
+}
+
 .mel-page--home .mel-blog-preview-grid__item,
 .mel-page--home .mel-blog-preview-grid__item > * {
   height: 100%;
   min-width: 0;
+}
+
+// Resource-style teaser cards — horizontal thumbnail layout (homepage only).
+.mel-page--home .mel-section--blog .mel-blog-card {
+  height: 100%;
+
+  .mel-card {
+    height: 100%;
+    background: mel.$mel-ds-color-surface;
+    border-color: color-mix(in srgb, mel.$mel-ds-color-accent 12%, transparent);
+    box-shadow: none;
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        transform: none;
+        border-color: color-mix(in srgb, mel.$mel-ds-color-accent 28%, transparent);
+        box-shadow: mel.$mel-ds-shadow-soft;
+      }
+    }
+  }
+
+  .mel-blog-card__link {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 7.5rem;
+    padding-right: 2.75rem;
+  }
+
+  .mel-blog-card__media {
+    position: relative;
+    flex: 0 0 4.75rem;
+    align-self: center;
+    width: 4.75rem;
+    min-width: 4.75rem;
+    height: 4.75rem;
+    margin: mel.$mel-ds-space-sm 0 mel.$mel-ds-space-sm mel.$mel-ds-space-sm;
+    border-radius: mel.$mel-ds-radius-sm;
+    overflow: hidden;
+    background: color-mix(in srgb, mel.$mel-ds-color-accent 10%, mel.$mel-ds-color-surface);
+
+    > div,
+    .contextual-region {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    .contextual {
+      z-index: 2;
+    }
+
+    img {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+
+  .mel-blog-card__placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, mel.$mel-ds-color-accent 18%, #fff) 0%,
+      color-mix(in srgb, mel.$mel-ds-color-primary 12%, #fff) 100%
+    );
+  }
+
+  .mel-card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: mel.$mel-ds-space-xs;
+    min-width: 0;
+    padding: mel.$mel-ds-space-sm mel.$mel-ds-space-sm mel.$mel-ds-space-sm mel.$mel-ds-space-xs;
+  }
+
+  .mel-blog-card__badge {
+    margin: 0;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+  }
+
+  .mel-card__title {
+    margin: 0;
+    font-size: clamp(0.875rem, 1.8vw, 0.9375rem);
+    font-weight: 700;
+    line-height: 1.3;
+
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .mel-blog-card__excerpt {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: color-mix(in srgb, mel.$mel-ds-color-muted 88%, mel.$mel-ds-color-text 12%);
+
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .mel-blog-card__meta {
+    margin: auto 0 0;
+    padding-top: mel.$mel-ds-space-xs;
+    color: color-mix(in srgb, mel.$mel-ds-color-muted 72%, mel.$mel-ds-color-text 28%);
+    font-size: 0.6875rem;
+    font-weight: 400;
+    opacity: 0.88;
+  }
+
+  .mel-blog-card__link::after {
+    content: '→';
+    position: absolute;
+    right: mel.$mel-ds-space-sm;
+    bottom: mel.$mel-ds-space-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, mel.$mel-ds-color-accent 14%, mel.$mel-ds-color-surface);
+    color: mel.$mel-ds-color-accent;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+  }
 }
 
 // ---------------------------------------------------------------------------

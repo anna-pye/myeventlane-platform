@@ -342,7 +342,7 @@ display:
         type: some
         options:
           offset: 0
-          items_per_page: 6
+          items_per_page: 8
       filters:
         status:
           id: status
@@ -976,7 +976,7 @@ display:
         type: some
         options:
           offset: 0
-          items_per_page: 6
+          items_per_page: 8
       filters:
         status:
           id: status

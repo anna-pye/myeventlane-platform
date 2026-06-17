@@ -4,9 +4,10 @@
  * MyEventLane category pills block template - Global MEL Category Pill System.
  *
  * Variables:
- * - categories: Array of items with keys: tid, label, color, slug (added by preprocess).
+ * - categories: Array of items with keys: tid, label, color, slug, icon (added by preprocess).
+ * - hero_icons: When TRUE, render hero category icon cards via mel-event-ui-icons.
  *
- * Note: Homepage template provides .mel-category-strip wrapper.
+ * Note: Homepage hero provides .mel-home-hero__categories-scroll wrapper.
  */
 #}
 {% for c in categories %}
@@ -16,8 +17,17 @@
     class="mel-category-pill mel-category-pill--{{ pill_mod|clean_class }}"
     aria-label="{{ 'View events in'|t }} {{ c.label }}"
   >
+    {% if hero_icons|default(false) %}
+      <span class="mel-home-hero__category-icon mel-home-hero__category-icon--{{ pill_mod|clean_class }}">
+        {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
+          icon: c.icon|default('calendar'),
+          class: 'mel-home-hero__category-glyph',
+          size: 24
+        } only %}
+      </span>
+    {% endif %}
     <span class="mel-category-pill__label">{{ c.label }}</span>
-    {% if c.count is defined %}
+    {% if c.count is defined and not hero_icons|default(false) %}
       <span class="mel-category-pill__count" aria-hidden="true">{{ c.count }}</span>
     {% endif %}
   </a>

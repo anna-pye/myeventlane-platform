@@ -871,7 +871,7 @@ display:
         type: some
         options:
           offset: 0
-          items_per_page: 6
+          items_per_page: 8
       sorts:
         field_event_start_value:
           id: field_event_start_value
@@ -1434,7 +1434,7 @@ display:
         type: some
         options:
           offset: 0
-          items_per_page: 6
+          items_per_page: 4
       empty:
         area:
           id: area

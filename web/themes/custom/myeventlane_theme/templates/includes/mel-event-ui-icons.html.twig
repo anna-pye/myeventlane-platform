@@ -41,5 +41,36 @@
   {% elseif icon == 'external' %}
     <path d="M14 4.5h5.5V10M9.75 14.25 19.5 4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M19 14.5v5H5V5.5h5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elseif icon == 'music' %}
+    <path d="M9 18V6.8l8-2.1v11.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="7.5" cy="18" r="2.25" stroke="currentColor" stroke-width="1.75"/>
+    <circle cx="15.5" cy="16" r="2.25" stroke="currentColor" stroke-width="1.75"/>
+  {% elseif icon == 'users' %}
+    <circle cx="9" cy="8.25" r="2.75" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M4.5 18.5c.9-2.4 2.6-3.75 4.5-3.75s3.6 1.35 4.5 3.75" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M15.75 8.75a2.75 2.75 0 1 1 0-5.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M17.75 18.5c-.65-1.75-1.85-2.85-3.25-3.35" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+  {% elseif icon == 'palette' %}
+    <path d="M12 20.5c4.25 0 7.5-3.15 7.5-7.25S16.25 6 12 6 4.5 9.15 4.5 13.25c0 2.35 1.35 3.75 3 3.75.85 0 1.35-.65 1.35-1.5 0-.75-.35-1.25-.35-1.9 0-1.35 1.15-2.45 2.55-2.45 1.45 0 2.45 1.05 2.45 2.45 0 .95-.55 1.65-.55 2.55 0 1.35 1.05 2.45 2.45 2.45Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <circle cx="8.25" cy="10.25" r=".85" fill="currentColor"/>
+    <circle cx="11.25" cy="8.75" r=".85" fill="currentColor"/>
+    <circle cx="14.75" cy="10.25" r=".85" fill="currentColor"/>
+  {% elseif icon == 'store' %}
+    <path d="M4.5 9.5 6 4.5h12l1.5 5" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="M4.5 9.5h15v2.25a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V9.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="M6 13.25V19.5h12V13.25" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+  {% elseif icon == 'pencil' %}
+    <path d="M15.5 4.5 19.5 8.5 8.75 19.25 4.75 19.25 4.75 15.25 15.5 4.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+    <path d="M13.75 6.25 17.75 10.25" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+  {% elseif icon == 'utensils' %}
+    <path d="M7 4.5v6.75a2.25 2.25 0 0 0 4.5 0V4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M9.25 11.25V19.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M16.75 4.5V19.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M14.5 4.5h4.5v4.5a2.25 2.25 0 0 1-4.5 0V4.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+  {% elseif icon == 'film' %}
+    <rect x="4.5" y="5.5" width="15" height="13" rx="2.25" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M8 5.5v13M16 5.5v13M4.5 9.5h15M4.5 14.5h15" stroke="currentColor" stroke-width="1.75"/>
+  {% elseif icon == 'activity' %}
+    <path d="M4.5 12.5h3.75l2.25-5.5 3.75 11 2.25-5.5H19.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
   {% endif %}
 </svg>

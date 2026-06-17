@@ -25,6 +25,7 @@ function myeventlane_blocks_theme($existing, $type, $theme, $path) {
     'myeventlane_category_pills' => [
       'variables' => [
         'categories' => [],
+        'hero_icons' => FALSE,
       ],
       'template' => 'myeventlane-category-pills',
     ],

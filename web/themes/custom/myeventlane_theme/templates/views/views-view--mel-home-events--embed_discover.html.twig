@@ -26,22 +26,24 @@
     {{ exposed }}
   </div>
 
-  <div class="mel-filter-chip-row" role="group" aria-label="{{ 'Filter discover events'|t }}">
-    <button type="button" class="mel-filter-chip mel-filter-chip--active" data-filter="all" aria-pressed="true">
-      {{ 'All'|t }}
-    </button>
-    <button type="button" class="mel-filter-chip" data-filter="now" aria-pressed="false">
-      {{ '🔥 Happening now'|t }}
-    </button>
-    <button type="button" class="mel-filter-chip" data-filter="weekend" aria-pressed="false">
-      {{ '🎉 This weekend'|t }}
-    </button>
-    <button type="button" class="mel-filter-chip" data-filter="free" aria-pressed="false">
-      {{ '💸 Free events'|t }}
-    </button>
-    <button type="button" class="mel-filter-chip" data-filter="trending" aria-pressed="false">
-      {{ '💖 Trending'|t }}
-    </button>
+  <div class="mel-filter-chip-group">
+    <div class="mel-filter-chip-row" role="group" aria-label="{{ 'Filter discover events'|t }}">
+      <button type="button" class="mel-filter-chip mel-filter-chip--active" data-filter="all" aria-pressed="true">
+        {{ 'All events'|t }}
+      </button>
+      <button type="button" class="mel-filter-chip" data-filter="now" aria-pressed="false">
+        {{ '🔥 Happening now'|t }}
+      </button>
+      <button type="button" class="mel-filter-chip" data-filter="weekend" aria-pressed="false">
+        {{ '🎉 This weekend'|t }}
+      </button>
+      <button type="button" class="mel-filter-chip" data-filter="free" aria-pressed="false">
+        {{ '🎟 Free events'|t }}
+      </button>
+      <button type="button" class="mel-filter-chip" data-filter="trending" aria-pressed="false">
+        {{ '💖 Trending'|t }}
+      </button>
+    </div>
   </div>
 
   {% if rows -%}
