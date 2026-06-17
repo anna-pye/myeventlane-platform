@@ -83,8 +83,8 @@ function _myeventlane_front_home_hero_theme_urls(): array {
   }
 
   $mobile_candidates = [
-    $theme_path . '/images/mel/hero/mel-hero-mobile.png',
     $theme_path . '/images/mel/hero/mel-hero-home-community.jpg',
+    $theme_path . '/images/mel/hero/mel-hero-home.png',
   ];
   foreach ($mobile_candidates as $relative) {
     if (file_exists(DRUPAL_ROOT . '/' . $relative)) {

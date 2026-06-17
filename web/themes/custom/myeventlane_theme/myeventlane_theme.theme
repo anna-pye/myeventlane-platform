@@ -1775,6 +1775,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'label' => $term->label(),
         'url' => _myeventlane_theme_get_category_url($term),
         'slug' => $slug,
+        'icon' => _myeventlane_theme_category_hero_icon($slug),
       ];
     }
     $variables['mel_header_categories'] = $categories;
@@ -2260,6 +2261,7 @@ function myeventlane_theme_preprocess_page__events__category(array &$variables):
       'label' => $category_term->label(),
       'url' => _myeventlane_theme_get_category_url($category_term),
       'slug' => $slug,
+      'icon' => _myeventlane_theme_category_hero_icon($slug),
     ];
   }
 
@@ -3264,6 +3266,7 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
         'label' => $cat_term->label(),
         'url' => _myeventlane_theme_get_category_url($cat_term),
         'slug' => $slug,
+        'icon' => _myeventlane_theme_category_hero_icon($slug),
       ];
     }
     
@@ -3565,7 +3568,7 @@ function _myeventlane_theme_get_active_category_term(): ?TermInterface {
 }
 
 /**
- * Maps category slug to mel-event-ui-icons icon id for hero category cards.
+ * Maps category slug to mel-event-ui-icons icon id (hero + compact pills).
  */
 function _myeventlane_theme_category_hero_icon(string $slug): string {
   $map = [
@@ -3580,7 +3583,9 @@ function _myeventlane_theme_category_hero_icon(string $slug): string {
     'family' => 'users',
     'food' => 'utensils',
     'food-drink' => 'utensils',
+    'food-and-drink' => 'utensils',
     'movie' => 'film',
+    'movies' => 'film',
     'sport' => 'activity',
     'sports' => 'activity',
   ];

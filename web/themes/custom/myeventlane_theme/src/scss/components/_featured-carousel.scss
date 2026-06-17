@@ -151,7 +151,7 @@
     }
 
     // Hide category / featured pill on image (copy lives in glass panel)
-    .mel-event-card__category-pill,
+    .mel-event-card__badge-stack .mel-event-card__image-badge,
     .mel-event-card__image-badge {
       display: none;
     }
