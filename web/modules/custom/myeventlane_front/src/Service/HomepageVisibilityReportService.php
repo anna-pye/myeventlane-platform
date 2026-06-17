@@ -46,26 +46,32 @@ final class HomepageVisibilityReportService {
     if (in_array($nid, $this->merchandising->getHeroEventIds(), TRUE)) {
       $surfaces[] = $this->surface('hero', (string) $this->t('Hero'));
     }
-    if (in_array($nid, $this->merchandising->getCommunitySpotlightEventIds(), TRUE)) {
-      $surfaces[] = $this->surface('spotlight', (string) $this->t('Community Spotlight'));
+    if (in_array($nid, $this->merchandising->getTonightEventIds(), TRUE)) {
+      $surfaces[] = $this->surface('tonight', (string) $this->t('Happening Tonight'));
     }
-    if (in_array($nid, $this->merchandising->getMoreToDiscoverEventIds(), TRUE)) {
-      $surfaces[] = $this->surface('more_to_discover', (string) $this->t('Worth checking out'));
-    }
-    if (in_array($nid, $this->merchandising->getRecommendedEventIds(), TRUE)) {
-      $surfaces[] = $this->surface('recommended', (string) $this->t('Recommended'));
+    if (in_array($nid, $this->merchandising->getHiddenGemEventIds(), TRUE)) {
+      $surfaces[] = $this->surface('hidden_gems', (string) $this->t('Hidden Gems'));
     }
     if (in_array($nid, $this->merchandising->getDiscoverEventIds(), TRUE)) {
       $surfaces[] = $this->surface('discover', (string) $this->t('Discover Events'));
     }
-    if (in_array($nid, $this->merchandising->getTonightEventIds(), TRUE)) {
-      $surfaces[] = $this->surface('tonight', (string) $this->t('Happening Tonight'));
+    if (in_array($nid, $this->merchandising->getCommunitySpotlightEventIds(), TRUE)) {
+      $surfaces[] = $this->surface('spotlight', (string) $this->t('Community Spotlight'));
+    }
+    if (in_array($nid, $this->merchandising->getCommunityFavouritesEventIds(), TRUE)) {
+      $surfaces[] = $this->surface('community_favourites', (string) $this->t('Community Favourites'));
+    }
+    if (in_array($nid, $this->merchandising->getLatestEventIds(), TRUE)) {
+      $surfaces[] = $this->surface('latest', (string) $this->t('Upcoming Highlights'));
     }
     if (in_array($nid, $this->merchandising->getFreeRsvpEventIds(), TRUE)) {
       $surfaces[] = $this->surface('free', (string) $this->t('Free & RSVP'));
     }
-    if (in_array($nid, $this->merchandising->getLatestEventIds(), TRUE)) {
-      $surfaces[] = $this->surface('latest', (string) $this->t('Freshly Added'));
+    if (in_array($nid, $this->merchandising->getRecommendedEventIds(), TRUE)) {
+      $surfaces[] = $this->surface('recommended', (string) $this->t('More Events To Explore'));
+    }
+    if (in_array($nid, $this->merchandising->getMoreToDiscoverEventIds(), TRUE)) {
+      $surfaces[] = $this->surface('more_to_discover', (string) $this->t('Worth checking out'));
     }
 
     return $surfaces;
@@ -152,24 +158,28 @@ final class HomepageVisibilityReportService {
 
     $order = [
       'hero',
-      'spotlight',
-      'more_to_discover',
-      'recommended',
-      'discover',
       'tonight',
-      'free',
+      'hidden_gems',
+      'discover',
+      'spotlight',
+      'community_favourites',
       'latest',
+      'free',
+      'recommended',
+      'more_to_discover',
     ];
 
     $labels = [
       'hero' => (string) $this->t('Hero'),
-      'spotlight' => (string) $this->t('Community Spotlight'),
-      'more_to_discover' => (string) $this->t('Worth checking out'),
-      'recommended' => (string) $this->t('Recommended'),
-      'discover' => (string) $this->t('Discover Events'),
       'tonight' => (string) $this->t('Happening Tonight'),
+      'hidden_gems' => (string) $this->t('Hidden Gems'),
+      'discover' => (string) $this->t('Discover Events'),
+      'spotlight' => (string) $this->t('Community Spotlight'),
+      'community_favourites' => (string) $this->t('Community Favourites'),
+      'latest' => (string) $this->t('Upcoming Highlights'),
       'free' => (string) $this->t('Free & RSVP'),
-      'latest' => (string) $this->t('Freshly Added'),
+      'recommended' => (string) $this->t('More Events To Explore'),
+      'more_to_discover' => (string) $this->t('Worth checking out'),
     ];
 
     $summary = [];
