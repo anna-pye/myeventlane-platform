@@ -443,6 +443,19 @@
   display: none;
 }
 
+// Active category — lavender ring + weight (not colour alone; aria-current on link).
+.mel-home-hero__categories-scroll .mel-category-pill.is-active {
+  color: mel.$mel-ds-color-text;
+  font-weight: 800;
+
+  .mel-home-hero__category-icon {
+    background: color-mix(in srgb, var(--mel-lilac) 38%, #fff);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--mel-lilac) 62%, transparent),
+      shadows.$mel-shadow-sm;
+  }
+}
+
 .mel-home-hero__view-all {
   flex: 0 0 auto;
   min-height: 44px;
