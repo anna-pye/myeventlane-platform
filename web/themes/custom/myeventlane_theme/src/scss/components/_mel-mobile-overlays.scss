@@ -1,0 +1,162 @@
+// ==========================================================================
+// MEL mobile overlays — viewport sheets below md (768px)
+// ==========================================================================
+// Z-index hierarchy (tokens/_zindex.scss):
+//   header: 100 | popover (dropdown): 150 | drawer (nav): 200 | modal: 1000
+//
+// Desktop flyout behaviour is unchanged. Mobile sheets are portaled to
+// #mel-mobile-overlay-portal via mel-mobile-overlays.js to avoid clipping.
+
+@use '../tokens/breakpoints';
+@use '../tokens/zindex' as z;
+@use '../tokens/radii';
+@use '../tokens/shadows';
+
+// Portal mount (panels moved here on mobile open).
+.mel-mobile-overlay-portal {
+  position: fixed;
+  inset: 0;
+  z-index: z.mel-z(dropdown);
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+// Shared mobile sheet geometry — positioned via CSS variables from JS.
+.mel-mobile-overlay-sheet {
+  position: fixed;
+  top: var(--mel-site-header-offset, 64px);
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  max-height: calc(100dvh - var(--mel-site-header-offset, 64px) - max(12px, env(safe-area-inset-bottom, 0px)));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  z-index: z.mel-z(dropdown);
+  margin: 0;
+  box-sizing: border-box;
+  background: #fffdf9;
+  border: 1px solid rgba(41, 50, 65, 0.1);
+  border-radius: 0 0 radii.$mel-radius-lg radii.$mel-radius-lg;
+  box-shadow: shadows.$mel-shadow-lg;
+}
+
+body.mel-mobile-overlay-active::before {
+  content: '';
+  position: fixed;
+  inset: var(--mel-site-header-offset, 64px) 0 0;
+  background: rgba(41, 50, 65, 0.32);
+  z-index: calc(#{z.mel-z(dropdown)} - 1);
+  pointer-events: auto;
+}
+
+@include breakpoints.mel-break(md, max) {
+  // Disable desktop hover/focus-within opens on mobile.
+  .mel-cart-block:not(.is-open):hover .mel-mini-cart,
+  .mel-cart-block:not(.is-open):focus-within .mel-mini-cart {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px);
+  }
+
+  .mel-cart-block:not(.is-open):hover,
+  .mel-cart-block:not(.is-open):focus-within {
+    z-index: auto;
+  }
+
+  .mel-account-dropdown:not(.is-open):hover .mel-account-menu,
+  .mel-account-dropdown:not(.is-open):focus-within .mel-account-menu {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-10px);
+  }
+
+  // Cart sheet (portaled + .is-open).
+  .mel-mini-cart.mel-mobile-overlay-sheet,
+  #mel-mobile-overlay-portal .mel-mini-cart {
+    display: flex;
+    flex-direction: column;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .mel-cart-block.is-open {
+    z-index: z.mel-z(dropdown);
+  }
+
+  #mel-mobile-overlay-portal .mel-notif-bell__panel.is-open:not([hidden]),
+  .mel-notif-bell__panel.mel-mobile-overlay-sheet {
+    display: flex !important;
+    flex-direction: column;
+    position: fixed !important;
+    top: var(--mel-site-header-offset, 64px) !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  #mel-mobile-overlay-portal .mel-account-menu,
+  .mel-account-menu.mel-mobile-overlay-sheet {
+    position: fixed !important;
+    top: var(--mel-site-header-offset, 64px) !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    width: auto !important;
+    transform: none !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    padding: 12px;
+    list-style: none;
+  }
+
+  #mel-mobile-overlay-portal .mel-mini-cart,
+  .mel-mini-cart.mel-mobile-overlay-sheet {
+    position: fixed !important;
+    top: var(--mel-site-header-offset, 64px) !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    width: auto !important;
+    transform: none !important;
+    z-index: z.mel-z(dropdown) !important;
+  }
+
+  .mel-account-menu-item {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--mel-ink, #293241);
+    font-weight: 500;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(242, 109, 91, 0.08);
+      color: var(--mel-coral, #f26d5b);
+    }
+  }
+
+  // Drawer backdrop uses body class when any overlay is active; keep drawer above popovers.
+  .mobile-drawer__panel {
+    z-index: z.mel-z(nav);
+  }
+
+  .mobile-drawer[open]::before {
+    display: none;
+  }
+}

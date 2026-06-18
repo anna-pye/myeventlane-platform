@@ -201,12 +201,6 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
     'mobile_drawer' => [
       'variables' => [
         'drawer_menu' => [],
-        'drawer_organiser' => [],
-        'create_event_url' => '/create-event',
-        'mel_cart_url' => '/cart',
-        'mel_cart_item_count' => 0,
-        'mel_cart_count_text' => '',
-        'mel_checkout_url' => '',
       ],
       'template' => 'components/mobile-drawer/mobile-drawer',
     ],
@@ -342,10 +336,6 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
     $variables['mobile_drawer'] = [
       '#theme' => 'mobile_drawer',
       '#drawer_menu' => $variables['primary_menu'],
-      '#drawer_organiser' => $variables['organiser_context'],
-      '#cache' => [
-        'contexts' => ['cart'],
-      ],
     ];
   }
   else {
@@ -454,57 +444,10 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
 /**
  * Implements hook_preprocess_mobile_drawer().
  *
- * Ensures drawer_menu and drawer_organiser are render arrays.
+ * Ensures drawer_menu is a render array.
  */
 function myeventlane_theme_preprocess_mobile_drawer(array &$variables): void {
   $variables['drawer_menu'] = $variables['drawer_menu'] ?? [];
-  $variables['drawer_organiser'] = $variables['drawer_organiser'] ?? [];
-  $variables['create_event_url'] = _myeventlane_theme_public_create_event_url();
-
-  $variables['mel_cart_url'] = '/cart';
-  $variables['mel_cart_item_count'] = 0;
-  $variables['mel_cart_count_text'] = (string) \Drupal::translation()->formatPlural(0, '@count item', '@count items', ['@count' => 0]);
-  $variables['mel_checkout_url'] = '';
-
-  try {
-    $variables['mel_cart_url'] = Url::fromRoute('commerce_cart.page')->toString();
-  }
-  catch (\Throwable) {
-    // Route missing in non-Commerce environments.
-  }
-
-  if (\Drupal::moduleHandler()->moduleExists('commerce_cart')) {
-    try {
-      $cart_qty = 0;
-      foreach (\Drupal::service('commerce_cart.cart_provider')->getCarts() as $cart) {
-        foreach ($cart->getItems() as $item) {
-          $cart_qty += (int) $item->getQuantity();
-        }
-      }
-      $variables['mel_cart_item_count'] = $cart_qty;
-      $variables['mel_cart_count_text'] = (string) \Drupal::translation()->formatPlural(
-        $cart_qty,
-        '@count item',
-        '@count items',
-        ['@count' => $cart_qty]
-      );
-    }
-    catch (\Throwable $e) {
-      \Drupal::logger('myeventlane_theme')->error('Mobile drawer cart count failed: @message', ['@message' => $e->getMessage()]);
-    }
-  }
-
-  if (\Drupal::moduleHandler()->moduleExists('commerce_checkout')) {
-    try {
-      $checkout_url = Url::fromRoute('commerce_checkout.checkout');
-      if ($checkout_url->access(\Drupal::currentUser())) {
-        $variables['mel_checkout_url'] = $checkout_url->toString();
-      }
-    }
-    catch (\Throwable $e) {
-      \Drupal::logger('myeventlane_theme')->warning('Mobile drawer checkout URL: @message', ['@message' => $e->getMessage()]);
-    }
-  }
 }
 
 /**

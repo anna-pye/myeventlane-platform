@@ -4,15 +4,18 @@
 // <details>/<summary> drawer for mobile navigation.
 // Uses BEM: .mobile-drawer, .mobile-drawer__toggle, etc.
 
+@use '../tokens/breakpoints';
+@use '../tokens/zindex' as z;
+
 .mobile-drawer {
   position: relative;
-  // Ensure panel is not clipped by parent overflow
   isolation: isolate;
 
   &__toggle {
     list-style: none;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     cursor: pointer;
     padding: 10px 12px;
@@ -21,6 +24,8 @@
     background: #fff;
     color: var(--mel-ink);
     font-weight: 600;
+    min-width: 44px;
+    min-height: 44px;
 
     &::-webkit-details-marker {
       display: none;
@@ -30,32 +35,47 @@
       outline: 2px solid var(--mel-coral);
       outline-offset: 2px;
     }
+
+    @include breakpoints.mel-break(md, max) {
+      padding: 10px;
+      border-radius: 10px;
+    }
   }
 
   &__icon {
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     line-height: 1;
   }
 
   &__label {
     font-size: 0.9rem;
+
+    @include breakpoints.mel-break(md, max) {
+      // Icon-only burger on mobile — utilities need the horizontal space.
+      display: none;
+    }
+  }
+
+  &:not([open]) &__panel {
+    visibility: hidden;
   }
 
   &[open] &__panel {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+    visibility: visible;
   }
 
   &__panel {
     position: fixed;
     left: 12px;
     right: 12px;
-    top: 76px; // Below 64px header + 12px gap
+    top: 76px;
     width: auto;
     max-width: 360px;
     margin: 0 auto;
-    background: #fff;
+    background: #fffdf9;
     border: 1px solid var(--mel-border);
     border-radius: 16px;
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
@@ -64,157 +84,137 @@
     transform: translateY(-6px);
     pointer-events: none;
     transition: opacity 0.15s ease, transform 0.15s ease;
-    z-index: 9999;
+    z-index: z.mel-z(nav);
     max-height: calc(100vh - 100px);
     overflow-y: auto;
-  }
 
-  &__section-title {
-    margin: 0 0 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--mel-muted);
-  }
-
-  &__section--cart {
-    gap: 8px;
-  }
-
-  &__cart-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px 12px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: var(--mel-ink);
-    font-weight: 600;
-    background: #f7f7fb;
-    border: 1px solid var(--mel-border);
-
-    &:hover {
-      background: #fff;
-      color: var(--mel-coral);
+    @include breakpoints.mel-break(md, max) {
+      left: 0;
+      right: 0;
+      top: var(--mel-site-header-offset, 64px);
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      border-radius: 0 0 16px 16px;
+      border-top: none;
+      padding: 8px 12px 24px;
+      max-height: calc(100dvh - var(--mel-site-header-offset, 64px));
+      box-shadow: 0 12px 32px rgba(41, 50, 65, 0.14);
     }
-
-    &:focus-visible {
-      outline: 2px solid var(--mel-coral);
-      outline-offset: 2px;
-    }
-  }
-
-  &__cart-label {
-    flex-shrink: 0;
-  }
-
-  &__cart-count {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--mel-muted);
-  }
-
-  &__checkout-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    padding: 0 16px;
-    border-radius: 999px;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 0.9rem;
-    background: var(--mel-coral, #f26d5b);
-    color: #fff;
-
-    &:hover {
-      filter: brightness(0.95);
-      color: #fff;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--mel-coral);
-      outline-offset: 2px;
-    }
-  }
-
-  &__trust {
-    margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px solid var(--mel-border);
   }
 
   &__section {
     display: grid;
-    gap: 6px;
-
-    ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    li {
-      margin: 0;
-    }
-
-    a {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 12px;
-      text-decoration: none;
-      color: var(--mel-ink);
-      font-weight: 500;
-
-      &:hover {
-        background: #f7f7fb;
-        color: var(--mel-coral);
-      }
-
-      &:focus-visible {
-        outline: 2px solid var(--mel-coral);
-        outline-offset: 2px;
-      }
-    }
+    gap: 4px;
   }
 
-  &__divider {
-    height: 1px;
-    background: var(--mel-border);
-    margin: 10px 0;
+  // Vertical mobile navigation — override horizontal .mel-nav defaults.
+  .mel-nav {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
   }
 
-  &__create-event {
+  .mel-nav__item {
+    width: 100%;
+  }
+
+  .mel-nav__link,
+  .mel-nav-dropdown-toggle {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
+    justify-content: flex-start;
     width: 100%;
-    padding: 12px 16px;
-    background: var(--mel-coral, #f26d5b);
-    color: #fff;
-    font-weight: 700;
-    font-size: 0.95rem;
-    text-decoration: none;
+    min-height: 44px;
+    padding: 12px 14px;
     border-radius: 12px;
-    transition: background 0.15s ease;
+    text-decoration: none;
+    color: var(--mel-ink);
+    font-weight: 600;
+    font-size: 1rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    box-sizing: border-box;
 
-    svg {
-      flex-shrink: 0;
+    &:hover,
+    &:focus-visible {
+      background: rgba(242, 109, 91, 0.08);
+      color: var(--mel-coral);
+      outline: none;
+      box-shadow: none;
     }
 
-    &:hover {
-      background: var(--mel-coral-hover, #e05a48);
-      color: #fff;
+    &.is-active,
+    &[aria-current='page'],
+    &[aria-current='true'] {
+      color: var(--mel-coral);
+      background: rgba(242, 109, 91, 0.12);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--mel-coral, #f26d5b);
+      outline: 2px solid var(--mel-coral);
       outline-offset: 2px;
+    }
+  }
+
+  .mel-nav-dropdown {
+    width: 100%;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .mel-nav-dropdown-toggle .mel-dropdown-arrow {
+    margin-left: auto;
+  }
+
+  .mel-nav-dropdown-menu {
+    position: static;
+    display: none;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    min-width: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0 0 4px 8px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    list-style: none;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .mel-nav-dropdown.is-open .mel-nav-dropdown-menu {
+    display: block;
+  }
+
+  .mel-nav-dropdown-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--mel-ink);
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: normal;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(124, 131, 253, 0.1);
+      color: var(--mel-lavender, #7c83fd);
     }
   }
 }

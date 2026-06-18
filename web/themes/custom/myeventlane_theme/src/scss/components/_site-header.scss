@@ -30,6 +30,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+
+    @include breakpoints.mel-break(md, max) {
+      padding: 0 12px;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
   }
 
   &__left {
@@ -37,11 +43,24 @@
     align-items: center;
     gap: 20px;
     min-width: 0;
+    flex: 1 1 auto;
+
+    @include breakpoints.mel-break(md, max) {
+      gap: 8px;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
   }
 
   &__brand {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
+
+    @include breakpoints.mel-break(md, max) {
+      min-width: 0;
+      flex-shrink: 1;
+    }
 
     img,
     svg {
@@ -110,6 +129,18 @@
     align-items: center;
     gap: 12px;
     min-height: 40px;
+    flex-shrink: 0;
+  }
+
+  &__utilities {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+
+    @include breakpoints.mel-break(md, max) {
+      gap: 4px;
+    }
   }
 
   &__create-event {
@@ -160,13 +191,18 @@
     }
   }
 
-  &__organiser,
   &__cart,
   &__notifications,
   &__user {
     display: flex;
     align-items: center;
     min-height: 40px;
+    flex-shrink: 0;
+
+    @include breakpoints.mel-break(md, max) {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 
   &__notifications {
@@ -193,6 +229,11 @@
       color: var(--mel-ink);
       border-radius: var(--mel-radius-1);
       transition: background 0.15s ease;
+
+      @include breakpoints.mel-break(md, max) {
+        width: 44px;
+        height: 44px;
+      }
 
       &:hover {
         background: rgba(41, 50, 65, 0.06);

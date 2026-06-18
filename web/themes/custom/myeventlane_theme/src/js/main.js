@@ -13,7 +13,8 @@ import './underscore-defer-polyfill.js';
 import '../scss/main.scss';
 
 // Import components
-import { initMobileNav, initAccountDropdown } from './header.js';
+import { initMobileDrawer } from './mobile-drawer.js';
+import { initMobileOverlays } from './mel-mobile-overlays.js';
 
 // Import event form enhancements (Drupal behavior)
 import './event-form.js';
@@ -65,13 +66,10 @@ import './card-carousel.js';
   }
 
   function initializeTheme(context) {
-    // Always initialize mobile navigation - it checks for double init internally
-    initMobileNav();
+    initMobileOverlays(context);
+    initMobileDrawer(context);
 
     initMelCalendarTabs(context);
-
-    // Account dropdown is now CSS-only using :focus-within
-    // No JavaScript initialization needed!
   }
 
   // Register as Drupal behavior if Drupal is available
