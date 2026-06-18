@@ -54,18 +54,20 @@
         </div>
       {% endif %}
 
-      <div class="site-header__cart">
-        {{ cart }}
-      </div>
-
-      {% if notification_bell %}
-        <div class="site-header__notifications">
-          {{ notification_bell }}
+      <div class="site-header__utilities">
+        <div class="site-header__cart">
+          {{ cart }}
         </div>
-      {% endif %}
 
-      <div class="site-header__user">
-        {{ user_menu }}
+        {% if notification_bell %}
+          <div class="site-header__notifications">
+            {{ notification_bell }}
+          </div>
+        {% endif %}
+
+        <div class="site-header__user">
+          {{ user_menu }}
+        </div>
       </div>
     </div>
 
