@@ -1,0 +1,207 @@
+// ==========================================================================
+// MEL pager — discovery listings and public paginated views
+// ==========================================================================
+
+@use '../tokens/breakpoints';
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/spacing';
+@use '../tokens/typography';
+@use '../base/mel-ds-tokens' as mel;
+
+.mel-pager {
+  width: 100%;
+  margin: mel.$mel-ds-space-xl 0 0;
+  padding: mel.$mel-ds-space-lg 0 mel.$mel-ds-space-md;
+}
+
+.mel-pager__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: spacing.mel-space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-pager__item {
+  margin: 0;
+  padding: 0;
+}
+
+.mel-pager__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 spacing.mel-space(3);
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-sm;
+  background: colors.$mel-color-surface;
+  color: colors.$mel-color-text;
+  font-family: typography.$mel-font-family;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--mel-motion-fast, 0.15s) ease,
+    border-color var(--mel-motion-fast, 0.15s) ease,
+    color var(--mel-motion-fast, 0.15s) ease,
+    box-shadow var(--mel-motion-fast, 0.15s) ease;
+
+  &:hover {
+    background: colors.$mel-color-pastel-lavender;
+    border-color: color-mix(in srgb, colors.$mel-color-accent 35%, colors.$mel-color-border);
+    color: colors.$mel-color-text;
+    text-decoration: none;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+.mel-pager__link--nav {
+  padding-inline: spacing.mel-space(4);
+}
+
+.mel-pager__link--edge {
+  font-size: typography.mel-font-size(xs);
+  padding-inline: spacing.mel-space(3);
+}
+
+.mel-pager__link--page {
+  min-width: 44px;
+  padding-inline: spacing.mel-space(2);
+}
+
+.mel-pager__link--current {
+  background: colors.$mel-color-primary;
+  border-color: colors.$mel-color-primary;
+  color: colors.$mel-color-text-inverse;
+  cursor: default;
+  box-shadow: 0 2px 8px rgba(colors.$mel-color-primary, 0.22);
+}
+
+.mel-pager__item--current .mel-pager__link--current:hover {
+  background: colors.$mel-color-primary;
+  border-color: colors.$mel-color-primary;
+  color: colors.$mel-color-text-inverse;
+}
+
+.mel-pager__item--ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 44px;
+  padding: 0 spacing.mel-space(1);
+  color: colors.$mel-color-text-muted;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  user-select: none;
+}
+
+.mel-pager__label {
+  display: inline-flex;
+  align-items: center;
+  gap: spacing.mel-space(1);
+}
+
+.mel-pager__icon {
+  font-size: typography.mel-font-size(lg);
+  line-height: 1;
+}
+
+.mel-pager__item--status {
+  display: none;
+}
+
+.mel-pager__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 spacing.mel-space(2);
+  color: colors.$mel-color-text-muted;
+  font-family: typography.$mel-font-family;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+}
+
+// Discovery listing spacing — keeps pager clear of cards and footer CTAs.
+.mel-discovery .mel-pager,
+.mel-browse__results .mel-pager {
+  margin-top: mel.$mel-ds-space-2xl;
+  padding-top: mel.$mel-ds-space-lg;
+  border-top: 1px solid color-mix(in srgb, colors.$mel-color-text 8%, transparent);
+}
+
+@include breakpoints.mel-break(md, max) {
+  .mel-pager__items {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: spacing.mel-space(2);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .mel-pager__item--first,
+  .mel-pager__item--last,
+  .mel-pager__item--page,
+  .mel-pager__item--ellipsis {
+    display: none;
+  }
+
+  .mel-pager__item--previous {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .mel-pager__item--status {
+    display: list-item;
+    grid-column: 2;
+    justify-self: center;
+  }
+
+  .mel-pager__item--next {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .mel-pager__link--nav {
+    width: 100%;
+    max-width: 11rem;
+  }
+
+  .mel-pager__item--previous .mel-pager__link--nav {
+    justify-content: flex-start;
+  }
+
+  .mel-pager__item--next .mel-pager__link--nav {
+    justify-content: flex-end;
+  }
+}
+
+@include breakpoints.mel-break(md) {
+  .mel-pager__item--status {
+    display: none;
+  }
+
+  .mel-pager__item--first,
+  .mel-pager__item--last {
+    .mel-pager__link--edge {
+      min-width: auto;
+    }
+  }
+}
