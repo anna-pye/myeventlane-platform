@@ -1,0 +1,76 @@
+{#
+/**
+ * @file
+ * MEL pager — pill controls for discovery and other public listings.
+ *
+ * @see core/modules/system/templates/pager.html.twig
+ * @see \Drupal\Core\Pager\PagerPreprocess::preprocessPager()
+ */
+#}
+{% if items %}
+  <nav class="pager mel-pager" role="navigation" aria-labelledby="{{ heading_id }}">
+    <{{ pagination_heading_level }} id="{{ heading_id }}" class="visually-hidden">{{ 'Pagination'|t }}</{{ pagination_heading_level }}>
+    <ul class="pager__items mel-pager__items js-pager__items">
+      {% if items.first %}
+        <li class="pager__item pager__item--first mel-pager__item mel-pager__item--first">
+          <a href="{{ items.first.href }}" class="mel-pager__link mel-pager__link--edge" title="{{ 'Go to first page'|t }}"{{ items.first.attributes|without('href', 'title') }}>
+            <span class="visually-hidden">{{ 'First page'|t }}</span>
+            <span class="mel-pager__label" aria-hidden="true">{{ items.first.text|default('« First'|t) }}</span>
+          </a>
+        </li>
+      {% endif %}
+      {% if items.previous %}
+        <li class="pager__item pager__item--previous mel-pager__item mel-pager__item--previous">
+          <a href="{{ items.previous.href }}" class="mel-pager__link mel-pager__link--nav" title="{{ 'Go to previous page'|t }}" rel="prev"{{ items.previous.attributes|without('href', 'title', 'rel') }}>
+            <span class="visually-hidden">{{ 'Previous page'|t }}</span>
+            <span class="mel-pager__label" aria-hidden="true"><span class="mel-pager__icon" aria-hidden="true">‹</span> {{ 'Previous'|t }}</span>
+          </a>
+        </li>
+      {% endif %}
+      {% if ellipses.previous %}
+        <li class="pager__item pager__item--ellipsis mel-pager__item mel-pager__item--ellipsis" role="presentation" aria-hidden="true">&hellip;</li>
+      {% endif %}
+      {% for key, item in items.pages %}
+        <li class="pager__item mel-pager__item mel-pager__item--page{{ current == key ? ' is-active mel-pager__item--current' : '' }}">
+          {% if current == key %}
+            {% set title = 'Current page'|t %}
+            <span class="mel-pager__link mel-pager__link--current" aria-current="page" title="{{ title }}">
+              <span class="visually-hidden">{{ 'Page'|t }}</span>
+              {{- key -}}
+            </span>
+          {% else %}
+            {% set title = 'Go to page @key'|t({'@key': key}) %}
+            <a href="{{ item.href }}" class="mel-pager__link mel-pager__link--page" title="{{ title }}"{{ item.attributes|without('href', 'title') }}>
+              <span class="visually-hidden">{{ 'Page'|t }}</span>
+              {{- key -}}
+            </a>
+          {% endif %}
+        </li>
+      {% endfor %}
+      {% if ellipses.next %}
+        <li class="pager__item pager__item--ellipsis mel-pager__item mel-pager__item--ellipsis" role="presentation" aria-hidden="true">&hellip;</li>
+      {% endif %}
+      {% if current %}
+        <li class="pager__item mel-pager__item mel-pager__item--status">
+          <span class="mel-pager__status" aria-current="page">{{ 'Page @num'|t({'@num': current}) }}</span>
+        </li>
+      {% endif %}
+      {% if items.next %}
+        <li class="pager__item pager__item--next mel-pager__item mel-pager__item--next">
+          <a href="{{ items.next.href }}" class="mel-pager__link mel-pager__link--nav" title="{{ 'Go to next page'|t }}" rel="next"{{ items.next.attributes|without('href', 'title', 'rel') }}>
+            <span class="visually-hidden">{{ 'Next page'|t }}</span>
+            <span class="mel-pager__label" aria-hidden="true">{{ 'Next'|t }} <span class="mel-pager__icon" aria-hidden="true">›</span></span>
+          </a>
+        </li>
+      {% endif %}
+      {% if items.last %}
+        <li class="pager__item pager__item--last mel-pager__item mel-pager__item--last">
+          <a href="{{ items.last.href }}" class="mel-pager__link mel-pager__link--edge" title="{{ 'Go to last page'|t }}"{{ items.last.attributes|without('href', 'title') }}>
+            <span class="visually-hidden">{{ 'Last page'|t }}</span>
+            <span class="mel-pager__label" aria-hidden="true">{{ items.last.text|default('Last »'|t) }}</span>
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
