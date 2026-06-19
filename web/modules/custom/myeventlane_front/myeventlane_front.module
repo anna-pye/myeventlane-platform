@@ -60,6 +60,20 @@ function myeventlane_front_theme($existing, $type, $theme, $path): array {
 }
 
 /**
+ * Builds a public theme asset URL with a filemtime cache buster.
+ *
+ * Theme hero JPEGs/PNGs are served with long-lived cache headers; appending
+ * ?v=mtime ensures browsers fetch replacements after the file on disk changes.
+ */
+function _myeventlane_front_theme_asset_url(string $relative_path): ?string {
+  $full_path = DRUPAL_ROOT . '/' . $relative_path;
+  if (!is_readable($full_path)) {
+    return NULL;
+  }
+  return base_path() . $relative_path . '?v=' . filemtime($full_path);
+}
+
+/**
  * Resolves theme-packaged homepage hero image URLs.
  *
  * @return array{desktop: ?string, mobile: ?string, alt: string}
@@ -67,7 +81,6 @@ function myeventlane_front_theme($existing, $type, $theme, $path): array {
  */
 function _myeventlane_front_home_hero_theme_urls(): array {
   $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
-  $base = base_path();
   $desktop = NULL;
   $mobile = NULL;
 
@@ -76,8 +89,8 @@ function _myeventlane_front_home_hero_theme_urls(): array {
     $theme_path . '/images/mel/hero/mel-hero-home.png',
   ];
   foreach ($desktop_candidates as $relative) {
-    if (file_exists(DRUPAL_ROOT . '/' . $relative)) {
-      $desktop = $base . $relative;
+    $desktop = _myeventlane_front_theme_asset_url($relative);
+    if ($desktop !== NULL) {
       break;
     }
   }
@@ -87,8 +100,8 @@ function _myeventlane_front_home_hero_theme_urls(): array {
     $theme_path . '/images/mel/hero/mel-hero-home.png',
   ];
   foreach ($mobile_candidates as $relative) {
-    if (file_exists(DRUPAL_ROOT . '/' . $relative)) {
-      $mobile = $base . $relative;
+    $mobile = _myeventlane_front_theme_asset_url($relative);
+    if ($mobile !== NULL) {
       break;
     }
   }

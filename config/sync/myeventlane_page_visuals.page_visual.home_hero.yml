@@ -1,0 +1,12 @@
+uuid: 7e363d87-e527-4256-822d-57399aeffe52
+langcode: en
+status: true
+dependencies: {  }
+id: home_hero
+label: 'Home Hero'
+route_name: view.frontpage.page_1
+media_uuid_desktop: a0f88922-e659-4b97-90c9-5475d8731ab2
+media_uuid_mobile: null
+hide_on_mobile: false
+alt_text: 'Community festival with live music, markets, and families enjoying local events.'
+enabled: true
