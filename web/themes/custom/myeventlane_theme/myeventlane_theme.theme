@@ -204,6 +204,12 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       ],
       'template' => 'components/mobile-drawer/mobile-drawer',
     ],
+    'mobile_bottom_nav' => [
+      'variables' => [
+        'items' => [],
+      ],
+      'template' => 'components/mobile-bottom-nav/mobile-bottom-nav',
+    ],
   ];
 }
 
@@ -1576,6 +1582,18 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
     }
   }
 
+  if (\Drupal::hasService('myeventlane_front.mobile_bottom_navigation')) {
+    $auth_minimal = FALSE;
+    if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
+      $surface = \Drupal::service('myeventlane_surface.resolver')->resolve();
+      $auth_minimal = $surface === \Drupal\myeventlane_core\MelSurfaceId::Auth;
+    }
+    $nav_builder = \Drupal::service('myeventlane_front.mobile_bottom_navigation');
+    if ($nav_builder->shouldRender($auth_minimal)) {
+      $variables['attributes']['class'][] = 'mel-has-mobile-bottom-nav';
+    }
+  }
+
   $route_node = $route_match ? $route_match->getParameter('node') : NULL;
   if ($route_node instanceof NodeInterface && $route_node->bundle() === 'event') {
     $variables['attributes']['class'][] = 'mel-body--event-full';
@@ -1646,6 +1664,23 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $variables['mel_footer_show_cta_band'] = empty($variables['is_front']);
   $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');
   $variables['#attached']['library'][] = 'myeventlane_theme/footer-internal';
+
+  $auth_minimal = !empty($variables['mel_surface_auth_minimal']);
+  if (\Drupal::hasService('myeventlane_front.mobile_bottom_navigation')) {
+    $nav_builder = \Drupal::service('myeventlane_front.mobile_bottom_navigation');
+    if ($nav_builder->shouldRender($auth_minimal)) {
+      $variables['mel_mobile_bottom_nav'] = [
+        '#theme' => 'mobile_bottom_nav',
+        '#items' => $nav_builder->buildItems(),
+        '#cache' => [
+          'contexts' => ['route', 'user'],
+        ],
+      ];
+    }
+    else {
+      $variables['mel_mobile_bottom_nav'] = [];
+    }
+  }
 
   // Internal footer context (layout/footer-internal.html.twig).
   try {

@@ -1,0 +1,122 @@
+// ==========================================================================
+// Mobile bottom navigation — public marketplace (below md / 768px)
+// ==========================================================================
+// Layer: z.mel-z(header) = 100 — below overlay sheets (dropdown 150) and drawer (200).
+// Body class .mel-has-mobile-bottom-nav sets --mel-mobile-bottom-nav-height for page padding.
+
+@use '../tokens/breakpoints';
+@use '../tokens/colors';
+@use '../tokens/spacing';
+@use '../tokens/typography';
+@use '../tokens/zindex' as z;
+
+$mel-mobile-bottom-nav-bar-height: 56px;
+
+body.mel-has-mobile-bottom-nav {
+  --mel-mobile-bottom-nav-height: calc(#{$mel-mobile-bottom-nav-bar-height} + env(safe-area-inset-bottom, 0px));
+
+  @include breakpoints.mel-break(md, max) {
+    .mel-page {
+      padding-bottom: var(--mel-mobile-bottom-nav-height);
+    }
+
+    .mel-mobile-cta {
+      bottom: var(--mel-mobile-bottom-nav-height);
+    }
+  }
+}
+
+.mel-mobile-bottom-nav {
+  display: none;
+
+  @include breakpoints.mel-break(md, max) {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: z.mel-z(header);
+    box-sizing: border-box;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #fffdf9;
+    border-top: 1px solid colors.$mel-color-border;
+    font-family: var(--mel-font-head, 'Nunito', system-ui, sans-serif);
+  }
+}
+
+.mel-mobile-bottom-nav__list {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: $mel-mobile-bottom-nav-bar-height;
+}
+
+.mel-mobile-bottom-nav__item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mel-mobile-bottom-nav__link {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: spacing.mel-space(1);
+  min-height: 44px;
+  padding: spacing.mel-space(2) spacing.mel-space(1);
+  color: colors.$mel-color-text;
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-medium;
+  line-height: 1.2;
+  text-decoration: none;
+  text-align: center;
+  box-sizing: border-box;
+
+  &:hover {
+    color: colors.$mel-color-accent;
+    background: color-mix(in srgb, colors.$mel-color-accent 10%, #fffdf9);
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+    color: colors.$mel-color-accent;
+  }
+}
+
+.mel-mobile-bottom-nav__link--active {
+  color: colors.$mel-color-primary;
+  font-weight: typography.$mel-font-bold;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 22%;
+    right: 22%;
+    height: 2px;
+    border-radius: 1px;
+    background: colors.$mel-color-primary;
+  }
+}
+
+.mel-mobile-bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mel-mobile-bottom-nav__svg {
+  display: block;
+}
+
+.mel-mobile-bottom-nav__label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

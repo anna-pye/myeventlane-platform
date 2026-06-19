@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * Mobile-only bottom navigation (below mel-breakpoint-md).
+ *
+ * Variables:
+ * - items: list of { id, title, url, icon, active }
+ */
+#}
+{% if items is not empty %}
+  <nav class="mel-mobile-bottom-nav" aria-label="{{ 'Primary mobile navigation'|t }}">
+    <ul class="mel-mobile-bottom-nav__list">
+      {% for item in items %}
+        <li class="mel-mobile-bottom-nav__item">
+          <a
+            class="mel-mobile-bottom-nav__link{% if item.active %} mel-mobile-bottom-nav__link--active{% endif %}"
+            href="{{ item.url }}"
+            {% if item.active %}aria-current="page"{% endif %}
+          >
+            <span class="mel-mobile-bottom-nav__icon" aria-hidden="true">
+              {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
+                icon: item.icon,
+                class: 'mel-mobile-bottom-nav__svg',
+                size: 22
+              } only %}
+            </span>
+            <span class="mel-mobile-bottom-nav__label">{{ item.title }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+{% endif %}
