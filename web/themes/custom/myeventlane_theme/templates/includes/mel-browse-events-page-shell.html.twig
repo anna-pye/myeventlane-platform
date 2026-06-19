@@ -33,7 +33,7 @@
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_today' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_today') }}">{{ 'Today'|t }}</a>
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_this_weekend' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_free' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free events'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_popular' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_popular') }}">{{ 'Community Favourites'|t }}</a>
+          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_popular' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_popular') }}">{{ 'Community'|t }}</a>
           <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_hidden_gems' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_hidden_gems') }}">{{ 'Hidden Gems'|t }}</a>
         </nav>
 
@@ -59,5 +59,7 @@
   <div class="mel-region-footer">
     {% include '@myeventlane_theme/includes/footer.html.twig' %}
   </div>
+
+  {{ mel_mobile_bottom_nav }}
 
 </div>
