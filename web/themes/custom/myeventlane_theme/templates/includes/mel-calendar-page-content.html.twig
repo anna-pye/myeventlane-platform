@@ -2,18 +2,12 @@
 /**
  * @file
  * Calendar page body — below unified discovery hero and context filters.
+ *
+ * FullCalendar output is always rendered via page.content (events_calendar view).
+ * Do not gate on parallel preprocess queries — see Phase 3E ownership audit.
  */
 #}
-{% if calendar_events is defined and calendar_events is empty %}
-  <div class="mel-empty mel-empty--calendar" role="status">
-    <h2 class="mel-empty__title">{{ 'No events scheduled yet.'|t }}</h2>
-    <p class="mel-empty__text">{{ 'Explore upcoming events or create your own.'|t }}</p>
-    <div class="mel-empty__actions">
-      <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse Events'|t }}</a>
-      <a class="mel-btn mel-btn--secondary" href="{{ create_event_url|default(path('myeventlane_vendor.create_event_gateway')) }}">{{ 'Create Event'|t }}</a>
-    </div>
-  </div>
-{% else %}
+<div class="mel-calendar-page">
   <div class="mel-calendar-card">
     <div class="mel-content mel-content--calendar">
       {{ page.content }}
@@ -34,4 +28,4 @@
       content: mel_calendar_this_week_rail
     } %}
   {% endif %}
-{% endif %}
+</div>
