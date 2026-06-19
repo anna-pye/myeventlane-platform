@@ -39,7 +39,8 @@
   isolation: isolate;
 
   // Keep children above shimmer by default (stacked / compact cards).
-  > * {
+  // Badge stack must stay absolute — it overlays the image top-left.
+  > *:not(.mel-event-card__badge-stack) {
     position: relative;
     z-index: 1;
   }
