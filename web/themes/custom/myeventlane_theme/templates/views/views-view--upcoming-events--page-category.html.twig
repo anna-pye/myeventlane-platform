@@ -8,6 +8,7 @@
 #}
 {% if not mel_chip_listing_fragment|default(false) %}
   {{ attach_library('myeventlane_theme/mel-events-discovery') }}
+  {{ attach_library('myeventlane_theme/mel-chips') }}
 {% endif %}
 
 {% if mel_chip_listing_fragment|default(false) %}
@@ -34,6 +35,30 @@
         } %}
       </div>
     {% endif %}
+
+    <div
+      class="mel-chip-bar"
+      data-chip-bar
+      data-category-tid="{{ term.id }}"
+    >
+      {% set chips = {
+        'all': 'All',
+        'now': '🔥 Happening now',
+        'weekend': '🎉 This weekend',
+        'free': '💸 Free events',
+        'trending': '💖 Trending'
+      } %}
+
+      {% for key, label in chips %}
+        <button
+          type="button"
+          class="mel-chip{{ key == (default_chip|default('all')) ? ' is-active' }}"
+          data-chip="{{ key }}"
+        >
+          {{ label|t }}
+        </button>
+      {% endfor %}
+    </div>
   {% endif %}
 
   <div data-mel-filter-results>
