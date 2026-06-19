@@ -1557,6 +1557,39 @@ function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
 }
 
 /**
+ * Whether mobile bottom navigation should render (body padding class).
+ */
+function _myeventlane_theme_mobile_bottom_nav_should_render(bool $auth_minimal = FALSE): bool {
+  if (!\Drupal::hasService('myeventlane_front.mobile_bottom_navigation')) {
+    return FALSE;
+  }
+
+  return \Drupal::service('myeventlane_front.mobile_bottom_navigation')->shouldRender($auth_minimal);
+}
+
+/**
+ * Builds the mobile bottom navigation render array for page templates.
+ *
+ * @return array<string, mixed>
+ *   Render array for mobile_bottom_nav, or empty when nav should not render.
+ */
+function _myeventlane_theme_build_mobile_bottom_nav(bool $auth_minimal = FALSE): array {
+  if (!_myeventlane_theme_mobile_bottom_nav_should_render($auth_minimal)) {
+    return [];
+  }
+
+  $nav_builder = \Drupal::service('myeventlane_front.mobile_bottom_navigation');
+
+  return [
+    '#theme' => 'mobile_bottom_nav',
+    '#items' => $nav_builder->buildItems(),
+    '#cache' => [
+      'contexts' => ['route', 'user'],
+    ],
+  ];
+}
+
+/**
  * Implements hook_preprocess_html().
  */
 function myeventlane_theme_preprocess_html(array &$variables): void {
@@ -1582,16 +1615,13 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
     }
   }
 
-  if (\Drupal::hasService('myeventlane_front.mobile_bottom_navigation')) {
-    $auth_minimal = FALSE;
-    if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
-      $surface = \Drupal::service('myeventlane_surface.resolver')->resolve();
-      $auth_minimal = $surface === \Drupal\myeventlane_core\MelSurfaceId::Auth;
-    }
-    $nav_builder = \Drupal::service('myeventlane_front.mobile_bottom_navigation');
-    if ($nav_builder->shouldRender($auth_minimal)) {
-      $variables['attributes']['class'][] = 'mel-has-mobile-bottom-nav';
-    }
+  $auth_minimal = FALSE;
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_surface')) {
+    $surface = \Drupal::service('myeventlane_surface.resolver')->resolve();
+    $auth_minimal = $surface === \Drupal\myeventlane_core\MelSurfaceId::Auth;
+  }
+  if (_myeventlane_theme_mobile_bottom_nav_should_render($auth_minimal)) {
+    $variables['attributes']['class'][] = 'mel-has-mobile-bottom-nav';
   }
 
   $route_node = $route_match ? $route_match->getParameter('node') : NULL;
@@ -1666,21 +1696,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $variables['#attached']['library'][] = 'myeventlane_theme/footer-internal';
 
   $auth_minimal = !empty($variables['mel_surface_auth_minimal']);
-  if (\Drupal::hasService('myeventlane_front.mobile_bottom_navigation')) {
-    $nav_builder = \Drupal::service('myeventlane_front.mobile_bottom_navigation');
-    if ($nav_builder->shouldRender($auth_minimal)) {
-      $variables['mel_mobile_bottom_nav'] = [
-        '#theme' => 'mobile_bottom_nav',
-        '#items' => $nav_builder->buildItems(),
-        '#cache' => [
-          'contexts' => ['route', 'user'],
-        ],
-      ];
-    }
-    else {
-      $variables['mel_mobile_bottom_nav'] = [];
-    }
-  }
+  $variables['mel_mobile_bottom_nav'] = _myeventlane_theme_build_mobile_bottom_nav($auth_minimal);
 
   // Internal footer context (layout/footer-internal.html.twig).
   try {
