@@ -7,7 +7,7 @@ namespace Drupal\myeventlane_checkout_flow\Plugin\Commerce\CheckoutPane;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
 use Drupal\commerce_order\OrderRefreshInterface;
-use Drupal\commerce_price\CurrencyFormatter;
+use CommerceGuys\Intl\Formatter\CurrencyFormatterInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
@@ -28,9 +28,9 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
   /**
    * The currency formatter.
    *
-   * @var \Drupal\commerce_price\CurrencyFormatter
+   * @var \CommerceGuys\Intl\Formatter\CurrencyFormatterInterface
    */
-  private CurrencyFormatter $currencyFormatter;
+  private CurrencyFormatterInterface $currencyFormatter;
 
   /**
    * The order refresh service.
@@ -58,7 +58,7 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
-    $instance->currencyFormatter = $container->get('commerce_price.currency_formatter');
+    $instance->currencyFormatter = $container->get('myeventlane_commerce.currency_formatter.lazy');
     $instance->orderRefresh = $container->get('commerce_order.order_refresh');
     $instance->configFactory = $container->get('config.factory');
     $instance->orderPricingBreakdown = $container->get('myeventlane_checkout_flow.order_pricing_breakdown');
