@@ -297,10 +297,16 @@ function toggleNotificationOverlay(root, trigger, panel) {
   const isOpen = panel.classList.contains('is-open') && !panel.hidden;
 
   if (!isOpen) {
-    closeAllMobileOverlays('notifications');
+    // Close other overlays only — do not pass 'notifications' as except or
+    // closeAllMobileOverlays turns on backdrop/scroll lock before the panel is
+    // portaled; an early rAF exit would strand that state with no visible sheet.
+    closeAllMobileOverlays();
     setOpen(true);
     requestAnimationFrame(() => {
       if (!isMobileViewport() || !panel.classList.contains('is-open') || panel.hidden) {
+        if (panel.classList.contains('is-open') && !panel.hidden) {
+          setOpen(false);
+        }
         return;
       }
       portalPanel(panel);
@@ -314,6 +320,10 @@ function toggleNotificationOverlay(root, trigger, panel) {
   }
   else {
     setOpen(false);
+    // setOpen(false) removes .is-open before closeActiveOverlay runs, so
+    // closeAllMobileOverlays no longer matches this panel — unportal explicitly
+    // (same pattern as the account overlay close path).
+    unportalPanel(panel);
     closeActiveOverlay(trigger);
   }
 }
