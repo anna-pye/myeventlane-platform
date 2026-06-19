@@ -339,7 +339,21 @@
       setOpen(!open);
     }
 
+    // Below md (768px) the mobile overlay coordinator (mel-mobile-overlays.js)
+    // owns open/close, outside-click, Escape, focus return, backdrop and body
+    // scroll lock. Expose setOpen so the coordinator can drive this panel, and
+    // keep the module's own desktop handlers inert on mobile to avoid two
+    // controllers fighting over open state (which strands the overlay backdrop).
+    root.melNotifBellSetOpen = setOpen;
+
+    function isMobileViewport() {
+      return window.matchMedia('(max-width: 767px)').matches;
+    }
+
     trigger.addEventListener('click', function (e) {
+      if (isMobileViewport()) {
+        return;
+      }
       e.stopPropagation();
       toggle();
     });
@@ -358,12 +372,18 @@
     }
 
     document.addEventListener('click', function (ev) {
+      if (isMobileViewport()) {
+        return;
+      }
       if (open && !root.contains(ev.target)) {
         setOpen(false);
       }
     });
 
     document.addEventListener('keydown', function (ev) {
+      if (isMobileViewport()) {
+        return;
+      }
       if (ev.key === 'Escape' && open) {
         setOpen(false);
         trigger.focus();
