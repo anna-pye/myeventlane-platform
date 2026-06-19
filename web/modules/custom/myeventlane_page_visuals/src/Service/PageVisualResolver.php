@@ -77,13 +77,14 @@ final class PageVisualResolver {
 
     $storage = $this->entityTypeManager->getStorage('myeventlane_page_visual');
     $visuals = $storage->loadMultiple();
+    $route_candidates = $this->getRouteMatchCandidates($route_name);
 
-    // 1. Exact route match.
+    // 1. Exact route match (including configured aliases).
     foreach ($visuals as $visual) {
       if (!$visual instanceof PageVisualInterface || !$visual->isEnabled()) {
         continue;
       }
-      if ($visual->getRouteName() === $route_name) {
+      if (in_array($visual->getRouteName(), $route_candidates, TRUE)) {
         return $this->buildResult($visual);
       }
     }
@@ -100,6 +101,23 @@ final class PageVisualResolver {
     }
 
     return NULL;
+  }
+
+  /**
+   * Expands a runtime route to equivalent Page Visual route_name values.
+   *
+   * @return string[]
+   *   Route names to match against Page Visual config entities.
+   */
+  private function getRouteMatchCandidates(string $route_name): array {
+    $aliases = [
+      'view.frontpage.page_1' => ['system.front_page'],
+      'system.front_page' => ['view.frontpage.page_1'],
+      'myeventlane_vendor.organisers' => ['myeventlane_vendor.public_list'],
+      'myeventlane_vendor.public_list' => ['myeventlane_vendor.organisers'],
+    ];
+
+    return array_values(array_unique(array_merge([$route_name], $aliases[$route_name] ?? [])));
   }
 
   /**

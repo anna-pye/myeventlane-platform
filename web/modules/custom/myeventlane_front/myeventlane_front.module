@@ -123,13 +123,8 @@ function myeventlane_front_preprocess_myeventlane_home_hero(array &$variables): 
   $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
   $variables['directory'] = base_path() . $theme_path;
 
-  if (empty($variables['hero_image_url'])) {
-    $theme_hero = _myeventlane_front_home_hero_theme_urls();
-    $variables['hero_image_url'] = $theme_hero['desktop'];
-    $variables['hero_image_url_mobile'] = $theme_hero['mobile'];
-    if ($variables['hero_alt'] === '' || $variables['hero_alt'] === NULL) {
-      $variables['hero_alt'] = $theme_hero['alt'];
-    }
+  if (($variables['hero_image_url_mobile'] ?? NULL) === NULL && !empty($variables['hero_image_url'])) {
+    $variables['hero_image_url_mobile'] = $variables['hero_image_url'];
   }
 }
 

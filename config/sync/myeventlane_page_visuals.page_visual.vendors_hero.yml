@@ -1,0 +1,12 @@
+uuid: bf7a4d5e-2c6a-7b4d-e5f6-a7b8c9d0e1f2
+langcode: en
+status: true
+dependencies: {  }
+id: vendors_hero
+label: 'Vendors Directory Hero'
+route_name: myeventlane_vendor.public_list
+media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
+media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+hide_on_mobile: false
+alt_text: 'Event organisers on MyEventLane'
+enabled: true

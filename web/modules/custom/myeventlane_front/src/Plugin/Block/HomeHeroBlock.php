@@ -10,14 +10,13 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
-use Drupal\myeventlane_front\Service\FeaturedEventsRenderBuilder;
 use Drupal\myeventlane_page_visuals\Service\PageVisualResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides the homepage hero block.
  *
- * Uses Page Visuals Manager for hero image when configured for system.front_page.
+ * Uses Page Visuals Manager for hero image (route system.front_page / view.frontpage.page_1).
  *
  * @Block(
  *   id = "myeventlane_home_hero",
@@ -34,7 +33,6 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
     $plugin_id,
     $plugin_definition,
     private readonly BlockManagerInterface $blockManager,
-    private readonly FeaturedEventsRenderBuilder $featuredEventsRenderBuilder,
     private readonly PageVisualResolver $pageVisualResolver,
     private readonly RouteMatchInterface $routeMatch,
   ) {
@@ -50,7 +48,6 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       $plugin_id,
       $plugin_definition,
       $container->get('plugin.manager.block'),
-      $container->get('myeventlane_front.featured_events_render_builder'),
       $container->get('myeventlane.page_visual_resolver'),
       $container->get('current_route_match'),
     );
@@ -91,28 +88,14 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       $cache_contexts = array_merge($cache_contexts, $cache['contexts'] ?? []);
     }
 
-    if ($hero_image_url === NULL) {
-      $theme_hero = _myeventlane_front_home_hero_theme_urls();
-      $hero_image_url = $theme_hero['desktop'];
-      $hero_image_url_mobile = $theme_hero['mobile'];
-      if ($hero_alt === '') {
-        $hero_alt = $theme_hero['alt'];
-      }
-    }
-    elseif ($hero_image_url_mobile === NULL || $hero_image_url_mobile === '') {
-      // When Page Visuals supplies desktop only, reuse it on mobile (avoid legacy mascot art).
+    if ($hero_image_url_mobile === NULL || $hero_image_url_mobile === '') {
       $hero_image_url_mobile = $hero_image_url;
-    }
-
-    $featured_events = NULL;
-    if ($hero_image_url === NULL && $this->featuredEventsRenderBuilder->hasHeroResults()) {
-      $featured_events = $this->featuredEventsRenderBuilder->buildHeroRotator();
     }
 
     $build = [
       '#theme' => 'myeventlane_home_hero',
       '#pills' => $pills,
-      '#featured_events' => $featured_events,
+      '#featured_events' => NULL,
       '#hero_image_url' => $hero_image_url,
       '#hero_image_url_mobile' => $hero_image_url_mobile,
       '#hero_hide_on_mobile' => $hero_hide_on_mobile,
@@ -126,15 +109,8 @@ final class HomeHeroBlock extends BlockBase implements ContainerFactoryPluginInt
       ],
     ];
 
-    if ($featured_events !== NULL) {
-      $build['#attached']['library'][] = 'myeventlane_theme/home-hero-rotator';
-    }
-
     $cache_meta = CacheableMetadata::createFromRenderArray($build);
     $cache_meta->merge($pills_cache);
-    if ($featured_events !== NULL) {
-      $cache_meta->addCacheableDependency(CacheableMetadata::createFromRenderArray($featured_events));
-    }
     $cache_meta->applyTo($build);
 
     return $build;

@@ -1,0 +1,57 @@
+{#
+/**
+ * @file
+ * Discovery hero search — same markup/classes as homepage hero search.
+ *
+ * Variables:
+ * - search_query: Optional prefill for site search (/search) mode.
+ * - search_mode: 'site' submits to /search?q=, default 'events' uses home hero JS.
+ */
+#}
+{% set search_mode = search_mode|default('events') %}
+{% set search_events_url = path('view.upcoming_events.page_events') %}
+{% set search_site_url = path('mel_search.view') %}
+
+<form
+  class="mel-home-hero__search"
+  role="search"
+  action="{{ search_mode == 'site' ? search_site_url : search_events_url }}"
+  method="get"
+  data-events-url="{{ search_events_url }}"
+  data-search-url="{{ search_site_url }}"
+  {% if search_mode == 'site' %}data-mel-search-mode="site"{% endif %}
+>
+  <div class="mel-home-hero__search-fields">
+    <div class="mel-home-hero__search-field mel-home-hero__search-field--query">
+      <label class="visually-hidden" for="mel-discovery-hero-search">{{ 'Search events'|t }}</label>
+      <span class="mel-home-hero__search-icon mel-home-hero__search-icon--query" aria-hidden="true"></span>
+      <input
+        id="mel-discovery-hero-search"
+        class="mel-home-hero__search-input mel-home-hero__search-input--query"
+        name="{{ search_mode == 'site' ? 'q' : 'search' }}"
+        type="search"
+        placeholder="{{ 'Search events, locations or categories'|t }}"
+        autocomplete="off"
+        {% if search_query|default('') %}value="{{ search_query|e('html_attr') }}"{% endif %}
+      />
+    </div>
+    {% if search_mode != 'site' %}
+      <span class="mel-home-hero__search-divider" aria-hidden="true"></span>
+      <div class="mel-home-hero__search-field mel-home-hero__search-field--location">
+        <label class="visually-hidden" for="mel-discovery-hero-search-location">{{ 'Location'|t }}</label>
+        <span class="mel-home-hero__search-icon mel-home-hero__search-icon--location" aria-hidden="true"></span>
+        <input
+          id="mel-discovery-hero-search-location"
+          class="mel-home-hero__search-input mel-home-hero__search-input--location"
+          name="location"
+          type="text"
+          placeholder="{{ 'Near me'|t }}"
+          autocomplete="address-level2"
+        />
+      </div>
+    {% endif %}
+  </div>
+  <button type="submit" class="mel-home-hero__search-submit">
+    <span class="mel-home-hero__search-submit-label">{{ 'Search Events'|t }}</span>
+  </button>
+</form>

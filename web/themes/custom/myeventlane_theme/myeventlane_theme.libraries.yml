@@ -100,6 +100,13 @@ mel-listing-header:
     - core/drupal
     - myeventlane_theme/mel-card-behaviors
 
+mel-discovery-hero:
+  dependencies:
+    - myeventlane_theme/global-styling
+    - myeventlane_theme/home-hero-rotator
+    - myeventlane_theme/mel-card-behaviors
+    - core/drupal
+
 # /events listing: date pills + exposed filter bar (bundled in main.css via Vite).
 mel-events-discovery:
   dependencies:

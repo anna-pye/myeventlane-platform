@@ -3,66 +3,7 @@
  * @file
  * Shared shell for /events browse (page__events + view-specific page suggestion).
  *
- * Canonical runtime owner for browse-route H1, lede, prompt, and quicklink filter labels.
- * Route-specific copy is passed from page--view--upcoming-events--page-*.html.twig overrides.
- *
- * Variables from myeventlane_theme_preprocess_page():
- * - mel_mobile_bottom_nav — mobile bottom navigation render array.
+ * @see includes/mel-discovery-page-shell.html.twig
  */
 #}
-<div class="mel-page mel-page--events">
-
-  <a href="#main-content" class="visually-hidden focusable skip-link">
-    {{ 'Skip to main content'|t }}
-  </a>
-
-  <div class="mel-region-header">
-    {{ site_header }}
-  </div>
-
-  <main id="main-content" class="mel-main">
-    <div class="mel-browse">
-      <div class="mel-container mel-container--wide">
-        <header class="mel-browse-header">
-          <h1>{{ mel_browse_heading|default('Find your next favourite experience.'|t) }}</h1>
-          <p class="mel-browse-header__lede">{{ mel_browse_lede|default('Discover workshops, gigs, markets, festivals, and community moments worth leaving the house for.'|t) }}</p>
-          {% if mel_browse_prompt|default('Search or pick a time — see what’s on soon.'|t) %}
-            <p class="mel-browse-header__prompt">{{ mel_browse_prompt|default('Search or pick a time — see what’s on soon.'|t) }}</p>
-          {% endif %}
-        </header>
-
-        <nav class="mel-browse-quicklinks" aria-label="{{ 'Browse events'|t }}">
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_events' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse all'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_today' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_today') }}">{{ 'Today'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_this_weekend' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_free' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_free') }}">{{ 'Free events'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_popular' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_popular') }}">{{ 'Community'|t }}</a>
-          <a class="mel-filter-chip{% if mel_browse_active_display|default('') == 'page_hidden_gems' %} mel-filter-chip--active{% endif %}" href="{{ path('view.upcoming_events.page_hidden_gems') }}">{{ 'Hidden Gems'|t }}</a>
-        </nav>
-
-        {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
-          title: '',
-          hide_page_title: true,
-          show_search: true,
-          show_categories: true,
-          categories: mel_header_categories|default([]),
-          hero_image_url: mel_hero_image_url|default(null),
-          hero_image_url_mobile: mel_hero_image_url_mobile|default(null),
-          hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false)
-        } %}
-
-        <section class="mel-section mel-section--browse-results" aria-labelledby="mel-browse-results-title">
-          <h2 id="mel-browse-results-title" class="visually-hidden">{{ 'Upcoming events'|t }}</h2>
-          {{ page.content }}
-        </section>
-      </div>
-    </div>
-  </main>
-
-  <div class="mel-region-footer">
-    {% include '@myeventlane_theme/includes/footer.html.twig' %}
-  </div>
-
-  {{ mel_mobile_bottom_nav }}
-
-</div>
+{% include '@myeventlane_theme/includes/mel-discovery-page-shell.html.twig' %}

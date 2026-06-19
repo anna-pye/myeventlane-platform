@@ -1,0 +1,52 @@
+{#
+/**
+ * @file
+ * Unified discovery page shell — hero full-bleed, filters/content contained.
+ */
+#}
+<div class="mel-page mel-page--discovery">
+
+  <a href="#main-content" class="visually-hidden focusable skip-link">
+    {{ 'Skip to main content'|t }}
+  </a>
+
+  <div class="mel-region-header">
+    {{ site_header }}
+  </div>
+
+  <main id="main-content" class="mel-main">
+    <div class="mel-region-discovery-hero">
+      {{ mel_discovery_hero }}
+    </div>
+
+    <div class="mel-discovery-layout">
+      <div class="mel-container mel-container--wide">
+        <div class="mel-discovery-context-filters">
+          {% if mel_discovery_show_context_filters ?? false %}
+            {{ attach_library('myeventlane_theme/mel-events-discovery') }}
+            {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with {
+              display_id: mel_discovery_display_id|default(''),
+              mel_browse_active_filters: mel_browse_active_filters|default(false)
+            } %}
+          {% endif %}
+        </div>
+
+        <div class="mel-discovery-content">
+          <h2 class="visually-hidden">{{ 'Discovery results'|t }}</h2>
+          {% if discovery_content_template is defined %}
+            {% include discovery_content_template %}
+          {% else %}
+            {{ page.content }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="mel-region-footer">
+    {% include '@myeventlane_theme/includes/footer.html.twig' %}
+  </div>
+
+  {{ mel_mobile_bottom_nav }}
+
+</div>
