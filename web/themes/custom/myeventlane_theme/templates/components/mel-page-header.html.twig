@@ -1,23 +1,9 @@
 {#
 /**
  * @file
- * MEL page header component.
+ * MEL page header — default contained variant for non-discovery listing pages.
  *
- * Pure presentation-only header for listing pages (taxonomy, search, filters).
- *
- * Available variables:
- * - title: Page title string.
- * - show_search: Boolean; when TRUE renders the MEL search block.
- * - show_categories: Boolean; when TRUE renders the MEL category pills UI.
- * - categories: Optional array of items with keys: tid, label, slug, icon.
- * - active_category_tid: Optional; overrides mel_active_category_tid for the active pill.
- * - hero_image_url: Optional URL for hero background (desktop).
- * - hero_image_url_mobile: Optional URL for hero background (mobile viewports).
- * - hero_hide_on_mobile: Boolean; when TRUE, hide hero on mobile.
- * - hide_page_title: When TRUE, skip default h1 + tagline (e.g. browse supplies its own).
- * - variant: Optional 'discovery' for category landing hero continuity.
- * - lede: Optional discovery lede (category pages).
- * - subtitle: Optional discovery subtitle (category pages).
+ * Discovery browse surfaces use components/discovery-hero/discovery-hero.html.twig.
  */
 #}
 {% set show_search = show_search|default(false) %}
@@ -29,103 +15,9 @@
 {% set hero_hide_on_mobile = hero_hide_on_mobile|default(false) %}
 {% set has_hero = hero_image_url and not hero_hide_on_mobile %}
 {% set active_tid = active_category_tid|default(mel_active_category_tid|default(null)) %}
-{% set variant = variant|default('default') %}
-{% set is_discovery = variant == 'discovery' %}
 
 {{ attach_library('myeventlane_theme/mel-listing-header') }}
 
-{% if is_discovery %}
-<section class="mel-page-header mel-page-header--discovery{% if has_hero %} mel-page-header--discovery-hero{% endif %}">
-  <div class="mel-page-header__discovery{% if hero_hide_on_mobile %} mel-page-header__discovery--hide-mobile-art{% endif %}">
-    <div class="mel-page-header__banner">
-      {% if hero_image_url %}
-        <div class="mel-page-header__media" aria-hidden="true">
-          {% if hero_image_url_mobile and not hero_hide_on_mobile %}
-            <picture>
-              <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
-              <img
-                class="mel-page-header__media-img"
-                src="{{ hero_image_url }}"
-                alt=""
-                width="1024"
-                height="682"
-                loading="eager"
-                decoding="async"
-                fetchpriority="high"
-              />
-            </picture>
-          {% else %}
-            <img
-              class="mel-page-header__media-img"
-              src="{{ hero_image_url }}"
-              alt=""
-              width="1024"
-              height="682"
-              loading="eager"
-              decoding="async"
-              fetchpriority="high"
-            />
-          {% endif %}
-        </div>
-      {% else %}
-        <div class="mel-page-header__media mel-page-header__media--placeholder" aria-hidden="true"></div>
-      {% endif %}
-
-      <div class="mel-page-header__scrim" aria-hidden="true"></div>
-
-      <div class="mel-page-header__banner-inner mel-container mel-container--wide">
-        {% if not hide_page_title %}
-          <div class="mel-page-header__copy">
-            <h1 class="mel-page-header__title">{{ title }}</h1>
-            {% if lede %}
-              <p class="mel-category-discovery__lede">{{ lede }}</p>
-            {% endif %}
-            {% if subtitle %}
-              <p class="mel-discovery-subtitle">{{ subtitle }}</p>
-            {% endif %}
-          </div>
-        {% endif %}
-
-        {% if show_search %}
-          <div class="mel-page-header__search-shell">
-            <div class="mel-page-header__search">
-              {% include '@myeventlane_theme/components/front/_front-search.html.twig' with {
-                front: {}
-              } only %}
-            </div>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-
-    {% if show_categories and categories %}
-      <div class="mel-home-hero__categories-bar">
-        <div class="mel-home-hero__categories-inner mel-container mel-container--wide">
-          <nav class="mel-home-hero__categories" aria-label="{{ 'Browse by category'|t }}">
-            <a class="mel-home-hero__category-card mel-home-hero__category-card--all" href="{{ path('view.upcoming_events.page_events') }}">
-              <span class="mel-home-hero__category-icon mel-home-hero__category-icon--all" aria-hidden="true">
-                {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
-                  icon: 'calendar',
-                  class: 'mel-home-hero__category-glyph',
-                  size: 24
-                } only %}
-              </span>
-              <span class="mel-home-hero__category-label">{{ 'All Events'|t }}</span>
-            </a>
-            <div class="mel-home-hero__categories-scroll">
-              {% include '@myeventlane_blocks/myeventlane-category-pills.html.twig' with {
-                categories: categories,
-                hero_icons: true,
-                active_tid: active_tid
-              } only %}
-            </div>
-          </nav>
-        </div>
-      </div>
-    {% endif %}
-  </div>
-</section>
-{% else %}
 {% set hero_style = (hero_image_url and not hero_hide_on_mobile) ? ('--mel-hero-bg: url(' ~ hero_image_url ~ ')' ~ (hero_image_url_mobile ? '; --mel-hero-bg-mobile: url(' ~ hero_image_url_mobile ~ ')' : '')) : '' %}
 
 <section class="mel-page-header{% if has_hero %} mel-page-header--hero{% endif %}"{% if hero_style %} style="{{ hero_style }}"{% endif %}>
@@ -141,7 +33,7 @@
 
   {% if show_search %}
     {% include '@myeventlane_theme/components/front/_front-search.html.twig' with {
-      front: {}
+      search_query: search_query|default(null)
     } only %}
   {% endif %}
 
@@ -169,4 +61,3 @@
     </div>
   {% endif %}
 </section>
-{% endif %}

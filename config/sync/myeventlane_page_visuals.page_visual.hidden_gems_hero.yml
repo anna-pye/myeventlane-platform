@@ -1,0 +1,12 @@
+uuid: 9d5f2b3c-0a4e-5f2b-c3d4-e5f6a7b8c9d0
+langcode: en
+status: true
+dependencies: {  }
+id: hidden_gems_hero
+label: 'Hidden Gems Hero'
+route_name: view.upcoming_events.page_hidden_gems
+media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
+media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+hide_on_mobile: false
+alt_text: 'Hidden gems on MyEventLane'
+enabled: true

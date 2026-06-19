@@ -82,7 +82,7 @@ final class HeroSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Hero images'),
       '#open' => TRUE,
-      '#description' => $this->t('Set hero images for discovery pages. Fallback order: context-specific → default → theme assets.'),
+      '#description' => $this->t('Deprecated: public discovery heroes are managed in Structure → Page Visuals. This form remains for migration reference only and is not used at runtime.'),
     ];
 
     $form['hero_images']['hero_default'] = [

@@ -210,6 +210,24 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       ],
       'template' => 'components/mobile-bottom-nav/mobile-bottom-nav',
     ],
+    'mel_discovery_hero' => [
+      'variables' => [
+        'title' => '',
+        'description' => NULL,
+        'subtitle' => NULL,
+        'hero_image_url' => NULL,
+        'hero_image_url_mobile' => NULL,
+        'hero_hide_on_mobile' => FALSE,
+        'show_search' => TRUE,
+        'search_query' => NULL,
+        'search_mode' => 'events',
+        'show_categories' => FALSE,
+        'categories' => [],
+        'active_category_tid' => NULL,
+        'variant' => 'browse',
+      ],
+      'template' => 'components/discovery-hero/discovery-hero',
+    ],
   ];
 }
 
@@ -1660,6 +1678,12 @@ function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, arr
   if ($route === 'view.events_calendar.page_calendar') {
     $suggestions[] = 'page__calendar';
   }
+  if (in_array($route, ['myeventlane_vendor.public_list', 'myeventlane_vendor.organisers'], TRUE)) {
+    $suggestions[] = 'page__vendors';
+  }
+  if ($route === 'myeventlane_help_centre.home') {
+    $suggestions[] = 'page__help';
+  }
 
   if (!\Drupal::service('path.matcher')->isFrontPage()) {
     return;
@@ -1682,7 +1706,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   // Add logo path for header.
   $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
   $variables['logo_path'] = base_path() . $theme_path . '/images/logo.svg';
-  
+
   // Ensure directory variable is available for all templates (especially homepage hero).
   if (!isset($variables['directory'])) {
     $variables['directory'] = base_path() . $theme_path;
@@ -1756,6 +1780,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     'view.upcoming_events.page_popular',
     'view.upcoming_events.page_hidden_gems',
     'mel_search.view',
+    'view.events_calendar.page_calendar',
+    'myeventlane_help_centre.home',
+    'myeventlane_vendor.public_list',
+    'myeventlane_vendor.organisers',
   ];
   if (in_array($route, $listing_routes, TRUE) && empty($variables['mel_header_categories'])) {
     $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
@@ -1781,6 +1809,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $term = _myeventlane_theme_get_active_category_term();
     if ($term instanceof TermInterface) {
       $variables['mel_active_category_tid'] = (string) $term->id();
+      $variables['current_category'] = [
+        'tid' => $term->id(),
+        'name' => $term->label(),
+      ];
     }
   }
   elseif ($route === 'entity.taxonomy_term.canonical') {
@@ -1803,17 +1835,13 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['mel_browse_active_display'] = $browse_display_map[$route];
   }
 
-  // Hero image for listing pages (category, search, events).
-  // Prefer Page Visuals Manager (myeventlane_page_visuals) when available.
-  if (isset($variables['page_visual']['image_url']) && $variables['page_visual']['image_url']) {
-    $variables['mel_hero_image_url'] = $variables['page_visual']['image_url'];
-    $variables['mel_hero_image_url_mobile'] = $variables['page_visual']['image_url_mobile'] ?? NULL;
-    $variables['mel_hero_hide_on_mobile'] = $variables['page_visual']['hide_on_mobile'] ?? FALSE;
-  }
-  elseif (empty($variables['mel_hero_image_url'])) {
-    $variables['mel_hero_image_url'] = _myeventlane_theme_get_listing_hero_url($route);
-    $variables['mel_hero_image_url_mobile'] = NULL;
-    $variables['mel_hero_hide_on_mobile'] = FALSE;
+  // Hero image: Page Visuals (canonical) + category term image override on category routes.
+  _myeventlane_theme_apply_page_visual_hero($variables, $route);
+
+  if (_myeventlane_theme_is_discovery_route($route)) {
+    $variables['mel_discovery_hero'] = _myeventlane_theme_build_discovery_hero($variables);
+    $variables['mel_discovery_display_id'] = _myeventlane_theme_discovery_display_id($route);
+    $variables['mel_discovery_show_context_filters'] = _myeventlane_theme_discovery_shows_context_filters($route);
   }
 
   // Site header: compact global header (desktop + mobile).
@@ -1827,13 +1855,13 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       'contexts' => ['route', 'user'],
     ],
   ];
-  
+
   // Ensure header region blocks are available even if region template isn't used.
   // Initialize header array if not set.
   if (!isset($variables['page']['header'])) {
     $variables['page']['header'] = [];
   }
-  
+
   // Load main menu block manually since page.html.twig includes header template directly
   // without rendering {{ page.header }} first, so blocks aren't automatically added.
   $auth_minimal = !empty($variables['mel_surface_auth_minimal']);
@@ -1858,13 +1886,13 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       \Drupal::logger('myeventlane_theme')->warning('Failed to load main menu block: @message', ['@message' => $e->getMessage()]);
     }
   }
-  
+
   // Map main menu block to expected variable name if it exists with block ID key.
   // This handles the case where Drupal renders the region normally.
   if (!empty($variables['page']['header']['myeventlane_theme_main_menu']) && empty($variables['page']['header']['main_menu'])) {
     $variables['page']['header']['main_menu'] = $variables['page']['header']['myeventlane_theme_main_menu'];
   }
-  
+
   // Add cart block to header if not already present
   if (!$auth_minimal && empty($variables['page']['header']['cart_block'])) {
     try {
@@ -1880,14 +1908,14 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       // Cart block not available, continue without it
     }
   }
-  
+
   // Front page specific processing
   // Check if this is the front page.
   if (\Drupal::service('path.matcher')->isFrontPage()) {
     // Load category terms.
     $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
     $terms = $term_storage->loadByProperties(['vid' => 'categories']);
-    
+
     $categories = [];
     foreach ($terms as $term) {
       $slug = _myeventlane_theme_get_category_slug($term);
@@ -1899,7 +1927,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'slug' => $slug,
       ];
     }
-    
+
     $variables['event_categories'] = $categories;
 
     // Hero popular_tags: { name, url } for taxonomy terms.
@@ -1986,10 +2014,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $extension_list = \Drupal::service('extension.list.theme');
   $theme_path = $extension_list->getPath('myeventlane_theme');
   $is_front_page = \Drupal::service('path.matcher')->isFrontPage();
-  
+
   $category_slug = NULL;
   $category_term = NULL;
-  
+
   // Detect category context: taxonomy.term route ONLY.
   // Do NOT detect via views or query params - use route only.
   if ($route_name === 'entity.taxonomy_term.canonical') {
@@ -2000,12 +2028,12 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       $category_slug = _myeventlane_theme_get_category_slug($term);
     }
   }
-  
+
   // Build hero URLs based on page type.
   $hero_desktop_url = NULL;
   $hero_mobile_url = NULL;
   $base_url = base_path();
-  
+
   // Category pages: Use category banner directly from /images/mel/categories/.
   // Category pages override hero - homepage never overridden.
   if ($category_slug && !$is_front_page) {
@@ -2016,24 +2044,24 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       'food-drink' => 'food', // Food & Drink term → food file
       // All other slugs should match: music, workshop, arts, community, markets, family
     ];
-    
+
     $banner_slug = $slug_to_filename_map[$category_slug] ?? $category_slug;
-    
+
     // Category page: Use category banner as hero.
     // Desktop: images/mel/categories/mel-category-{slug}.png
     $banner_desktop_relative = $theme_path . '/images/mel/categories/mel-category-' . $banner_slug . '.png';
     $banner_desktop_path = DRUPAL_ROOT . '/' . $banner_desktop_relative;
-    
+
     if (file_exists($banner_desktop_path)) {
       $hero_desktop_url = $base_url . $banner_desktop_relative;
     }
-    
+
     // Mobile: Same category banner (acceptable per requirements).
     // If a mobile-specific version exists later, it can be added.
     if ($hero_desktop_url) {
       $hero_mobile_url = $hero_desktop_url;
     }
-    
+
     // Fallback: If category banner doesn't exist, use journey hero, then mel-hero-home.
     if (!$hero_desktop_url) {
       $journey_desktop_relative = $theme_path . '/images/mel/hero/mel-hero-journey-desktop.png';
@@ -2057,7 +2085,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       }
     }
   }
-  
+
   // Homepage: community hero artwork, then legacy fallbacks.
   // Homepage never uses category banners.
   if ($is_front_page) {
@@ -2094,12 +2122,12 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       $hero_mobile_url = $hero_desktop_url;
     }
   }
-  
+
   // Ensure directory variable is available for hero fallback in templates.
   if (!isset($variables['directory'])) {
     $variables['directory'] = base_path() . $theme_path;
   }
-  
+
   // Set variables for Twig templates.
   $variables['mel_hero_desktop_url'] = $hero_desktop_url;
   $variables['mel_hero_mobile_url'] = $hero_mobile_url;
@@ -2151,25 +2179,25 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
 function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): array {
   $year = $year ?: date('Y');
   $month = $month ?: date('n');
-  
+
   $first_day = mktime(0, 0, 0, $month, 1, $year);
   $days_in_month = date('t', $first_day);
   $start_day = date('w', $first_day); // 0 = Sunday
-  
+
   // Get events for this month
   $start_date = date('Y-m-01', $first_day);
   $end_date = date('Y-m-t', $first_day);
-  
+
   $query = \Drupal::entityQuery('node')
     ->condition('type', 'event')
     ->condition('status', 1)
     ->condition('field_event_start', $start_date, '>=')
     ->condition('field_event_start', $end_date . 'T23:59:59', '<=')
     ->accessCheck(TRUE);
-  
+
   $nids = $query->execute();
   $events_by_day = [];
-  
+
   if (!empty($nids)) {
     $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
     foreach ($nodes as $node) {
@@ -2184,7 +2212,7 @@ function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): arra
       ];
     }
   }
-  
+
   return [
     'year' => $year,
     'month' => $month,
@@ -2279,7 +2307,7 @@ function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
 
   if (!empty($nids)) {
     $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
-    
+
     // Category colors.
     $category_colors = [
       'music' => '#7c5cff',
@@ -2295,7 +2323,7 @@ function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
     foreach ($nodes as $node) {
       $start = $node->get('field_event_start')->value;
       $end = $node->hasField('field_event_end') ? $node->get('field_event_end')->value : NULL;
-      
+
       // Get category color.
       $color = '#7c5cff';
       if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
@@ -2818,12 +2846,12 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         }
       }
     }
-    
+
     // Normalize lgbtqi+ variants to lgbtqia for consistency
     if (in_array($category_slug, ['lgbtqi', 'lgbtq', 'lgbtqi+', 'lgbtqia+'], TRUE)) {
       $category_slug = 'lgbtqia';
     }
-    
+
     $variables['mel_category_slug'] = $category_slug;
     $variables['mel_category_label'] = $category_label;
     $variables['mel_category_url'] = $category_url;
@@ -3192,7 +3220,7 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
  */
 function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
   $term = $variables['term'];
-  
+
   // Only process category terms.
   if ($term && $term->bundle() === 'categories') {
     // Get category slug from field_mel_slug.
@@ -3203,41 +3231,21 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
         $category_slug = $slug_value;
       }
     }
-    
+
     $variables['mel_category_slug'] = $category_slug;
-    
-    // Banner URL: prefer term's field_category_image (uploaded in term edit form).
-    $banner_url = NULL;
-    if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
-      $term_files = $term->get('field_category_image')->referencedEntities();
-      $file = !empty($term_files) ? reset($term_files) : NULL;
-      if ($file) {
-        $file_url_generator = \Drupal::service('file_url_generator');
-        $banner_url = $file_url_generator->generateAbsoluteString($file->getFileUri());
-      }
-    }
-    // Fallback: Page Visuals Manager (route entity.taxonomy_term.canonical or view.upcoming_events.page_category).
-    if (!$banner_url && \Drupal::hasService('myeventlane.page_visual_resolver')) {
-      $resolver = \Drupal::service('myeventlane.page_visual_resolver');
-      $page_visual = $resolver->resolveForRoute(\Drupal::routeMatch());
+
+    // Banner URL: term field_category_image, then Page Visuals for this route.
+    $banner_url = _myeventlane_theme_get_category_term_hero_url($term);
+    if ($banner_url === NULL && \Drupal::hasService('myeventlane.page_visual_resolver')) {
+      $page_visual = \Drupal::service('myeventlane.page_visual_resolver')
+        ->resolveForRoute(\Drupal::routeMatch());
       if ($page_visual !== NULL && !empty($page_visual['image_url'])) {
         $banner_url = $page_visual['image_url'];
         $variables['mel_hero_image_url_mobile'] = $page_visual['image_url_mobile'] ?? NULL;
         $variables['mel_hero_hide_on_mobile'] = $page_visual['hide_on_mobile'] ?? FALSE;
       }
     }
-    // Fallback: theme file images/mel/categories/mel-category-{slug}.png
-    if (!$banner_url && $category_slug) {
-      $extension_list = \Drupal::service('extension.list.theme');
-      $theme_path = $extension_list->getPath('myeventlane_theme');
-      $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
-      $file_slug = $slug_map[$category_slug] ?? $category_slug;
-      $banner_relative_path = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
-      if (file_exists(DRUPAL_ROOT . '/' . $banner_relative_path)) {
-        $banner_url = base_path() . $banner_relative_path;
-      }
-    }
-    
+
     $variables['mel_category_banner_url'] = $banner_url;
     $variables['mel_hero_image_url'] = $banner_url;
     if (empty($variables['mel_hero_image_url_mobile'])) {
@@ -3246,11 +3254,11 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
     if (!isset($variables['mel_hero_hide_on_mobile'])) {
       $variables['mel_hero_hide_on_mobile'] = FALSE;
     }
-    
+
     // Load all categories with slugs for header pills.
     $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
     $all_terms = $term_storage->loadByProperties(['vid' => 'categories']);
-    
+
     $categories = [];
     foreach ($all_terms as $cat_term) {
       $slug = _myeventlane_theme_get_category_slug($cat_term);
@@ -3263,7 +3271,7 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
         'icon' => _myeventlane_theme_category_hero_icon($slug),
       ];
     }
-    
+
     $variables['mel_header_categories'] = $categories;
     // Same term as the page: highlight this category in mel-page-header (term template scope).
     $variables['mel_active_category_tid'] = (string) $term->id();
@@ -3284,6 +3292,17 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
  */
 function myeventlane_theme_preprocess_views_view(array &$variables): void {
   $view = $variables['view'];
+
+  if ($view->id() === 'upcoming_events') {
+    $route = \Drupal::routeMatch()->getRouteName();
+    if (_myeventlane_theme_is_discovery_route($route)) {
+      $variables['mel_discovery_shell_renders_filters'] = TRUE;
+      unset($variables['title']);
+    }
+  }
+  elseif ($view->id() === 'events_calendar' && _myeventlane_theme_is_discovery_route(\Drupal::routeMatch()->getRouteName())) {
+    unset($variables['title']);
+  }
 
   // Ensure directory is available for empty state images.
   if (!isset($variables['directory'])) {
@@ -3356,11 +3375,11 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
   // Only process views on taxonomy term pages.
   $route_match = \Drupal::routeMatch();
   $route_name = $route_match->getRouteName();
-  
+
   if ($route_name === 'entity.taxonomy_term.canonical') {
     // Get the taxonomy term from route.
     $term = $route_match->getParameter('taxonomy_term');
-    
+
     if ($term && $term->bundle() === 'categories') {
       // Get category slug from field_mel_slug.
       $category_slug = NULL;
@@ -3370,9 +3389,9 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
           $category_slug = $slug_value;
         }
       }
-      
+
       $variables['mel_category_slug'] = $category_slug;
-      
+
       // Build banner URL if slug exists and file exists.
       $banner_url = NULL;
       if ($category_slug) {
@@ -3380,14 +3399,14 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
         $theme_path = $extension_list->getPath('myeventlane_theme');
         $banner_relative_path = $theme_path . '/images/mel/categories/mel-category-' . $category_slug . '.png';
         $banner_file_path = DRUPAL_ROOT . '/' . $banner_relative_path;
-        
+
         // Check if file exists before generating URL.
         if (file_exists($banner_file_path)) {
           // For theme files, construct URL manually (not file entities, so can't use file_url_generator).
           $banner_url = base_path() . $banner_relative_path;
         }
       }
-      
+
       $variables['mel_category_banner_url'] = $banner_url;
     }
   }
@@ -3601,7 +3620,7 @@ function _myeventlane_theme_get_category_slug(?TermInterface $term): string {
   if (!$term || $term->bundle() !== 'categories') {
     return 'default';
   }
-  
+
   // First priority: field_mel_slug (preferred).
   $slug = 'default';
   if ($term->hasField('field_mel_slug') && !$term->get('field_mel_slug')->isEmpty()) {
@@ -3619,12 +3638,12 @@ function _myeventlane_theme_get_category_slug(?TermInterface $term): string {
     $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
     $slug = trim($slug, '-');
   }
-  
+
   // Normalize lgbtqi+ variants to lgbtqia
   if (in_array($slug, ['lgbtqi', 'lgbtq', 'lgbtqi+', 'lgbtqia+', 'lgbtq+'], TRUE)) {
     $slug = 'lgbtqia';
   }
-  
+
   return !empty($slug) ? $slug : 'default';
 }
 
@@ -3637,71 +3656,322 @@ function _myeventlane_theme_get_category_slug(?TermInterface $term): string {
  * @return string|null
  *   Absolute URL to hero image, or NULL if none.
  */
-function _myeventlane_theme_get_listing_hero_url(?string $route): ?string {
-  $extension_list = \Drupal::service('extension.list.theme');
-  $theme_path = $extension_list->getPath('myeventlane_theme');
-  $base_path = base_path();
+/**
+ * Routes that use the unified discovery page shell and hero.
+ */
+function _myeventlane_theme_discovery_routes(): array {
+  return [
+    'view.upcoming_events.page_events',
+    'view.upcoming_events.page_popular',
+    'view.upcoming_events.page_hidden_gems',
+    'view.upcoming_events.page_category',
+    'view.upcoming_events.page_today',
+    'view.upcoming_events.page_this_weekend',
+    'view.upcoming_events.page_free',
+    'mel_search.view',
+    'view.events_calendar.page_calendar',
+    'myeventlane_help_centre.home',
+    'myeventlane_vendor.public_list',
+    'myeventlane_vendor.organisers',
+  ];
+}
 
-  // Category page: prefer term's field_category_image, else theme file.
+/**
+ * Whether the current route uses the unified discovery shell.
+ */
+function _myeventlane_theme_is_discovery_route(?string $route): bool {
+  return is_string($route) && in_array($route, _myeventlane_theme_discovery_routes(), TRUE);
+}
+
+/**
+ * Maps discovery routes to upcoming_events display IDs for context filter chips.
+ */
+function _myeventlane_theme_discovery_display_id(?string $route): string {
+  $map = [
+    'view.upcoming_events.page_events' => 'page_events',
+    'view.upcoming_events.page_popular' => 'page_popular',
+    'view.upcoming_events.page_hidden_gems' => 'page_hidden_gems',
+    'view.upcoming_events.page_category' => 'page_category',
+    'view.upcoming_events.page_today' => 'page_today',
+    'view.upcoming_events.page_this_weekend' => 'page_this_weekend',
+    'view.upcoming_events.page_free' => 'page_free',
+  ];
+  return $map[$route] ?? '';
+}
+
+/**
+ * Routes that show date-scope filter chips below the discovery hero.
+ */
+function _myeventlane_theme_discovery_date_filter_routes(): array {
+  return [
+    'view.upcoming_events.page_events',
+    'view.upcoming_events.page_popular',
+    'view.upcoming_events.page_hidden_gems',
+    'view.upcoming_events.page_today',
+    'view.upcoming_events.page_this_weekend',
+    'view.upcoming_events.page_free',
+  ];
+}
+
+/**
+ * Whether discovery context filter chips (Today, Weekend, etc.) apply on a route.
+ */
+function _myeventlane_theme_discovery_shows_context_filters(?string $route): bool {
+  return is_string($route) && in_array($route, _myeventlane_theme_discovery_date_filter_routes(), TRUE);
+}
+
+/**
+ * Whether the discovery hero should render its search form on a route.
+ */
+function _myeventlane_theme_discovery_shows_hero_search(?string $route): bool {
+  if (!is_string($route)) {
+    return FALSE;
+  }
+  if ($route === 'mel_search.view') {
+    return TRUE;
+  }
+  return in_array($route, array_merge(
+    _myeventlane_theme_discovery_date_filter_routes(),
+    ['view.upcoming_events.page_category'],
+  ), TRUE);
+}
+
+/**
+ * Default discovery hero copy per route.
+ */
+function _myeventlane_theme_discovery_copy_for_route(string $route, array $variables): array {
+  if ($route === 'view.upcoming_events.page_popular') {
+    return [
+      'variant' => 'community',
+      'title' => (string) t('Community Favourites'),
+      'description' => (string) t('Experiences people are joining — ranked by real tickets and RSVPs this week.'),
+      'subtitle' => (string) t('Browse all events or see what’s happening today.'),
+    ];
+  }
+  if ($route === 'view.upcoming_events.page_hidden_gems') {
+    return [
+      'variant' => 'hidden_gems',
+      'title' => (string) t('Hidden Gems'),
+      'description' => (string) t('High-value local experiences you might not have found yet.'),
+      'subtitle' => (string) t('Browse all events or see what’s on this weekend.'),
+    ];
+  }
   if ($route === 'view.upcoming_events.page_category') {
     $term = _myeventlane_theme_get_active_category_term();
-    if ($term instanceof TermInterface && $term->bundle() === 'categories') {
-      if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
-        $cat_files = $term->get('field_category_image')->referencedEntities();
-        $file = !empty($cat_files) ? reset($cat_files) : NULL;
-        if ($file) {
-          $file_url_generator = \Drupal::service('file_url_generator');
-          return $file_url_generator->generateAbsoluteString($file->getFileUri());
-        }
-      }
-      $slug = _myeventlane_theme_get_category_slug($term);
-      $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
-      $file_slug = $slug_map[$slug] ?? $slug;
-      $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
-      if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
-        return $base_path . $rel;
-      }
+    if ($term instanceof TermInterface) {
+      $name = $term->label();
+      return [
+        'variant' => 'category',
+        'title' => $name,
+        'description' => (string) t("Find something you'll love"),
+        'subtitle' => (string) t('Discover events in @name', ['@name' => $name]),
+      ];
     }
+    // Term could not be resolved — fail closed with generic copy.
+    return [
+      'variant' => 'category',
+      'title' => (string) t('Events'),
+      'description' => (string) t("Find something you'll love"),
+      'subtitle' => NULL,
+    ];
   }
-
-  // Search page: images/mel/hero/mel-hero-search.png
+  if ($route === 'view.upcoming_events.page_today') {
+    return [
+      'variant' => 'browse',
+      'title' => (string) t('Events happening today'),
+      'description' => (string) t('See what’s on across MyEventLane — new listings land throughout the day.'),
+      'subtitle' => (string) t('Pick another time or browse all upcoming events.'),
+    ];
+  }
+  if ($route === 'view.upcoming_events.page_this_weekend') {
+    return [
+      'variant' => 'browse',
+      'title' => (string) t('Events this weekend'),
+      'description' => (string) t('Plan your weekend with markets, gigs, workshops, and community gatherings.'),
+      'subtitle' => (string) t('Browse all events or see what’s on today.'),
+    ];
+  }
+  if ($route === 'view.upcoming_events.page_free') {
+    return [
+      'variant' => 'browse',
+      'title' => (string) t('Free events'),
+      'description' => (string) t('Free gatherings and RSVP-friendly experiences across MyEventLane.'),
+      'subtitle' => (string) t('Browse all events or see what’s on this weekend.'),
+    ];
+  }
   if ($route === 'mel_search.view') {
-    $rel = $theme_path . '/images/mel/hero/mel-hero-search.png';
-    if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
-      return $base_path . $rel;
+    $q = trim((string) \Drupal::request()->query->get('q', ''));
+    return [
+      'variant' => 'search',
+      'title' => (string) t('Search results'),
+      'description' => $q !== ''
+        ? (string) t('Results for «@query».', ['@query' => $q])
+        : (string) t('Search events, venues, organisers, and categories across MyEventLane.'),
+      'subtitle' => (string) t('Refine your search or browse events on the marketplace.'),
+      'search_query' => $q !== '' ? $q : NULL,
+    ];
+  }
+  if ($route === 'view.events_calendar.page_calendar') {
+    return [
+      'variant' => 'calendar',
+      'title' => (string) t('Events Calendar'),
+      'description' => (string) t('Discover what’s happening near you this month.'),
+      'subtitle' => (string) t('Browse by date to see what’s on this month.'),
+    ];
+  }
+  if ($route === 'myeventlane_help_centre.home') {
+    return [
+      'variant' => 'help',
+      'title' => (string) t('MyEventLane Help Centre'),
+      'description' => (string) t('Find answers for booking tickets, hosting events, and using MyEventLane.'),
+      'subtitle' => (string) t('Search help articles below or browse by topic.'),
+    ];
+  }
+  if (in_array($route, ['myeventlane_vendor.public_list', 'myeventlane_vendor.organisers'], TRUE)) {
+    return [
+      'variant' => 'vendors',
+      'title' => (string) t('Event Organisers'),
+      'description' => (string) t('Discover talented event organisers and explore their upcoming events.'),
+      'subtitle' => (string) t('Browse the directory or find experiences on the marketplace.'),
+    ];
+  }
+  return [
+    'variant' => 'browse',
+    'title' => (string) t('Find your next favourite experience.'),
+    'description' => (string) t('Discover workshops, gigs, markets, festivals, and community moments worth leaving the house for.'),
+    'subtitle' => (string) t('Search or pick a time — see what’s on soon.'),
+  ];
+}
+
+/**
+ * Builds the unified discovery hero render array for listing routes.
+ */
+function _myeventlane_theme_build_discovery_hero(array $variables): array {
+  $route = \Drupal::routeMatch()->getRouteName();
+  $copy = _myeventlane_theme_discovery_copy_for_route((string) $route, $variables);
+
+  $cache_tags = ['config:myeventlane_page_visual_list'];
+  $cache_contexts = ['route', 'languages:language_interface'];
+  if ($route === 'mel_search.view') {
+    $cache_contexts[] = 'url.query_args:q';
+  }
+  if ($route === 'view.upcoming_events.page_category') {
+    $cache_contexts[] = 'url';
+    $term = _myeventlane_theme_get_active_category_term();
+    if ($term instanceof TermInterface) {
+      $cache_tags[] = 'taxonomy_term:' . $term->id();
     }
   }
 
-  // Events page: images/mel/hero/mel-hero-events.png
-  if ($route === 'view.upcoming_events.page_events') {
-    $rel = $theme_path . '/images/mel/hero/mel-hero-events.png';
-    if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
-      return $base_path . $rel;
+  $search_mode = $route === 'mel_search.view' ? 'site' : 'events';
+  // Category icon navigation: category routes only (homepage uses HomeHeroBlock).
+  $show_categories = $route === 'view.upcoming_events.page_category';
+  // Help uses its own article search UI inside page content.
+  $show_search = _myeventlane_theme_discovery_shows_hero_search($route);
+
+  return [
+    '#theme' => 'mel_discovery_hero',
+    '#title' => $copy['title'],
+    '#description' => $copy['description'] ?? NULL,
+    '#subtitle' => $copy['subtitle'] ?? NULL,
+    '#hero_image_url' => $variables['mel_hero_image_url'] ?? NULL,
+    '#hero_image_url_mobile' => $variables['mel_hero_image_url_mobile'] ?? NULL,
+    '#hero_hide_on_mobile' => $variables['mel_hero_hide_on_mobile'] ?? FALSE,
+    '#show_search' => $show_search,
+    '#search_query' => $copy['search_query'] ?? NULL,
+    '#search_mode' => $search_mode,
+    '#show_categories' => $show_categories,
+    '#categories' => $variables['mel_header_categories'] ?? [],
+    '#active_category_tid' => $variables['mel_active_category_tid'] ?? NULL,
+    '#variant' => $copy['variant'] ?? 'browse',
+    '#attached' => [
+      'library' => ['myeventlane_theme/mel-discovery-hero'],
+    ],
+    '#cache' => [
+      'contexts' => array_values(array_unique($cache_contexts)),
+      'tags' => array_values(array_unique($cache_tags)),
+    ],
+  ];
+}
+
+/**
+ * Applies hero image URLs from Page Visuals (single canonical source).
+ *
+ * Category routes may override with field_category_image on the active term
+ * (content-owned image, not a parallel admin chain).
+ */
+function _myeventlane_theme_apply_page_visual_hero(array &$variables, ?string $route = NULL): void {
+  $route = $route ?? \Drupal::routeMatch()->getRouteName();
+
+  if ($route === 'view.upcoming_events.page_category') {
+    $term_url = _myeventlane_theme_get_category_term_hero_url();
+    if ($term_url !== NULL) {
+      $variables['mel_hero_image_url'] = $term_url;
+      $variables['mel_hero_image_url_mobile'] = NULL;
+      $variables['mel_hero_hide_on_mobile'] = FALSE;
+      return;
     }
   }
 
-  // Taxonomy term canonical: prefer term's field_category_image, else theme file.
+  if (!empty($variables['page_visual']['image_url'])) {
+    $variables['mel_hero_image_url'] = $variables['page_visual']['image_url'];
+    $variables['mel_hero_image_url_mobile'] = $variables['page_visual']['image_url_mobile'] ?? NULL;
+    $variables['mel_hero_hide_on_mobile'] = $variables['page_visual']['hide_on_mobile'] ?? FALSE;
+    return;
+  }
+
+  $variables['mel_hero_image_url'] = NULL;
+  $variables['mel_hero_image_url_mobile'] = NULL;
+  $variables['mel_hero_hide_on_mobile'] = FALSE;
+}
+
+/**
+ * Category term hero image from field_category_image when file exists on disk.
+ */
+function _myeventlane_theme_get_category_term_hero_url(?TermInterface $term = NULL): ?string {
+  $term = $term ?? _myeventlane_theme_get_active_category_term();
+  if (!$term instanceof TermInterface || $term->bundle() !== 'categories') {
+    return NULL;
+  }
+  if (!$term->hasField('field_category_image') || $term->get('field_category_image')->isEmpty()) {
+    return NULL;
+  }
+  $cat_files = $term->get('field_category_image')->referencedEntities();
+  $file = !empty($cat_files) ? reset($cat_files) : NULL;
+  if (!$file || !file_exists($file->getFileUri())) {
+    return NULL;
+  }
+  return \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for help_centre_home.
+ */
+function myeventlane_theme_preprocess_help_centre_home(array &$variables): void {
+  if (\Drupal::routeMatch()->getRouteName() === 'myeventlane_help_centre.home') {
+    $variables['mel_discovery_hero_active'] = TRUE;
+  }
+}
+
+/**
+ * @deprecated Use _myeventlane_theme_get_category_term_hero_url() for category routes.
+ */
+function _myeventlane_theme_get_listing_hero_url(?string $route): ?string {
+  if ($route === 'view.upcoming_events.page_category') {
+    return _myeventlane_theme_get_category_term_hero_url();
+  }
   if ($route === 'entity.taxonomy_term.canonical') {
     $term = \Drupal::routeMatch()->getParameter('taxonomy_term');
-    if ($term && $term->bundle() === 'categories') {
+    if ($term instanceof TermInterface && $term->bundle() === 'categories') {
       if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
         $canon_files = $term->get('field_category_image')->referencedEntities();
         $file = !empty($canon_files) ? reset($canon_files) : NULL;
-        if ($file) {
-          $file_url_generator = \Drupal::service('file_url_generator');
-          return $file_url_generator->generateAbsoluteString($file->getFileUri());
+        if ($file && file_exists($file->getFileUri())) {
+          return \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
         }
-      }
-      $slug = _myeventlane_theme_get_category_slug($term);
-      $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
-      $file_slug = $slug_map[$slug] ?? $slug;
-      $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
-      if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
-        return $base_path . $rel;
       }
     }
   }
-
   return NULL;
 }
 
@@ -3723,7 +3993,7 @@ function myeventlane_theme_preprocess_myeventlane_search_results(array &$variabl
 function myeventlane_theme_preprocess_myeventlane_category_pills(array &$variables): void {
   $categories = $variables['categories'] ?? [];
   $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
-  
+
   // Add slug to each category item.
   foreach ($categories as $key => $category) {
     $tid = $category['tid'] ?? NULL;
@@ -3911,25 +4181,25 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
   if (in_array($form_id, ['node_event_form', 'node_event_edit_form'])) {
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-form--event';
-    
+
     // Ensure Drupal's form behaviors are attached for #states API
     $form['#attached']['library'][] = 'core/drupal.form';
     $form['#attached']['library'][] = 'core/drupal.states';
-    
+
     // Attach Conditional Fields library if module is enabled
     // This ensures conditional fields work for both admin and vendor forms
     if (\Drupal::moduleHandler()->moduleExists('conditional_fields')) {
       $form['#attached']['library'][] = 'conditional_fields/conditional_fields';
     }
-    
+
     // Attach custom event form enhancements
     $form['#attached']['library'][] = 'myeventlane_theme/event-form';
-    
+
     // Disable Honeypot flood control for event forms (vendors need to save drafts)
     if (isset($form['#attributes']['data-honeypot-time'])) {
       unset($form['#attributes']['data-honeypot-time']);
     }
-    
+
     // Add form token to prevent duplicate submissions without flood control
     if (!isset($form['form_token'])) {
       $form['form_token'] = [
@@ -3937,15 +4207,15 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
         '#default_value' => \Drupal::csrfToken()->get('node_event_form'),
       ];
     }
-    
+
     // Wrap the entire form in our styled container
     // IMPORTANT: Only wrap the form, don't modify field structure to preserve #states API
     $is_edit = ($form_id === 'node_event_edit_form');
     $title = $is_edit ? t('Edit Event') : t('Create New Event');
-    $intro = $is_edit 
+    $intro = $is_edit
       ? t('Update your event details below. Changes will be saved when you submit the form.')
       : t('Share your event with the MyEventLane community. Fill out each section below to get started.');
-    
+
     // Get node if editing
     $node = NULL;
     if (isset($form['#entity']) && $form['#entity']) {
@@ -3953,17 +4223,17 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     } elseif ($form_state->getFormObject() && method_exists($form_state->getFormObject(), 'getEntity')) {
       $node = $form_state->getFormObject()->getEntity();
     }
-    
+
     $breadcrumb = '';
     if ($is_edit && $node && !$node->isNew()) {
       $url = $node->toUrl()->toString();
       $breadcrumb = '<nav class="mel-breadcrumb" aria-label="Breadcrumb"><a href="' . $url . '">' . $node->label() . '</a><span class="mel-breadcrumb-separator">/</span><span>Edit</span></nav>';
     }
-    
+
     // Wrap form with styling - this doesn't break #states API as it's outside the form structure
     $form['#prefix'] = '<div class="mel-page-wrapper mel-page-wrapper--form"><div class="mel-container mel-container--form"><div class="mel-form-page-header">' . $breadcrumb . '<h1 class="mel-page-title">' . $title . '</h1><p class="mel-page-intro">' . $intro . '</p></div>';
     $form['#suffix'] = '</div></div>';
-    
+
     // Add wrapper class to form itself
     $form['#attributes']['class'][] = 'mel-event-form-wrapper';
   }

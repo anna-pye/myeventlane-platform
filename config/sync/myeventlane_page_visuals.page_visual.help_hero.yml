@@ -1,0 +1,12 @@
+uuid: ae6f3c4d-1b5f-6a3c-d4e5-f6a7b8c9d0e1
+langcode: en
+status: true
+dependencies: {  }
+id: help_hero
+label: 'Help Centre Hero'
+route_name: myeventlane_help_centre.home
+media_uuid_desktop: b0494d9c-1b2c-44ba-88e6-fec955d2d200
+media_uuid_mobile: 8f6a40c8-8c4e-44f6-9cb2-e5f4e1628208
+hide_on_mobile: false
+alt_text: 'MyEventLane Help Centre'
+enabled: true

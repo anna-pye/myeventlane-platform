@@ -1,0 +1,12 @@
+uuid: c08b5e6f-3d7b-8c5e-f6a7-b8c9d0e1f2a3
+langcode: en
+status: true
+dependencies: {  }
+id: default_hero
+label: 'Default discovery hero'
+route_name: default
+media_uuid_desktop: a0f88922-e659-4b97-90c9-5475d8731ab2
+media_uuid_mobile: null
+hide_on_mobile: false
+alt_text: 'Discover events and experiences on MyEventLane'
+enabled: true

@@ -1,0 +1,107 @@
+{#
+/**
+ * @file
+ * Discovery hero — reuses mel-home-hero layout/classes (full-bleed, same as front page).
+ *
+ * Must render OUTSIDE .mel-container (see mel-discovery-page-shell.html.twig).
+ */
+#}
+{% set show_search = show_search ?? true %}
+{% set show_category_nav = variant|default('browse') == 'category' and (show_categories is not defined or show_categories) %}
+{% set categories = categories|default([]) %}
+{% set hero_image_url = hero_image_url|default(null) %}
+{% set hero_image_url_mobile = hero_image_url_mobile|default(null) %}
+{% set hero_hide_on_mobile = hero_hide_on_mobile|default(false) %}
+{% set active_tid = active_category_tid|default(mel_active_category_tid|default(null)) %}
+{% set search_mode = search_mode|default('events') %}
+
+{{ attach_library('myeventlane_theme/mel-discovery-hero') }}
+
+<section class="mel-home-hero mel-home-hero--discovery" aria-labelledby="mel-discovery-hero-title">
+  <div class="mel-home-hero__banner{% if hero_hide_on_mobile %} mel-home-hero__banner--hide-mobile-art{% endif %}">
+    {% if hero_image_url %}
+      <div class="mel-home-hero__media" aria-hidden="true">
+        {% if hero_image_url_mobile and not hero_hide_on_mobile %}
+          <picture>
+            <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
+            <img
+              class="mel-home-hero__media-img"
+              src="{{ hero_image_url }}"
+              alt=""
+              width="1024"
+              height="682"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </picture>
+        {% else %}
+          <img
+            class="mel-home-hero__media-img"
+            src="{{ hero_image_url }}"
+            alt=""
+            width="1024"
+            height="682"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="mel-home-hero__media mel-home-hero__media--placeholder" aria-hidden="true"></div>
+    {% endif %}
+
+    <div class="mel-home-hero__scrim" aria-hidden="true"></div>
+
+    <div class="mel-home-hero__banner-inner mel-container mel-container--wide">
+      <div class="mel-home-hero__copy">
+        <h1 id="mel-discovery-hero-title" class="mel-home-hero__title">{{ title }}</h1>
+        {% if description %}
+          <p class="mel-home-hero__text">{{ description }}</p>
+        {% endif %}
+        {% if subtitle %}
+          <p class="mel-home-hero__text mel-home-hero__text--subtitle">{{ subtitle }}</p>
+        {% endif %}
+      </div>
+
+      {% if show_search %}
+        <div class="mel-home-hero__search-shell">
+          {% include '@myeventlane_theme/components/discovery-hero/_discovery-hero-search.html.twig' with {
+            search_query: search_query|default(null),
+            search_mode: search_mode
+          } only %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if show_category_nav and categories %}
+    <div class="mel-home-hero__categories-bar">
+      <div class="mel-home-hero__categories-inner mel-container mel-container--wide">
+        <nav class="mel-home-hero__categories" aria-label="{{ 'Browse by category'|t }}">
+          <a class="mel-home-hero__category-card mel-home-hero__category-card--all" href="{{ path('view.upcoming_events.page_events') }}">
+            <span class="mel-home-hero__category-icon mel-home-hero__category-icon--all" aria-hidden="true">
+              {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
+                icon: 'calendar',
+                class: 'mel-home-hero__category-glyph',
+                size: 24
+              } only %}
+            </span>
+            <span class="mel-home-hero__category-label">{{ 'All Events'|t }}</span>
+          </a>
+          <div class="mel-home-hero__categories-scroll">
+            {% include '@myeventlane_blocks/myeventlane-category-pills.html.twig' with {
+              categories: categories,
+              hero_icons: true,
+              active_tid: active_tid
+            } only %}
+          </div>
+          <a class="mel-home-hero__view-all" href="{{ path('view.upcoming_events.page_events') }}">
+            {{ 'View all'|t }}<span aria-hidden="true"> ›</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  {% endif %}
+</section>

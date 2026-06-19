@@ -1,0 +1,37 @@
+{#
+/**
+ * @file
+ * Calendar page body — below unified discovery hero and context filters.
+ */
+#}
+{% if calendar_events is defined and calendar_events is empty %}
+  <div class="mel-empty mel-empty--calendar" role="status">
+    <h2 class="mel-empty__title">{{ 'No events scheduled yet.'|t }}</h2>
+    <p class="mel-empty__text">{{ 'Explore upcoming events or create your own.'|t }}</p>
+    <div class="mel-empty__actions">
+      <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse Events'|t }}</a>
+      <a class="mel-btn mel-btn--secondary" href="{{ create_event_url|default(path('myeventlane_vendor.create_event_gateway')) }}">{{ 'Create Event'|t }}</a>
+    </div>
+  </div>
+{% else %}
+  <div class="mel-calendar-card">
+    <div class="mel-content mel-content--calendar">
+      {{ page.content }}
+    </div>
+  </div>
+
+  {% if mel_calendar_this_week_rail|default([]) is not empty %}
+    {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+      section_class: 'mel-section--calendar-rail mel-section--discover',
+      section_width_class: '',
+      container_class: 'mel-container',
+      header_extra_class: 'mel-section__header--calendar-rail',
+      title: 'Upcoming this week'|t,
+      subtitle: 'Events starting soon — browse cards or explore the full marketplace.'|t,
+      link_url: path('view.upcoming_events.page_events'),
+      link_text: 'Browse all events'|t,
+      content_wrapper_class: 'mel-section__discover-view mel-calendar-rail__grid',
+      content: mel_calendar_this_week_rail
+    } %}
+  {% endif %}
+{% endif %}

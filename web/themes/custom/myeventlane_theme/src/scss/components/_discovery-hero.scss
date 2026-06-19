@@ -1,0 +1,102 @@
+// ==========================================================================
+// Discovery pages — layout shell only (hero uses .mel-home-hero from _home-hero.scss)
+// ==========================================================================
+
+@use '../base/mel-ds-tokens' as mel;
+@use '../tokens/breakpoints';
+@use '../tokens/radii';
+@use '../tokens/spacing';
+@use '../tokens/typography';
+
+.mel-page--discovery {
+  background: linear-gradient(180deg, #fff 0%, mel.$mel-ds-color-bg 100%);
+
+  .mel-main {
+    padding-top: 0;
+    padding-bottom: spacing.mel-space(2);
+  }
+}
+
+// Full-bleed hero region — mirrors homepage .mel-region-homepage-hero placement.
+.mel-region-discovery-hero {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mel-home-hero--discovery {
+  margin-bottom: 0;
+}
+
+.mel-home-hero__text--subtitle {
+  margin-top: spacing.mel-space(2);
+  font-size: clamp(0.95rem, 2vw, 1.05rem);
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.mel-discovery-layout {
+  padding-top: spacing.mel-space(4);
+}
+
+.mel-discovery-context-filters {
+  margin: 0 0 spacing.mel-space(4);
+}
+
+.mel-discovery-content {
+  min-width: 0;
+}
+
+.mel-page--discovery .mel-discovery--category {
+  padding-top: 0;
+
+  .mel-category-follow-region--discovery {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  .mel-chip-bar {
+    margin-bottom: spacing.mel-space(4);
+    gap: spacing.mel-space(2);
+  }
+
+  .mel-chip-bar .mel-chip {
+    min-height: 44px;
+    padding: spacing.mel-space(2) spacing.mel-space(4);
+    border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 10%, #fff 90%);
+    border-radius: radii.$mel-radius-full;
+    background: color-mix(in srgb, mel.$mel-ds-color-bg 55%, #fff 45%);
+    font-weight: typography.$mel-font-semibold;
+    box-shadow: none;
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: color-mix(in srgb, mel.$mel-ds-color-bg 70%, #fff 30%);
+        border-color: color-mix(in srgb, mel.$mel-ds-color-text 14%, #fff 86%);
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .mel-chip-bar .mel-chip.is-active {
+    background: mel.$mel-ds-color-primary;
+    border-color: mel.$mel-ds-color-primary;
+    color: #fff;
+    font-weight: typography.$mel-font-bold;
+    box-shadow: 0 4px 14px color-mix(in srgb, mel.$mel-ds-color-primary 28%, transparent);
+  }
+
+  .view-content {
+    margin-top: spacing.mel-space(1);
+  }
+}
+
+.mel-page--discovery .mel-calendar-card {
+  margin-top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-page--discovery .mel-chip-bar .mel-chip {
+    transition: none;
+  }
+}
