@@ -75,7 +75,7 @@
       });
 
       // Close on outside click
-      const closeHandler = function(e) {
+      const closeHandler = function (e) {
         if (!isDesktopViewport()) {
           return;
         }
@@ -84,10 +84,12 @@
           newToggle.setAttribute('aria-expanded', 'false');
           newMenu.setAttribute('aria-hidden', 'true');
         }
-      }, true);
+      };
+
+      document.addEventListener('click', closeHandler, true);
 
       // Escape key
-      const escapeHandler = function(e) {
+      const escapeHandler = function (e) {
         if (!isDesktopViewport()) {
           return;
         }
@@ -97,7 +99,9 @@
           newMenu.setAttribute('aria-hidden', 'true');
           newToggle.focus();
         }
-      });
+      };
+
+      document.addEventListener('keydown', escapeHandler);
     });
   }
 
