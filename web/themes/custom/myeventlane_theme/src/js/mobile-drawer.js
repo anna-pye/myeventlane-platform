@@ -76,7 +76,10 @@ export function initMobileDrawer(context) {
         panel.setAttribute('aria-modal', 'true');
         summary.setAttribute('aria-expanded', 'true');
         drawer.classList.add('is-open');
-        document.body.classList.add('mel-drawer-open');
+
+        if (!isMobileViewport()) {
+          document.body.classList.add('mel-drawer-open');
+        }
 
         const firstFocusable = panel.querySelector('a[href], button:not([disabled])');
         if (firstFocusable) {
