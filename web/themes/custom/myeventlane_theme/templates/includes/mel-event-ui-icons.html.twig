@@ -5,7 +5,10 @@
 {% set _size = size|default(24) %}
 {% set _class = (class|default('mel-event-icon'))|e('html_attr') %}
 <svg class="{{ _class }}" width="{{ _size }}" height="{{ _size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-  {% if icon == 'calendar' %}
+  {% if icon == 'home' %}
+    <path d="M5 10.75V19a1.25 1.25 0 0 0 1.25 1.25H9.5V15a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v5.25h3.25A1.25 1.25 0 0 0 19 19v-8.25" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M4.25 10.75 12 4.5l7.75 6.25" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  {% elseif icon == 'calendar' %}
     <rect x="3.5" y="5.5" width="17" height="15" rx="2.25" stroke="currentColor" stroke-width="1.75"/>
     <path d="M8 4v3M16 4v3M3.5 10h17" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
   {% elseif icon == 'clock' %}
