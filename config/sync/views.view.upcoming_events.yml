@@ -3226,7 +3226,7 @@ display:
       path: events/popular
       menu:
         type: normal
-        title: 'Community Favourites'
+        title: Community
         description: 'Events people are joining this week'
         weight: 2
         enabled: true
