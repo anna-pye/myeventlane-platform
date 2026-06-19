@@ -1570,8 +1570,10 @@
   }
 
   .mel-event-card__badge-stack {
-    top: auto;
-    bottom: 8px;
+    position: absolute;
+    z-index: 4;
+    top: 8px;
+    bottom: auto;
     left: 8px;
     max-width: calc(100% - 16px);
     gap: 3px;
