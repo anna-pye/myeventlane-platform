@@ -28,7 +28,7 @@ services:
   myeventlane_checkout_flow.order_pricing_breakdown:
     class: Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder
     arguments:
-      - '@commerce_price.currency_formatter'
+      - '@myeventlane_commerce.currency_formatter.lazy'
       - '@entity_type.manager'
       - '@config.factory'
       - '@myeventlane_commerce.order_item_classifier'
@@ -38,7 +38,7 @@ services:
     class: Drupal\myeventlane_checkout_flow\Service\CheckoutGroupedSummaryBuilder
     arguments:
       - '@entity_type.manager'
-      - '@commerce_price.currency_formatter'
+      - '@myeventlane_commerce.currency_formatter.lazy'
       - '@date.formatter'
       - '@myeventlane_checkout_flow.order_pricing_breakdown'
       - '@myeventlane_event.booking_flow_resolver'
@@ -52,7 +52,7 @@ services:
   myeventlane_checkout_flow.tax_invoice_presentation:
     class: Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder
     arguments:
-      - '@commerce_price.currency_formatter'
+      - '@myeventlane_commerce.currency_formatter.lazy'
       - '@date.formatter'
       - '@myeventlane_checkout_flow.order_pricing_breakdown'
 

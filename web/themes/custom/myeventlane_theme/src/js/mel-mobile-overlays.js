@@ -62,6 +62,7 @@ function portalPanel(panel) {
   panel.classList.add('mel-mobile-overlay-sheet');
   panel.dataset.melPortaled = '1';
   getPortal().appendChild(panel);
+  getPortal().setAttribute('aria-hidden', 'false');
 }
 
 /**
@@ -78,6 +79,11 @@ function unportalPanel(panel) {
   }
   panel.classList.remove('mel-mobile-overlay-sheet');
   delete panel.dataset.melPortaled;
+
+  const portal = document.getElementById(PORTAL_ID);
+  if (portal && !portal.childElementCount) {
+    portal.setAttribute('aria-hidden', 'true');
+  }
 }
 
 /**
@@ -106,6 +112,17 @@ export function notifyOverlayClosed(id) {
     activeOverlay = null;
     setBodyOverlayState(false);
   }
+}
+
+/**
+ * @param {HTMLElement} trigger
+ * @param {boolean} expanded
+ */
+function setCartTriggerExpanded(trigger, expanded) {
+  if (!trigger) {
+    return;
+  }
+  trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 }
 
 /**
@@ -142,13 +159,19 @@ export function closeAllMobileOverlays(except = null) {
 
   document.querySelectorAll('[data-mel-notif-bell-panel].is-open').forEach((panel) => {
     if (except !== 'notifications') {
-      panel.classList.remove('is-open');
-      panel.hidden = true;
-      unportalPanel(panel);
-      const trigger = document.querySelector(`[aria-controls="${panel.id}"]`)
-        || panel.closest('[data-mel-notif-bell]')?.querySelector('[data-mel-notif-bell-trigger]');
-      if (trigger) {
-        trigger.setAttribute('aria-expanded', 'false');
+      const root = panel.closest('[data-mel-notif-bell]');
+      if (root && typeof root.melNotifBellSetOpen === 'function') {
+        root.melNotifBellSetOpen(false);
+      }
+      else {
+        panel.classList.remove('is-open');
+        panel.hidden = true;
+        unportalPanel(panel);
+        const trigger = document.querySelector(`[aria-controls="${panel.id}"]`)
+          || root?.querySelector('[data-mel-notif-bell-trigger]');
+        if (trigger) {
+          trigger.setAttribute('aria-expanded', 'false');
+        }
       }
     }
   });
@@ -157,9 +180,11 @@ export function closeAllMobileOverlays(except = null) {
     if (except !== 'cart') {
       block.classList.remove('is-open');
       const panel = block.querySelector('.mel-mini-cart');
+      const link = block.querySelector('.mel-cart-block-link');
       if (panel) {
         unportalPanel(panel);
       }
+      setCartTriggerExpanded(link, false);
     }
   });
 
@@ -181,11 +206,9 @@ function closeActiveOverlay(trigger) {
     return;
   }
   closeAllMobileOverlays();
-  if (trigger && typeof trigger.focus === 'function') {
-    requestAnimationFrame(() => trigger.focus());
-  }
-  else if (lastFocus && typeof lastFocus.focus === 'function') {
-    requestAnimationFrame(() => lastFocus.focus());
+  const returnTarget = trigger || lastFocus;
+  if (returnTarget && typeof returnTarget.focus === 'function') {
+    requestAnimationFrame(() => returnTarget.focus());
   }
 }
 
@@ -231,6 +254,41 @@ function watchNotificationPanel(panel) {
 }
 
 /**
+ * @param {HTMLElement} root
+ * @param {HTMLElement} trigger
+ * @param {HTMLElement} panel
+ */
+function toggleNotificationOverlay(root, trigger, panel) {
+  const isOpen = panel.classList.contains('is-open') && !panel.hidden;
+  const setOpen = root.melNotifBellSetOpen;
+
+  if (typeof setOpen !== 'function') {
+    return;
+  }
+
+  if (!isOpen) {
+    closeAllMobileOverlays('notifications');
+    setOpen(true);
+    requestAnimationFrame(() => {
+      if (!isMobileViewport() || !panel.classList.contains('is-open') || panel.hidden) {
+        return;
+      }
+      portalPanel(panel);
+      markOverlayOpen('notifications', trigger);
+      syncMobileOverlayLayout();
+      const focusable = panel.querySelector('button:not([disabled]), a[href]');
+      if (focusable) {
+        focusable.focus();
+      }
+    });
+  }
+  else {
+    setOpen(false);
+    closeActiveOverlay(trigger);
+  }
+}
+
+/**
  * Initialize mobile overlay coordination.
  *
  * @param {Document|Element} context
@@ -263,6 +321,13 @@ export function initMobileOverlays(context) {
       return;
     }
 
+    link.setAttribute('aria-controls', panel.id || 'mel-mini-cart-panel');
+    link.setAttribute('aria-expanded', 'false');
+    if (!panel.id) {
+      panel.id = 'mel-mini-cart-panel';
+    }
+    panel.setAttribute('aria-hidden', 'true');
+
     link.addEventListener('click', (event) => {
       if (!isMobileViewport()) {
         return;
@@ -274,6 +339,8 @@ export function initMobileOverlays(context) {
       if (opening) {
         closeAllMobileOverlays('cart');
         block.classList.add('is-open');
+        setCartTriggerExpanded(link, true);
+        panel.setAttribute('aria-hidden', 'false');
         portalPanel(panel);
         markOverlayOpen('cart', link);
         requestAnimationFrame(() => {
@@ -285,6 +352,8 @@ export function initMobileOverlays(context) {
       }
       else {
         block.classList.remove('is-open');
+        setCartTriggerExpanded(link, false);
+        panel.setAttribute('aria-hidden', 'true');
         unportalPanel(panel);
         closeActiveOverlay(link);
       }
@@ -334,23 +403,12 @@ export function initMobileOverlays(context) {
 
     const notifTrigger = event.target.closest('[data-mel-notif-bell-trigger]');
     if (notifTrigger) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
       const root = notifTrigger.closest('[data-mel-notif-bell]');
       const panel = root?.querySelector('[data-mel-notif-bell-panel]');
-      const opening = panel && !panel.classList.contains('is-open');
-      if (opening) {
-        closeAllMobileOverlays('notifications');
-        lastFocus = notifTrigger;
-        // Let mel-notifications-ui.js toggle first, then portal on next frame.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (!isMobileViewport() || !panel.classList.contains('is-open') || panel.hidden) {
-              return;
-            }
-            portalPanel(panel);
-            markOverlayOpen('notifications', notifTrigger);
-            syncMobileOverlayLayout();
-          });
-        });
+      if (root && panel) {
+        toggleNotificationOverlay(root, notifTrigger, panel);
       }
       return;
     }
@@ -369,11 +427,7 @@ export function initMobileOverlays(context) {
       activeOverlay
       && !event.target.closest('.mel-cart-block, .mel-account-dropdown, [data-mel-notif-bell], .mobile-drawer, #mel-mobile-overlay-portal')
     ) {
-      const returnTrigger = lastFocus;
-      closeAllMobileOverlays();
-      if (returnTrigger && typeof returnTrigger.focus === 'function') {
-        requestAnimationFrame(() => returnTrigger.focus());
-      }
+      closeActiveOverlay(lastFocus);
     }
   }, true);
 
@@ -399,11 +453,7 @@ export function initMobileOverlays(context) {
     }
 
     event.preventDefault();
-    const returnTrigger = lastFocus;
-    closeAllMobileOverlays();
-    if (returnTrigger && typeof returnTrigger.focus === 'function') {
-      requestAnimationFrame(() => returnTrigger.focus());
-    }
+    closeActiveOverlay(lastFocus);
   });
 
   if (typeof MOBILE_MQ.addEventListener === 'function') {

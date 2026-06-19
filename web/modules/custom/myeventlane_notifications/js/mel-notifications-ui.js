@@ -288,6 +288,10 @@
     });
   }
 
+  function isMobileViewport() {
+    return window.matchMedia('(max-width: 767px)').matches;
+  }
+
   function initBell(root, settings) {
     var trigger = root.querySelector('[data-mel-notif-bell-trigger]');
     var panel = root.querySelector('[data-mel-notif-bell-panel]');
@@ -339,7 +343,12 @@
       setOpen(!open);
     }
 
+    root.melNotifBellSetOpen = setOpen;
+
     trigger.addEventListener('click', function (e) {
+      if (isMobileViewport()) {
+        return;
+      }
       e.stopPropagation();
       toggle();
     });
@@ -358,12 +367,18 @@
     }
 
     document.addEventListener('click', function (ev) {
+      if (isMobileViewport()) {
+        return;
+      }
       if (open && !root.contains(ev.target)) {
         setOpen(false);
       }
     });
 
     document.addEventListener('keydown', function (ev) {
+      if (isMobileViewport()) {
+        return;
+      }
       if (ev.key === 'Escape' && open) {
         setOpen(false);
         trigger.focus();
