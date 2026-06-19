@@ -1664,7 +1664,7 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
  */
 function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, array $variables): void {
   // Full calendar view: ensure page--calendar + preprocess_page__calendar run (path-based
-  // suggestions can miss this display; without it calendar_events stays unset).
+  // suggestions can miss this display; without it mel_calendar_this_week_rail stays unset).
   $route = \Drupal::routeMatch()->getRouteName();
   if ($route === 'myeventlane_auth.post_login') {
     $suggestions[] = 'page__mel_post_login';
@@ -2296,57 +2296,6 @@ function myeventlane_theme_preprocess_page__events__category(array &$variables):
  * Implements hook_preprocess_page() for calendar page.
  */
 function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
-  // Load all published events for the calendar.
-  $query = \Drupal::entityQuery('node')
-    ->condition('type', 'event')
-    ->condition('status', 1)
-    ->accessCheck(TRUE);
-
-  $nids = $query->execute();
-  $events = [];
-
-  if (!empty($nids)) {
-    $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
-
-    // Category colors.
-    $category_colors = [
-      'music' => '#7c5cff',
-      'sports' => '#ff6f61',
-      'food' => '#ffd46f',
-      'arts' => '#4ecdc4',
-      'business' => '#1a1a2e',
-      'community' => '#ff6f61',
-      'education' => '#4ecdc4',
-      'charity' => '#ff6f61',
-    ];
-
-    foreach ($nodes as $node) {
-      $start = $node->get('field_event_start')->value;
-      $end = $node->hasField('field_event_end') ? $node->get('field_event_end')->value : NULL;
-
-      // Get category color.
-      $color = '#7c5cff';
-      if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
-        $category = $node->get('field_category')->entity;
-        if ($category) {
-          $cat_name = strtolower($category->label());
-          $color = $category_colors[$cat_name] ?? '#7c5cff';
-        }
-      }
-
-      if ($start) {
-        $events[] = [
-          'title' => $node->label(),
-          'start' => $start,
-          'end' => $end,
-          'url' => $node->toUrl()->toString(),
-          'color' => $color,
-        ];
-      }
-    }
-  }
-
-  $variables['calendar_events'] = $events;
   $variables['mel_calendar_this_week_rail'] = _myeventlane_theme_build_calendar_this_week_rail();
 }
 
