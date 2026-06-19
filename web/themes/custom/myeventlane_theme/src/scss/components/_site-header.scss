@@ -13,6 +13,20 @@
 .site-header {
   position: relative;
   z-index: 100;
+
+  // The mobile drawer panel is a DOM child of .site-header, so this stacking
+  // context (z-index: 100) caps the whole drawer subtree at root-level 100 —
+  // beneath the shared overlay backdrop (body.mel-mobile-overlay-active::before,
+  // z-index 149), whose pointer-events: auto then intercepts every drawer tap.
+  // While the drawer is open, lift the header above the backdrop. Mobile only;
+  // desktop behaviour and the portaled overlays (account/notif/cart) are
+  // unaffected — they escape to #mel-mobile-overlay-portal independently.
+  @include breakpoints.mel-break(md, max) {
+    body.mel-drawer-open & {
+      z-index: 200;
+    }
+  }
+
   background: #fff;
   border-bottom: 1px solid rgba(41, 50, 65, 0.12);
   height: 64px;

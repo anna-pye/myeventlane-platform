@@ -7,6 +7,7 @@
 
 const MOBILE_MQ = window.matchMedia('(max-width: 767px)');
 const PORTAL_ID = 'mel-mobile-overlay-portal';
+const NOTIF_PANEL_ID = 'mel-notif-bell-panel';
 
 /** @type {string|null} */
 let activeOverlay = null;
@@ -46,6 +47,33 @@ function getPortal() {
     document.body.appendChild(portal);
   }
   return portal;
+}
+
+/**
+ * Resolve an overlay panel even after it has been moved into the portal.
+ *
+ * Account/notification panels are portaled out of their trigger's container on
+ * open, so `container.querySelector(selector)` returns null while open. Look the
+ * panel up by id first, then in the container, then in the portal.
+ *
+ * @param {HTMLElement|null} container
+ * @param {string} selector
+ * @param {string|null} id
+ * @returns {HTMLElement|null}
+ */
+function resolveOverlayPanel(container, selector, id = null) {
+  if (id) {
+    const byId = document.getElementById(id);
+    if (byId) {
+      return byId;
+    }
+  }
+  const inContainer = container?.querySelector(selector);
+  if (inContainer) {
+    return inContainer;
+  }
+  const portal = document.getElementById(PORTAL_ID);
+  return portal ? portal.querySelector(selector) : null;
 }
 
 /**
@@ -146,7 +174,9 @@ export function closeAllMobileOverlays(except = null) {
     if (except !== 'account') {
       dropdown.classList.remove('is-open');
       const toggle = dropdown.querySelector('.mel-account-toggle');
-      const menu = dropdown.querySelector('.mel-account-menu');
+      // The menu is portaled out of the dropdown while open — resolve it via the
+      // portal so it is always unportaled and never stranded.
+      const menu = resolveOverlayPanel(dropdown, '.mel-account-menu');
       if (toggle) {
         toggle.setAttribute('aria-expanded', 'false');
       }
@@ -159,19 +189,22 @@ export function closeAllMobileOverlays(except = null) {
 
   document.querySelectorAll('[data-mel-notif-bell-panel].is-open').forEach((panel) => {
     if (except !== 'notifications') {
-      const root = panel.closest('[data-mel-notif-bell]');
+      const root = panel.closest('[data-mel-notif-bell]')
+        || document.querySelector('[data-mel-notif-bell]');
       if (root && typeof root.melNotifBellSetOpen === 'function') {
         root.melNotifBellSetOpen(false);
       }
       else {
         panel.classList.remove('is-open');
         panel.hidden = true;
-        unportalPanel(panel);
-        const trigger = document.querySelector(`[aria-controls="${panel.id}"]`)
-          || root?.querySelector('[data-mel-notif-bell-trigger]');
-        if (trigger) {
-          trigger.setAttribute('aria-expanded', 'false');
-        }
+      }
+      // Always reconcile portal + trigger state regardless of close path, so
+      // closing never depends on the notification observer firing.
+      unportalPanel(panel);
+      const trigger = document.querySelector(`[aria-controls="${panel.id}"]`)
+        || root?.querySelector('[data-mel-notif-bell-trigger]');
+      if (trigger) {
+        trigger.setAttribute('aria-expanded', 'false');
       }
     }
   });
@@ -213,6 +246,12 @@ function closeActiveOverlay(trigger) {
 }
 
 /**
+ * Reconcile coordinator state when the notification panel closes from outside
+ * the coordinator — the module's own "mark all read" action calls setOpen(false)
+ * directly, and leaving the mobile breakpoint hides the panel. Opening, portaling
+ * and mutual exclusion are owned solely by toggleNotificationOverlay() (the single
+ * source of truth); this observer never drives the open lifecycle.
+ *
  * @param {HTMLElement} panel
  */
 function watchNotificationPanel(panel) {
@@ -222,31 +261,15 @@ function watchNotificationPanel(panel) {
   panel.setAttribute('data-mel-notif-overlay-watch', '1');
 
   const observer = new MutationObserver(() => {
-    if (!isMobileViewport()) {
-      if (panel.dataset.melPortaled === '1') {
-        unportalPanel(panel);
-      }
+    const isOpen = panel.classList.contains('is-open') && !panel.hidden;
+    if (isOpen) {
       return;
     }
-
-    const isOpen = panel.classList.contains('is-open') && !panel.hidden;
-    const trigger = document.querySelector('[data-mel-notif-bell-trigger][aria-controls="mel-notif-bell-panel"]')
-      || document.querySelector('[data-mel-notif-bell-trigger]');
-
-    if (isOpen) {
-      if (activeOverlay !== 'notifications') {
-        closeAllMobileOverlays('notifications');
-      }
-      portalPanel(panel);
-      if (trigger) {
-        markOverlayOpen('notifications', trigger);
-      }
-    }
-    else {
+    if (panel.dataset.melPortaled === '1') {
       unportalPanel(panel);
-      if (activeOverlay === 'notifications') {
-        notifyOverlayClosed('notifications');
-      }
+    }
+    if (activeOverlay === 'notifications') {
+      notifyOverlayClosed('notifications');
     }
   });
 
@@ -254,17 +277,24 @@ function watchNotificationPanel(panel) {
 }
 
 /**
+ * Open or close the notification panel as the single coordinator-owned lifecycle.
+ *
  * @param {HTMLElement} root
  * @param {HTMLElement} trigger
  * @param {HTMLElement} panel
  */
 function toggleNotificationOverlay(root, trigger, panel) {
-  const isOpen = panel.classList.contains('is-open') && !panel.hidden;
-  const setOpen = root.melNotifBellSetOpen;
+  // Drive the module's panel when its API is available; fall back to toggling the
+  // panel directly so the coordinator is self-sufficient if the module is absent.
+  const setOpen = typeof root.melNotifBellSetOpen === 'function'
+    ? root.melNotifBellSetOpen
+    : (v) => {
+        trigger.setAttribute('aria-expanded', v ? 'true' : 'false');
+        panel.hidden = !v;
+        panel.classList.toggle('is-open', v);
+      };
 
-  if (typeof setOpen !== 'function') {
-    return;
-  }
+  const isOpen = panel.classList.contains('is-open') && !panel.hidden;
 
   if (!isOpen) {
     closeAllMobileOverlays('notifications');
@@ -371,7 +401,10 @@ export function initMobileOverlays(context) {
       event.stopImmediatePropagation();
 
       const dropdown = toggle.closest('.mel-account-dropdown');
-      const menu = dropdown?.querySelector('.mel-account-menu');
+      // Resolve via the portal too — on the second tap the menu has been moved
+      // into #mel-mobile-overlay-portal, so a plain dropdown query returns null
+      // and the close path would otherwise bail (leaving the backdrop stranded).
+      const menu = dropdown ? resolveOverlayPanel(dropdown, '.mel-account-menu') : null;
       if (!dropdown || !menu) {
         return;
       }
@@ -406,7 +439,7 @@ export function initMobileOverlays(context) {
       event.preventDefault();
       event.stopImmediatePropagation();
       const root = notifTrigger.closest('[data-mel-notif-bell]');
-      const panel = root?.querySelector('[data-mel-notif-bell-panel]');
+      const panel = resolveOverlayPanel(root, '[data-mel-notif-bell-panel]', NOTIF_PANEL_ID);
       if (root && panel) {
         toggleNotificationOverlay(root, notifTrigger, panel);
       }

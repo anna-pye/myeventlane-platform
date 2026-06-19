@@ -8,13 +8,13 @@
 (function () {
   'use strict';
 
-  const DESKTOP_MQ = window.matchMedia('(min-width: 768px)');
-
-  /**
-   * @returns {boolean}
-   */
+  // Below md (768px) the mobile overlay coordinator (mel-mobile-overlays.js) is
+  // the single source of truth for account open/close, outside-click, Escape,
+  // focus return, backdrop, body scroll lock and mutual exclusion. This script
+  // owns the desktop flyout only and must stay inert on mobile, otherwise two
+  // controllers clear `is-open` independently and strand the overlay backdrop.
   function isDesktopViewport() {
-    return DESKTOP_MQ.matches;
+    return window.matchMedia('(min-width: 768px)').matches;
   }
 
   function initAccountDropdown(context) {
@@ -39,11 +39,10 @@
       toggle.parentNode.replaceChild(newToggle, toggle);
       const newMenu = dropdown.querySelector('.mel-account-menu');
 
-      newToggle.addEventListener('click', function (e) {
+      newToggle.addEventListener('click', function(e) {
         if (!isDesktopViewport()) {
           return;
         }
-
         e.preventDefault();
         e.stopPropagation();
 
@@ -75,7 +74,8 @@
         }
       });
 
-      document.addEventListener('click', function (e) {
+      // Close on outside click
+      const closeHandler = function(e) {
         if (!isDesktopViewport()) {
           return;
         }
@@ -86,7 +86,8 @@
         }
       }, true);
 
-      document.addEventListener('keydown', function (e) {
+      // Escape key
+      const escapeHandler = function(e) {
         if (!isDesktopViewport()) {
           return;
         }
