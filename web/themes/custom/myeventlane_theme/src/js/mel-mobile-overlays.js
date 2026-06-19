@@ -90,6 +90,7 @@ function portalPanel(panel) {
   panel.classList.add('mel-mobile-overlay-sheet');
   panel.dataset.melPortaled = '1';
   getPortal().appendChild(panel);
+  getPortal().setAttribute('aria-hidden', 'false');
 }
 
 /**
@@ -106,6 +107,11 @@ function unportalPanel(panel) {
   }
   panel.classList.remove('mel-mobile-overlay-sheet');
   delete panel.dataset.melPortaled;
+
+  const portal = document.getElementById(PORTAL_ID);
+  if (portal && !portal.childElementCount) {
+    portal.setAttribute('aria-hidden', 'true');
+  }
 }
 
 /**
@@ -134,6 +140,17 @@ export function notifyOverlayClosed(id) {
     activeOverlay = null;
     setBodyOverlayState(false);
   }
+}
+
+/**
+ * @param {HTMLElement} trigger
+ * @param {boolean} expanded
+ */
+function setCartTriggerExpanded(trigger, expanded) {
+  if (!trigger) {
+    return;
+  }
+  trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 }
 
 /**
@@ -196,9 +213,11 @@ export function closeAllMobileOverlays(except = null) {
     if (except !== 'cart') {
       block.classList.remove('is-open');
       const panel = block.querySelector('.mel-mini-cart');
+      const link = block.querySelector('.mel-cart-block-link');
       if (panel) {
         unportalPanel(panel);
       }
+      setCartTriggerExpanded(link, false);
     }
   });
 
@@ -220,11 +239,9 @@ function closeActiveOverlay(trigger) {
     return;
   }
   closeAllMobileOverlays();
-  if (trigger && typeof trigger.focus === 'function') {
-    requestAnimationFrame(() => trigger.focus());
-  }
-  else if (lastFocus && typeof lastFocus.focus === 'function') {
-    requestAnimationFrame(() => lastFocus.focus());
+  const returnTarget = trigger || lastFocus;
+  if (returnTarget && typeof returnTarget.focus === 'function') {
+    requestAnimationFrame(() => returnTarget.focus());
   }
 }
 
@@ -334,6 +351,13 @@ export function initMobileOverlays(context) {
       return;
     }
 
+    link.setAttribute('aria-controls', panel.id || 'mel-mini-cart-panel');
+    link.setAttribute('aria-expanded', 'false');
+    if (!panel.id) {
+      panel.id = 'mel-mini-cart-panel';
+    }
+    panel.setAttribute('aria-hidden', 'true');
+
     link.addEventListener('click', (event) => {
       if (!isMobileViewport()) {
         return;
@@ -345,6 +369,8 @@ export function initMobileOverlays(context) {
       if (opening) {
         closeAllMobileOverlays('cart');
         block.classList.add('is-open');
+        setCartTriggerExpanded(link, true);
+        panel.setAttribute('aria-hidden', 'false');
         portalPanel(panel);
         markOverlayOpen('cart', link);
         requestAnimationFrame(() => {
@@ -356,6 +382,8 @@ export function initMobileOverlays(context) {
       }
       else {
         block.classList.remove('is-open');
+        setCartTriggerExpanded(link, false);
+        panel.setAttribute('aria-hidden', 'true');
         unportalPanel(panel);
         closeActiveOverlay(link);
       }
@@ -432,11 +460,7 @@ export function initMobileOverlays(context) {
       activeOverlay
       && !event.target.closest('.mel-cart-block, .mel-account-dropdown, [data-mel-notif-bell], .mobile-drawer, #mel-mobile-overlay-portal')
     ) {
-      const returnTrigger = lastFocus;
-      closeAllMobileOverlays();
-      if (returnTrigger && typeof returnTrigger.focus === 'function') {
-        requestAnimationFrame(() => returnTrigger.focus());
-      }
+      closeActiveOverlay(lastFocus);
     }
   }, true);
 
@@ -462,11 +486,7 @@ export function initMobileOverlays(context) {
     }
 
     event.preventDefault();
-    const returnTrigger = lastFocus;
-    closeAllMobileOverlays();
-    if (returnTrigger && typeof returnTrigger.focus === 'function') {
-      requestAnimationFrame(() => returnTrigger.focus());
-    }
+    closeActiveOverlay(lastFocus);
   });
 
   if (typeof MOBILE_MQ.addEventListener === 'function') {

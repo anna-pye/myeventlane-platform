@@ -45,6 +45,10 @@
   box-shadow: shadows.$mel-shadow-lg;
 }
 
+body.mel-mobile-overlay-active {
+  overflow: hidden;
+}
+
 body.mel-mobile-overlay-active::before {
   content: '';
   position: fixed;

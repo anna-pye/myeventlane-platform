@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_checkout_flow\Service;
 
+use CommerceGuys\Intl\Formatter\CurrencyFormatterInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -22,7 +22,7 @@ use Drupal\myeventlane_core\MelReadinessHelper;
 final class OrderPricingBreakdownBuilder {
 
   public function __construct(
-    private readonly CurrencyFormatter $currencyFormatter,
+    private readonly CurrencyFormatterInterface $currencyFormatter,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly OrderItemClassifier $orderItemClassifier,

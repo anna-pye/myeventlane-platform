@@ -1,10 +1,11 @@
 /**
  * @file
- * Account dropdown functionality - direct script (not ES module).
- * This ensures it works even if ES modules aren't supported.
+ * Account dropdown — desktop flyout only below md (768px).
+ *
+ * Mobile account sheets are owned by mel-mobile-overlays.js.
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Below md (768px) the mobile overlay coordinator (mel-mobile-overlays.js) is
@@ -19,13 +20,12 @@
   function initAccountDropdown(context) {
     context = context || document;
     const dropdowns = context.querySelectorAll('.mel-account-dropdown');
-    
-    dropdowns.forEach(function(dropdown) {
-      // Skip if already initialized
+
+    dropdowns.forEach(function (dropdown) {
       if (dropdown.hasAttribute('data-dropdown-initialized')) {
         return;
       }
-      
+
       dropdown.setAttribute('data-dropdown-initialized', 'true');
       const toggle = dropdown.querySelector('.mel-account-toggle');
       const menu = dropdown.querySelector('.mel-account-menu');
@@ -35,7 +35,6 @@
         return;
       }
 
-      // Remove any existing listeners by cloning
       const newToggle = toggle.cloneNode(true);
       toggle.parentNode.replaceChild(newToggle, toggle);
       const newMenu = dropdown.querySelector('.mel-account-menu');
@@ -48,23 +47,27 @@
         e.stopPropagation();
 
         const isOpen = dropdown.classList.contains('is-open');
-        
+
         if (isOpen) {
           dropdown.classList.remove('is-open');
           newToggle.setAttribute('aria-expanded', 'false');
           newMenu.setAttribute('aria-hidden', 'true');
-        } else {
-          // Close all others
-          document.querySelectorAll('.mel-account-dropdown.is-open').forEach(function(other) {
+        }
+        else {
+          document.querySelectorAll('.mel-account-dropdown.is-open').forEach(function (other) {
             if (other !== dropdown) {
               other.classList.remove('is-open');
               const otherToggle = other.querySelector('.mel-account-toggle');
               const otherMenu = other.querySelector('.mel-account-menu');
-              if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
-              if (otherMenu) otherMenu.setAttribute('aria-hidden', 'true');
+              if (otherToggle) {
+                otherToggle.setAttribute('aria-expanded', 'false');
+              }
+              if (otherMenu) {
+                otherMenu.setAttribute('aria-hidden', 'true');
+              }
             }
           });
-          
+
           dropdown.classList.add('is-open');
           newToggle.setAttribute('aria-expanded', 'true');
           newMenu.setAttribute('aria-hidden', 'false');
@@ -81,8 +84,7 @@
           newToggle.setAttribute('aria-expanded', 'false');
           newMenu.setAttribute('aria-hidden', 'true');
         }
-      };
-      document.addEventListener('click', closeHandler, true);
+      }, true);
 
       // Escape key
       const escapeHandler = function(e) {
@@ -95,30 +97,26 @@
           newMenu.setAttribute('aria-hidden', 'true');
           newToggle.focus();
         }
-      };
-      document.addEventListener('keydown', escapeHandler);
+      });
     });
   }
 
-  // Initialize immediately and on DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       initAccountDropdown();
     });
-  } else {
-    // Small delay to ensure elements are rendered
-    setTimeout(function() {
+  }
+  else {
+    setTimeout(function () {
       initAccountDropdown();
     }, 50);
   }
 
-  // Also register as Drupal behavior
   if (typeof Drupal !== 'undefined' && Drupal.behaviors) {
     Drupal.behaviors.myeventlaneAccountDropdownDirect = {
-      attach: function(context) {
+      attach: function (context) {
         initAccountDropdown(context);
-      }
+      },
     };
   }
 })();
-

@@ -288,6 +288,10 @@
     });
   }
 
+  function isMobileViewport() {
+    return window.matchMedia('(max-width: 767px)').matches;
+  }
+
   function initBell(root, settings) {
     var trigger = root.querySelector('[data-mel-notif-bell-trigger]');
     var panel = root.querySelector('[data-mel-notif-bell-panel]');
