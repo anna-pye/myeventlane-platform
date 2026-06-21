@@ -44,6 +44,7 @@ final class CustomerHubDataBuilder {
    * }
    */
   public function buildParticipationLists(int $userId, string $userEmail, int $now, bool $includeRsvpSubmissions = TRUE): array {
+    $userEmail = trim($userEmail);
     $eventMap = $this->buildEventMap($userId, $userEmail, $includeRsvpSubmissions);
 
     $upcomingTickets = [];
@@ -144,7 +145,15 @@ final class CustomerHubDataBuilder {
       ->condition('status', EventAttendee::STATUS_CONFIRMED);
 
     if ($userId > 0) {
-      $attendeeQuery->condition('uid', $userId);
+      if ($userEmail !== '') {
+        $identityGroup = $attendeeQuery->orConditionGroup()
+          ->condition('uid', $userId)
+          ->condition('email', $userEmail);
+        $attendeeQuery->condition($identityGroup);
+      }
+      else {
+        $attendeeQuery->condition('uid', $userId);
+      }
     }
     elseif ($userEmail !== '') {
       $attendeeQuery->condition('email', $userEmail);
@@ -157,8 +166,13 @@ final class CustomerHubDataBuilder {
     $attendees = !empty($attendeeIds) ? $attendeeStorage->loadMultiple($attendeeIds) : [];
 
     foreach ($attendees as $attendee) {
-      $eventId = $attendee->get('event')->target_id;
-      if (!$eventId || isset($eventMap[$eventId])) {
+      $eventId = (int) $attendee->get('event')->target_id;
+      if ($eventId < 1) {
+        continue;
+      }
+
+      $source = (string) ($attendee->get('source')->value ?? 'ticket');
+      if (isset($eventMap[$eventId]) && !$this->ticketSourcePrecedes($source, (string) ($eventMap[$eventId]['source'] ?? ''))) {
         continue;
       }
 
@@ -172,7 +186,7 @@ final class CustomerHubDataBuilder {
         : NULL;
       $eventMap[$eventId] = $this->buildEventItem(
         $event,
-        $attendee->get('source')->value ?? 'ticket',
+        $source,
         $attendee->get('ticket_code')->value ?? '',
         (int) $attendee->id(),
         $orderItemId,
@@ -217,7 +231,7 @@ final class CustomerHubDataBuilder {
         }
 
         $eventId = (int) $event->id();
-        if (isset($eventMap[$eventId])) {
+        if (isset($eventMap[$eventId]) && ($eventMap[$eventId]['source'] ?? '') === 'ticket') {
           continue;
         }
 
@@ -272,6 +286,16 @@ final class CustomerHubDataBuilder {
     }
 
     return $eventMap;
+  }
+
+  /**
+   * Ticket purchases outrank RSVP rows for the same event in hub previews.
+   */
+  private function ticketSourcePrecedes(string $candidateSource, string $existingSource): bool {
+    if ($candidateSource === 'ticket' && $existingSource !== 'ticket') {
+      return TRUE;
+    }
+    return $existingSource === '';
   }
 
   /**

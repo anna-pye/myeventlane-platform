@@ -56,6 +56,9 @@ $mel_trusted_staging_prod = [
 
 if (getenv('IS_DDEV_PROJECT') === 'true') {
   $settings['trusted_host_patterns'] = $mel_trusted_ddev;
+  // Local mail: never use Postmark in DDEV. MessagingManager reads delivery_provider
+  // from config; production keeps postmark in config/sync — override only here.
+  $config['myeventlane_messaging.settings']['delivery_provider'] = 'drupal_mail';
 }
 else {
   $settings['trusted_host_patterns'] = array_values(array_unique(array_merge(
