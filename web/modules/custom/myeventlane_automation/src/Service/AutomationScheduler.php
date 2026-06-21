@@ -37,10 +37,11 @@ final class AutomationScheduler {
 
     $this->scanSalesOpening($now);
     // Attendee event reminders have a single owner: the messaging module's
-    // event_reminder_scheduler (Service\EventReminderScheduler). The automation
-    // per-attendee reminder scan is disabled here to avoid duplicate reminders
-    // (independent dedup paths) and the kill switches it bypassed. The
-    // scanReminders() body is retained (not invoked) to ease re-enabling.
+    // event_reminder_scheduler (Service\EventReminderScheduler), including RSVP
+    // attendees via AttendeeRepositoryResolver. The automation per-attendee
+    // scan is disabled here to avoid duplicate reminders (independent dedup
+    // paths) and the kill switches it bypassed. The scanReminders() body is
+    // retained (not invoked) to ease re-enabling.
     // @see \Drupal\myeventlane_messaging\Service\EventReminderScheduler
     // $this->scanReminders($now);
     $this->scanWaitlistInvites($now);

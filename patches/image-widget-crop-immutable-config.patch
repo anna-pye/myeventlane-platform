@@ -1,0 +1,21 @@
+--- a/src/Form/CropWidgetForm.php
++++ b/src/Form/CropWidgetForm.php
+@@ -248,7 +248,8 @@ class CropWidgetForm extends ConfigFormBase {
+     // Set Default (CDN) libraries urls if empty.
+     $this->setDefaultLibrariesUrls($form_state);
+ 
+-    $this->settings
++    $config = $this->config('image_widget_crop.settings');
++    $config
+       ->set("settings.library_url", $form_state->getValue('library_url'))
+       ->set("settings.css_url", $form_state->getValue('css_url'))
+       ->set("settings.crop_preview_image_style", $form_state->getValue('crop_preview_image_style'))
+@@ -259,7 +260,7 @@ class CropWidgetForm extends ConfigFormBase {
+       ->set("settings.crop_types_required", $form_state->getValue('crop_types_required'))
+       ->set("settings.notify_apply", $form_state->getValue('notify_apply'))
+       ->set("settings.notify_update", $form_state->getValue('notify_update'));
+-    $this->settings->save();
++    $config->save();
+   }
+ 
+   /**
