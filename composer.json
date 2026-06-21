@@ -45,6 +45,7 @@
     "drupal/gin_toolbar": "^3.0",
     "drupal/honeypot": "^2.2",
     "drupal/image_widget_crop": "^3.0",
+    "drupal/imageapi_optimize": "^4.2",
     "drupal/inline_entity_form": "^3.0",
     "drupal/klaro": "^3.1",
     "drupal/mailsystem": "^4.5",
@@ -63,6 +64,7 @@
     "drupal/token": "^1.16",
     "drupal/twbstools": "^2.1",
     "drupal/twig_tweak": "^3.4",
+    "drupal/webp": "^1.0@RC",
     "drush/drush": "^13.7",
     "endroid/qr-code": "^6.0",
     "mglaman/drupal-check": "^1.5",
@@ -103,6 +105,9 @@
       "drupal/core": {
         "Fix FormatterBase third_party_settings null TypeError with Layout Builder": "patches/drupal-core-formatter-third-party-settings.patch",
         "Fix mb_strtolower(null) deprecation in config entity query Condition": "patches/drupal-core-config-entity-query-null-condition.patch"
+      },
+      "drupal/image_widget_crop": {
+        "Fix ImmutableConfigException when saving crop widget settings (3496678)": "patches/image-widget-crop-immutable-config.patch"
       }
     },
     "drupal-scaffold": {

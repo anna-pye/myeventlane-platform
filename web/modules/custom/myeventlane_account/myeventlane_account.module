@@ -215,12 +215,19 @@ function myeventlane_account_theme_suggestions_page_alter(array &$suggestions, a
 function myeventlane_account_preprocess_page__account(array &$variables): void {
   $variables['account_settings_compact_header'] = FALSE;
   $account = \Drupal::currentUser();
+  $route_name = \Drupal::routeMatch()->getRouteName();
+
+  // Route-specific H1 applies even when the viewer is anonymous (e.g. order detail
+  // from email links) so the shell never renders "Welcome, @name!" with a null name.
+  $heading = _myeventlane_account_page_heading($route_name);
+  if ($heading !== NULL) {
+    $variables['account_heading'] = $heading;
+  }
 
   if ($account->isAnonymous()) {
     return;
   }
 
-  $route_name = \Drupal::routeMatch()->getRouteName();
   $variables['account_settings_compact_header'] = in_array($route_name, [
     'myeventlane_account.settings',
     'myeventlane_account.settings_redirect',
@@ -242,7 +249,6 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
   }
 
   $variables['account_show_header_logo'] = $route_name === 'myeventlane_account.dashboard';
-  $variables['account_heading'] = _myeventlane_account_page_heading($route_name);
 
   if (\Drupal::hasService('myeventlane_surface.navigation_manager')) {
     $variables['mel_account_shell_nav'] = [

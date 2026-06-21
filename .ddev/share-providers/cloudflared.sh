@@ -73,11 +73,10 @@ fi
 # Using --protocol http2 for better compatibility
 if [[ -n "$TUNNEL_NAME" ]]; then
   echo "Using named tunnel: $TUNNEL_NAME" >&2
-  echo "Local origin for ingress must be configured in ~/.cloudflared/config.yml (e.g. service: $DDEV_LOCAL_URL)." >&2
   echo >&2
-  echo "Running command: cloudflared --protocol http2 tunnel run $TUNNEL_NAME${ARGS:+ $ARGS}" >&2
+  echo "Running command: cloudflared --url $DDEV_LOCAL_URL --protocol http2${ARGS:+ $ARGS} tunnel run $TUNNEL_NAME" >&2
   echo >&2
-  cloudflared --protocol http2 tunnel run "$TUNNEL_NAME" $ARGS 2>&1
+  cloudflared --url "$DDEV_LOCAL_URL" --protocol http2 $ARGS tunnel run "$TUNNEL_NAME" 2>&1
 else
   echo >&2
   echo "Running command: cloudflared tunnel --url $DDEV_LOCAL_URL --protocol http2 $ARGS" >&2
