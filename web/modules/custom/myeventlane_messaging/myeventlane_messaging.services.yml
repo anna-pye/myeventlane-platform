@@ -126,6 +126,11 @@ services:
       - '@myeventlane_messaging.manager'
       - '@date.formatter'
 
+  myeventlane_messaging.attendee_recipient_resolver:
+    class: Drupal\myeventlane_messaging\Service\AttendeeRecipientResolver
+    arguments:
+      - '@entity_type.manager'
+
   myeventlane_messaging.event_reminder_scheduler:
     class: Drupal\myeventlane_messaging\Service\EventReminderScheduler
     arguments:
@@ -135,6 +140,8 @@ services:
       - '@logger.channel.myeventlane_messaging'
       - '@myeventlane_messaging.manager'
       - '@date.formatter'
+      - '@myeventlane_attendee.repository_resolver'
+      - '@language_manager'
       - '@?myeventlane_rsvp.ics_generator'
       - '@myeventlane_core.domain_detector'
       - '@?myeventlane_notifications.reminder_trigger'

@@ -6,11 +6,14 @@ namespace Drupal\myeventlane_messaging\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
-use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_attendee\Attendee\AttendeeInterface;
+use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService;
 use Drupal\node\NodeInterface;
@@ -21,6 +24,10 @@ use Psr\Log\LoggerInterface;
  *
  * Builds full template context and calls MessagingManager::queue() so that
  * only message_id is enqueued; idempotency is enforced by the manager.
+ *
+ * Commerce order purchasers are reminded via field_target_event order items.
+ * RSVP and other attendees (via AttendeeRepositoryResolver) are reminded when
+ * their email was not already covered by an order in the same scan window.
  */
 final class EventReminderScheduler {
 
@@ -39,9 +46,13 @@ final class EventReminderScheduler {
    *   The messaging manager.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter.
+   * @param \Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver $attendeeRepositoryResolver
+   *   Resolves RSVP and ticket attendees for non-order reminders.
+   * @param \Drupal\Core\Language\LanguageManagerInterface $languageManager
+   *   The language manager (default langcode for non-order recipients).
    * @param \Drupal\myeventlane_rsvp\Service\IcsGenerator|null $icsGenerator
    *   Optional ICS generator for calendar attachments.
-   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
+   * @param \Drupal\myeventlane_core\Service\DomainDetector|null $domainDetector
    *   The domain detector (for public-domain customer links).
    * @param \Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService|null $reminderNotificationTrigger
    *   Optional in-app reminder trigger.
@@ -53,13 +64,15 @@ final class EventReminderScheduler {
     private readonly LoggerInterface $logger,
     private readonly MessagingManager $messagingManager,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly AttendeeRepositoryResolver $attendeeRepositoryResolver,
+    private readonly LanguageManagerInterface $languageManager,
     private readonly ?object $icsGenerator = NULL,
     private readonly ?DomainDetector $domainDetector = NULL,
     private readonly ?ReminderNotificationTriggerService $reminderNotificationTrigger = NULL,
   ) {}
 
   /**
-   * Scans for events needing reminders and queues messages via MessagingManager.
+   * Scans for events needing reminders; queues via MessagingManager.
    */
   public function scan(): void {
     $now = $this->time->getRequestTime();
@@ -103,6 +116,7 @@ final class EventReminderScheduler {
 
     $events = $nodeStorage->loadMultiple($eventIds);
     $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+    $queueEmail = $template !== NULL && $template !== '';
 
     foreach ($events as $event) {
       if (!$event instanceof NodeInterface) {
@@ -116,104 +130,193 @@ final class EventReminderScheduler {
         }
       }
 
+      if (!$this->remindersEnabledForEvent($event)) {
+        continue;
+      }
+
       $eventId = (int) $event->id();
+      $processedEmails = [];
 
       $orderItemIds = $orderItemStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('field_target_event', $eventId)
         ->execute();
 
-      if (empty($orderItemIds)) {
-        continue;
-      }
+      if (!empty($orderItemIds)) {
+        $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
+        $processedOrders = [];
 
-      $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
-      $processedOrders = [];
-
-      foreach ($orderItems as $orderItem) {
-        if (!$orderItem instanceof OrderItemInterface) {
-          continue;
-        }
-
-        try {
-          $order = $orderItem->getOrder();
-          if (!$order instanceof OrderInterface) {
+        foreach ($orderItems as $orderItem) {
+          if (!$orderItem instanceof OrderItemInterface) {
             continue;
           }
-        }
-        catch (\Exception $e) {
-          continue;
-        }
 
-        $orderId = $order->id();
-        if (isset($processedOrders[$orderId])) {
-          continue;
-        }
-
-        $orderState = $order->getState()->getId();
-        if (!in_array($orderState, ['completed', 'placed', 'fulfilled'], TRUE)) {
-          continue;
-        }
-        if (in_array($orderState, ['canceled', 'refunded'], TRUE)) {
-          continue;
-        }
-
-        $orderEmail = $order->getEmail();
-        $queueEmail = $template !== NULL && $template !== '';
-        if ($queueEmail && empty($orderEmail)) {
-          continue;
-        }
-
-        if ($queueEmail) {
-          $context = $this->buildContext($order, $event, $timeframe);
-          $attachments = [];
-
-          if ($this->icsGenerator && method_exists($this->icsGenerator, 'generate')) {
-            try {
-              $icsContent = $this->icsGenerator->generate($event);
-              if ($icsContent) {
-                $filename = 'event-' . $eventId . '-' . preg_replace('/[^a-z0-9]/i', '-', strtolower($event->label())) . '.ics';
-                $attachments[] = [
-                  'filename' => $filename,
-                  'content' => $icsContent,
-                  'mime' => 'text/calendar',
-                ];
-              }
-            }
-            catch (\Throwable $e) {
-              $this->logger->warning('ICS generation failed for event @eid: @msg', [
-                '@eid' => $eventId,
-                '@msg' => $e->getMessage(),
-              ]);
+          try {
+            $order = $orderItem->getOrder();
+            if (!$order instanceof OrderInterface) {
+              continue;
             }
           }
+          catch (\Exception $e) {
+            continue;
+          }
 
-          $this->messagingManager->queue($template, (string) $orderEmail, $context, [
-            'langcode' => $order->language()->getId(),
-            'attachments' => $attachments,
-          ]);
-        }
+          $orderId = $order->id();
+          if (isset($processedOrders[$orderId])) {
+            continue;
+          }
 
-        if ($inAppWindow !== NULL && $this->reminderNotificationTrigger !== NULL) {
-          $this->reminderNotificationTrigger->onOrderEventReminder($order, $event, $inAppWindow);
-        }
+          $orderState = $order->getState()->getId();
+          if (!in_array($orderState, ['completed', 'placed', 'fulfilled'], TRUE)) {
+            continue;
+          }
+          if (in_array($orderState, ['canceled', 'refunded'], TRUE)) {
+            continue;
+          }
 
-        $processedOrders[$orderId] = TRUE;
-        if ($queueEmail) {
-          $this->logger->info('Scheduled @template reminder for order @order_id, event @event_id', [
-            '@template' => $template,
-            '@order_id' => $orderId,
-            '@event_id' => $eventId,
-          ]);
+          $orderEmail = trim((string) $order->getEmail());
+          if ($queueEmail && $orderEmail === '') {
+            continue;
+          }
+
+          if ($queueEmail) {
+            $context = $this->buildOrderContext($order, $event, $timeframe);
+            $this->messagingManager->queue($template, $orderEmail, $context, [
+              'langcode' => $order->language()->getId(),
+              'attachments' => $this->buildIcsAttachments($event, $eventId),
+            ]);
+            $processedEmails[strtolower($orderEmail)] = TRUE;
+          }
+
+          if ($inAppWindow !== NULL && $this->reminderNotificationTrigger !== NULL) {
+            $this->reminderNotificationTrigger->onOrderEventReminder($order, $event, $inAppWindow);
+          }
+
+          $processedOrders[$orderId] = TRUE;
+          if ($queueEmail) {
+            $this->logger->info('Scheduled @template reminder for order @order_id, event @event_id', [
+              '@template' => $template,
+              '@order_id' => $orderId,
+              '@event_id' => $eventId,
+            ]);
+          }
         }
+      }
+
+      if ($queueEmail) {
+        $this->queueAttendeeReminders($event, $eventId, $template, $timeframe, $processedEmails);
       }
     }
   }
 
   /**
-   * Builds serializable template context (no entities).
+   * Queues reminders for RSVP/ticket attendees not already emailed via orders.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param int $eventId
+   *   The event node ID.
+   * @param string $template
+   *   Email template key.
+   * @param string $timeframe
+   *   Human-readable timeframe for template context.
+   * @param array<string, bool> $processedEmails
+   *   Lowercase email keys already reminded in this scan pass.
    */
-  private function buildContext(OrderInterface $order, NodeInterface $event, string $timeframe): array {
+  private function queueAttendeeReminders(
+    NodeInterface $event,
+    int $eventId,
+    string $template,
+    string $timeframe,
+    array $processedEmails,
+  ): void {
+    $repository = $this->attendeeRepositoryResolver->getRepository($event);
+    $attendees = $repository->loadByEvent($event);
+    if ($attendees === []) {
+      return;
+    }
+
+    $defaultLangcode = $this->languageManager->getDefaultLanguage()->getId();
+    $attachments = $this->buildIcsAttachments($event, $eventId);
+
+    foreach ($attendees as $attendee) {
+      if (!$attendee instanceof AttendeeInterface) {
+        continue;
+      }
+
+      $email = trim($attendee->getEmail());
+      if ($email === '') {
+        continue;
+      }
+
+      $emailKey = strtolower($email);
+      if (isset($processedEmails[$emailKey])) {
+        continue;
+      }
+
+      $context = $this->buildAttendeeContext($event, $attendee, $timeframe);
+      $this->messagingManager->queue($template, $email, $context, [
+        'langcode' => $defaultLangcode,
+        'attachments' => $attachments,
+      ]);
+      $processedEmails[$emailKey] = TRUE;
+
+      $this->logger->info('Scheduled @template reminder for attendee @email, event @event_id', [
+        '@template' => $template,
+        '@email' => $email,
+        '@event_id' => $eventId,
+      ]);
+    }
+  }
+
+  /**
+   * Whether event-level reminder emails are enabled.
+   */
+  private function remindersEnabledForEvent(NodeInterface $event): bool {
+    if ($event->hasField('field_enable_reminders') && !$event->get('field_enable_reminders')->isEmpty()) {
+      return (bool) $event->get('field_enable_reminders')->value;
+    }
+    return TRUE;
+  }
+
+  /**
+   * Builds ICS calendar attachments for an event reminder email.
+   *
+   * @return array<int, array<string, string>>
+   *   Attachment payloads for MessagingManager::queue().
+   */
+  private function buildIcsAttachments(NodeInterface $event, int $eventId): array {
+    if (!$this->icsGenerator || !method_exists($this->icsGenerator, 'generate')) {
+      return [];
+    }
+
+    try {
+      $icsContent = $this->icsGenerator->generate($event);
+      if (!$icsContent) {
+        return [];
+      }
+
+      $filename = 'event-' . $eventId . '-' . preg_replace('/[^a-z0-9]/i', '-', strtolower($event->label())) . '.ics';
+      return [[
+        'filename' => $filename,
+        'content' => $icsContent,
+        'mime' => 'text/calendar',
+      ],
+      ];
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('ICS generation failed for event @eid: @msg', [
+        '@eid' => $eventId,
+        '@msg' => $e->getMessage(),
+      ]);
+      return [];
+    }
+  }
+
+  /**
+   * Builds serializable template context for a commerce order recipient.
+   */
+  private function buildOrderContext(OrderInterface $order, NodeInterface $event, string $timeframe): array {
     $event_url = $this->buildPublicUrl($event->toUrl('canonical', ['absolute' => FALSE])->toString());
     $my_tickets_url = $this->buildPublicUrl('/my-tickets/order/' . $order->id());
     if (!$event_url) {
@@ -235,22 +338,7 @@ final class EventReminderScheduler {
       'timeframe' => $timeframe,
     ];
 
-    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $startDate = $event->get('field_event_start')->date;
-      if ($startDate) {
-        $ts = $startDate->getTimestamp();
-        $context['event_start'] = $this->dateFormatter->format($ts, 'custom', 'F j, Y g:ia T');
-        $context['event_start_date'] = $this->dateFormatter->format($ts, 'custom', 'F j, Y');
-        $context['event_start_time'] = $this->dateFormatter->format($ts, 'custom', 'g:ia T');
-      }
-    }
-
-    if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
-      $context['event_location'] = $event->get('field_location')->value;
-    }
-    elseif ($event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()) {
-      $context['event_location'] = $event->get('field_venue_name')->value;
-    }
+    $this->appendEventScheduleContext($context, $event);
 
     $attendeeNames = [];
     foreach ($order->getItems() as $item) {
@@ -271,6 +359,67 @@ final class EventReminderScheduler {
     $context['attendee_count'] = count($attendeeNames);
 
     return $context;
+  }
+
+  /**
+   * Builds serializable template context for an RSVP or ticket attendee.
+   */
+  private function buildAttendeeContext(NodeInterface $event, AttendeeInterface $attendee, string $timeframe): array {
+    $event_url = $this->buildPublicUrl($event->toUrl('canonical', ['absolute' => FALSE])->toString());
+    if (!$event_url) {
+      $event_url = $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+    }
+
+    $displayName = trim($attendee->getDisplayName());
+    $attendeeNames = $displayName !== '' ? [$displayName] : [];
+
+    $context = [
+      'event_id' => (int) $event->id(),
+      'event_title' => $event->label(),
+      'event_url' => $event_url,
+      'timeframe' => $timeframe,
+      'attendee_names' => $attendeeNames,
+      'attendee_count' => $attendeeNames !== [] ? count($attendeeNames) : 1,
+    ];
+
+    $attendeeId = $attendee->getAttendeeId();
+    if (str_starts_with($attendeeId, 'rsvp:')) {
+      $context['submission_id'] = (int) substr($attendeeId, 5);
+    }
+    elseif (str_starts_with($attendeeId, 'ticket:')) {
+      $context['attendee_id'] = $attendeeId;
+    }
+
+    $this->appendEventScheduleContext($context, $event);
+
+    return $context;
+  }
+
+  /**
+   * Appends shared event schedule/location fields to reminder context.
+   *
+   * @param array<string, mixed> $context
+   *   Context array to mutate.
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   */
+  private function appendEventScheduleContext(array &$context, NodeInterface $event): void {
+    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+      $startDate = $event->get('field_event_start')->date;
+      if ($startDate) {
+        $ts = $startDate->getTimestamp();
+        $context['event_start'] = $this->dateFormatter->format($ts, 'custom', 'F j, Y g:ia T');
+        $context['event_start_date'] = $this->dateFormatter->format($ts, 'custom', 'F j, Y');
+        $context['event_start_time'] = $this->dateFormatter->format($ts, 'custom', 'g:ia T');
+      }
+    }
+
+    if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
+      $context['event_location'] = $event->get('field_location')->value;
+    }
+    elseif ($event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()) {
+      $context['event_location'] = $event->get('field_venue_name')->value;
+    }
   }
 
   /**

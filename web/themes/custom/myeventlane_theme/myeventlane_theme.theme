@@ -4636,14 +4636,12 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
       }
       catch (\Throwable) {
       }
-      foreach (['field_vendor_logo', 'field_logo_image'] as $logo_field) {
-        if ($vendor->hasField($logo_field) && !$vendor->get($logo_field)->isEmpty()) {
-          $files = $vendor->get($logo_field)->referencedEntities();
-          $file = !empty($files) ? reset($files) : NULL;
-          if ($file instanceof File) {
-            $organiser['logo_url'] = $file_url_generator->generateAbsoluteString($file->getFileUri());
-            break;
-          }
+      if (\Drupal::hasService('myeventlane_vendor.vendor_card_builder')) {
+        /** @var \Drupal\myeventlane_vendor\Service\VendorCardBuilder $card_builder */
+        $card_builder = \Drupal::service('myeventlane_vendor.vendor_card_builder');
+        $logo_url = $card_builder->buildLogoUrl($vendor);
+        if ($logo_url !== NULL) {
+          $organiser['logo_url'] = $logo_url;
         }
       }
       $variables['mel_organiser'] = $organiser;

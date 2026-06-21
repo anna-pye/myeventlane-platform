@@ -56,8 +56,10 @@
           <h1 class="mel-my-account__welcome">
             {% if account_heading %}
               {{ account_heading }}
-            {% else %}
+            {% elseif display_name|default('')|trim != '' %}
               {{ 'Welcome, @name!'|t({'@name': display_name}) }}
+            {% else %}
+              {{ 'Account'|t }}
             {% endif %}
           </h1>
           <div class="mel-my-account__avatar" aria-hidden="true">

@@ -84,7 +84,7 @@ final class VendorDetailController extends ControllerBase {
       '#label' => $myeventlane_vendor->label(),
       '#vendor_id' => (int) $myeventlane_vendor->id(),
       '#banner' => $content['field_banner_image'] ?? NULL,
-      '#logo' => $this->vendorCardBuilder->buildStyledImage($myeventlane_vendor, ['field_logo_image', 'field_vendor_logo'], 'thumbnail'),
+      '#logo' => $this->vendorCardBuilder->buildLogo($myeventlane_vendor),
       '#tagline' => $this->vendorCardBuilder->fieldText($myeventlane_vendor, ['field_tagline', 'field_summary']),
       '#description' => $content['field_vendor_bio'] ?? $content['field_description'] ?? NULL,
       '#contact' => $this->buildContactContent($content),
