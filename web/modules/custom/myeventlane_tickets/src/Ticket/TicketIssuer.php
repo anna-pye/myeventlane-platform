@@ -13,6 +13,7 @@ use Drupal\mel_ticket\Entity\TicketType;
 use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifierInterface;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\node\NodeInterface;
+use Drupal\paragraphs\ParagraphInterface;
 
 /**
  * Issues ticket rows for paid Commerce orders.
@@ -139,6 +140,7 @@ final class TicketIssuer {
           'status' => Ticket::STATUS_ISSUED_UNASSIGNED,
         ];
         $ticket = $ticket_storage->create($values);
+        $this->applyCheckoutHolderToTicket($ticket, $order_item, $i);
         $ticket->save();
       }
     }
@@ -187,6 +189,43 @@ final class TicketIssuer {
     }
 
     return NULL;
+  }
+
+  /**
+   * Maps checkout ticket-holder paragraphs onto issued ticket rows when present.
+   *
+   * Holder details collected at checkout (field_ticket_holder) are the canonical
+   * source for PDF generation; unassigned status remains when no holder email exists.
+   */
+  private function applyCheckoutHolderToTicket(Ticket $ticket, OrderItemInterface $order_item, int $holder_index): void {
+    if (!$order_item->hasField('field_ticket_holder') || $order_item->get('field_ticket_holder')->isEmpty()) {
+      return;
+    }
+
+    $holders = $order_item->get('field_ticket_holder')->referencedEntities();
+    if (!isset($holders[$holder_index]) || !$holders[$holder_index] instanceof ParagraphInterface) {
+      return;
+    }
+
+    $holder = $holders[$holder_index];
+    $firstName = $holder->hasField('field_first_name') && !$holder->get('field_first_name')->isEmpty()
+      ? trim((string) $holder->get('field_first_name')->value)
+      : '';
+    $lastName = $holder->hasField('field_last_name') && !$holder->get('field_last_name')->isEmpty()
+      ? trim((string) $holder->get('field_last_name')->value)
+      : '';
+    $holderName = trim($firstName . ' ' . $lastName);
+    $holderEmail = $holder->hasField('field_email') && !$holder->get('field_email')->isEmpty()
+      ? trim((string) $holder->get('field_email')->value)
+      : '';
+
+    if ($holderName === '' || $holderEmail === '') {
+      return;
+    }
+
+    $ticket->set('holder_name', $holderName);
+    $ticket->set('holder_email', $holderEmail);
+    $ticket->set('status', Ticket::STATUS_ASSIGNED);
   }
 
 }

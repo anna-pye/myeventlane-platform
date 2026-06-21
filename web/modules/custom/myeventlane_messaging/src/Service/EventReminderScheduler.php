@@ -13,6 +13,8 @@ use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
 use Drupal\myeventlane_attendee\Attendee\AttendeeInterface;
+use Drupal\myeventlane_attendee\Attendee\RsvpAttendee;
+use Drupal\myeventlane_attendee\Attendee\TicketAttendee;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService;
@@ -318,14 +320,9 @@ final class EventReminderScheduler {
    */
   private function buildOrderContext(OrderInterface $order, NodeInterface $event, string $timeframe): array {
     $event_url = $this->buildPublicUrl($event->toUrl('canonical', ['absolute' => FALSE])->toString());
-    $my_tickets_url = $this->buildPublicUrl('/my-tickets/order/' . $order->id());
+    $my_tickets_url = $this->buildOrderDetailUrl((int) $order->id());
     if (!$event_url) {
       $event_url = $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
-    }
-    if (!$my_tickets_url) {
-      $my_tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-        'commerce_order' => $order->id(),
-      ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
     }
 
     $context = [
@@ -382,17 +379,132 @@ final class EventReminderScheduler {
       'attendee_count' => $attendeeNames !== [] ? count($attendeeNames) : 1,
     ];
 
-    $attendeeId = $attendee->getAttendeeId();
-    if (str_starts_with($attendeeId, 'rsvp:')) {
-      $context['submission_id'] = (int) substr($attendeeId, 5);
-    }
-    elseif (str_starts_with($attendeeId, 'ticket:')) {
-      $context['attendee_id'] = $attendeeId;
-    }
-
+    $this->appendAttendeeReferenceContext($context, $attendee);
     $this->appendEventScheduleContext($context, $event);
 
     return $context;
+  }
+
+  /**
+   * Adds booking reference and CTA URLs expected by reminder templates.
+   *
+   * @param array<string, mixed> $context
+   *   Context array to mutate.
+   * @param \Drupal\myeventlane_attendee\Attendee\AttendeeInterface $attendee
+   *   RSVP or ticket attendee.
+   */
+  private function appendAttendeeReferenceContext(array &$context, AttendeeInterface $attendee): void {
+    if ($attendee instanceof RsvpAttendee) {
+      $submissionId = (int) substr($attendee->getAttendeeId(), 5);
+      $context['submission_id'] = $submissionId;
+      $context['order_number'] = 'RSVP-' . $submissionId;
+      $context['my_tickets_url'] = $this->buildAccountHubUrl();
+      return;
+    }
+
+    if ($attendee instanceof TicketAttendee) {
+      $context['attendee_id'] = $attendee->getAttendeeId();
+      $orderReference = $this->resolveOrderReferenceFromTicketAttendee($attendee);
+      if ($orderReference !== NULL) {
+        $context += $orderReference;
+        return;
+      }
+
+      $ticketCode = trim($attendee->getEventAttendee()->getTicketCode() ?? '');
+      $context['order_number'] = $ticketCode !== '' ? $ticketCode : $attendee->getAttendeeId();
+      $context['my_tickets_url'] = $this->buildMyTicketsHubUrl();
+      return;
+    }
+
+    $attendeeId = $attendee->getAttendeeId();
+    if (str_starts_with($attendeeId, 'rsvp:')) {
+      $submissionId = (int) substr($attendeeId, 5);
+      $context['submission_id'] = $submissionId;
+      $context['order_number'] = 'RSVP-' . $submissionId;
+      $context['my_tickets_url'] = $this->buildAccountHubUrl();
+    }
+    elseif (str_starts_with($attendeeId, 'ticket:')) {
+      $context['attendee_id'] = $attendeeId;
+      $context['order_number'] = $attendeeId;
+      $context['my_tickets_url'] = $this->buildMyTicketsHubUrl();
+    }
+  }
+
+  /**
+   * Resolves commerce order reference fields for a ticket attendee.
+   *
+   * @return array{order_id: int, order_number: string|null, my_tickets_url: string}|null
+   *   Order context when an order item link exists, otherwise NULL.
+   */
+  private function resolveOrderReferenceFromTicketAttendee(TicketAttendee $attendee): ?array {
+    $eventAttendee = $attendee->getEventAttendee();
+    if (!$eventAttendee->hasField('order_item') || $eventAttendee->get('order_item')->isEmpty()) {
+      return NULL;
+    }
+
+    $orderItem = $eventAttendee->get('order_item')->entity;
+    if (!$orderItem instanceof OrderItemInterface) {
+      return NULL;
+    }
+
+    try {
+      $order = $orderItem->getOrder();
+      if (!$order instanceof OrderInterface) {
+        return NULL;
+      }
+    }
+    catch (\Exception $e) {
+      return NULL;
+    }
+
+    $orderId = (int) $order->id();
+    return [
+      'order_id' => $orderId,
+      'order_number' => $order->getOrderNumber(),
+      'my_tickets_url' => $this->buildOrderDetailUrl($orderId),
+    ];
+  }
+
+  /**
+   * Builds the public order detail URL used by reminder templates.
+   */
+  private function buildOrderDetailUrl(int $orderId): string {
+    $url = $this->buildPublicUrl('/my-tickets/order/' . $orderId);
+    if ($url !== NULL) {
+      return $url;
+    }
+
+    return Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+      'commerce_order' => $orderId,
+    ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+  }
+
+  /**
+   * Builds the customer tickets hub URL for non-order ticket holders.
+   */
+  private function buildMyTicketsHubUrl(): string {
+    $url = $this->buildPublicUrl('/my-tickets');
+    if ($url !== NULL) {
+      return $url;
+    }
+
+    return Url::fromRoute('myeventlane_checkout_flow.my_tickets', [], [
+      'absolute' => TRUE,
+    ])->toString(TRUE)->getGeneratedUrl();
+  }
+
+  /**
+   * Builds the customer account hub URL for RSVP holders.
+   */
+  private function buildAccountHubUrl(): string {
+    $url = $this->buildPublicUrl('/my-account');
+    if ($url !== NULL) {
+      return $url;
+    }
+
+    return Url::fromRoute('myeventlane_account.dashboard', [], [
+      'absolute' => TRUE,
+    ])->toString(TRUE)->getGeneratedUrl();
   }
 
   /**
