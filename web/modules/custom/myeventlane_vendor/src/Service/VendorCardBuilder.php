@@ -21,6 +21,16 @@ use Psr\Log\LoggerInterface;
  */
 final class VendorCardBuilder {
 
+  /**
+   * Canonical image style for public organiser / vendor logos.
+   */
+  public const LOGO_IMAGE_STYLE = 'mel_vendor_logo';
+
+  /**
+   * Candidate logo fields in preference order.
+   */
+  private const LOGO_FIELD_NAMES = ['field_logo_image', 'field_vendor_logo'];
+
   private const DESCRIPTION_LIMIT = 120;
 
   private const NEW_ORGANISER_DAYS = 30;
@@ -45,7 +55,7 @@ final class VendorCardBuilder {
    *   Component variables for components/vendor-card.html.twig.
    */
   public function build(Vendor $vendor, bool $include_follow_control = FALSE): array {
-    $logo = $this->buildStyledImage($vendor, ['field_logo_image', 'field_vendor_logo'], 'thumbnail');
+    $logo = $this->buildLogo($vendor);
     if ($logo !== NULL) {
       $logo['#attributes']['class'][] = 'mel-vendor-card__avatar-img';
     }
@@ -209,6 +219,40 @@ final class VendorCardBuilder {
       ]);
       return [];
     }
+  }
+
+  /**
+   * Builds the organiser logo render array using the canonical logo image style.
+   *
+   * @return array|null
+   *   A render array, or NULL when no logo exists.
+   */
+  public function buildLogo(EntityInterface $entity): ?array {
+    return $this->buildStyledImage($entity, self::LOGO_FIELD_NAMES, self::LOGO_IMAGE_STYLE);
+  }
+
+  /**
+   * Builds the absolute URL for a vendor organiser logo.
+   *
+   * @return string|null
+   *   Styled logo URL, or NULL when no logo or image style exists.
+   */
+  public function buildLogoUrl(EntityInterface $entity): ?string {
+    $style = $this->entityTypeManager->getStorage('image_style')->load(self::LOGO_IMAGE_STYLE);
+    if ($style === NULL) {
+      return NULL;
+    }
+
+    foreach (self::LOGO_FIELD_NAMES as $field_name) {
+      if ($entity->hasField($field_name) && !$entity->get($field_name)->isEmpty()) {
+        $file = $entity->get($field_name)->entity;
+        if ($file !== NULL) {
+          return $style->buildUrl($file->getFileUri());
+        }
+      }
+    }
+
+    return NULL;
   }
 
   /**

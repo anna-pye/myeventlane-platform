@@ -8,13 +8,13 @@ use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\myeventlane_core\VendorConsoleTrust;
+use Drupal\myeventlane_vendor\Service\VendorCardBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -41,8 +41,8 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
     protected AccountProxyInterface $currentUser,
     protected RouteMatchInterface $routeMatch,
     protected EntityTypeManagerInterface $entityTypeManager,
-    protected FileUrlGeneratorInterface $fileUrlGenerator,
     protected ModuleHandlerInterface $moduleHandler,
+    protected ?VendorCardBuilder $vendorCardBuilder,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -58,8 +58,10 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
       $container->get('current_user'),
       $container->get('current_route_match'),
       $container->get('entity_type.manager'),
-      $container->get('file_url_generator'),
       $container->get('module_handler'),
+      $container->has('myeventlane_vendor.vendor_card_builder')
+        ? $container->get('myeventlane_vendor.vendor_card_builder')
+        : NULL,
     );
   }
 
@@ -232,13 +234,7 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
     }
     $initials = mb_strtoupper($initials);
 
-    $logo_url = NULL;
-    if ($vendor->hasField('field_vendor_logo') && !$vendor->get('field_vendor_logo')->isEmpty()) {
-      $file = $vendor->get('field_vendor_logo')->entity;
-      if ($file) {
-        $logo_url = $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
-      }
-    }
+    $logo_url = $this->vendorCardBuilder?->buildLogoUrl($vendor);
 
     try {
       $url = $vendor->toUrl();

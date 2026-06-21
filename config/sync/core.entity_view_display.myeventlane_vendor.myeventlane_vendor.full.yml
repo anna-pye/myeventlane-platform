@@ -38,7 +38,7 @@ dependencies:
     - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_terms_version
     - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_users
     - field.field.myeventlane_vendor.myeventlane_vendor.field_website
-    - image.style.medium
+    - image.style.mel_vendor_logo
   module:
     - image
     - myeventlane_vendor
@@ -60,7 +60,7 @@ content:
     label: hidden
     settings:
       image_link: ''
-      image_style: medium
+      image_style: mel_vendor_logo
       image_loading:
         attribute: lazy
     third_party_settings: {  }

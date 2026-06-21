@@ -1,0 +1,25 @@
+uuid: 3c7a9e1f-4b2d-4f8a-9c6e-1d5e8a2b4f70
+langcode: en
+status: true
+dependencies:
+  config:
+    - crop.type.focal_point
+  module:
+    - focal_point
+name: mel_vendor_logo
+label: 'MEL vendor logo'
+effects:
+  7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d:
+    uuid: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    id: focal_point_scale_and_crop
+    weight: 0
+    data:
+      width: 160
+      height: 160
+      crop_type: focal_point
+  8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e:
+    uuid: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    id: image_convert_avif
+    weight: 1
+    data:
+      extension: webp

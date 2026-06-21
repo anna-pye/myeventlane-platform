@@ -510,7 +510,7 @@
             <div class="mel-organiser-card__inner">
               {% if mel_organiser.logo_url %}
                 <div class="mel-organiser-card__avatar">
-                  <img src="{{ mel_organiser.logo_url }}" alt="" width="64" height="64" loading="lazy" class="mel-organiser-card__img" />
+                  <img src="{{ mel_organiser.logo_url }}" alt="{{ mel_organiser.name }}" width="64" height="64" loading="lazy" class="mel-organiser-card__img" />
                 </div>
               {% else %}
                 <div class="mel-organiser-card__avatar mel-organiser-card__avatar--fallback" aria-hidden="true">
