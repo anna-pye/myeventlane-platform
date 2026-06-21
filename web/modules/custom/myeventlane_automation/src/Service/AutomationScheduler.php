@@ -36,7 +36,13 @@ final class AutomationScheduler {
     $now = $this->time->getRequestTime();
 
     $this->scanSalesOpening($now);
-    $this->scanReminders($now);
+    // Attendee event reminders have a single owner: the messaging module's
+    // event_reminder_scheduler (Service\EventReminderScheduler). The automation
+    // per-attendee reminder scan is disabled here to avoid duplicate reminders
+    // (independent dedup paths) and the kill switches it bypassed. The
+    // scanReminders() body is retained (not invoked) to ease re-enabling.
+    // @see \Drupal\myeventlane_messaging\Service\EventReminderScheduler
+    // $this->scanReminders($now);
     $this->scanWaitlistInvites($now);
     $this->scanWeeklyDigests($now);
   }
@@ -106,6 +112,12 @@ final class AutomationScheduler {
 
   /**
    * Scans for events needing reminders (24h and 2h before start).
+   *
+   * Disabled: not invoked by scan(). Attendee event reminders are owned solely
+   * by the messaging module's EventReminderScheduler service. The body is
+   * retained to preserve the windowing/dedup logic should ownership ever move.
+   *
+   * phpcs:disable DrupalPractice.Objects.UnusedPrivateMethod.UnusedMethod
    */
   private function scanReminders(int $now): void {
 
@@ -247,6 +259,8 @@ final class AutomationScheduler {
       '@count_2h' => count($eventIds2h),
     ]);
   }
+
+  // phpcs:enable DrupalPractice.Objects.UnusedPrivateMethod.UnusedMethod
 
   /**
    * Scans for events with waitlist capacity available.
