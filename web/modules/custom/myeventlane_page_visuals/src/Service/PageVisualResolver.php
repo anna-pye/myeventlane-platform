@@ -9,6 +9,8 @@ use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\file\FileInterface;
+use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\myeventlane_page_visuals\Entity\PageVisualInterface;
 
@@ -19,6 +21,16 @@ use Drupal\myeventlane_page_visuals\Entity\PageVisualInterface;
  * are loaded by UUID in the service; Twig receives only URLs and strings.
  */
 final class PageVisualResolver {
+
+  /**
+   * Desktop discovery hero derivative (16:9, max 1600×900).
+   */
+  private const STYLE_HERO_DESKTOP = 'mel_event_hero_featured';
+
+  /**
+   * Mobile discovery hero derivative (16:9, 800×450).
+   */
+  private const STYLE_HERO_MOBILE = 'mel_event_card_featured';
 
   /**
    * The entity type manager.
@@ -143,20 +155,36 @@ final class PageVisualResolver {
       'config:myeventlane_page_visual_list',
       'config:myeventlane_page_visual.' . $visual->id(),
     ];
+    $desktop_media = NULL;
 
     if ($media_uuid_desktop !== NULL && $media_uuid_desktop !== '') {
       $media = $this->entityRepository->loadEntityByUuid('media', $media_uuid_desktop);
       if ($media instanceof MediaInterface) {
-        $image_url = $this->getImageUrlFromMedia($media);
-        $cache_tags = array_merge($cache_tags, $media->getCacheTags());
+        $desktop_media = $media;
+        $styled = $this->getStyledImageUrlFromMedia($media, self::STYLE_HERO_DESKTOP);
+        if ($styled !== NULL) {
+          $image_url = $styled['url'];
+          $cache_tags = array_merge($cache_tags, $styled['cache_tags']);
+        }
       }
     }
 
     if ($media_uuid_mobile !== NULL && $media_uuid_mobile !== '') {
       $media_mobile = $this->entityRepository->loadEntityByUuid('media', $media_uuid_mobile);
       if ($media_mobile instanceof MediaInterface) {
-        $image_url_mobile = $this->getImageUrlFromMedia($media_mobile);
-        $cache_tags = array_merge($cache_tags, $media_mobile->getCacheTags());
+        $styled = $this->getStyledImageUrlFromMedia($media_mobile, self::STYLE_HERO_MOBILE);
+        if ($styled !== NULL) {
+          $image_url_mobile = $styled['url'];
+          $cache_tags = array_merge($cache_tags, $styled['cache_tags']);
+        }
+      }
+    }
+    elseif ($desktop_media instanceof MediaInterface) {
+      // Same artwork: smaller derivative for mobile <picture>.
+      $styled = $this->getStyledImageUrlFromMedia($desktop_media, self::STYLE_HERO_MOBILE);
+      if ($styled !== NULL) {
+        $image_url_mobile = $styled['url'];
+        $cache_tags = array_merge($cache_tags, $styled['cache_tags']);
       }
     }
 
@@ -174,17 +202,46 @@ final class PageVisualResolver {
   }
 
   /**
-   * Gets the image URL from a Media entity.
+   * Builds a styled image URL from a Media entity.
    *
-   * Uses the field_media_image field (standard image media type).
+   * Uses existing MEL image styles (no raw file URLs). Falls back to the
+   * original file URL only when the requested style is missing.
    *
    * @param \Drupal\media\MediaInterface $media
    *   The media entity.
+   * @param string $style_id
+   *   Image style machine name.
    *
-   * @return string|null
-   *   Absolute image URL, or null if no image found.
+   * @return array{url: string, cache_tags: string[]}|null
+   *   Styled URL and cache tags, or null if no image file.
    */
-  private function getImageUrlFromMedia(MediaInterface $media): ?string {
+  private function getStyledImageUrlFromMedia(MediaInterface $media, string $style_id): ?array {
+    $file = $this->getMediaImageFile($media);
+    if (!$file instanceof FileInterface) {
+      return NULL;
+    }
+
+    $uri = $file->getFileUri();
+    $cache_tags = array_merge($media->getCacheTags(), $file->getCacheTags());
+
+    $style = $this->entityTypeManager->getStorage('image_style')->load($style_id);
+    if (!$style instanceof ImageStyleInterface) {
+      return [
+        'url' => $this->fileUrlGenerator->generateAbsoluteString($uri),
+        'cache_tags' => $cache_tags,
+      ];
+    }
+
+    return [
+      'url' => $style->buildUrl($uri),
+      'cache_tags' => array_merge($cache_tags, $style->getCacheTags()),
+    ];
+  }
+
+  /**
+   * Loads the image file from standard image media.
+   */
+  private function getMediaImageFile(MediaInterface $media): ?FileInterface {
     if (!$media->hasField('field_media_image') || $media->get('field_media_image')->isEmpty()) {
       return NULL;
     }
@@ -195,11 +252,7 @@ final class PageVisualResolver {
     }
 
     $file = $item->entity;
-    if ($file === NULL) {
-      return NULL;
-    }
-
-    return $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
+    return $file instanceof FileInterface ? $file : NULL;
   }
 
   /**
