@@ -23,8 +23,11 @@ final class VendorCardBuilder {
 
   /**
    * Canonical image style for public organiser / vendor logos.
+   *
+   * Config uses core image_convert_avif: AVIF when the toolkit supports it;
+   * extension webp in image style config is the fallback format only.
    */
-  public const LOGO_IMAGE_STYLE = 'mel_vendor_logo';
+  private const LOGO_IMAGE_STYLE = 'mel_vendor_logo';
 
   /**
    * Candidate logo fields in preference order.
