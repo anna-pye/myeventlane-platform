@@ -18,5 +18,5 @@ Version-controlled **reference configuration** for server and edge layers. These
 
 1. Do not place Drupal application code here.
 2. Do not commit secrets, htpasswd files, or TLS private keys.
-3. Deploy artifacts intentionally exclude `infrastructure/` — copy or symlink configs on the server during provisioning, not on every app release.
+3. Deploy artifacts intentionally exclude `infrastructure/` and legacy root `staging-nginx.conf` (see `.github/workflows/reusable-build.yml`) — copy or symlink configs on the server during provisioning, not on every app release.
 4. When adding new reference configs, document path, owner, and runbook link in this file.
