@@ -13,6 +13,7 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\myeventlane_surface\MelCustomerRouteCatalog;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_theme().
@@ -25,10 +26,15 @@ function myeventlane_account_theme(): array {
         'logo_url' => '',
         'avatar_url' => '',
         'avatar_initials' => '',
+        'hub_user_id' => 0,
+        'upcoming_ticket_count' => 0,
+        'upcoming_rsvp_count' => 0,
+        'upcoming_event_count' => 0,
         'upcoming_tickets' => [],
         'upcoming_rsvps' => [],
-        'saved_events' => [],
         'past_events' => [],
+        'notifications_preview' => [],
+        'notifications_inbox_url' => '',
         'account_links' => [],
         'hub_quick_links' => [],
         'hub_discover_url' => '',
@@ -37,9 +43,8 @@ function myeventlane_account_theme(): array {
         'review_eligible' => [],
         'mel_account_dashboard_tickets_empty' => NULL,
         'mel_account_dashboard_rsvps_empty' => NULL,
-        'mel_account_dashboard_saved_empty' => NULL,
         'mel_account_dashboard_past_empty' => NULL,
-        'account_hero' => NULL,
+        'mel_account_dashboard_notifications_empty' => NULL,
       ],
       'template' => 'myeventlane-my-account-dashboard',
     ],
@@ -84,6 +89,26 @@ function myeventlane_account_preprocess_myeventlane_my_account_dashboard(array &
   }
   catch (\Throwable) {
     $variables['hub_calendar_url'] = Url::fromRoute('<front>')->toString();
+  }
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_notifications')
+    && \Drupal::currentUser()->hasPermission('access myeventlane notifications')
+    && \Drupal::hasService('myeventlane_notifications.user_inbox')
+    && \Drupal::hasService('myeventlane_notifications.view_builder')) {
+    try {
+      $variables['notifications_inbox_url'] = Url::fromRoute('myeventlane_notifications.inbox', [], ['absolute' => FALSE])->toString();
+      $uid = (int) \Drupal::currentUser()->id();
+      /** @var \Drupal\myeventlane_notifications\Service\NotificationUserInboxService $inbox */
+      $inbox = \Drupal::service('myeventlane_notifications.user_inbox');
+      /** @var \Drupal\myeventlane_notifications\Service\NotificationViewBuilder $viewBuilder */
+      $viewBuilder = \Drupal::service('myeventlane_notifications.view_builder');
+      $ids = $inbox->getUnreadDeliveryIds($uid, 3, \Drupal\myeventlane_notifications\NotificationContext::publicBellContexts());
+      $variables['notifications_preview'] = $viewBuilder->buildRowsForDeliveries($ids, $uid);
+    }
+    catch (\Throwable) {
+      $variables['notifications_preview'] = [];
+      $variables['notifications_inbox_url'] = '';
+    }
   }
 }
 
@@ -224,6 +249,11 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
     $variables['account_heading'] = $heading;
   }
 
+  $description = _myeventlane_account_page_description($route_name);
+  if ($description !== NULL) {
+    $variables['account_page_description'] = $description;
+  }
+
   if ($account->isAnonymous()) {
     return;
   }
@@ -266,6 +296,7 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
  */
 function _myeventlane_account_page_heading(?string $route_name) {
   return match ($route_name) {
+    'myeventlane_account.dashboard' => t('Dashboard'),
     'myeventlane_account.past_events' => t('Past events'),
     'myeventlane_account.settings', 'myeventlane_account.settings_redirect' => t('Settings'),
     'myeventlane_checkout_flow.my_tickets' => t('Tickets'),
@@ -273,13 +304,89 @@ function _myeventlane_account_page_heading(?string $route_name) {
     'myeventlane_checkout_flow.order_tax_invoice_pdf' => t('Payment receipt'),
     'myeventlane_dashboard.customer' => t('My events'),
     'view.mel_saved_events.page_1' => t('Saved events'),
-    'myeventlane_account.followed_organisers' => t('Followed organisers'),
+    'myeventlane_account.followed_organisers' => t('Your organisers'),
     'myeventlane_notifications.inbox' => t('Notifications'),
     'myeventlane_notifications.preferences' => t('Notification preferences'),
-    'myeventlane_core.my_categories' => t('Categories'),
+    'myeventlane_core.my_categories' => t('Your communities'),
     'myeventlane_rsvp.user_list' => t('RSVPs'),
     default => NULL,
   };
+}
+
+/**
+ * Optional lede copy for hub routes (page shell); body templates must not repeat.
+ */
+function _myeventlane_account_page_description(?string $route_name) {
+  return match ($route_name) {
+    'myeventlane_account.past_events' => t('Events you have already attended.'),
+    'myeventlane_account.settings', 'myeventlane_account.settings_redirect' => t('Personal details, sign-in security, and how we stay in touch.'),
+    'myeventlane_checkout_flow.my_tickets' => t('Manage bookings, download tickets, and access your events.'),
+    'myeventlane_checkout_flow.order_detail' => t('Booking details, tickets, and receipts for this order.'),
+    'view.mel_saved_events.page_1' => t('Events you want to revisit later.'),
+    'myeventlane_account.followed_organisers' => t('See events from organisers you follow.'),
+    'myeventlane_notifications.inbox' => t('Ticket confirmations and important updates, organised for you.'),
+    'myeventlane_notifications.preferences' => t('Choose how and when we reach you.'),
+    'myeventlane_core.my_categories' => t('Stay connected with the categories you follow.'),
+    'myeventlane_rsvp.user_list' => t('Events you have RSVP’d to.'),
+    default => NULL,
+  };
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for mel_notification_inbox.
+ */
+function myeventlane_account_preprocess_mel_notification_inbox(array &$variables): void {
+  $variables['in_account_shell'] = TRUE;
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for views_view.
+ */
+function myeventlane_account_preprocess_views_view(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if ($view === NULL || $view->id() !== 'mel_saved_events') {
+    return;
+  }
+  if ($variables['attributes'] instanceof Attribute) {
+    $variables['attributes']->addClass('mel-collection-page', 'mel-collection-page--saved-events');
+  }
+  else {
+    $variables['attributes']['class'][] = 'mel-collection-page';
+    $variables['attributes']['class'][] = 'mel-collection-page--saved-events';
+  }
+  $variables['#attached']['library'][] = 'flag/link_ajax';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for views_view_unformatted.
+ */
+function myeventlane_account_preprocess_views_view_unformatted(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if ($view === NULL || $view->id() !== 'mel_saved_events') {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_account\Service\CustomerHubDataBuilder $builder */
+  $builder = \Drupal::service('myeventlane_account.customer_hub_data_builder');
+  $rows = [];
+  foreach ($view->result as $delta => $row) {
+    $entity = $row->_entity ?? NULL;
+    if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
+      $rows[$delta] = $variables['rows'][$delta] ?? ['#markup' => ''];
+      continue;
+    }
+    $rows[$delta] = [
+      '#theme' => 'mel_account_event_card',
+      '#event' => $builder->buildHubEventFromNode($entity, 'saved'),
+      '#card_variant' => 'saved',
+      '#event_save_flag' => $builder->buildEventSaveFlagLink((int) $entity->id()),
+      '#cache' => [
+        'tags' => array_merge($entity->getCacheTags(), ['flag.flag.event_save']),
+        'contexts' => ['user'],
+      ],
+    ];
+  }
+  $variables['rows'] = $rows;
 }
 
 /**

@@ -129,19 +129,164 @@
 }
 
 // ---------------------------------------------------------------------------
+// Dashboard welcome band
+// ---------------------------------------------------------------------------
+
+.mel-dashboard-welcome {
+  margin-bottom: spacing.mel-space(5);
+  padding: spacing.mel-space(4);
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-md;
+  box-shadow: shadows.$mel-shadow-sm;
+}
+
+.mel-dashboard-welcome__layout {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+  align-items: flex-start;
+
+  @include breakpoints.mel-break(md) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+}
+
+.mel-dashboard-welcome__title {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(2xl);
+  font-weight: typography.$mel-font-extrabold;
+  color: colors.$mel-color-text;
+  text-align: left;
+
+  @include breakpoints.mel-break(md) {
+    font-size: typography.mel-font-size(3xl);
+  }
+}
+
+.mel-dashboard-welcome__lede {
+  margin: 0;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  max-width: 36rem;
+}
+
+.mel-dashboard-welcome__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: spacing.mel-space(2);
+  width: 100%;
+  margin: 0;
+
+  @include breakpoints.mel-break(md) {
+    width: auto;
+    min-width: 280px;
+  }
+}
+
+.mel-dashboard-welcome__stat {
+  padding: spacing.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  background: colors.$mel-color-bg;
+  text-align: center;
+
+  dt {
+    margin: 0 0 spacing.mel-space(1);
+    font-size: typography.mel-font-size(xs);
+    font-weight: typography.$mel-font-medium;
+    color: colors.$mel-color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  dd {
+    margin: 0;
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-extrabold;
+    color: colors.$mel-color-primary;
+  }
+}
+
+.mel-dashboard-notifications {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+}
+
+.mel-dashboard-notifications__item {
+  margin: 0;
+}
+
+.mel-dashboard-notifications__link {
+  display: block;
+  min-height: 44px;
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  border-radius: radii.$mel-radius-md;
+  background: colors.$mel-color-surface;
+  box-shadow: shadows.$mel-shadow-sm;
+  text-decoration: none;
+  color: colors.$mel-color-text;
+  border-left: 3px solid colors.$mel-color-secondary;
+
+  &:hover {
+    box-shadow: shadows.$mel-shadow-md;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  &--static {
+    cursor: default;
+  }
+}
+
+.mel-dashboard-notifications__title {
+  display: block;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+}
+
+.mel-dashboard-notifications__preview {
+  display: block;
+  margin-top: spacing.mel-space(1);
+  font-size: typography.mel-font-size(xs);
+  color: colors.$mel-color-text-muted;
+}
+
+// ---------------------------------------------------------------------------
 // Header row — welcome + avatar (site header supplies global branding)
 // ---------------------------------------------------------------------------
 
 .mel-my-account__header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: spacing.mel-space(4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: spacing.mel-space(3) spacing.mel-space(4);
   margin-bottom: spacing.mel-space(4);
 
   @include breakpoints.mel-break(md) {
+    align-items: center;
     margin-bottom: spacing.mel-space(5);
   }
+}
+
+.mel-my-account__header-text {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.mel-my-account__lede {
+  margin: spacing.mel-space(2) 0 0;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  max-width: 40rem;
+  line-height: typography.$mel-leading-relaxed;
 }
 
 .mel-my-account__logo {
@@ -168,10 +313,12 @@
 }
 
 .mel-my-account__welcome {
+  flex: 1 1 auto;
   font-size: typography.mel-font-size(2xl);
   font-weight: typography.$mel-font-extrabold;
   color: colors.$mel-color-text;
   margin: 0;
+  text-align: left;
 
   @include breakpoints.mel-break(md) {
     font-size: typography.mel-font-size(3xl);
@@ -232,7 +379,8 @@
 
 // Card grid + dashboard section titles: components/_cards.scss (.mel-dashboard__section).
 
-.mel-my-account__card {
+// Title clamp for legacy account cards (not hub event rows).
+.mel-my-account__card:not(.mel-account-event-card--compact) {
   .mel-card__title {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -362,51 +510,94 @@
   box-shadow: shadows.$mel-shadow-sm;
 }
 
-.mel-category-section .mel-event-card {
-  position: relative;
+// ---------------------------------------------------------------------------
+// Customer collection pages (categories, organisers, saved events)
+// ---------------------------------------------------------------------------
+
+.mel-collection-page {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(5);
+}
+
+.mel-collection-page__group {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+}
+
+
+.mel-category-header-card {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+  padding: spacing.mel-space(4);
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-lg;
+  box-shadow: shadows.$mel-shadow-sm;
+  border: 1px solid rgba(41, 50, 65, 0.08);
+
+  @include breakpoints.mel-break(md) {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: spacing.mel-space(5);
+  }
+}
+
+.mel-category-header-card__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.mel-category-header-card__title {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-bold;
+
+  a {
+    color: colors.$mel-color-text;
+    text-decoration: none;
+
+    &:hover {
+      color: colors.$mel-color-primary;
+    }
+  }
+}
+
+.mel-category-header-card__count {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-primary;
+}
+
+.mel-category-header-card__description {
+  margin: 0;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: typography.$mel-leading-relaxed;
+}
+
+.mel-category-header-card__follow {
+  flex-shrink: 0;
+  width: 100%;
+
+  @include breakpoints.mel-break(md) {
+    width: auto;
+    max-width: 12rem;
+  }
+
+  .mel-category-follow__btn,
+  .flag a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    width: 100%;
+  }
 }
 
 .mel-my-categories-wrapper {
-  .mel-category-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: spacing.mel-space(3);
-    margin-bottom: spacing.mel-space(4);
-  }
-
-  .mel-section-title {
-    margin: 0;
-    font-size: typography.mel-font-size(lg);
-    font-weight: typography.$mel-font-bold;
-  }
-
-  .mel-intro-text {
-    margin: 0 0 spacing.mel-space(5);
-    color: colors.$mel-color-text-muted;
-  }
-
-  .mel-event-card-body--with-thumb {
-    display: flex;
-    gap: spacing.mel-space(3);
-    align-items: flex-start;
-  }
-
-  .mel-category-event-thumb {
-    flex: 0 0 auto;
-
-    img {
-      display: block;
-      width: 72px;
-      height: 72px;
-      object-fit: cover;
-      border-radius: radii.$mel-radius-md;
-    }
-  }
-
-  .mel-event-card-body-main {
-    flex: 1;
-    min-width: 0;
-  }
+  // Legacy wrapper retained for empty-state hooks; layout uses .mel-collection-page.
 }

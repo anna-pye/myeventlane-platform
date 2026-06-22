@@ -133,19 +133,26 @@ final class MyCategoriesController extends ControllerBase {
             continue;
           }
           $newEvents[] = [
-            'id' => $event->id(),
+            'id' => (int) $event->id(),
             'title' => $event->label(),
             'url' => $event->toUrl()->toString(),
-            'thumbnail_url' => $this->eventThumbnailUrl($event),
+            'image_url' => $this->eventThumbnailUrl($event),
             'start_date' => $startTime ? date('M j, Y', $startTime) : '',
             'start_time' => $startTime ? date('g:ia', $startTime) : '',
-            'venue' => $event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()
-              ? $event->get('field_venue_name')->value
+            'location' => $event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()
+              ? (string) $event->get('field_venue_name')->value
               : '',
             'ics_url' => Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => $event->id()])->toString(),
+            'source' => 'category',
             'is_boosted' => $this->boostManager->isBoosted($event),
+            'event_save_flag' => $this->eventSaveFlagLink($event),
           ];
         }
+      }
+
+      $description = '';
+      if ($category->hasField('description') && !$category->get('description')->isEmpty()) {
+        $description = trim(strip_tags((string) $category->get('description')->value));
       }
 
       $categoryData[] = [
@@ -153,9 +160,10 @@ final class MyCategoriesController extends ControllerBase {
         'id' => $category->id(),
         'name' => $category->label(),
         'url' => $category->toUrl()->toString(),
+        'description' => $description,
         'follow_cta' => $this->categoryFollowFlagLink($category),
-        'new_events' => $newEvents,
-        'new_events_count' => count($newEvents),
+        'events' => $newEvents,
+        'event_count' => count($newEvents),
       ];
     }
 
@@ -173,7 +181,7 @@ final class MyCategoriesController extends ControllerBase {
       ],
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['taxonomy_term_list', 'node_list', 'flag.flag.follow_category'],
+        'tags' => ['taxonomy_term_list', 'node_list', 'flag.flag.follow_category', 'flag.flag.event_save'],
         'max-age' => 300,
       ],
     ];
@@ -222,6 +230,33 @@ final class MyCategoriesController extends ControllerBase {
           'taxonomy_term',
           (string) $term->id(),
           'follow_category',
+          'default',
+        ],
+      ],
+      '#create_placeholder' => TRUE,
+    ];
+  }
+
+  /**
+   * Builds the canonical Flag AJAX link for save / unsave on category event rows.
+   */
+  private function eventSaveFlagLink(NodeInterface $event): ?array {
+    if ($event->bundle() !== 'event') {
+      return NULL;
+    }
+
+    $flag = $this->flagService->getFlagById('event_save');
+    if ($flag === NULL) {
+      return NULL;
+    }
+
+    return [
+      '#lazy_builder' => [
+        'flag.link_builder:build',
+        [
+          'node',
+          (string) $event->id(),
+          'event_save',
           'default',
         ],
       ],

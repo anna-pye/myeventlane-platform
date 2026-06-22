@@ -11,6 +11,7 @@
  * - display_name: User display name.
  * - account_show_header_logo: When TRUE, prepend dashboard home/logo control (dashboard route).
  * - account_heading: Optional custom H1 markup object; when absent, greeting uses Welcome line.
+ * - account_page_description: Optional lede below the shell H1.
  * - account_settings_compact_header: TRUE on Settings hub routes (tighter header; form owns sections).
  */
 #}
@@ -53,15 +54,20 @@
               {% endif %}
             </a>
           {% endif %}
-          <h1 class="mel-my-account__welcome">
-            {% if account_heading %}
-              {{ account_heading }}
-            {% elseif display_name|default('')|trim != '' %}
-              {{ 'Welcome, @name!'|t({'@name': display_name}) }}
-            {% else %}
-              {{ 'Account'|t }}
+          <div class="mel-my-account__header-text">
+            <h1 class="mel-my-account__welcome">
+              {% if account_heading %}
+                {{ account_heading }}
+              {% elseif display_name|default('')|trim != '' %}
+                {{ 'Welcome, @name!'|t({'@name': display_name}) }}
+              {% else %}
+                {{ 'Account'|t }}
+              {% endif %}
+            </h1>
+            {% if account_page_description %}
+              <p class="mel-my-account__lede">{{ account_page_description }}</p>
             {% endif %}
-          </h1>
+          </div>
           <div class="mel-my-account__avatar" aria-hidden="true">
             {% if avatar_url %}
               <img src="{{ avatar_url }}" alt="" width="44" height="44" />
