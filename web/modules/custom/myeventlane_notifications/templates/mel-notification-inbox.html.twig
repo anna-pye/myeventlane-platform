@@ -4,18 +4,24 @@
  * Full notifications inbox (tabs, filters, grouped list, empty state).
  */
 #}
-<div class="mel-notif-inbox mel-container">
-  <header class="mel-notif-inbox__header">
-    <div class="mel-notif-inbox__header-row">
-      <div>
-        <h1 class="mel-notif-inbox__title">{{ 'Notifications'|t }}</h1>
-        <p class="mel-notif-inbox__lede">{{ 'Personal tickets, business sales, and platform updates — organised by context.'|t }}</p>
+<div class="mel-notif-inbox mel-container{% if in_account_shell %} mel-notif-inbox--account-shell{% endif %}">
+  {% if not in_account_shell %}
+    <header class="mel-notif-inbox__header">
+      <div class="mel-notif-inbox__header-row">
+        <div>
+          <h1 class="mel-notif-inbox__title">{{ 'Notifications'|t }}</h1>
+          <p class="mel-notif-inbox__lede">{{ 'Personal tickets, business sales, and platform updates — organised by context.'|t }}</p>
+        </div>
+        {% if settings_url %}
+          <a href="{{ settings_url }}" class="mel-notif-inbox__settings">{{ 'Notification settings'|t }}</a>
+        {% endif %}
       </div>
-      {% if settings_url %}
-        <a href="{{ settings_url }}" class="mel-notif-inbox__settings">{{ 'Notification settings'|t }}</a>
-      {% endif %}
+    </header>
+  {% elseif settings_url %}
+    <div class="mel-notif-inbox__toolbar mel-notif-inbox__toolbar--settings">
+      <a href="{{ settings_url }}" class="mel-notif-inbox__settings">{{ 'Notification settings'|t }}</a>
     </div>
-  </header>
+  {% endif %}
 
   <nav class="mel-notif-inbox__tabs" aria-label="{{ 'Notification context'|t }}">
     {% for link in tab_links %}

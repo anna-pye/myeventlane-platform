@@ -1,27 +1,54 @@
 {#
 /**
  * @file
- * Customer My Account dashboard template (body only).
+ * Customer My Account dashboard — customer home (body only).
  *
  * Page shell (sidebar, workflow regions, header) comes from page--account.html.twig.
  */
 #}
 
-{% if account_hero %}
-  <div class="mel-my-account__hero-slot">
-    {{ account_hero }}
+<section class="mel-dashboard-welcome" aria-labelledby="dashboard-welcome-title">
+  <div class="mel-dashboard-welcome__layout">
+    <div class="mel-dashboard-welcome__primary">
+      <h2 id="dashboard-welcome-title" class="mel-dashboard-welcome__title">
+        {% if display_name|default('')|trim != '' %}
+          {{ 'Welcome, @name'|t({'@name': display_name}) }}
+        {% else %}
+          {{ 'Welcome back'|t }}
+        {% endif %}
+      </h2>
+      <p class="mel-dashboard-welcome__lede">{{ 'Your upcoming plans, tickets, and updates in one place.'|t }}</p>
+    </div>
+    <dl class="mel-dashboard-welcome__stats" aria-label="{{ 'Your activity'|t }}">
+      <div class="mel-dashboard-welcome__stat">
+        <dt>{{ 'Upcoming events'|t }}</dt>
+        <dd>{{ upcoming_event_count|default(0) }}</dd>
+      </div>
+      <div class="mel-dashboard-welcome__stat">
+        <dt>{{ 'Tickets'|t }}</dt>
+        <dd>{{ upcoming_ticket_count|default(0) }}</dd>
+      </div>
+      <div class="mel-dashboard-welcome__stat">
+        <dt>{{ 'RSVPs'|t }}</dt>
+        <dd>{{ upcoming_rsvp_count|default(0) }}</dd>
+      </div>
+    </dl>
   </div>
-{% endif %}
+</section>
 
-<section class="mel-my-account__section mel-dashboard__section" aria-labelledby="your-tickets-title">
-  <h2 id="your-tickets-title" class="mel-my-account__section-title">{{ 'Your tickets'|t }}</h2>
+<section class="mel-my-account__section mel-dashboard__section" aria-labelledby="upcoming-events-title">
+  <h2 id="upcoming-events-title" class="mel-my-account__section-title">{{ 'Upcoming events'|t }}</h2>
   {% if upcoming_tickets is not empty %}
     <div class="mel-my-account__cards">
       {% for event in upcoming_tickets %}
-        {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with { event: event } only %}
+        {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with {
+          event: event,
+          hub_user_id: hub_user_id|default(0),
+          card_variant: 'ticket',
+        } only %}
       {% endfor %}
     </div>
-    <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-my-account__view-all">{{ 'View all tickets'|t }}</a>
+    <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-my-account__view-all">{{ 'Manage tickets'|t }}</a>
   {% else %}
     {% if mel_account_dashboard_tickets_empty is defined and mel_account_dashboard_tickets_empty %}
       {{ mel_account_dashboard_tickets_empty }}
@@ -34,10 +61,16 @@
   {% if upcoming_rsvps is not empty %}
     <div class="mel-my-account__cards">
       {% for event in upcoming_rsvps %}
-        {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with { event: event } only %}
+        {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with {
+          event: event,
+          hub_user_id: hub_user_id|default(0),
+          card_variant: 'rsvp',
+        } only %}
       {% endfor %}
     </div>
-    <a href="{{ path('myeventlane_dashboard.customer') }}" class="mel-my-account__view-all">{{ 'View all events'|t }}</a>
+    {% if hub_user_id|default(0) > 0 %}
+      <a href="{{ path('myeventlane_rsvp.user_list', {'user': hub_user_id}) }}" class="mel-my-account__view-all">{{ 'View all RSVPs'|t }}</a>
+    {% endif %}
   {% else %}
     {% if mel_account_dashboard_rsvps_empty is defined and mel_account_dashboard_rsvps_empty %}
       {{ mel_account_dashboard_rsvps_empty }}
@@ -45,39 +78,43 @@
   {% endif %}
 </section>
 
-<section class="mel-my-account__section mel-dashboard__section" aria-labelledby="saved-events-title">
-  <h2 id="saved-events-title" class="mel-my-account__section-title">{{ 'Saved events'|t }}</h2>
-  {% if saved_events is not empty %}
-    <div class="mel-my-account__cards">
-      {% for event in saved_events %}
-        {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with { event: event } only %}
+<section class="mel-my-account__section mel-dashboard__section mel-dashboard__section--notifications" aria-labelledby="notifications-preview-title">
+  <h2 id="notifications-preview-title" class="mel-my-account__section-title">{{ 'Notifications'|t }}</h2>
+  {% if notifications_preview is not empty %}
+    <ul class="mel-dashboard-notifications">
+      {% for row in notifications_preview %}
+        <li class="mel-dashboard-notifications__item">
+          {% if row.action is defined and row.action and row.action.url|default('') %}
+            <a href="{{ row.action.url }}" class="mel-dashboard-notifications__link">
+              <span class="mel-dashboard-notifications__title">{{ row.title }}</span>
+              {% if row.message_preview %}
+                <span class="mel-dashboard-notifications__preview">{{ row.message_preview }}</span>
+              {% endif %}
+            </a>
+          {% else %}
+            <div class="mel-dashboard-notifications__link mel-dashboard-notifications__link--static">
+              <span class="mel-dashboard-notifications__title">{{ row.title }}</span>
+              {% if row.message_preview %}
+                <span class="mel-dashboard-notifications__preview">{{ row.message_preview }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </li>
       {% endfor %}
-    </div>
-    <a href="{{ path('view.mel_saved_events.page_1') }}" class="mel-my-account__view-all">{{ 'View all saved events'|t }}</a>
+    </ul>
+    {% if notifications_inbox_url %}
+      <a href="{{ notifications_inbox_url }}" class="mel-my-account__view-all">{{ 'View all notifications'|t }}</a>
+    {% endif %}
   {% else %}
-    {% if mel_account_dashboard_saved_empty is defined and mel_account_dashboard_saved_empty %}
-      {{ mel_account_dashboard_saved_empty }}
+    {% if mel_account_dashboard_notifications_empty is defined and mel_account_dashboard_notifications_empty %}
+      {{ mel_account_dashboard_notifications_empty }}
+    {% else %}
+      <p class="mel-my-account__empty">{{ 'No new notifications right now.'|t }}</p>
+      {% if notifications_inbox_url %}
+        <a href="{{ notifications_inbox_url }}" class="mel-my-account__view-all">{{ 'Open notifications'|t }}</a>
+      {% endif %}
     {% endif %}
   {% endif %}
-</section>
-
-<section class="mel-my-account__section mel-my-account__quick-actions" aria-labelledby="quick-actions-title">
-  <h2 id="quick-actions-title" class="mel-my-account__section-title">{{ 'Quick actions'|t }}</h2>
-  <div class="mel-my-account__quick-actions-grid">
-    <a href="{{ hub_discover_url|default(path('<front>')) }}" class="mel-my-account__quick-action">
-      <span class="mel-my-account__quick-action-icon" aria-hidden="true">{{ '🔍' }}</span>
-      <span>{{ 'Browse events'|t }}</span>
-    </a>
-    <a href="{{ hub_calendar_url|default(path('<front>')) }}" class="mel-my-account__quick-action">
-      <span class="mel-my-account__quick-action-icon" aria-hidden="true">{{ '📅' }}</span>
-      <span>{{ 'Calendar'|t }}</span>
-    </a>
-    {% for link in hub_quick_links|default([]) %}
-      <a href="{{ link.url }}" class="mel-my-account__quick-action">
-        <span class="mel-my-account__quick-action-text">{{ link.title }}</span>
-      </a>
-    {% endfor %}
-  </div>
 </section>
 
 <section class="mel-my-account__section mel-dashboard__section" aria-labelledby="past-events-title">
@@ -86,50 +123,12 @@
     <div class="mel-my-account__cards">
       {% for event in past_events %}
         {% set primary_review = show_review_cta and review_eligible[event.id] is defined and review_eligible[event.id] %}
-        <article class="mel-card mel-my-account__card mel-my-account__card--past">
-          <div class="mel-card__image{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
-            {% if event.image_url %}
-              <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
-            {% endif %}
-          </div>
-          <div class="mel-card__body">
-            <h3 class="mel-card__title">{{ event.title }}</h3>
-            <div class="mel-card__meta">
-              {% if event.start_date %}
-                <time datetime="{{ event.start_date }}">{{ event.start_date }}</time><br>
-              {% endif %}
-              {% if event.location %}
-                {{ event.location }}
-              {% endif %}
-            </div>
-            <div class="mel-card__actions">
-              {% if primary_review %}
-                <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-button mel-button--primary">{{ 'Leave a review'|t }}</a>
-              {% elseif event.pdf_available %}
-                {% if event.has_ticket_code %}
-                  <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View ticket'|t }}</a>
-                {% else %}
-                  <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-button mel-button--primary">{{ 'View ticket'|t }}</a>
-                {% endif %}
-              {% else %}
-                <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View event'|t }}</a>
-              {% endif %}
-              {% if primary_review or event.pdf_available or event.ics_url %}
-                <div class="mel-card__links">
-                  {% if primary_review or event.pdf_available %}
-                    <a href="{{ event.url }}">{{ 'View event'|t }}</a>
-                  {% endif %}
-                  {% if event.ics_url %}
-                    <a href="{{ event.ics_url }}" download>{{ 'Add to calendar'|t }}</a>
-                  {% endif %}
-                </div>
-              {% endif %}
-            </div>
-            {% if event.has_ticket_code %}
-              <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
-            {% endif %}
-          </div>
-        </article>
+        {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with {
+          event: event,
+          hub_user_id: hub_user_id|default(0),
+          card_variant: 'past',
+          show_review_cta: primary_review,
+        } only %}
       {% endfor %}
     </div>
     <a href="{{ path('myeventlane_account.past_events') }}" class="mel-my-account__view-all">{{ 'View all past events'|t }}</a>

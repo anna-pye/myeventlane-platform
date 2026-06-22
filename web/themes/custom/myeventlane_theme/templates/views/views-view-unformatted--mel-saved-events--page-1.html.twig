@@ -1,10 +1,14 @@
 {#
 /**
  * @file
- * Saved events — compact_commerce grid.
+ * Saved events — shared customer hub event cards (mel-account-event-card).
  */
 #}
-{% include '@myeventlane_theme/includes/mel-event-rows-wrapper.html.twig' with {
-  rows: rows,
-  mel_is_event_view: mel_is_event_view|default(true),
-} only %}
+{% if title %}
+  <h3>{{ title }}</h3>
+{% endif %}
+<div class="mel-my-account__cards mel-collection-page__cards">
+  {% for row in rows %}
+    {{- row -}}
+  {% endfor %}
+</div>

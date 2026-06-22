@@ -1,54 +1,84 @@
 {#
 /**
  * @file
- * Shared customer hub event card (tickets, RSVPs, My events).
+ * Shared customer hub event card (tickets, RSVPs, past events, collections).
  *
- * Expects variable `event` with keys from CustomerHubDataBuilder rows.
+ * Expects variable `event` with keys from CustomerHubDataBuilder or compatible rows.
+ * Optional: card_variant (ticket|rsvp|past|category|saved), hub_user_id, show_review_cta.
  */
 #}
-<article class="mel-card mel-my-account__card mel-account-event-card">
-  <div class="mel-card__image{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
-    {% if event.image_url %}
-      <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
-    {% endif %}
-  </div>
-  <div class="mel-card__body">
-    <h3 class="mel-card__title">
-      <a href="{{ event.url }}">{{ event.title }}</a>
-    </h3>
-    <div class="mel-card__meta">
-      {% if event.start_date %}
-        <time datetime="{{ event.start_date }}">{{ event.start_date }}{% if event.start_time %} {{ event.start_time }}{% endif %}</time><br>
-      {% endif %}
-      {% if event.location %}
-        {{ event.location }}
+<article class="mel-card mel-my-account__card mel-account-event-card mel-account-event-card--compact{% if card_variant|default('') %} mel-account-event-card--{{ card_variant }}{% endif %}">
+  <div class="mel-account-event-card__row">
+    <div class="mel-card__image mel-account-event-card__media{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
+      {% if event.image_url %}
+        <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
       {% endif %}
     </div>
-    <div class="mel-card__actions">
-      {% if event.source == 'saved' %}
-        <span class="mel-badge mel-badge--neutral">{{ 'Saved'|t }}</span>
-      {% elseif event.source == 'rsvp' %}
-        <span class="mel-badge mel-badge--info">{{ 'RSVP'|t }}</span>
-      {% else %}
-        <span class="mel-badge mel-badge--success">{{ 'Ticket'|t }}</span>
-      {% endif %}
-      {% if event.source == 'saved' %}
-        <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View event'|t }}</a>
-      {% elseif event.pdf_available %}
-        {% if event.has_ticket_code %}
-          <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View ticket'|t }}</a>
-        {% else %}
-          <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-button mel-button--primary">{{ 'View ticket'|t }}</a>
+    <div class="mel-card__body mel-account-event-card__content">
+      <h3 class="mel-card__title">
+        <a href="{{ event.url }}">{{ event.title }}</a>
+      </h3>
+      <div class="mel-card__meta">
+        {% if event.start_date %}
+          <time datetime="{{ event.start_date }}">{{ event.start_date }}{% if event.start_time %} · {{ event.start_time }}{% endif %}</time>
         {% endif %}
-      {% else %}
-        <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View event'|t }}</a>
-      {% endif %}
-      {% if event.ics_url %}
-        <a href="{{ event.ics_url }}" class="mel-button mel-button--secondary" download>{{ 'Add to calendar'|t }}</a>
-      {% endif %}
+        {% if event.location %}
+          <span class="mel-account-event-card__venue">{{ event.location }}</span>
+        {% endif %}
+      </div>
+      <div class="mel-account-event-card__status">
+        {% if event.source == 'saved' or card_variant|default('') == 'saved' %}
+          <span class="mel-badge mel-badge--neutral">{{ 'Saved'|t }}</span>
+        {% elseif card_variant|default('') == 'category' %}
+          <span class="mel-badge mel-badge--info">{{ 'Upcoming'|t }}</span>
+        {% elseif event.source == 'rsvp' or card_variant|default('') == 'rsvp' %}
+          <span class="mel-badge mel-badge--info">{{ 'RSVP'|t }}</span>
+        {% elseif card_variant|default('') == 'past' %}
+          <span class="mel-badge mel-badge--neutral">{{ 'Past'|t }}</span>
+        {% else %}
+          <span class="mel-badge mel-badge--success">{{ 'Ticket'|t }}</span>
+        {% endif %}
+      </div>
+      <div class="mel-account-event-card__actions">
+        {% if card_variant|default('') == 'rsvp' or event.source == 'rsvp' %}
+          {% if hub_user_id|default(0) > 0 %}
+            <a href="{{ path('myeventlane_rsvp.user_list', {'user': hub_user_id}) }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ 'Manage RSVP'|t }}</a>
+          {% endif %}
+          <a href="{{ event.url }}" class="mel-account-event-card__action">{{ 'View event'|t }}</a>
+          {% if event.ics_url %}
+            <a href="{{ event.ics_url }}" class="mel-account-event-card__action" download>{{ 'Add to calendar'|t }}</a>
+          {% endif %}
+        {% elseif card_variant|default('') == 'past' %}
+          {% if show_review_cta|default(false) %}
+            <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ 'Leave a review'|t }}</a>
+          {% else %}
+            <a href="{{ event.url }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ 'View event'|t }}</a>
+          {% endif %}
+          {% if event.ics_url %}
+            <a href="{{ event.ics_url }}" class="mel-account-event-card__action" download>{{ 'Add to calendar'|t }}</a>
+          {% endif %}
+        {% elseif card_variant|default('') == 'category' or card_variant|default('') == 'saved' %}
+          <a href="{{ event.url }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ 'View event'|t }}</a>
+          {% if event.ics_url %}
+            <a href="{{ event.ics_url }}" class="mel-account-event-card__action" download>{{ 'Add to calendar'|t }}</a>
+          {% endif %}
+          {% set _event_save_flag = event_save_flag|default(event.event_save_flag|default(null)) %}
+          {% if _event_save_flag %}
+            <span class="mel-account-event-card__flag">{{ _event_save_flag }}</span>
+          {% endif %}
+        {% else %}
+          {% if event.pdf_url %}
+            <a href="{{ event.pdf_url }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ 'Download ticket'|t }}</a>
+          {% endif %}
+          {% if event.ticket_url %}
+            <a href="{{ event.ticket_url }}" class="mel-account-event-card__action{% if not event.pdf_url %} mel-account-event-card__action--primary{% endif %}">{{ 'View ticket'|t }}</a>
+          {% endif %}
+          <a href="{{ event.url }}" class="mel-account-event-card__action{% if not event.ticket_url %} mel-account-event-card__action--primary{% endif %}">{{ 'View event'|t }}</a>
+          {% if event.ics_url %}
+            <a href="{{ event.ics_url }}" class="mel-account-event-card__action" download>{{ 'Add to calendar'|t }}</a>
+          {% endif %}
+        {% endif %}
+      </div>
     </div>
-    {% if event.has_ticket_code %}
-      <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
-    {% endif %}
   </div>
 </article>

@@ -1,81 +1,58 @@
 {#
 /**
  * @file
- * Template for the My Categories page (account shell provides page H1).
+ * My Categories — collection page body (account shell provides H1 + lede).
  *
- * Available variables:
- * - followed_categories: Array of category data with new events.
+ * Variables:
+ * - followed_categories: Category rows with header metadata and event cards.
  * - mel_category_follow_empty: Empty state when user follows nothing.
- * - mel_category_follow_section_no_new_events: Copy when a followed category has no new items this week.
+ * - mel_category_follow_section_no_new_events: Copy when a category has no new items.
  */
 #}
-<div class="mel-my-categories-wrapper">
+<div class="mel-collection-page mel-collection-page--categories">
 
   {% if followed_categories is empty %}
     {% if mel_category_follow_empty is defined and mel_category_follow_empty %}
       {{ mel_category_follow_empty }}
     {% endif %}
   {% else %}
-    <p class="mel-intro-text">{{ 'Categories you follow and what is new this week.'|t }}</p>
-
     {% for category in followed_categories %}
-      <section class="mel-category-section" aria-labelledby="category-{{ category.id }}-title">
-        <div class="mel-category-header">
-          <h2 id="category-{{ category.id }}-title" class="mel-section-title">
-            <a href="{{ category.url }}">{{ category.name }}</a>
-          </h2>
+      <section class="mel-collection-page__group mel-category-section" aria-labelledby="category-{{ category.id }}-title">
+        <article class="mel-card mel-category-header-card">
+          <div class="mel-category-header-card__main">
+            <h2 id="category-{{ category.id }}-title" class="mel-category-header-card__title">
+              <a href="{{ category.url }}">{{ category.name }}</a>
+            </h2>
+            <p class="mel-category-header-card__count">
+              {% if category.event_count > 0 %}
+                {{ '@count new this week'|t({'@count': category.event_count}) }}
+              {% else %}
+                {{ 'No new events this week'|t }}
+              {% endif %}
+            </p>
+            {% if category.description %}
+              <p class="mel-category-header-card__description">{{ category.description }}</p>
+            {% endif %}
+          </div>
           {% if category.follow_cta %}
-            {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
-              mel_category_follow_flag: category.follow_cta,
-              mel_category_follow_login_url: null,
-              category_display_name: category.name,
-              mel_category_follow_modifier: 'account'
-            } %}
+            <div class="mel-category-header-card__follow">
+              {% include '@myeventlane_theme/components/mel-category-follow-cta.html.twig' with {
+                mel_category_follow_flag: category.follow_cta,
+                mel_category_follow_login_url: null,
+                category_display_name: category.name,
+                mel_category_follow_modifier: 'account-header'
+              } %}
+            </div>
           {% endif %}
-        </div>
+        </article>
 
-        {% if category.new_events_count > 0 %}
-          <div class="mel-events-grid">
-            {% for event in category.new_events %}
-              <article class="mel-event-card">
-                {% if event.is_boosted %}
-                  <div class="mel-category-event-card__featured" aria-label="{{ 'Spotlight'|t }}">
-                    {{ 'Spotlight'|t }}
-                  </div>
-                {% endif %}
-                <div class="mel-event-card-body{% if event.thumbnail_url %} mel-event-card-body--with-thumb{% endif %}">
-                  {% if event.thumbnail_url %}
-                    <div class="mel-category-event-thumb">
-                      <img src="{{ event.thumbnail_url }}" alt="" width="72" height="72" loading="lazy" decoding="async">
-                    </div>
-                  {% endif %}
-                  <div class="mel-event-card-body-main">
-                    <h3 class="mel-event-card-title">
-                      <a href="{{ event.url }}">{{ event.title }}</a>
-                    </h3>
-                    <div class="mel-event-card-meta">
-                      {% if event.start_date %}
-                        <div class="mel-event-card-meta-item">
-                          <span class="mel-event-card-meta-icon" aria-hidden="true">📅</span>
-                          <span>{{ event.start_date }}{% if event.start_time %} {{ 'at'|t }} {{ event.start_time }}{% endif %}</span>
-                        </div>
-                      {% endif %}
-                      {% if event.venue %}
-                        <div class="mel-event-card-meta-item">
-                          <span class="mel-event-card-meta-icon" aria-hidden="true">📍</span>
-                          <span>{{ event.venue }}</span>
-                        </div>
-                      {% endif %}
-                    </div>
-                    <div class="mel-event-card-footer">
-                      <a href="{{ event.url }}" class="mel-btn mel-btn-primary mel-btn-sm">{{ 'View event'|t }}</a>
-                      {% if event.ics_url %}
-                        <a href="{{ event.ics_url }}" class="mel-btn mel-btn-link mel-btn-sm" download>{{ 'Add to calendar'|t }}</a>
-                      {% endif %}
-                    </div>
-                  </div>
-                </div>
-              </article>
+        {% if category.event_count > 0 %}
+          <div class="mel-my-account__cards mel-collection-page__cards">
+            {% for event in category.events %}
+              {% include '@myeventlane_theme/account/mel-account-event-card.html.twig' with {
+                event: event,
+                card_variant: 'category',
+              } only %}
             {% endfor %}
           </div>
         {% else %}

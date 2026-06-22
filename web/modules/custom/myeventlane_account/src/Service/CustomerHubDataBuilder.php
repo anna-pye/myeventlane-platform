@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_account\Service;
 
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\image\ImageStyleInterface;
@@ -78,6 +79,45 @@ final class CustomerHubDataBuilder {
       'past_events' => $pastEvents,
       'unified_upcoming' => $unifiedUpcoming,
       'unified_past' => $pastEvents,
+    ];
+  }
+
+  /**
+   * Builds a hub event card row from a published event node.
+   *
+   * Used by Saved Events and other customer surfaces that share
+   * mel-account-event-card.html.twig.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildHubEventFromNode(NodeInterface $event, string $source = 'saved'): array {
+    return $this->buildEventItem($event, $source, '', NULL, NULL);
+  }
+
+  /**
+   * Flag AJAX link for save / unsave on hub event cards.
+   *
+   * @return array<string, mixed>|null
+   *   Render array for flag.link_builder, or NULL when Flag is unavailable.
+   */
+  public function buildEventSaveFlagLink(int $eventId): ?array {
+    if ($eventId < 1) {
+      return NULL;
+    }
+    if (!\Drupal::moduleHandler()->moduleExists('flag') || !\Drupal::hasService('flag.link_builder')) {
+      return NULL;
+    }
+    return [
+      '#lazy_builder' => [
+        'flag.link_builder:build',
+        [
+          'node',
+          (string) $eventId,
+          'event_save',
+          'default',
+        ],
+      ],
+      '#create_placeholder' => TRUE,
     ];
   }
 
@@ -181,15 +221,22 @@ final class CustomerHubDataBuilder {
         continue;
       }
 
-      $orderItemId = $attendee->hasField('order_item') && !$attendee->get('order_item')->isEmpty()
-        ? (int) $attendee->get('order_item')->target_id
-        : NULL;
+      $orderItemId = NULL;
+      $orderId = NULL;
+      if ($attendee->hasField('order_item') && !$attendee->get('order_item')->isEmpty()) {
+        $orderItemId = (int) $attendee->get('order_item')->target_id;
+        $orderItemEntity = $attendee->get('order_item')->entity;
+        if ($orderItemEntity instanceof OrderItemInterface) {
+          $orderId = (int) $orderItemEntity->getOrderId() ?: NULL;
+        }
+      }
       $eventMap[$eventId] = $this->buildEventItem(
         $event,
         $source,
         $attendee->get('ticket_code')->value ?? '',
         (int) $attendee->id(),
         $orderItemId,
+        $orderId,
       );
     }
 
@@ -252,7 +299,7 @@ final class CustomerHubDataBuilder {
           }
         }
 
-        $eventMap[$eventId] = $this->buildEventItem($event, 'ticket', $ticketCode, $attendeeId, (int) $orderItem->id());
+        $eventMap[$eventId] = $this->buildEventItem($event, 'ticket', $ticketCode, $attendeeId, (int) $orderItem->id(), (int) $order->id());
       }
     }
 
@@ -326,7 +373,7 @@ final class CustomerHubDataBuilder {
   /**
    * @return array<string, mixed>
    */
-  private function buildEventItem(NodeInterface $event, string $source, string $ticketCode, ?int $attendeeId, ?int $orderItemId): array {
+  private function buildEventItem(NodeInterface $event, string $source, string $ticketCode, ?int $attendeeId, ?int $orderItemId, ?int $orderId = NULL): array {
     $eventId = (int) $event->id();
     $startTime = $this->getEventStartTime($event);
     $endTime = $this->getEventEndTime($event);
@@ -350,6 +397,28 @@ final class CustomerHubDataBuilder {
 
     $code = trim($ticketCode);
     $hasTicketCode = $code !== '';
+    $pdfAvailable = ($orderItemId !== NULL && $orderItemId > 0) || $hasTicketCode;
+
+    // Deep link to the My Tickets order screen. Access is enforced by the
+    // target route's _custom_access; the URL is only built for the user's own
+    // rows, and reuses an existing route (no new route declared here).
+    $ticketUrl = NULL;
+    if ($orderId !== NULL && $orderId > 0) {
+      $ticketUrl = Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $orderId])->toString();
+    }
+
+    // Reuse the canonical ticket PDF endpoints (ownership enforced in
+    // TicketDownloadController). Prefer the by-code route; fall back to the
+    // order-item route when no ticket code is present.
+    $pdfUrl = NULL;
+    if ($pdfAvailable) {
+      if ($hasTicketCode) {
+        $pdfUrl = Url::fromRoute('myeventlane_tickets.download_pdf_by_code', ['ticket_code' => $code])->toString();
+      }
+      elseif ($orderItemId !== NULL && $orderItemId > 0) {
+        $pdfUrl = Url::fromRoute('myeventlane_tickets.download_pdf', ['order_item_id' => $orderItemId])->toString();
+      }
+    }
 
     return [
       'id' => $eventId,
@@ -367,7 +436,10 @@ final class CustomerHubDataBuilder {
       'has_ticket_code' => $hasTicketCode,
       'attendee_id' => $attendeeId,
       'order_item_id' => $orderItemId,
-      'pdf_available' => ($orderItemId !== NULL && $orderItemId > 0) || $hasTicketCode,
+      'order_id' => $orderId,
+      'pdf_available' => $pdfAvailable,
+      'ticket_url' => $ticketUrl,
+      'pdf_url' => $pdfUrl,
     ];
   }
 

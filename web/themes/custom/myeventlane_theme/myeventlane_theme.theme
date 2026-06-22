@@ -157,6 +157,16 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       ],
       'template' => 'account/mel-account-hero',
     ],
+    'mel_account_event_card' => [
+      'variables' => [
+        'event' => [],
+        'card_variant' => '',
+        'hub_user_id' => 0,
+        'show_review_cta' => FALSE,
+        'event_save_flag' => NULL,
+      ],
+      'template' => 'account/mel-account-event-card',
+    ],
     'mel_checkout_order_summary_grouped' => [
       'variables' => [
         'grouped_items' => [],

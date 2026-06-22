@@ -1,8 +1,247 @@
 // Hub event / RSVP cards — shared with discovery .mel-card patterns.
 
+@use 'sass:color';
+@use '../tokens/breakpoints';
 @use '../tokens/radii';
 @use '../tokens/colors';
+@use '../tokens/shadows';
 @use '../tokens/spacing';
+@use '../tokens/typography';
+
+// Fixed thumb size — hub rows must not stretch images to card height.
+$mel-account-event-thumb: 5.5rem;
+
+// Card list spacing — used on dashboard, categories, saved events, past events.
+.mel-my-account__cards,
+.mel-collection-page__cards {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(3);
+}
+
+.mel-account-event-card--compact {
+  overflow: hidden;
+
+  &:hover {
+    transform: none;
+    box-shadow: shadows.$mel-shadow-sm;
+  }
+
+  // Inner row isolates layout from .mel-dashboard__section .mel-card { flex } rules.
+  .mel-account-event-card__row {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .mel-account-event-card__media,
+  .mel-card__image {
+    overflow: hidden;
+    flex-shrink: 0;
+    width: 100%;
+    background: colors.$mel-color-surface-alt;
+  }
+
+  .mel-account-event-card__media img,
+  .mel-card__image img {
+    display: block;
+    width: 100%;
+    height: $mel-account-event-thumb;
+    max-height: $mel-account-event-thumb;
+    object-fit: cover;
+  }
+
+  .mel-account-event-card__media--placeholder,
+  .mel-card__image--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: $mel-account-event-thumb;
+    min-height: $mel-account-event-thumb;
+    max-height: $mel-account-event-thumb;
+    color: colors.$mel-color-text-muted;
+    background: linear-gradient(135deg, var(--mel-peach) 0%, var(--mel-lilac) 100%);
+
+    &::before {
+      content: '🎫';
+      font-size: 1.25rem;
+      opacity: 0.6;
+    }
+  }
+
+  .mel-account-event-card__content,
+  .mel-card__body {
+    padding: spacing.mel-space(3);
+    min-width: 0;
+  }
+
+  .mel-card__title {
+    margin: 0 0 spacing.mel-space(1);
+    font-size: typography.mel-font-size(base);
+    font-weight: typography.$mel-font-bold;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .mel-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(1);
+    margin-bottom: spacing.mel-space(2);
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    line-height: typography.$mel-leading-relaxed;
+  }
+
+  .mel-account-event-card__venue {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mel-account-event-card__status {
+    margin-bottom: spacing.mel-space(2);
+  }
+
+  .mel-account-event-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing.mel-space(1) spacing.mel-space(2);
+    margin-top: spacing.mel-space(2);
+  }
+
+  .mel-account-event-card__action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: spacing.mel-space(2) spacing.mel-space(3);
+    border-radius: radii.$mel-radius-pill;
+    font-size: typography.mel-font-size(xs);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-primary;
+    text-decoration: none;
+    background: color.adjust(colors.$mel-color-primary, $alpha: -0.92);
+
+    &:hover {
+      background: color.adjust(colors.$mel-color-primary, $alpha: -0.86);
+    }
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
+    }
+
+    &--primary {
+      background: colors.$mel-color-primary;
+      color: colors.$mel-color-text-inverse;
+
+      &:hover {
+        background: colors.$mel-color-primary-hover;
+        color: colors.$mel-color-text-inverse;
+      }
+    }
+  }
+
+  .mel-account-event-card__flag {
+    display: inline-flex;
+
+    .flag {
+      margin: 0;
+    }
+
+    .flag a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: spacing.mel-space(2) spacing.mel-space(3);
+      border-radius: radii.$mel-radius-pill;
+      font-size: typography.mel-font-size(xs);
+      font-weight: typography.$mel-font-semibold;
+      color: colors.$mel-color-text-muted;
+      text-decoration: none;
+      background: colors.$mel-color-surface-alt;
+      border: 1px solid rgba(41, 50, 65, 0.12);
+
+      &:hover {
+        background: color.adjust(colors.$mel-color-surface-alt, $lightness: -3%);
+        color: colors.$mel-color-text;
+      }
+
+      &:focus-visible {
+        @include colors.mel-focus-ring;
+      }
+    }
+
+    .flag.action-unflag a {
+      color: colors.$mel-color-primary;
+      background: color.adjust(colors.$mel-color-primary, $alpha: -0.92);
+      border-color: transparent;
+
+      &:hover {
+        background: color.adjust(colors.$mel-color-primary, $alpha: -0.86);
+      }
+    }
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    .mel-account-event-card__actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .mel-account-event-card__action,
+    .mel-account-event-card__flag .flag a {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  @include breakpoints.mel-break(md) {
+    .mel-account-event-card__row {
+      display: grid;
+      grid-template-columns: $mel-account-event-thumb minmax(0, 1fr);
+      gap: spacing.mel-space(3);
+      align-items: center;
+      padding: spacing.mel-space(3);
+    }
+
+    .mel-account-event-card__media,
+    .mel-card__image {
+      width: $mel-account-event-thumb;
+      height: $mel-account-event-thumb;
+      margin: 0;
+      border-radius: radii.$mel-radius-md;
+      align-self: center;
+    }
+
+    .mel-account-event-card__media img,
+    .mel-card__image img {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+    }
+
+    .mel-account-event-card__media--placeholder,
+    .mel-card__image--placeholder {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      max-height: none;
+    }
+
+    .mel-account-event-card__content,
+    .mel-card__body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0;
+    }
+  }
+}
 
 .mel-account-event-card,
 .mel-account-rsvp-card {
