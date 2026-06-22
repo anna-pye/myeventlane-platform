@@ -85,6 +85,13 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    // Public marketing entry (/create-event): gateway enforces auth/onboarding then
+    // sends organisers to Event Studio on the vendor host. Do not bounce this path
+    // across domains; it caused redirect loops on vendor.staging.*.
+    if ($route_name === 'myeventlane_vendor.create_event_gateway') {
+      return;
+    }
+
     // --------------------------------------------------
     // ENVIRONMENT-AWARE DOMAIN LOGIC
     // --------------------------------------------------
