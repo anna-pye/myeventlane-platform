@@ -93,11 +93,17 @@ export function isDdevUnavailable(
     return false;
   }
 
+  // Check DDEV/docker down first: wrapper text like "Failed to execute command"
+  // can appear alongside project-down errors and must not mask unavailability.
+  if (DDEV_UNAVAILABLE_PATTERNS.some((pattern) => pattern.test(stderr))) {
+    return true;
+  }
+
   if (INNER_COMMAND_FAILURE_PATTERNS.some((pattern) => pattern.test(stderr))) {
     return false;
   }
 
-  return DDEV_UNAVAILABLE_PATTERNS.some((pattern) => pattern.test(stderr));
+  return false;
 }
 
 function isExecSyncError(
