@@ -8,7 +8,9 @@
     "prepare": "husky",
     "mel:hero-check": "cd web/themes/custom/myeventlane_theme && npm run check:hero",
     "mel:build": "cd web/themes/custom/myeventlane_theme && npm ci && npm run build && cd ../myeventlane_vendor_theme && npm ci && npm run build",
-    "mel:lint": "cd web/themes/custom/myeventlane_theme && npm run check:hero && npm run lint:css"
+    "mel:lint": "cd web/themes/custom/myeventlane_theme && npm run check:hero && npm run lint:css",
+    "test:e2e": "cd tests/e2e && npm ci && npm run install:browsers && npx playwright test",
+    "test:e2e:install": "cd tests/e2e && npm ci && npm run install:browsers"
   },
   "devDependencies": {
     "husky": "^9.1.7",

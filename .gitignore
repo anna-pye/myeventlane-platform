@@ -26,6 +26,16 @@ yarn.lock
 /.npm-cache/
 
 ############################################
+# Playwright E2E (generated at runtime)
+############################################
+/tests/e2e/node_modules/
+/tests/e2e/test-results/
+/tests/e2e/playwright-report/
+/tests/e2e/blob-report/
+/tests/e2e/fixtures/runtime-env.json
+/tests/e2e/fixtures/payment-gateway-state.json
+
+############################################
 # Drupal core & contrib (Composer-managed)
 ############################################
 /web/core/
