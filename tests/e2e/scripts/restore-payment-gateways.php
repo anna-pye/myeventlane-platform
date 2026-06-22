@@ -17,16 +17,16 @@ if (!defined('DRUPAL_ROOT')) {
 
 $stateFile = DRUPAL_ROOT . '/../tests/e2e/fixtures/payment-gateway-state.json';
 if (!is_readable($stateFile)) {
-  echo json_encode(['restored' => FALSE, 'reason' => 'no state file']);
-  exit(0);
+  echo json_encode(['restored' => FALSE, 'reason' => 'no state file'], JSON_THROW_ON_ERROR);
+  return;
 }
 
 $state = json_decode((string) file_get_contents($stateFile), TRUE, 512, JSON_THROW_ON_ERROR);
 $previous = $state['previous'] ?? [];
 if (!is_array($previous) || $previous === []) {
   unlink($stateFile);
-  echo json_encode(['restored' => FALSE, 'reason' => 'empty state']);
-  exit(0);
+  echo json_encode(['restored' => FALSE, 'reason' => 'empty state'], JSON_THROW_ON_ERROR);
+  return;
 }
 
 $gatewayStorage = \Drupal::entityTypeManager()->getStorage('commerce_payment_gateway');
