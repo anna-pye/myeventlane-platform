@@ -59,15 +59,45 @@ export function runDrushPhpRaw(
   }
 }
 
-export function isDdevUnavailable(result: Pick<DrushPhpResult, 'stderr' | 'status'>): boolean {
-  const combined = result.stderr.toLowerCase();
-  return (
-    combined.includes('project is not running')
-    || combined.includes('could not connect')
-    || combined.includes('ddev is not running')
-    || combined.includes('failed to run ddev')
-    || combined.includes('failed to execute command')
-  );
+const DDEV_UNAVAILABLE_PATTERNS = [
+  /project ['"]?[\w.-]+['"]? is not running/i,
+  /project is not yet running/i,
+  /use 'ddev start' first/i,
+  /no running container found/i,
+  /failed to start [\w.-]+:/i,
+  /cannot connect to the docker daemon/i,
+  /could not connect to docker/i,
+  /docker is not running/i,
+  /(?:^|\s)ddev(?:\s|:).*command not found/i,
+  /command not found.*(?:^|\s)ddev(?:\s|$)/i,
+];
+
+/** Drush/Drupal failures that prove the DDEV container ran. */
+const INNER_COMMAND_FAILURE_PATTERNS = [
+  /failed to run drush/i,
+  /failed to execute command/i,
+  /could not connect to (?:database|mysql|mariadb|postgres|db)\b/i,
+  /sqlstate\[/i,
+];
+
+export function isDdevUnavailable(
+  result: Pick<DrushPhpResult, 'stderr' | 'stdout' | 'status'>,
+): boolean {
+  const stderr = result.stderr;
+  if (stderr === '') {
+    return false;
+  }
+
+  // Script stdout means DDEV reached the container and Drush bootstrapped Drupal.
+  if (result.stdout.trim() !== '') {
+    return false;
+  }
+
+  if (INNER_COMMAND_FAILURE_PATTERNS.some((pattern) => pattern.test(stderr))) {
+    return false;
+  }
+
+  return DDEV_UNAVAILABLE_PATTERNS.some((pattern) => pattern.test(stderr));
 }
 
 function isExecSyncError(
