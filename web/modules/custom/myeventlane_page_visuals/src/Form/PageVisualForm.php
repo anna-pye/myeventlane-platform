@@ -11,7 +11,7 @@ use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
-use Drupal\media\Entity\Media;
+use Drupal\myeventlane_page_visuals\Service\PageVisualMediaManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -42,6 +42,13 @@ final class PageVisualForm extends EntityForm {
   protected EntityRepositoryInterface $entityRepository;
 
   /**
+   * Page visual media and file helper.
+   *
+   * @var \Drupal\myeventlane_page_visuals\Service\PageVisualMediaManager
+   */
+  protected PageVisualMediaManager $pageVisualMediaManager;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
@@ -49,6 +56,7 @@ final class PageVisualForm extends EntityForm {
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->routeProvider = $container->get('router.route_provider');
     $instance->entityRepository = $container->get('entity.repository');
+    $instance->pageVisualMediaManager = $container->get('myeventlane.page_visual_media_manager');
     return $instance;
   }
 
@@ -167,7 +175,7 @@ final class PageVisualForm extends EntityForm {
       '#type' => 'managed_file',
       '#title' => $this->t('Desktop image'),
       '#description' => $this->t('Upload an image for desktop viewports (PNG, JPG, JPEG, GIF, WebP). Required when enabled.'),
-      '#upload_location' => 'public://page-visuals/',
+      '#upload_location' => PageVisualMediaManager::UPLOAD_DIRECTORY . '/',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
       ],
@@ -179,7 +187,7 @@ final class PageVisualForm extends EntityForm {
       '#type' => 'managed_file',
       '#title' => $this->t('Mobile image'),
       '#description' => $this->t('Optional: upload a different image for mobile viewports. If empty, desktop image is used.'),
-      '#upload_location' => 'public://page-visuals/',
+      '#upload_location' => PageVisualMediaManager::UPLOAD_DIRECTORY . '/',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
       ],
@@ -247,46 +255,6 @@ final class PageVisualForm extends EntityForm {
   }
 
   /**
-   * Creates a Media entity from an uploaded file. Returns UUID if Media exists.
-   *
-   * @param int $fid
-   *   The file entity ID.
-   *
-   * @return string|null
-   *   The Media entity UUID.
-   */
-  private function createOrGetMediaFromFile(int $fid): ?string {
-    $file_storage = $this->entityTypeManager->getStorage('file');
-    $file = $file_storage->load($fid);
-    if (!$file instanceof FileInterface) {
-      return NULL;
-    }
-    $file->setPermanent();
-    $file->save();
-
-    $media_storage = $this->entityTypeManager->getStorage('media');
-    $existing = $media_storage->loadByProperties([
-      'bundle' => 'image',
-      'field_media_image' => $fid,
-    ]);
-    $media = $existing ? reset($existing) : NULL;
-
-    if ($media instanceof MediaInterface) {
-      return $media->uuid();
-    }
-
-    $media = Media::create([
-      'bundle' => 'image',
-      'name' => $file->getFilename(),
-      'field_media_image' => [
-        'target_id' => $fid,
-      ],
-    ]);
-    $media->save();
-    return $media->uuid();
-  }
-
-  /**
    * Gets the file fid for managed_file default value (from existing Media).
    */
   private function getFileDefaultValue(?string $media_uuid): array {
@@ -306,6 +274,15 @@ final class PageVisualForm extends EntityForm {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     parent::validateForm($form, $form_state);
+
+    if (!$this->pageVisualMediaManager->ensureUploadDirectoryReady()) {
+      $form_state->setErrorByName(
+        'image_upload_desktop',
+        $this->t('Hero image uploads are unavailable because @dir is not writable. Ask an administrator to fix file permissions on the shared files directory.', [
+          '@dir' => PageVisualMediaManager::UPLOAD_DIRECTORY,
+        ])
+      );
+    }
 
     $route_select = $form_state->getValue('route_name');
     $route_name = $route_select === '__custom__'
@@ -342,21 +319,39 @@ final class PageVisualForm extends EntityForm {
       ? trim((string) $form_state->getValue('route_name_custom'))
       : $route_select;
 
-    $fids_desktop = $form_state->getValue('image_upload_desktop');
+    $alt_text = trim((string) $form_state->getValue('alt_text'));
+
     $media_uuid_desktop = NULL;
+    $desktop_fid = 0;
+    $fids_desktop = $form_state->getValue('image_upload_desktop');
     if (!empty($fids_desktop) && is_array($fids_desktop)) {
-      $fid = (int) reset($fids_desktop);
-      if ($fid > 0) {
-        $media_uuid_desktop = $this->createOrGetMediaFromFile($fid);
+      $desktop_fid = (int) reset($fids_desktop);
+      if ($desktop_fid > 0) {
+        $media_uuid_desktop = $this->pageVisualMediaManager->createOrGetMediaFromFile($desktop_fid, $alt_text);
+        if ($media_uuid_desktop === NULL) {
+          $form_state->setErrorByName(
+            'image_upload_desktop',
+            $this->t('Could not save the desktop image. Check file permissions or try uploading again.')
+          );
+          return 0;
+        }
       }
     }
 
-    $fids_mobile = $form_state->getValue('image_upload_mobile');
     $media_uuid_mobile = NULL;
+    $mobile_fid = 0;
+    $fids_mobile = $form_state->getValue('image_upload_mobile');
     if (!empty($fids_mobile) && is_array($fids_mobile)) {
-      $fid = (int) reset($fids_mobile);
-      if ($fid > 0) {
-        $media_uuid_mobile = $this->createOrGetMediaFromFile($fid);
+      $mobile_fid = (int) reset($fids_mobile);
+      if ($mobile_fid > 0) {
+        $media_uuid_mobile = $this->pageVisualMediaManager->createOrGetMediaFromFile($mobile_fid, $alt_text);
+        if ($media_uuid_mobile === NULL) {
+          $form_state->setErrorByName(
+            'image_upload_mobile',
+            $this->t('Could not save the mobile image. Check file permissions or try uploading again.')
+          );
+          return 0;
+        }
       }
     }
 
@@ -364,10 +359,20 @@ final class PageVisualForm extends EntityForm {
     $entity->set('media_uuid_desktop', $media_uuid_desktop);
     $entity->set('media_uuid_mobile', $media_uuid_mobile);
     $entity->set('hide_on_mobile', (bool) $form_state->getValue('hide_on_mobile'));
-    $entity->set('alt_text', (string) $form_state->getValue('alt_text'));
+    $entity->set('alt_text', $alt_text);
     $entity->set('enabled', (bool) $form_state->getValue('enabled'));
 
     $result = parent::save($form, $form_state);
+
+    if ($result !== SAVED_NEW && $result !== SAVED_UPDATED) {
+      return $result;
+    }
+
+    $visual_id = (string) $entity->id();
+    $this->pageVisualMediaManager->registerFileUsage($desktop_fid, $visual_id);
+    if ($mobile_fid > 0 && $mobile_fid !== $desktop_fid) {
+      $this->pageVisualMediaManager->registerFileUsage($mobile_fid, $visual_id);
+    }
 
     $this->messenger()->addStatus($this->t('Page visual %label has been saved.', [
       '%label' => $entity->label(),

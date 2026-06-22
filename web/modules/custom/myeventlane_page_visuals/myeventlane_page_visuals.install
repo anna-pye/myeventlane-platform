@@ -7,6 +7,32 @@ declare(strict_types=1);
  * Install and update hooks for MyEventLane Page Visuals.
  */
 
+use Drupal\Core\File\FileSystemInterface;
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_page_visuals_install(): void {
+  myeventlane_page_visuals_ensure_upload_directory();
+}
+
+/**
+ * Ensures public://page-visuals exists for managed_file uploads.
+ */
+function myeventlane_page_visuals_ensure_upload_directory(): string {
+  $directory = 'public://page-visuals';
+  $file_system = \Drupal::service('file_system');
+  if ($file_system->prepareDirectory(
+    $directory,
+    FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS
+  )) {
+    return (string) t('Page visual upload directory is ready.');
+  }
+
+  \Drupal::logger('myeventlane_page_visuals')->error('Could not create or write public://page-visuals during update.');
+  return (string) t('Could not create public://page-visuals — check shared files directory permissions on the server.');
+}
+
 /**
  * Migrate media_id to media_uuid for config portability across environments.
  */
@@ -81,4 +107,11 @@ function myeventlane_page_visuals_update_9002(): string {
   return $updated > 0
     ? (string) t('Migrated @count page visual(s) to desktop/mobile fields.', ['@count' => $updated])
     : (string) t('No page visuals required migration.');
+}
+
+/**
+ * Ensure the page visual upload directory exists (staging shared files).
+ */
+function myeventlane_page_visuals_update_9003(): string {
+  return myeventlane_page_visuals_ensure_upload_directory();
 }
