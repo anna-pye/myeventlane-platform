@@ -213,8 +213,8 @@ final class OperationalIntegrityInspector {
     int $orphanEligibleItems,
   ): array {
     $alignment = $this->quantityAlignmentStatus($expected, $issued);
-    $idempotentSkip = $issued > 0;
-    $partialBlocked = $issued > 0 && $issued < $expected;
+    $idempotentSkip = $expected > 0 && $issued >= $expected;
+    $partialBlocked = FALSE;
 
     return [
       'order_operational_status' => 'valid',
@@ -745,9 +745,8 @@ final class OperationalIntegrityInspector {
       ]);
     }
 
-    $partial = (bool) ($issuance['partial_issuance_blocked_by_idempotent_guard'] ?? FALSE);
-    if ($partial) {
-      $this->logger->warning('OperationalIntegrityInspector: partial issuance with idempotent guard active order @order_id expected=@e issued=@i', [
+    if ($expected > 0 && $issued > 0 && $issued < $expected) {
+      $this->logger->warning('OperationalIntegrityInspector: partial issuance detected (repairable on replay) order @order_id expected=@e issued=@i', [
         '@order_id' => (string) $orderId,
         '@e' => (string) $expected,
         '@i' => (string) $issued,

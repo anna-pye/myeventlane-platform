@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for MyEventLane Capacity Engine.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_capacity_schema(): array {
+  $schema['myeventlane_capacity_lock'] = [
+    'description' => 'Per-event row lock for atomic capacity enforcement.',
+    'fields' => [
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['event_id'],
+  ];
+
+  $schema['myeventlane_capacity_reservation'] = [
+    'description' => 'Provisional capacity holds until booking completes or TTL expires.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'quantity' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'reservation_key' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'expires' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'reservation_key' => ['reservation_key'],
+    ],
+    'indexes' => [
+      'event_expires' => ['event_id', 'expires'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Creates capacity lock and reservation tables on existing sites.
+ */
+function myeventlane_capacity_update_10001(): void {
+  $schema = myeventlane_capacity_schema();
+  $schema_handler = \Drupal::database()->schema();
+
+  foreach (['myeventlane_capacity_lock', 'myeventlane_capacity_reservation'] as $table) {
+    if (!$schema_handler->tableExists($table)) {
+      $schema_handler->createTable($table, $schema[$table]);
+    }
+  }
+}

@@ -290,11 +290,15 @@ final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInt
   /**
    * Event-level cap (RSVP + paid totals) for a requested quantity.
    */
-  public function assertEventTotalBookable(NodeInterface $event, int $totalQuantityForEvent): void {
+  public function assertEventTotalBookable(
+    NodeInterface $event,
+    int $totalQuantityForEvent,
+    ?string $reservationKey = NULL,
+  ): void {
     if ($totalQuantityForEvent <= 0) {
       return;
     }
-    $this->eventCapacity->assertCanBook($event, $totalQuantityForEvent);
+    $this->eventCapacity->assertCanBook($event, $totalQuantityForEvent, $reservationKey);
   }
 
   /**
@@ -306,9 +310,10 @@ final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInt
     ProductVariationInterface $variation,
     int $lineQuantityForThisVariation,
     int $totalTicketQuantityForThisEvent,
+    ?string $reservationKey = NULL,
   ): void {
     $this->assertPaidVariationLineConstraints($event, $product, $variation, $lineQuantityForThisVariation);
-    $this->assertEventTotalBookable($event, $totalTicketQuantityForThisEvent);
+    $this->assertEventTotalBookable($event, $totalTicketQuantityForThisEvent, $reservationKey);
   }
 
   /**

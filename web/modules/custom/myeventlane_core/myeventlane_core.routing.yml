@@ -85,7 +85,7 @@ entity.myeventlane_onboarding_state.collection:
   options:
     _admin_route: TRUE
 
-# Custom error routes.
+# Custom 403 page for themed error handling. Anonymous-safe static error markup only.
 myeventlane_core.error_403:
   path: '/mel/403'
   defaults:
@@ -94,6 +94,7 @@ myeventlane_core.error_403:
   requirements:
     _access: 'TRUE'
 
+# Custom 404 page for themed error handling. Anonymous-safe static error markup only.
 myeventlane_core.error_404:
   path: '/mel/404'
   defaults:
@@ -102,6 +103,9 @@ myeventlane_core.error_404:
   requirements:
     _access: 'TRUE'
 
+# Infrastructure health probe for load balancers. Route is public by design; returns
+# only ok/error status strings (no secrets). _maintenance_access allows checks during
+# maintenance mode.
 myeventlane_core.health:
   path: '/health'
   defaults:

@@ -134,7 +134,8 @@ final class TicketCapacityOrderSubscriber implements EventSubscriberInterface {
               $product,
               $variation,
               (int) $qty,
-              $requested_total
+              $requested_total,
+              'order:' . $order->id() . ':event:' . $event_id,
             );
           }
           catch (CapacityExceededException $e) {

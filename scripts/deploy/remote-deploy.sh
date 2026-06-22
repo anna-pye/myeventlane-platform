@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain cset.
+# Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain env verification.
 # Falls back to SITE_URI containing "staging" vs production *.myeventlane.com.au (no staging).
+#
+# Multi-domain URLs are NOT written via drush cset. They come from settings.php overrides
+# on the host (MEL_PUBLIC_DOMAIN, MEL_VENDOR_DOMAIN, MEL_ADMIN_DOMAIN,
+# MEL_FORCE_DOMAIN_REDIRECTS). config/sync keeps empty domain fields only.
 #
 # On failure after maintenance is enabled and/or current/ is switched, EXIT cleanup rolls
 # back current/ to the previous release (if known) and turns maintenance off so staging
@@ -480,8 +484,94 @@ if [ "$RUN_CIM" = "1" ]; then
   fi
 fi
 
-# ---- DOMAIN ENFORCEMENT (after cim; runs every deploy) ----
-# Prevents production from keeping staging hosts from sync; idempotent on staging.
+# ---- DOMAIN CONFIGURATION (environment; not active config / cset) ----
+# Effective domain_settings are supplied by settings.php $config overrides from the
+# host environment. Shared ~/staging/shared/settings.php must include the override
+# block from web/sites/default/settings.php in the repo.
+#
+# Set on each host (PHP-FPM Environment=, systemd, or platform secret store):
+#   MEL_PUBLIC_DOMAIN=https://staging.myeventlane.com.au
+#   MEL_VENDOR_DOMAIN=https://vendor.staging.myeventlane.com.au
+#   MEL_ADMIN_DOMAIN=https://admin.staging.myeventlane.com.au
+#   MEL_FORCE_DOMAIN_REDIRECTS=1   — required on staging (VendorDomainSubscriber redirects)
+#
+# Production example:
+#   MEL_PUBLIC_DOMAIN=https://myeventlane.com.au
+#   MEL_VENDOR_DOMAIN=https://vendor.myeventlane.com.au
+#   MEL_ADMIN_DOMAIN=https://admin.myeventlane.com.au
+#   MEL_FORCE_DOMAIN_REDIRECTS=1   — when apex/vendor/admin redirects must be enforced
+#
+# Do not drush cset domain URLs here; overrides supersede active storage and cset
+# would reintroduce environment-specific values into the database.
+mel_domain_effective() {
+  local key="$1"
+  mel_drush php:eval "
+\$c = \\Drupal::config('myeventlane_core.domain_settings');
+\$k = '${key}';
+if (\$k === 'force_redirects') {
+  echo \$c->get('force_redirects') ? '1' : '0';
+} else {
+  echo (string) \$c->get(\$k);
+}
+" --uri="$SITE_URI"
+}
+
+mel_verify_domain_environment() {
+  local mode="$1"
+  local pub vendor admin failures=0
+
+  case "$mode" in
+    production)
+      pub='https://myeventlane.com.au'
+      vendor='https://vendor.myeventlane.com.au'
+      admin='https://admin.myeventlane.com.au'
+      ;;
+    staging)
+      pub='https://staging.myeventlane.com.au'
+      vendor='https://vendor.staging.myeventlane.com.au'
+      admin='https://admin.staging.myeventlane.com.au'
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  echo "Verifying effective domain_settings from host environment (${mode})..."
+
+  local actual
+  for pair in "public_domain:$pub" "vendor_domain:$vendor" "admin_domain:$admin"; do
+    local key="${pair%%:*}"
+    local expected="${pair#*:}"
+    set +e
+    actual="$(mel_domain_effective "$key")"
+    local rc=$?
+    set -e
+    if [ "$rc" -ne 0 ] || [ "$actual" != "$expected" ]; then
+      echo "ERROR: effective myeventlane_core.domain_settings.${key} is '${actual:-<empty>}', expected '${expected}'." >&2
+      failures=$((failures + 1))
+    fi
+  done
+
+  set +e
+  actual="$(mel_domain_effective force_redirects)"
+  local force_rc=$?
+  set -e
+  if [ "$force_rc" -ne 0 ] || [ "$actual" != "1" ]; then
+    echo "ERROR: effective force_redirects is '${actual:-<empty>}' (expected 1)." >&2
+    echo "Set MEL_FORCE_DOMAIN_REDIRECTS=1 in the PHP-FPM / host environment." >&2
+    failures=$((failures + 1))
+  fi
+
+  if [ "$failures" -gt 0 ]; then
+    echo "ERROR: Domain environment misconfigured (${failures} check(s) failed)." >&2
+    echo "Configure MEL_PUBLIC_DOMAIN, MEL_VENDOR_DOMAIN, MEL_ADMIN_DOMAIN, and MEL_FORCE_DOMAIN_REDIRECTS on the host." >&2
+    return 1
+  fi
+
+  echo "Domain environment OK (${mode})."
+  return 0
+}
+
 mel_resolve_deploy_mode() {
   local app_raw="${APP_ENV:-}"
   local app_lc
@@ -506,23 +596,15 @@ mel_resolve_deploy_mode() {
 
 MEL_DEPLOY_MODE="$(mel_resolve_deploy_mode)"
 
-if [ "$MEL_DEPLOY_MODE" = "production" ]; then
-  echo "Applying production domain settings (APP_ENV/SITE_URI → production)..."
-  mel_drush cset myeventlane_core.domain_settings public_domain 'https://myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings admin_domain 'https://admin.myeventlane.com.au' -y --uri="$SITE_URI"
-elif [ "$MEL_DEPLOY_MODE" = "staging" ]; then
-  echo "Applying staging domain settings (APP_ENV/SITE_URI → staging)..."
-  mel_drush cset myeventlane_core.domain_settings public_domain 'https://staging.myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.staging.myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings admin_domain 'https://admin.staging.myeventlane.com.au' -y --uri="$SITE_URI"
+if [ "$MEL_DEPLOY_MODE" = "production" ] || [ "$MEL_DEPLOY_MODE" = "staging" ]; then
+  mel_verify_domain_environment "$MEL_DEPLOY_MODE"
 else
-  echo "NOTICE: Skipping automatic domain cset (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2
+  echo "NOTICE: Skipping domain environment verification (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2
 fi
 
 # ---- FINALISE ----
 # These drush invocations are strict (no "|| true"): failures must surface in CI/SSH logs.
-mel_drush_run "Finalize: drush cr (post-domain cset)" \
+mel_drush_run "Finalize: drush cr (post-domain verification)" \
   mel_drush cr --uri="$SITE_URI"
 
 mel_drush_run "Finalize: drush state:set system.maintenance_mode 0" \

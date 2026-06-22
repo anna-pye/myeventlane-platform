@@ -1,4 +1,6 @@
-# Postmark delivery webhook — public endpoint, secret-verified in controller.
+# Public endpoint required by Postmark. Access is intentionally open at the Drupal route
+# layer because authenticity is enforced by X-Webhook-Secret header validation in
+# PostmarkWebhookController::validateWebhook(). Rejects when secret is not configured.
 myeventlane_messaging.postmark_webhook_delivery:
   path: '/webhooks/postmark/delivery'
   defaults:
@@ -7,7 +9,9 @@ myeventlane_messaging.postmark_webhook_delivery:
     _access: 'TRUE'
   methods: [POST]
 
-# Postmark bounce webhook — public endpoint, secret-verified in controller.
+# Public endpoint required by Postmark. Access is intentionally open at the Drupal route
+# layer because authenticity is enforced by X-Webhook-Secret header validation in
+# PostmarkWebhookController::validateWebhook(). Rejects when secret is not configured.
 myeventlane_messaging.postmark_webhook_bounce:
   path: '/webhooks/postmark/bounce'
   defaults:

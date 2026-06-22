@@ -209,3 +209,22 @@ $mel_postmark_webhook_secret = $melGetEnv('MEL_POSTMARK_WEBHOOK_SECRET');
 if ($mel_postmark_webhook_secret !== '') {
   $config['myeventlane_messaging.settings']['postmark']['webhook_secret'] = $mel_postmark_webhook_secret;
 }
+
+// ---------------------------------------------------------------------------
+// Ticket QR signing: secret from settings/env — never export to config/sync.
+//
+// TicketQrPayload reads $settings['myeventlane_qr_secret'] first, then
+// MEL_QR_SECRET. Do not store signing material in myeventlane_tickets.settings.
+//
+//   MEL_QR_SECRET — HMAC signing secret for mel:v1 QR payloads
+//
+// DDEV: optional in .ddev/config.local.yaml; otherwise a local-only default
+// applies. Staging and production must set MEL_QR_SECRET on the host.
+// ---------------------------------------------------------------------------
+$mel_qr_secret = $melGetEnv('MEL_QR_SECRET');
+if ($mel_qr_secret !== '') {
+  $settings['myeventlane_qr_secret'] = $mel_qr_secret;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $settings['myeventlane_qr_secret'] = 'local-dev-only-change-me';
+}

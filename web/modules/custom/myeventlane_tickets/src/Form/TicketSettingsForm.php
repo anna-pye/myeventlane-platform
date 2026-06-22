@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_tickets\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Site\Settings;
 
 /**
  * Configuration form for ticket PDF generation and download settings.
@@ -131,12 +132,13 @@ final class TicketSettingsForm extends ConfigFormBase {
       '#open' => FALSE,
     ];
 
-    $form['security']['qr_secret'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('QR signing secret (fallback)'),
-      '#default_value' => $config->get('qr_secret') ?? '',
-      '#description' => $this->t('Prefer setting $settings[\'myeventlane_ticket_qr_secret\'] in settings.php. This value is only a fallback.'),
-      '#maxlength' => 255,
+    $form['security']['qr_secret_status'] = [
+      '#type' => 'item',
+      '#title' => $this->t('QR signing secret'),
+      '#markup' => $this->isQrSecretConfigured()
+        ? $this->t('Configured by environment: yes')
+        : $this->t('Configured by environment: no'),
+      '#description' => $this->t('Set $settings[\'myeventlane_qr_secret\'] in settings.php or the MEL_QR_SECRET environment variable. Secrets are never stored in exported configuration.'),
     ];
 
     return parent::buildForm($form, $form_state);
@@ -156,10 +158,26 @@ final class TicketSettingsForm extends ConfigFormBase {
       ->set('brand_logo_url', trim((string) $form_state->getValue('brand_logo_url')))
       ->set('brand_accent_color', trim((string) $form_state->getValue('brand_accent_color')))
       ->set('brand_footer_text', (string) $form_state->getValue('brand_footer_text'))
-      ->set('qr_secret', trim((string) $form_state->getValue('qr_secret')))
       ->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Whether the QR signing secret is available from settings or environment.
+   */
+  private function isQrSecretConfigured(): bool {
+    $secret = Settings::get('myeventlane_qr_secret');
+    if (!empty($secret)) {
+      return TRUE;
+    }
+
+    $legacy = Settings::get('myeventlane_ticket_qr_secret');
+    if (!empty($legacy)) {
+      return TRUE;
+    }
+
+    return !empty(getenv('MEL_QR_SECRET'));
   }
 
 }

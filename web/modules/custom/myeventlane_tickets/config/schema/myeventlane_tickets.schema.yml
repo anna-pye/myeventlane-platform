@@ -30,6 +30,3 @@ myeventlane_tickets.settings:
     qr_payload_mode:
       type: string
       label: 'QR payload mode'
-    qr_secret:
-      type: string
-      label: 'QR signing secret (fallback; prefer settings.php)'
