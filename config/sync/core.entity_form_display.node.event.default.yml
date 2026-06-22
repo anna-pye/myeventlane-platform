@@ -3,46 +3,89 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.event.body
     - field.field.node.event.field_accessibility
     - field.field.node.event.field_accessibility_contact
     - field.field.node.event.field_accessibility_directions
     - field.field.node.event.field_accessibility_entry
     - field.field.node.event.field_accessibility_parking
+    - field.field.node.event.field_age_policy
+    - field.field.node.event.field_age_policy_note
+    - field.field.node.event.field_age_restriction
     - field.field.node.event.field_attendee_questions
+    - field.field.node.event.field_cancel_reason
+    - field.field.node.event.field_cancelled_at
     - field.field.node.event.field_capacity
-    - field.field.node.event.field_waitlist_capacity
     - field.field.node.event.field_category
     - field.field.node.event.field_collect_per_ticket
+    - field.field.node.event.field_contact_email
+    - field.field.node.event.field_contact_phone
+    - field.field.node.event.field_donation_default
+    - field.field.node.event.field_donation_label
+    - field.field.node.event.field_donation_options
+    - field.field.node.event.field_donation_suggested_amount
+    - field.field.node.event.field_enable_donations
+    - field.field.node.event.field_event_capacity_total
     - field.field.node.event.field_event_end
+    - field.field.node.event.field_event_geo
+    - field.field.node.event.field_event_highlights
     - field.field.node.event.field_event_image
+    - field.field.node.event.field_event_intro
     - field.field.node.event.field_event_passcode_hash
-    - field.field.node.event.field_mel_event_gallery
-    - field.field.node.event.field_event_start
-    - field.field.node.event.field_event_type
-    - field.field.node.event.field_external_url
     - field.field.node.event.field_event_setup_complete
+    - field.field.node.event.field_event_start
+    - field.field.node.event.field_event_state
+    - field.field.node.event.field_event_state_override
+    - field.field.node.event.field_event_store
+    - field.field.node.event.field_event_summary
+    - field.field.node.event.field_event_type
+    - field.field.node.event.field_event_vendor
+    - field.field.node.event.field_event_visibility
+    - field.field.node.event.field_external_url
     - field.field.node.event.field_featured
     - field.field.node.event.field_hidden_gem
+    - field.field.node.event.field_is_series_template
     - field.field.node.event.field_location
+    - field.field.node.event.field_location_latitude
+    - field.field.node.event.field_location_longitude
+    - field.field.node.event.field_location_place_id
+    - field.field.node.event.field_mel_event_gallery
+    - field.field.node.event.field_mel_extras_book_placement
+    - field.field.node.event.field_mel_op_capabilities
+    - field.field.node.event.field_mel_page_style
     - field.field.node.event.field_mel_sup_amt
     - field.field.node.event.field_mel_sup_chk
     - field.field.node.event.field_mel_sup_mode
     - field.field.node.event.field_mel_sup_oid
     - field.field.node.event.field_mel_sup_pct
+    - field.field.node.event.field_mel_theme_colour
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
+    - field.field.node.event.field_refund_policy
+    - field.field.node.event.field_reviews_enabled
+    - field.field.node.event.field_sales_end
+    - field.field.node.event.field_sales_start
+    - field.field.node.event.field_series_instance_id
+    - field.field.node.event.field_series_parent
+    - field.field.node.event.field_series_rrule
+    - field.field.node.event.field_series_timezone
+    - field.field.node.event.field_social_proof_visibility
+    - field.field.node.event.field_tags
     - field.field.node.event.field_ticket_types
+    - field.field.node.event.field_venue
+    - field.field.node.event.field_venue_address
     - field.field.node.event.field_venue_name
+    - field.field.node.event.field_waitlist_capacity
+    - image.style.thumbnail
     - node.type.event
+    - workflows.workflow.editorial
   module:
-    - address
+    - content_moderation
     - datetime
-    - myeventlane_location
-    - entity_reference_revisions
     - image
     - link
-    - mel_ticket
+    - myeventlane_location
     - paragraphs
     - path
     - text
@@ -59,6 +102,7 @@ content:
       rows: 9
       summary_rows: 3
       placeholder: ''
+      show_summary: false
     third_party_settings: {  }
   created:
     type: datetime_timestamp
@@ -203,7 +247,8 @@ content:
     type: myeventlane_location_address_default
     weight: 8
     region: content
-    settings: {  }
+    settings:
+      wrapper_type: fieldset
     third_party_settings: {  }
   field_product_target:
     type: entity_reference_autocomplete
