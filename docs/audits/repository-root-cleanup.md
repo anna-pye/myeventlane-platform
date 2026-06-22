@@ -186,7 +186,7 @@ Do not delete or move without explicit owner decision.
 | `mel_help_sync.sql.gz` | Database dump; gitignored `*.sql.gz` | Keep outside repo or in secure backup store only |
 | `pre_sync_backup.sql.gz` | Database dump | Same |
 | `staging-db.sql.gz` | Database dump | Same |
-| `staging-nginx.conf` | **Still tracked in git** despite `.gitignore` `staging-*.conf` | `git rm --cached` if not needed in repo; store in infra docs |
+| `staging-nginx.conf` | **Resolved 2026-06-22** — moved to `infrastructure/nginx/staging-nginx.conf`; see `infrastructure/README.md` | — |
 | `blog-export.json` | Content export — may contain PII | Confirm retention policy; move to `docs/archive/` or secure storage |
 | `enabled-modules.json` | Drush/composer audit snapshot | Move to `docs/archive/root-notes/` or regenerate on demand |
 | `extensions.json` | Extension audit snapshot | Same |

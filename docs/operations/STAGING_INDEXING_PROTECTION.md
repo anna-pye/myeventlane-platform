@@ -13,6 +13,8 @@ Add the header at the web server / edge layer for `staging.myeventlane.com.au` w
 
 ### Nginx example
 
+Reference include file: [`infrastructure/nginx/staging-nginx.conf`](../../infrastructure/nginx/staging-nginx.conf)
+
 ```nginx
 server {
   server_name staging.myeventlane.com.au;

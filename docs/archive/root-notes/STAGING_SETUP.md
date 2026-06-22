@@ -16,7 +16,7 @@ The staging environment includes multiple layers of protection:
 
 - `web/robots.txt.staging` - Staging-specific robots.txt (blocks all crawlers)
 - `web/modules/custom/myeventlane_core/src/EventSubscriber/StagingSecuritySubscriber.php` - Adds security headers
-- `staging-nginx.conf` - Nginx configuration for VPS
+- `infrastructure/nginx/staging-nginx.conf` - Nginx configuration for VPS
 - `STAGING_SETUP.md` - This file
 
 ## Setup Instructions
@@ -46,7 +46,7 @@ server {
     index index.php;
     
     # Include staging security configuration
-    include /path/to/staging-nginx.conf;
+    include /path/to/infrastructure/nginx/staging-nginx.conf;
     
     # Your existing Drupal configuration...
     location / {
@@ -109,7 +109,7 @@ sudo htpasswd -c /etc/nginx/.htpasswd staging-user
 ```
 
 **Enable in nginx:**
-Uncomment the auth_basic lines in `staging-nginx.conf`:
+Uncomment the auth_basic lines in `infrastructure/nginx/staging-nginx.conf`:
 
 ```nginx
 auth_basic "Staging Environment - Restricted Access";
@@ -162,7 +162,7 @@ Disallow: /
 ## Verification Checklist
 
 - [ ] `robots.txt` deployed to staging and blocks all crawlers
-- [ ] Nginx configuration includes `staging-nginx.conf`
+- [ ] Nginx configuration includes `infrastructure/nginx/staging-nginx.conf`
 - [ ] HTTP headers include `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet`
 - [ ] HTTP headers include `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
 - [ ] Environment variable `STAGING_ENVIRONMENT=1` set (optional)
