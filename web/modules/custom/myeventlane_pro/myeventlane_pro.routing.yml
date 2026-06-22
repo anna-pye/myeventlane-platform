@@ -114,6 +114,9 @@ myeventlane_vendor.message_attendees:
         bundle:
           - event
 
+# Public endpoint required by Stripe. Access is intentionally open at the Drupal route
+# layer because authenticity is enforced by Stripe signature verification in
+# ProSubscriptionWebhookController::handle(). Audit logging only; no Commerce state changes.
 myeventlane_pro.subscription_webhook:
   path: '/stripe/webhook/subscription'
   defaults:

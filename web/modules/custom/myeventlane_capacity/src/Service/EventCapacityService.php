@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_capacity\Service;
 
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Capacity service for events.
@@ -26,7 +26,7 @@ final class EventCapacityService implements EventCapacityServiceInterface {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CacheBackendInterface $cache,
-    private readonly Connection $database,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
@@ -92,42 +92,39 @@ final class EventCapacityService implements EventCapacityServiceInterface {
 
   /**
    * Counts confirmed RSVPs for an event.
+   *
+   * @throws \Throwable
+   *   When RSVP storage is unavailable or the count query fails.
    */
   private function countRsvps(int $eventId): int {
-    try {
-      // Try entity storage first.
-      if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
-        $storage = $this->entityTypeManager->getStorage('rsvp_submission');
-        $count = (int) $storage->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('event_id', $eventId)
-          ->condition('status', 'confirmed')
-          ->count()
-          ->execute();
-        return $count;
-      }
-    }
-    catch (\Exception $e) {
-      // Fallback to legacy table if entity doesn't exist.
+    if (!$this->entityTypeManager->hasDefinition('rsvp_submission')) {
+      $message = 'rsvp_submission entity type is not available.';
+      $this->logger->error('Unable to count RSVPs for event @event_id: @message', [
+        '@event_id' => $eventId,
+        '@message' => $message,
+      ]);
+      throw new \RuntimeException($message);
     }
 
-    // Fallback: check legacy myeventlane_rsvp table.
     try {
-      if ($this->database->schema()->tableExists('myeventlane_rsvp')) {
-        $count = (int) $this->database->select('myeventlane_rsvp', 'r')
-          ->condition('event_nid', $eventId)
-          ->condition('status', 'active')
-          ->countQuery()
-          ->execute()
-          ->fetchField();
-        return $count;
-      }
-    }
-    catch (\Exception $e) {
-      // Table doesn't exist or error.
-    }
+      $count = $this->entityTypeManager
+        ->getStorage('rsvp_submission')
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event_id', $eventId)
+        ->condition('status', 'confirmed')
+        ->count()
+        ->execute();
 
-    return 0;
+      return (int) $count;
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Unable to count RSVPs for event @event_id: @message', [
+        '@event_id' => $eventId,
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
   }
 
   /**

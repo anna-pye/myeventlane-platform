@@ -1,3 +1,5 @@
+# Public trust and transparency page. Anonymous-safe aggregated platform metrics from
+# cache only (TrustSignalCalculator); no vendor, order, or customer PII exposed.
 myeventlane_public_trust.page:
   path: /trust
   defaults:

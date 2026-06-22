@@ -444,3 +444,29 @@ function myeventlane_tickets_update_8008(): string {
 
   return 'Installed mel_redemption_log entity type.';
 }
+
+/**
+ * Removes QR signing secret from exportable ticket settings configuration.
+ */
+function myeventlane_tickets_update_8009(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_tickets.settings');
+  if (!array_key_exists('qr_secret', $config->getRawData())) {
+    return 'QR signing secret already absent from myeventlane_tickets.settings.';
+  }
+
+  $config->clear('qr_secret')->save();
+  return 'Removed qr_secret from myeventlane_tickets.settings; configure MEL_QR_SECRET or $settings[\'myeventlane_qr_secret\'] instead.';
+}
+
+/**
+ * Ensures empty qr_secret keys are removed after update 8009 edge case.
+ */
+function myeventlane_tickets_update_8010(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_tickets.settings');
+  if (!array_key_exists('qr_secret', $config->getRawData())) {
+    return 'QR signing secret key already absent from myeventlane_tickets.settings.';
+  }
+
+  $config->clear('qr_secret')->save();
+  return 'Removed lingering qr_secret key from myeventlane_tickets.settings.';
+}
