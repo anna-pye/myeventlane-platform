@@ -52,6 +52,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
 
+      - name: Run Composer security audit
+        run: composer audit --no-dev
+
       - name: Run Drupal check (optional)
         run: vendor/bin/drupal-check web/modules/custom web/themes/custom
         continue-on-error: true
