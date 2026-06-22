@@ -2722,9 +2722,9 @@ function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\Account
   }
 
   // 3) Payout recently completed → success (Stripe-backed via service)
-  if ($store && \Drupal::hasService('myeventlane_stripe.vendor_stripe')) {
-    $vendor_stripe = \Drupal::service('myeventlane_stripe.vendor_stripe');
-    $payout = $vendor_stripe->hasRecentPayout($store, 3);
+  if ($store && \Drupal::hasService('myeventlane_stripe.vendor_payout')) {
+    $vendor_payout = \Drupal::service('myeventlane_stripe.vendor_payout');
+    $payout = $vendor_payout->hasRecentPayout($store, 3);
     if ($payout !== NULL) {
       $amount = $payout['currency'] === 'AUD' ? '$' . $payout['amount'] : $payout['amount'] . ' ' . $payout['currency'];
       return [

@@ -11,7 +11,7 @@ services:
       - '@module_handler'
       - '@logger.channel.myeventlane_vendor'
       - '@cache.default'
-      - '@?myeventlane_stripe.vendor_stripe'
+      - '@?myeventlane_stripe.vendor_payout'
 
   logger.channel.myeventlane_vendor:
     parent: logger.channel_base
