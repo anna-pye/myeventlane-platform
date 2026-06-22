@@ -10,6 +10,7 @@ services:
     class: Drupal\myeventlane_page_visuals\Service\PageVisualMediaManager
     arguments:
       - '@entity_type.manager'
+      - '@entity.repository'
       - '@file_system'
       - '@file.usage'
       - '@current_user'
