@@ -166,7 +166,7 @@ jobs:
             --exclude='delete-*.php' \
             --exclude='install-*.php' \
             --exclude='create-*.php' \
-            --exclude='staging-nginx.conf' \
+            --exclude='infrastructure/' \
             --exclude='phpcs.xml' \
             --exclude='phpunit-governance.xml' \
             -czf "$archive_path" .

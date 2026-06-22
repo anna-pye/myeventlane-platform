@@ -113,7 +113,7 @@ Confirmed active public templates for the locked surface:
 ## Enforcement Workflow
 Repo-managed enforcement lives in:
 - `web/themes/custom/myeventlane_theme/.stylelintrc.json`
-- `check-mel-hero-variants.mjs`
+- `scripts/check-mel-hero-variants.mjs`
 - `/.husky/pre-commit`
 - Root scripts in `package.json`
 - Theme scripts in `web/themes/custom/myeventlane_theme/package.json`
