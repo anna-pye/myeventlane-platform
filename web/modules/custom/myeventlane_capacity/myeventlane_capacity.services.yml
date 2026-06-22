@@ -1,7 +1,12 @@
 services:
   myeventlane_capacity.service:
     class: Drupal\myeventlane_capacity\Service\EventCapacityService
-    arguments: ['@entity_type.manager', '@cache.default', '@logger.channel.myeventlane_capacity']
+    arguments:
+      - '@entity_type.manager'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_capacity'
+      - '@database'
+      - '@datetime.time'
 
   myeventlane_capacity.order_inspector:
     class: Drupal\myeventlane_capacity\Service\CapacityOrderInspector

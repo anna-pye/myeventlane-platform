@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_capacity\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
@@ -17,8 +19,20 @@ use Psr\Log\LoggerInterface;
  * Ticket capacity MUST be enforced here (getCapacityTotal, getSoldCount,
  * assertCanBook). Do not rely on node edit form validation or UI state.
  * This protects Ticket UX (Phase 3A).
+ *
+ * assertCanBook() acquires a per-event database row lock, counts authoritative
+ * sold tickets/RSVPs (never cache), includes active provisional reservations,
+ * and writes a reservation row when capacity allows. Callers must pass a stable
+ * reservation_key (e.g. cart:123:event:456) so repeated checks upsert the same
+ * hold. Release reservations via releaseReservation() when the booking commits
+ * or is abandoned.
  */
 final class EventCapacityService implements EventCapacityServiceInterface {
+
+  /**
+   * Seconds before an uncommitted reservation stops counting toward capacity.
+   */
+  private const RESERVATION_TTL = 900;
 
   /**
    * Constructs the service.
@@ -27,6 +41,8 @@ final class EventCapacityService implements EventCapacityServiceInterface {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CacheBackendInterface $cache,
     private readonly LoggerInterface $logger,
+    private readonly Connection $database,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -200,15 +216,143 @@ final class EventCapacityService implements EventCapacityServiceInterface {
   /**
    * {@inheritdoc}
    */
-  public function assertCanBook(NodeInterface $event, int $requested = 1): void {
-    if ($this->isSoldOut($event)) {
-      throw new CapacityExceededException('This event is sold out.');
+  public function assertCanBook(NodeInterface $event, int $requested = 1, ?string $reservationKey = NULL): void {
+    if ($requested <= 0) {
+      return;
     }
 
-    $remaining = $this->getRemaining($event);
-    if ($remaining !== NULL && $requested > $remaining) {
-      throw new CapacityExceededException("Only {$remaining} ticket(s) remaining.");
+    $capacity = $this->getCapacityTotal($event);
+    if ($capacity === NULL) {
+      return;
     }
+
+    $eventId = (int) $event->id();
+    $reservationKey = $this->normalizeReservationKey($eventId, $reservationKey);
+
+    $transaction = $this->database->startTransaction();
+
+    try {
+      $this->ensureLockRow($eventId);
+      $this->acquireEventLock($eventId);
+
+      $now = $this->time->getRequestTime();
+      $this->purgeExpiredReservations($eventId, $now);
+
+      $sold = $this->computeSoldCount($event);
+      $reserved = $this->sumActiveReservations($eventId, $now, $reservationKey);
+      $remaining = $capacity - $sold - $reserved;
+
+      if ($requested > $remaining) {
+        if ($remaining <= 0) {
+          throw new CapacityExceededException('This event is sold out.');
+        }
+        throw new CapacityExceededException("Only {$remaining} ticket(s) remaining.");
+      }
+
+      $this->database->merge('myeventlane_capacity_reservation')
+        ->key('reservation_key', $reservationKey)
+        ->fields([
+          'event_id' => $eventId,
+          'quantity' => $requested,
+          'created' => $now,
+          'expires' => $now + self::RESERVATION_TTL,
+        ])
+        ->execute();
+
+      $this->database->update('myeventlane_capacity_lock')
+        ->fields(['updated' => $now])
+        ->condition('event_id', $eventId)
+        ->execute();
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function releaseReservation(string $reservationKey): void {
+    $reservationKey = trim($reservationKey);
+    if ($reservationKey === '') {
+      return;
+    }
+
+    $this->database->delete('myeventlane_capacity_reservation')
+      ->condition('reservation_key', $reservationKey)
+      ->execute();
+  }
+
+  /**
+   * Ensures a lock row exists for the event before SELECT … FOR UPDATE.
+   */
+  private function ensureLockRow(int $eventId): void {
+    $now = $this->time->getRequestTime();
+    $this->database->merge('myeventlane_capacity_lock')
+      ->key('event_id', $eventId)
+      ->fields(['updated' => $now])
+      ->execute();
+  }
+
+  /**
+   * Acquires a row-level lock for the event.
+   */
+  private function acquireEventLock(int $eventId): void {
+    $this->database->select('myeventlane_capacity_lock', 'l')
+      ->fields('l', ['event_id'])
+      ->condition('event_id', $eventId)
+      ->forUpdate()
+      ->execute();
+  }
+
+  /**
+   * Sums non-expired reservation quantities for an event.
+   *
+   * @param string|null $excludeReservationKey
+   *   Reservation key to exclude (replaced in the same transaction).
+   */
+  private function sumActiveReservations(int $eventId, int $now, ?string $excludeReservationKey = NULL): int {
+    $query = $this->database->select('myeventlane_capacity_reservation', 'r')
+      ->condition('event_id', $eventId)
+      ->condition('expires', $now, '>');
+    if ($excludeReservationKey !== NULL && $excludeReservationKey !== '') {
+      $query->condition('reservation_key', $excludeReservationKey, '<>');
+    }
+    $query->addExpression('COALESCE(SUM([quantity]), 0)', 'total');
+    $total = $query->execute()->fetchField();
+
+    return (int) $total;
+  }
+
+  /**
+   * Deletes expired reservations for an event.
+   */
+  private function purgeExpiredReservations(int $eventId, int $now): void {
+    $this->database->delete('myeventlane_capacity_reservation')
+      ->condition('event_id', $eventId)
+      ->condition('expires', $now, '<=')
+      ->execute();
+  }
+
+  /**
+   * Normalizes or generates a reservation key.
+   */
+  private function normalizeReservationKey(int $eventId, ?string $reservationKey): string {
+    $reservationKey = trim((string) $reservationKey);
+    if ($reservationKey !== '') {
+      return $reservationKey;
+    }
+
+    $generated = 'ephemeral:event:' . $eventId . ':' . uniqid('', TRUE);
+    $this->logger->warning(
+      'assertCanBook called without reservation_key for event @event_id; generated ephemeral key @key. Pass an explicit key (cart/order/rsvp) to avoid capacity leaks.',
+      [
+        '@event_id' => $eventId,
+        '@key' => $generated,
+      ]
+    );
+    return $generated;
   }
 
   /**

@@ -117,7 +117,8 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
         $product,
         $purchased,
         $line_qty,
-        $requested_total
+        $requested_total,
+        'cart:' . $cart->id() . ':event:' . $event_id,
       );
     }
     catch (CapacityExceededException $e) {

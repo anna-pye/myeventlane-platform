@@ -526,7 +526,11 @@ final class TicketSelectionForm extends FormBase {
 
     if ($node) {
       try {
-        $this->ticketAvailability->assertEventTotalBookable($node, $combined_event_total);
+        $this->ticketAvailability->assertEventTotalBookable(
+          $node,
+          $combined_event_total,
+          $this->eventCapacityReservationKey($node, $product),
+        );
       }
       catch (CapacityExceededException $e) {
         $remaining = $this->capacityService?->getRemaining($node);
@@ -600,7 +604,11 @@ final class TicketSelectionForm extends FormBase {
     $combined_event_total = $pending['event_total'] + $total_quantity;
 
     try {
-      $this->ticketAvailability->assertEventTotalBookable($node, $combined_event_total);
+      $this->ticketAvailability->assertEventTotalBookable(
+        $node,
+        $combined_event_total,
+        $this->eventCapacityReservationKey($node, $product),
+      );
     }
     catch (CapacityExceededException $e) {
       $this->messenger()->addError($e->getMessage());
@@ -828,6 +836,21 @@ final class TicketSelectionForm extends FormBase {
     $m = intdiv($seconds % 3600, 60);
     $s = $seconds % 60;
     return sprintf('%02d:%02d:%02d', $h, $m, $s);
+  }
+
+  /**
+   * Stable capacity reservation key for ticket selection / cart flows.
+   */
+  private function eventCapacityReservationKey(NodeInterface $event_node, ProductInterface $product): string {
+    $stores = $product->getStores();
+    if ($stores !== []) {
+      $store = reset($stores);
+      $cart = $this->cartProvider->getCart('default', $store);
+      if ($cart !== NULL) {
+        return 'cart:' . $cart->id() . ':event:' . $event_node->id();
+      }
+    }
+    return 'ticket-select:event:' . $event_node->id() . ':session:' . $this->getRequest()->getSession()->getId();
   }
 
   /**

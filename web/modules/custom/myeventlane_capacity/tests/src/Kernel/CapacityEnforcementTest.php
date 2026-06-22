@@ -31,6 +31,8 @@ final class CapacityEnforcementTest extends KernelTestBase {
     'node',
     'field',
     'text',
+    'options',
+    'flag',
     'commerce',
     'commerce_price',
     'commerce_product',
@@ -76,6 +78,10 @@ final class CapacityEnforcementTest extends KernelTestBase {
     $this->installEntitySchema('commerce_order');
     $this->installEntitySchema('commerce_order_item');
     $this->installConfig(['commerce_product', 'commerce_store', 'commerce_order']);
+    $this->installSchema('myeventlane_capacity', [
+      'myeventlane_capacity_lock',
+      'myeventlane_capacity_reservation',
+    ]);
 
     // Create event content type.
     if (!NodeType::load('event')) {
@@ -167,7 +173,7 @@ final class CapacityEnforcementTest extends KernelTestBase {
 
     // Verify capacity service correctly identifies oversell.
     try {
-      $this->capacityService->assertCanBook($event, 2);
+      $this->capacityService->assertCanBook($event, 2, 'test:oversell:event:' . $event->id());
       $this->fail('Expected CapacityExceededException was not thrown.');
     }
     catch (CapacityExceededException $e) {
@@ -235,7 +241,7 @@ final class CapacityEnforcementTest extends KernelTestBase {
 
     // Verify capacity service allows valid booking.
     try {
-      $this->capacityService->assertCanBook($event, 5);
+      $this->capacityService->assertCanBook($event, 5, 'test:valid:event:' . $event->id());
       $this->assertTrue(TRUE, 'Valid booking should not throw exception.');
     }
     catch (CapacityExceededException $e) {
