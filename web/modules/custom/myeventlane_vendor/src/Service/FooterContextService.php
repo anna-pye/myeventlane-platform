@@ -25,7 +25,7 @@ final class FooterContextService {
    * Constructs the service.
    *
    * @param object|null $vendorStripe
-   *   Optional myeventlane_stripe.vendor_stripe. When enabled, provides payout balance.
+   *   Optional myeventlane_stripe.vendor_payout. When enabled, provides payout balance.
    */
   public function __construct(
     private readonly AccountProxyInterface $currentUser,

@@ -1,9 +1,0 @@
-uuid: a47298db-c48a-47e2-9b10-9d7c2af672ae
-langcode: en
-status: true
-dependencies: {  }
-name: Categories
-vid: categories
-description: 'Event categories for organizing and filtering events (e.g., Music, Workshop, Networking).'
-weight: 0
-new_revision: false

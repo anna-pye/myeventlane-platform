@@ -89,7 +89,6 @@
       "drupal/core-project-message": true,
       "drupal/core-recipe-unpack": true,
       "php-http/discovery": true,
-      "php-tuf/composer-integration": true,
       "phpstan/extension-installer": true,
       "tbachert/spi": true
     },

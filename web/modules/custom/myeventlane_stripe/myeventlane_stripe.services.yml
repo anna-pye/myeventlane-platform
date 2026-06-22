@@ -3,8 +3,8 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_stripe']
 
-  myeventlane_stripe.vendor_stripe:
-    class: Drupal\myeventlane_stripe\Service\VendorStripeService
+  myeventlane_stripe.vendor_payout:
+    class: Drupal\myeventlane_stripe\Service\VendorStripePayoutService
     arguments:
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_stripe'

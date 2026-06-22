@@ -15,7 +15,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Builds complete vendor dashboard data structure.
  *
  * Composes VendorContextService, VendorMetricsService, VendorEventsService,
- * and VendorStripeService into a single dashboard-ready array.
+ * VendorStripeConnectionService, and VendorStripeBalanceService into a single
+ * dashboard-ready array.
  */
 final class VendorDashboardBuilder {
 
@@ -23,7 +24,8 @@ final class VendorDashboardBuilder {
     private readonly VendorContextServiceInterface $context,
     private readonly VendorMetricsServiceInterface $metrics,
     private readonly VendorEventsServiceInterface $events,
-    private readonly VendorStripeServiceInterface $stripe,
+    private readonly VendorStripeConnectionServiceInterface $stripeConnection,
+    private readonly VendorStripeBalanceServiceInterface $stripeBalance,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly AccountProxyInterface $currentUser,
     private readonly RequestStack $requestStack,
@@ -44,8 +46,8 @@ final class VendorDashboardBuilder {
   public function build(StoreInterface $store, array $range): array {
     $metrics = $this->metrics->getMetrics($store, $range);
     $events = $this->events->getDashboardEvents($store, $range);
-    $stripe_status = $this->stripe->getConnectionStatus($store);
-    $stripe_balance = $this->stripe->getAvailableBalanceFormatted($store);
+    $stripe_status = $this->stripeConnection->getConnectionStatus($store);
+    $stripe_balance = $this->stripeBalance->getAvailableBalanceFormatted($store);
 
     // Merge cache tags from all services.
     $cache_tags = array_merge(
