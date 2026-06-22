@@ -313,6 +313,8 @@ final class PageVisualForm extends EntityForm {
    */
   public function save(array $form, FormStateInterface $form_state): int {
     $entity = $this->entity;
+    $old_desktop_uuid = $entity->getMediaUuidDesktop();
+    $old_mobile_uuid = $entity->getMediaUuidMobile();
 
     $route_select = $form_state->getValue('route_name');
     $route_name = $route_select === '__custom__'
@@ -369,10 +371,13 @@ final class PageVisualForm extends EntityForm {
     }
 
     $visual_id = (string) $entity->id();
-    $this->pageVisualMediaManager->registerFileUsage($desktop_fid, $visual_id);
-    if ($mobile_fid > 0 && $mobile_fid !== $desktop_fid) {
-      $this->pageVisualMediaManager->registerFileUsage($mobile_fid, $visual_id);
-    }
+    $this->pageVisualMediaManager->syncFileUsageForVisual(
+      $visual_id,
+      $old_desktop_uuid,
+      $old_mobile_uuid,
+      $desktop_fid,
+      $mobile_fid,
+    );
 
     $this->messenger()->addStatus($this->t('Page visual %label has been saved.', [
       '%label' => $entity->label(),

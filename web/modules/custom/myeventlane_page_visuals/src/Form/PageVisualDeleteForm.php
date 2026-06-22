@@ -8,11 +8,29 @@ use Drupal\Core\Entity\EntityConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
+use Drupal\myeventlane_page_visuals\Service\PageVisualMediaManager;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Delete form for Page Visual config entities.
  */
 final class PageVisualDeleteForm extends EntityConfirmFormBase {
+
+  /**
+   * Page visual media and file helper.
+   *
+   * @var \Drupal\myeventlane_page_visuals\Service\PageVisualMediaManager
+   */
+  protected PageVisualMediaManager $pageVisualMediaManager;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    $instance = parent::create($container);
+    $instance->pageVisualMediaManager = $container->get('myeventlane.page_visual_media_manager');
+    return $instance;
+  }
 
   /**
    * {@inheritdoc}
@@ -41,9 +59,16 @@ final class PageVisualDeleteForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->entity->delete();
+    $entity = $this->entity;
+    $this->pageVisualMediaManager->releaseFileUsageForVisual(
+      (string) $entity->id(),
+      $entity->getMediaUuidDesktop(),
+      $entity->getMediaUuidMobile(),
+    );
+
+    $entity->delete();
     $this->messenger()->addStatus($this->t('Page visual %label has been deleted.', [
-      '%label' => $this->entity->label(),
+      '%label' => $entity->label(),
     ]));
     $form_state->setRedirectUrl($this->getCancelUrl());
   }

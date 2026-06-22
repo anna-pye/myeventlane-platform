@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_page_visuals\Service;
 
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
@@ -25,10 +26,21 @@ final class PageVisualMediaManager {
   public const UPLOAD_DIRECTORY = 'public://page-visuals';
 
   /**
+   * File usage module name.
+   */
+  private const FILE_USAGE_MODULE = 'myeventlane_page_visuals';
+
+  /**
+   * File usage entity type.
+   */
+  private const FILE_USAGE_TYPE = 'myeventlane_page_visual';
+
+  /**
    * Constructs the manager.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityRepositoryInterface $entityRepository,
     private readonly FileSystemInterface $fileSystem,
     private readonly FileUsageInterface $fileUsage,
     private readonly AccountProxyInterface $currentUser,
@@ -113,6 +125,74 @@ final class PageVisualMediaManager {
   }
 
   /**
+   * Gets the file ID referenced by a media UUID.
+   */
+  public function getFileIdFromMediaUuid(?string $media_uuid): int {
+    if ($media_uuid === NULL || $media_uuid === '') {
+      return 0;
+    }
+
+    $media = $this->entityRepository->loadEntityByUuid('media', $media_uuid);
+    if (!$media instanceof MediaInterface || !$media->hasField('field_media_image') || $media->get('field_media_image')->isEmpty()) {
+      return 0;
+    }
+
+    $file = $media->get('field_media_image')->entity;
+    return $file instanceof FileInterface ? (int) $file->id() : 0;
+  }
+
+  /**
+   * Syncs file usage after a page visual save.
+   *
+   * Removes stale references when images are replaced or cleared, and only
+   * registers usage for newly referenced files so counts do not inflate.
+   */
+  public function syncFileUsageForVisual(
+    string $visual_id,
+    ?string $old_desktop_uuid,
+    ?string $old_mobile_uuid,
+    int $new_desktop_fid,
+    int $new_mobile_fid,
+  ): void {
+    if ($visual_id === '') {
+      return;
+    }
+
+    $old_fids = $this->collectFileIdsInUse(
+      $this->getFileIdFromMediaUuid($old_desktop_uuid),
+      $this->getFileIdFromMediaUuid($old_mobile_uuid),
+    );
+    $new_fids = $this->collectFileIdsInUse($new_desktop_fid, $new_mobile_fid);
+
+    foreach (array_diff($old_fids, $new_fids) as $fid) {
+      $this->removeFileUsage($fid, $visual_id);
+    }
+    foreach (array_diff($new_fids, $old_fids) as $fid) {
+      $this->registerFileUsage($fid, $visual_id);
+    }
+  }
+
+  /**
+   * Removes all file usage registered for a page visual.
+   */
+  public function releaseFileUsageForVisual(
+    string $visual_id,
+    ?string $desktop_uuid,
+    ?string $mobile_uuid,
+  ): void {
+    if ($visual_id === '') {
+      return;
+    }
+
+    foreach ($this->collectFileIdsInUse(
+      $this->getFileIdFromMediaUuid($desktop_uuid),
+      $this->getFileIdFromMediaUuid($mobile_uuid),
+    ) as $fid) {
+      $this->removeFileUsage($fid, $visual_id);
+    }
+  }
+
+  /**
    * Registers file usage so uploaded files are not garbage-collected.
    */
   public function registerFileUsage(int $fid, string $visual_id): void {
@@ -127,10 +207,47 @@ final class PageVisualMediaManager {
 
     $this->fileUsage->add(
       $file,
-      'myeventlane_page_visuals',
-      'myeventlane_page_visual',
+      self::FILE_USAGE_MODULE,
+      self::FILE_USAGE_TYPE,
       $visual_id
     );
+  }
+
+  /**
+   * Removes file usage for a page visual reference.
+   */
+  public function removeFileUsage(int $fid, string $visual_id): void {
+    if ($fid <= 0 || $visual_id === '') {
+      return;
+    }
+
+    $file = $this->entityTypeManager->getStorage('file')->load($fid);
+    if (!$file instanceof FileInterface) {
+      return;
+    }
+
+    $this->fileUsage->delete(
+      $file,
+      self::FILE_USAGE_MODULE,
+      self::FILE_USAGE_TYPE,
+      $visual_id
+    );
+  }
+
+  /**
+   * Builds unique file IDs in use for desktop/mobile slots.
+   *
+   * @return list<int>
+   */
+  private function collectFileIdsInUse(int $desktop_fid, int $mobile_fid): array {
+    $fids = [];
+    if ($desktop_fid > 0) {
+      $fids[$desktop_fid] = $desktop_fid;
+    }
+    if ($mobile_fid > 0) {
+      $fids[$mobile_fid] = $mobile_fid;
+    }
+    return array_values($fids);
   }
 
 }
