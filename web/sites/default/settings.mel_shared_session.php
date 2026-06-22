@@ -228,3 +228,46 @@ if ($mel_qr_secret !== '') {
 elseif (getenv('IS_DDEV_PROJECT') === 'true') {
   $settings['myeventlane_qr_secret'] = 'local-dev-only-change-me';
 }
+
+// ---------------------------------------------------------------------------
+// Multi-domain URLs: from environment — never export hosts to config/sync.
+//
+//   MEL_PUBLIC_DOMAIN=https://staging.myeventlane.com.au
+//   MEL_VENDOR_DOMAIN=https://vendor.staging.myeventlane.com.au
+//   MEL_ADMIN_DOMAIN=https://admin.staging.myeventlane.com.au
+//   MEL_FORCE_DOMAIN_REDIRECTS=1
+//
+// Staging/production: set on PHP-FPM and CLI (deploy Drush). DDEV defaults
+// apply when env vars are unset locally.
+// ---------------------------------------------------------------------------
+$mel_public_domain = $melGetEnv('MEL_PUBLIC_DOMAIN');
+if ($mel_public_domain !== '') {
+  $config['myeventlane_core.domain_settings']['public_domain'] = $mel_public_domain;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['public_domain'] = 'https://myeventlane.ddev.site';
+}
+
+$mel_vendor_domain = $melGetEnv('MEL_VENDOR_DOMAIN');
+if ($mel_vendor_domain !== '') {
+  $config['myeventlane_core.domain_settings']['vendor_domain'] = $mel_vendor_domain;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['vendor_domain'] = 'https://vendor.myeventlane.ddev.site';
+}
+
+$mel_admin_domain = $melGetEnv('MEL_ADMIN_DOMAIN');
+if ($mel_admin_domain !== '') {
+  $config['myeventlane_core.domain_settings']['admin_domain'] = $mel_admin_domain;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['admin_domain'] = 'https://admin.myeventlane.ddev.site';
+}
+
+$mel_force_domain_redirects = $melGetEnv('MEL_FORCE_DOMAIN_REDIRECTS');
+if ($mel_force_domain_redirects === '1') {
+  $config['myeventlane_core.domain_settings']['force_redirects'] = TRUE;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['force_redirects'] = TRUE;
+}
