@@ -1,0 +1,86 @@
+# MyEventLane secret scanning — targeted rules for payment, webhook, QR, dumps, and keys.
+# Avoids generic-api-key noise from Drupal CSRF tokens in audit artefacts.
+#
+# Local scan (current tree):
+#   docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source=/repo --config=/repo/.gitleaks.toml --no-git --verbose
+#
+# Local scan (recent commits):
+#   docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:latest detect --config=.gitleaks.toml --log-opts="HEAD~10..HEAD"
+
+title = "MyEventLane gitleaks"
+
+[allowlist]
+description = "Vendor paths, audit artefacts, docs placeholders, empty config, and test fixtures"
+paths = [
+  '''(?i)(?:^|/)\.ddev/''',
+  '''(?i)(?:^|/)vendor/''',
+  '''(?i)(?:^|/)vendor\.bak/''',
+  '''(?i)(?:^|/)node_modules/''',
+  '''(?i)(?:^|/)web/core/''',
+  '''(?i)(?:^|/)web/modules/contrib/''',
+  '''(?i)(?:^|/)web/themes/contrib/''',
+  '''(?i)(?:^|/)dist/''',
+  '''(?i)(?:^|/)scripts/audit/output/''',
+  '''(?i)(?:^|/)web/modules/custom/.+/tests/''',
+]
+regexes = [
+  '''local-dev-only-change-me''',
+  '''your_webhook_secret''',
+  '''change-me''',
+  '''whsec_\.\.\.''',
+  '''whsec_…''',
+  '''sk_test_\.\.\.''',
+  '''sk_test_…''',
+  '''sk_live_\.\.\.''',
+  '''sk_live_…''',
+  '''pk_test_\.\.\.''',
+  '''pk_live_\.\.\.''',
+  '''rk_live_\.\.\.''',
+  '''webhook_signing_secret:\s*[''"]?[''"]?''',
+  '''webhook_secret:\s*[''"]?[''"]?''',
+  '''stripe_webhook_secret:\s*[''"]?[''"]?''',
+  '''sk_live_ABCDEFGHIJ''',
+  '''BQokikJOvBiI2HlWgH4olfQ2''',
+]
+
+[[rules]]
+id = "stripe-access-token"
+description = "Stripe secret or restricted key (sk_/rk_)"
+regex = '''\b((?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99})(?:[\x60'"\s;]|\\[nr]|$)'''
+keywords = [
+  "sk_test",
+  "sk_live",
+  "sk_prod",
+  "rk_test",
+  "rk_live",
+  "rk_prod",
+]
+
+[[rules]]
+id = "mel-stripe-webhook-secret"
+description = "Stripe webhook signing secret (whsec_)"
+regex = '''\bwhsec_[a-zA-Z0-9]{16,}\b'''
+keywords = ["whsec_"]
+
+[[rules]]
+id = "mel-qr-signing-secret-env"
+description = "MEL QR signing secret in environment assignment"
+regex = '''(?i)MEL_QR_SECRET\s*=\s*['"]?[a-zA-Z0-9+/=_-]{16,}['"]?'''
+keywords = ["MEL_QR_SECRET"]
+
+[[rules]]
+id = "mel-qr-signing-secret-settings"
+description = "MEL QR signing secret in Drupal settings"
+regex = '''(?i)\$settings\['myeventlane_(?:ticket_)?qr_secret'\]\s*=\s*['"][^'"]{16,}['"]'''
+keywords = ["myeventlane_qr_secret"]
+
+[[rules]]
+id = "mel-sql-dump"
+description = "Committed SQL database dump"
+regex = '''(?i)(?:INSERT\s+INTO|CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|DROP\s+TABLE|COPY\s+public\.|mysqldump|pg_dump)'''
+path = '''\.(sql|sql\.gz)$'''
+
+[[rules]]
+id = "mel-private-key-block"
+description = "Private key material (PEM block with body)"
+regex = '''(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S-]{64,}?KEY(?: BLOCK)?-----'''

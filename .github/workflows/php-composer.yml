@@ -16,6 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Config safety check
+        run: bash scripts/check-config-safety.sh
+
+      - name: Webroot safety check
+        run: bash scripts/check-webroot-safety.sh
+
       - name: Verify config/sync has no DDEV hostnames
         shell: bash
         run: |
