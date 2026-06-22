@@ -18,7 +18,7 @@ It does **not** replace general deploy documentation. Use it as a release-specif
 
 - [STAGING_DEPLOY_GIT.md](../STAGING_DEPLOY_GIT.md) — how staging deploy is triggered (push to `main` → CI → `remote-deploy.sh`)
 - [release-hardening.md](../release-hardening.md) — config sync discipline and post-deploy health checks
-- [STAGING_INDEXING_PROTECTION.md](../../STAGING_INDEXING_PROTECTION.md) — staging-only indexing protection (do **not** apply to production)
+- [STAGING_INDEXING_PROTECTION.md](../operations/STAGING_INDEXING_PROTECTION.md) — staging-only indexing protection (do **not** apply to production)
 
 ---
 
@@ -263,7 +263,7 @@ curl -sI https://staging.myeventlane.com.au/events | grep -i x-robots-tag
 X-Robots-Tag: noindex, nofollow, noarchive, nosnippet
 ```
 
-Set by `StagingSecuritySubscriber` when the host is a staging hostname. See also server-level guidance in [STAGING_INDEXING_PROTECTION.md](../../STAGING_INDEXING_PROTECTION.md).
+Set by `StagingSecuritySubscriber` when the host is a staging hostname. See also server-level guidance in [STAGING_INDEXING_PROTECTION.md](../operations/STAGING_INDEXING_PROTECTION.md).
 
 ### Production — safety check only
 
@@ -386,7 +386,7 @@ See [`scripts/deploy/remote-deploy.sh`](../../scripts/deploy/remote-deploy.sh) �
 | --- | --- |
 | `field_event_visibility` | Referenced in vendor/Studio PHP but **not exported** in `config/sync` — private/unlisted/passcode visibility may not be fully enforced on all discovery surfaces until audited separately |
 | Private / unlisted / passcode events | Require a dedicated visibility audit beyond this smoke test |
-| `simple_sitemap` | Not installed or configured in `config/sync` — no automated sitemap generation in repo; see [STAGING_INDEXING_PROTECTION.md](../../STAGING_INDEXING_PROTECTION.md) |
+| `simple_sitemap` | Not installed or configured in `config/sync` — no automated sitemap generation in repo; see [STAGING_INDEXING_PROTECTION.md](../operations/STAGING_INDEXING_PROTECTION.md) |
 | Per-environment aliases | Existing nodes/terms need Pathauto generation on **each** environment after deploy |
 | Default CI deploy skips `cim` | Until workflow passes `RUN_CIM=1`, operators must run config import manually for this release |
 | Full checkout payment | Out of scope — booking **entry** only |
@@ -399,6 +399,6 @@ See [`scripts/deploy/remote-deploy.sh`](../../scripts/deploy/remote-deploy.sh) �
 | --- | --- |
 | [STAGING_DEPLOY_GIT.md](../STAGING_DEPLOY_GIT.md) | Git → CI → staging deploy flow |
 | [STAGING_SETUP.md](../STAGING_SETUP.md) | Staging environment hardening |
-| [STAGING_INDEXING_PROTECTION.md](../../STAGING_INDEXING_PROTECTION.md) | Staging-only noindex (never production) |
+| [STAGING_INDEXING_PROTECTION.md](../operations/STAGING_INDEXING_PROTECTION.md) | Staging-only noindex (never production) |
 | [release-hardening.md](../release-hardening.md) | Config sync discipline, `mel:health` |
 | [operational-addons-staging-qa.md](../operational-addons-staging-qa.md) | Example staging QA runbook pattern |

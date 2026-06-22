@@ -17,6 +17,7 @@ composer.phar
 ############################################
 # Node / Vite
 ############################################
+yarn.lock
 /node_modules/
 /web/themes/custom/*/node_modules/
 /web/themes/custom/**/node_modules.bak/
@@ -141,6 +142,7 @@ web/themes/custom/**/tmp/
 ############################################
 # Archives & junk
 ############################################
+*.tar.gz
 *.zip
 # Local system / cloud links
 OneDrive
@@ -152,7 +154,7 @@ vendor.bak
 ############################################
 mel@*
 *.gz.enc
-staging-*.conf
+/staging-*.conf
 *.staging
 drush/sites/staging.site.yml
 
@@ -185,3 +187,4 @@ drush/sites/staging.site.yml
 tmp/
 memory/
 docs/internal/
+*.bak

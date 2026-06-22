@@ -16,7 +16,7 @@ The staging environment includes multiple layers of protection:
 
 - `web/robots.txt.staging` - Staging-specific robots.txt (blocks all crawlers)
 - `web/modules/custom/myeventlane_core/src/EventSubscriber/StagingSecuritySubscriber.php` - Adds security headers
-- `infrastructure/nginx/staging-nginx.conf` - Nginx include snippet for staging VPS
+- `infrastructure/nginx/staging-nginx.conf` - Nginx configuration for VPS
 - `STAGING_SETUP.md` - This file
 
 ## Setup Instructions

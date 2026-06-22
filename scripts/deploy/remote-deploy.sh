@@ -377,6 +377,91 @@ if [ -f "$SHARED_PATH/settings.php" ]; then
   fi
 fi
 
+# shared/settings.php lives outside the release and typically requires
+# __DIR__ . '/settings.mel_shared_session.php'. Sync the tracked fragment from
+# each release so domain/Stripe/session overrides stay current without hand-editing shared/.
+MEL_SHARED_SESSION_SRC="$RELEASE_PATH/web/sites/default/settings.mel_shared_session.php"
+MEL_SHARED_SESSION_DST="$SHARED_PATH/settings.mel_shared_session.php"
+if [ -f "$MEL_SHARED_SESSION_SRC" ]; then
+  cp "$MEL_SHARED_SESSION_SRC" "$MEL_SHARED_SESSION_DST"
+  echo "Synced settings.mel_shared_session.php to $MEL_SHARED_SESSION_DST"
+elif [ ! -f "$MEL_SHARED_SESSION_DST" ]; then
+  echo "ERROR: settings.mel_shared_session.php missing in release and not present in shared/." >&2
+  echo "Ensure web/sites/default/settings.mel_shared_session.php is in the artifact." >&2
+  exit 1
+fi
+
+if [ -f "$SHARED_PATH/settings.php" ] && ! grep -qE 'settings\.mel_(shared_session|domains)|myeventlane_core\.domain_settings' "$SHARED_PATH/settings.php"; then
+  echo "ERROR: $SHARED_PATH/settings.php must load MEL domain overrides." >&2
+  echo "Add (uses active release for mel_shared_session, shared/ for mel_domains):" >&2
+  echo '  $mel_shared_session = $app_root . '"'"'/'"'"' . $site_path . '"'"'/settings.mel_shared_session.php'"'"';' >&2
+  echo '  if (is_readable($mel_shared_session)) { require $mel_shared_session; }' >&2
+  echo '  $mel_domains = __DIR__ . '"'"'/settings.mel_domains.php'"'"';' >&2
+  echo '  if (is_readable($mel_domains)) { require $mel_domains; }' >&2
+  exit 1
+fi
+
+mel_write_shared_domain_settings() {
+  local mode="$1"
+  local dst="$SHARED_PATH/settings.mel_domains.php"
+  local pub vendor admin
+
+  case "$mode" in
+    staging)
+      pub='https://staging.myeventlane.com.au'
+      vendor='https://vendor.staging.myeventlane.com.au'
+      admin='https://admin.staging.myeventlane.com.au'
+      ;;
+    production)
+      pub='https://myeventlane.com.au'
+      vendor='https://vendor.myeventlane.com.au'
+      admin='https://admin.myeventlane.com.au'
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  cat > "$dst" <<PHP
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Host domain URLs for ${mode} — written by scripts/deploy/remote-deploy.sh.
+ *
+ * Do not commit this file; it lives in ~/staging/shared/ (or production shared/).
+ * Env vars MEL_* override when set (same names as settings.mel_shared_session.php).
+ */
+
+\$melGetEnv = static function (string \$name): string {
+  \$v = getenv(\$name);
+  if (is_string(\$v) && \$v !== '') {
+    return \$v;
+  }
+  if (isset(\$_ENV[\$name]) && is_string(\$_ENV[\$name]) && \$_ENV[\$name] !== '') {
+    return \$_ENV[\$name];
+  }
+  if (isset(\$_SERVER[\$name]) && is_string(\$_SERVER[\$name]) && \$_SERVER[\$name] !== '') {
+    return \$_SERVER[\$name];
+  }
+  return '';
+};
+
+\$config['myeventlane_core.domain_settings']['public_domain'] =
+  \$melGetEnv('MEL_PUBLIC_DOMAIN') ?: '${pub}';
+\$config['myeventlane_core.domain_settings']['vendor_domain'] =
+  \$melGetEnv('MEL_VENDOR_DOMAIN') ?: '${vendor}';
+\$config['myeventlane_core.domain_settings']['admin_domain'] =
+  \$melGetEnv('MEL_ADMIN_DOMAIN') ?: '${admin}';
+\$config['myeventlane_core.domain_settings']['force_redirects'] =
+  \$melGetEnv('MEL_FORCE_DOMAIN_REDIRECTS') !== '0';
+PHP
+
+  echo "Wrote domain overrides to $dst (${mode})"
+}
+
 # Do not symlink settings.local.php: it is DDEV-only in this project and must
 # never override staging/production trusted hosts or domains from shared/.
 if [ -f "$SHARED_PATH/settings.local.php" ]; then
@@ -597,6 +682,7 @@ mel_resolve_deploy_mode() {
 MEL_DEPLOY_MODE="$(mel_resolve_deploy_mode)"
 
 if [ "$MEL_DEPLOY_MODE" = "production" ] || [ "$MEL_DEPLOY_MODE" = "staging" ]; then
+  mel_write_shared_domain_settings "$MEL_DEPLOY_MODE"
   mel_verify_domain_environment "$MEL_DEPLOY_MODE"
 else
   echo "NOTICE: Skipping domain environment verification (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2

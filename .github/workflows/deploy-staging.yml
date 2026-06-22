@@ -139,6 +139,10 @@ jobs:
             'APP_PATH="$HOME/staging" \' \
             'APP_ENV=staging \' \
             'SITE_URI="https://staging.myeventlane.com.au" \' \
+            'MEL_PUBLIC_DOMAIN="https://staging.myeventlane.com.au" \' \
+            'MEL_VENDOR_DOMAIN="https://vendor.staging.myeventlane.com.au" \' \
+            'MEL_ADMIN_DOMAIN="https://admin.staging.myeventlane.com.au" \' \
+            'MEL_FORCE_DOMAIN_REDIRECTS=1 \' \
             'ARTIFACT_PATH="$temp_dir" \' \
             'bash scripts/deploy/remote-deploy.sh' \
             | ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" bash -s
