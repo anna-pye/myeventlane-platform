@@ -182,6 +182,19 @@ jobs:
             exit 1
           }
 
+      - name: Validate artifact excludes nginx reference configs
+        run: |
+          set -euo pipefail
+          archive_path="${{ steps.package.outputs.artifact_path }}"
+          leaked=$(tar -tzf "$archive_path" | grep -E '(^|/)staging-nginx\.conf$|(^|/)infrastructure/' || true)
+          if [ -n "$leaked" ]; then
+            echo "❌ Artifact must not bundle nginx reference configs (staging-nginx.conf or infrastructure/)"
+            echo "   Install includes on the VPS during provisioning — see infrastructure/README.md"
+            echo "$leaked"
+            exit 1
+          fi
+          echo "OK: nginx reference configs excluded from release artifact"
+
       - name: Validate artifact registers state_readiness_helper (staging Drush)
         run: |
           set -euo pipefail
