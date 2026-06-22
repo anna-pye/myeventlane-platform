@@ -50,6 +50,8 @@
       <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalCartProjectionBuilderTest.php</file>
       <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalOrderItemDisplayBuilderTest.php</file>
       <file>modules/custom/myeventlane_commerce/tests/src/Unit/TicketBackedOrderItemClassifierTest.php</file>
+      <file>modules/custom/myeventlane_governance/tests/src/Kernel/PublicRouteGovernanceTest.php</file>
+      <file>modules/custom/myeventlane_governance/tests/src/Kernel/WebrootSafetyGovernanceTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>
