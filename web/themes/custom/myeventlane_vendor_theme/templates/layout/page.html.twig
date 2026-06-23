@@ -1,10 +1,18 @@
 {#
 /**
  * @file
- * Shared vendor shell layout for MyEventLane.
+ * Canonical VendorShell layout for the organiser console.
  *
- * Shell navigation is always the sidebar partial (same markup as dashboard).
- * Main column: page.content.
+ * Regions: sidebar (nav), header (title/actions), main (content), optional
+ * utility rail (sidebar_help), footer. All vendor page suggestions delegate
+ * here via templates/page.html.twig.
+ *
+ * Inner content shells (not page wrappers):
+ * - myeventlane_vendor_console_page → layout/console-page.html.twig
+ * - mel_event_workspace → mel-event/mel-event-workspace.html.twig
+ * - myeventlane_vendor_dashboard → dashboard/dashboard.html.twig
+ *
+ * Event Studio (Phase 2B): mel_event_studio_workspace — separate shell, unchanged.
  */
 #}
 {{ attach_library('myeventlane_vendor_theme/footer-internal') }}
@@ -19,38 +27,9 @@
   </aside>
 
   <div class="mel-vendor-shell__main mel-vendor-console__main">
-    <header class="mel-shell-header mel-vendor-console__header" role="banner">
-      <div class="mel-shell-header__left">
-        <button class="mel-shell-header__menu-btn"
-                type="button"
-                data-sidebar-toggle
-                aria-expanded="false"
-                aria-controls="mel-vendor-sidebar"
-                aria-label="{{ 'Open navigation menu'|t }}">
-          <span aria-hidden="true">☰</span>
-        </button>
-
-        <div class="mel-shell-header__titles">
-          <h1 class="mel-shell-header__title">{{ page.shell_page_title|default('Vendor workspace'|t) }}</h1>
-          {% if page.shell_page_subtitle %}
-            <p class="mel-shell-header__subtitle">{{ page.shell_page_subtitle }}</p>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="mel-shell-header__actions">
-        {% if page.mel_notification_bell %}
-          <div class="mel-shell-header__notifications">
-            {{ page.mel_notification_bell }}
-          </div>
-        {% endif %}
-        {% if page.shell_primary_action %}
-          <a href="{{ page.shell_primary_action.url }}" class="mel-btn mel-btn--primary mel-vendor-console__primary-action">
-            {{ page.shell_primary_action.label }}
-          </a>
-        {% endif %}
-      </div>
-    </header>
+    {% include '@myeventlane_vendor_theme/includes/vendor-shell-header.html.twig' with {
+      page: page,
+    } only %}
 
     {% if page.vendor_alert is defined %}
       {% include '@myeventlane_vendor_theme/includes/vendor-alert-strip.html.twig' with {
@@ -72,46 +51,22 @@
       {% if page.sidebar_help %}
         <div class="mel-shell-layout mel-shell-layout--with-utility">
           <div class="mel-shell-layout__main">
-            {% if is_dashboard_route %}
-              <section class="mel-dashboard-page mel-dashboard-page--governed mel-vendor-dashboard">
-                {% if mel_surface|default('') == 'vendor' %}
-                  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--governance">
-                    <summary>{{ 'Console guidance and readiness'|t }}</summary>
-                    <div class="mel-vendor-dashboard__details-grid">
-                      {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
-                    </div>
-                  </details>
-                {% endif %}
-                {{ page.content }}
-              </section>
-            {% elseif page.mel_vendor_route_tabs %}
-              {% include '@myeventlane_vendor_theme/includes/vendor-settings-main-shell.html.twig' %}
-            {% else %}
-              {{ page.content }}
-            {% endif %}
+            {% include '@myeventlane_vendor_theme/includes/vendor-shell-main-content.html.twig' with {
+              page: page,
+              is_dashboard_route: is_dashboard_route,
+              mel_surface: mel_surface|default(''),
+            } only %}
           </div>
           <aside class="mel-shell-layout__utility-rail" data-help-sidebar>
             {{ page.sidebar_help }}
           </aside>
         </div>
       {% else %}
-        {% if is_dashboard_route %}
-          <section class="mel-dashboard-page mel-dashboard-page--governed mel-vendor-dashboard">
-            {% if mel_surface|default('') == 'vendor' %}
-              <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--governance">
-                <summary>{{ 'Console guidance and readiness'|t }}</summary>
-                <div class="mel-vendor-dashboard__details-grid">
-                  {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
-                </div>
-              </details>
-            {% endif %}
-            {{ page.content }}
-          </section>
-        {% elseif page.mel_vendor_route_tabs %}
-          {% include '@myeventlane_vendor_theme/includes/vendor-settings-main-shell.html.twig' %}
-        {% else %}
-          {{ page.content }}
-        {% endif %}
+        {% include '@myeventlane_vendor_theme/includes/vendor-shell-main-content.html.twig' with {
+          page: page,
+          is_dashboard_route: is_dashboard_route,
+          mel_surface: mel_surface|default(''),
+        } only %}
       {% endif %}
     </main>
 
