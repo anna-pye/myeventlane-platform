@@ -17,6 +17,18 @@
 $mel-dash-lavender: #7c83fd;
 
 .mel-vendor-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-5;
+
+  @include respond-to(md) {
+    gap: $spacing-6;
+  }
+
+  &--empty {
+    gap: $spacing-6;
+  }
+
   .mel-live-ops__split {
     margin-top: 0;
   }
@@ -26,10 +38,10 @@ $mel-dash-lavender: #7c83fd;
     gap: $spacing-4;
     align-items: center;
     padding: $spacing-4;
-    border: 1px solid rgba($ml-vendor-navy, 0.12);
-    border-left: 4px solid $info;
+    border: 1px solid $mel-shell-border;
+    border-left: 4px solid $primary;
     border-radius: $radius-workspace-card;
-    background: $bg-primary;
+    background: $mel-shell-surface;
     box-shadow: $shadow-sm;
 
     @include respond-to(md) {
@@ -70,16 +82,84 @@ $mel-dash-lavender: #7c83fd;
 
   &__mission-hero .mel-live-ops__hero-surface {
     background:
-      radial-gradient(780px circle at 100% 0%, rgba($info, 0.08), transparent 40%),
-      linear-gradient(135deg, $bg-primary 0%, rgba($ml-slate-50, 0.72) 100%);
+      radial-gradient(720px circle at 100% 0%, rgba($mel-ws-purple, 0.07), transparent 42%),
+      linear-gradient(135deg, $mel-shell-surface 0%, $mel-brand-bg 100%);
+    border: 1px solid $mel-shell-border;
   }
 
-  &__mission-hero {
+  &__mission-hero--empty .mel-vendor-dashboard__empty-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: $spacing-6 $spacing-4;
+
+    @include respond-to(md) {
+      padding: $spacing-8 $spacing-6;
+    }
+
+    .mel-live-ops__hero-title {
+      max-width: 22rem;
+    }
+
+    .mel-vendor-dashboard__empty-hero-message {
+      max-width: 28rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  &__empty-hero-cta {
+    margin-top: $spacing-5;
+    width: 100%;
+    max-width: 20rem;
+
+    .mel-btn {
+      width: 100%;
+    }
+
+    @include respond-to(md) {
+      width: auto;
+
+      .mel-btn {
+        width: auto;
+        min-width: 14rem;
+      }
+    }
+  }
+
+  &__mission-hero-layout--solo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  &__metric-intro {
+    margin: 0 0 $spacing-4;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-relaxed;
+    max-width: 36rem;
+  }
+
+  &__metric-strip {
+    padding: $spacing-4;
+    border: 1px solid $mel-shell-border;
+    border-radius: $radius-workspace-card;
+    background: $mel-shell-surface;
+    box-shadow: $shadow-xs;
+
+    @include respond-to(md) {
+      padding: $spacing-5;
+    }
+
+    &--starter {
+      background: linear-gradient(180deg, $mel-shell-surface 0%, $mel-brand-bg 100%);
+    }
+
     .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: $spacing-2;
-      margin-top: $spacing-4;
+      margin-top: 0;
 
       @include respond-to(md) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -100,9 +180,9 @@ $mel-dash-lavender: #7c83fd;
       min-width: 0;
       min-height: 2.75rem;
       padding: $spacing-3;
-      border: 1px solid rgba($ml-vendor-navy, 0.08);
+      border: 1px solid $mel-shell-border;
       border-radius: $radius-lg;
-      background: rgba($bg-primary, 0.94);
+      background: rgba($mel-shell-surface, 0.94);
       box-shadow: $shadow-xs;
     }
 
@@ -137,9 +217,19 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
+  &__mission-hero {
+    .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
+      display: none;
+    }
+  }
+
   &__mission-hero-layout {
     @include respond-to(md) {
       grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.36fr);
+    }
+
+    &--solo {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 
@@ -169,9 +259,19 @@ $mel-dash-lavender: #7c83fd;
   &__activity-stream,
   &__upcoming-strip {
     padding: $spacing-4;
-    border: 1px solid rgba($ml-vendor-navy, 0.1);
+    border: 1px solid $mel-shell-border;
     border-radius: $radius-workspace-card;
-    background: $bg-primary;
+    background: $mel-shell-surface;
+    box-shadow: $shadow-xs;
+  }
+
+  &__quick-actions.mel-live-ops__quick-bar {
+    position: static;
+    margin: 0;
+    padding: $spacing-3;
+    background: $mel-shell-surface;
+    border: 1px solid $mel-shell-border;
+    border-radius: $radius-workspace-card;
     box-shadow: $shadow-xs;
   }
 
@@ -251,35 +351,6 @@ $mel-dash-lavender: #7c83fd;
     color: $text-primary;
     font-size: $font-size-xl;
     line-height: $line-height-tight;
-  }
-
-  &__metric-strip {
-    padding: $spacing-4;
-    border: 1px solid rgba($ml-vendor-navy, 0.1);
-    border-radius: $radius-workspace-card;
-    background: $bg-primary;
-    box-shadow: $shadow-sm;
-
-    @include respond-to(md) {
-      padding: $spacing-5;
-    }
-  }
-
-  &__metric-board.mel-live-ops__metric-board {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: $spacing-4;
-
-    @include respond-to(lg) {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-  }
-
-  &__quick-actions.mel-live-ops__quick-bar {
-    position: static;
-    margin-top: -$spacing-2;
-    margin-bottom: 0;
-    background: $bg-primary;
-    border: 1px solid rgba($ml-vendor-navy, 0.08);
   }
 
   &__activity-list {
