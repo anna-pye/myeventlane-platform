@@ -87,35 +87,56 @@ $mel-dash-lavender: #7c83fd;
     border: 1px solid $mel-shell-border;
   }
 
+  &__mission-hero--empty {
+    .mel-live-ops__hero-surface {
+      background:
+        radial-gradient(720px circle at 50% -10%, rgba($mel-ws-coral, 0.1), transparent 58%),
+        $mel-shell-page-bg;
+      box-shadow: $shadow-sm;
+    }
+  }
+
   &__mission-hero--empty .mel-vendor-dashboard__empty-hero {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: $spacing-6 $spacing-4;
+    min-height: 12rem;
+    padding: $spacing-8 $spacing-4;
 
     @include respond-to(md) {
-      padding: $spacing-8 $spacing-6;
-    }
-
-    .mel-live-ops__hero-title {
-      max-width: 22rem;
-    }
-
-    .mel-vendor-dashboard__empty-hero-message {
-      max-width: 28rem;
-      margin-left: auto;
-      margin-right: auto;
+      min-height: 14rem;
+      padding: $spacing-10 $spacing-8;
     }
   }
 
-  &__empty-hero-cta {
-    margin-top: $spacing-5;
-    width: 100%;
+  &__empty-state-title {
     max-width: 20rem;
+    font-size: clamp(1.625rem, 5vw, 2.125rem);
+    line-height: $line-height-tight;
+
+    @include respond-to(md) {
+      max-width: 24rem;
+    }
+  }
+
+  &__mission-hero--empty .mel-vendor-dashboard__empty-hero-message {
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
+    color: $text-secondary;
+    font-size: $font-size-base;
+    line-height: $line-height-relaxed;
+  }
+
+  &__empty-hero-cta {
+    margin-top: $spacing-6;
+    width: 100%;
+    max-width: 22rem;
 
     .mel-btn {
       width: 100%;
+      min-height: 2.75rem;
     }
 
     @include respond-to(md) {
@@ -123,7 +144,7 @@ $mel-dash-lavender: #7c83fd;
 
       .mel-btn {
         width: auto;
-        min-width: 14rem;
+        min-width: 15rem;
       }
     }
   }

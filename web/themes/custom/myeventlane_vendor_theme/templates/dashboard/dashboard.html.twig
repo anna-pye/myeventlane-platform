@@ -58,18 +58,16 @@
   {% endif %}
 
   {% if events_empty %}
+    {% set empty_cta_url = empty_state.url|default(create_action.url|default(null)) %}
+    {% set empty_cta_label = empty_state.action_label|default(create_action.label|default(null)) %}
     <section class="mel-live-ops__hero mel-vendor-dashboard__mission-hero mel-vendor-dashboard__mission-hero--empty" aria-labelledby="mel-dash-hero-title">
-      <div class="mel-live-ops__hero-surface mel-vendor-dashboard__empty-hero">
+      <div class="mel-live-ops__hero-surface mel-vendor-dashboard__empty-hero mel-vendor-dashboard__empty-state" role="status">
         <p class="mel-live-ops__eyebrow">{{ 'Organiser dashboard'|t }}</p>
-        <h1 id="mel-dash-hero-title" class="mel-live-ops__hero-title">{{ empty_state.title|default('Welcome to MyEventLane'|t) }}</h1>
+        <h1 id="mel-dash-hero-title" class="mel-live-ops__hero-title mel-vendor-dashboard__empty-state-title">{{ empty_state.title|default('Welcome to MyEventLane'|t) }}</h1>
         <p class="mel-live-ops__hero-venue mel-vendor-dashboard__empty-hero-message">{{ empty_state.message|default('Create your first event to start selling tickets or collecting RSVPs.'|t) }}</p>
-        {% if empty_state.url is defined and empty_state.url and empty_state.action_label is defined and empty_state.action_label %}
+        {% if empty_cta_url and empty_cta_label %}
           <div class="mel-vendor-dashboard__empty-hero-cta">
-            <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ empty_state.url }}">{{ empty_state.action_label }}</a>
-          </div>
-        {% elseif create_action and create_action.url is defined and create_action.url %}
-          <div class="mel-vendor-dashboard__empty-hero-cta">
-            <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ create_action.url }}">{{ create_action.label|default('Create event'|t) }}</a>
+            <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ empty_cta_url }}">{{ empty_cta_label }}</a>
           </div>
         {% endif %}
       </div>
