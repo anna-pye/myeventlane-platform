@@ -97,7 +97,7 @@ final class VendorAnalyticsViewModelBuilder {
     }
 
     return [
-      'title' => (string) $this->t('Analytics'),
+      'title' => (string) $this->t('Insights'),
       'subtitle' => (string) $this->t('Understand event performance across your organiser account.'),
       'date_range' => [
         'active' => 'all',
@@ -115,7 +115,7 @@ final class VendorAnalyticsViewModelBuilder {
    */
   private function emptyGuestModel(): array {
     return [
-      'title' => (string) $this->t('Analytics'),
+      'title' => (string) $this->t('Insights'),
       'subtitle' => (string) $this->t('Understand event performance across your organiser account.'),
       'date_range' => [
         'active' => 'all',

@@ -13,7 +13,7 @@
 
 {% if visible_cards|length > 0 %}
   <section class="mel-vendor-analytics mel-vendor-dashboard__analytics-summary" aria-labelledby="mel-vendor-analytics-title">
-    <h2 id="mel-vendor-analytics-title" class="mel-vendor-analytics__title">{{ 'Analytics summary'|t }}</h2>
+    <h2 id="mel-vendor-analytics-title" class="mel-vendor-analytics__title">{{ 'Insights summary'|t }}</h2>
 
     {% macro render_group(title, keys, cards) %}
       {% set group_cards = cards|filter(card => (card.key|default('')) in keys) %}
