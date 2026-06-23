@@ -531,7 +531,7 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
   $base_path = base_path();
 
   // Branding: logo link (PNG wordmark; SVG icon retained for legacy surfaces).
-  $logo_path = $base_path . $theme_path . '/images/logo.png';
+  $logo_path = $base_path . $theme_path . '/images/logo.webp';
   $variables['branding'] = [
     '#type' => 'link',
     '#title' => [
