@@ -123,7 +123,7 @@ final class AccountLinksService {
     $definitions = [
       [
         'id' => 'dashboard',
-        'title' => $this->t('Dashboard'),
+        'title' => $this->t('Home'),
         'url' => $dashboardUrl,
         'in_quick' => FALSE,
         'show_in_sidebar' => TRUE,
