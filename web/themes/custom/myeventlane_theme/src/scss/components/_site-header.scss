@@ -84,13 +84,13 @@
       object-fit: contain;
 
       @include breakpoints.mel-break(md) {
-        max-height: 44px;
-        max-width: 110px;
+        max-height: 48px;
+        max-width: 160px;
       }
 
       @include breakpoints.mel-break(md, max) {
         max-height: 40px;
-        max-width: 45vw;
+        max-width: min(140px, 45vw);
       }
     }
   }
