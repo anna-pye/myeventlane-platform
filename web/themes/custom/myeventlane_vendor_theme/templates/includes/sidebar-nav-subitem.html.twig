@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Vendor shell sidebar subnav link (nested under a group item).
+ *
+ * @var child array Child nav item or nested top-level item.
+ */
+#}
+{% if child.url and not child.is_disabled %}
+  <a href="{{ child.url }}"
+     class="mel-sidebar__subnav-link mel-vendor-console__nav-item mel-vendor-console__mobile-nav-item{% if child.is_active %} mel-vendor-console__nav-item--active is-active{% endif %}"
+     {% if child.is_active %}aria-current="page"{% endif %}>
+    {{ child.label }}
+  </a>
+{% else %}
+  <span class="mel-sidebar__subnav-link mel-sidebar__subnav-link--disabled"
+        aria-disabled="true"
+        title="{{ 'Select an event first'|t }}">
+    {{ child.label }}
+  </span>
+{% endif %}
