@@ -3,7 +3,7 @@
  * @file
  * Organiser mission control dashboard — action-first layout.
  *
- * Visible: hero, quick actions, metrics, attention, upcoming, activity.
+ * Visible: priority, quick actions, hero, metrics, attention, upcoming, activity.
  * Reporting surfaces live in collapsed <details> panels (organisers with events).
  */
 #}
@@ -57,19 +57,35 @@
     </section>
   {% endif %}
 
+  {% if organiser_actions is iterable and organiser_actions|length > 0 %}
+    <nav class="mel-vendor-dashboard__quick-actions mel-live-ops__quick-bar" aria-label="{{ 'Quick actions'|t }}">
+      <div class="mel-live-ops__quick-inner">
+        {% for action in organiser_actions %}
+          {% set action_key = action.key|default('') %}
+          {% set is_create = action_key == 'create' %}
+          {% set action_variant = action.variant|default(is_create ? 'primary' : 'secondary') %}
+          {% if action.url is defined and action.url %}
+            <a
+              class="mel-btn mel-btn--{{ action_variant }} mel-live-ops__quick-btn{% if is_create %} mel-vendor-dashboard__quick-btn--create{% endif %}"
+              href="{{ action.url }}"
+            >{{ action.label }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </nav>
+  {% endif %}
+
   {% if events_empty %}
+    {% set empty_cta_url = empty_state.url|default(create_action.url|default(null)) %}
+    {% set empty_cta_label = empty_state.action_label|default(create_action.label|default(null)) %}
     <section class="mel-live-ops__hero mel-vendor-dashboard__mission-hero mel-vendor-dashboard__mission-hero--empty" aria-labelledby="mel-dash-hero-title">
-      <div class="mel-live-ops__hero-surface mel-vendor-dashboard__empty-hero">
+      <div class="mel-live-ops__hero-surface mel-vendor-dashboard__empty-hero mel-vendor-dashboard__empty-state" role="status">
         <p class="mel-live-ops__eyebrow">{{ 'Organiser dashboard'|t }}</p>
-        <h1 id="mel-dash-hero-title" class="mel-live-ops__hero-title">{{ empty_state.title|default('Welcome to MyEventLane'|t) }}</h1>
+        <h1 id="mel-dash-hero-title" class="mel-live-ops__hero-title mel-vendor-dashboard__empty-state-title">{{ empty_state.title|default('Welcome to MyEventLane'|t) }}</h1>
         <p class="mel-live-ops__hero-venue mel-vendor-dashboard__empty-hero-message">{{ empty_state.message|default('Create your first event to start selling tickets or collecting RSVPs.'|t) }}</p>
-        {% if empty_state.url is defined and empty_state.url and empty_state.action_label is defined and empty_state.action_label %}
+        {% if empty_cta_url and empty_cta_label %}
           <div class="mel-vendor-dashboard__empty-hero-cta">
-            <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ empty_state.url }}">{{ empty_state.action_label }}</a>
-          </div>
-        {% elseif create_action and create_action.url is defined and create_action.url %}
-          <div class="mel-vendor-dashboard__empty-hero-cta">
-            <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ create_action.url }}">{{ create_action.label|default('Create event'|t) }}</a>
+            <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ empty_cta_url }}">{{ empty_cta_label }}</a>
           </div>
         {% endif %}
       </div>
@@ -92,29 +108,6 @@
         </div>
       </div>
     </section>
-  {% endif %}
-
-  {% if organiser_actions is iterable and organiser_actions|length > 0 %}
-    <nav class="mel-vendor-dashboard__quick-actions mel-live-ops__quick-bar" aria-label="{{ 'Quick actions'|t }}">
-      <div class="mel-live-ops__quick-inner">
-        {% for action in organiser_actions %}
-          {% set action_key = action.key|default('') %}
-          {% set is_create = action_key == 'create' %}
-          {% if action.url is defined and action.url %}
-            <a
-              class="mel-btn {{ is_create ? 'mel-btn--primary' : 'mel-btn--secondary' }} mel-live-ops__quick-btn"
-              href="{{ action.url }}"
-            >{{ action.label }}</a>
-          {% endif %}
-        {% endfor %}
-        {% if not events_empty %}
-          <a class="mel-btn mel-btn--secondary mel-live-ops__quick-btn" href="{{ path('myeventlane_vendor.console.boost') }}">{{ 'Promote event'|t }}</a>
-        {% endif %}
-        {% if vendor.settings_url is defined and vendor.settings_url %}
-          <a class="mel-btn mel-btn--ghost mel-live-ops__quick-btn" href="{{ vendor.settings_url }}">{{ 'Profile & settings'|t }}</a>
-        {% endif %}
-      </div>
-    </nav>
   {% endif %}
 
   <section class="mel-vendor-dashboard__metric-strip{% if events_empty %} mel-vendor-dashboard__metric-strip--starter{% endif %}" aria-labelledby="mel-dash-metrics-title">

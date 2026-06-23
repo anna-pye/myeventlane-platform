@@ -23,7 +23,7 @@ messages:
   welcome: "Hi, I'm MEL. Looking for something fun?"
   discover: 'Need help finding an event?'
   thinking: 'Still exploring?'
-  celebrate: themes/custom/myeventlane_theme/images/mel/mel-mascot-round.png
+  celebrate: "You're going! 🎉"
 assets:
   wave: themes/custom/myeventlane_theme/images/mel/mel-mascot-round.png
   think: themes/custom/myeventlane_theme/images/mel/mel-mascot-round.png

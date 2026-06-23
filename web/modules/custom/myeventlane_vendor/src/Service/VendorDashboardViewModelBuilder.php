@@ -133,7 +133,7 @@ final class VendorDashboardViewModelBuilder {
       'action_queue' => [],
       'events' => $events,
       'current_event' => $events[0] ?? NULL,
-      'organiser_actions' => $this->buildOrganiserActions($account),
+      'organiser_actions' => $this->buildOrganiserActions($account, $events !== []),
       'organiser_overview' => [],
       'attention_events' => [],
       'upcoming_events' => [],
@@ -1232,13 +1232,14 @@ final class VendorDashboardViewModelBuilder {
   /**
    * @return list<array<string, mixed>>
    */
-  private function buildOrganiserActions(AccountInterface $account): array {
+  private function buildOrganiserActions(AccountInterface $account, bool $hasEvents): array {
     $actions = [];
     $this->appendOrganiserAction(
       $actions,
       'create',
       (string) $this->t('Create event'),
       $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.create_event_gateway', [], $account),
+      'primary',
     );
     $this->appendOrganiserAction(
       $actions,
@@ -1258,6 +1259,21 @@ final class VendorDashboardViewModelBuilder {
       (string) $this->t('Open support'),
       $this->safeUrlFromRouteIfAccessible('myeventlane_help_centre.vendors_index', [], $account),
     );
+    if ($hasEvents) {
+      $this->appendOrganiserAction(
+        $actions,
+        'promote',
+        (string) $this->t('Promote event'),
+        $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.boost', [], $account),
+      );
+    }
+    $this->appendOrganiserAction(
+      $actions,
+      'settings',
+      (string) $this->t('Profile & settings'),
+      $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.settings', [], $account),
+      'ghost',
+    );
 
     return $actions;
   }
@@ -1265,7 +1281,7 @@ final class VendorDashboardViewModelBuilder {
   /**
    * @param list<array<string, mixed>> $actions
    */
-  private function appendOrganiserAction(array &$actions, string $key, string $label, ?Url $url): void {
+  private function appendOrganiserAction(array &$actions, string $key, string $label, ?Url $url, string $variant = 'secondary'): void {
     if (!$url instanceof Url) {
       return;
     }
@@ -1273,6 +1289,7 @@ final class VendorDashboardViewModelBuilder {
       'key' => $key,
       'label' => $label,
       'url' => $url,
+      'variant' => $variant,
     ];
   }
 

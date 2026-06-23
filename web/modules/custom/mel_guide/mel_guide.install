@@ -45,3 +45,31 @@ function mel_guide_update_9002(): void {
 
   $config->save();
 }
+
+/**
+ * Restore celebrate message when it was saved as an asset path.
+ */
+function mel_guide_update_9003(): void {
+  $config = \Drupal::configFactory()->getEditable('mel_guide.settings');
+  $messages = $config->get('messages') ?? [];
+  if (!is_array($messages)) {
+    return;
+  }
+
+  $celebrate_message = trim((string) ($messages['celebrate'] ?? ''));
+  $assets = $config->get('assets') ?? [];
+  $celebrate_asset = is_array($assets) ? trim((string) ($assets['celebrate'] ?? '')) : '';
+  $looks_like_asset_path = $celebrate_message !== ''
+    && (
+      $celebrate_message === $celebrate_asset
+      || str_starts_with($celebrate_message, 'themes/')
+      || str_starts_with($celebrate_message, 'public://')
+    );
+
+  if (!$looks_like_asset_path) {
+    return;
+  }
+
+  $messages['celebrate'] = "You're going! 🎉";
+  $config->set('messages', $messages)->save();
+}
