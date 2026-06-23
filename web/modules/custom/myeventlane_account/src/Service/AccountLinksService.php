@@ -123,7 +123,7 @@ final class AccountLinksService {
     $definitions = [
       [
         'id' => 'dashboard',
-        'title' => $this->t('Dashboard'),
+        'title' => $this->t('Home'),
         'url' => $dashboardUrl,
         'in_quick' => FALSE,
         'show_in_sidebar' => TRUE,
@@ -133,7 +133,7 @@ final class AccountLinksService {
       ],
       [
         'id' => 'tickets',
-        'title' => $this->t('Tickets'),
+        'title' => $this->t('My tickets'),
         'url' => $ticketsUrl,
         'in_quick' => TRUE,
         'show_in_sidebar' => TRUE,

@@ -80,6 +80,7 @@
     {% if mel_event_state is defined and mel_event_state == 'cancelled' %}
       <div class="mel-alert mel-alert--warning" role="status">
         <strong>{{ 'This event has been cancelled.'|t }}</strong>
+        <p>{{ 'Refunds or updates will come from the organiser. Explore similar events below, or visit our Help Centre if you need assistance.'|t }}</p>
       </div>
     {% endif %}
 
@@ -518,17 +519,37 @@
                 </div>
               {% endif %}
               <div class="mel-organiser-card__body">
-                <h2 id="mel-organiser-card-title" class="mel-organiser-card__title">{{ 'Presented by'|t }}</h2>
+                <h2 id="mel-organiser-card-title" class="mel-organiser-card__title">{{ 'About the organiser'|t }}</h2>
                 {% if mel_organiser.url %}
                   <a class="mel-organiser-card__name" href="{{ mel_organiser.url }}">{{ mel_organiser.name }}</a>
                 {% else %}
                   <span class="mel-organiser-card__name">{{ mel_organiser.name }}</span>
                 {% endif %}
-                <p class="mel-organiser-card__hosted">{{ 'Hosted by'|t }} <span class="mel-organiser-card__hosted-name">{{ mel_organiser.name }}</span></p>
+                {% if mel_organiser.event_count|default(0) > 0 or mel_organiser.is_new_organiser|default(false) %}
+                  <p class="mel-organiser-card__meta">
+                    {% if mel_organiser.event_count|default(0) > 0 %}
+                      <span class="mel-organiser-card__meta-item">
+                        {% trans %}
+                          1 upcoming event
+                        {% plural mel_organiser.event_count %}
+                          @count upcoming events
+                        {% endtrans %}
+                      </span>
+                    {% endif %}
+                    {% if mel_organiser.is_new_organiser|default(false) %}
+                      <span class="mel-organiser-card__meta-item">{{ 'New on MyEventLane'|t }}</span>
+                    {% endif %}
+                  </p>
+                {% endif %}
                 {% if mel_organiser.tagline %}
                   <p class="mel-organiser-card__tagline">{{ mel_organiser.tagline }}</p>
                 {% else %}
-                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'This event is hosted by @name on MyEventLane.'|t({ '@name': mel_organiser.name }) }}</p>
+                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'Events hosted on MyEventLane by @name.'|t({ '@name': mel_organiser.name }) }}</p>
+                {% endif %}
+                {% if mel_organiser.url %}
+                  <p class="mel-organiser-card__profile">
+                    <a class="mel-organiser-card__profile-link" href="{{ mel_organiser.url }}">{{ 'View organiser profile'|t }} →</a>
+                  </p>
                 {% endif %}
               </div>
             </div>

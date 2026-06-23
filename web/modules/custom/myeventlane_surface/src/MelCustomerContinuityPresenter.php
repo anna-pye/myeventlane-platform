@@ -37,6 +37,7 @@ final class MelCustomerContinuityPresenter {
     string $attendee_name,
     string $attendee_email,
     int $guests,
+    bool $is_authenticated = FALSE,
   ): array {
     $title = $event->label();
     $calendar_url = Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => (int) $event->id()])->toString();
@@ -119,6 +120,24 @@ final class MelCustomerContinuityPresenter {
       ];
     }
 
+    if ($is_authenticated) {
+      try {
+        $my_events_url = Url::fromRoute('myeventlane_dashboard.customer')->toString();
+      }
+      catch (\Throwable) {
+        $my_events_url = '';
+      }
+      if ($my_events_url !== '') {
+        $actions[] = [
+          'key' => 'view_my_events',
+          'label' => $this->readinessHelper->customerContinuityMyEventsCta(),
+          'url' => $my_events_url,
+          'variant' => 'secondary',
+          'download' => FALSE,
+        ];
+      }
+    }
+
     $actions[] = [
       'key' => 'add_calendar',
       'label' => $this->readinessHelper->customerContinuityAddToCalendarCta(),
@@ -186,8 +205,7 @@ final class MelCustomerContinuityPresenter {
     $primary_label = '';
     if ($customer_id) {
       try {
-        $primary_url = Url::fromRoute('entity.commerce_order.user_view', [
-          'user' => $customer_id,
+        $primary_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
           'commerce_order' => $order_entity_id,
         ])->toString();
       }

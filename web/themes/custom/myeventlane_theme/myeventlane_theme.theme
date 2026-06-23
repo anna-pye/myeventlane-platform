@@ -4653,6 +4653,9 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
         if ($logo_url !== NULL) {
           $organiser['logo_url'] = $logo_url;
         }
+        $vendor_card = $card_builder->build($vendor);
+        $organiser['event_count'] = (int) ($vendor_card['event_count'] ?? 0);
+        $organiser['is_new_organiser'] = !empty($vendor_card['is_new_organiser']);
       }
       $variables['mel_organiser'] = $organiser;
     }

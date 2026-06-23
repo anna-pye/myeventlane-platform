@@ -26,7 +26,12 @@
       {{ 'Join waitlist'|t }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}
     </a>
   {% else %}
-    <p class="{% if mel_cta_slot|default('sidebar') == 'mobile' %}mel-mobile-cta__waitlist-sub mel-mobile-cta__waitlist-sub--muted{% else %}mel-event-cta-soldout__muted{% endif %}" role="status">{{ mel_cta_text }}</p>
+    <p class="{% if mel_cta_slot|default('sidebar') == 'mobile' %}mel-mobile-cta__waitlist-sub mel-mobile-cta__waitlist-sub--muted{% else %}mel-event-cta-soldout__muted{% endif %}" role="status">
+      {{ mel_cta_text }}
+      {% if mel_cta_slot|default('sidebar') != 'mobile' %}
+        <span class="mel-event-cta-soldout__hint">{{ 'Explore similar events below, or visit Support if you need help.'|t }}</span>
+      {% endif %}
+    </p>
   {% endif %}
 {% elseif event_cta and event_cta.type|default('disabled') in ['internal', 'external'] and (event_cta.url|default('')|striptags|length > 0) %}
   {% set mel_primary_btn = mel_cta_text|default('')|striptags|trim %}
