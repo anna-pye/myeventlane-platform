@@ -63,9 +63,10 @@
         {% for action in organiser_actions %}
           {% set action_key = action.key|default('') %}
           {% set is_create = action_key == 'create' %}
+          {% set action_variant = action.variant|default(is_create ? 'primary' : 'secondary') %}
           {% if action.url is defined and action.url %}
             <a
-              class="mel-btn {{ is_create ? 'mel-btn--primary' : 'mel-btn--secondary' }} mel-live-ops__quick-btn{% if is_create %} mel-vendor-dashboard__quick-btn--create{% endif %}"
+              class="mel-btn mel-btn--{{ action_variant }} mel-live-ops__quick-btn{% if is_create %} mel-vendor-dashboard__quick-btn--create{% endif %}"
               href="{{ action.url }}"
             >{{ action.label }}</a>
           {% endif %}
