@@ -1,0 +1,9 @@
+mel_guide.settings:
+  path: '/admin/config/myeventlane/mel-guide'
+  defaults:
+    _form: '\Drupal\mel_guide\Form\MelGuideSettingsForm'
+    _title: 'MEL Guide settings'
+  requirements:
+    _permission: 'administer mel guide'
+  options:
+    _admin_route: TRUE

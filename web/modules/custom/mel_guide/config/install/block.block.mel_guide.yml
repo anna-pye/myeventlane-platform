@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - mel_guide
+  theme:
+    - myeventlane_theme
+id: mel_guide
+theme: myeventlane_theme
+region: below_content
+weight: 100
+provider: null
+plugin: mel_guide_block
+settings:
+  id: mel_guide_block
+  label: 'MEL Guide'
+  label_display: '0'
+  provider: mel_guide
+visibility: {}

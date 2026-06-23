@@ -1,0 +1,22 @@
+uuid: 98b44108-467f-4d22-8c13-b80709d79e9f
+langcode: en
+status: true
+dependencies:
+  module:
+    - mel_guide
+  theme:
+    - myeventlane_theme
+_core:
+  default_config_hash: r_OY4eRVDs7pKY-opYs2sYjtvLj6Ci7gLPH7XBb8IBk
+id: mel_guide
+theme: myeventlane_theme
+region: below_content
+weight: 100
+provider: null
+plugin: mel_guide_block
+settings:
+  id: mel_guide_block
+  label: 'MEL Guide'
+  label_display: '0'
+  provider: mel_guide
+visibility: {  }

@@ -1,0 +1,30 @@
+_core:
+  default_config_hash: vsekp6g9ywp-mYgTldiqicYCKzDUhd6LGC9ukmd-SpY
+enabled: true
+enabled_mobile: true
+enabled_desktop: true
+show_for_anonymous: true
+show_for_authenticated: true
+show_for_customers: true
+show_for_organisers: false
+appearance_delay: 3000
+max_messages_per_session: 1
+hide_days_after_dismiss: 30
+debug_force_display: false
+debug_context: ''
+enable_help_panel: false
+feature_version: 1
+position: bottom_right
+asset_fids:
+  wave: 0
+  think: 0
+  celebrate: 0
+messages:
+  welcome: "Hi, I'm MEL. Looking for something fun?"
+  discover: 'Need help finding an event?'
+  thinking: 'Still exploring?'
+  celebrate: "You're going! 🎉"
+assets:
+  wave: themes/custom/myeventlane_theme/images/mel/mel-mascot-round.png
+  think: themes/custom/myeventlane_theme/images/mel/mel-mascot-round.png
+  celebrate: themes/custom/myeventlane_theme/images/mel/mel-mascot-round.png

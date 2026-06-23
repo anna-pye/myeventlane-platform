@@ -1,0 +1,14 @@
+name: 'MEL Guide'
+type: module
+description: 'Contextual discovery guide for public visitors and customers — not a chatbot or support widget.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - myeventlane_core:myeventlane_core
+  - myeventlane_surface:myeventlane_surface
+  - drupal:block
+  - drupal:file
+  - drupal:node
+  - drupal:user

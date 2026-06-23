@@ -1,0 +1,9 @@
+guide:
+  css:
+    theme:
+      css/mel-guide.css: {}
+  js:
+    js/mel-guide.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
