@@ -21,11 +21,15 @@
     </section>
   {% else %}
     <section class="mel-my-account__section" aria-label="{{ 'Upcoming events'|t }}">
-      <div class="mel-account-empty-state mel-my-account__empty">
-        <h2 class="mel-account-empty-state__title">{{ 'Nothing upcoming yet'|t }}</h2>
-        <p class="mel-account-empty-state__text">{{ 'When you book tickets or RSVP, your events will show up here.'|t }}</p>
-        <a href="{{ path('<front>') }}" class="mel-button mel-button--primary">{{ 'Browse events'|t }}</a>
-      </div>
+      {% if mel_customer_dashboard_upcoming_empty is defined and mel_customer_dashboard_upcoming_empty %}
+        {{ mel_customer_dashboard_upcoming_empty }}
+      {% else %}
+        <div class="mel-account-empty-state mel-my-account__empty">
+          <h2 class="mel-account-empty-state__title">{{ 'Nothing upcoming yet'|t }}</h2>
+          <p class="mel-account-empty-state__text">{{ 'When you book tickets or RSVP, your events will show up here.'|t }}</p>
+          <a href="{{ path('<front>') }}" class="mel-button mel-button--primary">{{ 'Browse events'|t }}</a>
+        </div>
+      {% endif %}
     </section>
   {% endif %}
 

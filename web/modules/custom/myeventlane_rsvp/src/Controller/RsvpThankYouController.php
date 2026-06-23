@@ -201,6 +201,7 @@ final class RsvpThankYouController {
       $attendee_name,
       $attendee_email,
       $guests,
+      $this->currentUser->isAuthenticated(),
     );
 
     return [

@@ -15,6 +15,7 @@ use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_commerce\Form\TicketSelectionForm;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
+use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\myeventlane_rsvp\Form\RsvpPublicForm;
 use Drupal\node\NodeInterface;
@@ -57,6 +58,7 @@ final class BookingFlowResolver {
     private readonly CurrencyRepositoryInterface $currencyRepository,
     private readonly LanguageManagerInterface $languageManager,
     private readonly LoggerInterface $logger,
+    private readonly ?AttendanceWaitlistManager $waitlistManager = NULL,
   ) {}
 
   /**
@@ -118,7 +120,7 @@ final class BookingFlowResolver {
       }
 
       return [
-        'label' => 'View details',
+        'label' => 'Get tickets',
         'url' => $externalUrl,
         'type' => 'external',
         'disabled' => FALSE,
@@ -139,6 +141,19 @@ final class BookingFlowResolver {
     }
 
     if ($availability === self::AVAILABILITY_SOLD_OUT) {
+      if ($mode === self::MODE_RSVP && $this->isRsvpWaitlistAvailable($event)) {
+        $waitlistUrl = Url::fromRoute('myeventlane_event_attendees.waitlist_signup', [
+          'node' => (int) $event->id(),
+        ])->toString();
+        return [
+          'label' => 'Join waitlist',
+          'url' => $waitlistUrl,
+          'type' => 'internal',
+          'disabled' => FALSE,
+          'reason' => NULL,
+        ];
+      }
+
       return [
         'label' => 'Sold out',
         'url' => '',
@@ -559,6 +574,17 @@ final class BookingFlowResolver {
     }
 
     return $url;
+  }
+
+  /**
+   * Returns TRUE when RSVP waitlist signup is offered for a sold-out event.
+   */
+  private function isRsvpWaitlistAvailable(NodeInterface $event): bool {
+    if (!$this->waitlistManager instanceof AttendanceWaitlistManager) {
+      return FALSE;
+    }
+
+    return $this->waitlistManager->isWaitlistEnabled($event);
   }
 
 }

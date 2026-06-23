@@ -135,6 +135,18 @@
               {% endif %}
             </ul>
           </div>
+        {% elseif event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
+          <div class="mel-booking-panel__soldout-guide" role="status">
+            <p class="mel-booking-panel__soldout-lead">{{ 'This event is sold out.'|t }}</p>
+            {% if event_cta and event_cta.url|default('')|striptags|length > 0 %}
+              <p class="mel-booking-panel__soldout-next">{{ 'Join the waitlist to be notified if spots open.'|t }}</p>
+            {% else %}
+              <p class="mel-booking-panel__soldout-next">{{ 'Explore similar events below, or save this event to check back later.'|t }}</p>
+            {% endif %}
+            <p class="mel-booking-panel__soldout-support">
+              <a class="mel-booking-panel__trust-link" href="{{ path('myeventlane_support.page') }}">{{ 'Visit support'|t }}</a>
+            </p>
+          </div>
         {% endif %}
 
         {% if event_flag_event_save %}

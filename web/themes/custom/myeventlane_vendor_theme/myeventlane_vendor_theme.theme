@@ -477,7 +477,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   if ($current_user->isAuthenticated()) {
     // Vendor console links (mirror account menu YAML; visibility = route access).
     $vendor_console_links = [
-      ['title' => t('Dashboard'), 'route' => 'myeventlane_vendor.console.dashboard'],
+      ['title' => t('Home'), 'route' => 'myeventlane_vendor.console.dashboard'],
       ['title' => t('My events'), 'route' => 'myeventlane_vendor.console.events'],
       ['title' => t('Create event'), 'route' => 'myeventlane_event_studio.create'],
       ['title' => t('Settings'), 'route' => 'myeventlane_vendor.console.settings'],
@@ -2082,7 +2082,7 @@ function _myeventlane_vendor_theme_build_onboarding_shell_nav_items(string $acti
   $candidates = [
     [
       'key' => 'dashboard',
-      'label' => t('Dashboard'),
+      'label' => t('Home'),
       'icon' => 'dashboard',
       'route' => 'myeventlane_vendor.console.dashboard',
     ],
@@ -2170,7 +2170,7 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
   $definitions = [
     [
       'key' => 'dashboard',
-      'label' => t('Dashboard'),
+      'label' => t('Home'),
       'icon' => 'dashboard',
       'route' => 'myeventlane_vendor.console.dashboard',
       'children' => [],
@@ -2221,7 +2221,7 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
     ],
     [
       'key' => 'promote',
-      'label' => t('Promote event'),
+      'label' => t('Grow event'),
       'icon' => 'growth',
       'route' => 'myeventlane_vendor.console.boost',
       'children' => [],
@@ -2235,7 +2235,7 @@ function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $act
     ],
     [
       'key' => 'analytics',
-      'label' => t('Analytics'),
+      'label' => t('Insights'),
       'icon' => 'analytics',
       'route' => 'myeventlane_analytics.dashboard',
       'children' => [],

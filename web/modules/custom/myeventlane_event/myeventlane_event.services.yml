@@ -150,6 +150,7 @@ services:
       - '@commerce_price.currency_repository'
       - '@language_manager'
       - '@logger.channel.myeventlane_event'
+      - '@?myeventlane_event_attendees.waitlist'
 
   myeventlane_event.cta_resolver:
     class: Drupal\myeventlane_event\Service\EventCtaResolver

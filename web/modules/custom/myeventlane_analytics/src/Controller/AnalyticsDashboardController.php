@@ -86,7 +86,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     }
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $analyticsModel['title'] ?? 'Analytics',
+      'title' => $analyticsModel['title'] ?? 'Insights',
       'body' => [
         '#theme' => 'myeventlane_analytics_dashboard',
         '#analytics_model' => $analyticsModel,
@@ -144,7 +144,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     $exportExcelUrl = $this->safeExportUrl('myeventlane_analytics.export_excel', ['node' => $eventId]);
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => 'Analytics: ' . $node->label(),
+      'title' => 'Insights: ' . $node->label(),
       'body' => [
         '#theme' => 'myeventlane_analytics_event',
         '#event' => $node,
@@ -191,7 +191,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
    *   Page title.
    */
   public function eventTitle(NodeInterface $node): string {
-    return (string) $this->t('Analytics: @event', ['@event' => $node->label()]);
+    return (string) $this->t('Insights: @event', ['@event' => $node->label()]);
   }
 
   /**

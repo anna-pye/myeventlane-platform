@@ -13,17 +13,17 @@
         <li><a href="/categories" class="mel-nav-link">Categories</a></li>
         <li class="mel-nav-dropdown">
           <button class="mel-nav-link mel-nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
-            {{ 'Vendors'|t }}
+            {{ 'Organisers'|t }}
             <svg class="mel-dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
           <ul class="mel-nav-dropdown-menu">
-            <li><a href="/vendors" class="mel-nav-dropdown-link">{{ 'Browse Vendors'|t }}</a></li>
+            <li><a href="/vendors" class="mel-nav-dropdown-link">{{ 'Browse organisers'|t }}</a></li>
             {% if is_vendor %}
-              <li><a href="/vendor/dashboard" class="mel-nav-dropdown-link">{{ 'Vendor Dashboard'|t }}</a></li>
+              <li><a href="/vendor/dashboard" class="mel-nav-dropdown-link">{{ 'Organiser home'|t }}</a></li>
             {% else %}
-              <li><a href="/vendor/onboard" class="mel-nav-dropdown-link">{{ 'Become a Vendor'|t }}</a></li>
+              <li><a href="/vendor/onboard" class="mel-nav-dropdown-link">{{ 'Start hosting'|t }}</a></li>
             {% endif %}
           </ul>
         </li>
@@ -45,9 +45,9 @@
     <div class="mel-header-actions">
       {% if logged_in %}
         {% if is_vendor %}
-          <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn-primary">Dashboard</a>
+          <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn-primary">{{ 'Organiser home'|t }}</a>
         {% else %}
-          <a href="{{ path('myeventlane_account.dashboard') }}" class="mel-btn mel-btn-primary">Dashboard</a>
+          <a href="{{ path('myeventlane_account.dashboard') }}" class="mel-btn mel-btn-primary">{{ 'Home'|t }}</a>
         {% endif %}
       {% else %}
         <a href="{{ path('user.login') }}" class="mel-btn mel-btn-ghost">Login</a>
@@ -73,12 +73,12 @@
       <ul class="mel-nav-mobile-list">
         <li><a href="/events">Events</a></li>
         <li><a href="/categories">Categories</a></li>
-        <li class="mel-mobile-section-header">{{ 'Vendors'|t }}</li>
-        <li><a href="/vendors">{{ 'Browse Vendors'|t }}</a></li>
+        <li class="mel-mobile-section-header">{{ 'Organisers'|t }}</li>
+        <li><a href="/vendors">{{ 'Browse organisers'|t }}</a></li>
         {% if is_vendor %}
-          <li><a href="/vendor/dashboard">{{ 'Vendor Dashboard'|t }}</a></li>
+          <li><a href="/vendor/dashboard">{{ 'Organiser home'|t }}</a></li>
         {% else %}
-          <li><a href="/vendor/onboard">{{ 'Become a Vendor'|t }}</a></li>
+          <li><a href="/vendor/onboard">{{ 'Start hosting'|t }}</a></li>
         {% endif %}
         <li class="mel-mobile-section-header">{{ 'Support'|t }}</li>
         <li><a href="/support">{{ 'Contact Support'|t }}</a></li>
@@ -86,9 +86,9 @@
         <li class="mel-mobile-divider"></li>
         {% if logged_in %}
           {% if is_vendor %}
-            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">{{ 'Organiser home'|t }}</a></li>
           {% else %}
-            <li><a href="{{ path('myeventlane_account.dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ path('myeventlane_account.dashboard') }}">{{ 'Home'|t }}</a></li>
           {% endif %}
         {% else %}
           <li><a href="{{ path('user.login') }}">Login</a></li>
