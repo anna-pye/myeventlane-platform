@@ -56,7 +56,7 @@
     box-shadow: $shadow-xl;
   }
 
-  // Global body.mel-vendor link reset tints :visited as $primary blue; keep shell nav neutral.
+  // Global body.mel-vendor link reset tints :visited as $primary; keep shell nav neutral.
   .mel-sidebar__link:not(.mel-sidebar__link--disabled),
   .mel-sidebar__footer .mel-sidebar__link {
     &:link,

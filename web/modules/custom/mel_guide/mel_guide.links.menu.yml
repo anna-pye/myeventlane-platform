@@ -1,0 +1,6 @@
+mel_guide.settings:
+  title: 'MEL Guide'
+  description: 'Configure the MEL discovery guide for visitors and customers.'
+  parent: myeventlane_core.config
+  route_name: mel_guide.settings
+  weight: 45

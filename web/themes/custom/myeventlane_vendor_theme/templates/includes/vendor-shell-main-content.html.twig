@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * VendorShell main column body (inside role="main").
+ *
+ * Dashboard governance wrapper, settings tabs shell, or raw page.content.
+ * Included from layout/page.html.twig — canonical vendor console shell.
+ */
+#}
+{% if is_dashboard_route %}
+  <section class="mel-dashboard-page mel-dashboard-page--governed mel-vendor-dashboard">
+    {% if mel_surface|default('') == 'vendor' %}
+      <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--governance">
+        <summary>{{ 'Console guidance and readiness'|t }}</summary>
+        <div class="mel-vendor-dashboard__details-grid">
+          {% include '@myeventlane_vendor_theme/includes/mel-vendor-dashboard-governance-stack.html.twig' %}
+        </div>
+      </details>
+    {% endif %}
+    {{ page.content }}
+  </section>
+{% elseif page.mel_vendor_route_tabs %}
+  {% include '@myeventlane_vendor_theme/includes/vendor-settings-main-shell.html.twig' %}
+{% else %}
+  {{ page.content }}
+{% endif %}

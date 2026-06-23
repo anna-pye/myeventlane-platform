@@ -1,0 +1,37 @@
+services:
+  mel_guide.visibility:
+    class: Drupal\mel_guide\Service\MelGuideVisibility
+    arguments:
+      - '@config.factory'
+      - '@current_user'
+      - '@myeventlane_surface.resolver'
+      - '@myeventlane_surface.form_classification_resolver'
+      - '@current_route_match'
+      - '@request_stack'
+
+  mel_guide.context:
+    class: Drupal\mel_guide\Service\MelGuideContext
+    arguments:
+      - '@config.factory'
+      - '@current_route_match'
+      - '@request_stack'
+      - '@mel_guide.visibility'
+      - '@entity_type.manager'
+      - '@file_url_generator'
+
+  cache_context.mel_guide_device_class:
+    class: Drupal\mel_guide\Cache\Context\MelGuideDeviceCacheContext
+    arguments:
+      - '@mel_guide.visibility'
+    tags:
+      - { name: cache.context }
+
+  mel_guide.settings_form:
+    class: Drupal\mel_guide\Form\MelGuideSettingsForm
+    arguments:
+      - '@config.factory'
+      - '@config.typed'
+      - '@file.usage'
+      - '@entity_type.manager'
+    tags:
+      - { name: form }

@@ -42,7 +42,7 @@
 }
 
 .mel-analytics__business--all-sales {
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid $primary;
 }
 
 .mel-analytics__business--tickets {
@@ -261,7 +261,7 @@
 }
 
 .mel-analytics__boost-card--revenue {
-  border-left-color: #2563eb;
+  border-left-color: $primary;
 }
 
 .mel-analytics__boost-card--growth {
@@ -383,7 +383,7 @@
 }
 
 .mel-analytics__boost-card--roi {
-  border-left-color: #2563eb;
+  border-left-color: $primary;
 }
 
 .mel-analytics__boost-card--placement {
@@ -458,7 +458,7 @@
 }
 
 .mel-analytics__boost-card--summary {
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid $primary;
 
   @include respond-to(md) {
     grid-column: 1 / -1;
