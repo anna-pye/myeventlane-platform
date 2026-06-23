@@ -1,11 +1,15 @@
 /**
  * Event Studio workspace — scoped to .mel-vendor for isolation.
+ * Shell layout colours use tokens/_colors.scss (VendorShell alignment).
  */
+@use './tokens/colors' as *;
+@use './tokens/shadows' as *;
+
 .mel-vendor {
   .mel-topbar {
     height: 56px;
-    border-bottom: 1px solid #e7e9f1;
-    background: #ffffff;
+    border-bottom: 1px solid $mel-shell-border;
+    background: $mel-shell-surface;
   }
   
   .mel-vendor-workspace {
@@ -14,7 +18,7 @@
     gap: 16px;
     height: calc(100vh - 56px);
     padding: 16px;
-    background: #f7f8fc;
+    background: $mel-shell-page-bg;
   }
   
   .mel-workspace--with-sidebar {
@@ -29,10 +33,10 @@
   }
   
   .mel-panel {
-    border: 1px solid #e7e9f1;
+    border: 1px solid $mel-shell-border;
     border-radius: 14px;
-    background: #ffffff;
-    box-shadow: 0 8px 20px rgba(17, 24, 39, 0.04);
+    background: $mel-shell-surface;
+    box-shadow: $shadow-workspace-header;
   }
   
   .mel-studio {
