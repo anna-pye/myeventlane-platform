@@ -10,9 +10,19 @@
  * - user_menu
  * - mobile_drawer (rendered component)
  *
+ * Discovery search lives in page heroes and listing shells — not duplicated here.
+ *
  * Flags:
  * - is_checkout (bool) If true, show simplified header.
  * - is_auth_minimal (bool) If true, hide discovery chrome (MEL auth surface).
+ * - is_authenticated (bool) Authenticated visitor flag.
+ *
+ * Anonymous auth URLs (scalars):
+ * - sign_in_url
+ * - join_free_url
+ *
+ * Scalars:
+ * - create_event_url
  */
 #}
 
@@ -32,7 +42,7 @@
       </div>
 
       {% if not minimal_discovery %}
-        <nav class="site-header__nav" aria-label="Primary">
+        <nav class="site-header__nav" aria-label="{{ 'Primary'|t }}">
           {{ primary_menu }}
         </nav>
       {% endif %}
@@ -40,7 +50,16 @@
 
     <div class="site-header__right">
       {% if not minimal_discovery %}
-        <div class="site-header__create-event">
+        <div class="site-header__create-event site-header__create-event--mobile">
+          <a href="{{ create_event_url }}" class="site-header__create-event-icon" aria-label="{{ 'Create event'|t }}">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </a>
+        </div>
+
+        <div class="site-header__create-event site-header__create-event--desktop">
           <a href="{{ create_event_url }}" class="site-header__create-event-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -49,6 +68,7 @@
             {{ 'Create Event'|t }}
           </a>
         </div>
+
         <div class="site-header__organiser">
           {{ organiser_context }}
         </div>
@@ -66,7 +86,14 @@
         {% endif %}
 
         <div class="site-header__user">
-          {{ user_menu }}
+          {% if is_authenticated %}
+            {{ user_menu }}
+          {% elseif not minimal_discovery and sign_in_url and join_free_url %}
+            <nav class="site-header__auth" aria-label="{{ 'Account access'|t }}">
+              <a href="{{ sign_in_url }}" class="site-header__auth-link site-header__auth-link--sign-in">{{ 'Sign in'|t }}</a>
+              <a href="{{ join_free_url }}" class="site-header__auth-link site-header__auth-link--join">{{ 'Join free'|t }}</a>
+            </nav>
+          {% endif %}
         </div>
       </div>
     </div>

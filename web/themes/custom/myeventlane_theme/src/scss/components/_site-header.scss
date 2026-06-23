@@ -43,7 +43,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
 
     @include breakpoints.mel-break(md, max) {
       padding: 0 12px;
@@ -55,7 +55,7 @@
   &__left {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     min-width: 0;
     flex: 1 1 auto;
 
@@ -78,17 +78,109 @@
 
     img,
     svg {
-      max-height: 32px;
-      height: 32px;
-      width: auto;
       display: block;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+
+      @include breakpoints.mel-break(md) {
+        max-height: 44px;
+        max-width: 110px;
+      }
+
+      @include breakpoints.mel-break(md, max) {
+        max-height: 40px;
+        max-width: 45vw;
+      }
+    }
+  }
+
+  &__create-event--desktop {
+    display: flex;
+    align-items: center;
+
+    @include breakpoints.mel-break(md, max) {
+      display: none;
+    }
+  }
+
+  &__create-event--mobile {
+    display: none;
+    align-items: center;
+
+    @include breakpoints.mel-break(md, max) {
+      display: flex;
+    }
+  }
+
+  &__create-event-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--mel-radius-1);
+    color: var(--mel-coral, #f26d5b);
+    text-decoration: none;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: rgba(242, 109, 91, 0.1);
+      color: var(--mel-coral-hover, #e05a48);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-coral, #f26d5b);
+      outline-offset: 2px;
+    }
+  }
+
+  &__auth {
+    display: none;
+    align-items: center;
+    gap: 4px;
+
+    @include breakpoints.mel-break(md) {
+      display: flex;
+    }
+  }
+
+  &__auth-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: var(--mel-radius-1);
+    white-space: nowrap;
+    color: var(--mel-ink);
+    background: transparent;
+
+    &:hover {
+      color: var(--mel-coral);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      background: transparent;
+    }
+
+    &--sign-in,
+    &--join {
+      color: var(--mel-ink);
+      background: transparent;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-focus);
+      outline-offset: 2px;
     }
   }
 
   &__nav {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 
     @include breakpoints.mel-break(md, max) {
       display: none;
@@ -101,16 +193,16 @@
       padding: 0;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
     }
 
-    // Primary nav links: 40px height, consistent padding, active pill
+    // Primary nav links: compact spacing for header width recovery
     a,
     .mel-nav__link {
       display: inline-flex;
       align-items: center;
       height: 40px;
-      padding: 0 14px;
+      padding: 0 11px;
       color: var(--mel-ink);
       text-decoration: none;
       font-weight: 500;
@@ -141,7 +233,7 @@
   &__right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     min-height: 40px;
     flex-shrink: 0;
   }
@@ -149,20 +241,11 @@
   &__utilities {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     flex-shrink: 0;
 
     @include breakpoints.mel-break(md, max) {
       gap: 4px;
-    }
-  }
-
-  &__create-event {
-    display: flex;
-    align-items: center;
-
-    @include breakpoints.mel-break(md, max) {
-      display: none;
     }
   }
 

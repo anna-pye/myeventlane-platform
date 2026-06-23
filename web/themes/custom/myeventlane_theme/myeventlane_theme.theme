@@ -49,6 +49,272 @@ function _myeventlane_theme_public_create_event_url(): string {
 }
 
 /**
+ * Route names excluded from desktop primary header nav (drawer-only).
+ *
+ * @return list<string>
+ */
+function _myeventlane_theme_header_primary_excluded_routes(): array {
+  return [
+    'myeventlane_escalations_portal.customer_support',
+    'myeventlane_escalations_portal.customer_support_tickets',
+    'myeventlane_help_centre.home',
+  ];
+}
+
+/**
+ * Gets the route name from a menu item URL when resolvable.
+ */
+function _myeventlane_theme_menu_item_route_name(array $item): ?string {
+  if (empty($item['url']) || !$item['url'] instanceof Url) {
+    return NULL;
+  }
+  $route = $item['url']->getRouteName();
+  if (!is_string($route) || $route === '' || $route === '<none>') {
+    return NULL;
+  }
+  return $route;
+}
+
+/**
+ * Removes menu items whose route is in the exclusion list (recursive).
+ *
+ * @param array<string, mixed> $items
+ * @param list<string> $exclude_routes
+ */
+function _myeventlane_theme_filter_menu_items_by_routes(array &$items, array $exclude_routes): void {
+  foreach ($items as $key => &$item) {
+    $route = _myeventlane_theme_menu_item_route_name($item);
+    if ($route !== NULL && in_array($route, $exclude_routes, TRUE)) {
+      unset($items[$key]);
+      continue;
+    }
+    if (!empty($item['below']) && is_array($item['below'])) {
+      _myeventlane_theme_filter_menu_items_by_routes($item['below'], $exclude_routes);
+    }
+  }
+}
+
+/**
+ * Whether the menu tree already has an Organisers/Vendors top-level item.
+ *
+ * @param array<string, mixed> $items
+ */
+function _myeventlane_theme_menu_has_organisers_item(array $items): bool {
+  foreach ($items as $item) {
+    $title = strtolower(trim(PlainTextOutput::renderFromHtml((string) ($item['title'] ?? ''))));
+    if ($title === 'vendors' || $title === 'organisers') {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Applies organiser dropdown children to a single top-level menu item.
+ *
+ * @param array<string, mixed> $item
+ */
+function _myeventlane_theme_apply_organisers_dropdown_to_item(array &$item): void {
+  $current_user = \Drupal::currentUser();
+  $account = $current_user->getAccount();
+  $access_manager = \Drupal::accessManager();
+  $dashboard_access = FALSE;
+  $events_access = FALSE;
+  try {
+    $dashboard_access = $access_manager->checkNamedRoute('myeventlane_vendor.console.dashboard', [], $account, TRUE)->isAllowed();
+  }
+  catch (\Throwable) {
+  }
+  try {
+    $events_access = $access_manager->checkNamedRoute('myeventlane_vendor.console.events', [], $account, TRUE)->isAllowed();
+  }
+  catch (\Throwable) {
+  }
+  $trusted_console = VendorConsoleTrust::accountIsTrustedForVendorConsole($account)
+    || $account->hasPermission('administer nodes');
+
+  $item['below'] = [
+    'browse_organisers' => [
+      'title' => t('Browse organisers'),
+      'url' => Url::fromRoute('myeventlane_vendor.public_list'),
+      'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+      'below' => [],
+      'in_active_trail' => FALSE,
+      'is_expanded' => FALSE,
+      'is_collapsed' => FALSE,
+    ],
+  ];
+
+  if ($dashboard_access) {
+    $item['below']['organiser_dashboard'] = [
+      'title' => t('Organiser dashboard'),
+      'url' => Url::fromRoute('myeventlane_vendor.console.dashboard'),
+      'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+      'below' => [],
+      'in_active_trail' => FALSE,
+      'is_expanded' => FALSE,
+      'is_collapsed' => FALSE,
+    ];
+  }
+  elseif ($events_access && $trusted_console) {
+    $item['below']['my_events'] = [
+      'title' => t('My events'),
+      'url' => Url::fromRoute('myeventlane_vendor.console.events'),
+      'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+      'below' => [],
+      'in_active_trail' => FALSE,
+      'is_expanded' => FALSE,
+      'is_collapsed' => FALSE,
+    ];
+  }
+
+  if (!$trusted_console) {
+    $item['below']['become_organiser'] = [
+      'title' => t('Become an organiser'),
+      'url' => Url::fromRoute('myeventlane_vendor.onboard'),
+      'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+      'below' => [],
+      'in_active_trail' => FALSE,
+      'is_expanded' => FALSE,
+      'is_collapsed' => FALSE,
+    ];
+  }
+
+  $item['is_expanded'] = TRUE;
+  $item['is_collapsed'] = FALSE;
+  $item['url'] = Url::fromRoute('<none>');
+}
+
+/**
+ * Builds a top-level Organisers menu item with dropdown children.
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_theme_build_organisers_menu_item(): array {
+  $item = [
+    'title' => t('Organisers'),
+    'url' => Url::fromRoute('<none>'),
+    'attributes' => new Attribute(['class' => ['mel-nav__item']]),
+    'below' => [],
+    'in_active_trail' => FALSE,
+    'is_expanded' => FALSE,
+    'is_collapsed' => FALSE,
+  ];
+  _myeventlane_theme_apply_organisers_dropdown_to_item($item);
+  return $item;
+}
+
+/**
+ * Applies organiser dropdown transformation to an existing menu tree.
+ *
+ * @param array<string, mixed> $items
+ */
+function _myeventlane_theme_apply_organisers_dropdown(array &$items): void {
+  foreach ($items as &$item) {
+    $title = strtolower(trim(PlainTextOutput::renderFromHtml((string) ($item['title'] ?? ''))));
+    if ($title === 'vendors' || $title === 'organisers') {
+      _myeventlane_theme_apply_organisers_dropdown_to_item($item);
+      return;
+    }
+  }
+}
+
+/**
+ * Prepares desktop primary menu items for the site header.
+ *
+ * @param array<string, mixed> $items
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_theme_prepare_header_primary_menu_items(array $items): array {
+  _myeventlane_theme_filter_menu_items_by_routes($items, _myeventlane_theme_header_primary_excluded_routes());
+  if (!_myeventlane_theme_menu_has_organisers_item($items)) {
+    $items['mel_header_organisers'] = _myeventlane_theme_build_organisers_menu_item();
+  }
+  return $items;
+}
+
+/**
+ * Builds mobile drawer menu render array (Organisers, Support, Help).
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_theme_build_drawer_menu_render_array(): array {
+  $items = [
+    'mel_drawer_organisers' => _myeventlane_theme_build_organisers_menu_item(),
+  ];
+
+  $account = \Drupal::currentUser()->getAccount();
+  $support_added = FALSE;
+  foreach ([
+    'myeventlane_escalations_portal.customer_support_tickets',
+    'myeventlane_escalations_portal.customer_support',
+  ] as $support_route) {
+    try {
+      $url = Url::fromRoute($support_route);
+      if ($url->access($account)) {
+        $items['mel_drawer_support'] = [
+          'title' => t('Support'),
+          'url' => $url,
+          'attributes' => new Attribute(['class' => ['mel-nav__link']]),
+          'below' => [],
+          'in_active_trail' => FALSE,
+          'is_expanded' => FALSE,
+          'is_collapsed' => FALSE,
+        ];
+        $support_added = TRUE;
+        break;
+      }
+    }
+    catch (\Throwable) {
+    }
+  }
+
+  if (!$support_added) {
+    try {
+      $url = Url::fromRoute('myeventlane_support.page');
+      if ($url->access($account)) {
+        $items['mel_drawer_support'] = [
+          'title' => t('Support'),
+          'url' => $url,
+          'attributes' => new Attribute(['class' => ['mel-nav__link']]),
+          'below' => [],
+          'in_active_trail' => FALSE,
+          'is_expanded' => FALSE,
+          'is_collapsed' => FALSE,
+        ];
+      }
+    }
+    catch (\Throwable) {
+    }
+  }
+
+  try {
+    $help_url = Url::fromRoute('myeventlane_help_centre.home');
+    if ($help_url->access($account)) {
+      $items['mel_drawer_help'] = [
+        'title' => t('Help'),
+        'url' => $help_url,
+        'attributes' => new Attribute(['class' => ['mel-nav__link']]),
+        'below' => [],
+        'in_active_trail' => FALSE,
+        'is_expanded' => FALSE,
+        'is_collapsed' => FALSE,
+      ];
+    }
+  }
+  catch (\Throwable) {
+  }
+
+  return [
+    '#theme' => 'menu__main',
+    '#items' => $items,
+    '#menu_name' => 'main',
+    '#attributes' => new Attribute(['class' => ['mel-nav', 'mel-nav--drawer']]),
+  ];
+}
+
+/**
  * Vendor-console footer URLs with route access checks (matches vendor theme helper).
  *
  * @return array<string, string|null>
@@ -204,6 +470,9 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
         'mobile_drawer' => [],
         'is_checkout' => FALSE,
         'is_auth_minimal' => FALSE,
+        'is_authenticated' => FALSE,
+        'sign_in_url' => '',
+        'join_free_url' => '',
         'create_event_url' => '/create-event',
       ],
       'template' => 'components/site-header/site-header',
@@ -261,8 +530,8 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
   $theme_path = $extension_list->getPath('myeventlane_theme');
   $base_path = base_path();
 
-  // Branding: logo link.
-  $logo_path = $base_path . $theme_path . '/images/logo.svg';
+  // Branding: logo link (PNG wordmark; SVG icon retained for legacy surfaces).
+  $logo_path = $base_path . $theme_path . '/images/logo.png';
   $variables['branding'] = [
     '#type' => 'link',
     '#title' => [
@@ -271,8 +540,8 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
       '#attributes' => [
         'src' => $logo_path,
         'alt' => t('Home'),
-        'width' => 32,
-        'height' => 32,
+        'width' => 160,
+        'height' => 40,
         'class' => ['site-header__logo'],
       ],
     ],
@@ -280,12 +549,15 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
     '#attributes' => ['class' => ['site-header__brand-link']],
   ];
 
-  // Primary menu.
+  // Primary menu — desktop: Events, Calendar, Community, Organisers (Support/Help drawer-only).
   $block_manager = \Drupal::service('plugin.manager.block');
   try {
     $main_menu = $block_manager->createInstance('system_menu_block:main', []);
     if ($main_menu->access(\Drupal::currentUser())) {
       $build = $main_menu->build();
+      if (!empty($build['#items']) && is_array($build['#items'])) {
+        $build['#items'] = _myeventlane_theme_prepare_header_primary_menu_items($build['#items']);
+      }
       $variables['primary_menu'] = !empty($build) ? $build : [];
     }
     else {
@@ -337,19 +609,36 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
 
   // Notification bell: built by myeventlane_notifications_preprocess_site_header().
 
-  // User menu.
-  try {
-    $account_menu = $block_manager->createInstance('system_menu_block:account', []);
-    if ($account_menu->access(\Drupal::currentUser())) {
-      $build = $account_menu->build();
-      $variables['user_menu'] = !empty($build) ? $build : [];
+  // User menu (authenticated only — anonymous gets Sign in / Join free in Twig).
+  $account = \Drupal::currentUser();
+  $variables['is_authenticated'] = $account->isAuthenticated();
+  $variables['sign_in_url'] = '';
+  $variables['join_free_url'] = '';
+  if ($variables['is_authenticated']) {
+    try {
+      $account_menu = $block_manager->createInstance('system_menu_block:account', []);
+      if ($account_menu->access($account)) {
+        $build = $account_menu->build();
+        $variables['user_menu'] = !empty($build) ? $build : [];
+      }
+      else {
+        $variables['user_menu'] = [];
+      }
     }
-    else {
+    catch (\Exception $e) {
       $variables['user_menu'] = [];
     }
   }
-  catch (\Exception $e) {
+  else {
     $variables['user_menu'] = [];
+    try {
+      $variables['sign_in_url'] = Url::fromRoute('user.login')->toString();
+      $variables['join_free_url'] = Url::fromRoute('user.register')->toString();
+    }
+    catch (\Throwable) {
+      $variables['sign_in_url'] = '';
+      $variables['join_free_url'] = '';
+    }
   }
 
   // Create Event CTA URL: gateway handles anonymous → login and vendor onboarding.
@@ -361,6 +650,8 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
     $variables['primary_menu'] = [];
     $variables['organiser_context'] = [];
     $variables['mobile_drawer'] = [];
+    $variables['sign_in_url'] = '';
+    $variables['join_free_url'] = '';
     if ($variables['is_auth_minimal']) {
       $variables['cart'] = [];
       $variables['user_menu'] = [];
@@ -369,7 +660,7 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
   elseif (!$variables['is_checkout']) {
     $variables['mobile_drawer'] = [
       '#theme' => 'mobile_drawer',
-      '#drawer_menu' => $variables['primary_menu'],
+      '#drawer_menu' => _myeventlane_theme_build_drawer_menu_render_array(),
     ];
   }
   else {
@@ -394,85 +685,7 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
     return;
   }
 
-  $current_user = \Drupal::currentUser();
-  $account = $current_user->getAccount();
-  $access_manager = \Drupal::accessManager();
-  $dashboard_access = FALSE;
-  $events_access = FALSE;
-  try {
-    $dashboard_access = $access_manager->checkNamedRoute('myeventlane_vendor.console.dashboard', [], $account, TRUE)->isAllowed();
-  }
-  catch (\Throwable) {
-  }
-  try {
-    $events_access = $access_manager->checkNamedRoute('myeventlane_vendor.console.events', [], $account, TRUE)->isAllowed();
-  }
-  catch (\Throwable) {
-  }
-  $trusted_console = VendorConsoleTrust::accountIsTrustedForVendorConsole($account)
-    || $account->hasPermission('administer nodes');
-
-  // Find and transform the Vendors menu item.
-  foreach ($variables['items'] as $key => &$item) {
-    $title = (string) ($item['title'] ?? '');
-      if (strtolower($title) === 'vendors' || strtolower($title) === 'organisers') {
-      // Create child items for the dropdown.
-      $item['below'] = [
-        'browse_organisers' => [
-          'title' => t('Browse organisers'),
-          'url' => Url::fromRoute('myeventlane_vendor.public_list'),
-          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
-          'below' => [],
-          'in_active_trail' => FALSE,
-          'is_expanded' => FALSE,
-          'is_collapsed' => FALSE,
-        ],
-      ];
-
-      if ($dashboard_access) {
-        $item['below']['organiser_dashboard'] = [
-          'title' => t('Organiser dashboard'),
-          'url' => Url::fromRoute('myeventlane_vendor.console.dashboard'),
-          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
-          'below' => [],
-          'in_active_trail' => FALSE,
-          'is_expanded' => FALSE,
-          'is_collapsed' => FALSE,
-        ];
-      }
-      elseif ($events_access && $trusted_console) {
-        $item['below']['my_events'] = [
-          'title' => t('My events'),
-          'url' => Url::fromRoute('myeventlane_vendor.console.events'),
-          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
-          'below' => [],
-          'in_active_trail' => FALSE,
-          'is_expanded' => FALSE,
-          'is_collapsed' => FALSE,
-        ];
-      }
-
-      if (!$trusted_console) {
-        $item['below']['become_organiser'] = [
-          'title' => t('Become an organiser'),
-          'url' => Url::fromRoute('myeventlane_vendor.onboard'),
-          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
-          'below' => [],
-          'in_active_trail' => FALSE,
-          'is_expanded' => FALSE,
-          'is_collapsed' => FALSE,
-        ];
-      }
-
-      // Mark as expanded so the template knows it has children.
-      $item['is_expanded'] = TRUE;
-      $item['is_collapsed'] = FALSE;
-
-      // Make the parent link just a label (no navigation).
-      $item['url'] = Url::fromRoute('<none>');
-      break;
-    }
-  }
+  _myeventlane_theme_apply_organisers_dropdown($variables['items']);
 }
 
 /**
