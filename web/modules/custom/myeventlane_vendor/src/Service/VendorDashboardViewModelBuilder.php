@@ -882,10 +882,10 @@ final class VendorDashboardViewModelBuilder {
   private function attendeeSummary(int $ticketsSold, int $rsvpCount): string {
     $parts = [];
     if ($ticketsSold > 0) {
-      $parts[] = (string) $this->t('@count tickets sold', ['@count' => $ticketsSold]);
+      $parts[] = (string) $this->formatPlural($ticketsSold, '1 ticket sold', '@count tickets sold');
     }
     if ($rsvpCount > 0) {
-      $parts[] = (string) $this->t('@count RSVPs received', ['@count' => $rsvpCount]);
+      $parts[] = (string) $this->formatPlural($rsvpCount, '1 RSVP received', '@count RSVPs received');
     }
     if ($parts === []) {
       return (string) $this->t('No attendee activity yet.');
