@@ -12,8 +12,11 @@ function myeventlane_analytics_theme(): array {
   return [
     'myeventlane_analytics_dashboard' => [
       'variables' => [
+        'analytics_model' => [],
         'summary_stats' => [],
         'event_analytics' => [],
+        // Presentation-only: existing GrowthInsightService cards, surfaced here.
+        'growth_cards' => [],
       ],
       'template' => 'analytics-dashboard',
     ],
@@ -27,6 +30,13 @@ function myeventlane_analytics_theme(): array {
         'bottlenecks' => [],
         'total_revenue' => 0.0,
         'total_tickets' => 0,
+        'workspace_back_url' => NULL,
+        'vendor_analytics_home_url' => NULL,
+        'export_pdf_url' => NULL,
+        'export_excel_url' => NULL,
+        // Presentation-only: plain-language health line + next-step actions.
+        'event_health' => [],
+        'growth_actions' => [],
       ],
       'template' => 'analytics-event',
     ],

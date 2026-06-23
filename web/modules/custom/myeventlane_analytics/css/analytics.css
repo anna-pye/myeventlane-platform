@@ -1,38 +1,206 @@
 /**
  * @file
  * Styles for MyEventLane Analytics.
+ *
+ * Uses MEL runtime design tokens (vendor theme) only — no new tokens or
+ * ad-hoc colours. Meaning is never conveyed by colour alone.
  */
 
 .mel-analytics-dashboard,
 .mel-analytics-event {
-  max-width: 1200px;
+  max-width: var(--mel-max, 1200px);
   margin: 0 auto;
-  padding: 2rem;
+  padding: var(--mel-space-6, 2rem);
 }
 
 .mel-analytics-title {
   font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 2rem;
-  color: #333;
+  margin-bottom: var(--mel-space-6, 2rem);
+  color: var(--mel-text);
 }
 
 .mel-section-title {
   font-size: 1.5rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: var(--mel-space-5, 1.5rem);
+  color: var(--mel-text);
+}
+
+/* Plain-language health line. */
+.mel-analytics-health {
+  background: var(--mel-surface);
+  border: var(--mel-border);
+  border-left: 4px solid var(--mel-muted);
+  border-radius: var(--mel-radius-2, 14px);
+  box-shadow: var(--mel-shadow-1);
+  padding: var(--mel-space-5, 1.5rem);
+  margin-bottom: var(--mel-space-6, 2rem);
+}
+
+.mel-analytics-health--ready,
+.mel-analytics-health--info {
+  border-left-color: var(--mel-accent);
+}
+
+.mel-analytics-health--attention {
+  border-left-color: var(--mel-coral);
+}
+
+.mel-analytics-health--muted {
+  border-left-color: var(--mel-muted);
+}
+
+.mel-analytics-health__headline {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 var(--mel-space-2, 0.5rem);
+  color: var(--mel-text);
+}
+
+.mel-analytics-health__detail {
+  margin: 0;
+  color: var(--mel-muted);
+}
+
+/* Next-step actions. */
+.mel-analytics-actions {
+  list-style: none;
+  margin: var(--mel-space-4, 1rem) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mel-space-3, 0.75rem);
+}
+
+/* Empty states. */
+.mel-analytics-empty {
+  background: var(--mel-surface);
+  border: var(--mel-border);
+  border-radius: var(--mel-radius-2, 14px);
+  box-shadow: var(--mel-shadow-1);
+  padding: var(--mel-space-6, 2rem);
+  text-align: center;
+}
+
+.mel-analytics-empty__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 var(--mel-space-2, 0.5rem);
+  color: var(--mel-text);
+}
+
+.mel-analytics-empty__text {
+  margin: 0 auto;
+  max-width: 48ch;
+  color: var(--mel-muted);
+}
+
+.mel-analytics-empty .mel-analytics-actions {
+  justify-content: center;
+}
+
+/* Summary cards. */
+.mel-analytics-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--mel-space-5, 1.5rem);
+  margin-bottom: var(--mel-space-6, 2rem);
 }
 
 .mel-analytics-card {
+  background: var(--mel-surface);
+  border: var(--mel-border);
+  border-radius: var(--mel-radius-1, 8px);
+  box-shadow: var(--mel-shadow-1);
+  padding: var(--mel-space-5, 1.5rem);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .mel-analytics-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--mel-shadow-2);
 }
 
+.mel-analytics-card__label {
+  margin: 0 0 var(--mel-space-2, 0.5rem);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mel-muted);
+}
+
+.mel-analytics-card__value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--mel-text);
+}
+
+.mel-analytics-card__value--trend {
+  font-size: 1.25rem;
+}
+
+.mel-analytics-card__value--down {
+  color: var(--mel-coral);
+}
+
+.mel-analytics-card__caption {
+  margin: var(--mel-space-2, 0.5rem) 0 0;
+  font-size: 0.8125rem;
+  color: var(--mel-muted);
+}
+
+/* Section panels. */
+.mel-analytics-section {
+  background: var(--mel-surface);
+  border: var(--mel-border);
+  border-radius: var(--mel-radius-1, 8px);
+  box-shadow: var(--mel-shadow-1);
+  padding: var(--mel-space-6, 2rem);
+  margin-bottom: var(--mel-space-6, 2rem);
+}
+
+.mel-analytics-section--attention {
+  border-left: 4px solid var(--mel-coral);
+}
+
+.mel-analytics-section__intro {
+  margin: 0 0 var(--mel-space-5, 1.5rem);
+  color: var(--mel-muted);
+}
+
+.mel-analytics-section__empty {
+  margin: 0;
+  color: var(--mel-muted);
+}
+
+/* Chart wrappers + table alternative. */
+.mel-analytics-chart {
+  position: relative;
+  height: 400px;
+}
+
+.mel-analytics-chart--funnel {
+  height: 300px;
+  margin-bottom: var(--mel-space-5, 1.5rem);
+}
+
+.mel-analytics-chart-alt {
+  margin-top: var(--mel-space-4, 1rem);
+}
+
+.mel-analytics-chart-alt > summary {
+  cursor: pointer;
+  color: var(--mel-focus);
+  font-weight: 600;
+}
+
+.mel-analytics-chart-alt__summary {
+  margin: var(--mel-space-3, 0.75rem) 0;
+  color: var(--mel-muted);
+}
+
+/* Tables. */
 .mel-table {
   width: 100%;
   border-collapse: collapse;
@@ -41,18 +209,51 @@
 .mel-table th {
   font-weight: 600;
   text-align: left;
-  padding: 1rem;
-  border-bottom: 2px solid #ddd;
-  background-color: #f5f5f5;
+  padding: var(--mel-space-4, 1rem);
+  border-bottom: 2px solid var(--mel-surface-2);
+  background-color: var(--mel-surface-2);
+  color: var(--mel-text);
 }
 
 .mel-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
+  padding: var(--mel-space-4, 1rem);
+  border-bottom: var(--mel-border);
+  color: var(--mel-text);
 }
 
 .mel-table tr:hover {
-  background-color: #f9f9f9;
+  background-color: var(--mel-bg);
+}
+
+.mel-table__num {
+  text-align: right;
+}
+
+/* Funnel. */
+.mel-analytics-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-4, 1rem);
+}
+
+.mel-analytics-funnel__stage {
+  background: var(--mel-surface-2);
+  border-radius: var(--mel-radius-1, 8px);
+  padding: var(--mel-space-4, 1rem);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mel-analytics-funnel__label {
+  font-weight: 600;
+  color: var(--mel-text);
+}
+
+.mel-analytics-funnel__count {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--mel-text);
 }
 
 .mel-funnel-stage {
@@ -69,27 +270,70 @@
   height: 0;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid #f5f5f5;
+  border-top: 8px solid var(--mel-surface-2);
 }
 
 .mel-funnel-stage:last-child::after {
   display: none;
 }
 
+/* Conversion rates. */
+.mel-analytics-rates {
+  margin-top: var(--mel-space-5, 1.5rem);
+  padding-top: var(--mel-space-5, 1.5rem);
+  border-top: var(--mel-border);
+}
 
+.mel-analytics-rates__title {
+  font-size: 1rem;
+  margin: 0 0 var(--mel-space-4, 1rem);
+  color: var(--mel-text);
+}
 
+.mel-analytics-rates__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--mel-space-4, 1rem);
+}
 
+.mel-analytics-rate__label {
+  font-size: 0.875rem;
+  color: var(--mel-muted);
+}
 
+.mel-analytics-rate__value {
+  margin: var(--mel-space-1, 0.25rem) 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mel-text);
+}
 
+.mel-analytics-rates__caption {
+  margin: var(--mel-space-4, 1rem) 0 0;
+  color: var(--mel-muted);
+}
 
+/* Bottlenecks. */
+.mel-analytics-bottleneck {
+  background: var(--mel-surface-2);
+  border-radius: var(--mel-radius-1, 8px);
+  padding: var(--mel-space-4, 1rem);
+  margin-bottom: var(--mel-space-4, 1rem);
+}
 
+.mel-analytics-bottleneck__title {
+  margin: 0 0 var(--mel-space-2, 0.5rem);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mel-text);
+}
 
+.mel-analytics-bottleneck__rate {
+  margin: 0 0 var(--mel-space-2, 0.5rem);
+  color: var(--mel-muted);
+}
 
-
-
-
-
-
-
-
-
+.mel-analytics-bottleneck__rec {
+  margin: 0;
+  color: var(--mel-text);
+}
