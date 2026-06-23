@@ -186,7 +186,7 @@ final class MelGuideSettingsForm extends ConfigFormBase {
     $form['behaviour']['hide_days_after_dismiss'] = [
       '#type' => 'number',
       '#title' => $this->t('Hide days after dismiss'),
-      '#description' => $this->t('Days to keep MEL hidden after a visitor chooses “Hide MEL”.'),
+      '#description' => $this->t('Days to keep MEL hidden after a visitor chooses “Hide MEL”. Use 0 to hide for the current browser session only.'),
       '#default_value' => $config->get('hide_days_after_dismiss'),
       '#min' => 0,
       '#required' => TRUE,

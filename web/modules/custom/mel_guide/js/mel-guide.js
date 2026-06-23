@@ -7,6 +7,7 @@
 
   const STORAGE_HIDE_KEY = 'mel-guide-hidden-until';
   const SESSION_COUNT_KEY = 'mel-guide-session-count';
+  const SESSION_DISMISS_KEY = 'mel-guide-dismissed-session';
 
   /**
    * @returns {boolean}
@@ -79,6 +80,10 @@
    * @returns {boolean}
    */
   function isDismissed(hideDays) {
+    if (Number.isFinite(hideDays) && hideDays <= 0) {
+      return readSession(SESSION_DISMISS_KEY) === '1';
+    }
+
     const raw = readStorage(STORAGE_HIDE_KEY);
     if (!raw) {
       return false;
@@ -122,9 +127,26 @@
    * @param {number} hideDays
    */
   function persistDismiss(hideDays) {
-    const days = Number.isFinite(hideDays) && hideDays > 0 ? hideDays : 30;
-    const hiddenUntil = Date.now() + days * 24 * 60 * 60 * 1000;
+    if (!Number.isFinite(hideDays) || hideDays <= 0) {
+      removeStorage(STORAGE_HIDE_KEY);
+      writeSession(SESSION_DISMISS_KEY, '1');
+      return;
+    }
+
+    removeSession(SESSION_DISMISS_KEY);
+    const hiddenUntil = Date.now() + hideDays * 24 * 60 * 60 * 1000;
     writeStorage(STORAGE_HIDE_KEY, String(hiddenUntil));
+  }
+
+  /**
+   * @param {string} key
+   */
+  function removeSession(key) {
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch (e) {
+      // Ignore.
+    }
   }
 
   /**

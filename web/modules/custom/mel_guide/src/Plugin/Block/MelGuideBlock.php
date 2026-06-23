@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\mel_guide\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\mel_guide\Service\MelGuideContext;
 use Drupal\mel_guide\Service\MelGuideVisibility;
@@ -47,14 +48,44 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
   /**
    * {@inheritdoc}
    */
+  public function getCacheContexts(): array {
+    return Cache::mergeContexts(parent::getCacheContexts(), [
+      'user.roles',
+      'route',
+      'mel_guide_device_class',
+    ]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTags(): array {
+    return Cache::mergeTags(parent::getCacheTags(), [
+      'config:mel_guide.settings',
+    ]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function build(): array {
     if (!$this->visibility->shouldAttach()) {
-      return [];
+      return [
+        '#cache' => [
+          'contexts' => $this->getCacheContexts(),
+          'tags' => $this->getCacheTags(),
+        ],
+      ];
     }
 
     $variables = $this->guideContext->buildVariables();
     if ($variables === NULL) {
-      return [];
+      return [
+        '#cache' => [
+          'contexts' => $this->getCacheContexts(),
+          'tags' => $this->getCacheTags(),
+        ],
+      ];
     }
 
     return [
@@ -77,8 +108,8 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
         ],
       ],
       '#cache' => [
-        'contexts' => ['user.roles', 'route'],
-        'tags' => ['config:mel_guide.settings'],
+        'contexts' => $this->getCacheContexts(),
+        'tags' => $this->getCacheTags(),
       ],
     ];
   }

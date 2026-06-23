@@ -85,6 +85,13 @@ final class MelGuideVisibility {
   }
 
   /**
+   * Device class used for visibility and cache variation.
+   */
+  public function getDeviceClass(): string {
+    return $this->isMobileRequest() ? 'mobile' : 'desktop';
+  }
+
+  /**
    * Whether the current user matches audience targeting rules.
    */
   public function passesAudienceGate(): bool {

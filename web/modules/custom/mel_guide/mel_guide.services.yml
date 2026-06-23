@@ -19,6 +19,13 @@ services:
       - '@entity_type.manager'
       - '@file_url_generator'
 
+  cache_context.mel_guide_device_class:
+    class: Drupal\mel_guide\Cache\Context\MelGuideDeviceCacheContext
+    arguments:
+      - '@mel_guide.visibility'
+    tags:
+      - { name: cache.context }
+
   mel_guide.settings_form:
     class: Drupal\mel_guide\Form\MelGuideSettingsForm
     arguments:
