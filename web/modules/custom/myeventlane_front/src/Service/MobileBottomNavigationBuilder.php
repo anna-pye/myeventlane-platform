@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_front\Service;
 
 use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_surface\MelCustomerRouteCatalog;
@@ -37,10 +38,22 @@ final class MobileBottomNavigationBuilder {
     'mel_search.view',
   ];
 
+  /**
+   * Auth routes that highlight the anonymous Sign in tab.
+   *
+   * @var list<string>
+   */
+  private const AUTH_ROUTE_NAMES = [
+    'user.login',
+    'user.register',
+    'user.pass',
+  ];
+
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
     private readonly PathMatcherInterface $pathMatcher,
     private readonly RequestStack $requestStack,
+    private readonly AccountProxyInterface $currentUser,
   ) {}
 
   /**
@@ -65,11 +78,28 @@ final class MobileBottomNavigationBuilder {
    * Each item: id, title, url, icon, active, route_name (for debugging/docs).
    *
    * @return list<array<string, mixed>>
+   *   Bottom navigation items for Twig.
    */
   public function buildItems(): array {
     $currentRoute = $this->routeMatch->getRouteName() ?? '';
     $request = $this->requestStack->getCurrentRequest();
     $currentPath = $request ? $request->getPathInfo() : '/';
+
+    $account_tab = $this->currentUser->isAuthenticated()
+      ? [
+        'id' => 'account',
+        'title' => $this->t('Account'),
+        'route_name' => 'myeventlane_account.dashboard',
+        'icon' => 'user',
+        'active' => MelCustomerRouteCatalog::isCustomerSurface($currentRoute, $currentPath),
+      ]
+      : [
+        'id' => 'sign_in',
+        'title' => $this->t('Sign in'),
+        'route_name' => 'user.login',
+        'icon' => 'user',
+        'active' => in_array($currentRoute, self::AUTH_ROUTE_NAMES, TRUE),
+      ];
 
     $definitions = [
       [
@@ -100,13 +130,7 @@ final class MobileBottomNavigationBuilder {
         'icon' => 'heart',
         'active' => $currentRoute === 'view.upcoming_events.page_popular',
       ],
-      [
-        'id' => 'account',
-        'title' => $this->t('Account'),
-        'route_name' => 'myeventlane_account.dashboard',
-        'icon' => 'user',
-        'active' => MelCustomerRouteCatalog::isCustomerSurface($currentRoute, $currentPath),
-      ],
+      $account_tab,
     ];
 
     $items = [];

@@ -65,6 +65,7 @@ services:
       - '@current_route_match'
       - '@path.matcher'
       - '@request_stack'
+      - '@current_user'
 
   myeventlane_front.sitemap_builder:
     class: Drupal\myeventlane_front\Service\SitemapBuilder
