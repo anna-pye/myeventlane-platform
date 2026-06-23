@@ -3,12 +3,16 @@
  * @file
  * Organiser mission control dashboard — action-first layout.
  *
- * Visible: priority, quick actions, hero, metrics, attention, upcoming, activity.
+ * Visible: priority, quick actions, hero, metrics, workspace updates, attention,
+ * upcoming, recent activity.
  * Reporting surfaces live in collapsed <details> panels (organisers with events).
  */
 #}
 {% set model = vendor_dashboard_view_model|default({}) %}
 {% set vendor = model.vendor|default({}) %}
+{% set account_summary = account|default({}) %}
+{% set organiser_display_name = account_summary.display_name|default('') %}
+{% set hero_shell_hint = model.hero_shell_hint|default('') %}
 {% set readiness = model.readiness|default({}) %}
 {% set homepage_readiness = homepage_readiness|default(null) %}
 {% set homepage_visibility = model.homepage_visibility|default(null) %}
@@ -25,19 +29,25 @@
 {% set empty_state = model.empty_state|default({}) %}
 {% set analytics_summary = model.analytics_summary|default({}) %}
 {% set analytics_items = analytics_summary.items|default([]) %}
-{% set activity_items = model.activity_items|default(dashboard_activity_items|default([])) %}
+{% set activity_items = dashboard_activity_items|default([]) %}
+{% set workspace_updates = model.workspace_updates|default([]) %}
 {% set dashboard_vendor_id = vendor.id|default(null) %}
 {% set metric_rows = kpis %}
 {% set events_empty = model_events is not iterable or model_events|length == 0 %}
 {% set create_action = organiser_actions|filter(item => item.key|default('') == 'create')|first|default(null) %}
+{% set manage_events_action = organiser_actions|filter(item => item.key|default('') == 'events')|first|default(null) %}
 {% set snapshot_defs = [
+  { key: 'revenue', label: 'Revenue'|t, pool: 'kpis', emphasis: 'primary' },
+  { key: 'tickets_sold', label: 'Tickets sold'|t, pool: 'kpis', emphasis: 'secondary' },
+  { key: 'live_events', label: 'Live events'|t, pool: 'overview', emphasis: 'neutral' },
+  { key: 'bookings', label: 'Bookings'|t, pool: 'overview', emphasis: 'neutral' },
+  { key: 'upcoming_events', label: 'Upcoming'|t, pool: 'overview', emphasis: 'neutral' },
+] %}
+{% set hero_stat_defs = [
   { key: 'live_events', label: 'Live events'|t, pool: 'overview' },
-  { key: 'upcoming_events', label: 'Upcoming'|t, pool: 'overview' },
-  { key: 'bookings', label: 'Bookings'|t, pool: 'overview' },
   { key: 'tickets_sold', label: 'Tickets sold'|t, pool: 'kpis' },
   { key: 'revenue', label: 'Revenue'|t, pool: 'kpis' },
 ] %}
-{% set snapshot_modifiers = ['total', 'in', 'ready', 'capacity', 'remain'] %}
 
 <section class="mel-live-operations mel-vendor-dashboard{% if events_empty %} mel-vendor-dashboard--empty{% endif %}" data-mel-vendor-dashboard>
   {% if priority_action %}
@@ -57,60 +67,82 @@
     </section>
   {% endif %}
 
-  {% if organiser_actions is iterable and organiser_actions|length > 0 %}
-    <nav class="mel-vendor-dashboard__quick-actions mel-live-ops__quick-bar" aria-label="{{ 'Quick actions'|t }}">
-      <div class="mel-live-ops__quick-inner">
-        {% for action in organiser_actions %}
-          {% set action_key = action.key|default('') %}
-          {% set is_create = action_key == 'create' %}
-          {% set action_variant = action.variant|default(is_create ? 'primary' : 'secondary') %}
-          {% if action.url is defined and action.url %}
-            <a
-              class="mel-btn mel-btn--{{ action_variant }} mel-live-ops__quick-btn{% if is_create %} mel-vendor-dashboard__quick-btn--create{% endif %}"
-              href="{{ action.url }}"
-            >{{ action.label }}</a>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </nav>
-  {% endif %}
-
   {% if events_empty %}
     {% set empty_cta_url = empty_state.url|default(create_action.url|default(null)) %}
     {% set empty_cta_label = empty_state.action_label|default(create_action.label|default(null)) %}
-    <section class="mel-live-ops__hero mel-vendor-dashboard__mission-hero mel-vendor-dashboard__mission-hero--empty" aria-labelledby="mel-dash-hero-title">
-      <div class="mel-live-ops__hero-surface mel-vendor-dashboard__empty-hero mel-vendor-dashboard__empty-state" role="status">
-        <p class="mel-live-ops__eyebrow">{{ 'Organiser dashboard'|t }}</p>
-        <h1 id="mel-dash-hero-title" class="mel-live-ops__hero-title mel-vendor-dashboard__empty-state-title">{{ empty_state.title|default('Welcome to MyEventLane'|t) }}</h1>
-        <p class="mel-live-ops__hero-venue mel-vendor-dashboard__empty-hero-message">{{ empty_state.message|default('Create your first event to start selling tickets or collecting RSVPs.'|t) }}</p>
+    <section class="mel-vendor-dashboard__workspace-hero mel-vendor-dashboard__workspace-hero--empty" aria-labelledby="mel-dash-hero-title">
+      <div class="mel-vendor-dashboard__workspace-hero-body">
+        <p class="mel-live-ops__eyebrow">{{ 'Organiser workspace'|t }}</p>
+        <h1 id="mel-dash-hero-title" class="mel-vendor-dashboard__workspace-hero-title">
+          {% if organiser_display_name %}
+            {{ 'Welcome, @name'|t({'@name': organiser_display_name}) }}
+          {% else %}
+            {{ empty_state.title|default('Welcome to MyEventLane'|t) }}
+          {% endif %}
+        </h1>
+        {% if hero_shell_hint %}
+          <p class="mel-vendor-dashboard__workspace-hero-lead">{{ hero_shell_hint }}</p>
+        {% else %}
+          <p class="mel-vendor-dashboard__workspace-hero-lead">{{ empty_state.message|default('Create your first event to start selling tickets or collecting RSVPs.'|t) }}</p>
+        {% endif %}
         {% if empty_cta_url and empty_cta_label %}
-          <div class="mel-vendor-dashboard__empty-hero-cta">
+          <div class="mel-vendor-dashboard__workspace-hero-actions">
             <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ empty_cta_url }}">{{ empty_cta_label }}</a>
           </div>
         {% endif %}
       </div>
     </section>
   {% else %}
-    <section class="mel-live-ops__hero mel-vendor-dashboard__mission-hero" aria-labelledby="mel-dash-hero-title">
-      <div class="mel-live-ops__hero-surface">
-        <div class="mel-live-ops__hero-layout mel-vendor-dashboard__mission-hero-layout mel-vendor-dashboard__mission-hero-layout--solo">
-          <div class="mel-live-ops__hero-primary">
-            <p class="mel-live-ops__eyebrow">{{ 'Organiser dashboard'|t }}</p>
-            <h1 id="mel-dash-hero-title" class="mel-live-ops__hero-title">
-              {% if vendor.label|default('') is not empty %}
-                {{ vendor.label }}
-              {% else %}
-                {{ 'Your organiser dashboard'|t }}
-              {% endif %}
-            </h1>
-            <p class="mel-live-ops__hero-venue">{{ 'Manage events, track attendees, and grow your audience.'|t }}</p>
-          </div>
-        </div>
+    <section class="mel-vendor-dashboard__workspace-hero" aria-labelledby="mel-dash-hero-title">
+      <div class="mel-vendor-dashboard__workspace-hero-body">
+        {% if vendor.label|default('') is not empty %}
+          <p class="mel-vendor-dashboard__workspace-hero-context">{{ vendor.label }}</p>
+        {% else %}
+          <p class="mel-live-ops__eyebrow">{{ 'Organiser workspace'|t }}</p>
+        {% endif %}
+        <h1 id="mel-dash-hero-title" class="mel-vendor-dashboard__workspace-hero-title">
+          {% if organiser_display_name %}
+            {{ 'Welcome back, @name'|t({'@name': organiser_display_name}) }}
+          {% else %}
+            {{ 'Welcome back'|t }}
+          {% endif %}
+        </h1>
+        {% if hero_shell_hint %}
+          <p class="mel-vendor-dashboard__workspace-hero-lead">{{ hero_shell_hint }}</p>
+        {% endif %}
       </div>
+
+      <ul class="mel-vendor-dashboard__workspace-hero-stats" role="list" aria-label="{{ 'Today at a glance'|t }}">
+        {% for def in hero_stat_defs %}
+          {% if def.pool == 'overview' %}
+            {% set stat_match = organiser_overview|filter(item => item.key|default('') == def.key)|first|default(null) %}
+          {% else %}
+            {% set stat_match = kpis|filter(item => item.key|default('') == def.key)|first|default(null) %}
+          {% endif %}
+          {% set stat_value = stat_match ? stat_match.value|default('0') : '0' %}
+          <li class="mel-vendor-dashboard__workspace-hero-stat{% if def.key == 'revenue' %} mel-vendor-dashboard__workspace-hero-stat--revenue{% endif %}" role="listitem">
+            <span class="mel-vendor-dashboard__workspace-hero-stat-value">{{ stat_value }}</span>
+            <span class="mel-vendor-dashboard__workspace-hero-stat-label">{{ def.label }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+
+      {% if (priority_action and priority_action.url is defined and priority_action.url and priority_action.action_label is defined and priority_action.action_label) or (manage_events_action and manage_events_action.url is defined and manage_events_action.url) or (create_action and create_action.url is defined and create_action.url) %}
+        <div class="mel-vendor-dashboard__workspace-hero-actions">
+          {% if priority_action and priority_action.url is defined and priority_action.url and priority_action.action_label is defined and priority_action.action_label %}
+            <a class="mel-btn mel-btn--primary" href="{{ priority_action.url }}">{{ priority_action.action_label }}</a>
+          {% endif %}
+          {% if manage_events_action.url is defined and manage_events_action.url %}
+            <a class="mel-btn mel-btn--secondary" href="{{ manage_events_action.url }}">{{ manage_events_action.label }}</a>
+          {% elseif create_action.url is defined and create_action.url %}
+            <a class="mel-btn mel-btn--secondary" href="{{ create_action.url }}">{{ create_action.label }}</a>
+          {% endif %}
+        </div>
+      {% endif %}
     </section>
   {% endif %}
 
-  <section class="mel-vendor-dashboard__metric-strip{% if events_empty %} mel-vendor-dashboard__metric-strip--starter{% endif %}" aria-labelledby="mel-dash-metrics-title">
+  <section class="mel-vendor-dashboard__metric-strip mel-vendor-dashboard__metric-strip--compact{% if events_empty %} mel-vendor-dashboard__metric-strip--starter{% endif %}" aria-labelledby="mel-dash-metrics-title">
     <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
       <div>
         <p class="mel-live-ops__eyebrow">{{ 'At a glance'|t }}</p>
@@ -128,14 +160,39 @@
           {% set snapshot_match = kpis|filter(item => item.key|default('') == def.key)|first|default(null) %}
         {% endif %}
         {% set metric_value = snapshot_match ? snapshot_match.value|default('0') : '0' %}
-        {% set stat_mod = snapshot_modifiers[loop.index0 % snapshot_modifiers|length] %}
-        <article class="mel-live-ops__stat-card mel-live-ops__stat-card--{{ stat_mod }} mel-vendor-dashboard__metric-card" role="listitem">
+        {% set stat_emphasis = def.emphasis|default('neutral') %}
+        <article class="mel-live-ops__stat-card mel-vendor-dashboard__metric-card mel-vendor-dashboard__metric-card--{{ stat_emphasis }}" role="listitem">
           <span class="mel-live-ops__stat-value">{{ metric_value }}</span>
           <span class="mel-live-ops__stat-label">{{ def.label }}</span>
         </article>
       {% endfor %}
     </div>
   </section>
+
+  {% if workspace_updates is iterable and workspace_updates|length > 0 %}
+    <section class="mel-vendor-dashboard__workspace-updates mel-vendor-dashboard__activity-stream mel-vendor-dashboard__activity-stream--compact mel-vendor-dashboard__activity-stream--secondary" aria-labelledby="mel-dash-workspace-updates-title">
+      <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
+        <p class="mel-live-ops__eyebrow">{{ 'Your workspace'|t }}</p>
+        <h2 id="mel-dash-workspace-updates-title" class="mel-live-ops__panel-title">{{ 'Workspace updates'|t }}</h2>
+      </div>
+      <ol class="mel-vendor-dashboard__timeline mel-vendor-dashboard__timeline--workspace" role="list">
+        {% for item in workspace_updates|slice(0, 6) %}
+          {% set row_type = item.type|default('info') %}
+          {% set feed_icon = row_type == 'success' ? '✓' : '•' %}
+          <li class="mel-vendor-dashboard__timeline-item mel-vendor-dashboard__timeline-item--{{ row_type == 'success' ? 'success' : (row_type == 'warning' ? 'warn' : 'info') }}" role="listitem">
+            <span class="mel-vendor-dashboard__timeline-marker" aria-hidden="true">{{ feed_icon }}</span>
+            <div class="mel-vendor-dashboard__timeline-content">
+              {% if item.url is defined and item.url %}
+                <a class="mel-vendor-dashboard__timeline-link" href="{{ item.url }}">{{ item.message|default('') }}</a>
+              {% else %}
+                <span class="mel-vendor-dashboard__timeline-text">{{ item.message|default('') }}</span>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
 
   {% if not events_empty %}
     {% if attention_events is iterable and attention_events|length > 0 %}
@@ -215,24 +272,31 @@
       <h2 id="mel-dash-activity-title" class="mel-live-ops__panel-title">{{ 'Recent activity'|t }}</h2>
     </div>
     {% if activity_items is iterable and activity_items|length > 0 %}
-      <ol class="mel-vendor-dashboard__timeline" role="list">
+      <ol class="mel-vendor-dashboard__timeline mel-vendor-dashboard__timeline--activity" role="list">
         {% for item in activity_items|slice(0, 5) %}
           {% set row_type = item.type|default('info') %}
           {% set feed_icon = row_type == 'success' ? '✓' : '•' %}
           <li class="mel-vendor-dashboard__timeline-item mel-vendor-dashboard__timeline-item--{{ row_type == 'success' ? 'success' : (row_type == 'warning' ? 'warn' : 'info') }}" role="listitem">
             <span class="mel-vendor-dashboard__timeline-marker" aria-hidden="true">{{ feed_icon }}</span>
             <div class="mel-vendor-dashboard__timeline-content">
-              {% if item.url is defined and item.url %}
-                <a class="mel-vendor-dashboard__timeline-link" href="{{ item.url }}">{{ item.message|default('') }}</a>
-              {% else %}
-                <span class="mel-vendor-dashboard__timeline-text">{{ item.message|default('') }}</span>
+              <div class="mel-vendor-dashboard__timeline-body">
+                {% if item.url is defined and item.url %}
+                  <a class="mel-vendor-dashboard__timeline-link" href="{{ item.url }}">{{ item.message|default('') }}</a>
+                {% else %}
+                  <span class="mel-vendor-dashboard__timeline-text">{{ item.message|default('') }}</span>
+                {% endif %}
+              </div>
+              {% if item.timestamp_label is defined and item.timestamp_label %}
+                <time class="mel-vendor-dashboard__timeline-time"{% if item.timestamp is defined and item.timestamp %} datetime="{{ item.timestamp|date('c') }}"{% endif %}>{{ item.timestamp_label }}</time>
+              {% elseif item.timestamp is defined and item.timestamp %}
+                <time class="mel-vendor-dashboard__timeline-time" datetime="{{ item.timestamp|date('c') }}">{{ item.timestamp|format_date('short') }}</time>
               {% endif %}
             </div>
           </li>
         {% endfor %}
       </ol>
     {% else %}
-      <p class="mel-live-ops__muted">{{ 'Operational activity will appear after bookings, RSVPs, check-ins, or event updates.'|t }}</p>
+      <p class="mel-live-ops__muted">{{ 'Activity will appear after bookings, RSVPs, check-ins, or event updates.'|t }}</p>
     {% endif %}
   </section>
 
