@@ -7,7 +7,7 @@
 {% set model = vendor_event_workspace_model|default({}) %}
 {% set has_ws_model = model.event is defined and model.event.nid is defined %}
 
-<div class="mel-workspace mel-workspace--surface{% if sidebar %} mel-workspace--with-ticket-tools{% endif %}">
+<div class="mel-workspace mel-workspace--surface{% if sidebar %} mel-workspace--with-ticket-tools{% endif %}{% if suppress_workspace_header|default(false) %} mel-workspace--live-ops-surface{% endif %}">
   {% if has_ws_model and model.empty_state.title|default('') is not empty %}
     <div class="mel-live-ops__panel mel-live-ops__workspace-empty" role="alert">
       <h2 class="mel-live-ops__panel-title">{{ model.empty_state.title }}</h2>
@@ -325,7 +325,7 @@
     </div>
   {% elseif header_stats is not empty %}
     {% include '@myeventlane_vendor_theme/mel-event/mel-event-header.html.twig' %}
-  {% else %}
+  {% elseif not suppress_workspace_header|default(false) %}
     <div class="mel-event-management-shell">
       {% if manage_event_back.url is defined and manage_event_back.url %}
         <nav class="mel-event-manage-back mel-event-management-shell__back" aria-label="{{ 'Event navigation'|t }}">
@@ -414,7 +414,7 @@
               </div>
             {% endif %}
           </div>
-        {% elseif not has_ws_model %}
+        {% elseif not has_ws_model and not suppress_workspace_header|default(false) %}
           <div class="mel-insights-empty">
             <p>{{ "Your event is looking good. We'll let you know if anything needs attention."|t }}</p>
           </div>

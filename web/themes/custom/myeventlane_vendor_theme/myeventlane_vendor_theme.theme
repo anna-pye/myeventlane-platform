@@ -1614,6 +1614,23 @@ function myeventlane_vendor_theme_preprocess_mel_event_workspace(array &$variabl
     }
   }
 
+  // Live ops surfaces (operations hub + door mode) render their own identity hero.
+  $content = $variables['content'] ?? NULL;
+  $content_theme = is_array($content) ? (string) ($content['#theme'] ?? '') : '';
+  if ($content_theme === '') {
+    $route_name = (string) \Drupal::routeMatch()->getRouteName();
+    $content_theme = match ($route_name) {
+      'myeventlane_event_attendees.vendor_operations' => 'mel_venue_operations',
+      'myeventlane_event_attendees.vendor_operations_door' => 'mel_vendor_door_checkin',
+      default => '',
+    };
+  }
+  $variables['mel_workspace_content_theme'] = $content_theme;
+  $variables['suppress_workspace_header'] = in_array($content_theme, [
+    'mel_venue_operations',
+    'mel_vendor_door_checkin',
+  ], TRUE);
+
   // Vendors use Event Studio navigation; staff retain workspace tab chrome.
   $account = \Drupal::currentUser();
   $variables['show_workspace_tabs'] = _myeventlane_vendor_theme_is_vendor_workspace_staff($account);
