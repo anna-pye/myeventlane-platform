@@ -20,26 +20,15 @@
         </span>
       {% endif %}
     </div>
-
-    {% if event %}
-      <h1 class="mel-vendor-door__event-heading">{{ event.label() }}</h1>
-    {% else %}
-      <h1 class="mel-vendor-door__event-heading">{{ 'Door check-in'|t }}</h1>
-    {% endif %}
-
-    {% if door_context.count_line %}
-      <div class="mel-vendor-door__live-count" aria-live="polite">
-        <span class="mel-vendor-door__live-dot" aria-hidden="true"></span>
-        <span class="mel-vendor-door__live-strong">{{ door_context.live_indicator }}</span>
-        <span>{{ door_context.count_line }}</span>
-      </div>
-      <div class="mel-vendor-door__mini-metrics" aria-label="{{ 'Check-in completeness'|t }}">
-        <span>{{ door_context.checked_in }}/{{ door_context.total }} {{ 'in'|t }}</span>
-        <span class="mel-vendor-door__divider" aria-hidden="true">/</span>
-        <span>{{ door_context.rate_percent|default(0) }}% {{ 'rate'|t }}</span>
-      </div>
-    {% endif %}
   </header>
+
+  {% include '@myeventlane_vendor_theme/components/mel-live-ops-operations-hero.html.twig' with {
+    variant: 'door',
+    door_context: door_context,
+    event_title: event ? event.label() : ('Door check-in'|t),
+    title_id: 'mel-vendor-door-hero-title',
+    eyebrow: 'Running your event'|t,
+  } only %}
 
   <main class="mel-vendor-door__main">
     <section class="mel-vendor-door__scanner-shell" aria-labelledby="mel-vendor-door-scan-heading">
