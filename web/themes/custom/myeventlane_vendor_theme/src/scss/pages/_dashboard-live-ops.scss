@@ -504,6 +504,126 @@ $mel-dash-lavender: #7c83fd;
     background: rgba($mel-shell-page-bg, 0.72);
   }
 
+  &__current-event {
+    display: grid;
+    gap: $spacing-4;
+    padding: $spacing-4;
+    border: 1px solid rgba($mel-ws-purple, 0.14);
+    border-radius: $radius-workspace-card;
+    background: $mel-shell-surface;
+    box-shadow: $shadow-xs;
+
+    @include respond-to(md) {
+      padding: $spacing-5 $spacing-6;
+      gap: $spacing-5;
+    }
+  }
+
+  &__current-event-head {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
+  }
+
+  &__current-event-ident {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-2;
+    min-width: 0;
+  }
+
+  &__current-event-title {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: clamp(1.25rem, 3.2vw, 1.5rem);
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    letter-spacing: -0.02em;
+  }
+
+  &__current-event-date {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__current-event-body {
+    display: grid;
+    gap: $spacing-2;
+    min-width: 0;
+  }
+
+  &__current-event-status {
+    margin: 0;
+    color: $mel-ws-purple;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+    text-transform: uppercase;
+
+    &--muted {
+      color: $text-secondary;
+    }
+  }
+
+  &__current-event-summary {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-base;
+    line-height: $line-height-relaxed;
+  }
+
+  &__current-event-metric {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__current-event-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin: $spacing-1 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__current-event-reason {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0 $spacing-2;
+    border-radius: $radius-sm;
+    background: rgba($warning-light, 0.22);
+    border: 1px solid rgba($warning, 0.18);
+    color: $text-primary;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    line-height: 1.25;
+  }
+
+  &__current-event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    padding-top: $spacing-1;
+    border-top: 1px solid rgba($mel-shell-border, 0.85);
+
+    .mel-btn {
+      min-height: 2.75rem;
+      flex: 1 1 calc(50% - #{$spacing-2});
+
+      @include respond-to(sm) {
+        flex: 0 1 auto;
+      }
+    }
+  }
+
   &__mission-hero-layout {
     @include respond-to(md) {
       grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.36fr);

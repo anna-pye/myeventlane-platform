@@ -31,6 +31,7 @@
 {% set analytics_items = analytics_summary.items|default([]) %}
 {% set activity_items = dashboard_activity_items|default([]) %}
 {% set workspace_updates = model.workspace_updates|default([]) %}
+{% set current_event = model.current_event|default(null) %}
 {% set dashboard_vendor_id = vendor.id|default(null) %}
 {% set metric_rows = kpis %}
 {% set events_empty = model_events is not iterable or model_events|length == 0 %}
@@ -131,6 +132,63 @@
       </div>
     </div>
   </section>
+
+  {# Slice 2 — Current event operations surface. #}
+  {% if current_event %}
+    {% set ce_links = current_event.links|default({}) %}
+    {% set ce_status = current_event.status|default('') %}
+    {% set ce_summary = current_event.operation_summary|default('') %}
+    {% set show_live_badge = ce_status == 'upcoming' and ce_summary and 'live' in ce_summary|lower %}
+    <section class="mel-vendor-dashboard__current-event" aria-labelledby="mel-dash-current-event-title">
+      <div class="mel-vendor-dashboard__current-event-head">
+        <div class="mel-vendor-dashboard__current-event-ident">
+          {% if show_live_badge %}
+            <span class="mel-live-ops__chip mel-live-ops__chip--live" role="status">{{ 'LIVE'|t }}</span>
+          {% endif %}
+          <h2 id="mel-dash-current-event-title" class="mel-vendor-dashboard__current-event-title">{{ current_event.title|default('Untitled event'|t) }}</h2>
+        </div>
+        {% if current_event.date_label is defined and current_event.date_label %}
+          <p class="mel-vendor-dashboard__current-event-date">{{ current_event.date_label }}</p>
+        {% endif %}
+      </div>
+
+      <div class="mel-vendor-dashboard__current-event-body">
+        {% if current_event.status_label is defined and current_event.status_label and not show_live_badge %}
+          <p class="mel-vendor-dashboard__current-event-status">{{ current_event.status_label }}</p>
+        {% elseif current_event.status_label is defined and current_event.status_label %}
+          <p class="mel-vendor-dashboard__current-event-status mel-vendor-dashboard__current-event-status--muted">{{ current_event.status_label }}</p>
+        {% endif %}
+
+        {% if ce_summary %}
+          <p class="mel-vendor-dashboard__current-event-summary">{{ ce_summary }}</p>
+        {% endif %}
+
+        {% if current_event.metric_label is defined and current_event.metric_label %}
+          <p class="mel-vendor-dashboard__current-event-metric">{{ current_event.metric_label }}</p>
+        {% endif %}
+
+        {% set ce_reasons = current_event.attention_reasons|default([]) %}
+        {% if ce_reasons is iterable and ce_reasons|length > 0 %}
+          <ul class="mel-vendor-dashboard__current-event-reasons" role="list" aria-label="{{ 'Needs attention'|t }}">
+            {% for reason in ce_reasons|slice(0, 3) %}
+              <li class="mel-vendor-dashboard__current-event-reason" role="listitem">{{ reason }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      {% if (ce_links.checkin is defined and ce_links.checkin) or (ce_links.manage is defined and ce_links.manage) %}
+        <div class="mel-vendor-dashboard__current-event-actions">
+          {% if ce_links.checkin is defined and ce_links.checkin %}
+            <a class="mel-btn mel-btn--primary" href="{{ ce_links.checkin }}">{{ 'Open Door Mode'|t }}</a>
+          {% endif %}
+          {% if ce_links.manage is defined and ce_links.manage %}
+            <a class="mel-btn mel-btn--secondary" href="{{ ce_links.manage }}">{{ 'Manage Event'|t }}</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
 
   <section class="mel-vendor-dashboard__metric-strip mel-vendor-dashboard__metric-strip--compact{% if events_empty %} mel-vendor-dashboard__metric-strip--starter{% endif %}" aria-labelledby="mel-dash-metrics-title">
     <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
