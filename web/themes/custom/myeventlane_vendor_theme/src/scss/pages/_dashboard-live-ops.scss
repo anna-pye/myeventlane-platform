@@ -26,6 +26,10 @@ $mel-dash-lavender: #7c83fd;
   display: flex;
   flex-direction: column;
   gap: var(--mission-gap);
+  width: 100%;
+  // Phase 10B — tighten + centre so the surface doesn't stretch edge to edge.
+  max-width: 1100px;
+  margin-inline: auto;
 
   @include respond-to(md) {
     --mission-gap: 3rem;   // 48px on desktop
@@ -75,27 +79,50 @@ $mel-dash-lavender: #7c83fd;
   // In-session emphasis: heightens the current-event accent when the event is
   // live today. Layout presence is handled by --event-first; this only changes
   // emphasis, never whether the event block renders.
+  // Phase 10B — the single enclosing surface: organiser identity + current event
+  // share one white panel that floats on the page via a soft shadow.
+  &__mission-surface {
+    display: grid;
+    gap: var(--content-gap);
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid rgba(20, 20, 20, 0.08);
+    border-radius: 1.25rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+
+    @include respond-to(md) {
+      padding: 2rem;
+    }
+
+    // Identity hero sits flat inside the surface — no inner box/background.
+    .mel-vendor-dashboard__mission-hero .mel-live-ops__hero-surface,
+    .mel-vendor-dashboard__mission-hero--secondary .mel-live-ops__hero-surface {
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+  }
+
+  // In-session emphasis: a thin operational accent on the event block (no box).
   &--event-live &__event-ops {
-    border-left-color: $mel-ws-navy;
+    padding-left: $spacing-4;
+    border-left: 3px solid rgba($mel-ws-navy, 0.4);
   }
 
   &__event-ops {
     display: grid;
     gap: $spacing-4;
     min-width: 0;
-    // Dominant operational surface: the current event reads as the primary card
-    // on the dashboard (white surface, subtle border, soft shadow) while the
-    // organiser keeps the page H1. The navy accent is calm by default and is
-    // restored to full strength for the in-session state via --event-live below.
-    padding: $spacing-4;
-    background: $bg-primary;
-    border: 1px solid $mel-ws-border-soft;
-    border-left: 4px solid rgba($mel-ws-navy, 0.35);
-    border-radius: $radius-lg;
-    box-shadow: $shadow-sm;
+    // Phase 10B — the event now flows inside the mission surface, so it is no
+    // longer its own boxed card (that pale grey rectangle is gone).
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
 
     @include respond-to(md) {
-      padding: $spacing-5;
+      gap: $spacing-5;
     }
 
     @include respond-to(lg) {
@@ -1081,9 +1108,10 @@ $mel-dash-lavender: #7c83fd;
     // visually dominates the mission surface while remaining an H2. The
     // organiser keeps the single page H1 (smaller identity text above).
     .mel-vendor-dashboard__current-event--primary & {
-      font-size: clamp(2rem, 5vw, 3rem);
-      letter-spacing: -0.03em;
-      line-height: 1.05;
+      font-size: clamp(3rem, 5vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
     }
   }
 
