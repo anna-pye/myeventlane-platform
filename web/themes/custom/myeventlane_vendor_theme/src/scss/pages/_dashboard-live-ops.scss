@@ -93,16 +93,16 @@ $mel-dash-lavender: #7c83fd;
     // Phase 11A/11B — the event is its own operational surface (module) beneath
     // the vendor header, marked by the brand-primary left accent. Kept compact
     // (32px padding, 24px internal gap).
-    // Phase 11C — Event = medium surface: white with the brand accent, lighter
-    // depth than the vendor header.
-    padding: 2rem;
+    // Phase 11E — Primary surface: strongest via the 6px brand accent, but flat
+    // (no shadow) to fit the calm dashboard surface system.
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    max-width: 100%;
     background: #ffffff;
     border-radius: 28px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-    border-left: 4px solid $primary;
+    box-shadow: none;
+    border-left: 6px solid $primary;
 
     @include respond-to(md) {
-      padding: 2rem;
       gap: 1.5rem;
     }
 
@@ -2965,11 +2965,11 @@ $mel-dash-lavender: #7c83fd;
 // Phase 11A — Section 1: Vendor Mission Header. The largest section; the vendor
 // owns the page and business performance lives here directly under the identity.
 .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
-  // Phase 11C — Vendor = strongest surface (most depth) and most compact (~220px).
+  // Phase 11E — Business hero is context: very soft (minimal depth), smaller.
   background: #ffffff;
   border-radius: 28px;
   padding: 1.5rem 1.5rem 1.5rem;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 
   @include respond-to(md) {
     padding: 1.75rem 2rem 1.5rem;
@@ -2983,9 +2983,9 @@ $mel-dash-lavender: #7c83fd;
   }
 
   .mel-vendor-dashboard__workspace-hero-title {
-    font-size: clamp(2.25rem, 4.5vw, 3rem);
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
     font-weight: 800;
-    line-height: 1.02;
+    line-height: 1.05;
     color: $mel-ws-navy;
   }
 
@@ -3018,7 +3018,7 @@ $mel-dash-lavender: #7c83fd;
   }
 
   .mel-vendor-dashboard__header-metric-value {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
     line-height: 1.05;
     color: $mel-ws-navy;
@@ -3202,6 +3202,119 @@ $mel-dash-lavender: #7c83fd;
 
     .mel-vendor-dashboard__current-event-action-primary {
       width: 100%;
+    }
+  }
+}
+
+// ===========================================================================
+// Phase 11E — Dashboard surface system (lower half).
+// One calm, flat system for every tertiary section: shared dividers, shared
+// heading scale, list rows (no cards/shadows), bordered upcoming + utility
+// panels. Appended last and scoped under .mel-vendor-dashboard so it is the
+// authoritative layer over earlier per-phase tertiary styling.
+// ===========================================================================
+.mel-vendor-dashboard {
+  // Operations & tools become transparent groups (no enclosing boxes).
+  .mel-dashboard-operations,
+  .mel-dashboard-tools {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    gap: 0;
+  }
+
+  // Unified tertiary rhythm: one top divider + spacing for every section.
+  .mel-vendor-dashboard__section--tertiary {
+    margin-top: $spacing-6;
+    padding: $spacing-6 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.6);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  // Remove the earlier per-section bottom borders so only the top divider shows.
+  .mel-dashboard-operations > section {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  // Shared tertiary heading scale: small, uppercase, muted.
+  .mel-vendor-dashboard__section--tertiary .mel-live-ops__panel-title,
+  .mel-dashboard-operations__title,
+  .mel-dashboard-tools__title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-muted;
+  }
+
+  // List rows (workspace updates, attention, activity): flat rows, hairline rule.
+  .mel-vendor-dashboard__timeline-item,
+  .mel-vendor-dashboard__action-queue-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mel-vendor-dashboard__timeline-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    flex: none;
+    color: $text-secondary;
+    font-weight: $font-weight-semibold;
+  }
+
+  // Upcoming events: responsive bordered cards, no shadow, gentle hover lift.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: none;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  // Utility panels: bordered white accordions.
+  .mel-dashboard-tools > .mel-vendor-dashboard__details {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: $text-secondary;
+      cursor: pointer;
+    }
+
+    &[open] {
+      padding-bottom: 1rem;
     }
   }
 }
