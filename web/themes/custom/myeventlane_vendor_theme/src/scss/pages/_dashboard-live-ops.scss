@@ -30,10 +30,75 @@ $mel-dash-lavender: #7c83fd;
   }
 
   &--event-first {
-    gap: $spacing-4;
+    gap: $spacing-5;
 
     @include respond-to(md) {
-      gap: $spacing-5;
+      gap: $spacing-6;
+    }
+
+    > .mel-vendor-dashboard__mission-hero--secondary {
+      margin-top: $spacing-1;
+    }
+
+    > .mel-vendor-dashboard__section--tertiary {
+      margin-top: $spacing-4;
+      padding: $spacing-2 0;
+      border: none;
+      border-top: 1px solid rgba($mel-shell-border, 0.22);
+      background: transparent;
+      box-shadow: none;
+
+      @include respond-to(md) {
+        margin-top: $spacing-5;
+        padding: $spacing-3 0;
+      }
+    }
+
+    > .mel-vendor-dashboard__details--utility {
+      margin-top: $spacing-4;
+      border: none;
+      border-top: 1px solid rgba($mel-shell-border, 0.2);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+
+      > summary {
+        padding: $spacing-2 0;
+        color: $text-muted;
+        font-size: $font-size-xs;
+      }
+    }
+  }
+
+  &__event-ops {
+    display: grid;
+    gap: 0;
+    min-width: 0;
+    padding-left: $spacing-4;
+    border-left: 4px solid $mel-ws-navy;
+
+    @include respond-to(md) {
+      padding-left: $spacing-5;
+    }
+
+    @include respond-to(lg) {
+      padding-left: $spacing-6;
+    }
+
+    .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
+      min-height: auto;
+      padding: $spacing-2;
+      border-color: rgba($mel-shell-border, 0.4);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .mel-live-ops__stat-value {
+      font-size: $font-size-base;
+    }
+
+    .mel-live-ops__stat-label {
+      font-size: 0.6875rem;
     }
   }
 
@@ -636,18 +701,26 @@ $mel-dash-lavender: #7c83fd;
     }
 
     &--event {
-      border: 1px solid rgba($mel-ws-purple, 0.16);
-      background: rgba($mel-shell-surface, 0.92);
-      box-shadow: $shadow-xs;
+      padding: $spacing-3 0 $spacing-4;
+      border: none;
+      border-top: 1px solid rgba($mel-shell-border, 0.35);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
 
       .mel-vendor-dashboard__section-head--compact {
-        margin-bottom: $spacing-3;
+        margin-bottom: $spacing-2;
+      }
+
+      .mel-live-ops__eyebrow {
+        color: $text-muted;
+        font-size: 0.6875rem;
       }
 
       .mel-live-ops__panel-title {
-        color: $mel-ws-navy;
-        font-size: clamp(1.125rem, 2.8vw, 1.375rem);
-        font-weight: $font-weight-bold;
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
       }
 
       .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
@@ -684,59 +757,75 @@ $mel-dash-lavender: #7c83fd;
 
     &--secondary {
       .mel-live-ops__hero-surface {
-        padding: $spacing-3 $spacing-4;
-        background: rgba($mel-shell-page-bg, 0.55);
-        border-color: rgba($mel-shell-border, 0.55);
+        padding: $spacing-2 $spacing-3;
+        background: rgba($mel-shell-page-bg, 0.45);
+        border: none;
+        border-radius: $radius-md;
+        box-shadow: none;
       }
 
       .mel-live-ops__hero-primary {
-        gap: $spacing-2;
+        gap: $spacing-1;
       }
 
       .mel-live-ops__eyebrow {
         color: $text-muted;
-        font-size: $font-size-xs;
+        font-size: 0.6875rem;
+        letter-spacing: 0.05em;
       }
 
       .mel-vendor-dashboard__workspace-hero-title,
       .mel-live-ops__hero-title {
-        color: $text-secondary;
-        font-size: clamp(1.0625rem, 2.6vw, 1.25rem);
-        font-weight: $font-weight-semibold;
+        color: $text-muted;
+        font-size: clamp(1rem, 2.4vw, 1.125rem);
+        font-weight: $font-weight-medium;
       }
 
       .mel-vendor-dashboard__workspace-hero-lead,
       .mel-vendor-dashboard__mission-message {
-        font-size: $font-size-sm;
+        font-size: $font-size-xs;
+        color: $text-muted;
       }
 
       .mel-vendor-dashboard__mission-stats {
-        margin-top: $spacing-2;
+        margin-top: $spacing-1;
       }
 
       .mel-vendor-dashboard__workspace-hero-stat {
-        padding: $spacing-1 $spacing-2;
+        padding: $spacing-1;
+        border-color: rgba($mel-shell-border, 0.35);
+        background: transparent;
       }
 
       .mel-vendor-dashboard__workspace-hero-stat-value {
-        font-size: $font-size-sm;
-        font-weight: $font-weight-semibold;
+        color: $text-muted;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-medium;
       }
 
       .mel-vendor-dashboard__workspace-hero-stat-label {
-        font-size: 0.6875rem;
+        font-size: 0.625rem;
+        color: $text-muted;
       }
 
-      .mel-vendor-dashboard__workspace-hero-stat--primary .mel-vendor-dashboard__workspace-hero-stat-value {
-        color: $text-secondary;
-        font-size: $font-size-base;
+      .mel-vendor-dashboard__workspace-hero-stat--primary,
+      .mel-vendor-dashboard__workspace-hero-stat--secondary,
+      .mel-vendor-dashboard__workspace-hero-stat--neutral {
+        border-color: rgba($mel-shell-border, 0.35);
+        background: transparent;
+
+        .mel-vendor-dashboard__workspace-hero-stat-value {
+          color: $text-muted;
+          font-size: $font-size-xs;
+        }
       }
 
       .mel-vendor-dashboard__mission-actions {
-        margin-top: $spacing-2;
+        margin-top: $spacing-1;
 
         .mel-btn {
           min-height: 2.75rem;
+          font-size: $font-size-sm;
         }
       }
     }
@@ -808,18 +897,24 @@ $mel-dash-lavender: #7c83fd;
     }
 
     &--primary {
-      gap: $spacing-4;
-      padding: $spacing-5 $spacing-4;
-      border-color: rgba($mel-ws-purple, 0.28);
-      box-shadow: $shadow-md;
+      gap: $spacing-3;
+      padding: 0 0 $spacing-4;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
 
       @include respond-to(md) {
-        gap: $spacing-5;
-        padding: $spacing-6;
+        gap: $spacing-4;
+        padding-bottom: $spacing-5;
       }
+    }
 
-      @include respond-to(lg) {
-        padding: $spacing-8;
+    &--presence {
+      gap: $spacing-3;
+
+      @include respond-to(md) {
+        gap: $spacing-4;
       }
     }
   }
@@ -830,7 +925,7 @@ $mel-dash-lavender: #7c83fd;
 
   &__current-event-head {
     display: grid;
-    gap: $spacing-1;
+    gap: $spacing-2;
     min-width: 0;
   }
 
@@ -851,13 +946,51 @@ $mel-dash-lavender: #7c83fd;
     letter-spacing: -0.02em;
 
     .mel-vendor-dashboard__current-event--primary & {
-      font-size: clamp(1.75rem, 5.2vw, 2.375rem);
-      letter-spacing: -0.03em;
+      font-size: clamp(1.875rem, 6vw, 2.5rem);
+      letter-spacing: -0.035em;
+      line-height: 1.1;
     }
   }
 
   &__current-event-chips {
-    margin-top: $spacing-2;
+    margin-top: 0;
+  }
+
+  &__current-event-meta {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+    min-width: 0;
+
+    @include respond-to(sm) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: $spacing-3 $spacing-4;
+    }
+  }
+
+  &__current-event-meta-item {
+    display: grid;
+    gap: $spacing-1;
+    margin: 0;
+    min-width: 0;
+  }
+
+  &__current-event-meta-label {
+    margin: 0;
+    color: $text-muted;
+    font-size: 0.6875rem;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.05em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  &__current-event-meta-value {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
   }
 
   &__current-event-date {
@@ -893,9 +1026,11 @@ $mel-dash-lavender: #7c83fd;
     font-size: $font-size-base;
     line-height: $line-height-relaxed;
 
-    .mel-vendor-dashboard__current-event--primary & {
+    &--supporting {
       max-width: 42rem;
-      font-size: clamp(1rem, 2.4vw, 1.0625rem);
+      color: $text-muted;
+      font-size: $font-size-sm;
+      line-height: $line-height-normal;
     }
   }
 
@@ -909,10 +1044,14 @@ $mel-dash-lavender: #7c83fd;
 
   &__current-event-metric {
     margin: 0;
-    color: $text-secondary;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-semibold;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
     line-height: $line-height-normal;
+
+    &--support {
+      max-width: 36rem;
+    }
   }
 
   &__current-event-reasons {
@@ -939,42 +1078,46 @@ $mel-dash-lavender: #7c83fd;
   }
 
   &__current-event-actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
     gap: $spacing-2;
-    padding-top: $spacing-3;
-    border-top: 1px solid rgba($mel-shell-border, 0.85);
+    margin-top: $spacing-1;
+    padding-top: 0;
+    border-top: none;
+    min-width: 0;
 
     .mel-vendor-dashboard__current-event--primary & {
-      margin-top: 0;
-      padding-top: 0;
-      border-top: none;
+      margin-top: $spacing-2;
     }
 
     .mel-btn {
       min-height: 2.75rem;
+    }
+  }
+
+  &__current-event-action-primary {
+    width: 100%;
+    min-height: 3.25rem;
+    justify-content: center;
+
+    @include respond-to(md) {
+      width: auto;
+      min-width: 14rem;
+    }
+  }
+
+  &__current-event-actions-secondary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    min-width: 0;
+
+    .mel-btn {
       flex: 1 1 100%;
+      justify-content: center;
 
       @include respond-to(md) {
         flex: 0 1 auto;
-      }
-    }
-
-    .mel-btn--primary {
-      @include respond-to(md) {
-        min-width: 12rem;
-      }
-    }
-
-    .mel-vendor-dashboard__current-event--primary & .mel-btn--primary {
-      width: 100%;
-      min-height: 3rem;
-      flex: 1 1 100%;
-
-      @include respond-to(md) {
         width: auto;
-        flex: 0 1 auto;
-        min-width: 13rem;
       }
     }
   }
@@ -2406,6 +2549,38 @@ $mel-dash-lavender: #7c83fd;
 
   &__details--event-analytics-table {
     margin-top: $spacing-2;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phase 8C — event-first tertiary quieting
+  // ---------------------------------------------------------------------------
+
+  &--event-first &__section--tertiary {
+    .mel-live-ops__panel-title {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $text-muted;
+    }
+
+    .mel-live-ops__eyebrow {
+      display: none;
+    }
+
+    .mel-vendor-dashboard__action-queue-item,
+    .mel-vendor-dashboard__summary-card,
+    .mel-vendor-dashboard__timeline--activity .mel-vendor-dashboard__timeline-item {
+      border: none;
+      border-bottom: 1px solid rgba($mel-shell-border, 0.2);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .mel-vendor-dashboard__action-queue-item--primary {
+      background: transparent;
+    }
   }
 
   // ---------------------------------------------------------------------------
