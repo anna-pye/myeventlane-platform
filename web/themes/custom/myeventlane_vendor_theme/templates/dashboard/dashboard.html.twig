@@ -36,7 +36,6 @@
 {% set metric_rows = kpis %}
 {% set events_empty = model_events is not iterable or model_events|length == 0 %}
 {% set create_action = organiser_actions|filter(item => item.key|default('') == 'create')|first|default(null) %}
-{% set manage_events_action = organiser_actions|filter(item => item.key|default('') == 'events')|first|default(null) %}
 {% set priority_sev = priority_action.severity|default('info') %}
 {% set priority_needs_attention = priority_action and (priority_sev == 'error' or priority_sev == 'warning') %}
 {% set show_priority_message = priority_action and priority_action.message is defined and priority_action.message %}
@@ -115,19 +114,9 @@
             {% set primary_cta_label = empty_state.action_label|default('Create event'|t) %}
           {% endif %}
 
-          {% set secondary_cta_url = null %}
-          {% set secondary_cta_label = null %}
-          {% if not events_empty and manage_events_action and manage_events_action.url is defined and manage_events_action.url %}
-            {% set secondary_cta_url = manage_events_action.url %}
-            {% set secondary_cta_label = manage_events_action.label|default('Manage events'|t) %}
-          {% endif %}
-
           {% if primary_cta_url and primary_cta_label %}
             <div class="mel-vendor-dashboard__mission-actions mel-vendor-dashboard__workspace-hero-actions">
               <a class="mel-btn mel-btn--primary{% if events_empty %} mel-btn--lg{% endif %}" href="{{ primary_cta_url }}">{{ primary_cta_label }}</a>
-              {% if secondary_cta_url and secondary_cta_label %}
-                <a class="mel-btn mel-btn--secondary" href="{{ secondary_cta_url }}">{{ secondary_cta_label }}</a>
-              {% endif %}
             </div>
           {% endif %}
         </div>

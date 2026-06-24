@@ -130,7 +130,7 @@ $mel-dash-lavender: #7c83fd;
   &__workspace-hero-title {
     margin: 0;
     color: $mel-ws-navy;
-    font-size: clamp(1.625rem, 4.8vw, 2.25rem);
+    font-size: clamp(1.375rem, 3.8vw, 1.75rem);
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
@@ -167,18 +167,18 @@ $mel-dash-lavender: #7c83fd;
     display: grid;
     gap: $spacing-1;
     min-width: 0;
-    padding: $spacing-3;
-    border: 1px solid rgba($mel-ws-navy, 0.08);
-    border-radius: $radius-lg;
-    background: rgba($mel-shell-page-bg, 0.72);
+    padding: $spacing-2 $spacing-3;
+    border: 1px solid rgba($mel-ws-navy, 0.06);
+    border-radius: $radius-md;
+    background: rgba($mel-shell-page-bg, 0.55);
   }
 
   &__workspace-hero-stat-value {
     color: $mel-ws-navy;
-    font-size: clamp(1.125rem, 2.6vw, 1.375rem);
+    font-size: clamp(1rem, 2.2vw, 1.125rem);
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     overflow-wrap: anywhere;
   }
 
@@ -229,10 +229,9 @@ $mel-dash-lavender: #7c83fd;
   }
 
   &__mission-hero .mel-live-ops__hero-surface {
-    background:
-      radial-gradient(640px circle at 100% 0%, rgba($mel-ws-purple, 0.05), transparent 45%),
-      $mel-shell-surface;
-    border: 1px solid $mel-shell-border;
+    background: $mel-shell-surface;
+    border: 1px solid rgba($mel-shell-border, 0.85);
+    box-shadow: none;
   }
 
   &__mission-hero--empty {
@@ -472,11 +471,11 @@ $mel-dash-lavender: #7c83fd;
     }
 
     .mel-live-ops__hero-surface {
-      box-shadow: $shadow-sm;
+      box-shadow: none;
     }
 
     &--attention .mel-live-ops__hero-surface {
-      border-left: 4px solid $warning;
+      border-left: 3px solid $warning;
     }
 
     &--attention .mel-vendor-dashboard__mission-message {
@@ -501,22 +500,22 @@ $mel-dash-lavender: #7c83fd;
   }
 
   &__mission-stats {
-    margin-top: $spacing-4;
+    margin-top: $spacing-3;
   }
 
   &__workspace-hero-stat--primary {
-    border-color: rgba($mel-ws-coral, 0.22);
-    background: rgba($mel-ws-coral, 0.06);
+    border-color: rgba($mel-ws-coral, 0.16);
+    background: rgba($mel-ws-coral, 0.04);
 
     .mel-vendor-dashboard__workspace-hero-stat-value {
       color: $mel-ws-coral;
-      font-size: clamp(1.375rem, 3.2vw, 1.625rem);
+      font-size: clamp(1.0625rem, 2.4vw, 1.1875rem);
     }
   }
 
   &__workspace-hero-stat--secondary {
-    border-color: rgba($mel-ws-purple, 0.2);
-    background: rgba($mel-ws-purple-tint, 0.35);
+    border-color: rgba($mel-ws-purple, 0.14);
+    background: rgba($mel-ws-purple-tint, 0.22);
 
     .mel-vendor-dashboard__workspace-hero-stat-value {
       color: $mel-ws-purple;
@@ -529,16 +528,16 @@ $mel-dash-lavender: #7c83fd;
 
   &__current-event {
     display: grid;
-    gap: $spacing-4;
-    padding: $spacing-4;
-    border: 1px solid rgba($mel-ws-purple, 0.14);
+    gap: $spacing-5;
+    padding: $spacing-5;
+    border: 2px solid rgba($mel-ws-purple, 0.22);
     border-radius: $radius-workspace-card;
     background: $mel-shell-surface;
-    box-shadow: $shadow-xs;
+    box-shadow: $shadow-sm;
 
     @include respond-to(md) {
-      padding: $spacing-5 $spacing-6;
-      gap: $spacing-5;
+      padding: $spacing-6;
+      gap: $spacing-6;
     }
   }
 
@@ -559,7 +558,7 @@ $mel-dash-lavender: #7c83fd;
   &__current-event-title {
     margin: 0;
     color: $mel-ws-navy;
-    font-size: clamp(1.25rem, 3.2vw, 1.5rem);
+    font-size: clamp(1.375rem, 3.6vw, 1.625rem);
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
@@ -642,15 +641,21 @@ $mel-dash-lavender: #7c83fd;
     display: flex;
     flex-wrap: wrap;
     gap: $spacing-2;
-    padding-top: $spacing-1;
+    padding-top: $spacing-3;
     border-top: 1px solid rgba($mel-shell-border, 0.85);
 
     .mel-btn {
       min-height: 2.75rem;
-      flex: 1 1 calc(50% - #{$spacing-2});
+      flex: 1 1 100%;
 
       @include respond-to(sm) {
         flex: 0 1 auto;
+      }
+    }
+
+    .mel-btn--primary {
+      @include respond-to(sm) {
+        min-width: 12rem;
       }
     }
   }
@@ -676,14 +681,17 @@ $mel-dash-lavender: #7c83fd;
     display: flex;
     flex-wrap: wrap;
     gap: $spacing-2;
-    margin-top: $spacing-4;
+    margin-top: $spacing-3;
+    width: 100%;
 
     .mel-btn {
       min-height: 2.75rem;
-      flex: 1 1 calc(50% - #{$spacing-2});
+      flex: 1 1 100%;
+      max-width: 18rem;
 
       @include respond-to(sm) {
         flex: 0 1 auto;
+        width: auto;
       }
     }
   }
@@ -702,39 +710,53 @@ $mel-dash-lavender: #7c83fd;
   &__activity-stream,
   &__workspace-updates,
   &__upcoming-strip {
-    padding: $spacing-4;
-    border: 1px solid $mel-shell-border;
+    padding: $spacing-3 $spacing-4;
+    border: 1px solid rgba($mel-shell-border, 0.65);
     border-radius: $radius-workspace-card;
-    background: $mel-shell-surface;
+    background: transparent;
     box-shadow: none;
   }
 
   &__workspace-updates {
-    background: $mel-brand-surface-soft;
-    border-color: rgba($mel-shell-border, 0.8);
+    background: transparent;
+    border-color: rgba($mel-shell-border, 0.65);
     box-shadow: none;
   }
 
   &__activity-stream--secondary {
     padding: $spacing-3 $spacing-4;
-    border-color: rgba($mel-shell-border, 0.75);
-    background: rgba($mel-shell-page-bg, 0.65);
+    border-color: rgba($mel-shell-border, 0.6);
+    background: transparent;
 
     .mel-live-ops__panel-title {
-      font-size: $font-size-lg;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+    }
+
+    .mel-live-ops__eyebrow {
+      font-size: $font-size-xs;
     }
   }
 
   &__workspace-updates.mel-vendor-dashboard__activity-stream--secondary {
-    background: $mel-brand-surface-soft;
+    background: transparent;
   }
 
   &__attention-strip,
   &__upcoming-strip,
   &__activity-stream:not(.mel-vendor-dashboard__activity-stream--secondary) {
     box-shadow: none;
-    border-color: rgba($mel-shell-border, 0.8);
-    background: rgba($mel-shell-page-bg, 0.55);
+    border-color: rgba($mel-shell-border, 0.6);
+    background: transparent;
+
+    .mel-live-ops__panel-title {
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+    }
+
+    .mel-live-ops__eyebrow {
+      font-size: $font-size-xs;
+    }
   }
 
   &__quick-actions.mel-live-ops__quick-bar {
