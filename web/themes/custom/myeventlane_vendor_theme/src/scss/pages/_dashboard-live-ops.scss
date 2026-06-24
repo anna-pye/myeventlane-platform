@@ -47,7 +47,7 @@ $mel-dash-lavender: #7c83fd;
       margin-top: $spacing-1;
     }
 
-    > .mel-vendor-dashboard__section--tertiary {
+    > .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
       margin-top: $spacing-4;
       padding: $spacing-2 0;
       border: none;
@@ -281,9 +281,8 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
-  // Slice 6 — tertiary sections (needs attention, upcoming, activity) stay calm:
-  // smaller headings and tight rhythm so only the event card carries weight.
-  &__section--tertiary {
+  // Slice 6 — tertiary sections (upcoming, activity) stay calm; needs-attention excluded (14A.1).
+  &__section--tertiary:not(.mel-dashboard-needs-attention) {
     .mel-live-ops__panel-title {
       font-size: $font-size-base;
     }
@@ -617,7 +616,7 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
-  &__section--tertiary {
+  &__section--tertiary:not(.mel-dashboard-needs-attention) {
     padding: $spacing-2 $spacing-3;
     border: 1px solid rgba($mel-shell-border, 0.35);
     background: transparent;
@@ -2712,7 +2711,7 @@ $mel-dash-lavender: #7c83fd;
   // Phase 8C — event-first tertiary quieting
   // ---------------------------------------------------------------------------
 
-  &--event-first &__section--tertiary {
+  &--event-first &__section--tertiary:not(.mel-dashboard-needs-attention) {
     .mel-live-ops__panel-title {
       font-size: $font-size-xs;
       font-weight: $font-weight-medium;
@@ -2843,7 +2842,7 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
-  &__section--tertiary.mel-vendor-dashboard__action-queue {
+  &__section--tertiary.mel-vendor-dashboard__action-queue:not(.mel-dashboard-needs-attention) {
     border-left: none;
     padding-top: $spacing-2;
     padding-bottom: $spacing-2;
@@ -3226,7 +3225,7 @@ $mel-dash-lavender: #7c83fd;
   }
 
   // Unified tertiary rhythm: one top divider + spacing for every section.
-  .mel-vendor-dashboard__section--tertiary {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
     margin-top: $spacing-6;
     padding: $spacing-6 0 0;
     background: transparent;
@@ -3243,7 +3242,7 @@ $mel-dash-lavender: #7c83fd;
   }
 
   // Shared tertiary heading scale: small, uppercase, muted.
-  .mel-vendor-dashboard__section--tertiary .mel-live-ops__panel-title,
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-live-ops__panel-title,
   .mel-dashboard-operations__title,
   .mel-dashboard-tools__title {
     margin: 0;
@@ -3255,8 +3254,10 @@ $mel-dash-lavender: #7c83fd;
   }
 
   // List rows (workspace updates, attention, activity): flat rows, hairline rule.
-  .mel-vendor-dashboard__timeline-item,
-  .mel-vendor-dashboard__action-queue-item {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-vendor-dashboard__section--tertiary.mel-vendor-dashboard__action-queue:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__action-queue-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__action-queue-item {
     padding: 1rem 0;
     border-bottom: 1px solid rgba($mel-shell-border, 0.35);
     background: transparent;
@@ -3401,7 +3402,7 @@ $mel-dash-lavender: #7c83fd;
     gap: 0;
   }
 
-  .mel-vendor-dashboard__section--tertiary {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
     margin-top: 2rem;
     padding: 2rem 0 0;
     background: transparent;
@@ -3416,7 +3417,7 @@ $mel-dash-lavender: #7c83fd;
     border-bottom: none;
   }
 
-  .mel-vendor-dashboard__section--tertiary .mel-live-ops__panel-title,
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-live-ops__panel-title,
   .mel-dashboard-operations__title,
   .mel-dashboard-tools__title {
     margin: 0;
@@ -3428,8 +3429,10 @@ $mel-dash-lavender: #7c83fd;
   }
 
   // Activity / attention rows — flat list rows with a hairline rule.
-  .mel-vendor-dashboard__timeline-item,
-  .mel-vendor-dashboard__action-queue-item {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-vendor-dashboard__section--tertiary.mel-vendor-dashboard__action-queue:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__action-queue-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__action-queue-item {
     padding: 1rem 0;
     border-bottom: 1px solid rgba($mel-shell-border, 0.35);
     background: transparent;
@@ -3649,7 +3652,8 @@ $mel-dash-lavender: #7c83fd;
   }
 
   // LEVEL 5 — Recent activity: denser rows, muted timestamps.
-  .mel-vendor-dashboard__timeline-item {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item {
     padding: 1.25rem 0;
   }
 
@@ -3665,7 +3669,7 @@ $mel-dash-lavender: #7c83fd;
 
   // Zone rhythm — clear separation between Levels 3-6.
   .mel-dashboard-business-health,
-  .mel-vendor-dashboard__section--tertiary {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
     margin-top: 2rem;
   }
 }
@@ -3844,7 +3848,8 @@ $mel-dash-lavender: #7c83fd;
   }
 
   // SLICE 5 — Recent activity: Slack-style rows only.
-  .mel-vendor-dashboard__timeline-item {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item {
     padding: 1rem 0;
   }
 
@@ -3855,7 +3860,7 @@ $mel-dash-lavender: #7c83fd;
 
   // SLICE 6 — Section system: top divider only, small uppercase headings.
   .mel-dashboard-business-health,
-  .mel-vendor-dashboard__section--tertiary {
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
     margin-top: 0;
     padding-top: 2rem;
     border-top: 1px solid rgba($mel-shell-border, 0.6);
@@ -3864,7 +3869,7 @@ $mel-dash-lavender: #7c83fd;
   }
 
   .mel-dashboard-business-health__title,
-  .mel-vendor-dashboard__section--tertiary .mel-live-ops__panel-title,
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-live-ops__panel-title,
   .mel-dashboard-operations__title,
   .mel-dashboard-tools__title {
     font-size: 0.75rem;
@@ -3951,5 +3956,228 @@ $mel-dash-lavender: #7c83fd;
   .mel-vendor-dashboard__upcoming-strip .mel-vendor-dashboard__summary-cards {
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.25rem;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 14A.1 — Needs attention action queue (wins over 11E/12A/12C tertiary flattening)
+// ---------------------------------------------------------------------------
+.mel-vendor-dashboard {
+  &__action-queue.mel-dashboard-needs-attention {
+    margin-top: 0;
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.55);
+    border-left: 4px solid rgba($warning, 0.75);
+    border-radius: $radius-lg;
+    background: $bg-primary;
+    box-shadow: none;
+
+    @include respond-to(md) {
+      padding: $spacing-6;
+    }
+
+    .mel-vendor-dashboard__section-head--compact {
+      margin-bottom: $spacing-3;
+    }
+
+    .mel-live-ops__eyebrow {
+      display: block;
+      margin: 0 0 $spacing-1;
+      color: $text-secondary;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .mel-live-ops__panel-title {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: clamp(1.0625rem, 2vw, 1.25rem);
+      font-weight: $font-weight-bold;
+      line-height: $line-height-tight;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+
+    .mel-vendor-dashboard__timeline {
+      display: grid;
+      gap: $spacing-2;
+      margin: 0;
+      padding: 0;
+      border-left: none;
+      list-style: none;
+    }
+
+    .mel-vendor-dashboard__timeline-item {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: $spacing-3;
+      min-height: 2.75rem;
+      padding: $spacing-3 $spacing-3 $spacing-3 $spacing-4;
+      margin: 0;
+      border: 1px solid rgba($mel-shell-border, 0.45);
+      border-left-width: 3px;
+      border-left-style: solid;
+      border-radius: $radius-md;
+      background: rgba($mel-shell-page-bg, 0.4);
+      box-shadow: none;
+    }
+
+    .mel-vendor-dashboard__timeline-item--warn {
+      border-left-color: rgba($warning, 0.85);
+    }
+
+    .mel-vendor-dashboard__timeline-item--info {
+      border-left-color: rgba($info, 0.75);
+    }
+
+    .mel-vendor-dashboard__timeline-item--success {
+      border-left-color: rgba($success, 0.75);
+    }
+
+    .mel-vendor-dashboard__timeline-marker {
+      position: static;
+      flex-shrink: 0;
+      align-self: center;
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
+    .mel-vendor-dashboard__timeline-content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-2 $spacing-4;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .mel-vendor-dashboard__timeline-body {
+      flex: 1 1 12rem;
+      min-width: 0;
+    }
+
+    .mel-vendor-dashboard__timeline-text {
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      line-height: $line-height-normal;
+    }
+
+    .mel-vendor-dashboard__timeline-link {
+      flex: 0 0 auto;
+      margin-left: auto;
+      min-height: 2.75rem;
+      align-items: center;
+      white-space: nowrap;
+      font-size: $font-size-sm;
+    }
+  }
+
+  &--event-first > &__action-queue.mel-dashboard-needs-attention {
+    margin-top: $spacing-4;
+
+    @include respond-to(md) {
+      margin-top: $spacing-5;
+    }
+  }
+
+  // Phase 14B — Operationally healthy organiser (quiet confidence strip, not a card).
+  &__healthy-state {
+    margin-top: 0;
+    padding: $spacing-4 0;
+    border: none;
+    border-top: 1px solid rgba($success, 0.22);
+    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    background: transparent;
+    box-shadow: none;
+    display: grid;
+    gap: $spacing-3;
+
+    @include respond-to(md) {
+      padding: $spacing-5 0;
+      gap: $spacing-4;
+    }
+  }
+
+  &__healthy-state-message {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__healthy-state-icon {
+    flex-shrink: 0;
+    color: $success;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
+
+  &__healthy-state-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-4 $spacing-6;
+    margin: 0;
+  }
+
+  &__healthy-state-metric {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
+  }
+
+  &__healthy-state-label {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    line-height: $line-height-normal;
+    text-transform: uppercase;
+  }
+
+  &__healthy-state-value {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__healthy-state-event {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: $spacing-2;
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__healthy-state-event-label {
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &--event-first > &__healthy-state {
+    margin-top: $spacing-4;
+
+    @include respond-to(md) {
+      margin-top: $spacing-5;
+    }
   }
 }

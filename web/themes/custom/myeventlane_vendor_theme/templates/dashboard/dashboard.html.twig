@@ -21,6 +21,7 @@
 {% set organiser_actions = model.organiser_actions|default([]) %}
 {% set kpis = model.kpis|default([]) %}
 {% set actions = model.action_queue|default([]) %}
+{% set show_operational_healthy = actions is not iterable or actions|length == 0 %}
 {% set priority_action = model.priority_action|default(actions|first|default(null)) %}
 {% set secondary_actions = model.secondary_actions|default(actions|slice(1)) %}
 {% set model_events = model.events|default([]) %}
@@ -170,6 +171,38 @@
         {% endfor %}
       </ol>
     </section>
+  {% else %}
+    {# Phase 14B — Operationally healthy: quiet confidence strip when the action
+       queue is empty. Uses existing organiser_overview + kpis only. #}
+    {% set healthy_live_events = organiser_overview|filter(item => item.key|default('') == 'live_events')|first|default(null) %}
+    {% set healthy_upcoming_events = organiser_overview|filter(item => item.key|default('') == 'upcoming_events')|first|default(null) %}
+    {% set healthy_revenue = kpis|filter(item => item.key|default('') == 'revenue')|first|default(null) %}
+    <div class="mel-vendor-dashboard__healthy-state" role="status" aria-live="polite">
+      <p class="mel-vendor-dashboard__healthy-state-message">
+        <span class="mel-vendor-dashboard__healthy-state-icon" aria-hidden="true">✓</span>
+        {{ 'Everything is running smoothly.'|t }}
+      </p>
+      <dl class="mel-vendor-dashboard__healthy-state-metrics">
+        <div class="mel-vendor-dashboard__healthy-state-metric">
+          <dt class="mel-vendor-dashboard__healthy-state-label">{{ 'Live events'|t }}</dt>
+          <dd class="mel-vendor-dashboard__healthy-state-value">{{ healthy_live_events ? healthy_live_events.value|default('0') : '0' }}</dd>
+        </div>
+        <div class="mel-vendor-dashboard__healthy-state-metric">
+          <dt class="mel-vendor-dashboard__healthy-state-label">{{ 'Upcoming'|t }}</dt>
+          <dd class="mel-vendor-dashboard__healthy-state-value">{{ healthy_upcoming_events ? healthy_upcoming_events.value|default('0') : '0' }}</dd>
+        </div>
+        <div class="mel-vendor-dashboard__healthy-state-metric">
+          <dt class="mel-vendor-dashboard__healthy-state-label">{{ 'Revenue'|t }}</dt>
+          <dd class="mel-vendor-dashboard__healthy-state-value">{{ healthy_revenue ? healthy_revenue.value|default('$0.00') : '$0.00' }}</dd>
+        </div>
+      </dl>
+      {% if has_current_event and current_event.title|default('') %}
+        <p class="mel-vendor-dashboard__healthy-state-event">
+          <span class="mel-vendor-dashboard__healthy-state-event-label">{{ 'Current focus'|t }}</span>
+          {{ current_event.title }}
+        </p>
+      {% endif %}
+    </div>
   {% endif %}
 
   {# Slice 2 — Current event operational panel. Labelled "Your current event"
@@ -353,7 +386,7 @@
     </section>
   {% endif %}
 
-  {% if workspace_updates is iterable and workspace_updates|length > 0 %}
+  {% if not show_operational_healthy and workspace_updates is iterable and workspace_updates|length > 0 %}
     <section class="mel-vendor-dashboard__workspace-updates mel-vendor-dashboard__activity-stream mel-vendor-dashboard__activity-stream--compact mel-vendor-dashboard__activity-stream--secondary mel-vendor-dashboard__section--tertiary" aria-labelledby="mel-dash-workspace-title">
       <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
         <p class="mel-live-ops__eyebrow">{{ 'Account'|t }}</p>
@@ -493,7 +526,7 @@
 
   {# Phase 13 — Level 6: Business health (relocated below activity). Uses
      existing model.readiness booleans only; no new payloads. #}
-  {% if not events_empty %}
+  {% if not events_empty and not show_operational_healthy %}
     <section class="mel-dashboard-business-health" aria-labelledby="mel-dash-health-title">
       <header class="mel-dashboard-business-health__header">
         <h2 id="mel-dash-health-title" class="mel-dashboard-business-health__title">{{ 'Business health'|t }}</h2>
