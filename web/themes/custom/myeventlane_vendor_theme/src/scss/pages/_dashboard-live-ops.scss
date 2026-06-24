@@ -237,7 +237,6 @@ $mel-dash-lavender: #7c83fd;
   // Business summary: secondary organiser context below the current event.
   // Lighter than the event card so it never competes for operational focus.
   &__business-summary {
-    margin-top: $spacing-5;
     padding-top: $spacing-4;
     border-top: 1px solid rgba($mel-shell-border, 0.5);
 
@@ -247,6 +246,42 @@ $mel-dash-lavender: #7c83fd;
 
     .mel-live-ops__panel-title {
       color: $text-secondary;
+      font-size: $font-size-base;
+    }
+
+    // Slice 5 — business reads as context, not mission: horizontal stats with
+    // no cards and muted, smaller typography.
+    .mel-vendor-dashboard__workspace-hero-stat {
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-stat-value {
+      color: $text-secondary;
+      font-size: clamp(1.25rem, 3vw, 1.5rem);
+    }
+
+    .mel-vendor-dashboard__workspace-hero-stat-label {
+      color: $text-muted;
+    }
+
+    // Mute the revenue accent here — context, not emphasis.
+    .mel-vendor-dashboard__workspace-hero-stat--revenue
+      .mel-vendor-dashboard__workspace-hero-stat-value {
+      color: $text-secondary;
+    }
+  }
+
+  // Slice 6 — tertiary sections (needs attention, upcoming, activity) stay calm:
+  // smaller headings and tight rhythm so only the event card carries weight.
+  &__section--tertiary {
+    .mel-live-ops__panel-title {
+      font-size: $font-size-base;
+    }
+
+    .mel-vendor-dashboard__section-head--compact {
+      margin-bottom: $spacing-2;
     }
   }
 
