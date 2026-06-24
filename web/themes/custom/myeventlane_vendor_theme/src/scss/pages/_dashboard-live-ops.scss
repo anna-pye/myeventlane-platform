@@ -29,6 +29,14 @@ $mel-dash-lavender: #7c83fd;
     gap: $spacing-6;
   }
 
+  &--event-first {
+    gap: $spacing-4;
+
+    @include respond-to(md) {
+      gap: $spacing-5;
+    }
+  }
+
   .mel-live-ops__split {
     margin-top: 0;
   }
@@ -628,6 +636,20 @@ $mel-dash-lavender: #7c83fd;
     }
 
     &--event {
+      border: 1px solid rgba($mel-ws-purple, 0.16);
+      background: rgba($mel-shell-surface, 0.92);
+      box-shadow: $shadow-xs;
+
+      .mel-vendor-dashboard__section-head--compact {
+        margin-bottom: $spacing-3;
+      }
+
+      .mel-live-ops__panel-title {
+        color: $mel-ws-navy;
+        font-size: clamp(1.125rem, 2.8vw, 1.375rem);
+        font-weight: $font-weight-bold;
+      }
+
       .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
         grid-template-columns: repeat(2, minmax(0, 1fr));
 
@@ -658,6 +680,65 @@ $mel-dash-lavender: #7c83fd;
 
     .mel-live-ops__hero-surface {
       box-shadow: none;
+    }
+
+    &--secondary {
+      .mel-live-ops__hero-surface {
+        padding: $spacing-3 $spacing-4;
+        background: rgba($mel-shell-page-bg, 0.55);
+        border-color: rgba($mel-shell-border, 0.55);
+      }
+
+      .mel-live-ops__hero-primary {
+        gap: $spacing-2;
+      }
+
+      .mel-live-ops__eyebrow {
+        color: $text-muted;
+        font-size: $font-size-xs;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-title,
+      .mel-live-ops__hero-title {
+        color: $text-secondary;
+        font-size: clamp(1.0625rem, 2.6vw, 1.25rem);
+        font-weight: $font-weight-semibold;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-lead,
+      .mel-vendor-dashboard__mission-message {
+        font-size: $font-size-sm;
+      }
+
+      .mel-vendor-dashboard__mission-stats {
+        margin-top: $spacing-2;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat {
+        padding: $spacing-1 $spacing-2;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat-value {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat-label {
+        font-size: 0.6875rem;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat--primary .mel-vendor-dashboard__workspace-hero-stat-value {
+        color: $text-secondary;
+        font-size: $font-size-base;
+      }
+
+      .mel-vendor-dashboard__mission-actions {
+        margin-top: $spacing-2;
+
+        .mel-btn {
+          min-height: 2.75rem;
+        }
+      }
     }
 
     &--attention .mel-live-ops__hero-surface {
@@ -725,6 +806,26 @@ $mel-dash-lavender: #7c83fd;
       padding: $spacing-6;
       gap: $spacing-6;
     }
+
+    &--primary {
+      gap: $spacing-4;
+      padding: $spacing-5 $spacing-4;
+      border-color: rgba($mel-ws-purple, 0.28);
+      box-shadow: $shadow-md;
+
+      @include respond-to(md) {
+        gap: $spacing-5;
+        padding: $spacing-6;
+      }
+
+      @include respond-to(lg) {
+        padding: $spacing-8;
+      }
+    }
+  }
+
+  &__current-event-eyebrow {
+    margin: 0;
   }
 
   &__current-event-head {
@@ -748,6 +849,15 @@ $mel-dash-lavender: #7c83fd;
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
+
+    .mel-vendor-dashboard__current-event--primary & {
+      font-size: clamp(1.75rem, 5.2vw, 2.375rem);
+      letter-spacing: -0.03em;
+    }
+  }
+
+  &__current-event-chips {
+    margin-top: $spacing-2;
   }
 
   &__current-event-date {
@@ -779,9 +889,14 @@ $mel-dash-lavender: #7c83fd;
 
   &__current-event-summary {
     margin: 0;
-    color: $text-primary;
+    color: $text-secondary;
     font-size: $font-size-base;
     line-height: $line-height-relaxed;
+
+    .mel-vendor-dashboard__current-event--primary & {
+      max-width: 42rem;
+      font-size: clamp(1rem, 2.4vw, 1.0625rem);
+    }
   }
 
   &__current-event-attendees {
@@ -830,18 +945,36 @@ $mel-dash-lavender: #7c83fd;
     padding-top: $spacing-3;
     border-top: 1px solid rgba($mel-shell-border, 0.85);
 
+    .mel-vendor-dashboard__current-event--primary & {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
     .mel-btn {
       min-height: 2.75rem;
       flex: 1 1 100%;
 
-      @include respond-to(sm) {
+      @include respond-to(md) {
         flex: 0 1 auto;
       }
     }
 
     .mel-btn--primary {
-      @include respond-to(sm) {
+      @include respond-to(md) {
         min-width: 12rem;
+      }
+    }
+
+    .mel-vendor-dashboard__current-event--primary & .mel-btn--primary {
+      width: 100%;
+      min-height: 3rem;
+      flex: 1 1 100%;
+
+      @include respond-to(md) {
+        width: auto;
+        flex: 0 1 auto;
+        min-width: 13rem;
       }
     }
   }
