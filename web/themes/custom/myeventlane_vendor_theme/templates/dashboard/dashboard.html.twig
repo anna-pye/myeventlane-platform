@@ -62,6 +62,12 @@
 ] %}
 
 <section class="mel-live-operations mel-vendor-dashboard{% if events_empty %} mel-vendor-dashboard--empty{% endif %}{% if has_current_event %} mel-vendor-dashboard--event-first{% endif %}{% if current_event_in_session %} mel-vendor-dashboard--event-live{% endif %}" data-mel-vendor-dashboard>
+  {# Phase 10B — one enclosing mission surface wraps organiser identity + the
+     current event so they read as a single object, not two stacked cards. Only
+     applied when a current event exists; empty / no-event paths unchanged. #}
+  {% if has_current_event %}
+  <div class="mel-vendor-dashboard__mission-surface">
+  {% endif %}
   {# Slice 1 — Organiser mission hero. The organiser owns the single page H1,
      and is rendered first so identity leads the page at every breakpoint. #}
   {% set hero_heading_tag = 'h1' %}
@@ -229,6 +235,9 @@
       </div>
     </section>
     </div>
+  {% endif %}
+  {% if has_current_event %}
+  </div>{# /.mel-vendor-dashboard__mission-surface #}
   {% endif %}
 
   {# Slice 2b — Business summary. Secondary organiser context rendered below the
