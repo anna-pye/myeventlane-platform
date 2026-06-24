@@ -441,6 +441,29 @@ $mel-dash-lavender: #7c83fd;
     .mel-vendor-dashboard__metric-card--neutral {
       background: $mel-shell-page-bg;
     }
+
+    &--event {
+      .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        @include respond-to(md) {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          max-width: none;
+        }
+
+        @include respond-to(lg) {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+      }
+    }
+  }
+
+  &__metric-context {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    line-height: $line-height-normal;
   }
 
   &__mission-hero {
@@ -574,6 +597,14 @@ $mel-dash-lavender: #7c83fd;
     color: $text-primary;
     font-size: $font-size-base;
     line-height: $line-height-relaxed;
+  }
+
+  &__current-event-attendees {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
   }
 
   &__current-event-metric {

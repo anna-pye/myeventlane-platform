@@ -39,6 +39,8 @@
 {% set manage_events_action = organiser_actions|filter(item => item.key|default('') == 'events')|first|default(null) %}
 {% set priority_sev = priority_action.severity|default('info') %}
 {% set priority_needs_attention = priority_action and (priority_sev == 'error' or priority_sev == 'warning') %}
+{% set show_priority_message = priority_action and priority_action.message is defined and priority_action.message %}
+{% set event_in_session_label = 'Event today'|t %}
 {% set hero_stat_defs = [
   { key: 'revenue', label: 'Revenue'|t, pool: 'kpis', emphasis: 'primary' },
   { key: 'tickets_sold', label: 'Tickets sold'|t, pool: 'kpis', emphasis: 'secondary' },
@@ -74,7 +76,7 @@
             {% endif %}
           </h1>
 
-          {% if priority_action and priority_action.message is defined and priority_action.message %}
+          {% if show_priority_message %}
             <p class="mel-vendor-dashboard__mission-message{% if priority_needs_attention %} mel-vendor-dashboard__mission-message--attention{% endif %}">{{ priority_action.message }}</p>
           {% elseif hero_shell_hint %}
             <p class="mel-vendor-dashboard__workspace-hero-lead">{{ hero_shell_hint }}</p>
@@ -102,7 +104,7 @@
 
           {% set primary_cta_url = null %}
           {% set primary_cta_label = null %}
-          {% if priority_needs_attention and priority_action.url is defined and priority_action.url and priority_action.action_label is defined and priority_action.action_label %}
+          {% if priority_action and priority_action.url is defined and priority_action.url and priority_action.action_label is defined and priority_action.action_label and (priority_needs_attention or show_priority_message) %}
             {% set primary_cta_url = priority_action.url %}
             {% set primary_cta_label = priority_action.action_label %}
           {% elseif create_action and create_action.url is defined and create_action.url %}
@@ -135,10 +137,14 @@
 
   {# Slice 2 — Current event operations surface. #}
   {% if current_event %}
-    {% set ce_links = current_event.links|default({}) %}
     {% set ce_status = current_event.status|default('') %}
     {% set ce_summary = current_event.operation_summary|default('') %}
-    {% set show_live_badge = ce_status == 'upcoming' and ce_summary and 'live' in ce_summary|lower %}
+    {% set ce_attendee = current_event.attendee_summary|default('') %}
+    {% set ce_reasons = current_event.attention_reasons|default([]) %}
+    {% set show_live_badge = ce_status == 'upcoming' and event_in_session_label in ce_reasons %}
+    {% set ce_quick = current_event.quick_actions|default([])|filter(a => a.url is defined and a.url) %}
+    {% set qa_checkin = ce_quick|filter(a => a.key|default('') == 'checkin')|first|default(null) %}
+    {% set qa_primary = qa_checkin ?: ce_quick|first|default(null) %}
     <section class="mel-vendor-dashboard__current-event" aria-labelledby="mel-dash-current-event-title">
       <div class="mel-vendor-dashboard__current-event-head">
         <div class="mel-vendor-dashboard__current-event-ident">
@@ -163,11 +169,10 @@
           <p class="mel-vendor-dashboard__current-event-summary">{{ ce_summary }}</p>
         {% endif %}
 
-        {% if current_event.metric_label is defined and current_event.metric_label %}
-          <p class="mel-vendor-dashboard__current-event-metric">{{ current_event.metric_label }}</p>
+        {% if ce_attendee %}
+          <p class="mel-vendor-dashboard__current-event-attendees">{{ ce_attendee }}</p>
         {% endif %}
 
-        {% set ce_reasons = current_event.attention_reasons|default([]) %}
         {% if ce_reasons is iterable and ce_reasons|length > 0 %}
           <ul class="mel-vendor-dashboard__current-event-reasons" role="list" aria-label="{{ 'Needs attention'|t }}">
             {% for reason in ce_reasons|slice(0, 3) %}
@@ -177,45 +182,55 @@
         {% endif %}
       </div>
 
-      {% if (ce_links.checkin is defined and ce_links.checkin) or (ce_links.manage is defined and ce_links.manage) %}
-        <div class="mel-vendor-dashboard__current-event-actions">
-          {% if ce_links.checkin is defined and ce_links.checkin %}
-            <a class="mel-btn mel-btn--primary" href="{{ ce_links.checkin }}">{{ 'Open Door Mode'|t }}</a>
-          {% endif %}
-          {% if ce_links.manage is defined and ce_links.manage %}
-            <a class="mel-btn mel-btn--secondary" href="{{ ce_links.manage }}">{{ 'Manage Event'|t }}</a>
-          {% endif %}
-        </div>
+      {% if qa_primary %}
+        {% set qa_secondary = ce_quick|filter(a => a.key|default('') != qa_primary.key|default(''))|slice(0, 4) %}
+        <nav class="mel-vendor-dashboard__current-event-actions" aria-label="{{ 'Current event actions'|t }}">
+          <a class="mel-btn mel-btn--primary" href="{{ qa_primary.url }}">{{ qa_primary.label }}</a>
+          {% for action in qa_secondary %}
+            <a class="mel-btn mel-btn--secondary" href="{{ action.url }}">{{ action.label }}</a>
+          {% endfor %}
+        </nav>
       {% endif %}
     </section>
-  {% endif %}
 
-  <section class="mel-vendor-dashboard__metric-strip mel-vendor-dashboard__metric-strip--compact{% if events_empty %} mel-vendor-dashboard__metric-strip--starter{% endif %}" aria-labelledby="mel-dash-metrics-title">
-    <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
-      <div>
-        <p class="mel-live-ops__eyebrow">{{ 'At a glance'|t }}</p>
-        <h2 id="mel-dash-metrics-title" class="mel-live-ops__panel-title">{{ 'Your business'|t }}</h2>
+    {# Slice 3 — Event metrics (current event only). #}
+    {% set event_metrics = current_event.metrics|default([]) %}
+    <section class="mel-vendor-dashboard__metric-strip mel-vendor-dashboard__metric-strip--compact mel-vendor-dashboard__metric-strip--event" aria-labelledby="mel-dash-metrics-title">
+      <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
+        <div>
+          <p class="mel-live-ops__eyebrow">{{ 'At a glance'|t }}</p>
+          <h2 id="mel-dash-metrics-title" class="mel-live-ops__panel-title">{{ 'This event'|t }}</h2>
+        </div>
       </div>
-    </div>
-    {% if events_empty %}
-      <p class="mel-vendor-dashboard__metric-intro">{{ 'These update once you publish an event and start taking bookings.'|t }}</p>
-    {% endif %}
-    <div class="mel-vendor-dashboard__metric-board mel-live-ops__metric-board" role="list" aria-label="{{ 'Business snapshot'|t }}">
-      {% for def in snapshot_defs %}
-        {% if def.pool == 'overview' %}
-          {% set snapshot_match = organiser_overview|filter(item => item.key|default('') == def.key)|first|default(null) %}
+      <div class="mel-vendor-dashboard__metric-board mel-live-ops__metric-board" role="list" aria-label="{{ 'Event snapshot'|t }}">
+        {% if event_metrics is iterable and event_metrics|length > 0 %}
+          {% for metric in event_metrics|slice(0, 5) %}
+            <article class="mel-live-ops__stat-card mel-vendor-dashboard__metric-card mel-vendor-dashboard__metric-card--neutral" role="listitem">
+              <span class="mel-live-ops__stat-value">{{ metric.value|default('—') }}</span>
+              <span class="mel-live-ops__stat-label">{{ metric.label|default('') }}</span>
+              {% if metric.context is defined and metric.context %}
+                <span class="mel-vendor-dashboard__metric-context">{{ metric.context }}</span>
+              {% endif %}
+            </article>
+          {% endfor %}
         {% else %}
-          {% set snapshot_match = kpis|filter(item => item.key|default('') == def.key)|first|default(null) %}
+          {% for def in snapshot_defs %}
+            {% if def.pool == 'overview' %}
+              {% set snapshot_match = organiser_overview|filter(item => item.key|default('') == def.key)|first|default(null) %}
+            {% else %}
+              {% set snapshot_match = kpis|filter(item => item.key|default('') == def.key)|first|default(null) %}
+            {% endif %}
+            {% set metric_value = snapshot_match ? snapshot_match.value|default('0') : '0' %}
+            {% set stat_emphasis = def.emphasis|default('neutral') %}
+            <article class="mel-live-ops__stat-card mel-vendor-dashboard__metric-card mel-vendor-dashboard__metric-card--{{ stat_emphasis }}" role="listitem">
+              <span class="mel-live-ops__stat-value">{{ metric_value }}</span>
+              <span class="mel-live-ops__stat-label">{{ def.label }}</span>
+            </article>
+          {% endfor %}
         {% endif %}
-        {% set metric_value = snapshot_match ? snapshot_match.value|default('0') : '0' %}
-        {% set stat_emphasis = def.emphasis|default('neutral') %}
-        <article class="mel-live-ops__stat-card mel-vendor-dashboard__metric-card mel-vendor-dashboard__metric-card--{{ stat_emphasis }}" role="listitem">
-          <span class="mel-live-ops__stat-value">{{ metric_value }}</span>
-          <span class="mel-live-ops__stat-label">{{ def.label }}</span>
-        </article>
-      {% endfor %}
-    </div>
-  </section>
+      </div>
+    </section>
+  {% endif %}
 
   {% if workspace_updates is iterable and workspace_updates|length > 0 %}
     <section class="mel-vendor-dashboard__workspace-updates mel-vendor-dashboard__activity-stream mel-vendor-dashboard__activity-stream--compact mel-vendor-dashboard__activity-stream--secondary" aria-labelledby="mel-dash-workspace-title">
