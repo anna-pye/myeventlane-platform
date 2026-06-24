@@ -42,6 +42,9 @@
 {% set show_next_event = not has_active_current_event and next_event %}
 {% set empty_create_url = create_action.url|default(empty_state.url|default(null)) %}
 {% set empty_create_label = create_action.label|default(empty_state.action_label|default('Create event'|t)) %}
+{% set has_active_current_event = current_event and current_event.status|default('') != 'past' %}
+{% set next_event = model_events|filter(ev => ev.status|default('') != 'past')|first|default(null) %}
+{% set show_next_event = not has_active_current_event and next_event %}
 {% set priority_sev = priority_action.severity|default('info') %}
 {% set priority_needs_attention = priority_action and (priority_sev == 'error' or priority_sev == 'warning') %}
 {% set show_priority_message = priority_action and priority_action.message is defined and priority_action.message %}
