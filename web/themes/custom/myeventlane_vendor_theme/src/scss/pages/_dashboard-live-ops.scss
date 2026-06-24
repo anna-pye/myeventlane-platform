@@ -3318,3 +3318,176 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 }
+
+/*********************************************************
+ * PHASE 12A — DASHBOARD SURFACE SYSTEM — AUTHORITATIVE LAYER
+ *
+ * Single rendering authority for the dashboard surfaces. Appended last so it
+ * wins by source order over the 11B–11E layers, which remain in place (no
+ * deletion this phase — a future 12B can remove dead rules once verified in a
+ * browser). Visual normalization only: no markup, layout or behaviour changes.
+ *
+ * Hierarchy:
+ *   1. Vendor header  — soft page chrome (not a card).
+ *   2. Current event  — the single strongest element (6px accent, large title,
+ *                       large action).
+ *   3. Metrics        — small strip.
+ *   4. Lower sections — flat: top divider + spacing rhythm only (no cards).
+ *   5. Utility panels — simple white, thin border.
+ *********************************************************/
+.mel-vendor-dashboard {
+  // 1. Vendor header — soft chrome at the top of the page.
+  .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 $spacing-2;
+
+    .mel-vendor-dashboard__workspace-hero-title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtitle {
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__header-metric-value {
+      font-size: 1.375rem;
+    }
+  }
+
+  // 2. Current event — the strongest surface on the page.
+  .mel-vendor-dashboard__event-ops {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-left: 6px solid $primary;
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(2.25rem, 4.5vw, 3rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .mel-vendor-dashboard__current-event-action-primary {
+    min-height: 64px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-radius: 16px;
+  }
+
+  // 3. Metrics — small strip.
+  .mel-vendor-dashboard__metric-strip--event .mel-live-ops__stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  // 4. Lower sections — flat, no cards: top divider + spacing rhythm only.
+  .mel-dashboard-operations,
+  .mel-dashboard-tools {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    gap: 0;
+  }
+
+  .mel-vendor-dashboard__section--tertiary {
+    margin-top: 2rem;
+    padding: 2rem 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.6);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mel-dashboard-operations > section {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .mel-vendor-dashboard__section--tertiary .mel-live-ops__panel-title,
+  .mel-dashboard-operations__title,
+  .mel-dashboard-tools__title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-muted;
+  }
+
+  // Activity / attention rows — flat list rows with a hairline rule.
+  .mel-vendor-dashboard__timeline-item,
+  .mel-vendor-dashboard__action-queue-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mel-vendor-dashboard__timeline-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    flex: none;
+    color: $text-secondary;
+    font-weight: $font-weight-semibold;
+  }
+
+  // Upcoming events — simple bordered cards, gentle hover.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: none;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  // 5. Utility panels — simple white, thin border.
+  .mel-dashboard-tools > .mel-vendor-dashboard__details {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: $text-secondary;
+      cursor: pointer;
+    }
+
+    &[open] {
+      padding-bottom: 1rem;
+    }
+  }
+}
