@@ -839,23 +839,41 @@ final class VendorDashboardViewModelBuilder {
     ];
   }
 
+  /**
+   * Dashboard focus ranking — single source of truth for current_event order.
+   *
+   * Lower rank = more operationally relevant (current_event = $events[0]):
+   *   0. Live / in-session (published, currently running).
+   *   1. Upcoming published event (future start).
+   *   2. Draft event (unpublished) — an actionable task, not the headline.
+   *   3. Published undated event.
+   *   4. Past event.
+   *
+   * Drafts rank below upcoming so a real live/upcoming event leads the
+   * dashboard; a draft only reaches the hero when nothing more relevant exists.
+   */
   private function eventFocusRank(NodeInterface $node, int $now): int {
     $startTs = $this->getDateFieldTimestamp($node, 'field_event_start');
     $endTs = $this->getDateFieldTimestamp($node, 'field_event_end');
     $published = $node->isPublished();
 
+    // 0. Live / in-session.
     if ($published && $startTs > 0 && $startTs <= $now && ($endTs === 0 || $endTs >= $now)) {
       return 0;
     }
-    if (!$published) {
+    // 1. Upcoming published event (future start).
+    if ($published && $startTs > 0 && $startTs > $now) {
       return 1;
     }
-    if ($published && $startTs > 0 && $startTs > $now) {
+    // 2. Draft event (unpublished).
+    if (!$published) {
       return 2;
     }
+    // 3. Published undated event.
     if ($published && $startTs === 0) {
       return 3;
     }
+    // 4. Past event.
     return 4;
   }
 
