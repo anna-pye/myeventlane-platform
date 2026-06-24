@@ -18,7 +18,7 @@ if [ ! -d "$CONFIG_DIR" ]; then
 fi
 
 grep_config() {
-  grep -R --include='*.yml' --include='*.yaml' -n "$@" "$CONFIG_DIR" 2>/dev/null || true
+  grep -R -F --include='*.yml' --include='*.yaml' -n "$@" "$CONFIG_DIR" 2>/dev/null || true
 }
 
 check_staging_domain() {
