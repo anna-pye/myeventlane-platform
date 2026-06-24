@@ -365,18 +365,27 @@ final class MelVenueOperationsViewModelBuilder {
     $door = $this->safeRouteUrl('myeventlane_event_attendees.vendor_operations_door', ['node' => $eventId]);
     if ($door !== '') {
       $actions[] = [
-        'label' => (string) $this->t('Start scanning'),
+        'label' => (string) $this->t('Open door mode'),
         'url' => $door,
         'variant' => 'primary',
         'icon' => 'scan',
       ];
     }
     $actions[] = [
-      'label' => (string) $this->t('View attendee list'),
+      'label' => (string) $this->t('Attendees'),
       'url' => Url::fromRoute('myeventlane_event_attendees.vendor_list', ['node' => $eventId])->toString(),
       'variant' => 'lavender',
       'icon' => 'list',
     ];
+    $orders = $this->safeRouteUrl('myeventlane_vendor.console.event_orders', ['event' => $eventId]);
+    if ($orders !== '') {
+      $actions[] = [
+        'label' => (string) $this->t('Orders'),
+        'url' => $orders,
+        'variant' => 'lavender',
+        'icon' => 'orders',
+      ];
+    }
     $actions[] = [
       'label' => (string) $this->t('Export CSV'),
       'url' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $eventId])->toString(),
@@ -395,7 +404,7 @@ final class MelVenueOperationsViewModelBuilder {
     }
     if ($manualUrl !== '') {
       $actions[] = [
-        'label' => (string) $this->t('Manual lookup'),
+        'label' => (string) $this->t('Search'),
         'url' => $manualUrl,
         'variant' => 'lavender',
         'icon' => 'search',

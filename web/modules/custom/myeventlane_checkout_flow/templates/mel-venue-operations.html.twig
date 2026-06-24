@@ -8,25 +8,28 @@
  */
 #}
 {% set checkin_csrf = csrf.checkin_token|default('') %}
-{% set ops_toolbar_icons = ['scan', 'list', 'export', 'search'] %}
-{% set toolbar_actions = operational_actions|default([])|filter(action => action.icon|default('') in ops_toolbar_icons) %}
+{% set ops_toolbar_icons = ['scan', 'list', 'orders', 'export', 'search'] %}
 
 <div class="mel-venue-operations mel-live-operations"
      data-mel-venue-operations
      data-mel-ops-checkin-token="{{ checkin_csrf|e('html_attr') }}">
-  {% if toolbar_actions is iterable and toolbar_actions|length > 0 %}
+  {% if operational_actions is iterable and operational_actions|length > 0 %}
     <nav class="mel-live-ops__quick-bar" aria-label="{{ 'Operational actions'|t }}">
       <div class="mel-live-ops__quick-inner">
-        {% for action in toolbar_actions %}
-          {% set is_door_mode = action.icon|default('') == 'scan' %}
-          <a
-            class="mel-live-ops__action mel-live-ops__action--{{ is_door_mode ? 'primary' : action.variant|default('lavender') }}{% if is_door_mode %} mel-live-ops__action--featured{% endif %}"
-            href="{{ action.url }}"
-            data-icon="{{ action.icon|default('')|e('html_attr') }}"
-          >
-            <span class="mel-live-ops__action-glyph" aria-hidden="true"></span>
-            <span class="mel-live-ops__action-label">{{ action.label }}</span>
-          </a>
+        {% for icon in ops_toolbar_icons %}
+          {% for action in operational_actions %}
+            {% if action.icon|default('') == icon %}
+              {% set is_door_mode = icon == 'scan' %}
+              <a
+                class="mel-live-ops__action mel-live-ops__action--{{ is_door_mode ? 'primary' : action.variant|default('lavender') }}{% if is_door_mode %} mel-live-ops__action--featured{% endif %}"
+                href="{{ action.url }}"
+                data-icon="{{ icon|e('html_attr') }}"
+              >
+                <span class="mel-live-ops__action-glyph" aria-hidden="true"></span>
+                <span class="mel-live-ops__action-label">{{ action.label }}</span>
+              </a>
+            {% endif %}
+          {% endfor %}
         {% endfor %}
       </div>
     </nav>

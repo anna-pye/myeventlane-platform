@@ -28,7 +28,7 @@
   {% set last_sync_iso = door_context.last_sync_iso|default('') %}
   {% set start_line = '' %}
   {% set venue_line = '' %}
-  {% set status_chips = [] %}
+  {% set status_chips = live_indicator is not empty ? [{'label': live_indicator, 'modifier': 'live'}] : [] %}
 {% else %}
   {% set display_title = hero.title|default('') %}
   {% set pct = hero.check_in_rate_percent|default(metrics.check_in_rate_percent|default(0)) %}
@@ -58,15 +58,7 @@
           <p class="mel-live-ops__hero-venue">{{ venue_line }}</p>
         {% endif %}
 
-        {% if status_chips is iterable and status_chips|length > 0 %}
-          <div class="mel-live-ops__chip-row" role="group" aria-label="{{ 'Status'|t }}">
-            {% for chip in status_chips %}
-              <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip.modifier|default('calm')|e('html_attr') }}">{{ chip.label|default('') }}</span>
-            {% endfor %}
-          </div>
-        {% endif %}
-
-        {% if live_indicator is not empty %}
+        {% if live_indicator is not empty and surface == 'hub' %}
           <p class="mel-live-ops__live-pulse" role="status">
             <span class="mel-live-ops__pulse-dot" aria-hidden="true"></span>
             <span>{{ live_indicator }}</span>
@@ -102,4 +94,17 @@
       </div>
     </div>
   </div>
+
+  {% if status_chips is iterable and status_chips|length > 0 or pct > 0 %}
+    <div class="mel-live-ops__health-strip" role="group" aria-label="{{ 'Event health'|t }}">
+      <div class="mel-live-ops__chip-row mel-live-ops__chip-row--health">
+        {% for chip in status_chips %}
+          <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip.modifier|default('calm')|e('html_attr') }}">{{ chip.label|default('') }}</span>
+        {% endfor %}
+        {% if pct > 0 %}
+          <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ '@pct% checked in'|t({'@pct': pct }) }}</span>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 </section>
