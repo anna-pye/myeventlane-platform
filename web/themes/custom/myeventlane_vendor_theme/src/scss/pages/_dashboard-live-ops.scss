@@ -3044,38 +3044,57 @@ $mel-dash-lavender: #7c83fd;
 // Phase 11B — Section 3: Operations zone. One surface; child sections are flat
 // (no individual cards/shadows) separated only by border-top dividers.
 .mel-dashboard-operations {
-  // Phase 11C — Operations = light surface (warm tint), softer depth than event.
+  // Phase 11D — Operations: one surface; child sections divided by border-bottom.
   display: grid;
-  background: #fcfaf8;
-  border-radius: 28px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+  gap: 2rem;
+  background: #ffffff;
+  border-radius: 32px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.06);
   padding: 1.5rem;
 
   @include respond-to(md) {
     padding: 2rem;
   }
 
-  > .mel-vendor-dashboard__section--tertiary {
+  &__header {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  &__title {
     margin: 0;
-    padding: 2rem 0 0;
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+    font-weight: $font-weight-bold;
+    color: $mel-ws-navy;
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-sm;
+  }
+
+  // Child sections are flat (no individual cards), separated by a bottom rule.
+  > section {
+    margin: 0;
+    padding: 0 0 2rem;
     background: transparent;
     border: none;
-    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
     border-radius: 0;
     box-shadow: none;
   }
 
-  > .mel-vendor-dashboard__section--tertiary:first-child {
-    padding-top: 0;
-    border-top: none;
+  > section:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
-  // Activity rows: taller, hover surface, stronger timestamps.
+  // Step 8 — activity rows: taller, time pushed right, hover surface, dividers.
   .mel-vendor-dashboard__timeline-item {
     min-height: 48px;
-    align-items: center;
-    padding: 0.5rem;
-    border-radius: 12px;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
     transition: background-color 0.15s ease;
 
     &:hover {
@@ -3083,30 +3102,52 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
+  .mel-vendor-dashboard__timeline-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    width: 100%;
+  }
+
   .mel-vendor-dashboard__timeline-time {
+    flex: none;
     color: $text-secondary;
     font-weight: $font-weight-semibold;
   }
 
-  // Upcoming cards restored: white, rounded, subtle shadow.
+  // Step 7 — upcoming events: responsive card grid with hover lift.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+
   .mel-vendor-dashboard__summary-card {
     background: #ffffff;
     border: 1px solid rgba(15, 23, 42, 0.06);
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-    padding: 1rem;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+    }
   }
 }
 
 // Phase 11B — Section 4: Tools zone. Pale utility surface, accordion appearance.
 .mel-dashboard-tools {
-  // Phase 11C — Tools = lightest surface (utility), minimal depth.
+  // Phase 11D — Tools & settings: one white utility surface, pale item rows.
   display: grid;
   gap: $spacing-2;
-  background: #f8f8f8;
-  border: 1px solid $mel-shell-border;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: 28px;
   padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
 
   @include respond-to(md) {
     padding: 2rem;
@@ -3123,13 +3164,13 @@ $mel-dash-lavender: #7c83fd;
 
   > .mel-vendor-dashboard__details {
     margin: 0;
-    background: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.06);
-    border-radius: 14px;
+    background: rgba(248, 245, 243, 0.8);
+    border: 1px solid rgba(15, 23, 42, 0.05);
+    border-radius: 16px;
     box-shadow: none;
 
     > summary {
-      padding: 1rem 1.25rem;
+      padding: 1.25rem 1.5rem;
       color: $text-secondary;
       font-size: $font-size-sm;
       font-weight: $font-weight-semibold;
@@ -3143,7 +3184,7 @@ $mel-dash-lavender: #7c83fd;
 @include respond-to(lg) {
   .mel-vendor-dashboard__current-event--primary {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: 1.5fr 0.8fr;
     column-gap: 2rem;
     align-items: start;
 

@@ -155,7 +155,7 @@
     <section class="mel-vendor-dashboard__current-event mel-vendor-dashboard__current-event--primary mel-vendor-dashboard__current-event--presence" aria-labelledby="mel-dash-current-event-title">
       <div class="mel-vendor-dashboard__current-event-head">
         {# Section 2 — the event is the operational module beneath the vendor. #}
-        <p class="mel-live-ops__eyebrow mel-vendor-dashboard__current-event-eyebrow">{{ 'Event operations'|t }}</p>
+        <p class="mel-live-ops__eyebrow mel-vendor-dashboard__current-event-eyebrow">{% if current_event.status|default('') != 'draft' %}{{ 'Next event'|t }}{% else %}{{ 'Next upcoming event'|t }}{% endif %}</p>
         <h2 id="mel-dash-current-event-title" class="mel-vendor-dashboard__current-event-title">{{ current_event.title|default('Untitled event'|t) }}</h2>
         <div class="mel-vendor-dashboard__current-event-chips mel-live-ops__chip-row mel-live-ops__chip-row--compact" role="group" aria-label="{{ 'Event status'|t }}">
           {% if show_live_badge %}
@@ -345,7 +345,11 @@
 
   {% if not events_empty %}
     {# Phase 11B — Operations zone: one surface wrapping the operational sections. #}
-    <section class="mel-dashboard-operations" aria-label="{{ 'Operations'|t }}">
+    <section class="mel-dashboard-operations" aria-labelledby="mel-dash-operations-title">
+      <header class="mel-dashboard-operations__header">
+        <h2 id="mel-dash-operations-title" class="mel-dashboard-operations__title">{{ 'Operations'|t }}</h2>
+        <p class="mel-dashboard-operations__subtitle">{{ 'Everything that requires your attention.'|t }}</p>
+      </header>
     {% if attention_events is iterable and attention_events|length > 0 %}
       <section class="mel-vendor-dashboard__attention-strip mel-vendor-dashboard__attention-strip--compact mel-vendor-dashboard__action-queue mel-vendor-dashboard__section--tertiary" aria-labelledby="mel-dash-attention-title">
         <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
