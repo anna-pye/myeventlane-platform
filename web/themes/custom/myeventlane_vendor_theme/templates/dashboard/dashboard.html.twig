@@ -156,7 +156,7 @@
     <section class="mel-vendor-dashboard__current-event mel-vendor-dashboard__current-event--primary mel-vendor-dashboard__current-event--presence" aria-labelledby="mel-dash-current-event-title">
       <div class="mel-vendor-dashboard__current-event-head">
         {# Section 2 — the event is the operational module beneath the vendor. #}
-        <p class="mel-live-ops__eyebrow mel-vendor-dashboard__current-event-eyebrow">{% if current_event.status|default('') != 'draft' %}{{ 'Next event'|t }}{% else %}{{ 'Next upcoming event'|t }}{% endif %}</p>
+        <p class="mel-live-ops__eyebrow mel-vendor-dashboard__current-event-eyebrow">{{ 'Current focus'|t }}</p>
         <h2 id="mel-dash-current-event-title" class="mel-vendor-dashboard__current-event-title">{{ current_event.title|default('Untitled event'|t) }}</h2>
         <div class="mel-vendor-dashboard__current-event-chips mel-live-ops__chip-row mel-live-ops__chip-row--compact" role="group" aria-label="{{ 'Event status'|t }}">
           {% if show_live_badge %}
@@ -262,28 +262,7 @@
   {# Section 1 (Phase 11A): business summary removed — metrics now live in the
      vendor header above, so "My business" / "Business summary" are redundant. #}
 
-  {# Phase 12C — Level 3: Business health summary (organiser-level readiness).
-     Uses existing model.readiness booleans only; no new payloads. #}
-  {% if not events_empty %}
-    <section class="mel-dashboard-business-health" aria-labelledby="mel-dash-health-title">
-      <header class="mel-dashboard-business-health__header">
-        <h2 id="mel-dash-health-title" class="mel-dashboard-business-health__title">{{ 'Business health'|t }}</h2>
-      </header>
-      {% set health_rows = [
-        { label: 'Stripe payouts'|t, ok: readiness.stripe_ready|default(false) },
-        { label: 'Organiser profile'|t, ok: readiness.profile_complete|default(false) },
-        { label: 'Public profile'|t, ok: readiness.has_public_profile|default(false) }
-      ] %}
-      <ul class="mel-dashboard-business-health__list" role="list">
-        {% for row in health_rows %}
-          <li class="mel-dashboard-business-health__row mel-dashboard-business-health__row--{{ row.ok ? 'ok' : 'todo' }}" role="listitem">
-            <span class="mel-dashboard-business-health__row-label">{{ row.label }}</span>
-            <span class="mel-dashboard-business-health__row-status">{{ row.ok ? readiness.row_complete_label|default('Ready'|t) : readiness.row_incomplete_label|default('Needs setup'|t) }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% endif %}
+  {# Phase 13 — Business health relocated below Recent activity (Level 6). #}
 
   {# Slice 1b — Empty organiser panel (0 events). #}
   {% if events_empty %}
@@ -479,6 +458,29 @@
     {% endif %}
   </section>
   </section>{# /.mel-dashboard-operations #}
+
+  {# Phase 13 — Level 6: Business health (relocated below activity). Uses
+     existing model.readiness booleans only; no new payloads. #}
+  {% if not events_empty %}
+    <section class="mel-dashboard-business-health" aria-labelledby="mel-dash-health-title">
+      <header class="mel-dashboard-business-health__header">
+        <h2 id="mel-dash-health-title" class="mel-dashboard-business-health__title">{{ 'Business health'|t }}</h2>
+      </header>
+      {% set health_rows = [
+        { label: 'Stripe payouts'|t, ok: readiness.stripe_ready|default(false) },
+        { label: 'Organiser profile'|t, ok: readiness.profile_complete|default(false) },
+        { label: 'Public profile'|t, ok: readiness.has_public_profile|default(false) }
+      ] %}
+      <ul class="mel-dashboard-business-health__list" role="list">
+        {% for row in health_rows %}
+          <li class="mel-dashboard-business-health__row mel-dashboard-business-health__row--{{ row.ok ? 'ok' : 'todo' }}" role="listitem">
+            <span class="mel-dashboard-business-health__row-label">{{ row.label }}</span>
+            <span class="mel-dashboard-business-health__row-status">{{ row.ok ? readiness.row_complete_label|default('Ready'|t) : readiness.row_incomplete_label|default('Needs setup'|t) }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
 
   {# Phase 11B/11C — Tools zone: utility surface wrapping the collapsible panels. #}
   <section class="mel-dashboard-tools" aria-labelledby="mel-dash-tools-title">

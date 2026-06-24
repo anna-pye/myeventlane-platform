@@ -3893,3 +3893,63 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 }
+
+/********************************************************
+ * PHASE 13 — OPERATIONS DASHBOARD
+ * Less event, more organiser/operations. Authoritative layer, appended last;
+ * wins by source order. No deletions. SCSS only (Twig handled separately).
+ ********************************************************/
+.mel-vendor-dashboard {
+  // Organiser header — two columns on desktop: identity left, metrics right.
+  @include respond-to(md) {
+    .mel-dashboard-header .mel-live-ops__hero-primary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 3rem;
+      align-items: start;
+    }
+
+    .mel-dashboard-header .mel-live-ops__hero-primary > * {
+      grid-column: 1;
+      min-width: 0;
+    }
+
+    .mel-dashboard-header .mel-vendor-dashboard__header-metrics {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      margin-top: 0;
+      grid-auto-flow: column;
+      gap: 2.5rem;
+    }
+  }
+
+  // Today / current focus — compact operations card, not a hero.
+  .mel-vendor-dashboard__event-ops {
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    gap: 1rem;
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+  }
+
+  // Tighten internal event spacing so the panel stays ~compact.
+  .mel-vendor-dashboard__current-event-meta,
+  .mel-vendor-dashboard__current-event-summary,
+  .mel-vendor-dashboard__current-event-reasons {
+    margin: 0;
+  }
+
+  .mel-vendor-dashboard__metric-strip--event {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+
+  // Upcoming events are the primary browsing area — keep them prominent.
+  .mel-vendor-dashboard__upcoming-strip .mel-vendor-dashboard__summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+}
