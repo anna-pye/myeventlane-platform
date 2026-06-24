@@ -2274,6 +2274,222 @@ $mel-dash-lavender: #7c83fd;
   &__details--event-analytics-table {
     margin-top: $spacing-2;
   }
+
+  // ---------------------------------------------------------------------------
+  // Phase 8A — scan hierarchy: quiet secondary surfaces + utility details
+  // ---------------------------------------------------------------------------
+
+  > .mel-vendor-dashboard__section--tertiary + .mel-vendor-dashboard__section--tertiary {
+    margin-top: calc(-1 * #{$spacing-2});
+  }
+
+  &__details--utility {
+    margin-top: $spacing-2;
+    border: 1px solid rgba($mel-shell-border, 0.38);
+    border-radius: $radius-lg;
+    background: rgba($mel-shell-page-bg, 0.35);
+    box-shadow: none;
+
+    > summary {
+      min-height: 2.75rem;
+      padding: $spacing-3 $spacing-4;
+      color: $text-secondary;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      list-style-position: outside;
+    }
+
+    &[open] > summary {
+      border-bottom: 1px solid rgba($mel-shell-border, 0.32);
+    }
+
+    .mel-vendor-dashboard__details-grid {
+      gap: $spacing-3;
+      padding: $spacing-3 $spacing-4;
+
+      @include respond-to(lg) {
+        padding: $spacing-4;
+      }
+    }
+
+    .mel-live-ops__panel-title {
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+    }
+
+    .mel-live-ops__panel-intro {
+      font-size: $font-size-sm;
+      color: $text-muted;
+    }
+  }
+
+  &__section--tertiary.mel-vendor-dashboard__workspace-updates {
+    padding: $spacing-2;
+    border-color: rgba($mel-shell-border, 0.28);
+    background: rgba($mel-brand-surface-soft, 0.28);
+
+    @include respond-to(md) {
+      padding: $spacing-2 $spacing-3;
+    }
+
+    .mel-live-ops__panel-title {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .mel-vendor-dashboard__timeline--workspace {
+      border-left-color: rgba($mel-shell-border, 0.45);
+      padding-left: $spacing-2;
+    }
+
+    .mel-vendor-dashboard__timeline-item {
+      padding: $spacing-1 0 $spacing-1 $spacing-2;
+      min-height: 2.75rem;
+    }
+
+    .mel-vendor-dashboard__timeline-marker {
+      border-color: rgba($mel-shell-border, 0.65);
+      color: $text-muted;
+      background: rgba($mel-shell-page-bg, 0.9);
+    }
+
+    .mel-vendor-dashboard__timeline-item--success .mel-vendor-dashboard__timeline-marker,
+    .mel-vendor-dashboard__timeline-item--warn .mel-vendor-dashboard__timeline-marker {
+      border-color: rgba($mel-shell-border, 0.65);
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__timeline-link,
+    .mel-vendor-dashboard__timeline-text {
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+    }
+
+    .mel-vendor-dashboard__timeline-link {
+      text-decoration: none;
+
+      &:hover {
+        color: $text-primary;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+    }
+  }
+
+  &__section--tertiary.mel-vendor-dashboard__action-queue {
+    border-left: none;
+    padding-top: $spacing-2;
+    padding-bottom: $spacing-2;
+
+    .mel-vendor-dashboard__action-queue-list {
+      gap: $spacing-1;
+    }
+
+    .mel-vendor-dashboard__action-queue-item {
+      padding: $spacing-2 $spacing-3;
+      border-radius: $radius-md;
+      background: rgba($mel-shell-page-bg, 0.45);
+    }
+
+    .mel-vendor-dashboard__action-queue-item--primary {
+      border-color: rgba($mel-shell-border, 0.5);
+      background: rgba($mel-brand-surface-soft, 0.35);
+    }
+
+    .mel-vendor-dashboard__action-queue-title {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+    }
+
+    .mel-vendor-dashboard__action-queue-problem {
+      font-size: $font-size-xs;
+    }
+  }
+
+  &__section--tertiary.mel-vendor-dashboard__upcoming-strip {
+    .mel-vendor-dashboard__summary-cards {
+      gap: $spacing-2;
+    }
+
+    .mel-vendor-dashboard__summary-card {
+      padding: $spacing-2;
+      border-radius: $radius-md;
+      background: rgba($mel-shell-page-bg, 0.35);
+      border-color: rgba($mel-shell-border, 0.38);
+    }
+
+    .mel-vendor-dashboard__summary-card-title {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      color: $text-secondary;
+    }
+
+    .mel-vendor-dashboard__summary-card-date {
+      font-size: $font-size-xs;
+    }
+
+    .mel-vendor-dashboard__summary-card-action {
+      font-size: $font-size-sm;
+      margin-top: 0;
+    }
+  }
+
+  &__section--tertiary.mel-vendor-dashboard__activity-stream {
+    padding-top: $spacing-2;
+    padding-bottom: $spacing-2;
+    border-color: rgba($mel-shell-border, 0.28);
+
+    .mel-vendor-dashboard__timeline--activity {
+      gap: 0;
+      border-left: 1px solid rgba($mel-shell-border, 0.4);
+      padding-left: $spacing-2;
+    }
+
+    .mel-vendor-dashboard__timeline--activity .mel-vendor-dashboard__timeline-item {
+      padding: $spacing-2 0 $spacing-2 $spacing-2;
+      margin-left: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      border-bottom: 1px solid rgba($mel-shell-border, 0.32);
+
+      &:last-child {
+        border-bottom: none;
+        padding-bottom: $spacing-1;
+      }
+    }
+
+    .mel-vendor-dashboard__timeline--activity .mel-vendor-dashboard__timeline-marker {
+      top: $spacing-3;
+      width: 0.5rem;
+      height: 0.5rem;
+      left: calc(-1 * #{$spacing-2} - 0.3125rem);
+      border-width: 1px;
+      border-color: rgba($mel-shell-border, 0.55);
+      background: rgba($mel-shell-page-bg, 0.9);
+      color: transparent;
+      font-size: 0;
+    }
+
+    .mel-vendor-dashboard__timeline-link,
+    .mel-vendor-dashboard__timeline-text {
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+    }
+
+    .mel-vendor-dashboard__timeline-time {
+      color: $text-muted;
+    }
+
+    .mel-live-ops__muted {
+      padding: $spacing-2 $spacing-3;
+      border-color: rgba($mel-shell-border, 0.35);
+      background: rgba($mel-shell-page-bg, 0.4);
+      font-size: $font-size-sm;
+    }
+  }
 }
 
 .mel-vendor-dashboard .mel-live-ops__chip[href] {
