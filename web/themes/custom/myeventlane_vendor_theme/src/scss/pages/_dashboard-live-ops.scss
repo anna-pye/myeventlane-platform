@@ -146,11 +146,17 @@ $mel-dash-lavender: #7c83fd;
 
   &__workspace-hero-stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: $spacing-3;
+    grid-template-columns: 1fr;
+    gap: $spacing-2;
     margin: 0;
     padding: 0;
     list-style: none;
+    width: 100%;
+
+    @include respond-to(sm) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: $spacing-3;
+    }
 
     @include respond-to(md) {
       gap: $spacing-4;
@@ -173,6 +179,7 @@ $mel-dash-lavender: #7c83fd;
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
   }
 
   &__workspace-hero-stat-label {
@@ -234,6 +241,23 @@ $mel-dash-lavender: #7c83fd;
         radial-gradient(720px circle at 50% -10%, rgba($mel-ws-coral, 0.1), transparent 58%),
         $mel-shell-page-bg;
       box-shadow: $shadow-sm;
+    }
+
+    .mel-live-ops__hero-primary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .mel-vendor-dashboard__mission-actions {
+      justify-content: center;
+      width: 100%;
+
+      .mel-btn--primary {
+        width: 100%;
+        max-width: 18rem;
+      }
     }
   }
 
@@ -334,16 +358,13 @@ $mel-dash-lavender: #7c83fd;
     .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: $spacing-3;
+      gap: $spacing-2;
       margin-top: 0;
 
       @include respond-to(md) {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: $spacing-4;
-      }
-
-      @include respond-to(lg) {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: $spacing-3;
+        max-width: 28rem;
       }
     }
 
@@ -354,26 +375,26 @@ $mel-dash-lavender: #7c83fd;
       justify-content: center;
       gap: $spacing-1;
       min-width: 0;
-      min-height: 4.5rem;
-      padding: $spacing-3 $spacing-4;
-      border: 1px solid $mel-shell-border;
-      border-radius: $radius-lg;
-      background: $mel-shell-page-bg;
+      min-height: 3.75rem;
+      padding: $spacing-2 $spacing-3;
+      border: 1px solid rgba($mel-shell-border, 0.75);
+      border-radius: $radius-md;
+      background: rgba($mel-shell-page-bg, 0.55);
       box-shadow: none;
 
       @include respond-to(md) {
-        min-height: 5rem;
-        padding: $spacing-4;
+        min-height: 4rem;
+        padding: $spacing-3;
       }
     }
 
     .mel-live-ops__stat-value {
       margin: 0;
       color: $mel-ws-navy;
-      font-size: clamp(1.25rem, 2.8vw, 1.5rem);
+      font-size: clamp(1rem, 2.2vw, 1.125rem);
       font-weight: $font-weight-bold;
       line-height: $line-height-tight;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
     }
 
     .mel-live-ops__stat-label {
@@ -426,6 +447,61 @@ $mel-dash-lavender: #7c83fd;
     .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
       display: none;
     }
+
+    .mel-live-ops__hero-surface {
+      box-shadow: $shadow-sm;
+    }
+
+    &--attention .mel-live-ops__hero-surface {
+      border-left: 4px solid $warning;
+    }
+
+    &--attention .mel-vendor-dashboard__mission-message {
+      color: $text-primary;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &__mission-message {
+    margin: $spacing-2 0 0;
+    max-width: 42rem;
+    color: $text-secondary;
+    font-size: $font-size-base;
+    line-height: $line-height-relaxed;
+
+    &--attention {
+      padding: $spacing-3;
+      border-radius: $radius-lg;
+      background: rgba($warning-light, 0.18);
+      border: 1px solid rgba($warning, 0.2);
+    }
+  }
+
+  &__mission-stats {
+    margin-top: $spacing-4;
+  }
+
+  &__workspace-hero-stat--primary {
+    border-color: rgba($mel-ws-coral, 0.22);
+    background: rgba($mel-ws-coral, 0.06);
+
+    .mel-vendor-dashboard__workspace-hero-stat-value {
+      color: $mel-ws-coral;
+      font-size: clamp(1.375rem, 3.2vw, 1.625rem);
+    }
+  }
+
+  &__workspace-hero-stat--secondary {
+    border-color: rgba($mel-ws-purple, 0.2);
+    background: rgba($mel-ws-purple-tint, 0.35);
+
+    .mel-vendor-dashboard__workspace-hero-stat-value {
+      color: $mel-ws-purple;
+    }
+  }
+
+  &__workspace-hero-stat--neutral {
+    background: rgba($mel-shell-page-bg, 0.72);
   }
 
   &__mission-hero-layout {
@@ -446,8 +522,19 @@ $mel-dash-lavender: #7c83fd;
   }
 
   &__mission-actions {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
     gap: $spacing-2;
+    margin-top: $spacing-4;
+
+    .mel-btn {
+      min-height: 2.75rem;
+      flex: 1 1 calc(50% - #{$spacing-2});
+
+      @include respond-to(sm) {
+        flex: 0 1 auto;
+      }
+    }
   }
 
   &__section-head {
@@ -494,7 +581,9 @@ $mel-dash-lavender: #7c83fd;
   &__attention-strip,
   &__upcoming-strip,
   &__activity-stream:not(.mel-vendor-dashboard__activity-stream--secondary) {
-    box-shadow: $shadow-xs;
+    box-shadow: none;
+    border-color: rgba($mel-shell-border, 0.8);
+    background: rgba($mel-shell-page-bg, 0.55);
   }
 
   &__quick-actions.mel-live-ops__quick-bar {
@@ -1207,10 +1296,10 @@ $mel-dash-lavender: #7c83fd;
     min-width: 0;
     min-height: 2.75rem;
     padding: $spacing-3;
-    border: 1px solid rgba($ml-vendor-navy, 0.1);
+    border: 1px solid rgba($mel-shell-border, 0.75);
     border-radius: $radius-lg;
-    background: $ml-vendor-bg;
-    box-shadow: $shadow-xs;
+    background: rgba($mel-shell-page-bg, 0.65);
+    box-shadow: none;
   }
 
   &__summary-card-layout {
