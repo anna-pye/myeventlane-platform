@@ -32,6 +32,10 @@ $mel-dash-lavender: #7c83fd;
   max-width: 1120px;
   margin-inline: auto;
 
+  @include respond-to(md) {
+    --mission-gap: 3rem; // Phase 11B — 48px between the four zones on desktop
+  }
+
   &--empty {
     gap: $spacing-6;
   }
@@ -84,10 +88,11 @@ $mel-dash-lavender: #7c83fd;
 
   &__event-ops {
     display: grid;
-    gap: $spacing-4;
+    gap: 1.5rem;
     min-width: 0;
-    // Phase 11A — the event is its own operational surface (module) beneath the
-    // vendor header, marked by the brand-primary left accent.
+    // Phase 11A/11B — the event is its own operational surface (module) beneath
+    // the vendor header, marked by the brand-primary left accent. Kept compact
+    // (32px padding, 24px internal gap).
     padding: 2rem;
     background: #ffffff;
     border-radius: 24px;
@@ -95,8 +100,8 @@ $mel-dash-lavender: #7c83fd;
     border-left: 6px solid $primary;
 
     @include respond-to(md) {
-      padding: 2.5rem;
-      gap: $spacing-5;
+      padding: 2rem;
+      gap: 1.5rem;
     }
 
     @include respond-to(lg) {
@@ -1071,13 +1076,13 @@ $mel-dash-lavender: #7c83fd;
     // Slice 4 — the event title is the largest object on the page: the event
     // visually dominates the mission surface while remaining an H2. The
     // organiser keeps the single page H1 (smaller identity text above).
-    // Phase 11A — event title is large but smaller than the organiser H1, so the
-    // vendor owns the page and the event is the primary module.
+    // Phase 11A/11B — event title ~40px: large but smaller than the organiser
+    // H1, so the vendor owns the page and the event is the primary module.
     .mel-vendor-dashboard__current-event--primary & {
-      font-size: clamp(2.25rem, 4vw, 3.5rem);
+      font-size: clamp(2rem, 4vw, 2.5rem);
       font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
     }
   }
 
@@ -2960,11 +2965,12 @@ $mel-dash-lavender: #7c83fd;
 .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
   background: #ffffff;
   border-radius: 24px;
-  padding: 1.75rem;
+  // Phase 11B — tighter header (24px bottom), keeps it compact (~280px).
+  padding: 1.5rem 1.5rem 1.5rem;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
 
   @include respond-to(md) {
-    padding: 2.5rem;
+    padding: 1.75rem 2rem 1.5rem;
   }
 
   .mel-live-ops__hero-surface {
@@ -2975,23 +2981,23 @@ $mel-dash-lavender: #7c83fd;
   }
 
   .mel-vendor-dashboard__workspace-hero-title {
-    font-size: clamp(2.75rem, 5vw, 4rem);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
     font-weight: 800;
     line-height: 1.02;
     color: $mel-ws-navy;
   }
 
   .mel-vendor-dashboard__workspace-hero-subtitle {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     color: $text-muted;
   }
 
-  // Business metrics: three columns (two on mobile), no cards, no borders.
+  // Business metrics inline: three columns (two on mobile), no cards.
   .mel-vendor-dashboard__header-metrics {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.25rem 2rem;
-    margin: 1.5rem 0 0;
+    gap: 0.75rem 2rem;
+    margin: 1rem 0 0;
     padding: 0;
     list-style: none;
 
@@ -3002,7 +3008,7 @@ $mel-dash-lavender: #7c83fd;
 
   .mel-vendor-dashboard__header-metric {
     display: grid;
-    gap: 0.25rem;
+    gap: 0.125rem;
     min-width: 0;
     padding: 0;
     border: none;
@@ -3010,7 +3016,7 @@ $mel-dash-lavender: #7c83fd;
   }
 
   .mel-vendor-dashboard__header-metric-value {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     line-height: 1.05;
     color: $mel-ws-navy;
@@ -3023,18 +3029,98 @@ $mel-dash-lavender: #7c83fd;
   }
 
   .mel-vendor-dashboard__mission-message {
-    margin-top: 1.25rem;
+    margin-top: 1rem;
   }
 
+  // CTA aligned left.
   .mel-vendor-dashboard__mission-actions {
-    margin-top: 1.5rem;
+    justify-content: flex-start;
+    margin-top: 1rem;
   }
 }
 
-// Phase 11A — Section 4: activity sits on a calm white surface.
-.mel-vendor-dashboard__section--tertiary.mel-vendor-dashboard__activity-stream {
+// Phase 11B — Section 3: Operations zone. One surface; child sections are flat
+// (no individual cards/shadows) separated only by border-top dividers.
+.mel-dashboard-operations {
+  display: grid;
   background: #ffffff;
-  padding: 2rem;
-  border: 1px solid rgba(20, 20, 20, 0.06);
-  border-radius: 20px;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  padding: 1.5rem;
+
+  @include respond-to(md) {
+    padding: 2rem;
+  }
+
+  > .mel-vendor-dashboard__section--tertiary {
+    margin: 0;
+    padding: 2rem 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  > .mel-vendor-dashboard__section--tertiary:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+
+  // Activity rows: taller, hover surface, stronger timestamps.
+  .mel-vendor-dashboard__timeline-item {
+    min-height: 48px;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 12px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: rgba(15, 23, 42, 0.03);
+    }
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    color: $text-secondary;
+    font-weight: $font-weight-semibold;
+  }
+
+  // Upcoming cards restored: white, rounded, subtle shadow.
+  .mel-vendor-dashboard__summary-card {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    padding: 1rem;
+  }
+}
+
+// Phase 11B — Section 4: Tools zone. Pale utility surface, accordion appearance.
+.mel-dashboard-tools {
+  display: grid;
+  gap: $spacing-2;
+  background: $mel-brand-surface-soft;
+  border: 1px solid $mel-shell-border;
+  border-radius: 24px;
+  padding: 1.5rem;
+
+  @include respond-to(md) {
+    padding: 2rem;
+  }
+
+  > .mel-vendor-dashboard__details {
+    margin: 0;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 14px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1rem 1.25rem;
+      color: $text-secondary;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      cursor: pointer;
+    }
+  }
 }
