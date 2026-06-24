@@ -70,12 +70,22 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
+  // In-session emphasis: heightens the current-event accent when the event is
+  // live today. Layout presence is handled by --event-first; this only changes
+  // emphasis, never whether the event block renders.
+  &--event-live &__event-ops {
+    border-left-color: $mel-ws-navy;
+  }
+
   &__event-ops {
     display: grid;
     gap: 0;
     min-width: 0;
     padding-left: $spacing-4;
-    border-left: 4px solid $mel-ws-navy;
+    // Calm default accent: the event-first layout now renders for any current
+    // event, not only in-session ones. The strong navy accent is restored for
+    // the in-session emphasis state via --event-live below.
+    border-left: 4px solid rgba($mel-ws-navy, 0.35);
 
     @include respond-to(md) {
       padding-left: $spacing-5;
@@ -774,11 +784,14 @@ $mel-dash-lavender: #7c83fd;
         letter-spacing: 0.05em;
       }
 
+      // Organiser identity owns the page: even in the secondary (soft surface)
+      // hero, the organiser name stays the largest, boldest title so it reads as
+      // the page owner and stays larger than the current-event H2 below.
       .mel-vendor-dashboard__workspace-hero-title,
       .mel-live-ops__hero-title {
-        color: $text-muted;
-        font-size: clamp(1rem, 2.4vw, 1.125rem);
-        font-weight: $font-weight-medium;
+        color: $mel-ws-navy;
+        font-size: clamp(1.5rem, 4vw, 1.875rem);
+        font-weight: $font-weight-bold;
       }
 
       .mel-vendor-dashboard__workspace-hero-lead,
@@ -945,10 +958,13 @@ $mel-dash-lavender: #7c83fd;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
 
+    // Operational panel heading (H2): clearly secondary to the organiser name.
+    // Capped below the hero title so the event never out-sizes the page owner,
+    // while the panel keeps its accent border + actions for operational focus.
     .mel-vendor-dashboard__current-event--primary & {
-      font-size: clamp(1.875rem, 6vw, 2.5rem);
-      letter-spacing: -0.035em;
-      line-height: 1.1;
+      font-size: clamp(1.25rem, 3.2vw, 1.5rem);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
     }
   }
 
