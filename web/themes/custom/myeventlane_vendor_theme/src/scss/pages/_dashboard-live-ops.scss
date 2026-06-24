@@ -33,7 +33,7 @@ $mel-dash-lavender: #7c83fd;
   margin-inline: auto;
 
   @include respond-to(md) {
-    --mission-gap: 3rem; // Phase 11B — 48px between the four zones on desktop
+    --mission-gap: 2rem; // Phase 11C — 32px between zones (tighter finish)
   }
 
   &--empty {
@@ -93,11 +93,13 @@ $mel-dash-lavender: #7c83fd;
     // Phase 11A/11B — the event is its own operational surface (module) beneath
     // the vendor header, marked by the brand-primary left accent. Kept compact
     // (32px padding, 24px internal gap).
+    // Phase 11C — Event = medium surface: white with the brand accent, lighter
+    // depth than the vendor header.
     padding: 2rem;
     background: #ffffff;
-    border-radius: 24px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.05);
-    border-left: 6px solid $primary;
+    border-radius: 28px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    border-left: 4px solid $primary;
 
     @include respond-to(md) {
       padding: 2rem;
@@ -844,9 +846,9 @@ $mel-dash-lavender: #7c83fd;
         }
       }
 
-      // Phase 11A — metric typography (value / label / context).
+      // Phase 11A/11C — metric typography (value / label / context).
       .mel-live-ops__stat-value {
-        font-size: 2.25rem;
+        font-size: 2rem;
         font-weight: 700;
       }
 
@@ -2963,11 +2965,11 @@ $mel-dash-lavender: #7c83fd;
 // Phase 11A — Section 1: Vendor Mission Header. The largest section; the vendor
 // owns the page and business performance lives here directly under the identity.
 .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+  // Phase 11C — Vendor = strongest surface (most depth) and most compact (~220px).
   background: #ffffff;
-  border-radius: 24px;
-  // Phase 11B — tighter header (24px bottom), keeps it compact (~280px).
+  border-radius: 28px;
   padding: 1.5rem 1.5rem 1.5rem;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.1);
 
   @include respond-to(md) {
     padding: 1.75rem 2rem 1.5rem;
@@ -2981,7 +2983,7 @@ $mel-dash-lavender: #7c83fd;
   }
 
   .mel-vendor-dashboard__workspace-hero-title {
-    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-size: clamp(2.25rem, 4.5vw, 3rem);
     font-weight: 800;
     line-height: 1.02;
     color: $mel-ws-navy;
@@ -3042,10 +3044,11 @@ $mel-dash-lavender: #7c83fd;
 // Phase 11B — Section 3: Operations zone. One surface; child sections are flat
 // (no individual cards/shadows) separated only by border-top dividers.
 .mel-dashboard-operations {
+  // Phase 11C — Operations = light surface (warm tint), softer depth than event.
   display: grid;
-  background: #ffffff;
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  background: #fcfaf8;
+  border-radius: 28px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
   padding: 1.5rem;
 
   @include respond-to(md) {
@@ -3097,15 +3100,25 @@ $mel-dash-lavender: #7c83fd;
 
 // Phase 11B — Section 4: Tools zone. Pale utility surface, accordion appearance.
 .mel-dashboard-tools {
+  // Phase 11C — Tools = lightest surface (utility), minimal depth.
   display: grid;
   gap: $spacing-2;
-  background: $mel-brand-surface-soft;
+  background: #f8f8f8;
   border: 1px solid $mel-shell-border;
-  border-radius: 24px;
+  border-radius: 28px;
   padding: 1.5rem;
 
   @include respond-to(md) {
     padding: 2rem;
+  }
+
+  &__title {
+    margin: 0 0 0.25rem;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $text-muted;
   }
 
   > .mel-vendor-dashboard__details {
@@ -3121,6 +3134,33 @@ $mel-dash-lavender: #7c83fd;
       font-size: $font-size-sm;
       font-weight: $font-weight-semibold;
       cursor: pointer;
+    }
+  }
+}
+
+// Phase 11C — Event card two-column layout on desktop: info left, actions in a
+// fixed right rail. The metric strip is a sibling (full width) and stays below.
+@include respond-to(lg) {
+  .mel-vendor-dashboard__current-event--primary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    column-gap: 2rem;
+    align-items: start;
+
+    > * {
+      grid-column: 1;
+      min-width: 0;
+    }
+
+    .mel-vendor-dashboard__current-event-actions {
+      grid-column: 2;
+      grid-row: 1;
+      margin: 0;
+      align-self: start;
+    }
+
+    .mel-vendor-dashboard__current-event-action-primary {
+      width: 100%;
     }
   }
 }
