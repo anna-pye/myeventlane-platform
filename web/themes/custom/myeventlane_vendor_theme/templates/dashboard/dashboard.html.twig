@@ -344,6 +344,8 @@
   {% endif %}
 
   {% if not events_empty %}
+    {# Phase 11B — Operations zone: one surface wrapping the operational sections. #}
+    <section class="mel-dashboard-operations" aria-label="{{ 'Operations'|t }}">
     {% if attention_events is iterable and attention_events|length > 0 %}
       <section class="mel-vendor-dashboard__attention-strip mel-vendor-dashboard__attention-strip--compact mel-vendor-dashboard__action-queue mel-vendor-dashboard__section--tertiary" aria-labelledby="mel-dash-attention-title">
         <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
@@ -448,7 +450,10 @@
       <p class="mel-live-ops__muted">{{ 'Activity will appear after bookings, RSVPs, check-ins, or event updates.'|t }}</p>
     {% endif %}
   </section>
+  </section>{# /.mel-dashboard-operations #}
 
+  {# Phase 11B — Tools zone: utility surface wrapping the collapsible panels. #}
+  <section class="mel-dashboard-tools" aria-label="{{ 'Tools'|t }}">
   <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--utility mel-vendor-dashboard__details--homepage-performance mel-vendor-dashboard__details--events">
     <summary>{{ 'Homepage performance'|t }}</summary>
     <div class="mel-vendor-dashboard__details-grid">
@@ -910,6 +915,7 @@
       {% endif %}
     </div>
   </details>
+  </section>{# /.mel-dashboard-tools #}
   {% endif %}
 
 </section>
