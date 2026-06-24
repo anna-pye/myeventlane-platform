@@ -170,10 +170,10 @@
   </section>
 
   {% if workspace_updates is iterable and workspace_updates|length > 0 %}
-    <section class="mel-vendor-dashboard__workspace-updates mel-vendor-dashboard__activity-stream mel-vendor-dashboard__activity-stream--compact mel-vendor-dashboard__activity-stream--secondary" aria-labelledby="mel-dash-workspace-updates-title">
+    <section class="mel-vendor-dashboard__workspace-updates mel-vendor-dashboard__activity-stream mel-vendor-dashboard__activity-stream--compact mel-vendor-dashboard__activity-stream--secondary" aria-labelledby="mel-dash-workspace-title">
       <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
-        <p class="mel-live-ops__eyebrow">{{ 'Your workspace'|t }}</p>
-        <h2 id="mel-dash-workspace-updates-title" class="mel-live-ops__panel-title">{{ 'Workspace updates'|t }}</h2>
+        <p class="mel-live-ops__eyebrow">{{ 'What needs your attention'|t }}</p>
+        <h2 id="mel-dash-workspace-title" class="mel-live-ops__panel-title">{{ 'Workspace updates'|t }}</h2>
       </div>
       <ol class="mel-vendor-dashboard__timeline mel-vendor-dashboard__timeline--workspace" role="list">
         {% for item in workspace_updates|slice(0, 6) %}
@@ -268,7 +268,7 @@
 
     <section class="mel-vendor-dashboard__activity-stream mel-vendor-dashboard__activity-stream--compact" aria-labelledby="mel-dash-activity-title">
     <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
-      <p class="mel-live-ops__eyebrow">{{ 'What is happening'|t }}</p>
+      <p class="mel-live-ops__eyebrow">{{ 'What happened recently'|t }}</p>
       <h2 id="mel-dash-activity-title" class="mel-live-ops__panel-title">{{ 'Recent activity'|t }}</h2>
     </div>
     {% if activity_items is iterable and activity_items|length > 0 %}

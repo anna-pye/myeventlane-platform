@@ -471,6 +471,12 @@ $mel-dash-lavender: #7c83fd;
     box-shadow: none;
   }
 
+  &__workspace-updates {
+    background: $mel-brand-surface-soft;
+    border-color: rgba($mel-shell-border, 0.8);
+    box-shadow: none;
+  }
+
   &__activity-stream--secondary {
     padding: $spacing-3 $spacing-4;
     border-color: rgba($mel-shell-border, 0.75);
@@ -479,6 +485,10 @@ $mel-dash-lavender: #7c83fd;
     .mel-live-ops__panel-title {
       font-size: $font-size-lg;
     }
+  }
+
+  &__workspace-updates.mel-vendor-dashboard__activity-stream--secondary {
+    background: $mel-brand-surface-soft;
   }
 
   &__attention-strip,
@@ -1402,10 +1412,6 @@ $mel-dash-lavender: #7c83fd;
 
     &__timeline-time {
       white-space: normal;
-    }
-
-    &__timeline-link {
-      min-height: auto;
     }
   }
 

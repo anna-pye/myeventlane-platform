@@ -1838,6 +1838,29 @@ function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings_p
 }
 
 /**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
+ *
+ * Adds relative timestamp labels for real activity rows using the MEL date
+ * formatter (formatTimeDiffSince). Twig falls back to format_date('short').
+ */
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
+  if (empty($variables['dashboard_activity_items']) || !is_array($variables['dashboard_activity_items'])) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_core.date_formatter')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_core\Service\DateFormatter $formatter */
+  $formatter = \Drupal::service('myeventlane_core.date_formatter');
+  foreach ($variables['dashboard_activity_items'] as &$item) {
+    if (!is_array($item) || empty($item['timestamp'])) {
+      continue;
+    }
+    $item['timestamp_label'] = $formatter->formatRelative((int) $item['timestamp']);
+  }
+}
+
+/**
  * Implements hook_preprocess_HOOK() for myeventlane_vendor_console_page.
  *
  * Adds a consistent meta line (event type • status • date) for event workspace

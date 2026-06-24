@@ -264,6 +264,14 @@ Reusable, well-formed components: `kpi-card`, `empty-state`, `status-badge`,
 > `<section>`s with grid modifiers; without runtime testing the small-screen stacking
 > order (priority → hero → events) cannot be confirmed. **[needs runtime]**
 
+> **Finding D-7 (med).** `VendorDashboardController::buildDashboardActivity()`
+> runs Commerce and entity queries on every dashboard request, but
+> `VendorDashboardViewModelBuilder::buildActivityItems()` synthetic rows took
+> precedence in Twig — real activity (including timestamps) was discarded.
+> **Phase 4B (Option C)** resolves this by separating `dashboard_activity_items`
+> (real activity) from `workspace_updates` (organiser setup status) without new
+> queries.
+
 ---
 
 ## 8. Accessibility audit
@@ -361,7 +369,9 @@ fragmented IA, multiple shells, split palette — not missing features.
    nav sources of truth — medium.
 7. **C-1 / C-2 / SC-3** Orphaned SCSS, boost component sprawl, oversized page SCSS —
    medium.
-8. **L-3, S-4, A-2, A-3, SC-2, SC-4, C-3** — low/medium polish.
+8. **D-7** Dashboard activity queries discarded by synthetic view-model feed —
+   medium (resolved Phase 4B).
+9. **L-3, S-4, A-2, A-3, SC-2, SC-4, C-3** — low/medium polish.
 
 ---
 
