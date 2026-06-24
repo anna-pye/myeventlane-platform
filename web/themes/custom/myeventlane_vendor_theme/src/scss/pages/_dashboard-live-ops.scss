@@ -17,16 +17,114 @@
 $mel-dash-lavender: #7c83fd;
 
 .mel-vendor-dashboard {
+  // Slice 7 — mission spacing system. Whitespace creates the hierarchy so the
+  // surface breathes instead of stacking compressed cards.
+  --mission-gap: 2rem;     // 32px on mobile
+  --section-gap: 2rem;     // 32px
+  --content-gap: 1.25rem;  // 20px
+
   display: flex;
   flex-direction: column;
-  gap: $spacing-5;
+  gap: var(--mission-gap);
+  width: 100%;
+  // Phase 11A — tighten + centre the whole dashboard; sections sit ~32px apart
+  // (no oversized whitespace).
+  max-width: 1120px;
+  margin-inline: auto;
 
   @include respond-to(md) {
-    gap: $spacing-6;
+    --mission-gap: 2rem; // Phase 11C — 32px between zones (tighter finish)
   }
 
   &--empty {
     gap: $spacing-6;
+  }
+
+  &--event-first {
+    gap: var(--mission-gap);
+
+    > .mel-vendor-dashboard__mission-hero--secondary {
+      margin-top: $spacing-1;
+    }
+
+    > .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
+      margin-top: $spacing-4;
+      padding: $spacing-2 0;
+      border: none;
+      border-top: 1px solid rgba($mel-shell-border, 0.22);
+      background: transparent;
+      box-shadow: none;
+
+      @include respond-to(md) {
+        margin-top: $spacing-5;
+        padding: $spacing-3 0;
+      }
+    }
+
+    > .mel-vendor-dashboard__details--utility {
+      margin-top: $spacing-4;
+      border: none;
+      border-top: 1px solid rgba($mel-shell-border, 0.2);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+
+      > summary {
+        padding: $spacing-2 0;
+        color: $text-muted;
+        font-size: $font-size-xs;
+      }
+    }
+  }
+
+  // In-session emphasis: heightens the current-event accent when the event is
+  // live today. Layout presence is handled by --event-first; this only changes
+  // emphasis, never whether the event block renders.
+  // Phase 11A — header and event are two separate surfaces, so the wrapper is a
+  // transparent group; its children carry their own surfaces.
+  &__mission-surface {
+    display: contents;
+  }
+
+  &__event-ops {
+    display: grid;
+    gap: 1.5rem;
+    min-width: 0;
+    // Phase 11A/11B — the event is its own operational surface (module) beneath
+    // the vendor header, marked by the brand-primary left accent. Kept compact
+    // (32px padding, 24px internal gap).
+    // Phase 11E — Primary surface: strongest via the 6px brand accent, but flat
+    // (no shadow) to fit the calm dashboard surface system.
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    max-width: 100%;
+    background: #ffffff;
+    border-radius: 28px;
+    box-shadow: none;
+    border-left: 6px solid $primary;
+
+    @include respond-to(md) {
+      gap: 1.5rem;
+    }
+
+    @include respond-to(lg) {
+      padding-left: $spacing-6;
+    }
+
+    .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
+      min-height: auto;
+      padding: $spacing-2;
+      border-color: rgba($mel-shell-border, 0.4);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .mel-live-ops__stat-value {
+      font-size: $font-size-base;
+    }
+
+    .mel-live-ops__stat-label {
+      font-size: 0.6875rem;
+    }
   }
 
   .mel-live-ops__split {
@@ -134,6 +232,64 @@ $mel-dash-lavender: #7c83fd;
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
+  }
+
+  // Organiser identity subtitle, sits directly under the page H1.
+  &__workspace-hero-subtitle {
+    margin: $spacing-1 0 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+  }
+
+  // Business summary: secondary organiser context below the current event.
+  // Lighter than the event card so it never competes for operational focus.
+  &__business-summary {
+    padding-top: $spacing-4;
+    border-top: 1px solid rgba($mel-shell-border, 0.5);
+
+    .mel-vendor-dashboard__section-head {
+      margin-bottom: $spacing-3;
+    }
+
+    .mel-live-ops__panel-title {
+      color: $text-secondary;
+      font-size: $font-size-base;
+    }
+
+    // Slice 5 — business reads as context, not mission: horizontal stats with
+    // no cards and muted, smaller typography.
+    .mel-vendor-dashboard__workspace-hero-stat {
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-stat-value {
+      color: $text-secondary;
+      font-size: clamp(1.25rem, 3vw, 1.5rem);
+    }
+
+    .mel-vendor-dashboard__workspace-hero-stat-label {
+      color: $text-muted;
+    }
+
+    // Mute the revenue accent here — context, not emphasis.
+    .mel-vendor-dashboard__workspace-hero-stat--revenue
+      .mel-vendor-dashboard__workspace-hero-stat-value {
+      color: $text-secondary;
+    }
+  }
+
+  // Slice 6 — tertiary sections (upcoming, activity) stay calm; needs-attention excluded (14A.1).
+  &__section--tertiary:not(.mel-dashboard-needs-attention) {
+    .mel-live-ops__panel-title {
+      font-size: $font-size-base;
+    }
+
+    .mel-vendor-dashboard__section-head--compact {
+      margin-bottom: $spacing-2;
+    }
   }
 
   &__workspace-hero-lead {
@@ -460,7 +616,7 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
-  &__section--tertiary {
+  &__section--tertiary:not(.mel-dashboard-needs-attention) {
     padding: $spacing-2 $spacing-3;
     border: 1px solid rgba($mel-shell-border, 0.35);
     background: transparent;
@@ -628,17 +784,82 @@ $mel-dash-lavender: #7c83fd;
     }
 
     &--event {
+      // Phase 11A — event metrics group, separated from the actions above.
+      margin-top: 2rem;
+      padding: 2rem 0 0;
+      border: none;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+
+      .mel-vendor-dashboard__section-head--compact {
+        margin-bottom: $spacing-2;
+      }
+
+      .mel-live-ops__eyebrow {
+        color: $text-muted;
+        font-size: 0.6875rem;
+      }
+
+      .mel-live-ops__panel-title {
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+      }
+
+      // Phase 11A — event metrics: four columns on desktop, two on mobile,
+      // border-separated (no cards).
       .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0;
 
         @include respond-to(md) {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           max-width: none;
         }
 
-        @include respond-to(lg) {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+        .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
+          align-items: flex-start;
+          min-height: 0;
+          padding: $spacing-2 $spacing-3;
+          border: none;
+          border-left: 1px solid rgba($mel-shell-border, 0.3);
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
         }
+
+        // No left separator on the first cell of each row (per breakpoint cols).
+        .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(2n+1) {
+          border-left: none;
+        }
+
+        @include respond-to(md) {
+          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
+            border-left: 1px solid rgba($mel-shell-border, 0.3);
+          }
+          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(4n+1) {
+            border-left: none;
+          }
+        }
+      }
+
+      // Phase 11A/11C — metric typography (value / label / context).
+      .mel-live-ops__stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+      }
+
+      .mel-live-ops__stat-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .mel-vendor-dashboard__metric-context {
+        font-size: 0.875rem;
+        opacity: 0.65;
       }
     }
   }
@@ -658,6 +879,84 @@ $mel-dash-lavender: #7c83fd;
 
     .mel-live-ops__hero-surface {
       box-shadow: none;
+    }
+
+    &--secondary {
+      .mel-live-ops__hero-surface {
+        padding: $spacing-2 $spacing-3;
+        background: rgba($mel-shell-page-bg, 0.45);
+        border: none;
+        border-radius: $radius-md;
+        box-shadow: none;
+      }
+
+      .mel-live-ops__hero-primary {
+        gap: $spacing-1;
+      }
+
+      .mel-live-ops__eyebrow {
+        color: $text-muted;
+        font-size: 0.6875rem;
+        letter-spacing: 0.05em;
+      }
+
+      // Organiser identity owns the page: even in the secondary (soft surface)
+      // hero, the organiser name stays the largest, boldest title so it reads as
+      // the page owner and stays larger than the current-event H2 below.
+      .mel-vendor-dashboard__workspace-hero-title,
+      .mel-live-ops__hero-title {
+        color: $mel-ws-navy;
+        font-size: clamp(1.5rem, 4vw, 1.875rem);
+        font-weight: $font-weight-bold;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-lead,
+      .mel-vendor-dashboard__mission-message {
+        font-size: $font-size-xs;
+        color: $text-muted;
+      }
+
+      .mel-vendor-dashboard__mission-stats {
+        margin-top: $spacing-1;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat {
+        padding: $spacing-1;
+        border-color: rgba($mel-shell-border, 0.35);
+        background: transparent;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat-value {
+        color: $text-muted;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-medium;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat-label {
+        font-size: 0.625rem;
+        color: $text-muted;
+      }
+
+      .mel-vendor-dashboard__workspace-hero-stat--primary,
+      .mel-vendor-dashboard__workspace-hero-stat--secondary,
+      .mel-vendor-dashboard__workspace-hero-stat--neutral {
+        border-color: rgba($mel-shell-border, 0.35);
+        background: transparent;
+
+        .mel-vendor-dashboard__workspace-hero-stat-value {
+          color: $text-muted;
+          font-size: $font-size-xs;
+        }
+      }
+
+      .mel-vendor-dashboard__mission-actions {
+        margin-top: $spacing-1;
+
+        .mel-btn {
+          min-height: 2.75rem;
+          font-size: $font-size-sm;
+        }
+      }
     }
 
     &--attention .mel-live-ops__hero-surface {
@@ -725,11 +1024,37 @@ $mel-dash-lavender: #7c83fd;
       padding: $spacing-6;
       gap: $spacing-6;
     }
+
+    &--primary {
+      gap: $spacing-3;
+      padding: 0 0 $spacing-4;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+
+      @include respond-to(md) {
+        gap: $spacing-4;
+        padding-bottom: $spacing-5;
+      }
+    }
+
+    &--presence {
+      gap: $spacing-3;
+
+      @include respond-to(md) {
+        gap: $spacing-4;
+      }
+    }
+  }
+
+  &__current-event-eyebrow {
+    margin: 0;
   }
 
   &__current-event-head {
     display: grid;
-    gap: $spacing-1;
+    gap: $spacing-2;
     min-width: 0;
   }
 
@@ -748,6 +1073,67 @@ $mel-dash-lavender: #7c83fd;
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
+
+    // Slice 4 — the event title is the largest object on the page: the event
+    // visually dominates the mission surface while remaining an H2. The
+    // organiser keeps the single page H1 (smaller identity text above).
+    // Phase 11A/11B — event title ~40px: large but smaller than the organiser
+    // H1, so the vendor owns the page and the event is the primary module.
+    .mel-vendor-dashboard__current-event--primary & {
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+  }
+
+  &__current-event-chips {
+    margin-top: 0;
+
+    // Slice 4 — chips are smaller and tighter so they support, not compete with,
+    // the dominant event title.
+    .mel-live-ops__chip {
+      padding: 0.125rem 0.5rem;
+      font-size: 0.6875rem;
+      letter-spacing: 0.03em;
+    }
+  }
+
+  &__current-event-meta {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+    min-width: 0;
+
+    @include respond-to(sm) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: $spacing-3 $spacing-4;
+    }
+  }
+
+  &__current-event-meta-item {
+    display: grid;
+    gap: $spacing-1;
+    margin: 0;
+    min-width: 0;
+  }
+
+  &__current-event-meta-label {
+    margin: 0;
+    color: $text-muted;
+    font-size: 0.6875rem;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.05em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  &__current-event-meta-value {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
   }
 
   &__current-event-date {
@@ -779,9 +1165,18 @@ $mel-dash-lavender: #7c83fd;
 
   &__current-event-summary {
     margin: 0;
-    color: $text-primary;
+    color: $text-secondary;
     font-size: $font-size-base;
     line-height: $line-height-relaxed;
+
+    // Slice 4 — event subtitle: supporting operational line under the title.
+    &--supporting {
+      max-width: 42rem;
+      color: $text-secondary;
+      font-size: 1.125rem;
+      line-height: $line-height-normal;
+      opacity: 0.75;
+    }
   }
 
   &__current-event-attendees {
@@ -794,10 +1189,14 @@ $mel-dash-lavender: #7c83fd;
 
   &__current-event-metric {
     margin: 0;
-    color: $text-secondary;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-semibold;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
     line-height: $line-height-normal;
+
+    &--support {
+      max-width: 36rem;
+    }
   }
 
   &__current-event-reasons {
@@ -824,24 +1223,57 @@ $mel-dash-lavender: #7c83fd;
   }
 
   &__current-event-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-2;
-    padding-top: $spacing-3;
-    border-top: 1px solid rgba($mel-shell-border, 0.85);
+    display: grid;
+    gap: $spacing-3;
+    // Slice 2 — give the primary action room to own the surface: 24px above,
+    // 32px below so the eye lands on Open Door Mode.
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
+    padding-top: 0;
+    border-top: none;
+    min-width: 0;
+
+    .mel-vendor-dashboard__current-event--primary & {
+      margin-top: 1.5rem;
+    }
 
     .mel-btn {
       min-height: 2.75rem;
-      flex: 1 1 100%;
-
-      @include respond-to(sm) {
-        flex: 0 1 auto;
-      }
     }
+  }
 
-    .mel-btn--primary {
-      @include respond-to(sm) {
-        min-width: 12rem;
+  // Phase 11A — primary action (Open check-in): full width on mobile, half on
+  // desktop; the dominant operational action inside the event surface.
+  &__current-event-action-primary {
+    width: 100%;
+    min-height: 64px;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-radius: 18px;
+
+    @include respond-to(md) {
+      width: 50%;
+    }
+  }
+
+  // Phase 11A — secondary actions become pills.
+  &__current-event-actions-secondary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    min-width: 0;
+
+    .mel-btn {
+      flex: 1 1 100%;
+      justify-content: center;
+      padding: 0.85rem 1.25rem;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.04);
+
+      @include respond-to(md) {
+        flex: 0 1 auto;
+        width: auto;
       }
     }
   }
@@ -2276,6 +2708,38 @@ $mel-dash-lavender: #7c83fd;
   }
 
   // ---------------------------------------------------------------------------
+  // Phase 8C — event-first tertiary quieting
+  // ---------------------------------------------------------------------------
+
+  &--event-first &__section--tertiary:not(.mel-dashboard-needs-attention) {
+    .mel-live-ops__panel-title {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $text-muted;
+    }
+
+    .mel-live-ops__eyebrow {
+      display: none;
+    }
+
+    .mel-vendor-dashboard__action-queue-item,
+    .mel-vendor-dashboard__summary-card,
+    .mel-vendor-dashboard__timeline--activity .mel-vendor-dashboard__timeline-item {
+      border: none;
+      border-bottom: 1px solid rgba($mel-shell-border, 0.2);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .mel-vendor-dashboard__action-queue-item--primary {
+      background: transparent;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Phase 8A — scan hierarchy: quiet secondary surfaces + utility details
   // ---------------------------------------------------------------------------
 
@@ -2378,7 +2842,7 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
-  &__section--tertiary.mel-vendor-dashboard__action-queue {
+  &__section--tertiary.mel-vendor-dashboard__action-queue:not(.mel-dashboard-needs-attention) {
     border-left: none;
     padding-top: $spacing-2;
     padding-bottom: $spacing-2;
@@ -2495,4 +2959,1225 @@ $mel-dash-lavender: #7c83fd;
 .mel-vendor-dashboard .mel-live-ops__chip[href] {
   cursor: pointer;
   text-decoration: none;
+}
+
+// Phase 11A — Section 1: Vendor Mission Header. The largest section; the vendor
+// owns the page and business performance lives here directly under the identity.
+.mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+  // Phase 11E — Business hero is context: very soft (minimal depth), smaller.
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 1.5rem 1.5rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+
+  @include respond-to(md) {
+    padding: 1.75rem 2rem 1.5rem;
+  }
+
+  .mel-live-ops__hero-surface {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .mel-vendor-dashboard__workspace-hero-title {
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    font-weight: 800;
+    line-height: 1.05;
+    color: $mel-ws-navy;
+  }
+
+  .mel-vendor-dashboard__workspace-hero-subtitle {
+    font-size: 1.125rem;
+    color: $text-muted;
+  }
+
+  // Business metrics inline: three columns (two on mobile), no cards.
+  .mel-vendor-dashboard__header-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 2rem;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .mel-vendor-dashboard__header-metric {
+    display: grid;
+    gap: 0.125rem;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .mel-vendor-dashboard__header-metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.05;
+    color: $mel-ws-navy;
+    overflow-wrap: anywhere;
+  }
+
+  .mel-vendor-dashboard__header-metric-label {
+    font-size: 0.875rem;
+    color: $text-muted;
+  }
+
+  .mel-vendor-dashboard__mission-message {
+    margin-top: 1rem;
+  }
+
+  // CTA aligned left.
+  .mel-vendor-dashboard__mission-actions {
+    justify-content: flex-start;
+    margin-top: 1rem;
+  }
+}
+
+// Phase 11B — Section 3: Operations zone. One surface; child sections are flat
+// (no individual cards/shadows) separated only by border-top dividers.
+.mel-dashboard-operations {
+  // Phase 11D — Operations: one surface; child sections divided by border-bottom.
+  display: grid;
+  gap: 2rem;
+  background: #ffffff;
+  border-radius: 32px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.06);
+  padding: 1.5rem;
+
+  @include respond-to(md) {
+    padding: 2rem;
+  }
+
+  &__header {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+    font-weight: $font-weight-bold;
+    color: $mel-ws-navy;
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-sm;
+  }
+
+  // Child sections are flat (no individual cards), separated by a bottom rule.
+  > section {
+    margin: 0;
+    padding: 0 0 2rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  > section:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  // Step 8 — activity rows: taller, time pushed right, hover surface, dividers.
+  .mel-vendor-dashboard__timeline-item {
+    min-height: 48px;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: rgba(15, 23, 42, 0.03);
+    }
+  }
+
+  .mel-vendor-dashboard__timeline-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    flex: none;
+    color: $text-secondary;
+    font-weight: $font-weight-semibold;
+  }
+
+  // Step 7 — upcoming events: responsive card grid with hover lift.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+    }
+  }
+}
+
+// Phase 11B — Section 4: Tools zone. Pale utility surface, accordion appearance.
+.mel-dashboard-tools {
+  // Phase 11D — Tools & settings: one white utility surface, pale item rows.
+  display: grid;
+  gap: $spacing-2;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 28px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+
+  @include respond-to(md) {
+    padding: 2rem;
+  }
+
+  &__title {
+    margin: 0 0 0.25rem;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $text-muted;
+  }
+
+  > .mel-vendor-dashboard__details {
+    margin: 0;
+    background: rgba(248, 245, 243, 0.8);
+    border: 1px solid rgba(15, 23, 42, 0.05);
+    border-radius: 16px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1.25rem 1.5rem;
+      color: $text-secondary;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      cursor: pointer;
+    }
+  }
+}
+
+// Phase 11C — Event card two-column layout on desktop: info left, actions in a
+// fixed right rail. The metric strip is a sibling (full width) and stays below.
+@include respond-to(lg) {
+  .mel-vendor-dashboard__current-event--primary {
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr;
+    column-gap: 2rem;
+    align-items: start;
+
+    > * {
+      grid-column: 1;
+      min-width: 0;
+    }
+
+    .mel-vendor-dashboard__current-event-actions {
+      grid-column: 2;
+      grid-row: 1;
+      margin: 0;
+      align-self: start;
+    }
+
+    .mel-vendor-dashboard__current-event-action-primary {
+      width: 100%;
+    }
+  }
+}
+
+// ===========================================================================
+// Phase 11E — Dashboard surface system (lower half).
+// One calm, flat system for every tertiary section: shared dividers, shared
+// heading scale, list rows (no cards/shadows), bordered upcoming + utility
+// panels. Appended last and scoped under .mel-vendor-dashboard so it is the
+// authoritative layer over earlier per-phase tertiary styling.
+// ===========================================================================
+.mel-vendor-dashboard {
+  // Operations & tools become transparent groups (no enclosing boxes).
+  .mel-dashboard-operations,
+  .mel-dashboard-tools {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    gap: 0;
+  }
+
+  // Unified tertiary rhythm: one top divider + spacing for every section.
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
+    margin-top: $spacing-6;
+    padding: $spacing-6 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.6);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  // Remove the earlier per-section bottom borders so only the top divider shows.
+  .mel-dashboard-operations > section {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  // Shared tertiary heading scale: small, uppercase, muted.
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-live-ops__panel-title,
+  .mel-dashboard-operations__title,
+  .mel-dashboard-tools__title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-muted;
+  }
+
+  // List rows (workspace updates, attention, activity): flat rows, hairline rule.
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-vendor-dashboard__section--tertiary.mel-vendor-dashboard__action-queue:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__action-queue-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__action-queue-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mel-vendor-dashboard__timeline-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    flex: none;
+    color: $text-secondary;
+    font-weight: $font-weight-semibold;
+  }
+
+  // Upcoming events: responsive bordered cards, no shadow, gentle hover lift.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: none;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  // Utility panels: bordered white accordions.
+  .mel-dashboard-tools > .mel-vendor-dashboard__details {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: $text-secondary;
+      cursor: pointer;
+    }
+
+    &[open] {
+      padding-bottom: 1rem;
+    }
+  }
+}
+
+/*********************************************************
+ * PHASE 12A — DASHBOARD SURFACE SYSTEM — AUTHORITATIVE LAYER
+ *
+ * Single rendering authority for the dashboard surfaces. Appended last so it
+ * wins by source order over the 11B–11E layers, which remain in place (no
+ * deletion this phase — a future 12B can remove dead rules once verified in a
+ * browser). Visual normalization only: no markup, layout or behaviour changes.
+ *
+ * Hierarchy:
+ *   1. Vendor header  — soft page chrome (not a card).
+ *   2. Current event  — the single strongest element (6px accent, large title,
+ *                       large action).
+ *   3. Metrics        — small strip.
+ *   4. Lower sections — flat: top divider + spacing rhythm only (no cards).
+ *   5. Utility panels — simple white, thin border.
+ *********************************************************/
+.mel-vendor-dashboard {
+  // 1. Vendor header — soft chrome at the top of the page.
+  .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 $spacing-2;
+
+    .mel-vendor-dashboard__workspace-hero-title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtitle {
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__header-metric-value {
+      font-size: 1.375rem;
+    }
+  }
+
+  // 2. Current event — the strongest surface on the page.
+  .mel-vendor-dashboard__event-ops {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-left: 6px solid $primary;
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(2.25rem, 4.5vw, 3rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .mel-vendor-dashboard__current-event-action-primary {
+    min-height: 64px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-radius: 16px;
+  }
+
+  // 3. Metrics — small strip.
+  .mel-vendor-dashboard__metric-strip--event .mel-live-ops__stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  // 4. Lower sections — flat, no cards: top divider + spacing rhythm only.
+  .mel-dashboard-operations,
+  .mel-dashboard-tools {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    gap: 0;
+  }
+
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
+    margin-top: 2rem;
+    padding: 2rem 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.6);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mel-dashboard-operations > section {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-live-ops__panel-title,
+  .mel-dashboard-operations__title,
+  .mel-dashboard-tools__title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-muted;
+  }
+
+  // Activity / attention rows — flat list rows with a hairline rule.
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-vendor-dashboard__section--tertiary.mel-vendor-dashboard__action-queue:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__action-queue-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__action-queue-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mel-vendor-dashboard__timeline-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    flex: none;
+    color: $text-secondary;
+    font-weight: $font-weight-semibold;
+  }
+
+  // Upcoming events — simple bordered cards, gentle hover.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: none;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  // 5. Utility panels — simple white, thin border.
+  .mel-dashboard-tools > .mel-vendor-dashboard__details {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: $text-secondary;
+      cursor: pointer;
+    }
+
+    &[open] {
+      padding-bottom: 1rem;
+    }
+  }
+}
+
+/********************************************************
+ * PHASE 12C — DASHBOARD INFORMATION HIERARCHY
+ * "Organiser owns the dashboard. Current event owns the workflow."
+ * Authoritative layer; appended last, wins by source order. No deletions of
+ * earlier phases. Visual/hierarchy normalization only — no markup/behaviour
+ * change beyond the header subtext + business-health summary added in Twig.
+ ********************************************************/
+.mel-vendor-dashboard {
+  // LEVEL 1 — Organiser header owns the page (large identity, no card).
+  .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 1.5rem 1.5rem 1rem;
+
+    @include respond-to(md) {
+      padding: 3rem 3rem 2rem;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-title {
+      font-size: clamp(2.5rem, 5vw, 3.25rem);
+      font-weight: 800;
+      line-height: 1.02;
+      color: $mel-ws-navy;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtitle {
+      font-size: 1.125rem;
+      color: $text-secondary;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtext {
+      margin: 0.25rem 0 0;
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__header-metric-value {
+      font-size: 1.75rem;
+    }
+  }
+
+  // LEVEL 2 — Current event: strongest action, ~30% lighter than before.
+  .mel-vendor-dashboard__event-ops {
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    gap: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(2rem, 4vw, 2.5rem);
+  }
+
+  @include respond-to(lg) {
+    .mel-vendor-dashboard__current-event--primary {
+      grid-template-columns: 1.6fr 0.9fr;
+    }
+  }
+
+  // LEVEL 3 — Business health summary surface.
+  .mel-dashboard-business-health {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 20px;
+    padding: clamp(1.5rem, 3vw, 2rem);
+
+    &__title {
+      margin: 0 0 1rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: $text-muted;
+    }
+
+    &__list {
+      display: grid;
+      gap: 0.75rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    &__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      min-height: 44px;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    }
+
+    &__row:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    &__row-label {
+      font-size: 1rem;
+      color: $text-primary;
+    }
+
+    &__row-status {
+      font-size: 0.875rem;
+      font-weight: $font-weight-semibold;
+    }
+
+    &__row--ok &__row-status {
+      color: $mel-ws-purple;
+    }
+
+    &__row--todo &__row-status {
+      color: $mel-ws-coral;
+    }
+  }
+
+  // LEVEL 4 — Upcoming events: stronger cards.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    min-height: 220px;
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 20px;
+    padding: 1.25rem;
+    box-shadow: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    img {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .mel-vendor-dashboard__summary-card-title {
+      font-size: 1.125rem;
+    }
+
+    .mel-vendor-dashboard__summary-card-date {
+      font-size: 0.875rem;
+      color: $text-muted;
+    }
+  }
+
+  // LEVEL 5 — Recent activity: denser rows, muted timestamps.
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item {
+    padding: 1.25rem 0;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    font-size: 0.8125rem;
+    color: $text-muted;
+  }
+
+  .mel-vendor-dashboard__timeline-link,
+  .mel-vendor-dashboard__timeline-text {
+    font-size: 1rem;
+  }
+
+  // Zone rhythm — clear separation between Levels 3-6.
+  .mel-dashboard-business-health,
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
+    margin-top: 2rem;
+  }
+}
+
+/********************************************************
+ * PHASE 12C POLISH — ORGANISER OWNS THE DASHBOARD
+ * Visual hierarchy refinement of the 12C layer. Appended last, wins by
+ * source order. No deletions. SCSS only (markup already in place).
+ ********************************************************/
+.mel-vendor-dashboard {
+  // Wider, calmer canvas.
+  max-width: 1280px;
+
+  // SLICE 1 — Organiser identity owns the page ("This is Anna's business").
+  .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 1.5rem 1.25rem 1rem;
+
+    @include respond-to(md) {
+      padding: 3rem 2rem 2rem;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-title {
+      font-size: clamp(2.75rem, 5vw, 3.75rem);
+      font-weight: 700;
+      line-height: 1.02;
+      color: $mel-ws-navy;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtitle {
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtext {
+      margin: 0.25rem 0 0;
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__header-metrics {
+      gap: 1rem 2.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .mel-vendor-dashboard__header-metric-value {
+      font-size: 1.5rem;
+    }
+  }
+
+  // SLICE 2 — Current event: flat white workflow block, 8px accent, one CTA,
+  // actions stacked below the content (no side-by-side rail).
+  .mel-vendor-dashboard__event-ops {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-left: 8px solid $primary;
+    border-radius: 20px;
+    box-shadow: none;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    gap: 1.5rem;
+  }
+
+  .mel-vendor-dashboard__current-event--primary {
+    display: block;
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(1.75rem, 4vw, 2rem);
+  }
+
+  .mel-vendor-dashboard__current-event-actions {
+    margin-top: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__current-event-action-primary {
+    min-height: 52px;
+    width: 100%;
+
+    @include respond-to(md) {
+      width: auto;
+      min-width: 16rem;
+    }
+  }
+
+  // SLICE 3 — Business health: small horizontal status chips, no card.
+  .mel-dashboard-business-health {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+
+    &__title {
+      font-size: 0.75rem;
+    }
+
+    &__list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    &__row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 0;
+      padding: 0.4rem 0.85rem;
+      border: 1px solid rgba($mel-shell-border, 0.6);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    &__row::before {
+      font-weight: 700;
+    }
+
+    &__row--ok::before {
+      content: "\2713";
+      color: $mel-ws-purple;
+    }
+
+    &__row--todo::before {
+      content: "\0021";
+      color: $mel-ws-coral;
+    }
+
+    &__row-label {
+      font-size: 0.875rem;
+    }
+
+    &__row-status {
+      font-size: 0.8125rem;
+      color: $text-muted;
+    }
+  }
+
+  // SLICE 4 — Upcoming events.
+  .mel-vendor-dashboard__summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    min-height: 0;
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 18px;
+    padding: 1.5rem;
+    box-shadow: none;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: none;
+    }
+
+    img {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .mel-vendor-dashboard__summary-card-title {
+      font-size: 1rem;
+    }
+
+    .mel-vendor-dashboard__summary-card-date {
+      font-size: 0.875rem;
+      color: $text-muted;
+    }
+  }
+
+  // SLICE 5 — Recent activity: Slack-style rows only.
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-vendor-dashboard__timeline-item,
+  .mel-dashboard-operations .mel-vendor-dashboard__timeline-item {
+    padding: 1rem 0;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    font-size: 0.8rem;
+    color: $text-muted;
+  }
+
+  // SLICE 6 — Section system: top divider only, small uppercase headings.
+  .mel-dashboard-business-health,
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) {
+    margin-top: 0;
+    padding-top: 2rem;
+    border-top: 1px solid rgba($mel-shell-border, 0.6);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mel-dashboard-business-health__title,
+  .mel-vendor-dashboard__section--tertiary:not(.mel-dashboard-needs-attention) .mel-live-ops__panel-title,
+  .mel-dashboard-operations__title,
+  .mel-dashboard-tools__title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-muted;
+  }
+
+  // SLICE 7 — Tools: white utility panels, soft body.
+  .mel-dashboard-tools > .mel-vendor-dashboard__details {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1rem;
+      font-weight: 600;
+    }
+
+    .mel-vendor-dashboard__details-grid {
+      background: $mel-brand-surface-soft;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+  }
+}
+
+/********************************************************
+ * PHASE 13 — OPERATIONS DASHBOARD
+ * Less event, more organiser/operations. Authoritative layer, appended last;
+ * wins by source order. No deletions. SCSS only (Twig handled separately).
+ ********************************************************/
+.mel-vendor-dashboard {
+  // Organiser header — two columns on desktop: identity left, metrics right.
+  @include respond-to(md) {
+    .mel-dashboard-header .mel-live-ops__hero-primary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 3rem;
+      align-items: start;
+    }
+
+    .mel-dashboard-header .mel-live-ops__hero-primary > * {
+      grid-column: 1;
+      min-width: 0;
+    }
+
+    .mel-dashboard-header .mel-vendor-dashboard__header-metrics {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      margin-top: 0;
+      grid-auto-flow: column;
+      gap: 2.5rem;
+    }
+  }
+
+  // Today / current focus — compact operations card, not a hero.
+  .mel-vendor-dashboard__event-ops {
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    gap: 1rem;
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+  }
+
+  // Tighten internal event spacing so the panel stays ~compact.
+  .mel-vendor-dashboard__current-event-meta,
+  .mel-vendor-dashboard__current-event-summary,
+  .mel-vendor-dashboard__current-event-reasons {
+    margin: 0;
+  }
+
+  .mel-vendor-dashboard__metric-strip--event {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+
+  // Upcoming events are the primary browsing area — keep them prominent.
+  .mel-vendor-dashboard__upcoming-strip .mel-vendor-dashboard__summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 14A.1 — Needs attention action queue (wins over 11E/12A/12C tertiary flattening)
+// ---------------------------------------------------------------------------
+.mel-vendor-dashboard {
+  &__action-queue.mel-dashboard-needs-attention {
+    margin-top: 0;
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.55);
+    border-left: 4px solid rgba($warning, 0.75);
+    border-radius: $radius-lg;
+    background: $bg-primary;
+    box-shadow: none;
+
+    @include respond-to(md) {
+      padding: $spacing-6;
+    }
+
+    .mel-vendor-dashboard__section-head--compact {
+      margin-bottom: $spacing-3;
+    }
+
+    .mel-live-ops__eyebrow {
+      display: block;
+      margin: 0 0 $spacing-1;
+      color: $text-secondary;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .mel-live-ops__panel-title {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: clamp(1.0625rem, 2vw, 1.25rem);
+      font-weight: $font-weight-bold;
+      line-height: $line-height-tight;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+
+    .mel-vendor-dashboard__timeline {
+      display: grid;
+      gap: $spacing-2;
+      margin: 0;
+      padding: 0;
+      border-left: none;
+      list-style: none;
+    }
+
+    .mel-vendor-dashboard__timeline-item {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: $spacing-3;
+      min-height: 2.75rem;
+      padding: $spacing-3 $spacing-3 $spacing-3 $spacing-4;
+      margin: 0;
+      border: 1px solid rgba($mel-shell-border, 0.45);
+      border-left-width: 3px;
+      border-left-style: solid;
+      border-radius: $radius-md;
+      background: rgba($mel-shell-page-bg, 0.4);
+      box-shadow: none;
+    }
+
+    .mel-vendor-dashboard__timeline-item--warn {
+      border-left-color: rgba($warning, 0.85);
+    }
+
+    .mel-vendor-dashboard__timeline-item--info {
+      border-left-color: rgba($info, 0.75);
+    }
+
+    .mel-vendor-dashboard__timeline-item--success {
+      border-left-color: rgba($success, 0.75);
+    }
+
+    .mel-vendor-dashboard__timeline-marker {
+      position: static;
+      flex-shrink: 0;
+      align-self: center;
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
+    .mel-vendor-dashboard__timeline-content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-2 $spacing-4;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .mel-vendor-dashboard__timeline-body {
+      flex: 1 1 12rem;
+      min-width: 0;
+    }
+
+    .mel-vendor-dashboard__timeline-text {
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      line-height: $line-height-normal;
+    }
+
+    .mel-vendor-dashboard__timeline-link {
+      flex: 0 0 auto;
+      margin-left: auto;
+      min-height: 2.75rem;
+      align-items: center;
+      white-space: nowrap;
+      font-size: $font-size-sm;
+    }
+  }
+
+  &--event-first > &__action-queue.mel-dashboard-needs-attention {
+    margin-top: $spacing-4;
+
+    @include respond-to(md) {
+      margin-top: $spacing-5;
+    }
+  }
+
+  // Phase 14B — Operationally healthy organiser (quiet confidence strip, not a card).
+  &__healthy-state {
+    margin-top: 0;
+    padding: $spacing-4 0;
+    border: none;
+    border-top: 1px solid rgba($success, 0.22);
+    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    background: transparent;
+    box-shadow: none;
+    display: grid;
+    gap: $spacing-3;
+
+    @include respond-to(md) {
+      padding: $spacing-5 0;
+      gap: $spacing-4;
+    }
+  }
+
+  &__healthy-state-message {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__healthy-state-icon {
+    flex-shrink: 0;
+    color: $success;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
+
+  &__healthy-state-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-4 $spacing-6;
+    margin: 0;
+  }
+
+  &__healthy-state-metric {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
+  }
+
+  &__healthy-state-label {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    line-height: $line-height-normal;
+    text-transform: uppercase;
+  }
+
+  &__healthy-state-value {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__healthy-state-event {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: $spacing-2;
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__healthy-state-event-label {
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &--event-first > &__healthy-state {
+    margin-top: $spacing-4;
+
+    @include respond-to(md) {
+      margin-top: $spacing-5;
+    }
+  }
 }

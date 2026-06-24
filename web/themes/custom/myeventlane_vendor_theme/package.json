@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npm run build:vendor-wizard",
-    "build:vendor-wizard": "sass src/scss/vendor-wizard.scss dist/vendor-wizard.css --no-source-map --style=compressed",
+    "build": "vite build",
     "preview": "vite preview",
     "lint:scss": "stylelint 'src/scss/**/*.scss'",
     "lint:js": "eslint 'src/js/**/*.js'",

@@ -51,7 +51,6 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'src/js/main.js'),
         'account-dropdown': path.resolve(__dirname, 'src/js/account-dropdown.js'),
-        'front-pie': path.resolve(__dirname, 'src/js/front-pie.js'),
         front: path.resolve(__dirname, 'src/scss/front.scss'),
       },
       output: {
