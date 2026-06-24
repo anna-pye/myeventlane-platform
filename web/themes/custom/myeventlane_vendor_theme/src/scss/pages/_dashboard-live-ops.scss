@@ -79,16 +79,21 @@ $mel-dash-lavender: #7c83fd;
 
   &__event-ops {
     display: grid;
-    gap: 0;
+    gap: $spacing-4;
     min-width: 0;
-    padding-left: $spacing-4;
-    // Calm default accent: the event-first layout now renders for any current
-    // event, not only in-session ones. The strong navy accent is restored for
-    // the in-session emphasis state via --event-live below.
+    // Dominant operational surface: the current event reads as the primary card
+    // on the dashboard (white surface, subtle border, soft shadow) while the
+    // organiser keeps the page H1. The navy accent is calm by default and is
+    // restored to full strength for the in-session state via --event-live below.
+    padding: $spacing-4;
+    background: $bg-primary;
+    border: 1px solid $mel-ws-border-soft;
     border-left: 4px solid rgba($mel-ws-navy, 0.35);
+    border-radius: $radius-lg;
+    box-shadow: $shadow-sm;
 
     @include respond-to(md) {
-      padding-left: $spacing-5;
+      padding: $spacing-5;
     }
 
     @include respond-to(lg) {
@@ -217,6 +222,30 @@ $mel-dash-lavender: #7c83fd;
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
+  }
+
+  // Organiser identity subtitle, sits directly under the page H1.
+  &__workspace-hero-subtitle {
+    margin: $spacing-1 0 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+  }
+
+  // Business summary: secondary organiser context below the current event.
+  // Lighter than the event card so it never competes for operational focus.
+  &__business-summary {
+    margin-top: $spacing-5;
+    padding-top: $spacing-4;
+    border-top: 1px solid rgba($mel-shell-border, 0.5);
+
+    .mel-vendor-dashboard__section-head {
+      margin-bottom: $spacing-3;
+    }
+
+    .mel-live-ops__panel-title {
+      color: $text-secondary;
+    }
   }
 
   &__workspace-hero-lead {
@@ -958,11 +987,11 @@ $mel-dash-lavender: #7c83fd;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
 
-    // Operational panel heading (H2): clearly secondary to the organiser name.
-    // Capped below the hero title so the event never out-sizes the page owner,
-    // while the panel keeps its accent border + actions for operational focus.
+    // Operational panel heading (H2): prominent enough to anchor the dominant
+    // event card, but capped below the organiser hero title so the event never
+    // out-sizes the page owner (organiser keeps the single H1).
     .mel-vendor-dashboard__current-event--primary & {
-      font-size: clamp(1.25rem, 3.2vw, 1.5rem);
+      font-size: clamp(1.375rem, 3.6vw, 1.625rem);
       letter-spacing: -0.02em;
       line-height: 1.15;
     }
