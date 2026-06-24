@@ -462,36 +462,40 @@ $mel-dash-lavender: #7c83fd;
 
   &__section--tertiary {
     padding: $spacing-2 $spacing-3;
-    border-color: rgba($mel-shell-border, 0.45);
+    border: 1px solid rgba($mel-shell-border, 0.35);
     background: transparent;
     box-shadow: none;
 
     @include respond-to(md) {
-      padding: $spacing-3 $spacing-4;
+      padding: $spacing-2 $spacing-4;
     }
 
     .mel-vendor-dashboard__section-head {
-      margin-bottom: $spacing-2;
+      margin-bottom: $spacing-1;
     }
 
     .mel-vendor-dashboard__section-head--compact {
-      margin-bottom: $spacing-2;
+      margin-bottom: $spacing-1;
     }
 
     .mel-live-ops__panel-title {
       font-size: $font-size-sm;
       font-weight: $font-weight-semibold;
+      color: $text-secondary;
+      line-height: $line-height-normal;
     }
 
     .mel-live-ops__eyebrow {
       font-size: $font-size-xs;
       color: $text-muted;
+      letter-spacing: 0.04em;
     }
 
     .mel-vendor-dashboard__timeline-item,
     .mel-vendor-dashboard__action-queue-item,
     .mel-vendor-dashboard__summary-card {
-      border-color: rgba($mel-shell-border, 0.55);
+      border-color: rgba($mel-shell-border, 0.45);
+      box-shadow: none;
     }
   }
 

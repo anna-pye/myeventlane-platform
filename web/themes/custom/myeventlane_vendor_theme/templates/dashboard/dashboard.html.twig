@@ -414,7 +414,7 @@
     {% endif %}
   </section>
 
-  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--homepage-performance mel-vendor-dashboard__details--events">
+  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--utility mel-vendor-dashboard__details--homepage-performance mel-vendor-dashboard__details--events">
     <summary>{{ 'Homepage performance'|t }}</summary>
     <div class="mel-vendor-dashboard__details-grid">
       {% if homepage_readiness %}
@@ -589,7 +589,7 @@
     </div>
   </details>
 
-  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--analytics mel-vendor-dashboard__details--events">
+  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--utility mel-vendor-dashboard__details--analytics mel-vendor-dashboard__details--events">
     <summary>{{ 'Insights'|t }}</summary>
     <div class="mel-vendor-dashboard__details-grid mel-vendor-dashboard__details-grid--single">
       {% set analytics_data = analytics|default({}) %}
@@ -648,7 +648,7 @@
     </div>
   </details>
 
-  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--account">
+  <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--utility mel-vendor-dashboard__details--account">
     <summary>{{ 'Account & settings'|t }}</summary>
     <div class="mel-vendor-dashboard__details-grid">
       {% if launch_pro_status is defined and launch_pro_status %}
