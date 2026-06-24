@@ -17,12 +17,18 @@
 $mel-dash-lavender: #7c83fd;
 
 .mel-vendor-dashboard {
+  // Slice 7 — mission spacing system. Whitespace creates the hierarchy so the
+  // surface breathes instead of stacking compressed cards.
+  --mission-gap: 2rem;     // 32px on mobile
+  --section-gap: 2rem;     // 32px
+  --content-gap: 1.25rem;  // 20px
+
   display: flex;
   flex-direction: column;
-  gap: $spacing-5;
+  gap: var(--mission-gap);
 
   @include respond-to(md) {
-    gap: $spacing-6;
+    --mission-gap: 3rem;   // 48px on desktop
   }
 
   &--empty {
@@ -30,11 +36,7 @@ $mel-dash-lavender: #7c83fd;
   }
 
   &--event-first {
-    gap: $spacing-5;
-
-    @include respond-to(md) {
-      gap: $spacing-6;
-    }
+    gap: var(--mission-gap);
 
     > .mel-vendor-dashboard__mission-hero--secondary {
       margin-top: $spacing-1;
@@ -764,6 +766,7 @@ $mel-dash-lavender: #7c83fd;
 
       .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0;
 
         @include respond-to(md) {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -773,6 +776,58 @@ $mel-dash-lavender: #7c83fd;
         @include respond-to(lg) {
           grid-template-columns: repeat(5, minmax(0, 1fr));
         }
+
+        // Slice 3 — metrics are a border-separated grid, not cards.
+        .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
+          align-items: flex-start;
+          min-height: 0;
+          padding: $spacing-2 $spacing-3;
+          border: none;
+          border-left: 1px solid rgba($mel-shell-border, 0.3);
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+        }
+
+        // No left separator on the first cell of each row (per breakpoint cols).
+        .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(2n+1) {
+          border-left: none;
+        }
+
+        @include respond-to(md) {
+          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
+            border-left: 1px solid rgba($mel-shell-border, 0.3);
+          }
+          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(3n+1) {
+            border-left: none;
+          }
+        }
+
+        @include respond-to(lg) {
+          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
+            border-left: 1px solid rgba($mel-shell-border, 0.3);
+          }
+          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(5n+1) {
+            border-left: none;
+          }
+        }
+      }
+
+      // Slice 3 — metric typography (value / label / context).
+      .mel-live-ops__stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+      }
+
+      .mel-live-ops__stat-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .mel-vendor-dashboard__metric-context {
+        font-size: 0.875rem;
+        opacity: 0.65;
       }
     }
   }
@@ -987,18 +1042,26 @@ $mel-dash-lavender: #7c83fd;
     line-height: $line-height-tight;
     letter-spacing: -0.02em;
 
-    // Operational panel heading (H2): prominent enough to anchor the dominant
-    // event card, but capped below the organiser hero title so the event never
-    // out-sizes the page owner (organiser keeps the single H1).
+    // Slice 4 — the event title is the largest object on the page: the event
+    // visually dominates the mission surface while remaining an H2. The
+    // organiser keeps the single page H1 (smaller identity text above).
     .mel-vendor-dashboard__current-event--primary & {
-      font-size: clamp(1.375rem, 3.6vw, 1.625rem);
-      letter-spacing: -0.02em;
-      line-height: 1.15;
+      font-size: clamp(2rem, 5vw, 3rem);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
     }
   }
 
   &__current-event-chips {
     margin-top: 0;
+
+    // Slice 4 — chips are smaller and tighter so they support, not compete with,
+    // the dominant event title.
+    .mel-live-ops__chip {
+      padding: 0.125rem 0.5rem;
+      font-size: 0.6875rem;
+      letter-spacing: 0.03em;
+    }
   }
 
   &__current-event-meta {
@@ -1071,11 +1134,13 @@ $mel-dash-lavender: #7c83fd;
     font-size: $font-size-base;
     line-height: $line-height-relaxed;
 
+    // Slice 4 — event subtitle: supporting operational line under the title.
     &--supporting {
       max-width: 42rem;
-      color: $text-muted;
-      font-size: $font-size-sm;
+      color: $text-secondary;
+      font-size: 1.125rem;
       line-height: $line-height-normal;
+      opacity: 0.75;
     }
   }
 
@@ -1124,14 +1189,17 @@ $mel-dash-lavender: #7c83fd;
 
   &__current-event-actions {
     display: grid;
-    gap: $spacing-2;
-    margin-top: $spacing-1;
+    gap: $spacing-3;
+    // Slice 2 — give the primary action room to own the surface: 24px above,
+    // 32px below so the eye lands on Open Door Mode.
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
     padding-top: 0;
     border-top: none;
     min-width: 0;
 
     .mel-vendor-dashboard__current-event--primary & {
-      margin-top: $spacing-2;
+      margin-top: 1.5rem;
     }
 
     .mel-btn {
@@ -1139,14 +1207,18 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
+  // Slice 2 — Door Mode is the dominant action and visually owns the page.
   &__current-event-action-primary {
     width: 100%;
-    min-height: 3.25rem;
+    min-height: 4rem;
     justify-content: center;
+    font-size: 1.125rem;
+    font-weight: 700;
 
     @include respond-to(md) {
       width: auto;
       min-width: 14rem;
+      max-width: 420px;
     }
   }
 
