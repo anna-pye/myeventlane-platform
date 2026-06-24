@@ -317,7 +317,7 @@
 
       {% if show_workspace_tabs|default(true) and model.tabs is iterable and model.tabs is not empty %}
         <div class="mel-live-ops__tab-bar mel-workspace__tab-bar">
-          <nav class="mel-tabs mel-tabs--horizontal mel-live-ops__tab-nav" role="tablist" aria-label="{{ 'Event sections'|t }}">
+          <nav class="mel-tabs mel-tabs--horizontal mel-live-ops__tab-nav" aria-label="{{ 'Event sections'|t }}">
             {% include '@myeventlane_vendor_theme/components/workspace/workspace-tabs.html.twig' with { tabs: model.tabs } %}
           </nav>
         </div>
@@ -340,7 +340,7 @@
 
   {% if show_workspace_tabs|default(true) and not has_ws_model and tabs %}
     <div class="mel-workspace__tab-bar">
-      <nav class="mel-tabs mel-tabs--horizontal" role="tablist" aria-label="{{ 'Event sections'|t }}">
+      <nav class="mel-tabs mel-tabs--horizontal" aria-label="{{ 'Event sections'|t }}">
         {% include '@myeventlane_vendor_theme/components/workspace/workspace-tabs.html.twig' %}
       </nav>
     </div>
