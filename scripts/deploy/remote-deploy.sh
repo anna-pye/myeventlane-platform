@@ -258,6 +258,7 @@ echo "Deploying release: $TIMESTAMP"
 
 mkdir -p "$APP_PATH/releases"
 mkdir -p "$SHARED_PATH/files"
+mkdir -p "$SHARED_PATH/files/page-visuals"
 
 mel_report_disk_usage
 mel_prune_old_releases
