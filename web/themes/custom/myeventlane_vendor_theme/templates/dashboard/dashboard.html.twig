@@ -69,7 +69,6 @@
     <div class="mel-live-ops__hero-surface">
       <div class="mel-vendor-dashboard__mission-hero-layout mel-live-ops__hero-layout mel-vendor-dashboard__mission-hero-layout--solo">
         <div class="mel-live-ops__hero-primary">
-          <p class="mel-live-ops__eyebrow">{{ 'Running your events'|t }}</p>
           <{{ hero_heading_tag }} id="mel-dash-hero-title" class="mel-live-ops__hero-title mel-vendor-dashboard__workspace-hero-title">
             {% if events_empty %}
               {% if organiser_display_name %}
@@ -87,29 +86,12 @@
               {% endif %}
             {% endif %}
           </{{ hero_heading_tag }}>
+          <p class="mel-vendor-dashboard__workspace-hero-subtitle">{{ 'Running your events'|t }}</p>
 
           {% if show_priority_message %}
             <p class="mel-vendor-dashboard__mission-message{% if priority_needs_attention %} mel-vendor-dashboard__mission-message--attention{% endif %}">{{ priority_action.message }}</p>
           {% elseif hero_shell_hint %}
             <p class="mel-vendor-dashboard__workspace-hero-lead">{{ hero_shell_hint }}</p>
-          {% endif %}
-
-          {% if not events_empty %}
-            <ul class="mel-vendor-dashboard__workspace-hero-stats mel-vendor-dashboard__mission-stats" role="list" aria-label="{{ 'Your business'|t }}">
-              {% for def in hero_stat_defs %}
-                {% if def.pool == 'overview' %}
-                  {% set stat_match = organiser_overview|filter(item => item.key|default('') == def.key)|first|default(null) %}
-                {% else %}
-                  {% set stat_match = kpis|filter(item => item.key|default('') == def.key)|first|default(null) %}
-                {% endif %}
-                {% set stat_value = stat_match ? stat_match.value|default('0') : '0' %}
-                {% set stat_emphasis = def.emphasis|default('neutral') %}
-                <li class="mel-vendor-dashboard__workspace-hero-stat mel-vendor-dashboard__workspace-hero-stat--{{ stat_emphasis }}" role="listitem">
-                  <span class="mel-vendor-dashboard__workspace-hero-stat-value">{{ stat_value }}</span>
-                  <span class="mel-vendor-dashboard__workspace-hero-stat-label">{{ def.label }}</span>
-                </li>
-              {% endfor %}
-            </ul>
           {% endif %}
 
           {% set primary_cta_url = null %}
@@ -197,7 +179,7 @@
       {% if qa_primary %}
         {% set qa_secondary = ce_quick|filter(a => a.key|default('') != qa_primary.key|default(''))|slice(0, 4) %}
         <nav class="mel-vendor-dashboard__current-event-actions" aria-label="{{ 'Current event actions'|t }}">
-          <a class="mel-btn mel-btn--primary{% if current_event_in_session %} mel-btn--lg{% endif %} mel-vendor-dashboard__current-event-action-primary" href="{{ qa_primary.url }}">{{ qa_primary.label }}</a>
+          <a class="mel-btn mel-btn--primary mel-btn--lg mel-vendor-dashboard__current-event-action-primary" href="{{ qa_primary.url }}">{{ qa_primary.label }}</a>
           {% if qa_secondary is iterable and qa_secondary|length > 0 %}
             <div class="mel-vendor-dashboard__current-event-actions-secondary">
               {% for action in qa_secondary %}
@@ -247,6 +229,35 @@
       </div>
     </section>
     </div>
+  {% endif %}
+
+  {# Slice 2b — Business summary. Secondary organiser context rendered below the
+     current event: the event owns operational focus, the organiser still owns
+     the page. Business metrics relocated here from the identity hero. #}
+  {% if not events_empty %}
+    <section class="mel-vendor-dashboard__business-summary" aria-labelledby="mel-dash-business-title">
+      <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
+        <div>
+          <p class="mel-live-ops__eyebrow">{{ 'My business'|t }}</p>
+          <h2 id="mel-dash-business-title" class="mel-live-ops__panel-title">{{ 'Business summary'|t }}</h2>
+        </div>
+      </div>
+      <ul class="mel-vendor-dashboard__workspace-hero-stats mel-vendor-dashboard__mission-stats mel-vendor-dashboard__business-summary-stats" role="list" aria-label="{{ 'Your business'|t }}">
+        {% for def in hero_stat_defs %}
+          {% if def.pool == 'overview' %}
+            {% set stat_match = organiser_overview|filter(item => item.key|default('') == def.key)|first|default(null) %}
+          {% else %}
+            {% set stat_match = kpis|filter(item => item.key|default('') == def.key)|first|default(null) %}
+          {% endif %}
+          {% set stat_value = stat_match ? stat_match.value|default('0') : '0' %}
+          {% set stat_emphasis = def.emphasis|default('neutral') %}
+          <li class="mel-vendor-dashboard__workspace-hero-stat mel-vendor-dashboard__workspace-hero-stat--{{ stat_emphasis }}" role="listitem">
+            <span class="mel-vendor-dashboard__workspace-hero-stat-value">{{ stat_value }}</span>
+            <span class="mel-vendor-dashboard__workspace-hero-stat-label">{{ def.label }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
   {% endif %}
 
   {# Slice 1b — Empty organiser panel (0 events). #}
