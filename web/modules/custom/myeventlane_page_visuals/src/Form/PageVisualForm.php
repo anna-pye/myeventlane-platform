@@ -111,6 +111,9 @@ final class PageVisualForm extends EntityForm {
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
 
+    // Create public://page-visuals before managed_file AJAX upload (validate runs too late).
+    $this->pageVisualMediaManager->ensureUploadDirectoryReady();
+
     $entity = $this->entity;
     $storage = $this->entityTypeManager->getStorage('myeventlane_page_visual');
 
