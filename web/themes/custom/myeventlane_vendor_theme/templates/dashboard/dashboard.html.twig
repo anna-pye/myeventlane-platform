@@ -72,7 +72,8 @@
     {% set ce_quick = current_event.quick_actions|default([])|filter(a => a.url is defined and a.url) %}
     {% set qa_checkin = ce_quick|filter(a => a.key|default('') == 'checkin')|first|default(null) %}
     {% set qa_primary = qa_checkin ?: ce_quick|first|default(null) %}
-    <section class="mel-vendor-dashboard__current-event mel-vendor-dashboard__current-event--primary" aria-labelledby="mel-dash-current-event-title">
+    <div class="mel-vendor-dashboard__event-ops">
+    <section class="mel-vendor-dashboard__current-event mel-vendor-dashboard__current-event--primary mel-vendor-dashboard__current-event--presence" aria-labelledby="mel-dash-current-event-title">
       <div class="mel-vendor-dashboard__current-event-head">
         {% if organiser_display_name %}
           <p class="mel-live-ops__eyebrow mel-vendor-dashboard__current-event-eyebrow">{{ organiser_display_name }}</p>
@@ -80,15 +81,9 @@
           <p class="mel-live-ops__eyebrow mel-vendor-dashboard__current-event-eyebrow">{{ vendor.label }}</p>
         {% endif %}
         <h1 id="mel-dash-current-event-title" class="mel-vendor-dashboard__current-event-title">{{ current_event.title|default('Untitled event'|t) }}</h1>
-        {% if ce_summary %}
-          <p class="mel-vendor-dashboard__current-event-summary">{{ ce_summary }}</p>
-        {% endif %}
         <div class="mel-vendor-dashboard__current-event-chips mel-live-ops__chip-row mel-live-ops__chip-row--compact" role="group" aria-label="{{ 'Event status'|t }}">
           {% if show_live_badge %}
             <span class="mel-live-ops__chip mel-live-ops__chip--live" role="status">{{ 'LIVE'|t }}</span>
-          {% endif %}
-          {% if current_event.date_label is defined and current_event.date_label %}
-            <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ current_event.date_label }}</span>
           {% endif %}
           {% if current_event.status_label is defined and current_event.status_label %}
             <span class="mel-live-ops__chip mel-live-ops__chip--lavender">{{ current_event.status_label }}</span>
@@ -96,32 +91,51 @@
         </div>
       </div>
 
+      {% if current_event.date_label is defined and current_event.date_label or ce_attendee %}
+        <dl class="mel-vendor-dashboard__current-event-meta">
+          {% if current_event.date_label is defined and current_event.date_label %}
+            <div class="mel-vendor-dashboard__current-event-meta-item">
+              <dt class="mel-vendor-dashboard__current-event-meta-label">{{ 'When'|t }}</dt>
+              <dd class="mel-vendor-dashboard__current-event-meta-value">{{ current_event.date_label }}</dd>
+            </div>
+          {% endif %}
+          {% if ce_attendee %}
+            <div class="mel-vendor-dashboard__current-event-meta-item">
+              <dt class="mel-vendor-dashboard__current-event-meta-label">{{ 'Attendees'|t }}</dt>
+              <dd class="mel-vendor-dashboard__current-event-meta-value">{{ ce_attendee }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+      {% endif %}
+
+      {% if ce_summary %}
+        <p class="mel-vendor-dashboard__current-event-summary mel-vendor-dashboard__current-event-summary--supporting">{{ ce_summary }}</p>
+      {% endif %}
+
+      {% if ce_metric %}
+        <p class="mel-vendor-dashboard__current-event-metric mel-vendor-dashboard__current-event-metric--support">{{ ce_metric }}</p>
+      {% endif %}
+
+      {% if ce_reasons is iterable and ce_reasons|length > 0 %}
+        <ul class="mel-vendor-dashboard__current-event-reasons" role="list" aria-label="{{ 'Needs attention'|t }}">
+          {% for reason in ce_reasons|slice(0, 3) %}
+            <li class="mel-vendor-dashboard__current-event-reason" role="listitem">{{ reason }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
       {% if qa_primary %}
         {% set qa_secondary = ce_quick|filter(a => a.key|default('') != qa_primary.key|default(''))|slice(0, 4) %}
         <nav class="mel-vendor-dashboard__current-event-actions" aria-label="{{ 'Current event actions'|t }}">
-          <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ qa_primary.url }}">{{ qa_primary.label }}</a>
-          {% for action in qa_secondary %}
-            <a class="mel-btn mel-btn--secondary" href="{{ action.url }}">{{ action.label }}</a>
-          {% endfor %}
-        </nav>
-      {% endif %}
-
-      {% if ce_attendee or ce_metric or (ce_reasons is iterable and ce_reasons|length > 0) %}
-        <div class="mel-vendor-dashboard__current-event-body">
-          {% if ce_attendee %}
-            <p class="mel-vendor-dashboard__current-event-attendees">{{ ce_attendee }}</p>
-          {% endif %}
-          {% if ce_metric %}
-            <p class="mel-vendor-dashboard__current-event-metric">{{ ce_metric }}</p>
-          {% endif %}
-          {% if ce_reasons is iterable and ce_reasons|length > 0 %}
-            <ul class="mel-vendor-dashboard__current-event-reasons" role="list" aria-label="{{ 'Needs attention'|t }}">
-              {% for reason in ce_reasons|slice(0, 3) %}
-                <li class="mel-vendor-dashboard__current-event-reason" role="listitem">{{ reason }}</li>
+          <a class="mel-btn mel-btn--primary mel-btn--lg mel-vendor-dashboard__current-event-action-primary" href="{{ qa_primary.url }}">{{ qa_primary.label }}</a>
+          {% if qa_secondary is iterable and qa_secondary|length > 0 %}
+            <div class="mel-vendor-dashboard__current-event-actions-secondary">
+              {% for action in qa_secondary %}
+                <a class="mel-btn mel-btn--secondary" href="{{ action.url }}">{{ action.label }}</a>
               {% endfor %}
-            </ul>
+            </div>
           {% endif %}
-        </div>
+        </nav>
       {% endif %}
     </section>
 
@@ -162,6 +176,7 @@
         {% endif %}
       </div>
     </section>
+    </div>
   {% endif %}
 
   {# Slice 2 — Business summary hero (secondary when an event is in session). #}
