@@ -105,7 +105,7 @@ final class EventStudioWorkspacePresentation {
         ],
         [
           'key' => 'promotion',
-          'label' => (string) $this->t('Promotion'),
+          'label' => (string) $this->t('Homepage promotion'),
           'value' => $promotion_ready
             ? (string) ($promotion['short_status_label'] ?? $promotion['status_label'] ?? $this->t('Ready for homepage promotion'))
             : (string) ($promotion['status_label'] ?? $this->t('Needs attention before homepage promotion')),

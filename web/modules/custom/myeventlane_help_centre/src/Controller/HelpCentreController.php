@@ -315,15 +315,6 @@ final class HelpCentreController extends ControllerBase {
             'url' => Url::fromRoute('myeventlane_help_centre.organisers_index')->toString(),
             'excerpt' => (string) $this->t('Setup, ticketing, payouts, and day-of operations.'),
           ],
-          [
-            'title' => (string) $this->t('Vendor help'),
-            'url' => $this->currentUser()->isAuthenticated()
-              ? Url::fromRoute('myeventlane_help_centre.vendors_index')->toString()
-              : Url::fromRoute('user.login', [], [
-                'query' => ['destination' => '/help/vendors'],
-              ])->toString(),
-            'excerpt' => (string) $this->t('Vendor profile, applications, and organiser console basics.'),
-          ],
         ],
       ],
       [

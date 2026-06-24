@@ -26,7 +26,7 @@
      Twig's default() treats [] as empty and would replace PHP-built onboarding-safe nav. #}
   {% set nav_items = page.vendor_shell_nav_items is defined ? page.vendor_shell_nav_items : [] %}
   {% set nav_groups = [
-    { id: 'dashboard', label: 'Dashboard'|t, keys: ['dashboard'] },
+    { id: 'dashboard', label: 'Home'|t, keys: ['dashboard'] },
     { id: 'events', label: 'Events'|t, keys: ['events'] },
     { id: 'operations', label: 'Operations'|t, keys: ['orders', 'ticket_holders', 'checkin', 'refund_requests'] },
     { id: 'growth', label: 'Growth'|t, keys: ['promote', 'messaging', 'analytics'] },

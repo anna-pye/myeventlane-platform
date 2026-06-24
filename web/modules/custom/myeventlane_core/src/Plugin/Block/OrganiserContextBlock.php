@@ -163,12 +163,12 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
   }
 
   /**
-   * Builds organiser tools menu (Dashboard, My events, Create event, Settings).
+   * Builds organiser tools menu (Home, My events, Create event, Settings).
    */
   private function buildOrganiserToolsMenu(?object $vendor): array {
     $links = [
       [
-        'title' => $this->t('Dashboard'),
+        'title' => $this->t('Home'),
         'url' => Url::fromRoute('myeventlane_vendor.console.dashboard'),
       ],
       [
