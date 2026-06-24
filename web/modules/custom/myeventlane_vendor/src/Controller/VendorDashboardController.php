@@ -2471,12 +2471,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     usort($items, static fn(array $a, array $b): int => ((int) ($b['timestamp'] ?? 0)) <=> ((int) ($a['timestamp'] ?? 0)));
-    $items = array_slice($items, 0, 6);
-    foreach ($items as &$item) {
-      unset($item['timestamp']);
-    }
 
-    return $items;
+    return array_slice($items, 0, 6);
   }
 
   /**

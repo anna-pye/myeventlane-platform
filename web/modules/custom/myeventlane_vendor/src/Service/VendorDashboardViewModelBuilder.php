@@ -156,7 +156,7 @@ final class VendorDashboardViewModelBuilder {
     $model['organiser_overview'] = $this->buildOrganiserOverview($model);
     $model['attention_events'] = $this->buildAttentionEvents($events);
     $model['upcoming_events'] = $this->buildUpcomingEvents($events);
-    $model['activity_items'] = $this->buildActivityItems($events, $readiness);
+    $model['workspace_updates'] = $this->buildWorkspaceUpdates($readiness);
     $model['hero_shell_hint'] = $this->heroShellHint($model);
     $model['homepage_visibility'] = $this->buildHomepageVisibilityReport($vendor, $account);
 
@@ -200,7 +200,7 @@ final class VendorDashboardViewModelBuilder {
       'upcoming_events' => [],
       'priority_action' => NULL,
       'secondary_actions' => [],
-      'activity_items' => [],
+      'workspace_updates' => [],
       'analytics_summary' => [
         'available' => FALSE,
         'items' => [],
@@ -1366,8 +1366,14 @@ final class VendorDashboardViewModelBuilder {
    *
    * @return list<array<string, mixed>>
    */
-  private function buildActivityItems(array $events, array $readiness): array {
+  /**
+   * Completed organiser workspace status lines (not event activity).
+   *
+   * @return list<array{type: string, message: string, url: \Drupal\Core\Url|null}>
+   */
+  private function buildWorkspaceUpdates(array $readiness): array {
     $items = [];
+
     if ((bool) ($readiness['stripe_ready'] ?? FALSE)) {
       $items[] = [
         'type' => 'success',
@@ -1378,52 +1384,17 @@ final class VendorDashboardViewModelBuilder {
       ];
     }
 
-    foreach ($events as $event) {
-      if (!is_array($event)) {
-        continue;
-      }
-      $title = (string) ($event['title'] ?? '');
-      if ($title === '') {
-        continue;
-      }
-      $links = $event['links'] ?? [];
-      $url = is_array($links) && isset($links['manage']) && $links['manage'] instanceof Url ? $links['manage'] : NULL;
-      $status = (string) ($event['status'] ?? '');
-      if ($status === 'draft') {
-        $items[] = [
-          'type' => 'warning',
-          'message' => (string) $this->t('@event is still in draft.', ['@event' => $title]),
-          'url' => $url,
-        ];
-      }
-      else {
-        $items[] = [
-          'type' => 'info',
-          'message' => (string) $this->t('@event is @state.', [
-            '@event' => $title,
-            '@state' => (string) ($event['status_label'] ?? $status),
-          ]),
-          'url' => $url,
-        ];
-      }
-
-      $metricLabel = (string) ($event['metric_label'] ?? '');
-      if ($metricLabel !== '') {
-        $items[] = [
-          'type' => 'success',
-          'message' => (string) $this->t('@metrics for @event.', [
-            '@event' => $title,
-            '@metrics' => $metricLabel,
-          ]),
-          'url' => $url,
-        ];
-      }
-      if (count($items) >= 6) {
-        break;
-      }
+    if ((bool) ($readiness['profile_complete'] ?? FALSE)) {
+      $items[] = [
+        'type' => 'success',
+        'message' => (string) $this->t('Your organiser profile is complete.'),
+        'url' => $this->routeExists('myeventlane_vendor.console.settings')
+          ? $this->safeUrlFromRoute('myeventlane_vendor.console.settings')
+          : NULL,
+      ];
     }
 
-    return array_slice($items, 0, 6);
+    return $items;
   }
 
   /**
