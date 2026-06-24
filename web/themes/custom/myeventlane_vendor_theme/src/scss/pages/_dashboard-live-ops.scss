@@ -3491,3 +3491,181 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 }
+
+/********************************************************
+ * PHASE 12C — DASHBOARD INFORMATION HIERARCHY
+ * "Organiser owns the dashboard. Current event owns the workflow."
+ * Authoritative layer; appended last, wins by source order. No deletions of
+ * earlier phases. Visual/hierarchy normalization only — no markup/behaviour
+ * change beyond the header subtext + business-health summary added in Twig.
+ ********************************************************/
+.mel-vendor-dashboard {
+  // LEVEL 1 — Organiser header owns the page (large identity, no card).
+  .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 1.5rem 1.5rem 1rem;
+
+    @include respond-to(md) {
+      padding: 3rem 3rem 2rem;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-title {
+      font-size: clamp(2.5rem, 5vw, 3.25rem);
+      font-weight: 800;
+      line-height: 1.02;
+      color: $mel-ws-navy;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtitle {
+      font-size: 1.125rem;
+      color: $text-secondary;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtext {
+      margin: 0.25rem 0 0;
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__header-metric-value {
+      font-size: 1.75rem;
+    }
+  }
+
+  // LEVEL 2 — Current event: strongest action, ~30% lighter than before.
+  .mel-vendor-dashboard__event-ops {
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    gap: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(2rem, 4vw, 2.5rem);
+  }
+
+  @include respond-to(lg) {
+    .mel-vendor-dashboard__current-event--primary {
+      grid-template-columns: 1.6fr 0.9fr;
+    }
+  }
+
+  // LEVEL 3 — Business health summary surface.
+  .mel-dashboard-business-health {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 20px;
+    padding: clamp(1.5rem, 3vw, 2rem);
+
+    &__title {
+      margin: 0 0 1rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: $text-muted;
+    }
+
+    &__list {
+      display: grid;
+      gap: 0.75rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    &__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      min-height: 44px;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    }
+
+    &__row:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    &__row-label {
+      font-size: 1rem;
+      color: $text-primary;
+    }
+
+    &__row-status {
+      font-size: 0.875rem;
+      font-weight: $font-weight-semibold;
+    }
+
+    &__row--ok &__row-status {
+      color: $mel-ws-purple;
+    }
+
+    &__row--todo &__row-status {
+      color: $mel-ws-coral;
+    }
+  }
+
+  // LEVEL 4 — Upcoming events: stronger cards.
+  .mel-vendor-dashboard__summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    min-height: 220px;
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 20px;
+    padding: 1.25rem;
+    box-shadow: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    img {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .mel-vendor-dashboard__summary-card-title {
+      font-size: 1.125rem;
+    }
+
+    .mel-vendor-dashboard__summary-card-date {
+      font-size: 0.875rem;
+      color: $text-muted;
+    }
+  }
+
+  // LEVEL 5 — Recent activity: denser rows, muted timestamps.
+  .mel-vendor-dashboard__timeline-item {
+    padding: 1.25rem 0;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    font-size: 0.8125rem;
+    color: $text-muted;
+  }
+
+  .mel-vendor-dashboard__timeline-link,
+  .mel-vendor-dashboard__timeline-text {
+    font-size: 1rem;
+  }
+
+  // Zone rhythm — clear separation between Levels 3-6.
+  .mel-dashboard-business-health,
+  .mel-vendor-dashboard__section--tertiary {
+    margin-top: 2rem;
+  }
+}
