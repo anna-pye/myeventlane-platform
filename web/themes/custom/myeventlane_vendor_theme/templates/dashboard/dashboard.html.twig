@@ -42,13 +42,14 @@
 {% set show_next_event = not has_active_current_event and next_event %}
 {% set empty_create_url = create_action.url|default(empty_state.url|default(null)) %}
 {% set empty_create_label = create_action.label|default(empty_state.action_label|default('Create event'|t)) %}
-{% set has_active_current_event = current_event and current_event.status|default('') != 'past' %}
+{% set event_in_session_label = 'Event today'|t %}
+{% set current_event_in_session = current_event and current_event.status|default('') == 'upcoming' and event_in_session_label in current_event.attention_reasons|default([]) %}
+{% set has_active_current_event = current_event_in_session %}
 {% set next_event = model_events|filter(ev => ev.status|default('') != 'past')|first|default(null) %}
 {% set show_next_event = not has_active_current_event and next_event %}
 {% set priority_sev = priority_action.severity|default('info') %}
 {% set priority_needs_attention = priority_action and (priority_sev == 'error' or priority_sev == 'warning') %}
 {% set show_priority_message = priority_action and priority_action.message is defined and priority_action.message %}
-{% set event_in_session_label = 'Event today'|t %}
 {% set hero_stat_defs = [
   { key: 'revenue', label: 'Revenue'|t, pool: 'kpis', emphasis: 'primary' },
   { key: 'tickets_sold', label: 'Tickets sold'|t, pool: 'kpis', emphasis: 'secondary' },
@@ -108,22 +109,20 @@
             </ul>
           {% endif %}
 
-          {% if not events_empty %}
-            {% set primary_cta_url = null %}
-            {% set primary_cta_label = null %}
-            {% if priority_action and priority_action.url is defined and priority_action.url and priority_action.action_label is defined and priority_action.action_label and (priority_needs_attention or show_priority_message) %}
-              {% set primary_cta_url = priority_action.url %}
-              {% set primary_cta_label = priority_action.action_label %}
-            {% elseif create_action and create_action.url is defined and create_action.url %}
-              {% set primary_cta_url = create_action.url %}
-              {% set primary_cta_label = create_action.label|default('Create event'|t) %}
-            {% endif %}
+          {% set primary_cta_url = null %}
+          {% set primary_cta_label = null %}
+          {% if priority_action and priority_action.url is defined and priority_action.url and priority_action.action_label is defined and priority_action.action_label and (priority_needs_attention or show_priority_message) %}
+            {% set primary_cta_url = priority_action.url %}
+            {% set primary_cta_label = priority_action.action_label %}
+          {% elseif not events_empty and create_action and create_action.url is defined and create_action.url %}
+            {% set primary_cta_url = create_action.url %}
+            {% set primary_cta_label = create_action.label|default('Create event'|t) %}
+          {% endif %}
 
-            {% if primary_cta_url and primary_cta_label %}
-              <div class="mel-vendor-dashboard__mission-actions mel-vendor-dashboard__workspace-hero-actions">
-                <a class="mel-btn mel-btn--primary" href="{{ primary_cta_url }}">{{ primary_cta_label }}</a>
-              </div>
-            {% endif %}
+          {% if primary_cta_url and primary_cta_label %}
+            <div class="mel-vendor-dashboard__mission-actions mel-vendor-dashboard__workspace-hero-actions">
+              <a class="mel-btn mel-btn--primary" href="{{ primary_cta_url }}">{{ primary_cta_label }}</a>
+            </div>
           {% endif %}
         </div>
       </div>
@@ -135,9 +134,11 @@
     <section class="mel-vendor-dashboard__empty-panel" aria-labelledby="mel-dash-empty-panel-title">
       <h2 id="mel-dash-empty-panel-title" class="mel-vendor-dashboard__empty-panel-title">{{ "You're ready to publish your first event."|t }}</h2>
       <p class="mel-vendor-dashboard__empty-panel-body">{{ 'Create your first event to begin selling tickets, managing attendees and running live events.'|t }}</p>
-      {% if empty_create_url %}
+      {% if empty_create_url or (support_action and support_action.url is defined and support_action.url) %}
         <div class="mel-vendor-dashboard__empty-panel-actions">
-          <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ empty_create_url }}">{{ empty_create_label }}</a>
+          {% if empty_create_url %}
+            <a class="mel-btn mel-btn--primary mel-btn--lg" href="{{ empty_create_url }}">{{ empty_create_label }}</a>
+          {% endif %}
           {% if support_action and support_action.url is defined and support_action.url %}
             <a class="mel-btn mel-btn--secondary" href="{{ support_action.url }}">{{ support_action.label|default('Support'|t) }}</a>
           {% endif %}
