@@ -27,13 +27,10 @@ $mel-dash-lavender: #7c83fd;
   flex-direction: column;
   gap: var(--mission-gap);
   width: 100%;
-  // Phase 10B — tighten + centre so the surface doesn't stretch edge to edge.
-  max-width: 1100px;
+  // Phase 11A — tighten + centre the whole dashboard; sections sit ~32px apart
+  // (no oversized whitespace).
+  max-width: 1120px;
   margin-inline: auto;
-
-  @include respond-to(md) {
-    --mission-gap: 3rem;   // 48px on desktop
-  }
 
   &--empty {
     gap: $spacing-6;
@@ -79,49 +76,26 @@ $mel-dash-lavender: #7c83fd;
   // In-session emphasis: heightens the current-event accent when the event is
   // live today. Layout presence is handled by --event-first; this only changes
   // emphasis, never whether the event block renders.
-  // Phase 10B — the single enclosing surface: organiser identity + current event
-  // share one white panel that floats on the page via a soft shadow.
+  // Phase 11A — header and event are two separate surfaces, so the wrapper is a
+  // transparent group; its children carry their own surfaces.
   &__mission-surface {
-    display: grid;
-    gap: var(--content-gap);
-    padding: 1.5rem;
-    background: #ffffff;
-    border: 1px solid rgba(20, 20, 20, 0.08);
-    border-radius: 1.25rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-
-    @include respond-to(md) {
-      padding: 2rem;
-    }
-
-    // Identity hero sits flat inside the surface — no inner box/background.
-    .mel-vendor-dashboard__mission-hero .mel-live-ops__hero-surface,
-    .mel-vendor-dashboard__mission-hero--secondary .mel-live-ops__hero-surface {
-      padding: 0;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-    }
-  }
-
-  // In-session emphasis: a thin operational accent on the event block (no box).
-  &--event-live &__event-ops {
-    padding-left: $spacing-4;
-    border-left: 3px solid rgba($mel-ws-navy, 0.4);
+    display: contents;
   }
 
   &__event-ops {
     display: grid;
     gap: $spacing-4;
     min-width: 0;
-    // Phase 10B — the event now flows inside the mission surface, so it is no
-    // longer its own boxed card (that pale grey rectangle is gone).
-    padding: 0;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    // Phase 11A — the event is its own operational surface (module) beneath the
+    // vendor header, marked by the brand-primary left accent.
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.05);
+    border-left: 6px solid $primary;
 
     @include respond-to(md) {
+      padding: 2.5rem;
       gap: $spacing-5;
     }
 
@@ -804,9 +778,11 @@ $mel-dash-lavender: #7c83fd;
     }
 
     &--event {
-      padding: $spacing-3 0 $spacing-4;
+      // Phase 11A — event metrics group, separated from the actions above.
+      margin-top: 2rem;
+      padding: 2rem 0 0;
       border: none;
-      border-top: 1px solid rgba($mel-shell-border, 0.35);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 0;
       background: transparent;
       box-shadow: none;
@@ -826,20 +802,17 @@ $mel-dash-lavender: #7c83fd;
         font-weight: $font-weight-semibold;
       }
 
+      // Phase 11A — event metrics: four columns on desktop, two on mobile,
+      // border-separated (no cards).
       .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0;
 
         @include respond-to(md) {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           max-width: none;
         }
 
-        @include respond-to(lg) {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-        }
-
-        // Slice 3 — metrics are a border-separated grid, not cards.
         .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
           align-items: flex-start;
           min-height: 0;
@@ -860,24 +833,15 @@ $mel-dash-lavender: #7c83fd;
           .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
             border-left: 1px solid rgba($mel-shell-border, 0.3);
           }
-          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(3n+1) {
-            border-left: none;
-          }
-        }
-
-        @include respond-to(lg) {
-          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
-            border-left: 1px solid rgba($mel-shell-border, 0.3);
-          }
-          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(5n+1) {
+          .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card:nth-child(4n+1) {
             border-left: none;
           }
         }
       }
 
-      // Slice 3 — metric typography (value / label / context).
+      // Phase 11A — metric typography (value / label / context).
       .mel-live-ops__stat-value {
-        font-size: 2rem;
+        font-size: 2.25rem;
         font-weight: 700;
       }
 
@@ -1107,11 +1071,13 @@ $mel-dash-lavender: #7c83fd;
     // Slice 4 — the event title is the largest object on the page: the event
     // visually dominates the mission surface while remaining an H2. The
     // organiser keeps the single page H1 (smaller identity text above).
+    // Phase 11A — event title is large but smaller than the organiser H1, so the
+    // vendor owns the page and the event is the primary module.
     .mel-vendor-dashboard__current-event--primary & {
-      font-size: clamp(3rem, 5vw, 4.5rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 0.95;
+      font-size: clamp(2.25rem, 4vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
     }
   }
 
@@ -1270,21 +1236,22 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
-  // Slice 2 — Door Mode is the dominant action and visually owns the page.
+  // Phase 11A — primary action (Open check-in): full width on mobile, half on
+  // desktop; the dominant operational action inside the event surface.
   &__current-event-action-primary {
     width: 100%;
-    min-height: 4rem;
+    min-height: 64px;
     justify-content: center;
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 700;
+    border-radius: 18px;
 
     @include respond-to(md) {
-      width: auto;
-      min-width: 14rem;
-      max-width: 420px;
+      width: 50%;
     }
   }
 
+  // Phase 11A — secondary actions become pills.
   &__current-event-actions-secondary {
     display: flex;
     flex-wrap: wrap;
@@ -1294,6 +1261,9 @@ $mel-dash-lavender: #7c83fd;
     .mel-btn {
       flex: 1 1 100%;
       justify-content: center;
+      padding: 0.85rem 1.25rem;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.04);
 
       @include respond-to(md) {
         flex: 0 1 auto;
@@ -2983,4 +2953,88 @@ $mel-dash-lavender: #7c83fd;
 .mel-vendor-dashboard .mel-live-ops__chip[href] {
   cursor: pointer;
   text-decoration: none;
+}
+
+// Phase 11A — Section 1: Vendor Mission Header. The largest section; the vendor
+// owns the page and business performance lives here directly under the identity.
+.mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 1.75rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+
+  @include respond-to(md) {
+    padding: 2.5rem;
+  }
+
+  .mel-live-ops__hero-surface {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .mel-vendor-dashboard__workspace-hero-title {
+    font-size: clamp(2.75rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.02;
+    color: $mel-ws-navy;
+  }
+
+  .mel-vendor-dashboard__workspace-hero-subtitle {
+    font-size: 1.25rem;
+    color: $text-muted;
+  }
+
+  // Business metrics: three columns (two on mobile), no cards, no borders.
+  .mel-vendor-dashboard__header-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 2rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .mel-vendor-dashboard__header-metric {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .mel-vendor-dashboard__header-metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.05;
+    color: $mel-ws-navy;
+    overflow-wrap: anywhere;
+  }
+
+  .mel-vendor-dashboard__header-metric-label {
+    font-size: 0.875rem;
+    color: $text-muted;
+  }
+
+  .mel-vendor-dashboard__mission-message {
+    margin-top: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__mission-actions {
+    margin-top: 1.5rem;
+  }
+}
+
+// Phase 11A — Section 4: activity sits on a calm white surface.
+.mel-vendor-dashboard__section--tertiary.mel-vendor-dashboard__activity-stream {
+  background: #ffffff;
+  padding: 2rem;
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  border-radius: 20px;
 }
