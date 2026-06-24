@@ -3669,3 +3669,227 @@ $mel-dash-lavender: #7c83fd;
     margin-top: 2rem;
   }
 }
+
+/********************************************************
+ * PHASE 12C POLISH — ORGANISER OWNS THE DASHBOARD
+ * Visual hierarchy refinement of the 12C layer. Appended last, wins by
+ * source order. No deletions. SCSS only (markup already in place).
+ ********************************************************/
+.mel-vendor-dashboard {
+  // Wider, calmer canvas.
+  max-width: 1280px;
+
+  // SLICE 1 — Organiser identity owns the page ("This is Anna's business").
+  .mel-dashboard-header.mel-vendor-dashboard__mission-hero {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 1.5rem 1.25rem 1rem;
+
+    @include respond-to(md) {
+      padding: 3rem 2rem 2rem;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-title {
+      font-size: clamp(2.75rem, 5vw, 3.75rem);
+      font-weight: 700;
+      line-height: 1.02;
+      color: $mel-ws-navy;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtitle {
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__workspace-hero-subtext {
+      margin: 0.25rem 0 0;
+      font-size: 1rem;
+      color: $text-muted;
+    }
+
+    .mel-vendor-dashboard__header-metrics {
+      gap: 1rem 2.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .mel-vendor-dashboard__header-metric-value {
+      font-size: 1.5rem;
+    }
+  }
+
+  // SLICE 2 — Current event: flat white workflow block, 8px accent, one CTA,
+  // actions stacked below the content (no side-by-side rail).
+  .mel-vendor-dashboard__event-ops {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-left: 8px solid $primary;
+    border-radius: 20px;
+    box-shadow: none;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    gap: 1.5rem;
+  }
+
+  .mel-vendor-dashboard__current-event--primary {
+    display: block;
+  }
+
+  .mel-vendor-dashboard__current-event--primary
+    .mel-vendor-dashboard__current-event-title {
+    font-size: clamp(1.75rem, 4vw, 2rem);
+  }
+
+  .mel-vendor-dashboard__current-event-actions {
+    margin-top: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__current-event-action-primary {
+    min-height: 52px;
+    width: 100%;
+
+    @include respond-to(md) {
+      width: auto;
+      min-width: 16rem;
+    }
+  }
+
+  // SLICE 3 — Business health: small horizontal status chips, no card.
+  .mel-dashboard-business-health {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+
+    &__title {
+      font-size: 0.75rem;
+    }
+
+    &__list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    &__row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 0;
+      padding: 0.4rem 0.85rem;
+      border: 1px solid rgba($mel-shell-border, 0.6);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    &__row::before {
+      font-weight: 700;
+    }
+
+    &__row--ok::before {
+      content: "\2713";
+      color: $mel-ws-purple;
+    }
+
+    &__row--todo::before {
+      content: "\0021";
+      color: $mel-ws-coral;
+    }
+
+    &__row-label {
+      font-size: 0.875rem;
+    }
+
+    &__row-status {
+      font-size: 0.8125rem;
+      color: $text-muted;
+    }
+  }
+
+  // SLICE 4 — Upcoming events.
+  .mel-vendor-dashboard__summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .mel-vendor-dashboard__summary-card {
+    min-height: 0;
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 18px;
+    padding: 1.5rem;
+    box-shadow: none;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: none;
+    }
+
+    img {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .mel-vendor-dashboard__summary-card-title {
+      font-size: 1rem;
+    }
+
+    .mel-vendor-dashboard__summary-card-date {
+      font-size: 0.875rem;
+      color: $text-muted;
+    }
+  }
+
+  // SLICE 5 — Recent activity: Slack-style rows only.
+  .mel-vendor-dashboard__timeline-item {
+    padding: 1rem 0;
+  }
+
+  .mel-vendor-dashboard__timeline-time {
+    font-size: 0.8rem;
+    color: $text-muted;
+  }
+
+  // SLICE 6 — Section system: top divider only, small uppercase headings.
+  .mel-dashboard-business-health,
+  .mel-vendor-dashboard__section--tertiary {
+    margin-top: 0;
+    padding-top: 2rem;
+    border-top: 1px solid rgba($mel-shell-border, 0.6);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mel-dashboard-business-health__title,
+  .mel-vendor-dashboard__section--tertiary .mel-live-ops__panel-title,
+  .mel-dashboard-operations__title,
+  .mel-dashboard-tools__title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-muted;
+  }
+
+  // SLICE 7 — Tools: white utility panels, soft body.
+  .mel-dashboard-tools > .mel-vendor-dashboard__details {
+    background: #ffffff;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 16px;
+    box-shadow: none;
+
+    > summary {
+      padding: 1rem;
+      font-weight: 600;
+    }
+
+    .mel-vendor-dashboard__details-grid {
+      background: $mel-brand-surface-soft;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+  }
+}
