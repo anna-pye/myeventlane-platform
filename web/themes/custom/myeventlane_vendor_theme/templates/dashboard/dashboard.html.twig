@@ -140,6 +140,38 @@
     </div>
   </section>
 
+  {# Phase 14A — Needs attention: the action queue is the operational core,
+     surfaced directly under the organiser identity, above today's event.
+     Renders existing model.action_queue (already prioritised by
+     VendorActionQueueBuilder) — no re-sorting, no new payloads; reuses the
+     existing section + timeline styles (no new SCSS). #}
+  {% if actions is iterable and actions|length > 0 %}
+    <section class="mel-vendor-dashboard__action-queue mel-vendor-dashboard__section--tertiary mel-dashboard-needs-attention" aria-labelledby="mel-dash-needs-title">
+      <div class="mel-vendor-dashboard__section-head mel-vendor-dashboard__section-head--compact">
+        <p class="mel-live-ops__eyebrow">{{ 'What needs your attention'|t }}</p>
+        <h2 id="mel-dash-needs-title" class="mel-live-ops__panel-title">{{ 'Needs attention'|t }}</h2>
+      </div>
+      <ol class="mel-vendor-dashboard__timeline" role="list">
+        {% for item in actions|slice(0, 6) %}
+          {% set sev = item.severity|default('info') %}
+          {% set sev_mod = sev == 'success' ? 'success' : ((sev == 'error' or sev == 'warning') ? 'warn' : 'info') %}
+          {% set marker = sev == 'success' ? '✓' : ((sev == 'error' or sev == 'warning') ? '!' : '•') %}
+          <li class="mel-vendor-dashboard__timeline-item mel-vendor-dashboard__timeline-item--{{ sev_mod }}" role="listitem">
+            <span class="mel-vendor-dashboard__timeline-marker" aria-hidden="true">{{ marker }}</span>
+            <div class="mel-vendor-dashboard__timeline-content">
+              <div class="mel-vendor-dashboard__timeline-body">
+                <span class="mel-vendor-dashboard__timeline-text">{{ item.title|default(item.message|default('')) }}</span>
+              </div>
+              {% if item.url is defined and item.url and item.action_label is defined and item.action_label %}
+                <a class="mel-vendor-dashboard__timeline-link" href="{{ item.url }}">{{ item.action_label }} →</a>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
+
   {# Slice 2 — Current event operational panel. Labelled "Your current event"
      with an H2 — the primary operational surface, but it never owns the page. #}
   {% if has_current_event %}
