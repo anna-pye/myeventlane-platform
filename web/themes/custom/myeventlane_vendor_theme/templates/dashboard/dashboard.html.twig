@@ -452,8 +452,9 @@
   </section>
   </section>{# /.mel-dashboard-operations #}
 
-  {# Phase 11B — Tools zone: utility surface wrapping the collapsible panels. #}
-  <section class="mel-dashboard-tools" aria-label="{{ 'Tools'|t }}">
+  {# Phase 11B/11C — Tools zone: utility surface wrapping the collapsible panels. #}
+  <section class="mel-dashboard-tools" aria-labelledby="mel-dash-tools-title">
+  <h2 id="mel-dash-tools-title" class="mel-dashboard-tools__title">{{ 'Tools & settings'|t }}</h2>
   <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--utility mel-vendor-dashboard__details--homepage-performance mel-vendor-dashboard__details--events">
     <summary>{{ 'Homepage performance'|t }}</summary>
     <div class="mel-vendor-dashboard__details-grid">
