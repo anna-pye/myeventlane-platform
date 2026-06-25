@@ -244,22 +244,15 @@ final class EventBrandingForm extends EventStudioBaseForm {
     if (!is_array($user_mel)) {
       return;
     }
-    $input_fragment = $user_mel['field_event_image'] ?? NULL;
-    if (!is_array($input_fragment)) {
-      $wrapper = $user_mel['field_event_image_wrapper']['widget'] ?? NULL;
-      if (is_array($wrapper)) {
-        $input_fragment = $wrapper;
-      }
-    }
-    if (!is_array($input_fragment)) {
+
+    $input_fragment = $this->brandingHeroInputFragmentWithFid($user_mel);
+    if ($input_fragment === NULL) {
       return;
     }
+
     $input_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
       'field_event_image' => $input_fragment,
     ])['fid'];
-    if ($input_fid < 1) {
-      return;
-    }
     $resolved_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_for_hero)['fid'];
     if ($resolved_fid > 0) {
       return;
@@ -268,6 +261,44 @@ final class EventBrandingForm extends EventStudioBaseForm {
       'mel][field_event_image',
       $this->t('The event image could not be saved. Please reselect the image.')
     );
+  }
+
+  /**
+   * Resolves the submitted hero image fragment that contains an uploaded fid.
+   *
+   * image_widget_crop can submit an empty direct field array while the uploaded
+   * file data lives under field_event_image_wrapper.widget.
+   *
+   * @param array<string, mixed> $user_mel
+   *
+   * @return array<string, mixed>|null
+   */
+  private function brandingHeroInputFragmentWithFid(array $user_mel): ?array {
+    $candidates = [];
+    if (isset($user_mel['field_event_image']) && is_array($user_mel['field_event_image'])) {
+      $candidates[] = $user_mel['field_event_image'];
+    }
+
+    $wrapper = $user_mel['field_event_image_wrapper'] ?? NULL;
+    if (is_array($wrapper)) {
+      if (isset($wrapper['widget']) && is_array($wrapper['widget'])) {
+        $candidates[] = $wrapper['widget'];
+      }
+      if (isset($wrapper[0]) && is_array($wrapper[0])) {
+        $candidates[] = $wrapper;
+      }
+    }
+
+    foreach ($candidates as $fragment) {
+      $fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
+        'field_event_image' => $fragment,
+      ])['fid'];
+      if ($fid > 0) {
+        return $fragment;
+      }
+    }
+
+    return NULL;
   }
 
   /**
