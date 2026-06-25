@@ -1023,18 +1023,30 @@ final class EventStudioSaveService {
       $mel_values = [];
     }
 
-    $synced_hero_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
     $user_input = $form_state->getUserInput();
     $input_fragment = is_array($user_input['mel'] ?? NULL)
       ? ($user_input['mel']['field_event_image'] ?? NULL)
       : NULL;
     $values_fragment = $mel_values['field_event_image'] ?? NULL;
-    $this->logger->info('Branding hero sync for node @nid: input=@input values=@values resolved_fid=@fid', [
+    $request_fragment = $this->brandingHeroMelFieldFragmentFromRequest();
+    $synced_hero_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
+    $input_fid = is_array($input_fragment) ? $this->brandingHeroFidFromMelFieldFragment($input_fragment) : 0;
+    $request_fid = is_array($request_fragment) ? $this->brandingHeroFidFromMelFieldFragment($request_fragment) : 0;
+    $this->logger->info('Branding hero save diagnostic for node @nid: existing_target=@existing input_fid=@input_fid request_fid=@request_fid values_fid=@values_fid resolved_fid=@resolved input=@input values=@values request=@request', [
       '@nid' => (string) $node->id(),
+      '@existing' => (string) $previous_hero_fid,
+      '@input_fid' => (string) $input_fid,
+      '@request_fid' => (string) $request_fid,
+      '@values_fid' => (string) (is_array($values_fragment) ? $this->brandingHeroFidFromMelFieldFragment($values_fragment) : 0),
+      '@resolved' => (string) $synced_hero_fid,
       '@input' => $this->brandingHeroSyncSnapshot($input_fragment),
       '@values' => $this->brandingHeroSyncSnapshot($values_fragment),
-      '@fid' => (string) $synced_hero_fid,
+      '@request' => $this->brandingHeroSyncSnapshot($request_fragment),
     ]);
+
+    $mel_structure = $this->normalizeBrandingMelFormStructure(
+      is_array($mel_structure) ? $mel_structure : [],
+    );
 
     $items = $node->get('field_event_image');
     try {
@@ -1045,6 +1057,11 @@ final class EventStudioSaveService {
         '@nid' => (string) $node->id(),
         '@message' => $e->getMessage(),
       ]);
+    }
+
+    $mel_values = $form_state->getValue('mel') ?? [];
+    if (!is_array($mel_values)) {
+      $mel_values = [];
     }
 
     $synced_hero_fid_after_extract = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
@@ -1067,17 +1084,27 @@ final class EventStudioSaveService {
     if ($fid < 1) {
       $fid = $hero['fid'];
     }
+    if ($fid < 1) {
+      $fid = $this->resolveBrandingHeroFidFromFormState($form_state);
+    }
     if ($alt === '' && $hero['alt'] !== '') {
       $alt = $hero['alt'];
+    }
+    if ($alt === '' && is_array($user_input['mel'] ?? NULL)) {
+      $alt = trim((string) ($user_input['mel']['field_event_image_alt'] ?? ''));
     }
 
     $warnings = [];
     $saved_hero_file = NULL;
+    $hero_file_status_before = NULL;
 
     if ($fid < 1) {
       $input_fid = is_array($input_fragment)
         ? $this->brandingHeroFidFromMelFieldFragment($input_fragment)
         : 0;
+      if ($input_fid < 1) {
+        $input_fid = $request_fid;
+      }
       if ($input_fid > 0) {
         return [
           'node' => NULL,
@@ -1104,6 +1131,7 @@ final class EventStudioSaveService {
         ]);
         return ['node' => NULL, 'errors' => [$this->brandingHeroUnsavedUploadErrorMessage()], 'warnings' => []];
       }
+      $hero_file_status_before = (int) $file->isPermanent();
       if (!$this->isHeroFileRenderable($file)) {
         $this->logger->warning('Branding save: hero file @fid is not renderable for node @nid.', [
           '@fid' => (string) $fid,
@@ -1163,6 +1191,18 @@ final class EventStudioSaveService {
     if ($style_errors !== []) {
       return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
     }
+
+    $final_target_id = $node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()
+      ? (int) ($node->get('field_event_image')->target_id ?? 0)
+      : 0;
+    $hero_file_status_after = $saved_hero_file instanceof FileInterface ? (int) $saved_hero_file->isPermanent() : NULL;
+    $this->logger->info('Branding hero save assignment for node @nid: resolved_fid=@resolved final_target=@final file_status_before=@before file_status_after=@after', [
+      '@nid' => (string) $node->id(),
+      '@resolved' => (string) $fid,
+      '@final' => (string) $final_target_id,
+      '@before' => $hero_file_status_before === NULL ? 'n/a' : (string) $hero_file_status_before,
+      '@after' => $hero_file_status_after === NULL ? 'n/a' : (string) $hero_file_status_after,
+    ]);
 
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
     try {
@@ -1370,6 +1410,108 @@ final class EventStudioSaveService {
       $values['mel'] = $mel_values;
       $form_state->setValues($values);
     }
+
+    $this->ensureBrandingHeroFidInFormStateValues($form_state);
+  }
+
+  /**
+   * Ensures mel[field_event_image] form values include the best available fid.
+   */
+  private function ensureBrandingHeroFidInFormStateValues(FormStateInterface $form_state): void {
+    $best_fragment = $this->resolveBestBrandingHeroMelFieldFragment($form_state);
+    if ($best_fragment === NULL) {
+      return;
+    }
+
+    $best_fid = $this->brandingHeroFidFromMelFieldFragment($best_fragment);
+    if ($best_fid < 1) {
+      return;
+    }
+
+    $values = $form_state->getValues();
+    if (!is_array($values)) {
+      return;
+    }
+
+    $mel_values = $values['mel'] ?? NULL;
+    if (!is_array($mel_values)) {
+      $mel_values = [];
+    }
+
+    $current = $mel_values['field_event_image'] ?? NULL;
+    $current_fid = is_array($current) ? $this->brandingHeroFidFromMelFieldFragment($current) : 0;
+    if ($current_fid === $best_fid) {
+      return;
+    }
+
+    if (is_array($current)) {
+      if ($current_fid > 0 && $best_fid !== $current_fid) {
+        $current = $this->stripBrandingHeroCropFromMelFragment($current);
+      }
+      $mel_values['field_event_image'] = $this->mergeBrandingHeroMelFieldFragment($current, $best_fragment);
+    }
+    else {
+      $mel_values['field_event_image'] = $best_fragment;
+    }
+
+    $user_mel = $form_state->getUserInput()['mel'] ?? NULL;
+    if (is_array($user_mel)) {
+      $this->applyBrandingHeroAltToMelValues($user_mel, $mel_values);
+    }
+
+    $values['mel'] = $mel_values;
+    $form_state->setValues($values);
+  }
+
+  /**
+   * @return array<string, mixed>|null
+   */
+  private function resolveBestBrandingHeroMelFieldFragment(FormStateInterface $form_state): ?array {
+    $best_fragment = NULL;
+    $best_fid = 0;
+    foreach ($this->brandingHeroMelFieldFragmentCandidates($form_state) as $fragment) {
+      $fid = $this->brandingHeroFidFromMelFieldFragment($fragment);
+      if ($fid > $best_fid) {
+        $best_fid = $fid;
+        $best_fragment = $fragment;
+      }
+    }
+    return $best_fragment;
+  }
+
+  /**
+   * @return list<array<string, mixed>>
+   */
+  private function brandingHeroMelFieldFragmentCandidates(FormStateInterface $form_state): array {
+    $fragments = [];
+    $user_input = $form_state->getUserInput();
+    $user_mel = is_array($user_input) ? ($user_input['mel'] ?? NULL) : NULL;
+    if (is_array($user_mel['field_event_image'] ?? NULL)) {
+      $fragments[] = $user_mel['field_event_image'];
+    }
+
+    $request_fragment = $this->brandingHeroMelFieldFragmentFromRequest();
+    if (is_array($request_fragment)) {
+      $fragments[] = $request_fragment;
+    }
+
+    $values_mel = $form_state->getValue('mel');
+    if (is_array($values_mel['field_event_image'] ?? NULL)) {
+      $fragments[] = $values_mel['field_event_image'];
+    }
+
+    return $fragments;
+  }
+
+  /**
+   * Resolves the strongest hero fid available from submitted branding sources.
+   */
+  private function resolveBrandingHeroFidFromFormState(FormStateInterface $form_state): int {
+    $best_fragment = $this->resolveBestBrandingHeroMelFieldFragment($form_state);
+    if ($best_fragment === NULL) {
+      return 0;
+    }
+    return $this->brandingHeroFidFromMelFieldFragment($best_fragment);
   }
 
   /**
@@ -1420,6 +1562,9 @@ final class EventStudioSaveService {
    * @param array<string, mixed> $field_fragment
    */
   private function brandingHeroMelFragmentHasAuthoritativeInput(array $field_fragment): bool {
+    if ($this->brandingHeroFidFromMelFieldFragment($field_fragment) > 0) {
+      return TRUE;
+    }
     $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($field_fragment);
     return array_key_exists('fids', $delta)
       || array_key_exists('focal_point', $delta)

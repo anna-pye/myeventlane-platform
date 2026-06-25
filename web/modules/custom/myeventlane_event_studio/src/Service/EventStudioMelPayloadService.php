@@ -172,6 +172,10 @@ final class EventStudioMelPayloadService {
     if ($fids === NULL || $fids === '') {
       return 0;
     }
+    if (is_int($fids) || is_float($fids)) {
+      $candidate = (int) $fids;
+      return $candidate > 0 ? $candidate : 0;
+    }
     if (is_array($fids)) {
       foreach ($fids as $value) {
         $candidate = (int) $value;
