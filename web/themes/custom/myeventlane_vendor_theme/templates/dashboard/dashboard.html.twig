@@ -142,9 +142,23 @@
       </div>
 
       <ul class="mel-pro-panel__checklist" role="list">
-        <li class="mel-pro-panel__check mel-pro-panel__check--on">
-          <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Pro subscription active'|t }}
-        </li>
+        {% if pro_status.has_active_subscription|default(false) %}
+          <li class="mel-pro-panel__check mel-pro-panel__check--on">
+            <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Pro subscription active'|t }}
+          </li>
+        {% elseif pro_status.is_manual_pro|default(false) %}
+          <li class="mel-pro-panel__check mel-pro-panel__check--on">
+            <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Manual Pro access'|t }}
+          </li>
+        {% elseif pro_status.is_in_grace|default(false) %}
+          <li class="mel-pro-panel__check mel-pro-panel__check--on">
+            <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Pro access in grace period'|t }}
+          </li>
+        {% else %}
+          <li class="mel-pro-panel__check mel-pro-panel__check--on">
+            <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Pro access active'|t }}
+          </li>
+        {% endif %}
         <li class="mel-pro-panel__check mel-pro-panel__check--on">
           <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Premium features enabled'|t }}
         </li>
