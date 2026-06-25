@@ -161,3 +161,12 @@ mel_event_studio_shell_only:
     - core/drupal
     - core/drupalSettings
     - core/once
+
+mel_event_studio_workspace_location:
+  version: 1.0
+  js:
+    js/mel-event-studio-workspace-location.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - myeventlane_location/address_autocomplete
