@@ -165,7 +165,7 @@ final class EventStudioSaveService {
 
     $ticket_errors = $this->applyTicketPayload($node, $payload, $event_type, $draft);
     if ($ticket_errors !== []) {
-      return ['node' => NULL, 'errors' => $ticket_errors];
+      return $this->abortSectionScopedSave($ticket_errors, $payload);
     }
 
     $this->applyDonationPayload($node, $payload);
@@ -184,11 +184,11 @@ final class EventStudioSaveService {
     elseif ($choice === 'saved') {
       $vid = (int) ($payload['venue_id'] ?? 0);
       if ($vid < 1) {
-        return ['node' => NULL, 'errors' => ['Select a saved venue.']];
+        return $this->abortSectionScopedSave(['Select a saved venue.'], $payload);
       }
       $venue = $this->entityTypeManager->getStorage('myeventlane_venue')->load($vid);
       if (!$venue instanceof Venue) {
-        return ['node' => NULL, 'errors' => ['Venue not found.']];
+        return $this->abortSectionScopedSave(['Venue not found.'], $payload);
       }
       $node->set('field_venue', ['target_id' => $vid]);
       $primary = $this->venueManager->getPrimaryLocation($venue);
@@ -197,11 +197,11 @@ final class EventStudioSaveService {
     elseif ($choice === 'create') {
       $name = trim((string) ($payload['new_venue_name'] ?? ''));
       if ($name === '') {
-        return ['node' => NULL, 'errors' => ['Venue name is required.']];
+        return $this->abortSectionScopedSave(['Venue name is required.'], $payload);
       }
       $row = $this->normalizeAddressRow($payload['field_location'] ?? []);
       if ($row === NULL) {
-        return ['node' => NULL, 'errors' => ['Enter an address for the new venue.']];
+        return $this->abortSectionScopedSave(['Enter an address for the new venue.'], $payload);
       }
       try {
         $venue = $this->venueManager->createVenueWithLocation(
@@ -217,7 +217,7 @@ final class EventStudioSaveService {
       }
       catch (\Throwable $e) {
         $this->logger->error('Studio venue create failed: @m', ['@m' => $e->getMessage()]);
-        return ['node' => NULL, 'errors' => ['Could not create venue.']];
+        return $this->abortSectionScopedSave(['Could not create venue.'], $payload);
       }
       $node->set('field_venue', ['target_id' => $venue->id()]);
       $location_values = [$row];
@@ -228,7 +228,7 @@ final class EventStudioSaveService {
       }
       $row = $this->normalizeAddressRow($payload['field_location'] ?? []);
       if (!$draft && $row === NULL) {
-        return ['node' => NULL, 'errors' => ['Location is required.']];
+        return $this->abortSectionScopedSave(['Location is required.'], $payload);
       }
       $location_values = $row !== NULL ? [$row] : [];
     }
@@ -239,15 +239,17 @@ final class EventStudioSaveService {
 
     $this->applyOptionalCoordinates($node, $payload);
 
-    $image_errors = $this->applyHeroImagePayload($node, $payload, $draft);
-    if ($image_errors !== []) {
-      return ['node' => NULL, 'errors' => $image_errors];
+    if ($this->shouldApplyHeroImagePayload($payload)) {
+      $image_errors = $this->applyHeroImagePayload($node, $payload, $draft);
+      if ($image_errors !== []) {
+        return $this->abortSectionScopedSave($image_errors, $payload);
+      }
     }
 
     if (array_key_exists('event_highlights_items_state', $payload)) {
       $highlight_errors = $this->eventHighlightHelper->validateHighlightItemsStateJson((string) ($payload['event_highlights_items_state'] ?? ''));
       if ($highlight_errors !== []) {
-        return ['node' => NULL, 'errors' => $highlight_errors];
+        return $this->abortSectionScopedSave($highlight_errors, $payload);
       }
     }
 
@@ -256,28 +258,28 @@ final class EventStudioSaveService {
     }
     catch (\Throwable $e) {
       $this->logger->error('Studio event highlights sync failed: @m', ['@m' => $e->getMessage()]);
-      return ['node' => NULL, 'errors' => ['Could not save event highlights.']];
+      return $this->abortSectionScopedSave(['Could not save event highlights.'], $payload);
     }
 
     $attendee_errors = $this->syncAttendeeQuestions($node, $payload, $account);
     if ($attendee_errors !== []) {
-      return ['node' => NULL, 'errors' => $attendee_errors];
+      return $this->abortSectionScopedSave($attendee_errors, $payload);
     }
 
     $visibility_errors = $this->applyVisibilityPayload($node, $payload);
     if ($visibility_errors !== []) {
-      return ['node' => NULL, 'errors' => $visibility_errors];
+      return $this->abortSectionScopedSave($visibility_errors, $payload);
     }
 
     $capability_errors = $this->applyOperationalCapabilitiesPayload($node, $payload);
     if ($capability_errors !== []) {
-      return ['node' => NULL, 'errors' => $capability_errors];
+      return $this->abortSectionScopedSave($capability_errors, $payload);
     }
 
     if (!$draft && $willPublish) {
       $eligibility = $this->publishEligibilityEvaluator->evaluate($node, $account);
       if (!$eligibility['allowed']) {
-        return ['node' => NULL, 'errors' => $eligibility['messages']];
+        return $this->abortSectionScopedSave($eligibility['messages'], $payload);
       }
     }
 
@@ -287,7 +289,7 @@ final class EventStudioSaveService {
     }
     catch (\Throwable $e) {
       $this->logger->error('Studio event save failed: @m', ['@m' => $e->getMessage()]);
-      return ['node' => NULL, 'errors' => ['Save failed.']];
+      return $this->abortSectionScopedSave(['Save failed.'], $payload);
     }
 
     return ['node' => $node, 'errors' => []];
@@ -1073,7 +1075,22 @@ final class EventStudioSaveService {
     $saved_hero_file = NULL;
 
     if ($fid < 1) {
-      $node->set('field_event_image', []);
+      $input_fid = is_array($input_fragment)
+        ? $this->brandingHeroFidFromMelFieldFragment($input_fragment)
+        : 0;
+      if ($input_fid > 0) {
+        return [
+          'node' => NULL,
+          'errors' => [$this->brandingHeroUnsavedUploadErrorMessage()],
+          'warnings' => [],
+        ];
+      }
+      if ($previous_hero_fid > 0 && !$this->brandingHeroExplicitRemovalRequested($input_fragment)) {
+        $this->applyBrandingHeroAltToExistingNode($node, $mel_values);
+      }
+      else {
+        $node->set('field_event_image', []);
+      }
     }
     else {
       if ($alt === '' && !$draft) {
@@ -1085,7 +1102,7 @@ final class EventStudioSaveService {
           '@fid' => (string) $fid,
           '@nid' => (string) $node->id(),
         ]);
-        return ['node' => NULL, 'errors' => ['The uploaded image could not be loaded. Try uploading again.'], 'warnings' => []];
+        return ['node' => NULL, 'errors' => [$this->brandingHeroUnsavedUploadErrorMessage()], 'warnings' => []];
       }
       if (!$this->isHeroFileRenderable($file)) {
         $this->logger->warning('Branding save: hero file @fid is not renderable for node @nid.', [
@@ -1973,6 +1990,96 @@ final class EventStudioSaveService {
     return (string) $this->stringTranslation->translate(
       'The cover image file is missing or unreadable. Upload a new image or remove the cover image.'
     );
+  }
+
+  /**
+   * User-facing error when a submitted hero upload could not be resolved for save.
+   */
+  private function brandingHeroUnsavedUploadErrorMessage(): string {
+    return (string) $this->stringTranslation->translate(
+      'The event image could not be saved. Please reselect the image.'
+    );
+  }
+
+  /**
+   * Hero image is owned by the branding workspace section only.
+   *
+   * @param array<string, mixed> $payload
+   */
+  private function shouldApplyHeroImagePayload(array $payload): bool {
+    $section = trim((string) ($payload['studio_section'] ?? ''));
+    return $section === '';
+  }
+
+  /**
+   * @param list<string> $errors
+   * @param array<string, mixed> $payload
+   *
+   * @return array{node: null, errors: list<string>}
+   */
+  private function abortSectionScopedSave(array $errors, array $payload): array {
+    return ['node' => NULL, 'errors' => $this->enrichSectionScopedSaveErrors($errors, $payload)];
+  }
+
+  /**
+   * Adds workspace section context when a scoped save aborts after content fields apply.
+   *
+   * @param list<string> $errors
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function enrichSectionScopedSaveErrors(array $errors, array $payload): array {
+    if ($errors === []) {
+      return [];
+    }
+    $section = trim((string) ($payload['studio_section'] ?? ''));
+    if ($section !== 'content') {
+      return $errors;
+    }
+    return [
+      (string) $this->stringTranslation->translate(
+        'Accessibility and content could not be saved because another field failed validation.'
+      ),
+      ...$errors,
+    ];
+  }
+
+  /**
+   * Detects an intentional hero removal from branding widget submission.
+   *
+   * @param array<string, mixed>|null $input_fragment
+   */
+  private function brandingHeroExplicitRemovalRequested(?array $input_fragment): bool {
+    if (!is_array($input_fragment)) {
+      return FALSE;
+    }
+    $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($input_fragment);
+    if (!array_key_exists('fids', $delta)) {
+      return FALSE;
+    }
+    return EventStudioMelPayloadService::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL) < 1;
+  }
+
+  /**
+   * Updates alt text on an existing hero when branding save did not replace the file.
+   *
+   * @param array<string, mixed> $mel_values
+   */
+  private function applyBrandingHeroAltToExistingNode(NodeInterface $node, array $mel_values): void {
+    if ($node->get('field_event_image')->isEmpty()) {
+      return;
+    }
+    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values);
+    if ($hero['alt'] === '') {
+      return;
+    }
+    $row = $node->get('field_event_image')->first()?->getValue() ?? [];
+    if (!is_array($row) || (int) ($row['target_id'] ?? 0) < 1) {
+      return;
+    }
+    $row['alt'] = $hero['alt'];
+    $node->set('field_event_image', [$row]);
   }
 
   /**
