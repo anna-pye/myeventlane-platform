@@ -37,7 +37,6 @@
           const hLng = form.querySelector('input[name="mel[field_location_longitude]"]');
           if (hLoc) {
             hLoc.value = JSON.stringify(row);
-            hLoc.dispatchEvent(new Event('change', { bubbles: true }));
           }
           if (hLat && detail.lat != null) {
             hLat.value = String(detail.lat);
@@ -45,6 +44,11 @@
           if (hLng && detail.lng != null) {
             hLng.value = String(detail.lng);
           }
+
+          // Programmatic hidden-field writes do not emit native events; flag the
+          // workspace shell dirty and schedule autosave (see mel-event-studio.js).
+          form.dispatchEvent(new Event('input', { bubbles: true }));
+          form.dispatchEvent(new Event('change', { bubbles: true }));
         });
       });
     },

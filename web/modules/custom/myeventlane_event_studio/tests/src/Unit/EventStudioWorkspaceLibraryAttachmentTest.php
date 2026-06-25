@@ -99,6 +99,22 @@ final class EventStudioWorkspaceLibraryAttachmentTest extends TestCase {
     $this->assertFileExists($this->moduleRoot . '/js/mel-event-studio-ai-assist.js');
   }
 
+  public function testInformationWorkspaceLocationLibraryIsDefined(): void {
+    $libraries = file_get_contents($this->moduleRoot . '/myeventlane_event_studio.libraries.yml');
+    $information = file_get_contents($this->moduleRoot . '/src/Form/EventInformationForm.php');
+    $workspaceLocationJs = file_get_contents($this->moduleRoot . '/js/mel-event-studio-workspace-location.js');
+    $this->assertIsString($libraries);
+    $this->assertIsString($information);
+    $this->assertIsString($workspaceLocationJs);
+    $this->assertStringContainsString('mel_event_studio_workspace_location:', $libraries);
+    $this->assertStringContainsString('js/mel-event-studio-workspace-location.js', $libraries);
+    $this->assertStringContainsString('myeventlane_location/address_autocomplete', $libraries);
+    $this->assertStringContainsString('myeventlane_event_studio/mel_event_studio_workspace_location', $information);
+    $this->assertFileExists($this->moduleRoot . '/js/mel-event-studio-workspace-location.js');
+    $this->assertStringContainsString("form.dispatchEvent(new Event('input'", $workspaceLocationJs);
+    $this->assertStringContainsString("form.dispatchEvent(new Event('change'", $workspaceLocationJs);
+  }
+
   public function testBrandingAndTicketPreviewLibrariesUnchanged(): void {
     $branding = file_get_contents($this->moduleRoot . '/src/Form/EventBrandingForm.php');
     $preview = file_get_contents($this->moduleRoot . '/src/Service/EventTicketPreviewBuilder.php');

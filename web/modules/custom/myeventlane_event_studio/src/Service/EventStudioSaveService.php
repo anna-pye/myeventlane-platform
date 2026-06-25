@@ -243,7 +243,9 @@ final class EventStudioSaveService {
       $node->set('field_location', $location_values);
     }
 
-    $this->applyVenueDisplayName($node, $choice, $address_row_for_display, $venue_for_display, $create_venue_name);
+    if (!$skip_venue_location) {
+      $this->applyVenueDisplayName($node, $choice, $address_row_for_display, $venue_for_display, $create_venue_name);
+    }
 
     $this->applyOptionalCoordinates($node, $payload);
 
@@ -587,6 +589,7 @@ final class EventStudioSaveService {
    *
    * One-off events have no venue entity; reuse the saved address row so public
    * heroes and cards can show a location line without a separate venue profile.
+   * Clears the field when location sync runs but no display label can be derived.
    */
   private function applyVenueDisplayName(
     NodeInterface $node,
@@ -610,11 +613,7 @@ final class EventStudioSaveService {
       $display_name = $this->deriveVenueDisplayNameFromAddressRow($address_row);
     }
 
-    if ($display_name === '') {
-      return;
-    }
-
-    $node->set('field_venue_name', $display_name);
+    $node->set('field_venue_name', $display_name !== '' ? $display_name : NULL);
   }
 
   /**

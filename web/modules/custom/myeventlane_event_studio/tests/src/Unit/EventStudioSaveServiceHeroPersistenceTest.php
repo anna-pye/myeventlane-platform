@@ -10,6 +10,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
@@ -115,6 +116,42 @@ final class EventStudioSaveServiceHeroPersistenceTest extends UnitTestCase {
         '100 Collins St',
       ],
     ];
+  }
+
+  /**
+   * @covers ::applyVenueDisplayName
+   */
+  public function testApplyVenueDisplayNameClearsStaleValueWhenOneOffLocationEmpty(): void {
+    $service = $this->buildPartialSaveService();
+    $node = $this->createMock(NodeInterface::class);
+    $node->method('hasField')->with('field_venue_name')->willReturn(TRUE);
+    $node->expects($this->once())
+      ->method('set')
+      ->with('field_venue_name', NULL);
+
+    $method = new ReflectionMethod(EventStudioSaveService::class, 'applyVenueDisplayName');
+    $method->setAccessible(TRUE);
+    $method->invoke($service, $node, 'one_off', NULL);
+  }
+
+  /**
+   * @covers ::applyVenueDisplayName
+   */
+  public function testApplyVenueDisplayNameSetsDerivedOneOffLabel(): void {
+    $service = $this->buildPartialSaveService();
+    $node = $this->createMock(NodeInterface::class);
+    $node->method('hasField')->with('field_venue_name')->willReturn(TRUE);
+    $node->expects($this->once())
+      ->method('set')
+      ->with('field_venue_name', 'Brisbane, QLD');
+
+    $method = new ReflectionMethod(EventStudioSaveService::class, 'applyVenueDisplayName');
+    $method->setAccessible(TRUE);
+    $method->invoke($service, $node, 'one_off', [
+      'locality' => 'Brisbane',
+      'administrative_area' => 'QLD',
+      'address_line1' => '1 Queen St',
+    ]);
   }
 
   private function buildPartialSaveService(): EventStudioSaveService {
