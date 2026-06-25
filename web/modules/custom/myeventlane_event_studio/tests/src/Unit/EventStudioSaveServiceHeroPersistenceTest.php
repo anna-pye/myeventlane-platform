@@ -87,6 +87,36 @@ final class EventStudioSaveServiceHeroPersistenceTest extends UnitTestCase {
     $this->assertSame(606, $hero['fid']);
   }
 
+  /**
+   * @dataProvider deriveVenueDisplayNameFromAddressRowProvider
+   */
+  public function testDeriveVenueDisplayNameFromAddressRow(array $row, string $expected): void {
+    $service = $this->buildPartialSaveService();
+    $method = new ReflectionMethod(EventStudioSaveService::class, 'deriveVenueDisplayNameFromAddressRow');
+    $method->setAccessible(TRUE);
+    $this->assertSame($expected, $method->invoke($service, $row));
+  }
+
+  /**
+   * @return array<string, array{0: array<string, string>, 1: string}>
+   */
+  public static function deriveVenueDisplayNameFromAddressRowProvider(): array {
+    return [
+      'locality and state' => [
+        ['locality' => 'Sydney', 'administrative_area' => 'NSW', 'address_line1' => '1 George St'],
+        'Sydney, NSW',
+      ],
+      'locality only' => [
+        ['locality' => 'Melbourne', 'address_line1' => '100 Collins St'],
+        'Melbourne',
+      ],
+      'line1 fallback' => [
+        ['address_line1' => '100 Collins St'],
+        '100 Collins St',
+      ],
+    ];
+  }
+
   private function buildPartialSaveService(): EventStudioSaveService {
     $translation = $this->createMock(TranslationInterface::class);
     $translation->method('translate')->willReturnCallback(

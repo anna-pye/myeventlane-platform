@@ -429,6 +429,10 @@ final class EventCardViewModel {
         if ($locality) {
           return $administrativeArea ? $locality . ', ' . $administrativeArea : $locality;
         }
+        $line1 = trim((string) $locationItem->get('address_line1')->getValue());
+        if ($line1 !== '') {
+          return $line1;
+        }
       }
     }
     return NULL;

@@ -172,6 +172,9 @@ final class EventStudioSaveService {
 
     $choice = (string) ($payload['venue_choice'] ?? 'one_off');
     $location_values = NULL;
+    $venue_for_display = NULL;
+    $create_venue_name = NULL;
+    $address_row_for_display = NULL;
 
     $skip_venue_location = $draft && (
       ($choice === 'saved' && (int) ($payload['venue_id'] ?? 0) < 1)
@@ -186,17 +189,18 @@ final class EventStudioSaveService {
       if ($vid < 1) {
         return $this->abortSectionScopedSave(['Select a saved venue.'], $payload);
       }
-      $venue = $this->entityTypeManager->getStorage('myeventlane_venue')->load($vid);
-      if (!$venue instanceof Venue) {
+      $venue_for_display = $this->entityTypeManager->getStorage('myeventlane_venue')->load($vid);
+      if (!$venue_for_display instanceof Venue) {
         return $this->abortSectionScopedSave(['Venue not found.'], $payload);
       }
       $node->set('field_venue', ['target_id' => $vid]);
-      $primary = $this->venueManager->getPrimaryLocation($venue);
+      $primary = $this->venueManager->getPrimaryLocation($venue_for_display);
       $location_values = $primary ? [$this->addressFromVenueLocation($primary)] : [];
+      $address_row_for_display = $location_values[0] ?? NULL;
     }
     elseif ($choice === 'create') {
-      $name = trim((string) ($payload['new_venue_name'] ?? ''));
-      if ($name === '') {
+      $create_venue_name = trim((string) ($payload['new_venue_name'] ?? ''));
+      if ($create_venue_name === '') {
         return $this->abortSectionScopedSave(['Venue name is required.'], $payload);
       }
       $row = $this->normalizeAddressRow($payload['field_location'] ?? []);
@@ -204,10 +208,10 @@ final class EventStudioSaveService {
         return $this->abortSectionScopedSave(['Enter an address for the new venue.'], $payload);
       }
       try {
-        $venue = $this->venueManager->createVenueWithLocation(
-          ['name' => $name, 'visibility' => Venue::VISIBILITY_SHARED, 'description' => ''],
+        $venue_for_display = $this->venueManager->createVenueWithLocation(
+          ['name' => $create_venue_name, 'visibility' => Venue::VISIBILITY_SHARED, 'description' => ''],
           [
-            'title' => $name,
+            'title' => $create_venue_name,
             'address_text' => $this->formatAddressText($row),
             'lat' => $payload['field_location_latitude'] ?? NULL,
             'lng' => $payload['field_location_longitude'] ?? NULL,
@@ -219,8 +223,9 @@ final class EventStudioSaveService {
         $this->logger->error('Studio venue create failed: @m', ['@m' => $e->getMessage()]);
         return $this->abortSectionScopedSave(['Could not create venue.'], $payload);
       }
-      $node->set('field_venue', ['target_id' => $venue->id()]);
+      $node->set('field_venue', ['target_id' => $venue_for_display->id()]);
       $location_values = [$row];
+      $address_row_for_display = $row;
     }
     else {
       if ($node->hasField('field_venue')) {
@@ -231,11 +236,14 @@ final class EventStudioSaveService {
         return $this->abortSectionScopedSave(['Location is required.'], $payload);
       }
       $location_values = $row !== NULL ? [$row] : [];
+      $address_row_for_display = $row;
     }
 
     if ($node->hasField('field_location') && $location_values !== NULL) {
       $node->set('field_location', $location_values);
     }
+
+    $this->applyVenueDisplayName($node, $choice, $address_row_for_display, $venue_for_display, $create_venue_name);
 
     $this->applyOptionalCoordinates($node, $payload);
 
@@ -572,6 +580,54 @@ final class EventStudioSaveService {
       $address_row['administrative_area'] ?? '',
       $address_row['postal_code'] ?? '',
     ], static fn ($p) => $p !== ''));
+  }
+
+  /**
+   * Writes field_venue_name for hero/card location summaries.
+   *
+   * One-off events have no venue entity; reuse the saved address row so public
+   * heroes and cards can show a location line without a separate venue profile.
+   */
+  private function applyVenueDisplayName(
+    NodeInterface $node,
+    string $choice,
+    ?array $address_row,
+    ?Venue $venue = NULL,
+    ?string $create_name = NULL,
+  ): void {
+    if (!$node->hasField('field_venue_name')) {
+      return;
+    }
+
+    $display_name = '';
+    if ($choice === 'saved' && $venue instanceof Venue) {
+      $display_name = trim((string) $venue->label());
+    }
+    elseif ($choice === 'create' && $create_name !== NULL) {
+      $display_name = trim($create_name);
+    }
+    elseif ($choice === 'one_off' && is_array($address_row)) {
+      $display_name = $this->deriveVenueDisplayNameFromAddressRow($address_row);
+    }
+
+    if ($display_name === '') {
+      return;
+    }
+
+    $node->set('field_venue_name', $display_name);
+  }
+
+  /**
+   * @param array<string, string> $address_row
+   */
+  private function deriveVenueDisplayNameFromAddressRow(array $address_row): string {
+    $locality = trim((string) ($address_row['locality'] ?? ''));
+    $administrative_area = trim((string) ($address_row['administrative_area'] ?? ''));
+    if ($locality !== '') {
+      return $administrative_area !== '' ? $locality . ', ' . $administrative_area : $locality;
+    }
+
+    return trim((string) ($address_row['address_line1'] ?? ''));
   }
 
   /**

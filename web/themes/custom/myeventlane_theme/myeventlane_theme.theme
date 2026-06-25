@@ -4646,6 +4646,62 @@ function _myeventlane_theme_apply_event_page_style_theme_variables(array &$varia
 }
 
 /**
+ * Sets mel_venue, mel_address, mel_suburb, mel_lat, mel_lng for event templates.
+ */
+function _myeventlane_theme_apply_event_location_variables(array &$variables, NodeInterface $node): void {
+  $variables['mel_venue'] = _myeventlane_theme_event_primary_location_label($node);
+
+  $address_parts = [];
+  $variables['mel_suburb'] = NULL;
+  if ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $loc = $node->get('field_location')->first();
+    if ($loc && method_exists($loc, 'getValue')) {
+      $raw = $loc->getValue();
+      if (is_array($raw)) {
+        $order = ['address_line1', 'address_line2', 'locality', 'administrative_area', 'postal_code', 'country_code'];
+        foreach ($order as $key) {
+          if (!empty($raw[$key]) && trim((string) $raw[$key]) !== '') {
+            $address_parts[] = trim((string) $raw[$key]);
+            if ($key === 'locality') {
+              $variables['mel_suburb'] = trim((string) $raw[$key]);
+            }
+          }
+        }
+        if (empty($address_parts)) {
+          $address_keys = [
+            'address_line1', 'address_line2', 'locality', 'dependent_locality',
+            'administrative_area', 'postal_code', 'sorting_code', 'organization',
+          ];
+          foreach ($address_keys as $key) {
+            if (!empty($raw[$key]) && trim((string) $raw[$key]) !== '') {
+              $address_parts[] = trim((string) $raw[$key]);
+              if ($key === 'locality') {
+                $variables['mel_suburb'] = trim((string) $raw[$key]);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  $variables['mel_address'] = !empty($address_parts) ? implode(', ', $address_parts) : NULL;
+
+  /** @var \Drupal\myeventlane_event\Service\EventGeoResolver $geo_resolver */
+  $geo_resolver = \Drupal::service('myeventlane_event.geo_resolver');
+  $geo = $geo_resolver->resolve($node);
+
+  $variables['mel_lat'] = $geo['lat'] ?? NULL;
+  $variables['mel_lng'] = $geo['lng'] ?? NULL;
+  $variables['mel_geo_source'] = $geo['source'] ?? 'none';
+
+  $variables['#attached']['drupalSettings']['myeventlaneLocationEvent'] = [
+    'latitude' => $variables['mel_lat'],
+    'longitude' => $variables['mel_lng'],
+    'title' => $node->label(),
+  ];
+}
+
+/**
  * Preprocess event nodes to resolve hero image safely.
  */
 function myeventlane_theme_preprocess_node__event(array &$variables): void {
@@ -4711,45 +4767,7 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
   $variables['image_src'] = $image_url;
   $variables['mel_has_hero_image'] = (bool) $image_url;
 
-  // Location: primary label = venue entity, then field_venue_name, then field_location summary.
-  $variables['mel_venue'] = _myeventlane_theme_event_primary_location_label($node);
-
-  // Address: use getValue() array so locality/address_line1 are reliable.
-  $address_parts = [];
-  $variables['mel_suburb'] = NULL;
-  if ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
-    $loc = $node->get('field_location')->first();
-    if ($loc && method_exists($loc, 'getValue')) {
-      $raw = $loc->getValue();
-      if (is_array($raw)) {
-        $order = ['address_line1', 'address_line2', 'locality', 'administrative_area', 'postal_code', 'country_code'];
-        foreach ($order as $key) {
-          if (!empty($raw[$key]) && trim((string) $raw[$key]) !== '') {
-            $address_parts[] = trim((string) $raw[$key]);
-            if ($key === 'locality') {
-              $variables['mel_suburb'] = trim((string) $raw[$key]);
-            }
-          }
-        }
-        // Fallback: if no ordered parts, use any non-empty address key so we never drop data.
-        if (empty($address_parts)) {
-          $address_keys = [
-            'address_line1', 'address_line2', 'locality', 'dependent_locality',
-            'administrative_area', 'postal_code', 'sorting_code', 'organization',
-          ];
-          foreach ($address_keys as $key) {
-            if (!empty($raw[$key]) && trim((string) $raw[$key]) !== '') {
-              $address_parts[] = trim((string) $raw[$key]);
-              if ($key === 'locality') {
-                $variables['mel_suburb'] = trim((string) $raw[$key]);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  $variables['mel_address'] = !empty($address_parts) ? implode(', ', $address_parts) : NULL;
+  _myeventlane_theme_apply_event_location_variables($variables, $node);
 
   // Category label/slug for hero badge and Event Info card (first category term).
   $variables['mel_category_label'] = NULL;
@@ -4814,23 +4832,6 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
       $variables['mel_age_policy_note'] = $note !== '' ? $note : NULL;
     }
   }
-
-  // Canonical geo resolution (single point): mel_lat, mel_lng, mel_geo_source.
-  /** @var \Drupal\myeventlane_event\Service\EventGeoResolver $geo_resolver */
-  $geo_resolver = \Drupal::service('myeventlane_event.geo_resolver');
-  $geo = $geo_resolver->resolve($node);
-
-  $variables['mel_lat'] = $geo['lat'] ?? NULL;
-  $variables['mel_lng'] = $geo['lng'] ?? NULL;
-  $variables['mel_geo_source'] = $geo['source'] ?? 'none';
-
-  // Ensure map JS has canonical coords available via drupalSettings.
-  // Provider settings are attached by myeventlane_location; we only ensure event coords are correct.
-  $variables['#attached']['drupalSettings']['myeventlaneLocationEvent'] = [
-    'latitude' => $variables['mel_lat'],
-    'longitude' => $variables['mel_lng'],
-    'title' => $node->label(),
-  ];
 
   // Public organiser trust data for Event Full (field_event_vendor → myeventlane_vendor).
   $variables['mel_organiser'] = NULL;
@@ -5008,6 +5009,7 @@ function myeventlane_theme_preprocess_node__event__full(array &$variables): void
   $node = $variables['node'] ?? NULL;
   if ($node instanceof NodeInterface) {
     _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
+    _myeventlane_theme_apply_event_location_variables($variables, $node);
   }
   _myeventlane_theme_attach_event_sidebar_carousel($variables);
 }
