@@ -66,13 +66,14 @@
   }
 
   /**
+   * True when the native file input still holds a chosen file (Upload not clicked).
+   *
+   * Checked before existing fids so replacing a saved cover is also guarded.
+   *
    * @param {HTMLElement} root
    * @returns {boolean}
    */
   function isPendingUpload(root) {
-    if (hasUploadedHeroFile(root)) {
-      return false;
-    }
     const fileInput = findHeroFileInput(root);
     return !!(fileInput && fileInput.files && fileInput.files.length > 0);
   }
@@ -82,11 +83,11 @@
    * @returns {string}
    */
   function resolveUploadState(root) {
-    if (hasUploadedHeroFile(root)) {
-      return UPLOAD_STATE_UPLOADED;
-    }
     if (isPendingUpload(root)) {
       return UPLOAD_STATE_PENDING;
+    }
+    if (hasUploadedHeroFile(root)) {
+      return UPLOAD_STATE_UPLOADED;
     }
     return UPLOAD_STATE_EMPTY;
   }
@@ -126,7 +127,7 @@
     ) {
       root.dataset.melHeroUploadPendingSave = "1";
     }
-    if (state === UPLOAD_STATE_EMPTY) {
+    if (state === UPLOAD_STATE_EMPTY || state === UPLOAD_STATE_PENDING) {
       delete root.dataset.melHeroUploadPendingSave;
     }
     root.dataset.melHeroUploadState = state;

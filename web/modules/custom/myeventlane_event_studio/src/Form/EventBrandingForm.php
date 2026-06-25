@@ -202,21 +202,16 @@ final class EventBrandingForm extends EventStudioBaseForm {
       );
     }
 
-    $this->validateBrandingHeroPendingUpload($form_state, $mel_for_hero);
+    $this->validateBrandingHeroPendingUpload($form_state);
     $this->validateBrandingHeroUploadResolution($form_state, $mel_for_hero);
   }
 
   /**
    * Blocks save when a file was chosen but Upload was not clicked (managed_file pattern).
    *
-   * @param array<string, mixed> $mel_for_hero
+   * Applies even when a previous cover fid is still in the form (replace-without-upload).
    */
-  private function validateBrandingHeroPendingUpload(FormStateInterface $form_state, array $mel_for_hero): void {
-    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_for_hero);
-    if ($hero['fid'] > 0) {
-      return;
-    }
-
+  private function validateBrandingHeroPendingUpload(FormStateInterface $form_state): void {
     $request = $this->requestStack->getCurrentRequest();
     if ($request === NULL) {
       return;
