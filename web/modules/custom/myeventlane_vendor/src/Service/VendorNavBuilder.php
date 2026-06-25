@@ -294,6 +294,16 @@ final class VendorNavBuilder {
         'event_route' => 'myeventlane_tickets.ticket_checkin',
       ],
       [
+        'key' => 'refund_requests',
+        'label' => $this->t('Refund requests'),
+        'icon' => 'refunds',
+        'route' => NULL,
+        'children' => [],
+        'node_route' => 'myeventlane_refunds.vendor_refund_requests',
+        'requires_module' => 'myeventlane_refunds',
+        'requires_permission' => 'manage_refunds',
+      ],
+      [
         'key' => 'payouts',
         'label' => $this->t('Payouts'),
         'icon' => 'payouts',
@@ -339,12 +349,42 @@ final class VendorNavBuilder {
 
     $built = [];
     foreach ($definitions as $def) {
+      if (!empty($def['requires_module'])
+        && !$this->moduleHandler->moduleExists((string) $def['requires_module'])) {
+        continue;
+      }
+      if (!empty($def['requires_permission'])
+        && !$this->currentUser->hasPermission((string) $def['requires_permission'])) {
+        continue;
+      }
+
       $item = [
         'key' => $def['key'],
         'label' => $def['label'],
         'icon' => $def['icon'],
         'children' => $def['children'] ?? [],
       ];
+
+      if (!empty($def['node_route'])) {
+        $nodeRoute = (string) $def['node_route'];
+        $item['route'] = $nodeRoute;
+        $nodeId = $this->resolveEventId();
+        if ($nodeId === NULL) {
+          $item['url'] = NULL;
+          $item['is_disabled'] = TRUE;
+        }
+        elseif (!$this->namedRouteAccessible($nodeRoute, ['node' => $nodeId])) {
+          $item['url'] = NULL;
+          $item['is_disabled'] = TRUE;
+        }
+        else {
+          $url = $this->safeRouteUrl($nodeRoute, ['node' => $nodeId]);
+          $item['url'] = $url;
+          $item['is_disabled'] = $url === NULL;
+        }
+        $built[] = $this->decorateShellNavItem($item, $activeSection);
+        continue;
+      }
 
       if (!empty($def['event_route'])) {
         $eventRoute = (string) $def['event_route'];
@@ -384,27 +424,6 @@ final class VendorNavBuilder {
       $item['url'] = $url;
       $item['is_disabled'] = $url === NULL;
       $built[] = $this->decorateShellNavItem($item, $activeSection);
-    }
-
-    if ($this->moduleHandler->moduleExists('myeventlane_refunds')
-      && $this->currentUser->hasPermission('manage_refunds')) {
-      $refundEventId = $this->resolveEventId();
-      if ($refundEventId !== NULL
-        && $this->namedRouteAccessible('myeventlane_refunds.vendor_refund_requests', ['node' => $refundEventId])) {
-        $refundUrl = $this->safeRouteUrl('myeventlane_refunds.vendor_refund_requests', ['node' => $refundEventId]);
-        if ($refundUrl !== NULL) {
-          $refundItem = [
-            'key' => 'refund_requests',
-            'label' => $this->t('Refund requests'),
-            'icon' => 'refunds',
-            'route' => 'myeventlane_refunds.vendor_refund_requests',
-            'url' => $refundUrl,
-            'children' => [],
-            'is_disabled' => FALSE,
-          ];
-          $built[] = $this->decorateShellNavItem($refundItem, $activeSection);
-        }
-      }
     }
 
     return $built;

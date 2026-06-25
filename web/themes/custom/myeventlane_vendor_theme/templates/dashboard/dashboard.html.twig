@@ -263,9 +263,10 @@
         <p class="mel-live-ops__muted">{{ 'Activity will appear after bookings, RSVPs, check-ins, or event updates.'|t }}</p>
       {% endif %}
     </section>
+  {% endif %}
 
-    {# 8 — Tools: lowest priority accordions. #}
-    <section class="mel-dashboard-tools" aria-labelledby="mel-dash-tools-title">
+  {# 8 — Tools: lowest priority accordions (always available). #}
+  <section class="mel-dashboard-tools" aria-labelledby="mel-dash-tools-title">
       <h2 id="mel-dash-tools-title" class="mel-dashboard-tools__title">{{ 'Tools & settings'|t }}</h2>
 
       <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--utility mel-vendor-dashboard__details--homepage-performance mel-vendor-dashboard__details--events">
@@ -724,6 +725,5 @@
         </div>
       </details>
     </section>
-  {% endif %}
 
 </section>

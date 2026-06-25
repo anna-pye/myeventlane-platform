@@ -368,7 +368,7 @@ $mel-dash-attention-danger: #D64545;
   }
 
   // ---------------------------------------------------------------------------
-  // 4 — Current focus: compact status card (max ~160px)
+  // 4 — Current focus: compact status card
   // ---------------------------------------------------------------------------
 
   &__current-event {
@@ -378,8 +378,6 @@ $mel-dash-attention-danger: #D64545;
     border-radius: $radius-lg;
     background: $bg-primary;
     box-shadow: none;
-    max-height: 10rem;
-    overflow: hidden;
   }
 
   &__current-event-body {
@@ -405,6 +403,10 @@ $mel-dash-attention-danger: #D64545;
     font-size: 1.75rem;
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
 
   &__current-event-chips {
