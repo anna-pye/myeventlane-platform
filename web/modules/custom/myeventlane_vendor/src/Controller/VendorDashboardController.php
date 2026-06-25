@@ -610,6 +610,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
             'status_label' => $status['status_label'],
             'state' => $status['state'],
             'has_active_subscription' => $status['has_active_subscription'],
+            'is_manual_pro' => $status['is_manual_pro'],
+            'is_in_grace' => $status['is_in_grace'],
             'can_cancel' => $status['can_cancel'],
             'renews_label' => $status['renews_label'] ?? NULL,
             'manage_url' => Url::fromRoute('myeventlane_pro.manage')->toString(),
