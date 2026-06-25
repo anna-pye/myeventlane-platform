@@ -77,6 +77,13 @@ final class VendorNavBuilderTest extends UnitTestCase {
     $this->assertNotNull($orders);
     $this->assertTrue($orders['is_disabled']);
     $this->assertNull($orders['url']);
+    $this->assertSame('operations', $orders['nav_section']);
+    $this->assertSame('Operations', $orders['nav_section_label']);
+
+    $dashboard = $this->findItemByKey($items, 'dashboard');
+    $this->assertNotNull($dashboard);
+    $this->assertSame('home', $dashboard['nav_section']);
+    $this->assertSame('Home', $dashboard['nav_section_label']);
   }
 
   /**

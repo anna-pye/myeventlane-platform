@@ -23,9 +23,16 @@
   {# Nav items MUST come from myeventlane_vendor_theme_preprocess_page — never use |default(hardcoded):
      Twig's default() treats [] as empty and would replace PHP-built onboarding-safe nav. #}
   {% set nav_items = page.vendor_shell_nav_items is defined ? page.vendor_shell_nav_items : [] %}
+  {% set nav_section_seen = '' %}
 
   <ul class="mel-sidebar__nav" role="list">
     {% for item in nav_items %}
+      {% set item_section = item.nav_section|default('') %}
+      {% if item_section and item_section != nav_section_seen %}
+        <li class="mel-sidebar__section" role="presentation">
+          <span class="mel-sidebar__section-label">{{ item.nav_section_label|default(item_section) }}</span>
+        </li>
+      {% endif %}
       <li class="mel-sidebar__item{% if item.children|default([]) %} mel-sidebar__item--with-subnav{% endif %}">
         {% if item.url and not item.is_disabled %}
           <a href="{{ item.url }}"
@@ -79,6 +86,7 @@
           </ul>
         {% endif %}
       </li>
+      {% set nav_section_seen = item_section %}
     {% endfor %}
   </ul>
 

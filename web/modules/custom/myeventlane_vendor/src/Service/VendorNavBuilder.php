@@ -34,6 +34,27 @@ final class VendorNavBuilder {
     'route',
   ];
 
+  /**
+   * Sidebar IA section keys (HOME, EVENTS, OPERATIONS, GROWTH, ACCOUNT).
+   *
+   * @var array<string, string>
+   */
+  private const NAV_SECTION_BY_KEY = [
+    'dashboard' => 'home',
+    'events' => 'events',
+    'event_editor' => 'events',
+    'orders' => 'operations',
+    'ticket_holders' => 'operations',
+    'checkin' => 'operations',
+    'refund_requests' => 'operations',
+    'payouts' => 'operations',
+    'promote' => 'growth',
+    'messaging' => 'growth',
+    'analytics' => 'growth',
+    'support' => 'account',
+    'settings' => 'account',
+  ];
+
   public function __construct(
     private readonly AccessManagerInterface $accessManager,
     private readonly AccountProxyInterface $currentUser,
@@ -426,7 +447,26 @@ final class VendorNavBuilder {
     $disabled = !empty($item['is_disabled']);
     $item['is_accessible'] = is_string($url) && $url !== '' && !$disabled;
     $item['is_active'] = (($item['key'] ?? '') === $activeSection);
+
+    $key = (string) ($item['key'] ?? '');
+    $section = (string) ($item['nav_section'] ?? self::NAV_SECTION_BY_KEY[$key] ?? '');
+    if ($section !== '') {
+      $item['nav_section'] = $section;
+      $item['nav_section_label'] = $this->navSectionLabel($section);
+    }
+
     return $item;
+  }
+
+  private function navSectionLabel(string $section): string {
+    return match ($section) {
+      'home' => (string) $this->t('Home'),
+      'events' => (string) $this->t('Events'),
+      'operations' => (string) $this->t('Operations'),
+      'growth' => (string) $this->t('Growth'),
+      'account' => (string) $this->t('Account'),
+      default => '',
+    };
   }
 
   private function isVendorOnboardRoute(?string $routeName): bool {
