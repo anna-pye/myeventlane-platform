@@ -1,0 +1,45 @@
+{#
+/**
+ * @file
+ * MEL Guide — contextual discovery companion (not a chatbot).
+ */
+#}
+<div{{ attributes }}>
+  <div class="mel-guide__panel" data-mel-guide-panel hidden>
+    <div{{ bubble_attributes }}>
+      <p class="mel-guide__message">{{ message }}</p>
+      <div class="mel-guide__actions">
+        <button type="button" class="mel-guide__action mel-guide__action--hide" data-mel-guide-hide>
+          {{ 'Hide MEL'|t }}
+        </button>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="mel-guide__close"
+      data-mel-guide-close
+      aria-label="{{ 'Close MEL guide message'|t }}"
+    >
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+
+  <button
+    type="button"
+    class="mel-guide__character"
+    data-mel-guide-character
+    aria-label="{{ 'Open MEL guide message'|t }}"
+    aria-controls="mel-guide-bubble"
+    aria-expanded="false"
+  >
+    <img
+      class="mel-guide__image mel-guide__image--{{ state }}"
+      src="{{ image_url }}"
+      alt="{{ image_alt }}"
+      width="88"
+      height="88"
+      loading="lazy"
+      decoding="async"
+    >
+  </button>
+</div>

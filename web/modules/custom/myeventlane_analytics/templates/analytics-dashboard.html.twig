@@ -52,36 +52,6 @@
     </section>
   {% endif %}
 
-  {# Existing organiser guidance (GrowthInsightService) — reuses the canonical
-     mel-growth-card component. Kept outside the Pro lock so upgrade nudges show. #}
-  {% if growth_cards is defined and growth_cards|length > 0 %}
-    <section class="mel-vendor-analytics-v2__guidance" aria-labelledby="mel-analytics-guidance-title">
-      <h2 id="mel-analytics-guidance-title" class="mel-vendor-analytics-v2__section-title">{{ 'Suggestions for you'|t }}</h2>
-      <ul class="mel-growth-stack" role="list">
-        {% for card in growth_cards %}
-          <li>
-            <article class="mel-growth-card {{ card.card_class|default('') }}" role="listitem" data-insight-key="{{ card.key }}"{% if card.event_id is defined and card.event_id %} data-event-id="{{ card.event_id }}"{% endif %}>
-              <div class="mel-growth-card__body">
-                <h3 class="mel-growth-card__title">{{ card.title }}</h3>
-                <p class="mel-growth-card__message">{{ card.message }}</p>
-                <div class="mel-growth-card__actions">
-                  {% if card.cta_track_url %}
-                    <a href="{{ card.cta_track_url }}" class="mel-btn mel-btn--secondary">{{ 'View'|t }}</a>
-                  {% elseif card.cta_route %}
-                    <a href="{{ path(card.cta_route, card.cta_params|default({})) }}" class="mel-btn mel-btn--secondary">{{ 'View'|t }}</a>
-                  {% endif %}
-                </div>
-              </div>
-              {% if card.dismissible %}
-                <button type="button" class="mel-growth-card__dismiss" data-mel-growth-dismiss aria-label="{{ 'Dismiss suggestion'|t }}">{{ 'Dismiss'|t }}</button>
-              {% endif %}
-            </article>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% endif %}
-
   <div class="mel-analytics-lock-wrapper{% if is_pro is defined and not is_pro %} mel-analytics-lock-wrapper--locked{% endif %}">
 
     {% if is_pro is defined and not is_pro %}

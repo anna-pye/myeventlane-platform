@@ -3,6 +3,9 @@
  * @file
  * Event workspace section links (horizontal). Data from VendorEventTabsService
  * or TASK 8 workspace tab models (available flag).
+ *
+ * Navigation semantics only — parent template supplies <nav aria-label="…">.
+ * Each item is a full-page link, not a WAI-ARIA tab widget.
  */
 #}
 {% if tabs %}
@@ -11,25 +14,19 @@
     {% if unavailable %}
       <span
         class="mel-tab mel-tab--disabled"
-        role="tab"
         aria-disabled="true"
-        aria-selected="false"
         {% if tab.disabled_reason|default('') %}title="{{ tab.disabled_reason|e }}"{% endif %}
       >{{ tab.label }}</span>
     {% elseif tab.url %}
       <a
         href="{{ tab.url }}"
         class="mel-tab{% if tab.active %} is-active{% endif %}"
-        role="tab"
         {% if tab.active %}aria-current="page"{% endif %}
-        aria-selected="{{ tab.active ? 'true' : 'false' }}"
       >{{ tab.label }}</a>
     {% else %}
       <span
         class="mel-tab mel-tab--disabled"
-        role="tab"
         aria-disabled="true"
-        aria-selected="false"
       >{{ tab.label }}</span>
     {% endif %}
   {% endfor %}

@@ -1,0 +1,180 @@
+/**
+ * @file
+ * MEL Guide presentation — fixed companion, pastel bubble, gentle motion.
+ */
+
+.mel-guide {
+  position: fixed;
+  right: calc(var(--mel-space-4, 16px) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--mel-space-4, 16px) + env(safe-area-inset-bottom, 0px));
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--mel-space-2, 8px);
+}
+
+.mel-guide--bottom_left {
+  right: auto;
+  left: calc(var(--mel-space-4, 16px) + env(safe-area-inset-left, 0px));
+  align-items: flex-start;
+}
+
+.mel-guide--dismissed {
+  display: none;
+}
+
+.mel-guide__panel {
+  position: relative;
+  max-width: min(18rem, calc(100vw - var(--mel-space-8, 64px)));
+  pointer-events: auto;
+}
+
+.mel-guide__bubble {
+  background: var(--mel-color-surface, #fff);
+  color: var(--mel-color-text, #24303a);
+  border: 1px solid var(--mel-color-border, #e9e3de);
+  border-radius: var(--mel-radius-md, 16px);
+  box-shadow: var(--mel-shadow-2, 0 6px 18px rgba(36, 48, 58, 0.08));
+  padding: var(--mel-space-3, 12px) var(--mel-space-4, 16px);
+}
+
+.mel-guide__message {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.mel-guide__actions {
+  margin-top: var(--mel-space-2, 8px);
+}
+
+.mel-guide__action {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--mel-color-text-secondary, #5b6670);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: var(--mel-space-1, 4px);
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.mel-guide__action:hover,
+.mel-guide__action:focus-visible {
+  color: var(--mel-color-primary, #f26d5b);
+  outline: 2px solid var(--mel-focus, var(--mel-color-primary, #f26d5b));
+  outline-offset: 2px;
+}
+
+.mel-guide__close {
+  position: absolute;
+  top: calc(-1 * var(--mel-space-2, 8px));
+  right: calc(-1 * var(--mel-space-2, 8px));
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--mel-color-border, #e9e3de);
+  border-radius: var(--mel-radius-full, 999px);
+  background: var(--mel-color-surface, #fff);
+  color: var(--mel-color-text-secondary, #5b6670);
+  cursor: pointer;
+  line-height: 1;
+  box-shadow: var(--mel-shadow-1, 0 2px 8px rgba(36, 48, 58, 0.06));
+}
+
+.mel-guide__close:hover,
+.mel-guide__close:focus-visible {
+  color: var(--mel-color-text, #24303a);
+  outline: 2px solid var(--mel-focus, var(--mel-color-primary, #f26d5b));
+  outline-offset: 2px;
+}
+
+.mel-guide__character {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: var(--mel-radius-full, 999px);
+  box-shadow: var(--mel-shadow-2, 0 6px 18px rgba(36, 48, 58, 0.08));
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.mel-guide__character:hover,
+.mel-guide__character:focus-visible {
+  outline: 2px solid var(--mel-focus, var(--mel-color-primary, #f26d5b));
+  outline-offset: 3px;
+}
+
+.mel-guide__image {
+  display: block;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+}
+
+@media (max-width: 767px) {
+  .mel-guide {
+    right: calc(var(--mel-space-3, 12px) + env(safe-area-inset-right, 0px));
+    bottom: calc(var(--mel-space-3, 12px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mel-guide--bottom_left {
+    left: calc(var(--mel-space-3, 12px) + env(safe-area-inset-left, 0px));
+  }
+
+  body.mel-has-mobile-bottom-nav .mel-guide {
+    bottom: calc(var(--mel-mobile-bottom-nav-height, 56px) + var(--mel-space-3, 12px));
+  }
+
+  .mel-guide__image {
+    width: 68px;
+    height: 68px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mel-guide--panel-open .mel-guide__character {
+    animation: mel-guide-float 4s ease-in-out infinite;
+  }
+
+  .mel-guide--panel-open .mel-guide__panel {
+    animation: mel-guide-enter var(--mel-motion-slow, 300ms) var(--mel-ease, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+}
+
+@keyframes mel-guide-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes mel-guide-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-guide--panel-open .mel-guide__character,
+  .mel-guide--panel-open .mel-guide__panel {
+    animation: none;
+  }
+}

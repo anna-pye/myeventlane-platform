@@ -704,3 +704,18 @@
   display: none;
 }
 
+// Live ops hub + door mode — inner template owns event identity; skip duplicate shell chrome.
+.mel-workspace--live-ops-surface {
+  .mel-workspace__content--event-management {
+    padding-top: 0;
+  }
+
+  .mel-workspace__body {
+    padding-top: $spacing-2;
+
+    @include respond-to(md) {
+      padding-top: $spacing-3;
+    }
+  }
+}
+

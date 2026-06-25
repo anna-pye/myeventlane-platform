@@ -1,0 +1,110 @@
+{#
+/**
+ * @file
+ * Shared live operations identity — hub (/operations) and door mode.
+ *
+ * Uses existing view-model fields only (no revenue or sales totals).
+ *
+ * @var string variant hub|door
+ * @var array hero Hub hero from MelVenueOperationsViewModelBuilder
+ * @var array metrics Hub metrics (pct fallback)
+ * @var array door_context Door header context
+ * @var string event_title Door event title when hero is unavailable
+ * @var string title_id Heading id for aria-labelledby
+ * @var string eyebrow Section eyebrow copy
+ */
+#}
+{% set surface = variant|default('hub') %}
+{% set title_id = title_id|default('mel-live-ops-hero-title') %}
+{% set eyebrow = eyebrow|default('Running your event'|t) %}
+
+{% if surface == 'door' %}
+  {% set display_title = event_title|default('') %}
+  {% set pct = door_context.rate_percent|default(0) %}
+  {% set attendance_state = door_context.count_line|default('') %}
+  {% set readiness_line = '' %}
+  {% set live_indicator = door_context.live_indicator|default('') %}
+  {% set last_sync_formatted = door_context.last_sync_formatted|default('') %}
+  {% set last_sync_iso = door_context.last_sync_iso|default('') %}
+  {% set start_line = '' %}
+  {% set venue_line = '' %}
+  {% set status_chips = live_indicator is not empty ? [{'label': live_indicator, 'modifier': 'live'}] : [] %}
+{% else %}
+  {% set display_title = hero.title|default('') %}
+  {% set pct = hero.check_in_rate_percent|default(metrics.check_in_rate_percent|default(0)) %}
+  {% set attendance_state = hero.attendance_state|default('') %}
+  {% set readiness_line = hero.readiness|default('') %}
+  {% set live_indicator = hero.live_indicator|default('') %}
+  {% set last_sync_formatted = hero.last_sync_formatted|default('') %}
+  {% set last_sync_iso = hero.last_sync_iso|default('') %}
+  {% set start_line = hero.start|default('') %}
+  {% set venue_line = hero.venue|default('') %}
+  {% set status_chips = hero.status_chips|default([]) %}
+{% endif %}
+
+<section class="mel-live-ops__hero mel-live-ops__hero--{{ surface|e('html_attr') }}" aria-labelledby="{{ title_id }}">
+  <div class="mel-live-ops__hero-surface">
+    <div class="mel-live-ops__hero-layout">
+      <div class="mel-live-ops__hero-primary">
+        <p class="mel-live-ops__eyebrow">{{ eyebrow }}</p>
+        {% if display_title is not empty %}
+          <h1 id="{{ title_id }}" class="mel-live-ops__hero-title">{{ display_title }}</h1>
+        {% endif %}
+
+        {% if start_line is not empty %}
+          <p class="mel-live-ops__hero-datetime">{{ start_line }}</p>
+        {% endif %}
+        {% if venue_line is not empty %}
+          <p class="mel-live-ops__hero-venue">{{ venue_line }}</p>
+        {% endif %}
+
+        {% if live_indicator is not empty and surface == 'hub' %}
+          <p class="mel-live-ops__live-pulse" role="status">
+            <span class="mel-live-ops__pulse-dot" aria-hidden="true"></span>
+            <span>{{ live_indicator }}</span>
+          </p>
+        {% endif %}
+        {% if last_sync_formatted is not empty %}
+          <p class="mel-live-ops__sync-meta">
+            <time datetime="{{ last_sync_iso }}">{{ 'Last refreshed'|t }} · {{ last_sync_formatted }}</time>
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="mel-live-ops__hero-aside">
+        <div class="mel-live-ops__progress-shell" data-mel-ops-progress-shell style="--mel-ops-progress: {{ pct }};">
+          <div class="mel-live-ops__progress-ring" data-mel-ops-progress-ring role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ 'Check-in completion'|t }}">
+            <span class="mel-live-ops__progress-ring-label">
+              <span class="mel-live-ops__progress-percent" data-mel-ops-progress-percent>{{ pct }}%</span>
+              <span class="mel-live-ops__progress-caption">{{ 'checked in'|t }}</span>
+            </span>
+          </div>
+          <div class="mel-live-ops__progress-track" aria-hidden="true">
+            <span class="mel-live-ops__progress-fill" data-mel-ops-progress-fill style="width: {{ pct }}%;"></span>
+          </div>
+          <div class="mel-live-ops__hero-summary">
+            {% if attendance_state is not empty %}
+              <p class="mel-live-ops__summary-line">{{ attendance_state }}</p>
+            {% endif %}
+            {% if readiness_line is not empty %}
+              <p class="mel-live-ops__summary-muted">{{ readiness_line }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if status_chips is iterable and status_chips|length > 0 or pct > 0 %}
+    <div class="mel-live-ops__health-strip" role="group" aria-label="{{ 'Event health'|t }}">
+      <div class="mel-live-ops__chip-row mel-live-ops__chip-row--health">
+        {% for chip in status_chips %}
+          <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip.modifier|default('calm')|e('html_attr') }}">{{ chip.label|default('') }}</span>
+        {% endfor %}
+        {% if pct > 0 %}
+          <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ '@pct% checked in'|t({'@pct': pct }) }}</span>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</section>

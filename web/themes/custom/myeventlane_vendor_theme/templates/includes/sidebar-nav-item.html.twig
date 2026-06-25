@@ -1,0 +1,41 @@
+{#
+/**
+ * @file
+ * Single vendor shell sidebar nav item (top-level link or disabled state).
+ *
+ * @var item array Nav item from VendorNavBuilder.
+ * @var compact bool When true, omit icon (nested Event Editor).
+ */
+#}
+{% set compact = compact|default(false) %}
+{% if item.url and not item.is_disabled %}
+  <a href="{{ item.url }}"
+     class="mel-sidebar__link mel-vendor-console__nav-item mel-vendor-console__mobile-nav-item{% if compact %} mel-sidebar__link--compact{% endif %}{% if item.is_active %} mel-vendor-console__nav-item--active is-active{% endif %}"
+     {% if item.is_active %}aria-current="page"{% endif %}>
+    {% if not compact %}
+      <span class="mel-sidebar__link-icon" aria-hidden="true">
+        {% include '@myeventlane_vendor_theme/components/sidebar-icon.html.twig' with { icon: item.icon|default('dashboard') } only %}
+      </span>
+    {% endif %}
+    <span class="mel-sidebar__link-label">{{ item.label }}</span>
+  </a>
+{% else %}
+  {% set event_scoped_keys = ['orders', 'checkin', 'check_in', 'ticket_holders', 'event_editor', 'refund_requests'] %}
+  {% set disabled_reason = item.key in event_scoped_keys
+    ? 'Open this from an event'|t
+    : 'Available soon'|t %}
+  {% set disabled_badge = item.key in event_scoped_keys
+    ? 'Event-only'|t
+    : 'Soon'|t %}
+  <span class="mel-sidebar__link mel-vendor-console__nav-item mel-sidebar__link--disabled{% if compact %} mel-sidebar__link--compact{% endif %}"
+        aria-disabled="true"
+        title="{{ disabled_reason }}">
+    {% if not compact %}
+      <span class="mel-sidebar__link-icon" aria-hidden="true">
+        {% include '@myeventlane_vendor_theme/components/sidebar-icon.html.twig' with { icon: item.icon|default('dashboard') } only %}
+      </span>
+    {% endif %}
+    <span class="mel-sidebar__link-label">{{ item.label }}</span>
+    <span class="mel-sidebar__link-badge">{{ disabled_badge }}</span>
+  </span>
+{% endif %}

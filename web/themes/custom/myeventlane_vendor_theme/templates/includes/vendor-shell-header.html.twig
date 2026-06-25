@@ -4,9 +4,13 @@
  * VendorShell header region (title, notifications, primary action).
  *
  * Included from layout/page.html.twig — canonical vendor console shell.
+ *
+ * @var hide_shell_title bool When true (dashboard route), titles are visually
+ *   hidden so the dashboard workspace hero owns the page heading.
  */
 #}
-<header class="mel-shell-header mel-vendor-console__header" role="banner">
+{% set hide_shell_title = hide_shell_title|default(false) %}
+<header class="mel-shell-header mel-vendor-console__header{% if hide_shell_title %} mel-shell-header--dashboard{% endif %}" role="banner">
   <div class="mel-shell-header__left">
     <button class="mel-shell-header__menu-btn"
             type="button"
@@ -17,12 +21,14 @@
       <span aria-hidden="true">☰</span>
     </button>
 
-    <div class="mel-shell-header__titles">
-      <h1 class="mel-shell-header__title">{{ page.shell_page_title|default('Vendor workspace'|t) }}</h1>
-      {% if page.shell_page_subtitle %}
-        <p class="mel-shell-header__subtitle">{{ page.shell_page_subtitle }}</p>
-      {% endif %}
-    </div>
+    {% if not hide_shell_title %}
+      <div class="mel-shell-header__titles">
+        <h1 class="mel-shell-header__title">{{ page.shell_page_title|default('Event Studio'|t) }}</h1>
+        {% if page.shell_page_subtitle %}
+          <p class="mel-shell-header__subtitle">{{ page.shell_page_subtitle }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 
   <div class="mel-shell-header__actions">
@@ -31,7 +37,7 @@
         {{ page.mel_notification_bell }}
       </div>
     {% endif %}
-    {% if page.shell_primary_action %}
+    {% if page.shell_primary_action and not hide_shell_title %}
       <a href="{{ page.shell_primary_action.url }}" class="mel-btn mel-btn--primary mel-vendor-console__primary-action">
         {{ page.shell_primary_action.label }}
       </a>

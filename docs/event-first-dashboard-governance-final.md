@@ -18,6 +18,12 @@ Canonical order:
 
 No dashboard section may outrank the current event unless it is the single priority attention card.
 
+> Reconciliation (2026-06-24): No section should outrank the active event
+> operationally, but the organiser remains the dashboard owner and the
+> accessibility H1. "Event-first" is a visual/operational dominance rule, not an
+> ownership or heading-level rule — the event title is an H2. See
+> `dashboard-vs-workspace-governance.md`.
+
 # Alert Priority Rules
 
 - Show one primary alert only.

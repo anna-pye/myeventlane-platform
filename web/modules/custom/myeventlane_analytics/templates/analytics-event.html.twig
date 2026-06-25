@@ -12,15 +12,8 @@
  * - bottlenecks: Conversion bottlenecks.
  * - total_revenue: Total revenue.
  * - total_tickets: Total tickets sold.
- * - event_health: { headline, detail, tone } plain-language summary.
- * - growth_actions: list of { label, url } next-step actions (existing routes).
- *
- * Note: presentation-only. Interpretations are derived from the values above;
- * no metrics, thresholds, or currency logic are computed in this template.
  */
 #}
-{% set has_any_data = total_tickets > 0 or (conversion_funnel and conversion_funnel.views|default(0) > 0) or time_series is not empty %}
-
 <div class="mel-analytics-event mel-vendor-analytics-v2">
 
   <header class="mel-vendor-analytics-v2__legacy-toolbar mel-analytics-event__toolbar">
@@ -50,168 +43,138 @@
     {% endif %}
   </header>
 
-  {# Plain-language health line + next steps. #}
-  {% if event_health.headline is defined and event_health.headline %}
-    <section class="mel-analytics-health mel-analytics-health--{{ event_health.tone|default('info')|clean_class }}" aria-labelledby="mel-analytics-health-title" role="region">
-      <h2 id="mel-analytics-health-title" class="mel-analytics-health__headline">{{ event_health.headline }}</h2>
-      {% if event_health.detail %}
-        <p class="mel-analytics-health__detail">{{ event_health.detail }}</p>
-      {% endif %}
-      {% if growth_actions is defined and growth_actions|length > 0 %}
-        <ul class="mel-analytics-actions" role="list">
-          {% for action in growth_actions %}
-            <li><a href="{{ action.url }}" class="mel-btn mel-btn-primary">{{ action.label }}</a></li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    </section>
-  {% endif %}
-
-  {# Whole-page empty state for a published event with nothing to show yet. #}
-  {% if not has_any_data %}
-    <section class="mel-analytics-empty" role="region" aria-label="{{ 'No data yet'|t }}">
-      <h2 class="mel-analytics-empty__title">{{ 'No numbers yet'|t }}</h2>
-      <p class="mel-analytics-empty__text">{{ 'This is normal for a newly published event. Views, bookings, and sales will appear here as people discover it.'|t }}</p>
-      {% if growth_actions is defined and growth_actions|length > 0 %}
-        <ul class="mel-analytics-actions" role="list">
-          {% for action in growth_actions %}
-            <li><a href="{{ action.url }}" class="mel-btn mel-btn-primary">{{ action.label }}</a></li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    </section>
-  {% else %}
-
   {# Summary Cards #}
-  <div class="mel-analytics-summary">
-    <div class="mel-analytics-card">
-      <h3 class="mel-analytics-card__label">{{ 'Total Revenue'|t }}</h3>
-      <p class="mel-analytics-card__value mel-analytics-card__value--revenue">${{ total_revenue|number_format(2) }}</p>
+  <div class="mel-analytics-summary" style="
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  ">
+    <div class="mel-analytics-card" style="
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    ">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #666; font-weight: 600;">{{ 'Total Revenue'|t }}</h3>
+      <p style="margin: 0; font-size: 2rem; font-weight: 700; color: #28a745;">${{ total_revenue|number_format(2) }}</p>
     </div>
 
-    <div class="mel-analytics-card">
-      <h3 class="mel-analytics-card__label">{{ 'Tickets Sold'|t }}</h3>
-      <p class="mel-analytics-card__value">{{ total_tickets }}</p>
+    <div class="mel-analytics-card" style="
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    ">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #666; font-weight: 600;">{{ 'Tickets Sold'|t }}</h3>
+      <p style="margin: 0; font-size: 2rem; font-weight: 700; color: #333;">{{ total_tickets }}</p>
     </div>
 
-    <div class="mel-analytics-card">
-      <h3 class="mel-analytics-card__label">{{ 'Average per Day'|t }}</h3>
-      <p class="mel-analytics-card__value">{{ sales_velocity.average_per_day }}</p>
-      <p class="mel-analytics-card__caption">{{ 'Tickets sold per day since this event was published.'|t }}</p>
+    <div class="mel-analytics-card" style="
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    ">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #666; font-weight: 600;">{{ 'Average per Day'|t }}</h3>
+      <p style="margin: 0; font-size: 2rem; font-weight: 700; color: #333;">{{ sales_velocity.average_per_day }}</p>
     </div>
 
-    <div class="mel-analytics-card">
-      <h3 class="mel-analytics-card__label">{{ 'Sales Trend'|t }}</h3>
-      {% if sales_velocity.trend == 'increasing' %}
-        <p class="mel-analytics-card__value mel-analytics-card__value--trend mel-analytics-card__value--up">
-          <span aria-hidden="true">↗</span> {{ 'Increasing'|t }}
-        </p>
-        <p class="mel-analytics-card__caption">{{ 'Bookings are picking up.'|t }}</p>
-      {% elseif sales_velocity.trend == 'decreasing' %}
-        <p class="mel-analytics-card__value mel-analytics-card__value--trend mel-analytics-card__value--down">
-          <span aria-hidden="true">↘</span> {{ 'Decreasing'|t }}
-        </p>
-        <p class="mel-analytics-card__caption">{{ 'Bookings have slowed recently.'|t }}</p>
-      {% else %}
-        <p class="mel-analytics-card__value mel-analytics-card__value--trend mel-analytics-card__value--stable">
-          <span aria-hidden="true">→</span> {{ 'Stable'|t }}
-        </p>
-        <p class="mel-analytics-card__caption">{{ 'Bookings are holding steady.'|t }}</p>
-      {% endif %}
+    <div class="mel-analytics-card" style="
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    ">
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #666; font-weight: 600;">{{ 'Sales Trend'|t }}</h3>
+      <p style="margin: 0; font-size: 1.25rem; font-weight: 700; color: {% if sales_velocity.trend == 'increasing' %}#28a745{% elseif sales_velocity.trend == 'decreasing' %}#dc3545{% else %}#666{% endif %};">
+        {% if sales_velocity.trend == 'increasing' %}
+          ↗ {{ 'Increasing'|t }}
+        {% elseif sales_velocity.trend == 'decreasing' %}
+          ↘ {{ 'Decreasing'|t }}
+        {% else %}
+          → {{ 'Stable'|t }}
+        {% endif %}
+      </p>
     </div>
   </div>
 
   {# Time Series Chart #}
-  <section class="mel-analytics-section">
-    <h2 class="mel-section-title">{{ 'Sales Over Time'|t }}</h2>
-    {% if time_series is not empty %}
-      <div class="mel-analytics-chart">
-        <canvas id="analytics-time-series-chart" aria-describedby="mel-analytics-time-series-table-summary"></canvas>
+  {% if time_series is not empty %}
+    <section class="mel-analytics-section" style="
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    ">
+      <h2 class="mel-section-title">{{ 'Sales Over Time'|t }}</h2>
+      <div style="position: relative; height: 400px;">
+        <canvas id="analytics-time-series-chart"></canvas>
       </div>
-      {# Text alternative for the canvas chart (keyboard + screen-reader accessible). #}
-      <details class="mel-analytics-chart-alt">
-        <summary>{{ 'View this chart as a table'|t }}</summary>
-        <p id="mel-analytics-time-series-table-summary" class="mel-analytics-chart-alt__summary">{{ 'Tickets sold and revenue by day.'|t }}</p>
-        <table class="mel-table">
-          <thead>
-            <tr>
-              <th scope="col">{{ 'Date'|t }}</th>
-              <th scope="col">{{ 'Tickets'|t }}</th>
-              <th scope="col">{{ 'Revenue'|t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for point in time_series %}
-              <tr>
-                <td>{{ point.date }}</td>
-                <td>{{ point.ticket_count }}</td>
-                <td>${{ point.revenue|number_format(2) }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </details>
-    {% else %}
-      <p class="mel-analytics-section__empty">{{ 'No sales recorded yet. Once people start booking, your daily sales will appear here.'|t }}</p>
-    {% endif %}
-  </section>
+    </section>
+  {% endif %}
 
   {# Conversion Funnel #}
   {% if conversion_funnel %}
-    <section class="mel-analytics-section">
+    <section class="mel-analytics-section" style="
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    ">
       <h2 class="mel-section-title">{{ 'Conversion Funnel'|t }}</h2>
-      <p class="mel-analytics-section__intro">{{ 'How many people moved from viewing your event to completing a booking.'|t }}</p>
-
-      <div class="mel-analytics-chart mel-analytics-chart--funnel">
-        <canvas id="analytics-conversion-funnel-chart" aria-hidden="true"></canvas>
+      
+      {# Chart visualization #}
+      <div style="position: relative; height: 300px; margin-bottom: 2rem;">
+        <canvas id="analytics-conversion-funnel-chart"></canvas>
       </div>
-
-      <div class="mel-analytics-funnel">
+      
+      <div class="mel-funnel" style="display: flex; flex-direction: column; gap: 1rem;">
         {% set stages = [
-          {'key': 'views', 'label': 'Event Views'|t, 'count': conversion_funnel.views},
-          {'key': 'cart_additions', 'label': 'Added to Cart'|t, 'count': conversion_funnel.cart_additions},
-          {'key': 'checkout_started', 'label': 'Checkout Started'|t, 'count': conversion_funnel.checkout_started},
-          {'key': 'completed', 'label': 'Completed'|t, 'count': conversion_funnel.completed},
+          {'key': 'views', 'label': 'Event Views', 'count': conversion_funnel.views},
+          {'key': 'cart_additions', 'label': 'Added to Cart', 'count': conversion_funnel.cart_additions},
+          {'key': 'checkout_started', 'label': 'Checkout Started', 'count': conversion_funnel.checkout_started},
+          {'key': 'completed', 'label': 'Completed', 'count': conversion_funnel.completed},
         ] %}
+        
         {% for stage in stages %}
-          <div class="mel-analytics-funnel__stage mel-funnel-stage">
-            <span class="mel-analytics-funnel__label">{{ stage.label }}</span>
-            <span class="mel-analytics-funnel__count">{{ stage.count }}</span>
+          <div class="mel-funnel-stage" style="
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          ">
+            <span style="font-weight: 600;">{{ stage.label }}</span>
+            <span style="font-size: 1.25rem; font-weight: 700;">{{ stage.count }}</span>
           </div>
         {% endfor %}
       </div>
 
       {% if conversion_funnel.conversion_rates %}
-        {% set overall = conversion_funnel.conversion_rates.overall %}
-        <div class="mel-analytics-rates">
-          <h3 class="mel-analytics-rates__title">{{ 'Conversion Rates'|t }}</h3>
-          <div class="mel-analytics-rates__grid">
-            <div class="mel-analytics-rate">
-              <span class="mel-analytics-rate__label">{{ 'Views to Cart'|t }}</span>
-              <p class="mel-analytics-rate__value">{{ conversion_funnel.conversion_rates.views_to_cart }}%</p>
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
+          <h3 style="font-size: 1rem; margin-bottom: 1rem;">{{ 'Conversion Rates'|t }}</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div>
+              <span style="font-size: 0.875rem; color: #666;">{{ 'Views to Cart'|t }}</span>
+              <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700;">{{ conversion_funnel.conversion_rates.views_to_cart }}%</p>
             </div>
-            <div class="mel-analytics-rate">
-              <span class="mel-analytics-rate__label">{{ 'Cart to Checkout'|t }}</span>
-              <p class="mel-analytics-rate__value">{{ conversion_funnel.conversion_rates.cart_to_checkout }}%</p>
+            <div>
+              <span style="font-size: 0.875rem; color: #666;">{{ 'Cart to Checkout'|t }}</span>
+              <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700;">{{ conversion_funnel.conversion_rates.cart_to_checkout }}%</p>
             </div>
-            <div class="mel-analytics-rate">
-              <span class="mel-analytics-rate__label">{{ 'Checkout to Complete'|t }}</span>
-              <p class="mel-analytics-rate__value">{{ conversion_funnel.conversion_rates.checkout_to_complete }}%</p>
+            <div>
+              <span style="font-size: 0.875rem; color: #666;">{{ 'Checkout to Complete'|t }}</span>
+              <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700;">{{ conversion_funnel.conversion_rates.checkout_to_complete }}%</p>
             </div>
-            <div class="mel-analytics-rate">
-              <span class="mel-analytics-rate__label">{{ 'Overall Conversion'|t }}</span>
-              <p class="mel-analytics-rate__value">{{ overall }}%</p>
+            <div>
+              <span style="font-size: 0.875rem; color: #666;">{{ 'Overall Conversion'|t }}</span>
+              <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700;">{{ conversion_funnel.conversion_rates.overall }}%</p>
             </div>
           </div>
-          {# Plain-language explanation of what the rate means — no invented
-             benchmark or threshold; only distinguishes "have views" vs not. #}
-          <p class="mel-analytics-rates__caption">
-            {% if overall is null or conversion_funnel.views|default(0) <= 0 %}
-              {{ 'Not enough views yet to read a conversion rate. Sharing your event will help.'|t }}
-            {% else %}
-              {{ 'Overall conversion is the share of viewers who completed a booking. Sharing again keeps it growing.'|t }}
-            {% endif %}
-          </p>
         </div>
       {% endif %}
     </section>
@@ -219,27 +182,34 @@
 
   {# Ticket Breakdown #}
   {% if ticket_breakdown is not empty %}
-    <section class="mel-analytics-section">
+    <section class="mel-analytics-section" style="
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    ">
       <h2 class="mel-section-title">{{ 'Ticket Type Breakdown'|t }}</h2>
-
-      <div class="mel-analytics-chart mel-analytics-chart--funnel">
-        <canvas id="analytics-ticket-breakdown-chart" aria-hidden="true"></canvas>
+      
+      {# Chart visualization #}
+      <div style="position: relative; height: 300px; margin-bottom: 2rem;">
+        <canvas id="analytics-ticket-breakdown-chart"></canvas>
       </div>
-
-      <table class="mel-table">
+      
+      <table class="mel-table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr>
-            <th scope="col">{{ 'Ticket Type'|t }}</th>
-            <th scope="col" class="mel-table__num">{{ 'Sold'|t }}</th>
-            <th scope="col" class="mel-table__num">{{ 'Revenue'|t }}</th>
+          <tr style="background-color: #f5f5f5;">
+            <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #ddd;">{{ 'Ticket Type'|t }}</th>
+            <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Sold'|t }}</th>
+            <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Revenue'|t }}</th>
           </tr>
         </thead>
         <tbody>
           {% for ticket in ticket_breakdown %}
-            <tr>
-              <td>{{ ticket.ticket_type }}</td>
-              <td class="mel-table__num">{{ ticket.sold }}</td>
-              <td class="mel-table__num mel-table__num--revenue">${{ ticket.revenue|number_format(2) }}</td>
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 1rem; font-weight: 600;">{{ ticket.ticket_type }}</td>
+              <td style="padding: 1rem; text-align: right;">{{ ticket.sold }}</td>
+              <td style="padding: 1rem; text-align: right; font-weight: 600; color: #28a745;">${{ ticket.revenue|number_format(2) }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -247,22 +217,34 @@
     </section>
   {% endif %}
 
-  {# Bottlenecks (already guidance: each has a recommendation). #}
+  {# Bottlenecks #}
   {% if bottlenecks is not empty %}
-    <section class="mel-analytics-section mel-analytics-section--attention">
-      <h2 class="mel-section-title">{{ 'Where people drop off'|t }}</h2>
+    <section class="mel-analytics-section" style="
+      background: #fff3cd;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+      border-left: 4px solid #ffc107;
+    ">
+      <h2 class="mel-section-title">{{ 'Conversion Bottlenecks'|t }}</h2>
+      
       {% for bottleneck in bottlenecks %}
-        <div class="mel-analytics-bottleneck">
-          <h3 class="mel-analytics-bottleneck__title">{{ bottleneck.label }}</h3>
-          <p class="mel-analytics-bottleneck__rate">
+        <div style="margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 4px;">
+          <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600;">{{ bottleneck.label }}</h3>
+          <p style="margin: 0 0 0.5rem 0; color: #666;">
             <strong>{{ 'Drop-off rate:'|t }}</strong> {{ bottleneck.drop_off_rate }}%
           </p>
-          <p class="mel-analytics-bottleneck__rec">{{ bottleneck.recommendation }}</p>
+          <p style="margin: 0; color: #333;">{{ bottleneck.recommendation }}</p>
         </div>
       {% endfor %}
     </section>
   {% endif %}
 
-  {% endif %}{# has_any_data #}
-
 </div>
+
+
+
+
+
+
