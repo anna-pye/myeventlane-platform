@@ -1,9 +1,9 @@
 /**
  * @file
- * Workspace Event Studio: populate hidden location fields after Places selection.
+ * Event Studio workspace information — location search hidden-field sync.
  *
- * Mirrors the place_selected handler in mel-event-studio.js without loading the
- * full legacy wizard bundle on workspace routes.
+ * Legacy wizard bundles this in mel-event-studio.js; workspace routes attach this
+ * library instead so address autocomplete and place selection still work.
  */
 (function (Drupal, once) {
   'use strict';
@@ -20,7 +20,7 @@
             (place.formattedAddressLines && place.formattedAddressLines.length
               ? place.formattedAddressLines.join(', ')
               : '');
-          const row = {
+          var row = {
             address_line1: components.address_line1 || formatted || '',
             address_line2: components.address_line2 || '',
             locality: components.locality || '',
@@ -28,27 +28,22 @@
             postal_code: components.postal_code || '',
             country_code: components.country_code || 'AU',
           };
-          const form = input.closest('form');
+          var form = input.closest('form');
           if (!form) {
             return;
           }
-          const hLoc = form.querySelector('input[name="mel[field_location]"]');
-          const hLat = form.querySelector('input[name="mel[field_location_latitude]"]');
-          const hLng = form.querySelector('input[name="mel[field_location_longitude]"]');
-          if (hLoc) {
-            hLoc.value = JSON.stringify(row);
+          var locationField = form.querySelector('input[name="mel[field_location]"]');
+          var latitudeField = form.querySelector('input[name="mel[field_location_latitude]"]');
+          var longitudeField = form.querySelector('input[name="mel[field_location_longitude]"]');
+          if (locationField) {
+            locationField.value = JSON.stringify(row);
           }
-          if (hLat && detail.lat != null) {
-            hLat.value = String(detail.lat);
+          if (latitudeField && detail.lat != null) {
+            latitudeField.value = String(detail.lat);
           }
-          if (hLng && detail.lng != null) {
-            hLng.value = String(detail.lng);
+          if (longitudeField && detail.lng != null) {
+            longitudeField.value = String(detail.lng);
           }
-
-          // Programmatic hidden-field writes do not emit native events; flag the
-          // workspace shell dirty and schedule autosave (see mel-event-studio.js).
-          form.dispatchEvent(new Event('input', { bubbles: true }));
-          form.dispatchEvent(new Event('change', { bubbles: true }));
         });
       });
     },

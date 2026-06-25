@@ -589,7 +589,7 @@ final class EventStudioSaveService {
    *
    * One-off events have no venue entity; reuse the saved address row so public
    * heroes and cards can show a location line without a separate venue profile.
-   * Clears the field when location sync runs but no display label can be derived.
+   * Clears the field when location processing yields no display label.
    */
   private function applyVenueDisplayName(
     NodeInterface $node,
@@ -613,7 +613,12 @@ final class EventStudioSaveService {
       $display_name = $this->deriveVenueDisplayNameFromAddressRow($address_row);
     }
 
-    $node->set('field_venue_name', $display_name !== '' ? $display_name : NULL);
+    if ($display_name === '') {
+      $node->set('field_venue_name', NULL);
+      return;
+    }
+
+    $node->set('field_venue_name', $display_name);
   }
 
   /**
