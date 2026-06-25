@@ -129,7 +129,7 @@
           <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
           {% set _hero_has_schedule = node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
           {% set _hero_venue_entity = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
-          {% set _hero_venue_line = (node.hasField('field_venue_name') and not node.field_venue_name.isEmpty) ? node.field_venue_name.value|trim : _hero_venue_entity|trim %}
+          {% set _hero_venue_line = (node.hasField('field_venue_name') and not node.field_venue_name.isEmpty) ? node.field_venue_name.value|trim : (_hero_venue_entity|trim ?: mel_venue|default('')|trim) %}
           {% set _hero_has_location = _hero_venue_line is not empty %}
           {% if _hero_has_schedule or _hero_has_location %}
             <ul class="mel-event-hero__meta" role="list">
@@ -350,7 +350,7 @@
             {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
             {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
             {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
-            {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
+            {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : (venue_entity_label|trim ?: mel_venue|default('')|trim) %}
             {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
             {% if info_venue_line is not empty or info_address is not empty or has_field_location %}
               {% set map_query = '' %}

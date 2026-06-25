@@ -30,7 +30,9 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     );
     $homepageReadinessRender = (new ReflectionClass(\Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder::class))
       ->newInstanceWithoutConstructor();
-    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $homepageReadinessRender, $translator);
+    $eventCardViewModel = (new ReflectionClass(\Drupal\myeventlane_event\EventCard\EventCardViewModel::class))
+      ->newInstanceWithoutConstructor();
+    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $homepageReadinessRender, $eventCardViewModel, $translator);
   }
 
   public function testDraftReadyShowsPublishStrip(): void {

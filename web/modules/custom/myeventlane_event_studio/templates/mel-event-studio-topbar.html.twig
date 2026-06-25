@@ -8,6 +8,27 @@
   <div class="mel-event-studio-topbar__primary">
     <p class="mel-event-studio-topbar__eyebrow">{{ 'Event Studio'|t }}</p>
     <h1 class="mel-event-studio-topbar__title">{{ topbar.title }}</h1>
+    {% set location = topbar.location|default({}) %}
+    <div class="mel-event-studio-topbar__location" data-mel-topbar-location role="status" aria-live="polite">
+      {% if location.configured|default(false) %}
+        {% if location.primary_line|default('') %}
+          <p class="mel-event-studio-topbar__location-line mel-event-studio-topbar__location-line--primary">
+            <span class="mel-event-studio-topbar__location-icon" aria-hidden="true">📍</span>
+            <span class="mel-event-studio-topbar__location-text" data-mel-topbar-location-primary>{{ location.primary_line }}</span>
+          </p>
+        {% endif %}
+        {% if location.secondary_line|default('') %}
+          <p class="mel-event-studio-topbar__location-line mel-event-studio-topbar__location-line--secondary">
+            <span class="mel-event-studio-topbar__location-text" data-mel-topbar-location-secondary>{{ location.secondary_line }}</span>
+          </p>
+        {% endif %}
+      {% else %}
+        <p class="mel-event-studio-topbar__location-line mel-event-studio-topbar__location-line--warning">
+          <span class="mel-event-studio-topbar__location-icon" aria-hidden="true">⚠</span>
+          <span class="mel-event-studio-topbar__location-text" data-mel-topbar-location-warning>{{ location.warning|default('Venue not yet configured'|t) }}</span>
+        </p>
+      {% endif %}
+    </div>
     <div class="mel-event-studio-topbar__meta" aria-label="{{ 'Event status'|t }}">
       <span class="mel-event-studio-topbar__badge" data-mel-publish-status>{{ topbar.status }}</span>
       {% if topbar.state %}

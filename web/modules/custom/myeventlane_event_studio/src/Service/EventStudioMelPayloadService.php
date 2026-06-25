@@ -172,6 +172,10 @@ final class EventStudioMelPayloadService {
     if ($fids === NULL || $fids === '') {
       return 0;
     }
+    if (is_int($fids) || is_float($fids)) {
+      $candidate = (int) $fids;
+      return $candidate > 0 ? $candidate : 0;
+    }
     if (is_array($fids)) {
       foreach ($fids as $value) {
         $candidate = (int) $value;
@@ -321,6 +325,7 @@ final class EventStudioMelPayloadService {
       'attendee_questions' => $attendee_questions,
       'field_event_visibility' => trim((string) ($mel['field_event_visibility'] ?? '')),
       'event_passcode' => trim((string) ($mel['event_passcode'] ?? '')),
+      'studio_section' => trim((string) ($form_state->getValue('mel_studio_section') ?? '')),
     ];
 
     if ($this->operationalCapabilityStudioManager !== NULL
@@ -352,7 +357,13 @@ final class EventStudioMelPayloadService {
     if (is_array($raw)) {
       $ids = [];
       foreach ($raw as $item) {
-        if (is_array($item) && isset($item['target_id'])) {
+        if ($item instanceof EntityInterface) {
+          $tid = (int) $item->id();
+          if ($tid > 0) {
+            $ids[] = $tid;
+          }
+        }
+        elseif (is_array($item) && isset($item['target_id'])) {
           $tid = (int) $item['target_id'];
           if ($tid > 0) {
             $ids[] = $tid;

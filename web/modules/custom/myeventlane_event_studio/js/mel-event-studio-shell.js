@@ -347,6 +347,66 @@
     stateEl?.remove();
   }
 
+  function syncTopbarLocation(shell, location) {
+    const container = shell.querySelector('[data-mel-topbar-location]');
+    if (!container) {
+      return;
+    }
+    const primary = container.querySelector('[data-mel-topbar-location-primary]');
+    const secondary = container.querySelector('[data-mel-topbar-location-secondary]');
+    const warning = container.querySelector('[data-mel-topbar-location-warning]');
+    if (!location || !location.configured) {
+      container.querySelectorAll('.mel-event-studio-topbar__location-line--primary, .mel-event-studio-topbar__location-line--secondary').forEach((line) => {
+        line.remove();
+      });
+      let warningLine = container.querySelector('.mel-event-studio-topbar__location-line--warning');
+      if (!warningLine) {
+        warningLine = document.createElement('p');
+        warningLine.className = 'mel-event-studio-topbar__location-line mel-event-studio-topbar__location-line--warning';
+        warningLine.innerHTML = '<span class="mel-event-studio-topbar__location-icon" aria-hidden="true">⚠</span><span class="mel-event-studio-topbar__location-text" data-mel-topbar-location-warning></span>';
+        container.appendChild(warningLine);
+      }
+      const warningText = warningLine.querySelector('[data-mel-topbar-location-warning]');
+      if (warningText) {
+        warningText.textContent = location?.warning || 'Venue not yet configured';
+      }
+      return;
+    }
+    container.querySelector('.mel-event-studio-topbar__location-line--warning')?.remove();
+    if (location.primary_line) {
+      let primaryLine = container.querySelector('.mel-event-studio-topbar__location-line--primary');
+      if (!primaryLine) {
+        primaryLine = document.createElement('p');
+        primaryLine.className = 'mel-event-studio-topbar__location-line mel-event-studio-topbar__location-line--primary';
+        primaryLine.innerHTML = '<span class="mel-event-studio-topbar__location-icon" aria-hidden="true">📍</span><span class="mel-event-studio-topbar__location-text" data-mel-topbar-location-primary></span>';
+        container.prepend(primaryLine);
+      }
+      const primaryText = primaryLine.querySelector('[data-mel-topbar-location-primary]');
+      if (primaryText) {
+        primaryText.textContent = location.primary_line;
+      }
+    }
+    else {
+      container.querySelector('.mel-event-studio-topbar__location-line--primary')?.remove();
+    }
+    if (location.secondary_line) {
+      let secondaryLine = container.querySelector('.mel-event-studio-topbar__location-line--secondary');
+      if (!secondaryLine) {
+        secondaryLine = document.createElement('p');
+        secondaryLine.className = 'mel-event-studio-topbar__location-line mel-event-studio-topbar__location-line--secondary';
+        secondaryLine.innerHTML = '<span class="mel-event-studio-topbar__location-text" data-mel-topbar-location-secondary></span>';
+        container.appendChild(secondaryLine);
+      }
+      const secondaryText = secondaryLine.querySelector('[data-mel-topbar-location-secondary]');
+      if (secondaryText) {
+        secondaryText.textContent = location.secondary_line;
+      }
+    }
+    else {
+      container.querySelector('.mel-event-studio-topbar__location-line--secondary')?.remove();
+    }
+  }
+
   function updateTopbar(shell, result) {
     if (!result || !result.topbar) {
       return;
@@ -358,6 +418,9 @@
     setText(shell, '[data-mel-publish-status]', result.topbar.status || '');
     syncTopbarState(shell, result.topbar.state || '');
     setText(shell, '[data-mel-publish-last-saved]', result.topbar.lastSaved || '');
+    if (result.topbar.location) {
+      syncTopbarLocation(shell, result.topbar.location);
+    }
     const buttons = shell.querySelectorAll('[data-mel-publish-action], [data-mel-card-publish-action], [data-mel-unpublish-action]');
     if (result.changed !== undefined && result.changed !== null) {
       const changed = String(result.changed);

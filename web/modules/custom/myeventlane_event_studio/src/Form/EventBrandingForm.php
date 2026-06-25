@@ -198,9 +198,41 @@ final class EventBrandingForm extends EventStudioBaseForm {
     if ($hero['fid'] > 0 && $hero['alt'] === '') {
       $form_state->setErrorByName(
         'mel][field_event_image_alt',
-        $this->t('Alt text is required for the cover image.')
+        $this->t('Add alt text for your cover image before saving. Describe what appears in the image for screen readers and search.')
       );
     }
+
+    $this->validateBrandingHeroUploadResolution($form_state, $mel_for_hero);
+  }
+
+  /**
+   * Surfaces widget sync failures before save when an upload cannot be resolved.
+   *
+   * @param array<string, mixed> $mel_for_hero
+   */
+  private function validateBrandingHeroUploadResolution(FormStateInterface $form_state, array $mel_for_hero): void {
+    $user_mel = $form_state->getUserInput()['mel'] ?? NULL;
+    if (!is_array($user_mel)) {
+      return;
+    }
+    $input_fragment = $user_mel['field_event_image'] ?? NULL;
+    if (!is_array($input_fragment)) {
+      return;
+    }
+    $input_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
+      'field_event_image' => $input_fragment,
+    ])['fid'];
+    if ($input_fid < 1) {
+      return;
+    }
+    $resolved_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_for_hero)['fid'];
+    if ($resolved_fid > 0) {
+      return;
+    }
+    $form_state->setErrorByName(
+      'mel][field_event_image',
+      $this->t('The event image could not be saved. Please reselect the image.')
+    );
   }
 
   /**

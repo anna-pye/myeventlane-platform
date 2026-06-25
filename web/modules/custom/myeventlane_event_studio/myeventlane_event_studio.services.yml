@@ -26,6 +26,7 @@ services:
     arguments:
       - '@date.formatter'
       - '@myeventlane_event.featured_readiness_render'
+      - '@myeventlane_event.event_card_view_model'
       - '@string_translation'
 
   myeventlane_event_studio.preprocess:

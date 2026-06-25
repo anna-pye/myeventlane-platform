@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_event\EventCard\EventCardViewModel;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\node\NodeInterface;
@@ -23,6 +24,7 @@ final class EventStudioWorkspacePresentation {
   public function __construct(
     private readonly DateFormatterInterface $dateFormatter,
     private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
+    private readonly EventCardViewModel $eventCardViewModel,
     TranslationInterface $stringTranslation,
   ) {
     $this->stringTranslation = $stringTranslation;
@@ -218,6 +220,199 @@ final class EventStudioWorkspacePresentation {
     return (string) $this->t('Last updated @time', [
       '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
     ]);
+  }
+
+  /**
+   * Builds venue/address summary for the Event Studio topbar.
+   *
+   * Reuses the public event card location label and field_location address rows
+   * written by Event Studio save — no duplicate geocoding or formatting.
+   *
+   * @return array{
+   *   configured: bool,
+   *   mode: 'saved'|'one_off',
+   *   primary_line: ?string,
+   *   secondary_line: ?string,
+   *   warning: string,
+   * }
+   */
+  public function buildTopbarLocation(NodeInterface $node): array {
+    $warning = (string) $this->t('Venue not yet configured');
+    if ($node->bundle() !== 'event') {
+      return [
+        'configured' => FALSE,
+        'mode' => 'one_off',
+        'primary_line' => NULL,
+        'secondary_line' => NULL,
+        'warning' => $warning,
+      ];
+    }
+
+    if (!$this->isLocationConfigured($node)) {
+      return [
+        'configured' => FALSE,
+        'mode' => 'one_off',
+        'primary_line' => NULL,
+        'secondary_line' => NULL,
+        'warning' => $warning,
+      ];
+    }
+
+    $has_saved_venue = $node->hasField('field_venue') && !$node->get('field_venue')->isEmpty();
+    $mode = $has_saved_venue ? 'saved' : 'one_off';
+    $venue_name = $this->resolveVenueName($node, $has_saved_venue);
+    $address_summary = $this->resolveAddressSummary($node);
+
+    if ($mode === 'one_off') {
+      return [
+        'configured' => TRUE,
+        'mode' => 'one_off',
+        'primary_line' => (string) $this->t('One-off venue'),
+        'secondary_line' => $this->combineOneOffLocationLines($venue_name, $address_summary),
+        'warning' => $warning,
+      ];
+    }
+
+    return [
+      'configured' => TRUE,
+      'mode' => 'saved',
+      'primary_line' => $venue_name,
+      'secondary_line' => $address_summary,
+      'warning' => $warning,
+    ];
+  }
+
+  /**
+   * Read-only saved location summary for Event Studio information forms.
+   *
+   * Uses the same payload as {@see buildTopbarLocation()}.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildSavedLocationSummaryRenderArray(NodeInterface $node): array {
+    $location = $this->buildTopbarLocation($node);
+    $build = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-es-location-summary'],
+        'data-mel-location-summary' => '1',
+        'role' => 'status',
+        'aria-live' => 'polite',
+      ],
+    ];
+
+    if (!$location['configured']) {
+      $build['warning'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $location['warning'],
+        '#attributes' => ['class' => ['mel-es-location-summary__line', 'mel-es-location-summary__line--warning']],
+      ];
+      return $build;
+    }
+
+    $build['heading'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h4',
+      '#value' => $this->t('Saved location'),
+      '#attributes' => ['class' => ['mel-es-location-summary__title']],
+    ];
+
+    if (!empty($location['primary_line'])) {
+      $build['primary'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => '📍 ' . $location['primary_line'],
+        '#attributes' => ['class' => ['mel-es-location-summary__line', 'mel-es-location-summary__line--primary']],
+      ];
+    }
+
+    if (!empty($location['secondary_line'])) {
+      $build['secondary'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $location['secondary_line'],
+        '#attributes' => ['class' => ['mel-es-location-summary__line', 'mel-es-location-summary__line--secondary']],
+      ];
+    }
+
+    return $build;
+  }
+
+  private function isLocationConfigured(NodeInterface $node): bool {
+    if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
+      return TRUE;
+    }
+    if (!$node->hasField('field_location') || $node->get('field_location')->isEmpty()) {
+      return FALSE;
+    }
+    $item = $node->get('field_location')->first();
+    if ($item === NULL) {
+      return FALSE;
+    }
+    foreach (['address_line1', 'locality', 'administrative_area'] as $key) {
+      if (trim((string) $item->get($key)->getValue()) !== '') {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  private function resolveVenueName(NodeInterface $node, bool $has_saved_venue): ?string {
+    if ($has_saved_venue) {
+      $venue = $node->get('field_venue')->entity;
+      if ($venue !== NULL) {
+        $name = trim((string) $venue->label());
+        if ($name !== '') {
+          return $name;
+        }
+      }
+    }
+    if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+      $name = trim((string) $node->get('field_venue_name')->value);
+      if ($name !== '') {
+        return $name;
+      }
+    }
+    return $this->eventCardViewModel->getLocationLabel($node);
+  }
+
+  private function resolveAddressSummary(NodeInterface $node): ?string {
+    if (!$node->hasField('field_location') || $node->get('field_location')->isEmpty()) {
+      return NULL;
+    }
+    $item = $node->get('field_location')->first();
+    if ($item === NULL) {
+      return NULL;
+    }
+    $locality = trim((string) $item->get('locality')->getValue());
+    $administrative_area = trim((string) $item->get('administrative_area')->getValue());
+    if ($locality !== '') {
+      return $administrative_area !== '' ? $locality . ' ' . $administrative_area : $locality;
+    }
+    $line1 = trim((string) $item->get('address_line1')->getValue());
+    return $line1 !== '' ? $line1 : NULL;
+  }
+
+  private function combineOneOffLocationLines(?string $venue_name, ?string $address_summary): ?string {
+    $parts = array_values(array_filter([$venue_name, $address_summary], static fn (?string $part): bool => $part !== NULL && $part !== ''));
+    if ($parts === []) {
+      return NULL;
+    }
+    if (count($parts) === 1) {
+      return $parts[0];
+    }
+    $first = $this->normalizeLocationToken($parts[0]);
+    $second = $this->normalizeLocationToken($parts[1]);
+    if ($first === $second || str_contains($second, $first) || str_contains($first, $second)) {
+      return $parts[1];
+    }
+    return implode(', ', $parts);
+  }
+
+  private function normalizeLocationToken(string $value): string {
+    $normalized = strtolower(str_replace(',', ' ', $value));
+    return trim((string) preg_replace('/\s+/', ' ', $normalized));
   }
 
 }
