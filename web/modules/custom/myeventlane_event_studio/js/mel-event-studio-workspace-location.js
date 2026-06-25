@@ -9,13 +9,13 @@
   'use strict';
 
   Drupal.behaviors.melEventStudioWorkspaceLocation = {
-    attach: function (context) {
-      once('mel-event-studio-workspace-location', '.mel-location-search', context).forEach(function (input) {
-        input.addEventListener('place_selected', function (e) {
-          var detail = e.detail || {};
-          var components = detail.components || {};
-          var place = detail.place || {};
-          var formatted =
+    attach(context) {
+      once('mel-event-studio-workspace-location', '.mel-location-search', context).forEach((input) => {
+        input.addEventListener('place_selected', (event) => {
+          const detail = event.detail || {};
+          const components = detail.components || {};
+          const place = detail.place || {};
+          const formatted =
             place.formatted_address ||
             (place.formattedAddressLines && place.formattedAddressLines.length
               ? place.formattedAddressLines.join(', ')
