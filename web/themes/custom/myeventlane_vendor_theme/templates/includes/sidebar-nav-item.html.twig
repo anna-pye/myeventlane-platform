@@ -20,7 +20,7 @@
     <span class="mel-sidebar__link-label">{{ item.label }}</span>
   </a>
 {% else %}
-  {% set event_scoped_keys = ['orders', 'checkin', 'check_in', 'ticket_holders', 'event_editor'] %}
+  {% set event_scoped_keys = ['orders', 'checkin', 'check_in', 'ticket_holders', 'event_editor', 'refund_requests'] %}
   {% set disabled_reason = item.key in event_scoped_keys
     ? 'Open this from an event'|t
     : 'Available soon'|t %}

@@ -354,13 +354,14 @@
 }
 
 .mel-sidebar__section-label {
+  display: block;
   margin: 0;
   padding: 0 $spacing-4 $spacing-1;
-  font-size: $font-size-xs;
+  font-size: 0.75rem;
   font-weight: $font-weight-semibold;
   color: rgba(255, 255, 255, 0.42);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.15em;
   line-height: 1.3;
 }
 

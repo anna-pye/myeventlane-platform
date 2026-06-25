@@ -28,17 +28,18 @@
   {% set nav_groups = [
     { id: 'dashboard', label: 'Home'|t, keys: ['dashboard'] },
     { id: 'events', label: 'Events'|t, keys: ['events'] },
-    { id: 'operations', label: 'Operations'|t, keys: ['orders', 'ticket_holders', 'checkin', 'refund_requests'] },
+    { id: 'operations', label: 'Operations'|t, keys: ['orders', 'ticket_holders', 'checkin', 'refund_requests', 'payouts'] },
     { id: 'growth', label: 'Growth'|t, keys: ['promote', 'messaging', 'analytics'] },
-    { id: 'account', label: 'Account'|t, keys: ['payouts', 'settings', 'support'] },
+    { id: 'account', label: 'Account'|t, keys: ['settings', 'support'] },
   ] %}
 
   <div class="mel-sidebar__nav-groups">
     {% for group in nav_groups %}
       {% set visible_items = nav_items|filter(item => item.key|default('') in group.keys) %}
       {% if visible_items|length > 0 %}
-        <section class="mel-sidebar__group mel-sidebar__group--{{ group.id }}" aria-label="{{ group.label }}">
-          <p class="mel-sidebar__section-label" id="mel-sidebar-group-{{ group.id }}">{{ group.label }}</p>
+        {% set section_label = visible_items|first.nav_section_label|default(group.label) %}
+        <section class="mel-sidebar__group mel-sidebar__group--{{ group.id }}" aria-label="{{ section_label }}">
+          <p class="mel-sidebar__section-label" id="mel-sidebar-group-{{ group.id }}">{{ section_label }}</p>
           <ul class="mel-sidebar__nav" role="list" aria-labelledby="mel-sidebar-group-{{ group.id }}">
             {% for key in group.keys %}
               {% for item in nav_items %}
