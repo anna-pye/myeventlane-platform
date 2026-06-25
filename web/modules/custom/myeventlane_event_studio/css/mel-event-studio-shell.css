@@ -2120,6 +2120,41 @@
   overflow-wrap: anywhere;
 }
 
+.mel-event-studio-topbar__location {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.mel-event-studio-topbar__location-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+}
+
+.mel-event-studio-topbar__location-line + .mel-event-studio-topbar__location-line {
+  margin-top: 2px;
+}
+
+.mel-event-studio-topbar__location-line--secondary {
+  padding-left: 1.35rem;
+}
+
+.mel-event-studio-topbar__location-line--warning {
+  color: #92400e;
+}
+
+.mel-event-studio-topbar__location-icon {
+  flex: 0 0 auto;
+  line-height: 1.45;
+}
+
+.mel-event-studio-topbar__location-text {
+  min-width: 0;
+}
+
 .mel-event-studio-topbar__meta,
 .mel-event-studio-topbar__actions {
   display: flex;

@@ -282,6 +282,7 @@ final class EventStudioPublishController {
         'state' => ($node->isPublished() && $publish_result->ready)
           ? ''
           : $this->workspacePresentation->operationalState($publish_result),
+        'location' => $this->workspacePresentation->buildTopbarLocation($node),
         'lastSaved' => $node->getChangedTime() > 0 ? (string) $this->t('Last saved @time', [
           '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
         ]) : (string) $this->t('Not saved yet'),

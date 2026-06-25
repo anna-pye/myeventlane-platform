@@ -33,11 +33,17 @@ final class EventInformationForm extends EventStudioBaseForm {
   }
 
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
-    $this->messenger()->addStatus($this->t('Event information saved.'));
+    $has_location = ($saved->hasField('field_venue') && !$saved->get('field_venue')->isEmpty())
+      || ($saved->hasField('field_location') && !$saved->get('field_location')->isEmpty());
+    $this->messenger()->addStatus($has_location
+      ? $this->t('Event information and venue saved.')
+      : $this->t('Event information saved.'));
     $form_state->setRedirect('myeventlane_event_studio.workspace_information', ['node' => $saved->id()]);
   }
 
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_workspace_location';
+
     $form['mel']['title'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Event title'),

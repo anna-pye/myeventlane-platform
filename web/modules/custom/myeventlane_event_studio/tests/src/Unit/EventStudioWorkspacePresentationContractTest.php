@@ -30,7 +30,9 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     );
     $homepageReadinessRender = (new ReflectionClass(\Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder::class))
       ->newInstanceWithoutConstructor();
-    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $homepageReadinessRender, $translator);
+    $eventCardViewModel = (new ReflectionClass(\Drupal\myeventlane_event\EventCard\EventCardViewModel::class))
+      ->newInstanceWithoutConstructor();
+    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $homepageReadinessRender, $eventCardViewModel, $translator);
   }
 
   public function testStripAndAjaxPayloadShareReadinessSummaryFields(): void {
@@ -113,6 +115,16 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertCount(3, $health['items']);
     $this->assertSame('Needs attention before homepage promotion', $health['items'][1]['value']);
     $this->assertSame('Not active', $health['items'][2]['value']);
+  }
+
+  public function testTopbarLocationContractUsesEventCardViewModel(): void {
+    $topbar = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-topbar.html.twig');
+    $presentation = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php');
+    $this->assertIsString($topbar);
+    $this->assertIsString($presentation);
+    $this->assertStringContainsString('data-mel-topbar-location', $topbar);
+    $this->assertStringContainsString('buildTopbarLocation', $presentation);
+    $this->assertStringContainsString('eventCardViewModel', $presentation);
   }
 
   public function testPublishControllerUsesFacadeBundleForAjaxPayload(): void {

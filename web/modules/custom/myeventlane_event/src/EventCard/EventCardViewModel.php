@@ -405,6 +405,15 @@ final class EventCardViewModel {
     return [(string) (int) date('j', $startTimestamp), date('M', $startTimestamp)];
   }
 
+  /**
+   * Single-line primary location label (venue entity, venue name, or locality).
+   *
+   * Shared by public event cards, heroes, and Event Studio summaries.
+   */
+  public function getLocationLabel(NodeInterface $node): ?string {
+    return $this->locationLabel($node);
+  }
+
   private function locationLabel(NodeInterface $node): ?string {
     if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
       $venue = $node->get('field_venue')->entity;
