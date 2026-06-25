@@ -14,6 +14,219 @@
 
   const CROP_ATTENTION_CLASS = "mel-es-branding-crop-wrapper--attention";
 
+  const UPLOAD_STATE_EMPTY = "empty";
+  const UPLOAD_STATE_PENDING = "pending_upload";
+  const UPLOAD_STATE_UPLOADED = "uploaded";
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {HTMLInputElement|null}
+   */
+  function findHeroFileInput(root) {
+    const input = root.querySelector(
+      'input[type="file"][name*="field_event_image"]',
+    );
+    return input instanceof HTMLInputElement ? input : null;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {HTMLElement|null}
+   */
+  function findUploadNotice(root) {
+    const notice = root.querySelector("#mel-es-branding-upload-notice");
+    return notice instanceof HTMLElement ? notice : null;
+  }
+
+  /**
+   * @param {HTMLFormElement|null} form
+   * @returns {boolean}
+   */
+  function hasAltText(form) {
+    if (!form) {
+      return false;
+    }
+    const alt = form.querySelector('[name="mel[field_event_image_alt]"]');
+    if (!(alt instanceof HTMLInputElement || alt instanceof HTMLTextAreaElement)) {
+      return false;
+    }
+    return String(alt.value || "").trim() !== "";
+  }
+
+  /**
+   * @param {HTMLFormElement|null} form
+   * @returns {HTMLInputElement|null}
+   */
+  function findAltField(form) {
+    if (!form) {
+      return null;
+    }
+    const alt = form.querySelector('[name="mel[field_event_image_alt]"]');
+    return alt instanceof HTMLInputElement ? alt : null;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {boolean}
+   */
+  function isPendingUpload(root) {
+    if (hasUploadedHeroFile(root)) {
+      return false;
+    }
+    const fileInput = findHeroFileInput(root);
+    return !!(fileInput && fileInput.files && fileInput.files.length > 0);
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {string}
+   */
+  function resolveUploadState(root) {
+    if (hasUploadedHeroFile(root)) {
+      return UPLOAD_STATE_UPLOADED;
+    }
+    if (isPendingUpload(root)) {
+      return UPLOAD_STATE_PENDING;
+    }
+    return UPLOAD_STATE_EMPTY;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @returns {boolean}
+   */
+  function hasHeroPreviewWithoutFid(root) {
+    if (hasUploadedHeroFile(root)) {
+      return false;
+    }
+    const preview = root.querySelector(
+      ".image-widget .preview img, .file--image img, .form-managed-file .file img",
+    );
+    return preview instanceof HTMLImageElement && String(preview.src || "").trim() !== "";
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @param {HTMLFormElement|null} form
+   */
+  function syncUploadNotice(root, form) {
+    const notice = findUploadNotice(root);
+    if (!notice) {
+      return;
+    }
+
+    const state = resolveUploadState(root);
+    const previousState = root.dataset.melHeroUploadState || "";
+    if (state === UPLOAD_STATE_UPLOADED && previousState !== UPLOAD_STATE_UPLOADED) {
+      root.dataset.melHeroUploadPendingSave = "1";
+    }
+    if (state === UPLOAD_STATE_EMPTY) {
+      delete root.dataset.melHeroUploadPendingSave;
+    }
+    root.dataset.melHeroUploadState = state;
+
+    const checklist = notice.querySelector(".mel-es-branding-upload-notice__steps");
+    const message = notice.querySelector(".mel-es-branding-upload-notice__message");
+    notice.classList.remove("is-error", "is-success");
+
+    let shouldShow = false;
+
+    if (state === UPLOAD_STATE_PENDING) {
+      shouldShow = true;
+      notice.classList.add("is-error");
+      if (checklist instanceof HTMLElement) {
+        checklist.hidden = true;
+      }
+      if (message instanceof HTMLElement) {
+        message.hidden = false;
+        message.textContent = Drupal.t(
+          "Click Upload before Save branding. Upload alone does not publish your cover.",
+        );
+      }
+      notice.querySelectorAll("[data-upload-step]").forEach((step) => {
+        step.classList.toggle(
+          "is-active",
+          step.getAttribute("data-upload-step") === "upload",
+        );
+      });
+    }
+    else if (hasHeroPreviewWithoutFid(root)) {
+      shouldShow = true;
+      notice.classList.add("is-error");
+      if (checklist instanceof HTMLElement) {
+        checklist.hidden = true;
+      }
+      if (message instanceof HTMLElement) {
+        message.hidden = false;
+        message.textContent = Drupal.t(
+          "Upload may not have finished — click Upload again, then Save branding.",
+        );
+      }
+    }
+    else if (state === UPLOAD_STATE_UPLOADED) {
+      const needsAlt = !hasAltText(form);
+      const pendingSave = root.dataset.melHeroUploadPendingSave === "1";
+      shouldShow = needsAlt || pendingSave;
+      if (shouldShow) {
+        notice.classList.add(needsAlt ? "is-error" : "is-success");
+        if (checklist instanceof HTMLElement) {
+          checklist.hidden = true;
+        }
+        if (message instanceof HTMLElement) {
+          message.hidden = false;
+          message.textContent = needsAlt
+            ? Drupal.t(
+                "Cover uploaded — add alt text, then click Save branding.",
+              )
+            : Drupal.t(
+                "Cover ready — click Save branding to publish it on your event page.",
+              );
+        }
+        notice.querySelectorAll("[data-upload-step]").forEach((step) => {
+          step.classList.toggle(
+            "is-active",
+            step.getAttribute("data-upload-step") === "save",
+          );
+        });
+      }
+    }
+    else if (state === UPLOAD_STATE_EMPTY) {
+      shouldShow = true;
+      if (checklist instanceof HTMLElement) {
+        checklist.hidden = false;
+      }
+      if (message instanceof HTMLElement) {
+        message.hidden = true;
+      }
+      notice.querySelectorAll("[data-upload-step]").forEach((step) => {
+        step.classList.toggle(
+          "is-active",
+          step.getAttribute("data-upload-step") === "choose",
+        );
+      });
+    }
+
+    notice.hidden = !shouldShow;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   */
+  function bindHeroFileInput(root) {
+    const fileInput = findHeroFileInput(root);
+    if (!fileInput) {
+      return;
+    }
+    if (fileInput.dataset.melHeroFileInputBound === "1") {
+      return;
+    }
+    fileInput.dataset.melHeroFileInputBound = "1";
+    fileInput.addEventListener("change", () => {
+      const form = root.closest("form");
+      syncUploadNotice(root, form instanceof HTMLFormElement ? form : null);
+    });
+  }
+
   /**
    * @returns {string}
    */
@@ -292,6 +505,9 @@
   }
 
   /**
+   * Advisory crop guidance (notice UI). Not used to block save — studio_branding
+   * has crop_types_required empty; Drupal only hard-fails when the widget is .error.
+   *
    * @param {HTMLElement} root
    * @returns {boolean}
    */
@@ -299,29 +515,48 @@
     if (!hasUploadedHeroFile(root)) {
       return false;
     }
-    const wrapper = findCropWrapper(root);
-    if (wrapper && wrapper.classList.contains("error")) {
+    if (hasCropValidationError(root)) {
       return true;
     }
     return !isCropApplied(root);
   }
 
   /**
+   * Whether Save branding must be blocked for crop validation (server/widget error).
+   *
+   * @param {HTMLElement} root
+   * @returns {boolean}
+   */
+  function cropBlocksSave(root) {
+    return hasUploadedHeroFile(root) && hasCropValidationError(root);
+  }
+
+  /**
    * @param {HTMLElement} root
    */
   function syncCropRequiredNotice(root) {
-    const notice = root.querySelector(".mel-es-branding-crop-notice");
+    const notice = root.querySelector("#mel-es-branding-crop-notice");
     const wrapper = findCropWrapper(root);
     const needsAttention = cropNeedsAttention(root);
     const hasError = !!(wrapper && wrapper.classList.contains("error"));
 
-    if (notice) {
+    if (notice instanceof HTMLElement) {
       const shouldHide = !needsAttention;
       if (notice.hidden !== shouldHide) {
         notice.hidden = shouldHide;
       }
       if (notice.classList.contains("is-error") !== hasError) {
         notice.classList.toggle("is-error", hasError);
+      }
+      const text = notice.querySelector(".mel-es-branding-crop-notice__text");
+      if (text instanceof HTMLElement) {
+        text.textContent = hasError
+          ? Drupal.t(
+              "Cover crop is required — apply the 16:9 crop, then save branding.",
+            )
+          : Drupal.t(
+              "Apply the 16:9 crop under your cover image before saving branding.",
+            );
       }
     }
 
@@ -385,7 +620,7 @@
    */
   function scrollToBrandingFormIssue(root) {
     const cropIssue = root.querySelector(
-      ".image-data__crop-wrapper.error, .mel-es-branding-crop-wrapper--attention, .mel-es-branding-crop-notice:not([hidden])",
+      "#mel-es-branding-upload-notice:not([hidden]), #mel-es-branding-crop-notice:not([hidden]), .image-data__crop-wrapper.error, .mel-es-branding-crop-wrapper--attention",
     );
     if (cropIssue) {
       cropIssue.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -451,6 +686,7 @@
    * @param {HTMLElement} root
    */
   function syncHeroToolStrip(root) {
+    const form = root.closest("form");
     const focal = findFocalField(root);
     const presets = root.querySelector(".mel-es-branding-hero-focal-presets");
     const framing = root.querySelector(".mel-es-branding-hero-framing");
@@ -484,6 +720,8 @@
     }
 
     syncCropRequiredNotice(root);
+    syncUploadNotice(root, form instanceof HTMLFormElement ? form : null);
+    bindHeroFileInput(root);
   }
 
   /**
@@ -602,13 +840,66 @@
                 if (!isSaveBrandingSubmit(event)) {
                   return;
                 }
-                if (cropNeedsAttention(root) || hasCropValidationError(root)) {
+                if (isPendingUpload(root)) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  syncUploadNotice(
+                    root,
+                    form instanceof HTMLFormElement ? form : null,
+                  );
+                  scrollToBrandingFormIssue(root);
+                  return;
+                }
+                if (hasHeroPreviewWithoutFid(root)) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  syncUploadNotice(
+                    root,
+                    form instanceof HTMLFormElement ? form : null,
+                  );
+                  scrollToBrandingFormIssue(root);
+                  return;
+                }
+                if (
+                  hasUploadedHeroFile(root)
+                  && !hasAltText(form instanceof HTMLFormElement ? form : null)
+                ) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  syncUploadNotice(
+                    root,
+                    form instanceof HTMLFormElement ? form : null,
+                  );
+                  const alt = findAltField(
+                    form instanceof HTMLFormElement ? form : null,
+                  );
+                  if (alt) {
+                    alt.focus();
+                    alt.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+                  return;
+                }
+                if (cropBlocksSave(root)) {
+                  event.preventDefault();
+                  event.stopPropagation();
                   syncCropRequiredNotice(root);
                   scrollToBrandingFormIssue(root);
                 }
               },
               true,
             );
+            const altField = findAltField(
+              form instanceof HTMLFormElement ? form : null,
+            );
+            if (altField && !altField.dataset.melHeroAltBound) {
+              altField.dataset.melHeroAltBound = "1";
+              altField.addEventListener("input", () => {
+                syncUploadNotice(
+                  root,
+                  form instanceof HTMLFormElement ? form : null,
+                );
+              });
+            }
           }
 
           const focal = findFocalField(root);

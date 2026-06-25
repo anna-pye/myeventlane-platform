@@ -1395,8 +1395,8 @@ final class EventStudioSaveService {
     if (!is_array($mel_input)) {
       $mel_input = [];
     }
-    $from_input = $mel_input['field_event_image'] ?? NULL;
-    if (!is_array($from_input) || !$this->brandingHeroMelFragmentHasAuthoritativeInput($from_input)) {
+    $from_input = $this->brandingHeroMelFieldFragmentFromMelArray($mel_input);
+    if ($from_input === NULL) {
       $from_request = $this->brandingHeroMelFieldFragmentFromRequest();
       if ($from_request === NULL) {
         return;
@@ -1546,8 +1546,11 @@ final class EventStudioSaveService {
     $fragments = [];
     $user_input = $form_state->getUserInput();
     $user_mel = is_array($user_input) ? ($user_input['mel'] ?? NULL) : NULL;
-    if (is_array($user_mel['field_event_image'] ?? NULL)) {
-      $fragments[] = $user_mel['field_event_image'];
+    if (is_array($user_mel)) {
+      $user_fragment = $this->brandingHeroMelFieldFragmentFromMelArray($user_mel);
+      if (is_array($user_fragment)) {
+        $fragments[] = $user_fragment;
+      }
     }
 
     $request_fragment = $this->brandingHeroMelFieldFragmentFromRequest();
@@ -1556,8 +1559,11 @@ final class EventStudioSaveService {
     }
 
     $values_mel = $form_state->getValue('mel');
-    if (is_array($values_mel['field_event_image'] ?? NULL)) {
-      $fragments[] = $values_mel['field_event_image'];
+    if (is_array($values_mel)) {
+      $values_fragment = $this->brandingHeroMelFieldFragmentFromMelArray($values_mel);
+      if (is_array($values_fragment)) {
+        $fragments[] = $values_fragment;
+      }
     }
 
     return $fragments;
@@ -1596,11 +1602,41 @@ final class EventStudioSaveService {
     if (!is_array($request_mel)) {
       return NULL;
     }
-    $fragment = $request_mel['field_event_image'] ?? NULL;
-    if (!is_array($fragment) || !$this->brandingHeroMelFragmentHasAuthoritativeInput($fragment)) {
-      return NULL;
+    return $this->brandingHeroMelFieldFragmentFromMelArray($request_mel);
+  }
+
+  /**
+   * Resolves a hero widget fragment from a mel array (direct or wrapper paths).
+   *
+   * image_widget_crop can leave values under field_event_image_wrapper.widget while
+   * POST field names still use mel[field_event_image][…].
+   *
+   * @param array<string, mixed> $mel
+   *
+   * @return array<string, mixed>|null
+   */
+  private function brandingHeroMelFieldFragmentFromMelArray(array $mel): ?array {
+    $candidates = [];
+    if (isset($mel['field_event_image']) && is_array($mel['field_event_image'])) {
+      $candidates[] = $mel['field_event_image'];
     }
-    return $fragment;
+    $wrapper = $mel['field_event_image_wrapper'] ?? NULL;
+    if (is_array($wrapper)) {
+      if (isset($wrapper['widget']) && is_array($wrapper['widget'])) {
+        $candidates[] = $wrapper['widget'];
+      }
+      if (isset($wrapper[0]) && is_array($wrapper[0])) {
+        $candidates[] = $wrapper;
+      }
+    }
+
+    foreach ($candidates as $fragment) {
+      if ($this->brandingHeroMelFragmentHasAuthoritativeInput($fragment)) {
+        return $fragment;
+      }
+    }
+
+    return NULL;
   }
 
   /**
