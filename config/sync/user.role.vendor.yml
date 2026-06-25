@@ -18,6 +18,7 @@ dependencies:
     - contextual
     - file
     - filter
+    - media
     - mel_ticket
     - myeventlane_analytics
     - myeventlane_attendee
@@ -76,6 +77,7 @@ permissions:
   - 'comment on vendor escalations'
   - 'create customer profile'
   - 'create event content'
+  - 'create image media'
   - 'create mel_ticket_type entities'
   - 'create paragraph content attendee_answer'
   - 'create paragraph content attendee_extra_field'

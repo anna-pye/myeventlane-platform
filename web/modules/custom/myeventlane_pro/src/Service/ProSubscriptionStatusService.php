@@ -62,6 +62,8 @@ final class ProSubscriptionStatusService {
    *   status_message: string,
    *   state: string,
    *   plan_label: string,
+   *   renews_at: int|null,
+   *   renews_label: string|null,
    * }
    */
   public function getStatusForUser(UserInterface $user): array {
@@ -85,6 +87,8 @@ final class ProSubscriptionStatusService {
       'status_message' => 'Upgrade to MEL Pro to unlock advanced organiser tools.',
       'state' => 'inactive',
       'plan_label' => 'MEL Pro',
+      'renews_at' => NULL,
+      'renews_label' => NULL,
     ];
 
     if ($user->isAnonymous()) {
@@ -154,6 +158,19 @@ final class ProSubscriptionStatusService {
       $graceExpiresLabel = $this->dateFormatter->format($graceExpires, 'custom', 'j M');
     }
 
+    // Canonical renewal date: only the active subscription's next renewal time.
+    // NULL when there is no active subscription (manual Pro, grace, etc.) — no
+    // date is invented.
+    $renewsAt = NULL;
+    $renewsLabel = NULL;
+    if ($hasActiveSubscription) {
+      $nextRenewal = $this->activeResolver->getUserActiveEndTimestamp($user);
+      if (is_int($nextRenewal) && $nextRenewal > 0) {
+        $renewsAt = $nextRenewal;
+        $renewsLabel = $this->dateFormatter->format($nextRenewal, 'custom', 'j M Y');
+      }
+    }
+
     return [
       'is_pro' => $isPro,
       'is_subscription_managed' => $isManaged,
@@ -171,6 +188,8 @@ final class ProSubscriptionStatusService {
       'status_message' => $message,
       'state' => $uiState,
       'plan_label' => 'MEL Pro',
+      'renews_at' => $renewsAt,
+      'renews_label' => $renewsLabel,
     ];
   }
 
@@ -198,6 +217,8 @@ final class ProSubscriptionStatusService {
       'status_message' => 'Upgrade to MEL Pro to unlock advanced organiser tools.',
       'state' => 'inactive',
       'plan_label' => 'MEL Pro',
+      'renews_at' => NULL,
+      'renews_label' => NULL,
     ];
 
     $account = $this->currentUser;

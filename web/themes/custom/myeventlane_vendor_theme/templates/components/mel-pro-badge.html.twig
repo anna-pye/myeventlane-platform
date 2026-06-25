@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Reusable MEL Pro badge.
+ *
+ * A small, accessible, brand-consistent indicator that a vendor account is on
+ * the MEL Pro plan. The label is real text (not colour-only), so it is legible
+ * to screen readers and in high-contrast modes.
+ *
+ * Available variables:
+ * - label: Visible badge text. Defaults to "MEL PRO".
+ * - size: 'sm' | 'md' | 'lg'. Defaults to 'md'.
+ * - sr_text: Optional extra context announced to screen readers only.
+ *
+ * Callers must guarantee Pro state before including this partial (e.g. gate on
+ * is_pro), and add the user / user.roles cache contexts on the render array.
+ */
+#}
+{% set badge_label = label|default('MEL PRO'|t) %}
+{% set badge_size = size|default('md') %}
+<span class="mel-pro-badge mel-pro-badge--{{ badge_size }}">
+  <span class="mel-pro-badge__icon" aria-hidden="true">★</span>
+  <span class="mel-pro-badge__label">{{ badge_label }}</span>
+  {% if sr_text is defined and sr_text %}
+    <span class="visually-hidden">{{ sr_text }}</span>
+  {% endif %}
+</span>

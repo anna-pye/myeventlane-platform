@@ -1283,3 +1283,236 @@ $mel-dash-attention-danger: #D64545;
   cursor: pointer;
   text-decoration: none;
 }
+
+// ---------------------------------------------------------------------------
+// MEL Pro experience (Phase 2) — reusable badge + premium status panel.
+// Pastel, soft, rounded, mobile-first. Label is real text (not colour-only)
+// for WCAG legibility. Navy text on a light lavender field keeps contrast
+// well above 4.5:1.
+// ---------------------------------------------------------------------------
+
+.mel-pro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid rgba($mel-dash-lavender, 0.4);
+  border-radius: $radius-full;
+  background: rgba($mel-dash-lavender, 0.14);
+  color: $mel-ws-navy;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &__icon {
+    color: $mel-dash-lavender;
+    font-size: 0.85em;
+    line-height: 1;
+  }
+
+  &--sm {
+    padding: 0.15rem 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  &--lg {
+    gap: $spacing-2;
+    padding: 0.35rem 0.85rem;
+    font-size: $font-size-sm;
+  }
+}
+
+.mel-vendor-dashboard__organiser-pro {
+  margin: $spacing-1 0 0;
+}
+
+.mel-pro-panel {
+  display: grid;
+  gap: $spacing-4;
+  padding: $spacing-5;
+  border: 1px solid rgba($mel-dash-lavender, 0.3);
+  border-radius: $radius-lg;
+  background: rgba($mel-dash-lavender, 0.06);
+  box-shadow: none;
+
+  @include respond-to(md) {
+    padding: $spacing-6;
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-3;
+  }
+
+  &__lede {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__checklist {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: $spacing-2 $spacing-5;
+    }
+  }
+
+  &__check {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__check-mark {
+    flex-shrink: 0;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
+
+  &__check--on &__check-mark {
+    color: $success;
+  }
+
+  &__check--soon {
+    color: $text-muted;
+  }
+
+  &__check--soon &__check-mark {
+    color: $text-muted;
+  }
+
+  &__soon {
+    margin-left: $spacing-1;
+    padding: 0.1rem 0.45rem;
+    border-radius: $radius-full;
+    background: rgba($text-muted, 0.14);
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-3 $spacing-5;
+    margin: 0;
+    padding-top: $spacing-3;
+    border-top: 1px solid rgba($mel-shell-border, 0.45);
+  }
+
+  &__meta-row {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__meta-term {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__meta-desc {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-bold;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MEL Pro one-time welcome (Finalisation) — celebratory but calm/pastel.
+// ---------------------------------------------------------------------------
+.mel-pro-welcome {
+  display: grid;
+  gap: $spacing-3;
+  padding: $spacing-5;
+  border: 1px solid rgba($mel-dash-lavender, 0.35);
+  border-radius: $radius-lg;
+  background: rgba($mel-dash-lavender, 0.1);
+
+  @include respond-to(md) {
+    padding: $spacing-6;
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-2;
+  }
+
+  &__title {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-normal;
+  }
+
+  &__lede {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2 $spacing-4;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-1;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+
+    &::before {
+      content: "\2713";
+      color: $success;
+      font-weight: $font-weight-bold;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+  }
+}

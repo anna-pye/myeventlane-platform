@@ -29,6 +29,7 @@
 {% set events_empty = model_events is not iterable or model_events|length == 0 %}
 {% set create_action = organiser_actions|filter(item => item.key|default('') == 'create')|first|default(null) %}
 {% set support_action = organiser_actions|filter(item => item.key|default('') == 'support')|first|default(null) %}
+{% set stripe_panel = stripe|default(stripe_status|default({})) %}
 {% set has_current_event = current_event is not null %}
 {% set event_in_session_label = 'Event today'|t %}
 {% set current_event_in_session = current_event and current_event.status|default('') == 'upcoming' and event_in_session_label in current_event.attention_reasons|default([]) %}
@@ -47,6 +48,27 @@
 ] %}
 
 <section class="mel-live-operations mel-vendor-dashboard{% if events_empty %} mel-vendor-dashboard--empty{% endif %}{% if has_current_event %} mel-vendor-dashboard--has-focus{% endif %}{% if current_event_in_session %} mel-vendor-dashboard--event-live{% endif %}" data-mel-vendor-dashboard>
+
+  {# One-time MEL Pro welcome — shown once per vendor after upgrade (user.data
+     flag set server-side; this render is not cached). #}
+  {% if show_pro_welcome|default(false) %}
+    <aside class="mel-pro-welcome" role="status" aria-live="polite" aria-labelledby="mel-pro-welcome-title">
+      <div class="mel-pro-welcome__head">
+        {% include '@myeventlane_vendor_theme/components/mel-pro-badge.html.twig' with { size: 'sm' } only %}
+        <h2 id="mel-pro-welcome-title" class="mel-pro-welcome__title">{{ 'Welcome to MEL Pro'|t }}</h2>
+      </div>
+      <p class="mel-pro-welcome__lede">{{ 'Your premium account is now active.'|t }}</p>
+      <ul class="mel-pro-welcome__list" role="list">
+        <li class="mel-pro-welcome__item">{{ 'Premium dashboard'|t }}</li>
+        <li class="mel-pro-welcome__item">{{ 'Vendor enhancements'|t }}</li>
+        <li class="mel-pro-welcome__item">{{ 'Advanced tools'|t }}</li>
+        <li class="mel-pro-welcome__item">{{ 'Premium features'|t }}</li>
+      </ul>
+      <div class="mel-pro-welcome__actions">
+        <a class="mel-btn mel-btn--primary" href="#mel-dash-hero-title">{{ 'Explore your dashboard'|t }}</a>
+      </div>
+    </aside>
+  {% endif %}
 
   {# 1 — Organiser identity owns the page. #}
   <header class="mel-vendor-dashboard__organiser-header mel-dashboard-header" aria-labelledby="mel-dash-hero-title">
@@ -69,6 +91,11 @@
             {% endif %}
           {% endif %}
         </h1>
+        {% if is_pro|default(false) %}
+          <p class="mel-vendor-dashboard__organiser-pro">
+            {% include '@myeventlane_vendor_theme/components/mel-pro-badge.html.twig' with { size: 'sm', sr_text: 'Your account is a MEL Pro premium vendor account.'|t } only %}
+          </p>
+        {% endif %}
         <p class="mel-vendor-dashboard__organiser-subtitle">{{ 'Running your events'|t }}</p>
         {% if not events_empty %}
           <p class="mel-vendor-dashboard__organiser-subtext">{{ 'Manage your events, attendees and business.'|t }}</p>
@@ -104,6 +131,76 @@
       {% endif %}
     </div>
   </header>
+
+  {# Pro premium confirmation — immediate, visible proof the paid upgrade is
+     live. Pro vendors only; free vendors keep the calm upgrade prompt below. #}
+  {% if is_pro|default(false) %}
+    <section class="mel-pro-panel" aria-labelledby="mel-dash-pro-title">
+      <div class="mel-pro-panel__head">
+        {% include '@myeventlane_vendor_theme/components/mel-pro-badge.html.twig' with { size: 'lg' } only %}
+        <p id="mel-dash-pro-title" class="mel-pro-panel__lede">{{ 'Your premium vendor experience is active.'|t }}</p>
+      </div>
+
+      <ul class="mel-pro-panel__checklist" role="list">
+        <li class="mel-pro-panel__check mel-pro-panel__check--on">
+          <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Pro subscription active'|t }}
+        </li>
+        <li class="mel-pro-panel__check mel-pro-panel__check--on">
+          <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Premium features enabled'|t }}
+        </li>
+        <li class="mel-pro-panel__check mel-pro-panel__check--on">
+          <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Vendor enhancements enabled'|t }}
+        </li>
+        <li class="mel-pro-panel__check mel-pro-panel__check--on">
+          <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Advanced analytics enabled'|t }}
+        </li>
+        <li class="mel-pro-panel__check mel-pro-panel__check--on">
+          <span class="mel-pro-panel__check-mark" aria-hidden="true">✓</span>{{ 'Branding tools enabled'|t }}
+        </li>
+        <li class="mel-pro-panel__check mel-pro-panel__check--soon">
+          <span class="mel-pro-panel__check-mark" aria-hidden="true">○</span>{{ 'Priority support'|t }}
+          <span class="mel-pro-panel__soon">{{ 'Coming soon'|t }}</span>
+        </li>
+      </ul>
+
+      {% if pro_status is defined and pro_status.plan_label is defined %}
+        <dl class="mel-pro-panel__meta">
+          <div class="mel-pro-panel__meta-row">
+            <dt class="mel-pro-panel__meta-term">{{ 'Plan'|t }}</dt>
+            <dd class="mel-pro-panel__meta-desc">{{ pro_status.plan_label }}</dd>
+          </div>
+          <div class="mel-pro-panel__meta-row">
+            <dt class="mel-pro-panel__meta-term">{{ 'Status'|t }}</dt>
+            <dd class="mel-pro-panel__meta-desc">{{ pro_status.status_label }}</dd>
+          </div>
+          {% if pro_status.has_active_subscription %}
+            <div class="mel-pro-panel__meta-row">
+              <dt class="mel-pro-panel__meta-term">{{ 'Subscription'|t }}</dt>
+              <dd class="mel-pro-panel__meta-desc">{{ 'Current'|t }}</dd>
+            </div>
+          {% endif %}
+          {% if pro_status.renews_label is defined and pro_status.renews_label %}
+            <div class="mel-pro-panel__meta-row">
+              <dt class="mel-pro-panel__meta-term">{{ 'Renews'|t }}</dt>
+              <dd class="mel-pro-panel__meta-desc">{{ pro_status.renews_label }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+      {% endif %}
+
+      <div class="mel-pro-panel__actions">
+        <a class="mel-btn mel-btn--secondary" href="{{ pro_status.manage_url|default(path('myeventlane_pro.manage')) }}">{{ 'Manage subscription'|t }}</a>
+      </div>
+    </section>
+  {% endif %}
+
+  {# Payment setup — visible without expanding Tools & settings. #}
+  {% if stripe_panel is iterable and stripe_panel|length > 0 %}
+    <section class="mel-vendor-dashboard__stripe-panel" aria-labelledby="mel-dash-stripe-title">
+      <h2 id="mel-dash-stripe-title" class="visually-hidden">{{ 'Payment setup'|t }}</h2>
+      {% include '@myeventlane_vendor_theme/components/stripe-panel.html.twig' with { stripe: stripe_panel } only %}
+    </section>
+  {% endif %}
 
   {# 3 — Workspace overview: how is my business today? #}
   {% if not events_empty %}
@@ -510,7 +607,7 @@
             <div class="mel-vendor-dashboard__micro-surface">{{ launch_pro_status }}</div>
           {% elseif is_pro|default(false) %}
             <div class="mel-vendor-dashboard__micro-surface">
-              <span class="mel-live-ops__chip mel-live-ops__chip--success">{{ 'PRO PLAN active'|t }}</span>
+              {% include '@myeventlane_vendor_theme/components/mel-pro-badge.html.twig' with { size: 'sm' } only %}
               <a class="mel-live-ops__chip mel-live-ops__chip--lavender" href="{{ path('myeventlane_pro.manage') }}">{{ 'Manage'|t }}</a>
             </div>
           {% elseif show_pro_prompt|default(false) %}

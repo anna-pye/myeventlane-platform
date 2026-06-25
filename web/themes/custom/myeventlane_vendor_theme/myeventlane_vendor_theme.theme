@@ -1329,6 +1329,8 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'is_pro' => FALSE,
         'show_pro_prompt' => FALSE,
         'pro_upgrade_url' => NULL,
+        'pro_status' => [],
+        'show_pro_welcome' => FALSE,
         'growth_cards' => [],
         'mel_top_boost_opportunity' => NULL,
       ],
