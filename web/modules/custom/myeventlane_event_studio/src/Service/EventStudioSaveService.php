@@ -113,15 +113,15 @@ final class EventStudioSaveService {
     }
 
     // Keep Content Moderation aligned with the requested published flag.
-    // Draft revisions are not default revisions in the editorial workflow, so
-    // unpublishing a live event must use the unpublished default state.
+    // Unpublishing a live event returns organisers to draft so update access and
+    // Event Studio remain available (archived blocks vendor edit transitions).
     if (!$draft && $node->hasField('moderation_state') && !$node->get('moderation_state')->isEmpty()) {
       $moderationState = (string) $node->get('moderation_state')->value;
       if ($willPublish && $moderationState !== 'published') {
         $node->set('moderation_state', 'published');
       }
       if (!$willPublish && $moderationState === 'published') {
-        $node->set('moderation_state', 'archived');
+        $node->set('moderation_state', 'draft');
       }
     }
 
@@ -498,7 +498,7 @@ final class EventStudioSaveService {
         $node->set('moderation_state', 'published');
       }
       if (!$published && $moderationState === 'published') {
-        $node->set('moderation_state', 'archived');
+        $node->set('moderation_state', 'draft');
       }
     }
     EventNodeRevisionSave::prepare($node, $revision_log);

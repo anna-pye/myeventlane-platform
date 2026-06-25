@@ -5,12 +5,36 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\node\NodeInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Isolated Event Studio form for event information.
  */
 final class EventInformationForm extends EventStudioBaseForm {
+
+  private ?EventStudioWorkspacePresentation $workspacePresentation = NULL;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    $instance = parent::create($container);
+    $instance->ensureInjectedServices();
+    return $instance;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function ensureInjectedServices(): void {
+    parent::ensureInjectedServices();
+    if ($this->workspacePresentation instanceof EventStudioWorkspacePresentation) {
+      return;
+    }
+    $this->workspacePresentation = \Drupal::getContainer()->get('myeventlane_event_studio.workspace_presentation');
+  }
 
   public function getFormId(): string {
     return 'myeventlane_event_studio_information_form';
@@ -105,6 +129,10 @@ final class EventInformationForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['venue_mode'] ?? 'one_off',
       '#prefix' => '<section class="mel-es-field-group mel-es-field-group--location" aria-labelledby="mel-es-location-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-location-title">' . $this->t('Location') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Choose a saved venue, create a venue, or add a one-off address for this event.') . '</p></header><div class="mel-es-field-group__body">',
     ];
+
+    $this->ensureInjectedServices();
+    $form['mel']['location_saved_summary'] = $this->workspacePresentation->buildSavedLocationSummaryRenderArray($node);
+    $form['mel']['location_saved_summary']['#weight'] = -20;
 
     $form['mel']['venue_saved'] = [
       '#type' => 'entity_autocomplete',

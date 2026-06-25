@@ -282,6 +282,63 @@ final class EventStudioWorkspacePresentation {
     ];
   }
 
+  /**
+   * Read-only saved location summary for Event Studio information forms.
+   *
+   * Uses the same payload as {@see buildTopbarLocation()}.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildSavedLocationSummaryRenderArray(NodeInterface $node): array {
+    $location = $this->buildTopbarLocation($node);
+    $build = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-es-location-summary'],
+        'data-mel-location-summary' => '1',
+        'role' => 'status',
+        'aria-live' => 'polite',
+      ],
+    ];
+
+    if (!$location['configured']) {
+      $build['warning'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $location['warning'],
+        '#attributes' => ['class' => ['mel-es-location-summary__line', 'mel-es-location-summary__line--warning']],
+      ];
+      return $build;
+    }
+
+    $build['heading'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h4',
+      '#value' => $this->t('Saved location'),
+      '#attributes' => ['class' => ['mel-es-location-summary__title']],
+    ];
+
+    if (!empty($location['primary_line'])) {
+      $build['primary'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => '📍 ' . $location['primary_line'],
+        '#attributes' => ['class' => ['mel-es-location-summary__line', 'mel-es-location-summary__line--primary']],
+      ];
+    }
+
+    if (!empty($location['secondary_line'])) {
+      $build['secondary'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $location['secondary_line'],
+        '#attributes' => ['class' => ['mel-es-location-summary__line', 'mel-es-location-summary__line--secondary']],
+      ];
+    }
+
+    return $build;
+  }
+
   private function isLocationConfigured(NodeInterface $node): bool {
     if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
       return TRUE;
