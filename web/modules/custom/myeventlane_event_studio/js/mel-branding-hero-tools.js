@@ -117,7 +117,13 @@
 
     const state = resolveUploadState(root);
     const previousState = root.dataset.melHeroUploadState || "";
-    if (state === UPLOAD_STATE_UPLOADED && previousState !== UPLOAD_STATE_UPLOADED) {
+    // Only flag pending save after an in-session transition (e.g. pending → uploaded).
+    // Initial attach with an already-saved cover has previousState "" and must not prompt again.
+    if (
+      state === UPLOAD_STATE_UPLOADED
+      && previousState !== ""
+      && previousState !== UPLOAD_STATE_UPLOADED
+    ) {
       root.dataset.melHeroUploadPendingSave = "1";
     }
     if (state === UPLOAD_STATE_EMPTY) {

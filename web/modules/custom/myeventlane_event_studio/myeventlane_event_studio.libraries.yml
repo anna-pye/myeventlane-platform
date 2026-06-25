@@ -107,7 +107,7 @@ mel_customer_operational_experience:
     - core/drupal
 
 mel_branding_hero_tools:
-  version: 1.6
+  version: 1.7
   js:
     js/mel-branding-hero-tools.js: {}
   dependencies:
