@@ -1273,6 +1273,10 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         $variables['mel_donation_total_formatted'] ?? NULL,
         (array) ($variables['mel_calendar_links'] ?? []),
         (string) ($variables['mel_event_url'] ?? ''),
+        // Commerce payment truth: confirmed copy only when the order is paid.
+        // Zero-total (free RSVP/ticket) orders report isPaid() === TRUE, so
+        // they keep the existing confirmed behaviour.
+        (bool) $order->isPaid(),
       );
 
       // Attach copy-link JS when share block is present.

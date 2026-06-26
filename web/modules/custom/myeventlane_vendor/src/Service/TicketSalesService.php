@@ -660,9 +660,11 @@ final class TicketSalesService {
   private function emptyVendorRevenueSummary(): array {
     return [
       'gross' => '$0.00',
+      'refunded' => '$0.00',
       'net' => '$0.00',
       'fees' => '$0.00',
       'gross_raw' => 0.0,
+      'refunded_raw' => 0.0,
       'tickets' => 0,
     ];
   }
@@ -679,6 +681,12 @@ final class TicketSalesService {
 
     $totalGross = 0.0;
     $totalTickets = 0;
+    // Gross is counted from completed-state orders, matching the canonical
+    // per-event path getSalesSummaryForEventId(). Whether pending
+    // manual/invoice orders should count is a product decision the repository
+    // does not answer (see docs/launch/p1-remediation/), so the current
+    // production assumption (completed state) is preserved here intentionally.
+    $currency = 'AUD';
 
     try {
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
@@ -712,6 +720,7 @@ final class TicketSalesService {
             $totalPrice = $item->getTotalPrice();
             if ($totalPrice) {
               $totalGross += (float) $totalPrice->getNumber();
+              $currency = strtoupper($totalPrice->getCurrencyCode());
             }
             $totalTickets += (int) $item->getQuantity();
           }
@@ -725,18 +734,30 @@ final class TicketSalesService {
       // Commerce may not be available.
     }
 
+    // Net completed refunds, reusing the same refund attribution used by the
+    // per-event sales summary. Do not duplicate refund logic here.
+    $refundedCents = 0;
+    foreach ($eventIds as $eventId) {
+      $attribution = $this->getRefundAttributionCents((int) $eventId, $currency);
+      $refundedCents += (int) ($attribution['ticket_cents'] ?? 0);
+    }
+    $totalRefunded = $refundedCents / 100;
+
     $feePercent = PlatformFeeDefaults::normalizePercent(
       $this->configFactory->get('myeventlane_core.settings')->get('platform_fee_percent')
     );
     $feeRate = $feePercent / 100;
     $fees = $totalGross * $feeRate;
-    $net = $totalGross - $fees;
+    // Net earnings = gross sold − platform fees − completed refunds, floored at 0.
+    $net = max(0.0, $totalGross - $fees - $totalRefunded);
 
     return [
       'gross' => '$' . number_format($totalGross, 2),
+      'refunded' => '$' . number_format($totalRefunded, 2),
       'net' => '$' . number_format($net, 2),
       'fees' => '$' . number_format($fees, 2),
       'gross_raw' => $totalGross,
+      'refunded_raw' => $totalRefunded,
       'tickets' => $totalTickets,
     ];
   }

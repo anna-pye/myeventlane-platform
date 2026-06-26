@@ -197,9 +197,10 @@ final class MelCustomerContinuityPresenter {
     ?string $donation_total_formatted,
     array $calendar_links,
     string $event_url,
+    bool $is_paid = TRUE,
   ): array {
     $labels = $this->readinessHelper->customerCheckoutCompletionPresentationLabels();
-    $hero = $this->resolveCheckoutCompletionHero($has_tickets, $donation_total_formatted, $labels);
+    $hero = $this->resolveCheckoutCompletionHero($has_tickets, $donation_total_formatted, $labels, $is_paid);
 
     $primary_url = '';
     $primary_label = '';
@@ -322,7 +323,7 @@ final class MelCustomerContinuityPresenter {
    *
    * @return array{type: string, heading: string, lead: string}
    */
-  private function resolveCheckoutCompletionHero(bool $has_tickets, ?string $donation_total_formatted, array $labels): array {
+  private function resolveCheckoutCompletionHero(bool $has_tickets, ?string $donation_total_formatted, array $labels, bool $is_paid = TRUE): array {
     $donation_display = ($donation_total_formatted ?? '') !== '';
     if ($donation_display && !$has_tickets) {
       return [
@@ -332,9 +333,14 @@ final class MelCustomerContinuityPresenter {
       ];
     }
     if ($has_tickets) {
-      $h = $this->readinessHelper->customerCheckoutCompletionHero();
+      // Confirmed booking language only when Commerce considers the order paid.
+      // Pending-payment orders (e.g. manual/invoice gateway) get an honest
+      // "order received" state rather than "booking confirmed".
+      $h = $is_paid
+        ? $this->readinessHelper->customerCheckoutCompletionHero()
+        : $this->readinessHelper->customerCheckoutPendingPaymentHero();
       return [
-        'type' => 'tickets',
+        'type' => $is_paid ? 'tickets' : 'tickets_pending',
         'heading' => $h['heading'],
         'lead' => $h['lead'],
       ];
