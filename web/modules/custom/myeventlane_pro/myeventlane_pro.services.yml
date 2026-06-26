@@ -4,6 +4,16 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_pro']
 
+  myeventlane_pro.upgrade_redirect_subscriber:
+    class: Drupal\myeventlane_pro\EventSubscriber\ProUpgradeRedirectSubscriber
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@myeventlane_pro.active_resolver'
+      - '@messenger'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_pro.entitlement_reconciler:
     class: Drupal\myeventlane_pro\Service\ProEntitlementReconciler
     arguments:

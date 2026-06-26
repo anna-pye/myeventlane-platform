@@ -394,7 +394,24 @@ final class MelReadinessHelper {
   public function customerCheckoutCompletionHero(): array {
     return [
       'heading' => (string) $this->customerCheckoutCompletionHeadline(),
-      'lead' => (string) $this->t('Your tickets and receipt are on their way to your inbox.'),
+      'lead' => (string) $this->t('Confirmation and tickets have been sent.'),
+    ];
+  }
+
+  /**
+   * Pending-payment checkout completion hero.
+   *
+   * Used when the order is placed but Commerce does not yet consider it paid
+   * (e.g. manual / invoice gateway). Deliberately avoids successful-booking
+   * language so the customer is not told their booking is confirmed before
+   * payment has settled.
+   *
+   * @return array{heading: string, lead: string}
+   */
+  public function customerCheckoutPendingPaymentHero(): array {
+    return [
+      'heading' => (string) $this->t('Order received'),
+      'lead' => (string) $this->t('We’re waiting for payment confirmation. Your booking will be confirmed once payment has been received.'),
     ];
   }
 

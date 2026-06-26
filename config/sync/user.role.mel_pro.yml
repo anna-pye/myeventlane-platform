@@ -15,6 +15,7 @@ dependencies:
     - myeventlane_event_state
     - myeventlane_help_centre
     - myeventlane_refunds
+    - myeventlane_reporting
     - myeventlane_vendor
     - myeventlane_vendor_ai
     - paragraphs
@@ -38,6 +39,7 @@ permissions:
   - 'manage checkout_donation commerce_order_item'
   - manage_refunds
   - 'purchase boost for events'
+  - 'request exports'
   - request_refunds
   - 'reuse mel_ticket_type entities'
   - 'update own boost_upgrade commerce_product'
@@ -48,6 +50,7 @@ permissions:
   - 'use pro financial analytics'
   - 'use vendor ai assistant'
   - 'view boost_upgrade commerce_product'
+  - 'view event insights'
   - 'view mel_ticket_type entities'
   - 'view paragraph content attendee_answer'
   - 'view paragraph content attendee_extra_field'
@@ -55,4 +58,5 @@ permissions:
   - 'view stripe dashboard links'
   - 'view unpublished paragraphs'
   - 'view vendor help centre'
+  - 'view vendor insights'
   - 'view vendor refund summary'
