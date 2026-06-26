@@ -244,11 +244,15 @@ final class MelCustomerContinuityPresenter {
       ];
     }
 
+    $email_line = $has_tickets && !$is_paid
+      ? $this->readinessHelper->customerCheckoutPendingPaymentEmailLine($email)
+      : $this->readinessHelper->customerCheckoutConfirmationEmailSentLine($email);
+
     return [
       'hero' => $hero,
       'labels' => $labels,
       'confirmation' => [
-        'email_line' => $this->readinessHelper->customerCheckoutConfirmationEmailSentLine($email),
+        'email_line' => $email_line,
         'order_line' => $this->readinessHelper->customerCheckoutOrderNumberLine($order_number),
       ],
       'guest' => [
