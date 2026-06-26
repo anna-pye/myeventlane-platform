@@ -59,6 +59,12 @@ final class ProUpgradeRedirectSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    // Admin/staff routes should keep Drupal's normal admin denial experience,
+    // not the vendor Pro upgrade funnel.
+    if ($this->isAdminRoute($route) || $this->currentUserHasAdminRoutePermission($route)) {
+      return;
+    }
+
     // Anonymous users follow the normal denial flow (e.g. redirect to login).
     if (!$this->currentUser->isAuthenticated()) {
       return;
@@ -85,6 +91,36 @@ final class ProUpgradeRedirectSubscriber implements EventSubscriberInterface {
 
     $event->setResponse(new RedirectResponse($url));
     $event->stopPropagation();
+  }
+
+  private function isAdminRoute(Route $route): bool {
+    if ((bool) $route->getOption('_admin_route')) {
+      return TRUE;
+    }
+
+    return str_starts_with($route->getPath(), '/admin/');
+  }
+
+  private function currentUserHasAdminRoutePermission(Route $route): bool {
+    $requirement = $route->getRequirement('_permission');
+    if (!is_string($requirement) || $requirement === '') {
+      return FALSE;
+    }
+
+    $permissions = preg_split('/[,+]/', $requirement) ?: [];
+    foreach ($permissions as $permission) {
+      $permission = trim($permission);
+      if ($this->isAdminPermission($permission) && $this->currentUser->hasPermission($permission)) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  private function isAdminPermission(string $permission): bool {
+    return str_starts_with($permission, 'administer ')
+      || str_starts_with($permission, 'access myeventlane admin ');
   }
 
 }

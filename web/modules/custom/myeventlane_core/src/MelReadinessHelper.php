@@ -535,6 +535,10 @@ final class MelReadinessHelper {
     return (string) $this->t('Confirmation sent to @email.', ['@email' => $email]);
   }
 
+  public function customerCheckoutPendingPaymentEmailLine(string $email): string {
+    return (string) $this->t('We’ll email @email once payment has been confirmed.', ['@email' => $email]);
+  }
+
   public function customerCheckoutOrderNumberLine(string $order_number): string {
     return (string) $this->t('Order #@number', ['@number' => $order_number]);
   }
