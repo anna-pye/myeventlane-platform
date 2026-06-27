@@ -12,6 +12,9 @@ SITE_URI="${SITE_URI:-}"
 MEL_DRUSH_PHP_MEMORY="${MEL_DRUSH_PHP_MEMORY:-1024M}"
 TARGET="staging"
 FORCE=0
+declare -a DRUSH_CMD=()
+declare -a DRUSH_URI_ARGS=()
+declare -a REASONS=()
 
 usage() {
   cat <<'EOF'
@@ -47,13 +50,15 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-REASONS=()
 BRANCH_STATUS="PASS"
 DRUPAL_STATUS="NOT RUN"
 CONFIG_STATUS="NOT RUN"
 DATABASE_STATUS="NOT RUN"
 TESTS_STATUS="NOT RUN"
 BUILD_STATUS="NOT RUN"
+REMOTE_TRACKING_BRANCH=""
+REMOTE_AHEAD=""
+REMOTE_BEHIND=""
 
 print_rule() {
   echo "----------------------------------------"
@@ -119,7 +124,11 @@ configure_drush() {
 }
 
 drush_capture() {
-  "${DRUSH_CMD[@]}" "$@" "${DRUSH_URI_ARGS[@]}"
+  if [ "${#DRUSH_URI_ARGS[@]}" -gt 0 ]; then
+    "${DRUSH_CMD[@]}" "$@" "${DRUSH_URI_ARGS[@]}"
+  else
+    "${DRUSH_CMD[@]}" "$@"
+  fi
 }
 
 is_staging_branch() {
@@ -149,22 +158,37 @@ annotated_tag_at_head() {
 }
 
 upstream_summary() {
-  local upstream counts behind ahead
-  upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
-  if [ -z "$upstream" ]; then
+  if [ -z "$REMOTE_TRACKING_BRANCH" ]; then
     echo "No upstream configured"
     return 0
   fi
 
-  counts="$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null || true)"
-  if [ -z "$counts" ]; then
-    echo "${upstream}: unable to compare"
+  if [ -z "$REMOTE_AHEAD" ] || [ -z "$REMOTE_BEHIND" ]; then
+    echo "${REMOTE_TRACKING_BRANCH}: unable to compare"
     return 0
   fi
 
-  behind="${counts%%[[:space:]]*}"
-  ahead="${counts##*[[:space:]]}"
-  echo "${upstream}: ahead ${ahead}, behind ${behind}"
+  echo "${REMOTE_TRACKING_BRANCH}: ahead ${REMOTE_AHEAD}, behind ${REMOTE_BEHIND}"
+}
+
+resolve_upstream_metadata() {
+  local counts
+
+  REMOTE_TRACKING_BRANCH="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+  REMOTE_AHEAD=""
+  REMOTE_BEHIND=""
+
+  if [ -z "$REMOTE_TRACKING_BRANCH" ]; then
+    return 0
+  fi
+
+  counts="$(git rev-list --left-right --count "${REMOTE_TRACKING_BRANCH}...HEAD" 2>/dev/null || true)"
+  if [ -z "$counts" ]; then
+    return 0
+  fi
+
+  REMOTE_BEHIND="${counts%%[[:space:]]*}"
+  REMOTE_AHEAD="${counts##*[[:space:]]}"
 }
 
 print_git_cleanliness() {
@@ -241,6 +265,84 @@ print_not_ready_and_exit() {
   exit 1
 }
 
+metadata_status() {
+  case "$1" in
+    PASS*)
+      echo "pass"
+      ;;
+    WARN*)
+      echo "warn"
+      ;;
+    *)
+      echo "fail"
+      ;;
+  esac
+}
+
+write_release_metadata() {
+  local metadata_file="build/release-metadata.json"
+  local tmp validated_at_utc
+
+  validated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  tmp="$(mktemp)"
+
+  mkdir -p build || {
+    rm -f "$tmp"
+    return 1
+  }
+
+  if ! php -r '
+$remoteTrackingBranch = $argv[5] !== "" ? $argv[5] : null;
+$ahead = $argv[6] !== "" ? (int) $argv[6] : null;
+$behind = $argv[7] !== "" ? (int) $argv[7] : null;
+$metadata = [
+    "target" => $argv[1],
+    "branch" => $argv[2],
+    "commit" => $argv[3],
+    "commit_message" => $argv[4],
+    "remote_tracking_branch" => $remoteTrackingBranch,
+    "ahead" => $ahead,
+    "behind" => $behind,
+    "validated_at_utc" => $argv[8],
+    "drupal_status" => $argv[9],
+    "config_status" => $argv[10],
+    "database_status" => $argv[11],
+    "tests_status" => $argv[12],
+    "build_status" => $argv[13],
+];
+$json = json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+if ($json === false) {
+    fwrite(STDERR, "Failed to encode release metadata JSON.\n");
+    exit(1);
+}
+echo $json, PHP_EOL;
+' \
+    "$TARGET" \
+    "$CURRENT_BRANCH" \
+    "$CURRENT_SHA" \
+    "$CURRENT_MESSAGE" \
+    "$REMOTE_TRACKING_BRANCH" \
+    "$REMOTE_AHEAD" \
+    "$REMOTE_BEHIND" \
+    "$validated_at_utc" \
+    "$(metadata_status "$DRUPAL_STATUS")" \
+    "$(metadata_status "$CONFIG_STATUS")" \
+    "$(metadata_status "$DATABASE_STATUS")" \
+    "$(metadata_status "$TESTS_STATUS")" \
+    "$(metadata_status "$BUILD_STATUS")" >"$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
+
+  mv "$tmp" "$metadata_file" || {
+    rm -f "$tmp"
+    return 1
+  }
+
+  echo ""
+  echo "Release metadata written: ${metadata_file}"
+}
+
 print_rule
 echo "MEL Release Validation"
 print_rule
@@ -258,6 +360,7 @@ fi
 CURRENT_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
 CURRENT_SHORT_SHA="$(git rev-parse --short HEAD 2>/dev/null || true)"
 CURRENT_MESSAGE="$(git log -1 --pretty=%s 2>/dev/null || true)"
+resolve_upstream_metadata
 UPSTREAM_STATUS="$(upstream_summary)"
 
 echo "Target:          ${TARGET}"
@@ -380,6 +483,12 @@ if [ "$BUILD_FAILURES" -eq 0 ]; then
   BUILD_STATUS="PASS"
 else
   BUILD_STATUS="FAIL"
+fi
+
+if [ "${#REASONS[@]}" -eq 0 ]; then
+  if ! write_release_metadata; then
+    add_reason "Release metadata could not be written."
+  fi
 fi
 
 echo ""
