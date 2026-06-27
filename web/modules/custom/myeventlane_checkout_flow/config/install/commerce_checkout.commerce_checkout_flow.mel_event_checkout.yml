@@ -10,8 +10,8 @@ dependencies:
     - myeventlane_commerce
 _core:
   default_config_hash: MEL_EVENT_CHECKOUT_FLOW_HASH
-id: mel_event_checkout
 label: 'MyEventLane Event Checkout'
+id: mel_event_checkout
 plugin: mel_event_checkout
 configuration:
   display_checkout_progress: false
@@ -21,7 +21,6 @@ configuration:
   guest_new_account: true
   guest_new_account_notify: true
   panes:
-    # MAIN REGION - Checkout step
     mel_buyer_details:
       display_label: 'Buyer details'
       step: checkout
@@ -38,24 +37,12 @@ configuration:
       weight: 3
       wrapper_element: fieldset
     payment_information:
-      display_label: 'Payment'
+      display_label: Payment
       step: checkout
       weight: 4
       wrapper_element: container
       always_display: true
       require_payment_method: false
-    # SIDEBAR REGION (single summary + coupon only)
-    coupon_redemption:
-      step: _sidebar
-      weight: 0
-      allow_multiple: false
-    order_summary:
-      display_label: null
-      step: _sidebar
-      weight: 1
-      wrapper_element: container
-      view: commerce_checkout_order_summary
-    # DISABLED - Duplicate/empty summary panes; grouped view missing
     grouped_order_summary:
       display_label: null
       step: _disabled
@@ -66,7 +53,12 @@ configuration:
       step: _disabled
       weight: 99
       wrapper_element: fieldset
-    # DISABLED - Legacy panes we don't want
+    order_summary:
+      display_label: null
+      step: _sidebar
+      weight: 1
+      wrapper_element: container
+      view: commerce_checkout_order_summary
     contact_information:
       step: _disabled
       weight: 100
@@ -76,4 +68,3 @@ configuration:
     myeventlane_attendee_info_per_ticket:
       step: _disabled
       weight: 102
-

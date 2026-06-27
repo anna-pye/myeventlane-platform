@@ -178,7 +178,7 @@ Canonical workspace at `/vendor/events/{node}/studio/{section}` — information,
 | P2 | Wire My Events empty state to governed template | Empty state quality | Low | Low |
 | P2 | Richer organiser first-event empty copy (RSVP vs paid Stripe note) | Onboarding clarity | Low | Low |
 | P3 | Consolidate attendee entry points in docs/help only | Reduced confusion | Med | Low |
-| P3 | Align checkout flow config (`mel_event_checkout`) in sync | Booking reliability | Med | Medium — config |
+| Resolved | Align checkout flow config (`mel_event_checkout`) in sync | Booking reliability | Med | Resolved by ADR-0001 Architecture B implementation |
 | P4 | Remove or hide placeholder manage-event routes from IA | Fewer dead ends | Med | Low |
 | P4 | Pro analytics upsell copy when Insights locked | Conversion | Med | Low |
 

@@ -93,7 +93,13 @@ test.describe('Checkout happy path', () => {
     await page.getByRole('button', { name: /Complete booking/i }).click();
 
     await expect(page).toHaveURL(/\/checkout\/\d+\/complete/, { timeout: 60_000 });
-    await expect(page.getByRole('heading', { name: /Great choice\. You're all set\./i })).toBeVisible();
+    if (env.paymentMode === 'manual') {
+      await expect(page.getByRole('heading', { name: /Order received/i })).toBeVisible();
+      await expect(page.getByText(/waiting for payment confirmation/i)).toBeVisible();
+    }
+    else {
+      await expect(page.getByRole('heading', { name: /Great choice\. You're all set\./i })).toBeVisible();
+    }
 
     const orderMatch = page.url().match(/\/checkout\/(\d+)\/complete/);
     expect(orderMatch).not.toBeNull();

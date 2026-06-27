@@ -12,7 +12,7 @@ third_party_settings:
     cart_expiration: {  }
     enable_cart_message: true
   commerce_checkout:
-    checkout_flow: default
+    checkout_flow: mel_event_checkout
 _core:
   default_config_hash: kYapI397yx2zFJGyDEs85Hyqgfc9jhmzxqPZMl2Fqhk
 id: default
