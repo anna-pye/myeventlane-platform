@@ -40,6 +40,30 @@ Operational scripts for local development, audits, deployment, and governance. R
 | `test-vendor-access.sh` | VendorConsoleAccess check for UID 1 | Local DDEV | No | None |
 | `verify-access-fix.sh` | Post-fix vendor access verification | Local DDEV | No | None |
 
+---
+
+## Release validation workflow
+
+The release validator runs before artifact packaging. It validates the repository checkout, not the deployed release artifact, and is not designed to run inside the deployment artifact. Artifact deploys may not contain `.git`, tests, or dev dependencies.
+
+For staging:
+
+```bash
+bash scripts/validate-release.sh staging
+```
+
+If validation fails, fix the reported issues and rerun the validator. Commit and push only after validation passes, then deploy using the existing deploy process.
+
+For production:
+
+```bash
+bash scripts/validate-release.sh production
+```
+
+Successful validation writes `build/release-metadata.json` with non-secret release metadata for the validated checkout. Failed validation does not write or update release metadata.
+
+Stripe payment gateway config differences may be environment-specific and must be reviewed, not blindly exported.
+
 ### Dangerous (`dangerous/`)
 
 | Script | Purpose | Safe environment | Destructive | Required confirmation |
