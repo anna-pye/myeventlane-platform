@@ -71,11 +71,11 @@
 ### 5. Configuration Files
 
 #### A. Checkout Flow Config
-- **File:** `config/install/commerce_checkout.commerce_checkout_flow.mel_event.yml`
+- **File:** `web/modules/custom/myeventlane_checkout_flow/config/install/commerce_checkout.commerce_checkout_flow.mel_event_checkout.yml`
 - **Config ID:** `mel_event_checkout`
 - **Pane Order:**
-  - **Main:** Buyer details → Attendee details → Donation → Legal consent → Payment
-  - **Sidebar:** Grouped summary → Fee transparency → Order summary
+  - **Main:** Buyer details → Attendee details → Legal consent → Payment
+  - **Sidebar:** Order summary
   - **Disabled:** `contact_information`, `billing_information`, `myeventlane_attendee_info_per_ticket`
 
 #### B. Order Item Type Config
@@ -95,14 +95,18 @@
 ### Main Region (`checkout` step)
 1. **Buyer details** (`mel_buyer_details`) — Weight: 0
 2. **Attendee details** (`ticket_holder_paragraph`) — Weight: 1
-3. **Donation** (`mel_donation`) — Weight: 2
-4. **Legal consent** (`mel_legal_consent`) — Weight: 3
-5. **Payment** (`payment_information`) — Weight: 4
+3. **Legal consent** (`mel_legal_consent`) — Weight: 3
+4. **Payment** (`payment_information`) — Weight: 4
 
 ### Sidebar Region (`_sidebar` step)
-1. **Grouped summary** (`grouped_order_summary`) — Weight: 0
-2. **Fee transparency** (`mel_fee_transparency`) — Weight: 1
-3. **Order summary** (`order_summary`) — Weight: 2
+1. **Order summary** (`order_summary`) — Weight: 1
+
+### Disabled Panes
+- **Grouped summary** (`grouped_order_summary`) — Weight: 98
+- **Fee transparency** (`mel_fee_transparency`) — Weight: 99
+- **Contact information** (`contact_information`) — Weight: 100
+- **Billing information** (`billing_information`) — Weight: 101
+- **Legacy attendee info** (`myeventlane_attendee_info_per_ticket`) — Weight: 102
 
 ---
 
@@ -113,16 +117,15 @@
    ddev drush en myeventlane_checkout_flow -y
    ```
 
-2. **Set as active checkout flow:**
+2. **Confirm canonical checkout assignment:**
    ```bash
-   ddev drush config:set commerce_checkout.commerce_checkout_flow.default plugin mel_event_checkout -y
+   ddev drush cget commerce_order.commerce_order_type.default third_party_settings.commerce_checkout.checkout_flow
    ```
-   OR manually change the `plugin` value in:
-   `web/sites/default/config/sync/commerce_checkout.commerce_checkout_flow.default.yml`
+   Expected value: `mel_event_checkout`.
 
-3. **Export config (if needed):**
+3. **Export config after intentional checkout config changes:**
    ```bash
-   ddev drush config:export -y
+   ddev drush cex -y
    ```
 
 ---

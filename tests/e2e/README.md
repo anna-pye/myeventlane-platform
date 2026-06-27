@@ -13,7 +13,7 @@ Playwright end-to-end coverage for the critical customer path:
 3. Config imported and cache warm:
 
 ```bash
-ddev drush updb -y   # ensures default order type uses mel_event_checkout
+ddev drush config:import -y   # imports canonical mel_event_checkout assignment
 ddev drush cr
 ```
 

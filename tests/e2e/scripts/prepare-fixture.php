@@ -93,6 +93,7 @@ $manualId = 'mel_stripe_cc';
 if ($paymentMode === 'manual') {
   $previous = [];
   foreach (array_merge($stripeIds, [$manualId]) as $gatewayId) {
+    /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface|null $gateway */
     $gateway = $gatewayStorage->load($gatewayId);
     if ($gateway !== NULL) {
       $previous[$gatewayId] = (bool) $gateway->status();
@@ -100,6 +101,7 @@ if ($paymentMode === 'manual') {
   }
 
   foreach ($stripeIds as $gatewayId) {
+    /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface|null $gateway */
     $gateway = $gatewayStorage->load($gatewayId);
     if ($gateway !== NULL && $gateway->status()) {
       $gateway->set('status', FALSE);
@@ -107,6 +109,7 @@ if ($paymentMode === 'manual') {
     }
   }
 
+  /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface|null $manual */
   $manual = $gatewayStorage->load($manualId);
   if ($manual === NULL || !$manual->status()) {
     fwrite(STDERR, "Manual payment gateway mel_stripe_cc is missing or disabled.\n");
@@ -123,6 +126,7 @@ if ($paymentMode === 'manual') {
 }
 else {
   // stripe_test: ensure stripe gateway is enabled with test keys from settings overrides.
+  /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface|null $stripe */
   $stripe = $gatewayStorage->load('stripe');
   if ($stripe === NULL || !$stripe->status()) {
     fwrite(STDERR, "Stripe gateway is not enabled for stripe_test mode.\n");
@@ -141,13 +145,12 @@ else {
 
 \Drupal::service('cache_tags.invalidator')->invalidateTags(['config:commerce_payment_gateway_list']);
 
-// Ensure ticket carts use the MEL single-page checkout flow (not Commerce default).
-$orderTypeConfig = \Drupal::configFactory()->getEditable('commerce_order.commerce_order_type.default');
-$thirdParty = $orderTypeConfig->get('third_party_settings.commerce_checkout') ?? [];
-if (($thirdParty['checkout_flow'] ?? 'default') !== 'mel_event_checkout') {
-  $thirdParty['checkout_flow'] = 'mel_event_checkout';
-  $orderTypeConfig->set('third_party_settings.commerce_checkout', $thirdParty);
-  $orderTypeConfig->save(TRUE);
+// Assert the repository already provides the canonical checkout architecture.
+$checkoutFlow = \Drupal::config('commerce_order.commerce_order_type.default')
+  ->get('third_party_settings.commerce_checkout.checkout_flow');
+if ($checkoutFlow !== 'mel_event_checkout') {
+  fwrite(STDERR, "Default Commerce order type must use mel_event_checkout before running E2E checkout tests. Import canonical config instead of mutating it in the fixture.\n");
+  exit(1);
 }
 
 echo json_encode([

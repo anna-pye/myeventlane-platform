@@ -120,7 +120,7 @@
 | Help centre dual organiser paths | Single public card label |
 | Event Studio default title | “Event Studio” instead of “Vendor workspace” |
 
-**Deferred (needs product, not copy):** Pro-gated insights upsell, placeholder manage-event routes, checkout flow config drift.
+**Deferred (needs product, not copy):** Pro-gated insights upsell, placeholder manage-event routes.
 
 ---
 
@@ -167,7 +167,7 @@ find web/modules/custom web/themes/custom -name "*.php" -print0 | xargs -0 -n1 p
 |----------|------|
 | P2 | Remove or hide placeholder manage-event routes from IA |
 | P2 | Pro insights upsell copy when `/vendor/analytics` locked |
-| P3 | Align checkout flow config (`mel_event_checkout`) in sync |
+| Resolved | Align checkout flow config (`mel_event_checkout`) in sync |
 | P3 | Consolidate attendee entry URLs in help docs only |
 | P4 | `myeventlane_dashboard` legacy template “Vendor Dashboard” title (admin module) |
 

@@ -142,7 +142,7 @@ full matrix and the overall launch-readiness score. Priorities used throughout:
 ## 4. Customer journey
 
 ### 4.1 Purchase ticket / Checkout
-- **Routes:** `/event/{node}/book` (`BookController`), `/cart/attendee-info/{order_item}` (`AttendeeInfoController`), Commerce checkout flow (`myeventlane_checkout_flow`), completion template `commerce/commerce-checkout-completion.html.twig` (215 lines).
+- **Routes:** `/event/{node}/book` (`BookController`), `/cart/attendee-info/{order_item}` (`AttendeeInfoController`), Commerce checkout flow (`mel_event_checkout` via `myeventlane_checkout_flow`), completion template `commerce/commerce-checkout-completion.html.twig` (215 lines).
 - **Primary CTA:** Book → checkout → pay.
 - **Empty states:** `commerce/commerce-cart-empty-page.html.twig` — governed empty state (`mel_cart_empty_state` from PHP), illustration, help/support trust nav. Strong.
 - **Completion:** Governed copy via `MelCustomerContinuityPresenter`; success hero, email line, order reference, per-event ticket cards with images (`alt=""` decorative). Strong continuity.
