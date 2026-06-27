@@ -13,6 +13,7 @@ Operational scripts for local development, audits, deployment, and governance. R
 | Script | Purpose | Safe environment | Destructive | Required confirmation |
 |--------|---------|------------------|-------------|----------------------|
 | `preflight-health-check.sh` | DB, cache, config sync, and filesystem smoke checks | Local DDEV | No | None |
+| `validate-release.sh` | Canonical pre-deployment release validation: Git, Drush bootstrap, config status, database updates, MEL tests, and theme builds | Local DDEV / staging / production checkout | No | None |
 | `rebuild-scss.sh` | Clears theme caches, reinstalls npm deps, rebuilds theme assets | Local DDEV | No (removes theme `node_modules`/`dist`) | None |
 | `myeventlane-audit-collector.sh` | Collects git/composer/drush audit snapshot into `_myeventlane_audit/` | Local | No | None |
 | `backup-build-and-db.sh` | Exports DB + optional DDEV snapshot and code tarball to `backups/` | Local DDEV | No | None |
