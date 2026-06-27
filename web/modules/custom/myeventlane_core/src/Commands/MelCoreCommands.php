@@ -107,6 +107,8 @@ final class MelCoreCommands extends DrushCommands {
 
     if (!is_readable($metadataPath)) {
       $this->io()->warning(sprintf('Release metadata not found or unreadable: %s', ReleaseMetadataSchema::FILE));
+      $this->io()->writeln('Run the release validator successfully to generate metadata.');
+      return 1;
     }
     else {
       $contents = file_get_contents($metadataPath);
