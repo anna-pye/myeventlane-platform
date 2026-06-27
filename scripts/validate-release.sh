@@ -11,6 +11,7 @@ cd "$ROOT" || exit 1
 SITE_URI="${SITE_URI:-}"
 MEL_DRUSH_PHP_MEMORY="${MEL_DRUSH_PHP_MEMORY:-1024M}"
 TARGET="staging"
+VALIDATOR_VERSION="1.1.0"
 FORCE=0
 declare -a DRUSH_CMD=()
 declare -a DRUSH_URI_ARGS=()
@@ -54,14 +55,50 @@ BRANCH_STATUS="PASS"
 DRUPAL_STATUS="NOT RUN"
 CONFIG_STATUS="NOT RUN"
 DATABASE_STATUS="NOT RUN"
+GOVERNANCE_STATUS="NOT RUN"
 TESTS_STATUS="NOT RUN"
 BUILD_STATUS="NOT RUN"
+METADATA_STATUS="NOT WRITTEN"
 REMOTE_TRACKING_BRANCH=""
 REMOTE_AHEAD=""
 REMOTE_BEHIND=""
+DRUPAL_VERSION=""
+PHP_VERSION=""
+DRUSH_VERSION=""
+DETECTED_SITE_URI=""
 
 print_rule() {
   echo "----------------------------------------"
+}
+
+print_summary_row() {
+  local label="$1"
+  local status="$2"
+  local width=22
+  local dot_count
+
+  dot_count=$((width - ${#label}))
+  if [ "$dot_count" -lt 1 ]; then
+    dot_count=1
+  fi
+
+  printf '%s ' "$label"
+  printf '%*s' "$dot_count" '' | tr ' ' '.'
+  printf ' %s\n' "$status"
+}
+
+target_label() {
+  case "$TARGET" in
+    staging)
+      echo "STAGING"
+      ;;
+    production)
+      echo "PRODUCTION"
+      ;;
+    *)
+      echo "$TARGET"
+      ;;
+  esac
 }
 
 add_reason() {
@@ -255,7 +292,17 @@ evaluate_target_policy() {
 print_not_ready_and_exit() {
   echo ""
   print_rule
-  echo "NOT READY FOR DEPLOY"
+  print_summary_row "Git" "$BRANCH_STATUS"
+  print_summary_row "Drupal" "$DRUPAL_STATUS"
+  print_summary_row "Config" "$CONFIG_STATUS"
+  print_summary_row "Database" "$DATABASE_STATUS"
+  print_summary_row "Governance" "$GOVERNANCE_STATUS"
+  print_summary_row "Tests" "$TESTS_STATUS"
+  print_summary_row "Build" "$BUILD_STATUS"
+  print_summary_row "Metadata" "$METADATA_STATUS"
+  print_rule
+  echo ""
+  echo "NOT READY FOR $(target_label)"
   echo ""
   echo "Reasons:"
   for reason in "${REASONS[@]}"; do
@@ -279,6 +326,24 @@ metadata_status() {
   esac
 }
 
+drush_status_value() {
+  local label="$1"
+  local status_output="$2"
+
+  printf '%s\n' "$status_output" | awk -F ':' -v label="$label" '
+    {
+      key = $1
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      if (tolower(key) == tolower(label)) {
+        sub(/^[^:]*:[[:space:]]*/, "", $0)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+        print $0
+        exit
+      }
+    }
+  '
+}
+
 write_release_metadata() {
   local metadata_file="build/release-metadata.json"
   local tmp validated_at_utc
@@ -292,23 +357,28 @@ write_release_metadata() {
   }
 
   if ! php -r '
-$remoteTrackingBranch = $argv[5] !== "" ? $argv[5] : null;
-$ahead = $argv[6] !== "" ? (int) $argv[6] : null;
-$behind = $argv[7] !== "" ? (int) $argv[7] : null;
+$nullableString = static fn (string $value): ?string => $value !== "" ? $value : null;
+$nullableInt = static fn (string $value): ?int => $value !== "" ? (int) $value : null;
 $metadata = [
-    "target" => $argv[1],
-    "branch" => $argv[2],
-    "commit" => $argv[3],
-    "commit_message" => $argv[4],
-    "remote_tracking_branch" => $remoteTrackingBranch,
-    "ahead" => $ahead,
-    "behind" => $behind,
-    "validated_at_utc" => $argv[8],
-    "drupal_status" => $argv[9],
-    "config_status" => $argv[10],
-    "database_status" => $argv[11],
-    "tests_status" => $argv[12],
-    "build_status" => $argv[13],
+    "validator_version" => $argv[1],
+    "target" => $argv[2],
+    "branch" => $argv[3],
+    "commit" => $argv[4],
+    "commit_message" => $argv[5],
+    "remote_tracking_branch" => $nullableString($argv[6]),
+    "ahead" => $nullableInt($argv[7]),
+    "behind" => $nullableInt($argv[8]),
+    "validated_at_utc" => $argv[9],
+    "drupal_version" => $nullableString($argv[10]),
+    "php_version" => $nullableString($argv[11]),
+    "drush_version" => $nullableString($argv[12]),
+    "site_uri" => $nullableString($argv[13]),
+    "drupal_status" => $argv[14],
+    "database_status" => $argv[15],
+    "config_status" => $argv[16],
+    "governance_status" => $argv[17],
+    "tests_status" => $argv[18],
+    "build_status" => $argv[19],
 ];
 $json = json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 if ($json === false) {
@@ -317,6 +387,7 @@ if ($json === false) {
 }
 echo $json, PHP_EOL;
 ' \
+    "$VALIDATOR_VERSION" \
     "$TARGET" \
     "$CURRENT_BRANCH" \
     "$CURRENT_SHA" \
@@ -325,9 +396,14 @@ echo $json, PHP_EOL;
     "$REMOTE_AHEAD" \
     "$REMOTE_BEHIND" \
     "$validated_at_utc" \
+    "$DRUPAL_VERSION" \
+    "$PHP_VERSION" \
+    "$DRUSH_VERSION" \
+    "$DETECTED_SITE_URI" \
     "$(metadata_status "$DRUPAL_STATUS")" \
-    "$(metadata_status "$CONFIG_STATUS")" \
     "$(metadata_status "$DATABASE_STATUS")" \
+    "$(metadata_status "$CONFIG_STATUS")" \
+    "$(metadata_status "$GOVERNANCE_STATUS")" \
     "$(metadata_status "$TESTS_STATUS")" \
     "$(metadata_status "$BUILD_STATUS")" >"$tmp"; then
     rm -f "$tmp"
@@ -339,6 +415,7 @@ echo $json, PHP_EOL;
     return 1
   }
 
+  METADATA_STATUS="WRITTEN"
   echo ""
   echo "Release metadata written: ${metadata_file}"
 }
@@ -349,6 +426,7 @@ print_rule
 echo ""
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  BRANCH_STATUS="FAIL"
   add_reason "Git metadata is unavailable; release validation requires a repository checkout so branch, tag, commit, and cleanliness can be verified."
   print_not_ready_and_exit
 fi
@@ -375,6 +453,7 @@ evaluate_target_policy
 GIT_STATUS="$(git status --porcelain 2>/dev/null || true)"
 if [ -n "$GIT_STATUS" ]; then
   print_git_cleanliness
+  BRANCH_STATUS="FAIL"
   add_reason "Working tree is not clean."
   print_not_ready_and_exit
 fi
@@ -391,6 +470,13 @@ else
   DRUPAL_OUT="$(drush_capture status 2>&1)"
   DRUPAL_RC=$?
   printf '%s\n' "$DRUPAL_OUT" | mask_sensitive
+  DRUPAL_VERSION="$(drush_status_value "Drupal version" "$DRUPAL_OUT")"
+  PHP_VERSION="$(drush_status_value "PHP version" "$DRUPAL_OUT")"
+  DRUSH_VERSION="$(drush_status_value "Drush version" "$DRUPAL_OUT")"
+  DETECTED_SITE_URI="$(drush_status_value "Site URI" "$DRUPAL_OUT")"
+  if [ -z "$DETECTED_SITE_URI" ]; then
+    DETECTED_SITE_URI="$SITE_URI"
+  fi
   if [ "$DRUPAL_RC" -eq 0 ] && printf '%s\n' "$DRUPAL_OUT" | grep -qE 'Drupal bootstrap[[:space:]]*:[[:space:]]*Successful'; then
     DRUPAL_STATUS="PASS"
   else
@@ -432,14 +518,20 @@ else
       echo ""
       echo "Unexpected configuration drift:"
       printf '%s\n' "$UNEXPECTED_CONFIG" | mask_sensitive
-      CONFIG_STATUS="WARN"
+      CONFIG_STATUS="FAIL"
       add_reason "Unexpected configuration drift detected."
-    elif [ -n "$ENV_CONFIG" ] && [ -n "$STRIPE_CONFIG" ]; then
-      CONFIG_STATUS="PASS (Environment overrides and Stripe/payment differences detected)"
+    elif [ -n "$STRIPE_CONFIG" ]; then
+      CONFIG_STATUS="WARN"
+      echo ""
+      echo "Config:"
+      echo "WARN"
+      echo ""
+      echo "Reason:"
+      echo "Environment-specific Stripe payment gateway overrides detected."
+      echo "Review only."
+      echo "Do not export automatically."
     elif [ -n "$ENV_CONFIG" ]; then
       CONFIG_STATUS="PASS (Environment overrides detected)"
-    elif [ -n "$STRIPE_CONFIG" ]; then
-      CONFIG_STATUS="PASS (Stripe/payment differences detected)"
     else
       CONFIG_STATUS="PASS"
     fi
@@ -466,13 +558,21 @@ run_and_report "Composer validate" composer validate || TEST_FAILURES=$((TEST_FA
 run_and_report "Config safety check" bash scripts/check-config-safety.sh || TEST_FAILURES=$((TEST_FAILURES + 1))
 run_and_report "Webroot safety check" bash scripts/check-webroot-safety.sh || TEST_FAILURES=$((TEST_FAILURES + 1))
 run_and_report "Raw card data safety check" bash scripts/check-no-raw-card-data.sh || TEST_FAILURES=$((TEST_FAILURES + 1))
-run_and_report "Governance audit" composer run-script governance:audit || TEST_FAILURES=$((TEST_FAILURES + 1))
-run_and_report "Governance tests" composer run-script governance:test || TEST_FAILURES=$((TEST_FAILURES + 1))
 
 if [ "$TEST_FAILURES" -eq 0 ]; then
   TESTS_STATUS="PASS"
 else
   TESTS_STATUS="FAIL"
+fi
+
+GOVERNANCE_FAILURES=0
+run_and_report "Governance audit" composer run-script governance:audit || GOVERNANCE_FAILURES=$((GOVERNANCE_FAILURES + 1))
+run_and_report "Governance tests" composer run-script governance:test || GOVERNANCE_FAILURES=$((GOVERNANCE_FAILURES + 1))
+
+if [ "$GOVERNANCE_FAILURES" -eq 0 ]; then
+  GOVERNANCE_STATUS="PASS"
+else
+  GOVERNANCE_STATUS="FAIL"
 fi
 
 BUILD_FAILURES=0
@@ -485,40 +585,40 @@ else
   BUILD_STATUS="FAIL"
 fi
 
-if [ "${#REASONS[@]}" -eq 0 ]; then
-  if ! write_release_metadata; then
-    add_reason "Release metadata could not be written."
-  fi
+if ! write_release_metadata; then
+  add_reason "Release metadata could not be written."
 fi
 
 echo ""
 print_rule
 if [ "${#REASONS[@]}" -eq 0 ]; then
-  echo "READY FOR DEPLOY"
+  print_summary_row "Git" "$BRANCH_STATUS"
+  print_summary_row "Drupal" "$DRUPAL_STATUS"
+  print_summary_row "Config" "$CONFIG_STATUS"
+  print_summary_row "Database" "$DATABASE_STATUS"
+  print_summary_row "Governance" "$GOVERNANCE_STATUS"
+  print_summary_row "Tests" "$TESTS_STATUS"
+  print_summary_row "Build" "$BUILD_STATUS"
+  print_summary_row "Metadata" "$METADATA_STATUS"
+  print_rule
+  echo ""
+  echo "READY FOR $(target_label)"
+  echo ""
+  echo "Metadata:"
+  echo "build/release-metadata.json"
 else
-  echo "NOT READY FOR DEPLOY"
+  print_summary_row "Git" "$BRANCH_STATUS"
+  print_summary_row "Drupal" "$DRUPAL_STATUS"
+  print_summary_row "Config" "$CONFIG_STATUS"
+  print_summary_row "Database" "$DATABASE_STATUS"
+  print_summary_row "Governance" "$GOVERNANCE_STATUS"
+  print_summary_row "Tests" "$TESTS_STATUS"
+  print_summary_row "Build" "$BUILD_STATUS"
+  print_summary_row "Metadata" "$METADATA_STATUS"
+  print_rule
+  echo ""
+  echo "NOT READY FOR $(target_label)"
 fi
-echo ""
-echo "Branch:"
-echo "${CURRENT_BRANCH} (${BRANCH_STATUS})"
-echo ""
-echo "Commit:"
-echo "${CURRENT_SHORT_SHA}"
-echo ""
-echo "Drupal:"
-echo "${DRUPAL_STATUS}"
-echo ""
-echo "Config:"
-echo "${CONFIG_STATUS}"
-echo ""
-echo "Database:"
-echo "${DATABASE_STATUS}"
-echo ""
-echo "Tests:"
-echo "${TESTS_STATUS}"
-echo ""
-echo "Build:"
-echo "${BUILD_STATUS}"
 
 if [ "${#REASONS[@]}" -gt 0 ]; then
   echo ""

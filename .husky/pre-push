@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -e
+
+bash scripts/validate-release.sh staging
