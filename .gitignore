@@ -23,6 +23,7 @@ yarn.lock
 /web/themes/custom/**/node_modules.bak/
 /web/themes/custom/**/dist/
 /build/
+/build/release-metadata.json
 /.npm-cache/
 
 ############################################

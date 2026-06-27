@@ -64,6 +64,62 @@ Successful validation writes `build/release-metadata.json` with non-secret relea
 
 Stripe payment gateway config differences may be environment-specific and must be reviewed, not blindly exported.
 
+---
+
+## Local Git hooks
+
+MEL uses Husky for local Git hooks. Hook installation is managed by the root `package.json` `prepare` script.
+
+Install or refresh hooks after installing npm dependencies:
+
+```bash
+npm install
+```
+
+If dependencies are already installed and the hooks need to be reinstalled:
+
+```bash
+npm run prepare
+```
+
+### Why hooks exist
+
+The hooks catch release-blocking issues before they reach the shared branch or deployment workflow. They do not deploy code, import Drupal config, modify Commerce config, rebuild caches, or replace the canonical release validator.
+
+### Pre-commit
+
+The pre-commit hook runs only lightweight checks:
+
+```bash
+composer validate
+bash scripts/check-config-safety.sh
+bash scripts/check-webroot-safety.sh
+bash scripts/check-no-raw-card-data.sh
+```
+
+It intentionally does not run npm builds, governance tests, PHPUnit, or Drush cache rebuilds.
+
+### Pre-push
+
+The pre-push hook runs the staging release validator:
+
+```bash
+bash scripts/validate-release.sh staging
+```
+
+If validation fails, Git rejects the push and prints the validator output unchanged.
+
+### Bypassing hooks
+
+Bypass hooks only when there is a clear reason, such as an emergency WIP commit or a known local tooling issue. Run the skipped checks manually before opening a PR or deploying.
+
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
+---
+
 ### Dangerous (`dangerous/`)
 
 | Script | Purpose | Safe environment | Destructive | Required confirmation |

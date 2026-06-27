@@ -1,6 +1,7 @@
-echo "→ MEL: lint + build"
+#!/usr/bin/env bash
+set -e
 
-npm run mel:lint || exit 1
-npm run mel:build || exit 1
-
-ddev drush cr || exit 1
+composer validate
+bash scripts/check-config-safety.sh
+bash scripts/check-webroot-safety.sh
+bash scripts/check-no-raw-card-data.sh
