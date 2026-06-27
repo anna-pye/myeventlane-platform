@@ -346,6 +346,7 @@ drush_status_value() {
 
 write_release_metadata() {
   local metadata_file="build/release-metadata.json"
+  local metadata_schema="web/modules/custom/myeventlane_core/src/ReleaseMetadataSchema.php"
   local tmp validated_at_utc
 
   validated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -357,29 +358,8 @@ write_release_metadata() {
   }
 
   if ! php -r '
-$nullableString = static fn (string $value): ?string => $value !== "" ? $value : null;
-$nullableInt = static fn (string $value): ?int => $value !== "" ? (int) $value : null;
-$metadata = [
-    "validator_version" => $argv[1],
-    "target" => $argv[2],
-    "branch" => $argv[3],
-    "commit" => $argv[4],
-    "commit_message" => $argv[5],
-    "remote_tracking_branch" => $nullableString($argv[6]),
-    "ahead" => $nullableInt($argv[7]),
-    "behind" => $nullableInt($argv[8]),
-    "validated_at_utc" => $argv[9],
-    "drupal_version" => $nullableString($argv[10]),
-    "php_version" => $nullableString($argv[11]),
-    "drush_version" => $nullableString($argv[12]),
-    "site_uri" => $nullableString($argv[13]),
-    "drupal_status" => $argv[14],
-    "database_status" => $argv[15],
-    "config_status" => $argv[16],
-    "governance_status" => $argv[17],
-    "tests_status" => $argv[18],
-    "build_status" => $argv[19],
-];
+require $argv[1];
+$metadata = Drupal\myeventlane_core\ReleaseMetadataSchema::createFromOrderedValues(array_slice($argv, 2));
 $json = json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 if ($json === false) {
     fwrite(STDERR, "Failed to encode release metadata JSON.\n");
@@ -387,6 +367,7 @@ if ($json === false) {
 }
 echo $json, PHP_EOL;
 ' \
+    "$metadata_schema" \
     "$VALIDATOR_VERSION" \
     "$TARGET" \
     "$CURRENT_BRANCH" \

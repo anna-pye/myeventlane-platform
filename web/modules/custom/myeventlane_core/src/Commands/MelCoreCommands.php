@@ -6,14 +6,13 @@ namespace Drupal\myeventlane_core\Commands;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\myeventlane_core\PlatformFeeDefaults;
+use Drupal\myeventlane_core\ReleaseMetadataSchema;
 use Drush\Commands\DrushCommands;
 
 /**
  * Core MyEventLane Drush commands (environment sanity).
  */
 final class MelCoreCommands extends DrushCommands {
-
-  private const RELEASE_METADATA_FILE = 'build/release-metadata.json';
 
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
@@ -100,86 +99,40 @@ final class MelCoreCommands extends DrushCommands {
    *   Show read-only release metadata from build/release-metadata.json.
    *
    * @return int
-   *   0 if metadata was displayed, 1 if metadata is missing or unreadable.
+   *   0 if metadata was displayed, 1 if metadata is unreadable or invalid.
    */
   public function buildInfo(): int {
-    $metadataPath = dirname($this->appRoot) . DIRECTORY_SEPARATOR . self::RELEASE_METADATA_FILE;
+    $metadataPath = dirname($this->appRoot) . DIRECTORY_SEPARATOR . ReleaseMetadataSchema::FILE;
+    $metadata = [];
 
     if (!is_readable($metadataPath)) {
-      $this->io()->warning(sprintf('Release metadata not found or unreadable: %s', self::RELEASE_METADATA_FILE));
-      $this->io()->writeln('Run the release validator successfully to generate metadata.');
-      return 1;
+      $this->io()->warning(sprintf('Release metadata not found or unreadable: %s', ReleaseMetadataSchema::FILE));
     }
+    else {
+      $contents = file_get_contents($metadataPath);
+      if ($contents === FALSE) {
+        $this->io()->error(sprintf('Unable to read release metadata: %s', ReleaseMetadataSchema::FILE));
+        return 1;
+      }
 
-    $contents = file_get_contents($metadataPath);
-    if ($contents === FALSE) {
-      $this->io()->error(sprintf('Unable to read release metadata: %s', self::RELEASE_METADATA_FILE));
-      return 1;
-    }
+      try {
+        $metadata = json_decode($contents, TRUE, 512, JSON_THROW_ON_ERROR);
+      }
+      catch (\JsonException $e) {
+        $this->io()->error(sprintf('Release metadata is not valid JSON: %s', $e->getMessage()));
+        return 1;
+      }
 
-    try {
-      $metadata = json_decode($contents, TRUE, 512, JSON_THROW_ON_ERROR);
-    }
-    catch (\JsonException $e) {
-      $this->io()->error(sprintf('Release metadata is not valid JSON: %s', $e->getMessage()));
-      return 1;
-    }
-
-    if (!is_array($metadata)) {
-      $this->io()->error('Release metadata JSON must contain an object.');
-      return 1;
+      if (!is_array($metadata)) {
+        $this->io()->error('Release metadata JSON must contain an object.');
+        return 1;
+      }
     }
 
     $this->io()->title('MyEventLane build information');
-    $this->io()->table(
-      ['Field', 'Value'],
-      [
-        ['Validator version', $this->metadataValue($metadata, 'validator_version')],
-        ['Validation target', $this->metadataValue($metadata, 'target')],
-        ['Validated at', $this->metadataValue($metadata, 'validated_at_utc')],
-        ['Drupal version', $this->metadataValue($metadata, 'drupal_version')],
-        ['PHP version', $this->metadataValue($metadata, 'php_version')],
-        ['Drush version', $this->metadataValue($metadata, 'drush_version')],
-        ['Site URI', $this->metadataValue($metadata, 'site_uri')],
-        ['Branch', $this->metadataValue($metadata, 'branch')],
-        ['Commit', $this->metadataValue($metadata, 'commit')],
-        ['Commit message', $this->metadataValue($metadata, 'commit_message')],
-        ['Remote tracking branch', $this->metadataValue($metadata, 'remote_tracking_branch')],
-        ['Ahead / behind', sprintf('%s / %s', $this->metadataValue($metadata, 'ahead'), $this->metadataValue($metadata, 'behind'))],
-        ['Drupal status', $this->metadataValue($metadata, 'drupal_status')],
-        ['Database status', $this->metadataValue($metadata, 'database_status')],
-        ['Configuration status', $this->metadataValue($metadata, 'config_status')],
-        ['Governance status', $this->metadataValue($metadata, 'governance_status')],
-        ['Tests status', $this->metadataValue($metadata, 'tests_status')],
-        ['Build status', $this->metadataValue($metadata, 'build_status')],
-      ]
-    );
+    $this->io()->table(['Field', 'Value'], ReleaseMetadataSchema::displayRows($metadata));
 
     return 0;
-  }
-
-  /**
-   * Returns a display-safe metadata value.
-   *
-   * @param array<string, mixed> $metadata
-   *   Release metadata decoded from build/release-metadata.json.
-   * @param string $key
-   *   Metadata key.
-   */
-  private function metadataValue(array $metadata, string $key): string {
-    if (!array_key_exists($key, $metadata) || $metadata[$key] === NULL || $metadata[$key] === '') {
-      return 'Not recorded';
-    }
-
-    if (is_bool($metadata[$key])) {
-      return $metadata[$key] ? 'true' : 'false';
-    }
-
-    if (is_scalar($metadata[$key])) {
-      return (string) $metadata[$key];
-    }
-
-    return 'Not recorded';
   }
 
 }
