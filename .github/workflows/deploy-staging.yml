@@ -55,6 +55,24 @@ jobs:
             exit 1
           }
 
+      - name: Diagnose extracted release artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+          debug_marker="MEL REMOTE DEPLOY DEBUG BUILD"
+          deploy_script="$temp_dir/scripts/deploy/remote-deploy.sh"
+          deploy_dir="$temp_dir/scripts/deploy"
+
+          tar -xzf ./artifact/artifact.tar.gz -C "$temp_dir"
+
+          echo "===== EXTRACTED ARTIFACT ====="
+          grep "$debug_marker" "$deploy_script" || true
+          sha256sum "$deploy_script"
+          ls -la "$deploy_dir"
+          find "$temp_dir/scripts" -maxdepth 2 | sort
+
       - name: Write SSH key
         shell: bash
         run: |
@@ -123,6 +141,8 @@ jobs:
             '' \
             'temp_dir="$(mktemp -d)"' \
             'trap '\''rm -rf "$temp_dir"; rm -f /tmp/artifact.tar.gz'\'' EXIT' \
+            'deploy_script="$temp_dir/scripts/deploy/remote-deploy.sh"' \
+            'deploy_dir="$temp_dir/scripts/deploy"' \
             '' \
             'echo "TEMP DIR:"' \
             'echo "$temp_dir"' \
@@ -135,6 +155,12 @@ jobs:
             '' \
             'echo "Running deploy..."' \
             'cd "$temp_dir"' \
+            '' \
+            'echo "===== EXECUTING ====="' \
+            'pwd' \
+            'echo "$temp_dir"' \
+            'ls -la "$deploy_dir"' \
+            'head -5 "$deploy_script"' \
             '' \
             'APP_PATH="$HOME/staging" \' \
             'APP_ENV=staging \' \
