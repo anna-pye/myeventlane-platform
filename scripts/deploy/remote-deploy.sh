@@ -52,17 +52,62 @@ mel_drush_log_cli_limits() {
   echo "  mel_drush uses memory_limit=${MEL_DRUSH_PHP_MEMORY}"
 }
 
-# Run a command with streamed stdout/stderr so PHP fatals appear in CI logs (not swallowed).
+# Run a command with streamed and captured stdout/stderr so Drush fatals are reported with deployment context.
 mel_drush_run() {
   local label="$1"
   shift
+  local command_string=""
+  local arg quoted_arg output rc tmp_output
+
+  for arg in "$@"; do
+    printf -v quoted_arg '%q' "$arg"
+    if [ -n "$command_string" ]; then
+      command_string="${command_string} ${quoted_arg}"
+    else
+      command_string="$quoted_arg"
+    fi
+  done
+
   echo "${label}..."
+  # TEMPORARY DEPLOYMENT DEBUGGING
+  # Remove after identifying the underlying Drush failure.
+  echo "=============================="
+  echo "MEL DEPLOY DEBUG"
+  echo "=============================="
+  echo "Working directory:"
+  pwd
+  echo "URI:"
+  echo "$SITE_URI"
+  echo "Command:"
+  echo "$command_string"
+  echo "Filesystem context:"
+  ls -ld .
+  ls -ld web || true
+  ls -ld vendor || true
+  echo "=============================="
+  tmp_output="$(mktemp)"
   set +e
-  "$@"
-  local rc=$?
+  "$@" 2>&1 | tee "$tmp_output"
+  rc=${PIPESTATUS[0]}
   set -e
+  output="$(<"$tmp_output")"
+  rm -f "$tmp_output"
   if [ "$rc" -ne 0 ]; then
-    echo "ERROR: ${label} failed (exit ${rc})." >&2
+    echo "==============================" >&2
+    echo "DRUSH FAILURE" >&2
+    echo "==============================" >&2
+    echo "Exit code:" >&2
+    echo "$rc" >&2
+    echo "Working directory:" >&2
+    pwd >&2
+    echo "URI:" >&2
+    echo "$SITE_URI" >&2
+    echo "Command:" >&2
+    echo "$command_string" >&2
+    echo "----- Begin Drush Output -----" >&2
+    printf '%s\n' "$output" >&2
+    echo "----- End Drush Output -----" >&2
+    echo "==============================" >&2
     return "$rc"
   fi
   return 0
@@ -71,6 +116,15 @@ mel_drush_run() {
 mel_drush_maintenance_mode() {
   # state:set (alias sset) requires a bootstrapped site; use integer for 0/1.
   local mode="$1"
+  if [ "$mode" = "1" ]; then
+    echo "Enabling maintenance mode..."
+    echo "Current directory:"
+    pwd
+    echo "Current release:"
+    echo "${MEL_PREVIOUS_CURRENT:-}"
+    echo "Target release:"
+    echo "$RELEASE_PATH"
+  fi
   mel_drush_run "Set system.maintenance_mode=${mode}" \
     mel_drush state:set system.maintenance_mode "$mode" \
       --input-format=integer \
