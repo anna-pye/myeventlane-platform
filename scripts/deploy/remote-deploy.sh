@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "=================================================="
+echo "MEL REMOTE DEPLOY DEBUG BUILD 2026-07-01"
+echo "=================================================="
+
 # Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain env verification.
 # Falls back to SITE_URI containing "staging" vs production *.myeventlane.com.au (no staging).
 #
@@ -327,11 +331,37 @@ fi
 mkdir -p "$RELEASE_PATH"
 
 echo "Copying artifact contents..."
+echo
+echo "========== ARTIFACT BEFORE COPY =========="
+echo "Artifact path:"
+echo "$ARTIFACT_PATH"
+echo
+echo "Release path:"
+echo "$RELEASE_PATH"
+echo
+echo "Artifact top level:"
+ls -la "$ARTIFACT_PATH" || true
+echo
+echo "Artifact tree:"
+find "$ARTIFACT_PATH" -maxdepth 2 | sort || true
+echo "=========================================="
+echo
 if ! cp -a "$ARTIFACT_PATH"/. "$RELEASE_PATH"/; then
   echo "ERROR: Failed to copy artifact to $RELEASE_PATH (often 'No space left on device')." >&2
   mel_report_disk_usage >&2
   exit 1
 fi
+
+echo
+echo "========== RELEASE AFTER COPY =========="
+echo
+echo "Top level:"
+ls -la "$RELEASE_PATH" || true
+echo
+echo "Tree:"
+find "$RELEASE_PATH" -maxdepth 2 | sort || true
+echo "========================================"
+echo
 
 # ---- SAFETY CHECK (prevents bad deploys) ----
 [ -f "$RELEASE_PATH/web/index.php" ] || {
@@ -553,6 +583,29 @@ mel_verify_drush_bootstrap "Preflight (new release, before symlink switch)"
 if [ -e "$CURRENT_PATH" ]; then
   MEL_PREVIOUS_CURRENT="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
 fi
+
+echo
+echo "========== BEFORE MAINTENANCE =========="
+echo "Current release:"
+echo "${MEL_PREVIOUS_CURRENT:-<none>}"
+echo
+echo "New release:"
+echo "$RELEASE_PATH"
+echo
+echo "Current release top level:"
+ls -la "${MEL_PREVIOUS_CURRENT:-$RELEASE_PATH}" || true
+echo
+echo "Current release tree:"
+find "${MEL_PREVIOUS_CURRENT:-$RELEASE_PATH}" -maxdepth 2 | sort || true
+echo
+echo "New release top level:"
+ls -la "$RELEASE_PATH" || true
+echo
+echo "New release tree:"
+find "$RELEASE_PATH" -maxdepth 2 | sort || true
+echo
+echo "========================================"
+echo
 
 # ---- MAINTENANCE MODE ----
 # Prefer the live release for maintenance toggles (lighter, already warmed).
