@@ -37,6 +37,17 @@ jobs:
           echo "Building commit:"
           git rev-parse HEAD
 
+      - name: Diagnose checked-out deploy script
+        run: |
+          set -euo pipefail
+          debug_marker="MEL REMOTE DEPLOY DEBUG BUILD"
+          deploy_script="scripts/deploy/remote-deploy.sh"
+          echo "===== WORKSPACE ====="
+          git rev-parse HEAD
+          git status --short
+          grep "$debug_marker" "$deploy_script" || true
+          sha256sum "$deploy_script"
+
       - name: Set up PHP
         uses: shivammathur/setup-php@2.37.0
         with:
@@ -227,6 +238,17 @@ jobs:
             exit 1
           fi
           echo "OK: followed_organisers route present in packaged account routing.yml ($member)"
+
+      - name: Diagnose deploy script before artifact upload
+        run: |
+          set -euo pipefail
+          debug_marker="MEL REMOTE DEPLOY DEBUG BUILD"
+          deploy_script="scripts/deploy/remote-deploy.sh"
+          echo "===== ARTIFACT CONTENT CHECK ====="
+          ls -la scripts/deploy/
+          grep "$debug_marker" "$deploy_script" || true
+          sha256sum "$deploy_script"
+          find scripts -maxdepth 2 | sort
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v6
