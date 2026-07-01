@@ -608,12 +608,45 @@ echo "========================================"
 echo
 
 # ---- MAINTENANCE MODE ----
-# Prefer the live release for maintenance toggles (lighter, already warmed).
+# ------------------------------------------------------------------
+# TEMPORARY DIAGNOSTIC
+#
+# Purpose:
+# Determine whether maintenance mode fails because Drush is executed
+# from the previous release instead of the newly bootstrapped release.
+#
+# Remove immediately after investigation.
+# ------------------------------------------------------------------
 MEL_MM_ENABLED_ATTEMPTED=1
+echo "========================================"
+echo "TEMPORARY MAINTENANCE MODE DIAGNOSTIC"
+echo "========================================"
+echo "Attempt 1: Previous release"
+set +e
 if [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -f "${MEL_PREVIOUS_CURRENT}/vendor/bin/drush.php" ]; then
   ( cd "$MEL_PREVIOUS_CURRENT" && mel_drush_maintenance_mode 1 )
+  mel_mm_previous_rc=$?
 else
   mel_drush_maintenance_mode 1
+  mel_mm_previous_rc=$?
+fi
+set -e
+if [ "$mel_mm_previous_rc" -eq 0 ]; then
+  echo "SUCCESS: Previous release"
+else
+  echo "FAILED: Previous release"
+  echo "Attempt 2: New release"
+  set +e
+  ( cd "$RELEASE_PATH" && mel_drush_maintenance_mode 1 )
+  mel_mm_new_rc=$?
+  set -e
+  if [ "$mel_mm_new_rc" -eq 0 ]; then
+    echo "SUCCESS: New release"
+  else
+    echo "FAILED: New release"
+    echo "ERROR: Unable to enable maintenance mode from either release." >&2
+    exit "$mel_mm_previous_rc"
+  fi
 fi
 # No pre-switch cache rebuild: drush cr on the unreleased tree peaks memory during container
 # rebuild; staging CLI defaults are often 128M. Post-switch finalize runs drush cr with mel_drush.
